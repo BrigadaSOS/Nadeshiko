@@ -174,6 +174,20 @@ const reportTarget = ref<{
 
 const revealedContent = ref(new Set<string>());
 
+const revealedTranslations = reactive(new Set<string>());
+
+const isTranslationRevealed = (publicId: string, lang: string) =>
+  revealedTranslations.has(`${publicId}-${lang}`);
+
+const toggleTranslationReveal = (publicId: string, lang: string) => {
+  const key = `${publicId}-${lang}`;
+  if (revealedTranslations.has(key)) {
+    revealedTranslations.delete(key);
+  } else {
+    revealedTranslations.add(key);
+  }
+};
+
 type OrderedSegmentLang = 'textEn' | 'textEs';
 
 const segmentLanguageLabel: Record<OrderedSegmentLang, string> = {
@@ -404,12 +418,14 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                   :class="row.isSpoiler ? 'text-neutral-300/80' : 'text-neutral-200'">
                   {{ segmentLanguageLabel[row.lang] }}
                 </span>
-                <div data-testid="translation-text" class="group/translation min-w-0 flex-1">
+                <div data-testid="translation-text" class="min-w-0 flex-1">
+                  <span class="group/translation"
+                    :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang) ? 'cursor-pointer' : ''"
+                    @click="row.isSpoiler && toggleTranslationReveal(result.segment.publicId, row.lang)">
                   <span data-testid="translation-content" class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
-                    :class="row.isSpoiler
-                      ? 'bg-neutral-700/85 text-transparent group-hover/translation:bg-transparent group-hover/translation:text-gray-400'
+                    :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang)
+                      ? 'bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
                       : 'bg-transparent text-gray-400'"
-                    :title="row.isSpoiler ? 'Hover over sentence to preview translation' : undefined"
                     v-html="row.isSpoiler
                       ? result.segment[row.lang].content
                       : (result.segment[row.lang].highlight
@@ -417,8 +433,8 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                         : result.segment[row.lang].content
                       )"></span>
                   <div v-if="result.segment[row.lang].isMachineTranslated" class="relative inline-flex group/mt-tooltip align-middle ml-2"
-                    :class="row.isSpoiler
-                      ? 'opacity-40 transition-opacity duration-200 group-hover/translation:opacity-100'
+                    :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang)
+                      ? 'opacity-40 transition-opacity duration-200 [@media(hover:hover)]:group-hover/translation:opacity-100'
                       : 'opacity-100'">
                     <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4"
                       h="h-4" size="19" />
@@ -429,6 +445,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                       <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
                     </span>
                   </div>
+                  </span>
                 </div>
               </li>
             </ul>
