@@ -3,6 +3,7 @@ import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@
 import { buildMediaSearchPath } from '~/utils/routes';
 
 const { locale } = useI18n();
+const { url: siteUrl } = useSiteConfig();
 
 const seoTitle = computed(() => {
   if (locale.value === 'es') return 'Nadeshiko: Busca oraciones en japonés de anime';
@@ -34,7 +35,7 @@ useSchemaOrg([
     name: 'Nadeshiko',
   }),
   defineSearchAction({
-    target: 'https://nadeshiko.co/search/{search_term_string}',
+    target: `${siteUrl}/search/{search_term_string}`,
   }),
 ]);
 
