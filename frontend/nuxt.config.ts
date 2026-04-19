@@ -167,7 +167,7 @@ export default defineNuxtConfig({
         groups: [
           {
             userAgent: '*',
-            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/docs/'],
+            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/docs/', '/es/', '/ja/'],
             disallow: [
               '/settings',
               '/settings/',
@@ -177,6 +177,22 @@ export default defineNuxtConfig({
               '/admin/',
               '/reports',
               '/reports/',
+              '/es/settings',
+              '/es/settings/',
+              '/es/user',
+              '/es/user/',
+              '/es/admin',
+              '/es/admin/',
+              '/es/reports',
+              '/es/reports/',
+              '/ja/settings',
+              '/ja/settings/',
+              '/ja/user',
+              '/ja/user/',
+              '/ja/admin',
+              '/ja/admin/',
+              '/ja/reports',
+              '/ja/reports/',
               '/api/',
               '/v1/',
               '/_nuxt/',
@@ -202,7 +218,7 @@ export default defineNuxtConfig({
         ],
         sources: ['/api/__sitemap__/media', '/api/__sitemap__/words', '/api/__sitemap__/blog'],
         cacheMaxAgeSeconds: 86400,
-        autoI18n: false,
+        autoI18n: true,
       },
   ogImage: {
     enabled: false,
@@ -211,37 +227,29 @@ export default defineNuxtConfig({
     cssPath: '~/assets/css/tailwind.css',
   },
   i18n: {
-    experimental: {
-      localeDetector: './localeDetector.ts',
-    },
     locales: [
       {
         code: 'en',
         iso: 'en-US',
-        file: 'en.ts',
+        file: 'en.json',
         name: 'English',
       },
       {
         code: 'es',
-        iso: 'es-US',
-        file: 'es.ts',
+        iso: 'es',
+        file: 'es.json',
         name: 'Spanish',
       },
       {
         code: 'ja',
         iso: 'ja',
-        file: 'ja.ts',
+        file: 'ja.json',
         name: 'Japanese',
       },
     ],
     defaultLocale: 'en',
-    strategy: 'no_prefix',
-    detectBrowserLanguage: {
-      useCookie: true,
-      alwaysRedirect: true,
-      cookieKey: 'i18n_redirected',
-      redirectOn: 'root',
-    },
+    strategy: 'prefix_except_default',
+    detectBrowserLanguage: false,
   },
   compatibilityDate: '2024-07-28',
   build: {
@@ -251,6 +259,17 @@ export default defineNuxtConfig({
     '/api/v1/docs': {
       redirect: { to: '/docs/api/index.html', statusCode: 301 },
     },
+    // Public pages — cached at Cloudflare edge, short TTL so content stays fresh.
+    // Requires a Cloudflare Cache Rule matching these paths with "Eligible for cache".
+    '/': { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
+    '/es': { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
+    '/ja': { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
+    '/about': { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } },
+    '/es/about': { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } },
+    '/ja/about': { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } },
+    '/stats': { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } },
+    '/es/stats': { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } },
+    '/ja/stats': { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {
@@ -258,21 +277,21 @@ export default defineNuxtConfig({
       },
     }),
     // Private/authenticated areas should never be indexed.
-    '/settings/**': {
-      robots: false,
-    },
-    '/user/**': {
-      robots: false,
-    },
-    '/admin/**': {
-      robots: false,
-    },
-    '/reports': {
-      robots: false,
-    },
-    '/reports/**': {
-      robots: false,
-    },
+    '/settings/**': { robots: false },
+    '/user/**': { robots: false },
+    '/admin/**': { robots: false },
+    '/reports': { robots: false },
+    '/reports/**': { robots: false },
+    '/es/settings/**': { robots: false },
+    '/es/user/**': { robots: false },
+    '/es/admin/**': { robots: false },
+    '/es/reports': { robots: false },
+    '/es/reports/**': { robots: false },
+    '/ja/settings/**': { robots: false },
+    '/ja/user/**': { robots: false },
+    '/ja/admin/**': { robots: false },
+    '/ja/reports': { robots: false },
+    '/ja/reports/**': { robots: false },
     // Static assets are fine to cache (Nuxt fingerprints them)
     '/_nuxt/**': {
       headers: {

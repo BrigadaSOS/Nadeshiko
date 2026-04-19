@@ -3,5 +3,6 @@ export default defineNuxtRouteMiddleware((_to, _from) => {
   if (useUserStore.isLoggedIn === true) {
     return;
   }
-  return navigateTo('/');
+  const localePath = useLocalePath();
+  return navigateTo(localePath('/'));
 });

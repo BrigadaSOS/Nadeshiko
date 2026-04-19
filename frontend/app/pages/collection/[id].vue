@@ -3,6 +3,7 @@ import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 import { socialTitle } from '~/utils/metaTags';
 
 const route = useRoute();
+const localePath = useLocalePath();
 
 const collectionId = computed(() => String(route.params.id));
 
@@ -17,7 +18,7 @@ const fetchSentenceData = async () => {
     });
     if ('error' in result) {
       if (result.response.status === 403 || result.response.status === 401) {
-        await navigateTo('/', { redirectCode: 302 });
+        await navigateTo(localePath('/'), { redirectCode: 302 });
       }
       return null;
     }
@@ -59,7 +60,7 @@ const { data: collectionDetails } = await useAsyncData(
     });
     if ('error' in result) {
       if (result.response.status === 403 || result.response.status === 401) {
-        await navigateTo('/', { redirectCode: 302 });
+        await navigateTo(localePath('/'), { redirectCode: 302 });
       }
       return null;
     }
