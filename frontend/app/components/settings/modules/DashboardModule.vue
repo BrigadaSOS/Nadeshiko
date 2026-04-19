@@ -12,6 +12,7 @@ type AdminUser = {
   providers: string[];
 };
 
+const { t, locale } = useI18n();
 const store = userStore();
 
 const users = ref<AdminUser[]>([]);
@@ -25,7 +26,7 @@ const openMenuId = ref<string | null>(null);
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString();
+  return new Date(dateStr).toLocaleDateString(locale.value);
 }
 
 function formatRelative(dateStr: string) {
@@ -33,15 +34,37 @@ function formatRelative(dateStr: string) {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffMs = now - then;
+  const formatter = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffMins < 1) return formatter.format(0, 'minute');
+  if (diffMins < 60) return formatter.format(-diffMins, 'minute');
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffHours < 24) return formatter.format(-diffHours, 'hour');
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return `${diffDays}d ago`;
+  if (diffDays < 30) return formatter.format(-diffDays, 'day');
   return formatDate(dateStr);
 }
+
+const formatNumber = (value: number) => new Intl.NumberFormat(locale.value).format(value);
+
+const providerLabel = (provider: string) => {
+  switch (provider) {
+    case 'google':
+      return t('accountSettings.dashboard.providers.google');
+    case 'discord':
+      return t('accountSettings.dashboard.providers.discord');
+    case 'magic-link':
+    case 'credential':
+      return t('accountSettings.dashboard.providers.email');
+    default:
+      return provider;
+  }
+};
+
+const statusLabel = (banned: boolean) =>
+  banned
+    ? t('accountSettings.dashboard.status.banned')
+    : t('accountSettings.dashboard.status.active');
 
 async function fetchUsers() {
   isLoading.value = true;
@@ -132,16 +155,16 @@ onUnmounted(() => {
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-white mb-6">Users</h1>
+    <h1 class="text-2xl font-bold text-white mb-6">{{ t('accountSettings.dashboard.title') }}</h1>
 
     <div class="flex items-center justify-between mb-4 gap-3">
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Search by email..."
+        :placeholder="t('accountSettings.dashboard.searchPlaceholder')"
         class="w-full max-w-sm px-3 py-2 text-sm rounded-lg bg-neutral-800 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-input-focus-ring"
       />
-      <span class="text-sm text-gray-400 whitespace-nowrap">{{ total }} user{{ total === 1 ? '' : 's' }}</span>
+      <span class="text-sm text-gray-400 whitespace-nowrap">{{ t('accountSettings.dashboard.count', { count: formatNumber(total) }) }}</span>
     </div>
 
     <div v-if="isLoading" class="text-center py-12">
@@ -150,20 +173,20 @@ onUnmounted(() => {
 
     <template v-else>
       <div v-if="users.length === 0" class="text-center py-12 text-gray-500 text-sm">
-        No users found.
+        {{ t('accountSettings.dashboard.empty') }}
       </div>
 
       <div v-else class="rounded-lg border border-neutral-700 bg-neutral-800/50 overflow-x-auto">
         <table class="w-full text-sm min-w-[800px]">
           <thead>
             <tr class="border-b border-neutral-700 text-left text-gray-400">
-              <th class="px-4 py-3 font-medium">Name</th>
-              <th class="px-4 py-3 font-medium">Email</th>
-              <th class="px-4 py-3 font-medium">Role</th>
-              <th class="px-4 py-3 font-medium">Providers</th>
-              <th class="px-4 py-3 font-medium">Registered</th>
-              <th class="px-4 py-3 font-medium">Last Update</th>
-              <th class="px-4 py-3 font-medium">Status</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.name') }}</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.email') }}</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.role') }}</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.providers') }}</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.registered') }}</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.lastUpdate') }}</th>
+              <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.status') }}</th>
               <th class="px-4 py-3 font-medium w-10" />
             </tr>
           </thead>
@@ -179,21 +202,21 @@ onUnmounted(() => {
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   <template v-if="!user.providers || user.providers.length === 0">
-                    <span class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600">Email</span>
+                    <span class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600">{{ t('accountSettings.dashboard.providers.email') }}</span>
                   </template>
                   <template v-for="provider in user.providers" :key="provider">
                     <span
                       v-if="provider === 'google'"
                       class="px-1.5 py-0.5 text-xs font-medium rounded bg-blue-500/20 text-blue-400 border border-blue-600"
-                    >Google</span>
+                    >{{ providerLabel(provider) }}</span>
                     <span
                       v-else-if="provider === 'discord'"
                       class="px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-500/20 text-indigo-400 border border-indigo-600"
-                    >Discord</span>
+                    >{{ providerLabel(provider) }}</span>
                     <span
                       v-else-if="provider === 'magic-link' || provider === 'credential'"
                       class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600"
-                    >Email</span>
+                    >{{ providerLabel(provider) }}</span>
                     <span
                       v-else
                       class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600"
@@ -208,13 +231,13 @@ onUnmounted(() => {
                   v-if="user.banned"
                   class="px-2 py-1 text-xs font-medium rounded border bg-red-500/20 text-red-400 border-red-600"
                 >
-                  BANNED
+                  {{ statusLabel(true) }}
                 </span>
                 <span
                   v-else
                   class="px-2 py-1 text-xs font-medium rounded border bg-green-500/20 text-green-400 border-green-600"
                 >
-                  ACTIVE
+                  {{ statusLabel(false) }}
                 </span>
               </td>
               <td class="px-4 py-3 relative">
@@ -238,21 +261,21 @@ onUnmounted(() => {
                     class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 transition-colors"
                     @click="handleImpersonate(user)"
                   >
-                    Impersonate
+                    {{ t('accountSettings.dashboard.actions.impersonate') }}
                   </button>
                   <button
                     v-if="!user.banned"
                     class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-neutral-700 transition-colors"
                     @click="handleBan(user)"
                   >
-                    Ban
+                    {{ t('accountSettings.dashboard.actions.ban') }}
                   </button>
                   <button
                     v-else
                     class="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-neutral-700 transition-colors"
                     @click="handleUnban(user)"
                   >
-                    Unban
+                    {{ t('accountSettings.dashboard.actions.unban') }}
                   </button>
                 </div>
               </td>
@@ -262,21 +285,25 @@ onUnmounted(() => {
       </div>
 
       <div v-if="total > limit" class="flex items-center justify-between mt-4 text-sm text-gray-400">
-        <span>Showing {{ currentOffset + 1 }}–{{ Math.min(currentOffset + limit, total) }} of {{ total }}</span>
+        <span>{{ t('accountSettings.dashboard.pagination.showing', {
+          start: formatNumber(currentOffset + 1),
+          end: formatNumber(Math.min(currentOffset + limit, total)),
+          total: formatNumber(total),
+        }) }}</span>
         <div class="flex gap-2">
           <button
             :disabled="currentOffset <= 0"
             class="px-3 py-1.5 rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             @click="goToPrev"
           >
-            Previous
+            {{ t('accountSettings.dashboard.pagination.previous') }}
           </button>
           <button
             :disabled="currentOffset + limit >= total"
             class="px-3 py-1.5 rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             @click="goToNext"
           >
-            Next
+            {{ t('accountSettings.dashboard.pagination.next') }}
           </button>
         </div>
       </div>

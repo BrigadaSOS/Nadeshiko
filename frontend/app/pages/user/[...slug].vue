@@ -45,22 +45,22 @@ const router = useRouter();
 const store = userStore();
 
 const tabsGeneral = computed(() => [
-  { name: 'Settings', icon: mdiAccount, route: '/user/settings' },
+  { name: t('accountSettings.tabs.settings'), icon: mdiAccount, route: '/user/settings' },
   { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync' },
-  { name: 'Collections', icon: mdiFormatListBulletedSquare, route: '/user/collections' },
-  { name: 'Activity', icon: mdiHistory, route: '/user/activity' },
-  { name: 'Hide Media', icon: mdiEyeOffOutline, route: '/user/hide-media' },
+  { name: t('accountSettings.tabs.collections'), icon: mdiFormatListBulletedSquare, route: '/user/collections' },
+  { name: t('accountSettings.tabs.activity'), icon: mdiHistory, route: '/user/activity' },
+  { name: t('accountSettings.tabs.hideMedia'), icon: mdiEyeOffOutline, route: '/user/hide-media' },
 ]);
 
 const tabsAdvanced = computed(() => [
   { name: t('accountSettings.tabs.developer'), icon: mdiCodeTags, route: '/user/developer' },
-  { name: 'Labs', icon: mdiFlask, route: '/user/labs' },
+  { name: t('accountSettings.tabs.labs'), icon: mdiFlask, route: '/user/labs' },
 ]);
 
 const tabsAdmin = computed(() => [
-  { name: 'Users', icon: mdiAccountGroupOutline, route: '/user/admin/users' },
-  { name: 'Reports', icon: mdiShieldCrownOutline, route: '/user/admin/reports' },
-  { name: 'Announcement', icon: mdiBullhornOutline, route: '/user/admin/announcement' },
+  { name: t('accountSettings.tabs.users'), icon: mdiAccountGroupOutline, route: '/user/admin/users' },
+  { name: t('accountSettings.tabs.reports'), icon: mdiShieldCrownOutline, route: '/user/admin/reports' },
+  { name: t('accountSettings.tabs.announcement'), icon: mdiBullhornOutline, route: '/user/admin/announcement' },
 ]);
 
 const allTabs = computed(() => [
@@ -183,7 +183,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
             </button>
 
             <template v-if="store.isAdmin">
-              <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">Admin</h3>
+              <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.adminTitle") }}</h3>
               <div class="border-b border-white/10" />
               <button
                 v-for="tab in tabsAdmin"

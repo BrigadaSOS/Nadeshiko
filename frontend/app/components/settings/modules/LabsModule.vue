@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLabsStore } from '@/stores/labs';
 
+const { t } = useI18n();
 const labsStore = useLabsStore();
 const togglingKey = ref<string | null>(null);
 const sdk = useNadeshikoSdk();
@@ -35,18 +36,18 @@ const toggleFeature = async (key: string, currentActive: boolean) => {
 <template>
   <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
     <div class="flex items-center gap-2">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Nadeshiko Labs</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.labs.title') }}</h3>
     </div>
     <p class="text-gray-400 text-sm mt-1">
-      Try experimental features before they are released to everyone!
+      {{ t('accountSettings.labs.description') }}
     </p>
     <p class="text-gray-400 text-sm mt-3">
-      These features are still under testing and might change at any time, but we would love to hear your feedback to help us improve them before they become default features in Nadeshiko.
+      {{ t('accountSettings.labs.feedbackDescription') }}
     </p>
     <div class="border-b pt-4 border-white/10" />
 
     <div v-if="labsStore.features.length === 0" class="mt-4 text-gray-400">
-      No lab features available at this time.
+      {{ t('accountSettings.labs.empty') }}
     </div>
 
     <div v-else class="mt-4 space-y-4">

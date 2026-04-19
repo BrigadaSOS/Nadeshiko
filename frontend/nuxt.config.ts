@@ -41,8 +41,7 @@ export default defineNuxtConfig({
       meta: [
         {
           name: 'description',
-          content:
-            'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+          content: 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
         },
         { property: 'og:type', content: 'website' },
         { property: 'og:image:width', content: '1200' },
@@ -155,9 +154,8 @@ export default defineNuxtConfig({
   },
   site: {
     url: SITE_URL,
-    name: 'Nadeshiko: Search Japanese sentences from anime',
-    description:
-      'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+    name: 'Nadeshiko',
+    description: 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
   },
   robots: isDev
     ? {
@@ -236,12 +234,12 @@ export default defineNuxtConfig({
       {
         code: 'es',
         iso: 'es',
-        name: 'Spanish',
+        name: 'Español',
       },
       {
         code: 'ja',
         iso: 'ja',
-        name: 'Japanese',
+        name: '日本語',
       },
     ],
     defaultLocale: 'en',

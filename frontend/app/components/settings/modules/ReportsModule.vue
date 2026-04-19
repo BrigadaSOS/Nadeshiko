@@ -14,7 +14,7 @@ import { buildMediaSearchPath, buildSentencePath } from '~/utils/routes';
 type ReportGroup = AdminReportGroup;
 type ReportGroupItem = AdminReportGroup['reports'][number];
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const sdk = useNadeshikoSdk();
 const localePath = useLocalePath();
 
@@ -69,6 +69,13 @@ const showAuditConfig = ref(false);
 const editingAudit = ref<MediaAudit | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
 
+const formatNumber = (value: number) => new Intl.NumberFormat(locale.value).format(value);
+
+const statusLabel = (status: string) => t(`reports.statuses.${status}`);
+const sourceLabel = (source: string) => t(`reports.admin.sources.${source}`);
+const targetTypeLabel = (type: string) => t(`reports.admin.targetTypes.${type}`);
+const reportReasonLabel = (reason: string) => t(`reports.reasons.${reason}`);
+
 const reportTargetSearchPath = (target: ReportGroup['target']) =>
   localePath(buildMediaSearchPath(target.mediaPublicId, 'episodeNumber' in target ? target.episodeNumber : undefined));
 
@@ -108,7 +115,7 @@ const fetchRuns = async () => {
     const data = await sdk.listAdminMediaAuditRuns({ take: 50 });
     runs.value = data.runs;
   } catch (err) {
-    console.error('Failed to fetch audit runs:', err);
+    console.error('reports.audit_runs_fetch_failed', err);
   }
 };
 
@@ -130,7 +137,10 @@ const runAudit = async (auditName: string) => {
   runningAudits.value.add(auditName);
   try {
     const data = await sdk.runAdminMediaAudit(auditName);
-    useToastSuccess(`${auditName}: ${data.totalReports ?? 0} findings`);
+    useToastSuccess(t('reports.admin.auditRunResult', {
+      audit: auditName,
+      count: formatNumber(data.totalReports ?? 0),
+    }));
     await fetchReports();
     await fetchAudits();
   } catch {
@@ -149,7 +159,7 @@ const updateReport = async (reportId: number, status?: string, adminNotes?: stri
     await fetchReports();
     useToastSuccess(t('reports.admin.updateSuccess'));
   } catch {
-    useToastError('Failed to update report');
+    useToastError(t('reports.admin.updateError'));
   }
 };
 
@@ -167,7 +177,7 @@ const saveAuditConfig = async () => {
       name: editingAudit.value.name,
       threshold: editThreshold.value,
     });
-    useToastSuccess('Audit config updated');
+    useToastSuccess(t('reports.admin.auditConfigUpdated'));
     showAuditConfig.value = false;
     await fetchAudits();
   } catch {}
@@ -205,17 +215,18 @@ const saveNotes = async (reportId: number) => {
 };
 
 const formatDate = (iso: string) => {
-  return new Date(iso).toLocaleString();
+  return new Date(iso).toLocaleString(locale.value);
 };
 
 const formatRelativeDate = (iso: string) => {
+  const formatter = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return formatter.format(-Math.max(minutes, 0), 'minute');
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return formatter.format(-hours, 'hour');
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return formatter.format(-days, 'day');
 };
 
 const toggleExpand = (idx: number) => {
@@ -270,10 +281,10 @@ const batchUpdate = async (status: string) => {
   try {
     const data = await sdk.batchUpdateAdminReports({ ids, status: status as ReportStatus });
     selectedGroupIndices.value = new Set();
-    useToastSuccess(`${data.count} report(s) updated`);
+    useToastSuccess(t('reports.admin.batchUpdated', { count: formatNumber(data.count) }));
     await fetchReports();
   } catch {
-    useToastError('Failed to update reports');
+    useToastError(t('reports.admin.batchUpdateError'));
   } finally {
     isBatchUpdating.value = false;
   }
@@ -290,8 +301,8 @@ const batchDelete = async () => {
   const failed = results.length - succeeded;
 
   selectedGroupIndices.value = new Set();
-  if (succeeded > 0) useToastSuccess(`${succeeded} report(s) deleted`);
-  if (failed > 0) useToastError(`${failed} delete(s) failed`);
+  if (succeeded > 0) useToastSuccess(t('reports.admin.batchDeleted', { count: formatNumber(succeeded) }));
+  if (failed > 0) useToastError(t('reports.admin.batchDeletePartialError', { count: formatNumber(failed) }));
   await fetchReports();
   isBatchUpdating.value = false;
 };
@@ -313,10 +324,10 @@ const bulkDismissAllMatching = async () => {
       filters: buildBulkFilters(),
     });
 
-    useToastSuccess(`${data.count} report(s) dismissed`);
+    useToastSuccess(t('reports.admin.batchDismissed', { count: formatNumber(data.count) }));
     await fetchReports();
   } catch {
-    useToastError('Failed to dismiss reports');
+    useToastError(t('reports.admin.batchDismissError'));
   } finally {
     isBulkDismissing.value = false;
   }
@@ -337,10 +348,10 @@ const deleteReport = async () => {
 
   try {
     await sdk.deleteAdminReport({ reportId });
-    useToastSuccess('Report deleted');
+    useToastSuccess(t('reports.admin.deleteSuccess'));
     await fetchReports();
   } catch {
-    useToastError('Failed to delete report');
+    useToastError(t('reports.admin.deleteError'));
   }
 };
 
@@ -352,10 +363,10 @@ const bulkDeleteAllMatching = async () => {
       filters: buildBulkFilters() as BulkDeleteReportsRequest['filters'],
     });
 
-    useToastSuccess(`${data.count} report(s) deleted`);
+    useToastSuccess(t('reports.admin.batchDeleted', { count: formatNumber(data.count) }));
     await fetchReports();
   } catch {
-    useToastError('Failed to delete reports');
+    useToastError(t('reports.admin.batchDeleteError'));
   } finally {
     isBulkDeleting.value = false;
   }
@@ -375,21 +386,21 @@ const bulkDeleteAllMatching = async () => {
           :class="sourceFilter === '' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
           @click="sourceFilter = ''"
         >
-          All
+          {{ t('reports.admin.filters.all') }}
         </button>
         <button
           class="px-3 py-2 text-sm border-l border-neutral-600"
           :class="sourceFilter === 'USER' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
           @click="sourceFilter = 'USER'"
         >
-          User Reports
+          {{ t('reports.admin.filters.user') }}
         </button>
         <button
           class="px-3 py-2 text-sm border-l border-neutral-600"
           :class="sourceFilter === 'AUTO' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
           @click="sourceFilter = 'AUTO'"
         >
-          Auto Checks
+          {{ t('reports.admin.filters.auto') }}
         </button>
       </div>
 
@@ -401,7 +412,7 @@ const bulkDeleteAllMatching = async () => {
           :class="activeStatuses.has(status) ? statusClass(status) : 'border-neutral-700 text-neutral-600 bg-neutral-800/50'"
           @click="toggleStatus(status)"
         >
-          {{ status }}
+          {{ statusLabel(status) }}
         </button>
       </div>
 
@@ -411,14 +422,14 @@ const bulkDeleteAllMatching = async () => {
         data-testid="orphaned-filter"
         @click="orphanedFilter = !orphanedFilter"
       >
-        Orphaned
+        {{ t('reports.admin.filters.orphaned') }}
       </button>
     </div>
 
     <!-- Audit Cards (Auto tab) -->
     <div v-if="sourceFilter === 'AUTO'" class="mb-4">
       <div class="mb-3">
-        <span class="text-sm text-gray-400">Available checks</span>
+        <span class="text-sm text-gray-400">{{ t('reports.admin.availableChecks') }}</span>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -437,7 +448,7 @@ const bulkDeleteAllMatching = async () => {
             <div class="flex items-center gap-1.5 shrink-0">
               <button
                 class="p-1.5 rounded text-gray-500 hover:text-white hover:bg-neutral-700 transition-colors"
-                title="Configure"
+                :title="t('reports.admin.configure')"
                 @click="openAuditConfig(audit)"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -452,16 +463,16 @@ const bulkDeleteAllMatching = async () => {
               >
                 <span v-if="runningAudits.has(audit.name)" class="flex items-center gap-1">
                   <span class="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
-                  Running
+                  {{ t('reports.admin.running') }}
                 </span>
-                <span v-else>Run</span>
+                <span v-else>{{ t('reports.admin.run') }}</span>
               </button>
             </div>
           </div>
 
           <div class="mt-2 pt-2 border-t border-neutral-700/50">
-            <span v-if="audit.latestRun" class="text-xs text-gray-500">Last run {{ formatRelativeDate(audit.latestRun.createdAt) }}</span>
-            <span v-else class="text-xs text-gray-600">Never run</span>
+            <span v-if="audit.latestRun" class="text-xs text-gray-500">{{ t('reports.admin.lastRun', { date: formatRelativeDate(audit.latestRun.createdAt) }) }}</span>
+            <span v-else class="text-xs text-gray-600">{{ t('reports.admin.neverRun') }}</span>
           </div>
         </div>
       </div>
@@ -474,14 +485,14 @@ const bulkDeleteAllMatching = async () => {
         :class="autoSubTab === 'results' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
         @click="autoSubTab = 'results'"
       >
-        Results
+        {{ t('reports.admin.resultsTab') }}
       </button>
       <button
         class="px-4 py-2 text-sm border-l border-neutral-700"
         :class="autoSubTab === 'runHistory' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
         @click="autoSubTab = 'runHistory'; fetchRuns()"
       >
-        Run History
+        {{ t('reports.admin.runHistoryTab') }}
       </button>
     </div>
 
@@ -490,15 +501,15 @@ const bulkDeleteAllMatching = async () => {
       v-if="selectedGroupIndices.size > 0"
       class="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg border border-neutral-600 bg-neutral-800/80"
     >
-      <span class="text-sm text-white font-medium">{{ selectedGroupIndices.size }} group(s) selected</span>
+      <span class="text-sm text-white font-medium">{{ t('reports.admin.selectedGroups', { count: formatNumber(selectedGroupIndices.size) }) }}</span>
       <div class="flex gap-1.5 ml-2">
-        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50 disabled:opacity-50" @click="batchUpdate('OPEN')">Open</button>
-        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 disabled:opacity-50" @click="batchUpdate('PROCESSING')">Processing</button>
-        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50 disabled:opacity-50" @click="batchUpdate('FIXED')">Fixed</button>
-        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50 disabled:opacity-50" @click="batchUpdate('DISMISSED')">Dismiss</button>
-        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50 disabled:opacity-50" @click="batchDelete">Delete</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50 disabled:opacity-50" @click="batchUpdate('OPEN')">{{ statusLabel('OPEN') }}</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50 disabled:opacity-50" @click="batchUpdate('PROCESSING')">{{ statusLabel('PROCESSING') }}</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50 disabled:opacity-50" @click="batchUpdate('FIXED')">{{ statusLabel('FIXED') }}</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50 disabled:opacity-50" @click="batchUpdate('DISMISSED')">{{ t('reports.admin.dismiss') }}</button>
+        <button :disabled="isBatchUpdating" class="px-2.5 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50 disabled:opacity-50" @click="batchDelete">{{ t('reports.admin.delete') }}</button>
       </div>
-      <button class="ml-auto text-xs text-gray-500 hover:text-white" @click="selectedGroupIndices = new Set()">Clear</button>
+      <button class="ml-auto text-xs text-gray-500 hover:text-white" @click="selectedGroupIndices = new Set()">{{ t('reports.admin.clearSelection') }}</button>
     </div>
 
     <!-- Bulk Actions -->
@@ -510,9 +521,9 @@ const bulkDeleteAllMatching = async () => {
       >
         <span v-if="isBulkDismissing" class="flex items-center gap-1.5">
           <span class="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
-          Dismissing all...
+          {{ t('reports.admin.dismissingAll') }}
         </span>
-        <span v-else>Dismiss All Matching</span>
+        <span v-else>{{ t('reports.admin.dismissAllMatching') }}</span>
       </button>
       <button
         :disabled="isBulkDeleting || groups.length === 0"
@@ -521,9 +532,9 @@ const bulkDeleteAllMatching = async () => {
       >
         <span v-if="isBulkDeleting" class="flex items-center gap-1.5">
           <span class="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
-          Deleting all...
+          {{ t('reports.admin.deletingAll') }}
         </span>
-        <span v-else>Delete All Matching</span>
+        <span v-else>{{ t('reports.admin.deleteAllMatching') }}</span>
       </button>
     </div>
 
@@ -541,8 +552,8 @@ const bulkDeleteAllMatching = async () => {
               <th class="px-3 py-3">{{ t('reports.table.target') }}</th>
               <th class="px-3 py-3">{{ t('reports.admin.count') }}</th>
               <th class="px-3 py-3">{{ t('reports.table.status') }}</th>
-              <th class="px-3 py-3">Reported</th>
-              <th class="px-3 py-3">Updated</th>
+              <th class="px-3 py-3">{{ t('reports.admin.reported') }}</th>
+              <th class="px-3 py-3">{{ t('reports.admin.updated') }}</th>
               <th class="px-3 py-3">{{ t('reports.admin.actions') }}</th>
             </tr>
           </thead>
@@ -564,7 +575,7 @@ const bulkDeleteAllMatching = async () => {
                     class="px-2 py-1 text-xs font-medium rounded border"
                     :class="group.target.type === 'SEGMENT' ? 'bg-purple-500/20 text-purple-400 border-purple-600' : group.target.type === 'EPISODE' ? 'bg-amber-500/20 text-amber-400 border-amber-600' : 'bg-teal-500/20 text-teal-400 border-teal-600'"
                   >
-                    {{ group.target.type }}
+                    {{ targetTypeLabel(group.target.type) }}
                   </span>
                 </td>
                 <td class="px-3 py-3 text-xs max-w-[250px]" :title="group.mediaName || group.target.mediaPublicId">
@@ -576,7 +587,7 @@ const bulkDeleteAllMatching = async () => {
                     >
                       {{ group.mediaName || group.target.mediaPublicId }}
                     </NuxtLink>
-                    <span v-if="group.target.type !== 'MEDIA' && group.target.episodeNumber" class="text-neutral-400">EP{{ group.target.episodeNumber }}</span>
+                    <span v-if="group.target.type !== 'MEDIA' && group.target.episodeNumber" class="text-neutral-400">{{ t('reports.admin.episode', { number: group.target.episodeNumber }) }}</span>
                     <NuxtLink
                       v-if="group.target.type === 'SEGMENT' && group.target.segmentPublicId"
                       :to="localePath(buildSentencePath(group.target.segmentPublicId))"
@@ -587,20 +598,20 @@ const bulkDeleteAllMatching = async () => {
                       {{ group.target.segmentPublicId }}
                     </NuxtLink>
                   </template>
-                  <span v-else class="text-red-400 italic">deleted</span>
+                  <span v-else class="text-red-400 italic">{{ t('reports.admin.deletedTarget') }}</span>
                 </td>
                 <td class="px-3 py-3 text-center">
-                  <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">{{ group.reportCount }}</span>
+                  <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">{{ formatNumber(group.reportCount) }}</span>
                   <span
                     v-if="group.reporterCount > 0"
                     class="block text-[10px] text-neutral-500 mt-0.5 cursor-help"
                     :title="[...new Set(group.reports.map(r => r.reporterName))].join(', ')"
                   >
-                    {{ group.reporterCount }} {{ group.reporterCount === 1 ? 'reporter' : 'reporters' }}
+                    {{ t('reports.admin.reporters', { count: formatNumber(group.reporterCount) }) }}
                   </span>
                 </td>
                 <td class="px-3 py-3">
-                  <span class="px-2 py-1 text-xs font-medium rounded border" :class="statusClass(group.status)">{{ group.status }}</span>
+                  <span class="px-2 py-1 text-xs font-medium rounded border" :class="statusClass(group.status)">{{ statusLabel(group.status) }}</span>
                 </td>
                 <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="formatDate(group.firstReportedAt)">
                   {{ formatRelativeDate(group.firstReportedAt) }}
@@ -610,11 +621,11 @@ const bulkDeleteAllMatching = async () => {
                 </td>
                 <td class="px-3 py-3" @click.stop>
                   <div v-if="group.reports[0]" class="flex gap-1 flex-wrap">
-                    <button class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="updateReport(group.reports[0]!.id, 'OPEN')">Open</button>
-                    <button class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="updateReport(group.reports[0]!.id, 'PROCESSING')">Processing</button>
-                    <button class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="updateReport(group.reports[0]!.id, 'FIXED')">Fixed</button>
-                    <button class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="updateReport(group.reports[0]!.id, 'DISMISSED')">Dismiss</button>
-                    <button class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="confirmDeleteReport(group.reports[0]!.id)">Delete</button>
+                    <button class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="updateReport(group.reports[0]!.id, 'OPEN')">{{ statusLabel('OPEN') }}</button>
+                    <button class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="updateReport(group.reports[0]!.id, 'PROCESSING')">{{ statusLabel('PROCESSING') }}</button>
+                    <button class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="updateReport(group.reports[0]!.id, 'FIXED')">{{ statusLabel('FIXED') }}</button>
+                    <button class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="updateReport(group.reports[0]!.id, 'DISMISSED')">{{ t('reports.admin.dismiss') }}</button>
+                    <button class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="confirmDeleteReport(group.reports[0]!.id)">{{ t('reports.admin.delete') }}</button>
                   </div>
                 </td>
               </tr>
@@ -623,8 +634,8 @@ const bulkDeleteAllMatching = async () => {
                 <td colspan="2" />
                 <td colspan="2" class="px-3 py-2 text-xs">
                   <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 text-[10px] font-medium rounded border" :class="sourceClass(report.source)">{{ report.source }}</span>
-                    <span class="font-medium text-neutral-300">{{ report.reason.replace(/_/g, ' ') }}</span>
+                    <span class="px-2 py-0.5 text-[10px] font-medium rounded border" :class="sourceClass(report.source)">{{ sourceLabel(report.source) }}</span>
+                    <span class="font-medium text-neutral-300">{{ reportReasonLabel(report.reason) }}</span>
                   </div>
                   <span v-if="report.description" class="block text-neutral-500 truncate max-w-[300px] mt-0.5" :title="report.description">{{ report.description }}</span>
                 </td>
@@ -683,11 +694,11 @@ const bulkDeleteAllMatching = async () => {
         <table class="w-full text-sm text-left text-gray-300">
           <thead class="text-xs uppercase bg-neutral-800 text-gray-400">
             <tr>
-              <th class="px-3 py-3">Check</th>
-              <th class="px-3 py-3">Category</th>
-              <th class="px-3 py-3">Findings</th>
-              <th class="px-3 py-3">Date</th>
-              <th class="px-3 py-3">Actions</th>
+              <th class="px-3 py-3">{{ t('reports.admin.runHistory.check') }}</th>
+              <th class="px-3 py-3">{{ t('reports.admin.runHistory.category') }}</th>
+              <th class="px-3 py-3">{{ t('reports.admin.runHistory.findings') }}</th>
+              <th class="px-3 py-3">{{ t('reports.admin.runHistory.date') }}</th>
+              <th class="px-3 py-3">{{ t('reports.admin.runHistory.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -697,10 +708,10 @@ const bulkDeleteAllMatching = async () => {
               class="border-b border-neutral-700 hover:bg-neutral-800/50"
             >
               <td class="px-3 py-3 text-sm font-medium text-white">{{ run.auditName }}</td>
-              <td class="px-3 py-3 text-xs text-gray-400">{{ run.category || 'All' }}</td>
+              <td class="px-3 py-3 text-xs text-gray-400">{{ run.category || t('reports.admin.runHistory.allCategories') }}</td>
               <td class="px-3 py-3">
                 <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">
-                  {{ run.resultCount }}
+                  {{ formatNumber(run.resultCount) }}
                 </span>
               </td>
               <td class="px-3 py-3 text-xs text-gray-400">{{ formatDate(run.createdAt) }}</td>
@@ -709,12 +720,12 @@ const bulkDeleteAllMatching = async () => {
                   class="text-xs text-cyan-400 hover:text-cyan-300"
                   @click="autoSubTab = 'results'; activeStatuses = new Set(ALL_STATUSES); cursor = null; fetchReports()"
                 >
-                  View Results
+                  {{ t('reports.admin.runHistory.viewResults') }}
                 </button>
               </td>
             </tr>
             <tr v-if="runs.length === 0">
-              <td colspan="5" class="px-4 py-8 text-center text-gray-500">No runs yet</td>
+              <td colspan="5" class="px-4 py-8 text-center text-gray-500">{{ t('reports.admin.runHistory.empty') }}</td>
             </tr>
           </tbody>
         </table>
@@ -758,13 +769,13 @@ const bulkDeleteAllMatching = async () => {
               class="px-4 py-2 text-sm rounded-lg bg-neutral-700 text-white hover:bg-neutral-600"
               @click="showAuditConfig = false"
             >
-              Cancel
+              {{ t('reports.cancel') }}
             </button>
             <button
               class="px-4 py-2 text-sm rounded-lg bg-cyan-600 text-white hover:bg-cyan-500"
               @click="saveAuditConfig"
             >
-              Save
+              {{ t('reports.admin.save') }}
             </button>
           </div>
         </div>
@@ -773,27 +784,27 @@ const bulkDeleteAllMatching = async () => {
 
     <ConfirmModal
       :visible="showDismissConfirm"
-      title="Dismiss all matching reports?"
-      description="This will dismiss all reports matching the current filters. This action can be undone by reopening individual reports."
-      confirm-label="Dismiss All"
+      :title="t('reports.admin.confirm.dismissAllTitle')"
+      :description="t('reports.admin.confirm.dismissAllDescription')"
+      :confirm-label="t('reports.admin.confirm.dismissAllButton')"
       @confirm="bulkDismissAllMatching"
       @cancel="showDismissConfirm = false"
     />
 
     <ConfirmModal
       :visible="showDeleteConfirm"
-      title="Delete all matching reports?"
-      description="This will permanently delete all reports matching the current filters. This cannot be undone."
-      confirm-label="Delete All"
+      :title="t('reports.admin.confirm.deleteAllTitle')"
+      :description="t('reports.admin.confirm.deleteAllDescription')"
+      :confirm-label="t('reports.admin.confirm.deleteAllButton')"
       @confirm="bulkDeleteAllMatching"
       @cancel="showDeleteConfirm = false"
     />
 
     <ConfirmModal
       :visible="pendingDeleteId !== null"
-      title="Delete this report group?"
-      description="This will permanently delete this report and all duplicates with the same target and reason."
-      confirm-label="Delete"
+      :title="t('reports.admin.confirm.deleteGroupTitle')"
+      :description="t('reports.admin.confirm.deleteGroupDescription')"
+      :confirm-label="t('reports.admin.delete')"
       @confirm="deleteReport"
       @cancel="cancelDeleteReport"
     />

@@ -6,7 +6,7 @@ import type { SearchResult } from '~/types/search';
 import { useToastSuccess, useToastError } from '~/utils/toast';
 import { resolveContextResponse } from '~/utils/resolvers';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const user_store = userStore();
 const labsStore = useLabsStore();
@@ -69,7 +69,7 @@ const mediaNameExamples: Record<string, string> = {
 
 const mediaNameLanguageLabel = computed(() => {
   const lang = user_store.preferences?.mediaNameLanguage || 'ENGLISH';
-  return lang.charAt(0) + lang.slice(1).toLowerCase();
+  return t(`accountSettings.account.mediaNameLanguageOptions.${lang}`);
 });
 
 const mediaNameExample = computed(() => {
@@ -135,20 +135,20 @@ const formatDate = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString();
+  return date.toLocaleString(locale.value);
 };
 
 const detectDeviceType = (userAgent?: string | null) => {
-  if (!userAgent) return 'Unknown device';
+  if (!userAgent) return t('accountSettings.account.sessionDetails.unknownDevice');
 
   const ua = userAgent.toLowerCase();
-  if (ua.includes('ipad') || ua.includes('tablet')) return 'Tablet';
-  if (ua.includes('mobi') || ua.includes('android') || ua.includes('iphone') || ua.includes('ipod')) return 'Mobile';
-  return 'Desktop';
+  if (ua.includes('ipad') || ua.includes('tablet')) return t('accountSettings.account.sessionDetails.tablet');
+  if (ua.includes('mobi') || ua.includes('android') || ua.includes('iphone') || ua.includes('ipod')) return t('accountSettings.account.sessionDetails.mobile');
+  return t('accountSettings.account.sessionDetails.desktop');
 };
 
 const detectOperatingSystem = (userAgent?: string | null) => {
-  if (!userAgent) return 'Unknown OS';
+  if (!userAgent) return t('accountSettings.account.sessionDetails.unknownOs');
 
   const ua = userAgent.toLowerCase();
   if (ua.includes('windows')) return 'Windows';
@@ -157,11 +157,11 @@ const detectOperatingSystem = (userAgent?: string | null) => {
   if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) return 'iOS';
   if (ua.includes('cros')) return 'ChromeOS';
   if (ua.includes('linux')) return 'Linux';
-  return 'Unknown OS';
+  return t('accountSettings.account.sessionDetails.unknownOs');
 };
 
 const detectBrowser = (userAgent?: string | null) => {
-  if (!userAgent) return 'Unknown browser';
+  if (!userAgent) return t('accountSettings.account.sessionDetails.unknownBrowser');
 
   const ua = userAgent.toLowerCase();
   if (ua.includes('edg/')) return 'Edge';
@@ -169,7 +169,7 @@ const detectBrowser = (userAgent?: string | null) => {
   if (ua.includes('firefox/')) return 'Firefox';
   if (ua.includes('chrome/')) return 'Chrome';
   if (ua.includes('safari/')) return 'Safari';
-  return 'Unknown browser';
+  return t('accountSettings.account.sessionDetails.unknownBrowser');
 };
 
 const formatUserAgent = (userAgent?: string | null) => {
@@ -190,7 +190,7 @@ const revokeSingleSession = async (token?: string) => {
   try {
     const success = await user_store.revokeSession(token);
     if (!success) {
-      sessionsError.value = 'Unable to revoke this session. Please sign in again and retry.';
+      sessionsError.value = t('accountSettings.account.sessions.errors.revokeSingle');
       return;
     }
 
@@ -210,7 +210,7 @@ const revokeOtherUserSessions = async () => {
   try {
     const success = await user_store.revokeOtherSessions();
     if (!success) {
-      sessionsError.value = 'Unable to revoke other sessions. Please sign in again and retry.';
+      sessionsError.value = t('accountSettings.account.sessions.errors.revokeOthers');
       return;
     }
 
@@ -222,14 +222,14 @@ const revokeOtherUserSessions = async () => {
 
 const revokeAllUserSessions = async () => {
   if (sessionsActionLoading.value) return;
-  if (!confirm('This will revoke all your sessions, including this one. Continue?')) return;
+  if (!confirm(t('accountSettings.account.sessions.confirmRevokeAll'))) return;
 
   sessionsActionLoading.value = true;
   sessionsError.value = '';
   try {
     const success = await user_store.revokeSessions();
     if (!success) {
-      sessionsError.value = 'Unable to revoke all sessions. Please sign in again and retry.';
+      sessionsError.value = t('accountSettings.account.sessions.errors.revokeAll');
       return;
     }
   } finally {
@@ -258,18 +258,18 @@ const exportData = async () => {
 
 const deleteCurrentAccount = async () => {
   if (deletingAccount.value) return;
-  if (!confirm('This action permanently deletes your account. Continue?')) return;
+  if (!confirm(t('accountSettings.account.confirmDeleteAccount'))) return;
 
   deletingAccount.value = true;
   deleteAccountError.value = '';
   try {
     const success = await user_store.deleteAccount();
     if (!success) {
-      deleteAccountError.value = 'Unable to delete account. You may need to sign in again and retry.';
+      deleteAccountError.value = t('accountSettings.account.deleteAccountError');
       return;
     }
 
-    await user_store.logout('Account deleted');
+    await user_store.logout(t('accountSettings.account.accountDeleted'));
   } finally {
     deletingAccount.value = false;
   }
@@ -296,7 +296,7 @@ const logoutCurrentUser = async () => {
         :disabled="loggingOut"
         @click="logoutCurrentUser"
       >
-        {{ loggingOut ? 'Logging out...' : 'Logout' }}
+        {{ loggingOut ? $t('accountSettings.account.loggingOut') : $t('accountSettings.account.logout') }}
       </button>
     </div>
     <div class="border-b pt-4 border-white/10" />
@@ -355,28 +355,28 @@ const logoutCurrentUser = async () => {
   <!-- Sessions Card -->
   <div data-testid="sessions-card" class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
     <div class="flex flex-wrap items-center gap-2 justify-between">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Sessions</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.sessions.title') }}</h3>
       <div class="flex flex-wrap gap-2">
         <button
           class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="refreshSessions()"
         >
-          Refresh
+          {{ $t('accountSettings.account.sessions.refresh') }}
         </button>
         <button
           class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeOtherUserSessions"
         >
-          Log Out Other Devices
+          {{ $t('accountSettings.account.sessions.logoutOtherDevices') }}
         </button>
         <button
           class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeAllUserSessions"
         >
-          Log Out All Sessions
+          {{ $t('accountSettings.account.sessions.logoutAllSessions') }}
         </button>
       </div>
     </div>
@@ -384,15 +384,15 @@ const logoutCurrentUser = async () => {
     <div class="border-b pt-4 border-white/10" />
 
     <p v-if="sessionsError" class="mt-4 text-red-300">{{ sessionsError }}</p>
-    <p v-if="sessionsLoading" data-testid="sessions-loading" class="mt-4 text-gray-300">Loading sessions...</p>
+    <p v-if="sessionsLoading" data-testid="sessions-loading" class="mt-4 text-gray-300">{{ $t('accountSettings.account.sessions.loading') }}</p>
 
     <div v-else class="mt-4 overflow-x-auto">
       <table v-if="sessionRows.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
           <tr>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">User Agent</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Created</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Expires</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.account.sessions.table.userAgent') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.account.sessions.table.created') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.account.sessions.table.expires') }}</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>
@@ -401,7 +401,7 @@ const logoutCurrentUser = async () => {
             <td class="py-3 text-sm text-gray-200">
               {{ formatUserAgent(session.userAgent) }}
               <span v-if="isCurrentSession(session.token)" class="ml-2 inline-flex items-center rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
-                Current
+                {{ $t('accountSettings.account.sessions.current') }}
               </span>
             </td>
             <td class="py-3 text-sm text-gray-200">{{ formatDate(session.createdAt) }}</td>
@@ -413,26 +413,26 @@ const logoutCurrentUser = async () => {
                 :disabled="sessionsActionLoading"
                 @click="revokeSingleSession(session.token)"
               >
-                Revoke
+                {{ $t('accountSettings.account.sessions.revoke') }}
               </button>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <p v-else data-testid="sessions-empty-state" class="text-gray-300">No active sessions found.</p>
+      <p v-else data-testid="sessions-empty-state" class="text-gray-300">{{ $t('accountSettings.account.sessions.empty') }}</p>
     </div>
   </div>
 
   <!-- Preferences Card -->
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Preferences</h3>
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.preferencesTitle') }}</h3>
     <div class="border-b pt-4 border-white/10" />
     <div class="mt-4">
       <div class="flex justify-between items-center">
         <div>
-          <p class="text-white">Media Name Language</p>
-          <p class="text-gray-400 text-sm">Media names will appear in {{ mediaNameLanguageLabel }} when possible. Example: <span lang="ja" class="text-white/80 italic">{{ mediaNameExample }}</span></p>
+          <p class="text-white">{{ $t('accountSettings.account.mediaNameLanguage') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.mediaNameLanguageDescription', { language: mediaNameLanguageLabel }) }} <span lang="ja" class="text-white/80 italic">{{ mediaNameExample }}</span></p>
         </div>
         <select
           :value="user_store.preferences?.mediaNameLanguage || 'ENGLISH'"
@@ -440,25 +440,25 @@ const logoutCurrentUser = async () => {
           :disabled="savingPreferences"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
-          <option value="ENGLISH">English</option>
-          <option value="JAPANESE">Japanese</option>
-          <option value="ROMAJI">Romaji</option>
+          <option value="ENGLISH">{{ $t('accountSettings.account.mediaNameLanguageOptions.ENGLISH') }}</option>
+          <option value="JAPANESE">{{ $t('accountSettings.account.mediaNameLanguageOptions.JAPANESE') }}</option>
+          <option value="ROMAJI">{{ $t('accountSettings.account.mediaNameLanguageOptions.ROMAJI') }}</option>
         </select>
       </div>
       <div v-if="labsStore.isFeatureEnabled('interactive-tokens')" class="flex justify-between items-center mt-4">
         <div>
-          <p class="text-white">Token Popup Reading</p>
-          <p class="text-gray-400 text-sm">How readings are shown in the token popup when hovering over Japanese text.</p>
+          <p class="text-white">{{ $t('accountSettings.account.tokenPopupReading') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.tokenPopupReadingDescription') }}</p>
         </div>
         <select
           :value="tooltipReadingMode"
           @change="setTooltipReadingMode(($event.target as HTMLSelectElement).value as any)"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
-          <option value="hiragana">Hiragana (ねがう)</option>
-          <option value="katakana">Katakana (ネガウ)</option>
-          <option value="romaji">Romaji (negau)</option>
-          <option value="hidden">Hidden</option>
+          <option value="hiragana">{{ $t('accountSettings.account.tooltipReadingOptions.hiragana') }}</option>
+          <option value="katakana">{{ $t('accountSettings.account.tooltipReadingOptions.katakana') }}</option>
+          <option value="romaji">{{ $t('accountSettings.account.tooltipReadingOptions.romaji') }}</option>
+          <option value="hidden">{{ $t('accountSettings.account.tooltipReadingOptions.hidden') }}</option>
         </select>
       </div>
 
@@ -487,7 +487,7 @@ const logoutCurrentUser = async () => {
           <div class="relative h-36 sm:h-auto sm:w-48 shrink-0 overflow-hidden">
             <img
               :src="previewSegment.segment.urls.imageUrl"
-              :alt="`Preview image for content rating sample`"
+              :alt="$t('accountSettings.account.contentRatingPreviewAlt')"
               class="h-full w-full object-cover object-center transition-all duration-300"
               :class="questionableMode === 'BLUR' ? 'blur-[42px] scale-125' : ''"
             />
@@ -509,15 +509,15 @@ const logoutCurrentUser = async () => {
     <div class="mt-4 space-y-4">
       <div class="flex justify-between items-center">
         <div>
-          <p class="text-white">Export Data</p>
-          <p class="text-gray-400 text-sm">Download all your data as a JSON file.</p>
+          <p class="text-white">{{ $t('accountSettings.account.exportData') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
         </div>
         <button
           class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
           :disabled="exportingData"
           @click="exportData"
         >
-          {{ exportingData ? 'Exporting...' : 'Export Data' }}
+          {{ exportingData ? $t('accountSettings.account.exportingData') : $t('accountSettings.account.exportData') }}
         </button>
       </div>
       <div class="flex justify-between items-center">
@@ -529,7 +529,7 @@ const logoutCurrentUser = async () => {
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"
         >
-          {{ deletingAccount ? 'Deleting...' : 'Delete account' }}
+          {{ deletingAccount ? $t('accountSettings.account.deletingAccount') : $t('accountSettings.account.deleteAccountButton') }}
         </button>
       </div>
       <p v-if="deleteAccountError" class="text-red-300 text-sm mt-2">{{ deleteAccountError }}</p>

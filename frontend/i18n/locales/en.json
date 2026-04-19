@@ -3,6 +3,7 @@
     "buttons": {
       "home": "Home",
       "about": "About",
+      "api": "API",
       "login": "Login / Sign up",
       "profile": "Profile",
       "privacy": "Privacy",
@@ -12,9 +13,22 @@
       "blog": "Blog",
       "stats": "Stats",
       "media": "Media",
+      "collections": "Collections",
+      "activity": "Activity",
       "language": "Language",
       "logout": "Logout"
     }
+  },
+  "common": {
+    "close": "Close",
+    "logoAlt": "Nadeshiko logo",
+    "navigationMenu": "Navigation menu",
+    "searchAnything": "Search anything!",
+    "toggleNavigation": "Toggle navigation"
+  },
+  "appMeta": {
+    "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",
+    "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
   },
   "home": {
     "version": "v{version}",
@@ -310,20 +324,169 @@
   "accountSettings": {
     "menu": {
       "generalTitle": "General",
-      "advancedTitle": "Advanced"
+      "advancedTitle": "Advanced",
+      "adminTitle": "Admin"
     },
     "tabs": {
+      "settings": "Settings",
       "sync": "Anki",
-      "developer": "Developer"
+      "collections": "Collections",
+      "activity": "Activity",
+      "hideMedia": "Hide Media",
+      "developer": "Developer",
+      "labs": "Labs",
+      "users": "Users",
+      "reports": "Reports",
+      "announcement": "Announcement"
+    },
+    "dashboard": {
+      "title": "Users",
+      "searchPlaceholder": "Search by email...",
+      "count": "{count} users",
+      "empty": "No users found.",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "providers": "Providers",
+        "registered": "Registered",
+        "lastUpdate": "Last Update",
+        "status": "Status"
+      },
+      "providers": {
+        "google": "Google",
+        "discord": "Discord",
+        "email": "Email"
+      },
+      "status": {
+        "active": "Active",
+        "banned": "Banned"
+      },
+      "actions": {
+        "impersonate": "Impersonate",
+        "ban": "Ban",
+        "unban": "Unban"
+      },
+      "pagination": {
+        "showing": "Showing {start}–{end} of {total}",
+        "previous": "Previous",
+        "next": "Next"
+      }
+    },
+    "announcement": {
+      "title": "Announcement",
+      "description": "Set a site-wide announcement banner visible to all users.",
+      "fields": {
+        "message": "Message",
+        "type": "Type",
+        "active": "Active",
+        "preview": "Preview"
+      },
+      "placeholders": {
+        "message": "Write an announcement message..."
+      },
+      "activeDescription": "When active, the banner is shown to all visitors.",
+      "types": {
+        "INFO": "Info",
+        "WARNING": "Warning",
+        "MAINTENANCE": "Maintenance"
+      },
+      "previewTitles": {
+        "INFO": "Notice",
+        "WARNING": "Important Notice",
+        "MAINTENANCE": "Maintenance Notice"
+      },
+      "save": "Save",
+      "saving": "Saving...",
+      "deactivate": "Deactivate",
+      "updated": "Announcement updated",
+      "updateError": "Failed to update announcement",
+      "deactivated": "Announcement deactivated",
+      "deactivateError": "Failed to deactivate announcement",
+      "fallbackMessage": "No announcement"
+    },
+    "activity": {
+      "confirmClearHistory": "Are you sure you want to clear all activity history? This cannot be undone.",
+      "confirmClearDay": "Delete all activity for {day}? This cannot be undone.",
+      "ranges": {
+        "all": "All Time"
+      },
+      "filters": {
+        "all": "All"
+      },
+      "types": {
+        "SEARCH": "Search",
+        "SEGMENT_PLAY": "Audio Play",
+        "ANKI_EXPORT": "Anki Export",
+        "SHARE": "Share"
+      },
+      "metrics": {
+        "searches": "Sentences Searched",
+        "plays": "Audios Played",
+        "exports": "Anki Exports",
+        "shares": "Links Shared"
+      },
+      "overview": {
+        "title": "Activity Overview",
+        "description": "Useful metrics from your search and study behavior."
+      },
+      "heatmap": {
+        "title": "Activity Heatmap",
+        "description": "Activity over the last {days} days. Click a day to filter history.",
+        "loading": "Loading heatmap...",
+        "less": "Less",
+        "more": "More",
+        "records": "{count} record | {count} records",
+        "searches": "{count} search | {count} searches",
+        "plays": "{count} play | {count} plays",
+        "exports": "{count} export | {count} exports",
+        "shares": "{count} share | {count} shares",
+        "actions": "{count} action | {count} actions"
+      },
+      "history": {
+        "title": "Activity History",
+        "description": "Latest events from your account.",
+        "showing": "Showing: {day}",
+        "clearDayFilter": "Clear day filter",
+        "deleteDayTitle": "Delete all activity for this day",
+        "loading": "Loading...",
+        "empty": "No activity recorded yet.",
+        "emptyForDay": "No activity recorded for this day.",
+        "emptyForType": "No activity recorded for this type.",
+        "noDetails": "-",
+        "remove": "Remove",
+        "loadMore": "Load more",
+        "table": {
+          "type": "Type",
+          "details": "Details",
+          "date": "Date"
+        }
+      },
+      "privacy": {
+        "title": "Privacy",
+        "trackingTitle": "Activity Tracking",
+        "trackingDescription": "Track searches, exports, and listening history.",
+        "clearHistoryTitle": "Clear History",
+        "clearHistoryDescription": "Permanently delete all activity data from your account.",
+        "clearHistoryButton": "Clear History",
+        "clearing": "Clearing..."
+      }
     },
     "developer": {
       "apiUsageTitle": "API Usage",
       "apiUsageRemaining": "Remaining requests: {used} / {limit}",
+      "usageLimitMessage": {
+        "prefix": "If you need to increase your API usage limit, please reach out to us at"
+      },
+      "legacyKeysMessage": {
+        "prefix": "To manage API keys created on the previous version of the site, visit"
+      },
       "apiKeyManagement": "API Key Management",
       "addApiKey": "Add API Key",
       "keyCreated": "Key created",
       "keyCreatedMessage": "Save this key, it won't be shown again.",
       "copyApiKey": "Copy API key",
+      "copied": "Copied!",
       "keyDeactivated": "Key deactivated",
       "noKeysFound": "No API keys found",
       "noKeysMessage": "Create a new one for your apps or projects!",
@@ -357,8 +520,34 @@
       "usernameLabel": "Username",
       "emailLabel": "Email",
       "notAvailable": "Not available",
+      "logout": "Logout",
+      "loggingOut": "Logging out...",
       "additionalTitle": "Additional",
+      "preferencesTitle": "Preferences",
+      "mediaNameLanguage": "Media Name Language",
+      "mediaNameLanguageDescription": "Media names will appear in {language} when possible. Example:",
+      "mediaNameLanguageOptions": {
+        "ENGLISH": "English",
+        "JAPANESE": "Japanese",
+        "ROMAJI": "Romaji"
+      },
+      "tokenPopupReading": "Token Popup Reading",
+      "tokenPopupReadingDescription": "How readings are shown in the token popup when hovering over Japanese text.",
+      "tooltipReadingOptions": {
+        "hiragana": "Hiragana (ねがう)",
+        "katakana": "Katakana (ネガウ)",
+        "romaji": "Romaji (negau)",
+        "hidden": "Hidden"
+      },
       "deleteAccount": "Delete account (Irreversible action)",
+      "deleteAccountButton": "Delete account",
+      "deletingAccount": "Deleting...",
+      "confirmDeleteAccount": "This action permanently deletes your account. Continue?",
+      "deleteAccountError": "Unable to delete account. You may need to sign in again and retry.",
+      "accountDeleted": "Account deleted",
+      "exportData": "Export Data",
+      "exportDataDescription": "Download all your data as a JSON file.",
+      "exportingData": "Exporting...",
       "questionableContent": "Sensitive Content",
       "questionableContentDesc": "Questionable or explicit content",
       "contentRatingShow": "Show",
@@ -368,6 +557,7 @@
       "contentRatingHint_blur": "Results will be included in search but blurred",
       "contentRatingHint_hide": "Results will not be included in search",
       "contentRatingPreview": "Preview of how flagged results will appear in search",
+      "contentRatingPreviewAlt": "Preview image for content rating sample",
       "contentRatingHiddenDesc": "Hidden — will not be included in search results",
       "preferenceSaved": "Preference saved",
       "preferenceError": "Failed to save preference",
@@ -378,12 +568,51 @@
       "changeEmailCancel": "Cancel",
       "changeEmailSuccess": "A verification email has been sent to your current email address. Please check your inbox.",
       "changeEmailFailed": "Failed to request email change.",
+      "sessions": {
+        "title": "Sessions",
+        "refresh": "Refresh",
+        "logoutOtherDevices": "Log Out Other Devices",
+        "logoutAllSessions": "Log Out All Sessions",
+        "loading": "Loading sessions...",
+        "current": "Current",
+        "revoke": "Revoke",
+        "empty": "No active sessions found.",
+        "confirmRevokeAll": "This will revoke all your sessions, including this one. Continue?",
+        "table": {
+          "userAgent": "User Agent",
+          "created": "Created",
+          "expires": "Expires"
+        },
+        "errors": {
+          "revokeSingle": "Unable to revoke this session. Please sign in again and retry.",
+          "revokeOthers": "Unable to revoke other sessions. Please sign in again and retry.",
+          "revokeAll": "Unable to revoke all sessions. Please sign in again and retry."
+        }
+      },
       "hiddenMedia": "Hide Media",
       "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
       "hiddenMediaSearchPlaceholder": "Search for media to hide...",
-      "hiddenMediaEmpty": "No hidden media. Search results will include all available media."
+      "hiddenMediaEmpty": "No hidden media. Search results will include all available media.",
+      "hiddenMediaFallback": "Media #{id}",
+      "hiddenMediaNoResults": "No media found for this query.",
+      "hiddenMediaListTitle": "Hidden Media List",
+      "hiddenMediaCount": "{count} hidden",
+      "hiddenMediaTable": {
+        "media": "Media",
+        "otherNames": "Other Names"
+      },
+      "sessionDetails": {
+        "unknownDevice": "Unknown device",
+        "tablet": "Tablet",
+        "mobile": "Mobile",
+        "desktop": "Desktop",
+        "unknownOs": "Unknown OS",
+        "unknownBrowser": "Unknown browser"
+      }
     },
     "collections": {
+      "title": "Collections",
+      "count": "{count} collections",
       "removeFromCollection": "Remove from collection",
       "confirmRemove": "Remove?",
       "yes": "Yes",
@@ -394,11 +623,20 @@
       "renameConfirm": "Save",
       "renameCancel": "Cancel",
       "renamed": "Collection renamed",
+      "renameError": "Failed to rename collection",
       "deleteTitle": "Delete collection",
       "deleteMessage": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
       "deleteConfirm": "Delete",
       "deleteCancel": "Cancel",
       "deleted": "Collection deleted",
+      "deleteError": "Failed to delete collection",
+      "table": {
+        "name": "Name",
+        "segments": "Segments",
+        "visibility": "Visibility",
+        "created": "Created",
+        "updated": "Updated"
+      },
       "visibility": {
         "PUBLIC": "Public",
         "PRIVATE": "Private"
@@ -449,10 +687,21 @@
       "openBrowserOnExport": "Open Anki browser when exporting a card",
       "profile": "Profile",
       "newProfile": "New",
+      "defaultProfile": "Default",
       "renameProfile": "Rename",
       "profileNamePlaceholder": "Profile name",
       "deleteProfile": "Delete",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "modal": {
+        "cancel": "Cancel",
+        "save": "Save"
+      }
+    },
+    "labs": {
+      "title": "Nadeshiko Labs",
+      "description": "Try experimental features before they are released to everyone!",
+      "feedbackDescription": "These features are still under testing and might change at any time, but we would love to hear your feedback to help us improve them before they become default features in Nadeshiko.",
+      "empty": "No lab features available at this time."
     }
   },
   "errorPage": {
@@ -563,13 +812,80 @@
       "count": "Count",
       "notes": "Admin Notes",
       "actions": "Actions",
+      "filters": {
+        "all": "All",
+        "user": "User Reports",
+        "auto": "Auto Checks",
+        "orphaned": "Orphaned"
+      },
+      "availableChecks": "Available checks",
+      "configure": "Configure",
+      "running": "Running",
+      "run": "Run",
+      "lastRun": "Last run {date}",
+      "neverRun": "Never run",
+      "resultsTab": "Results",
+      "runHistoryTab": "Run History",
+      "selectedGroups": "{count} group(s) selected",
       "processing": "Processing",
       "fixed": "Fixed",
       "dismiss": "Dismiss",
+      "delete": "Delete",
+      "clearSelection": "Clear",
+      "dismissingAll": "Dismissing all...",
+      "dismissAllMatching": "Dismiss All Matching",
+      "deletingAll": "Deleting all...",
+      "deleteAllMatching": "Delete All Matching",
       "reopen": "Reopen",
       "save": "Save",
       "addNote": "Click to add note...",
-      "updateSuccess": "Report updated"
+      "updateSuccess": "Report updated",
+      "updateError": "Failed to update report",
+      "auditRunResult": "{audit}: {count} findings",
+      "auditConfigUpdated": "Audit config updated",
+      "batchUpdated": "{count} report(s) updated",
+      "batchUpdateError": "Failed to update reports",
+      "batchDeleted": "{count} report(s) deleted",
+      "batchDeleteError": "Failed to delete reports",
+      "batchDeletePartialError": "{count} delete(s) failed",
+      "batchDismissed": "{count} report(s) dismissed",
+      "batchDismissError": "Failed to dismiss reports",
+      "deleteSuccess": "Report deleted",
+      "deleteError": "Failed to delete report",
+      "reported": "Reported",
+      "updated": "Updated",
+      "episode": "EP{number}",
+      "deletedTarget": "deleted",
+      "reporters": "{count} reporters",
+      "sources": {
+        "USER": "User",
+        "AUTO": "Auto"
+      },
+      "targetTypes": {
+        "SEGMENT": "Segment",
+        "EPISODE": "Episode",
+        "MEDIA": "Media"
+      },
+      "runHistory": {
+        "check": "Check",
+        "category": "Category",
+        "findings": "Findings",
+        "date": "Date",
+        "actions": "Actions",
+        "allCategories": "All",
+        "viewResults": "View Results",
+        "empty": "No runs yet"
+      },
+      "confirm": {
+        "dismissAllTitle": "Dismiss all matching reports?",
+        "dismissAllDescription": "This will dismiss all reports matching the current filters. This action can be undone by reopening individual reports.",
+        "dismissAllButton": "Dismiss All",
+        "deleteAllTitle": "Delete all matching reports?",
+        "deleteAllDescription": "This will permanently delete all reports matching the current filters. This cannot be undone.",
+        "deleteAllButton": "Delete All",
+        "deleteGroupTitle": "Delete this report group?",
+        "deleteGroupDescription": "This will permanently delete this report and all duplicates with the same target and reason."
+      }
     }
   },
   "modalauth": {
@@ -613,6 +929,10 @@
     "hint": "Shortcuts are disabled while typing in the search bar. Press ? to toggle this panel."
   },
   "seo": {
+    "home": {
+      "title": "Nadeshiko: Search Japanese sentences from anime",
+      "description": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+    },
     "stats": {
       "title": "Stats",
       "description": "See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list."
@@ -631,14 +951,92 @@
     },
     "search": {
       "title": "Search",
-      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.",
+      "atLeast": "At least ",
+      "categoryAnime": "anime",
+      "categoryJdrama": "live-action",
+      "fromCategory": "{count} from {category}",
+      "breakdownWrapper": " ({parts})",
+      "descriptionWithResults": "{count} example sentences containing \"{query}\"{breakdown} with English and Spanish translations.",
+      "descriptionNoResults": "Search for \"{query}\" in over 1 million Japanese sentences from anime and J-dramas, with English and Spanish translations.",
+      "mediaDescription": "{count} Japanese sentences from {media} with English and Spanish translations.",
+      "mediaDescriptionEpisode": "{count} Japanese sentences from {media} episode {episode} with English and Spanish translations.",
+      "mediaDescriptionEpisodes": "{count} Japanese sentences from {media} across {episodeCount} episodes with English and Spanish translations."
     },
     "sentence": {
       "title": "Sentence",
-      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.",
+      "episode": "Episode {n}"
     },
     "collection": {
       "description": "Browse the \"{name}\" collection on Nadeshiko"
+    }
+  },
+  "statsPage": {
+    "title": "Nadeshiko in Numbers",
+    "intro": {
+      "prefix": "How well does our corpus cover the Japanese language? We measure against the",
+      "source": "Jiten",
+      "suffix": "anime frequency list, built from {totalWords} unique words across thousands of anime."
+    },
+    "loadError": "Failed to load statistics. Try refreshing the page.",
+    "summary": {
+      "sentences": "Sentences",
+      "uniqueWords": "Unique words",
+      "totalContent": "Total content",
+      "episodes": "Episodes",
+      "dialogueHours": "Dialogue hours"
+    },
+    "coverage": {
+      "title": "Frequency Coverage",
+      "updated": "Updated {date}",
+      "empty": "No coverage data available yet.",
+      "fullCorpus": "Full corpus ({count}k words)",
+      "topWordsK": "Top {count}k words",
+      "topWords": "Top {count} words"
+    },
+    "translations": {
+      "title": "Translation Availability",
+      "description": "Every sentence has Japanese subtitles. We aim to include English and Spanish translations for all content. Some sources lack reliable Spanish subtitles, so coverage may be lower for that language.",
+      "translated": "{percent}% translated",
+      "official": "Official {percent}%",
+      "machine": "DeepL {percent}%",
+      "none": "None {percent}%",
+      "languages": {
+        "english": "English",
+        "spanish": "Spanish"
+      }
+    },
+    "admin": {
+      "title": "Admin: Update Coverage",
+      "updating": "Updating...",
+      "fullRescan": "Full rescan",
+      "missingOnly": "Check missing only",
+      "wordsChecked": "Words checked",
+      "newlyCovered": "Newly covered",
+      "totalCovered": "Total covered"
+    }
+  },
+  "statsWordsPage": {
+    "back": "Back to Stats",
+    "title": "Word Coverage",
+    "description": {
+      "prefix": "Browse words from the",
+      "source": "Jiten",
+      "suffix": "anime frequency list and their coverage in Nadeshiko's corpus."
+    },
+    "filters": {
+      "all": "All ({count})",
+      "covered": "Covered ({count})",
+      "missing": "Missing ({count})"
+    },
+    "missingLabel": "missing",
+    "empty": "No words match the current filter.",
+    "loading": "Loading...",
+    "footer": {
+      "prefix": "Frequency data from the",
+      "source": "Jiten",
+      "suffix": "anime corpus. Showing {shown} of {total} words."
     }
   }
 }

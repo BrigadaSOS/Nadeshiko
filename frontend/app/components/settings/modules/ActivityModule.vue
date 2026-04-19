@@ -38,13 +38,30 @@ type HeatmapRawData = Record<string, Record<string, number>>;
 const HEATMAP_DAYS = 365;
 const ACTIVITY_PAGE_SIZE = 20;
 
-const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''] as const;
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
-
 const ACTIVITY_TYPES = ['SEARCH', 'SEGMENT_PLAY', 'ANKI_EXPORT', 'SHARE'] as const;
 
+const { t, locale } = useI18n();
 const sdk = useNadeshikoSdk();
 const localePath = useLocalePath();
+
+const DAY_LABELS = computed(() => {
+  const base = new Date('2024-01-01T00:00:00');
+  return Array.from({ length: 7 }, (_, index) => {
+    if (![0, 2, 4].includes(index)) return '';
+    const date = new Date(base);
+    date.setDate(base.getDate() + index);
+    return new Intl.DateTimeFormat(locale.value, { weekday: 'short' }).format(date);
+  });
+});
+
+const MONTH_NAMES = computed(() =>
+  Array.from({ length: 12 }, (_, month) =>
+    new Intl.DateTimeFormat(locale.value, { month: 'short' }).format(new Date(2024, month, 1))),
+);
+
+function formatNumber(value: number): string {
+  return value.toLocaleString(locale.value);
+}
 
 const toDayKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -204,7 +221,7 @@ const toggleTracking = async () => {
 
 const clearHistory = async () => {
   if (clearingHistory.value) return;
-  if (!confirm('Are you sure you want to clear all activity history? This cannot be undone.')) return;
+  if (!confirm(t('accountSettings.activity.confirmClearHistory'))) return;
   clearingHistory.value = true;
   try {
     await sdk.deleteUserActivity();
@@ -241,7 +258,7 @@ const clearingDay = ref(false);
 
 const clearDayActivity = async () => {
   if (!selectedDay.value || clearingDay.value) return;
-  if (!confirm(`Delete all activity for ${formatDayLabel(selectedDay.value)}? This cannot be undone.`)) return;
+  if (!confirm(t('accountSettings.activity.confirmClearDay', { day: formatDayLabel(selectedDay.value) }))) return;
 
   clearingDay.value = true;
   try {
@@ -262,10 +279,10 @@ const clearDayActivity = async () => {
 
 const activityTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
-    SEARCH: 'Search',
-    SEGMENT_PLAY: 'Audio Play',
-    ANKI_EXPORT: 'Anki Export',
-    SHARE: 'Share',
+    SEARCH: t('accountSettings.activity.types.SEARCH'),
+    SEGMENT_PLAY: t('accountSettings.activity.types.SEGMENT_PLAY'),
+    ANKI_EXPORT: t('accountSettings.activity.types.ANKI_EXPORT'),
+    SHARE: t('accountSettings.activity.types.SHARE'),
   };
   return labels[type] || type;
 };
@@ -292,26 +309,25 @@ const activityTypeMutedClass = (type: string) => {
 };
 
 const heatmapTooltipUnit = (count: number): string => {
-  if (!heatmapFilter.value) return `${count} record${count === 1 ? '' : 's'}`;
-  const units: Record<string, [string, string]> = {
-    SEARCH: ['search', 'searches'],
-    SEGMENT_PLAY: ['play', 'plays'],
-    ANKI_EXPORT: ['export', 'exports'],
-    SHARE: ['share', 'shares'],
+  if (!heatmapFilter.value) return t('accountSettings.activity.heatmap.records', { count });
+  const units: Record<string, string> = {
+    SEARCH: 'searches',
+    SEGMENT_PLAY: 'plays',
+    ANKI_EXPORT: 'exports',
+    SHARE: 'shares',
   };
-  const [singular, plural] = units[heatmapFilter.value] ?? ['action', 'actions'];
-  return `${count} ${count === 1 ? singular : plural}`;
+  return t(`accountSettings.activity.heatmap.${units[heatmapFilter.value] ?? 'actions'}`, { count });
 };
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleString(locale.value, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 const formatDayLabel = (dayKey: string) => {
   const d = new Date(`${dayKey}T00:00:00`);
-  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString(locale.value, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 type GroupedActivity = ActivityItem & { count: number; ids: number[] };
@@ -411,18 +427,18 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
   while (cursor <= end) {
     const m = cursor.getMonth();
     if (m !== currentMonth) {
-      currentGroup = { label: MONTH_NAMES[m] ?? '', days: [] };
+      currentGroup = { label: MONTH_NAMES.value[m] ?? '', days: [] };
       groups.push(currentGroup);
       currentMonth = m;
     }
 
     const key = toDayKey(cursor);
-    currentGroup?.days.push({
-      key,
-      count: heatmapCountsByDay.value[key] ?? 0,
-      label: cursor.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-      dayOfWeek: cursor.getDay(),
-    });
+      currentGroup?.days.push({
+        key,
+        count: heatmapCountsByDay.value[key] ?? 0,
+        label: cursor.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' }),
+        dayOfWeek: cursor.getDay(),
+      });
     cursor.setDate(cursor.getDate() + 1);
   }
 
@@ -454,8 +470,8 @@ onMounted(async () => {
   <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md border border-white/10">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">Activity Overview</h3>
-        <p class="text-sm text-gray-400 mt-1">Useful metrics from your search and study behavior.</p>
+        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.overview.title') }}</h3>
+        <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.overview.description') }}</p>
       </div>
       <div class="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5">
         <button
@@ -469,27 +485,27 @@ onMounted(async () => {
           ]"
           @click="statsRange = range"
         >
-          {{ range === 'all' ? 'All Time' : range }}
+          {{ range === 'all' ? t('accountSettings.activity.ranges.all') : range }}
         </button>
       </div>
     </div>
 
     <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div class="rounded-lg border border-red-400/20 bg-red-500/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-red-300/70">Sentences Searched</p>
-        <p class="mt-2 text-2xl font-semibold text-red-200">{{ stats?.totalSearches ?? 0 }}</p>
+        <p class="text-xs uppercase tracking-wide text-red-300/70">{{ t('accountSettings.activity.metrics.searches') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-red-200">{{ formatNumber(stats?.totalSearches ?? 0) }}</p>
       </div>
       <div class="rounded-lg border border-emerald-400/20 bg-emerald-500/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-emerald-300/70">Audios Played</p>
-        <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ stats?.totalPlays ?? 0 }}</p>
+        <p class="text-xs uppercase tracking-wide text-emerald-300/70">{{ t('accountSettings.activity.metrics.plays') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ formatNumber(stats?.totalPlays ?? 0) }}</p>
       </div>
       <div class="rounded-lg border border-blue-400/20 bg-blue-500/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-blue-300/70">Anki Exports</p>
-        <p class="mt-2 text-2xl font-semibold text-blue-200">{{ stats?.totalExports ?? 0 }}</p>
+        <p class="text-xs uppercase tracking-wide text-blue-300/70">{{ t('accountSettings.activity.metrics.exports') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-blue-200">{{ formatNumber(stats?.totalExports ?? 0) }}</p>
       </div>
       <div class="rounded-lg border border-purple-400/20 bg-purple-500/5 p-4">
-        <p class="text-xs uppercase tracking-wide text-purple-300/70">Links Shared</p>
-        <p class="mt-2 text-2xl font-semibold text-purple-200">{{ stats?.totalShares ?? 0 }}</p>
+        <p class="text-xs uppercase tracking-wide text-purple-300/70">{{ t('accountSettings.activity.metrics.shares') }}</p>
+        <p class="mt-2 text-2xl font-semibold text-purple-200">{{ formatNumber(stats?.totalShares ?? 0) }}</p>
       </div>
     </div>
   </div>
@@ -498,8 +514,8 @@ onMounted(async () => {
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">Activity Heatmap</h3>
-        <p class="text-sm text-gray-400 mt-1">Activity over the last {{ HEATMAP_DAYS }} days. Click a day to filter history.</p>
+        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.heatmap.title') }}</h3>
+        <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.heatmap.description', { days: HEATMAP_DAYS }) }}</p>
       </div>
     </div>
 
@@ -513,7 +529,7 @@ onMounted(async () => {
         ]"
         @click="heatmapFilter = null"
       >
-        All
+        {{ t('accountSettings.activity.filters.all') }}
       </button>
       <button
         v-for="type in ACTIVITY_TYPES"
@@ -530,7 +546,7 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div v-if="heatmapLoading" class="mt-4 text-gray-400">Loading heatmap...</div>
+    <div v-if="heatmapLoading" class="mt-4 text-gray-400">{{ t('accountSettings.activity.heatmap.loading') }}</div>
     <div
       v-else
       class="heatmap mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black/20 p-4 sm:p-5"
@@ -572,13 +588,13 @@ onMounted(async () => {
       </div>
 
       <div class="mt-3 flex items-center gap-2 text-xs text-gray-400">
-        <span>Less</span>
+        <span>{{ t('accountSettings.activity.heatmap.less') }}</span>
         <span :class="['heatmap-legend-cell rounded-sm border', activePalette[0]]" />
         <span :class="['heatmap-legend-cell rounded-sm border', activePalette[1]]" />
         <span :class="['heatmap-legend-cell rounded-sm border', activePalette[2]]" />
         <span :class="['heatmap-legend-cell rounded-sm border', activePalette[3]]" />
         <span :class="['heatmap-legend-cell rounded-sm border', activePalette[4]]" />
-        <span>More</span>
+        <span>{{ t('accountSettings.activity.heatmap.more') }}</span>
       </div>
     </div>
   </div>
@@ -587,18 +603,18 @@ onMounted(async () => {
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">Activity History</h3>
-        <p class="text-sm text-gray-400 mt-1">Latest events from your account.</p>
+        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.history.title') }}</h3>
+        <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.history.description') }}</p>
       </div>
 
       <div v-if="selectedDay" class="flex items-center gap-2">
         <div
           class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-400/40 bg-red-500/10 text-red-300 text-sm"
         >
-          <span>Showing: {{ formatDayLabel(selectedDay) }}</span>
+          <span>{{ t('accountSettings.activity.history.showing', { day: formatDayLabel(selectedDay) }) }}</span>
           <button
             class="hover:text-white transition-colors ml-1"
-            title="Clear day filter"
+            :title="t('accountSettings.activity.history.clearDayFilter')"
             @click="clearDayFilter"
           >
             &times;
@@ -607,7 +623,7 @@ onMounted(async () => {
         <button
           class="px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 text-sm hover:bg-red-500/20 hover:text-red-200 transition-colors disabled:opacity-50"
           :disabled="clearingDay || activities.length === 0"
-          title="Delete all activity for this day"
+          :title="t('accountSettings.activity.history.deleteDayTitle')"
           @click="clearDayActivity"
         >
           {{ clearingDay ? $t('activity.deletingDayActivity') : $t('activity.deleteDayActivity') }}
@@ -625,7 +641,7 @@ onMounted(async () => {
         ]"
         @click="activityTypeFilter = null"
       >
-        All
+        {{ t('accountSettings.activity.filters.all') }}
       </button>
       <button
         v-for="type in ACTIVITY_TYPES"
@@ -642,15 +658,23 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div v-if="loadingActivities" class="mt-4 text-gray-400">Loading...</div>
-    <div v-else-if="groupedActivities.length === 0" class="mt-4 text-gray-400">No activity recorded{{ selectedDay ? ' for this day' : activityTypeFilter ? ' for this type' : ' yet' }}.</div>
+    <div v-if="loadingActivities" class="mt-4 text-gray-400">{{ t('accountSettings.activity.history.loading') }}</div>
+    <div v-else-if="groupedActivities.length === 0" class="mt-4 text-gray-400">
+      {{
+        selectedDay
+          ? t('accountSettings.activity.history.emptyForDay')
+          : activityTypeFilter
+            ? t('accountSettings.activity.history.emptyForType')
+            : t('accountSettings.activity.history.empty')
+      }}
+    </div>
     <div v-else class="mt-4 overflow-x-auto">
       <table class="w-full text-sm table-fixed">
         <thead>
           <tr class="border-b border-white/10 text-left">
-            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium w-28">Type</th>
-            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">Details</th>
-            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium text-right w-36">Date</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium w-28">{{ t('accountSettings.activity.history.table.type') }}</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">{{ t('accountSettings.activity.history.table.details') }}</th>
+            <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium text-right w-36">{{ t('accountSettings.activity.history.table.date') }}</th>
             <th class="pb-2 w-8" />
           </tr>
         </thead>
@@ -688,7 +712,7 @@ onMounted(async () => {
                 <span v-if="activity.mediaName && activity.japaneseText" class="text-gray-600 mx-1">—</span>
                 <span v-if="activity.japaneseText">{{ stripTags(activity.japaneseText) }}</span>
               </a>
-              <span v-else class="text-gray-500">-</span>
+              <span v-else class="text-gray-500">{{ t('accountSettings.activity.history.noDetails') }}</span>
             </td>
             <td class="py-2.5 pr-4 text-right text-gray-400 text-xs whitespace-nowrap">
               {{ formatDate(activity.createdAt) }}
@@ -696,7 +720,7 @@ onMounted(async () => {
             <td class="py-2.5 text-center w-8">
               <button
                 class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
-                title="Remove"
+                :title="t('accountSettings.activity.history.remove')"
                 :disabled="activity.ids.some(id => deletingIds.has(id))"
                 @click="activity.ids.forEach(id => deleteActivity(id))"
               >
@@ -715,20 +739,20 @@ onMounted(async () => {
         :disabled="loadingMore"
         @click="loadMore"
       >
-        {{ loadingMore ? 'Loading...' : 'Load more' }}
+        {{ loadingMore ? t('accountSettings.activity.history.loading') : t('accountSettings.activity.history.loadMore') }}
       </button>
     </div>
   </div>
 
   <!-- Privacy -->
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Privacy</h3>
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.privacy.title') }}</h3>
 
     <div class="mt-4 space-y-4">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <p class="text-white font-medium">Activity Tracking</p>
-          <p class="text-gray-400 text-sm">Track searches, exports, and listening history.</p>
+          <p class="text-white font-medium">{{ t('accountSettings.activity.privacy.trackingTitle') }}</p>
+          <p class="text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.trackingDescription') }}</p>
         </div>
         <button
           :disabled="togglingTracking"
@@ -749,15 +773,15 @@ onMounted(async () => {
 
       <div class="flex items-center justify-between gap-4">
         <div>
-          <p class="text-white font-medium">Clear History</p>
-          <p class="text-gray-400 text-sm">Permanently delete all activity data from your account.</p>
+          <p class="text-white font-medium">{{ t('accountSettings.activity.privacy.clearHistoryTitle') }}</p>
+          <p class="text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.clearHistoryDescription') }}</p>
         </div>
         <button
           class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1.5 px-3 rounded disabled:opacity-50"
           :disabled="clearingHistory"
           @click="clearHistory"
         >
-          {{ clearingHistory ? 'Clearing...' : 'Clear History' }}
+          {{ clearingHistory ? t('accountSettings.activity.privacy.clearing') : t('accountSettings.activity.privacy.clearHistoryButton') }}
         </button>
       </div>
     </div>

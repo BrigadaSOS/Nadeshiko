@@ -4,6 +4,7 @@ import { mdiPlus, mdiCheckBold, mdiPencilOutline, mdiContentCopy } from '@mdi/js
 import type { ApiKeyListItem } from '@/stores/api';
 import { normalizeApiKey } from '@/stores/api';
 
+const { t, locale } = useI18n();
 const api_store = apiStore();
 const sdk = useNadeshikoSdk();
 const isLoading = ref(false);
@@ -190,7 +191,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
 const formatDate = (value?: string) => {
   const iso = new Date(value || '2025-03-01').toISOString();
   const day = iso.split('T')[0] ?? '2025-03-01';
-  return day.replaceAll('-', '/');
+  return new Date(day).toLocaleDateString(locale.value);
 };
 </script>
 
@@ -218,11 +219,11 @@ const formatDate = (value?: string) => {
           limit: fieldOptions.quota?.quotaLimit
         }) }}</p>
         <p class="mt-2 text-gray-400 text-sm">
-          If you need to increase your API usage limit, please reach out to us at
+          {{ t('accountSettings.developer.usageLimitMessage.prefix') }}
           <a href="mailto:contact@nadeshiko.co" class="text-red-400 hover:underline">contact@nadeshiko.co</a>.
         </p>
         <p class="mt-2 text-gray-400 text-sm">
-          To manage API keys created on the previous version of the site, visit
+          {{ t('accountSettings.developer.legacyKeysMessage.prefix') }}
           <a href="https://old.nadeshiko.co/settings/developer" target="_blank" rel="noopener noreferrer" class="text-red-400 hover:underline">old.nadeshiko.co/settings/developer</a>.
         </p>
     </div>
@@ -258,7 +259,7 @@ const formatDate = (value?: string) => {
                     <UiBaseIcon :path="mdiContentCopy" size="18" />
                 </button>
             </div>
-            <p v-if="apiKeyCopied" class="mt-1 text-xs text-green-700 dark:text-green-300">Copied!</p>
+            <p v-if="apiKeyCopied" class="mt-1 text-xs text-green-700 dark:text-green-300">{{ t('accountSettings.developer.copied') }}</p>
             <p class="mt-2 text-sm text-green-700 dark:text-green-200">
                 {{$t('accountSettings.developer.keyCreatedMessage', { key: generatedApiKey }) }}
             </p>
@@ -440,7 +441,7 @@ const formatDate = (value?: string) => {
                         class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
                         @click="closeCreateModal"
                     >
-                        <span class="sr-only">Close</span>
+                        <span class="sr-only">{{ t('common.close') }}</span>
                         <svg
                             class="w-3.5 h-3.5"
                             width="8"
@@ -514,7 +515,7 @@ const formatDate = (value?: string) => {
                         class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
                         @click="closeRenameModal"
                     >
-                        <span class="sr-only">Close</span>
+                        <span class="sr-only">{{ t('common.close') }}</span>
                         <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M0.772004 0.772004C0.907186 0.636856 1.08918 0.560669 1.279 0.560669C1.46882 0.560669 1.65081 0.636856 1.786 0.772004L6.228 5.21401C6.36315 5.34919 6.43933 5.53119 6.43933 5.72101C6.43933 5.91082 6.36315 6.09282 6.228 6.22801C6.09282 6.36315 5.91082 6.43933 5.721 6.43933C5.53119 6.43933 5.34919 6.36315 5.214 6.22801L0.772004 1.786C0.636856 1.65081 0.560669 1.46882 0.560669 1.279C0.560669 1.08918 0.636856 0.907186 0.772004 0.772004Z" fill="currentColor" />
                             <path d="M6.228 0.772004C6.36315 0.907186 6.43933 1.08918 6.43933 1.279C6.43933 1.46882 6.36315 1.65081 6.228 1.786L1.786 6.22801C1.65081 6.36315 1.46882 6.43933 1.279 6.43933C1.08918 6.43933 0.907186 6.36315 0.772004 6.22801C0.636856 6.09282 0.560669 5.91082 0.560669 5.72101C0.560669 5.53119 0.636856 5.34919 0.772004 5.21401L5.214 0.772004C5.34919 0.636856 5.53119 0.560669 5.721 0.560669C5.91082 0.560669 6.09282 0.636856 6.228 0.772004Z" fill="currentColor" />

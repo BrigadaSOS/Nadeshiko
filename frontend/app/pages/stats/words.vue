@@ -4,7 +4,7 @@ import { buildWordSearchPath } from '~/utils/routes';
 
 const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000] as const;
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const localePath = useLocalePath();
@@ -49,6 +49,10 @@ const nextCursor = ref<string | null>(null);
 const tierStats = ref<GetCoveredWordsResponse['tierStats'] | null>(null);
 const loading = ref(false);
 const scrollSentinel = ref<HTMLElement | null>(null);
+
+function formatNumber(value: number): string {
+  return value.toLocaleString(locale.value);
+}
 
 const sdk = useNadeshikoSdk();
 
@@ -120,9 +124,9 @@ async function loadMore() {
 
 function filterCount(filter: 'ALL' | 'COVERED' | 'UNCOVERED'): string {
   if (!tierStats.value) return '';
-  if (filter === 'ALL') return tierStats.value.total.toLocaleString();
-  if (filter === 'COVERED') return tierStats.value.covered.toLocaleString();
-  return tierStats.value.uncovered.toLocaleString();
+  if (filter === 'ALL') return formatNumber(tierStats.value.total);
+  if (filter === 'COVERED') return formatNumber(tierStats.value.covered);
+  return formatNumber(tierStats.value.uncovered);
 }
 
 let observer: IntersectionObserver | null = null;
@@ -149,14 +153,16 @@ onUnmounted(() => observer?.disconnect());
   <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6 text-white">
     <div class="mb-6">
       <NuxtLink :to="localePath('/stats')" class="text-white/40 hover:text-white/60 text-sm transition-colors">
-        &larr; Back to Stats
+        &larr; {{ $t('statsWordsPage.back') }}
       </NuxtLink>
     </div>
 
     <div class="mb-6">
-      <h1 class="text-2xl font-bold">Word Coverage</h1>
+      <h1 class="text-2xl font-bold">{{ $t('statsWordsPage.title') }}</h1>
       <p class="text-white/50 text-sm mt-1">
-        Browse words from the <a href="https://jiten.moe" target="_blank" rel="noopener" class="text-button-accent-main hover:text-button-accent-hover transition-colors">Jiten</a> anime frequency list and their coverage in Nadeshiko's corpus.
+        {{ $t('statsWordsPage.description.prefix') }}
+        <a href="https://jiten.moe" target="_blank" rel="noopener" class="text-button-accent-main hover:text-button-accent-hover transition-colors">{{ $t('statsWordsPage.description.source') }}</a>
+        {{ $t('statsWordsPage.description.suffix') }}
       </p>
     </div>
 
@@ -183,9 +189,9 @@ onUnmounted(() => observer?.disconnect());
           :class="activeFilter === mode ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60'"
           @click="selectFilter(mode)"
         >
-          <template v-if="mode === 'ALL'">All ({{ filterCount('ALL') }})</template>
-          <template v-else-if="mode === 'COVERED'">Covered ({{ filterCount('COVERED') }})</template>
-          <template v-else>Missing ({{ filterCount('UNCOVERED') }})</template>
+          <template v-if="mode === 'ALL'">{{ $t('statsWordsPage.filters.all', { count: filterCount('ALL') }) }}</template>
+          <template v-else-if="mode === 'COVERED'">{{ $t('statsWordsPage.filters.covered', { count: filterCount('COVERED') }) }}</template>
+          <template v-else>{{ $t('statsWordsPage.filters.missing', { count: filterCount('UNCOVERED') }) }}</template>
         </button>
       </div>
     </div>
@@ -214,25 +220,29 @@ onUnmounted(() => observer?.disconnect());
             class="block text-[10px] mt-0.5 tabular-nums"
             :class="word.matchCount > 0 ? 'text-emerald-400/70' : 'text-red-400/40'"
           >
-            {{ word.matchCount > 0 ? word.matchCount.toLocaleString() : 'missing' }}
+            {{ word.matchCount > 0 ? formatNumber(word.matchCount) : $t('statsWordsPage.missingLabel') }}
           </span>
           <span class="absolute top-0.5 left-1 text-[9px] text-white/15 tabular-nums">{{ word.rank }}</span>
         </NuxtLink>
       </div>
 
       <div v-if="words.length === 0 && !loading" class="py-12 text-center text-white/30 text-sm">
-        No words match the current filter.
+        {{ $t('statsWordsPage.empty') }}
       </div>
 
       <div ref="scrollSentinel" class="h-1" />
 
       <div v-if="loading" class="mt-4 text-center">
-        <span class="text-white/40 text-sm">Loading...</span>
+        <span class="text-white/40 text-sm">{{ $t('statsWordsPage.loading') }}</span>
       </div>
 
       <p class="text-white/30 text-xs mt-6">
-        Frequency data from <a href="https://jiten.moe" target="_blank" rel="noopener" class="hover:text-white/50 transition-colors">Jiten</a> anime corpus.
-        Showing {{ words.length.toLocaleString() }} of {{ tierStats?.total?.toLocaleString() ?? words.length.toLocaleString() }} words.
+        {{ $t('statsWordsPage.footer.prefix') }}
+        <a href="https://jiten.moe" target="_blank" rel="noopener" class="hover:text-white/50 transition-colors">{{ $t('statsWordsPage.footer.source') }}</a>
+        {{ $t('statsWordsPage.footer.suffix', {
+          shown: formatNumber(words.length),
+          total: tierStats?.total ? formatNumber(tierStats.total) : formatNumber(words.length),
+        }) }}
       </p>
     </template>
   </div>
