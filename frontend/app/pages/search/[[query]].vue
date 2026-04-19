@@ -205,7 +205,7 @@ const metaTags = computed(() => {
   const q = searchQuery.value;
 
   if (route.query.uuid && result) {
-    const sentenceTags = buildSentenceMetaTags(result, mediaName);
+    const sentenceTags = buildSentenceMetaTags(result, mediaName, (n) => t('seo.sentence.episode', { n }));
     tags.title = sentenceTags.title;
     tags.meta = sentenceTags.meta;
   } else if (q) {
@@ -218,23 +218,28 @@ const metaTags = computed(() => {
     let description: string;
 
     if (totalResults > 0) {
-      const count = `${isLowerBound ? 'At least ' : ''}${totalResults.toLocaleString()}`;
+      const countNum = totalResults.toLocaleString();
+      const count = isLowerBound ? `${t('seo.search.atLeast')}${countNum}` : countNum;
       let breakdown = '';
       if (stats && stats.length > 0) {
-        const categoryNames: Record<string, string> = { ANIME: 'anime', JDRAMA: 'live-action' };
         const order = ['ANIME', 'JDRAMA'];
         const parts = order
           .map((cat) => stats.find((s) => s.category === cat))
           .filter((s): s is NonNullable<typeof s> => s != null)
           .filter((s) => (s.count ?? 0) > 0)
-          .map((s) => `${(s.count ?? 0).toLocaleString()} from ${categoryNames[s.category]}`);
+          .map((s) =>
+            t('seo.search.fromCategory', {
+              count: (s.count ?? 0).toLocaleString(),
+              category: t(`seo.search.category${s.category === 'ANIME' ? 'Anime' : 'Jdrama'}`),
+            }),
+          );
         if (parts.length > 0) {
-          breakdown = ` (${parts.join(', ')})`;
+          breakdown = t('seo.search.breakdownWrapper', { parts: parts.join(', ') });
         }
       }
-      description = `${count} example sentences containing "${q}"${breakdown} with English and Spanish translations.`;
+      description = t('seo.search.descriptionWithResults', { count, query: q, breakdown });
     } else {
-      description = `Search for "${q}" in over 1 million Japanese sentences from anime and J-dramas, with English and Spanish translations.`;
+      description = t('seo.search.descriptionNoResults', { query: q });
     }
 
     const social = socialTitle(title);
@@ -263,14 +268,15 @@ const metaTags = computed(() => {
     }
 
     const title = animeName;
-    let description = `${totalResults.toLocaleString()} Japanese sentences from ${animeName} with English and Spanish translations`;
+    const count = totalResults.toLocaleString();
+    let description = t('seo.search.mediaDescription', { count, media: animeName });
 
     if (episodeHits && episodeHits.length > 0) {
       const episodeCount = episodeHits.length;
       if (filterEpisode) {
-        description = `${totalResults.toLocaleString()} Japanese sentences from ${animeName} episode ${filterEpisode} with English and Spanish translations`;
+        description = t('seo.search.mediaDescriptionEpisode', { count, media: animeName, episode: filterEpisode });
       } else {
-        description += ` across ${episodeCount} episode${episodeCount > 1 ? 's' : ''}`;
+        description = t('seo.search.mediaDescriptionEpisodes', { count, media: animeName, episodeCount });
       }
     }
 

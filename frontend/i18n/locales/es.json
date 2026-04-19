@@ -3,6 +3,7 @@
     "buttons": {
       "home": "Inicio",
       "about": "Acerca de",
+      "api": "API",
       "login": "Iniciar sesión / Registrarse",
       "profile": "Perfil",
       "privacy": "Privacidad",
@@ -12,9 +13,22 @@
       "blog": "Blog",
       "stats": "Stats",
       "media": "Media",
+      "collections": "Colecciones",
+      "activity": "Actividad",
       "language": "Idioma",
       "logout": "Cerrar sesión"
     }
+  },
+  "common": {
+    "close": "Cerrar",
+    "logoAlt": "Logotipo de Nadeshiko",
+    "navigationMenu": "Menú de navegación",
+    "searchAnything": "Buscar cualquier cosa",
+    "toggleNavigation": "Alternar navegación"
+  },
+  "appMeta": {
+    "defaultTitle": "Nadeshiko: Buscador de oraciones de anime en Japonés",
+    "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
   },
   "home": {
     "version": "v{version}",
@@ -310,20 +324,169 @@
   "accountSettings": {
     "menu": {
       "generalTitle": "General",
-      "advancedTitle": "Avanzado"
+      "advancedTitle": "Avanzado",
+      "adminTitle": "Admin"
     },
     "tabs": {
+      "settings": "Ajustes",
       "sync": "Sincronización Anki",
-      "developer": "Desarrollador"
+      "collections": "Colecciones",
+      "activity": "Actividad",
+      "hideMedia": "Ocultar medios",
+      "developer": "Desarrollador",
+      "labs": "Labs",
+      "users": "Usuarios",
+      "reports": "Reportes",
+      "announcement": "Anuncios"
+    },
+    "dashboard": {
+      "title": "Usuarios",
+      "searchPlaceholder": "Buscar por correo...",
+      "count": "{count} usuarios",
+      "empty": "No se encontraron usuarios.",
+      "table": {
+        "name": "Nombre",
+        "email": "Correo",
+        "role": "Rol",
+        "providers": "Proveedores",
+        "registered": "Registro",
+        "lastUpdate": "Última actualización",
+        "status": "Estado"
+      },
+      "providers": {
+        "google": "Google",
+        "discord": "Discord",
+        "email": "Correo"
+      },
+      "status": {
+        "active": "Activo",
+        "banned": "Bloqueado"
+      },
+      "actions": {
+        "impersonate": "Suplantar",
+        "ban": "Bloquear",
+        "unban": "Desbloquear"
+      },
+      "pagination": {
+        "showing": "Mostrando {start}–{end} de {total}",
+        "previous": "Anterior",
+        "next": "Siguiente"
+      }
+    },
+    "announcement": {
+      "title": "Anuncio",
+      "description": "Configura un banner global visible para todos los usuarios.",
+      "fields": {
+        "message": "Mensaje",
+        "type": "Tipo",
+        "active": "Activo",
+        "preview": "Vista previa"
+      },
+      "placeholders": {
+        "message": "Escribe un mensaje para el anuncio..."
+      },
+      "activeDescription": "Cuando está activo, el banner se muestra a todos los visitantes.",
+      "types": {
+        "INFO": "Información",
+        "WARNING": "Advertencia",
+        "MAINTENANCE": "Mantenimiento"
+      },
+      "previewTitles": {
+        "INFO": "Aviso",
+        "WARNING": "Aviso importante",
+        "MAINTENANCE": "Aviso de mantenimiento"
+      },
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "deactivate": "Desactivar",
+      "updated": "Anuncio actualizado",
+      "updateError": "No se pudo actualizar el anuncio",
+      "deactivated": "Anuncio desactivado",
+      "deactivateError": "No se pudo desactivar el anuncio",
+      "fallbackMessage": "Sin anuncio"
+    },
+    "activity": {
+      "confirmClearHistory": "¿Seguro que quieres borrar todo el historial de actividad? Esta acción no se puede deshacer.",
+      "confirmClearDay": "¿Eliminar toda la actividad de {day}? Esta acción no se puede deshacer.",
+      "ranges": {
+        "all": "Todo el tiempo"
+      },
+      "filters": {
+        "all": "Todo"
+      },
+      "types": {
+        "SEARCH": "Búsqueda",
+        "SEGMENT_PLAY": "Reproducción",
+        "ANKI_EXPORT": "Exportación a Anki",
+        "SHARE": "Compartido"
+      },
+      "metrics": {
+        "searches": "Oraciones buscadas",
+        "plays": "Audios reproducidos",
+        "exports": "Exportaciones a Anki",
+        "shares": "Enlaces compartidos"
+      },
+      "overview": {
+        "title": "Resumen de actividad",
+        "description": "Métricas útiles de tu comportamiento de búsqueda y estudio."
+      },
+      "heatmap": {
+        "title": "Mapa de calor de actividad",
+        "description": "Actividad de los últimos {days} días. Haz clic en un día para filtrar el historial.",
+        "loading": "Cargando mapa de calor...",
+        "less": "Menos",
+        "more": "Más",
+        "records": "{count} registro | {count} registros",
+        "searches": "{count} búsqueda | {count} búsquedas",
+        "plays": "{count} reproducción | {count} reproducciones",
+        "exports": "{count} exportación | {count} exportaciones",
+        "shares": "{count} compartido | {count} compartidos",
+        "actions": "{count} acción | {count} acciones"
+      },
+      "history": {
+        "title": "Historial de actividad",
+        "description": "Eventos recientes de tu cuenta.",
+        "showing": "Mostrando: {day}",
+        "clearDayFilter": "Limpiar filtro de día",
+        "deleteDayTitle": "Eliminar toda la actividad de este día",
+        "loading": "Cargando...",
+        "empty": "Todavía no hay actividad registrada.",
+        "emptyForDay": "No hay actividad registrada para este día.",
+        "emptyForType": "No hay actividad registrada para este tipo.",
+        "noDetails": "-",
+        "remove": "Eliminar",
+        "loadMore": "Cargar más",
+        "table": {
+          "type": "Tipo",
+          "details": "Detalles",
+          "date": "Fecha"
+        }
+      },
+      "privacy": {
+        "title": "Privacidad",
+        "trackingTitle": "Seguimiento de actividad",
+        "trackingDescription": "Registrar búsquedas, exportaciones e historial de escucha.",
+        "clearHistoryTitle": "Borrar historial",
+        "clearHistoryDescription": "Elimina permanentemente todos los datos de actividad de tu cuenta.",
+        "clearHistoryButton": "Borrar historial",
+        "clearing": "Borrando..."
+      }
     },
     "developer": {
       "apiUsageTitle": "Consumo API",
       "apiUsageRemaining": "Peticiones restantes: {used} / {limit}",
+      "usageLimitMessage": {
+        "prefix": "Si necesitas aumentar tu límite de uso de la API, contáctanos en"
+      },
+      "legacyKeysMessage": {
+        "prefix": "Para administrar llaves API creadas en la versión anterior del sitio, visita"
+      },
       "apiKeyManagement": "Gestión de llaves API",
       "addApiKey": "Añadir llave API",
       "keyCreated": "Llave creada",
       "keyCreatedMessage": "Guarda la llave, no se volverá a mostrar.",
       "copyApiKey": "Copiar llave API",
+      "copied": "¡Copiado!",
       "keyDeactivated": "Llave desactivada",
       "noKeysFound": "No se han encontrado llaves API",
       "noKeysMessage": "¡Crea una nueva para tus aplicaciones o proyectos!",
@@ -357,8 +520,34 @@
       "usernameLabel": "Usuario",
       "emailLabel": "Correo",
       "notAvailable": "No disponible",
+      "logout": "Cerrar sesión",
+      "loggingOut": "Cerrando sesión...",
       "additionalTitle": "Adicional",
+      "preferencesTitle": "Preferencias",
+      "mediaNameLanguage": "Idioma del nombre del contenido",
+      "mediaNameLanguageDescription": "Los nombres del contenido se mostrarán en {language} cuando sea posible. Ejemplo:",
+      "mediaNameLanguageOptions": {
+        "ENGLISH": "Inglés",
+        "JAPANESE": "Japonés",
+        "ROMAJI": "Romaji"
+      },
+      "tokenPopupReading": "Lectura del popup de tokens",
+      "tokenPopupReadingDescription": "Cómo se muestran las lecturas en el popup al pasar el cursor sobre texto japonés.",
+      "tooltipReadingOptions": {
+        "hiragana": "Hiragana (ねがう)",
+        "katakana": "Katakana (ネガウ)",
+        "romaji": "Romaji (negau)",
+        "hidden": "Oculto"
+      },
       "deleteAccount": "Eliminar cuenta (Acción irreversible)",
+      "deleteAccountButton": "Eliminar cuenta",
+      "deletingAccount": "Eliminando...",
+      "confirmDeleteAccount": "Esta acción elimina tu cuenta de forma permanente. ¿Continuar?",
+      "deleteAccountError": "No se pudo eliminar la cuenta. Puede que necesites iniciar sesión otra vez e intentarlo de nuevo.",
+      "accountDeleted": "Cuenta eliminada",
+      "exportData": "Exportar datos",
+      "exportDataDescription": "Descarga todos tus datos en un archivo JSON.",
+      "exportingData": "Exportando...",
       "questionableContent": "Contenido Sensible",
       "questionableContentDesc": "Contenido cuestionable o explícito",
       "contentRatingShow": "Mostrar",
@@ -368,6 +557,7 @@
       "contentRatingHint_blur": "Los resultados se incluirán en la búsqueda pero difuminados",
       "contentRatingHint_hide": "Los resultados no se incluirán en la búsqueda",
       "contentRatingPreview": "Vista previa de cómo aparecerán los resultados marcados en la búsqueda",
+      "contentRatingPreviewAlt": "Imagen de vista previa para la muestra de clasificación de contenido",
       "contentRatingHiddenDesc": "Oculto — no se incluirá en los resultados de búsqueda",
       "preferenceSaved": "Preferencia guardada",
       "preferenceError": "Error al guardar la preferencia",
@@ -378,12 +568,51 @@
       "changeEmailCancel": "Cancelar",
       "changeEmailSuccess": "Se ha enviado un correo de verificación a tu dirección actual. Revisa tu bandeja de entrada.",
       "changeEmailFailed": "No se pudo solicitar el cambio de correo.",
+      "sessions": {
+        "title": "Sesiones",
+        "refresh": "Actualizar",
+        "logoutOtherDevices": "Cerrar sesión en otros dispositivos",
+        "logoutAllSessions": "Cerrar todas las sesiones",
+        "loading": "Cargando sesiones...",
+        "current": "Actual",
+        "revoke": "Revocar",
+        "empty": "No se encontraron sesiones activas.",
+        "confirmRevokeAll": "Esto revocará todas tus sesiones, incluida esta. ¿Continuar?",
+        "table": {
+          "userAgent": "Agente de usuario",
+          "created": "Creada",
+          "expires": "Expira"
+        },
+        "errors": {
+          "revokeSingle": "No se pudo revocar esta sesión. Inicia sesión otra vez e inténtalo de nuevo.",
+          "revokeOthers": "No se pudieron revocar las otras sesiones. Inicia sesión otra vez e inténtalo de nuevo.",
+          "revokeAll": "No se pudieron revocar todas las sesiones. Inicia sesión otra vez e inténtalo de nuevo."
+        }
+      },
       "hiddenMedia": "Medios ocultos",
       "hiddenMediaDescription": "Medios ocultos de los resultados de búsqueda. También puedes ocultar medios desde el menú en cualquier resultado.",
       "hiddenMediaSearchPlaceholder": "Buscar medios para ocultar...",
-      "hiddenMediaEmpty": "Sin medios ocultos. Los resultados incluirán todo el contenido disponible."
+      "hiddenMediaEmpty": "Sin medios ocultos. Los resultados incluirán todo el contenido disponible.",
+      "hiddenMediaFallback": "Contenido #{id}",
+      "hiddenMediaNoResults": "No se encontró contenido para esta búsqueda.",
+      "hiddenMediaListTitle": "Lista de medios ocultos",
+      "hiddenMediaCount": "{count} ocultos",
+      "hiddenMediaTable": {
+        "media": "Contenido",
+        "otherNames": "Otros nombres"
+      },
+      "sessionDetails": {
+        "unknownDevice": "Dispositivo desconocido",
+        "tablet": "Tablet",
+        "mobile": "Móvil",
+        "desktop": "Escritorio",
+        "unknownOs": "SO desconocido",
+        "unknownBrowser": "Navegador desconocido"
+      }
     },
     "collections": {
+      "title": "Colecciones",
+      "count": "{count} colecciones",
       "removeFromCollection": "Eliminar de la colección",
       "confirmRemove": "¿Eliminar?",
       "yes": "Sí",
@@ -394,11 +623,20 @@
       "renameConfirm": "Guardar",
       "renameCancel": "Cancelar",
       "renamed": "Colección renombrada",
+      "renameError": "Error al renombrar la colección",
       "deleteTitle": "Eliminar colección",
       "deleteMessage": "¿Estás seguro de que quieres eliminar \"{name}\"? Esta acción no se puede deshacer.",
       "deleteConfirm": "Eliminar",
       "deleteCancel": "Cancelar",
       "deleted": "Colección eliminada",
+      "deleteError": "Error al eliminar la colección",
+      "table": {
+        "name": "Nombre",
+        "segments": "Segmentos",
+        "visibility": "Visibilidad",
+        "created": "Creada",
+        "updated": "Actualizada"
+      },
       "visibility": {
         "PUBLIC": "Pública",
         "PRIVATE": "Privada"
@@ -435,24 +673,35 @@
         "adBlock": "Deshabilite cualquier Adblock que tenga instalado en su navegador para este dominio"
       },
       "ankiConfig": "Configuración Anki",
-      "deckLabel": "Deck",
+      "deckLabel": "Mazo",
       "selectDeck": "Selecciona un deck",
       "modelLabel": "Modelo",
       "selectModel": "Selecciona un modelo",
-      "keyFieldLabel": "Key Field",
-      "selectKeyField": "Selecciona el field que corresponde al ID de tu deck",
+      "keyFieldLabel": "Campo clave",
+      "selectKeyField": "Selecciona el campo que corresponde al ID de tu mazo",
       "fieldColumn": "Campo",
       "contentColumn": "Contenido",
       "noFieldsFound": "No se han encontrado campos",
       "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
-      "serverAddressLabel": "AnkiConnect server address",
+      "serverAddressLabel": "Dirección del servidor de AnkiConnect",
       "openBrowserOnExport": "Abrir el navegador de Anki al exportar una carta",
       "profile": "Perfil",
       "newProfile": "Nuevo",
+      "defaultProfile": "Predeterminado",
       "renameProfile": "Renombrar",
       "profileNamePlaceholder": "Nombre del perfil",
       "deleteProfile": "Eliminar",
-      "saving": "Guardando..."
+      "saving": "Guardando...",
+      "modal": {
+        "cancel": "Cancelar",
+        "save": "Guardar"
+      }
+    },
+    "labs": {
+      "title": "Nadeshiko Labs",
+      "description": "Prueba funciones experimentales antes de que se publiquen para todo el mundo.",
+      "feedbackDescription": "Estas funciones todavía están en pruebas y pueden cambiar en cualquier momento, pero nos encantaría recibir tus comentarios para mejorarlas antes de convertirlas en funciones predeterminadas de Nadeshiko.",
+      "empty": "No hay funciones de laboratorio disponibles en este momento."
     }
   },
   "errorPage": {
@@ -563,13 +812,80 @@
       "count": "Cantidad",
       "notes": "Notas del Admin",
       "actions": "Acciones",
+      "filters": {
+        "all": "Todos",
+        "user": "Reportes de usuarios",
+        "auto": "Comprobaciones automáticas",
+        "orphaned": "Huérfanos"
+      },
+      "availableChecks": "Comprobaciones disponibles",
+      "configure": "Configurar",
+      "running": "Ejecutando",
+      "run": "Ejecutar",
+      "lastRun": "Última ejecución {date}",
+      "neverRun": "Nunca ejecutado",
+      "resultsTab": "Resultados",
+      "runHistoryTab": "Historial de ejecuciones",
+      "selectedGroups": "{count} grupo(s) seleccionados",
       "processing": "En proceso",
       "fixed": "Corregido",
       "dismiss": "Descartar",
+      "delete": "Eliminar",
+      "clearSelection": "Limpiar",
+      "dismissingAll": "Descartando todo...",
+      "dismissAllMatching": "Descartar todos los coincidentes",
+      "deletingAll": "Eliminando todo...",
+      "deleteAllMatching": "Eliminar todos los coincidentes",
       "reopen": "Reabrir",
       "save": "Guardar",
       "addNote": "Haz clic para añadir nota...",
-      "updateSuccess": "Reporte actualizado"
+      "updateSuccess": "Reporte actualizado",
+      "updateError": "No se pudo actualizar el reporte",
+      "auditRunResult": "{audit}: {count} hallazgos",
+      "auditConfigUpdated": "Configuración de auditoría actualizada",
+      "batchUpdated": "{count} reporte(s) actualizados",
+      "batchUpdateError": "No se pudieron actualizar los reportes",
+      "batchDeleted": "{count} reporte(s) eliminados",
+      "batchDeleteError": "No se pudieron eliminar los reportes",
+      "batchDeletePartialError": "{count} eliminación(es) fallidas",
+      "batchDismissed": "{count} reporte(s) descartados",
+      "batchDismissError": "No se pudieron descartar los reportes",
+      "deleteSuccess": "Reporte eliminado",
+      "deleteError": "No se pudo eliminar el reporte",
+      "reported": "Reportado",
+      "updated": "Actualizado",
+      "episode": "EP{number}",
+      "deletedTarget": "eliminado",
+      "reporters": "{count} reportadores",
+      "sources": {
+        "USER": "Usuario",
+        "AUTO": "Auto"
+      },
+      "targetTypes": {
+        "SEGMENT": "Segmento",
+        "EPISODE": "Episodio",
+        "MEDIA": "Contenido"
+      },
+      "runHistory": {
+        "check": "Comprobación",
+        "category": "Categoría",
+        "findings": "Hallazgos",
+        "date": "Fecha",
+        "actions": "Acciones",
+        "allCategories": "Todos",
+        "viewResults": "Ver resultados",
+        "empty": "Todavía no hay ejecuciones"
+      },
+      "confirm": {
+        "dismissAllTitle": "¿Descartar todos los reportes coincidentes?",
+        "dismissAllDescription": "Esto descartará todos los reportes que coincidan con los filtros actuales. Esta acción se puede deshacer reabriendo reportes individuales.",
+        "dismissAllButton": "Descartar todo",
+        "deleteAllTitle": "¿Eliminar todos los reportes coincidentes?",
+        "deleteAllDescription": "Esto eliminará permanentemente todos los reportes que coincidan con los filtros actuales. Esta acción no se puede deshacer.",
+        "deleteAllButton": "Eliminar todo",
+        "deleteGroupTitle": "¿Eliminar este grupo de reportes?",
+        "deleteGroupDescription": "Esto eliminará permanentemente este reporte y todos los duplicados con el mismo objetivo y motivo."
+      }
     }
   },
   "modalauth": {
@@ -613,6 +929,10 @@
     "hint": "Los atajos se desactivan mientras escribes en la barra de búsqueda. Presiona ? para mostrar u ocultar este panel."
   },
   "seo": {
+    "home": {
+      "title": "Nadeshiko: Buscador de oraciones de anime en Japonés",
+      "description": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+    },
     "stats": {
       "title": "Estadísticas",
       "description": "Consulta qué tan bien Nadeshiko cubre las palabras japonesas más comunes. Estadísticas basadas en la lista de frecuencias de anime Jiten."
@@ -631,14 +951,92 @@
     },
     "search": {
       "title": "Buscar",
-      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas.",
+      "atLeast": "Al menos ",
+      "categoryAnime": "anime",
+      "categoryJdrama": "live-action",
+      "fromCategory": "{count} de {category}",
+      "breakdownWrapper": " ({parts})",
+      "descriptionWithResults": "{count} oraciones con \"{query}\"{breakdown} con traducciones al inglés y español.",
+      "descriptionNoResults": "Busca \"{query}\" en más de 1 millón de oraciones japonesas de anime y J-dramas, con traducciones al inglés y español.",
+      "mediaDescription": "{count} oraciones japonesas de {media} con traducciones al inglés y español.",
+      "mediaDescriptionEpisode": "{count} oraciones japonesas del episodio {episode} de {media} con traducciones al inglés y español.",
+      "mediaDescriptionEpisodes": "{count} oraciones japonesas de {media} en {episodeCount} episodios con traducciones al inglés y español."
     },
     "sentence": {
       "title": "Oración",
-      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas.",
+      "episode": "Episodio {n}"
     },
     "collection": {
       "description": "Explora la colección \"{name}\" en Nadeshiko"
+    }
+  },
+  "statsPage": {
+    "title": "Nadeshiko en cifras",
+    "intro": {
+      "prefix": "¿Qué tan bien cubre nuestro corpus el idioma japonés? Lo medimos con la lista de frecuencia de anime de",
+      "source": "Jiten",
+      "suffix": ", creada a partir de {totalWords} palabras únicas en miles de anime."
+    },
+    "loadError": "No se pudieron cargar las estadísticas. Intenta recargar la página.",
+    "summary": {
+      "sentences": "Oraciones",
+      "uniqueWords": "Palabras únicas",
+      "totalContent": "Contenido total",
+      "episodes": "Episodios",
+      "dialogueHours": "Horas de diálogo"
+    },
+    "coverage": {
+      "title": "Cobertura de frecuencia",
+      "updated": "Actualizado el {date}",
+      "empty": "Todavía no hay datos de cobertura.",
+      "fullCorpus": "Corpus completo ({count} mil palabras)",
+      "topWordsK": "Top {count} mil palabras",
+      "topWords": "Top {count} palabras"
+    },
+    "translations": {
+      "title": "Disponibilidad de traducciones",
+      "description": "Todas las oraciones tienen subtítulos en japonés. Queremos incluir traducciones al inglés y al español para todo el contenido. Algunas fuentes no tienen subtítulos fiables en español, así que la cobertura puede ser menor en ese idioma.",
+      "translated": "{percent}% traducido",
+      "official": "Oficial {percent}%",
+      "machine": "DeepL {percent}%",
+      "none": "Sin traducción {percent}%",
+      "languages": {
+        "english": "Inglés",
+        "spanish": "Español"
+      }
+    },
+    "admin": {
+      "title": "Admin: actualizar cobertura",
+      "updating": "Actualizando...",
+      "fullRescan": "Reescaneo completo",
+      "missingOnly": "Solo faltantes",
+      "wordsChecked": "Palabras revisadas",
+      "newlyCovered": "Nuevas cubiertas",
+      "totalCovered": "Total cubiertas"
+    }
+  },
+  "statsWordsPage": {
+    "back": "Volver a Estadísticas",
+    "title": "Cobertura de palabras",
+    "description": {
+      "prefix": "Explora palabras de la lista de frecuencia de anime de",
+      "source": "Jiten",
+      "suffix": "y su cobertura dentro del corpus de Nadeshiko."
+    },
+    "filters": {
+      "all": "Todas ({count})",
+      "covered": "Cubiertas ({count})",
+      "missing": "Faltantes ({count})"
+    },
+    "missingLabel": "faltante",
+    "empty": "Ninguna palabra coincide con el filtro actual.",
+    "loading": "Cargando...",
+    "footer": {
+      "prefix": "Datos de frecuencia del corpus de anime de",
+      "source": "Jiten",
+      "suffix": ". Mostrando {shown} de {total} palabras."
     }
   }
 }

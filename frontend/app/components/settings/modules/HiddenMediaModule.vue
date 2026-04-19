@@ -12,7 +12,7 @@ type NamedMedia = {
   nameRomaji?: string;
 };
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const sdk = useNadeshikoSdk();
 const { mediaName, language } = useMediaName();
 const { items: hiddenItems, toggleHideMedia, isMediaHidden } = useHiddenMedia();
@@ -35,7 +35,7 @@ const displayMediaName = (media: NamedMedia): string => {
   if (preferred) {
     return preferred;
   }
-  return `Media #${media.publicId ?? media.mediaPublicId ?? '-'}`;
+  return t('accountSettings.account.hiddenMediaFallback', { id: media.publicId ?? media.mediaPublicId ?? '-' });
 };
 
 const secondaryMediaNames = (media: NamedMedia): string => {
@@ -57,6 +57,8 @@ const secondaryMediaNames = (media: NamedMedia): string => {
 const hiddenMediaItems = computed(() =>
   [...hiddenItems.value].sort((a, b) => Date.parse(b.hiddenAt || '') - Date.parse(a.hiddenAt || '')),
 );
+
+const formatNumber = (value: number) => new Intl.NumberFormat(locale.value).format(value);
 
 const searchMediaToHide = (query: string) => {
   if (hiddenMediaSearchTimeout) {
@@ -153,8 +155,8 @@ const unhide = async (item: HiddenMediaItem) => {
       <table class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
           <tr>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Media</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Other Names</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.hiddenMediaTable.media') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.hiddenMediaTable.otherNames') }}</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>
@@ -180,14 +182,14 @@ const unhide = async (item: HiddenMediaItem) => {
       </table>
     </div>
     <p v-else-if="hiddenMediaSearchQuery.trim().length > 0 && !searchLoading" class="mt-3 text-sm text-gray-400">
-      No media found for this query.
+      {{ t('accountSettings.account.hiddenMediaNoResults') }}
     </p>
   </div>
 
   <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
     <div class="flex flex-wrap items-center gap-2 justify-between">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.account.hiddenMedia') }} List</h3>
-      <p class="text-sm text-gray-400">{{ hiddenMediaItems.length }} hidden</p>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.account.hiddenMediaListTitle') }}</h3>
+      <p class="text-sm text-gray-400">{{ t('accountSettings.account.hiddenMediaCount', { count: formatNumber(hiddenMediaItems.length) }) }}</p>
     </div>
 
     <div class="border-b pt-4 border-white/10" />
@@ -196,8 +198,8 @@ const unhide = async (item: HiddenMediaItem) => {
       <table v-if="hiddenMediaItems.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
           <tr>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Media</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Other Names</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.hiddenMediaTable.media') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.hiddenMediaTable.otherNames') }}</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>

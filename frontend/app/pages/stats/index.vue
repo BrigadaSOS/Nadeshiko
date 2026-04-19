@@ -2,7 +2,8 @@
 import { userStore } from '~/stores/auth';
 import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const localePath = useLocalePath();
 
 useSeoMeta({
   title: () => t('seo.stats.title'),
@@ -28,6 +29,17 @@ const {
 const updating = ref(false);
 const updateResult = ref<TriggerCoveredWordsUpdateResponse | null>(null);
 
+function formatNumber(value: number): string {
+  return value.toLocaleString(locale.value);
+}
+
+function formatPercent(value: number): string {
+  return new Intl.NumberFormat(locale.value, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 async function triggerUpdate(onlyUncovered: boolean) {
   updating.value = true;
   updateResult.value = null;
@@ -35,7 +47,7 @@ async function triggerUpdate(onlyUncovered: boolean) {
     updateResult.value = await sdk.triggerCoveredWordsUpdate({ onlyUncovered });
     await refreshStats();
   } catch (err) {
-    console.error('Coverage update failed:', err);
+    console.error('stats.coverage_update_failed', err);
   } finally {
     updating.value = false;
   }
@@ -43,17 +55,23 @@ async function triggerUpdate(onlyUncovered: boolean) {
 
 function tierLabel(tier: number): string {
   if (stats.value && tier >= stats.value.totalFrequencyWords)
-    return `Full corpus (${(stats.value.totalFrequencyWords / 1000).toFixed(0)}k words)`;
-  if (tier >= 1000) return `Top ${(tier / 1000).toLocaleString()}k words`;
-  return `Top ${tier.toLocaleString()} words`;
+    return t('statsPage.coverage.fullCorpus', {
+      count: (stats.value.totalFrequencyWords / 1000).toFixed(0),
+    });
+  if (tier >= 1000) {
+    return t('statsPage.coverage.topWordsK', {
+      count: (tier / 1000).toLocaleString(locale.value),
+    });
+  }
+  return t('statsPage.coverage.topWords', { count: tier.toLocaleString(locale.value) });
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Intl.DateTimeFormat(locale.value, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  });
+  }).format(new Date(iso));
 }
 
 const totalWordsCovered = computed(() => {
@@ -69,7 +87,7 @@ function translationPercent(count: number): number {
 
 function translationNonePercent(human: number, machine: number): string {
   const none = 100 - translationPercent(human) - translationPercent(machine);
-  return Math.max(0, none).toFixed(1);
+  return formatPercent(Math.max(0, none));
 }
 
 function translationBarWidth(count: number): string {
@@ -80,8 +98,8 @@ const translationLanguages = computed(() => {
   const t = stats.value?.translations;
   if (!t) return [];
   return [
-    { label: 'English', human: t.enHuman, machine: t.enMachine },
-    { label: 'Spanish', human: t.esHuman, machine: t.esMachine },
+    { label: 'english', human: t.enHuman, machine: t.enMachine },
+    { label: 'spanish', human: t.esHuman, machine: t.esMachine },
   ];
 });
 </script>
@@ -89,53 +107,52 @@ const translationLanguages = computed(() => {
 <template>
   <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6 text-white">
     <div class="mb-3">
-      <h1 class="text-[2.5rem] font-extrabold mb-2 pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">Nadeshiko in Numbers</h1>
+      <h1 class="text-[2.5rem] font-extrabold mb-2 pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">{{ $t('statsPage.title') }}</h1>
       <p class="text-white/50 max-w-xl">
-        How well does our corpus cover the Japanese language? We measure against the
+        {{ $t('statsPage.intro.prefix') }}
         <a
           href="https://jiten.moe"
           target="_blank"
           rel="noopener"
           class="text-button-accent-main hover:text-button-accent-hover transition-colors"
-        >Jiten</a>
-        anime frequency list, built from {{ stats?.totalFrequencyWords?.toLocaleString() ?? '200,000+' }} unique words
-        across thousands of anime.
+        >{{ $t('statsPage.intro.source') }}</a>
+        {{ $t('statsPage.intro.suffix', { totalWords: stats?.totalFrequencyWords ? formatNumber(stats.totalFrequencyWords) : '200,000+' }) }}
       </p>
     </div>
 
     <div v-if="statsError" class="dark:bg-card-background rounded-lg px-5 py-5 mb-3 text-center text-white/40 text-sm">
-      Failed to load statistics. Try refreshing the page.
+      {{ $t('statsPage.loadError') }}
     </div>
 
     <div v-if="stats" class="grid grid-cols-1 lg:grid-cols-[22rem_1fr] gap-3 mb-3">
       <div class="flex flex-col gap-3">
         <div class="dark:bg-card-background rounded-lg flex flex-col items-center justify-center py-6 flex-1">
-          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">Sentences</p>
-          <p class="text-3xl font-bold tabular-nums">{{ stats.totalSegments.toLocaleString() }}+</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">{{ $t('statsPage.summary.sentences') }}</p>
+          <p class="text-3xl font-bold tabular-nums">{{ formatNumber(stats.totalSegments) }}+</p>
         </div>
         <div class="dark:bg-card-background rounded-lg flex flex-col items-center justify-center py-6 flex-1">
-          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">Unique words</p>
-          <p class="text-3xl font-bold tabular-nums text-button-accent-main">{{ totalWordsCovered.toLocaleString() }}</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">{{ $t('statsPage.summary.uniqueWords') }}</p>
+          <p class="text-3xl font-bold tabular-nums text-button-accent-main">{{ formatNumber(totalWordsCovered) }}</p>
         </div>
         <div class="dark:bg-card-background rounded-lg flex flex-col items-center justify-center py-6 flex-1">
-          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">Total content</p>
-          <p class="text-3xl font-bold tabular-nums">{{ stats.totalMedia }}</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">{{ $t('statsPage.summary.totalContent') }}</p>
+          <p class="text-3xl font-bold tabular-nums">{{ formatNumber(stats.totalMedia) }}</p>
         </div>
         <div class="dark:bg-card-background rounded-lg flex flex-col items-center justify-center py-6 flex-1">
-          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">Episodes</p>
-          <p class="text-3xl font-bold tabular-nums">{{ stats.totalEpisodes.toLocaleString() }}</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">{{ $t('statsPage.summary.episodes') }}</p>
+          <p class="text-3xl font-bold tabular-nums">{{ formatNumber(stats.totalEpisodes) }}</p>
         </div>
         <div class="dark:bg-card-background rounded-lg flex flex-col items-center justify-center py-6 flex-1">
-          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">Dialogue hours</p>
-          <p class="text-3xl font-bold tabular-nums">{{ stats.dialogueHours.toLocaleString() }}</p>
+          <p class="text-white/40 text-xs uppercase tracking-wider mb-1">{{ $t('statsPage.summary.dialogueHours') }}</p>
+          <p class="text-3xl font-bold tabular-nums">{{ formatNumber(stats.dialogueHours) }}</p>
         </div>
       </div>
 
       <div class="dark:bg-card-background rounded-lg px-5 py-5">
         <div class="flex items-baseline justify-between mb-5">
-          <h2 class="text-lg font-semibold">Frequency Coverage</h2>
+          <h2 class="text-lg font-semibold">{{ $t('statsPage.coverage.title') }}</h2>
           <p v-if="stats?.lastUpdated" class="text-white/30 text-xs">
-            Updated {{ formatDate(stats.lastUpdated) }}
+            {{ $t('statsPage.coverage.updated', { date: formatDate(stats.lastUpdated) }) }}
           </p>
         </div>
 
@@ -143,7 +160,7 @@ const translationLanguages = computed(() => {
           <NuxtLink
             v-for="tier in stats.tiers"
             :key="tier.tier"
-            :to="`/stats/words?tier=${tier.tier}`"
+            :to="localePath(`/stats/words?tier=${tier.tier}`)"
             class="block group rounded-lg px-4 py-3 -mx-1 transition-colors hover:bg-white/[0.03]"
           >
             <div class="flex justify-between items-baseline mb-1.5">
@@ -151,8 +168,8 @@ const translationLanguages = computed(() => {
                 {{ tierLabel(tier.tier) }}
               </span>
               <span class="text-sm">
-                <span class="font-semibold tabular-nums text-button-accent-main">{{ tier.percentage }}%</span>
-                <span class="text-white/30 ml-2 text-xs tabular-nums">{{ tier.covered.toLocaleString() }}/{{ tier.tier.toLocaleString() }}</span>
+                <span class="font-semibold tabular-nums text-button-accent-main">{{ formatNumber(tier.percentage) }}%</span>
+                <span class="text-white/30 ml-2 text-xs tabular-nums">{{ formatNumber(tier.covered) }}/{{ formatNumber(tier.tier) }}</span>
               </span>
             </div>
             <div class="w-full rounded-full h-2 nd-accent-bg-faint">
@@ -165,26 +182,25 @@ const translationLanguages = computed(() => {
         </div>
 
         <div v-else class="py-8 text-center text-white/40 text-sm">
-          No coverage data available yet.
+          {{ $t('statsPage.coverage.empty') }}
         </div>
       </div>
     </div>
 
     <div v-if="stats?.translations" class="dark:bg-card-background rounded-lg px-5 py-5 mb-3">
       <div class="mb-5">
-        <h2 class="text-lg font-semibold mb-1">Translation Availability</h2>
+        <h2 class="text-lg font-semibold mb-1">{{ $t('statsPage.translations.title') }}</h2>
         <p class="text-white/40 text-sm max-w-2xl">
-          Every sentence has Japanese subtitles. We aim to include English and Spanish translations for all content.
-          Some sources lack reliable Spanish subtitles, so coverage may be lower for that language.
+          {{ $t('statsPage.translations.description') }}
         </p>
       </div>
 
       <div class="space-y-5">
         <div v-for="lang in translationLanguages" :key="lang.label">
           <div class="flex justify-between items-baseline mb-2">
-            <span class="text-sm font-medium">{{ lang.label }}</span>
+            <span class="text-sm font-medium">{{ $t(`statsPage.translations.languages.${lang.label}`) }}</span>
             <span class="text-xs text-white/40 tabular-nums">
-              {{ (translationPercent(lang.human) + translationPercent(lang.machine)).toFixed(1) }}% translated
+              {{ $t('statsPage.translations.translated', { percent: formatPercent(translationPercent(lang.human) + translationPercent(lang.machine)) }) }}
             </span>
           </div>
           <div class="w-full h-2 rounded-full bg-white/[0.04] flex overflow-hidden">
@@ -200,15 +216,15 @@ const translationLanguages = computed(() => {
           <div class="flex gap-4 mt-2 text-xs text-white/50">
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full bg-button-accent-main" />
-              Official {{ translationPercent(lang.human) }}%
+              {{ $t('statsPage.translations.official', { percent: formatPercent(translationPercent(lang.human)) }) }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full nd-accent-bg-muted" />
-              DeepL {{ translationPercent(lang.machine) }}%
+              {{ $t('statsPage.translations.machine', { percent: formatPercent(translationPercent(lang.machine)) }) }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full bg-white/10" />
-              None {{ translationNonePercent(lang.human, lang.machine) }}%
+              {{ $t('statsPage.translations.none', { percent: translationNonePercent(lang.human, lang.machine) }) }}
             </span>
           </div>
         </div>
@@ -217,7 +233,7 @@ const translationLanguages = computed(() => {
 
     <ClientOnly>
       <div v-if="userStore().isAdmin" class="max-w-xl">
-        <h2 class="text-lg font-semibold mb-3">Admin: Update Coverage</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ $t('statsPage.admin.title') }}</h2>
 
         <div class="dark:bg-card-background rounded-lg px-5 py-5">
           <div class="flex gap-3">
@@ -229,7 +245,7 @@ const translationLanguages = computed(() => {
                 : 'bg-button-accent-main hover:bg-button-accent-hover text-white'"
               @click="triggerUpdate(false)"
             >
-              {{ updating ? 'Updating...' : 'Full rescan' }}
+              {{ updating ? $t('statsPage.admin.updating') : $t('statsPage.admin.fullRescan') }}
             </button>
             <button
               :disabled="updating"
@@ -239,14 +255,14 @@ const translationLanguages = computed(() => {
                 : 'bg-button-primary-main hover:bg-button-primary-hover text-white'"
               @click="triggerUpdate(true)"
             >
-              {{ updating ? 'Updating...' : 'Check missing only' }}
+              {{ updating ? $t('statsPage.admin.updating') : $t('statsPage.admin.missingOnly') }}
             </button>
           </div>
 
           <div v-if="updateResult" class="mt-4 text-sm space-y-1">
-            <p>Words checked: <span class="text-white font-medium">{{ updateResult.wordsChecked.toLocaleString() }}</span></p>
-            <p>Newly covered: <span class="text-button-accent-main font-medium">+{{ updateResult.newlyCovered.toLocaleString() }}</span></p>
-            <p>Total covered: <span class="text-white font-medium">{{ updateResult.totalCovered.toLocaleString() }}</span> ({{ updateResult.percentage }}%)</p>
+            <p>{{ $t('statsPage.admin.wordsChecked') }}: <span class="text-white font-medium">{{ formatNumber(updateResult.wordsChecked) }}</span></p>
+            <p>{{ $t('statsPage.admin.newlyCovered') }}: <span class="text-button-accent-main font-medium">+{{ formatNumber(updateResult.newlyCovered) }}</span></p>
+            <p>{{ $t('statsPage.admin.totalCovered') }}: <span class="text-white font-medium">{{ formatNumber(updateResult.totalCovered) }}</span> ({{ formatNumber(updateResult.percentage) }}%)</p>
           </div>
         </div>
       </div>

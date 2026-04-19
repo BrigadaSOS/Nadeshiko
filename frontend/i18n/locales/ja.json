@@ -3,6 +3,7 @@
     "buttons": {
       "home": "ホーム",
       "about": "About",
+      "api": "API",
       "login": "ログイン / サインアップ",
       "profile": "プロフィール",
       "privacy": "プライバシー",
@@ -12,9 +13,22 @@
       "blog": "ブログ",
       "stats": "Stats",
       "media": "メディア",
+      "collections": "コレクション",
+      "activity": "アクティビティ",
       "language": "言語",
       "logout": "ログアウト"
     }
+  },
+  "common": {
+    "close": "閉じる",
+    "logoAlt": "Nadeshikoのロゴ",
+    "navigationMenu": "ナビゲーションメニュー",
+    "searchAnything": "何でも検索",
+    "toggleNavigation": "ナビゲーションを切り替え"
+  },
+  "appMeta": {
+    "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
+    "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
   },
   "home": {
     "version": "v{version}",
@@ -310,20 +324,169 @@
   "accountSettings": {
     "menu": {
       "generalTitle": "一般",
-      "advancedTitle": "高度な設定"
+      "advancedTitle": "高度な設定",
+      "adminTitle": "管理者"
     },
     "tabs": {
+      "settings": "設定",
       "sync": "Anki同期",
-      "developer": "開発者"
+      "collections": "コレクション",
+      "activity": "アクティビティ",
+      "hideMedia": "非表示メディア",
+      "developer": "開発者",
+      "labs": "Labs",
+      "users": "ユーザー",
+      "reports": "レポート",
+      "announcement": "お知らせ"
+    },
+    "dashboard": {
+      "title": "ユーザー",
+      "searchPlaceholder": "メールで検索...",
+      "count": "{count} 人のユーザー",
+      "empty": "ユーザーが見つかりません。",
+      "table": {
+        "name": "名前",
+        "email": "メール",
+        "role": "権限",
+        "providers": "連携",
+        "registered": "登録日",
+        "lastUpdate": "最終更新",
+        "status": "状態"
+      },
+      "providers": {
+        "google": "Google",
+        "discord": "Discord",
+        "email": "メール"
+      },
+      "status": {
+        "active": "有効",
+        "banned": "停止中"
+      },
+      "actions": {
+        "impersonate": "代理ログイン",
+        "ban": "停止",
+        "unban": "停止解除"
+      },
+      "pagination": {
+        "showing": "{total} 件中 {start}〜{end} 件を表示",
+        "previous": "前へ",
+        "next": "次へ"
+      }
+    },
+    "announcement": {
+      "title": "お知らせ",
+      "description": "すべてのユーザーに表示されるサイト全体のお知らせバナーを設定します。",
+      "fields": {
+        "message": "メッセージ",
+        "type": "種類",
+        "active": "有効",
+        "preview": "プレビュー"
+      },
+      "placeholders": {
+        "message": "お知らせメッセージを入力..."
+      },
+      "activeDescription": "有効にすると、すべての訪問者にバナーが表示されます。",
+      "types": {
+        "INFO": "情報",
+        "WARNING": "警告",
+        "MAINTENANCE": "メンテナンス"
+      },
+      "previewTitles": {
+        "INFO": "お知らせ",
+        "WARNING": "重要なお知らせ",
+        "MAINTENANCE": "メンテナンスのお知らせ"
+      },
+      "save": "保存",
+      "saving": "保存中...",
+      "deactivate": "無効化",
+      "updated": "お知らせを更新しました",
+      "updateError": "お知らせの更新に失敗しました",
+      "deactivated": "お知らせを無効化しました",
+      "deactivateError": "お知らせの無効化に失敗しました",
+      "fallbackMessage": "お知らせはありません"
+    },
+    "activity": {
+      "confirmClearHistory": "すべてのアクティビティ履歴を削除しますか？この操作は取り消せません。",
+      "confirmClearDay": "{day} のアクティビティをすべて削除しますか？この操作は取り消せません。",
+      "ranges": {
+        "all": "全期間"
+      },
+      "filters": {
+        "all": "すべて"
+      },
+      "types": {
+        "SEARCH": "検索",
+        "SEGMENT_PLAY": "音声再生",
+        "ANKI_EXPORT": "Anki書き出し",
+        "SHARE": "共有"
+      },
+      "metrics": {
+        "searches": "検索した文",
+        "plays": "再生した音声",
+        "exports": "Anki書き出し",
+        "shares": "共有したリンク"
+      },
+      "overview": {
+        "title": "アクティビティ概要",
+        "description": "検索や学習行動に関する便利な指標です。"
+      },
+      "heatmap": {
+        "title": "アクティビティヒートマップ",
+        "description": "過去 {days} 日間のアクティビティです。日付をクリックすると履歴を絞り込めます。",
+        "loading": "ヒートマップを読み込み中...",
+        "less": "少",
+        "more": "多",
+        "records": "{count} 件の記録",
+        "searches": "{count} 件の検索",
+        "plays": "{count} 件の再生",
+        "exports": "{count} 件の書き出し",
+        "shares": "{count} 件の共有",
+        "actions": "{count} 件の操作"
+      },
+      "history": {
+        "title": "アクティビティ履歴",
+        "description": "アカウントの最新イベントです。",
+        "showing": "表示中: {day}",
+        "clearDayFilter": "日付フィルターをクリア",
+        "deleteDayTitle": "この日のアクティビティをすべて削除",
+        "loading": "読み込み中...",
+        "empty": "まだアクティビティは記録されていません。",
+        "emptyForDay": "この日に記録されたアクティビティはありません。",
+        "emptyForType": "この種類のアクティビティは記録されていません。",
+        "noDetails": "-",
+        "remove": "削除",
+        "loadMore": "もっと見る",
+        "table": {
+          "type": "種類",
+          "details": "詳細",
+          "date": "日付"
+        }
+      },
+      "privacy": {
+        "title": "プライバシー",
+        "trackingTitle": "アクティビティ追跡",
+        "trackingDescription": "検索、書き出し、視聴履歴を記録します。",
+        "clearHistoryTitle": "履歴を削除",
+        "clearHistoryDescription": "アカウントのアクティビティデータをすべて完全に削除します。",
+        "clearHistoryButton": "履歴を削除",
+        "clearing": "削除中..."
+      }
     },
     "developer": {
       "apiUsageTitle": "API使用量",
       "apiUsageRemaining": "残りリクエスト: {used} / {limit}",
+      "usageLimitMessage": {
+        "prefix": "API使用上限を増やしたい場合は、以下までご連絡ください"
+      },
+      "legacyKeysMessage": {
+        "prefix": "旧バージョンのサイトで作成したAPIキーを管理するには、こちらへアクセスしてください"
+      },
       "apiKeyManagement": "APIキー管理",
       "addApiKey": "APIキーを追加",
       "keyCreated": "キー作成完了",
       "keyCreatedMessage": "このキーを保存してください。再度表示されません。",
       "copyApiKey": "APIキーをコピー",
+      "copied": "コピーしました",
       "keyDeactivated": "キー無効化完了",
       "noKeysFound": "APIキーが見つかりません",
       "noKeysMessage": "アプリやプロジェクト用に新しいキーを作成しましょう！",
@@ -357,8 +520,34 @@
       "usernameLabel": "ユーザー名",
       "emailLabel": "メール",
       "notAvailable": "利用不可",
+      "logout": "ログアウト",
+      "loggingOut": "ログアウト中...",
       "additionalTitle": "エキストラ",
+      "preferencesTitle": "設定",
+      "mediaNameLanguage": "メディア名の表示言語",
+      "mediaNameLanguageDescription": "可能な場合、メディア名は {language} で表示されます。例:",
+      "mediaNameLanguageOptions": {
+        "ENGLISH": "英語",
+        "JAPANESE": "日本語",
+        "ROMAJI": "ローマ字"
+      },
+      "tokenPopupReading": "トークンポップアップの読み",
+      "tokenPopupReadingDescription": "日本語テキストにカーソルを合わせたとき、ポップアップ内で読みをどう表示するかを設定します。",
+      "tooltipReadingOptions": {
+        "hiragana": "ひらがな (ねがう)",
+        "katakana": "カタカナ (ネガウ)",
+        "romaji": "ローマ字 (negau)",
+        "hidden": "非表示"
+      },
       "deleteAccount": "アカウント削除（取り消し不可）",
+      "deleteAccountButton": "アカウントを削除",
+      "deletingAccount": "削除中...",
+      "confirmDeleteAccount": "この操作によりアカウントは完全に削除されます。続行しますか？",
+      "deleteAccountError": "アカウントを削除できませんでした。再度ログインしてからもう一度お試しください。",
+      "accountDeleted": "アカウントを削除しました",
+      "exportData": "データをエクスポート",
+      "exportDataDescription": "すべてのデータをJSONファイルとしてダウンロードします。",
+      "exportingData": "エクスポート中...",
       "questionableContent": "センシティブコンテンツ",
       "questionableContentDesc": "きわどいまたは露骨なコンテンツ",
       "contentRatingShow": "表示",
@@ -368,6 +557,7 @@
       "contentRatingHint_blur": "検索結果に含まれますが、ぼかして表示されます",
       "contentRatingHint_hide": "検索結果に含まれません",
       "contentRatingPreview": "検索結果での表示プレビュー",
+      "contentRatingPreviewAlt": "コンテンツ評価サンプルのプレビュー画像",
       "contentRatingHiddenDesc": "非表示 — 検索結果に含まれません",
       "preferenceSaved": "設定を保存しました",
       "preferenceError": "設定の保存に失敗しました",
@@ -378,12 +568,51 @@
       "changeEmailCancel": "キャンセル",
       "changeEmailSuccess": "現在のメールアドレスに確認メールを送信しました。受信トレイを確認してください。",
       "changeEmailFailed": "メールアドレスの変更リクエストに失敗しました。",
+      "sessions": {
+        "title": "セッション",
+        "refresh": "更新",
+        "logoutOtherDevices": "他の端末をログアウト",
+        "logoutAllSessions": "すべてのセッションをログアウト",
+        "loading": "セッションを読み込み中...",
+        "current": "現在",
+        "revoke": "取り消す",
+        "empty": "有効なセッションがありません。",
+        "confirmRevokeAll": "このセッションを含むすべてのセッションを取り消します。続行しますか？",
+        "table": {
+          "userAgent": "ユーザーエージェント",
+          "created": "作成日",
+          "expires": "有効期限"
+        },
+        "errors": {
+          "revokeSingle": "このセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。",
+          "revokeOthers": "他のセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。",
+          "revokeAll": "すべてのセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。"
+        }
+      },
       "hiddenMedia": "非表示メディア",
       "hiddenMediaDescription": "検索結果から非表示にしたメディア。検索結果のメニューからも非表示にできます。",
       "hiddenMediaSearchPlaceholder": "非表示にするメディアを検索...",
-      "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。"
+      "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。",
+      "hiddenMediaFallback": "メディア #{id}",
+      "hiddenMediaNoResults": "この検索に一致するメディアは見つかりませんでした。",
+      "hiddenMediaListTitle": "非表示メディア一覧",
+      "hiddenMediaCount": "{count} 件を非表示",
+      "hiddenMediaTable": {
+        "media": "メディア",
+        "otherNames": "別名"
+      },
+      "sessionDetails": {
+        "unknownDevice": "不明な端末",
+        "tablet": "タブレット",
+        "mobile": "モバイル",
+        "desktop": "デスクトップ",
+        "unknownOs": "不明なOS",
+        "unknownBrowser": "不明なブラウザ"
+      }
     },
     "collections": {
+      "title": "コレクション",
+      "count": "{count} 件のコレクション",
       "removeFromCollection": "コレクションから削除",
       "confirmRemove": "削除しますか？",
       "yes": "はい",
@@ -394,11 +623,20 @@
       "renameConfirm": "保存",
       "renameCancel": "キャンセル",
       "renamed": "コレクション名を変更しました",
+      "renameError": "コレクション名の変更に失敗しました",
       "deleteTitle": "コレクションを削除",
       "deleteMessage": "「{name}」を削除しますか？この操作は取り消せません。",
       "deleteConfirm": "削除",
       "deleteCancel": "キャンセル",
       "deleted": "コレクションを削除しました",
+      "deleteError": "コレクションの削除に失敗しました",
+      "table": {
+        "name": "名前",
+        "segments": "セグメント",
+        "visibility": "公開設定",
+        "created": "作成日",
+        "updated": "更新日"
+      },
       "visibility": {
         "PUBLIC": "公開",
         "PRIVATE": "非公開"
@@ -448,11 +686,22 @@
       "serverAddressLabel": "AnkiConnectサーバーアドレス",
       "profile": "プロフィール",
       "newProfile": "新規",
+      "defaultProfile": "デフォルト",
       "renameProfile": "名前変更",
       "profileNamePlaceholder": "プロフィール名",
       "deleteProfile": "削除",
       "openBrowserOnExport": "カードをエクスポート時にAnkiブラウザを開く",
-      "saving": "保存中..."
+      "saving": "保存中...",
+      "modal": {
+        "cancel": "キャンセル",
+        "save": "保存"
+      }
+    },
+    "labs": {
+      "title": "Nadeshiko Labs",
+      "description": "一般公開前の実験的な機能を試せます。",
+      "feedbackDescription": "これらの機能はまだテスト中で、いつでも変更される可能性があります。Nadeshikoの標準機能になる前に改善するため、ぜひフィードバックをお寄せください。",
+      "empty": "現在利用できるLabs機能はありません。"
     }
   },
   "errorPage": {
@@ -563,13 +812,80 @@
       "count": "件数",
       "notes": "管理者メモ",
       "actions": "アクション",
+      "filters": {
+        "all": "すべて",
+        "user": "ユーザーレポート",
+        "auto": "自動チェック",
+        "orphaned": "孤立"
+      },
+      "availableChecks": "利用可能なチェック",
+      "configure": "設定",
+      "running": "実行中",
+      "run": "実行",
+      "lastRun": "前回実行 {date}",
+      "neverRun": "未実行",
+      "resultsTab": "結果",
+      "runHistoryTab": "実行履歴",
+      "selectedGroups": "{count} 件のグループを選択中",
       "processing": "対応中",
       "fixed": "修正済み",
       "dismiss": "却下",
+      "delete": "削除",
+      "clearSelection": "クリア",
+      "dismissingAll": "すべて却下中...",
+      "dismissAllMatching": "一致するものをすべて却下",
+      "deletingAll": "すべて削除中...",
+      "deleteAllMatching": "一致するものをすべて削除",
       "reopen": "再開",
       "save": "保存",
       "addNote": "クリックしてメモを追加...",
-      "updateSuccess": "レポートが更新されました"
+      "updateSuccess": "レポートが更新されました",
+      "updateError": "レポートの更新に失敗しました",
+      "auditRunResult": "{audit}: {count} 件の検出結果",
+      "auditConfigUpdated": "監査設定を更新しました",
+      "batchUpdated": "{count} 件のレポートを更新しました",
+      "batchUpdateError": "レポートの更新に失敗しました",
+      "batchDeleted": "{count} 件のレポートを削除しました",
+      "batchDeleteError": "レポートの削除に失敗しました",
+      "batchDeletePartialError": "{count} 件の削除に失敗しました",
+      "batchDismissed": "{count} 件のレポートを却下しました",
+      "batchDismissError": "レポートの却下に失敗しました",
+      "deleteSuccess": "レポートを削除しました",
+      "deleteError": "レポートの削除に失敗しました",
+      "reported": "報告日時",
+      "updated": "更新日時",
+      "episode": "EP{number}",
+      "deletedTarget": "削除済み",
+      "reporters": "{count} 人の報告者",
+      "sources": {
+        "USER": "ユーザー",
+        "AUTO": "自動"
+      },
+      "targetTypes": {
+        "SEGMENT": "セグメント",
+        "EPISODE": "エピソード",
+        "MEDIA": "メディア"
+      },
+      "runHistory": {
+        "check": "チェック",
+        "category": "カテゴリ",
+        "findings": "検出数",
+        "date": "日時",
+        "actions": "操作",
+        "allCategories": "すべて",
+        "viewResults": "結果を見る",
+        "empty": "まだ実行履歴がありません"
+      },
+      "confirm": {
+        "dismissAllTitle": "一致するレポートをすべて却下しますか？",
+        "dismissAllDescription": "現在のフィルターに一致するすべてのレポートを却下します。個別に再オープンすることで元に戻せます。",
+        "dismissAllButton": "すべて却下",
+        "deleteAllTitle": "一致するレポートをすべて削除しますか？",
+        "deleteAllDescription": "現在のフィルターに一致するすべてのレポートを完全に削除します。この操作は元に戻せません。",
+        "deleteAllButton": "すべて削除",
+        "deleteGroupTitle": "このレポートグループを削除しますか？",
+        "deleteGroupDescription": "このレポートと、同じ対象および理由を持つ重複レポートをすべて完全に削除します。"
+      }
     }
   },
   "modalauth": {
@@ -613,6 +929,10 @@
     "hint": "検索バーに入力中はショートカットが無効になります。?キーでこのパネルを表示/非表示できます。"
   },
   "seo": {
+    "home": {
+      "title": "Nadeshiko：アニメの日本語文を検索",
+      "description": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+    },
     "stats": {
       "title": "統計",
       "description": "Nadeshikoが最も一般的な日本語単語をどれだけカバーしているか確認できます。Jitenアニメ頻度リストに基づくカバレッジ統計。"
@@ -631,14 +951,92 @@
     },
     "search": {
       "title": "検索",
-      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。",
+      "atLeast": "少なくとも",
+      "categoryAnime": "アニメ",
+      "categoryJdrama": "実写",
+      "fromCategory": "{category}から{count}件",
+      "breakdownWrapper": "（{parts}）",
+      "descriptionWithResults": "「{query}」を含む例文が{count}件{breakdown}あります。英語・スペイン語訳付き。",
+      "descriptionNoResults": "「{query}」でアニメや実写の日本語文100万件以上を検索。英語・スペイン語訳付き。",
+      "mediaDescription": "{media}の日本語文{count}件。英語・スペイン語訳付き。",
+      "mediaDescriptionEpisode": "{media}第{episode}話の日本語文{count}件。英語・スペイン語訳付き。",
+      "mediaDescriptionEpisodes": "{media}全{episodeCount}話の日本語文{count}件。英語・スペイン語訳付き。"
     },
     "sentence": {
       "title": "文章",
-      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。",
+      "episode": "第{n}話"
     },
     "collection": {
       "description": "Nadeshikoの「{name}」コレクションを閲覧"
+    }
+  },
+  "statsPage": {
+    "title": "数字で見るNadeshiko",
+    "intro": {
+      "prefix": "コーパスが日本語をどれだけカバーしているかを、",
+      "source": "Jiten",
+      "suffix": "のアニメ頻度リストを基準に測定しています。このリストは数千本のアニメから集めた{totalWords}語のユニーク単語で構成されています。"
+    },
+    "loadError": "統計の読み込みに失敗しました。ページを再読み込みしてください。",
+    "summary": {
+      "sentences": "文数",
+      "uniqueWords": "ユニーク単語",
+      "totalContent": "総コンテンツ数",
+      "episodes": "エピソード数",
+      "dialogueHours": "会話時間"
+    },
+    "coverage": {
+      "title": "頻度カバレッジ",
+      "updated": "更新日 {date}",
+      "empty": "まだカバレッジデータがありません。",
+      "fullCorpus": "コーパス全体（{count}k語）",
+      "topWordsK": "上位{count}k語",
+      "topWords": "上位{count}語"
+    },
+    "translations": {
+      "title": "翻訳の対応状況",
+      "description": "すべての文に日本語字幕があります。すべてのコンテンツに英語とスペイン語の翻訳を付けることを目指しています。ソースによっては信頼できるスペイン語字幕がないため、その言語のカバレッジは低くなる場合があります。",
+      "translated": "{percent}% 翻訳済み",
+      "official": "公式 {percent}%",
+      "machine": "DeepL {percent}%",
+      "none": "なし {percent}%",
+      "languages": {
+        "english": "英語",
+        "spanish": "スペイン語"
+      }
+    },
+    "admin": {
+      "title": "管理者: カバレッジ更新",
+      "updating": "更新中...",
+      "fullRescan": "フル再走査",
+      "missingOnly": "未対応のみ確認",
+      "wordsChecked": "確認単語数",
+      "newlyCovered": "新規対応",
+      "totalCovered": "対応済み合計"
+    }
+  },
+  "statsWordsPage": {
+    "back": "統計に戻る",
+    "title": "単語カバレッジ",
+    "description": {
+      "prefix": "",
+      "source": "Jiten",
+      "suffix": "のアニメ頻度リストにある単語と、Nadeshikoコーパスでのカバレッジを確認できます。"
+    },
+    "filters": {
+      "all": "すべて ({count})",
+      "covered": "対応済み ({count})",
+      "missing": "未対応 ({count})"
+    },
+    "missingLabel": "未対応",
+    "empty": "現在のフィルターに一致する単語はありません。",
+    "loading": "読み込み中...",
+    "footer": {
+      "prefix": "",
+      "source": "Jiten",
+      "suffix": "のアニメコーパス頻度データを使用。{shown} / {total}語を表示中。"
     }
   }
 }

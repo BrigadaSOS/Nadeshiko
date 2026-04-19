@@ -48,8 +48,8 @@ async function submitSidebarSearch() {
                 <div class="flex mr-7">
                     <NuxtLink :to="localePath('/')"
                         class="text-lg inline-flex items-center text-center align-middle font-semibold text-white">
-                        <img src="/logo-38d6e06a.webp" class="h-8 mr-3 rounded-semi" alt="Nadeshiko Logo" />
-                        Nadeshiko
+                        <img src="/logo-38d6e06a.webp" class="h-8 mr-3 rounded-semi" :alt="$t('common.logoAlt')" />
+                        <span>Nadeshiko</span>
                     </NuxtLink>
                 </div>
 
@@ -58,7 +58,7 @@ async function submitSidebarSearch() {
                         class="relative size-9 flex justify-center items-center rounded-lg bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:bg-white/20"
                         data-testid="hamburger-menu"
                         aria-haspopup="dialog" aria-expanded="false" aria-controls="nd-nav-sidebar"
-                        aria-label="Toggle navigation" data-nd-overlay="#nd-nav-sidebar">
+                        :aria-label="$t('common.toggleNavigation')" data-nd-overlay="#nd-nav-sidebar">
                         <svg class="shrink-0 size-5" xmlns="http://www.w3.org/2000/svg"
                             width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,7 +94,7 @@ async function submitSidebarSearch() {
                     </NuxtLink>
                     <NuxtLink to="/docs/api/index.html" external
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
-                        API
+                        {{ $t("navbar.buttons.api") }}
                     </NuxtLink>
                 </div>
                 <div class="gap-2 flex flex-row">
@@ -140,13 +140,13 @@ async function submitSidebarSearch() {
                                         <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                     </NuxtLink>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/sync')" data-testid="nav-anki" :prefetch="false">
-                                        <SearchDropdownItem text="Anki" />
+                                        <SearchDropdownItem :text="$t('accountSettings.tabs.sync')" />
                                     </NuxtLink>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/collections')" data-testid="nav-collections" :prefetch="false">
-                                        <SearchDropdownItem text="Collections" />
+                                        <SearchDropdownItem :text="$t('navbar.buttons.collections')" />
                                     </NuxtLink>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/activity')" data-testid="nav-activity" :prefetch="false">
-                                        <SearchDropdownItem text="Activity" />
+                                        <SearchDropdownItem :text="$t('navbar.buttons.activity')" />
                                     </NuxtLink>
                                     <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
                                     <hr v-if="isAuth" class="my-1 border-neutral-700" />
@@ -166,16 +166,16 @@ async function submitSidebarSearch() {
     <div id="nd-nav-sidebar"
         data-testid="nav-menu"
         class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 nd-overlay-open:translate-x-0 hidden translate-x-full fixed top-0 end-0 transition-all duration-300 transform h-full max-w-xs w-full z-[80] bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 md:hidden"
-        role="dialog" tabindex="-1" aria-label="Navigation menu">
+        role="dialog" tabindex="-1" :aria-label="$t('common.navigationMenu')">
 
         <div class="flex items-center justify-between py-3 px-4 border-b dark:border-neutral-700">
             <NuxtLink :to="localePath('/')" class="inline-flex items-center font-semibold text-gray-800 dark:text-white">
-                <img src="/logo-38d6e06a.webp" class="h-7 mr-2.5 rounded-semi" alt="Nadeshiko Logo" />
+                <img src="/logo-38d6e06a.webp" class="h-7 mr-2.5 rounded-semi" :alt="$t('common.logoAlt')" />
                 Nadeshiko
             </NuxtLink>
             <button type="button"
                 class="size-8 inline-flex justify-center items-center rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
-                aria-label="Close" data-nd-overlay="#nd-nav-sidebar">
+                :aria-label="$t('common.close')" data-nd-overlay="#nd-nav-sidebar">
                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 6 6 18" />
                     <path d="m6 6 12 12" />
@@ -188,7 +188,7 @@ async function submitSidebarSearch() {
                 <div class="relative">
                     <input v-model="sidebarSearch" @keydown.enter="submitSidebarSearch"
                         class="w-full pl-9 pr-3 py-2 bg-neutral-700/50 text-white text-sm rounded-lg border border-white/10 placeholder-neutral-400 focus:outline-none focus:border-input-focus-ring"
-                        placeholder="Search anything!" />
+                        :placeholder="$t('common.searchAnything')" />
                     <UiBaseIcon :path="mdiMagnify" :size="16"
                         class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
                 </div>
@@ -222,7 +222,7 @@ async function submitSidebarSearch() {
                 <NuxtLink to="/docs/api/index.html" external
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiApi" :size="18" />
-                    API
+                    {{ $t("navbar.buttons.api") }}
                 </NuxtLink>
             </div>
 
@@ -237,17 +237,17 @@ async function submitSidebarSearch() {
                         <NuxtLink :to="localePath('/user/sync')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiSync" :size="18" />
-                            Anki
+                            {{ $t('accountSettings.tabs.sync') }}
                         </NuxtLink>
                         <NuxtLink :to="localePath('/user/collections')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiFormatListBulletedSquare" :size="18" />
-                            Collections
+                            {{ $t('navbar.buttons.collections') }}
                         </NuxtLink>
                         <NuxtLink :to="localePath('/user/activity')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiHistory" :size="18" />
-                            Activity
+                            {{ $t('navbar.buttons.activity') }}
                         </NuxtLink>
                     </template>
                     <button v-if="!isAuth" @click="openLoginModal"

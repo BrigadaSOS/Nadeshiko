@@ -2,32 +2,18 @@
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
 import { buildMediaSearchPath } from '~/utils/routes';
 
-const { locale } = useI18n();
+const { t } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 
-const seoTitle = computed(() => {
-  if (locale.value === 'es') return 'Nadeshiko: Busca oraciones en japonés de anime';
-  if (locale.value === 'ja') return 'Nadeshiko：アニメの日本語文を検索';
-  return 'Nadeshiko: Search Japanese sentences from anime';
-});
-
-const seoDescription = computed(() => {
-  if (locale.value === 'es')
-    return 'Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas.';
-  if (locale.value === 'ja')
-    return 'さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。';
-  return 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
-});
-
 useSeoMeta({
-  title: seoTitle,
-  description: seoDescription,
-  ogTitle: seoTitle,
-  ogDescription: seoDescription,
+  title: () => t('seo.home.title'),
+  description: () => t('seo.home.description'),
+  ogTitle: () => t('seo.home.title'),
+  ogDescription: () => t('seo.home.description'),
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: seoTitle,
-  twitterDescription: seoDescription,
+  twitterTitle: () => t('seo.home.title'),
+  twitterDescription: () => t('seo.home.description'),
 });
 
 useSchemaOrg([

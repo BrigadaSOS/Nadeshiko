@@ -71,7 +71,7 @@ const metaTags = computed(() => {
   const result = initialSentenceData.value?.results?.[0];
 
   if (result) {
-    const sentenceTags = buildSentenceMetaTags(result, mediaName);
+    const sentenceTags = buildSentenceMetaTags(result, mediaName, (n) => t('seo.sentence.episode', { n }));
     tags.title = sentenceTags.title;
     tags.meta = sentenceTags.meta;
   }
