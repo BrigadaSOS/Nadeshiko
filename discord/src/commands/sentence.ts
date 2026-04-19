@@ -44,7 +44,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const params = new URLSearchParams();
     if (resolvedMedia) {
-      params.set('media', resolvedMedia.mediaPublicId);
+      params.set('media', resolvedMedia.publicId);
       params.set('episode', String(segment.episode));
     }
     const qs = params.toString();
@@ -99,7 +99,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       if ((i.customId === 'search_in_media' || i.customId === 'search_in_episode') && resolvedMedia) {
         collector.stop('search_transition');
         await executeSearch(i, {
-          mediaPublicId: resolvedMedia.mediaPublicId,
+          mediaPublicId: resolvedMedia.publicId,
           episodes: i.customId === 'search_in_episode' ? [segment.episode] : undefined,
           display,
         });
@@ -112,7 +112,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       try {
         const params = new URLSearchParams();
         if (resolvedMedia) {
-          params.set('media', resolvedMedia.mediaPublicId);
+          params.set('media', resolvedMedia.publicId);
           params.set('episode', String(segment.episode));
         }
         const qs = params.toString();

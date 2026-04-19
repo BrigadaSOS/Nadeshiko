@@ -22,8 +22,8 @@ import {
   makeContextResponse,
 } from '../mocks/fixtures';
 
-const media1 = makeMedia({ mediaPublicId: 'media-1', nameRomaji: 'Oshi No Ko', nameJa: '推しの子' });
-const media2 = makeMedia({ mediaPublicId: 'media-2', nameRomaji: 'Spy x Family', nameJa: 'スパイファミリー' });
+const media1 = makeMedia({ publicId: 'media-1', nameRomaji: 'Oshi No Ko', nameJa: '推しの子' });
+const media2 = makeMedia({ publicId: 'media-2', nameRomaji: 'Spy x Family', nameJa: 'スパイファミリー' });
 
 describe('/search flow', () => {
   let flow: FlowRunner;
@@ -36,13 +36,13 @@ describe('/search flow', () => {
 
   test('search with query shows results', async () => {
     const seg1 = makeSegment({
-      segmentPublicId: 'seg-1',
+      publicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
     });
     const seg2 = makeSegment({
-      segmentPublicId: 'seg-2',
+      publicId: 'seg-2',
       textJa: { content: '食べました', highlight: '<em>食べ</em>ました' },
       mediaPublicId: 'media-2',
       episode: 1,
@@ -66,7 +66,7 @@ describe('/search flow', () => {
 
   test('search with no query shows random sentence', async () => {
     const seg = makeSegment({
-      segmentPublicId: 'seg-random',
+      publicId: 'seg-random',
       textJa: { content: 'ランダムな文' },
       mediaPublicId: 'media-1',
     });
@@ -89,7 +89,7 @@ describe('/search flow', () => {
   test('search -> click Search button -> fill modal -> results', async () => {
     // Step 1: initial random
     const randomSeg = makeSegment({
-      segmentPublicId: 'seg-random',
+      publicId: 'seg-random',
       textJa: { content: 'ランダム' },
       mediaPublicId: 'media-1',
     });
@@ -105,7 +105,7 @@ describe('/search flow', () => {
 
     // Step 3: submit modal with query
     const searchSeg = makeSegment({
-      segmentPublicId: 'seg-search-1',
+      publicId: 'seg-search-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
     });
@@ -125,7 +125,7 @@ describe('/search flow', () => {
   test('search -> filter media -> select media -> filtered results', async () => {
     // Step 1: search with query
     const seg1 = makeSegment({
-      segmentPublicId: 'seg-1',
+      publicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
     });
@@ -152,7 +152,7 @@ describe('/search flow', () => {
 
     // Step 3: select Oshi No Ko
     const filteredSeg = makeSegment({
-      segmentPublicId: 'seg-filtered',
+      publicId: 'seg-filtered',
       textJa: { content: '食べたくない', highlight: '<em>食べ</em>たくない' },
       mediaPublicId: 'media-1',
     });
@@ -176,7 +176,7 @@ describe('/search flow', () => {
   test('full flow: random -> search modal -> filter media -> refine search', async () => {
     // Step 1: random mode
     const randomSeg = makeSegment({
-      segmentPublicId: 'seg-r',
+      publicId: 'seg-r',
       textJa: { content: '元気ですか' },
       mediaPublicId: 'media-1',
     });
@@ -194,12 +194,12 @@ describe('/search flow', () => {
 
     // Step 3: submit search
     const searchSeg1 = makeSegment({
-      segmentPublicId: 'seg-s1',
+      publicId: 'seg-s1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
     });
     const searchSeg2 = makeSegment({
-      segmentPublicId: 'seg-s2',
+      publicId: 'seg-s2',
       textJa: { content: '食べる', highlight: '<em>食べる</em>' },
       mediaPublicId: 'media-2',
     });
@@ -234,7 +234,7 @@ describe('/search flow', () => {
 
     // Step 5: select Oshi No Ko
     const filteredSeg = makeSegment({
-      segmentPublicId: 'seg-f1',
+      publicId: 'seg-f1',
       textJa: { content: '食べて', highlight: '<em>食べ</em>て' },
       mediaPublicId: 'media-1',
       episode: 5,
@@ -251,7 +251,7 @@ describe('/search flow', () => {
 
     // Step 7: submit with episode filter
     const episodeSeg = makeSegment({
-      segmentPublicId: 'seg-ep',
+      publicId: 'seg-ep',
       textJa: { content: '食べたかった', highlight: '<em>食べ</em>たかった' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -272,7 +272,7 @@ describe('/search flow', () => {
 
   test('search -> context -> shows surrounding sentences', async () => {
     const seg = makeSegment({
-      segmentPublicId: 'seg-1',
+      publicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -283,14 +283,14 @@ describe('/search flow', () => {
 
     // Click context button
     const ctxBefore = makeSegment({
-      segmentPublicId: 'ctx-before',
+      publicId: 'ctx-before',
       textJa: { content: 'その前の文' },
       mediaPublicId: 'media-1',
       episode: 3,
       startTimeMs: 57000,
     });
     const ctxAfter = makeSegment({
-      segmentPublicId: 'ctx-after',
+      publicId: 'ctx-after',
       textJa: { content: 'その後の文' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -309,7 +309,7 @@ describe('/search flow', () => {
 
   test('search -> context -> select different sentence', async () => {
     const seg = makeSegment({
-      segmentPublicId: 'seg-1',
+      publicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -320,14 +320,14 @@ describe('/search flow', () => {
 
     // Open context
     const ctxBefore = makeSegment({
-      segmentPublicId: 'ctx-before',
+      publicId: 'ctx-before',
       textJa: { content: 'その前の文' },
       mediaPublicId: 'media-1',
       episode: 3,
       startTimeMs: 57000,
     });
     const ctxAfter = makeSegment({
-      segmentPublicId: 'ctx-after',
+      publicId: 'ctx-after',
       textJa: { content: 'その後の文' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -347,7 +347,7 @@ describe('/search flow', () => {
 
   test('search -> context -> back to original restores search view', async () => {
     const seg = makeSegment({
-      segmentPublicId: 'seg-1',
+      publicId: 'seg-1',
       textJa: { content: '食べたい', highlight: '<em>食べ</em>たい' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -358,7 +358,7 @@ describe('/search flow', () => {
 
     // Open context
     const ctxSeg = makeSegment({
-      segmentPublicId: 'ctx-1',
+      publicId: 'ctx-1',
       textJa: { content: 'コンテキスト' },
       mediaPublicId: 'media-1',
       episode: 3,
@@ -380,7 +380,7 @@ describe('/search flow', () => {
 
   test('random -> context -> back to original restores segment view', async () => {
     const seg = makeSegment({
-      segmentPublicId: 'seg-r',
+      publicId: 'seg-r',
       textJa: { content: 'ランダムな文' },
       mediaPublicId: 'media-1',
       episode: 5,
@@ -394,7 +394,7 @@ describe('/search flow', () => {
 
     // Open context
     const ctxSeg = makeSegment({
-      segmentPublicId: 'ctx-1',
+      publicId: 'ctx-1',
       textJa: { content: 'コンテキスト文' },
       mediaPublicId: 'media-1',
       episode: 5,

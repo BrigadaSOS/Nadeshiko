@@ -73,7 +73,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .addOptions(
         media.slice(0, 25).map((m, i) => ({
           label: `${i + 1}. ${getMediaName(m).slice(0, 90)}`,
-          value: m.mediaPublicId,
+          value: m.publicId,
           description: m.nameJa?.slice(0, 100),
         })),
       );
@@ -121,7 +121,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
         const mediaPublicId = i.values[0];
         searchState.mediaPublicId = mediaPublicId;
-        const selected = media.find((m) => m.mediaPublicId === mediaPublicId);
+        const selected = media.find((m) => m.publicId === mediaPublicId);
         searchState.mediaName = getMediaName(selected);
 
         const randomResult = await fetchRandom(mediaPublicId);
@@ -142,7 +142,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
       if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
         await i.deferUpdate();
-        const idx = searchState.results.segments.findIndex((s) => s.segmentPublicId === i.values[0]);
+        const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
         if (idx === -1) return;
         searchState.currentIndex = idx;
         contextState.viewingContext = false;
