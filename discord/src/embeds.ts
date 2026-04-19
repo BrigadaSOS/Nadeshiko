@@ -46,8 +46,8 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}...`;
 }
 
-function mediaSearchUrl(media: { mediaPublicId: string }, episode?: number): string {
-  const params = new URLSearchParams({ media: media.mediaPublicId });
+function mediaSearchUrl(media: { publicId: string }, episode?: number): string {
+  const params = new URLSearchParams({ media: media.publicId });
   if (episode != null) params.set('episode', String(episode));
   return `${BOT_CONFIG.frontendUrl}/search?${params}`;
 }
@@ -60,7 +60,7 @@ export function buildSegmentMessage(
   const mediaName = getMediaName(media);
   const timestamp = formatTimestamp(segment.startTimeMs);
 
-  const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.segmentPublicId}`;
+  const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.publicId}`;
   const mediaLink = media ? `[${mediaName}](<${mediaSearchUrl(media)}>)` : mediaName;
   const episodeLink = media
     ? `[Episode ${segment.episode}](<${mediaSearchUrl(media, segment.episode)}>)`

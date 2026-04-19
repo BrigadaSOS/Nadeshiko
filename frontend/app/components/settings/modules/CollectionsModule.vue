@@ -169,9 +169,7 @@ const submitDelete = async () => {
   try {
     await sdk.deleteCollection(deleteTarget.value.publicId);
 
-    collections.value = collections.value.filter(
-      (c) => c.publicId !== deleteTarget.value?.publicId,
-    );
+    collections.value = collections.value.filter((c) => c.publicId !== deleteTarget.value?.publicId);
 
     posthog?.capture('collection_deleted');
     useToastSuccess(t('accountSettings.collections.deleted'));

@@ -34,7 +34,7 @@ export async function handleAutoEmbed(message: Message) {
     const { segment, media } = await getSegment(segmentId);
     const params = new URLSearchParams();
     if (media) {
-      params.set('media', media.mediaPublicId);
+      params.set('media', media.publicId);
       params.set('episode', String(segment.episode));
     }
     const qs = params.toString();
@@ -71,7 +71,7 @@ export async function handleAutoEmbed(message: Message) {
       try {
         const params = new URLSearchParams();
         if (media) {
-          params.set('media', media.mediaPublicId);
+          params.set('media', media.publicId);
           params.set('episode', String(segment.episode));
         }
         const qs = params.toString();

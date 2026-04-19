@@ -9,7 +9,7 @@ export async function searchMediaCache(query: string, limit = 25): Promise<Media
   }
   const result = await searchMedia(query, limit);
   for (const m of result.media) {
-    nameCache.set(m.mediaPublicId, m);
+    nameCache.set(m.publicId, m);
   }
   return result.media.slice(0, limit);
 }

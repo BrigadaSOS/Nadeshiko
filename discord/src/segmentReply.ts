@@ -21,7 +21,7 @@ function isNsfw(segment: Segment): boolean {
 
 function buildVideoAttachment(videoBuffer: Buffer, segment: Segment): AttachmentBuilder {
   const prefix = isNsfw(segment) ? 'SPOILER_' : '';
-  return new AttachmentBuilder(videoBuffer, { name: `${prefix}${segment.segmentPublicId}.mp4` });
+  return new AttachmentBuilder(videoBuffer, { name: `${prefix}${segment.publicId}.mp4` });
 }
 
 export async function loadVideoFiles(segment: Segment): Promise<AttachmentBuilder[]> {
@@ -113,7 +113,7 @@ export async function handleContextButton(
   state.originalMedia = media;
   state.contextExtraButtons = [...(extraButtons ?? []), closeContextButton];
 
-  const result = await getSegmentContext(segment.segmentPublicId, CONTEXT_TAKE);
+  const result = await getSegmentContext(segment.publicId, CONTEXT_TAKE);
   if (result.segments.length === 0) return;
 
   state.contextSegments = result.segments;
@@ -125,7 +125,7 @@ export async function handleContextButton(
   const mediaName = getMediaName(resolvedMedia);
   const header = `📜 **Context** for sentence in **${mediaName}** • Episode ${segment.episode}`;
   const body = buildSegmentMessage(segment, resolvedMedia, display);
-  const components = buildContextSelectComponents(result.segments, segment.segmentPublicId, state.contextExtraButtons);
+  const components = buildContextSelectComponents(result.segments, segment.publicId, state.contextExtraButtons);
   const files = await loadVideoFiles(segment);
   const content = `${header}\n\n${body}`;
 
@@ -140,7 +140,7 @@ export async function handleContextSelect(
   await selectInteraction.deferUpdate();
 
   const selectedId = selectInteraction.values[0];
-  const segment = state.contextSegments.find((s) => s.segmentPublicId === selectedId);
+  const segment = state.contextSegments.find((s) => s.publicId === selectedId);
   if (!segment) return;
 
   const media = state.contextMediaMap[segment.mediaPublicId];
@@ -152,7 +152,7 @@ export async function handleContextSelect(
     state.contextSegments,
     selectedId,
     state.contextExtraButtons,
-    state.originalSegment?.segmentPublicId,
+    state.originalSegment?.publicId,
   );
   const files = await loadVideoFiles(segment);
   const content = `${header}\n\n${body}`;
@@ -192,20 +192,20 @@ function buildContextSelectComponents(
   const rows: ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder>[] = [];
 
   const originId = originalPublicId ?? currentPublicId;
-  const originIndex = segments.findIndex((s) => s.segmentPublicId === originId);
+  const originIndex = segments.findIndex((s) => s.publicId === originId);
 
   const options = segments.slice(0, 25).map((seg, i) => {
     const jaText = stripAllHtmlTags(seg.textJa.content);
     const diff = i - originIndex;
-    const prefix = seg.segmentPublicId === originId ? '▶' : `${diff > 0 ? '+' : ''}${diff}`;
+    const prefix = seg.publicId === originId ? '▶' : `${diff > 0 ? '+' : ''}${diff}`;
     const prefixedText = `${prefix}) ${jaText}`;
     const label = prefixedText.length > 100 ? `${prefixedText.slice(0, 97)}...` : prefixedText;
     const timestamp = formatTimestamp(seg.startTimeMs);
     return {
       label,
-      value: seg.segmentPublicId,
+      value: seg.publicId,
       description: timestamp,
-      default: seg.segmentPublicId === currentPublicId,
+      default: seg.publicId === currentPublicId,
     };
   });
 
@@ -256,9 +256,9 @@ export function buildSearchSelectComponents(
 
     return {
       label,
-      value: seg.segmentPublicId,
+      value: seg.publicId,
       description: description.slice(0, 100),
-      default: seg.segmentPublicId === currentPublicId,
+      default: seg.publicId === currentPublicId,
     };
   });
 

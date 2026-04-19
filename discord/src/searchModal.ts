@@ -371,7 +371,7 @@ export async function renderSearchResult(
   const components = buildSearchSelectComponents(
     state.results.segments,
     state.results.includes.media,
-    seg.segmentPublicId,
+    seg.publicId,
     linkUrl,
     buttons,
     pageOffset,

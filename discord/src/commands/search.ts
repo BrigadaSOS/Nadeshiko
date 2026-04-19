@@ -263,7 +263,7 @@ export async function executeSearch(
 
       if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
         await i.deferUpdate();
-        const idx = searchState.results.segments.findIndex((s) => s.segmentPublicId === i.values[0]);
+        const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
         if (idx === -1) return;
         searchState.currentIndex = idx;
         syncCurrentSegment();
