@@ -19,7 +19,8 @@ const store = userStore();
 const isAuth = computed(() => store.isLoggedIn);
 const { hasNewPost } = useBlogNotification();
 const route = useRoute();
-const isOnBlog = computed(() => route.path.startsWith('/blog'));
+const localePath = useLocalePath();
+const isOnBlog = computed(() => route.path.startsWith(localePath('/blog')));
 
 function openLoginModal() {
   window.NDOverlay?.close('#nd-nav-sidebar');
@@ -36,7 +37,7 @@ async function submitSidebarSearch() {
   const term = sidebarSearch.value?.trim();
   if (!term) return;
   window.NDOverlay?.close('#nd-nav-sidebar');
-  await navigateTo(`/search/${encodeURIComponent(term)}`);
+  await navigateTo(localePath(`/search/${encodeURIComponent(term)}`));
 }
 </script>
 <template>
@@ -45,7 +46,7 @@ async function submitSidebarSearch() {
         <nav class="px-4 md:px-0 md:max-w-[90%] w-full mx-auto md:flex md:items-center md:justify-between text-xs">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
-                    <NuxtLink to="/"
+                    <NuxtLink :to="localePath('/')"
                         class="text-lg inline-flex items-center text-center align-middle font-semibold text-white">
                         <img src="/logo-38d6e06a.webp" class="h-8 mr-3 rounded-semi" alt="Nadeshiko Logo" />
                         Nadeshiko
@@ -71,11 +72,11 @@ async function submitSidebarSearch() {
 
             <div class="hidden md:flex md:flex-1 md:items-center md:ps-5">
                 <div class="gap-6 flex md:flex-row md:mr-auto">
-                    <NuxtLink to="/media"
+                    <NuxtLink :to="localePath('/media')"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.media") }}
                     </NuxtLink>
-                    <NuxtLink to="/blog"
+                    <NuxtLink :to="localePath('/blog')"
                         class="relative text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.blog") }}
                         <span
@@ -83,11 +84,11 @@ async function submitSidebarSearch() {
                           class="absolute -top-0.5 -right-2 size-[5px] rounded-full bg-white"
                         />
                     </NuxtLink>
-                    <NuxtLink to="/stats"
+                    <NuxtLink :to="localePath('/stats')"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.stats") }}
                     </NuxtLink>
-                    <NuxtLink to="/about"
+                    <NuxtLink :to="localePath('/about')"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.about") }}
                     </NuxtLink>
@@ -135,16 +136,16 @@ async function submitSidebarSearch() {
                         <template #content>
                             <SearchDropdownContent :header="$t('navbar.buttons.profile')">
                                 <ClientOnly>
-                                    <NuxtLink v-if="isAuth" to="/user/settings" data-testid="nav-settings" :prefetch="false">
+                                    <NuxtLink v-if="isAuth" :to="localePath('/user/settings')" data-testid="nav-settings" :prefetch="false">
                                         <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
                                     </NuxtLink>
-                                    <NuxtLink v-if="isAuth" to="/user/sync" data-testid="nav-anki" :prefetch="false">
+                                    <NuxtLink v-if="isAuth" :to="localePath('/user/sync')" data-testid="nav-anki" :prefetch="false">
                                         <SearchDropdownItem text="Anki" />
                                     </NuxtLink>
-                                    <NuxtLink v-if="isAuth" to="/user/collections" data-testid="nav-collections" :prefetch="false">
+                                    <NuxtLink v-if="isAuth" :to="localePath('/user/collections')" data-testid="nav-collections" :prefetch="false">
                                         <SearchDropdownItem text="Collections" />
                                     </NuxtLink>
-                                    <NuxtLink v-if="isAuth" to="/user/activity" data-testid="nav-activity" :prefetch="false">
+                                    <NuxtLink v-if="isAuth" :to="localePath('/user/activity')" data-testid="nav-activity" :prefetch="false">
                                         <SearchDropdownItem text="Activity" />
                                     </NuxtLink>
                                     <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
@@ -168,7 +169,7 @@ async function submitSidebarSearch() {
         role="dialog" tabindex="-1" aria-label="Navigation menu">
 
         <div class="flex items-center justify-between py-3 px-4 border-b dark:border-neutral-700">
-            <NuxtLink to="/" class="inline-flex items-center font-semibold text-gray-800 dark:text-white">
+            <NuxtLink :to="localePath('/')" class="inline-flex items-center font-semibold text-gray-800 dark:text-white">
                 <img src="/logo-38d6e06a.webp" class="h-7 mr-2.5 rounded-semi" alt="Nadeshiko Logo" />
                 Nadeshiko
             </NuxtLink>
@@ -194,12 +195,12 @@ async function submitSidebarSearch() {
             </div>
 
             <div class="flex flex-col py-2">
-                <NuxtLink to="/media"
+                <NuxtLink :to="localePath('/media')"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiMovieOpenOutline" :size="18" />
                     {{ $t("navbar.buttons.media") }}
                 </NuxtLink>
-                <NuxtLink to="/blog"
+                <NuxtLink :to="localePath('/blog')"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiNewspaperVariantOutline" :size="18" />
                     {{ $t("navbar.buttons.blog") }}
@@ -208,12 +209,12 @@ async function submitSidebarSearch() {
                       class="size-1.5 rounded-full bg-header-background"
                     />
                 </NuxtLink>
-                <NuxtLink to="/stats"
+                <NuxtLink :to="localePath('/stats')"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiChartBar" :size="18" />
                     {{ $t("navbar.buttons.stats") }}
                 </NuxtLink>
-                <NuxtLink to="/about"
+                <NuxtLink :to="localePath('/about')"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiInformationOutline" :size="18" />
                     {{ $t("navbar.buttons.about") }}
@@ -228,22 +229,22 @@ async function submitSidebarSearch() {
             <div class="border-t dark:border-neutral-700 py-2">
                 <ClientOnly>
                     <template v-if="isAuth">
-                        <NuxtLink to="/user/settings"
+                        <NuxtLink :to="localePath('/user/settings')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiCogOutline" :size="18" />
                             {{ $t('navbar.buttons.settings') }}
                         </NuxtLink>
-                        <NuxtLink to="/user/sync"
+                        <NuxtLink :to="localePath('/user/sync')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiSync" :size="18" />
                             Anki
                         </NuxtLink>
-                        <NuxtLink to="/user/collections"
+                        <NuxtLink :to="localePath('/user/collections')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiFormatListBulletedSquare" :size="18" />
                             Collections
                         </NuxtLink>
-                        <NuxtLink to="/user/activity"
+                        <NuxtLink :to="localePath('/user/activity')"
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiHistory" :size="18" />
                             Activity

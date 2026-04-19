@@ -35,6 +35,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const localePath = useLocalePath();
 const sdk = useNadeshikoSdk();
 const posthog = usePostHog();
 const { contentRating } = useContentRating();
@@ -174,7 +175,7 @@ const fetchStats = async () => {
       });
       if ('error' in result) {
         if (result.response.status === 403 || result.response.status === 401) {
-          await navigateTo('/', { redirectCode: 302 });
+          await navigateTo(localePath('/'), { redirectCode: 302 });
           return;
         }
         statsData.value = { media: [], categories: [] };
@@ -253,7 +254,7 @@ const fetchSentences = async () => {
       });
       if ('error' in result) {
         if (result.response.status === 403 || result.response.status === 401) {
-          await navigateTo('/', { redirectCode: 302 });
+          await navigateTo(localePath('/'), { redirectCode: 302 });
           return;
         }
         response = null;

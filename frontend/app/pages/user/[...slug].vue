@@ -38,30 +38,29 @@ const SettingsAnnouncementModule = defineAsyncComponent(
 );
 
 const { t } = useI18n();
+const localePath = useLocalePath();
 const route = useRoute();
 const router = useRouter();
 
 const store = userStore();
-const isAuth = computed(() => store.isLoggedIn);
-const canUseAuthenticatedTabs = computed(() => isAuth.value);
 
 const tabsGeneral = computed(() => [
-  { name: 'Settings', icon: mdiAccount, route: '/user/settings', requiresAuth: true },
-  { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync', requiresAuth: true },
-  { name: 'Collections', icon: mdiFormatListBulletedSquare, route: '/user/collections', requiresAuth: true },
-  { name: 'Activity', icon: mdiHistory, route: '/user/activity', requiresAuth: true },
-  { name: 'Hide Media', icon: mdiEyeOffOutline, route: '/user/hide-media', requiresAuth: true },
+  { name: 'Settings', icon: mdiAccount, route: '/user/settings' },
+  { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync' },
+  { name: 'Collections', icon: mdiFormatListBulletedSquare, route: '/user/collections' },
+  { name: 'Activity', icon: mdiHistory, route: '/user/activity' },
+  { name: 'Hide Media', icon: mdiEyeOffOutline, route: '/user/hide-media' },
 ]);
 
 const tabsAdvanced = computed(() => [
-  { name: t('accountSettings.tabs.developer'), icon: mdiCodeTags, route: '/user/developer', requiresAuth: true },
-  { name: 'Labs', icon: mdiFlask, route: '/user/labs', requiresAuth: true },
+  { name: t('accountSettings.tabs.developer'), icon: mdiCodeTags, route: '/user/developer' },
+  { name: 'Labs', icon: mdiFlask, route: '/user/labs' },
 ]);
 
 const tabsAdmin = computed(() => [
-  { name: 'Users', icon: mdiAccountGroupOutline, route: '/user/admin/users', requiresAuth: true },
-  { name: 'Reports', icon: mdiShieldCrownOutline, route: '/user/admin/reports', requiresAuth: true },
-  { name: 'Announcement', icon: mdiBullhornOutline, route: '/user/admin/announcement', requiresAuth: true },
+  { name: 'Users', icon: mdiAccountGroupOutline, route: '/user/admin/users' },
+  { name: 'Reports', icon: mdiShieldCrownOutline, route: '/user/admin/reports' },
+  { name: 'Announcement', icon: mdiBullhornOutline, route: '/user/admin/announcement' },
 ]);
 
 const allTabs = computed(() => [
@@ -72,33 +71,28 @@ const allTabs = computed(() => [
 
 const activeTabRoute = computed(() => {
   const path = route.path;
-  if (path.startsWith('/user/admin/users')) return '/user/admin/users';
-  if (path.startsWith('/user/admin/reports')) return '/user/admin/reports';
-  if (path.startsWith('/user/admin/announcement')) return '/user/admin/announcement';
-  if (
-    path === '/user' ||
-    path.startsWith('/user/settings') ||
-    path.startsWith('/user/account') ||
-    path.startsWith('/user/settigns')
-  )
-    return '/user/settings';
-  if (path.startsWith('/user/sync')) return '/user/sync';
-  if (path.startsWith('/user/collections')) return '/user/collections';
-  if (path.startsWith('/user/activity')) return '/user/activity';
-  if (path.startsWith('/user/hide-media')) return '/user/hide-media';
-  if (path.startsWith('/user/developer')) return '/user/developer';
-  if (path.startsWith('/user/labs')) return '/user/labs';
+  if (path.startsWith(localePath('/user/admin/users'))) return '/user/admin/users';
+  if (path.startsWith(localePath('/user/admin/reports'))) return '/user/admin/reports';
+  if (path.startsWith(localePath('/user/admin/announcement'))) return '/user/admin/announcement';
+  if (path === localePath('/user') || path.startsWith(localePath('/user/settings'))) return '/user/settings';
+  if (path.startsWith(localePath('/user/sync'))) return '/user/sync';
+  if (path.startsWith(localePath('/user/collections'))) return '/user/collections';
+  if (path.startsWith(localePath('/user/activity'))) return '/user/activity';
+  if (path.startsWith(localePath('/user/hide-media'))) return '/user/hide-media';
+  if (path.startsWith(localePath('/user/developer'))) return '/user/developer';
+  if (path.startsWith(localePath('/user/labs'))) return '/user/labs';
   return '';
 });
 
-const navigateToTab = (path: string) => {
-  router.push(path);
+const navigateToTab = (tabRoute: string) => {
+  router.push(localePath(tabRoute));
 };
 
 definePageMeta({
   robots: false,
   middleware: defineNuxtRouteMiddleware((to) => {
     const store = userStore();
+    const localePath = useLocalePath();
     const allowed = [
       '/user/settings',
       '/user/sync',
@@ -111,39 +105,31 @@ definePageMeta({
     const adminAllowed = ['/user/admin/users', '/user/admin/reports', '/user/admin/announcement'];
 
     if (store.isLoggedIn) {
-      if (to.path === '/user') {
-        return navigateTo('/user/settings', { replace: true });
+      if (to.path === localePath('/user')) {
+        return navigateTo(localePath('/user/settings'), { replace: true });
       }
 
-      if (to.path.startsWith('/user/account')) {
-        return navigateTo(to.path.replace('/user/account', '/user/settings'), { replace: true });
-      }
-
-      if (to.path.startsWith('/user/settigns')) {
-        return navigateTo(to.path.replace('/user/settigns', '/user/settings'), { replace: true });
-      }
-
-      if (to.path.startsWith('/user/admin')) {
+      if (to.path.startsWith(localePath('/user/admin'))) {
         if (!store.isAdmin) {
-          return navigateTo('/user/settings', { replace: true });
+          return navigateTo(localePath('/user/settings'), { replace: true });
         }
-        if (to.path === '/user/admin') {
-          return navigateTo('/user/admin/users', { replace: true });
+        if (to.path === localePath('/user/admin')) {
+          return navigateTo(localePath('/user/admin/users'), { replace: true });
         }
-        if (!adminAllowed.some((prefix) => to.path.startsWith(prefix))) {
-          return navigateTo('/user/admin/users', { replace: true });
+        if (!adminAllowed.some((prefix) => to.path.startsWith(localePath(prefix)))) {
+          return navigateTo(localePath('/user/admin/users'), { replace: true });
         }
         return;
       }
 
-      if (!allowed.some((prefix) => to.path.startsWith(prefix))) {
-        return navigateTo('/user/settings', { replace: true });
+      if (!allowed.some((prefix) => to.path.startsWith(localePath(prefix)))) {
+        return navigateTo(localePath('/user/settings'), { replace: true });
       }
 
       return;
     }
 
-    return navigateTo('/', { replace: true });
+    return navigateTo(localePath('/'), { replace: true });
   }),
 });
 
@@ -175,13 +161,9 @@ watch(activeTabRoute, scrollActiveTabIntoView);
             <button
               v-for="tab in tabsGeneral"
               :key="tab.route"
-              :class="{
-                active: activeTabRoute === tab.route,
-                'opacity-50 cursor-not-allowed': !canUseAuthenticatedTabs && tab.requiresAuth
-              }"
-              :disabled="!canUseAuthenticatedTabs && tab.requiresAuth"
+              :class="{ active: activeTabRoute === tab.route }"
               class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left"
-              @click="(!tab.requiresAuth || canUseAuthenticatedTabs) ? navigateToTab(tab.route) : null"
+              @click="navigateToTab(tab.route)"
             >
               <UiBaseIcon :path="tab.icon" size="20" />
               {{ tab.name }}
@@ -192,13 +174,9 @@ watch(activeTabRoute, scrollActiveTabIntoView);
             <button
               v-for="tab in tabsAdvanced"
               :key="tab.route"
-              :class="{
-                active: activeTabRoute === tab.route,
-                'opacity-50 cursor-not-allowed': !canUseAuthenticatedTabs && tab.requiresAuth
-              }"
-              :disabled="!canUseAuthenticatedTabs && tab.requiresAuth"
+              :class="{ active: activeTabRoute === tab.route }"
               class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left"
-              @click="(!tab.requiresAuth || canUseAuthenticatedTabs) ? navigateToTab(tab.route) : null"
+              @click="navigateToTab(tab.route)"
             >
               <UiBaseIcon :path="tab.icon" size="20" />
               {{ tab.name }}
@@ -227,14 +205,12 @@ watch(activeTabRoute, scrollActiveTabIntoView);
               v-for="tab in allTabs"
               :key="tab.route"
               :class="[
-                'mobile-settings-tab relative px-4 py-3 text-sm text-nowrap shrink-0 transition-colors border-b-2',
+                'mobile-settings-tab relative px-4 py-3 text-sm text-nowrap shrink-0 transition-colors border-b-2 cursor-pointer',
                 activeTabRoute === tab.route
                   ? 'text-red-400 font-semibold border-red-500'
                   : 'text-gray-400 hover:text-white border-white/10',
-                !canUseAuthenticatedTabs && tab.requiresAuth ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
               ]"
-              :disabled="!canUseAuthenticatedTabs && tab.requiresAuth"
-              @click="(!tab.requiresAuth || canUseAuthenticatedTabs) ? navigateToTab(tab.route) : null"
+              @click="navigateToTab(tab.route)"
             >
               {{ tab.name }}
             </button>

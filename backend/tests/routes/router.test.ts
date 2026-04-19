@@ -131,7 +131,6 @@ const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: str
   { method: 'delete', path: '/v1/collections/V1StGXR8_Z5d/segments/V1StGXR8_Z5d', permission: 'DELETE_COLLECTIONS' },
 ];
 
-const ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES: { method: Method; path: string; permission: string }[] = [];
 
 describe('route auth wiring', () => {
   describe('session-only routes (requireSession)', () => {
@@ -220,49 +219,11 @@ describe('route auth wiring', () => {
     }
   });
 
-  describe('admin API key or admin session routes (requireAuth + enforceSessionAdmin + enforceApiKeyScope)', () => {
-    for (const route of ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES) {
-      describe(`${route.method.toUpperCase()} ${route.path} [${route.permission}]`, () => {
-        it('rejects unauthenticated requests with 401', async () => {
-          const res = await sendRequest(route.method, route.path);
-          expect(res.status).toBe(401);
-        });
-
-        it('rejects non-admin session with 403', async () => {
-          mockSessionAuth(fixtures.users.regular.id);
-          const res = await sendRequest(route.method, route.path);
-          expect(res.status).toBe(403);
-        });
-
-        it('accepts admin session', async () => {
-          mockSessionAuth(fixtures.users.kevin.id);
-          const res = await sendRequest(route.method, route.path);
-          expect(res.status).not.toBe(401);
-          expect(res.status).not.toBe(403);
-        });
-
-        it('rejects API key without required permission with 403', async () => {
-          const token = mockBetterAuthApiKey(fixtures.users.kevin.id, ['READ_MEDIA']);
-          const res = await sendAuthenticatedRequest(route.method, route.path, token);
-          expect(res.status).toBe(403);
-        });
-
-        it('accepts API key with required permission', async () => {
-          const token = mockBetterAuthApiKey(fixtures.users.kevin.id, [route.permission]);
-          const res = await sendAuthenticatedRequest(route.method, route.path, token);
-          expect(res.status).not.toBe(401);
-          expect(res.status).not.toBe(403);
-        });
-      });
-    }
-  });
-
   it('route count matches expected total', () => {
     const expectedTotal =
       SESSION_ONLY_ROUTES.length +
       ADMIN_SESSION_ROUTES.length +
-      API_KEY_OR_SESSION_ROUTES.length +
-      ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES.length;
+      API_KEY_OR_SESSION_ROUTES.length;
 
     expect(expectedTotal).toBe(58);
   });

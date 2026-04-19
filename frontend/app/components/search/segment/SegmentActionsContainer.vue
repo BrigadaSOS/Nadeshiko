@@ -46,6 +46,7 @@ const sdk = useNadeshikoSdk();
 const posthog = usePostHog();
 const { t } = useI18n();
 const router = useRouter();
+const localePath = useLocalePath();
 const isAnkiConfigured = ref(false);
 const collections = ref<CollectionOption[]>([]);
 const collectionsLoading = ref(false);
@@ -172,7 +173,7 @@ const quickAddToLastCollection = async () => {
 };
 
 const openCollectionsPage = async () => {
-  await router.push('/user/collections');
+  await router.push(localePath('/user/collections'));
 };
 </script>
 <template>
