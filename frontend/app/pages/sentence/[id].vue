@@ -35,7 +35,7 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
   return {
     media: [
       {
-        mediaPublicId: result.media.mediaPublicId,
+        mediaPublicId: result.media.publicId,
         matchCount: 1,
         episodeHits: [],
         nameRomaji: result.media.nameRomaji,

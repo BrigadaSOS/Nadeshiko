@@ -1,7 +1,7 @@
 type: object
 description: Segment with content, translations, search-related highlights, and media URLs
 required:
-  - segmentPublicId
+  - publicId
   - position
   - status
   - startTimeMs
@@ -14,7 +14,7 @@ required:
   - textEs
   - urls
 properties:
-  segmentPublicId:
+  publicId:
     type: string
     description: Public ID for the segment (nanoid)
     pattern: '^[A-Za-z0-9_-]{12}$'

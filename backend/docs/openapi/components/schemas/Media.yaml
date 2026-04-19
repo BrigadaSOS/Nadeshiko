@@ -1,7 +1,7 @@
 type: object
 description: Media entry with full metadata
 required:
-  - mediaPublicId
+  - publicId
   - slug
   - externalIds
   - nameJa
@@ -21,7 +21,7 @@ required:
   - seasonName
   - seasonYear
 properties:
-  mediaPublicId:
+  publicId:
     type: string
     description: Public ID for the media (use this in public URLs)
     pattern: '^[A-Za-z0-9_-]{12}$'
