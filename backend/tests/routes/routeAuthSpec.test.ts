@@ -67,9 +67,17 @@ describe('OpenAPI security definitions', () => {
 
   it('only uses known ApiKey permissions', () => {
     const knownPermissions = new Set([
-      'READ_MEDIA', 'ADD_MEDIA', 'UPDATE_MEDIA', 'REMOVE_MEDIA',
-      'READ_PROFILE', 'WRITE_PROFILE', 'READ_ACTIVITY',
-      'READ_COLLECTIONS', 'CREATE_COLLECTIONS', 'UPDATE_COLLECTIONS', 'DELETE_COLLECTIONS',
+      'READ_MEDIA',
+      'ADD_MEDIA',
+      'UPDATE_MEDIA',
+      'REMOVE_MEDIA',
+      'READ_PROFILE',
+      'WRITE_PROFILE',
+      'READ_ACTIVITY',
+      'READ_COLLECTIONS',
+      'CREATE_COLLECTIONS',
+      'UPDATE_COLLECTIONS',
+      'DELETE_COLLECTIONS',
     ]);
 
     for (const op of allOperations) {

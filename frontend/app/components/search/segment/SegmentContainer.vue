@@ -176,8 +176,7 @@ const revealedContent = ref(new Set<string>());
 
 const revealedTranslations = reactive(new Set<string>());
 
-const isTranslationRevealed = (publicId: string, lang: string) =>
-  revealedTranslations.has(`${publicId}-${lang}`);
+const isTranslationRevealed = (publicId: string, lang: string) => revealedTranslations.has(`${publicId}-${lang}`);
 
 const toggleTranslationReveal = (publicId: string, lang: string) => {
   const key = `${publicId}-${lang}`;

@@ -1,11 +1,11 @@
 meta {
-  name: Get current monthly API quota
+  name: Get current user profile
   type: http
   seq: 25
 }
 
 get {
-  url: {{baseUrl}}/v1/user/quota
+  url: {{baseUrl}}/v1/user/me
   body: none
   auth: bearer
 }

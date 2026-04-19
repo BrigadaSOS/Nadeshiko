@@ -10,7 +10,12 @@ export default defineSitemapEventHandler(async () => {
   }
 
   for (const post of esPosts) {
-    urls.push({ loc: `/es${post.path}`, lastmod: post.date ?? undefined, changefreq: 'monthly', _i18nTransform: false });
+    urls.push({
+      loc: `/es${post.path}`,
+      lastmod: post.date ?? undefined,
+      changefreq: 'monthly',
+      _i18nTransform: false,
+    });
   }
 
   return urls;

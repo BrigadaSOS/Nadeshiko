@@ -32,9 +32,10 @@ describe('activity.mapper', () => {
   });
 
   it('maps a list of activities', () => {
-    const list = toUserActivityListDTO(
-      [buildActivity({ id: 1 }), buildActivity({ id: 2, mediaPublicId: null })] as any,
-    );
+    const list = toUserActivityListDTO([
+      buildActivity({ id: 1 }),
+      buildActivity({ id: 2, mediaPublicId: null }),
+    ] as any);
     expect(list).toHaveLength(2);
     expect(list[0].id).toBe(1);
     expect(list[1].id).toBe(2);

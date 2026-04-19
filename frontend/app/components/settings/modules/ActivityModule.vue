@@ -56,7 +56,8 @@ const DAY_LABELS = computed(() => {
 
 const MONTH_NAMES = computed(() =>
   Array.from({ length: 12 }, (_, month) =>
-    new Intl.DateTimeFormat(locale.value, { month: 'short' }).format(new Date(2024, month, 1))),
+    new Intl.DateTimeFormat(locale.value, { month: 'short' }).format(new Date(2024, month, 1)),
+  ),
 );
 
 function formatNumber(value: number): string {
@@ -433,12 +434,12 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
     }
 
     const key = toDayKey(cursor);
-      currentGroup?.days.push({
-        key,
-        count: heatmapCountsByDay.value[key] ?? 0,
-        label: cursor.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' }),
-        dayOfWeek: cursor.getDay(),
-      });
+    currentGroup?.days.push({
+      key,
+      count: heatmapCountsByDay.value[key] ?? 0,
+      label: cursor.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' }),
+      dayOfWeek: cursor.getDay(),
+    });
     cursor.setDate(cursor.getDate() + 1);
   }
 
