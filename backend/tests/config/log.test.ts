@@ -46,32 +46,45 @@ describe('buildHttpLoggerOptions', () => {
     expect(serialized.body).toEqual({ token: 'secret' });
   });
 
-  it('serializes response headers and parsed response body', () => {
+  it('serializes response headers and parsed response body for error responses', () => {
     const res = {
       raw: {
-        statusCode: 201,
+        statusCode: 400,
         getHeaders: () => ({ 'content-type': 'application/json' }),
-        responseBody: '{"ok":true}',
+        responseBody: '{"ok":false}',
       },
     };
 
     const serialized = (options as any).serializers.res(res);
     expect(serialized).toMatchObject({
-      statusCode: 201,
+      statusCode: 400,
       headers: { 'content-type': 'application/json' },
-      body: { ok: true },
+      body: { ok: false },
     });
   });
 
-  it('keeps response body as-is when already an object', () => {
+  it('keeps response body as-is when already an object for error responses', () => {
     const res = {
-      statusCode: 200,
+      statusCode: 500,
       getHeaders: () => ({}),
       responseBody: { nested: true },
     };
 
     const serialized = (options as any).serializers.res(res);
     expect(serialized.body).toEqual({ nested: true });
+  });
+
+  it('does not include body for successful responses', () => {
+    const res = {
+      raw: {
+        statusCode: 200,
+        getHeaders: () => ({}),
+        responseBody: '{"ok":true}',
+      },
+    };
+
+    const serialized = (options as any).serializers.res(res);
+    expect(serialized.body).toBeUndefined();
   });
 
   it('maps custom log level by status code and error presence', () => {

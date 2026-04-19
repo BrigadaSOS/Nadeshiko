@@ -45,8 +45,8 @@ describe('report.mapper', () => {
 
     expect(dto.target).toEqual({
       type: 'SEGMENT',
-      mediaId: 'pub-20',
-      segmentId: 'pub-101',
+      mediaPublicId: 'pub-20',
+      segmentPublicId: 'pub-101',
       episodeNumber: 3,
     });
   });
@@ -63,7 +63,7 @@ describe('report.mapper', () => {
 
     expect(dto.target).toEqual({
       type: 'EPISODE',
-      mediaId: 'pub-55',
+      mediaPublicId: 'pub-55',
       episodeNumber: 12,
     });
   });
@@ -87,7 +87,7 @@ describe('report.mapper', () => {
     });
     expect(dto.target).toEqual({
       type: 'MEDIA',
-      mediaId: 'pub-99',
+      mediaPublicId: 'pub-99',
     });
   });
 

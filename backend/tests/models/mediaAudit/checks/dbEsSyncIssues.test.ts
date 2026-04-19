@@ -11,6 +11,7 @@ function createMedia(overrides: Partial<Media> = {}) {
     nameJa: 'テスト',
     nameRomaji: 'Test Anime',
     nameEn: 'Test Anime',
+    slug: 'test-anime',
     airingFormat: 'TV',
     airingStatus: 'FINISHED',
     genres: ['Action'],
@@ -116,10 +117,10 @@ describe('dbEsSyncIssues check', () => {
   });
 
   it('filters by category', async () => {
-    const anime = createMedia({ nameRomaji: 'Anime', segmentCount: 100 });
+    const anime = createMedia({ nameRomaji: 'Anime', slug: 'anime', segmentCount: 100 });
     await anime.save();
 
-    const drama = createMedia({ nameRomaji: 'Drama', segmentCount: 100, category: CategoryType.JDRAMA });
+    const drama = createMedia({ nameRomaji: 'Drama', slug: 'drama', segmentCount: 100, category: CategoryType.JDRAMA });
     await drama.save();
 
     const esClient = mockEsClient([]);

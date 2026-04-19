@@ -70,6 +70,7 @@ describe('GET /v1/media', () => {
       nameJa: 'ドラマ作品',
       nameRomaji: 'Drama Title',
       nameEn: 'Drama Title',
+      slug: 'drama-title',
       airingFormat: 'TV',
       airingStatus: 'FINISHED',
       genres: ['Drama'],
@@ -103,6 +104,7 @@ describe('POST /v1/search/media', () => {
       nameJa: 'ドラマ',
       nameRomaji: 'Drama Story',
       nameEn: 'Drama Story',
+      slug: 'drama-story',
       airingFormat: 'TV',
       airingStatus: 'FINISHED',
       genres: ['Drama'],
@@ -128,7 +130,7 @@ describe('POST /v1/search/media', () => {
     expect(res.body.media[0]).toMatchObject({
       nameEn: 'Drama Story',
       category: 'JDRAMA',
-      mediaPublicId: expect.any(String),
+      publicId: expect.any(String),
     });
   });
 
@@ -153,6 +155,8 @@ describe('POST /v1/media', () => {
               externalIds: {
                 anilist: '12345',
                 imdb: 'tt12345',
+                tvdb: null,
+                tmdb: null,
               },
             }),
           );
@@ -165,7 +169,7 @@ describe('POST /v1/media', () => {
             imdb: 'tt12345',
           },
         });
-        createdPublicId = res.body.mediaPublicId as string;
+        createdPublicId = res.body.publicId as string;
       },
     );
 
@@ -183,7 +187,7 @@ describe('GET /v1/media/:id', () => {
     const res = await request(app).get(`/v1/media/${media.publicId}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      mediaPublicId: media.publicId,
+      publicId: media.publicId,
       nameEn: 'Spy x Family',
     });
     assertMatchesSchema(schemas.s_Media, res.body, 'GET /v1/media/:id 200');
@@ -227,7 +231,10 @@ describe('PATCH /v1/media/:id', () => {
       .patch(`/v1/media/${media.publicId}`)
       .send({
         externalIds: {
+          anilist: null,
+          imdb: null,
           tvdb: 'new-tvdb',
+          tmdb: null,
         },
       });
 

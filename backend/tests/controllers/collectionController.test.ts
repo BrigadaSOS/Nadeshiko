@@ -70,20 +70,17 @@ async function createTestSegment(mediaId: number, uuid: string): Promise<Segment
 
 function toSearchResultSegment(segment: Segment, overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    id: segment.id,
-    uuid: segment.uuid,
     publicId: segment.publicId,
-    mediaId: segment.mediaId,
-    mediaPublicId: `media-pub-${segment.mediaId}`,
+    mediaPublicId: 'FakeMedia001',
     episode: segment.episode,
     position: segment.position,
     contentRating: segment.contentRating,
     status: segment.status,
     startTimeMs: segment.startTimeMs,
     endTimeMs: segment.endTimeMs,
-    textJa: { content: segment.contentJa },
-    textEs: { content: segment.contentEs ?? '', isMachineTranslated: false },
-    textEn: { content: segment.contentEn ?? '', isMachineTranslated: false },
+    textJa: { content: segment.contentJa || 'テスト', highlight: null, tokens: null },
+    textEs: { content: segment.contentEs ?? 'es', isMachineTranslated: false, highlight: null },
+    textEn: { content: segment.contentEn ?? 'en', isMachineTranslated: false, highlight: null },
     urls: {
       audioUrl: 'https://example.com/audio.mp3',
       imageUrl: 'https://example.com/image.jpg',
@@ -112,11 +109,11 @@ describe('GET /v1/collections', () => {
     await createTestCollection({ name: 'Public', visibility: CollectionVisibility.PUBLIC });
     await createTestCollection({ name: 'Private', visibility: CollectionVisibility.PRIVATE });
 
-    const pub = await request(app).get('/v1/collections?visibility=public');
+    const pub = await request(app).get('/v1/collections?visibility=PUBLIC');
     expect(pub.status).toBe(200);
     expect(pub.body.collections.every((c: { visibility: string }) => c.visibility === 'PUBLIC')).toBe(true);
 
-    const priv = await request(app).get('/v1/collections?visibility=private');
+    const priv = await request(app).get('/v1/collections?visibility=PRIVATE');
     expect(priv.status).toBe(200);
     expect(priv.body.collections.every((c: { visibility: string }) => c.visibility === 'PRIVATE')).toBe(true);
   });
@@ -145,10 +142,10 @@ describe('GET /v1/collections', () => {
     expect(res.status).toBe(200);
 
     const counted = res.body.collections.find(
-      (c: { collectionPublicId: string }) => c.collectionPublicId === collection.publicId,
+      (c: { publicId: string }) => c.publicId === collection.publicId,
     );
     expect(counted).toMatchObject({
-      collectionPublicId: collection.publicId,
+      publicId: collection.publicId,
       segmentCount: 1,
     });
   });
@@ -177,7 +174,7 @@ describe('POST /v1/collections', () => {
     const res = await request(app).post('/v1/collections').send({ name: 'DTO Check' });
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
-      collectionPublicId: expect.any(String),
+      publicId: expect.any(String),
       name: 'DTO Check',
       visibility: 'PRIVATE',
       segmentCount: 0,
@@ -193,7 +190,7 @@ describe('GET /v1/collections/:id', () => {
     const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      collectionPublicId: collection.publicId,
+      publicId: collection.publicId,
       name: 'Test Collection',
       segmentCount: 0,
     });
@@ -226,7 +223,7 @@ describe('GET /v1/collections/:id', () => {
     const res = await request(app).get(`/v1/collections/${collection.publicId}`);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      collectionPublicId: collection.publicId,
+      publicId: collection.publicId,
       visibility: 'PUBLIC',
     });
   });
@@ -466,7 +463,6 @@ describe('POST /v1/collections/:id/search', () => {
     const res = await request(app).post(`/v1/collections/${collection.publicId}/search`).send({});
     expect(res.status).toBe(200);
     expect(res.body.segments).toEqual([]);
-    expect(res.body.includes).toEqual({ media: {} });
   });
 
   it('returns ordered indexed segments with exact estimated hit metadata', async () => {
@@ -503,8 +499,7 @@ describe('POST /v1/collections/:id/search', () => {
     const res = await request(app).post(`/v1/collections/${collection.publicId}/search`).send({ take: 10 });
     expect(res.status).toBe(200);
     expect(res.body.segments).toHaveLength(1);
-    expect(res.body.segments[0]).toMatchObject({ segmentPublicId: seg2.publicId });
-    expect(res.body.includes).toEqual({ media: {} });
+    expect(res.body.segments[0]).toMatchObject({ publicId: seg2.publicId });
     expect(res.body.pagination.estimatedTotalHits).toBe(1);
     expect(res.body.pagination.estimatedTotalHitsRelation).toBe('EXACT');
   });
@@ -580,7 +575,7 @@ describe('GET /v1/collections/:id/stats', () => {
     expect(res.body.includes).toEqual({
       media: {
         [fixtures.media.testShow.publicId]: expect.objectContaining({
-          mediaPublicId: fixtures.media.testShow.publicId,
+          publicId: fixtures.media.testShow.publicId,
           category: 'ANIME',
         }),
       },

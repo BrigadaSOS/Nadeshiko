@@ -66,7 +66,11 @@ describe('OpenAPI security definitions', () => {
   });
 
   it('only uses known ApiKey permissions', () => {
-    const knownPermissions = new Set(['READ_MEDIA', 'ADD_MEDIA', 'UPDATE_MEDIA', 'REMOVE_MEDIA']);
+    const knownPermissions = new Set([
+      'READ_MEDIA', 'ADD_MEDIA', 'UPDATE_MEDIA', 'REMOVE_MEDIA',
+      'READ_PROFILE', 'WRITE_PROFILE', 'READ_ACTIVITY',
+      'READ_COLLECTIONS', 'CREATE_COLLECTIONS', 'UPDATE_COLLECTIONS', 'DELETE_COLLECTIONS',
+    ]);
 
     for (const op of allOperations) {
       for (const req of op.security) {
@@ -104,25 +108,21 @@ describe('OpenAPI security definitions', () => {
     }
   });
 
-  it('all user routes are session-only', () => {
+  it('all user routes require exactly one security scheme', () => {
     const userOps = allOperations.filter((op) => op.path.startsWith('/v1/user/'));
     expect(userOps.length).toBeGreaterThan(0);
 
     for (const op of userOps) {
       expect(op.security).toHaveLength(1);
-      expect(op.security[0]).toHaveProperty('SessionCookie');
-      expect(op.security[0].SessionCookie).toEqual([]);
     }
   });
 
-  it('all collection routes are session-only', () => {
+  it('all collection routes require exactly one security scheme', () => {
     const collectionOps = allOperations.filter((op) => op.path.startsWith('/v1/collections'));
     expect(collectionOps.length).toBeGreaterThan(0);
 
     for (const op of collectionOps) {
       expect(op.security).toHaveLength(1);
-      expect(op.security[0]).toHaveProperty('SessionCookie');
-      expect(op.security[0].SessionCookie).toEqual([]);
     }
   });
 

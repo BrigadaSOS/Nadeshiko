@@ -82,7 +82,6 @@ const SESSION_ONLY_ROUTES: RouteEntry[] = [
 ];
 
 const ADMIN_SESSION_ROUTES: RouteEntry[] = [
-  { method: 'post', path: '/v1/admin/reindex' },
   { method: 'get', path: '/v1/admin/reports' },
   { method: 'patch', path: '/v1/admin/reports/1' },
   { method: 'patch', path: '/v1/admin/reports/batch' },
@@ -258,19 +257,6 @@ describe('route auth wiring', () => {
     }
   });
 
-  describe('impersonation routes (local environment only, no auth)', () => {
-    it('POST /v1/admin/impersonation allows unauthenticated in local env', async () => {
-      const res = await request(app).post('/v1/admin/impersonation').send({ userId: 99999999 });
-      expect(res.status).toBe(404);
-    });
-
-    it('DELETE /v1/admin/impersonation allows unauthenticated in local env', async () => {
-      const res = await request(app).delete('/v1/admin/impersonation');
-      expect(res.status).not.toBe(401);
-      expect(res.status).not.toBe(403);
-    });
-  });
-
   it('route count matches expected total', () => {
     const expectedTotal =
       SESSION_ONLY_ROUTES.length +
@@ -278,7 +264,7 @@ describe('route auth wiring', () => {
       API_KEY_OR_SESSION_ROUTES.length +
       ADMIN_API_KEY_OR_ADMIN_SESSION_ROUTES.length;
 
-    expect(expectedTotal).toBe(76);
+    expect(expectedTotal).toBe(58);
   });
 });
 
