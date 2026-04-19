@@ -1,19 +1,19 @@
 <script setup>
 import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight, mdiPencilOutline, mdiEyeOff } from '@mdi/js';
 import { userStore } from '@/stores/auth';
+import { buildMediaSearchPath } from '~/utils/routes';
+
+const { t } = useI18n();
 
 useSeoMeta({
-  title: 'Browse Media',
-  ogTitle: 'Browse Media',
-  description:
-    'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
-  ogDescription:
-    'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
+  title: () => t('seo.media.title'),
+  ogTitle: () => t('seo.media.title'),
+  description: () => t('seo.media.description'),
+  ogDescription: () => t('seo.media.description'),
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Browse Media',
-  twitterDescription:
-    'Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.',
+  twitterTitle: () => t('seo.media.title'),
+  twitterDescription: () => t('seo.media.description'),
 });
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
@@ -21,6 +21,7 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 const sdk = useNadeshikoSdk();
 const router = useRouter();
 const route = useRoute();
+const localePath = useLocalePath();
 const { mediaName, language } = useMediaName();
 const { hiddenMediaIds } = useHiddenMedia();
 const user = userStore();
@@ -359,7 +360,11 @@ watch([searchQuery, filterCategory], () => {
           <div
             class="relative w-full overflow-hidden rounded-lg shadow-lg transition-all bg-[rgba(255,255,255,0.06)] aspect-[2/3]"
           >
-            <NuxtLink data-testid="media-card" :to="`/search?media=${mediaInfo.publicId}`" @click="trackMediaSelected(mediaInfo, 'grid')">
+            <NuxtLink
+              data-testid="media-card"
+              :to="localePath(buildMediaSearchPath(mediaInfo.publicId))"
+              @click="trackMediaSelected(mediaInfo, 'grid')"
+            >
               <img
                 :src="mediaInfo.coverUrl"
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
@@ -377,7 +382,7 @@ watch([searchQuery, filterCategory], () => {
               <UiBaseIcon :path="mdiPencilOutline" w="w-4" h="h-4" size="16" />
             </button>
           </div>
-          <NuxtLink :to="`/search?media=${mediaInfo.publicId}`" class="mt-2 text-center justify-center flex flex-col items-center">
+          <NuxtLink :to="localePath(buildMediaSearchPath(mediaInfo.publicId))" class="mt-2 text-center justify-center flex flex-col items-center">
             <h3 lang="ja" data-testid="media-card-title" class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
               {{ mediaName(mediaInfo) }}
             </h3>
@@ -500,7 +505,7 @@ watch([searchQuery, filterCategory], () => {
                   </a>
 
                   <NuxtLink
-                    :to="`/search?media=${mediaInfo.publicId}`"
+                    :to="localePath(buildMediaSearchPath(mediaInfo.publicId))"
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-input-focus-ring dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
                     @click="trackMediaSelected(mediaInfo, 'list')"
                   >

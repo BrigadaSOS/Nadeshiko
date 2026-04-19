@@ -1,7 +1,7 @@
 import { test, expect } from '../fixtures';
 
 test.describe('Language switching', () => {
-  test('switching to Spanish updates UI text', async ({ page }) => {
+  test('switching to Spanish navigates to /es and updates UI text', async ({ page }) => {
     await page.goto('/');
 
     // Open the language dropdown
@@ -11,21 +11,25 @@ test.describe('Language switching', () => {
     // Select Spanish from the dropdown options
     await langSelector.getByTestId('dropdown-menu').getByText('Spanish').click();
 
+    // URL should now be the Spanish locale root
+    await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
+
     // Verify navbar text changed to Spanish
     await expect(page.locator('header').getByRole('link', { name: 'Acerca de' })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('switching to Japanese updates UI text', async ({ page }) => {
+  test('switching to Japanese navigates to /ja and updates UI text', async ({ page }) => {
     await page.goto('/');
 
     const langSelector = page.getByTestId('language-selector');
     await langSelector.getByTestId('dropdown-toggle').click();
     await langSelector.getByTestId('dropdown-menu').getByText('Japanese').click();
 
+    await expect(page).toHaveURL(/\/ja/, { timeout: 10_000 });
     await expect(page.locator('header').getByRole('button', { name: /Japanese/i })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('language preference persists across navigation', async ({ page }) => {
+  test('language prefix persists across navigation', async ({ page }) => {
     await page.goto('/');
 
     // Switch to Spanish
@@ -33,11 +37,12 @@ test.describe('Language switching', () => {
     await langSelector.getByTestId('dropdown-toggle').click();
     await langSelector.getByTestId('dropdown-menu').getByText('Spanish').click();
 
+    await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
     await expect(page.locator('header').getByRole('link', { name: 'Acerca de' })).toBeVisible({ timeout: 10_000 });
 
-    // Navigate to another page
+    // Navigate to another page via the Spanish-localized nav link
     await page.locator('header').getByRole('link', { name: 'Media', exact: true }).click();
-    await expect(page).toHaveURL(/\/media/);
+    await expect(page).toHaveURL(/\/es\/media/);
 
     // Language should still be Spanish
     await expect(page.locator('header').getByRole('button', { name: /Spanish/i })).toBeVisible();
@@ -53,13 +58,17 @@ test.describe('Language switching', () => {
     await expect(card.getByRole('button', { name: 'Copy' })).toBeVisible();
     await expect(card.getByRole('button', { name: 'Context' })).toBeVisible();
 
-    // Switch to Spanish
+    // Switch to Spanish — page navigates to /es/search/彼女
     const langSelector = page.getByTestId('language-selector');
     await langSelector.getByTestId('dropdown-toggle').click();
     await langSelector.getByTestId('dropdown-menu').getByText('Spanish', { exact: true }).click();
 
+    await expect(page).toHaveURL(/\/es\/search/, { timeout: 10_000 });
+
     // Buttons should update to Spanish
-    await expect(card.getByRole('button', { name: 'Copiar' })).toBeVisible({ timeout: 10_000 });
-    await expect(card.getByRole('button', { name: 'Contexto' })).toBeVisible();
+    const esCard = page.getByTestId('segment-card').first();
+    await expect(esCard).toBeVisible({ timeout: 10_000 });
+    await expect(esCard.getByRole('button', { name: 'Copiar' })).toBeVisible({ timeout: 10_000 });
+    await expect(esCard.getByRole('button', { name: 'Contexto' })).toBeVisible();
   });
 });

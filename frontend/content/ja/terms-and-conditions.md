@@ -1,3 +1,7 @@
+---
+title: "利用規約"
+description: "Nadeshikoのサービス利用規約をお読みください。"
+---
 
 # 利用規約
 

@@ -4,6 +4,7 @@ import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 
+const { t } = useI18n();
 const route = useRoute();
 
 const { mediaName } = useMediaName();
@@ -184,18 +185,18 @@ const [{ data: initialSentenceData }, { data: initialStatsData }] = await Promis
 const requestOrigin = useRequestURL().origin;
 
 const metaTags = computed(() => {
-  const defaultDescription =
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
+  const defaultTitle = t('seo.search.title');
+  const defaultDescription = t('seo.search.defaultDescription');
 
   const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: 'Search',
+    title: defaultTitle,
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: socialTitle('Search') },
+      { property: 'og:title', content: socialTitle(defaultTitle) },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: socialTitle('Search') },
+      { name: 'twitter:title', content: socialTitle(defaultTitle) },
       { name: 'twitter:description', content: defaultDescription },
     ],
   };

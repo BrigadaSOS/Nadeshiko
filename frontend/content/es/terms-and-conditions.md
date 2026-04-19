@@ -1,3 +1,8 @@
+---
+title: "Términos y Condiciones"
+description: "Lee los términos y condiciones del servicio de Nadeshiko."
+---
+
 # Términos y Condiciones
 
 **Última actualización: 19 de enero de 2026**

@@ -2,7 +2,7 @@
 const { markAsRead } = useBlogNotification();
 onMounted(() => markAsRead());
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const route = useRoute();
 
 const page = computed(() => Number(route.query.page || 1));
@@ -30,14 +30,14 @@ const { data: posts } = await useAsyncData(
 );
 
 useSeoMeta({
-  title: 'Blog',
-  ogTitle: 'Blog',
-  description: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
-  ogDescription: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
+  title: () => t('seo.blog.title'),
+  ogTitle: () => t('seo.blog.title'),
+  description: () => t('seo.blog.description'),
+  ogDescription: () => t('seo.blog.description'),
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Blog',
-  twitterDescription: 'Stay updated with the latest news, features, and improvements to Nadeshiko.',
+  twitterTitle: () => t('seo.blog.title'),
+  twitterDescription: () => t('seo.blog.description'),
 });
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);

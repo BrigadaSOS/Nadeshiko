@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { CoveredWord, GetCoveredWordsResponse } from '@brigadasos/nadeshiko-sdk';
+import { buildWordSearchPath } from '~/utils/routes';
 
 const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000] as const;
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const localePath = useLocalePath();
@@ -32,14 +34,14 @@ function tierLabel(t: number): string {
 }
 
 useSeoMeta({
-  title: `${tierLabel(activeTier.value)} Japanese Words Coverage`,
-  description: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
-  ogTitle: `${tierLabel(activeTier.value)} Japanese Words Coverage`,
-  ogDescription: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
+  title: () => t('seo.statsWords.title', { tier: tierLabel(activeTier.value) }),
+  description: () => t('seo.statsWords.description', { tier: tierLabel(activeTier.value) }),
+  ogTitle: () => t('seo.statsWords.title', { tier: tierLabel(activeTier.value) }),
+  ogDescription: () => t('seo.statsWords.description', { tier: tierLabel(activeTier.value) }),
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: `${tierLabel(activeTier.value)} Japanese Words Coverage`,
-  twitterDescription: `See which of the ${tierLabel(activeTier.value)} most common Japanese words are covered by Nadeshiko's sentence corpus.`,
+  twitterTitle: () => t('seo.statsWords.title', { tier: tierLabel(activeTier.value) }),
+  twitterDescription: () => t('seo.statsWords.description', { tier: tierLabel(activeTier.value) }),
 });
 
 const words = ref<CoveredWord[]>([]);
@@ -193,7 +195,7 @@ onUnmounted(() => observer?.disconnect());
         <NuxtLink
           v-for="word in words"
           :key="word.rank"
-          :to="`/search/${encodeURIComponent(word.word)}`"
+          :to="localePath(buildWordSearchPath(word.word))"
           class="relative rounded-lg px-2 py-2.5 text-center transition-colors cursor-pointer"
           :class="[
             word.matchCount > 0

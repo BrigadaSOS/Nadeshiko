@@ -9,12 +9,14 @@ import type {
   BulkUpdateReportsRequest,
   BulkDeleteReportsRequest,
 } from '@brigadasos/nadeshiko-sdk';
+import { buildMediaSearchPath, buildSentencePath } from '~/utils/routes';
 
 type ReportGroup = AdminReportGroup;
 type ReportGroupItem = AdminReportGroup['reports'][number];
 
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
+const localePath = useLocalePath();
 
 const groups = ref<ReportGroup[]>([]);
 const isLoading = ref(false);
@@ -66,6 +68,9 @@ const autoSubTab = ref<'results' | 'runHistory'>('results');
 const showAuditConfig = ref(false);
 const editingAudit = ref<MediaAudit | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
+
+const reportTargetSearchPath = (target: ReportGroup['target']) =>
+  localePath(buildMediaSearchPath(target.mediaPublicId, 'episodeNumber' in target ? target.episodeNumber : undefined));
 
 const buildReportQuery = (append = false) => {
   const query: Record<string, string | number | boolean> = { take: 20 };
@@ -565,7 +570,7 @@ const bulkDeleteAllMatching = async () => {
                 <td class="px-3 py-3 text-xs max-w-[250px]" :title="group.mediaName || group.target.mediaPublicId">
                   <template v-if="group.target.mediaPublicId">
                     <NuxtLink
-                      :to="`/media/${group.target.mediaPublicId}`"
+                      :to="reportTargetSearchPath(group.target)"
                       class="block truncate font-medium text-white hover:text-purple-300 underline"
                       @click.stop
                     >
@@ -574,7 +579,7 @@ const bulkDeleteAllMatching = async () => {
                     <span v-if="group.target.type !== 'MEDIA' && group.target.episodeNumber" class="text-neutral-400">EP{{ group.target.episodeNumber }}</span>
                     <NuxtLink
                       v-if="group.target.type === 'SEGMENT' && group.target.segmentPublicId"
-                      :to="`/sentence/${group.target.segmentPublicId}`"
+                      :to="localePath(buildSentencePath(group.target.segmentPublicId))"
                       class="block text-purple-400 hover:text-purple-300 underline truncate"
                       :title="group.target.segmentPublicId"
                       @click.stop

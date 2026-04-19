@@ -1,3 +1,8 @@
+---
+title: "About Nadeshiko"
+description: "Learn about Nadeshiko, the team behind it, and the contributors who make it possible."
+---
+
 # About
 
 ## Contribution and Attribution

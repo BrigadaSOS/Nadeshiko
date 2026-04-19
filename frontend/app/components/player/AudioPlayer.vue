@@ -14,6 +14,7 @@ import {
   mdiFullscreen,
 } from '@mdi/js';
 import { usePlayerStore } from '~/stores/player';
+import { splitLocalePrefix } from '~/utils/routes';
 import { watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 
@@ -84,7 +85,8 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
 watch(
   () => route.path,
   (newPath) => {
-    if (showPlayer.value && !newPath.startsWith('/search') && !newPath.startsWith('/sentence')) {
+    const { localizedPath } = splitLocalePrefix(newPath);
+    if (showPlayer.value && !localizedPath.startsWith('/search') && !localizedPath.startsWith('/sentence')) {
       playerStore.hidePlayer();
     }
   },

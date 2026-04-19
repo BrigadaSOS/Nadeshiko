@@ -1,5 +1,6 @@
 <script setup>
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
+import { buildMediaSearchPath } from '~/utils/routes';
 
 const { locale } = useI18n();
 
@@ -92,23 +93,23 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
                                                 <NuxtLink lang="ja" class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                    to="/search/彼女">彼女</NuxtLink>
+                                                    :to="localePath('/search/彼女')">彼女</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionOtherSearch') }}:
                                                 <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                    to="/search/school">School</NuxtLink>,
+                                                    :to="localePath('/search/school')">School</NuxtLink>,
                                                 <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                    to="/search/escuela">Escuela</NuxtLink>
+                                                    :to="localePath('/search/escuela')">Escuela</NuxtLink>
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:
                                                 <NuxtLink lang="ja" class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                    :to="`/search/${encodeURIComponent('卒業 -みんな')}`">卒業 -みんな</NuxtLink>
+                                                    :to="localePath(`/search/${encodeURIComponent('卒業 -みんな')}`)">卒業 -みんな</NuxtLink>
                                             </li>
                                             <li class="">
                                                 {{ $t('home.nadeDbDescriptionExactSearch') }}:
-                                                <NuxtLink :to='`/search/${encodeURIComponent(`"食べられない"`)}`'
+                                                <NuxtLink :to='localePath(`/search/${encodeURIComponent(`"食べられない"`)}`)'
                                                     lang="ja" class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors">"食べられない"
                                                 </NuxtLink>
                                             </li>
@@ -291,7 +292,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                     <NuxtLink
                                                         v-for="(media_info, index) in filteredRecentMedia"
                                                         :key="media_info.publicId"
-                                                        :to="`/search?media=${media_info.publicId}`"
+                                                        :to="localePath(buildMediaSearchPath(media_info.publicId))"
                                                         data-testid="media-card"
                                                         class="w-full relative">
                                                         <div class="w-full">

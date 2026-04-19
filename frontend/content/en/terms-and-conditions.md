@@ -1,3 +1,8 @@
+---
+title: "Terms and Conditions"
+description: "Read Nadeshiko's terms and conditions of service."
+---
+
 # Terms and Conditions
 
 **Last updated: January 19, 2026**

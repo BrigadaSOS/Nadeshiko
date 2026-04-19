@@ -255,6 +255,7 @@ const onEditSuccess = (updated: SearchResult) => {
 const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation();
 
 // Filter navigation method
+const localePath = useLocalePath();
 const router = useRouter();
 const route = useRoute();
 
@@ -262,7 +263,7 @@ const labsStore = useLabsStore();
 const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
 
 const handleTokenSearch = (dictionaryForm: string) => {
-  router.push({ path: `/search/${encodeURIComponent(dictionaryForm)}` });
+  router.push({ path: localePath(`/search/${encodeURIComponent(dictionaryForm)}`) });
 };
 
 const filterByMedia = (mediaId: string, episodeNumber?: number) => {
@@ -274,7 +275,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
     query.episode = episodeNumber;
   }
 
-  const basePath = route.path.startsWith('/sentence/') ? '/search' : route.path;
+  const basePath = route.path.startsWith(localePath('/sentence/')) ? localePath('/search') : route.path;
   router.push({ path: basePath, query });
 };
 </script>
