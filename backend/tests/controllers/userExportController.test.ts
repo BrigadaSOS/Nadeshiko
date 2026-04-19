@@ -77,7 +77,7 @@ describe('GET /v1/user/export', () => {
     await UserActivity.save({
       userId: fixtures.users.kevin.id,
       activityType: ActivityType.ANKI_EXPORT,
-      segmentId: '999',
+      segmentId: 'seg000000999',
     });
 
     const res = await request(app).get('/v1/user/export');
@@ -85,7 +85,7 @@ describe('GET /v1/user/export', () => {
     expect(res.status).toBe(200);
     expect(res.body.activity).toEqualUnordered([
       expect.objectContaining({ activityType: 'SEARCH', searchQuery: '猫' }),
-      expect.objectContaining({ activityType: 'ANKI_EXPORT', segmentId: '999' }),
+      expect.objectContaining({ activityType: 'ANKI_EXPORT', segmentPublicId: 'seg000000999' }),
     ]);
   });
 
@@ -143,7 +143,7 @@ describe('GET /v1/user/export', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      reports: [{ reason: 'WRONG_METADATA', target: { type: 'MEDIA', mediaId: media.publicId } }],
+      reports: [{ reason: 'WRONG_METADATA', target: { type: 'MEDIA', mediaPublicId: media.publicId } }],
     });
     expect(res.body.reports).toHaveLength(1);
   });

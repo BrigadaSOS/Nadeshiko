@@ -7,7 +7,7 @@ function buildActivity(overrides: Record<string, unknown> = {}) {
     id: 1,
     activityType: ActivityType.SEARCH,
     segmentId: null,
-    mediaId: 42,
+    mediaPublicId: 'media-pub-42',
     searchQuery: 'query',
     mediaName: 'Show',
     japaneseText: 'text',
@@ -18,7 +18,7 @@ function buildActivity(overrides: Record<string, unknown> = {}) {
 
 describe('activity.mapper', () => {
   it('maps a single activity', () => {
-    const dto = toUserActivityDTO(buildActivity() as any, new Map([[42, 'media-pub-42']]));
+    const dto = toUserActivityDTO(buildActivity() as any);
     expect(dto).toEqual({
       id: 1,
       activityType: 'SEARCH',
@@ -33,8 +33,7 @@ describe('activity.mapper', () => {
 
   it('maps a list of activities', () => {
     const list = toUserActivityListDTO(
-      [buildActivity({ id: 1 }), buildActivity({ id: 2, mediaId: null })] as any,
-      new Map([[42, 'media-pub-42']]),
+      [buildActivity({ id: 1 }), buildActivity({ id: 2, mediaPublicId: null })] as any,
     );
     expect(list).toHaveLength(2);
     expect(list[0].id).toBe(1);

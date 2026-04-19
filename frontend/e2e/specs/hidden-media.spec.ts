@@ -2,6 +2,16 @@ import { test, expect } from '../auth';
 import { HiddenMediaPage } from '../pages/HiddenMediaPage';
 
 test.describe('Hidden Media', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async ({ authenticatedPage }) => {
+    const response = await authenticatedPage.request.get('/v1/user/excluded-media');
+    const { excludedMedia } = await response.json();
+    for (const media of excludedMedia) {
+      await authenticatedPage.request.delete(`/v1/user/excluded-media/${media.publicId}`);
+    }
+  });
+
   test('displays hidden media page', async ({ authenticatedPage }) => {
     const hiddenMedia = new HiddenMediaPage(authenticatedPage);
     await hiddenMedia.goto();

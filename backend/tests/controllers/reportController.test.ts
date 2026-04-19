@@ -94,7 +94,7 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'MEDIA',
-          mediaId: media.publicId,
+          mediaPublicId: media.publicId,
         },
         reason: 'OTHER',
         description: 'metadata mismatch',
@@ -105,7 +105,7 @@ describe('POST /v1/user/reports', () => {
       source: 'USER',
       target: {
         type: 'MEDIA',
-        mediaId: media.publicId,
+        mediaPublicId: media.publicId,
       },
       reason: 'OTHER',
       description: 'metadata mismatch',
@@ -130,9 +130,9 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: media.publicId,
+          mediaPublicId: media.publicId,
           episodeNumber: episode.episodeNumber,
-          segmentId: segment.publicId,
+          segmentPublicId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
         description: 'english text is wrong',
@@ -143,9 +143,9 @@ describe('POST /v1/user/reports', () => {
       source: 'USER',
       target: {
         type: 'SEGMENT',
-        mediaId: media.publicId,
+        mediaPublicId: media.publicId,
         episodeNumber: episode.episodeNumber,
-        segmentId: segment.publicId,
+        segmentPublicId: segment.publicId,
       },
       reason: 'WRONG_TRANSLATION',
       status: 'OPEN',
@@ -163,7 +163,7 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'MEDIA',
-          mediaId: 'nonexistent',
+          mediaPublicId: 'nonexistent',
         },
         reason: 'OTHER',
       });
@@ -181,8 +181,8 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: media.publicId,
-          segmentId: 'missing-segment',
+          mediaPublicId: media.publicId,
+          segmentPublicId: 'missing-segment',
         },
         reason: 'WRONG_TRANSLATION',
       });
@@ -204,8 +204,8 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: wrongMedia.publicId,
-          segmentId: segment.publicId,
+          mediaPublicId: wrongMedia.publicId,
+          segmentPublicId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
       });
@@ -225,9 +225,9 @@ describe('POST /v1/user/reports', () => {
       .send({
         target: {
           type: 'SEGMENT',
-          mediaId: media.publicId,
+          mediaPublicId: media.publicId,
           episodeNumber: episode.episodeNumber + 1,
-          segmentId: segment.publicId,
+          segmentPublicId: segment.publicId,
         },
         reason: 'WRONG_TRANSLATION',
       });
@@ -295,9 +295,9 @@ describe('GET /v1/admin/reports', () => {
     expect(res.body.groups[0]).toMatchObject({
       target: {
         type: 'SEGMENT',
-        mediaId: media.publicId,
+        mediaPublicId: media.publicId,
         episodeNumber: episode.episodeNumber,
-        segmentId: seg1.publicId,
+        segmentPublicId: seg1.publicId,
       },
       status: 'PROCESSING',
       reportCount: 2,

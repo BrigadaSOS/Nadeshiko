@@ -74,10 +74,10 @@ describe('toEpisodeDTO', () => {
       'mid',
     );
 
-    expect(dto.titleEn).toBeUndefined();
-    expect(dto.airedAt).toBeUndefined();
-    expect(dto.lengthSeconds).toBeUndefined();
-    expect(dto.thumbnailUrl).toBeUndefined();
+    expect(dto.titleEn).toBeNull();
+    expect(dto.airedAt).toBeNull();
+    expect(dto.lengthSeconds).toBeNull();
+    expect(dto.thumbnailUrl).toBeNull();
   });
 });
 

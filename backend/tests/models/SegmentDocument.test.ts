@@ -132,7 +132,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       });
 
       expect(page2.segments).toHaveLength(1);
-      expect(page2.segments[0].uuid).not.toBe(page1.segments[0].uuid);
+      expect(page2.segments[0].publicId).not.toBe(page1.segments[0].publicId);
     });
 
     it('filters by segmentLengthChars', async () => {
@@ -348,7 +348,7 @@ describe('SegmentDocument (mocked)', () => {
       const result = await SegmentDocument.reindex();
 
       expect(result).toEqual(reindexResult);
-      expect(spy).toHaveBeenCalledWith(undefined);
+      expect(spy).toHaveBeenCalledWith(undefined, undefined);
       spy.mockRestore();
     });
   });

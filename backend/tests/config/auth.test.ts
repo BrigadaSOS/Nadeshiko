@@ -62,8 +62,19 @@ describe('resolveDefaultApiPermissions', () => {
     const invalid = await resolveDefaultApiPermissions('not-a-number');
     const zero = await resolveDefaultApiPermissions('0');
 
-    expect(invalid).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: [ApiPermission.READ_MEDIA] });
-    expect(zero).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: [ApiPermission.READ_MEDIA] });
+    const defaultPerms = [
+      ApiPermission.READ_MEDIA,
+      ApiPermission.READ_PROFILE,
+      ApiPermission.WRITE_PROFILE,
+      ApiPermission.READ_ACTIVITY,
+      ApiPermission.WRITE_ACTIVITY,
+      ApiPermission.READ_COLLECTIONS,
+      ApiPermission.CREATE_COLLECTIONS,
+      ApiPermission.UPDATE_COLLECTIONS,
+      ApiPermission.DELETE_COLLECTIONS,
+    ];
+    expect(invalid).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultPerms });
+    expect(zero).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultPerms });
   });
 
   it('returns full permissions for admin users', async () => {
@@ -78,7 +89,17 @@ describe('resolveDefaultApiPermissions', () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.USER }) as any);
     const result = await resolveDefaultApiPermissions('42', findUserById as any);
 
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual([ApiPermission.READ_MEDIA]);
+    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual([
+      ApiPermission.READ_MEDIA,
+      ApiPermission.READ_PROFILE,
+      ApiPermission.WRITE_PROFILE,
+      ApiPermission.READ_ACTIVITY,
+      ApiPermission.WRITE_ACTIVITY,
+      ApiPermission.READ_COLLECTIONS,
+      ApiPermission.CREATE_COLLECTIONS,
+      ApiPermission.UPDATE_COLLECTIONS,
+      ApiPermission.DELETE_COLLECTIONS,
+    ]);
   });
 });
 

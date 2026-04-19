@@ -20,7 +20,7 @@ import { ApiKeyKind, ApiPermission, AuthType } from '@app/models/ApiPermission';
 import { APP_ENTITIES, APP_SUBSCRIBERS, getDbLogging } from '@config/schema';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { buildApplication } from '@config/application';
-import { MediaRoutes, UserRoutes, CollectionsRoutes } from '@config/routes';
+import { MediaRoutes, UserRoutes, CollectionsRoutes, ActivityRoutes, SearchRoutes } from '@config/routes';
 
 const postgres = getAppPostgresConfig();
 
@@ -79,7 +79,9 @@ export function createTestApp() {
   return buildApplication({
     beforeRoutes: [testAuthMiddleware],
     mountRoutes: (app) => {
+      app.use('/', SearchRoutes);
       app.use('/', MediaRoutes);
+      app.use('/', ActivityRoutes);
       app.use('/', UserRoutes);
       app.use('/', CollectionsRoutes);
     },

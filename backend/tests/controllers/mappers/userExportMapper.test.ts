@@ -53,7 +53,6 @@ describe('userExport.mapper', () => {
           createdAt: new Date('2025-01-01T00:00:00.000Z'),
         },
       ] as any,
-      new Map(),
       [buildCollection()] as any,
       [buildReport()] as any,
       {

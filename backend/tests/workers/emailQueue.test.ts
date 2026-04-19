@@ -17,7 +17,7 @@ describe('emailQueue', () => {
     } as any);
   });
 
-  it('uses sendDebounced when dedupe key is provided', async () => {
+  it('uses send with singletonKey when dedupe key is provided', async () => {
     const jobId = await sendEmailJob(
       {
         to: 'user@example.com',
@@ -27,18 +27,16 @@ describe('emailQueue', () => {
       'welcome-42',
     );
 
-    expect(jobId).toBe('deduped-job-id');
-    expect(sendDebounced).toHaveBeenCalledTimes(1);
-    expect(sendDebounced).toHaveBeenCalledWith(
+    expect(jobId).toBe('job-id');
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith(
       EMAIL_SEND_QUEUE,
       {
         to: 'user@example.com',
         subject: 'Hello',
         html: '<p>hello</p>',
       },
-      null,
-      0,
-      'welcome-42',
+      { singletonKey: 'welcome-42' },
     );
   });
 

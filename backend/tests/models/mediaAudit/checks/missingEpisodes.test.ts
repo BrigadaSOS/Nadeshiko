@@ -10,6 +10,7 @@ function createMedia(overrides: Partial<Media> = {}) {
     nameJa: 'テスト',
     nameRomaji: 'Test Anime',
     nameEn: 'Test Anime',
+    slug: 'test-anime',
     airingFormat: 'TV',
     airingStatus: 'FINISHED',
     genres: ['Action'],
@@ -78,12 +79,12 @@ describe('missingEpisodes check', () => {
   });
 
   it('filters by category', async () => {
-    const anime = createMedia({ nameRomaji: 'Anime' });
+    const anime = createMedia({ nameRomaji: 'Anime', slug: 'anime' });
     await anime.save();
     await Episode.create({ mediaId: anime.id, episodeNumber: 1 }).save();
     await Episode.create({ mediaId: anime.id, episodeNumber: 5 }).save();
 
-    const drama = createMedia({ nameRomaji: 'Drama', category: CategoryType.JDRAMA });
+    const drama = createMedia({ nameRomaji: 'Drama', slug: 'drama', category: CategoryType.JDRAMA });
     await drama.save();
     await Episode.create({ mediaId: drama.id, episodeNumber: 1 }).save();
     await Episode.create({ mediaId: drama.id, episodeNumber: 5 }).save();
