@@ -55,7 +55,11 @@ export default defineEventHandler((event) => {
     }
     url.searchParams.delete('uuid');
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `${withLocalePrefix(localePrefix, buildSentencePath(uuid))}${remaining ? `?${remaining}` : ''}`, 301);
+    return sendRedirect(
+      event,
+      `${withLocalePrefix(localePrefix, buildSentencePath(uuid))}${remaining ? `?${remaining}` : ''}`,
+      301,
+    );
   }
 
   // /search/media → /media  (preserves all query params)
@@ -98,6 +102,10 @@ export default defineEventHandler((event) => {
 
   if (normalizedLegacyParams) {
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `${withLocalePrefix(localePrefix, localizedPath)}${remaining ? `?${remaining}` : ''}`, 301);
+    return sendRedirect(
+      event,
+      `${withLocalePrefix(localePrefix, localizedPath)}${remaining ? `?${remaining}` : ''}`,
+      301,
+    );
   }
 });

@@ -1,0 +1,76 @@
+meta {
+  name: Search segments in a collection
+  type: http
+  seq: 49
+}
+
+post {
+  url: {{baseUrl}}/v1/collections/:collectionPublicId/search?collectionPublicId=V1StGXR8_Z5d
+  body: json
+  auth: bearer
+}
+
+params:query {
+  collectionPublicId: V1StGXR8_Z5d
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "query": {
+      "search": "(猫 OR 犬) AND 好き",
+      "exactMatch": false
+    },
+    "take": 0,
+    "cursor": "eyJraW...N119",
+    "sort": {
+      "mode": "RELEVANCE",
+      "seed": 42
+    },
+    "filters": {
+      "media": {
+        "include": [
+          {
+            "mediaPublicId": "V1StGXR8_Z5d",
+            "episodes": [
+              1,
+              2
+            ]
+          }
+        ],
+        "exclude": [
+          {}
+        ]
+      },
+      "category": [
+        "ANIME"
+      ],
+      "contentRating": [
+        "SAFE"
+      ],
+      "status": [
+        "ACTIVE"
+      ],
+      "segmentLengthChars": {
+        "min": 10,
+        "max": 50
+      },
+      "segmentDurationMs": {
+        "min": 1000,
+        "max": 10000
+      },
+      "languages": ""
+    },
+    "include": [
+      "media"
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

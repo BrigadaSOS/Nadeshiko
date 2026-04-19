@@ -84,11 +84,14 @@ const clear = async () => {
   }
 };
 
-const typeOptions = computed(() => [
-  { value: 'INFO', label: t('accountSettings.announcement.types.INFO'), color: 'bg-neutral-500' },
-  { value: 'WARNING', label: t('accountSettings.announcement.types.WARNING'), color: 'bg-amber-500' },
-  { value: 'MAINTENANCE', label: t('accountSettings.announcement.types.MAINTENANCE'), color: 'bg-blue-500' },
-] as const);
+const typeOptions = computed(
+  () =>
+    [
+      { value: 'INFO', label: t('accountSettings.announcement.types.INFO'), color: 'bg-neutral-500' },
+      { value: 'WARNING', label: t('accountSettings.announcement.types.WARNING'), color: 'bg-amber-500' },
+      { value: 'MAINTENANCE', label: t('accountSettings.announcement.types.MAINTENANCE'), color: 'bg-blue-500' },
+    ] as const,
+);
 
 const previewTitle = computed(() => {
   switch (form.type) {

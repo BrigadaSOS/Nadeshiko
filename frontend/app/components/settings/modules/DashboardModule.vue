@@ -62,9 +62,7 @@ const providerLabel = (provider: string) => {
 };
 
 const statusLabel = (banned: boolean) =>
-  banned
-    ? t('accountSettings.dashboard.status.banned')
-    : t('accountSettings.dashboard.status.active');
+  banned ? t('accountSettings.dashboard.status.banned') : t('accountSettings.dashboard.status.active');
 
 async function fetchUsers() {
   isLoading.value = true;

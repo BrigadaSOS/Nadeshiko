@@ -15,6 +15,6 @@ properties:
         type: object
         additionalProperties:
           $ref: "../schemas/Media.yaml"
-        description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+        description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
   pagination:
     $ref: "../schemas/SearchPagination.yaml"

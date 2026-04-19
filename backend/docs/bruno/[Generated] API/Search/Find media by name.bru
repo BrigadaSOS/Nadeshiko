@@ -4,20 +4,22 @@ meta {
   seq: 4
 }
 
-get {
-  url: {{baseUrl}}/v1/media/autocomplete?query=steins&take=10
-  body: none
+post {
+  url: {{baseUrl}}/v1/search/media
+  body: json
   auth: bearer
-}
-
-params:query {
-  query: steins
-  take: 10
-  filters:
 }
 
 auth:bearer {
   token: {{apiKey}}
+}
+
+body:json {
+  {
+    "query": "steins",
+    "take": 10,
+    "filters": ""
+  }
 }
 
 settings {

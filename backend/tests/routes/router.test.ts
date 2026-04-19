@@ -131,7 +131,6 @@ const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: str
   { method: 'delete', path: '/v1/collections/V1StGXR8_Z5d/segments/V1StGXR8_Z5d', permission: 'DELETE_COLLECTIONS' },
 ];
 
-
 describe('route auth wiring', () => {
   describe('session-only routes (requireSession)', () => {
     for (const route of SESSION_ONLY_ROUTES) {
@@ -220,10 +219,7 @@ describe('route auth wiring', () => {
   });
 
   it('route count matches expected total', () => {
-    const expectedTotal =
-      SESSION_ONLY_ROUTES.length +
-      ADMIN_SESSION_ROUTES.length +
-      API_KEY_OR_SESSION_ROUTES.length;
+    const expectedTotal = SESSION_ONLY_ROUTES.length + ADMIN_SESSION_ROUTES.length + API_KEY_OR_SESSION_ROUTES.length;
 
     expect(expectedTotal).toBe(58);
   });

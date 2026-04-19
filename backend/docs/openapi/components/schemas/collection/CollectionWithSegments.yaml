@@ -65,7 +65,7 @@ properties:
         type: object
         additionalProperties:
           $ref: "../Media.yaml"
-        description: Media objects keyed by mediaPublicId
+        description: Media objects keyed by publicId
   totalCount:
     type: integer
     description: Total number of segments in the collection

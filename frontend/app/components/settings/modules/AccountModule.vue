@@ -143,7 +143,8 @@ const detectDeviceType = (userAgent?: string | null) => {
 
   const ua = userAgent.toLowerCase();
   if (ua.includes('ipad') || ua.includes('tablet')) return t('accountSettings.account.sessionDetails.tablet');
-  if (ua.includes('mobi') || ua.includes('android') || ua.includes('iphone') || ua.includes('ipod')) return t('accountSettings.account.sessionDetails.mobile');
+  if (ua.includes('mobi') || ua.includes('android') || ua.includes('iphone') || ua.includes('ipod'))
+    return t('accountSettings.account.sessionDetails.mobile');
   return t('accountSettings.account.sessionDetails.desktop');
 };
 
