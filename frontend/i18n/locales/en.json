@@ -108,6 +108,7 @@
     "exactMatchDescription": "Perform an exact match search, without including conjugations or other results"
   },
   "anki": {
+    "configRequired": "Configure Anki in Settings to use this feature",
     "modal": {
       "title": "Search your collection",
       "description": "Find a card in your Anki collection and add image/audio to it. Requires 'Key Field' to be configured in settings.",

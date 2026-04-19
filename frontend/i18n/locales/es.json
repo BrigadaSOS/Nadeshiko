@@ -108,6 +108,7 @@
     "exactMatchDescription": "Permite realizar una búsqueda sin variaciones o conjugaciones adicionales"
   },
   "anki": {
+    "configRequired": "Configura Anki en Ajustes para usar esta función",
     "modal": {
       "title": "Busca en tu colección",
       "description": "Busca una carta en tu colección de Anki y añádele imagen/audio. Requiere que el 'Key Field' esté configurado en ajustes.",
