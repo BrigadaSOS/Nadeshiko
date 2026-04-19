@@ -47,7 +47,7 @@ describe('GET /v1/media/:mediaId/episodes', () => {
   });
 
   it('returns 404 when media does not exist', async () => {
-    const res = await request(app).get('/v1/media/999/episodes');
+    const res = await request(app).get('/v1/media/MissingMedia/episodes');
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
@@ -88,7 +88,7 @@ describe('POST /v1/media/:mediaId/episodes', () => {
 
         expect(res.status).toBe(201);
         expect(res.body).toMatchObject({
-          mediaId: media.id,
+          mediaPublicId: media.publicId,
           episodeNumber: 1,
           titleEn: 'The Beginning',
         });
@@ -158,7 +158,7 @@ describe('GET /v1/media/:mediaId/episodes/:episodeNumber', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      mediaId: media.id,
+      mediaPublicId: media.publicId,
       episodeNumber: 3,
       titleEn: 'Third One',
     });

@@ -4,7 +4,9 @@ import { toCollectionDTO } from '@app/controllers/mappers/collectionMapper';
 function buildCollection(overrides: Record<string, unknown> = {}) {
   return {
     id: 7,
+    publicId: 'col-pub-7',
     name: 'Deck',
+    type: 'USER',
     userId: 22,
     visibility: 'PRIVATE',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
@@ -22,8 +24,9 @@ describe('collection.mapper', () => {
   it('maps collection fields with explicit segmentCount', () => {
     const dto = toCollectionDTO(buildCollection({ visibility: 'PUBLIC' }) as any, 3);
     expect(dto).toEqual({
-      id: 7,
+      publicId: 'col-pub-7',
       name: 'Deck',
+      type: 'USER',
       visibility: 'PUBLIC',
       segmentCount: 3,
       createdAt: '2025-01-01T00:00:00.000Z',

@@ -25,7 +25,7 @@ beforeAll(async () => {
   core = await seedCoreFixtures();
 });
 beforeEach(async () => {
-  fixtures = await loadFixtures(['kevinActivities', 'davidActivity'], { users: core.users });
+  fixtures = await loadFixtures(['singleMedia', 'kevinActivities', 'davidActivity'], { users: core.users });
   signInAs(app, core.users.kevin);
 });
 

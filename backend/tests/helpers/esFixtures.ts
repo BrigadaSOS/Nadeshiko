@@ -4,6 +4,8 @@ import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 
+let mediaSeq = 0;
+
 export async function isEsAvailable(): Promise<boolean> {
   try {
     await client.indices.exists({ index: INDEX_NAME });
@@ -21,6 +23,7 @@ export async function seedSegmentsIntoEs(
     nameJa: 'テストアニメ',
     nameRomaji: 'Test Anime',
     nameEn: 'Test Anime EN',
+    slug: `test-anime-${++mediaSeq}`,
     airingFormat: 'TV',
     airingStatus: 'FINISHED',
     genres: ['Action'],

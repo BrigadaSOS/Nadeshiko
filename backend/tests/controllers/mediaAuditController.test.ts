@@ -403,7 +403,7 @@ describe('GET /v1/admin/media/audits/runs/:id', () => {
       auditRunId: run.id,
       target: {
         type: 'MEDIA',
-        mediaId: '',
+        mediaPublicId: '',
       },
     });
     expect(res.body.reports[1]).toMatchObject({
@@ -411,7 +411,7 @@ describe('GET /v1/admin/media/audits/runs/:id', () => {
       auditRunId: run.id,
       target: {
         type: 'EPISODE',
-        mediaId: '',
+        mediaPublicId: '',
         episodeNumber: 3,
       },
     });

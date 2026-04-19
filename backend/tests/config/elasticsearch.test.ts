@@ -59,12 +59,32 @@ vi.mock('@config/log', () => ({
 
 const {
   INDEX_NAME,
-  client,
   initializeElasticsearchIndexWithClient,
   resetElasticsearchIndexWithClient,
   setupElasticsearchUser,
 } = await import('@config/elasticsearch');
 const { config } = await import('@config/config');
+
+function makeMockClient() {
+  return {
+    indices: {
+      exists: mockIndicesExists,
+      existsAlias: mockIndicesExistsAlias,
+      getAlias: mockIndicesGetAlias,
+      get: mockIndicesGet,
+      create: mockIndicesCreate,
+      delete: mockIndicesDelete,
+      updateAliases: mockIndicesUpdateAliases,
+    },
+    security: {
+      deleteUser: mockDeleteUser,
+      deleteRole: mockDeleteRole,
+      getUser: mockGetUser,
+      putRole: mockPutRole,
+      putUser: mockPutUser,
+    },
+  };
+}
 
 type AppConfig = typeof config;
 
@@ -180,7 +200,7 @@ describe('initializeElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(true);
     mockIndicesGetAlias.mockResolvedValue({ [`${INDEX_NAME}_v1`]: {} });
 
-    await initializeElasticsearchIndexWithClient(client as any);
+    await initializeElasticsearchIndexWithClient(makeMockClient() as any);
 
     expect(mockIndicesCreate).not.toHaveBeenCalled();
   });
@@ -189,7 +209,7 @@ describe('initializeElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(false);
     mockIndicesExists.mockResolvedValue(true);
 
-    await initializeElasticsearchIndexWithClient(client as any);
+    await initializeElasticsearchIndexWithClient(makeMockClient() as any);
 
     expect(mockIndicesCreate).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
@@ -199,7 +219,7 @@ describe('initializeElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(false);
     mockIndicesExists.mockResolvedValue(false);
 
-    await initializeElasticsearchIndexWithClient(client as any);
+    await initializeElasticsearchIndexWithClient(makeMockClient() as any);
 
     expect(mockIndicesCreate).toHaveBeenCalledTimes(1);
     const createArgs = mockIndicesCreate.mock.calls[0]?.[0];
@@ -218,7 +238,7 @@ describe('resetElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(true);
     mockIndicesGet.mockResolvedValue({ [`${INDEX_NAME}_v2`]: {}, [`${INDEX_NAME}_v1`]: {} });
 
-    await resetElasticsearchIndexWithClient(client as any);
+    await resetElasticsearchIndexWithClient(makeMockClient() as any);
 
     expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v2` });
     expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v1` });
@@ -232,7 +252,7 @@ describe('resetElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(false);
     mockIndicesExists.mockResolvedValue(true);
 
-    await resetElasticsearchIndexWithClient(client as any);
+    await resetElasticsearchIndexWithClient(makeMockClient() as any);
 
     expect(mockIndicesDelete).toHaveBeenCalledWith({ index: INDEX_NAME });
     expect(mockIndicesCreate).toHaveBeenCalledWith(expect.objectContaining({ index: `${INDEX_NAME}_v1` }));
@@ -242,7 +262,7 @@ describe('resetElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(false);
     mockIndicesExists.mockResolvedValue(false);
 
-    await resetElasticsearchIndexWithClient(client as any);
+    await resetElasticsearchIndexWithClient(makeMockClient() as any);
 
     expect(mockIndicesDelete).not.toHaveBeenCalled();
     expect(mockIndicesCreate).toHaveBeenCalledTimes(1);

@@ -43,6 +43,7 @@ const mediaDefaults: FixtureSeed<Media> = {
   nameJa: 'テストアニメ',
   nameRomaji: 'Test Anime',
   nameEn: 'Test Anime',
+  slug: 'test-anime',
   airingFormat: 'TV',
   airingStatus: 'FINISHED',
   genres: ['Action'],
@@ -92,12 +93,14 @@ export const FIXTURE_SETS = {
         nameJa: 'スパイファミリー',
         nameRomaji: 'Spy x Family',
         nameEn: 'Spy x Family',
+        slug: 'spy-x-family',
       },
       anotherShow: {
         ...mediaDefaults,
         nameJa: '別作品',
         nameRomaji: 'Another Show',
         nameEn: 'Another Show',
+        slug: 'another-show',
       },
     },
   },
@@ -108,6 +111,7 @@ export const FIXTURE_SETS = {
         nameJa: 'エピソード作品',
         nameRomaji: 'Episodic Show',
         nameEn: 'Episodic Show',
+        slug: 'episodic-show',
       },
     },
     episodes: {
@@ -122,6 +126,7 @@ export const FIXTURE_SETS = {
         nameJa: 'エピソード作品',
         nameRomaji: 'Episodic Show',
         nameEn: 'Episodic Show',
+        slug: 'episodic-show',
       },
     },
     episodes: {
@@ -131,16 +136,16 @@ export const FIXTURE_SETS = {
     },
   },
   singleMedia: {
-    media: { testShow: { ...mediaDefaults } },
+    media: { testShow: { ...mediaDefaults, slug: 'single-media-test-show' } },
   },
   mediaWithEpisode: {
-    media: { testShow: { ...mediaDefaults } },
+    media: { testShow: { ...mediaDefaults, slug: 'media-with-episode-test-show' } },
     episodes: {
       pilot: { mediaId: ref('media.testShow.id'), episodeNumber: 1, titleEn: 'Pilot', segmentCount: 0 },
     },
   },
   mediaWithThirdEpisode: {
-    media: { testShow: { ...mediaDefaults } },
+    media: { testShow: { ...mediaDefaults, slug: 'media-with-third-episode-test-show' } },
     episodes: {
       thirdOne: { mediaId: ref('media.testShow.id'), episodeNumber: 3, titleEn: 'Third One', segmentCount: 0 },
     },
@@ -148,9 +153,9 @@ export const FIXTURE_SETS = {
   kevinActivities: {
     activities: {
       kevinSearch: { userId: ref('users.kevin.id'), activityType: ActivityType.SEARCH, searchQuery: '猫' },
-      kevinExport: { userId: ref('users.kevin.id'), activityType: ActivityType.ANKI_EXPORT, segmentId: 1 },
-      kevinPlay1: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaId: 42 },
-      kevinPlay2: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaId: 99 },
+      kevinExport: { userId: ref('users.kevin.id'), activityType: ActivityType.ANKI_EXPORT, segmentId: 'ExportSeg001' },
+      kevinPlay1: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaPublicId: 'TestMedia001' },
+      kevinPlay2: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaPublicId: 'TestMedia002' },
     },
   },
   davidActivity: {

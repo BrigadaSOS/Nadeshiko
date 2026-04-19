@@ -41,7 +41,7 @@ function buildMedia(overrides: Record<string, unknown> = {}) {
 describe('media.mapper', () => {
   it('maps media fields including externalIds', () => {
     const dto = toMediaDTO(buildMedia() as any);
-    expect(dto.externalIds).toEqual({ anilist: '123', imdb: 'tt0001' });
+    expect(dto.externalIds).toEqual({ anilist: '123', imdb: 'tt0001', tmdb: null, tvdb: null });
     expect(dto.publicId).toBe('media-pid-1');
   });
 

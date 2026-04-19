@@ -143,7 +143,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
 
         expect(res.status).toBe(201);
         expect(res.body).toMatchObject({
-          segmentPublicId: expect.any(String),
+          publicId: expect.any(String),
           mediaPublicId: media.publicId,
           episode: episode.episodeNumber,
           position,
@@ -209,7 +209,7 @@ describe('GET /v1/media/segments/:segmentPublicId', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      segmentPublicId: segment.publicId,
+      publicId: segment.publicId,
       mediaPublicId: media.publicId,
       episode: episode.episodeNumber,
       position: 5,
@@ -240,7 +240,7 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
         textEn: { content: 'updated-en', isMachineTranslated: false },
         textEs: { content: 'updated-es', isMachineTranslated: false },
         contentRating: 'QUESTIONABLE',
-        status: 'VERIFIED',
+        status: 'HIDDEN',
         startTimeMs: 222,
         endTimeMs: 333,
         position: 9,
@@ -252,13 +252,13 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
-      segmentPublicId: segment.publicId,
+      publicId: segment.publicId,
       position: 9,
       textJa: { content: '更新' },
       textEn: { content: 'updated-en', isMachineTranslated: false },
       textEs: { content: 'updated-es', isMachineTranslated: false },
       contentRating: 'QUESTIONABLE',
-      status: 'VERIFIED',
+      status: 'HIDDEN',
       storage: 'LOCAL',
       hashedId: 'updated-hash',
     });
@@ -268,7 +268,7 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
     expect(updated.contentEnMt).toBe(false);
     expect(updated.contentEsMt).toBe(false);
     expect(updated.contentRating).toBe(ContentRating.QUESTIONABLE);
-    expect(updated.status).toBe(SegmentStatus.VERIFIED);
+    expect(updated.status).toBe(SegmentStatus.HIDDEN);
     expect(updated.storage).toBe(SegmentStorage.LOCAL);
     expect(updated.hashedId).toBe('updated-hash');
   });
@@ -293,7 +293,7 @@ describe('GET /v1/media/segments/:publicId/context', () => {
     const segment = await seedSegment(media.id, episode.episodeNumber, { position: 12 });
 
     const contextResponse = {
-      segments: [toSegmentDTO(segment)],
+      segments: [toSegmentDTO(segment, media.publicId)],
       includes: {
         media: {
           [media.publicId]: toMediaBaseDTO(media as Media),
