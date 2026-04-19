@@ -141,9 +141,7 @@ describe('GET /v1/collections', () => {
     const res = await request(app).get('/v1/collections');
     expect(res.status).toBe(200);
 
-    const counted = res.body.collections.find(
-      (c: { publicId: string }) => c.publicId === collection.publicId,
-    );
+    const counted = res.body.collections.find((c: { publicId: string }) => c.publicId === collection.publicId);
     expect(counted).toMatchObject({
       publicId: collection.publicId,
       segmentCount: 1,

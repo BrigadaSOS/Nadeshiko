@@ -27,7 +27,8 @@ export default defineNuxtPlugin(() => {
         return [{ rel: 'canonical', href: `${siteUrl}${withLocalePrefix(localePrefix, rewrite(queryMap))}` }];
       }
 
-      const allowedParams = Object.entries(CANONICAL_PARAMS).find(([prefix]) => localizedPath.startsWith(prefix))?.[1] ?? [];
+      const allowedParams =
+        Object.entries(CANONICAL_PARAMS).find(([prefix]) => localizedPath.startsWith(prefix))?.[1] ?? [];
 
       const params = new URLSearchParams();
       for (const key of allowedParams) {

@@ -137,10 +137,12 @@ const runAudit = async (auditName: string) => {
   runningAudits.value.add(auditName);
   try {
     const data = await sdk.runAdminMediaAudit(auditName);
-    useToastSuccess(t('reports.admin.auditRunResult', {
-      audit: auditName,
-      count: formatNumber(data.totalReports ?? 0),
-    }));
+    useToastSuccess(
+      t('reports.admin.auditRunResult', {
+        audit: auditName,
+        count: formatNumber(data.totalReports ?? 0),
+      }),
+    );
     await fetchReports();
     await fetchAudits();
   } catch {

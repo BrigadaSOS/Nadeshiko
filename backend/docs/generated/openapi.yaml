@@ -3408,7 +3408,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
         pagination:
           $ref: '#/components/schemas/SearchPagination'
     Error400:
@@ -3717,7 +3717,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
     SearchMultipleQuery:
       type: object
       description: What to search for (multiple words)
@@ -3817,7 +3817,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
     SearchMediaFilters:
       type: object
       description: Filters for narrowing media search results
@@ -4474,7 +4474,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
     SegmentRevision:
       type: object
       required:

@@ -154,8 +154,16 @@ export const FIXTURE_SETS = {
     activities: {
       kevinSearch: { userId: ref('users.kevin.id'), activityType: ActivityType.SEARCH, searchQuery: '猫' },
       kevinExport: { userId: ref('users.kevin.id'), activityType: ActivityType.ANKI_EXPORT, segmentId: 'ExportSeg001' },
-      kevinPlay1: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaPublicId: 'TestMedia001' },
-      kevinPlay2: { userId: ref('users.kevin.id'), activityType: ActivityType.SEGMENT_PLAY, mediaPublicId: 'TestMedia002' },
+      kevinPlay1: {
+        userId: ref('users.kevin.id'),
+        activityType: ActivityType.SEGMENT_PLAY,
+        mediaPublicId: 'TestMedia001',
+      },
+      kevinPlay2: {
+        userId: ref('users.kevin.id'),
+        activityType: ActivityType.SEGMENT_PLAY,
+        mediaPublicId: 'TestMedia002',
+      },
     },
   },
   davidActivity: {
