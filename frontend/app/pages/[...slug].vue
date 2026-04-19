@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute();
 const { locale } = useI18n();
-const siteUrl = 'https://nadeshiko.co';
+const { url: siteUrl } = useSiteConfig();
 const localePath = useLocalePath();
 
 const slug = computed(() => {
