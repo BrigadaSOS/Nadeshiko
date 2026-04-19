@@ -15,6 +15,7 @@ const props = defineProps({
 });
 
 const { locale, locales, setLocale } = useI18n();
+const switchLocalePath = useSwitchLocalePath();
 
 function getLocaleName(code) {
   const locale = locales.value.find((i) => i.code === code);
@@ -24,6 +25,10 @@ function getLocaleName(code) {
 const availableLocales = computed(() => {
   return locales.value;
 });
+
+async function switchLanguage(localeCode) {
+  await setLocale(localeCode);
+}
 
 const dropdownContainerClass = computed(() => {
   const position = props.dropUp ? 'bottom-full mb-1' : 'top-full mt-1';
@@ -43,8 +48,15 @@ const dropdownContainerClass = computed(() => {
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('navbar.buttons.language')">
-        <SearchDropdownItem @click="setLocale(locale.code)" v-for="locale in availableLocales" :key="locale.code"
-          :text="locale.name" />
+        <NuxtLink
+          v-for="localeOption in availableLocales"
+          :key="localeOption.code"
+          :to="switchLocalePath(localeOption.code)"
+          :prefetch="false"
+          @click="switchLanguage(localeOption.code)"
+        >
+          <SearchDropdownItem :text="localeOption.name" />
+        </NuxtLink>
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>

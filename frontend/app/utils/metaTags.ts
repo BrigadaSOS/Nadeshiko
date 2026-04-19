@@ -3,14 +3,18 @@ import type { SearchResult, Media } from '~/types/search';
 type MetaTag = { name?: string; property?: string; content: string };
 type MetaTags = { title: string; meta: MetaTag[] };
 
-export const TITLE_SUFFIX = ' | Nadeshiko: Search Japanese sentences from anime';
+export const TITLE_SUFFIX = ' | Nadeshiko';
 
 export function socialTitle(title: string): string {
   return `${title}${TITLE_SUFFIX}`;
 }
 
-export function buildSentenceMetaTags(result: SearchResult, mediaNameFn: (media: Media) => string): MetaTags {
-  const mediaInfo = `Episode ${result.segment.episode}`;
+export function buildSentenceMetaTags(
+  result: SearchResult,
+  mediaNameFn: (media: Media) => string,
+  episodeLabelFn: (episode: number) => string,
+): MetaTags {
+  const mediaInfo = episodeLabelFn(result.segment.episode);
   const title = mediaNameFn(result.media);
   const social = socialTitle(title);
   const description = `「${result.segment.textJa.content}」 - ${mediaInfo}`;

@@ -5,6 +5,7 @@ type AnnouncementData = {
   active: boolean;
 };
 
+const { t } = useI18n();
 const sdk = useNadeshikoSdk();
 const saving = ref(false);
 
@@ -55,9 +56,9 @@ const save = async () => {
       active: form.active,
     });
     existing.value = data as AnnouncementData;
-    useToastSuccess('Announcement updated');
+    useToastSuccess(t('accountSettings.announcement.updated'));
   } catch {
-    useToastError('Failed to update announcement');
+    useToastError(t('accountSettings.announcement.updateError'));
   } finally {
     saving.value = false;
   }
@@ -69,50 +70,61 @@ const clear = async () => {
 
   try {
     const data = await sdk.updateAnnouncement({
-      message: form.message || 'No announcement',
+      message: form.message || t('accountSettings.announcement.fallbackMessage'),
       type: form.type,
       active: false,
     });
     existing.value = data as AnnouncementData;
     form.active = false;
-    useToastSuccess('Announcement deactivated');
+    useToastSuccess(t('accountSettings.announcement.deactivated'));
   } catch {
-    useToastError('Failed to deactivate announcement');
+    useToastError(t('accountSettings.announcement.deactivateError'));
   } finally {
     saving.value = false;
   }
 };
 
-const typeOptions = [
-  { value: 'INFO', label: 'Info', color: 'bg-neutral-500' },
-  { value: 'WARNING', label: 'Warning', color: 'bg-amber-500' },
-  { value: 'MAINTENANCE', label: 'Maintenance', color: 'bg-blue-500' },
-] as const;
+const typeOptions = computed(() => [
+  { value: 'INFO', label: t('accountSettings.announcement.types.INFO'), color: 'bg-neutral-500' },
+  { value: 'WARNING', label: t('accountSettings.announcement.types.WARNING'), color: 'bg-amber-500' },
+  { value: 'MAINTENANCE', label: t('accountSettings.announcement.types.MAINTENANCE'), color: 'bg-blue-500' },
+] as const);
+
+const previewTitle = computed(() => {
+  switch (form.type) {
+    case 'WARNING':
+      return t('accountSettings.announcement.previewTitles.WARNING');
+    case 'MAINTENANCE':
+      return t('accountSettings.announcement.previewTitles.MAINTENANCE');
+    default:
+      return t('accountSettings.announcement.previewTitles.INFO');
+  }
+});
 </script>
 
 <template>
   <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">Announcement</h3>
+    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.announcement.title') }}</h3>
     <p class="text-gray-400 text-sm mt-1">
-      Set a site-wide announcement banner visible to all users.
+      {{ t('accountSettings.announcement.description') }}
     </p>
     <div class="border-b pt-4 border-white/10" />
 
     <div class="mt-4 space-y-4">
       <div>
-        <label class="block text-sm text-gray-300 mb-1">Message</label>
+        <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.message') }}</label>
         <textarea
           v-model="form.message"
           maxlength="500"
           rows="3"
-          placeholder="Write an announcement message..."
+          :placeholder="t('accountSettings.announcement.placeholders.message')"
           class="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-input-focus-ring resize-none"
         />
         <p class="text-xs text-gray-500 mt-1 text-right">{{ form.message?.length ?? 0 }}/500</p>
       </div>
 
       <div>
-        <label class="block text-sm text-gray-300 mb-1">Type</label>
+        <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.type') }}</label>
         <div class="flex gap-2">
           <button
             v-for="opt in typeOptions"
@@ -133,8 +145,8 @@ const typeOptions = [
 
       <div class="flex items-center justify-between">
         <div>
-          <span class="text-sm text-gray-300">Active</span>
-          <p class="text-xs text-gray-500">When active, the banner is shown to all visitors.</p>
+          <span class="text-sm text-gray-300">{{ t('accountSettings.announcement.fields.active') }}</span>
+          <p class="text-xs text-gray-500">{{ t('accountSettings.announcement.activeDescription') }}</p>
         </div>
         <button
           :class="[
@@ -153,13 +165,13 @@ const typeOptions = [
       </div>
 
       <div v-if="form.message?.trim()" class="mt-2">
-        <label class="block text-sm text-gray-300 mb-1">Preview</label>
+        <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.preview') }}</label>
         <div class="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
           <div class="flex items-center gap-2 mb-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-red-400 shrink-0">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
-            <span class="font-semibold text-white text-sm">{{ form.type === 'WARNING' ? 'Important Notice' : form.type === 'MAINTENANCE' ? 'Maintenance Notice' : 'Notice' }}</span>
+            <span class="font-semibold text-white text-sm">{{ previewTitle }}</span>
           </div>
           <p class="text-sm text-white/80 leading-relaxed">{{ form.message }}</p>
         </div>
@@ -174,7 +186,7 @@ const typeOptions = [
         class="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         @click="save"
       >
-        {{ saving ? 'Saving...' : 'Save' }}
+        {{ saving ? t('accountSettings.announcement.saving') : t('accountSettings.announcement.save') }}
       </button>
       <button
         v-if="existing?.active"
@@ -182,7 +194,7 @@ const typeOptions = [
         class="px-4 py-2 text-sm rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         @click="clear"
       >
-        Deactivate
+        {{ t('accountSettings.announcement.deactivate') }}
       </button>
     </div>
   </div>

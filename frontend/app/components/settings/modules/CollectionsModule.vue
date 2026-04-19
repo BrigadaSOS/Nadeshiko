@@ -2,7 +2,7 @@
 import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiEyeOutline, mdiEyeOffOutline } from '@mdi/js';
 import type { Collection } from '@brigadasos/nadeshiko-sdk';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const sdk = useNadeshikoSdk();
 const posthog = usePostHog();
@@ -22,7 +22,7 @@ const collections = ref<Collection[]>(initialData.value);
 
 const formatDate = (dateStr?: string | null) => {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(dateStr).toLocaleDateString(locale.value, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
 // Actions dropdown
@@ -81,7 +81,7 @@ const submitRename = async () => {
     useToastSuccess(t('accountSettings.collections.renamed'));
     renameTarget.value = null;
   } catch {
-    useToastError('Failed to rename collection');
+    useToastError(t('accountSettings.collections.renameError'));
   } finally {
     isRenaming.value = false;
   }
@@ -175,7 +175,7 @@ const submitDelete = async () => {
     useToastSuccess(t('accountSettings.collections.deleted'));
     deleteTarget.value = null;
   } catch {
-    useToastError('Failed to delete collection');
+    useToastError(t('accountSettings.collections.deleteError'));
   } finally {
     isDeleting.value = false;
   }
@@ -185,9 +185,9 @@ const submitDelete = async () => {
 <template>
   <div class="dark:bg-card-background p-6 mb-6 mx-auto rounded-lg shadow-md">
     <div class="flex flex-wrap items-center gap-2 justify-between">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">Collections</h3>
+      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.collections.title') }}</h3>
       <div class="flex items-center gap-3">
-        <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ collections.length }} collections</p>
+        <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ t('accountSettings.collections.count', { count: collections.length.toLocaleString(locale) }) }}</p>
         <button
           type="button"
           class="flex items-center gap-1.5 py-2 px-4 text-sm font-bold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover transition-colors"
@@ -204,11 +204,11 @@ const submitDelete = async () => {
       <table v-if="collections.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
           <tr>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Name</th>
-            <th class="py-2 text-center text-xs font-medium text-white/90 uppercase">Segments</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">Visibility</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden sm:table-cell">Created</th>
-            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden lg:table-cell">Updated</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.collections.table.name') }}</th>
+            <th class="py-2 text-center text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.collections.table.segments') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.collections.table.visibility') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden sm:table-cell">{{ t('accountSettings.collections.table.created') }}</th>
+            <th class="py-2 text-left text-xs font-medium text-white/90 uppercase hidden lg:table-cell">{{ t('accountSettings.collections.table.updated') }}</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>
@@ -223,7 +223,7 @@ const submitDelete = async () => {
               </NuxtLink>
             </td>
             <td class="py-3 text-sm text-gray-300 tabular-nums text-center">
-              {{ collection.segmentCount ?? 0 }}
+              {{ (collection.segmentCount ?? 0).toLocaleString(locale) }}
             </td>
             <td class="py-3 text-sm">
               <span

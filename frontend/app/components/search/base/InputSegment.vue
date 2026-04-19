@@ -58,10 +58,10 @@ watch(() => [route.params.query, route.query.query], syncQueryFromRoute);
     >
       <div class="relative flex-[1_0_0%]">
         <label for="sentence-search-input" class="block text-sm text-gray-700 font-medium dark:text-white"><span
-            class="sr-only">Search anything!</span></label>
+            class="sr-only">{{ $t('common.searchAnything') }}</span></label>
         <input id="sentence-search-input" data-testid="search-input" :autofocus="!isMobile" v-model="query" @keydown.enter="navigateSearchSentence"
           class="dark:focus:ring-input-focus-ring border py-3 dark:focus:border-input-focus-ring h-full pl-4 pr-4 md:pr-32 block w-full border-transparent rounded-lg focus:outline-none dark:bg-input-background dark:border-neutral-600 dark:text-white/80 dark:placeholder-neutral-500 text-base"
-          placeholder="Search anything!" />
+          :placeholder="$t('common.searchAnything')" />
         <div class="absolute inset-y-0 end-3 flex items-center pointer-events-none">
           <span
             class="hidden md:inline-flex items-center whitespace-nowrap py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
