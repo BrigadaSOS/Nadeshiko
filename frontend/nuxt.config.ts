@@ -226,23 +226,21 @@ export default defineNuxtConfig({
     cssPath: '~/assets/css/tailwind.css',
   },
   i18n: {
+    vueI18n: 'i18n.config.ts',
     locales: [
       {
         code: 'en',
         iso: 'en',
-        file: 'en.json',
         name: 'English',
       },
       {
         code: 'es',
         iso: 'es',
-        file: 'es.json',
         name: 'Spanish',
       },
       {
         code: 'ja',
         iso: 'ja',
-        file: 'ja.json',
         name: 'Japanese',
       },
     ],
