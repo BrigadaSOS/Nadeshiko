@@ -20,7 +20,8 @@ useHead({
   ],
 });
 
-const handleError = () => clearError({ redirect: localePath('/') });
+const homePath = computed(() => localePath('/'));
+const handleError = () => clearError({ redirect: homePath.value });
 </script>
 
 <template>
@@ -40,7 +41,7 @@ const handleError = () => clearError({ redirect: localePath('/') });
           {{ is404 ? t('errorPage.pageNotFound') : t('errorPage.somethingWentWrong') }}
         </h1>
         <a
-          href="/"
+          :href="homePath"
           class="mt-4 text-lg text-red-400 hover:text-red-300 transition-colors"
           @click.prevent="handleError"
         >

@@ -11,6 +11,10 @@ export function withLocalePrefix(localePrefix: string, path: string): string {
   return path === '/' ? localePrefix : `${localePrefix}${path}`;
 }
 
+export function localizePath(currentPath: string, path: string): string {
+  return withLocalePrefix(splitLocalePrefix(currentPath).localePrefix, path);
+}
+
 export function buildWordSearchPath(word: string): string {
   return `/search/${encodeURIComponent(word)}`;
 }
