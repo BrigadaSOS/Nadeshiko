@@ -682,8 +682,7 @@ export type t_UserPreferences = {
   }[];
   blogLastVisited?: string;
   contentRatingPreferences?: {
-    explicit?: 'SHOW' | 'BLUR' | 'HIDE';
-    suggestive?: 'SHOW' | 'BLUR' | 'HIDE';
+    nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
   hiddenMedia?: {
     mediaPublicId: string;
@@ -1218,8 +1217,7 @@ export type t_UpdateUserPreferencesRequestBodySchema = {
   }[];
   blogLastVisited?: string;
   contentRatingPreferences?: {
-    explicit?: 'SHOW' | 'BLUR' | 'HIDE';
-    suggestive?: 'SHOW' | 'BLUR' | 'HIDE';
+    nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
   hiddenMedia?: {
     mediaPublicId: string;

@@ -375,12 +375,7 @@ export const s_UserMe = z.object({
 
 export const s_UserPreferences = z.object({
   mediaNameLanguage: z.enum(['ENGLISH', 'JAPANESE', 'ROMAJI']).optional(),
-  contentRatingPreferences: z
-    .object({
-      suggestive: z.enum(['SHOW', 'BLUR', 'HIDE']).optional(),
-      explicit: z.enum(['SHOW', 'BLUR', 'HIDE']).optional(),
-    })
-    .optional(),
+  contentRatingPreferences: z.object({ nsfw: z.enum(['SHOW', 'BLUR', 'HIDE']).optional() }).optional(),
   searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
   blogLastVisited: z.iso.datetime({ offset: true }).optional(),
   ankiProfiles: z

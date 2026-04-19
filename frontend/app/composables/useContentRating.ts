@@ -2,19 +2,19 @@ import type { ContentRating } from '@brigadasos/nadeshiko-sdk';
 export type ContentRatingMode = 'SHOW' | 'BLUR' | 'HIDE';
 
 export interface ContentRatingPreferences {
-  questionable: ContentRatingMode;
+  nsfw: ContentRatingMode;
 }
 
 const DEFAULT_PREFERENCES: ContentRatingPreferences = {
-  questionable: 'BLUR',
+  nsfw: 'BLUR',
 };
 
 const ALL_RATINGS: ContentRating[] = ['SAFE', 'SUGGESTIVE', 'QUESTIONABLE', 'EXPLICIT'];
 
 const toPreferenceKey = (rating: string): keyof ContentRatingPreferences | null => {
   const normalized = rating.toUpperCase();
-  if (normalized === 'QUESTIONABLE') return 'questionable';
-  if (normalized === 'EXPLICIT') return 'questionable';
+  if (normalized === 'QUESTIONABLE') return 'nsfw';
+  if (normalized === 'EXPLICIT') return 'nsfw';
   return null; // SAFE and SUGGESTIVE → never restricted
 };
 
