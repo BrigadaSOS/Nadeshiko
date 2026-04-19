@@ -11,9 +11,9 @@ function nextId() {
 
 export function makeSegment(overrides: DeepPartial<Segment> = {}): Segment {
   const id = nextId();
-  const segmentPublicId = overrides.segmentPublicId ?? `seg-${id}`;
+  const publicId = overrides.publicId ?? `seg-${id}`;
   return {
-    segmentPublicId,
+    publicId,
     position: 1,
     status: 'ACTIVE',
     startTimeMs: 60000,
@@ -40,9 +40,9 @@ export function makeSegment(overrides: DeepPartial<Segment> = {}): Segment {
       ...overrides.textEs,
     },
     urls: {
-      imageUrl: `https://example.com/${segmentPublicId}.jpg`,
-      audioUrl: `https://example.com/${segmentPublicId}.mp3`,
-      videoUrl: `https://example.com/${segmentPublicId}.mp4`,
+      imageUrl: `https://example.com/${publicId}.jpg`,
+      audioUrl: `https://example.com/${publicId}.mp3`,
+      videoUrl: `https://example.com/${publicId}.mp4`,
       ...overrides.urls,
     },
     ...overrides,
@@ -52,7 +52,7 @@ export function makeSegment(overrides: DeepPartial<Segment> = {}): Segment {
 export function makeMedia(overrides: DeepPartial<Media> = {}): Media {
   const id = nextId();
   return {
-    mediaPublicId: overrides.mediaPublicId ?? `media-${id}`,
+    publicId: overrides.publicId ?? `media-${id}`,
     slug: 'test-media',
     externalIds: {
       anilist: '',
