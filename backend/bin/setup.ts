@@ -108,10 +108,9 @@ function ensureDockerContainers(adminUser: string): void {
   const esMaxAttempts = 60;
   for (let i = 0; i < esMaxAttempts; i++) {
     try {
-      execFileSync('docker', [
-        'exec', 'nadeshiko-elasticsearch',
-        'curl', '-sf', 'http://localhost:9200/_cluster/health',
-      ], { stdio: ['pipe', 'pipe', 'pipe'] });
+      execFileSync('curl', ['-sf', 'http://127.0.0.1:9200/_cluster/health'], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
       printSuccess('Elasticsearch ready');
       return;
     } catch {
