@@ -30,14 +30,6 @@ useHead({
 });
 const config = useRuntimeConfig();
 const { mediaName } = useMediaName();
-const { hiddenMediaIds } = useHiddenMedia();
-
-const filteredRecentMedia = computed(() => {
-  const list = media.value?.media ?? [];
-  const hidden = new Set(hiddenMediaIds.value);
-  if (hidden.size === 0) return list;
-  return list.filter((m) => !hidden.has(m.publicId));
-});
 
 const sdk = useNadeshikoSdk();
 const {
@@ -55,6 +47,8 @@ const {
     default: () => null,
   },
 );
+
+const filteredRecentMedia = computed(() => media.value?.media ?? []);
 </script>
 
 <template>
