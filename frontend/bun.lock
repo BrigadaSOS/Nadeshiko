@@ -5,7 +5,7 @@
     "": {
       "name": "nuxt-app",
       "dependencies": {
-        "@brigadasos/nadeshiko-sdk": "2.1.0-internal.6806b25",
+        "@brigadasos/nadeshiko-sdk": "2.1.0-internal.39df9be",
         "@mdi/js": "^7.4.47",
         "@nuxtjs/i18n": "^10.2.1",
         "@nuxtjs/seo": "5.1.0",
@@ -137,7 +137,7 @@
 
     "@bomb.sh/tab": ["@bomb.sh/tab@0.0.14", "", { "peerDependencies": { "cac": "^6.7.14", "citty": "^0.1.6 || ^0.2.0", "commander": "^13.1.0" }, "optionalPeers": ["cac", "citty", "commander"], "bin": { "tab": "dist/bin/cli.mjs" } }, "sha512-cHMk2LI430MVoX1unTt9oK1iZzQS4CYDz97MSxKLNErW69T43Z2QLFTpdS/3jVOIKrIADWfuxQ+nQNJkNV7E4w=="],
 
-    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.1.0-internal.6806b25", "", {}, "sha512-2vWyd7EDUggtE3teZjz91eHinJBd+K+d0gA6OfLCr7dHihKd5bX815S1JcuBssCxBLIYULfqXb/JNVYqohbnvQ=="],
+    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.1.0-internal.39df9be", "", {}, "sha512-Ui/M6GZU3YQqE38pfElu6z+5vOwnYc1t5eUIMdETGErZosnUhEjoL2jjGhno2p+AJCIliX4jYXA2PkJ4CpAKLQ=="],
 
     "@capsizecss/unpack": ["@capsizecss/unpack@4.0.0", "", { "dependencies": { "fontkitten": "^1.0.0" } }, "sha512-VERIM64vtTP1C4mxQ5thVT9fK0apjPFobqybMtA1UdUujWka24ERHbRHFGmpbbhp73MhV+KSsHQH9C6uOTdEQA=="],
 
