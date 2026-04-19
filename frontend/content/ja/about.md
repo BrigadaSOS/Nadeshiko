@@ -1,3 +1,8 @@
+---
+title: "Nadeshikoについて"
+description: "Nadeshikoについて、制作チームとコントリビューターをご紹介します。"
+---
+
 # About
 
 ## 貢献とクレジット

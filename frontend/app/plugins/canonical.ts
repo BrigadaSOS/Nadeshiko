@@ -1,5 +1,7 @@
+import { buildSentencePath, splitLocalePrefix, withLocalePrefix } from '~/utils/routes';
+
 const CANONICAL_REWRITES: Record<string, (query: Record<string, string>) => string> = {
-  '/search/sentence': (q) => (q.query ? `/sentence/${q.query}` : '/search/sentence'),
+  '/search/sentence': (q) => (q.query ? buildSentencePath(q.query) : '/search/sentence'),
 };
 
 const CANONICAL_PARAMS: Record<string, string[]> = {
@@ -14,17 +16,18 @@ export default defineNuxtPlugin(() => {
   useHead({
     link: () => {
       const path = route.path;
+      const { localePrefix, localizedPath } = splitLocalePrefix(path);
 
-      const rewrite = CANONICAL_REWRITES[path];
+      const rewrite = CANONICAL_REWRITES[localizedPath];
       if (rewrite) {
         const queryMap: Record<string, string> = {};
         for (const [k, v] of Object.entries(route.query)) {
           if (typeof v === 'string') queryMap[k] = v;
         }
-        return [{ rel: 'canonical', href: `${siteUrl}${rewrite(queryMap)}` }];
+        return [{ rel: 'canonical', href: `${siteUrl}${withLocalePrefix(localePrefix, rewrite(queryMap))}` }];
       }
 
-      const allowedParams = Object.entries(CANONICAL_PARAMS).find(([prefix]) => path.startsWith(prefix))?.[1] ?? [];
+      const allowedParams = Object.entries(CANONICAL_PARAMS).find(([prefix]) => localizedPath.startsWith(prefix))?.[1] ?? [];
 
       const params = new URLSearchParams();
       for (const key of allowedParams) {

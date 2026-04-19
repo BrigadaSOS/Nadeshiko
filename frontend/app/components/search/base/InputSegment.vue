@@ -8,6 +8,7 @@ const props = defineProps({
   },
 });
 
+const localePath = useLocalePath();
 const route = useRoute();
 const router = useRouter();
 const query = ref('');
@@ -25,7 +26,7 @@ const navigateSearchSentence = async () => {
   const remaining = Object.keys(restOfQuery).length > 0 ? restOfQuery : undefined;
 
   const target = {
-    path: term ? `/search/${encodeURIComponent(term)}` : '/search',
+    path: term ? localePath(`/search/${encodeURIComponent(term)}`) : localePath('/search'),
     query: remaining,
   };
 

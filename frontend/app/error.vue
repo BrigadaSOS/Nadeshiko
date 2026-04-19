@@ -3,6 +3,7 @@ import type { NuxtError } from '#app';
 
 const props = defineProps<{ error: NuxtError }>();
 const { t } = useI18n();
+const localePath = useLocalePath();
 
 const is404 = computed(() => props.error.statusCode === 404);
 
@@ -19,7 +20,7 @@ useHead({
   ],
 });
 
-const handleError = () => clearError({ redirect: '/' });
+const handleError = () => clearError({ redirect: localePath('/') });
 </script>
 
 <template>

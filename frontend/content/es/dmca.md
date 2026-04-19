@@ -1,3 +1,8 @@
+---
+title: "Política DMCA"
+description: "Política de eliminación DMCA de Nadeshiko e instrucciones para enviar solicitudes de eliminación por derechos de autor."
+---
+
 # Política DMCA
 
 **Última actualización: 19 de enero de 2026**

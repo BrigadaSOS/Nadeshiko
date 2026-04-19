@@ -211,7 +211,6 @@ export default defineNuxtConfig({
           '/terms-and-conditions',
           '/dmca',
           '/media',
-          '/docs/api/index.html',
           '/blog',
           '/stats',
           '/stats/words',
@@ -230,7 +229,7 @@ export default defineNuxtConfig({
     locales: [
       {
         code: 'en',
-        iso: 'en-US',
+        iso: 'en',
         file: 'en.json',
         name: 'English',
       },

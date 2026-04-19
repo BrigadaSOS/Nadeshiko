@@ -431,7 +431,7 @@
       "fieldLoadError": "Error al cargar nombres de campos del modelo:",
       "troubleshootingTips": {
         "ankiRunning": "Verifique que la aplicación de Anki este abierta y el addon Ankiconnect instalado",
-        "webCors": "Verifique que 'https://nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
+        "webCors": "Verifique que 'https:\/\/nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
         "adBlock": "Deshabilite cualquier Adblock que tenga instalado en su navegador para este dominio"
       },
       "ankiConfig": "Configuración Anki",
@@ -611,5 +611,34 @@
     "openAnki": "Añadir a Anki",
     "openContext": "Abrir contexto",
     "hint": "Los atajos se desactivan mientras escribes en la barra de búsqueda. Presiona ? para mostrar u ocultar este panel."
+  },
+  "seo": {
+    "stats": {
+      "title": "Estadísticas",
+      "description": "Consulta qué tan bien Nadeshiko cubre las palabras japonesas más comunes. Estadísticas basadas en la lista de frecuencias de anime Jiten."
+    },
+    "statsWords": {
+      "title": "Cobertura de las {tier} palabras japonesas más comunes",
+      "description": "Consulta cuáles de las {tier} palabras japonesas más comunes están cubiertas en el corpus de oraciones de Nadeshiko."
+    },
+    "media": {
+      "title": "Explorar Contenido",
+      "description": "Explora el anime, J-dramas y audiolibros disponibles en Nadeshiko. Busca entre miles de títulos con oraciones en japonés."
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Mantente al día con las últimas noticias, funciones y mejoras de Nadeshiko."
+    },
+    "search": {
+      "title": "Buscar",
+      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+    },
+    "sentence": {
+      "title": "Oración",
+      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+    },
+    "collection": {
+      "description": "Explora la colección \"{name}\" en Nadeshiko"
+    }
   }
 }

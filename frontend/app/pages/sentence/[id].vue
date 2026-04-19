@@ -3,6 +3,7 @@ import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import type { SearchStatsResponse } from '~/types/search';
 
+const { t } = useI18n();
 const route = useRoute();
 const { mediaName } = useMediaName();
 
@@ -51,18 +52,18 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
 });
 
 const metaTags = computed(() => {
-  const defaultDescription =
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
+  const defaultTitle = t('seo.sentence.title');
+  const defaultDescription = t('seo.sentence.defaultDescription');
 
   const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: 'Sentence',
+    title: defaultTitle,
     meta: [
       { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: socialTitle('Sentence') },
+      { property: 'og:title', content: socialTitle(defaultTitle) },
       { property: 'og:description', content: defaultDescription },
       { property: 'og:type', content: 'website' },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: socialTitle('Sentence') },
+      { name: 'twitter:title', content: socialTitle(defaultTitle) },
       { name: 'twitter:description', content: defaultDescription },
     ],
   };

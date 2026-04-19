@@ -2,13 +2,17 @@
 const route = useRoute();
 const { locale } = useI18n();
 const siteUrl = 'https://nadeshiko.co';
-
-const isBlogPost = computed(() => route.path.startsWith('/blog/'));
+const localePath = useLocalePath();
 
 const slug = computed(() => {
-  const raw = route.path.replace(/^\//, '').replace(/\/$/, '');
+  let raw = route.path.replace(/^\//, '').replace(/\/$/, '');
+  if (locale.value !== 'en' && raw.startsWith(`${locale.value}/`)) {
+    raw = raw.slice(locale.value.length + 1);
+  }
   return raw || 'index';
 });
+
+const isBlogPost = computed(() => slug.value.startsWith('blog/'));
 
 const { data } = await useAsyncData(
   () => `content-${locale.value}-${route.path}`,
@@ -50,9 +54,9 @@ const schemaOrgDefs = computed(() => {
     }),
   ];
 
-  const breadcrumbItems = [{ name: 'Home', item: '/' }];
+  const breadcrumbItems = [{ name: 'Home', item: localePath('/') }];
   if (isBlogPost.value) {
-    breadcrumbItems.push({ name: 'Blog', item: '/blog' });
+    breadcrumbItems.push({ name: 'Blog', item: localePath('/blog') });
   }
   breadcrumbItems.push({ name: title.value ?? '', item: route.path });
   defs.push(defineBreadcrumb({ itemListElement: breadcrumbItems }));
@@ -110,7 +114,7 @@ useHead(() => ({
 
           <div v-if="isBlogPost" class="mt-10 pt-6 border-t border-gray-800">
             <NuxtLink
-              to="/blog"
+              :to="localePath('/blog')"
               class="inline-flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 group"
             >
               <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
