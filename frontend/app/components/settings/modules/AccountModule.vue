@@ -87,10 +87,10 @@ const { data: previewData } = await useLazyAsyncData('content-rating-preview', (
 );
 const previewSegment = computed(() => previewData.value?.segments?.[0] ?? null);
 
-const questionableMode = computed(() => user_store.preferences?.contentRatingPreferences?.questionable || 'BLUR');
+const questionableMode = computed(() => user_store.preferences?.contentRatingPreferences?.nsfw || 'BLUR');
 
-const contentRatingDescription = (category: string) => {
-  const value = user_store.preferences?.contentRatingPreferences?.[category] || 'BLUR';
+const contentRatingDescription = () => {
+  const value = user_store.preferences?.contentRatingPreferences?.nsfw || 'BLUR';
   return t(`accountSettings.account.contentRatingHint_${value.toLowerCase()}`);
 };
 
@@ -98,11 +98,11 @@ const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLa
 
 const { tooltipReadingMode, setTooltipReadingMode } = useTooltipReadingVisibility();
 
-const updateContentRatingPreference = async (category: string, value: string) => {
+const updateContentRatingPreference = async (value: string) => {
   savingPreferences.value = true;
   try {
     const current = user_store.preferences?.contentRatingPreferences ?? {};
-    const updated = { ...current, [category]: value };
+    const updated = { ...current, nsfw: value };
     await sdk.updateUserPreferences({ contentRatingPreferences: updated });
     user_store.preferences = { ...user_store.preferences, contentRatingPreferences: updated };
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
@@ -466,11 +466,11 @@ const logoutCurrentUser = async () => {
       <div class="flex justify-between items-center mt-4">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.questionableContent') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.questionableContentDesc') }}. {{ contentRatingDescription('questionable') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.questionableContentDesc') }}. {{ contentRatingDescription() }}</p>
         </div>
         <select
-          :value="user_store.preferences?.contentRatingPreferences?.questionable || 'BLUR'"
-          @change="updateContentRatingPreference('questionable', ($event.target as HTMLSelectElement).value)"
+          :value="user_store.preferences?.contentRatingPreferences?.nsfw || 'BLUR'"
+          @change="updateContentRatingPreference(($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
