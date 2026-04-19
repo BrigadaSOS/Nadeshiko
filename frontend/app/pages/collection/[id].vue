@@ -2,6 +2,7 @@
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 import { socialTitle } from '~/utils/metaTags';
 
+const { t } = useI18n();
 const route = useRoute();
 const localePath = useLocalePath();
 
@@ -75,7 +76,7 @@ const metaTags = computed(() => {
   const name = collectionDetails.value?.name ?? 'Collection';
   const title = name;
   const social = socialTitle(title);
-  const description = `Browse the "${name}" collection on Nadeshiko`;
+  const description = t('seo.collection.description', { name });
   return {
     title,
     meta: [

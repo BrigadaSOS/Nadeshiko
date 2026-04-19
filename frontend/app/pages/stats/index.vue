@@ -2,18 +2,17 @@
 import { userStore } from '~/stores/auth';
 import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 
+const { t } = useI18n();
+
 useSeoMeta({
-  title: 'Stats',
-  description:
-    'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
-  ogTitle: 'Stats',
-  ogDescription:
-    'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
+  title: () => t('seo.stats.title'),
+  description: () => t('seo.stats.description'),
+  ogTitle: () => t('seo.stats.title'),
+  ogDescription: () => t('seo.stats.description'),
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Stats',
-  twitterDescription:
-    'See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list.',
+  twitterTitle: () => t('seo.stats.title'),
+  twitterDescription: () => t('seo.stats.description'),
 });
 
 const sdk = useNadeshikoSdk();

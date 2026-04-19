@@ -431,7 +431,7 @@
       "fieldLoadError": "モデルのフィールド名の読み込みエラー:",
       "troubleshootingTips": {
         "ankiRunning": "Ankiが起動中でAnkiconnectアドオンがインストールされていることを確認してください",
-        "webCors": "AnkiConnectのwebCorsOriginList設定に'https://nadeshiko.co'が含まれていることを確認してください",
+        "webCors": "AnkiConnectのwebCorsOriginList設定に'https:\/\/nadeshiko.co'が含まれていることを確認してください",
         "adBlock": "このドメインに対するAdBlock拡張機能を無効にしてください"
       },
       "ankiConfig": "Anki設定",
@@ -611,5 +611,34 @@
     "openAnki": "Ankiに追加",
     "openContext": "文脈を開く",
     "hint": "検索バーに入力中はショートカットが無効になります。?キーでこのパネルを表示/非表示できます。"
+  },
+  "seo": {
+    "stats": {
+      "title": "統計",
+      "description": "Nadeshikoが最も一般的な日本語単語をどれだけカバーしているか確認できます。Jitenアニメ頻度リストに基づくカバレッジ統計。"
+    },
+    "statsWords": {
+      "title": "上位{tier}語の日本語カバレッジ",
+      "description": "Nadeshikoのコーパスで上位{tier}語の日本語単語のカバレッジを確認できます。"
+    },
+    "media": {
+      "title": "メディア一覧",
+      "description": "Nadeshikoで利用可能なアニメ、Jドラマ、オーディオブックを閲覧できます。日本語文を含む数千のタイトルを検索。"
+    },
+    "blog": {
+      "title": "ブログ",
+      "description": "Nadeshikoの最新ニュース、機能、改善情報をお届けします。"
+    },
+    "search": {
+      "title": "検索",
+      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+    },
+    "sentence": {
+      "title": "文章",
+      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+    },
+    "collection": {
+      "description": "Nadeshikoの「{name}」コレクションを閲覧"
+    }
   }
 }

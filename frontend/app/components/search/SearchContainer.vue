@@ -6,6 +6,7 @@ import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
+import { splitLocalePrefix } from '~/utils/routes';
 import type {
   SearchResponse,
   SearchStatsResponse,
@@ -44,13 +45,15 @@ const route = useRoute();
 const router = useRouter();
 const playerStore = usePlayerStore();
 
+const isSentencePath = (path: string) => splitLocalePrefix(path).localizedPath.startsWith('/sentence/');
+
 const sentenceData = ref<SearchResponse | null>(props.initialSentenceData ?? null);
 const statsData = ref<SearchStatsResponse | null>(props.initialStatsData ?? null);
 const isLoading = ref(false);
 const endOfResults = ref(false);
 const lastTrackedQuery = ref<string | null>(null);
-const isSingleSentenceView = computed(() => route.path.startsWith('/sentence/'));
-const hasMoreResults = ref(!route.path.startsWith('/sentence/'));
+const isSingleSentenceView = computed(() => isSentencePath(route.path));
+const hasMoreResults = ref(!isSentencePath(route.path));
 const showLoadMoreButton = ref(false);
 const initialError = ref(false);
 
@@ -581,7 +584,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21] px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
-                    to="/user/collections"
+                    :to="localePath('/user/collections')"
                     class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-white/10"
                 >
                     <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -621,7 +624,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
-                    to="/user/collections"
+                    :to="localePath('/user/collections')"
                     class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-white/10"
                 >
                     <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -679,4 +682,3 @@ onBeforeRouteUpdate(async (to, from) => {
         </div>
     </div>
 </template>
-

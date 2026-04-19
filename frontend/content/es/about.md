@@ -1,3 +1,8 @@
+---
+title: "Acerca de Nadeshiko"
+description: "Conoce Nadeshiko, el equipo detrás del proyecto y los contribuidores que lo hacen posible."
+---
+
 # About
 
 ## Contribución y Atribución

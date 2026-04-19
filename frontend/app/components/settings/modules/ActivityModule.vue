@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { buildSentencePath, buildWordSearchPath } from '~/utils/routes';
+
 const stripTags = (text: string) => {
   let result = text;
   let previous;
@@ -42,6 +44,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 const ACTIVITY_TYPES = ['SEARCH', 'SEGMENT_PLAY', 'ANKI_EXPORT', 'SHARE'] as const;
 
 const sdk = useNadeshikoSdk();
+const localePath = useLocalePath();
 
 const toDayKey = (date: Date): string => {
   const year = date.getFullYear();
@@ -671,14 +674,14 @@ onMounted(async () => {
             <td class="py-2.5 pr-4 truncate">
               <a
                 v-if="activity.searchQuery"
-                :href="`/search/${encodeURIComponent(activity.searchQuery)}`"
+                :href="localePath(buildWordSearchPath(activity.searchQuery))"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >
                 {{ activity.searchQuery }}
               </a>
               <a
                 v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE' || activity.activityType === 'ANKI_EXPORT') && activity.segmentPublicId && (activity.mediaName || activity.japaneseText)"
-                :href="`/sentence/${activity.segmentPublicId}`"
+                :href="localePath(buildSentencePath(activity.segmentPublicId))"
                 class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
               >
                 <span v-if="activity.mediaName" class="text-gray-400">{{ activity.mediaName }}</span>

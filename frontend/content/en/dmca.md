@@ -1,3 +1,8 @@
+---
+title: "DMCA Policy"
+description: "Nadeshiko's DMCA takedown policy and instructions for submitting copyright removal requests."
+---
+
 # DMCA Policy
 
 **Last updated: January 19, 2026**

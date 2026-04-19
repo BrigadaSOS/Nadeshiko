@@ -1,6 +1,7 @@
 <script setup>
 import { mdiTagSearchOutline } from '@mdi/js';
 import { resolveWordsResponse } from '~/utils/resolvers';
+import { buildWordSearchPath } from '~/utils/routes';
 
 const selectedOption = ref('');
 const words = ref('');
@@ -15,6 +16,7 @@ const wordsMatch = ref([]);
 const totalWordsSearched = ref(0);
 const checkExactSearch = ref(false);
 const isLoading = ref(false);
+const localePath = useLocalePath();
 
 const sortedWordsMatch = computed(() => {
   // Ordenar las palabras por item.matchCount de manera descendente,
@@ -229,7 +231,7 @@ watch(inputText, (newValue) => {
                       <tr v-for="(item, index) in sortedWordsMatch">
                         <td
                           class="y-4 whitespace-nowrap text-base text-center font-medium text-gray-800 dark:text-gray-200">
-                          <NuxtLink v-if="item.isMatch" :to="`/search/${encodeURIComponent(item.word)}`"
+                          <NuxtLink v-if="item.isMatch" :to="localePath(buildWordSearchPath(item.word))"
                             class="text-blue-500 underline-offset-2 underline" target="_blank">
                             {{ item.word }}
                           </NuxtLink>

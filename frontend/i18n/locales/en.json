@@ -431,7 +431,7 @@
       "fieldLoadError": "Error loading model field names:",
       "troubleshootingTips": {
         "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
-        "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
+        "webCors": "Make sure 'https:\/\/nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
         "adBlock": "Disable any AdBlock extensions for this domain"
       },
       "ankiConfig": "Anki Configuration",
@@ -611,5 +611,34 @@
     "openAnki": "Add to Anki",
     "openContext": "Open context",
     "hint": "Shortcuts are disabled while typing in the search bar. Press ? to toggle this panel."
+  },
+  "seo": {
+    "stats": {
+      "title": "Stats",
+      "description": "See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list."
+    },
+    "statsWords": {
+      "title": "{tier} Japanese Words Coverage",
+      "description": "See which of the {tier} most common Japanese words are covered by Nadeshiko's sentence corpus."
+    },
+    "media": {
+      "title": "Browse Media",
+      "description": "Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences."
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Stay updated with the latest news, features, and improvements to Nadeshiko."
+    },
+    "search": {
+      "title": "Search",
+      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+    },
+    "sentence": {
+      "title": "Sentence",
+      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+    },
+    "collection": {
+      "description": "Browse the \"{name}\" collection on Nadeshiko"
+    }
   }
 }

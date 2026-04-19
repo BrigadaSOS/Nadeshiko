@@ -1,3 +1,5 @@
+import { buildSentencePath, buildWordSearchPath, splitLocalePrefix, withLocalePrefix } from '~/utils/routes';
+
 /**
  * Backward-compatibility redirects (301 Permanent).
  *
@@ -15,10 +17,10 @@
  */
 export default defineEventHandler((event) => {
   const url = getRequestURL(event);
-  const path = url.pathname;
+  const { localePrefix, localizedPath } = splitLocalePrefix(url.pathname);
 
   // Only process /search paths — skip everything else early
-  if (!path.startsWith('/search')) {
+  if (!localizedPath.startsWith('/search')) {
     return;
   }
 
@@ -53,41 +55,49 @@ export default defineEventHandler((event) => {
     }
     url.searchParams.delete('uuid');
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `/sentence/${uuid}${remaining ? `?${remaining}` : ''}`, 301);
+    return sendRedirect(event, `${withLocalePrefix(localePrefix, buildSentencePath(uuid))}${remaining ? `?${remaining}` : ''}`, 301);
   }
 
   // /search/media → /media  (preserves all query params)
-  if (path === '/search/media' || path === '/search/media/') {
+  if (localizedPath === '/search/media' || localizedPath === '/search/media/') {
     const remaining = url.search;
-    return sendRedirect(event, `/media${remaining}`, 301);
+    return sendRedirect(event, `${withLocalePrefix(localePrefix, '/media')}${remaining}`, 301);
   }
 
   // /search/sentence?query=term → /search/term
   // /search/sentence             → /search
   // /search/sentence?category=anime → /search?category=anime
-  if (path === '/search/sentence' || path === '/search/sentence/') {
+  if (localizedPath === '/search/sentence' || localizedPath === '/search/sentence/') {
     const query = url.searchParams.get('query');
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
     if (query) {
-      return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? `?${remaining}` : ''}`, 301);
+      return sendRedirect(
+        event,
+        `${withLocalePrefix(localePrefix, buildWordSearchPath(query))}${remaining ? `?${remaining}` : ''}`,
+        301,
+      );
     }
-    return sendRedirect(event, `/search${remaining ? `?${remaining}` : ''}`, 301);
+    return sendRedirect(event, `${withLocalePrefix(localePrefix, '/search')}${remaining ? `?${remaining}` : ''}`, 301);
   }
 
   // /search?query=term → /search/term  (preserves other query params like category, sort)
-  if (path === '/search' && url.searchParams.has('query')) {
+  if (localizedPath === '/search' && url.searchParams.has('query')) {
     const query = url.searchParams.get('query');
     if (query === null) {
       return;
     }
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `/search/${encodeURIComponent(query)}${remaining ? `?${remaining}` : ''}`, 301);
+    return sendRedirect(
+      event,
+      `${withLocalePrefix(localePrefix, buildWordSearchPath(query))}${remaining ? `?${remaining}` : ''}`,
+      301,
+    );
   }
 
   if (normalizedLegacyParams) {
     const remaining = url.searchParams.toString();
-    return sendRedirect(event, `${path}${remaining ? `?${remaining}` : ''}`, 301);
+    return sendRedirect(event, `${withLocalePrefix(localePrefix, localizedPath)}${remaining ? `?${remaining}` : ''}`, 301);
   }
 });

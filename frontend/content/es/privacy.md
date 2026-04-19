@@ -1,3 +1,8 @@
+---
+title: "Política de Privacidad"
+description: "Lee la política de privacidad de Nadeshiko para entender cómo recopilamos, usamos y protegemos tus datos."
+---
+
 # Política de Privacidad
 **Última actualización: 19 de enero de 2026**
 
