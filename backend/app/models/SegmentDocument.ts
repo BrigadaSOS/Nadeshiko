@@ -123,7 +123,7 @@ export class SegmentDocument {
     const { must, isMatchAll, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
       parserMode,
-      filters.languages,
+      Array.isArray(filters.languages) ? filters.languages : undefined,
     );
 
     const { filter, must_not } = SegmentQuery.buildCommonFilters(filters);
@@ -148,7 +148,7 @@ export class SegmentDocument {
       }
     }
 
-    const excludeLangs = new Set(filters.languages ?? []);
+    const excludeLangs = new Set((Array.isArray(filters.languages) ? filters.languages : undefined) ?? []);
     const highlightFields: Record<string, estypes.SearchHighlightField> = {
       textJa: {
         matched_fields: ['textJa', 'textJa.kana', 'textJa.baseform', 'textJa.normalized'],
@@ -201,7 +201,7 @@ export class SegmentDocument {
     const { must, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
       parserMode,
-      filters.languages,
+      Array.isArray(filters.languages) ? filters.languages : undefined,
     );
     const mediaInfo = Media.getMediaInfoMap();
 
@@ -228,7 +228,12 @@ export class SegmentDocument {
       : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
 
     const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
-      const baseQuery = SegmentQuery.buildMultiLanguage(word, exactMatch, parserMode, filters?.languages);
+      const baseQuery = SegmentQuery.buildMultiLanguage(
+        word,
+        exactMatch,
+        parserMode,
+        filters && Array.isArray(filters.languages) ? filters.languages : undefined,
+      );
       return [
         {},
         {
@@ -264,7 +269,12 @@ export class SegmentDocument {
       : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
 
     const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
-      const baseQuery = SegmentQuery.buildMultiLanguage(word, false, parserMode, filters?.languages);
+      const baseQuery = SegmentQuery.buildMultiLanguage(
+        word,
+        false,
+        parserMode,
+        filters && Array.isArray(filters.languages) ? filters.languages : undefined,
+      );
       return [
         {},
         {

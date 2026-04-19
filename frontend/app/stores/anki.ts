@@ -274,14 +274,14 @@ export const ankiStore = defineStore('anki', {
         const sdk = useNadeshikoSdk();
         const listData = await sdk.listCollections({ take: 100 });
         const existing = listData.collections.find((collection) => collection.type === 'ANKI_EXPORT');
-        if (existing) return existing.collectionPublicId;
+        if (existing) return existing.publicId;
 
         const created = await sdk.createCollection({
           name: DEFAULT_ANKI_EXPORTS_COLLECTION,
           visibility: 'PRIVATE',
         });
 
-        return created.collectionPublicId;
+        return created.publicId;
       } catch {
         return null;
       }
@@ -298,13 +298,13 @@ export const ankiStore = defineStore('anki', {
         const sdk = useNadeshikoSdk();
         await sdk.addSegmentToCollection({
           collectionPublicId,
-          segmentPublicId: sentence.segment.segmentPublicId,
+          segmentPublicId: sentence.segment.publicId,
         });
       } catch (error: unknown) {
         const err = error as { statusCode?: number };
         if (err.statusCode !== 409) {
           console.warn('[Anki] Could not sync segment to Anki Exports collection', {
-            segmentId: sentence.segment.segmentPublicId,
+            segmentId: sentence.segment.publicId,
             error,
           });
         }
@@ -383,7 +383,7 @@ export const ankiStore = defineStore('anki', {
 
         if (needsImage) {
           const req = this.executeAction('storeMediaFile', {
-            filename: `${sentence.segment.segmentPublicId}.webp`,
+            filename: `${sentence.segment.publicId}.webp`,
             url: sentence.segment.urls.imageUrl,
           }).then((r) => {
             imageResult = r;
@@ -397,12 +397,12 @@ export const ankiStore = defineStore('anki', {
             const blob64 = await blobToBase64(sentence.blobAudio);
             const raw = blob64.substring(blob64.indexOf(',') + 1);
             req = this.executeAction('storeMediaFile', {
-              filename: `${sentence.segment.segmentPublicId}.wav`,
+              filename: `${sentence.segment.publicId}.wav`,
               data: raw,
             });
           } else {
             req = this.executeAction('storeMediaFile', {
-              filename: `${sentence.segment.segmentPublicId}.mp3`,
+              filename: `${sentence.segment.publicId}.mp3`,
               url: sentence.segment.urls.audioUrl,
             });
           }
@@ -474,7 +474,7 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-info': {
                   const isMovie = sentence.media.airingFormat === 'MOVIE';
                   const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
-                  const sentenceUrl = `${window.location.origin}/sentence/${sentence.segment.segmentPublicId}`;
+                  const sentenceUrl = `${window.location.origin}/sentence/${sentence.segment.publicId}`;
                   const info =
                     `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
                     `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
@@ -509,8 +509,8 @@ export const ankiStore = defineStore('anki', {
           sdk
             .trackUserActivity({
               activityType: 'ANKI_EXPORT',
-              segmentPublicId: sentence.segment.segmentPublicId,
-              mediaPublicId: sentence.media.mediaPublicId,
+              segmentPublicId: sentence.segment.publicId,
+              mediaPublicId: sentence.media.publicId,
               mediaName: mediaName(sentence.media),
               japaneseText: sentence.segment.textJa.content,
             })
@@ -520,7 +520,7 @@ export const ankiStore = defineStore('anki', {
         const posthog = usePostHog();
         posthog?.capture('anki_export_completed', {
           media_name: mediaName(sentence.media),
-          media_id: sentence.media.mediaPublicId,
+          media_id: sentence.media.publicId,
           export_method: id ? 'search_by_id' : 'last_card',
         });
 

@@ -68,13 +68,13 @@ const submitRename = async () => {
   isRenaming.value = true;
   try {
     await sdk.updateCollection({
-      collectionPublicId: renameTarget.value.collectionPublicId,
+      collectionPublicId: renameTarget.value.publicId,
       name: renameValue.value.trim(),
     });
 
     const target = renameTarget.value;
     if (!target) return;
-    const idx = collections.value.findIndex((c) => c.collectionPublicId === target.collectionPublicId);
+    const idx = collections.value.findIndex((c) => c.publicId === target.publicId);
     const item = collections.value[idx];
     if (item) item.name = renameValue.value.trim();
 
@@ -135,11 +135,11 @@ const submitToggleVisibility = async () => {
   const newVisibility = visibilityTarget.value.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC';
   try {
     await sdk.updateCollection({
-      collectionPublicId: visibilityTarget.value.collectionPublicId,
+      collectionPublicId: visibilityTarget.value.publicId,
       visibility: newVisibility,
     });
 
-    const idx = collections.value.findIndex((c) => c.collectionPublicId === visibilityTarget.value?.collectionPublicId);
+    const idx = collections.value.findIndex((c) => c.publicId === visibilityTarget.value?.publicId);
     const item = collections.value[idx];
     if (item) item.visibility = newVisibility;
 
@@ -167,10 +167,10 @@ const submitDelete = async () => {
 
   isDeleting.value = true;
   try {
-    await sdk.deleteCollection(deleteTarget.value.collectionPublicId);
+    await sdk.deleteCollection(deleteTarget.value.publicId);
 
     collections.value = collections.value.filter(
-      (c) => c.collectionPublicId !== deleteTarget.value?.collectionPublicId,
+      (c) => c.publicId !== deleteTarget.value?.publicId,
     );
 
     posthog?.capture('collection_deleted');
@@ -215,10 +215,10 @@ const submitDelete = async () => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="collection in collections" :key="collection.collectionPublicId" data-testid="collection-row">
+          <tr v-for="collection in collections" :key="collection.publicId" data-testid="collection-row">
             <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
               <NuxtLink
-                :to="`/collection/${collection.collectionPublicId}`"
+                :to="`/collection/${collection.publicId}`"
                 class="font-medium truncate block hover:text-blue-400 transition-colors"
               >
                 {{ collection.name }}
@@ -249,7 +249,7 @@ const submitDelete = async () => {
                   type="button"
                   data-testid="collection-menu-toggle"
                   class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
-                  @click="toggleMenu(collection.collectionPublicId)"
+                  @click="toggleMenu(collection.publicId)"
                 >
                   <UiBaseIcon :path="mdiDotsVertical" size="18" />
                 </button>
@@ -263,7 +263,7 @@ const submitDelete = async () => {
                   leave-to-class="opacity-0 scale-95"
                 >
                   <div
-                    v-if="openMenuId === collection.collectionPublicId"
+                    v-if="openMenuId === collection.publicId"
                     class="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-white/10 bg-neutral-800 shadow-xl py-1"
                   >
                     <button

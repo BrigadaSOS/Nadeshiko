@@ -3,6 +3,20 @@ import type { t_MediaFilterItem, t_SearchFilters } from 'generated/models';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>['results'];
 
+export function normalizeLanguageFilter(filters?: t_SearchFilters): void {
+  if (!filters) return;
+  const langs = filters.languages as unknown;
+  if (langs == null) return;
+  if (Array.isArray(langs)) {
+    filters.languages = langs.map((x) => String(x).toUpperCase()) as t_SearchFilters['languages'];
+    return;
+  }
+  const exclude = (langs as { exclude?: unknown }).exclude;
+  filters.languages = (
+    Array.isArray(exclude) ? exclude.map((x) => String(x).toUpperCase()) : []
+  ) as t_SearchFilters['languages'];
+}
+
 export async function resolveMediaFilterIds(filters?: t_SearchFilters): Promise<void> {
   if (!filters?.media) return;
 

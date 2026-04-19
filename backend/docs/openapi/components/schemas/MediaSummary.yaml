@@ -1,7 +1,7 @@
 type: object
 description: Slim media item returned by autocomplete (names + cover only)
 required:
-  - mediaPublicId
+  - publicId
   - slug
   - nameJa
   - nameRomaji
@@ -9,7 +9,7 @@ required:
   - coverUrl
   - category
 properties:
-  mediaPublicId:
+  publicId:
     type: string
     description: Public ID for the media
     pattern: '^[A-Za-z0-9_-]{12}$'

@@ -6,7 +6,7 @@ export default defineSitemapEventHandler(async () => {
 
   for await (const media of sdk.listMedia.paginate({ take: 40 })) {
     urls.push({
-      loc: `/search?media=${media.mediaPublicId}`,
+      loc: `/search?media=${media.publicId}`,
       changefreq: 'weekly',
     });
   }

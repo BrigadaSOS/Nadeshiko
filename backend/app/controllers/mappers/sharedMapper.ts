@@ -18,7 +18,7 @@ const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
 };
 
 export const toMediaSummaryDTO = (media: Media): t_MediaSummary => ({
-  mediaPublicId: media.publicId,
+  publicId: media.publicId,
   slug: media.slug,
   nameJa: media.nameJa,
   nameRomaji: media.nameRomaji,
@@ -33,7 +33,7 @@ const toDateString = (date: Date | string): string => {
 };
 
 export const toMediaBaseDTO = (media: Media): t_Media => ({
-  mediaPublicId: media.publicId,
+  publicId: media.publicId,
   slug: media.slug,
   externalIds: toExternalIdsMap(media.externalIds),
   nameJa: media.nameJa,

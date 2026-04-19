@@ -471,7 +471,7 @@ export const s_BulkUpdateReportsRequest = z.object({
 export const s_CategoryCount = z.object({ category: s_Category, count: z.coerce.number().min(0) });
 
 export const s_Collection = z.object({
-  collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  publicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   name: z.string(),
   type: z.enum(['USER', 'ANKI_EXPORT']),
   visibility: s_CollectionVisibility,
@@ -499,7 +499,7 @@ export const s_CoveredWordsResponse = z.object({
 export const s_EpisodeListResponse = z.object({ episodes: z.array(s_Episode), pagination: s_CursorPagination });
 
 export const s_Media = z.object({
-  mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  publicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   slug: z.string().min(1),
   externalIds: s_ExternalId,
   nameJa: z.string().min(1),
@@ -541,7 +541,7 @@ export const s_MediaCreateRequest = z.object({
 });
 
 export const s_MediaSummary = z.object({
-  mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  publicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   slug: z.string().min(1),
   nameJa: z.string().min(1),
   nameRomaji: z.string().min(1),
@@ -586,13 +586,15 @@ export const s_SearchFilters = z.object({
   segmentDurationMs: z
     .object({ min: z.coerce.number().min(0).optional(), max: z.coerce.number().min(0).optional() })
     .optional(),
-  languages: z.array(z.enum(['EN', 'ES'])).optional(),
+  languages: z
+    .union([z.array(z.enum(['EN', 'ES'])), z.object({ exclude: z.array(z.enum(['en', 'es', 'EN', 'ES'])).optional() })])
+    .optional(),
 });
 
 export const s_SearchMediaFilters = z.object({ category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']) });
 
 export const s_Segment = z.object({
-  segmentPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  publicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   position: z.coerce.number().min(0),
   status: s_SegmentStatus,
   startTimeMs: z.coerce.number().min(0),

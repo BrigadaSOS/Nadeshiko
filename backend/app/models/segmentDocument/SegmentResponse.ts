@@ -103,7 +103,7 @@ export class SegmentResponse {
 
         return {
           id: segmentId,
-          segmentPublicId: data.publicId,
+          publicId: data.publicId,
           status: SegmentResponse.toSegmentStatus(data.status),
           position: data.position,
           startTimeMs: data.startTimeMs,
@@ -151,7 +151,7 @@ export class SegmentResponse {
 
   static buildMedia(mediaInfo: MediaInfo): MediaOutput {
     return {
-      mediaPublicId: mediaInfo.publicId,
+      publicId: mediaInfo.publicId,
       slug: mediaInfo.slug,
       externalIds: {
         anilist: mediaInfo.externalIds.anilist ?? null,

@@ -114,7 +114,7 @@ const submitEdit = async () => {
     };
 
     await sdk.updateMedia({
-      mediaPublicId: props.media.mediaPublicId,
+      mediaPublicId: props.media.publicId,
       ...body,
     });
 
@@ -159,9 +159,9 @@ const submitDelete = async () => {
   errorMessage.value = '';
 
   try {
-    await sdk.deleteMedia(props.media.mediaPublicId);
+    await sdk.deleteMedia(props.media.publicId);
 
-    emit('delete:success', props.media.mediaPublicId);
+    emit('delete:success', props.media.publicId);
     useToastSuccess(t('modalMediaEdit.deleteSuccess'));
     closeModal();
   } catch {
@@ -219,7 +219,7 @@ const submitDelete = async () => {
             <div class="space-y-2 min-w-0 flex-1">
               <div class="flex items-center gap-2 text-neutral-300">
                 <span class="text-neutral-500 min-w-[4.5rem]">Public ID</span>
-                <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ media.mediaPublicId }}</code>
+                <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ media.publicId }}</code>
               </div>
               <div v-if="media.coverUrl" class="flex items-center gap-2 text-neutral-300">
                 <span class="text-neutral-500 min-w-[4.5rem]">Cover</span>
