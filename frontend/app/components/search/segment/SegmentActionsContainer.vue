@@ -190,11 +190,14 @@ const openCollectionsPage = async () => {
         <ClientOnly>
           <template v-if="user.isLoggedIn">
             <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
-              :iconPath="mdiStarShootingOutline" @click="anki.addSentenceToAnki(content)" />
+              :iconPath="mdiStarShootingOutline"
+              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
+              @click="anki.addSentenceToAnki(content)" />
 
             <!-- Anki by ID -->
             <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
               @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
+              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
               data-nd-overlay="#nd-vertically-centered-scrollable-anki-collection" />
           </template>
           <template v-else>

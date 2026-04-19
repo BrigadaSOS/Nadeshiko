@@ -424,7 +424,7 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
                     @click="row.isSpoiler && toggleTranslationReveal(result.segment.publicId, row.lang)">
                   <span data-testid="translation-content" class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
                     :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang)
-                      ? 'bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
+                      ? 'nd-translation-spoiler bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
                       : 'bg-transparent text-gray-400'"
                     v-html="row.isSpoiler
                       ? result.segment[row.lang].content
@@ -581,5 +581,15 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
 
 .image-container {
   position: relative;
+}
+
+.nd-translation-spoiler .text-cyan-200 {
+  color: transparent;
+}
+
+@media (hover: hover) {
+  .group\/translation:hover .nd-translation-spoiler .text-cyan-200 {
+    color: rgb(165 243 252);
+  }
 }
 </style>
