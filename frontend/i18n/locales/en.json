@@ -1,0 +1,615 @@
+{
+  "navbar": {
+    "buttons": {
+      "home": "Home",
+      "about": "About",
+      "login": "Login / Sign up",
+      "profile": "Profile",
+      "privacy": "Privacy",
+      "dmca": "DMCA",
+      "terms": "Terms and Conditions",
+      "settings": "Settings",
+      "blog": "Blog",
+      "stats": "Stats",
+      "media": "Media",
+      "language": "Language",
+      "logout": "Logout"
+    }
+  },
+  "home": {
+    "version": "v{version}",
+    "nadeDbDescription": "A tool for searching japanese sentences from multiple contexts.",
+    "nadeDbDescriptionJpSearch": "Search in Japanese",
+    "nadeDbDescriptionOtherSearch": "Search in English or Spanish",
+    "nadeDbDescriptionExclusiveSearch": "Exclusive search",
+    "nadeDbDescriptionExactSearch": "Exact search",
+    "keyFeatures": {
+      "feature1": {
+        "title": "Compatible with Anki",
+        "description": "Save any sentence in Anki including image, audio, and multiple languages."
+      },
+      "feature2": {
+        "title": "Save any sentence",
+        "description": "Save sentences in multiple formats such as images, audios, and videos."
+      },
+      "feature3": {
+        "title": "View the context of what you find",
+        "description": "See what happened before or after a sentence."
+      },
+      "feature4": {
+        "title": "Rich and diverse content",
+        "description": "Enjoy different genres, different media, different voices."
+      }
+    },
+    "support": {
+      "title": "Do you like Nadeshiko?",
+      "description": "If you find this site useful, you can support our work and future development with a contribution on our GitHub, a donation, or by sharing this site with others."
+    },
+    "stats": {
+      "sentenceCount": "Sentences",
+      "episodeCount": "Episodes",
+      "mediaCount": "Total content"
+    }
+  },
+  "batchSearch": {
+    "title": "Simultaneous Search",
+    "description1": "This feature can be used to search multiple words at once. A list will be returned with the words that have been found in the database, and a link to that specific search",
+    "description2": "To start, add some words on the box below",
+    "description3": "Add one word per line, or a coma separated list of words",
+    "description4": "You can only search up to ",
+    "description5": "500 words at once",
+    "totalWords": "Total words",
+    "search": "Search",
+    "close": "Close",
+    "results": {
+      "title": "Simultaneous Search - Results",
+      "words": "Searched words",
+      "wordsWithMatch": "Words with match",
+      "percentageMatched": "Percentage matched",
+      "wordColumn": "word",
+      "match": "Match?",
+      "matchesCount": "Total matches",
+      "true": "Yes",
+      "false": "No",
+      "searching": "Searching...",
+      "return": "Return"
+    }
+  },
+  "animeList": {
+    "recentlyAddedTitle": "Recently Added",
+    "fullListTitle": "List of content",
+    "seeAll": "See all",
+    "sentenceCount": "sentences",
+    "episodes": "Episodes",
+    "sentenceCountLabel": "Sentence Count:",
+    "anilistButton": "Anilist",
+    "vocabularyButton": "Vocabulary"
+  },
+  "mediaBrowse": {
+    "showHiddenMedia": "Show hidden media",
+    "hideHiddenMedia": "Hide hidden media"
+  },
+  "searchSettingsModal": {
+    "exactMatchTitle": "Exact match",
+    "exactMatchDescription": "Perform an exact match search, without including conjugations or other results"
+  },
+  "anki": {
+    "modal": {
+      "title": "Search your collection",
+      "description": "Find a card in your Anki collection and add image/audio to it. Requires 'Key Field' to be configured in settings.",
+      "idColumn": "ID",
+      "keyColumn": "Key",
+      "noCardsFound": "No cards found",
+      "noCardsMessage": "Try a different query or mine the sentence first",
+      "validationSuccess": "Validation successful",
+      "validationMessage": "Key field is configured!",
+      "validationError": "Something went wrong",
+      "errorMessage": "No key field has been defined",
+      "errorTip": "Verify the key field is defined in Nadeshiko settings"
+    },
+    "toast": {
+      "noSettings": "No settings found. Please go to settings page and configure the extension.",
+      "miningCard": "Mining the card...",
+      "noCardToExport": "No Anki card to export to. Please add a card first.",
+      "cardFoundInOtherDeck": "Card found but not in deck \"{deck}\". Check that Yomitan and Nadeshiko are using the same deck.",
+      "cardAdded": "Card has been successfully added to Anki",
+      "cardAddError": "Could not add card to Anki. Error: {error}"
+    }
+  },
+  "modalAnkiNotes": {
+    "closeSrOnly": "Close",
+    "searchPlaceholder": "女"
+  },
+  "modalBatch": {
+    "closeSrOnly": "Close",
+    "wordLimitExceeded": "The word limit has been exceeded: {count} / 500",
+    "inputFormatError": "The input format is incorrect. Check if there are commas and line breaks simultaneously.",
+    "notAvailable": "Not available",
+    "searchTypeLabel": "Search type: {type}",
+    "searchTypeExact": "Exact",
+    "searchTypeNormal": "Normal",
+    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n...\n...\n..."
+  },
+  "modalContext": {
+    "closeSrOnly": "Close"
+  },
+  "modalMediaEdit": {
+    "title": "Edit Media",
+    "editButton": "Edit",
+    "nameJa": "Japanese Name",
+    "nameRomaji": "Romaji Name",
+    "nameEn": "English Name",
+    "airingFormat": "Format",
+    "airingStatus": "Airing Status",
+    "category": "Category",
+    "genres": "Genres",
+    "genresPlaceholder": "Comedy, Drama, Romance",
+    "studio": "Studio",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "seasonName": "Season",
+    "seasonYear": "Year",
+    "externalIds": "External IDs",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "saveSuccess": "Media updated successfully",
+    "saveError": "Failed to update media",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure?",
+    "confirmYes": "Yes, delete",
+    "confirmNo": "No",
+    "deleting": "Deleting...",
+    "deleteSuccess": "Media deleted successfully",
+    "deleteError": "Failed to delete media"
+  },
+  "modalSegmentEdit": {
+    "title": "Edit Segment",
+    "editButton": "Edit",
+    "japanese": "Japanese",
+    "english": "English",
+    "spanish": "Spanish",
+    "machineTranslated": "Machine translated",
+    "status": "Status",
+    "contentRating": "Content Rating",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "saveSuccess": "Segment updated successfully",
+    "saveError": "Failed to update segment",
+    "timing": "Position & Timing",
+    "position": "Position",
+    "startTimeMs": "Start (ms)",
+    "endTimeMs": "End (ms)",
+    "ratingAnalysis": "Rating Analysis",
+    "ratingAnalysisDesc": "WD Tagger v3 classifier output (scores/tags) used to derive content rating",
+    "posAnalysis": "POS Analysis",
+    "posAnalysisDesc": "Part-of-speech tokenization results keyed by engine (sudachi, unidic)",
+    "invalidJson": "Invalid JSON",
+    "loading": "Loading...",
+    "history": "History",
+    "historyToggle": "Toggle history",
+    "snapshot": "Snapshot",
+    "noRevisions": "No edit history yet",
+    "viewingSnapshot": "Viewing Snapshot {n}",
+    "current": "Current",
+    "metadata": {
+      "media": "Media",
+      "episode": "Ep.",
+      "time": "Time",
+      "duration": "Duration",
+      "id": "ID",
+      "position": "Position",
+      "uuid": "UUID",
+      "copyUuid": "Copy UUID",
+      "publicId": "Public ID",
+      "copyPublicId": "Copy Public ID",
+      "mediaId": "Media ID",
+      "hashedId": "Hashed ID",
+      "storage": "Storage",
+      "storagePath": "Storage Path",
+      "image": "Image",
+      "audio": "Audio",
+      "video": "Video"
+    },
+    "deleteEpisode": "Delete Episode",
+    "deleteEpisodeConfirm": "Delete episode {episode} and all its segments?",
+    "deleteEpisodeYes": "Delete",
+    "deleteEpisodeSuccess": "Episode deleted successfully",
+    "deleteEpisodeError": "Failed to delete episode"
+  },
+  "filterContent": {
+    "searchPlaceholder": "Search here"
+  },
+  "episodeFilter": {
+    "title": "Episode",
+    "clear": "Clear",
+    "noEpisodes": "No episodes found"
+  },
+  "segmentSidebar": {
+    "loading": "Loading..."
+  },
+  "searchpage": {
+    "main": {
+      "translationPreferences": {
+        "englishShown": "English translations shown",
+        "englishSpoiler": "English translations in spoiler mode",
+        "englishHidden": "English translations hidden",
+        "spanishShown": "Spanish translations shown",
+        "spanishSpoiler": "Spanish translations in spoiler mode",
+        "spanishHidden": "Spanish translations hidden",
+        "furiganaShown": "Furigana (Reading) shown",
+        "furiganaSpoiler": "Furigana (Reading) shown on hover",
+        "furiganaHidden": "Furigana (Reading) hidden"
+      },
+      "buttons": {
+        "addToAnkiLast": "Add to Anki (Last added card)",
+        "addToAnkiSearch": "Add to Anki (Search your collection)",
+        "download": "Save",
+        "dl-expanded": "Expanded audio",
+        "add": "Add",
+        "video": "Image + Audio",
+        "image": "Image",
+        "audio": "Audio",
+        "info": "Episode Info",
+        "copyclipboard": "Copy",
+        "jpsentence": "Japanese sentence",
+        "ensentence": "English sentence",
+        "essentence": "Spanish sentence",
+        "context": "Context",
+        "share": "Share",
+        "more": "More",
+        "expandLeft": "Expand (left)",
+        "expandBoth": "Expand (both)",
+        "expandRight": "Expand (right)",
+        "hideMedia": "Hide",
+        "unhideMedia": "Unhide",
+        "addToCollection": "Add to collection",
+        "manageCollections": "Manage collections",
+        "collectionsLoading": "Loading collections...",
+        "collectionsEmpty": "No collections yet",
+        "chooseCollection": "Choose collection...",
+        "sortmain": "Sort sentences",
+        "sortlengthnone": "None",
+        "sortlengthmin": "Shortest",
+        "sortlengthmax": "Largest",
+        "sortasc": "Shortest",
+        "sortdesc": "Largest",
+        "sorttime_asc": "Chronological",
+        "sorttime_desc": "Reverse",
+        "sortrandom": "Random"
+      },
+      "labels": {
+        "contentList": "Content",
+        "noresults": "No results found...",
+        "episode": "Episode",
+        "movie": "Movie",
+        "searchmain": "Search a title here...",
+        "searchbar": "Filter",
+        "all": "All",
+        "copiedcontent": "The content has been copied to the clipboard.",
+        "copiedsharingurl": "The URL has been copied to the clipboard.",
+        "errorcopiedsharingurl": "Error copying URL to clipboard. Try again.",
+        "collectionAdded": "Added to \"{name}\"",
+        "collectionAddFailed": "Could not add to collection. Try again.",
+        "mtTooltip": "This sentence has been machine translated, content might not be accurate"
+      }
+    },
+    "modalcontext": {
+      "labels": {
+        "context": "Context"
+      }
+    }
+  },
+  "activity": {
+    "deleteDayActivity": "Delete activity for this day",
+    "deletingDayActivity": "Deleting..."
+  },
+  "accountSettings": {
+    "menu": {
+      "generalTitle": "General",
+      "advancedTitle": "Advanced"
+    },
+    "tabs": {
+      "sync": "Anki",
+      "developer": "Developer"
+    },
+    "developer": {
+      "apiUsageTitle": "API Usage",
+      "apiUsageRemaining": "Remaining requests: {used} / {limit}",
+      "apiKeyManagement": "API Key Management",
+      "addApiKey": "Add API Key",
+      "keyCreated": "Key created",
+      "keyCreatedMessage": "Save this key, it won't be shown again.",
+      "copyApiKey": "Copy API key",
+      "keyDeactivated": "Key deactivated",
+      "noKeysFound": "No API keys found",
+      "noKeysMessage": "Create a new one for your apps or projects!",
+      "tableHeaders": {
+        "name": "Name",
+        "key": "Key",
+        "permissions": "Permissions",
+        "createdAt": "Created",
+        "status": "Status"
+      },
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "options": "Options",
+      "rename": "Rename",
+      "deactivate": "Deactivate",
+      "createApiKeyModal": {
+        "title": "Create API Key",
+        "nameLabel": "Name",
+        "namePlaceholder": "Enter a name for this API key",
+        "create": "Create"
+      },
+      "renameApiKeyModal": {
+        "title": "Rename API Key",
+        "nameLabel": "Name",
+        "namePlaceholder": "Enter a new name for this API key",
+        "save": "Save"
+      }
+    },
+    "account": {
+      "infoTitle": "Information",
+      "usernameLabel": "Username",
+      "emailLabel": "Email",
+      "notAvailable": "Not available",
+      "additionalTitle": "Additional",
+      "deleteAccount": "Delete account (Irreversible action)",
+      "questionableContent": "Sensitive Content",
+      "questionableContentDesc": "Questionable or explicit content",
+      "contentRatingShow": "Show",
+      "contentRatingBlur": "Blur (default)",
+      "contentRatingHide": "Hide",
+      "contentRatingHint_show": "Results will be included in search and not blurred",
+      "contentRatingHint_blur": "Results will be included in search but blurred",
+      "contentRatingHint_hide": "Results will not be included in search",
+      "contentRatingPreview": "Preview of how flagged results will appear in search",
+      "contentRatingHiddenDesc": "Hidden — will not be included in search results",
+      "preferenceSaved": "Preference saved",
+      "preferenceError": "Failed to save preference",
+      "changeEmail": "Change",
+      "changeEmailPlaceholder": "New email address",
+      "changeEmailSend": "Send Verification",
+      "changeEmailSending": "Sending...",
+      "changeEmailCancel": "Cancel",
+      "changeEmailSuccess": "A verification email has been sent to your current email address. Please check your inbox.",
+      "changeEmailFailed": "Failed to request email change.",
+      "hiddenMedia": "Hide Media",
+      "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
+      "hiddenMediaSearchPlaceholder": "Search for media to hide...",
+      "hiddenMediaEmpty": "No hidden media. Search results will include all available media."
+    },
+    "collections": {
+      "removeFromCollection": "Remove from collection",
+      "confirmRemove": "Remove?",
+      "yes": "Yes",
+      "no": "No",
+      "rename": "Rename",
+      "delete": "Delete",
+      "renameTitle": "Rename collection",
+      "renameConfirm": "Save",
+      "renameCancel": "Cancel",
+      "renamed": "Collection renamed",
+      "deleteTitle": "Delete collection",
+      "deleteMessage": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "deleteCancel": "Cancel",
+      "deleted": "Collection deleted",
+      "visibility": {
+        "PUBLIC": "Public",
+        "PRIVATE": "Private"
+      },
+      "noCollections": "No collections yet.",
+      "makePublic": "Make public",
+      "makePrivate": "Make private",
+      "visibilityTitle": "Change visibility",
+      "makePublicMessage": "Make \"{name}\" public? Anyone will be able to view this collection.",
+      "makePrivateMessage": "Make \"{name}\" private? Only you will be able to view this collection.",
+      "visibilityConfirm": "Confirm",
+      "visibilityChanged": "Visibility updated",
+      "visibilityError": "Failed to update visibility",
+      "createButton": "New collection",
+      "createTitle": "Create collection",
+      "createConfirm": "Create",
+      "createSuccess": "Collection created",
+      "createError": "Failed to create collection",
+      "nameLabel": "Name",
+      "namePlaceholder": "My collection"
+    },
+    "anki": {
+      "syncStatus": "Sync Status",
+      "loading": "Loading...",
+      "loadingMessage": "Please wait while connecting",
+      "connectionSuccess": "Connection established",
+      "successMessage": "Connection with Anki has been successfully established",
+      "connectionError": "Something went wrong",
+      "errorMessage": "Could not establish connection with Anki",
+      "fieldLoadError": "Error loading model field names:",
+      "troubleshootingTips": {
+        "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
+        "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
+        "adBlock": "Disable any AdBlock extensions for this domain"
+      },
+      "ankiConfig": "Anki Configuration",
+      "deckLabel": "Deck",
+      "selectDeck": "Select a deck",
+      "modelLabel": "Model",
+      "selectModel": "Select a model",
+      "keyFieldLabel": "Key Field",
+      "selectKeyField": "Select the field that corresponds to your deck ID",
+      "fieldColumn": "Field",
+      "contentColumn": "Content",
+      "noFieldsFound": "No fields found",
+      "noFieldsMessage": "Please try again or check your AnkiConnect connection",
+      "serverAddressLabel": "AnkiConnect server address",
+      "openBrowserOnExport": "Open Anki browser when exporting a card",
+      "profile": "Profile",
+      "newProfile": "New",
+      "renameProfile": "Rename",
+      "profileNamePlaceholder": "Profile name",
+      "deleteProfile": "Delete",
+      "saving": "Saving..."
+    }
+  },
+  "errorPage": {
+    "pageNotFound": "Page Not Found",
+    "somethingWentWrong": "Something went wrong.",
+    "goHome": "Go Home"
+  },
+  "contentPage": {
+    "emptyMessage": "Stay tuned; it will be added later 😉"
+  },
+  "segment": {
+    "noResultsTitle": "404",
+    "noResultsMessage": "Try a different search or search in {link}",
+    "contentRatingShow": "Show",
+    "contentRatingHide": "Hide",
+    "status": {
+      "ACTIVE": "Active",
+      "VERIFIED": "Verified",
+      "SUSPENDED": "Suspended",
+      "DELETED": "Deleted",
+      "INVALID": "Invalid",
+      "TOO_LONG": "Too Long",
+      "HIDDEN": "Hidden"
+    },
+    "contentRating": {
+      "SAFE": "Safe",
+      "SUGGESTIVE": "Suggestive",
+      "QUESTIONABLE": "Questionable",
+      "EXPLICIT": "Explicit"
+    },
+    "nsfwTag": "NSFW",
+    "contentRatingDescription": {
+      "SENSITIVE": "Sensitive Content (Questionable)"
+    },
+    "revert": "Revert"
+  },
+  "searchContainer": {
+    "errorTitle": "502",
+    "errorMessage1": "An error occurred",
+    "errorMessage2": "Try searching again with the button below.",
+    "retryButton": "Retry connection",
+    "retrying": "Retrying...",
+    "endOfResults": "You've reached the end!",
+    "loadMore": "Load more sentences",
+    "categoryAll": "All",
+    "categoryAnime": "Anime",
+    "categoryLiveaction": "Live Action",
+    "collectionTabPrefix": "Collection",
+    "backToCollections": "Collections",
+    "hiddenMediaNotice": "This media is in your hidden list",
+    "hiddenMediaDescription": "You've hidden this media from your search results. You can still view it temporarily.",
+    "hiddenMediaShowAnyway": "Show anyway",
+    "loading": "Loading..."
+  },
+  "reports": {
+    "modalTitle": "Report an Issue",
+    "targetLabel": "Target",
+    "reason": "Reason",
+    "tabSegment": "Segment",
+    "tabMedia": "Media",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "Provide additional details about the issue...",
+    "submit": "Submit Report",
+    "submitting": "Submitting...",
+    "submitSuccess": "Report submitted successfully",
+    "submitError": "Failed to submit report",
+    "cancel": "Cancel",
+    "reportSegment": "Report",
+    "loginRequired": "Please log in to use this feature",
+    "allStatuses": "All statuses",
+    "noReports": "No reports found",
+    "loading": "Loading...",
+    "loadMore": "Load more",
+    "reasons": {
+      "WRONG_TRANSLATION": "Wrong translation",
+      "WRONG_TIMING": "Wrong timing",
+      "WRONG_AUDIO": "Wrong audio",
+      "WRONG_JAPANESE_TEXT": "Wrong Japanese text",
+      "LOW_QUALITY_AUDIO": "Low quality audio",
+      "NSFW_NOT_TAGGED": "Content not rated",
+      "DUPLICATE_SEGMENT": "Duplicate segment",
+      "WRONG_TITLE": "Wrong title",
+      "DUPLICATE_MEDIA": "Duplicate media",
+      "WRONG_EPISODE_NUMBER": "Wrong episode number",
+      "IMAGE_ISSUE": "Image issue",
+      "WRONG_METADATA": "Wrong metadata",
+      "MISSING_EPISODES": "Missing episodes",
+      "WRONG_COVER_IMAGE": "Wrong cover image",
+      "INAPPROPRIATE_CONTENT": "Inappropriate content",
+      "OTHER": "Other"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "PROCESSING": "Processing",
+      "FIXED": "Fixed",
+      "DISMISSED": "Dismissed"
+    },
+    "table": {
+      "type": "Type",
+      "target": "Target",
+      "reason": "Reason",
+      "status": "Status",
+      "description": "Description"
+    },
+    "admin": {
+      "title": "Report Management",
+      "reporter": "Reporter",
+      "count": "Count",
+      "notes": "Admin Notes",
+      "actions": "Actions",
+      "processing": "Processing",
+      "fixed": "Fixed",
+      "dismiss": "Dismiss",
+      "reopen": "Reopen",
+      "save": "Save",
+      "addNote": "Click to add note...",
+      "updateSuccess": "Report updated"
+    }
+  },
+  "modalauth": {
+    "headers": {
+      "auth": "Authentication"
+    },
+    "buttons": {
+      "google": "Login with Google",
+      "discord": "Login with Discord"
+    },
+    "labels": {
+      "successfullogin": "Succesful login!",
+      "logout": "You are now logged out.",
+      "banneduser": "Your account has been suspended. Please contact support.",
+      "errorlogin400": "Please check your email/password and try again.",
+      "closeSrOnly": "Close"
+    },
+    "magiclink": {
+      "label": "Or sign in with your email",
+      "placeholder": "Enter your email",
+      "send": "Send link",
+      "sent": "Check your email for a sign-in link.",
+      "retry": "Try a different email"
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard Shortcuts",
+    "navigation": "Navigation",
+    "navigateCards": "Navigate between results",
+    "prevNextSegment": "Previous / Next segment",
+    "backToSearch": "Back to search bar",
+    "playback": "Playback",
+    "playSelected": "Play selected result",
+    "playPause": "Play / Pause",
+    "restart": "Restart audio",
+    "toggleAutoplay": "Toggle autoplay",
+    "toggleImmersive": "Toggle immersive mode",
+    "actions": "Actions",
+    "openAnki": "Add to Anki",
+    "openContext": "Open context",
+    "hint": "Shortcuts are disabled while typing in the search bar. Press ? to toggle this panel."
+  }
+}

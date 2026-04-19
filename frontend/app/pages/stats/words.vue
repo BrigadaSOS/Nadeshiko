@@ -5,6 +5,7 @@ const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000] as const;
 
 const route = useRoute();
 const router = useRouter();
+const localePath = useLocalePath();
 
 const activeTier = ref(Number(route.query.tier) || 1000);
 const activeFilter = ref<'ALL' | 'COVERED' | 'UNCOVERED'>(
@@ -145,7 +146,7 @@ onUnmounted(() => observer?.disconnect());
 <template>
   <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6 text-white">
     <div class="mb-6">
-      <NuxtLink to="/stats" class="text-white/40 hover:text-white/60 text-sm transition-colors">
+      <NuxtLink :to="localePath('/stats')" class="text-white/40 hover:text-white/60 text-sm transition-colors">
         &larr; Back to Stats
       </NuxtLink>
     </div>

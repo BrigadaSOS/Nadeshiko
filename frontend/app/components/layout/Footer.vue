@@ -1,5 +1,6 @@
 <script setup>
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 </script>
 
 <template>
@@ -12,7 +13,7 @@ const config = useRuntimeConfig();
 
         <div class="flex flex-wrap justify-center -mx-4">
           <NuxtLink
-            to="/"
+            :to="localePath('/')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Home"
           >
@@ -20,7 +21,7 @@ const config = useRuntimeConfig();
           </NuxtLink>
 
           <NuxtLink
-            to="/about"
+            :to="localePath('/about')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="About"
           >
@@ -28,7 +29,7 @@ const config = useRuntimeConfig();
           </NuxtLink>
 
           <NuxtLink
-            to="/privacy"
+            :to="localePath('/privacy')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="Privacy"
           >
@@ -36,7 +37,7 @@ const config = useRuntimeConfig();
           </NuxtLink>
 
           <NuxtLink
-            to="/terms-and-conditions"
+            :to="localePath('/terms-and-conditions')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="TermsAndConditions"
           >
@@ -44,7 +45,7 @@ const config = useRuntimeConfig();
           </NuxtLink>
 
           <NuxtLink
-            to="/dmca"
+            :to="localePath('/dmca')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
             aria-label="DMCA"
           >

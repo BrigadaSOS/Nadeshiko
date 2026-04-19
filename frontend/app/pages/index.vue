@@ -1,18 +1,31 @@
 <script setup>
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
 
+const { locale } = useI18n();
+
+const seoTitle = computed(() => {
+  if (locale.value === 'es') return 'Nadeshiko: Busca oraciones en japonés de anime';
+  if (locale.value === 'ja') return 'Nadeshiko：アニメの日本語文を検索';
+  return 'Nadeshiko: Search Japanese sentences from anime';
+});
+
+const seoDescription = computed(() => {
+  if (locale.value === 'es')
+    return 'Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas.';
+  if (locale.value === 'ja')
+    return 'さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。';
+  return 'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.';
+});
+
 useSeoMeta({
-  title: 'Nadeshiko: Search Japanese sentences from anime',
-  description:
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
-  ogTitle: 'Nadeshiko: Search Japanese sentences from anime',
-  ogDescription:
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription,
   ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Nadeshiko: Search Japanese sentences from anime',
-  twitterDescription:
-    'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+  twitterTitle: seoTitle,
+  twitterDescription: seoDescription,
 });
 
 useSchemaOrg([
@@ -29,6 +42,7 @@ useHead({
   link: [{ rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' }],
 });
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 const { mediaName } = useMediaName();
 
 const sdk = useNadeshikoSdk();
@@ -195,7 +209,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                     class="text-2xl font-bold md:text-2xl md:leading-tight dark:text-white">
                                                     {{ $t('animeList.recentlyAddedTitle') }}
                                                 </h1>
-                                                <NuxtLink to="/media">
+                                                <NuxtLink :to="localePath('/media')">
                                                     <button type="button"
                                                         class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-sm ">
                                                         {{ $t('animeList.seeAll') }}

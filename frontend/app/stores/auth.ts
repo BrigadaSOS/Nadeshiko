@@ -168,6 +168,7 @@ export const userStore = defineStore('user', {
 
     async logout(msg?: string) {
       const router = useRouter();
+      const localePath = useLocalePath();
       const { $i18n } = useNuxtApp();
 
       try {
@@ -183,7 +184,7 @@ export const userStore = defineStore('user', {
       }
 
       this.resetAuthState();
-      router.push('/');
+      router.push(localePath('/'));
       useToastSuccess(msg ? msg : $i18n.t('modalauth.labels.logout'));
     },
 
