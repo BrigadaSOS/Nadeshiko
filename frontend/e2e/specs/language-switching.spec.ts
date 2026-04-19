@@ -9,7 +9,7 @@ test.describe('Language switching', () => {
     await langSelector.getByTestId('dropdown-toggle').click();
 
     // Select Spanish from the dropdown options
-    await langSelector.getByTestId('dropdown-menu').getByText('Spanish').click();
+    await langSelector.getByTestId('dropdown-menu').getByText('Español').click();
 
     // URL should now be the Spanish locale root
     await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
@@ -23,10 +23,10 @@ test.describe('Language switching', () => {
 
     const langSelector = page.getByTestId('language-selector');
     await langSelector.getByTestId('dropdown-toggle').click();
-    await langSelector.getByTestId('dropdown-menu').getByText('Japanese').click();
+    await langSelector.getByTestId('dropdown-menu').getByText('日本語').click();
 
     await expect(page).toHaveURL(/\/ja/, { timeout: 10_000 });
-    await expect(page.locator('header').getByRole('button', { name: /Japanese/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('header').getByRole('button', { name: /日本語/ })).toBeVisible({ timeout: 10_000 });
   });
 
   test('language prefix persists across navigation', async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe('Language switching', () => {
     // Switch to Spanish
     const langSelector = page.getByTestId('language-selector');
     await langSelector.getByTestId('dropdown-toggle').click();
-    await langSelector.getByTestId('dropdown-menu').getByText('Spanish').click();
+    await langSelector.getByTestId('dropdown-menu').getByText('Español').click();
 
     await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
     await expect(page.locator('header').getByRole('link', { name: 'Acerca de' })).toBeVisible({ timeout: 10_000 });
@@ -45,7 +45,7 @@ test.describe('Language switching', () => {
     await expect(page).toHaveURL(/\/es\/media/);
 
     // Language should still be Spanish
-    await expect(page.locator('header').getByRole('button', { name: /Spanish/i })).toBeVisible();
+    await expect(page.locator('header').getByRole('button', { name: /Español/ })).toBeVisible();
   });
 
   test('search page buttons update when switching language', async ({ page }) => {
@@ -61,7 +61,7 @@ test.describe('Language switching', () => {
     // Switch to Spanish — page navigates to /es/search/彼女
     const langSelector = page.getByTestId('language-selector');
     await langSelector.getByTestId('dropdown-toggle').click();
-    await langSelector.getByTestId('dropdown-menu').getByText('Spanish', { exact: true }).click();
+    await langSelector.getByTestId('dropdown-menu').getByText('Español', { exact: true }).click();
 
     await expect(page).toHaveURL(/\/es\/search/, { timeout: 10_000 });
 
