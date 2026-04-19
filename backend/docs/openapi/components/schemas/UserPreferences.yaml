@@ -14,6 +14,16 @@ properties:
       nsfw:
         type: string
         enum: [SHOW, BLUR, HIDE]
+  translationVisibilityPreferences:
+    type: object
+    description: Per-language visibility mode for translations in search results, keyed by ISO 639-1 code (uppercase)
+    properties:
+      EN:
+        type: string
+        enum: [show, spoiler, hidden]
+      ES:
+        type: string
+        enum: [show, spoiler, hidden]
   searchHistory:
     type: object
     properties:

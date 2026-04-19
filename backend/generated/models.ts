@@ -694,6 +694,10 @@ export type t_UserPreferences = {
   searchHistory?: {
     enabled?: boolean;
   };
+  translationVisibilityPreferences?: {
+    EN?: 'show' | 'spoiler' | 'hidden';
+    ES?: 'show' | 'spoiler' | 'hidden';
+  };
 };
 
 export type t_UserReportTarget = t_ReportTargetMedia | t_ReportTargetSegmentInput;
@@ -1228,5 +1232,9 @@ export type t_UpdateUserPreferencesRequestBodySchema = {
   mediaNameLanguage?: 'ENGLISH' | 'JAPANESE' | 'ROMAJI';
   searchHistory?: {
     enabled?: boolean;
+  };
+  translationVisibilityPreferences?: {
+    EN?: 'show' | 'spoiler' | 'hidden';
+    ES?: 'show' | 'spoiler' | 'hidden';
   };
 };
