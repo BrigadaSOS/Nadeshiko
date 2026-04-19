@@ -1,21 +1,28 @@
 export type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
-type TranslationVisibilityPreferences = {
-  englishMode: TranslationVisibilityMode;
-  spanishMode: TranslationVisibilityMode;
-};
+type LanguageCode = 'EN' | 'ES';
+
+type TranslationVisibilityPreferences = Partial<Record<LanguageCode, TranslationVisibilityMode>>;
 
 const USER_PREFS_KEY = 'translationVisibilityPreferences';
 const COOKIE_NAME = 'nd_lang_prefs';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
-const defaultPreferences = (): TranslationVisibilityPreferences => ({
-  englishMode: 'show',
-  spanishMode: 'show',
-});
+// Cookie uses lowercase ISO codes for compactness and to preserve backward
+// compatibility with cookies set before the EN/ES rename.
+const COOKIE_KEY_BY_CODE: Record<LanguageCode, string> = { EN: 'en', ES: 'es' };
+const CODE_BY_COOKIE_KEY: Record<string, LanguageCode> = { en: 'EN', es: 'ES' };
+
+const LANGUAGE_CODES: readonly LanguageCode[] = ['EN', 'ES'];
+
+const defaultPreferences = (): TranslationVisibilityPreferences => ({});
 
 function isValidMode(value: unknown): value is TranslationVisibilityMode {
   return value === 'show' || value === 'spoiler' || value === 'hidden';
+}
+
+function modeOf(prefs: TranslationVisibilityPreferences, code: LanguageCode): TranslationVisibilityMode {
+  return prefs[code] ?? 'show';
 }
 
 function nextMode(current: TranslationVisibilityMode): TranslationVisibilityMode {
@@ -25,22 +32,24 @@ function nextMode(current: TranslationVisibilityMode): TranslationVisibilityMode
 }
 
 function normalizePreferences(raw: unknown): TranslationVisibilityPreferences {
-  const base = defaultPreferences();
-  if (!raw || typeof raw !== 'object') {
-    return base;
-  }
-
+  if (!raw || typeof raw !== 'object') return defaultPreferences();
   const source = raw as Record<string, unknown>;
-  return {
-    englishMode: isValidMode(source.englishMode) ? source.englishMode : base.englishMode,
-    spanishMode: isValidMode(source.spanishMode) ? source.spanishMode : base.spanishMode,
-  };
+  const result: TranslationVisibilityPreferences = {};
+  for (const code of LANGUAGE_CODES) {
+    const value = source[code];
+    if (isValidMode(value)) result[code] = value;
+  }
+  return result;
 }
 
 function encodeCookie(prefs: TranslationVisibilityPreferences): string {
   const parts: string[] = [];
-  if (prefs.englishMode !== 'show') parts.push(`en:${prefs.englishMode}`);
-  if (prefs.spanishMode !== 'show') parts.push(`es:${prefs.spanishMode}`);
+  for (const code of LANGUAGE_CODES) {
+    const mode = prefs[code];
+    if (mode && mode !== 'show') {
+      parts.push(`${COOKIE_KEY_BY_CODE[code]}:${mode}`);
+    }
+  }
   return parts.join(',');
 }
 
@@ -49,9 +58,9 @@ function decodeCookie(value: string | null | undefined): TranslationVisibilityPr
   if (!value) return result;
 
   for (const part of value.split(',')) {
-    const [lang, mode] = part.split(':');
-    if (lang === 'en' && isValidMode(mode)) result.englishMode = mode;
-    if (lang === 'es' && isValidMode(mode)) result.spanishMode = mode;
+    const [cookieKey, mode] = part.split(':');
+    const code = cookieKey ? CODE_BY_COOKIE_KEY[cookieKey] : undefined;
+    if (code && isValidMode(mode)) result[code] = mode;
   }
   return result;
 }
@@ -108,12 +117,12 @@ export function useTranslationVisibility() {
     initialized.value = true;
   }
 
-  const updateModePreference = async (key: 'englishMode' | 'spanishMode', mode: TranslationVisibilityMode) => {
+  const updateModePreference = async (code: LanguageCode, mode: TranslationVisibilityMode) => {
     if (import.meta.server) return;
 
     const next: TranslationVisibilityPreferences = {
       ...prefs.value,
-      [key]: mode,
+      [code]: mode,
     };
 
     prefs.value = next;
@@ -140,20 +149,20 @@ export function useTranslationVisibility() {
     );
   }
 
-  const englishMode = computed(() => prefs.value.englishMode);
-  const spanishMode = computed(() => prefs.value.spanishMode);
-  const includedLanguages = computed<Array<'EN' | 'ES'> | undefined>(() => {
+  const englishMode = computed(() => modeOf(prefs.value, 'EN'));
+  const spanishMode = computed(() => modeOf(prefs.value, 'ES'));
+  const includedLanguages = computed<LanguageCode[] | undefined>(() => {
     const englishHidden = englishMode.value === 'hidden';
     const spanishHidden = spanishMode.value === 'hidden';
     if (!englishHidden && !spanishHidden) return undefined;
-    const included: Array<'EN' | 'ES'> = [];
+    const included: LanguageCode[] = [];
     if (!englishHidden) included.push('EN');
     if (!spanishHidden) included.push('ES');
     return included;
   });
 
-  const cycleEnglishMode = () => updateModePreference('englishMode', nextMode(englishMode.value));
-  const cycleSpanishMode = () => updateModePreference('spanishMode', nextMode(spanishMode.value));
+  const cycleEnglishMode = () => updateModePreference('EN', nextMode(englishMode.value));
+  const cycleSpanishMode = () => updateModePreference('ES', nextMode(spanishMode.value));
 
   return {
     englishMode,

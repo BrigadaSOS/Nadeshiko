@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
+import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
+
 import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
 import { useToastSuccess, useToastError } from '~/utils/toast';
@@ -98,7 +100,9 @@ const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLa
 
 const { tooltipReadingMode, setTooltipReadingMode } = useTooltipReadingVisibility();
 
-const updateContentRatingPreference = async (value: string) => {
+type NsfwMode = NonNullable<NonNullable<UserPreferences['contentRatingPreferences']>['nsfw']>;
+
+const updateContentRatingPreference = async (value: NsfwMode) => {
   savingPreferences.value = true;
   try {
     const current = user_store.preferences?.contentRatingPreferences ?? {};
@@ -470,7 +474,7 @@ const logoutCurrentUser = async () => {
         </div>
         <select
           :value="user_store.preferences?.contentRatingPreferences?.nsfw || 'BLUR'"
-          @change="updateContentRatingPreference(($event.target as HTMLSelectElement).value)"
+          @change="updateContentRatingPreference(($event.target as HTMLSelectElement).value as NsfwMode)"
           :disabled="savingPreferences"
           class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
         >
