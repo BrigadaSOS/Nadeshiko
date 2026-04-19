@@ -76,7 +76,7 @@ describe('segment.mapper', () => {
 
     expect(list).toHaveLength(2);
     expect(internalList).toHaveLength(2);
-    expect(list[1].segmentPublicId).toBe('seg-pid-2');
+    expect(list[1].publicId).toBe('seg-pid-2');
     expect(internalList[0].storage).toBe('R2');
   });
 

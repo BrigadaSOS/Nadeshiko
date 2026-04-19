@@ -86,7 +86,7 @@ const concatSentence = (direction: 'forward' | 'backward' | 'both') => {
   emit('concat-sentence', props.content, direction);
   posthog?.capture('segment_expanded', {
     direction,
-    media_id: props.content.media.mediaPublicId,
+    media_id: props.content.media.publicId,
   });
 };
 
@@ -97,8 +97,8 @@ const revertConcat = () => {
 const openContextModal = () => {
   emit('open-context-modal', props.content);
   posthog?.capture('context_viewed', {
-    media_id: props.content.media.mediaPublicId,
-    segment_id: props.content.segment.segmentPublicId,
+    media_id: props.content.media.publicId,
+    segment_id: props.content.segment.publicId,
   });
 };
 
@@ -119,7 +119,7 @@ const loadCollections = async () => {
     const data = await sdk.listCollections({ take: 100 });
     const items = data.collections
       .filter((c) => c.type !== 'ANKI_EXPORT')
-      .map((c) => ({ id: c.collectionPublicId, name: c.name }));
+      .map((c) => ({ id: c.publicId, name: c.name }));
     collections.value = items;
     collectionsLoaded.value = true;
 
@@ -151,7 +151,7 @@ const addToCollection = async (collection: CollectionOption, isQuickAdd = false)
   try {
     await sdk.addSegmentToCollection({
       collectionPublicId: collection.id,
-      segmentPublicId: props.content.segment.segmentPublicId,
+      segmentPublicId: props.content.segment.publicId,
     });
     posthog?.capture('segment_added_to_collection', {
       collection_name: collection.name,
@@ -341,7 +341,7 @@ const openCollectionsPage = async () => {
     data-testid="share-button"
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
-    @click="getSharingURL({ segmentPublicId: content.segment.segmentPublicId, mediaPublicId: content.media.mediaPublicId, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
+    @click="getSharingURL({ segmentPublicId: content.segment.publicId, mediaPublicId: content.media.publicId, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
   >
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>

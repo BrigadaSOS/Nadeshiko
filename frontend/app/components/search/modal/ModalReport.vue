@@ -71,7 +71,7 @@ const contentRatingBadgeClasses: Record<string, string> = {
 
 const copyUuid = async () => {
   if (!props.segment) return;
-  await navigator.clipboard.writeText(props.segment.segment.segmentPublicId);
+  await navigator.clipboard.writeText(props.segment.segment.publicId);
 };
 
 watch(
@@ -199,12 +199,12 @@ const submitReport = async () => {
           <!-- ID + position -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
-            <span class="font-mono text-neutral-300">#{{ segment.segment.segmentPublicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
+            <span class="font-mono text-neutral-300">#{{ segment.segment.publicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
           </div>
           <!-- UUID -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.uuid') }}</span>
-            <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[18rem]">{{ segment.segment.segmentPublicId }}</code>
+            <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[18rem]">{{ segment.segment.publicId }}</code>
             <button
               type="button"
               class="text-neutral-500 hover:text-neutral-300 transition-colors"

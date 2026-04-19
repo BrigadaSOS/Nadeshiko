@@ -47,7 +47,7 @@ export const usePlayerStore = defineStore('player', {
       if (result && import.meta.client) {
         const posthog = usePostHog();
         posthog?.capture('search_result_clicked', {
-          media_id: result.media.mediaPublicId,
+          media_id: result.media.publicId,
           media_name: result.media.nameRomaji,
           result_position: startIndex,
         });
@@ -75,9 +75,9 @@ export const usePlayerStore = defineStore('player', {
 
             const posthog = usePostHog();
             posthog?.capture('segment_played', {
-              media_id: this.currentResult?.media.mediaPublicId,
+              media_id: this.currentResult?.media.publicId,
               media_name: this.currentResult?.media.nameRomaji,
-              segment_id: this.currentResult?.segment.segmentPublicId,
+              segment_id: this.currentResult?.segment.publicId,
               playlist_position: this.currentIndex,
               is_autoplay: this.autoplay,
             });
@@ -88,8 +88,8 @@ export const usePlayerStore = defineStore('player', {
               sdk
                 .trackUserActivity({
                   activityType: 'SEGMENT_PLAY',
-                  segmentPublicId: this.currentResult?.segment.segmentPublicId,
-                  mediaPublicId: this.currentResult?.media.mediaPublicId,
+                  segmentPublicId: this.currentResult?.segment.publicId,
+                  mediaPublicId: this.currentResult?.media.publicId,
                   mediaName: this.currentResult?.media.nameRomaji,
                   japaneseText: this.currentResult?.segment.textJa.content,
                 })
@@ -188,8 +188,8 @@ export const usePlayerStore = defineStore('player', {
         this.isPlaying = true;
         const posthog = usePostHog();
         posthog?.capture('segment_replayed', {
-          media_id: this.currentResult?.media.mediaPublicId,
-          segment_id: this.currentResult?.segment.segmentPublicId,
+          media_id: this.currentResult?.media.publicId,
+          segment_id: this.currentResult?.segment.publicId,
         });
       }
     },

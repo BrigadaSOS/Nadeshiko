@@ -9,9 +9,9 @@ let mockSearchStats: Mock<typeof SegmentDocument.searchStats>;
 let mockWordsMatched: Mock<typeof SegmentDocument.wordsMatched>;
 
 function buildMediaRecord(id: number) {
-  const mediaPublicId = `Media${String(id).padStart(7, '0')}`;
+  const publicId = `Media${String(id).padStart(7, '0')}`;
   return {
-    mediaPublicId,
+    publicId,
     slug: `media-${id}`,
     externalIds: {
       anilist: null,
@@ -94,7 +94,7 @@ describe('search controller', () => {
     );
 
     expect(res.status).toBe(200);
-    expect((res.body as any).includes.media['1']).toMatchObject({ mediaPublicId: 'Media0000001' });
+    expect((res.body as any).includes.media['1']).toMatchObject({ publicId: 'Media0000001' });
     expect(mockSearch).toHaveBeenCalledTimes(1);
     assertMatchesSchema(schemas.s_SearchResponse, res.body, 'search() 200');
   });

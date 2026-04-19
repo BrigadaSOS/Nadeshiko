@@ -61,12 +61,25 @@ properties:
         minimum: 0
         example: 10000
   languages:
-    type: array
     description: |
       Translation languages to include alongside Japanese in search matching.
       - Omitted / `null`: match against Japanese and all translation languages (default)
       - `[]`: match against Japanese only
       - `["EN"]` / `["ES"]` / `["EN", "ES"]`: match against Japanese plus the listed translation languages
-    items:
-      type: string
-      enum: [EN, ES]
+
+      Also accepts the legacy object form `{ exclude: ["en", "es"] }` for backward compatibility.
+      The legacy form is translated on receipt: listed codes are excluded from the default language set.
+    oneOf:
+      - type: array
+        items:
+          type: string
+          enum: [EN, ES]
+      - type: object
+        deprecated: true
+        description: Legacy exclude-based filter. Prefer the array form.
+        properties:
+          exclude:
+            type: array
+            items:
+              type: string
+              enum: [en, es, EN, ES]

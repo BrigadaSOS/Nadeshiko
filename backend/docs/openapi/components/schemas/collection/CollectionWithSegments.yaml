@@ -1,7 +1,7 @@
 type: object
 description: Collection with saved segments (search result format)
 required:
-  - collectionPublicId
+  - publicId
   - name
   - visibility
   - segmentCount
@@ -12,7 +12,7 @@ required:
   - totalCount
   - pagination
 properties:
-  collectionPublicId:
+  publicId:
     type: string
     description: Public ID for the collection
     pattern: '^[A-Za-z0-9_-]{12}$'

@@ -17,7 +17,7 @@ export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segmen
   const videoUrl = getSegmentVideoUrl(segment);
 
   return {
-    segmentPublicId: segment.publicId,
+    publicId: segment.publicId,
     position: segment.position,
     status: segment.status as t_Segment['status'],
     startTimeMs: segment.startTimeMs,

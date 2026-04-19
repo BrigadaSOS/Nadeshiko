@@ -81,12 +81,12 @@ const statusPillClasses = (value: string, active: boolean) => {
 
 const copyUuid = async () => {
   if (!props.segment) return;
-  await navigator.clipboard.writeText(props.segment.segment.segmentPublicId);
+  await navigator.clipboard.writeText(props.segment.segment.publicId);
 };
 
 const copyPublicId = async () => {
   if (!props.segment) return;
-  await navigator.clipboard.writeText(props.segment.segment.segmentPublicId);
+  await navigator.clipboard.writeText(props.segment.segment.publicId);
 };
 
 const validateJson = (json: string, field: 'ratingAnalysis' | 'posAnalysis'): boolean => {
@@ -163,7 +163,7 @@ const fetchRevisions = async () => {
   if (!props.segment) return;
   isLoadingRevisions.value = true;
   try {
-    const data = await sdk.listSegmentRevisions(props.segment.segment.segmentPublicId);
+    const data = await sdk.listSegmentRevisions(props.segment.segment.publicId);
     revisions.value = data.revisions;
   } catch {
     revisions.value = [];
@@ -222,7 +222,7 @@ const deleteEpisode = async () => {
 
   try {
     await sdk.deleteEpisode({
-      mediaPublicId: props.segment.media.mediaPublicId,
+      mediaPublicId: props.segment.media.publicId,
       episodeNumber: props.segment.segment.episode,
     });
 
@@ -267,7 +267,7 @@ const submitEdit = async () => {
     }
 
     const updatedSegment = await sdk.updateSegment({
-      segmentPublicId: props.segment.segment.segmentPublicId,
+      segmentPublicId: props.segment.segment.publicId,
       ...body,
     });
     lastRatingAnalysis = updatedSegment.ratingAnalysis ?? null;
@@ -408,12 +408,12 @@ const submitEdit = async () => {
             <!-- ID + position -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
-              <span class="font-mono text-neutral-300">#{{ segment.segment.segmentPublicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
+              <span class="font-mono text-neutral-300">#{{ segment.segment.publicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
             </div>
             <!-- UUID -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.uuid') }}</span>
-              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.segmentPublicId }}</code>
+              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.publicId }}</code>
               <button
                 type="button"
                 class="text-neutral-500 hover:text-neutral-300 transition-colors"
@@ -429,7 +429,7 @@ const submitEdit = async () => {
             <!-- Public ID -->
             <div class="flex items-center gap-2 text-neutral-300">
               <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.publicId') }}</span>
-              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.segmentPublicId }}</code>
+              <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.publicId }}</code>
               <button
                 type="button"
                 class="text-neutral-500 hover:text-neutral-300 transition-colors"

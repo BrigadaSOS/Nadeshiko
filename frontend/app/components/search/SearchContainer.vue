@@ -446,7 +446,7 @@ const handleRemoveFromCollection = async (segmentPublicId: string) => {
     if (sentenceData.value?.results) {
       sentenceData.value = {
         ...sentenceData.value,
-        results: sentenceData.value.results.filter((r) => r.segment.segmentPublicId !== segmentPublicId),
+        results: sentenceData.value.results.filter((r) => r.segment.publicId !== segmentPublicId),
       };
     }
     // Refresh stats

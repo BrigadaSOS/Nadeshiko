@@ -1,7 +1,7 @@
 type: object
 description: User segment collection
 required:
-  - collectionPublicId
+  - publicId
   - name
   - type
   - visibility
@@ -9,7 +9,7 @@ required:
   - createdAt
   - updatedAt
 properties:
-  collectionPublicId:
+  publicId:
     type: string
     description: Public ID for the collection
     pattern: '^[A-Za-z0-9_-]{12}$'

@@ -48,9 +48,9 @@ export type t_CategoryCount = {
 };
 
 export type t_Collection = {
-  collectionPublicId: string;
   createdAt: string;
   name: string;
+  publicId: string;
   segmentCount: number;
   type: 'USER' | 'ANKI_EXPORT';
   updatedAt: string | null;
@@ -222,10 +222,10 @@ export type t_Media = {
   episodeCount: number;
   externalIds: t_ExternalId;
   genres: string[];
-  mediaPublicId: string;
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
+  publicId: string;
   seasonName: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
   seasonYear: number;
   segmentCount: number;
@@ -305,10 +305,10 @@ export type t_MediaSearchStats = {
 export type t_MediaSummary = {
   category: t_Category;
   coverUrl: string;
-  mediaPublicId: string;
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
+  publicId: string;
   slug: string;
 };
 
@@ -402,7 +402,11 @@ export type t_RunAuditResponse = {
 export type t_SearchFilters = {
   category?: t_Category[];
   contentRating?: t_ContentRating[];
-  languages?: ('EN' | 'ES')[];
+  languages?:
+    | ('EN' | 'ES')[]
+    | {
+        exclude?: ('en' | 'es' | 'EN' | 'ES')[];
+      };
   media?: {
     exclude?: t_MediaFilterItem[];
     include?: t_MediaFilterItem[];
@@ -479,7 +483,7 @@ export type t_Segment = {
   episode: number;
   mediaPublicId: string;
   position: number;
-  segmentPublicId: string;
+  publicId: string;
   startTimeMs: number;
   status: t_SegmentStatus;
   textEn: {
