@@ -11,10 +11,7 @@ properties:
     type: object
     description: Per-category content rating display preferences
     properties:
-      suggestive:
-        type: string
-        enum: [SHOW, BLUR, HIDE]
-      explicit:
+      nsfw:
         type: string
         enum: [SHOW, BLUR, HIDE]
   searchHistory:
