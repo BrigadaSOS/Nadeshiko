@@ -56,7 +56,7 @@
     "@elastic/elasticsearch": "^8.17.0",
     "@nahkies/typescript-express-runtime": "0.22.0",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-metrics-otlp-http": "0.214.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.215.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.214.0",
     "@opentelemetry/instrumentation": "^0.214.0",
     "@opentelemetry/instrumentation-express": "^0.62.0",
