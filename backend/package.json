@@ -59,7 +59,7 @@
     "@opentelemetry/exporter-metrics-otlp-http": "0.214.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.214.0",
     "@opentelemetry/instrumentation": "^0.214.0",
-    "@opentelemetry/instrumentation-express": "^0.62.0",
+    "@opentelemetry/instrumentation-express": "^0.63.0",
     "@opentelemetry/instrumentation-http": "^0.214.0",
     "@opentelemetry/instrumentation-pg": "^0.66.0",
     "@opentelemetry/instrumentation-pino": "^0.60.0",
