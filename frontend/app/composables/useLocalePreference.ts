@@ -1,5 +1,4 @@
-const COOKIE_NAME = 'nd-locale-preference';
-const SUPPORTED_LOCALES = ['en', 'es', 'ja'] as const;
+import { LOCALE_PREFERENCE_COOKIE_NAME, SUPPORTED_LOCALES } from '~/utils/i18n';
 
 type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -8,7 +7,7 @@ function isSupportedLocale(value: string | null | undefined): value is Supported
 }
 
 export function useLocalePreference() {
-  const preferredLocale = useCookie<SupportedLocale | null>(COOKIE_NAME, {
+  const preferredLocale = useCookie<SupportedLocale | null>(LOCALE_PREFERENCE_COOKIE_NAME, {
     path: '/',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 365,
