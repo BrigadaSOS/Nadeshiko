@@ -28,6 +28,17 @@ test.describe('Segment card', () => {
     await expect(mediaInfo).not.toBeEmpty();
   });
 
+  test('links media filters and timestamp to the sentence page', async ({ page }) => {
+    const card = search.segmentCards.first();
+    const mediaInfo = card.getByTestId('segment-media-info');
+    const links = mediaInfo.locator('a');
+
+    await expect(links).toHaveCount(3);
+    await expect(links.first()).toHaveAttribute('href', /\/search\?media=/);
+    await expect(links.nth(1)).toHaveAttribute('href', /\/search\?media=/);
+    await expect(links.getByTestId('segment-time-link')).toHaveAttribute('href', /\/sentence\//);
+  });
+
   test('displays action buttons', async ({ page }) => {
     const card = search.segmentCards.first();
     const copyButton = card.getByRole('button', { name: 'Copy' });
