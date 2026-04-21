@@ -15,6 +15,9 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
   version?: string;
 };
 
+const SITEMAP_STATIC_URLS = ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/blog', '/stats', '/stats/words'];
+const SITEMAP_STATIC_URLS_ES = SITEMAP_STATIC_URLS.map((path) => (path === '/' ? '/es' : `/es${path}`));
+
 export default defineNuxtConfig({
   devServer: {
     host: '0.0.0.0',
@@ -200,25 +203,23 @@ export default defineNuxtConfig({
             ],
           },
         ],
-        sitemap: `${SITE_URL}/sitemap.xml`,
+        sitemap: `${SITE_URL}/sitemap_index.xml`,
       },
   sitemap: isDev
     ? false
     : {
-        urls: [
-          '/',
-          '/about',
-          '/privacy',
-          '/terms-and-conditions',
-          '/dmca',
-          '/media',
-          '/blog',
-          '/stats',
-          '/stats/words',
-        ],
-        sources: ['/api/__sitemap__/media', '/api/__sitemap__/words', '/api/__sitemap__/blog'],
         cacheMaxAgeSeconds: 86400,
-        autoI18n: true,
+        autoI18n: false,
+        sitemaps: {
+          en: {
+            urls: SITEMAP_STATIC_URLS,
+            sources: ['/api/__sitemap__/media?locale=en', '/api/__sitemap__/words?locale=en', '/api/__sitemap__/blog?locale=en'],
+          },
+          es: {
+            urls: SITEMAP_STATIC_URLS_ES,
+            sources: ['/api/__sitemap__/media?locale=es', '/api/__sitemap__/words?locale=es', '/api/__sitemap__/blog?locale=es'],
+          },
+        },
       },
   ogImage: {
     enabled: false,
