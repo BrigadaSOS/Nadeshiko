@@ -713,6 +713,7 @@ export type t_WordMatch = {
   isMatch: boolean;
   matchCount: number;
   media: t_WordMatchMedia[];
+  realMatchCount: number;
   word: string;
 };
 

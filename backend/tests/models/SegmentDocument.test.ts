@@ -200,14 +200,45 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       const catResult = result.results.find((r) => r.word === '猫');
       expect(catResult?.isMatch).toBe(true);
       expect(catResult?.matchCount).toBeGreaterThanOrEqual(1);
+      expect(catResult?.realMatchCount).toBe(catResult?.matchCount);
 
       const dogResult = result.results.find((r) => r.word === '犬');
       expect(dogResult?.isMatch).toBe(true);
       expect(dogResult?.matchCount).toBeGreaterThanOrEqual(1);
+      expect(dogResult?.realMatchCount).toBe(dogResult?.matchCount);
 
       const noMatch = result.results.find((r) => r.word === 'xyz不存在');
       expect(noMatch?.isMatch).toBe(false);
       expect(noMatch?.matchCount).toBe(0);
+      expect(noMatch?.realMatchCount).toBe(0);
+    });
+
+    it('returns real counts while excluding hidden media from visible counts', async () => {
+      await seedSegmentsIntoEs({}, [
+        { contentJa: '猫が好きです', position: 1 },
+        { contentJa: '猫は可愛いです', position: 2 },
+      ]);
+      const hidden = await seedSegmentsIntoEs({}, [
+        { contentJa: '猫を見ました', position: 1 },
+        { contentJa: '猫と遊びます', position: 2 },
+        { contentJa: '猫ですね', position: 3 },
+      ]);
+
+      const result = await SegmentDocument.wordsMatched(['猫'], false, {
+        status: ['ACTIVE'],
+        category: ['ANIME', 'JDRAMA'],
+        media: {
+          exclude: [{ mediaPublicId: hidden.media.publicId, mediaId: hidden.media.id } as any],
+        },
+      });
+
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0]).toMatchObject({
+        word: '猫',
+        isMatch: true,
+        matchCount: 2,
+        realMatchCount: 5,
+      });
     });
   });
 
