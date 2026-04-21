@@ -3,6 +3,7 @@ title: "Nadeshiko v2.1.0 — DEV + Discord Update: SDKs, Bot, and API Stability"
 description: "Official SDKs for Python and TypeScript, a Discord bot that turns sentence links into rich embeds, and a promise of zero breaking changes going forward."
 date: 2026-04-20T00:00:00Z
 image: /images/blog/nadeshiko-dev-2-1-0.jpg
+draft: true
 ---
 
 # Nadeshiko v2.1.0 — DEV Update

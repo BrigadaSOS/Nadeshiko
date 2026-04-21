@@ -6,6 +6,7 @@ import { userStore } from '~/stores/auth';
 import { useLabsStore } from '~/stores/labs';
 import type { SearchResult, SearchResponse } from '~/types/search';
 import type { UserReportTarget } from '@brigadasos/nadeshiko-sdk';
+import { buildMediaSearchPath, buildSentencePath } from '~/utils/routes';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -256,7 +257,6 @@ const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation()
 // Filter navigation method
 const localePath = useLocalePath();
 const router = useRouter();
-const route = useRoute();
 
 const labsStore = useLabsStore();
 const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
@@ -265,18 +265,9 @@ const handleTokenSearch = (dictionaryForm: string) => {
   router.push({ path: localePath(`/search/${encodeURIComponent(dictionaryForm)}`) });
 };
 
-const filterByMedia = (mediaId: string, episodeNumber?: number) => {
-  const query: Record<string, string | number | string[] | number[] | undefined> = { ...route.query, media: mediaId };
-
-  delete query.episode;
-
-  if (episodeNumber !== undefined) {
-    query.episode = episodeNumber;
-  }
-
-  const basePath = route.path.startsWith(localePath('/sentence/')) ? localePath('/search') : route.path;
-  router.push({ path: basePath, query });
-};
+const mediaFilterLink = (mediaId: string, episodeNumber?: number) =>
+  localePath(buildMediaSearchPath(mediaId, episodeNumber));
+const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(segmentPublicId));
 </script>
 <template>
   <div ref="containerRef" v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
@@ -465,27 +456,33 @@ const filterByMedia = (mediaId: string, episodeNumber?: number) => {
             <!-- Media details  -->
             <div class="justify-left">
               <p data-testid="segment-media-info" class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
-                <button
+                <NuxtLink
                   data-testid="segment-media-name"
-                  @click="filterByMedia(result.media.publicId)"
-                  class="hover:text-white hover:underline transition-colors cursor-pointer"
+                  :to="mediaFilterLink(result.media.publicId)"
+                  class="select-text hover:text-white hover:underline transition-colors cursor-pointer"
                   lang="ja">
                   {{ mediaName(result.media) }}
-                </button>
+                </NuxtLink>
                 &bull;
-                <button
+                <NuxtLink
                   v-if="result.media.airingFormat === 'MOVIE'"
-                  @click="filterByMedia(result.media.publicId)"
-                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  :to="mediaFilterLink(result.media.publicId)"
+                  class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ $t('searchpage.main.labels.movie') }}
-                </button>
-                <button
+                </NuxtLink>
+                <NuxtLink
                   v-else
-                  @click="filterByMedia(result.media.publicId, result.segment.episode)"
-                  class="hover:text-white hover:underline transition-colors cursor-pointer">
+                  :to="mediaFilterLink(result.media.publicId, result.segment.episode)"
+                  class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
                   {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
-                </button>
-                &bull; {{ formatMs(result.segment.startTimeMs) }}
+                </NuxtLink>
+                &bull;
+                <NuxtLink
+                  data-testid="segment-time-link"
+                  :to="sentenceLink(result.segment.publicId)"
+                  class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
+                  {{ formatMs(result.segment.startTimeMs) }}
+                </NuxtLink>
               </p>
             </div>
           </div>
