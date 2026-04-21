@@ -15,6 +15,8 @@ import {
   mdiBullhornOutline,
 } from '@mdi/js';
 import { useDragScroll } from '~/composables/useDragScroll';
+import { useLocalePreference } from '~/composables/useLocalePreference';
+import { splitLocalePrefix } from '~/utils/routes';
 
 const SettingsAccountModule = defineAsyncComponent(() => import('../../components/settings/modules/AccountModule.vue'));
 const SettingsAnkiModule = defineAsyncComponent(() => import('../../components/settings/modules/AnkiModule.vue'));
@@ -93,6 +95,7 @@ definePageMeta({
   middleware: defineNuxtRouteMiddleware((to) => {
     const store = userStore();
     const localePath = useLocalePath();
+    const { preferredLocale } = useLocalePreference();
     const allowed = [
       '/user/settings',
       '/user/sync',
@@ -105,6 +108,14 @@ definePageMeta({
     const adminAllowed = ['/user/admin/users', '/user/admin/reports', '/user/admin/announcement'];
 
     if (store.isLoggedIn) {
+      if (preferredLocale.value) {
+        const { localizedPath } = splitLocalePrefix(to.path);
+        const preferredPath = localePath(localizedPath, preferredLocale.value);
+        if (preferredPath && preferredPath !== to.path) {
+          return navigateTo({ path: preferredPath, query: to.query, hash: to.hash }, { replace: true });
+        }
+      }
+
       if (to.path === localePath('/user')) {
         return navigateTo(localePath('/user/settings'), { replace: true });
       }

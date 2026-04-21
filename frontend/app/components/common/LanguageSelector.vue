@@ -2,6 +2,7 @@
 import { mdiTranslate } from '@mdi/js';
 
 import { useI18n } from 'vue-i18n';
+import { useLocalePreference } from '~/composables/useLocalePreference';
 
 const props = defineProps({
   testId: {
@@ -16,6 +17,7 @@ const props = defineProps({
 
 const { locale, locales, setLocale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();
+const { setPreferredLocale } = useLocalePreference();
 
 function getLocaleName(code) {
   const locale = locales.value.find((i) => i.code === code);
@@ -27,6 +29,7 @@ const availableLocales = computed(() => {
 });
 
 async function switchLanguage(localeCode) {
+  setPreferredLocale(localeCode);
   await setLocale(localeCode);
 }
 
