@@ -32,11 +32,12 @@ test.describe('Segment card', () => {
     const card = search.segmentCards.first();
     const mediaInfo = card.getByTestId('segment-media-info');
     const links = mediaInfo.locator('a');
+    const timeLink = mediaInfo.getByTestId('segment-time-link');
 
     await expect(links).toHaveCount(3);
     await expect(links.first()).toHaveAttribute('href', /\/search\?media=/);
     await expect(links.nth(1)).toHaveAttribute('href', /\/search\?media=/);
-    await expect(links.getByTestId('segment-time-link')).toHaveAttribute('href', /\/sentence\//);
+    await expect(timeLink).toHaveAttribute('href', /\/sentence\//);
   });
 
   test('displays action buttons', async ({ page }) => {
