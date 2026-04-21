@@ -1,17 +1,15 @@
 import type { SitemapUrlInput } from '#sitemap/types';
+import { getSitemapLocale, localizeSitemapPath } from './utils';
 
-export default defineSitemapEventHandler(async () => {
-  const [enPosts, esPosts] = await Promise.all([getBlogPosts('en'), getBlogPosts('es')]);
+export default defineSitemapEventHandler(async (event) => {
+  const locale = getSitemapLocale(event);
+  const posts = await getBlogPosts(locale);
 
   const urls: SitemapUrlInput[] = [];
 
-  for (const post of enPosts) {
-    urls.push({ loc: post.path, lastmod: post.date ?? undefined, changefreq: 'monthly', _i18nTransform: false });
-  }
-
-  for (const post of esPosts) {
+  for (const post of posts) {
     urls.push({
-      loc: `/es${post.path}`,
+      loc: localizeSitemapPath(post.path, locale),
       lastmod: post.date ?? undefined,
       changefreq: 'monthly',
       _i18nTransform: false,
