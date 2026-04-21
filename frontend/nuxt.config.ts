@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
+import { LOCALE_PREFERENCE_COOKIE_NAME } from './app/utils/i18n';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
 const SITE_URL = isDev ? 'https://dev.nadeshiko.co' : 'https://nadeshiko.co';
@@ -246,7 +247,13 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en',
     strategy: 'prefix_except_default',
-    detectBrowserLanguage: false,
+    detectBrowserLanguage: {
+      redirectOn: 'root',
+      useCookie: true,
+      alwaysRedirect: false,
+      cookieKey: LOCALE_PREFERENCE_COOKIE_NAME,
+      fallbackLocale: 'en',
+    },
   },
   compatibilityDate: '2024-07-28',
   build: {

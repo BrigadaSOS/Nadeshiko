@@ -1,4 +1,4 @@
-import { buildSentencePath, localizePath } from '~/utils/routes';
+import { buildSentencePath } from '~/utils/routes';
 
 type ConcatenatedAudio = {
   blob: Blob;
@@ -196,7 +196,7 @@ export async function getSharingURL(params: {
 }) {
   const { $i18n } = useNuxtApp();
   try {
-    const sentenceUrl = `${window.location.origin}${localizePath(window.location.pathname, buildSentencePath(params.segmentPublicId))}`;
+    const sentenceUrl = `${window.location.origin}${buildSentencePath(params.segmentPublicId)}`;
     await navigator.clipboard.writeText(sentenceUrl);
     const message = $i18n.t('searchpage.main.labels.copiedsharingurl');
     useToastSuccess(message);
