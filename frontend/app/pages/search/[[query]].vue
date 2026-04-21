@@ -3,6 +3,7 @@ import type { SearchFilters } from '~/types/search';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
+import { splitLocalePrefix } from '~/utils/routes';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -183,6 +184,7 @@ const [{ data: initialSentenceData }, { data: initialStatsData }] = await Promis
 ]);
 
 const requestOrigin = useRequestURL().origin;
+const isJapaneseSearchRoute = computed(() => splitLocalePrefix(route.path).localePrefix === '/ja');
 
 const metaTags = computed(() => {
   const defaultTitle = t('seo.search.title');
@@ -200,6 +202,10 @@ const metaTags = computed(() => {
       { name: 'twitter:description', content: defaultDescription },
     ],
   };
+
+  if (isJapaneseSearchRoute.value) {
+    tags.meta.push({ name: 'robots', content: 'noindex, follow' });
+  }
 
   const result = initialSentenceData.value?.results?.[0];
   const q = searchQuery.value;

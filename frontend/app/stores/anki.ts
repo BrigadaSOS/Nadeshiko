@@ -73,7 +73,7 @@ interface NotesInfoResponse {
 import type { SearchResult } from '~/types/search';
 import { defineStore } from 'pinia';
 import { userStore } from '@/stores/auth';
-import { buildSentencePath, localizePath } from '~/utils/routes';
+import { buildSentencePath } from '~/utils/routes';
 
 const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
 const DEFAULT_SERVER_ADDRESS = 'http://127.0.0.1:8765';
@@ -475,10 +475,7 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-info': {
                   const isMovie = sentence.media.airingFormat === 'MOVIE';
                   const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
-                  const sentenceUrl = `${window.location.origin}${localizePath(
-                    window.location.pathname,
-                    buildSentencePath(sentence.segment.publicId),
-                  )}`;
+                  const sentenceUrl = `${window.location.origin}${buildSentencePath(sentence.segment.publicId)}`;
                   const info =
                     `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
                     `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
