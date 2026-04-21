@@ -107,6 +107,7 @@ export async function getBlogPosts(locale: string): Promise<BlogPost[]> {
     if (!raw) continue;
 
     const { frontmatter, rawbody } = await parseMarkdown(raw);
+    if (frontmatter.draft === true) continue;
     const slug = key.replace(`${locale}:blog:`, '').replace(/\.md$/, '');
 
     posts.push({
@@ -136,6 +137,7 @@ export async function getBlogPost(locale: string, slug: string): Promise<(BlogPo
   if (!raw) return null;
 
   const { frontmatter, html, rawbody } = await parseMarkdown(raw);
+  if (frontmatter.draft === true) return null;
   return {
     path: `/blog/${slug}`,
     title: (frontmatter.title as string) || '',
