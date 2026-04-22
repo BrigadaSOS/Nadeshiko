@@ -227,6 +227,8 @@ export class SegmentDocument {
       ? SegmentQuery.buildCommonFilters(filters)
       : { filter: [] as estypes.QueryDslQueryContainer[], must_not: [] as estypes.QueryDslQueryContainer[] };
 
+    const hasHiddenMediaExclusion = must_not.length > 0;
+
     const searches: estypes.MsearchRequestItem[] = words.flatMap((word) => {
       const baseQuery = SegmentQuery.buildMultiLanguage(
         word,
@@ -234,21 +236,28 @@ export class SegmentDocument {
         parserMode,
         filters && Array.isArray(filters.languages) ? filters.languages : undefined,
       );
-      return [
-        {},
-        {
-          size: 0,
-          query: { bool: { must: [baseQuery], filter, must_not } },
-          aggs: { group_by_media_id: { terms: { field: 'mediaId' } } },
-        },
-      ];
+      const filteredBody: estypes.MsearchRequestItem = {
+        size: 0,
+        track_total_hits: true,
+        query: { bool: { must: [baseQuery], filter, must_not } },
+        aggs: { group_by_media_id: { terms: { field: 'mediaId' } } },
+      };
+      if (!hasHiddenMediaExclusion) {
+        return [{}, filteredBody];
+      }
+      const unfilteredBody: estypes.MsearchRequestItem = {
+        size: 0,
+        track_total_hits: true,
+        query: { bool: { must: [baseQuery], filter } },
+      };
+      return [{}, filteredBody, {}, unfilteredBody];
     });
 
     return withSafeQueryFallback(
       async () => {
         const esResponse = await client.msearch({ index: INDEX_NAME, searches });
         const mediaMapData = await Media.getMediaInfoMap();
-        return SegmentResponse.buildWordsMatched(words, esResponse, mediaMapData);
+        return SegmentResponse.buildWordsMatched(words, esResponse, mediaMapData, hasHiddenMediaExclusion);
       },
       () => SegmentDocument.wordsMatched(words, exactMatch, filters, 'safe'),
       {

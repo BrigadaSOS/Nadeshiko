@@ -198,20 +198,29 @@ export class SegmentResponse {
     words: string[],
     esResponse: estypes.MsearchResponse,
     mediaInfoResponse: MediaInfoMap,
+    hasRealCountQueries: boolean,
   ): SearchMultipleResponseOutput {
     const results: WordMatchOutput[] = [];
     const mediaMap: Record<string, MediaOutput> = {};
+    const stride = hasRealCountQueries ? 2 : 1;
 
-    for (const [word, response] of words.map((word, i): [string, estypes.SearchResponseBody] => [
-      word,
-      esResponse.responses[i] as estypes.SearchResponseBody,
-    ])) {
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      const response = esResponse.responses[i * stride] as estypes.SearchResponseBody;
+
       let isMatch = false;
       let matchCount = 0;
 
       if (response.hits?.total !== undefined) {
         isMatch = (response.hits.total as estypes.SearchTotalHits).value > 0;
         matchCount = (response.hits.total as estypes.SearchTotalHits).value;
+      }
+
+      let realMatchCount = matchCount;
+      if (hasRealCountQueries) {
+        // True when wordsMatched() ran a second real-count query for each word.
+        const realResponse = esResponse.responses[i * stride + 1] as estypes.SearchResponseBody;
+        realMatchCount = (realResponse.hits.total as estypes.SearchTotalHits).value;
       }
 
       let media: WordMatchMediaOutput[] = [];
@@ -235,7 +244,7 @@ export class SegmentResponse {
           .filter((item): item is WordMatchMediaOutput => item !== null);
       }
 
-      results.push({ word, isMatch, matchCount, media });
+      results.push({ word, isMatch, matchCount, realMatchCount, media });
     }
 
     return { results, includes: { media: mediaMap } };
