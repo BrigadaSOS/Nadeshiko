@@ -284,11 +284,148 @@ useHead(() => ({
 }
 
 .content-markdown :deep(img) {
-  max-width: 100%;
+  max-width: min(1100px, 100%);
   max-height: 40rem;
   margin: 1rem 0 0.5rem;
   border-radius: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.content-markdown :deep(.image-pair) {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1rem 0 0.5rem;
+  align-items: start;
+}
+
+.content-markdown :deep(a.bot-install-card),
+.content-markdown :deep(a.bot-install-card:hover) {
+  color: inherit;
+  border-bottom: none;
+}
+
+.content-markdown :deep(.bot-install-card) {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem auto 3rem;
+  max-width: min(720px, 100%);
+  background: #2B2D31;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.content-markdown :deep(a.bot-install-card:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+}
+
+.content-markdown :deep(.bot-install-card-avatar) {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 0.75rem;
+  margin: 0;
+  border: none;
+  max-height: none;
+  max-width: none;
+  object-fit: cover;
+}
+
+.content-markdown :deep(.bot-install-card-info) {
+  flex: 1;
+  min-width: 0;
+}
+
+.content-markdown :deep(.bot-install-card-header) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.125rem;
+}
+
+.content-markdown :deep(.bot-install-card-name) {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #F2F3F5;
+  line-height: 1.3;
+}
+
+.content-markdown :deep(.bot-install-card-app-tag) {
+  background: #5865F2;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.125rem 0.4rem;
+  border-radius: 0.25rem;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.content-markdown :deep(.bot-install-card-description) {
+  font-size: 0.875rem;
+  color: #B5BAC1;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.content-markdown :deep(.bot-install-card-cta) {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #5865F2;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.5625rem 1rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  transition: background 0.2s ease;
+}
+
+.content-markdown :deep(a.bot-install-card:hover .bot-install-card-cta) {
+  background: #4752C4;
+}
+
+.content-markdown :deep(.bot-install-card-cta svg) {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+@media (max-width: 640px) {
+  .content-markdown :deep(.bot-install-card) {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .content-markdown :deep(.bot-install-card-info) {
+    width: 100%;
+  }
+  .content-markdown :deep(.bot-install-card-header) {
+    justify-content: center;
+  }
+}
+
+
+.content-markdown :deep(.image-pair img) {
+  margin: 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+}
+
+@media (min-width: 768px) {
+  .content-markdown :deep(.image-pair) {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
 }
 
 .content-markdown :deep(img + em),

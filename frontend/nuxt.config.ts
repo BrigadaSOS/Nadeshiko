@@ -128,6 +128,7 @@ export default defineNuxtConfig({
             'worker-src': ["'self'", 'blob:'],
             'media-src': ["'self'", 'blob:', CDN_ORIGIN],
             'object-src': ["'none'"],
+            'frame-src': ["'self'", 'https://discord.com'],
             'frame-ancestors': ["'none'"],
             'base-uri': ["'self'"],
             'form-action': ["'self'"],
@@ -171,8 +172,10 @@ export default defineNuxtConfig({
         groups: [
           {
             userAgent: '*',
-            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/docs/', '/es/', '/ja/'],
+            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/docs/', '/es/'],
             disallow: [
+              '/ja',
+              '/ja/',
               '/settings',
               '/settings/',
               '/user',
@@ -189,14 +192,6 @@ export default defineNuxtConfig({
               '/es/admin/',
               '/es/reports',
               '/es/reports/',
-              '/ja/settings',
-              '/ja/settings/',
-              '/ja/user',
-              '/ja/user/',
-              '/ja/admin',
-              '/ja/admin/',
-              '/ja/reports',
-              '/ja/reports/',
               '/api/',
               '/v1/',
               '/_nuxt/',
@@ -213,11 +208,19 @@ export default defineNuxtConfig({
         sitemaps: {
           en: {
             urls: SITEMAP_STATIC_URLS,
-            sources: ['/api/__sitemap__/media?locale=en', '/api/__sitemap__/words?locale=en', '/api/__sitemap__/blog?locale=en'],
+            sources: [
+              '/api/__sitemap__/media?locale=en',
+              ['/api/__sitemap__/words?locale=en', { timeout: 60000 }],
+              '/api/__sitemap__/blog?locale=en',
+            ],
           },
           es: {
             urls: SITEMAP_STATIC_URLS_ES,
-            sources: ['/api/__sitemap__/media?locale=es', '/api/__sitemap__/words?locale=es', '/api/__sitemap__/blog?locale=es'],
+            sources: [
+              '/api/__sitemap__/media?locale=es',
+              ['/api/__sitemap__/words?locale=es', { timeout: 60000 }],
+              '/api/__sitemap__/blog?locale=es',
+            ],
           },
         },
       },
@@ -292,11 +295,7 @@ export default defineNuxtConfig({
     '/es/admin/**': { robots: false },
     '/es/reports': { robots: false },
     '/es/reports/**': { robots: false },
-    '/ja/settings/**': { robots: false },
-    '/ja/user/**': { robots: false },
-    '/ja/admin/**': { robots: false },
-    '/ja/reports': { robots: false },
-    '/ja/reports/**': { robots: false },
+    '/ja/**': { robots: false },
     // Static assets are fine to cache (Nuxt fingerprints them)
     '/_nuxt/**': {
       headers: {
