@@ -145,7 +145,15 @@ describe('search controller', () => {
 
   it('search words passes inputs and strips includes by default', async () => {
     mockWordsMatched.mockResolvedValue({
-      results: [{ word: '猫', isMatch: true, matchCount: 3, media: [{ mediaId: 1, matchCount: 3 }] }],
+      results: [
+        {
+          word: '猫',
+          isMatch: true,
+          matchCount: 3,
+          realMatchCount: 5,
+          media: [{ mediaPublicId: 'Media0000001', matchCount: 3 }],
+        },
+      ],
       includes: { media: { 1: buildMediaRecord(1) } },
     });
 
@@ -162,6 +170,7 @@ describe('search controller', () => {
 
     expect(res.status).toBe(200);
     expect((res.body as any).includes).toBeUndefined();
+    assertMatchesSchema(schemas.s_SearchMultipleResponse, res.body, 'searchWords() 200');
     expect(mockWordsMatched).toHaveBeenCalledWith(
       ['猫'],
       true,

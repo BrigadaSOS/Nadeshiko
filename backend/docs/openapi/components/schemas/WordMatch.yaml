@@ -4,6 +4,7 @@ required:
   - word
   - isMatch
   - matchCount
+  - realMatchCount
   - media
 properties:
   word:
@@ -17,9 +18,14 @@ properties:
     example: true
   matchCount:
     type: integer
-    description: Total number of times this word appears across all media
+    description: Number of times this word appears across media matching the current request filters (including any hidden-media exclusion).
     minimum: 0
     example: 1523
+  realMatchCount:
+    type: integer
+    description: Total occurrences across all media, ignoring the hidden-media exclusion filter. Equal to `matchCount` when no media exclusion is in effect.
+    minimum: 0
+    example: 5231
   media:
     type: array
     description: List of media containing this word
