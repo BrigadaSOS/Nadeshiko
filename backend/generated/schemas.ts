@@ -704,6 +704,7 @@ export const s_WordMatch = z.object({
   word: z.string().min(1),
   isMatch: PermissiveBoolean,
   matchCount: z.coerce.number().min(0),
+  realMatchCount: z.coerce.number().min(0),
   media: z.array(s_WordMatchMedia),
 });
 
