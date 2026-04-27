@@ -1,37 +1,56 @@
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
-import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
+// This module MUST be the FIRST import in the bot entrypoint so providers
+// are registered before pino / undici / discord.js are loaded. Otherwise
+// instrumentation hooks miss their patch windows and meters captured at
+// module load (e.g. instrumentation.ts) bind to no-op providers.
+
 import { metrics, trace, type Meter, type Tracer } from '@opentelemetry/api';
+import { AggregationTemporalityPreference, OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
+import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
+import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { BatchSpanProcessor, NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import packageJson from '../package.json';
 
-let sdk: NodeSDK | undefined;
+let tracerProvider: NodeTracerProvider | undefined;
+let meterProvider: MeterProvider | undefined;
 
-export function initTelemetry() {
-  const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-  if (sdk || !endpoint) return;
+const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
+if (endpoint) {
   const resource = resourceFromAttributes({
     'service.name': process.env.OTEL_SERVICE_NAME || 'nadeshiko-discord',
     'service.version': packageJson.version,
     'deployment.environment': process.env.NODE_ENV || 'development',
   });
 
-  sdk = new NodeSDK({
+  tracerProvider = new NodeTracerProvider({
     resource,
-    traceExporter: new OTLPTraceExporter(),
-    metricReader: new PeriodicExportingMetricReader({
-      exporter: new OTLPMetricExporter(),
-      exportIntervalMillis: 15000,
-    }),
+    spanProcessors: [new BatchSpanProcessor(new OTLPTraceExporter())],
+  });
+  tracerProvider.register();
+
+  meterProvider = new MeterProvider({
+    resource,
+    readers: [
+      new PeriodicExportingMetricReader({
+        exporter: new OTLPMetricExporter({
+          temporalityPreference: AggregationTemporalityPreference.DELTA,
+        }),
+        exportIntervalMillis: 15000,
+      }),
+    ],
+  });
+  metrics.setGlobalMeterProvider(meterProvider);
+
+  registerInstrumentations({
+    tracerProvider,
+    meterProvider,
     instrumentations: [new PinoInstrumentation(), new UndiciInstrumentation(), new RuntimeNodeInstrumentation()],
   });
-
-  sdk.start();
 }
 
 export function getMeter(): Meter {
@@ -43,5 +62,5 @@ export function getTracer(): Tracer {
 }
 
 export async function shutdownTelemetry() {
-  if (sdk) await sdk.shutdown();
+  await Promise.all([tracerProvider?.shutdown(), meterProvider?.shutdown()]);
 }

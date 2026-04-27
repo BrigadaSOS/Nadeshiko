@@ -3,7 +3,6 @@ import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose } from '@mdi/j
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
-import { useLabsStore } from '~/stores/labs';
 import type { SearchResult, SearchResponse } from '~/types/search';
 import type { UserReportTarget } from '@brigadasos/nadeshiko-sdk';
 import { buildMediaSearchPath, buildSentencePath } from '~/utils/routes';
@@ -258,9 +257,6 @@ const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation()
 const localePath = useLocalePath();
 const router = useRouter();
 
-const labsStore = useLabsStore();
-const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
-
 const handleTokenSearch = (dictionaryForm: string) => {
   router.push({ path: localePath(`/search/${encodeURIComponent(dictionaryForm)}`) });
 };
@@ -360,7 +356,7 @@ const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(s
             <div class="flex flex-1 relative items-start justify-start my-auto gap-2">
               <h3 lang="ja" data-testid="segment-japanese-text" class="ml-2 text-xl xxl:text-lg leading-snug">
                 <SearchSegmentTokenText
-                  v-if="tokensEnabled && (result.segment.textJa as any).tokens"
+                  v-if="(result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
                   :highlight="result.segment.textJa.highlight"
                   class="leading-snug"

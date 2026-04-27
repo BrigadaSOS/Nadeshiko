@@ -319,17 +319,31 @@ const fetchSentences = async () => {
       if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client) {
         lastTrackedQuery.value = query.value;
         const resultsCount = response?.pagination?.estimatedTotalHits ?? 0;
-        posthog?.capture('sentence_searched', {
+
+        let mediaId: string | null = null;
+        let mediaNameValue: string | null = null;
+        if (media.value) {
+          mediaId = String(media.value);
+          const mediaStat = (response?.media || []).find((item) => item.mediaPublicId === media.value);
+          const mediaSource = mediaStat || response?.results?.[0]?.media || null;
+          if (mediaSource) {
+            mediaNameValue = mediaName(mediaSource);
+          }
+        }
+
+        const searchEventProps = {
           query: query.value,
           category: category.value,
           has_media_filter: !!media.value,
+          media_id: mediaId,
+          media_name: mediaNameValue,
+          episode_number: episode.value,
           results_count: resultsCount,
-        });
+        };
+
+        posthog?.capture('sentence_searched', searchEventProps);
         if (resultsCount === 0) {
-          posthog?.capture('search_results_empty', {
-            query: query.value,
-            category: category.value,
-          });
+          posthog?.capture('search_results_empty', searchEventProps);
         }
         if (userStore().isLoggedIn) {
           sdk.trackUserActivity({ activityType: 'SEARCH', searchQuery: query.value }).catch(() => {});

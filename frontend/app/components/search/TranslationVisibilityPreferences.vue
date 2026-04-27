@@ -3,9 +3,6 @@ const { t } = useI18n();
 const { englishMode, spanishMode, cycleEnglishMode, cycleSpanishMode } = useTranslationVisibility();
 const { furiganaMode, cycleFuriganaMode } = useHiraganaVisibility();
 
-const labsStore = useLabsStore();
-const tokensEnabled = computed(() => labsStore.isFeatureEnabled('interactive-tokens'));
-
 type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
 const liveMessage = ref('');
@@ -81,7 +78,6 @@ const toggleFurigana = () => {
     </button>
 
     <button
-      v-if="tokensEnabled"
       type="button"
       :aria-pressed="furiganaMode !== 'hidden'"
       :title="furiganaTitle"

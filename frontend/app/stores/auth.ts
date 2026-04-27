@@ -216,7 +216,7 @@ export const userStore = defineStore('user', {
         if (!wasLoggedIn && sessionUser?.createdAt) {
           const createdAt = new Date(sessionUser.createdAt).getTime();
           const now = Date.now();
-          if (now - createdAt < 60_000) {
+          if (now - createdAt < 300_000) {
             const posthog = usePostHog();
             posthog?.capture('signup_completed', {
               provider: sessionUser?.provider ?? 'unknown',

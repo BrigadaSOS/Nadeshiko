@@ -1,7 +1,7 @@
+import { shutdownTelemetry } from './telemetry';
 import { Client, GatewayIntentBits, REST, Routes, Collection, Events } from 'discord.js';
 import { BOT_CONFIG, getApplicationId } from './config';
 import { createLogger } from './logger';
-import { initTelemetry, shutdownTelemetry } from './telemetry';
 import { traceCommand, traceOperation } from './instrumentation';
 import { startHealthServer } from './health';
 import { initSdk } from './api';
@@ -39,7 +39,6 @@ async function main() {
     process.exit(1);
   }
 
-  initTelemetry();
   initSdk();
   initSettings();
 
