@@ -7,14 +7,7 @@ export interface LabDefinition {
   allowedUserIds?: number[];
 }
 
-const LABS: LabDefinition[] = [
-  {
-    key: 'interactive-tokens',
-    name: 'Interactive Tokens & Enhanced Highlighting',
-    description:
-      'Break Japanese sentences into clickable word tokens and extend search highlights to cover full conjugated forms.',
-  },
-];
+const LABS: LabDefinition[] = [];
 
 function isVisible(user: User, lab: LabDefinition): boolean {
   return !lab.allowedUserIds || lab.allowedUserIds.length === 0 || lab.allowedUserIds.includes(user.id);
