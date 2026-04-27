@@ -109,6 +109,7 @@ useHead(() => ({
               </svg>
               {{ new Date(contentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
             </time>
+            <img v-if="(data as any).image" :src="(data as any).image" :alt="title" class="blog-cover" loading="eager" />
           </template>
           <div v-html="data.html" />
 
@@ -226,6 +227,15 @@ useHead(() => ({
   font-size: 0.875rem;
   padding-left: 1rem;
   margin-bottom: 0;
+}
+
+.content-markdown .blog-cover {
+  display: block;
+  width: 100%;
+  max-width: min(1100px, 100%);
+  margin: 1.5rem auto 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @media (min-width: 768px) {
