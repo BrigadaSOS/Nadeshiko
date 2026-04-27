@@ -21,4 +21,4 @@ env:
     NADESHIKO_FRONTEND_URL: "https://nadeshiko.co"
     NODE_ENV: "production"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
-    OTEL_SERVICE_NAME: "nadeshiko-discord"
+    OTEL_SERVICE_NAME: "nadeshiko-discord-prod"

@@ -147,10 +147,11 @@ export default defineNuxtConfig({
     clientConfig: {
       capture_exceptions: true,
       capture_pageview: true,
-      capture_pageleave: true,
+      capture_pageleave: false,
+      autocapture: false,
     },
     serverConfig: {
-      enableExceptionAutocapture: true,
+      enableExceptionAutocapture: false,
     },
   },
   umami: {
