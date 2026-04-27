@@ -1,13 +1,11 @@
 ---
-title: "Nadeshiko v2.1.0"
+title: "Nadeshiko v2.1.0 - The Dev update (+ new discord bot integration!)"
 description: "Official SDKs, a public Discord bot, and an API stability promise."
 date: 2026-04-20T00:00:00Z
-image: /images/blog/nadeshiko-dev-2-1-0.jpg
+image: /images/blog/v2-1-0-activity.webp
 ---
 
-# Nadeshiko v2.1.0 - The Dev Update (+ official Discord bot!)
-
-![Daily activity chart showing 4x growth over the last month](/images/blog/v2-1-0-activity.webp)
+# Nadeshiko v2.1.0 - The Dev update (+ new discord bot integration!)
 
 It's been a little over a month since the v2.0.0 release of Nadeshiko, and we're incredibly grateful for the reception and growth the site has been seeing. In just the last month daily activity has grown 4x, including plenty of new registered users!
 

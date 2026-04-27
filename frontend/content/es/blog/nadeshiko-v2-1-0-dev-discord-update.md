@@ -1,15 +1,13 @@
 ---
-title: "Nadeshiko v2.1.0"
+title: "Nadeshiko v2.1.0 - La actualización para devs (+ ¡nueva integración del bot de Discord!)"
 description: "SDKs oficiales, bot de Discord público, y promesa de estabilidad en la API."
 date: 2026-04-20T00:00:00Z
-image: /images/blog/nadeshiko-dev-2-1-0.jpg
+image: /images/blog/v2-1-0-activity.webp
 ---
 
-# Nadeshiko v2.1.0 - La actualización para devs (+ ¡bot oficial de Discord!)
+# Nadeshiko v2.1.0 - La actualización para devs (+ ¡nueva integración del bot de Discord!)
 
 Ha pasado poco más de un mes desde el lanzamiento de v2.0.0 de Nadeshiko, y estamos increíblemente agradecidos por la recepción y el crecimiento que está teniendo el proyecto. Solo en el último mes la actividad diaria ha crecido 4x, incluyendo un montón de nuevos usuarios registrados.
-
-![Gráfico de actividad diaria mostrando un crecimiento de 4x en el último mes](/images/blog/v2-1-0-activity.webp)
 
 Junto con todos los pequeños bugs y mejoras de usabilidad que hemos lanzado durante el último mes, hemos estado trabajando duro en **dos** funcionalidades en concreto que queremos destacar en esta versión v2.1.0:
 
@@ -98,3 +96,5 @@ No escribimos posts en el blog por cada pequeño cambio, pero estamos constantem
 </a>
 
 Como siempre, si sientes que Nadeshiko te ha ayudado en tus estudios de japonés y quieres devolver algo, considera apoyar nuestro trabajo con una donación en [Patreon](https://www.patreon.com/c/BrigadaSOS).
+
+¡Nos vemos la próxima vez con más mejoras!
