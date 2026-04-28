@@ -9,7 +9,14 @@ const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
-const OTEL_ORIGIN = 'https://o.nadeshiko.co';
+const FARO_ORIGIN = (() => {
+  if (!env.NUXT_PUBLIC_FARO_URL) return '';
+  try {
+    return new URL(env.NUXT_PUBLIC_FARO_URL).origin;
+  } catch {
+    return '';
+  }
+})();
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -37,17 +44,7 @@ export default defineNuxtConfig({
       allowedHosts: true,
     },
     optimizeDeps: {
-      include: [
-        '@unhead/vue',
-        '@opentelemetry/sdk-trace-web',
-        '@opentelemetry/sdk-trace-base',
-        '@opentelemetry/exporter-trace-otlp-http',
-        '@opentelemetry/resources',
-        '@opentelemetry/context-zone',
-        '@opentelemetry/instrumentation-document-load',
-        '@opentelemetry/instrumentation-fetch',
-        '@opentelemetry/instrumentation',
-      ],
+      include: ['@unhead/vue', '@grafana/faro-web-sdk', '@grafana/faro-web-tracing'],
     },
   },
   app: {
@@ -89,7 +86,8 @@ export default defineNuxtConfig({
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
-      otelCollectorUrl: '',
+      faroUrl: env.NUXT_PUBLIC_FARO_URL || '',
+      faroAppName: env.NUXT_PUBLIC_FARO_APP_NAME || '',
     },
   },
   pages: true,
@@ -130,7 +128,7 @@ export default defineNuxtConfig({
               UMAMI_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
-              OTEL_ORIGIN,
+              ...(FARO_ORIGIN ? [FARO_ORIGIN] : []),
 
               'http://127.0.0.1:*',
               'http://localhost:*',
@@ -350,7 +348,7 @@ export default defineNuxtConfig({
       },
     },
   },
-  sourcemap: { client: 'hidden' },
+  sourcemap: { client: true },
 
   nitro: {
     preset: 'node-server',

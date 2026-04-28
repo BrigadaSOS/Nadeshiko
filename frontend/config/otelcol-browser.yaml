@@ -1,71 +1,71 @@
-receivers:
-  otlp/browser:
-    protocols:
-      http:
-        endpoint: 0.0.0.0:4329
-        include_metadata: true
-        cors:
-          allowed_origins:
-            - "https://nadeshiko.co"
-            - "https://dev.nadeshiko.co"
-          allowed_headers:
-            - "Content-Type"
-          max_age: 3600
-        max_request_body_size: 65536
-
-processors:
-  memory_limiter:
-    check_interval: 5s
-    limit_percentage: 80
-    spike_limit_percentage: 25
-  headerinjector:
-    headers:
-      - header: cf-ipcountry
-        attribute: client.geo.country
-      - header: cf-ray
-        attribute: client.geo.edge
-        extract_edge_pop: true
-  source_map_symbolicator:
-    source_map_store: file_store
-    local_source_maps:
-      path: /sourcemaps
-    allowed_languages: ["webjs"]
-  batch:
-    send_batch_size: 1000
-    timeout: 5s
-
-exporters:
-  otlphttp:
-    endpoint: http://host.docker.internal:4328
-    tls:
-      insecure: true
-
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
 
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        cors:
+          allowed_origins:
+            - https://nadeshiko.co
+            - https://dev.nadeshiko.co
+          allowed_headers: ["*"]
+          max_age: 7200
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 25
+
+  attributes/cf:
+    actions:
+      - key: client_geo_country
+        from_context: metadata.cf-ipcountry
+        action: insert
+      - key: cf_ray
+        from_context: metadata.cf-ray
+        action: insert
+      - key: client_address
+        from_context: metadata.cf-connecting-ip
+        action: insert
+
+  groupbyattrs/cf:
+    keys:
+      - client_geo_country
+      - cf_ray
+      - client_address
+
+  resource/source:
+    attributes:
+      - key: telemetry.source
+        value: browser
+        action: insert
+
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+
+exporters:
+  otlphttp:
+    endpoint: http://host.docker.internal:4328
+    compression: gzip
+
 service:
   extensions: [health_check]
-  telemetry:
-    logs:
-      encoding: json
-    metrics:
-      readers:
-        - pull:
-            exporter:
-              prometheus:
-                host: "0.0.0.0"
-                port: 8889
   pipelines:
     traces:
-      receivers: [otlp/browser]
-      processors: [memory_limiter, headerinjector, source_map_symbolicator, batch]
-      exporters: [otlphttp]
-    metrics:
-      receivers: [otlp/browser]
-      processors: [memory_limiter, headerinjector, batch]
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/cf, groupbyattrs/cf, resource/source, batch]
       exporters: [otlphttp]
     logs:
-      receivers: [otlp/browser]
-      processors: [memory_limiter, headerinjector, source_map_symbolicator, batch]
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/cf, groupbyattrs/cf, resource/source, batch]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/cf, groupbyattrs/cf, resource/source, batch]
       exporters: [otlphttp]
