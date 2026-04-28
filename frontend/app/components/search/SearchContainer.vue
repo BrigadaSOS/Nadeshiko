@@ -324,8 +324,7 @@ const fetchSentences = async () => {
         let mediaNameValue: string | null = null;
         if (media.value) {
           mediaId = String(media.value);
-          const mediaStat = (response?.media || []).find((item) => item.mediaPublicId === media.value);
-          const mediaSource = mediaStat || response?.results?.[0]?.media || null;
+          const mediaSource = response?.results?.[0]?.media ?? null;
           if (mediaSource) {
             mediaNameValue = mediaName(mediaSource);
           }
