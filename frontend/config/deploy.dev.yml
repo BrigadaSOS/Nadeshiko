@@ -33,4 +33,4 @@ env:
     OTEL_SERVICE_NAME: nadeshiko-frontend-dev
     OTEL_SEMCONV_STABILITY_OPT_IN: http
 
-    NUXT_PUBLIC_OTEL_COLLECTOR_URL: "https://o.nadeshiko.co"
+    NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co"
