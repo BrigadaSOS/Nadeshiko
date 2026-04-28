@@ -26,7 +26,6 @@ const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, cur
   storeToRefs(playerStore);
 
 const progress = ref(0);
-const lyricsContainer = ref<HTMLElement | null>(null);
 const animationFrameId = ref<number | null>(null);
 let lastScrollTime = 0;
 
@@ -109,30 +108,6 @@ const waitForElement = async (selector: string, retries = 5, delay = 100) => {
   return null;
 };
 
-const scrollImmersiveView = async () => {
-  const now = Date.now();
-  const timeSinceLastScroll = now - lastScrollTime;
-  lastScrollTime = now;
-  const behavior = timeSinceLastScroll < 300 ? 'instant' : 'smooth';
-
-  const result = currentResult.value;
-  if (!result || !lyricsContainer.value) return;
-
-  const elementId = `sentence-${result.segment.publicId}`;
-  const immersiveElement = await waitForElement(elementId);
-
-  if (immersiveElement) {
-    const containerHeight = lyricsContainer.value.clientHeight;
-    const elementTop = immersiveElement.offsetTop;
-    const elementHeight = immersiveElement.clientHeight;
-
-    lyricsContainer.value.scrollTo({
-      top: elementTop - containerHeight / 2 + elementHeight / 2,
-      behavior,
-    });
-  }
-};
-
 const scrollMainView = async () => {
   const now = Date.now();
   const timeSinceLastScroll = now - lastScrollTime;
@@ -174,14 +149,6 @@ const onAudioEnded = () => {
     progress.value = 100;
   }
 };
-
-watch(isImmersive, (isImmersive) => {
-  if (isImmersive) {
-    nextTick(() => {
-      scrollImmersiveView();
-    });
-  }
-});
 
 const SEEK_STEP = 1;
 
@@ -236,9 +203,6 @@ watch(
     if (currentResult.value && oldAudio !== newAudio) {
       nextTick(() => {
         scrollMainView();
-        if (isImmersive.value) {
-          scrollImmersiveView();
-        }
       });
     }
   },
@@ -256,7 +220,7 @@ const getSentenceStyle = (index: number) => {
   }
 
   // Mantenemos el mismo tamaño de fuente para todas
-  let classes = 'transition-all duration-500 ease-out block text-xl md:text-3xl lg:text-4xl py-6 ';
+  let classes = 'transition-all duration-500 ease-out block text-xl md:text-3xl lg:text-4xl py-4 ';
   let style = {};
 
   if (distance === 0) {
@@ -306,13 +270,10 @@ const getAnimeImage = (result: any) => {
                 <div v-if="isImmersive"
                     class="fixed inset-0 w-full h-[100dvh] text-white z-50 flex flex-col items-center justify-between overflow-hidden bg-neutral-950">
 
-                    <div class="absolute inset-0 z-0 select-none pointer-events-none">
-                    </div>
-
                     <div class="relative z-20 w-full flex justify-between items-start p-6 md:p-8">
                         <div class="flex flex-col gap-1 opacity-80">
                             <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
-                            <span lang="ja" class="text-sm font-semibold truncate max-w-[180px]">{{
+                            <span lang="ja" class="text-sm font-semibold truncate max-w-[180px] md:max-w-sm">{{
                                 mediaName(currentResult.media) }}</span>
                         </div>
 
@@ -320,23 +281,20 @@ const getAnimeImage = (result: any) => {
                     </div>
 
                     <div
-                        class="relative z-10 w-full flex-grow flex flex-col items-center justify-center overflow-hidden max-w-4xl mx-auto px-6">
+                        class="relative z-10 w-full flex-grow min-h-0 flex flex-col items-center justify-center overflow-hidden max-w-4xl mx-auto px-6">
 
-                        <div
-                            class="flex-shrink-0 mb-6 md:mb-1 shadow-2xl overflow-hidden hidden md:block transition-all duration-700 ring-1 ring-white/10">
-                            <img
-                                :src="getAnimeImage(currentResult)"
-                                :alt="`Cover art for ${mediaName(currentResult.media)}`"
-                                class="w-full h-full object-fit opacity-90"
-                            />
-                        </div>
+                        <img
+                            :src="getAnimeImage(currentResult)"
+                            :alt="`Cover art for ${mediaName(currentResult.media)}`"
+                            class="block w-auto h-auto max-w-sm md:max-w-md max-h-[28vh] md:max-h-[40vh] object-contain rounded-lg shadow-2xl ring-1 ring-white/10 opacity-90 mb-6 md:mb-1 min-h-0 transition-opacity duration-700"
+                        />
 
-                        <div class="relative w-full h-full overflow-hidden flex flex-col items-center">
+                        <div class="relative w-full flex-1 min-h-0 overflow-hidden flex flex-col items-center">
 
-                            <div ref="lyricsContainer"
-                                class="w-full h-full overflow-y-auto no-scrollbar scroll-smooth flex flex-col justify-center mask-gradient">
+                            <div
+                                class="w-full h-full overflow-hidden flex flex-col justify-center mask-gradient">
                                 <div
-                                    class="flex flex-col items-center justify-center w-full min-h-0 py-12 transition-all duration-500">
+                                    class="flex flex-col items-center justify-center w-full min-h-0 py-6 transition-all duration-500">
                                     <p v-for="(sentence, index) in playlist" :key="sentence.segment.publicId"
                                         :id="`sentence-${sentence.segment.publicId}`"
                                         lang="ja"
@@ -421,7 +379,7 @@ const getAnimeImage = (result: any) => {
                     <div class="flex items-center gap-4 flex-grow min-w-0">
                         <img :src="getAnimeImage(currentResult)"
                             :alt="`Cover art for ${mediaName(currentResult.media)}`"
-                            class="w-12 h-12 object-cover rounded-lg shadow-sm" />
+                            class="w-12 h-12 object-contain rounded-lg shadow-sm bg-neutral-950/40" />
                         <div class="flex-grow min-w-0">
                             <p lang="ja" class="font-bold text-base truncate pr-4" v-html="getJapaneseContent(currentResult)">
                             </p>
@@ -454,7 +412,7 @@ const getAnimeImage = (result: any) => {
 
                     </div>
 
-                    <div class="sm:flex items-center gap-2 pl-4 border-l border-white/10">
+                    <div class="flex items-center gap-2 pl-4 border-l border-white/10">
                         <button @click="playerStore.toggleAutoplay()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
                             :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }">
