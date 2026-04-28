@@ -15,7 +15,17 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
   version?: string;
 };
 
-const SITEMAP_STATIC_URLS = ['/', '/about', '/privacy', '/terms-and-conditions', '/dmca', '/media', '/blog', '/stats', '/stats/words'];
+const SITEMAP_STATIC_URLS = [
+  '/',
+  '/about',
+  '/privacy',
+  '/terms-and-conditions',
+  '/dmca',
+  '/media',
+  '/blog',
+  '/stats',
+  '/stats/words',
+];
 const SITEMAP_STATIC_URLS_ES = SITEMAP_STATIC_URLS.map((path) => (path === '/' ? '/es' : `/es${path}`));
 
 export default defineNuxtConfig({
