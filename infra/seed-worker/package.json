@@ -7,7 +7,7 @@
     "upload-seed": "wrangler r2 object put nadeshiko-seed/seed.dump --file"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250320.0",
+    "@cloudflare/workers-types": "^4.20260426.1",
     "wrangler": "^4.0.0"
   }
 }
