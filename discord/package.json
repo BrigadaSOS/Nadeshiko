@@ -14,7 +14,7 @@
   "dependencies": {
     "@brigadasos/nadeshiko-sdk": "2.1.0-internal.a4476ea",
     "@opentelemetry/api": "^1.9.1",
-    "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.215.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/instrumentation-pino": "^0.60.0",
     "@opentelemetry/instrumentation-runtime-node": "^0.27.0",
