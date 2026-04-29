@@ -18,7 +18,7 @@
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/instrumentation-pino": "^0.60.0",
     "@opentelemetry/instrumentation-runtime-node": "^0.27.0",
-    "@opentelemetry/instrumentation-undici": "^0.24.0",
+    "@opentelemetry/instrumentation-undici": "^0.25.0",
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-metrics": "^2.6.1",
     "@opentelemetry/sdk-node": "^0.214.0",
