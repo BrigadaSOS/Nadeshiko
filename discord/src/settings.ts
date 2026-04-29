@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { Database } from 'bun:sqlite';
+import Database from 'better-sqlite3';
 import { createLogger } from './logger';
 
 const log = createLogger('settings');
@@ -17,12 +17,12 @@ const DEFAULTS: GuildSettings = {
   autoEmbed: true,
 };
 
-let db: Database;
+let db: Database.Database;
 
 export function initSettings(dbPath = 'data/settings.db') {
   mkdirSync(dirname(dbPath), { recursive: true });
-  db = new Database(dbPath, { create: true });
-  db.exec('PRAGMA journal_mode = WAL');
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
   db.exec(`
     CREATE TABLE IF NOT EXISTS guild_settings (
       guild_id TEXT PRIMARY KEY,
@@ -40,7 +40,7 @@ export function getGuildSettings(guildId: string | null): GuildSettings {
     return { ...DEFAULTS };
   }
 
-  const row = db.query('SELECT language, auto_embed FROM guild_settings WHERE guild_id = ?').get(guildId) as {
+  const row = db.prepare('SELECT language, auto_embed FROM guild_settings WHERE guild_id = ?').get(guildId) as {
     language: Language;
     auto_embed: number;
   } | null;
@@ -65,7 +65,7 @@ export function setGuildSetting<K extends keyof GuildSettings>(guildId: string, 
   const column = COLUMN_MAP[key] ?? key;
   const dbValue = typeof value === 'boolean' ? (value ? 1 : 0) : value;
 
-  db.query(
+  db.prepare(
     `INSERT INTO guild_settings (guild_id, ${column}) VALUES (?, ?)
      ON CONFLICT(guild_id) DO UPDATE SET ${column} = excluded.${column}`,
   ).run(guildId, dbValue);
@@ -74,14 +74,14 @@ export function setGuildSetting<K extends keyof GuildSettings>(guildId: string, 
 }
 
 function addColumnIfMissing(column: string, definition: string) {
-  const columns = db.query("PRAGMA table_info('guild_settings')").all() as { name: string }[];
+  const columns = db.prepare("PRAGMA table_info('guild_settings')").all() as { name: string }[];
   if (!columns.some((c) => c.name === column)) {
-    db.run(`ALTER TABLE guild_settings ADD COLUMN ${column} ${definition}`);
+    db.prepare(`ALTER TABLE guild_settings ADD COLUMN ${column} ${definition}`).run();
     log.info({ column }, 'Added missing column to guild_settings');
   }
 }
 
 export function resetGuildSettings(guildId: string) {
-  db.query('DELETE FROM guild_settings WHERE guild_id = ?').run(guildId);
+  db.prepare('DELETE FROM guild_settings WHERE guild_id = ?').run(guildId);
   log.info({ guildId }, 'Settings reset to defaults');
 }

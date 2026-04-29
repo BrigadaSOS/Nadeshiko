@@ -57,7 +57,6 @@ import type {
   t_UpdateSegmentParamSchema,
   t_UpdateSegmentRequestBodySchema,
 } from '../models.ts';
-import type { EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetSegmentContextQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentBatchCreateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
   s_ContentRating,
   s_Episode,
@@ -96,7 +95,7 @@ export type ListMediaResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListMedia = (
-  params: Params<void, ListMediaQueryOutput, void, void>,
+  params: Params<void, t_ListMediaQuerySchema, void, void>,
   respond: ListMediaResponder,
   req: Request,
   res: Response,
@@ -114,7 +113,7 @@ export type CreateMediaResponder = {
 } & ExpressRuntimeResponder;
 
 export type CreateMedia = (
-  params: Params<void, void, MediaCreateRequestOutput, void>,
+  params: Params<void, void, t_CreateMediaRequestBodySchema, void>,
   respond: CreateMediaResponder,
   req: Request,
   res: Response,
@@ -150,7 +149,7 @@ export type UpdateSegmentResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateSegment = (
-  params: Params<t_UpdateSegmentParamSchema, void, SegmentUpdateRequestOutput, void>,
+  params: Params<t_UpdateSegmentParamSchema, void, t_UpdateSegmentRequestBodySchema, void>,
   respond: UpdateSegmentResponder,
   req: Request,
   res: Response,
@@ -168,7 +167,7 @@ export type GetSegmentContextResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetSegmentContext = (
-  params: Params<t_GetSegmentContextParamSchema, GetSegmentContextQueryOutput, void, void>,
+  params: Params<t_GetSegmentContextParamSchema, t_GetSegmentContextQuerySchema, void, void>,
   respond: GetSegmentContextResponder,
   req: Request,
   res: Response,
@@ -224,7 +223,7 @@ export type UpdateMediaResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateMedia = (
-  params: Params<t_UpdateMediaParamSchema, void, MediaUpdateRequestOutput, void>,
+  params: Params<t_UpdateMediaParamSchema, void, t_UpdateMediaRequestBodySchema, void>,
   respond: UpdateMediaResponder,
   req: Request,
   res: Response,
@@ -260,7 +259,7 @@ export type ListEpisodesResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListEpisodes = (
-  params: Params<t_ListEpisodesParamSchema, ListEpisodesQueryOutput, void, void>,
+  params: Params<t_ListEpisodesParamSchema, t_ListEpisodesQuerySchema, void, void>,
   respond: ListEpisodesResponder,
   req: Request,
   res: Response,
@@ -279,7 +278,7 @@ export type CreateEpisodeResponder = {
 } & ExpressRuntimeResponder;
 
 export type CreateEpisode = (
-  params: Params<t_CreateEpisodeParamSchema, void, EpisodeCreateRequestOutput, void>,
+  params: Params<t_CreateEpisodeParamSchema, void, t_CreateEpisodeRequestBodySchema, void>,
   respond: CreateEpisodeResponder,
   req: Request,
   res: Response,
@@ -315,7 +314,7 @@ export type UpdateEpisodeResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateEpisode = (
-  params: Params<t_UpdateEpisodeParamSchema, void, EpisodeUpdateRequestOutput, void>,
+  params: Params<t_UpdateEpisodeParamSchema, void, t_UpdateEpisodeRequestBodySchema, void>,
   respond: UpdateEpisodeResponder,
   req: Request,
   res: Response,
@@ -351,7 +350,7 @@ export type ListSegmentsResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListSegments = (
-  params: Params<t_ListSegmentsParamSchema, ListSegmentsQueryOutput, void, void>,
+  params: Params<t_ListSegmentsParamSchema, t_ListSegmentsQuerySchema, void, void>,
   respond: ListSegmentsResponder,
   req: Request,
   res: Response,
@@ -370,7 +369,7 @@ export type CreateSegmentResponder = {
 } & ExpressRuntimeResponder;
 
 export type CreateSegment = (
-  params: Params<t_CreateSegmentParamSchema, void, SegmentCreateRequestOutput, void>,
+  params: Params<t_CreateSegmentParamSchema, void, t_CreateSegmentRequestBodySchema, void>,
   respond: CreateSegmentResponder,
   req: Request,
   res: Response,
@@ -391,7 +390,7 @@ export type CreateSegmentsBatchResponder = {
 } & ExpressRuntimeResponder;
 
 export type CreateSegmentsBatch = (
-  params: Params<t_CreateSegmentsBatchParamSchema, void, SegmentBatchCreateRequestOutput, void>,
+  params: Params<t_CreateSegmentsBatchParamSchema, void, t_CreateSegmentsBatchRequestBodySchema, void>,
   respond: CreateSegmentsBatchResponder,
   req: Request,
   res: Response,
