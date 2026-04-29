@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development bun --hot src/bot.ts",
-    "start": "bun src/bot.ts",
-    "register": "bun src/register.ts",
+    "dev": "NODE_ENV=development tsx watch src/bot.ts",
+    "start": "node --import tsx src/bot.ts",
+    "register": "node --import tsx src/register.ts",
     "lint": "biome check .",
     "lint:fix": "biome check . --write",
     "typecheck": "tsc --noEmit"
@@ -22,13 +22,17 @@
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-metrics": "^2.6.1",
     "@opentelemetry/sdk-node": "^0.214.0",
+    "better-sqlite3": "^11.10.0",
     "discord.js": "^14.26.0",
-    "pino": "^10.3.1"
+    "pino": "^10.3.1",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "^1.3.6",
     "@types/node": "^25.5.2",
-    "pino-pretty": "^13.1.3"
+    "pino-pretty": "^13.1.3",
+    "typescript": "^5.9.0"
   }
 }
