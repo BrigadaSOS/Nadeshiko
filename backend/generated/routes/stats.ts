@@ -25,7 +25,6 @@ import type {
   t_StatsOverview,
   t_TriggerCoveredWordsUpdateRequestBodySchema,
 } from '../models.ts';
-import type { CoveredWordsUpdateRequestOutput, GetCoveredWordsQueryOutput } from '../outputTypes.ts';
 import {
   s_CoveredWordsResponse,
   s_CoveredWordsUpdateRequest,
@@ -64,7 +63,7 @@ export type GetCoveredWordsResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetCoveredWords = (
-  params: Params<void, GetCoveredWordsQueryOutput, void, void>,
+  params: Params<void, t_GetCoveredWordsQuerySchema, void, void>,
   respond: GetCoveredWordsResponder,
   req: Request,
   res: Response,
@@ -81,7 +80,7 @@ export type TriggerCoveredWordsUpdateResponder = {
 } & ExpressRuntimeResponder;
 
 export type TriggerCoveredWordsUpdate = (
-  params: Params<void, void, CoveredWordsUpdateRequestOutput, void>,
+  params: Params<void, void, t_TriggerCoveredWordsUpdateRequestBodySchema, void>,
   respond: TriggerCoveredWordsUpdateResponder,
   req: Request,
   res: Response,
