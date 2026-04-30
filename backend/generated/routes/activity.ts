@@ -26,6 +26,7 @@ import type {
   t_UserActivity,
   t_UserActivityStats,
 } from '../models.ts';
+import type { GetUserActivityHeatmapQueryOutput, GetUserActivityStatsQueryOutput, ListUserActivityQueryOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_CursorPagination,
@@ -50,7 +51,7 @@ export type ListUserActivityResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListUserActivity = (
-  params: Params<void, t_ListUserActivityQuerySchema, void, void>,
+  params: Params<void, ListUserActivityQueryOutput, void, void>,
   respond: ListUserActivityResponder,
   req: Request,
   res: Response,
@@ -70,7 +71,7 @@ export type GetUserActivityHeatmapResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetUserActivityHeatmap = (
-  params: Params<void, t_GetUserActivityHeatmapQuerySchema, void, void>,
+  params: Params<void, GetUserActivityHeatmapQueryOutput, void, void>,
   respond: GetUserActivityHeatmapResponder,
   req: Request,
   res: Response,
@@ -86,7 +87,7 @@ export type GetUserActivityStatsResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetUserActivityStats = (
-  params: Params<void, t_GetUserActivityStatsQuerySchema, void, void>,
+  params: Params<void, GetUserActivityStatsQueryOutput, void, void>,
   respond: GetUserActivityStatsResponder,
   req: Request,
   res: Response,

@@ -27,6 +27,7 @@ import type {
   t_SearchStatsResponse,
   t_SearchWordsRequestBodySchema,
 } from '../models.ts';
+import type { SearchMediaRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
 import {
   s_Error400,
   s_Error401,
@@ -53,7 +54,7 @@ export type SearchResponder = {
 } & ExpressRuntimeResponder;
 
 export type Search = (
-  params: Params<void, void, t_SearchRequestBodySchema, void>,
+  params: Params<void, void, SearchRequestOutput, void>,
   respond: SearchResponder,
   req: Request,
   res: Response,
@@ -70,7 +71,7 @@ export type GetSearchStatsResponder = {
 } & ExpressRuntimeResponder;
 
 export type GetSearchStats = (
-  params: Params<void, void, t_GetSearchStatsRequestBodySchema, void>,
+  params: Params<void, void, SearchStatsRequestOutput, void>,
   respond: GetSearchStatsResponder,
   req: Request,
   res: Response,
@@ -87,7 +88,7 @@ export type SearchWordsResponder = {
 } & ExpressRuntimeResponder;
 
 export type SearchWords = (
-  params: Params<void, void, t_SearchWordsRequestBodySchema, void>,
+  params: Params<void, void, SearchMultipleRequestOutput, void>,
   respond: SearchWordsResponder,
   req: Request,
   res: Response,
@@ -104,7 +105,7 @@ export type SearchMediaResponder = {
 } & ExpressRuntimeResponder;
 
 export type SearchMedia = (
-  params: Params<void, void, t_SearchMediaRequestBodySchema, void>,
+  params: Params<void, void, SearchMediaRequestOutput, void>,
   respond: SearchMediaResponder,
   req: Request,
   res: Response,
