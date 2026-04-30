@@ -21,7 +21,7 @@
     "setup": "bun run bin/setup.ts"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "2.1.0-internal.fde259d",
+    "@brigadasos/nadeshiko-sdk": "2.1.0",
     "@grafana/faro-transport-otlp-http": "^2.3.1",
     "@grafana/faro-web-sdk": "^2.3.1",
     "@grafana/faro-web-tracing": "^2.3.1",
@@ -36,7 +36,7 @@
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-metrics": "^2.6.1",
     "@pinia/nuxt": "^0.11.3",
-    "@posthog/nuxt": "^1.6.0",
+    "@posthog/nuxt": "^1.7.16",
     "gray-matter": "^4.0.3",
     "marked": "^18.0.0",
     "nuxt-security": "^2.5.1",
