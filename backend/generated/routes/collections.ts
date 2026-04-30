@@ -39,6 +39,7 @@ import type {
   t_UpdateCollectionSegmentParamSchema,
   t_UpdateCollectionSegmentRequestBodySchema,
 } from '../models.ts';
+import type { AddSegmentToCollectionRequestOutput, CollectionCreateRequestOutput, CollectionUpdateRequestOutput, ListCollectionsQueryOutput, SearchRequestOutput, UpdateCollectionSegmentRequestOutput } from '../outputTypes.ts';
 import {
   s_AddSegmentToCollectionRequest,
   s_Collection,
@@ -68,7 +69,7 @@ export type ListCollectionsResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListCollections = (
-  params: Params<void, t_ListCollectionsQuerySchema, void, void>,
+  params: Params<void, ListCollectionsQueryOutput, void, void>,
   respond: ListCollectionsResponder,
   req: Request,
   res: Response,
@@ -85,7 +86,7 @@ export type CreateCollectionResponder = {
 } & ExpressRuntimeResponder;
 
 export type CreateCollection = (
-  params: Params<void, void, t_CreateCollectionRequestBodySchema, void>,
+  params: Params<void, void, CollectionCreateRequestOutput, void>,
   respond: CreateCollectionResponder,
   req: Request,
   res: Response,
@@ -121,7 +122,7 @@ export type UpdateCollectionResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateCollection = (
-  params: Params<t_UpdateCollectionParamSchema, void, t_UpdateCollectionRequestBodySchema, void>,
+  params: Params<t_UpdateCollectionParamSchema, void, CollectionUpdateRequestOutput, void>,
   respond: UpdateCollectionResponder,
   req: Request,
   res: Response,
@@ -157,7 +158,7 @@ export type AddSegmentToCollectionResponder = {
 } & ExpressRuntimeResponder;
 
 export type AddSegmentToCollection = (
-  params: Params<t_AddSegmentToCollectionParamSchema, void, t_AddSegmentToCollectionRequestBodySchema, void>,
+  params: Params<t_AddSegmentToCollectionParamSchema, void, AddSegmentToCollectionRequestOutput, void>,
   respond: AddSegmentToCollectionResponder,
   req: Request,
   res: Response,
@@ -175,7 +176,7 @@ export type SearchCollectionSegmentsResponder = {
 } & ExpressRuntimeResponder;
 
 export type SearchCollectionSegments = (
-  params: Params<t_SearchCollectionSegmentsParamSchema, void, t_SearchCollectionSegmentsRequestBodySchema, void>,
+  params: Params<t_SearchCollectionSegmentsParamSchema, void, SearchRequestOutput, void>,
   respond: SearchCollectionSegmentsResponder,
   req: Request,
   res: Response,
@@ -193,7 +194,7 @@ export type UpdateCollectionSegmentResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateCollectionSegment = (
-  params: Params<t_UpdateCollectionSegmentParamSchema, void, t_UpdateCollectionSegmentRequestBodySchema, void>,
+  params: Params<t_UpdateCollectionSegmentParamSchema, void, UpdateCollectionSegmentRequestOutput, void>,
   respond: UpdateCollectionSegmentResponder,
   req: Request,
   res: Response,

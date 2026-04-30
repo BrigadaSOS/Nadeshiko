@@ -38,6 +38,7 @@ import type {
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
+import type { CreateReportRequestOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_AffectedCountResponse,
@@ -136,7 +137,7 @@ export type CreateUserReportResponder = {
 } & ExpressRuntimeResponder;
 
 export type CreateUserReport = (
-  params: Params<void, void, t_CreateUserReportRequestBodySchema, void>,
+  params: Params<void, void, CreateReportRequestOutput, void>,
   respond: CreateUserReportResponder,
   req: Request,
   res: Response,
@@ -169,7 +170,7 @@ export type UpdateUserPreferencesResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateUserPreferences = (
-  params: Params<void, void, t_UpdateUserPreferencesRequestBodySchema, void>,
+  params: Params<void, void, UserPreferencesOutput, void>,
   respond: UpdateUserPreferencesResponder,
   req: Request,
   res: Response,
@@ -186,7 +187,7 @@ export type TrackUserActivityResponder = {
 } & ExpressRuntimeResponder;
 
 export type TrackUserActivity = (
-  params: Params<void, void, t_TrackUserActivityRequestBodySchema, void>,
+  params: Params<void, void, UserActivityRequestOutput, void>,
   respond: TrackUserActivityResponder,
   req: Request,
   res: Response,
@@ -202,7 +203,7 @@ export type DeleteUserActivityResponder = {
 } & ExpressRuntimeResponder;
 
 export type DeleteUserActivity = (
-  params: Params<void, t_DeleteUserActivityQuerySchema, void, void>,
+  params: Params<void, DeleteUserActivityQueryOutput, void, void>,
   respond: DeleteUserActivityResponder,
   req: Request,
   res: Response,
