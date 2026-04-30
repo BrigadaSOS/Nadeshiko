@@ -9,14 +9,7 @@ const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const UMAMI_ORIGIN = 'https://cloud.umami.is';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
-const FARO_ORIGIN = (() => {
-  if (!env.NUXT_PUBLIC_FARO_URL) return '';
-  try {
-    return new URL(env.NUXT_PUBLIC_FARO_URL).origin;
-  } catch {
-    return '';
-  }
-})();
+const FARO_ORIGIN = 'https://o.nadeshiko.co';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -128,7 +121,7 @@ export default defineNuxtConfig({
               UMAMI_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
-              ...(FARO_ORIGIN ? [FARO_ORIGIN] : []),
+              FARO_ORIGIN,
 
               'http://127.0.0.1:*',
               'http://localhost:*',

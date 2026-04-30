@@ -43,6 +43,7 @@ import type {
   t_UpdateAdminReportRequestBodySchema,
   t_UpdateAnnouncementRequestBodySchema,
 } from '../models.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
@@ -76,7 +77,7 @@ export type ListAdminReportsResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListAdminReports = (
-  params: Params<void, t_ListAdminReportsQuerySchema, void, void>,
+  params: Params<void, ListAdminReportsQueryOutput, void, void>,
   respond: ListAdminReportsResponder,
   req: Request,
   res: Response,
@@ -93,7 +94,7 @@ export type BatchUpdateAdminReportsResponder = {
 } & ExpressRuntimeResponder;
 
 export type BatchUpdateAdminReports = (
-  params: Params<void, void, t_BatchUpdateAdminReportsRequestBodySchema, void>,
+  params: Params<void, void, BatchUpdateReportsRequestOutput, void>,
   respond: BatchUpdateAdminReportsResponder,
   req: Request,
   res: Response,
@@ -110,7 +111,7 @@ export type BulkUpdateAdminReportsResponder = {
 } & ExpressRuntimeResponder;
 
 export type BulkUpdateAdminReports = (
-  params: Params<void, void, t_BulkUpdateAdminReportsRequestBodySchema, void>,
+  params: Params<void, void, BulkUpdateReportsRequestOutput, void>,
   respond: BulkUpdateAdminReportsResponder,
   req: Request,
   res: Response,
@@ -127,7 +128,7 @@ export type BulkDeleteAdminReportsResponder = {
 } & ExpressRuntimeResponder;
 
 export type BulkDeleteAdminReports = (
-  params: Params<void, void, t_BulkDeleteAdminReportsRequestBodySchema, void>,
+  params: Params<void, void, BulkDeleteReportsRequestOutput, void>,
   respond: BulkDeleteAdminReportsResponder,
   req: Request,
   res: Response,
@@ -145,7 +146,7 @@ export type UpdateAdminReportResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateAdminReport = (
-  params: Params<t_UpdateAdminReportParamSchema, void, t_UpdateAdminReportRequestBodySchema, void>,
+  params: Params<t_UpdateAdminReportParamSchema, void, UpdateReportRequestOutput, void>,
   respond: UpdateAdminReportResponder,
   req: Request,
   res: Response,
@@ -213,7 +214,7 @@ export type RunAdminMediaAuditResponder = {
 } & ExpressRuntimeResponder;
 
 export type RunAdminMediaAudit = (
-  params: Params<t_RunAdminMediaAuditParamSchema, t_RunAdminMediaAuditQuerySchema, void, void>,
+  params: Params<t_RunAdminMediaAuditParamSchema, RunAdminMediaAuditQueryOutput, void, void>,
   respond: RunAdminMediaAuditResponder,
   req: Request,
   res: Response,
@@ -232,7 +233,7 @@ export type ListAdminMediaAuditRunsResponder = {
 } & ExpressRuntimeResponder;
 
 export type ListAdminMediaAuditRuns = (
-  params: Params<void, t_ListAdminMediaAuditRunsQuerySchema, void, void>,
+  params: Params<void, ListAdminMediaAuditRunsQueryOutput, void, void>,
   respond: ListAdminMediaAuditRunsResponder,
   req: Request,
   res: Response,
@@ -284,7 +285,7 @@ export type UpdateAnnouncementResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateAnnouncement = (
-  params: Params<void, void, t_UpdateAnnouncementRequestBodySchema, void>,
+  params: Params<void, void, AnnouncementOutput, void>,
   respond: UpdateAnnouncementResponder,
   req: Request,
   res: Response,
