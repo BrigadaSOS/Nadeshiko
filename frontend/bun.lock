@@ -20,7 +20,7 @@
         "@opentelemetry/resources": "^2.6.1",
         "@opentelemetry/sdk-metrics": "^2.6.1",
         "@pinia/nuxt": "^0.11.3",
-        "@posthog/nuxt": "^1.7.16",
+        "@posthog/nuxt": "^1.7.19",
         "gray-matter": "^4.0.3",
         "marked": "^18.0.0",
         "nuxt-security": "^2.5.1",
@@ -629,7 +629,7 @@
 
     "@posthog/core": ["@posthog/core@1.27.9", "", { "dependencies": { "@posthog/types": "1.372.5" } }, "sha512-7FFWWYWvRFxQqDXYzv8klCjk0Pox1IpuPr61eeOCBsKkmt6xvvHwH0jc3ObvwDXZj2NSAWg+V9N2E2F1ul2CRQ=="],
 
-    "@posthog/nuxt": ["@posthog/nuxt@1.7.18", "", { "dependencies": { "@nuxt/kit": ">=3.7.0", "@posthog/cli": "~0.7.3", "@posthog/core": "1.27.9", "@posthog/plugin-utils": "1.1.1", "posthog-js": "1.372.5", "posthog-node": "5.31.0" } }, "sha512-sbLo2sfGw0wIMbBBNPYxgES5Q7eIqk5CLAwk9QwZmV4VuDss6BgOhmuE5/L3+OJgqG6tZy8lTW1Hreszovqhew=="],
+    "@posthog/nuxt": ["@posthog/nuxt@1.7.19", "", { "dependencies": { "@nuxt/kit": ">=3.7.0", "@posthog/cli": "~0.7.3", "@posthog/core": "1.27.9", "@posthog/plugin-utils": "1.1.1", "posthog-js": "1.372.5", "posthog-node": "5.32.0" } }, "sha512-nwWsbhdtOPTVcr0ke37W8v0MshtACNG33elI00xrugZVW8gTOvBUD3/NnjvFBatjgaBbms2/6TrSoq+gFHJj+w=="],
 
     "@posthog/plugin-utils": ["@posthog/plugin-utils@1.1.1", "", { "dependencies": { "cross-spawn": "^7.0.6" } }, "sha512-vCbaFeuwf9Pc0gI5bkCGvkOn2Bxru2KbZJtOa6loTJjanCNoMsjECEPijr7X5oln1IIg+VKnGiwV4tKY2b7NuQ=="],
 
@@ -2039,7 +2039,7 @@
 
     "posthog-js": ["posthog-js@1.372.5", "", { "dependencies": { "@opentelemetry/api": "^1.9.0", "@opentelemetry/api-logs": "^0.208.0", "@opentelemetry/exporter-logs-otlp-http": "^0.208.0", "@opentelemetry/resources": "^2.2.0", "@opentelemetry/sdk-logs": "^0.208.0", "@posthog/core": "1.27.9", "@posthog/types": "1.372.5", "core-js": "^3.38.1", "dompurify": "^3.3.2", "fflate": "^0.4.8", "preact": "^10.28.2", "query-selector-shadow-dom": "^1.0.1", "web-vitals": "^5.1.0" } }, "sha512-0Wq4yRTX8rg2/SOTo3T/0tt2EIE0usBDJKxWPY6eRTGxWAajNmPWZwK4vREn2ANZGdPhUHQ+hg4kLEUdQnzs/Q=="],
 
-    "posthog-node": ["posthog-node@5.31.0", "", { "dependencies": { "@posthog/core": "1.27.9" }, "peerDependencies": { "rxjs": "^7.0.0" }, "optionalPeers": ["rxjs"] }, "sha512-vRhLERIOG6gIrfz5zfSUTiIrf4G8yWZPuEUP8TyvIusedMwxUXitCU9HN3uZfzkkOgvgC5MUAr/eN3reO9WQMA=="],
+    "posthog-node": ["posthog-node@5.32.0", "", { "dependencies": { "@posthog/core": "1.27.9" }, "peerDependencies": { "rxjs": "^7.0.0" }, "optionalPeers": ["rxjs"] }, "sha512-kEsQFrpQrrrXQlVzXF5yTyHfnKAP/37W6ta9cFHh8ISlKtyYEKuLGTc5ssfpn4RrRS6r0xsJSK94ScFTQTSEOg=="],
 
     "powershell-utils": ["powershell-utils@0.1.0", "", {}, "sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A=="],
 
