@@ -109,7 +109,7 @@ const magicLinkBanRedirect: RequestHandler = (req, res, next) => {
           res.statusCode = 302;
           res.removeHeader('Content-Type');
           res.setHeader('Location', `${callbackURL}${sep}error=banned`);
-          return originalEnd.call(res, '');
+          return originalEnd('');
         }
       } catch {}
     }
