@@ -98,6 +98,7 @@ const contentRatingDescription = () => {
 const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
 
 const { tooltipReadingMode, setTooltipReadingMode } = useTooltipReadingVisibility();
+const { presets: dictionaryPresets, isDictionaryEnabled, setDictionaryEnabled } = useDictionaryLinks();
 
 type NsfwMode = NonNullable<NonNullable<UserPreferences['contentRatingPreferences']>['nsfw']>;
 
@@ -464,6 +465,26 @@ const logoutCurrentUser = async () => {
           <option value="romaji">{{ $t('accountSettings.account.tooltipReadingOptions.romaji') }}</option>
           <option value="hidden">{{ $t('accountSettings.account.tooltipReadingOptions.hidden') }}</option>
         </select>
+      </div>
+
+      <div class="mt-4">
+        <p class="text-white">{{ $t('accountSettings.account.dictionaryLinks') }}</p>
+        <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.dictionaryLinksDescription') }}</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <label
+            v-for="preset in dictionaryPresets"
+            :key="preset.id"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800 border border-white/10 text-sm text-white cursor-pointer hover:bg-neutral-700"
+          >
+            <input
+              type="checkbox"
+              :checked="isDictionaryEnabled(preset.id)"
+              class="accent-button-primary-main"
+              @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)"
+            />
+            <span>{{ preset.label }}</span>
+          </label>
+        </div>
       </div>
 
       <div class="flex justify-between items-center mt-4">

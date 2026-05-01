@@ -540,6 +540,8 @@
         "romaji": "ローマ字 (negau)",
         "hidden": "非表示"
       },
+      "dictionaryLinks": "辞書連携",
+      "dictionaryLinksDescription": "トークンのポップアップに表示する辞書リンクを選択します。",
       "deleteAccount": "アカウント削除（取り消し不可）",
       "deleteAccountButton": "アカウントを削除",
       "deletingAccount": "削除中...",
@@ -738,6 +740,9 @@
       "SENSITIVE": "センシティブコンテンツ（きわどい）"
     },
     "revert": "元に戻す"
+  },
+  "tokenTooltip": {
+    "lookupIn": "辞書で調べる"
   },
   "searchContainer": {
     "errorTitle": "502",
