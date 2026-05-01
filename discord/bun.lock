@@ -5,7 +5,7 @@
     "": {
       "name": "nadeshiko-discord",
       "dependencies": {
-        "@brigadasos/nadeshiko-sdk": "2.1.0",
+        "@brigadasos/nadeshiko-sdk": "2.1.0-internal",
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/exporter-metrics-otlp-http": "^0.215.0",
         "@opentelemetry/exporter-trace-otlp-http": "^0.215.0",
@@ -49,7 +49,7 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.13", "", { "os": "win32", "cpu": "x64" }, "sha512-tTcMkXyBrmHi9BfrD2VNHs/5rYIUKETqsBlYOvSAABwBkJhSDVb5e7wPukftsQbO3WzQkXe6kaztC6WtUOXSoQ=="],
 
-    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.1.0", "", {}, "sha512-zztRvFnBePsjt3rtFc/FgabExhq5BZ/MuK3sn/c62Ut34Ln3mdnLzVjADXaAOHnGmOm+9Dr9pOwPUopBelWR5Q=="],
+    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.1.0-internal", "", {}, "sha512-3uhbZt/9s1mE8RvmykCTjjUw9lwUDqVyIjIF3Cpq5EFtdRSUVTn/ogkhMOz4vn9K/mkMqmaJ0GJEiB3ih/sW/g=="],
 
     "@discordjs/builders": ["@discordjs/builders@1.14.1", "", { "dependencies": { "@discordjs/formatters": "^0.6.2", "@discordjs/util": "^1.2.0", "@sapphire/shapeshift": "^4.0.0", "discord-api-types": "^0.38.40", "fast-deep-equal": "^3.1.3", "ts-mixer": "^6.0.4", "tslib": "^2.6.3" } }, "sha512-gSKkhXLqs96TCzk66VZuHHl8z2bQMJFGwrXC0f33ngK+FLNau4hU1PYny3DNJfNdSH+gVMzE85/d5FQ2BpcNwQ=="],
 

@@ -540,6 +540,8 @@
         "romaji": "Romaji (negau)",
         "hidden": "Hidden"
       },
+      "dictionaryLinks": "Dictionary integrations",
+      "dictionaryLinksDescription": "Choose which dictionaries appear as quick lookup links in the token popup.",
       "deleteAccount": "Delete account (Irreversible action)",
       "deleteAccountButton": "Delete account",
       "deletingAccount": "Deleting...",
@@ -738,6 +740,9 @@
       "SENSITIVE": "Sensitive Content (Questionable)"
     },
     "revert": "Revert"
+  },
+  "tokenTooltip": {
+    "lookupIn": "Look up in"
   },
   "searchContainer": {
     "errorTitle": "502",

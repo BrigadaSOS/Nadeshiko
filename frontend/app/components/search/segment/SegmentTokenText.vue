@@ -29,8 +29,18 @@ const tooltipRef = ref<HTMLElement | null>(null);
 
 const GAP = 8; // px between token top and tooltip bottom
 const VIEWPORT_MARGIN = 8; // px from viewport edges
+const HIDE_DELAY = 120; // ms grace period for cursor to bridge token → tooltip
+
+let hideTimer: ReturnType<typeof setTimeout> | null = null;
+const cancelHide = () => {
+  if (hideTimer !== null) {
+    clearTimeout(hideTimer);
+    hideTimer = null;
+  }
+};
 
 const onTokenEnter = async (token: EnrichedToken, event: MouseEvent) => {
+  cancelHide();
   hoveredToken.value = token;
   const el = event.currentTarget as HTMLElement;
   const tokenRect = el.getBoundingClientRect();
@@ -57,9 +67,17 @@ const onTokenEnter = async (token: EnrichedToken, event: MouseEvent) => {
   tooltipStyle.value = { left: `${left}px`, top: `${top}px` };
 };
 
-const onTokenLeave = () => {
-  hoveredToken.value = null;
+const scheduleHide = () => {
+  cancelHide();
+  hideTimer = setTimeout(() => {
+    hoveredToken.value = null;
+    hideTimer = null;
+  }, HIDE_DELAY);
 };
+
+const onTokenLeave = scheduleHide;
+const onTooltipEnter = cancelHide;
+const onTooltipLeave = scheduleHide;
 
 const POS_CLASS: Record<string, string> = {
   動詞: 'token--verb',
@@ -72,6 +90,7 @@ const POS_CLASS: Record<string, string> = {
 
 const { tooltipReadingMode } = useTooltipReadingVisibility();
 const { furiganaMode } = useHiraganaVisibility();
+const { presets, enabledDictionaries } = useDictionaryLinks();
 
 const tooltipReading = computed(() => {
   if (!hoveredToken.value?.dictReading) return '';
@@ -86,6 +105,18 @@ const tooltipReading = computed(() => {
     default:
       return reading;
   }
+});
+
+const dictionaryLinks = computed(() => {
+  const token = hoveredToken.value;
+  if (!token) return [];
+  return presets
+    .filter((preset) => enabledDictionaries.value.includes(preset.id))
+    .map((preset) => ({
+      id: preset.id,
+      label: preset.label,
+      href: preset.buildUrl(token.dictForm, token.dictReading ?? ''),
+    }));
 });
 </script>
 
@@ -113,27 +144,44 @@ const tooltipReading = computed(() => {
         v-if="hoveredToken"
         ref="tooltipRef"
         class="token-tooltip"
+        :class="{ 'token-tooltip--with-links': dictionaryLinks.length > 0 }"
         :style="tooltipStyle"
+        @mouseenter="onTooltipEnter"
+        @mouseleave="onTooltipLeave"
       >
-        <div class="token-tooltip__left">
-          <span v-if="tooltipReading" class="token-tooltip__reading">{{ tooltipReading }}</span>
-          <span class="token-tooltip__word">{{ hoveredToken.dictForm }}</span>
+        <div class="token-tooltip__body">
+          <div class="token-tooltip__left">
+            <span v-if="tooltipReading" class="token-tooltip__reading">{{ tooltipReading }}</span>
+            <span class="token-tooltip__word">{{ hoveredToken.dictForm }}</span>
+          </div>
+          <div class="token-tooltip__divider" />
+          <div class="token-tooltip__right">
+            <span class="token-tooltip__pos">{{ hoveredToken.posEn }}</span>
+            <span v-if="hoveredToken.posSubEn" class="token-tooltip__pos-sub">{{ hoveredToken.posSubEn }}</span>
+            <span v-if="hoveredToken.conjClassEn" class="token-tooltip__pos-sub">{{ hoveredToken.conjClassEn }}</span>
+            <template v-if="hoveredToken.auxMeanings.length > 0">
+              <div class="token-tooltip__meta-divider" />
+              <span class="token-tooltip__conj">
+                {{ hoveredToken.auxMeanings.map(a => a.en).join(' › ') }}
+              </span>
+            </template>
+            <template v-else-if="hoveredToken.conjFormEn">
+              <div class="token-tooltip__meta-divider" />
+              <span class="token-tooltip__conj">{{ hoveredToken.conjFormEn }}</span>
+            </template>
+          </div>
         </div>
-        <div class="token-tooltip__divider" />
-        <div class="token-tooltip__right">
-          <span class="token-tooltip__pos">{{ hoveredToken.posEn }}</span>
-          <span v-if="hoveredToken.posSubEn" class="token-tooltip__pos-sub">{{ hoveredToken.posSubEn }}</span>
-          <span v-if="hoveredToken.conjClassEn" class="token-tooltip__pos-sub">{{ hoveredToken.conjClassEn }}</span>
-          <template v-if="hoveredToken.auxMeanings.length > 0">
-            <div class="token-tooltip__meta-divider" />
-            <span class="token-tooltip__conj">
-              {{ hoveredToken.auxMeanings.map(a => a.en).join(' › ') }}
-            </span>
-          </template>
-          <template v-else-if="hoveredToken.conjFormEn">
-            <div class="token-tooltip__meta-divider" />
-            <span class="token-tooltip__conj">{{ hoveredToken.conjFormEn }}</span>
-          </template>
+        <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
+          <span class="token-tooltip__links-label">{{ $t('tokenTooltip.lookupIn') }}</span>
+          <a
+            v-for="link in dictionaryLinks"
+            :key="link.id"
+            :href="link.href"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="token-tooltip__link"
+            @click.stop
+          >{{ link.label }}</a>
         </div>
       </div>
     </Transition>
@@ -174,8 +222,7 @@ const tooltipReading = computed(() => {
   position: fixed;
   transform: translate(-50%, -100%);
   display: flex;
-  align-items: stretch;
-  gap: 0;
+  flex-direction: column;
   background: rgb(30 30 30);
   border: 1px solid rgb(60 60 60);
   border-radius: 12px;
@@ -186,6 +233,47 @@ const tooltipReading = computed(() => {
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   min-width: 160px;
+}
+
+.token-tooltip--with-links {
+  pointer-events: auto;
+}
+
+.token-tooltip__body {
+  display: flex;
+  align-items: stretch;
+}
+
+.token-tooltip__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-top: 1px solid rgb(60 60 60);
+  background: rgb(24 24 24);
+}
+
+.token-tooltip__links-label {
+  font-size: 11px;
+  color: rgb(140 140 140);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.token-tooltip__link {
+  font-size: 12px;
+  color: rgb(180 200 230);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.token-tooltip__link:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
 }
 
 .token-tooltip__left {
