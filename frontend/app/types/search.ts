@@ -35,6 +35,8 @@ export type ResolvedMediaStats = MediaSearchStats &
 export type ResolvedCategoryCount = {
   category: 'ANIME' | 'JDRAMA';
   count: number;
+  /** Count with the hidden-media exclusion lifted; equals `count` when no exclusion is in effect. */
+  realCount: number;
 };
 
 export type SearchStatsResponse = {
