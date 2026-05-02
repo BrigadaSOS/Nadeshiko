@@ -45,6 +45,7 @@ export type t_Category = 'ANIME' | 'JDRAMA';
 export type t_CategoryCount = {
   category: t_Category;
   count: number;
+  realCount: number;
 };
 
 export type t_Collection = {

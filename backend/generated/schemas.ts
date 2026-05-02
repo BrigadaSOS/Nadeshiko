@@ -469,7 +469,11 @@ export const s_BulkUpdateReportsRequest = z.object({
     .optional(),
 });
 
-export const s_CategoryCount = z.object({ category: s_Category, count: z.coerce.number().min(0) });
+export const s_CategoryCount = z.object({
+  category: s_Category,
+  count: z.coerce.number().min(0),
+  realCount: z.coerce.number().min(0),
+});
 
 export const s_Collection = z.object({
   publicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
