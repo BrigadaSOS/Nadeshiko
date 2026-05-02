@@ -259,6 +259,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
   const categories = Array.from(categoryCountMap.entries()).map(([category, count]) => ({
     category,
     count,
+    realCount: count,
   }));
 
   return respond.with200().body({ media, categories, includes });

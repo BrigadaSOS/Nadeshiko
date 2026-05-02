@@ -181,8 +181,41 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       const jdramaCategory = result.categories.find((c) => c.category === 'JDRAMA');
       expect(animeCategory).toBeDefined();
       expect(animeCategory?.count).toBe(2);
+      expect(animeCategory?.realCount).toBe(animeCategory?.count);
       expect(jdramaCategory).toBeDefined();
       expect(jdramaCategory?.count).toBe(1);
+      expect(jdramaCategory?.realCount).toBe(jdramaCategory?.count);
+    });
+
+    it('returns realCount while excluding hidden media from visible counts', async () => {
+      await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [
+        { contentJa: '統計可視テスト一', position: 1 },
+        { contentJa: '統計可視テスト二', position: 2 },
+      ]);
+      const hidden = await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [
+        { contentJa: '統計非表示テスト一', position: 1 },
+        { contentJa: '統計非表示テスト二', position: 2 },
+        { contentJa: '統計非表示テスト三', position: 3 },
+      ]);
+
+      const result = await SegmentDocument.searchStats({
+        query: { search: '統計', exactMatch: false },
+        filters: {
+          status: ['ACTIVE'],
+          category: ['ANIME', 'JDRAMA'],
+          media: {
+            exclude: [{ mediaPublicId: hidden.media.publicId, mediaId: hidden.media.id } as any],
+          },
+        },
+      });
+
+      const animeCategory = result.categories.find((c) => c.category === 'ANIME');
+      expect(animeCategory).toBeDefined();
+      expect(animeCategory?.count).toBe(2);
+      expect(animeCategory?.realCount).toBe(5);
+
+      // Hidden media is excluded from per-media buckets but its segments count toward `realCount`.
+      expect(result.media.find((m) => m.mediaPublicId === hidden.media.publicId)).toBeUndefined();
     });
   });
 

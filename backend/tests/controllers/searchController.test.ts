@@ -127,7 +127,7 @@ describe('search controller', () => {
   it('search stats strips includes by default', async () => {
     mockSearchStats.mockResolvedValue({
       media: [{ mediaId: 1, publicId: 'pub1', matchCount: 2, episodeHits: { 1: 2 } }],
-      categories: [{ category: 'ANIME', count: 2 }],
+      categories: [{ category: 'ANIME', count: 2, realCount: 2 }],
       includes: { media: { 1: buildMediaRecord(1) } },
     });
 

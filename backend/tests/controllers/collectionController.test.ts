@@ -588,7 +588,7 @@ describe('GET /v1/collections/:id/stats', () => {
         ],
       },
     ]);
-    expect(res.body.categories).toEqual([{ category: 'ANIME', count: 2 }]);
+    expect(res.body.categories).toEqual([{ category: 'ANIME', count: 2, realCount: 2 }]);
   });
 
   it('returns 403 for private collections owned by another user', async () => {

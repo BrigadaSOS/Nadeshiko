@@ -301,8 +301,21 @@ export class SegmentResponse {
     return { stats, mediaMap };
   }
 
-  static buildCategoryStatistics(aggResponse: estypes.SearchResponse): SearchStatisticsOutput['categories'] {
+  static buildCategoryStatistics(
+    aggResponse: estypes.SearchResponse,
+    realAggResponse?: estypes.SearchResponse | null,
+  ): SearchStatisticsOutput['categories'] {
     if (!aggResponse.aggregations || !('group_by_category' in aggResponse.aggregations)) return [];
+
+    const realCountByCategory = new Map<string, number>();
+    if (realAggResponse?.aggregations && 'group_by_category' in realAggResponse.aggregations) {
+      const realAgg = (realAggResponse.aggregations as Record<string, TermsAggregation>).group_by_category;
+      for (const bucket of (realAgg?.buckets ?? []) as TermsBucket[]) {
+        if (bucket.key !== undefined && bucket.doc_count !== undefined) {
+          realCountByCategory.set(String(bucket.key), Number(bucket.doc_count));
+        }
+      }
+    }
 
     const categoryAgg = (aggResponse.aggregations as Record<string, TermsAggregation>).group_by_category;
     const categoryBuckets = (categoryAgg?.buckets ?? []) as TermsBucket[];
@@ -312,7 +325,9 @@ export class SegmentResponse {
         if (!SegmentResponse.isCategory(category) || bucket.doc_count === undefined) {
           return null;
         }
-        return { category, count: Number(bucket.doc_count) };
+        const count = Number(bucket.doc_count);
+        const realCount = realAggResponse ? (realCountByCategory.get(String(category)) ?? count) : count;
+        return { category, count, realCount };
       })
       .filter(SegmentResponse.notEmpty);
   }

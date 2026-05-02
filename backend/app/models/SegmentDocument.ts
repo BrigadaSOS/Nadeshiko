@@ -423,47 +423,67 @@ async function querySearchStatisticsWithMustQueries(
     return cached;
   }
 
-  const { filter: filterForMediaStatistics, must_not: must_notForMediaStatistics } = SegmentQuery.buildCommonFilters(
-    request.filters,
-  );
-
-  const esMediaStatsResponse = client.search({
-    size: 0,
-    index: INDEX_NAME,
-    query: {
-      bool: { filter: filterForMediaStatistics, must: [...mustQueries], must_not: must_notForMediaStatistics },
-    },
-    aggs: {
-      group_by_media_id: {
-        terms: { field: 'mediaId', size: 10000 },
-        aggs: { group_by_episode: { terms: { field: 'episode', size: 10000 } } },
-      },
-    },
-  });
-
-  const { filter: filterForCategoryStats, must_not: must_notForCategoryStats } = SegmentQuery.buildCommonFilters({
+  const { filter: filterForMediaStatistics, must_not } = SegmentQuery.buildCommonFilters(request.filters);
+  const { filter: filterForCategoryStats } = SegmentQuery.buildCommonFilters({
     ...request.filters,
     category: [],
   });
 
-  const esCategoryStatsResponse = client.search({
-    size: 0,
-    index: INDEX_NAME,
-    query: { bool: { filter: filterForCategoryStats, must: [...mustQueries], must_not: must_notForCategoryStats } },
-    aggs: { group_by_category: { terms: { field: 'category', size: 10 } } },
-  });
+  // `must_not` is only ever populated by `filters.media.exclude` (see SegmentQuery.buildCommonFilters).
+  // When present, append an extra category-stats sub-search with the exclusion lifted so the
+  // response can carry both `count` (filtered) and `realCount` (without hidden-media exclusion).
+  // We deliberately don't add an unfiltered per-media sub-search: a media that survives the
+  // exclusion has identical counts with or without `must_not`, so `realMatchCount` would equal
+  // `matchCount` for every visible media.
+  const hasHiddenMediaExclusion = must_not.length > 0;
 
-  const [esMediaStatsResult, esCategoryResult, mediaInfoResponse] = await Promise.all([
-    esMediaStatsResponse,
-    esCategoryStatsResponse,
+  const searches: estypes.MsearchRequestItem[] = [
+    {},
+    {
+      size: 0,
+      query: { bool: { filter: filterForMediaStatistics, must: [...mustQueries], must_not } },
+      aggs: {
+        group_by_media_id: {
+          terms: { field: 'mediaId', size: 10000 },
+          aggs: { group_by_episode: { terms: { field: 'episode', size: 10000 } } },
+        },
+      },
+    },
+    {},
+    {
+      size: 0,
+      query: { bool: { filter: filterForCategoryStats, must: [...mustQueries], must_not } },
+      aggs: { group_by_category: { terms: { field: 'category', size: 10 } } },
+    },
+  ];
+
+  if (hasHiddenMediaExclusion) {
+    searches.push(
+      {},
+      {
+        size: 0,
+        query: { bool: { filter: filterForCategoryStats, must: [...mustQueries] } },
+        aggs: { group_by_category: { terms: { field: 'category', size: 10 } } },
+      },
+    );
+  }
+
+  const [esResponse, mediaInfoResponse] = await Promise.all([
+    client.msearch({ index: INDEX_NAME, searches }),
     mediaInfoPromise,
   ]);
+
+  const esMediaStatsResult = esResponse.responses[0] as estypes.SearchResponseBody;
+  const esCategoryResult = esResponse.responses[1] as estypes.SearchResponseBody;
+  const esCategoryStatsRealResult = hasHiddenMediaExclusion
+    ? (esResponse.responses[2] as estypes.SearchResponseBody)
+    : null;
 
   const { stats, mediaMap } = SegmentResponse.buildStatistics(esMediaStatsResult, mediaInfoResponse);
 
   const result = {
     media: stats,
-    categories: SegmentResponse.buildCategoryStatistics(esCategoryResult),
+    categories: SegmentResponse.buildCategoryStatistics(esCategoryResult, esCategoryStatsRealResult),
     includes: { media: mediaMap },
   };
   Cache.set(SegmentDocument.SEARCH_STATS_CACHE, cacheKey, result, 24 * 60 * 60 * 1000);
