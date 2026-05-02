@@ -47,7 +47,7 @@ const initialStatsData = computed<SearchStatsResponse | null>(() => {
         slug: result.media.slug,
       },
     ],
-    categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1 }],
+    categories: [{ category: result.media.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME', count: 1, realCount: 1 }],
   };
 });
 

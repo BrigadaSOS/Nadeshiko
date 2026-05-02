@@ -18,13 +18,21 @@ import type {
 const { mediaName } = useMediaName();
 const { hiddenMediaIds, hiddenMediaExcludeFilter, isMediaHidden } = useHiddenMedia();
 
-const recomputeCategories = (media: ResolvedMediaStats[]): ResolvedCategoryCount[] => {
+const recomputeCategories = (
+  media: ResolvedMediaStats[],
+  originalCategories: ResolvedCategoryCount[],
+): ResolvedCategoryCount[] => {
   const counts = new Map<'ANIME' | 'JDRAMA', number>();
   for (const m of media) {
     const cat = m.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME';
     counts.set(cat, (counts.get(cat) ?? 0) + m.matchCount);
   }
-  return Array.from(counts.entries()).map(([category, count]) => ({ category, count }));
+  const realByCategory = new Map(originalCategories.map((c) => [c.category, c.realCount]));
+  return Array.from(counts.entries()).map(([category, count]) => ({
+    category,
+    count,
+    realCount: realByCategory.get(category) ?? count,
+  }));
 };
 
 const props = defineProps<{
@@ -99,7 +107,9 @@ const searchData = computed(() => {
   const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.mediaPublicId)) : allMedia;
 
   const categories =
-    hidden.size > 0 ? recomputeCategories(filteredMedia) : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
+    hidden.size > 0
+      ? recomputeCategories(filteredMedia, statsPayload?.categories ?? [])
+      : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
 
   return {
     results: sentencePayload?.results || [],
@@ -422,6 +432,23 @@ const getCategoryCount = (categoryKey: string): number => {
   return item ? item.count : 0;
 };
 
+/**
+ * Corpus baseline for the tab — count with the user-applied filters
+ * (`?media=`, hidden-media exclusion) lifted. The `CommonTabsItem` only
+ * renders the dual `count/totalCount` when this exceeds `getCategoryCount`.
+ */
+const getCategoryTotalCount = (categoryKey: string): number => {
+  const stats = searchData.value?.categories || [];
+
+  if (media.value || categoryKey === 'all') {
+    return stats.reduce((total, item) => total + item.realCount, 0);
+  }
+
+  const mappedCategory = categoryApiMapping[categoryKey];
+  const item = stats.find((entry) => entry.category === mappedCategory);
+  return item ? item.realCount : 0;
+};
+
 const categoryFilter = (categoryKey: string) => {
   posthog?.capture('search_filter_changed', {
     category: categoryKey,
@@ -608,13 +635,13 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
-                            <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')"
+                            <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')" :totalCount="getCategoryTotalCount('all')"
                                 :isActive="category === 'all' || media" @click="categoryFilter('all')" />
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'ANIME')"
-                                category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :isActive="category === 'anime'"
+                                category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :totalCount="getCategoryTotalCount('anime')" :isActive="category === 'anime'"
                                 @click="categoryFilter('anime')" />
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
-                                category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :isActive="category === 'liveaction'"
+                                category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :totalCount="getCategoryTotalCount('liveaction')" :isActive="category === 'liveaction'"
                                 @click="categoryFilter('liveaction')" />
                         </CommonTabsHeader>
                     </CommonTabsContainer>

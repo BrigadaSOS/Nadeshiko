@@ -8,14 +8,16 @@
   >
     <span class="leading-tight">{{ categoryName }}</span>
     <span class="inline-flex items-center justify-center leading-none min-h-6 bg-gray-100 text-gray-800 text-sm px-2.5 py-1 rounded-lg dark:bg-button-primary-main dark:text-gray-300">
-      {{ count }}
+      {{ count }}<span v-if="hasTotal" class="text-gray-500 dark:text-gray-400">/{{ totalCount }}</span>
     </span>
   </li>
 </template>
 
 <script setup>
-defineProps(['categoryName', 'count', 'isActive']);
+const props = defineProps(['categoryName', 'count', 'totalCount', 'isActive']);
 const emit = defineEmits(['click']);
+
+const hasTotal = computed(() => typeof props.totalCount === 'number' && props.totalCount > (props.count ?? 0));
 
 const handleClick = () => {
   emit('click');
