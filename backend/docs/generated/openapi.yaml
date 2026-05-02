@@ -3687,14 +3687,20 @@ components:
       required:
         - category
         - count
+        - realCount
       properties:
         category:
           $ref: '#/components/schemas/Category'
         count:
           type: integer
-          description: Number of entries in this category
+          description: Number of entries in this category under the current request filters (including any hidden-media exclusion).
           minimum: 0
           example: 1523
+        realCount:
+          type: integer
+          description: Number of entries in this category when the hidden-media exclusion filter is ignored. Equal to `count` when no hidden-media exclusion is in effect.
+          minimum: 0
+          example: 1700
     SearchStatsResponse:
       type: object
       required:
