@@ -6,7 +6,7 @@ export default defineSitemapEventHandler(async (event) => {
   const urls: SitemapUrlInput[] = [];
   const locale = getSitemapLocale(event);
 
-  for await (const entry of sdk.getCoveredWords.paginate({ tier: 50000, filter: 'COVERED', take: 1000 })) {
+  for await (const entry of sdk.getCoveredWords.paginate({ tier: 20000, filter: 'COVERED', take: 1000 })) {
     urls.push({
       loc: localizeSitemapPath(`/search/${encodeURIComponent(entry.word)}`, locale),
       changefreq: 'monthly',
