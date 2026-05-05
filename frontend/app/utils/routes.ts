@@ -1,4 +1,4 @@
-const LOCALE_PREFIXES = ['/es', '/ja'] as const;
+const LOCALE_PREFIXES = ['/en', '/es', '/ja'] as const;
 
 export function splitLocalePrefix(path: string): { localePrefix: string; localizedPath: string } {
   const localePrefix = LOCALE_PREFIXES.find((prefix) => path === prefix || path.startsWith(`${prefix}/`)) ?? '';

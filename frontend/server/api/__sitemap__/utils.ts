@@ -8,9 +8,5 @@ export function getSitemapLocale(event: H3Event): SitemapLocale {
 }
 
 export function localizeSitemapPath(path: string, locale: SitemapLocale): string {
-  if (locale === 'en') {
-    return path;
-  }
-
-  return path === '/' ? '/es' : `/es${path}`;
+  return path === '/' ? `/${locale}` : `/${locale}${path}`;
 }

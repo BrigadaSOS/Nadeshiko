@@ -6,7 +6,9 @@ const localePath = useLocalePath();
 
 const slug = computed(() => {
   let raw = route.path.replace(/^\//, '').replace(/\/$/, '');
-  if (locale.value !== 'en' && raw.startsWith(`${locale.value}/`)) {
+  if (raw === locale.value) {
+    raw = '';
+  } else if (raw.startsWith(`${locale.value}/`)) {
     raw = raw.slice(locale.value.length + 1);
   }
   return raw || 'index';
