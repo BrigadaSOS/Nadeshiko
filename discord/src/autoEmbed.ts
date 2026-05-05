@@ -16,7 +16,7 @@ import { getGuildSettings } from './settings';
 
 const log = createLogger('autoEmbed');
 
-const NADESHIKO_URL_PATTERN = /nadeshiko\.co\/sentence\/([A-Za-z0-9_-]+)/g;
+const NADESHIKO_URL_PATTERN = /nadeshiko\.co\/(?:(?:en|es|ja)\/)?sentence\/([A-Za-z0-9_-]+)/g;
 
 export async function handleAutoEmbed(message: Message) {
   if (message.author.bot) return;

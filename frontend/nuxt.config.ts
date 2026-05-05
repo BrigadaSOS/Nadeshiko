@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
-import { LOCALE_PREFERENCE_COOKIE_NAME } from './app/utils/i18n';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
 const SITE_URL = isDev ? 'https://dev.nadeshiko.co' : 'https://nadeshiko.co';
@@ -15,8 +14,7 @@ const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', im
   version?: string;
 };
 
-const SITEMAP_STATIC_URLS = [
-  '/',
+const SITEMAP_STATIC_PATHS = [
   '/about',
   '/privacy',
   '/terms-and-conditions',
@@ -26,7 +24,8 @@ const SITEMAP_STATIC_URLS = [
   '/stats',
   '/stats/words',
 ];
-const SITEMAP_STATIC_URLS_ES = SITEMAP_STATIC_URLS.map((path) => (path === '/' ? '/es' : `/es${path}`));
+const SITEMAP_STATIC_URLS_EN = ['/en', ...SITEMAP_STATIC_PATHS.map((path) => `/en${path}`)];
+const SITEMAP_STATIC_URLS_ES = ['/es', ...SITEMAP_STATIC_PATHS.map((path) => `/es${path}`)];
 
 export default defineNuxtConfig({
   devServer: {
@@ -174,18 +173,18 @@ export default defineNuxtConfig({
         groups: [
           {
             userAgent: '*',
-            allow: ['/', '/search', '/media', '/sentence', '/stats', '/blog', '/about', '/docs/', '/es/'],
+            allow: ['/en/', '/es/', '/docs/'],
             disallow: [
               '/ja',
               '/ja/',
-              '/settings',
-              '/settings/',
-              '/user',
-              '/user/',
-              '/admin',
-              '/admin/',
-              '/reports',
-              '/reports/',
+              '/en/settings',
+              '/en/settings/',
+              '/en/user',
+              '/en/user/',
+              '/en/admin',
+              '/en/admin/',
+              '/en/reports',
+              '/en/reports/',
               '/es/settings',
               '/es/settings/',
               '/es/user',
@@ -209,7 +208,7 @@ export default defineNuxtConfig({
         autoI18n: false,
         sitemaps: {
           en: {
-            urls: SITEMAP_STATIC_URLS,
+            urls: SITEMAP_STATIC_URLS_EN,
             sources: [
               '/api/__sitemap__/media?locale=en',
               ['/api/__sitemap__/words?locale=en', { timeout: 60000 }],
@@ -252,14 +251,12 @@ export default defineNuxtConfig({
       },
     ],
     defaultLocale: 'en',
-    strategy: 'prefix_except_default',
-    detectBrowserLanguage: {
-      redirectOn: 'root',
-      useCookie: true,
-      alwaysRedirect: false,
-      cookieKey: LOCALE_PREFERENCE_COOKIE_NAME,
-      fallbackLocale: 'en',
-    },
+    strategy: 'prefix',
+    // Required so hreflang alternates emit absolute URLs (Google needs absolute).
+    baseUrl: SITE_URL,
+    // Locale detection + redirect from / is handled in server/middleware/00-locale-router.ts
+    // so it can run at the HTTP layer with proper Cache-Control on each branch.
+    detectBrowserLanguage: false,
   },
   compatibilityDate: '2024-07-28',
   build: {
@@ -269,17 +266,15 @@ export default defineNuxtConfig({
     '/api/v1/docs': {
       redirect: { to: '/docs/api/index.html', statusCode: 301 },
     },
-    // Public pages — cached at Cloudflare edge, short TTL so content stays fresh.
-    // Requires a Cloudflare Cache Rule matching these paths with "Eligible for cache".
-    '/': { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
-    '/es': { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
-    '/ja': { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } },
-    '/about': { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } },
-    '/es/about': { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } },
-    '/ja/about': { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } },
-    '/stats': { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } },
-    '/es/stats': { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } },
-    '/ja/stats': { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } },
+    // Caching policy: pages without an explicit rule emit no Cache-Control header.
+    // Cloudflare doesn't cache HTML by default and browsers heuristically cache for
+    // the same user only — fine. To make a page edge-cacheable across users, audit
+    // it for SSR personalization (logged-in nav, hidden-media filter, content-rating
+    // gating, etc.) and only then add a `public, s-maxage=...` rule below.
+    //
+    // `/` is the per-user locale router (server/middleware/00-locale-router.ts) and
+    // must never be shared-cached.
+    '/': { headers: { 'Cache-Control': 'private, no-store' } },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {
@@ -287,11 +282,11 @@ export default defineNuxtConfig({
       },
     }),
     // Private/authenticated areas should never be indexed.
-    '/settings/**': { robots: false },
-    '/user/**': { robots: false },
-    '/admin/**': { robots: false },
-    '/reports': { robots: false },
-    '/reports/**': { robots: false },
+    '/en/settings/**': { robots: false },
+    '/en/user/**': { robots: false },
+    '/en/admin/**': { robots: false },
+    '/en/reports': { robots: false },
+    '/en/reports/**': { robots: false },
     '/es/settings/**': { robots: false },
     '/es/user/**': { robots: false },
     '/es/admin/**': { robots: false },

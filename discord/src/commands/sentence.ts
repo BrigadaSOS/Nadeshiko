@@ -25,7 +25,7 @@ export const data = new SlashCommandBuilder()
   );
 
 export function parseSegmentId(input: string): string {
-  const urlMatch = input.match(/nadeshiko\.co\/sentence\/([A-Za-z0-9_-]+)/);
+  const urlMatch = input.match(/nadeshiko\.co\/(?:(?:en|es|ja)\/)?sentence\/([A-Za-z0-9_-]+)/);
   if (urlMatch) return urlMatch[1];
   return input.trim();
 }
