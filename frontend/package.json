@@ -58,7 +58,7 @@
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.58.2",
     "@types/chrome": "^0.1.35",
-    "@vue/test-utils": "^2.4.6",
+    "@vue/test-utils": "^2.4.10",
     "@vueuse/core": "^14.1.0",
     "@vueuse/nuxt": "^14.1.0",
     "happy-dom": "^20.8.4",
