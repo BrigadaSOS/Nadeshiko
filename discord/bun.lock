@@ -16,7 +16,7 @@
         "@opentelemetry/sdk-metrics": "^2.7.0",
         "@opentelemetry/sdk-node": "^0.215.0",
         "better-sqlite3": "^12.9.0",
-        "discord.js": "^14.26.0",
+        "discord.js": "^14.26.4",
         "pino": "^10.3.1",
         "tsx": "^4.21.0",
       },
@@ -269,7 +269,7 @@
 
     "discord-api-types": ["discord-api-types@0.38.44", "", {}, "sha512-q91MgBzP/gRaCLIbQTaOrOhbD8uVIaPKxpgX2sfFB2nZ9nSiTYM9P3NFQ7cbO6NCxctI6ODttc67MI+YhIfILg=="],
 
-    "discord.js": ["discord.js@14.26.0", "", { "dependencies": { "@discordjs/builders": "^1.14.0", "@discordjs/collection": "1.5.3", "@discordjs/formatters": "^0.6.2", "@discordjs/rest": "^2.6.1", "@discordjs/util": "^1.2.0", "@discordjs/ws": "^1.2.3", "@sapphire/snowflake": "3.5.3", "discord-api-types": "^0.38.40", "fast-deep-equal": "3.1.3", "lodash.snakecase": "4.1.1", "magic-bytes.js": "^1.13.0", "tslib": "^2.6.3", "undici": "6.24.1" } }, "sha512-I+5dmdg7WnjIOEXspX6mJ4jLgblhZV6QpQcC3U2JjrFWnHCKDpoLkhV46SBP8k9QePs3YWJOvndVutUARRO0AQ=="],
+    "discord.js": ["discord.js@14.26.4", "", { "dependencies": { "@discordjs/builders": "^1.14.1", "@discordjs/collection": "1.5.3", "@discordjs/formatters": "^0.6.2", "@discordjs/rest": "^2.6.1", "@discordjs/util": "^1.2.0", "@discordjs/ws": "^1.2.3", "@sapphire/snowflake": "3.5.3", "discord-api-types": "^0.38.40", "fast-deep-equal": "3.1.3", "lodash.snakecase": "4.1.1", "magic-bytes.js": "^1.13.0", "tslib": "^2.6.3", "undici": "6.24.1" } }, "sha512-4oBp8tc6Kf8IDBwAHhbsMaAqx1b5fob9SNasZT7V6yyyUydoO5i5fGuX7TmvRtR+q/WgKRnRViRoAWnG7fNyvA=="],
 
     "emoji-regex": ["emoji-regex@8.0.0", "", {}, "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A=="],
 
