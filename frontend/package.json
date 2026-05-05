@@ -46,7 +46,7 @@
     "pino": "^10.3.0",
     "shiki": "^4.0.0",
     "vue-toastification": "^2.0.0-rc.5",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "overrides": {
     "@vue/devtools-kit": "7.7.8"
