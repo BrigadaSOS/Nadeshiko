@@ -60,6 +60,29 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(result.segments[0].textJa.content).toBe('昨日ラーメンを食べました');
     });
 
+    // Issue #260: Katakana words with empty-reading chars (アイメイ, ウケッ, etc.)
+    // must NOT flood results with unrelated segments that have empty kana tokens.
+    // The fix skips the broken kana field for pure katakana queries, returning
+    // only segments that actually match via surface/baseform/normalized fields.
+    it('katakana with empty-reading chars: only returns matching segments', async () => {
+      // Seed one target + 3 distractors that have empty kana tokens
+      await seedSegmentsIntoEs({}, [{ contentJa: 'アイメイが話しています' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: 'バカッ' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: 'ウケッ' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: 'レロレロ' }]);
+
+      // With broken code: kana field returns empty-token matches for all 4 docs
+      // (スコア 1.01 each via empty-token match), so take=4 returns all 4 segments.
+      // With fix: kana field is skipped for katakana, surface returns only 1 match.
+      const result = await SegmentDocument.search({
+        query: { search: 'アイメイ', exactMatch: false },
+        take: 4,
+      });
+
+      expect(result.segments).toHaveLength(1);
+      expect(result.segments[0].textJa.content).toBe('アイメイが話しています');
+    });
+
     it('finds segment by English text', async () => {
       await seedSegmentsIntoEs({}, [{ contentJa: 'テスト', contentEn: 'Hello world' }]);
 
