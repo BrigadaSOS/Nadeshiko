@@ -81,6 +81,7 @@ import type { SearchRequestOutput, SearchFiltersOutput } from 'generated/outputT
 
 export enum InputScript {
   KANJI = 'kanji',
+  KATAKANA = 'katakana',
   KANA = 'kana',
   ROMAJI = 'romaji',
 }
@@ -377,7 +378,8 @@ export class SegmentQuery {
 
   private static detectInputScript(query: string): InputScript {
     if (/[\u4e00-\u9faf]/.test(query)) return InputScript.KANJI;
-    if (/[\u3040-\u309f]/.test(query) || /[\u30a0-\u30ff]/.test(query)) return InputScript.KANA;
+    if (/[\u3040-\u309f]/.test(query)) return InputScript.KANA;
+    if (/[\u30a0-\u30ff]/.test(query)) return InputScript.KATAKANA;
     return InputScript.ROMAJI;
   }
 
@@ -396,6 +398,14 @@ export class SegmentQuery {
         japaneseBaseform: 5,
         japaneseNormalized: 4,
         japaneseKana: 3,
+        english: 1,
+        spanish: 1,
+      },
+      [InputScript.KATAKANA]: {
+        japanese: 10,
+        japaneseBaseform: 5,
+        japaneseNormalized: 4,
+        japaneseKana: 0,
         english: 1,
         spanish: 1,
       },
