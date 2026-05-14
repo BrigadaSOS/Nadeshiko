@@ -1,7 +1,4 @@
 <script setup lang="ts">
-const { markAsRead } = useBlogNotification();
-onMounted(() => markAsRead());
-
 const { locale, t } = useI18n();
 const route = useRoute();
 

@@ -30,7 +30,6 @@ export interface HiddenMediaItem {
 
 export interface UserPreferences {
   searchHistory?: { enabled: boolean };
-  blogLastVisited?: string;
   ankiProfiles?: AnkiProfile[];
   hiddenMedia?: HiddenMediaItem[];
 }

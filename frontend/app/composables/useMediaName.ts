@@ -9,7 +9,7 @@ type HasMediaNames = {
 const localeToLanguage: Record<string, MediaNameLanguage> = {
   ja: 'JAPANESE',
   en: 'ENGLISH',
-  es: 'ENGLISH',
+  es: 'ROMAJI',
 };
 
 export function useMediaName() {
@@ -17,7 +17,7 @@ export function useMediaName() {
   const store = userStore();
 
   const language = computed<MediaNameLanguage>(() => {
-    if (store.isLoggedIn && store.preferences?.mediaNameLanguage) {
+    if (import.meta.client && store.isLoggedIn && store.preferences?.mediaNameLanguage) {
       return store.preferences.mediaNameLanguage as MediaNameLanguage;
     }
     return localeToLanguage[locale.value] ?? 'ENGLISH';

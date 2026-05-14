@@ -9,7 +9,7 @@
 # Usage:
 #   1. Source your environment variables:
 #      - Local: source .env
-#      - Dev: source .kamal/secrets.dev
+#      - Staging: source .kamal/secrets.staging
 #      - Prod: source .kamal/secrets.prod
 #
 #   2. Start Elasticsearch (if not running):

@@ -383,7 +383,6 @@ export const s_UserPreferences = z.object({
     })
     .optional(),
   searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
-  blogLastVisited: z.iso.datetime({ offset: true }).optional(),
   ankiProfiles: z
     .array(
       z.object({

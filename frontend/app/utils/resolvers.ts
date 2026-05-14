@@ -87,7 +87,11 @@ export function resolveStatsResponse(raw: SdkSearchStatsResponse): SearchStatsRe
         (c): c is CategoryCount & { category: 'ANIME' | 'JDRAMA'; count: number } =>
           (c.category === 'ANIME' || c.category === 'JDRAMA') && typeof c.count === 'number',
       )
-      .map((c) => ({ category: c.category, count: c.count, realCount: c.realCount })) ?? [];
+      .map((c) => ({
+        category: c.category,
+        count: c.count,
+        realCount: (c as CategoryCount & { realCount?: number }).realCount ?? c.count,
+      })) ?? [];
 
   return { media, categories };
 }

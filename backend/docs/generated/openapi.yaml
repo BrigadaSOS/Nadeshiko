@@ -5240,10 +5240,6 @@ components:
             enabled:
               type: boolean
               description: Whether activity tracking is enabled (default true)
-        blogLastVisited:
-          type: string
-          format: date-time
-          description: ISO timestamp of when the user last visited the blog page
         ankiProfiles:
           type: array
           items:

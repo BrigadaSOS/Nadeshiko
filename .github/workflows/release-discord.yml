@@ -16,7 +16,6 @@ permissions:
 jobs:
   deploy-discord:
     runs-on: ubuntu-latest
-    environment: prod
     steps:
       - uses: actions/checkout@v4
 

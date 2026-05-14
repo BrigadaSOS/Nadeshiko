@@ -3,7 +3,7 @@ import { OtlpHttpTransport } from '@grafana/faro-transport-otlp-http';
 import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 import { getPagePath } from '~/utils/pagePath';
 
-const TRACE_HEADER_CORS_URLS = [/^https?:\/\/(dev\.)?nadeshiko\.co/, /^https:\/\/api(?:-dev)?\.nadeshiko\.co/];
+const TRACE_HEADER_CORS_URLS = [/^https?:\/\/(stg\.)?nadeshiko\.co/, /^https:\/\/api(?:-stg)?\.nadeshiko\.co/];
 const IGNORED_URLS = [/cloud\.umami\.is/, /static\.cloudflareinsights\.com/];
 
 function getFaroOrigin(url: string): string | undefined {
@@ -16,7 +16,7 @@ function getFaroOrigin(url: string): string | undefined {
 
 function getAppName(environment: string, configuredName: string): string {
   if (configuredName) return configuredName;
-  return environment === 'development' ? 'nadeshiko-frontend-browser-dev' : 'nadeshiko-frontend-browser-prod';
+  return environment === 'development' ? 'nadeshiko-frontend-browser-stg' : 'nadeshiko-frontend-browser-prod';
 }
 
 function syncRouteContext(faroInstance: Faro) {
