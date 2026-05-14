@@ -1,10 +1,10 @@
-service: nadeshiko-frontend-dev
-image: brigadasos/nadeshiko-frontend-dev
+service: nadeshiko-frontend-stg
+image: brigadasos/nadeshiko-frontend-stg
 
 servers:
   web:
     options:
-      # Memory limit: 768MB RAM + 256MB swap for dev
+      # Memory limit: 768MB RAM + 256MB swap for stg
       memory: 768m
       memory-swap: 1g
 
@@ -14,7 +14,7 @@ builder:
 
 proxy:
   ssl: true
-  host: dev.nadeshiko.co
+  host: stg.nadeshiko.co
   app_port: 3000
   forward_headers: true
 
@@ -25,12 +25,12 @@ env:
   clear:
     NUXT_PUBLIC_ENVIRONMENT: development
     NODE_ENV: production
-    NUXT_BACKEND_INTERNAL_URL: https://api-dev.nadeshiko.co
+    NUXT_BACKEND_INTERNAL_URL: https://api-stg.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
-    OTEL_SERVICE_NAME: nadeshiko-frontend-dev
+    OTEL_SERVICE_NAME: nadeshiko-frontend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
 
     NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co"

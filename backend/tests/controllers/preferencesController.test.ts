@@ -20,7 +20,7 @@ describe('GET /v1/user/preferences', () => {
   it('returns current user preferences', async () => {
     fixtures.users.kevin.preferences = {
       searchHistory: { enabled: true },
-      blogLastVisited: '2026-01-15T12:00:00.000Z',
+      hiddenMedia: [{ mediaPublicId: 'untouched-01' }],
     };
     await fixtures.users.kevin.save();
     signInAs(app, fixtures.users.kevin);
@@ -30,7 +30,7 @@ describe('GET /v1/user/preferences', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       searchHistory: { enabled: true },
-      blogLastVisited: '2026-01-15T12:00:00.000Z',
+      hiddenMedia: [{ mediaPublicId: 'untouched-01' }],
     });
   });
 });
@@ -39,7 +39,7 @@ describe('PATCH /v1/user/preferences', () => {
   it('deep-merges nested objects and preserves unrelated keys', async () => {
     fixtures.users.kevin.preferences = {
       searchHistory: { enabled: true },
-      blogLastVisited: '2026-01-15T12:00:00.000Z',
+      hiddenMedia: [{ mediaPublicId: 'untouched-01' }],
     };
     await fixtures.users.kevin.save();
     signInAs(app, fixtures.users.kevin);
@@ -53,13 +53,13 @@ describe('PATCH /v1/user/preferences', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       searchHistory: { enabled: false },
-      blogLastVisited: '2026-01-15T12:00:00.000Z',
+      hiddenMedia: [{ mediaPublicId: 'untouched-01' }],
     });
 
     const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
     expect(saved.preferences).toEqual({
       searchHistory: { enabled: false },
-      blogLastVisited: '2026-01-15T12:00:00.000Z',
+      hiddenMedia: [{ mediaPublicId: 'untouched-01' }],
     });
   });
 

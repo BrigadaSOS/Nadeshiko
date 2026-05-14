@@ -1,4 +1,14 @@
 <script setup lang="ts">
+interface MarkdownPagePayload {
+  title: string;
+  description: string;
+  html: string;
+  meta?: Record<string, unknown>;
+  date?: string | null;
+  author?: string | null;
+  image?: string | null;
+}
+
 const route = useRoute();
 const { locale } = useI18n();
 const { url: siteUrl } = useSiteConfig();
@@ -19,7 +29,7 @@ const isBlogPost = computed(() => slug.value.startsWith('blog/'));
 const { data } = await useAsyncData(
   () => `content-${locale.value}-${route.path}`,
   () =>
-    $fetch(`/api/content/${slug.value}`, {
+    $fetch<MarkdownPagePayload>(`/api/_site/page/${slug.value}`, {
       query: { locale: locale.value.toLowerCase() },
     }).catch(() => null),
   { watch: [() => route.path, locale] },

@@ -6,8 +6,8 @@ shift || true
 
 case "$environment" in
   dev)
-    base_url="https://dev.nadeshiko.co"
-    parameter_name="/nadeshiko/dev/E2E_USER_PASSWORD"
+    base_url="https://stg.nadeshiko.co"
+    parameter_name="/nadeshiko/staging/E2E_USER_PASSWORD"
     ;;
   prod)
     base_url="https://nadeshiko.co"

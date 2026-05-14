@@ -11,7 +11,7 @@ receivers:
         cors:
           allowed_origins:
             - https://nadeshiko.co
-            - https://dev.nadeshiko.co
+            - https://stg.nadeshiko.co
           allowed_headers: ["*"]
           max_age: 7200
 

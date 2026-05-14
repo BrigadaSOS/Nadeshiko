@@ -243,7 +243,7 @@ describe('GET /v1/user/export', () => {
       {
         preferences: {
           searchHistory: { enabled: false },
-          blogLastVisited: '2026-01-20T10:00:00.000Z',
+          hiddenMedia: [{ mediaPublicId: 'fresh-load-marker' }],
         },
       },
     );
@@ -256,7 +256,7 @@ describe('GET /v1/user/export', () => {
     expect(res.status).toBe(200);
     expect(res.body.preferences).toEqual({
       searchHistory: { enabled: false },
-      blogLastVisited: '2026-01-20T10:00:00.000Z',
+      hiddenMedia: [{ mediaPublicId: 'fresh-load-marker' }],
     });
   });
 });
