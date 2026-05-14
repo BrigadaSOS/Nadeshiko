@@ -17,10 +17,7 @@ import {
 
 const store = userStore();
 const isAuth = computed(() => store.isLoggedIn);
-const { hasNewPost } = useBlogNotification();
-const route = useRoute();
 const localePath = useLocalePath();
-const isOnBlog = computed(() => route.path.startsWith(localePath('/blog')));
 
 function openLoginModal() {
   window.NDOverlay?.close('#nd-nav-sidebar');
@@ -77,12 +74,8 @@ async function submitSidebarSearch() {
                         {{ $t("navbar.buttons.media") }}
                     </NuxtLink>
                     <NuxtLink :to="localePath('/blog')"
-                        class="relative text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
+                        class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.blog") }}
-                        <span
-                          v-if="hasNewPost && !isOnBlog"
-                          class="absolute -top-0.5 -right-2 size-[5px] rounded-full bg-white"
-                        />
                     </NuxtLink>
                     <NuxtLink :to="localePath('/stats')"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
@@ -204,10 +197,6 @@ async function submitSidebarSearch() {
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                     <UiBaseIcon :path="mdiNewspaperVariantOutline" :size="18" />
                     {{ $t("navbar.buttons.blog") }}
-                    <span
-                      v-if="hasNewPost && !isOnBlog"
-                      class="size-1.5 rounded-full bg-header-background"
-                    />
                 </NuxtLink>
                 <NuxtLink :to="localePath('/stats')"
                     class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">

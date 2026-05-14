@@ -82,7 +82,7 @@ Secret files:
 Development:
 
 ```bash
-kamal deploy -d dev
+kamal deploy -d staging
 ```
 
 Production:

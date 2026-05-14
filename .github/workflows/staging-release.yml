@@ -1,4 +1,4 @@
-name: "[Dev] Release"
+name: "[Stg] Release"
 
 on:
   push:
@@ -35,21 +35,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-dev
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
-
-      - name: Fetch build secrets from AWS SSM
-        run: |
-          SENTRY_AUTH_TOKEN=$(aws ssm get-parameter --name "/nadeshiko/dev/SENTRY_AUTH_TOKEN" --with-decryption --query 'Parameter.Value' --output text)
-          echo "::add-mask::${SENTRY_AUTH_TOKEN}"
-          echo "SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -67,12 +60,10 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ghcr.io/brigadasos/nadeshiko-backend-dev:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-backend-dev:latest
+            ghcr.io/brigadasos/nadeshiko-backend-stg:${{ github.sha }}
+            ghcr.io/brigadasos/nadeshiko-backend-stg:latest
           labels: |
-            service=nadeshiko-backend-dev
-          secrets: |
-            SENTRY_AUTH_TOKEN=${{ env.SENTRY_AUTH_TOKEN }}
+            service=nadeshiko-backend-stg
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -109,30 +100,29 @@ jobs:
 
       - name: Prepare secrets for CI
         run: |
-          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' backend/.kamal/secrets.dev
-          sed -i 's/--account nadeshiko-dev //' backend/.kamal/secrets.dev
+          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' backend/.kamal/secrets.staging
+          sed -i 's/--account nadeshiko-staging //' backend/.kamal/secrets.staging
 
-      - name: Deploy backend to dev
+      - name: Deploy backend to stg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
           cd backend
-          kamal deploy -d dev --skip-push
+          kamal deploy -d staging --skip-push
 
   deploy-frontend:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-dev
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
 
       - name: Set up Docker Buildx
@@ -151,10 +141,10 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ghcr.io/brigadasos/nadeshiko-frontend-dev:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-frontend-dev:latest
+            ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ github.sha }}
+            ghcr.io/brigadasos/nadeshiko-frontend-stg:latest
           labels: |
-            service=nadeshiko-frontend-dev
+            service=nadeshiko-frontend-stg
           build-args: |
             NUXT_PUBLIC_ENVIRONMENT=development
           cache-from: type=gha
@@ -193,36 +183,35 @@ jobs:
 
       - name: Prepare secrets for CI
         run: |
-          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' frontend/.kamal/secrets.dev
-          sed -i 's/--account nadeshiko-dev //' frontend/.kamal/secrets.dev
+          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' frontend/.kamal/secrets.staging
+          sed -i 's/--account nadeshiko-staging //' frontend/.kamal/secrets.staging
 
-      - name: Deploy frontend to dev
+      - name: Deploy frontend to stg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
           cd frontend
-          kamal deploy -d dev --skip-push
+          kamal deploy -d staging --skip-push
 
   e2e:
     needs: [deploy-backend, deploy-frontend]
     if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: dev
     steps:
       - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-dev
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
 
       - name: Fetch E2E secrets from AWS SSM
         run: |
-          E2E_USER_PASSWORD=$(aws ssm get-parameter --name "/nadeshiko/dev/E2E_USER_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
+          E2E_USER_PASSWORD=$(aws ssm get-parameter --name "/nadeshiko/staging/E2E_USER_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
           echo "::add-mask::${E2E_USER_PASSWORD}"
           echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
@@ -245,13 +234,13 @@ jobs:
           cd frontend
           npx playwright test --config=e2e/playwright.config.ts
         env:
-          E2E_BASE_URL: https://dev.nadeshiko.co
+          E2E_BASE_URL: https://stg.nadeshiko.co
 
       - name: Upload test report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report-dev
+          name: playwright-report-stg
           path: frontend/playwright-report/
           retention-days: 14
 
@@ -259,7 +248,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.openapi == 'true'
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - uses: actions/checkout@v4
 
@@ -291,7 +279,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.openapi == 'true'
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - uses: actions/checkout@v4
 

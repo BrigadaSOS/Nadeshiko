@@ -681,7 +681,6 @@ export type t_UserPreferences = {
     name: string;
     serverAddress: string;
   }[];
-  blogLastVisited?: string;
   contentRatingPreferences?: {
     nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
@@ -1221,7 +1220,6 @@ export type t_UpdateUserPreferencesRequestBodySchema = {
     name: string;
     serverAddress: string;
   }[];
-  blogLastVisited?: string;
   contentRatingPreferences?: {
     nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
