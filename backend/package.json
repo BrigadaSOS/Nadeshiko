@@ -61,7 +61,7 @@
     "@opentelemetry/instrumentation": "^0.215.0",
     "@opentelemetry/instrumentation-express": "^0.64.0",
     "@opentelemetry/instrumentation-http": "^0.215.0",
-    "@opentelemetry/instrumentation-pg": "^0.68.0",
+    "@opentelemetry/instrumentation-pg": "^0.70.0",
     "@opentelemetry/instrumentation-pino": "^0.61.0",
     "@opentelemetry/instrumentation-runtime-node": "^0.28.0",
     "@opentelemetry/instrumentation-undici": "^0.24.0",
