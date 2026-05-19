@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.1.0
+  version: 2.1.1
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -2064,14 +2064,20 @@ components:
       required:
         - category
         - count
+        - realCount
       properties:
         category:
           $ref: '#/components/schemas/Category'
         count:
           type: integer
-          description: Number of entries in this category
+          description: Number of entries in this category under the current request filters (including any hidden-media exclusion).
           minimum: 0
           example: 1523
+        realCount:
+          type: integer
+          description: Number of entries in this category when the hidden-media exclusion filter is ignored. Equal to `count` when no hidden-media exclusion is in effect.
+          minimum: 0
+          example: 1700
     SearchStatsResponse:
       type: object
       required:
@@ -2156,6 +2162,7 @@ components:
         - word
         - isMatch
         - matchCount
+        - realMatchCount
         - media
       properties:
         word:
@@ -2169,9 +2176,14 @@ components:
           example: true
         matchCount:
           type: integer
-          description: Total number of times this word appears across all media
+          description: Number of times this word appears across media matching the current request filters (including any hidden-media exclusion).
           minimum: 0
           example: 1523
+        realMatchCount:
+          type: integer
+          description: Total occurrences across all media, ignoring the hidden-media exclusion filter. Equal to `matchCount` when no media exclusion is in effect.
+          minimum: 0
+          example: 5231
         media:
           type: array
           description: List of media containing this word
