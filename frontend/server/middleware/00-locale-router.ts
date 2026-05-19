@@ -67,6 +67,8 @@ export default defineEventHandler((event) => {
     return sendRedirect(event, `/${target}${search}`, 302);
   }
 
-  setHeader(event, 'Cache-Control', 'public, max-age=31536000');
-  return sendRedirect(event, `/en${path}${search}`, 301);
+  // Keep unprefixed deep links flexible until locale routing is fully settled.
+  // Browsers can cache 301s aggressively even without a CDN in front.
+  setHeader(event, 'Cache-Control', 'private, no-store');
+  return sendRedirect(event, `/en${path}${search}`, 302);
 });
