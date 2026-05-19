@@ -25,7 +25,7 @@
     "better-sqlite3": "^12.9.0",
     "discord.js": "^14.26.4",
     "pino": "^10.3.1",
-    "tsx": "^4.21.0"
+    "tsx": "^4.22.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
