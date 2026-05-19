@@ -67,7 +67,7 @@
     "@opentelemetry/instrumentation-undici": "^0.24.0",
     "@opentelemetry/resources": "^2.5.0",
     "@opentelemetry/sdk-metrics": "^2.7.1",
-    "@opentelemetry/sdk-node": "^0.215.0",
+    "@opentelemetry/sdk-node": "^0.218.0",
     "backend": "file:",
     "better-auth": "^1.6.9",
     "cors": "^2.8.6",
