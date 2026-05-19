@@ -12,7 +12,7 @@ interface IConcatenation {
   originalContent: IOriginalContent | null;
 }
 
-type TextFieldBase = { content: string; highlight?: string };
+type TextFieldBase = { content: string; highlight?: string; tokens?: unknown };
 
 /**
  * Concatenate a single text field (content or highlight) between current and adjacent segments.
@@ -68,6 +68,7 @@ function concatLangField<T extends TextFieldBase>(
       ...currentField,
       content: concatTextField(curContent, adjContent, 'both', befContent),
       highlight: concatTextField(curHighlight, adjHighlight, 'both', befHighlight),
+      tokens: null,
     } as T;
   }
 
@@ -75,6 +76,7 @@ function concatLangField<T extends TextFieldBase>(
     ...currentField,
     content: concatTextField(curContent, adjContent, direction),
     highlight: concatTextField(curHighlight, adjHighlight, direction),
+    tokens: null,
   } as T;
 }
 
@@ -134,8 +136,10 @@ export function useSegmentConcatenation() {
       const response = raw ? resolveContextResponse(raw) : null;
 
       if (response && response.segments.length > 0) {
-        const previousSegment = response.segments[0];
-        const nextSegment = response.segments[2];
+        const currentIdx = response.segments.findIndex((s) => s.segment.publicId === result.segment.publicId);
+        if (currentIdx === -1) return;
+        const previousSegment = response.segments[currentIdx - 1];
+        const nextSegment = response.segments[currentIdx + 1];
 
         activeConcatenation = {
           result,
@@ -146,12 +150,8 @@ export function useSegmentConcatenation() {
           },
         };
 
-        let concatenatedAudio: Awaited<ReturnType<typeof concatenateAudios>> | null = null;
-
         if (direction === 'forward') {
           if (!nextSegment) return;
-          audioUrls.push(nextSegment.segment.urls.audioUrl);
-          concatenatedAudio = await concatenateAudios(audioUrls);
 
           result.segment = {
             ...result.segment,
@@ -159,10 +159,17 @@ export function useSegmentConcatenation() {
             textEn: concatLangField(result.segment.textEn, nextSegment.segment.textEn, 'forward'),
             textEs: concatLangField(result.segment.textEs, nextSegment.segment.textEs, 'forward'),
           };
+
+          audioUrls.push(nextSegment.segment.urls.audioUrl);
+          try {
+            const concatenatedAudio = await concatenateAudios(audioUrls);
+            result.blobAudioUrl = concatenatedAudio.blob_url;
+            result.blobAudio = concatenatedAudio.blob;
+          } catch (audioErr) {
+            console.error('Audio concatenation failed:', audioErr);
+          }
         } else if (direction === 'backward') {
           if (!previousSegment) return;
-          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
-          concatenatedAudio = await concatenateAudios(audioUrls);
 
           result.segment = {
             ...result.segment,
@@ -170,11 +177,17 @@ export function useSegmentConcatenation() {
             textEn: concatLangField(result.segment.textEn, previousSegment.segment.textEn, 'backward'),
             textEs: concatLangField(result.segment.textEs, previousSegment.segment.textEs, 'backward'),
           };
+
+          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
+          try {
+            const concatenatedAudio = await concatenateAudios(audioUrls);
+            result.blobAudioUrl = concatenatedAudio.blob_url;
+            result.blobAudio = concatenatedAudio.blob;
+          } catch (audioErr) {
+            console.error('Audio concatenation failed:', audioErr);
+          }
         } else if (direction === 'both') {
           if (!previousSegment || !nextSegment) return;
-          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
-          audioUrls.push(nextSegment.segment.urls.audioUrl);
-          concatenatedAudio = await concatenateAudios(audioUrls);
 
           result.segment = {
             ...result.segment,
@@ -197,14 +210,20 @@ export function useSegmentConcatenation() {
               previousSegment.segment.textEs,
             ),
           };
-        }
 
-        if (concatenatedAudio) {
-          result.blobAudioUrl = concatenatedAudio.blob_url;
-          result.blobAudio = concatenatedAudio.blob;
+          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
+          audioUrls.push(nextSegment.segment.urls.audioUrl);
+          try {
+            const concatenatedAudio = await concatenateAudios(audioUrls);
+            result.blobAudioUrl = concatenatedAudio.blob_url;
+            result.blobAudio = concatenatedAudio.blob;
+          } catch (audioErr) {
+            console.error('Audio concatenation failed:', audioErr);
+          }
         }
       }
-    } catch {
+    } catch (error) {
+      console.error('Segment expansion failed:', error);
       activeConcatenation = { result: null, originalContent: null };
     } finally {
       document.querySelectorAll('#concatenate-button').forEach((e) => {
