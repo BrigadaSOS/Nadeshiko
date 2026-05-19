@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.1.0
+  version: 2.1.1
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -574,7 +574,8 @@ paths:
           required: true
           schema:
             type: integer
-          description: Episode number
+            minimum: 0
+          description: Episode number (0 for movies/specials)
           example: 1
       responses:
         '200':
@@ -1295,17 +1296,34 @@ components:
               minimum: 0
               example: 10000
         languages:
-          type: array
           description: |
             Translation languages to include alongside Japanese in search matching.
             - Omitted / `null`: match against Japanese and all translation languages (default)
             - `[]`: match against Japanese only
             - `["EN"]` / `["ES"]` / `["EN", "ES"]`: match against Japanese plus the listed translation languages
-          items:
-            type: string
-            enum:
-              - EN
-              - ES
+
+            Also accepts the legacy object form `{ exclude: ["en", "es"] }` for backward compatibility.
+            The legacy form is translated on receipt: listed codes are excluded from the default language set.
+          oneOf:
+            - type: array
+              items:
+                type: string
+                enum:
+                  - EN
+                  - ES
+            - type: object
+              deprecated: true
+              description: Legacy exclude-based filter. Prefer the array form.
+              properties:
+                exclude:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - en
+                      - es
+                      - EN
+                      - ES
     IncludeExpansion:
       type: string
       description: |
@@ -1407,7 +1425,7 @@ components:
       type: object
       description: Segment with content, translations, search-related highlights, and media URLs
       required:
-        - segmentPublicId
+        - publicId
         - position
         - status
         - startTimeMs
@@ -1420,7 +1438,7 @@ components:
         - textEs
         - urls
       properties:
-        segmentPublicId:
+        publicId:
           type: string
           description: Public ID for the segment (nanoid)
           pattern: ^[A-Za-z0-9_-]{12}$
@@ -1582,7 +1600,7 @@ components:
       type: object
       description: Media entry with full metadata
       required:
-        - mediaPublicId
+        - publicId
         - slug
         - externalIds
         - nameJa
@@ -1602,7 +1620,7 @@ components:
         - seasonName
         - seasonYear
       properties:
-        mediaPublicId:
+        publicId:
           type: string
           description: Public ID for the media (use this in public URLs)
           pattern: ^[A-Za-z0-9_-]{12}$
@@ -1767,7 +1785,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
         pagination:
           $ref: '#/components/schemas/SearchPagination'
     Error400:
@@ -2046,14 +2064,20 @@ components:
       required:
         - category
         - count
+        - realCount
       properties:
         category:
           $ref: '#/components/schemas/Category'
         count:
           type: integer
-          description: Number of entries in this category
+          description: Number of entries in this category under the current request filters (including any hidden-media exclusion).
           minimum: 0
           example: 1523
+        realCount:
+          type: integer
+          description: Number of entries in this category when the hidden-media exclusion filter is ignored. Equal to `count` when no hidden-media exclusion is in effect.
+          minimum: 0
+          example: 1700
     SearchStatsResponse:
       type: object
       required:
@@ -2076,7 +2100,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
     SearchMultipleQuery:
       type: object
       description: What to search for (multiple words)
@@ -2138,6 +2162,7 @@ components:
         - word
         - isMatch
         - matchCount
+        - realMatchCount
         - media
       properties:
         word:
@@ -2151,9 +2176,14 @@ components:
           example: true
         matchCount:
           type: integer
-          description: Total number of times this word appears across all media
+          description: Number of times this word appears across media matching the current request filters (including any hidden-media exclusion).
           minimum: 0
           example: 1523
+        realMatchCount:
+          type: integer
+          description: Total occurrences across all media, ignoring the hidden-media exclusion filter. Equal to `matchCount` when no media exclusion is in effect.
+          minimum: 0
+          example: 5231
         media:
           type: array
           description: List of media containing this word
@@ -2176,7 +2206,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
     SearchMediaFilters:
       type: object
       description: Filters for narrowing media search results
@@ -2212,7 +2242,7 @@ components:
       type: object
       description: Slim media item returned by autocomplete (names + cover only)
       required:
-        - mediaPublicId
+        - publicId
         - slug
         - nameJa
         - nameRomaji
@@ -2220,7 +2250,7 @@ components:
         - coverUrl
         - category
       properties:
-        mediaPublicId:
+        publicId:
           type: string
           description: Public ID for the media
           pattern: ^[A-Za-z0-9_-]{12}$
@@ -2488,7 +2518,7 @@ components:
               type: object
               additionalProperties:
                 $ref: '#/components/schemas/Media'
-              description: Media objects keyed by mediaPublicId. Present only when `include[]=media` is requested.
+              description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
     Episode:
       type: object
       description: Episode entry with metadata and dialogue segment count
@@ -2771,7 +2801,7 @@ components:
       type: object
       description: User segment collection
       required:
-        - collectionPublicId
+        - publicId
         - name
         - type
         - visibility
@@ -2779,7 +2809,7 @@ components:
         - createdAt
         - updatedAt
       properties:
-        collectionPublicId:
+        publicId:
           type: string
           description: Public ID for the collection
           pattern: ^[A-Za-z0-9_-]{12}$
@@ -2831,6 +2861,7 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
           description: Name of the collection
           example: My Study List
         visibility:
