@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@brigadasos/nadeshiko-sdk": "2.1.0-internal.b789c9e",
-    "@grafana/faro-transport-otlp-http": "^2.3.1",
+    "@grafana/faro-transport-otlp-http": "^2.6.3",
     "@grafana/faro-web-sdk": "^2.3.1",
     "@grafana/faro-web-tracing": "^2.3.1",
     "@mdi/js": "^7.4.47",
