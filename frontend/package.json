@@ -67,7 +67,7 @@
     "typescript": "^6.0.2",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^32.0.0",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.8",
     "vue-tsc": "^3.3.2"
   }
 }
