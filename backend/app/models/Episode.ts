@@ -1,9 +1,15 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { Media } from './Media';
 import type { Segment } from './Segment';
 
 @Entity('Episode')
+
+@Index('UQ_Episode_media_external_video_id', ['mediaId', 'externalVideoId'], {
+  unique: true,
+  where: '"external_video_id" IS NOT NULL',
+})
+
 export class Episode extends BaseEntity {
   @PrimaryColumn({ name: 'media_id', type: 'int' })
   mediaId!: number;
@@ -35,6 +41,9 @@ export class Episode extends BaseEntity {
 
   @Column({ name: 'thumbnail_url', type: 'text', nullable: true })
   thumbnailUrl?: string;
+
+  @Column({ name: 'external_video_id', type: 'varchar', nullable: true })
+  externalVideoId?: string | null;
 
   @Column({ name: 'num_segments', type: 'int', default: 0 })
   segmentCount!: number;

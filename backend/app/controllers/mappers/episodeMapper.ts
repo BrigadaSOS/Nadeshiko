@@ -11,6 +11,7 @@ export const toEpisodeDTO = (episode: Episode, mediaPublicId: string): t_Episode
   airedAt: episode.airedAt instanceof Date ? episode.airedAt.toISOString() : (episode.airedAt ?? null),
   lengthSeconds: episode.lengthSeconds ?? null,
   thumbnailUrl: episode.thumbnailUrl ?? null,
+  externalVideoId: episode.externalVideoId ?? null,
   segmentCount: episode.segmentCount,
 });
 

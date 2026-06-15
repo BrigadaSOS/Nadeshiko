@@ -11,7 +11,14 @@ export type {
   MediaListResponse as SdkMediaListResponse,
 } from '@brigadasos/nadeshiko-sdk';
 
-import type { Media, Segment, MediaSearchStats, SearchPagination, WordMatchMedia } from '@brigadasos/nadeshiko-sdk';
+import type {
+  Category,
+  Media,
+  Segment,
+  MediaSearchStats,
+  SearchPagination,
+  WordMatchMedia,
+} from '@brigadasos/nadeshiko-sdk';
 
 /** A search result with includes resolved (segment joined with its media). */
 export type SearchResult = {
@@ -33,7 +40,7 @@ export type ResolvedMediaStats = MediaSearchStats &
   Pick<Media, 'nameRomaji' | 'nameEn' | 'nameJa' | 'category' | 'airingFormat' | 'slug'>;
 
 export type ResolvedCategoryCount = {
-  category: 'ANIME' | 'JDRAMA';
+  category: Category;
   count: number;
   /** Count with the hidden-media exclusion lifted; equals `count` when no exclusion is in effect. */
   realCount: number;

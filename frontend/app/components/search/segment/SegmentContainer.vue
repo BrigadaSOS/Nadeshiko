@@ -264,6 +264,31 @@ const handleTokenSearch = (dictionaryForm: string) => {
 const mediaFilterLink = (mediaId: string, episodeNumber?: number) =>
   localePath(buildMediaSearchPath(mediaId, episodeNumber));
 const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(segmentPublicId));
+
+// Youtube videos logic
+const ytPlayer = useYoutubeSegmentPlayer();
+const playingVideoId = ytPlayer.activeSegmentId;
+
+const isYoutubeSegment = (result: SearchResult) =>
+  result.media.category === 'YOUTUBE' && !!result.segment.externalVideoId;
+
+const onImageClick = (result: SearchResult, index: number) => {
+  const { segment } = result;
+  if (shouldBlur(segment.contentRating) && !revealedContent.value.has(segment.publicId)) return;
+  if (isYoutubeSegment(result)) {
+    playerStore.setPlaylist(resultList.value, index);
+  } else {
+    zoomImage(segment.urls.imageUrl);
+  }
+};
+
+watch(playingVideoId, (id) => {
+  if (!id || !import.meta.client) return;
+  nextTick(() => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+});
+
 </script>
 <template>
   <div ref="containerRef" v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
@@ -292,16 +317,25 @@ const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(s
         'hover:bg-neutral-800/20': focusedIndex !== index && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
       }">
       <!-- Image -->
-      <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
-        <img loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
+      <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] aspect-video min-[650px]:aspect-auto min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
+        <!-- YouTube: playing swaps the screenshot in-place for the player at the timestamp.
+             Empty Vue-managed wrapper; the IFrame API mounts its iframe into a JS-created
+             child (so Vue never diffs/removes the player). -->
+        <div
+          v-if="playingVideoId === result.segment.publicId && result.segment.externalVideoId"
+          :id="ytPlayer.hostId(result.segment.publicId)"
+          data-testid="segment-youtube-host"
+          class="absolute inset-0"
+        />
+        <img v-else loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
-          @click="!(shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId)) && zoomImage(result.segment.urls.imageUrl)"
+          @click="onImageClick(result, index)"
           class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.segment.urls.imageUrl" />
         <button
-          v-if="shouldBlur(result.segment.contentRating)"
+          v-if="shouldBlur(result.segment.contentRating) && playingVideoId !== result.segment.publicId"
           @click="revealedContent.has(result.segment.publicId) ? revealedContent.delete(result.segment.publicId) : revealedContent.add(result.segment.publicId)"
           class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/50 hover:bg-black/70 text-white transition-colors z-10 flex items-center gap-1.5 text-xs">
           <UiBaseIcon
@@ -342,10 +376,10 @@ const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(s
         <div class="flex flex-col">
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
-            <!-- Audio button -->
+            <!-- Audio button (plays the inline YouTube embed for YouTube segments) -->
             <button data-testid="audio-play-button" @click="playerStore.setPlaylist(resultList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
-              <UiBaseIcon v-if="!(isPlaying && currentResult && currentResult.segment.publicId === result.segment.publicId)" w="w-5" h="h-5" size="24"
+              <UiBaseIcon v-if="!((isPlaying && currentResult && currentResult.segment.publicId === result.segment.publicId) || playingVideoId === result.segment.publicId)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
               <span v-else
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
@@ -459,19 +493,35 @@ const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(s
                   lang="ja">
                   {{ mediaName(result.media) }}
                 </NuxtLink>
-                &bull;
-                <NuxtLink
-                  v-if="result.media.airingFormat === 'MOVIE'"
-                  :to="mediaFilterLink(result.media.publicId)"
-                  class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
-                  {{ $t('searchpage.main.labels.movie') }}
-                </NuxtLink>
-                <NuxtLink
-                  v-else
-                  :to="mediaFilterLink(result.media.publicId, result.segment.episode)"
-                  class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
-                  {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
-                </NuxtLink>
+                <!-- YouTube channels have no episode number; link out to the
+                     source video at the segment's timestamp instead. -->
+                <template v-if="result.media.category === 'YOUTUBE'">
+                  &bull;
+                  <a
+                    v-if="result.segment.externalVideoId"
+                    data-testid="segment-youtube-link"
+                    :href="youtubeWatchUrl(result.segment.externalVideoId, result.segment.startTimeMs)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
+                    YouTube
+                  </a>
+                </template>
+                <template v-else>
+                  &bull;
+                  <NuxtLink
+                    v-if="result.media.airingFormat === 'MOVIE'"
+                    :to="mediaFilterLink(result.media.publicId)"
+                    class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
+                    {{ $t('searchpage.main.labels.movie') }}
+                  </NuxtLink>
+                  <NuxtLink
+                    v-else
+                    :to="mediaFilterLink(result.media.publicId, result.segment.episode)"
+                    class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
+                    {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
+                  </NuxtLink>
+                </template>
                 &bull;
                 <NuxtLink
                   data-testid="segment-time-link"

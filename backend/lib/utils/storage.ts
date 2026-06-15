@@ -30,41 +30,42 @@ export function getMediaBannerUrl(media: { storage: SegmentStorage; storageBaseP
   return `${getBaseUrl(media.storage)}/${media.storageBasePath}/banner.webp`;
 }
 
-/**
- * Get the segment image URL.
- * Path pattern: {storageBasePath}/{episodeNumber}/{hashedId}.webp
- */
-export function getSegmentImageUrl(segment: {
+type SegmentForUrl = {
   episode: number;
   storage: SegmentStorage;
   hashedId: string;
   storageBasePath: string;
-}): string {
-  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.webp`;
+  externalVideoId?: string | null;
+};
+
+/**
+ * The per-segment storage folder: the YouTube video ID for YOUTUBE media
+ * otherwise the episode number.
+ */
+function getSegmentFolder(segment: SegmentForUrl): string {
+  return segment.externalVideoId ?? String(segment.episode);
+}
+
+/**
+ * Get the segment image URL.
+ * Path pattern: {storageBasePath}/{episodeNumber|videoId}/{hashedId}.webp
+ */
+export function getSegmentImageUrl(segment: SegmentForUrl): string {
+  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${getSegmentFolder(segment)}/${segment.hashedId}.webp`;
 }
 
 /**
  * Get the segment audio URL.
- * Path pattern: {storageBasePath}/{episodeNumber}/{hashedId}.mp3
+ * Path pattern: {storageBasePath}/{episodeNumber|videoId}/{hashedId}.mp3
  */
-export function getSegmentAudioUrl(segment: {
-  episode: number;
-  storage: SegmentStorage;
-  hashedId: string;
-  storageBasePath: string;
-}): string {
-  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.mp3`;
+export function getSegmentAudioUrl(segment: SegmentForUrl): string {
+  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${getSegmentFolder(segment)}/${segment.hashedId}.mp3`;
 }
 
 /**
  * Get the segment video URL.
- * Path pattern: {storageBasePath}/{episodeNumber}/{hashedId}.mp4
+ * Path pattern: {storageBasePath}/{episodeNumber|videoId}/{hashedId}.mp4
  */
-export function getSegmentVideoUrl(segment: {
-  episode: number;
-  storage: SegmentStorage;
-  hashedId: string;
-  storageBasePath: string;
-}): string {
-  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${segment.episode}/${segment.hashedId}.mp4`;
+export function getSegmentVideoUrl(segment: SegmentForUrl): string {
+  return `${getBaseUrl(segment.storage)}/${segment.storageBasePath}/${getSegmentFolder(segment)}/${segment.hashedId}.mp4`;
 }

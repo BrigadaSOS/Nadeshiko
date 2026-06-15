@@ -105,6 +105,9 @@ export class Segment extends BaseEntity {
   @Column({ type: 'smallint' })
   episode!: number;
 
+  @Column({ name: 'external_video_id', type: 'varchar', nullable: true })
+  externalVideoId?: string | null;
+
   @Column({ name: 'media_id', type: 'int' })
   mediaId!: number;
 
