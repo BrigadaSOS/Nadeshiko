@@ -288,7 +288,6 @@ watch(playingVideoId, (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 });
-
 </script>
 <template>
   <div ref="containerRef" v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
