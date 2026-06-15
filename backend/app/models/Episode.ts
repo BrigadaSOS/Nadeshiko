@@ -9,7 +9,6 @@ import type { Segment } from './Segment';
   unique: true,
   where: '"external_video_id" IS NOT NULL',
 })
-
 export class Episode extends BaseEntity {
   @PrimaryColumn({ name: 'media_id', type: 'int' })
   mediaId!: number;
