@@ -31,6 +31,10 @@ EpisodeFields: &episodeFields
     type: string
     description: URL to episode thumbnail image
     example: "https://example.com/thumbnails/episode1.jpg"
+  externalVideoId:
+    type: string
+    description: External source video identifier (YouTube video ID for YOUTUBE media)
+    example: ZJFMStE1Tjo
 
 # Create-only field (episodeNumber - part of composite key, not updateable)
 EpisodeNumberField: &episodeNumberField

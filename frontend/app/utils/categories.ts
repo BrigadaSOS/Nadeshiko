@@ -6,4 +6,5 @@ import type { Category } from '@brigadasos/nadeshiko-sdk';
 export const CATEGORY_API_MAPPING: Record<string, Category> = {
   anime: 'ANIME',
   liveaction: 'JDRAMA',
+  youtube: 'YOUTUBE',
 } as const;

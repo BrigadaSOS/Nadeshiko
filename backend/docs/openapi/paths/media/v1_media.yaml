@@ -29,7 +29,7 @@ get:
       description: Filter by media category
       schema:
         type: string
-        enum: [ANIME, JDRAMA]
+        enum: [ANIME, JDRAMA, YOUTUBE]
         example: ANIME
     - name: query
       in: query

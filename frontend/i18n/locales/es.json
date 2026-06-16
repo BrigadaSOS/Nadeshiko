@@ -95,8 +95,10 @@
     "seeAll": "Ver todos",
     "sentenceCount": "oraciones",
     "episodes": "Episodios",
+    "videos": "Videos",
     "sentenceCountLabel": "Cantidad de Oraciones:",
     "anilistButton": "Anilist",
+    "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulario"
   },
   "mediaBrowse": {
@@ -755,6 +757,7 @@
     "categoryAll": "Todo",
     "categoryAnime": "Anime",
     "categoryLiveaction": "Live Action",
+    "categoryYoutube": "YouTube",
     "collectionTabPrefix": "Colección",
     "backToCollections": "Colecciones",
     "hiddenMediaNotice": "Este contenido está en tu lista de ocultos",

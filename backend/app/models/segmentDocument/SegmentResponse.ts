@@ -3,6 +3,7 @@ import { logger } from '@config/log';
 import { type Storage, getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
 import { encodeKeysetCursor } from '@lib/cursor';
 import type { Media } from '@app/models';
+import { ALL_CATEGORIES, type CategoryType } from '@app/models';
 import type { SegmentDocumentShape, SlimToken } from '../SegmentDocument';
 import { enhanceHighlight } from './HighlightEnhancer';
 import type {
@@ -81,6 +82,7 @@ export class SegmentResponse {
         const segmentForUrls = {
           mediaId,
           episode: data.episode,
+          externalVideoId: data.externalVideoId,
           storage,
           hashedId: data.hashedId,
           storageBasePath,
@@ -109,6 +111,7 @@ export class SegmentResponse {
           startTimeMs: data.startTimeMs,
           endTimeMs: data.endTimeMs,
           episode: data.episode,
+          externalVideoId: data.externalVideoId ?? null,
           mediaId,
           mediaPublicId: mediaInfo.publicId,
           textJa: {
@@ -158,6 +161,7 @@ export class SegmentResponse {
         imdb: mediaInfo.externalIds.imdb ?? null,
         tmdb: mediaInfo.externalIds.tmdb ?? null,
         tvdb: mediaInfo.externalIds.tvdb ?? null,
+        youtube: mediaInfo.externalIds.youtube ?? null,
       },
       nameJa: mediaInfo.nameJa,
       nameRomaji: mediaInfo.nameRomaji,
@@ -169,7 +173,7 @@ export class SegmentResponse {
       bannerUrl: mediaInfo.banner,
       startDate: mediaInfo.startDate,
       endDate: mediaInfo.endDate ?? null,
-      category: mediaInfo.category as 'ANIME' | 'JDRAMA',
+      category: mediaInfo.category as MediaOutput['category'],
       segmentCount: mediaInfo.segmentCount,
       episodeCount: mediaInfo.episodeCount,
       studio: mediaInfo.studio ?? null,
@@ -366,7 +370,7 @@ export class SegmentResponse {
     }
   }
 
-  private static isCategory(value: unknown): value is 'ANIME' | 'JDRAMA' {
-    return value === 'ANIME' || value === 'JDRAMA';
+  private static isCategory(value: unknown): value is CategoryType {
+    return ALL_CATEGORIES.includes(value as CategoryType);
   }
 }

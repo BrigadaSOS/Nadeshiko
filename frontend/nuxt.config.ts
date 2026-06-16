@@ -99,10 +99,11 @@ export default defineNuxtConfig({
     'nuxt-security',
   ],
   security: {
-    headers: process.dev
-      ? false
-      : {
-          contentSecurityPolicy: {
+    headers: {
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      contentSecurityPolicy: process.dev
+        ? false
+        : {
             'default-src': ["'self'"],
             'script-src': [
               "'self'",
@@ -111,6 +112,7 @@ export default defineNuxtConfig({
               UMAMI_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
+              'https://www.youtube.com',
             ],
             'style-src': ["'self'", "'unsafe-inline'"],
             'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
@@ -129,14 +131,19 @@ export default defineNuxtConfig({
             'worker-src': ["'self'", 'blob:'],
             'media-src': ["'self'", 'blob:', CDN_ORIGIN],
             'object-src': ["'none'"],
-            'frame-src': ["'self'", 'https://discord.com'],
+            'frame-src': [
+              "'self'",
+              'https://discord.com',
+              'https://www.youtube-nocookie.com',
+              'https://www.youtube.com',
+            ],
             'frame-ancestors': ["'none'"],
             'base-uri': ["'self'"],
             'form-action': ["'self'"],
           },
-          // COEP disabled: cross-origin media from cdn.nadeshiko.co lacks CORP headers
-          crossOriginEmbedderPolicy: false,
-        },
+      // COEP disabled: cross-origin media from cdn.nadeshiko.co lacks CORP headers
+      crossOriginEmbedderPolicy: false,
+    },
     rateLimiter: false,
     xssValidator: false,
     requestSizeLimiter: false,

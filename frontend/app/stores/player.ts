@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import type { SearchResult } from '~/types/search';
 
+function isYoutube(result: SearchResult | null): boolean {
+  return !!result && result.media.category === 'YOUTUBE' && !!result.segment.externalVideoId;
+}
+
 interface PlayerState {
   playlist: SearchResult[];
   currentIndex: number | null;
@@ -56,65 +60,91 @@ export const usePlayerStore = defineStore('player', {
       this.playCurrent();
     },
 
+    handleEnded() {
+      if (this.repeat) {
+        this.playCurrent();
+      } else if (this.autoplay) {
+        this.next();
+      } else {
+        this.isPlaying = false;
+      }
+    },
+
+    trackPlay() {
+      const posthog = usePostHog();
+      posthog?.capture('segment_played', {
+        media_id: this.currentResult?.media.publicId,
+        media_name: this.currentResult?.media.nameRomaji,
+        segment_id: this.currentResult?.segment.publicId,
+        playlist_position: this.currentIndex,
+        is_autoplay: this.autoplay,
+      });
+
+      const user = userStore();
+      if (user.isLoggedIn) {
+        const sdk = useNadeshikoSdk();
+        sdk
+          .trackUserActivity({
+            activityType: 'SEGMENT_PLAY',
+            segmentPublicId: this.currentResult?.segment.publicId,
+            mediaPublicId: this.currentResult?.media.publicId,
+            mediaName: this.currentResult?.media.nameRomaji,
+            japaneseText: this.currentResult?.segment.textJa.content,
+          })
+          .catch(() => {});
+      }
+    },
+
     playCurrent() {
       if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio.onended = null;
         this.currentAudio.src = '';
         this.currentAudio.load();
+        this.currentAudio = null;
       }
 
-      if (this.currentResult) {
-        const audioUrl = this.currentResult.blobAudioUrl ?? this.currentResult.segment.urls.audioUrl;
-        this.currentAudio = new Audio(audioUrl);
+      const result = this.currentResult;
+      if (!result) return;
 
-        this.currentAudio
-          .play()
-          .then(() => {
-            this.isPlaying = true;
+      const yt = useYoutubeSegmentPlayer();
 
-            const posthog = usePostHog();
-            posthog?.capture('segment_played', {
-              media_id: this.currentResult?.media.publicId,
-              media_name: this.currentResult?.media.nameRomaji,
-              segment_id: this.currentResult?.segment.publicId,
-              playlist_position: this.currentIndex,
-              is_autoplay: this.autoplay,
-            });
-
-            const user = userStore();
-            if (user.isLoggedIn) {
-              const sdk = useNadeshikoSdk();
-              sdk
-                .trackUserActivity({
-                  activityType: 'SEGMENT_PLAY',
-                  segmentPublicId: this.currentResult?.segment.publicId,
-                  mediaPublicId: this.currentResult?.media.publicId,
-                  mediaName: this.currentResult?.media.nameRomaji,
-                  japaneseText: this.currentResult?.segment.textJa.content,
-                })
-                .catch(() => {});
-            }
-          })
-          .catch((error) => {
-            console.error('Error playing audio:', error);
-            this.isPlaying = false;
-          });
-
-        this.currentAudio.onended = () => {
-          if (this.repeat) {
-            this.playCurrent();
-          } else if (this.autoplay) {
-            this.next();
-          } else {
-            this.isPlaying = false;
-          }
-        };
+      if (isYoutube(result)) {
+        const seg = result.segment;
+        yt.play(seg.publicId, seg.externalVideoId ?? '', seg.startTimeMs, seg.endTimeMs, () => this.handleEnded());
+        this.isPlaying = true;
+        this.trackPlay();
+        return;
       }
+
+      yt.stop();
+      const audioUrl = result.blobAudioUrl ?? result.segment.urls.audioUrl;
+      this.currentAudio = new Audio(audioUrl);
+
+      this.currentAudio
+        .play()
+        .then(() => {
+          this.isPlaying = true;
+          this.trackPlay();
+        })
+        .catch((error) => {
+          console.error('Error playing audio:', error);
+          this.isPlaying = false;
+        });
+
+      this.currentAudio.onended = () => this.handleEnded();
     },
 
     play() {
-      if (this.currentAudio) {
+      if (isYoutube(this.currentResult)) {
+        const yt = useYoutubeSegmentPlayer();
+        if (yt.activeSegmentId.value === this.currentResult?.segment.publicId) {
+          yt.resume();
+        } else {
+          this.playCurrent();
+        }
+        this.isPlaying = true;
+      } else if (this.currentAudio) {
         this.currentAudio.play();
         this.isPlaying = true;
       } else {
@@ -123,7 +153,10 @@ export const usePlayerStore = defineStore('player', {
     },
 
     pause() {
-      if (this.currentAudio) {
+      if (isYoutube(this.currentResult)) {
+        useYoutubeSegmentPlayer().pause();
+        this.isPlaying = false;
+      } else if (this.currentAudio) {
         this.currentAudio.pause();
         this.isPlaying = false;
       }
@@ -182,22 +215,28 @@ export const usePlayerStore = defineStore('player', {
     },
 
     restart() {
-      if (this.currentAudio) {
+      if (isYoutube(this.currentResult)) {
+        useYoutubeSegmentPlayer().restart();
+        this.isPlaying = true;
+      } else if (this.currentAudio) {
         this.currentAudio.currentTime = 0;
         this.currentAudio.play();
         this.isPlaying = true;
-        const posthog = usePostHog();
-        posthog?.capture('segment_replayed', {
-          media_id: this.currentResult?.media.publicId,
-          segment_id: this.currentResult?.segment.publicId,
-        });
+      } else {
+        return;
       }
+      const posthog = usePostHog();
+      posthog?.capture('segment_replayed', {
+        media_id: this.currentResult?.media.publicId,
+        segment_id: this.currentResult?.segment.publicId,
+      });
     },
 
     hidePlayer() {
       if (this.currentAudio) {
         this.currentAudio.pause();
       }
+      useYoutubeSegmentPlayer().stop();
       this.showPlayer = false;
       this.playlist = [];
       this.currentIndex = null;

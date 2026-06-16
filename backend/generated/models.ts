@@ -40,7 +40,7 @@ export type t_Announcement = {
   type: 'INFO' | 'WARNING' | 'MAINTENANCE';
 };
 
-export type t_Category = 'ANIME' | 'JDRAMA';
+export type t_Category = 'ANIME' | 'JDRAMA' | 'YOUTUBE';
 
 export type t_CategoryCount = {
   category: t_Category;
@@ -99,6 +99,7 @@ export type t_Episode = {
   airedAt: string | null;
   description: string | null;
   episodeNumber: number;
+  externalVideoId: string | null;
   lengthSeconds: number | null;
   mediaPublicId: string;
   segmentCount: number;
@@ -202,6 +203,7 @@ export type t_ExternalId = {
   imdb: string | null;
   tmdb: string | null;
   tvdb: string | null;
+  youtube: string | null;
 };
 
 export type t_HeatmapDayCounts = {
@@ -214,7 +216,7 @@ export type t_HeatmapDayCounts = {
 export type t_IncludeExpansion = 'media';
 
 export type t_Media = {
-  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
+  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
   airingStatus: 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED' | 'CANCELLED';
   bannerUrl: string;
   category: t_Category;
@@ -227,7 +229,7 @@ export type t_Media = {
   nameJa: string;
   nameRomaji: string;
   publicId: string;
-  seasonName: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+  seasonName: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL' | 'NONE';
   seasonYear: number;
   segmentCount: number;
   slug: string;
@@ -482,6 +484,7 @@ export type t_Segment = {
   contentRating: t_ContentRating;
   endTimeMs: number;
   episode: number;
+  externalVideoId: string | null;
   mediaPublicId: string;
   position: number;
   publicId: string;
@@ -782,6 +785,7 @@ export type t_CreateEpisodeRequestBodySchema = {
   airedAt?: string;
   description?: string;
   episodeNumber: number;
+  externalVideoId?: string;
   lengthSeconds?: number;
   thumbnailUrl?: string;
   titleEn?: string;
@@ -790,7 +794,7 @@ export type t_CreateEpisodeRequestBodySchema = {
 };
 
 export type t_CreateMediaRequestBodySchema = {
-  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
+  airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
   airingStatus: 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED' | 'CANCELLED';
   category: t_Category;
   endDate?: string;
@@ -800,7 +804,7 @@ export type t_CreateMediaRequestBodySchema = {
   nameEn: string;
   nameJa: string;
   nameRomaji: string;
-  seasonName: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+  seasonName: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL' | 'NONE';
   seasonYear: number;
   startDate: string;
   storage: 'LOCAL' | 'R2';
@@ -995,7 +999,7 @@ export type t_ListEpisodesQuerySchema = {
 };
 
 export type t_ListMediaQuerySchema = {
-  category?: 'ANIME' | 'JDRAMA';
+  category?: 'ANIME' | 'JDRAMA' | 'YOUTUBE';
   cursor?: string;
   query?: string;
   take?: number;
@@ -1144,6 +1148,7 @@ export type t_UpdateEpisodeParamSchema = {
 export type t_UpdateEpisodeRequestBodySchema = {
   airedAt?: string;
   description?: string;
+  externalVideoId?: string;
   lengthSeconds?: number;
   thumbnailUrl?: string;
   titleEn?: string;
@@ -1156,7 +1161,7 @@ export type t_UpdateMediaParamSchema = {
 };
 
 export type t_UpdateMediaRequestBodySchema = {
-  airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL';
+  airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE';
   airingStatus?: 'FINISHED' | 'RELEASING' | 'NOT_YET_RELEASED' | 'CANCELLED';
   category?: t_Category;
   endDate?: string | null;
@@ -1166,7 +1171,7 @@ export type t_UpdateMediaRequestBodySchema = {
   nameEn?: string;
   nameJa?: string;
   nameRomaji?: string;
-  seasonName?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL';
+  seasonName?: 'WINTER' | 'SPRING' | 'SUMMER' | 'FALL' | 'NONE';
   seasonYear?: number;
   segmentCount?: number;
   startDate?: string;
