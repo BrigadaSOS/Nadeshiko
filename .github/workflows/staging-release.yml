@@ -44,7 +44,7 @@ jobs:
 
   deploy-backend:
     needs: changes
-    if: needs.changes.outputs.backend == 'true' || inputs.force_backend == true
+    if: needs.changes.outputs.backend == 'true' || inputs.force_backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
 
   deploy-frontend:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == true
+    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
