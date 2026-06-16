@@ -28,11 +28,9 @@ export const dbEsSyncIssues: MediaAuditCheck = {
     const esResponse = await ctx.esClient.search({
       index: '_all',
       size: 0,
-      body: {
-        aggs: {
-          media: {
-            terms: { field: 'mediaId', size: 10000 },
-          },
+      aggs: {
+        media: {
+          terms: { field: 'mediaId', size: 10000 },
         },
       },
     });
