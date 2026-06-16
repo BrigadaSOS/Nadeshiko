@@ -1,6 +1,6 @@
 import type { estypes } from '@elastic/elasticsearch';
 import { client, INDEX_NAME } from '@config/elasticsearch';
-import { Media, Segment } from '@app/models';
+import { ALL_CATEGORIES, Media, Segment } from '@app/models';
 import { InvalidRequestError } from '@app/errors';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { decodeKeysetCursor } from '@lib/cursor';
@@ -62,6 +62,7 @@ export interface SegmentDocumentShape {
   hashedId: string;
   category: string;
   episode: number;
+  externalVideoId?: string | null;
   mediaId: number;
   storageBasePath: string;
   tokens?: SlimToken[];
@@ -114,7 +115,10 @@ export class SegmentDocument {
     parserMode: QueryParserMode,
     extraFilters: estypes.QueryDslQueryContainer[] = [],
   ): Promise<SearchResponseOutput> {
-    const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
+    const filters: SearchFiltersOutput = request.filters ?? {
+      status: ['ACTIVE'],
+      category: ALL_CATEGORIES,
+    };
     const sl = filters.segmentLengthChars;
     if (sl?.min !== undefined && sl?.max !== undefined && sl.min > sl.max) {
       throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
@@ -192,7 +196,10 @@ export class SegmentDocument {
     request: SearchStatsRequestInput,
     parserMode: QueryParserMode = 'strict',
   ): Promise<SearchStatsResponseOutput> {
-    const filters: SearchFiltersOutput = request.filters ?? { status: ['ACTIVE'], category: ['ANIME', 'JDRAMA'] };
+    const filters: SearchFiltersOutput = request.filters ?? {
+      status: ['ACTIVE'],
+      category: ALL_CATEGORIES,
+    };
     const sl = filters.segmentLengthChars;
     if (sl?.min !== undefined && sl?.max !== undefined && sl.min > sl.max) {
       throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');

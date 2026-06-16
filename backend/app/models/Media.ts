@@ -17,7 +17,10 @@ const MEDIA_INFO_TTL_MS = 24 * 60 * 60 * 1000;
 export enum CategoryType {
   ANIME = 'ANIME',
   JDRAMA = 'JDRAMA',
+  YOUTUBE = 'YOUTUBE',
 }
+
+export const ALL_CATEGORIES: CategoryType[] = Object.values(CategoryType);
 
 interface MediaRelationsOptions {
   includeEpisodes?: boolean;

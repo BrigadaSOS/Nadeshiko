@@ -8,6 +8,7 @@ required:
   - endTimeMs
   - contentRating
   - episode
+  - externalVideoId
   - mediaPublicId
   - textJa
   - textEn
@@ -43,6 +44,13 @@ properties:
     description: Episode number this segment belongs to (0 for movies/specials)
     minimum: 0
     example: 1
+  externalVideoId:
+    type: string
+    nullable: true
+    minLength: 1
+    description: >-
+      External source video ID of this segment's episode (YouTube video ID)
+    example: ZJFMStE1Tjo
   mediaPublicId:
     type: string
     description: Public ID of the media this segment belongs to (nanoid)

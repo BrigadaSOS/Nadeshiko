@@ -21,6 +21,7 @@ import { storeToRefs } from 'pinia';
 const route = useRoute();
 
 const playerStore = usePlayerStore();
+const ytPlayer = useYoutubeSegmentPlayer();
 const { mediaName } = useMediaName();
 const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
   storeToRefs(playerStore);
@@ -152,7 +153,17 @@ const onAudioEnded = () => {
 
 const SEEK_STEP = 1;
 
+const isYoutubeActive = () => currentResult.value?.media.category === 'YOUTUBE';
+
 const seek = (delta: number) => {
+  const seg = currentResult.value?.segment;
+  if (isYoutubeActive() && seg) {
+    const span = (seg.endTimeMs - seg.startTimeMs) / 1000;
+    if (span <= 0) return;
+    const next = Math.min(Math.max(ytPlayer.clipProgress.value + delta / span, 0), 1);
+    ytPlayer.seekToClipFraction(next);
+    return;
+  }
   const audio = playerStore.currentAudio;
   if (!audio || Number.isNaN(audio.duration)) return;
 
@@ -166,6 +177,10 @@ const seekBackward = () => seek(-SEEK_STEP);
 const seekForward = () => seek(SEEK_STEP);
 
 const seekToPercent = (percent: number) => {
+  if (isYoutubeActive()) {
+    ytPlayer.seekToClipFraction(percent);
+    return;
+  }
   const audio = playerStore.currentAudio;
   if (!audio || Number.isNaN(audio.duration)) return;
 
@@ -251,6 +266,12 @@ const updateProgress = () => {
     }
   }
 };
+
+watch(ytPlayer.clipProgress, (p) => {
+  if (currentResult.value && currentResult.value.media.category === 'YOUTUBE') {
+    progress.value = p * 100;
+  }
+});
 
 const getJapaneseContent = (result: any) => {
   if (!result) return '';

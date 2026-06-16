@@ -39,6 +39,7 @@ export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segmen
     },
     contentRating: segment.contentRating as t_Segment['contentRating'],
     episode: segment.episode,
+    externalVideoId: segment.externalVideoId ?? null,
     mediaPublicId: mediaPublicId ?? '',
     urls: {
       imageUrl,
@@ -72,21 +73,25 @@ export const toSegmentInternalListDTO = (segments: Segment[]): t_SegmentInternal
 
 type SegmentCreateAttributesInput = {
   mediaId: number;
-  anilistId: string;
+  primaryExternalId: string;
   airingFormat: string;
   episodeNumber: number;
+  externalVideoId?: string | null;
   storageBasePath: string;
   body: SegmentCreateRequestOutput;
 };
 
 export function toSegmentCreateAttributes(input: SegmentCreateAttributesInput): Partial<Segment> {
-  const { mediaId, anilistId, airingFormat, episodeNumber, storageBasePath, body } = input;
-  const season = airingFormat === 'MOVIE' ? 0 : 1;
-  const uniqueBaseId = `${anilistId}-${season}-${episodeNumber}-${body.position}`;
+  const { mediaId, primaryExternalId, airingFormat, episodeNumber, externalVideoId, storageBasePath, body } = input;
+
+  const uniqueBaseId = externalVideoId
+    ? `${primaryExternalId}-${externalVideoId}-${body.position}`
+    : `${primaryExternalId}-${airingFormat === 'MOVIE' ? 0 : 1}-${episodeNumber}-${body.position}`;
 
   return {
     mediaId,
     storageBasePath,
+    externalVideoId: externalVideoId ?? null,
     publicId: nanoid(12),
     uuid: uuidv3(uniqueBaseId, config.UUID_NAMESPACE),
     position: body.position,

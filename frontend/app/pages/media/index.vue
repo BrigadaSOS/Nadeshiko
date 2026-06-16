@@ -64,7 +64,7 @@ const secondaryMediaNames = (mediaInfo) => {
   return secondary.join(' - ');
 };
 
-const allowedFilterTypes = new Set(['ANIME', 'JDRAMA']);
+const allowedFilterTypes = new Set(['ANIME', 'JDRAMA', 'YOUTUBE']);
 const pageSize = 28;
 let debounceTimeout = null;
 
@@ -318,6 +318,11 @@ watch([searchQuery, filterCategory], () => {
                 @click="handleFilterChange('JDRAMA')"
                 :selected="filterCategory === 'JDRAMA'"
               />
+              <SearchDropdownItem
+                :text="$t('searchContainer.categoryYoutube')"
+                @click="handleFilterChange('YOUTUBE')"
+                :selected="filterCategory === 'YOUTUBE'"
+              />
               <div v-if="hasHiddenMedia" class="my-1 border-t border-white/10"></div>
               <SearchDropdownItem
                 v-if="hasHiddenMedia"
@@ -392,7 +397,8 @@ watch([searchQuery, filterCategory], () => {
               {{ mediaInfo.segmentCount }} {{ $t('animeList.sentenceCount') }}
             </h3>
             <h3 class="text-sm text-center font-medium dark:text-gray-300">
-              <template v-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
+              <template v-if="mediaInfo.category === 'YOUTUBE'">{{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.videos') }}</template>
+              <template v-else-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
               <template v-else>{{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.episodes') }}</template>
             </h3>
           </div>
@@ -478,7 +484,8 @@ watch([searchQuery, filterCategory], () => {
                 <p
                   class="text-sm font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  <template v-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
+                  <template v-if="mediaInfo.category === 'YOUTUBE'">{{ $t('animeList.videos') }}: {{ mediaInfo.episodeCount || 0 }}</template>
+                  <template v-else-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
                   <template v-else>{{ $t('animeList.episodes') }}: {{ mediaInfo.episodeCount || 0 }}</template>
                 </p>
               </div>
@@ -502,6 +509,16 @@ watch([searchQuery, filterCategory], () => {
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-input-focus-ring dark:border-white dark:placeholder-gray-400 dark:text-white"
                   >
                     <div>{{ $t('animeList.anilistButton') }}</div>
+                  </a>
+
+                  <a
+                    v-if="mediaInfo.externalIds?.youtube"
+                    :href="youtubeChannelUrl(mediaInfo.externalIds.youtube)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-input-focus-ring dark:border-white dark:placeholder-gray-400 dark:text-white"
+                  >
+                    <div>{{ $t('animeList.youtubeButton') }}</div>
                   </a>
 
                   <NuxtLink
