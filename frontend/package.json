@@ -21,7 +21,7 @@
     "setup": "bun run bin/setup.ts"
   },
   "dependencies": {
-    "@brigadasos/nadeshiko-sdk": "2.1.0-internal.b789c9e",
+    "@brigadasos/nadeshiko-sdk": "2.2.0-internal.fce7d00",
     "@grafana/faro-transport-otlp-http": "^2.7.1",
     "@grafana/faro-web-sdk": "^2.7.0",
     "@grafana/faro-web-tracing": "^2.7.1",
