@@ -52,6 +52,7 @@ describe('toEpisodeDTO', () => {
       lengthSeconds: 1320,
       thumbnailUrl: 'https://example.com/thumb.jpg',
       segmentCount: 42,
+      externalVideoId: null,
     });
   });
 

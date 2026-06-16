@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Media, MediaUpdateRequest } from '@brigadasos/nadeshiko-sdk';
+import type { Category, Media, MediaUpdateRequest } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
 
@@ -26,7 +26,7 @@ const form = reactive({
   nameEn: '',
   airingFormat: '',
   airingStatus: '',
-  category: 'ANIME' as 'ANIME' | 'JDRAMA',
+  category: 'ANIME' as Category,
   genres: '',
   studio: '',
   startDate: '',
@@ -37,12 +37,13 @@ const form = reactive({
   imdbId: '',
   tvdbId: '',
   tmdbId: '',
+  youtubeId: '',
 });
 
-const airingFormatOptions = ['TV', 'TV_SHORT', 'MOVIE', 'SPECIAL', 'OVA', 'ONA', 'MUSIC'] as const;
+const airingFormatOptions = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE'] as const;
 const airingStatusOptions = ['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED'] as const;
-const categoryOptions = ['ANIME', 'JDRAMA'] as const;
-const seasonOptions = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
+const categoryOptions = ['ANIME', 'JDRAMA', 'YOUTUBE'] as const;
+const seasonOptions = ['WINTER', 'SPRING', 'SUMMER', 'FALL', 'NONE'] as const;
 
 const pillClasses = (active: boolean) => {
   const base =
@@ -61,7 +62,7 @@ watch(
     form.nameEn = m.nameEn || '';
     form.airingFormat = m.airingFormat || '';
     form.airingStatus = m.airingStatus || '';
-    form.category = (m.category as 'ANIME' | 'JDRAMA') || 'ANIME';
+    form.category = m.category || 'ANIME';
     form.genres = (m.genres || []).join(', ');
     form.studio = m.studio || '';
     form.startDate = m.startDate || '';
@@ -72,6 +73,7 @@ watch(
     form.imdbId = m.externalIds?.imdb || '';
     form.tvdbId = m.externalIds?.tvdb || '';
     form.tmdbId = m.externalIds?.tmdb || '';
+    form.youtubeId = m.externalIds?.youtube || '';
     errorMessage.value = '';
     showDeleteConfirm.value = false;
   },
@@ -111,6 +113,7 @@ const submitEdit = async () => {
       imdb: form.imdbId || '',
       tvdb: form.tvdbId || '',
       tmdb: form.tmdbId || '',
+      youtube: form.youtubeId || '',
     };
 
     await sdk.updateMedia({
@@ -139,6 +142,8 @@ const submitEdit = async () => {
         anilist: form.anilistId || undefined,
         imdb: form.imdbId || undefined,
         tvdb: form.tvdbId || undefined,
+        tmdb: form.tmdbId || undefined,
+        youtube: form.youtubeId || undefined,
       },
     };
 
@@ -404,6 +409,15 @@ const submitDelete = async () => {
                 v-model="form.tmdbId"
                 type="text"
                 placeholder="e.g. 90955"
+                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-neutral-500 mb-1">YouTube ID</label>
+              <input
+                v-model="form.youtubeId"
+                type="text"
+                placeholder="e.g. UCxxxxxxxxxxxxxxxx"
                 class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
               />
             </div>

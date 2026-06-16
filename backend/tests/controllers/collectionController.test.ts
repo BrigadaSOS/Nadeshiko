@@ -73,6 +73,7 @@ function toSearchResultSegment(segment: Segment, overrides: Partial<Record<strin
     publicId: segment.publicId,
     mediaPublicId: 'FakeMedia001',
     episode: segment.episode,
+    externalVideoId: null,
     position: segment.position,
     contentRating: segment.contentRating,
     status: segment.status,

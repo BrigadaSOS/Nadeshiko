@@ -18,6 +18,7 @@ function buildMediaRecord(id: number) {
       imdb: null,
       tvdb: null,
       tmdb: null,
+      youtube: null,
     },
     nameJa: `media-${id}-ja`,
     nameRomaji: `media-${id}-romaji`,

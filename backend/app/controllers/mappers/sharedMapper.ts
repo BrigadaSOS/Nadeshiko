@@ -9,6 +9,7 @@ const toExternalIdsMap = (externalIds?: MediaExternalId[]): t_ExternalId => {
     imdb: null,
     tmdb: null,
     tvdb: null,
+    youtube: null,
   };
   for (const ext of externalIds ?? []) {
     const key = ext.source.toLowerCase() as keyof t_ExternalId;
@@ -24,7 +25,7 @@ export const toMediaSummaryDTO = (media: Media): t_MediaSummary => ({
   nameRomaji: media.nameRomaji,
   nameEn: media.nameEn,
   coverUrl: getMediaCoverUrl(media),
-  category: media.category as 'ANIME' | 'JDRAMA',
+  category: media.category as t_MediaSummary['category'],
 });
 
 const toDateString = (date: Date | string): string => {
@@ -46,7 +47,7 @@ export const toMediaBaseDTO = (media: Media): t_Media => ({
   bannerUrl: getMediaBannerUrl(media),
   startDate: toDateString(media.startDate),
   endDate: media.endDate ? toDateString(media.endDate) : null,
-  category: media.category as 'ANIME' | 'JDRAMA',
+  category: media.category as t_Media['category'],
   segmentCount: media.segmentCount,
   episodeCount: media.episodes?.length ?? 0,
   studio: media.studio ?? null,

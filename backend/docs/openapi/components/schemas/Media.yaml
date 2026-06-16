@@ -51,7 +51,7 @@ properties:
   airingFormat:
     type: string
     description: Format of the media release
-    enum: [TV, MOVIE, OVA, ONA, SPECIAL]
+    enum: [TV, MOVIE, OVA, ONA, SPECIAL, YOUTUBE]
     example: TV
   airingStatus:
     type: string
@@ -110,7 +110,7 @@ properties:
   seasonName:
     type: string
     description: Airing season label for the media
-    enum: [WINTER, SPRING, SUMMER, FALL]
+    enum: [WINTER, SPRING, SUMMER, FALL, NONE]
     example: FALL
   seasonYear:
     type: integer

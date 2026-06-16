@@ -10,6 +10,7 @@ required:
   - airedAt
   - lengthSeconds
   - thumbnailUrl
+  - externalVideoId
   - segmentCount
 properties:
   mediaPublicId:
@@ -65,6 +66,13 @@ properties:
     minLength: 1
     description: URL to episode thumbnail image
     example: "https://example.com/thumbnails/episode1.jpg"
+  externalVideoId:
+    type: string
+    nullable: true
+    minLength: 1
+    description: >-
+      External source video identifier for this episode
+    example: ZJFMStE1Tjo
   segmentCount:
     type: integer
     description: Number of segments in this episode

@@ -28,7 +28,7 @@ export const s_Announcement = z.object({
   active: PermissiveBoolean,
 });
 
-export const s_Category = z.enum(['ANIME', 'JDRAMA']);
+export const s_Category = z.enum(['ANIME', 'JDRAMA', 'YOUTUBE']);
 
 export const s_CollectionVisibility = z.enum(['PUBLIC', 'PRIVATE']);
 
@@ -60,6 +60,7 @@ export const s_Episode = z.object({
   airedAt: z.iso.datetime({ offset: true }).nullable(),
   lengthSeconds: z.coerce.number().min(0).nullable(),
   thumbnailUrl: z.string().min(1).nullable(),
+  externalVideoId: z.string().min(1).nullable(),
   segmentCount: z.coerce.number().min(0),
 });
 
@@ -71,6 +72,7 @@ export const s_EpisodeCreateRequest = z.object({
   airedAt: z.iso.datetime({ offset: true }).optional(),
   lengthSeconds: z.coerce.number().optional(),
   thumbnailUrl: z.string().optional(),
+  externalVideoId: z.string().optional(),
   episodeNumber: z.coerce.number().min(0),
 });
 
@@ -82,6 +84,7 @@ export const s_EpisodeUpdateRequest = z.object({
   airedAt: z.iso.datetime({ offset: true }).optional(),
   lengthSeconds: z.coerce.number().optional(),
   thumbnailUrl: z.string().optional(),
+  externalVideoId: z.string().optional(),
 });
 
 export const s_Error400 = z.object({
@@ -159,6 +162,7 @@ export const s_ExternalId = z.object({
   imdb: z.string().min(1).nullable(),
   tvdb: z.string().min(1).nullable(),
   tmdb: z.string().min(1).nullable(),
+  youtube: z.string().min(1).nullable(),
 });
 
 export const s_HeatmapDayCounts = z.object({
@@ -509,7 +513,7 @@ export const s_Media = z.object({
   nameJa: z.string().min(1),
   nameRomaji: z.string().min(1),
   nameEn: z.string().min(1),
-  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL']),
+  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE']),
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']),
   genres: z.array(z.string().min(1)),
   coverUrl: z.string().min(1),
@@ -520,7 +524,7 @@ export const s_Media = z.object({
   segmentCount: z.coerce.number().min(0),
   episodeCount: z.coerce.number().min(0),
   studio: z.string().nullable(),
-  seasonName: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL']),
+  seasonName: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL', 'NONE']),
   seasonYear: z.coerce.number().min(1900).max(2100),
 });
 
@@ -529,7 +533,7 @@ export const s_MediaCreateRequest = z.object({
   nameJa: z.string(),
   nameRomaji: z.string(),
   nameEn: z.string(),
-  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL']),
+  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE']),
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']),
   genres: z.array(z.string()),
   storage: z.enum(['LOCAL', 'R2']).default('R2'),
@@ -539,7 +543,7 @@ export const s_MediaCreateRequest = z.object({
   version: z.string(),
   hashSalt: z.string(),
   studio: z.string().nullable().optional(),
-  seasonName: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL']),
+  seasonName: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL', 'NONE']),
   seasonYear: z.coerce.number(),
   storageBasePath: z.string().optional(),
 });
@@ -559,7 +563,7 @@ export const s_MediaUpdateRequest = z.object({
   nameJa: z.string().optional(),
   nameRomaji: z.string().optional(),
   nameEn: z.string().optional(),
-  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL']).optional(),
+  airingFormat: z.enum(['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'YOUTUBE']).optional(),
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']).optional(),
   genres: z.array(z.string()).optional(),
   storage: z.enum(['LOCAL', 'R2']).optional(),
@@ -569,7 +573,7 @@ export const s_MediaUpdateRequest = z.object({
   version: z.string().optional(),
   hashSalt: z.string().optional(),
   studio: z.string().nullable().optional(),
-  seasonName: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL']).optional(),
+  seasonName: z.enum(['WINTER', 'SPRING', 'SUMMER', 'FALL', 'NONE']).optional(),
   seasonYear: z.coerce.number().optional(),
   storageBasePath: z.string().optional(),
   segmentCount: z.coerce.number().min(0).optional(),
@@ -581,7 +585,7 @@ export const s_SearchFilters = z.object({
   media: z
     .object({ include: z.array(s_MediaFilterItem).optional(), exclude: z.array(s_MediaFilterItem).optional() })
     .optional(),
-  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']),
+  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE']),
   contentRating: z.array(s_ContentRating).optional(),
   status: z.array(s_SegmentStatus).optional().default(['ACTIVE']),
   segmentLengthChars: z
@@ -595,7 +599,9 @@ export const s_SearchFilters = z.object({
     .optional(),
 });
 
-export const s_SearchMediaFilters = z.object({ category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA']) });
+export const s_SearchMediaFilters = z.object({
+  category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE']),
+});
 
 export const s_Segment = z.object({
   publicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
@@ -605,6 +611,7 @@ export const s_Segment = z.object({
   endTimeMs: z.coerce.number().min(0),
   contentRating: s_ContentRating,
   episode: z.coerce.number().min(0),
+  externalVideoId: z.string().min(1).nullable(),
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   textJa: z.object({
     content: z.string().min(1).max(500),

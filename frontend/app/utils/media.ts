@@ -175,6 +175,14 @@ export function zoomImage(url: string) {
   ampliada.onclick = close;
 }
 
+export function youtubeWatchUrl(videoId: string, startMs: number): string {
+  return `https://www.youtube.com/watch?v=${videoId}&t=${Math.max(0, Math.floor(startMs / 1000))}`;
+}
+
+export function youtubeChannelUrl(channelId: string): string {
+  return `https://www.youtube.com/channel/${channelId}`;
+}
+
 const stripHTMLTags = (html: string): string => {
   const div = document.createElement('div');
   div.innerHTML = html;

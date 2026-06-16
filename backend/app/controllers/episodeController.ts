@@ -34,6 +34,15 @@ export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => 
 export const createEpisode: CreateEpisode = async ({ params, body }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
 
+  if (body.externalVideoId) {
+    const existing = await Episode.findOne({
+      where: { mediaId: media.id, externalVideoId: body.externalVideoId },
+    });
+    if (existing) {
+      return respond.with201().body(toEpisodeDTO(existing, media.publicId));
+    }
+  }
+
   const episode = await Episode.save({
     mediaId: media.id,
     episodeNumber: body.episodeNumber,
@@ -44,6 +53,7 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
     airedAt: body.airedAt,
     lengthSeconds: body.lengthSeconds,
     thumbnailUrl: body.thumbnailUrl,
+    externalVideoId: body.externalVideoId,
   });
 
   return respond.with201().body(toEpisodeDTO(episode, media.publicId));

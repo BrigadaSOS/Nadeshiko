@@ -95,8 +95,10 @@
     "seeAll": "すべて見る",
     "sentenceCount": "文",
     "episodes": "エピソード",
+    "videos": "動画",
     "sentenceCountLabel": "文:",
     "anilistButton": "Anilist",
+    "youtubeButton": "YouTube",
     "vocabularyButton": "語彙"
   },
   "mediaBrowse": {
@@ -755,6 +757,7 @@
     "categoryAll": "すべて",
     "categoryAnime": "アニメ",
     "categoryLiveaction": "実写",
+    "categoryYoutube": "YouTube",
     "collectionTabPrefix": "コレクション",
     "backToCollections": "コレクション一覧",
     "hiddenMediaNotice": "この作品は非表示リストに含まれています",

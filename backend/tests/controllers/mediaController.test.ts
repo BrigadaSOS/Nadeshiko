@@ -157,6 +157,7 @@ describe('POST /v1/media', () => {
                 imdb: 'tt12345',
                 tvdb: null,
                 tmdb: null,
+                youtube: null,
               },
             }),
           );
@@ -235,6 +236,7 @@ describe('PATCH /v1/media/:id', () => {
           imdb: null,
           tvdb: 'new-tvdb',
           tmdb: null,
+          youtube: null,
         },
       });
 
@@ -244,6 +246,7 @@ describe('PATCH /v1/media/:id', () => {
       imdb: null,
       tmdb: null,
       tvdb: 'new-tvdb',
+      youtube: null,
     });
 
     const rows = await MediaExternalId.findBy({ mediaId: media.id });

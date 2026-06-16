@@ -21,7 +21,7 @@ import type { WordMatch } from '@brigadasos/nadeshiko-sdk';
 const emptyMedia = (mediaPublicId: string): Media => ({
   publicId: mediaPublicId,
   slug: '',
-  externalIds: { anilist: '', imdb: '', tmdb: '', tvdb: '' },
+  externalIds: { anilist: '', imdb: '', tmdb: '', tvdb: '', youtube: '' },
   nameJa: '',
   nameRomaji: '',
   nameEn: '',

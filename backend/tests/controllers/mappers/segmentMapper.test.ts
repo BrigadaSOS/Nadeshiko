@@ -83,7 +83,7 @@ describe('segment.mapper', () => {
   it('maps create attributes with deterministic uuid and defaults', () => {
     const attrs = toSegmentCreateAttributes({
       mediaId: 10,
-      anilistId: '99999',
+      primaryExternalId: '99999',
       airingFormat: 'TV',
       episodeNumber: 2,
       storageBasePath: '/anime/show',
@@ -109,7 +109,7 @@ describe('segment.mapper', () => {
   it('uses season 0 for MOVIE airing format in uuid', () => {
     const attrs = toSegmentCreateAttributes({
       mediaId: 10,
-      anilistId: '99999',
+      primaryExternalId: '99999',
       airingFormat: 'MOVIE',
       episodeNumber: 1,
       storageBasePath: '/anime/movie',
