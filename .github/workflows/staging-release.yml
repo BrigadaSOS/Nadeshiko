@@ -5,6 +5,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      force_backend:
+        description: 'Force backend deployment'
+        required: false
+        default: 'false'
+        type: boolean
+      force_frontend:
+        description: 'Force frontend deployment'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: read
@@ -33,7 +44,7 @@ jobs:
 
   deploy-backend:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || inputs.force_backend == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +125,7 @@ jobs:
 
   deploy-frontend:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
