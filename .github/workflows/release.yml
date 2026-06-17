@@ -116,18 +116,8 @@ jobs:
         with:
           ruby-version: '3.4'
 
-      - name: Install Kamal from fork
-        run: |
-          git clone --depth 1 https://github.com/davafons/kamal.git /tmp/kamal
-          cd /tmp/kamal
-          gem build kamal.gemspec
-          gem install kamal-*.gem
-
-
-      - name: Prepare secrets for CI
-        run: |
-          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' backend/.kamal/secrets.prod
-          sed -i 's/--account nadeshiko-prod //' backend/.kamal/secrets.prod
+      - name: Install Kamal
+        run: gem install kamal -v '~> 2.0'
 
       - name: Deploy backend to prod
         env:
@@ -208,18 +198,8 @@ jobs:
         with:
           ruby-version: '3.4'
 
-      - name: Install Kamal from fork
-        run: |
-          git clone --depth 1 https://github.com/davafons/kamal.git /tmp/kamal
-          cd /tmp/kamal
-          gem build kamal.gemspec
-          gem install kamal-*.gem
-
-
-      - name: Prepare secrets for CI
-        run: |
-          sed -i 's/$(gh auth token)/$GITHUB_TOKEN/' frontend/.kamal/secrets.prod
-          sed -i 's/--account nadeshiko-prod //' frontend/.kamal/secrets.prod
+      - name: Install Kamal
+        run: gem install kamal -v '~> 2.0'
 
       - name: Deploy frontend to prod
         env:
