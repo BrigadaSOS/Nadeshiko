@@ -48,6 +48,7 @@ env:
   clear:
     ENVIRONMENT: production
     PORT: 80
+    RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://nadeshiko.co
 
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
