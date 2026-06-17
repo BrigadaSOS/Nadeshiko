@@ -7,6 +7,11 @@ const optionalString = z
 
 const requiredString = z.string().trim().min(1);
 
+const booleanString = z
+  .enum(['true', 'false'])
+  .default('false')
+  .transform((v) => v === 'true');
+
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['local', 'development', 'production']),
   PORT: z.coerce.number().int().positive(),
@@ -58,6 +63,12 @@ const envSchema = z.object({
   OTEL_SERVICE_NAME: optionalString,
 
   DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().nonnegative().default(200),
+
+  // When enabled, pending TypeORM migrations run automatically on app boot
+  // (before workers start). Set to "true" in deployed environments so a deploy
+  // applies schema changes; left off for local/test where the schema is managed
+  // explicitly via the db: scripts.
+  RUN_MIGRATIONS_ON_BOOT: booleanString,
 
   LOG_LEVEL: optionalString,
   DB_LOG_LEVEL: optionalString,
