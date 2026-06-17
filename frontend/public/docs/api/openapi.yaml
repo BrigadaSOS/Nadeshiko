@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.1.1
+  version: 2.2.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -142,6 +142,7 @@ paths:
             enum:
               - ANIME
               - JDRAMA
+              - YOUTUBE
             example: ANIME
         - name: query
           in: query
@@ -1206,12 +1207,15 @@ components:
       enum:
         - ANIME
         - JDRAMA
+        - YOUTUBE
       example: ANIME
       x-enum-descriptions:
         - value: ANIME
           description: Anime
         - value: JDRAMA
           description: Japanese Drama
+        - value: YOUTUBE
+          description: YouTube channel
     ContentRating:
       type: string
       description: Content rating level for the segment
@@ -1255,6 +1259,7 @@ components:
           default:
             - ANIME
             - JDRAMA
+            - YOUTUBE
         contentRating:
           type: array
           description: Content ratings to include (omit for all ratings)
@@ -1432,6 +1437,7 @@ components:
         - endTimeMs
         - contentRating
         - episode
+        - externalVideoId
         - mediaPublicId
         - textJa
         - textEn
@@ -1467,6 +1473,12 @@ components:
           description: Episode number this segment belongs to (0 for movies/specials)
           minimum: 0
           example: 1
+        externalVideoId:
+          type: string
+          nullable: true
+          minLength: 1
+          description: External source video ID of this segment's episode (YouTube video ID)
+          example: ZJFMStE1Tjo
         mediaPublicId:
           type: string
           description: Public ID of the media this segment belongs to (nanoid)
@@ -1571,6 +1583,7 @@ components:
         - imdb
         - tvdb
         - tmdb
+        - youtube
       properties:
         anilist:
           type: string
@@ -1596,6 +1609,12 @@ components:
           minLength: 1
           description: TMDB ID
           example: '90955'
+        youtube:
+          type: string
+          nullable: true
+          minLength: 1
+          description: YouTube channel ID
+          example: UCauyM-A8JIJ9NQcw5_jF00Q
     Media:
       type: object
       description: Media entry with full metadata
@@ -1656,6 +1675,7 @@ components:
             - OVA
             - ONA
             - SPECIAL
+            - YOUTUBE
           example: TV
         airingStatus:
           type: string
@@ -1727,6 +1747,7 @@ components:
             - SPRING
             - SUMMER
             - FALL
+            - NONE
           example: FALL
         seasonYear:
           type: integer
@@ -2219,6 +2240,7 @@ components:
           default:
             - ANIME
             - JDRAMA
+            - YOUTUBE
     SearchMediaRequest:
       type: object
       required:
@@ -2532,6 +2554,7 @@ components:
         - airedAt
         - lengthSeconds
         - thumbnailUrl
+        - externalVideoId
         - segmentCount
       properties:
         mediaPublicId:
@@ -2587,6 +2610,12 @@ components:
           minLength: 1
           description: URL to episode thumbnail image
           example: https://example.com/thumbnails/episode1.jpg
+        externalVideoId:
+          type: string
+          nullable: true
+          minLength: 1
+          description: External source video identifier for this episode
+          example: ZJFMStE1Tjo
         segmentCount:
           type: integer
           description: Number of segments in this episode
