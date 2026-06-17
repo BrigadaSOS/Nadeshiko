@@ -20,36 +20,21 @@ Nadeshiko is an online sentence search engine designed to display content from a
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, available commands, and how to submit changes.
 
-## Release Versioning
-From the repository root:
+## Deployment
+
+Pushing to `main` deploys to staging (https://stg.nadeshiko.co). Pushing a
+`vX.Y.Z` tag deploys to production (https://nadeshiko.co) and publishes the
+public SDKs. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full workflow,
+including how OpenAPI changes drive the internal SDK and how to cut a release.
+
+Quick prod release from the repository root:
 
 ```bash
 bun run release:set-version 1.2.3
-bun run release:check-version
-```
-
-Tag and push the backend release:
-
-```bash
-git tag -a backend-v1.2.3 -m "Backend v1.2.3"
-git push origin backend-v1.2.3
-```
-
-Tag and push the frontend release:
-
-```bash
-git tag -a frontend-v1.2.3 -m "Frontend v1.2.3"
-git push origin frontend-v1.2.3
-```
-
-To release only one app version instead of both:
-
-```bash
-bun run release:set-version 1.2.3 --backend
-bun run release:check-version 1.2.3 --backend
-
-bun run release:set-version 1.2.3 --frontend
-bun run release:check-version 1.2.3 --frontend
+bun run release:check-version 1.2.3
+# commit the version bump to main, then:
+git tag -a v1.2.3 -m "v1.2.3"
+git push origin v1.2.3
 ```
 
 ## Projects Using Nadeshiko
