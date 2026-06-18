@@ -33,4 +33,6 @@ env:
     OTEL_SERVICE_NAME: nadeshiko-frontend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
 
-    NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co"
+    # Faro browser telemetry disabled — not consuming the data yet.
+    # Re-enable by restoring this URL (plugin no-ops when empty).
+    # NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co"
