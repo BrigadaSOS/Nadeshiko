@@ -2,6 +2,7 @@ import { LOCALE_PREFERENCE_COOKIE_NAME, SUPPORTED_LOCALES, type SupportedLocale 
 
 const RESERVED_PREFIXES = [
   '/_nuxt/',
+  '/_i18n/',
   '/api/',
   '/v1/',
   '/__sitemap__',
