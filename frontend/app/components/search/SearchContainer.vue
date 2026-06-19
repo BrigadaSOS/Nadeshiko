@@ -22,9 +22,9 @@ const recomputeCategories = (
   media: ResolvedMediaStats[],
   originalCategories: ResolvedCategoryCount[],
 ): ResolvedCategoryCount[] => {
-  const counts = new Map<'ANIME' | 'JDRAMA', number>();
+  const counts = new Map<ResolvedCategoryCount['category'], number>();
   for (const m of media) {
-    const cat = m.category === 'JDRAMA' ? 'JDRAMA' : 'ANIME';
+    const cat = m.category;
     counts.set(cat, (counts.get(cat) ?? 0) + m.matchCount);
   }
   const realByCategory = new Map(originalCategories.map((c) => [c.category, c.realCount]));
@@ -163,7 +163,10 @@ const applyRouteQuery = (r: RouteLocationNormalized) => {
   query.value = getSearchQuery(r);
   const queryParams = r.query || {};
   const categoryParam = getStringQueryValue(queryParams.category);
-  category.value = categoryParam === 'anime' || categoryParam === 'liveaction' ? categoryParam : 'all';
+  category.value =
+    categoryParam === 'anime' || categoryParam === 'liveaction' || categoryParam === 'youtube'
+      ? categoryParam
+      : 'all';
   media.value = getStringQueryValue(queryParams.media ?? queryParams.mediaId);
   sort.value = getStringQueryValue(queryParams.sort);
   uuid.value = getStringQueryValue(queryParams.uuid);
@@ -643,6 +646,9 @@ onBeforeRouteUpdate(async (to, from) => {
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
                                 category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :totalCount="getCategoryTotalCount('liveaction')" :isActive="category === 'liveaction'"
                                 @click="categoryFilter('liveaction')" />
+                            <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'YOUTUBE')"
+                                category="youtube" :categoryName="t('searchContainer.categoryYoutube')" :count="getCategoryCount('youtube')" :totalCount="getCategoryTotalCount('youtube')" :isActive="category === 'youtube'"
+                                @click="categoryFilter('youtube')" />
                         </CommonTabsHeader>
                     </CommonTabsContainer>
                 </div>
