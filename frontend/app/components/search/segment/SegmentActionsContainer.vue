@@ -23,6 +23,7 @@ import {
 import { ankiStore } from '@/stores/anki';
 import { userStore } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
+import { tokensToAnkiFurigana, type SlimToken } from '~/utils/tokenEnrichment';
 import { useToastError, useToastSuccess } from '~/utils/toast';
 
 const { englishMode, spanishMode } = useTranslationVisibility();
@@ -174,6 +175,17 @@ const quickAddToLastCollection = async () => {
 
 const openCollectionsPage = async () => {
   await router.push(localePath('/user/collections'));
+};
+
+const jaTokens = computed<SlimToken[] | null>(() => {
+  const tokens = (props.content.segment.textJa as { tokens?: SlimToken[] }).tokens;
+  return tokens && tokens.length > 0 ? tokens : null;
+});
+
+const copyFurigana = () => {
+  const tokens = jaTokens.value;
+  if (!tokens) return;
+  copyToClipboard(tokensToAnkiFurigana(props.content.segment.textJa.content, tokens));
 };
 </script>
 <template>
@@ -327,6 +339,8 @@ const openCollectionsPage = async () => {
         </div>
         <SearchDropdownItem @click="copyToClipboard(content.segment.textJa.content)"
           :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
+        <SearchDropdownItem v-if="jaTokens" @click="copyFurigana()"
+          :text="$t('searchpage.main.buttons.jpsentencefurigana')" :iconPath="mdiText" />
         <SearchDropdownItem v-if="englishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEn.content)"
           :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
         <SearchDropdownItem v-if="spanishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEs.content)"

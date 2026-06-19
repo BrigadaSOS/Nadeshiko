@@ -112,6 +112,36 @@ export function segmentFurigana(surface: string, reading: string): FuriganaSegme
   return segments;
 }
 
+/**
+ * Render a tokenized sentence in Anki furigana notation, e.g.
+ * `そっか　10 年[ねん] 前[まえ]の 初恋[はつこい]`. Each kanji run is followed by its
+ * reading in brackets and prefixed with a separator space (the Anki convention
+ * for delimiting where the previous word's kana ends). Gaps between tokens
+ * (spaces, punctuation) are copied verbatim from the original content.
+ */
+export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): string {
+  let result = '';
+  let pos = 0;
+
+  for (const token of tokens) {
+    if (token.b > pos) {
+      result += content.slice(pos, token.b);
+    }
+    const reading = katakanaToHiragana(token.r ?? '');
+    for (const seg of segmentFurigana(token.s, reading)) {
+      result += seg.reading ? ` ${seg.text}[${seg.reading}]` : seg.text;
+    }
+    pos = token.e;
+  }
+
+  if (pos < content.length) {
+    result += content.slice(pos);
+  }
+
+  // No separator space needed when the sentence opens with a furigana word.
+  return result.replace(/^ /, '');
+}
+
 const STEM_POS = new Set(['動詞', '形容詞']);
 const MORPHO_CONJ_PARTICLES = new Set(['て', 'で', 'ちゃ']);
 
