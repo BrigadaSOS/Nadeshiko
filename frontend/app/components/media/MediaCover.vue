@@ -16,7 +16,7 @@ const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
       :src="media.coverUrl"
       :alt="alt"
       loading="lazy"
-      class="absolute inset-0 w-full h-full object-cover scale-150 blur-xl brightness-[0.35]"
+      class="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl brightness-[0.75] saturate-[2.2] contrast-125"
     />
     <!-- Channel avatar -->
     <img
