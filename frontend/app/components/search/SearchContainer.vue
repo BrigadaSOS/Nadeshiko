@@ -164,9 +164,7 @@ const applyRouteQuery = (r: RouteLocationNormalized) => {
   const queryParams = r.query || {};
   const categoryParam = getStringQueryValue(queryParams.category);
   category.value =
-    categoryParam === 'anime' || categoryParam === 'liveaction' || categoryParam === 'youtube'
-      ? categoryParam
-      : 'all';
+    categoryParam === 'anime' || categoryParam === 'liveaction' || categoryParam === 'youtube' ? categoryParam : 'all';
   media.value = getStringQueryValue(queryParams.media ?? queryParams.mediaId);
   sort.value = getStringQueryValue(queryParams.sort);
   uuid.value = getStringQueryValue(queryParams.uuid);
