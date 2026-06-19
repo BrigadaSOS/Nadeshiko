@@ -282,14 +282,10 @@ watch(
   { immediate: true },
 );
 
-const onImageClick = (result: SearchResult, index: number) => {
+const onImageClick = (result: SearchResult) => {
   const { segment } = result;
   if (shouldBlur(segment.contentRating) && !revealedContent.value.has(segment.publicId)) return;
-  if (isYoutubeSegment(result)) {
-    playerStore.setPlaylist(resultList.value, index);
-  } else {
-    zoomImage(segment.urls.imageUrl);
-  }
+  zoomImage(segment.urls.imageUrl);
 };
 
 watch(playingVideoId, (id) => {
@@ -338,7 +334,7 @@ watch(playingVideoId, (id) => {
         />
         <img v-else loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
-          @click="onImageClick(result, index)"
+          @click="onImageClick(result)"
           class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
