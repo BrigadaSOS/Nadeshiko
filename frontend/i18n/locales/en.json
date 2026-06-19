@@ -273,6 +273,7 @@
         "info": "Episode Info",
         "copyclipboard": "Copy",
         "jpsentence": "Japanese sentence",
+        "jpsentencefurigana": "Japanese sentence (with furigana)",
         "ensentence": "English sentence",
         "essentence": "Spanish sentence",
         "context": "Context",
