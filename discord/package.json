@@ -20,7 +20,7 @@
     "@opentelemetry/instrumentation-runtime-node": "^0.31.0",
     "@opentelemetry/instrumentation-undici": "^0.28.0",
     "@opentelemetry/resources": "^2.7.1",
-    "@opentelemetry/sdk-metrics": "^2.7.0",
+    "@opentelemetry/sdk-metrics": "^2.8.0",
     "@opentelemetry/sdk-node": "^0.218.0",
     "better-sqlite3": "^12.10.0",
     "discord.js": "^14.26.4",
