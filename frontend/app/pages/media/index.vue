@@ -370,13 +370,9 @@ watch([searchQuery, filterCategory], () => {
               :to="localePath(buildMediaSearchPath(mediaInfo.publicId))"
               @click="trackMediaSelected(mediaInfo, 'grid')"
             >
-              <img
-                :src="mediaInfo.coverUrl"
+              <MediaCover
+                :media="mediaInfo"
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
-                loading="lazy"
-                width="200"
-                height="300"
-                class="w-full h-full object-cover transition-transform duration-300 ease-in-out"
               />
             </NuxtLink>
             <button
@@ -397,9 +393,7 @@ watch([searchQuery, filterCategory], () => {
               {{ mediaInfo.segmentCount }} {{ $t('animeList.sentenceCount') }}
             </h3>
             <h3 class="text-sm text-center font-medium dark:text-gray-300">
-              <template v-if="mediaInfo.category === 'YOUTUBE'">{{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.videos') }}</template>
-              <template v-else-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
-              <template v-else>{{ mediaInfo.episodeCount || 0 }} {{ $t('animeList.episodes') }}</template>
+              <MediaCountLabel :media="mediaInfo" />
             </h3>
           </div>
         </div>
@@ -442,14 +436,10 @@ watch([searchQuery, filterCategory], () => {
                 class="absolute inset-0 bg-card-background opacity-95 rounded-lg"
               ></div>
             </div>
-            <div class="relative flex-none w-[16em] h-[21em]">
-              <img
-                :src="mediaInfo.coverUrl"
+            <div class="relative flex-none w-[16em] h-[21em] overflow-hidden rounded-lg">
+              <MediaCover
+                :media="mediaInfo"
                 :alt="`Cover image for ${mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'media'}`"
-                loading="lazy"
-                width="256"
-                height="336"
-                class="absolute inset-0 object-cover w-full h-full rounded-lg"
               />
             </div>
 
@@ -484,9 +474,7 @@ watch([searchQuery, filterCategory], () => {
                 <p
                   class="text-sm font-semibold text-gray-500 dark:text-gray-300"
                 >
-                  <template v-if="mediaInfo.category === 'YOUTUBE'">{{ $t('animeList.videos') }}: {{ mediaInfo.episodeCount || 0 }}</template>
-                  <template v-else-if="mediaInfo.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
-                  <template v-else>{{ $t('animeList.episodes') }}: {{ mediaInfo.episodeCount || 0 }}</template>
+                  <MediaCountLabel :media="mediaInfo" label-first />
                 </p>
               </div>
 
