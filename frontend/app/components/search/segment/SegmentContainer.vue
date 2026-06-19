@@ -323,19 +323,23 @@ watch(playingVideoId, (id) => {
       }">
       <!-- Image -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] aspect-video min-[650px]:aspect-auto min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
-        <!-- YouTube: playing swaps the screenshot in-place for the player at the timestamp.
-             Empty Vue-managed wrapper; the IFrame API mounts its iframe into a JS-created
-             child (so Vue never diffs/removes the player). -->
+        <!-- YouTube: the host is always present so the IFrame API can mount its
+             iframe synchronously inside the tap (required for iOS autoplay).
+             Empty Vue-managed wrapper; the API mounts its iframe into a JS-created
+             child (so Vue never diffs/removes the player). The screenshot sits on
+             top until this segment is actually playing. -->
         <div
-          v-if="playingVideoId === result.segment.publicId && result.segment.externalVideoId"
+          v-if="result.segment.externalVideoId"
           :id="ytPlayer.hostId(result.segment.publicId)"
           data-testid="segment-youtube-host"
           class="absolute inset-0"
         />
-        <img v-else loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
+        <img
+          v-if="!(playingVideoId === result.segment.publicId && result.segment.externalVideoId)"
+          loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
           :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
           @click="onImageClick(result)"
-          class="inset-0 aspect-video min-[650px]:aspect-auto min-[650px]:h-full w-full object-cover filter object-center transition-all duration-300 text-transparent"
+          class="absolute inset-0 z-10 w-full h-full object-cover object-center filter transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.segment.urls.imageUrl" />
