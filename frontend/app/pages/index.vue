@@ -285,12 +285,9 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                         <div class="w-full">
                                                             <div
                                                                 class="border-none pb-[145%] rounded-lg overflow-hidden relative bg-[rgba(255,255,255,0.06)] block">
-                                                                <img class="w-full h-full object-cover absolute top-0 left-0"
-                                                                    :src="media_info.coverUrl"
-                                                                    :alt="mediaName(media_info) || media_info.nameEn || media_info.nameRomaji || media_info.nameJa || 'Media cover image'"
-                                                                    width="200"
-                                                                    height="290"
-                                                                    loading="lazy" />
+                                                                <MediaCover
+                                                                    :media="media_info"
+                                                                    :alt="mediaName(media_info) || media_info.nameEn || media_info.nameRomaji || media_info.nameJa || 'Media cover image'" />
                                                             </div>
                                                         </div>
 
@@ -306,8 +303,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                                 {{ media_info.segmentCount }} {{ $t('animeList.sentenceCount') }}
                                                             </h3>
                                                             <h3 class="text-sm text-center font-medium">
-                                                                <template v-if="media_info.airingFormat === 'MOVIE'">{{ $t('searchpage.main.labels.movie') }}</template>
-                                                                <template v-else>{{ media_info.episodeCount || 0 }} {{ $t('animeList.episodes') }}</template>
+                                                                <MediaCountLabel :media="media_info" />
                                                             </h3>
                                                         </div>
                                                     </NuxtLink>
