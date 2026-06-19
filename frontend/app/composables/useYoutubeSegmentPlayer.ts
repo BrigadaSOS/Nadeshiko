@@ -57,6 +57,10 @@ function teardown() {
     // host may already be gone from the DOM; ignore.
   }
   player = null;
+  const id = activeSegmentId.value;
+  if (import.meta.client && id) {
+    document.getElementById(`yt-host-${id}`)?.replaceChildren();
+  }
   clipProgress.value = 0;
   activeSegmentId.value = null;
 }
@@ -83,25 +87,17 @@ export function useYoutubeSegmentPlayer() {
   }
 
   /**
-   * Show + play a segment's video inline, replacing any previously playing one.
-   * `onEnded` fires once when the clip's end timestamp is reached.
+   * Build the player into the segment's (already-rendered) host element.
+   * Returns false when the API or host isn't ready yet. Stays synchronous so it
+   * can run inside the tap handler: iOS only autoplays media when the iframe is
+   * created within the user-gesture call stack.
    */
-  async function play(publicId: string, videoId: string, startMs: number, endMs: number, onEnded?: () => void) {
-    teardown();
-    endedCallback = onEnded ?? null;
-    startSeconds = Math.max(0, Math.floor(startMs / 1000));
-    endSeconds = Math.max(startSeconds, endMs / 1000);
-    activeSegmentId.value = publicId;
-
-    await nextTick();
-    await loadYouTubeApi();
-    if (activeSegmentId.value !== publicId) return; // superseded while loading
-
+  function mountPlayer(publicId: string, videoId: string): boolean {
     const w = window as unknown as {
       YT?: { Player: new (el: Element, opts: object) => YtPlayer };
     };
     const host = document.getElementById(hostId(publicId));
-    if (!w.YT?.Player || !host) return;
+    if (!w.YT?.Player || !host) return false;
 
     const finish = () => {
       const cb = endedCallback;
@@ -147,6 +143,33 @@ export function useYoutubeSegmentPlayer() {
         },
       },
     });
+    return true;
+  }
+
+  /**
+   * Show + play a segment's video inline, replacing any previously playing one.
+   * `onEnded` fires once when the clip's end timestamp is reached.
+   *
+   * Tries to mount synchronously (within the user gesture) so iOS autoplays;
+   * only falls back to an async mount when the API/host aren't ready yet.
+   */
+  function play(publicId: string, videoId: string, startMs: number, endMs: number, onEnded?: () => void) {
+    teardown();
+    endedCallback = onEnded ?? null;
+    startSeconds = Math.max(0, Math.floor(startMs / 1000));
+    endSeconds = Math.max(startSeconds, endMs / 1000);
+    activeSegmentId.value = publicId;
+
+    // Fast path: API preloaded + host already in the DOM → mount in-gesture (iOS).
+    if (mountPlayer(publicId, videoId)) return;
+
+    // Fallback: wait for the API/host, then mount (may not autoplay on iOS).
+    void (async () => {
+      await loadYouTubeApi();
+      await nextTick();
+      if (activeSegmentId.value !== publicId) return; // superseded while loading
+      mountPlayer(publicId, videoId);
+    })();
   }
 
   function pause() {
