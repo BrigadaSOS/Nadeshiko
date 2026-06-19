@@ -8,6 +8,7 @@ import {
   type SlimToken,
   type EnrichedToken,
 } from '~/utils/tokenEnrichment';
+import { useLabsStore } from '@/stores/labs';
 
 type Props = {
   tokens: Token[];
@@ -41,6 +42,7 @@ const cancelHide = () => {
 
 const onTokenEnter = async (token: EnrichedToken, event: MouseEvent) => {
   cancelHide();
+  if (!showHoverDefinitions.value) return;
   hoveredToken.value = token;
   const el = event.currentTarget as HTMLElement;
   const tokenRect = el.getBoundingClientRect();
@@ -87,6 +89,9 @@ const POS_CLASS: Record<string, string> = {
   助詞: 'token--particle',
   助動詞: 'token--auxiliary',
 };
+
+const labsStore = useLabsStore();
+const showHoverDefinitions = computed(() => labsStore.isFeatureEnabled('showTokenHoverDefinitions'));
 
 const { tooltipReadingMode } = useTooltipReadingVisibility();
 const { furiganaMode } = useHiraganaVisibility();
@@ -141,7 +146,7 @@ const dictionaryLinks = computed(() => {
 
     <Transition name="tooltip">
       <div
-        v-if="hoveredToken"
+        v-if="hoveredToken && showHoverDefinitions"
         ref="tooltipRef"
         class="token-tooltip"
         :class="{ 'token-tooltip--with-links': dictionaryLinks.length > 0 }"

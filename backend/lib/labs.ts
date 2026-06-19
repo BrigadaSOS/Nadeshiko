@@ -7,7 +7,14 @@ export interface LabDefinition {
   allowedUserIds?: number[];
 }
 
-const LABS: LabDefinition[] = [];
+const LABS: LabDefinition[] = [
+  {
+    key: 'showTokenHoverDefinitions',
+    name: 'Token hover definitions',
+    description:
+      'Show dictionary form, reading, part of speech, and conjugation info in a popup when hovering a token in search results. Disable this if you use Yomitan or another external dictionary.',
+  },
+];
 
 function isVisible(user: User, lab: LabDefinition): boolean {
   return !lab.allowedUserIds || lab.allowedUserIds.length === 0 || lab.allowedUserIds.includes(user.id);
