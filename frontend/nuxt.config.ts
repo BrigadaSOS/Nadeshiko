@@ -301,48 +301,10 @@ export default defineNuxtConfig({
     '/es/reports': { robots: false },
     '/es/reports/**': { robots: false },
     '/ja/**': { robots: false },
-    // Static markdown pages — content is filesystem-backed and the rendered HTML
-    // contains no per-user state (auth-dependent UI in the layout is ClientOnly).
-    // Edge-cache for a day, serve stale up to a week while revalidating.
-    // Purge Cloudflare on deploy if the markdown source changes.
-    ...Object.fromEntries(
-      ['en', 'es', 'ja'].flatMap((locale) =>
-        ['about', 'dmca', 'privacy', 'terms-and-conditions'].map((slug) => [
-          `/${locale}/${slug}`,
-          { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800' } },
-        ]),
-      ),
-    ),
-    // Home — the recently-added grid intentionally bypasses the user's hidden-media
-    // filter (that filter only applies on /search and /media) and the locale cookie
-    // is consumed by the / redirect, not by /{locale}. Auth-dependent header chrome
-    // is ClientOnly. New media surfaces in the grid within ~10 min in any given POP.
-    ...Object.fromEntries(
-      ['en', 'es', 'ja'].map((locale) => [
-        `/${locale}`,
-        { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=600, stale-while-revalidate=86400' } },
-      ]),
-    ),
-    // Blog — markdown bundled at build, so new content only appears via deploy.
-    // Goal: no manual purge.
-    //   - Index: short window (10 min edge fresh, 24h SWR). New posts surface
-    //     within ~10 min in any given POP without action.
-    //   - Individual posts: longer window (24h, 7d SWR). Post URLs aren't reachable
-    //     from the index until the index revalidates, so the 10-min window governs
-    //     "new post visibility." Edits to existing posts auto-propagate within 24h.
-    // /ja/blog falls back to English posts via /api/blog/posts handler.
-    ...Object.fromEntries(
-      ['en', 'es', 'ja'].flatMap((locale) => [
-        [
-          `/${locale}/blog`,
-          { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=600, stale-while-revalidate=86400' } },
-        ],
-        [
-          `/${locale}/blog/**`,
-          { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800' } },
-        ],
-      ]),
-    ),
+    // Homepage, blog index, blog posts, and static markdown pages are no longer
+    // cached at the origin. Cloudflare Cache Rules are the single source of
+    // truth for HTML caching; configure per-route there when needed.
+    // See frontend/nuxt.config.ts commit log for the prior defaults.
     // Static assets are fine to cache (Nuxt fingerprints them)
     '/_nuxt/**': {
       headers: {
