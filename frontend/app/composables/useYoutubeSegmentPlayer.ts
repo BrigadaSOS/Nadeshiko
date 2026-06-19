@@ -65,6 +65,17 @@ export function useYoutubeSegmentPlayer() {
   // The card renders <div :id="hostId(publicId)"> which the API turns into the iframe.
   const hostId = (publicId: string) => `yt-host-${publicId}`;
 
+  /**
+   * Warm up the IFrame API ahead of the first tap. iOS only allows playback
+   * (with sound) while the user-gesture activation is still alive, and that
+   * activation is lost once play() has to fetch the API script over the
+   * network. Loading it in advance keeps play()'s awaits to microtasks, which
+   * preserve the activation so autoplay works on iOS.
+   */
+  function preload() {
+    if (import.meta.client) loadYouTubeApi();
+  }
+
   /** Stop and hide the inline player without notifying the store. */
   function stop() {
     endedCallback = null;
@@ -119,6 +130,9 @@ export function useYoutubeSegmentPlayer() {
       },
       events: {
         onReady: () => {
+          // Reinforce autoplay on iOS, where the autoplay playerVar alone is
+          // sometimes ignored; this is still within the gesture activation.
+          player?.playVideo?.();
           stopPoll();
           pollTimer = setInterval(() => {
             const t = player?.getCurrentTime?.() ?? 0;
@@ -156,6 +170,7 @@ export function useYoutubeSegmentPlayer() {
     activeSegmentId,
     clipProgress,
     hostId,
+    preload,
     play,
     pause,
     resume,
