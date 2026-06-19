@@ -272,12 +272,15 @@ const playingVideoId = ytPlayer.activeSegmentId;
 const isYoutubeSegment = (result: SearchResult) =>
   result.media.category === 'YOUTUBE' && !!result.segment.externalVideoId;
 
-// Warm up the YouTube IFrame API as soon as any YouTube segment is on screen,
-// so the first tap-to-play stays within the user-gesture window (iOS autoplay).
+// Pre-warm the single YouTube player as soon as any YouTube segment is on
+// screen, so the first tap-to-play can run inside the user-gesture window
+// (required for iOS autoplay with sound).
 watch(
   resultList,
   (list) => {
-    if (import.meta.client && list?.some(isYoutubeSegment)) ytPlayer.preload();
+    if (!import.meta.client) return;
+    const firstYoutube = list?.find(isYoutubeSegment);
+    if (firstYoutube) ytPlayer.preload(firstYoutube.segment.externalVideoId ?? undefined);
   },
   { immediate: true },
 );
