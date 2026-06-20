@@ -54,9 +54,9 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <div class="relative mx-auto mt-4">
+    <div class="relative mx-auto mt-4 2xl:w-full 2xl:flex 2xl:flex-col 2xl:min-h-0">
         <ul
-            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
+            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white 2xl:flex 2xl:flex-col 2xl:flex-1 2xl:min-h-0">
             <div class="flex items-center w-full px-4 py-2 text-center rounded-t-lg rounded-l-lg">
                 <span class="font-medium text-sm flex-1 text-center">{{ $t('episodeFilter.title') }}</span>
                 <button
@@ -66,16 +66,16 @@ const clearFilters = () => {
                 </button>
             </div>
 
-            <div class="overflow-auto snap-y max-h-[14rem]">
+            <div class="overflow-auto max-h-[14rem] 2xl:max-h-none 2xl:flex-1 2xl:min-h-0">
                 <template v-if="episodesList.length > 0">
                     <button
                         v-for="episode in episodesList"
                         :key="episode.episode"
                         @click="toggleEpisode(episode.episode)"
                         :class="{ 'bg-sgrayhover': selectedEpisodeId === episode.episode }"
-                        class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5"
+                        class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5"
                         :title="`${$t('searchpage.main.labels.episode')} ${episode.episode}: ${episode.count}`">
-                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">
+                        <span class="flex-1 min-w-0 truncate pr-2">
                             {{ $t('searchpage.main.labels.episode') }} {{ episode.episode }}
                         </span>
                         <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs shrink-0">
