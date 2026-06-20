@@ -54,9 +54,9 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <div class="relative mx-auto mt-4 2xl:w-full 2xl:flex 2xl:flex-col 2xl:min-h-0">
+    <div class="relative mx-auto mt-4 2xl:w-full">
         <ul
-            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white 2xl:flex 2xl:flex-col 2xl:flex-1 2xl:min-h-0">
+            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
             <div class="flex items-center w-full px-4 py-2 text-center rounded-t-lg rounded-l-lg">
                 <span class="font-medium text-sm flex-1 text-center">{{ $t('episodeFilter.title') }}</span>
                 <button
@@ -66,7 +66,7 @@ const clearFilters = () => {
                 </button>
             </div>
 
-            <div class="overflow-auto max-h-[14rem] 2xl:max-h-none 2xl:flex-1 2xl:min-h-0">
+            <div class="overflow-auto max-h-[14rem] 2xl:max-h-[16rem]">
                 <template v-if="episodesList.length > 0">
                     <button
                         v-for="episode in episodesList"
