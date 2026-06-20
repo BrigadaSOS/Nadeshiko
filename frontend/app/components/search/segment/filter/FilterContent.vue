@@ -105,6 +105,12 @@ const selectedMediaId = computed(() => {
   return route.query.media ? String(route.query.media) : null;
 });
 
+const scrollToTop = () => {
+  if (import.meta.client) {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+};
+
 const filterAnime = (mediaPublicId, _animeName) => {
   const query = { ...route.query };
 
@@ -116,12 +122,14 @@ const filterAnime = (mediaPublicId, _animeName) => {
   }
 
   router.push({ path: route.path, query });
+  scrollToTop();
 };
 
 const clearFilters = () => {
   const query = { ...route.query };
   delete query.media;
   router.push({ path: route.path, query });
+  scrollToTop();
 };
 </script>
 
