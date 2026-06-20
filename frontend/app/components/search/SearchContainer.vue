@@ -702,7 +702,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <!-- Filters -->
             <div v-if="!isSingleSentenceView && (searchData?.media?.length > 0 || isLoading)" class="2xl:min-w-[20rem] 2xl:max-w-[20rem] 3xl:min-w-[20rem] 3xl:max-w-[22rem] yomitan-ignore">
                 <div v-if="searchData?.media?.length > 0" class="p-2 mx-auto hidden 2xl:grid 2xl:sticky 2xl:top-2 2xl:h-[calc(100vh-1rem)]"
-                    :class="media && !isSelectedMediaMovie ? '2xl:grid-rows-[auto_minmax(0,1fr)_minmax(0,1fr)]' : '2xl:grid-rows-[auto_minmax(0,1fr)]'">
+                    :class="media && !isSelectedMediaMovie ? '2xl:grid-rows-[auto_minmax(0,1fr)_auto]' : '2xl:grid-rows-[auto_minmax(0,1fr)]'">
                     <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
                     <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
                     <SearchSegmentFilterEpisodeFilter
