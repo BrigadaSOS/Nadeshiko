@@ -126,9 +126,9 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <div class="relative mx-auto">
+    <div class="relative mx-auto 2xl:w-full 2xl:flex 2xl:flex-col 2xl:min-h-0">
         <ul
-            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white">
+            class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg dark:bg-button-primary-main border dark:text-white 2xl:flex 2xl:flex-col 2xl:flex-1 2xl:min-h-0">
             <div class="flex items-center w-full px-4 py-2 text-center rounded-t-lg rounded-l-lg">
                 <span class="font-medium text-sm flex-1 text-center">{{ $t('searchpage.main.labels.contentList') }}</span>
                 <button
@@ -149,13 +149,13 @@ const clearFilters = () => {
                     </svg>
                 </div>
             </div>
-            <div class="overflow-auto snap-y max-h-[14rem]">
-                <li class="snap-start" v-for="item in filteredMedia" :key="item.mediaPublicId || 'all'">
+            <div class="overflow-auto max-h-[14rem] 2xl:max-h-none 2xl:flex-1 2xl:min-h-0">
+                <li v-for="item in filteredMedia" :key="item.mediaPublicId || 'all'">
                     <button @click="filterAnime(item.mediaPublicId, item.displayName)"
                         :class="{ 'bg-sgrayhover': (!item.mediaPublicId && selectedMediaId === null) || (item.mediaPublicId === selectedMediaId) }"
-                        class="flex truncate border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
-                        <span class="truncate max-w-[80%] overflow-hidden text-ellipsis">{{ item.displayName }}</span>
-                        <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs">
+                        class="flex border duration-300 items-center justify-between w-full px-4 py-2 hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+                        <span class="flex-1 min-w-0 line-clamp-2 break-words pr-2">{{ item.displayName }}</span>
+                        <span class="bg-neutral-700 text-white rounded-lg px-3 ml-3 py-1 text-xs shrink-0">
                             {{ item.matchCount }}
                         </span>
                     </button>
