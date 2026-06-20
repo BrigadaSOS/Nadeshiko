@@ -34,6 +34,12 @@ const toggleEpisode = (episodeId) => {
   updateUrlParams(newEpisodeId);
 };
 
+const scrollToTop = () => {
+  if (import.meta.client) {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+};
+
 const updateUrlParams = (episode) => {
   const query = { ...route.query };
 
@@ -44,12 +50,14 @@ const updateUrlParams = (episode) => {
   }
 
   router.push({ path: route.path, query });
+  scrollToTop();
 };
 
 const clearFilters = () => {
   const query = { ...route.query };
   delete query.episode;
   router.push({ path: route.path, query });
+  scrollToTop();
 };
 </script>
 
