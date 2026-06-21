@@ -10,20 +10,20 @@ const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
 <template>
   <div
     v-if="isYoutube"
-    class="absolute inset-0 overflow-hidden"
+    class="absolute inset-0 overflow-hidden flex items-center justify-center bg-neutral-900"
   >
     <img
       :src="media.coverUrl"
       :alt="alt"
       loading="lazy"
-      class="absolute inset-0 w-full h-full object-cover scale-150 blur-3xl brightness-[0.75] saturate-[2.2] contrast-125"
+      class="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl brightness-[0.85]"
     />
-    <!-- Channel avatar -->
+    <div class="absolute inset-0 bg-black/20"></div>
     <img
       :src="media.coverUrl"
       :alt="alt"
       loading="lazy"
-      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] aspect-square rounded-full object-cover"
+      class="relative w-[62%] aspect-square rounded-full object-cover ring-1 ring-white/10 shadow-xl"
     />
   </div>
   <img
