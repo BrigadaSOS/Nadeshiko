@@ -53,6 +53,15 @@ export function proxyToBackend(event: H3Event): Promise<any> {
     headers.host = config.backendHostHeader;
   }
 
+  // Mark this request as coming through our trusted proxy so the backend per-IP
+  // rate limiter can exempt it. Always overwrite (and otherwise strip) the
+  // header so a client can never forge it by sending it themselves.
+  delete headers['x-internal-proxy-auth'];
+  const internalProxySecret = String(config.internalProxySecret || '').trim();
+  if (internalProxySecret) {
+    headers['x-internal-proxy-auth'] = internalProxySecret;
+  }
+
   // Inject API key only for explicit public endpoint allowlist.
   const apiKey = String(config.nadeshikoApiKey || '').trim();
   if (apiKey && !headers.authorization && shouldInjectApiKey(method, requestUrl.pathname)) {
