@@ -21,6 +21,7 @@ proxy:
 env:
   secret:
     - NUXT_NADESHIKO_API_KEY
+    - NUXT_INTERNAL_PROXY_SECRET
 
   clear:
     NUXT_PUBLIC_ENVIRONMENT: development

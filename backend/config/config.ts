@@ -50,6 +50,13 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(300),
   RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(60),
 
+  // Shared secret proving a request came through our own frontend Nitro proxy
+  // (which already rate-limits per real client IP). When set, the per-IP
+  // backend limiter exempts requests carrying it. Must match the frontend's
+  // NUXT_INTERNAL_PROXY_SECRET. Left unset = no exemption (fail-safe: traffic is
+  // limited, never silently bypassed).
+  INTERNAL_PROXY_SECRET: optionalString,
+
   ID_OAUTH_GOOGLE: optionalString,
   SECRET_OAUTH_GOOGLE: optionalString,
   DISCORD_CLIENT_ID: optionalString,

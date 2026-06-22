@@ -39,12 +39,12 @@ function mountPreRouteMiddleware(app: Application, middleware: RequestHandler[] 
 }
 
 export function configureMiddleware(app: Application): Application {
-  // Trust X-Forwarded-* headers from one reverse proxy hop (kamal-proxy).
-  // Used for accurate client-IP tracking on direct browser-to-backend hits
-  // (e.g. /v1/* requests that bypass the Nitro proxy). The per-IP rate
-  // limiter depends on this. Frontend-proxied traffic (Nitro SSR calling
-  // the backend over the kamal network) still arrives as 172.18.0.9 — the
-  // real defense for that path lives in the frontend Nitro rate limiter.
+  // Trust X-Forwarded-* headers from one reverse proxy hop (kamal-proxy) for
+  // per-IP rate-limit keying and client-IP logging. Note this is best-effort
+  // attribution, not a trust boundary: both direct and frontend-proxied traffic
+  // reach us through kamal-proxy, so `req.ip` cannot be trusted to decide who is
+  // internal. The rate limiter distinguishes proxied traffic via an unforgeable
+  // shared secret (INTERNAL_PROXY_SECRET) instead — see rateLimit.ts.
   app.set('trust proxy', 1);
 
   app.use(
