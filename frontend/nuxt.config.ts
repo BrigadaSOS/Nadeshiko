@@ -71,6 +71,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/tailwind.css'],
   runtimeConfig: {
     nadeshikoApiKey: env.NUXT_NADESHIKO_API_KEY,
+    internalProxySecret: env.NUXT_INTERNAL_PROXY_SECRET,
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
     mediaFilesPath: env.NUXT_MEDIA_FILES_PATH,
