@@ -7,6 +7,7 @@ import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
 import { rawBodySaver } from '@app/middleware/rawBodySaver';
 import { httpLogger } from '@config/log';
 import { requestIdMiddleware } from '@app/middleware/requestId';
+import { globalRateLimit } from '@app/middleware/rateLimit';
 import { mountRoutes as defaultMountRoutes } from '@config/routes';
 import { getMeter } from '@config/telemetry';
 
@@ -38,8 +39,12 @@ function mountPreRouteMiddleware(app: Application, middleware: RequestHandler[] 
 }
 
 export function configureMiddleware(app: Application): Application {
-  // Trust X-Forwarded-* headers from reverse proxy (nginx, Cloudflare, etc.)
-  // Required for rate limiting and accurate client IP detection
+  // Trust X-Forwarded-* headers from one reverse proxy hop (kamal-proxy).
+  // Used for accurate client-IP tracking on direct browser-to-backend hits
+  // (e.g. /v1/* requests that bypass the Nitro proxy). The per-IP rate
+  // limiter depends on this. Frontend-proxied traffic (Nitro SSR calling
+  // the backend over the kamal network) still arrives as 172.18.0.9 — the
+  // real defense for that path lives in the frontend Nitro rate limiter.
   app.set('trust proxy', 1);
 
   app.use(
@@ -51,6 +56,10 @@ export function configureMiddleware(app: Application): Application {
   );
 
   app.use(requestIdMiddleware);
+
+  // Rate-limit unauthenticated traffic BEFORE parsing bodies so abusive bots
+  // are rejected cheaply without burning CPU on JSON parse.
+  app.use(globalRateLimit);
 
   // Capture response bodies BEFORE logging (must be before httpLogger)
   app.use(responseBodyLogger);
