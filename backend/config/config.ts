@@ -46,6 +46,10 @@ const envSchema = z.object({
   API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(150),
 
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  RATE_LIMIT_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(300),
+  RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(60),
+
   ID_OAUTH_GOOGLE: optionalString,
   SECRET_OAUTH_GOOGLE: optionalString,
   DISCORD_CLIENT_ID: optionalString,

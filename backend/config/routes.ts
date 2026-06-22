@@ -12,6 +12,7 @@ import { auth } from '@config/auth';
 import { requireSession, enforceAdminAccess } from '@app/middleware/routePolicies';
 import { routeAuth } from 'generated/routeAuth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
+import { authRateLimit } from '@app/middleware/rateLimit';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
@@ -222,6 +223,9 @@ router.get('/v1/admin/users-with-providers', requireSession(enforceAdminAccess),
 
 export function mountRoutes(app: Application): Application {
   app.get('/up', (_req, res) => res.status(200).send('OK'));
+
+  // Tighter per-IP limit on the auth surface (scoped before the auth handlers).
+  app.use('/v1/auth', authRateLimit);
 
   app.all(
     '/v1/auth/magic-link/verify',

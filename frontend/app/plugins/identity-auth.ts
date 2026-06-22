@@ -1,4 +1,5 @@
 import { getRequestHeader } from 'h3';
+import { ssrAuthFetch } from '~~/server/utils/ssrAuthCache';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
   const store = userStore();
@@ -19,10 +20,12 @@ export default defineNuxtPlugin(async (nuxtApp) => {
           headers.host = String(config.backendHostHeader);
         }
 
-        const response = await $fetch<{ user?: any; session?: any }>(sessionUrl, {
-          method: 'GET',
-          headers,
-        }).catch(() => null);
+        const response = await ssrAuthFetch(event, () =>
+          $fetch<{ user?: any; session?: any }>(sessionUrl, {
+            method: 'GET',
+            headers,
+          }).catch(() => null),
+        );
 
         if (response?.user) {
           const impersonating = !!response.session?.impersonatedBy;
