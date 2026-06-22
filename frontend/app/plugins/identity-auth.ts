@@ -1,5 +1,4 @@
 import { getRequestHeader } from 'h3';
-import { ssrAuthFetch } from '~~/server/utils/ssrAuthCache';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
   const store = userStore();
@@ -9,6 +8,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
     if (event) {
       try {
+        // Dynamic import keeps this server-only util (and its node:crypto
+        // dependency) out of the client bundle.
+        const { ssrAuthFetch } = await import('~~/server/utils/ssrAuthCache');
         const cookieHeader = getRequestHeader(event, 'cookie');
         const config = useRuntimeConfig();
         const sessionUrl = `${config.backendInternalUrl}/v1/auth/get-session`;
