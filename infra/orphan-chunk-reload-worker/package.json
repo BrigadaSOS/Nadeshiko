@@ -1,0 +1,12 @@
+{
+  "name": "nadeshiko-orphan-chunk-reload-worker",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260613.1",
+    "wrangler": "^4.98.0"
+  }
+}

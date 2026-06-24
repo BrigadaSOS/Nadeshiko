@@ -1,0 +1,13 @@
+name = "nadeshiko-orphan-chunk-reload"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+account_id = "69706df70c95c734ba43a679b10a5bf9"
+
+# Route all nadeshiko.co requests through this Worker. The Worker is a
+# pass-through for everything except /_nuxt/*.js; for those paths it
+# detects an origin 404 and returns a tiny ES module that reloads the
+# page, recovering users whose browser cached stale HTML after a deploy.
+# See README.md for the design rationale and deployment notes.
+[[routes]]
+pattern = "nadeshiko.co/*"
+zone_name = "nadeshiko.co"
