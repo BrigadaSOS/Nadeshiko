@@ -1,5 +1,4 @@
 import { LogLevel, getWebInstrumentations, initializeFaro, type Faro } from '@grafana/faro-web-sdk';
-import { OtlpHttpTransport } from '@grafana/faro-transport-otlp-http';
 import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 import { getPagePath } from '~/utils/pagePath';
 
@@ -43,21 +42,17 @@ export default defineNuxtPlugin({
     const faroOrigin = getFaroOrigin(faroUrl);
     const ignoreUrls = faroOrigin ? [...IGNORED_URLS, faroOrigin] : IGNORED_URLS;
 
-    const tracesURL = `${faroUrl.replace(/\/$/, '')}/v1/traces`;
-    const logsURL = `${faroUrl.replace(/\/$/, '')}/v1/logs`;
-
     const faroInstance = initializeFaro({
+      // Native Faro transport → the host Alloy's Faro receiver (:4329), fronted
+      // by kamal-proxy at faroUrl (https://o.nadeshiko.co/collect). Replaces the
+      // old OtlpHttpTransport → otelcol-browser sidecar. Traces still flow:
+      // TracingInstrumentation emits OTLP that the Faro receiver unwraps.
+      url: faroUrl,
       app: {
         name: getAppName(environment, faroAppName),
         version: appVersion,
         environment,
       },
-      transports: [
-        new OtlpHttpTransport({
-          tracesURL,
-          logsURL,
-        }),
-      ],
       trackResources: true,
       sessionTracking: {
         persistent: true,

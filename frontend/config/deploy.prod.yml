@@ -39,26 +39,17 @@ env:
     OTEL_SERVICE_NAME: nadeshiko-frontend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http
 
-    # Faro browser telemetry disabled — not consuming the data yet.
-    # Re-enable by restoring this URL (plugin no-ops when empty).
-    # NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co"
+    # Grafana Faro browser RUM. o.nadeshiko.co is routed by kamal-proxy to the
+    # host Alloy's Faro receiver (:4329, /collect); its CORS already allows
+    # nadeshiko.co + dev.nadeshiko.co. Replaces the old otelcol-browser sidecar.
+    NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co/collect"
 
-accessories:
-  otelcol-browser:
-    image: otel/opentelemetry-collector-contrib:0.117.0
-    host: nadeshiko
-    cmd: "--config=/etc/otelcol/config.yaml"
-    # Proxy route registered manually after boot:
-    #   ssh nadeshiko "docker exec kamal-proxy kamal-proxy deploy \
-    #     nadeshiko-frontend-prod-otelcol-browser \
-    #     --target \$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nadeshiko-frontend-prod-otelcol-browser):4318 \
-    #     --host o.nadeshiko.co --tls \
-    #     --health-check-port 13133 --health-check-path /"
-    options:
-      memory: 192m
-      add-host: host.docker.internal:host-gateway
-    env:
-      clear:
-        GOMEMLIMIT: 150MiB
-    files:
-      - config/otelcol-browser.yaml:/etc/otelcol/config.yaml:ro
+# The otelcol-browser accessory was removed: browser RUM now goes straight to
+# the host Alloy Faro receiver. Server-side (SSR) telemetry still uses
+# OTEL_EXPORTER_OTLP_ENDPOINT → host.docker.internal:4328 (also Alloy).
+#
+# After the first deploy, point kamal-proxy at the Faro receiver:
+#   ssh nadeshiko "docker exec kamal-proxy kamal-proxy deploy \
+#     nadeshiko-frontend-prod-faro \
+#     --target 172.18.0.1:4329 --host o.nadeshiko.co --tls \
+#     --health-check-port 12345 --health-check-path /-/ready"
