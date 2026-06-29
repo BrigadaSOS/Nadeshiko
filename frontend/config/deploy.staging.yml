@@ -34,6 +34,6 @@ env:
     OTEL_SERVICE_NAME: nadeshiko-frontend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
 
-    # Faro browser telemetry disabled — not consuming the data yet.
-    # Re-enable by restoring this URL (plugin no-ops when empty).
-    # NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co"
+    # Grafana Faro browser RUM → host Alloy Faro receiver (:4329, /collect) via
+    # kamal-proxy; CORS allows dev.nadeshiko.co. Re-enabled (was commented out).
+    NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co/collect"
