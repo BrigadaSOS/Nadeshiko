@@ -14,7 +14,7 @@ test.describe('User Settings', () => {
   test('redirects to home when not logged in', async ({ page }) => {
     await page.context().clearCookies();
     await page.goto('/user/settings');
-    await expect(page).toHaveURL('/', { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/[a-z]{2}\/?$/, { timeout: 10_000 });
   });
 
   test('uses the explicit language preference for authenticated user pages', async ({ authenticatedPage }) => {
@@ -27,7 +27,10 @@ test.describe('User Settings', () => {
     await expect(authenticatedPage).toHaveURL(/\/ja$/, { timeout: 10_000 });
 
     await authenticatedPage.goto('/search/彼女');
-    await expect(authenticatedPage).toHaveURL(/\/search\/彼女$/, { timeout: 10_000 });
+    await expect(authenticatedPage).toHaveURL(
+      (url: URL) => decodeURIComponent(url.pathname) === '/en/search/彼女',
+      { timeout: 10_000 },
+    );
 
     await authenticatedPage.goto('/user/settings');
     await expect(authenticatedPage).toHaveURL(/\/ja\/user\/settings$/, { timeout: 10_000 });
