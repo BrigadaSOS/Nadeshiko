@@ -3,10 +3,13 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { defineConfig, devices } from '@playwright/test';
 import { getE2EBaseUrl } from './env';
+import { E2E_AUTH_STATE_PATH } from './auth-state';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
 
 const BASE_URL = getE2EBaseUrl();
+const AUTHENTICATED_TESTS =
+  /(activity|admin-reports|collections|developer-api-keys|header-navigation|hidden-media|user-settings)\.spec\.ts$/;
 
 export default defineConfig({
   testDir: './specs',
@@ -27,8 +30,22 @@ export default defineConfig({
 
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts$/,
+    },
+    {
+      name: 'chromium-authenticated',
+      dependencies: ['setup'],
+      testMatch: AUTHENTICATED_TESTS,
+      use: {
+        ...devices['Desktop Chrome'],
+        channel: 'chrome',
+        storageState: E2E_AUTH_STATE_PATH,
+      },
+    },
+    {
       name: 'chromium',
-      testIgnore: /mobile\.spec\.ts$/,
+      testIgnore: [/mobile\.spec\.ts$/, /auth\.setup\.ts$/, AUTHENTICATED_TESTS],
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',

@@ -34,7 +34,7 @@ function clientKey(event: H3Event): string {
 }
 
 function safeSetHeader(event: H3Event, name: string, value: string): void {
-  if (event.node?.res?.setHeader) setResponseHeader(event, name, value);
+  setResponseHeader(event, name, value);
 }
 
 /**
@@ -55,11 +55,7 @@ export async function ipRateLimit(
   const remaining = Math.max(0, opts.max - bucket.count);
   safeSetHeader(event, 'X-RateLimit-Limit', String(opts.max));
   safeSetHeader(event, 'X-RateLimit-Remaining', String(remaining));
-  safeSetHeader(
-    event,
-    'X-RateLimit-Reset',
-    String(Math.ceil((bucket.windowStart + opts.windowMs) / 1000)),
-  );
+  safeSetHeader(event, 'X-RateLimit-Reset', String(Math.ceil((bucket.windowStart + opts.windowMs) / 1000)));
 
   if (bucket.count > opts.max) {
     const retryAfter = Math.max(1, Math.ceil((bucket.windowStart + opts.windowMs - now) / 1000));

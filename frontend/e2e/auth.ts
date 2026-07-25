@@ -86,7 +86,6 @@ export async function loginAsE2EUser(page: Page) {
 
 export const test = base.extend({
   authenticatedPage: async ({ page }, use) => {
-    await loginAsE2EUser(page);
     await use(page);
   },
 });
