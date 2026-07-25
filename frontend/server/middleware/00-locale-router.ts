@@ -1,18 +1,5 @@
 import { LOCALE_PREFERENCE_COOKIE_NAME, SUPPORTED_LOCALES, type SupportedLocale } from '~/utils/i18n';
-
-const RESERVED_PREFIXES = [
-  '/_nuxt/',
-  '/_i18n/',
-  '/api/',
-  '/v1/',
-  '/__sitemap__',
-  '/sitemap',
-  '/docs/',
-  '/.well-known/',
-  '/media/',
-];
-
-const RESERVED_EXACT = new Set(['/up', '/robots.txt', '/opensearch.xml', '/favicon.ico']);
+import { isReservedLocalePath } from '../utils/localeRouting';
 
 function isSupportedLocale(value: string | null | undefined): value is SupportedLocale {
   return value !== null && value !== undefined && (SUPPORTED_LOCALES as readonly string[]).includes(value);
@@ -23,14 +10,6 @@ function getLocalePrefix(path: string): SupportedLocale | null {
     if (path === `/${locale}` || path.startsWith(`/${locale}/`)) return locale;
   }
   return null;
-}
-
-function isReservedPath(path: string): boolean {
-  if (RESERVED_EXACT.has(path)) return true;
-  if (RESERVED_PREFIXES.some((p) => path.startsWith(p))) return true;
-  // Files at root: /github-xxx.png, /logo-xxx.webp, /sitemap-en.xml, etc.
-  if (/^\/[^/]+\.[a-zA-Z0-9]+$/.test(path)) return true;
-  return false;
 }
 
 function pickLocaleFromAcceptLanguage(header: string | undefined): SupportedLocale | null {
@@ -54,7 +33,7 @@ export default defineEventHandler((event) => {
   const url = getRequestURL(event);
   const path = url.pathname;
 
-  if (isReservedPath(path)) return;
+  if (isReservedLocalePath(path)) return;
   if (getLocalePrefix(path)) return;
 
   const search = url.search;
