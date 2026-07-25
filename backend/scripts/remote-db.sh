@@ -8,7 +8,8 @@ set -euo pipefail
 # Replaces the old toolbox accessory: no admin credentials live on the server,
 # no separate image to build/push, no always-running container.
 
-REMOTE_HOST="100.114.126.96"
+REMOTE_NODE="nadeshiko"
+REMOTE_HOST=""
 PROD_FLAG="--allow-prod"
 
 usage() {
@@ -62,7 +63,7 @@ if [[ ! -f "$SECRETS_FILE" ]]; then
 fi
 
 if ! command -v tailscale >/dev/null 2>&1; then
-  echo "error: tailscale CLI not found - this script needs Tailscale to reach $REMOTE_HOST" >&2
+  echo "error: tailscale CLI not found - this script needs Tailscale to reach $REMOTE_NODE" >&2
   exit 1
 fi
 
@@ -71,8 +72,18 @@ if ! tailscale status >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! ping -c 1 -W 2 "$REMOTE_HOST" >/dev/null 2>&1; then
-  echo "error: cannot reach $REMOTE_HOST over Tailscale" >&2
+# `tailscale ping` resolves peer names even when the operating system is not
+# accepting MagicDNS. Extract the current IPv4 address instead of pinning it.
+PING_OUTPUT="$(tailscale ping --timeout=5s --c=1 "$REMOTE_NODE" 2>&1)" || {
+  echo "error: cannot reach $REMOTE_NODE over Tailscale" >&2
+  echo "$PING_OUTPUT" >&2
+  exit 1
+}
+if [[ "$PING_OUTPUT" =~ \(([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\) ]]; then
+  REMOTE_HOST="${BASH_REMATCH[1]}"
+else
+  echo "error: could not determine $REMOTE_NODE Tailscale IPv4 address" >&2
+  echo "$PING_OUTPUT" >&2
   exit 1
 fi
 
