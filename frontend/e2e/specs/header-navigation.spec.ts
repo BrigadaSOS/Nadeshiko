@@ -11,6 +11,7 @@ test.describe('Header Navigation', () => {
   });
 
   test('shows login button in profile dropdown when not logged in', async ({ page }) => {
+    await page.context().clearCookies();
     const header = new HeaderPage(page);
     await page.goto('/');
 
