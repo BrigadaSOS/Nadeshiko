@@ -29,6 +29,6 @@ test.describe('Navbar links', () => {
   test('logo navigates to homepage', async ({ page }) => {
     await page.goto('/about');
     await page.getByRole('link', { name: 'Nadeshiko' }).first().click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/[a-z]{2}\/?$/);
   });
 });
