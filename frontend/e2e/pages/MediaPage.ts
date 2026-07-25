@@ -31,7 +31,7 @@ export class MediaPage {
   }
 
   async expectLoaded() {
-    await expect(this.mediaCards.first()).toBeVisible({ timeout: 15_000 });
+    await expect(this.mediaCardContainers.first()).toBeVisible({ timeout: 15_000 });
   }
 
   async expectListLoaded() {
@@ -39,7 +39,7 @@ export class MediaPage {
   }
 
   async clickFirstMedia() {
-    await this.mediaCards.first().click();
+    await this.mediaCardContainers.first().getByTestId('media-card-title').click();
     await this.page.waitForURL(/\/search\?media=/);
   }
 
