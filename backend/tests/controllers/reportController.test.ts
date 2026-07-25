@@ -72,6 +72,7 @@ beforeAll(async () => {
 
   core = await seedCoreFixtures();
   app = buildApplication({
+    rateLimit: false,
     beforeRoutes: [testAuthMiddleware],
     mountRoutes: (appInstance) => {
       appInstance.use('/', UserRoutes);

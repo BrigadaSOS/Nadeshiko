@@ -40,19 +40,42 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: nadeshiko
-          POSTGRES_PASSWORD: nadeshiko
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: nadeshiko_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U nadeshiko"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Build test Elasticsearch
+        run: docker build --tag nadeshiko-elasticsearch:test --file backend/docker/Dockerfile.elasticsearch backend
+
+      - name: Start test Elasticsearch
+        run: |
+          docker run --detach \
+            --name nadeshiko-ci-elasticsearch \
+            --publish 9200:9200 \
+            --env discovery.type=single-node \
+            --env xpack.security.enabled=false \
+            --env ES_JAVA_OPTS="-Xms512m -Xmx512m" \
+            nadeshiko-elasticsearch:test
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:9200/_cluster/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs nadeshiko-ci-elasticsearch
+          exit 1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -69,10 +92,16 @@ jobs:
         run: cd backend && bun run typecheck
 
       - name: Setup test database
+        env:
+          LOG_LEVEL: info
         run: cd backend && bun run test:setup
 
       - name: Test
         run: cd backend && bun run test
+
+      - name: Stop test Elasticsearch
+        if: always()
+        run: docker rm --force nadeshiko-ci-elasticsearch || true
 
   openapi:
     needs: changes

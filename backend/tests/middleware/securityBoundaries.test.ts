@@ -43,6 +43,7 @@ function createSecurityApp(getAuth: () => AuthState | null): Application {
   };
 
   return buildApplication({
+    rateLimit: false,
     beforeRoutes: [authMiddleware],
     mountRoutes: (app) => {
       for (const { method, path, middleware } of routeAuth) {

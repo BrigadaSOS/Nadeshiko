@@ -227,6 +227,7 @@ describe('route auth wiring', () => {
 
 function createRouterTestApp() {
   return buildApplication({
+    rateLimit: false,
     mountRoutes: (app) => {
       app.use(router);
     },

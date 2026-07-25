@@ -47,6 +47,7 @@ function toThresholdDefaults(schema: Array<{ key: string; default: number | bool
 
 beforeAll(() => {
   app = buildApplication({
+    rateLimit: false,
     beforeRoutes: [testAuthMiddleware],
     mountRoutes: (instance) => {
       instance.use('/', AdminRoutes);
