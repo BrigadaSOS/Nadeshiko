@@ -3,7 +3,7 @@ import { ipRateLimit, _resetForTests } from './ipRateLimit';
 
 function fakeEvent(headers: Record<string, string | undefined>, ip = '1.2.3.4') {
   return {
-    node: { req: { socket: { remoteAddress: ip }, headers } },
+    node: { req: { socket: { remoteAddress: ip }, headers }, res: { setHeader: () => {} } },
     headers,
   } as any;
 }
@@ -26,7 +26,7 @@ describe('ipRateLimit', () => {
     }
     const res = await ipRateLimit(ev, { windowMs: 60_000, max: 3 });
     expect(res).not.toBeNull();
-    expect(res!.status).toBe(429);
+    expect(res?.statusCode).toBe(429);
   });
 
   it('keys buckets by x-forwarded-for when present', async () => {
