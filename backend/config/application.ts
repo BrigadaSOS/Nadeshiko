@@ -18,6 +18,7 @@ type RouteMounter = (app: Application) => void;
 export interface BuildApplicationOptions {
   beforeRoutes?: RequestHandler[];
   mountRoutes?: RouteMounter;
+  rateLimit?: RequestHandler | false;
 }
 
 function mountDefaultRoutes(app: Application) {
@@ -38,7 +39,10 @@ function mountPreRouteMiddleware(app: Application, middleware: RequestHandler[] 
   }
 }
 
-export function configureMiddleware(app: Application): Application {
+export function configureMiddleware(
+  app: Application,
+  rateLimitMiddleware: RequestHandler | false = globalRateLimit,
+): Application {
   // Trust X-Forwarded-* headers from one reverse proxy hop (kamal-proxy) for
   // per-IP rate-limit keying and client-IP logging. Note this is best-effort
   // attribution, not a trust boundary: both direct and frontend-proxied traffic
@@ -59,7 +63,9 @@ export function configureMiddleware(app: Application): Application {
 
   // Rate-limit unauthenticated traffic BEFORE parsing bodies so abusive bots
   // are rejected cheaply without burning CPU on JSON parse.
-  app.use(globalRateLimit);
+  if (rateLimitMiddleware) {
+    app.use(rateLimitMiddleware);
+  }
 
   // Capture response bodies BEFORE logging (must be before httpLogger)
   app.use(responseBodyLogger);
@@ -103,7 +109,7 @@ export function configureErrorHandling(app: Application): Application {
 
 export function buildApplication(options: BuildApplicationOptions = {}): Application {
   const app: Application = express();
-  configureMiddleware(app);
+  configureMiddleware(app, options.rateLimit);
   mountPreRouteMiddleware(app, options.beforeRoutes);
   configureRoutes(app, options.mountRoutes);
   configureErrorHandling(app);

@@ -46,6 +46,22 @@ describe('buildApplication', () => {
     expect(res.body).toMatchObject({ fromBeforeRoutes: 'ok' });
   });
 
+  it('can disable the global rate limiter for isolated application tests', async () => {
+    const app = buildApplication({
+      rateLimit: false,
+      mountRoutes: (instance) => {
+        instance.get('/unlimited', (_req, res) => res.status(200).json({ ok: true }));
+      },
+    });
+
+    let lastStatus = 0;
+    for (let i = 0; i < 302; i++) {
+      lastStatus = (await request(app).get('/unlimited').set('X-Forwarded-For', '203.0.113.77')).status;
+    }
+
+    expect(lastStatus).toBe(200);
+  });
+
   it('returns catch-all 404 with request instance id', async () => {
     const app = buildApplication({
       mountRoutes: (instance) => {

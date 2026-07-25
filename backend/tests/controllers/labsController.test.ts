@@ -16,11 +16,17 @@ beforeEach(() => {
 });
 
 describe('GET /v1/user/labs', () => {
-  it('returns an empty list when no labs are defined', async () => {
+  it('returns visible labs as inactive when the user is not enrolled', async () => {
     const res = await request(app).get('/v1/user/labs');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body).toEqual([
+      expect.objectContaining({
+        key: 'showTokenHoverDefinitions',
+        name: 'Token hover definitions',
+        active: false,
+      }),
+    ]);
   });
 });
 

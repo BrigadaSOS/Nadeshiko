@@ -77,6 +77,7 @@ function testAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
  */
 export function createTestApp() {
   return buildApplication({
+    rateLimit: false,
     beforeRoutes: [testAuthMiddleware],
     mountRoutes: (app) => {
       app.use('/', SearchRoutes);
