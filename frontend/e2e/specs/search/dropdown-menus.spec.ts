@@ -35,7 +35,7 @@ test.describe('Dropdown menus', () => {
     await expect(menu.getByText('Image + Audio')).toBeVisible();
     await expect(menu.getByText('Image', { exact: true })).toBeVisible();
     await expect(menu.getByText('Audio', { exact: true })).toBeVisible();
-    await expect(menu.getByText('Japanese sentence')).toBeVisible();
+    await expect(menu.getByText('Japanese sentence', { exact: true })).toBeVisible();
     await expect(menu.getByText('English sentence')).toBeVisible();
     await expect(menu.getByText('Spanish sentence')).toBeVisible();
   });
@@ -76,7 +76,7 @@ test.describe('Dropdown menus', () => {
     await expect(dropdown).toHaveClass(/nd-dropdown-open/);
 
     const menu = dropdown.getByTestId('dropdown-menu');
-    await menu.getByText('Japanese sentence').click();
+    await menu.getByText('Japanese sentence', { exact: true }).click();
 
     await expect(dropdown).not.toHaveClass(/nd-dropdown-open/);
   });

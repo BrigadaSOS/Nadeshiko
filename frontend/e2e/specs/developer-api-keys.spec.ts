@@ -2,6 +2,8 @@ import { test, expect } from '../auth';
 import { DeveloperPage } from '../pages/DeveloperPage';
 
 test.describe('Developer API Keys', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test('navigates to developer tab', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/user/developer');
     await expect(authenticatedPage).toHaveURL(/\/[a-z]{2}\/user\/developer$/);
