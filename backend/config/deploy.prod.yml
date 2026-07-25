@@ -68,7 +68,7 @@ accessories:
   postgres:
     image: postgres:17
     host: nadeshiko
-    port: "100.114.126.96:5432:5432"
+    port: "100.95.40.11:5432:5432"
     options:
       # Memory limit: 1GB (current ~310MB, 3x headroom)
       # Postgres persists data to disk, safe to OOM-kill and restart
@@ -90,7 +90,7 @@ accessories:
   elasticsearch:
     image: ghcr.io/davafons/nadeshiko-elasticsearch:8.17.10
     host: nadeshiko
-    port: "100.114.126.96:9200:9200"
+    port: "100.95.40.11:9200:9200"
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
