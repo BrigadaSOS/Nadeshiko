@@ -26,7 +26,7 @@ test.describe('Header Navigation', () => {
     await header.openProfileDropdown();
     await header.settingsLink.click();
 
-    await expect(authenticatedPage).toHaveURL('/user/settings', { timeout: 10_000 });
+    await expect(authenticatedPage).toHaveURL(/\/[a-z]{2}\/user\/settings$/, { timeout: 10_000 });
   });
 
   test('navigates to collections from profile dropdown', async ({ authenticatedPage }) => {
@@ -36,7 +36,7 @@ test.describe('Header Navigation', () => {
     await header.openProfileDropdown();
     await header.collectionsLink.click();
 
-    await expect(authenticatedPage).toHaveURL('/user/collections', { timeout: 10_000 });
+    await expect(authenticatedPage).toHaveURL(/\/[a-z]{2}\/user\/collections$/, { timeout: 10_000 });
   });
 
   test('navigates to activity from profile dropdown', async ({ authenticatedPage }) => {
@@ -46,6 +46,6 @@ test.describe('Header Navigation', () => {
     await header.openProfileDropdown();
     await header.activityLink.click();
 
-    await expect(authenticatedPage).toHaveURL('/user/activity', { timeout: 10_000 });
+    await expect(authenticatedPage).toHaveURL(/\/[a-z]{2}\/user\/activity$/, { timeout: 10_000 });
   });
 });
