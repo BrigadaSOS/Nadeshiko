@@ -58,9 +58,7 @@ describe('ssrAuthFetch', () => {
       if (n === 1) throw new Error('upstream down');
       return { ok: true };
     });
-    await expect(ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokZ'), fetcher)).rejects.toThrow(
-      'upstream down',
-    );
+    await expect(ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokZ'), fetcher)).rejects.toThrow('upstream down');
     const r2 = await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokZ'), fetcher);
     expect(r2).toEqual({ ok: true });
     expect(fetcher).toHaveBeenCalledTimes(2);

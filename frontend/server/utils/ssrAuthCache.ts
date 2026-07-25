@@ -7,9 +7,7 @@ const SESSION_COOKIE_PREFIXES = ['', '__Secure-', '__Host-'] as const;
 const TTL_MS = 30_000;
 const MAX_KEY_LEN = 128;
 
-type Entry<T> =
-  | { kind: 'inflight'; promise: Promise<T> }
-  | { kind: 'value'; value: T; expiresAt: number };
+type Entry<T> = { kind: 'inflight'; promise: Promise<T> } | { kind: 'value'; value: T; expiresAt: number };
 
 const store = new Map<string, Entry<unknown>>();
 
