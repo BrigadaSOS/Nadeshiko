@@ -51,23 +51,31 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      elasticsearch:
-        # Match production: includes analysis-icu and Sudachi plugins/dictionary.
-        image: ghcr.io/davafons/nadeshiko-elasticsearch:8.17.10
-        env:
-          discovery.type: single-node
-          xpack.security.enabled: "false"
-          ES_JAVA_OPTS: -Xms512m -Xmx512m
-        ports:
-          - 9200:9200
-        options: >-
-          --health-cmd "curl --fail http://localhost:9200/_cluster/health"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
+
+      - name: Build test Elasticsearch
+        run: docker build --tag nadeshiko-elasticsearch:test --file backend/docker/Dockerfile.elasticsearch backend
+
+      - name: Start test Elasticsearch
+        run: |
+          docker run --detach \
+            --name nadeshiko-ci-elasticsearch \
+            --publish 9200:9200 \
+            --env discovery.type=single-node \
+            --env xpack.security.enabled=false \
+            --env ES_JAVA_OPTS="-Xms512m -Xmx512m" \
+            nadeshiko-elasticsearch:test
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:9200/_cluster/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs nadeshiko-ci-elasticsearch
+          exit 1
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -90,6 +98,10 @@ jobs:
 
       - name: Test
         run: cd backend && bun run test
+
+      - name: Stop test Elasticsearch
+        if: always()
+        run: docker rm --force nadeshiko-ci-elasticsearch || true
 
   openapi:
     needs: changes
