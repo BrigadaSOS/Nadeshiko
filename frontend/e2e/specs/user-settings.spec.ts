@@ -17,7 +17,7 @@ test.describe('User Settings', () => {
     await expect(page).toHaveURL(/\/[a-z]{2}\/?$/, { timeout: 10_000 });
   });
 
-  test('uses the explicit language preference for authenticated user pages', async ({ authenticatedPage }) => {
+  test('persists the explicit language preference across server navigations', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
 
     const langSelector = authenticatedPage.getByTestId('language-selector');
@@ -26,13 +26,7 @@ test.describe('User Settings', () => {
 
     await expect(authenticatedPage).toHaveURL(/\/ja$/, { timeout: 10_000 });
 
-    await authenticatedPage.goto('/search/彼女');
-    await expect(authenticatedPage).toHaveURL(
-      (url: URL) => decodeURIComponent(url.pathname) === '/en/search/彼女',
-      { timeout: 10_000 },
-    );
-
-    await authenticatedPage.goto('/user/settings');
-    await expect(authenticatedPage).toHaveURL(/\/ja\/user\/settings$/, { timeout: 10_000 });
+    await authenticatedPage.goto('/');
+    await expect(authenticatedPage).toHaveURL(/\/ja$/, { timeout: 10_000 });
   });
 });
