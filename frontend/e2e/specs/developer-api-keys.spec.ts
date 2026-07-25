@@ -4,7 +4,7 @@ import { DeveloperPage } from '../pages/DeveloperPage';
 test.describe('Developer API Keys', () => {
   test('navigates to developer tab', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/user/developer');
-    await expect(authenticatedPage).toHaveURL('/user/developer');
+    await expect(authenticatedPage).toHaveURL(/\/[a-z]{2}\/user\/developer$/);
 
     const developer = new DeveloperPage(authenticatedPage);
     await developer.expectLoaded();

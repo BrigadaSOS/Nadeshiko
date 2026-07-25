@@ -25,6 +25,7 @@ logs
 ~/
 
 # Playwright
+e2e/.auth/
 test-results/
 playwright-report/
 scripts/.fonts-cache/

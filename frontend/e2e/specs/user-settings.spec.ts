@@ -12,6 +12,7 @@ test.describe('User Settings', () => {
   });
 
   test('redirects to home when not logged in', async ({ page }) => {
+    await page.context().clearCookies();
     await page.goto('/user/settings');
     await expect(page).toHaveURL('/', { timeout: 10_000 });
   });
