@@ -15,6 +15,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       discord: ${{ steps.filter.outputs.discord }}
       openapi: ${{ steps.filter.outputs.openapi }}
+      seed_worker: ${{ steps.filter.outputs.seed_worker }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -30,6 +31,8 @@ jobs:
             openapi:
               - 'backend/docs/openapi/**'
               - 'backend/redocly.yaml'
+            seed_worker:
+              - 'infra/seed-worker/**'
 
   backend:
     needs: changes
@@ -212,3 +215,25 @@ jobs:
 
       - name: Typecheck
         run: cd discord && bun run typecheck
+
+  seed-worker:
+    needs: changes
+    if: needs.changes.outputs.seed_worker == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: cd infra/seed-worker && bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: cd infra/seed-worker && bun run typecheck
+
+      - name: Build Worker bundle
+        run: cd infra/seed-worker && bunx wrangler deploy --dry-run
