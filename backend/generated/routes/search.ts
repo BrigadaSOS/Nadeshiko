@@ -2,30 +2,32 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import type {
   t_Error400,
   t_Error401,
   t_Error403,
   t_Error429,
   t_Error500,
-  t_GetSearchStatsRequestBodySchema,
   t_MediaAutocompleteResponse,
-  t_SearchMediaRequestBodySchema,
+  t_SearchMediaRequest,
+  t_SearchMultipleRequest,
   t_SearchMultipleResponse,
-  t_SearchRequestBodySchema,
+  t_SearchRequest,
   t_SearchResponse,
+  t_SearchStatsRequest,
   t_SearchStatsResponse,
-  t_SearchWordsRequestBodySchema,
 } from '../models.ts';
 import type { SearchMediaRequestOutput, SearchMultipleRequestOutput, SearchRequestOutput, SearchStatsRequestOutput } from '../outputTypes.ts';
 import {
@@ -119,10 +121,15 @@ export type SearchImplementation = {
   searchMedia: SearchMedia;
 };
 
-export function createSearchRouter(implementation: SearchImplementation): Router {
+export function createSearchRouter(
+  implementation: SearchImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
 
-  const searchRequestBodySchema = s_SearchRequest;
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const searchResponseBodyValidator = responseValidationFactory(
     [
@@ -142,7 +149,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_SearchRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -170,30 +177,14 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.search(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(searchResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .search(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, searchResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const getSearchStatsRequestBodySchema = s_SearchStatsRequest;
 
   const getSearchStatsResponseBodyValidator = responseValidationFactory(
     [
@@ -213,7 +204,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(getSearchStatsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_SearchStatsRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -241,30 +232,14 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.getSearchStats(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getSearchStatsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getSearchStats(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getSearchStatsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const searchWordsRequestBodySchema = s_SearchMultipleRequest;
 
   const searchWordsResponseBodyValidator = responseValidationFactory(
     [
@@ -284,7 +259,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchWordsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_SearchMultipleRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -312,30 +287,14 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.searchWords(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(searchWordsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .searchWords(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, searchWordsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const searchMediaRequestBodySchema = s_SearchMediaRequest;
 
   const searchMediaResponseBodyValidator = responseValidationFactory(
     [
@@ -355,7 +314,7 @@ export function createSearchRouter(implementation: SearchImplementation): Router
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(searchMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_SearchMediaRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -383,24 +342,10 @@ export function createSearchRouter(implementation: SearchImplementation): Router
         },
       };
 
-      const response = await implementation.searchMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(searchMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .searchMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, searchMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }

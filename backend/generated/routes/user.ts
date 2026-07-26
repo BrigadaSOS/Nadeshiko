@@ -2,21 +2,23 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
-  t_AddExcludedMediaRequestBodySchema,
+  t_AddExcludedMediaRequestBody,
   t_AffectedCountResponse,
-  t_CreateUserReportRequestBodySchema,
+  t_CreateReportRequest,
   t_DeleteUserActivityByDateParamSchema,
   t_DeleteUserActivityByIdParamSchema,
   t_DeleteUserActivityQuerySchema,
@@ -30,17 +32,17 @@ import type {
   t_MediaSummary,
   t_RemoveExcludedMediaParamSchema,
   t_Report,
-  t_TrackUserActivityRequestBodySchema,
   t_UnenrollUserLabParamSchema,
-  t_UpdateUserPreferencesRequestBodySchema,
+  t_UserActivityRequest,
   t_UserExportResponse,
   t_UserLabFeature,
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
-import type { CreateReportRequestOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { AddExcludedMediaRequestBodyOutput, CreateReportRequestOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
+  s_AddExcludedMediaRequestBody,
   s_AffectedCountResponse,
   s_CreateReportRequest,
   s_Error400,
@@ -103,7 +105,7 @@ export type AddExcludedMediaResponder = {
 } & ExpressRuntimeResponder;
 
 export type AddExcludedMedia = (
-  params: Params<void, void, t_AddExcludedMediaRequestBodySchema, void>,
+  params: Params<void, void, AddExcludedMediaRequestBodyOutput, void>,
   respond: AddExcludedMediaResponder,
   req: Request,
   res: Response,
@@ -327,8 +329,15 @@ export type UserImplementation = {
   unenrollUserLab: UnenrollUserLab;
 };
 
-export function createUserRouter(implementation: UserImplementation): Router {
+export function createUserRouter(
+  implementation: UserImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
+
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const getMeResponseBodyValidator = responseValidationFactory(
     [
@@ -372,24 +381,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.getMe(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getMeResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getMe(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getMeResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -439,31 +434,13 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.listExcludedMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listExcludedMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listExcludedMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listExcludedMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
-  });
-
-  const addExcludedMediaRequestBodySchema = z.object({
-    mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   });
 
   const addExcludedMediaResponseBodyValidator = responseValidationFactory(
@@ -485,7 +462,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(addExcludedMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_AddExcludedMediaRequestBody, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -516,24 +493,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.addExcludedMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(addExcludedMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .addExcludedMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, addExcludedMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -589,30 +552,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.removeExcludedMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(removeExcludedMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .removeExcludedMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, removeExcludedMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const createUserReportRequestBodySchema = s_CreateReportRequest;
 
   const createUserReportResponseBodyValidator = responseValidationFactory(
     [
@@ -632,7 +579,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(createUserReportRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_CreateReportRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -660,24 +607,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.createUserReport(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createUserReportResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .createUserReport(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, createUserReportResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -725,30 +658,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.getUserPreferences(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserPreferencesResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getUserPreferences(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getUserPreferencesResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const updateUserPreferencesRequestBodySchema = s_UserPreferences;
 
   const updateUserPreferencesResponseBodyValidator = responseValidationFactory(
     [
@@ -768,7 +685,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(updateUserPreferencesRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_UserPreferences, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -796,30 +713,14 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.updateUserPreferences(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateUserPreferencesResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateUserPreferences(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateUserPreferencesResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const trackUserActivityRequestBodySchema = s_UserActivityRequest;
 
   const trackUserActivityResponseBodyValidator = responseValidationFactory(
     [
@@ -839,7 +740,7 @@ export function createUserRouter(implementation: UserImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(trackUserActivityRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_UserActivityRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -867,24 +768,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.trackUserActivity(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(trackUserActivityResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .trackUserActivity(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, trackUserActivityResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -934,30 +821,16 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.deleteUserActivity(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteUserActivityResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .deleteUserActivity(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, deleteUserActivityResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
-  const deleteUserActivityByDateParamSchema = z.object({ date: z.string() });
+  const deleteUserActivityByDateParamSchema = z.object({ date: z.iso.date() });
 
   const deleteUserActivityByDateResponseBodyValidator = responseValidationFactory(
     [
@@ -1001,24 +874,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.deleteUserActivityByDate(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteUserActivityByDateResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .deleteUserActivityByDate(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, deleteUserActivityByDateResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1072,24 +931,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.deleteUserActivityById(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteUserActivityByIdResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .deleteUserActivityById(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, deleteUserActivityByIdResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1137,24 +982,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.exportUserData(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(exportUserDataResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .exportUserData(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, exportUserDataResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1202,24 +1033,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.listUserLabs(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listUserLabsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listUserLabs(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listUserLabsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1273,24 +1090,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.enrollUserLab(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(enrollUserLabResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .enrollUserLab(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, enrollUserLabResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1344,24 +1147,10 @@ export function createUserRouter(implementation: UserImplementation): Router {
         },
       };
 
-      const response = await implementation.unenrollUserLab(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(unenrollUserLabResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .unenrollUserLab(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, unenrollUserLabResponseBodyValidator));
     } catch (error) {
       next(error);
     }
