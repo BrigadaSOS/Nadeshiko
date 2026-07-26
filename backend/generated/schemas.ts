@@ -118,7 +118,7 @@ export const s_Error403 = z.object({
 });
 
 export const s_Error404 = z.object({
-  code: z.enum(['NOT_FOUND']),
+  code: z.literal('NOT_FOUND'),
   title: z.string().min(1),
   detail: z.string().min(1),
   type: z.string().min(1).optional(),
@@ -148,7 +148,7 @@ export const s_Error429 = z.object({
 });
 
 export const s_Error500 = z.object({
-  code: z.enum(['INTERNAL_SERVER_EXCEPTION']),
+  code: z.literal('INTERNAL_SERVER_EXCEPTION'),
   title: z.string().min(1),
   detail: z.string().min(1),
   type: z.string().min(1).optional(),
@@ -172,7 +172,7 @@ export const s_HeatmapDayCounts = z.object({
   SHARE: z.coerce.number().min(0).optional(),
 });
 
-export const s_IncludeExpansion = z.enum(['media']);
+export const s_IncludeExpansion = z.literal('media');
 
 export const s_MediaAudit = z.object({
   id: z.coerce.number(),
@@ -257,22 +257,22 @@ export const s_ReportSource = z.enum(['USER', 'AUTO']);
 export const s_ReportStatus = z.enum(['OPEN', 'PROCESSING', 'FIXED', 'DISMISSED']);
 
 export const s_ReportTargetEpisode = z.object({
-  type: z.enum(['EPISODE']),
+  type: z.literal('EPISODE'),
   mediaPublicId: z.string(),
   episodeNumber: z.coerce.number(),
 });
 
-export const s_ReportTargetMedia = z.object({ type: z.enum(['MEDIA']), mediaPublicId: z.string() });
+export const s_ReportTargetMedia = z.object({ type: z.literal('MEDIA'), mediaPublicId: z.string() });
 
 export const s_ReportTargetSegment = z.object({
-  type: z.enum(['SEGMENT']),
+  type: z.literal('SEGMENT'),
   mediaPublicId: z.string(),
   episodeNumber: z.coerce.number().optional(),
   segmentPublicId: z.string().nullable(),
 });
 
 export const s_ReportTargetSegmentInput = z.object({
-  type: z.enum(['SEGMENT']),
+  type: z.literal('SEGMENT'),
   mediaPublicId: z.string(),
   episodeNumber: z.coerce.number().optional(),
   segmentPublicId: z.string(),
@@ -518,8 +518,8 @@ export const s_Media = z.object({
   genres: z.array(z.string().min(1)),
   coverUrl: z.string().min(1),
   bannerUrl: z.string().min(1),
-  startDate: z.string().min(1),
-  endDate: z.string().min(1).nullable(),
+  startDate: z.iso.date().min(1),
+  endDate: z.iso.date().min(1).nullable(),
   category: s_Category,
   segmentCount: z.coerce.number().min(0),
   episodeCount: z.coerce.number().min(0),
@@ -537,8 +537,8 @@ export const s_MediaCreateRequest = z.object({
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']),
   genres: z.array(z.string()),
   storage: z.enum(['LOCAL', 'R2']).default('R2'),
-  startDate: z.string(),
-  endDate: z.string().optional(),
+  startDate: z.iso.date(),
+  endDate: z.iso.date().optional(),
   category: s_Category,
   version: z.string(),
   hashSalt: z.string(),
@@ -567,8 +567,8 @@ export const s_MediaUpdateRequest = z.object({
   airingStatus: z.enum(['FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'CANCELLED']).optional(),
   genres: z.array(z.string()).optional(),
   storage: z.enum(['LOCAL', 'R2']).optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().nullable().optional(),
+  startDate: z.iso.date().optional(),
+  endDate: z.iso.date().nullable().optional(),
   category: s_Category.optional(),
   version: z.string().optional(),
   hashSalt: z.string().optional(),
@@ -579,7 +579,11 @@ export const s_MediaUpdateRequest = z.object({
   segmentCount: z.coerce.number().min(0).optional(),
 });
 
-export const s_ReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetEpisode, s_ReportTargetSegment]);
+export const s_ReportTarget = z.discriminatedUnion('type', [
+  s_ReportTargetMedia,
+  s_ReportTargetEpisode,
+  s_ReportTargetSegment,
+]);
 
 export const s_SearchFilters = z.object({
   media: z
@@ -708,7 +712,7 @@ export const s_UserActivity = z.object({
   createdAt: z.iso.datetime({ offset: true }),
 });
 
-export const s_UserReportTarget = z.union([s_ReportTargetMedia, s_ReportTargetSegmentInput]);
+export const s_UserReportTarget = z.discriminatedUnion('type', [s_ReportTargetMedia, s_ReportTargetSegmentInput]);
 
 export const s_WordMatch = z.object({
   word: z.string().min(1),
@@ -829,19 +833,17 @@ export const s_SegmentContextResponse = z.object({
   includes: z.object({ media: z.record(z.string(), s_Media).optional() }).optional(),
 });
 
-export const s_SegmentInternal = s_Segment.merge(
-  z.object({
-    storage: z.enum(['LOCAL', 'R2']).nullable().optional(),
-    hashedId: z.string().nullable().optional(),
-    storageBasePath: z.string().nullable().optional(),
-    ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
-    posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
-  }),
-);
+export const s_SegmentInternal = s_Segment.extend({
+  storage: z.enum(['LOCAL', 'R2']).nullable().optional(),
+  hashedId: z.string().nullable().optional(),
+  storageBasePath: z.string().nullable().optional(),
+  ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
+  posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
+});
 
 export const s_SegmentListResponse = z.object({ segments: z.array(s_Segment), pagination: s_CursorPagination });
 
-export const s_UserExportCollection = s_Collection.merge(z.object({ segmentIds: z.array(z.coerce.number()) }));
+export const s_UserExportCollection = s_Collection.extend({ segmentIds: z.array(z.coerce.number()) });
 
 export const s_AdminReportListResponse = z.object({
   groups: z.array(s_AdminReportGroup),
@@ -859,4 +861,13 @@ export const s_UserExportResponse = z.object({
   activity: z.array(s_UserActivity),
   collections: z.array(s_UserExportCollection),
   reports: z.array(s_Report),
+});
+
+export const s_AddExcludedMediaRequestBody = z.object({
+  mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+});
+
+export const s_UpdateAdminMediaAuditRequestBody = z.object({
+  threshold: z.record(z.string(), z.unknown()).optional(),
+  enabled: PermissiveBoolean.optional(),
 });

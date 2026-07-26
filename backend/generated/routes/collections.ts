@@ -2,23 +2,26 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
   t_AddSegmentToCollectionParamSchema,
-  t_AddSegmentToCollectionRequestBodySchema,
+  t_AddSegmentToCollectionRequest,
   t_Collection,
+  t_CollectionCreateRequest,
   t_CollectionListResponse,
-  t_CreateCollectionRequestBodySchema,
+  t_CollectionUpdateRequest,
   t_DeleteCollectionParamSchema,
   t_Error400,
   t_Error401,
@@ -31,13 +34,12 @@ import type {
   t_ListCollectionsQuerySchema,
   t_RemoveSegmentFromCollectionParamSchema,
   t_SearchCollectionSegmentsParamSchema,
-  t_SearchCollectionSegmentsRequestBodySchema,
+  t_SearchRequest,
   t_SearchResponse,
   t_SearchStatsResponse,
   t_UpdateCollectionParamSchema,
-  t_UpdateCollectionRequestBodySchema,
   t_UpdateCollectionSegmentParamSchema,
-  t_UpdateCollectionSegmentRequestBodySchema,
+  t_UpdateCollectionSegmentRequest,
 } from '../models.ts';
 import type { AddSegmentToCollectionRequestOutput, CollectionCreateRequestOutput, CollectionUpdateRequestOutput, ListCollectionsQueryOutput, SearchRequestOutput, UpdateCollectionSegmentRequestOutput } from '../outputTypes.ts';
 import {
@@ -250,8 +252,15 @@ export type CollectionsImplementation = {
   getCollectionStats: GetCollectionStats;
 };
 
-export function createCollectionsRouter(implementation: CollectionsImplementation): Router {
+export function createCollectionsRouter(
+  implementation: CollectionsImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
+
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const listCollectionsQuerySchema = z.object({
     visibility: s_CollectionVisibility.optional(),
@@ -305,30 +314,14 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.listCollections(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listCollectionsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listCollections(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listCollectionsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const createCollectionRequestBodySchema = s_CollectionCreateRequest;
 
   const createCollectionResponseBodyValidator = responseValidationFactory(
     [
@@ -348,7 +341,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(createCollectionRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_CollectionCreateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -376,24 +369,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.createCollection(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createCollectionResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .createCollection(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, createCollectionResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -453,32 +432,16 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.getCollection(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getCollectionResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getCollection(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getCollectionResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
   const updateCollectionParamSchema = z.object({ collectionPublicId: z.string() });
-
-  const updateCollectionRequestBodySchema = s_CollectionUpdateRequest;
 
   const updateCollectionResponseBodyValidator = responseValidationFactory(
     [
@@ -499,7 +462,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       const input = {
         params: parseRequestInput(updateCollectionParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateCollectionRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_CollectionUpdateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -530,24 +493,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.updateCollection(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateCollectionResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateCollection(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateCollectionResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -605,24 +554,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.deleteCollection(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteCollectionResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .deleteCollection(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, deleteCollectionResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -631,8 +566,6 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   const addSegmentToCollectionParamSchema = z.object({
     collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   });
-
-  const addSegmentToCollectionRequestBodySchema = s_AddSegmentToCollectionRequest;
 
   const addSegmentToCollectionResponseBodyValidator = responseValidationFactory(
     [
@@ -655,7 +588,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         const input = {
           params: parseRequestInput(addSegmentToCollectionParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(addSegmentToCollectionRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(s_AddSegmentToCollectionRequest, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -686,24 +619,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
           },
         };
 
-        const response = await implementation.addSegmentToCollection(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(addSegmentToCollectionResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .addSegmentToCollection(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, addSegmentToCollectionResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -713,8 +632,6 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
   const searchCollectionSegmentsParamSchema = z.object({
     collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   });
-
-  const searchCollectionSegmentsRequestBodySchema = s_SearchRequest;
 
   const searchCollectionSegmentsResponseBodyValidator = responseValidationFactory(
     [
@@ -735,7 +652,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
       const input = {
         params: parseRequestInput(searchCollectionSegmentsParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(searchCollectionSegmentsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_SearchRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -766,24 +683,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.searchCollectionSegments(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(searchCollectionSegmentsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .searchCollectionSegments(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, searchCollectionSegmentsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -793,8 +696,6 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
     collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
     segmentPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   });
-
-  const updateCollectionSegmentRequestBodySchema = s_UpdateCollectionSegmentRequest;
 
   const updateCollectionSegmentResponseBodyValidator = responseValidationFactory(
     [
@@ -817,7 +718,7 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         const input = {
           params: parseRequestInput(updateCollectionSegmentParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(updateCollectionSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(s_UpdateCollectionSegmentRequest, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -848,24 +749,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
           },
         };
 
-        const response = await implementation.updateCollectionSegment(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(updateCollectionSegmentResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .updateCollectionSegment(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, updateCollectionSegmentResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -929,26 +816,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
           },
         };
 
-        const response = await implementation
+        await implementation
           .removeSegmentFromCollection(input, responder, req, res, next)
-          .catch((err) => {
-            throw ExpressRuntimeError.HandlerError(err);
-          });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(removeSegmentFromCollectionResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+          .catch(handleImplementationError)
+          .then(handleResponse(res, removeSegmentFromCollectionResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1007,24 +878,10 @@ export function createCollectionsRouter(implementation: CollectionsImplementatio
         },
       };
 
-      const response = await implementation.getCollectionStats(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getCollectionStatsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getCollectionStats(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getCollectionStatsResponseBodyValidator));
     } catch (error) {
       next(error);
     }

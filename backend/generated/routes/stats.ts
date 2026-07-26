@@ -2,19 +2,22 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
   t_CoveredWordsResponse,
+  t_CoveredWordsUpdateRequest,
   t_CoveredWordsUpdateResponse,
   t_Error400,
   t_Error401,
@@ -23,7 +26,6 @@ import type {
   t_Error500,
   t_GetCoveredWordsQuerySchema,
   t_StatsOverview,
-  t_TriggerCoveredWordsUpdateRequestBodySchema,
 } from '../models.ts';
 import type { CoveredWordsUpdateRequestOutput, GetCoveredWordsQueryOutput } from '../outputTypes.ts';
 import {
@@ -94,8 +96,15 @@ export type StatsImplementation = {
   triggerCoveredWordsUpdate: TriggerCoveredWordsUpdate;
 };
 
-export function createStatsRouter(implementation: StatsImplementation): Router {
+export function createStatsRouter(
+  implementation: StatsImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
+
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const getStatsOverviewResponseBodyValidator = responseValidationFactory(
     [
@@ -139,24 +148,10 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
         },
       };
 
-      const response = await implementation.getStatsOverview(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getStatsOverviewResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getStatsOverview(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getStatsOverviewResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -216,30 +211,14 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
         },
       };
 
-      const response = await implementation.getCoveredWords(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getCoveredWordsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getCoveredWords(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getCoveredWordsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const triggerCoveredWordsUpdateRequestBodySchema = s_CoveredWordsUpdateRequest;
 
   const triggerCoveredWordsUpdateResponseBodyValidator = responseValidationFactory(
     [
@@ -259,7 +238,7 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(triggerCoveredWordsUpdateRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_CoveredWordsUpdateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -287,24 +266,10 @@ export function createStatsRouter(implementation: StatsImplementation): Router {
         },
       };
 
-      const response = await implementation.triggerCoveredWordsUpdate(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(triggerCoveredWordsUpdateResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .triggerCoveredWordsUpdate(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, triggerCoveredWordsUpdateResponseBodyValidator));
     } catch (error) {
       next(error);
     }

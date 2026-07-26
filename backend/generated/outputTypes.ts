@@ -105,6 +105,8 @@ export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListRes
 export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCollection>;
 export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
+export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
+export type UpdateAdminMediaAuditRequestBodyOutput = z.output<typeof schemas.s_UpdateAdminMediaAuditRequestBody>;
 
 // ============================================
 // Inline query schemas and their output types
@@ -114,7 +116,7 @@ export const listUserActivityQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().min(1).max(100).optional().default(20),
     activityType: schemas.s_ActivityType.optional(),
-    date: z.string().optional(),
+    date: z.iso.date().optional(),
   });
 export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
 
@@ -123,7 +125,7 @@ export const getUserActivityHeatmapQuerySchema = z.object({
   });
 export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
 
-export const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
+export const getUserActivityStatsQuerySchema = z.object({ since: z.iso.date().optional() });
 export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
 
 export const listAdminReportsQuerySchema = z.object({
