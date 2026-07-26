@@ -8,7 +8,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 await AppDataSource.initialize();
 setBossInstance({
-  getQueueStats: async () => ({ queuedCount: 0, activeCount: 0 }),
+  getQueue: async () => ({ queuedCount: 0, activeCount: 0 }),
   getDb: () => ({ executeSql: async () => ({ rows: [{ count: 0 }] }) }),
 } as any);
 

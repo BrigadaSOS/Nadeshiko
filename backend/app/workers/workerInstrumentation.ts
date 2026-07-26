@@ -1,4 +1,5 @@
 import type { Job, PgBoss } from 'pg-boss';
+import type { Attributes } from '@opentelemetry/api';
 import { getTracer, getMeter } from '@config/telemetry';
 import { recordError } from '@app/lib/errorFingerprint';
 import { logger } from '@config/log';
@@ -18,24 +19,38 @@ const jobCount = meter.createCounter('pgboss.job.count', {
   unit: '{job}',
 });
 
+interface QueueSizeObserver {
+  observe(value: number, attributes?: Attributes): void;
+}
+
+export async function observeQueueSizes(
+  boss: Pick<PgBoss, 'getQueue'>,
+  queueNames: readonly string[],
+  obs: QueueSizeObserver,
+): Promise<void> {
+  for (const queue of queueNames) {
+    try {
+      const stats = await boss.getQueue(queue);
+      if (!stats) {
+        logger.debug({ queue }, 'Queue not found while collecting stats');
+        continue;
+      }
+      obs.observe(stats.queuedCount, { 'pgboss.queue': queue, 'pgboss.state': 'queued' });
+      obs.observe(stats.activeCount, { 'pgboss.queue': queue, 'pgboss.state': 'active' });
+      obs.observe(stats.deferredCount, { 'pgboss.queue': queue, 'pgboss.state': 'deferred' });
+    } catch (err) {
+      logger.debug({ err, queue }, 'Failed to get queue stats');
+    }
+  }
+}
+
 export function registerQueueMetrics(boss: PgBoss, queueNames: readonly string[]): void {
   meter
     .createObservableGauge('pgboss.queue.size', {
       description: 'Number of jobs in each state per queue',
       unit: '{job}',
     })
-    .addCallback(async (obs) => {
-      for (const queue of queueNames) {
-        try {
-          const stats = await boss.getQueueStats(queue);
-          obs.observe(stats.queuedCount, { 'pgboss.queue': queue, 'pgboss.state': 'queued' });
-          obs.observe(stats.activeCount, { 'pgboss.queue': queue, 'pgboss.state': 'active' });
-          obs.observe(stats.deferredCount, { 'pgboss.queue': queue, 'pgboss.state': 'deferred' });
-        } catch (err) {
-          logger.debug({ err, queue }, 'Failed to get queue stats');
-        }
-      }
-    });
+    .addCallback((obs) => observeQueueSizes(boss, queueNames, obs));
 
   const db = boss.getDb();
   meter
