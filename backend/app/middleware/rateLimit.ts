@@ -83,6 +83,7 @@ function buildHandler(scope: 'global' | 'auth', detail: string): RequestHandler 
 export const globalRateLimit: RequestHandler = rateLimit({
   windowMs: WINDOW_MS,
   limit: DEFAULT_MAX,
+  ipv6Subnet: 56,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   skip: shouldSkip,
@@ -92,6 +93,7 @@ export const globalRateLimit: RequestHandler = rateLimit({
 export const authRateLimit: RequestHandler = rateLimit({
   windowMs: WINDOW_MS,
   limit: AUTH_MAX,
+  ipv6Subnet: 56,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   skip: shouldSkip,
