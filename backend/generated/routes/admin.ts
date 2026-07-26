@@ -2,24 +2,26 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
   t_AdminReportListResponse,
   t_AffectedCountResponse,
   t_Announcement,
-  t_BatchUpdateAdminReportsRequestBodySchema,
-  t_BulkDeleteAdminReportsRequestBodySchema,
-  t_BulkUpdateAdminReportsRequestBodySchema,
+  t_BatchUpdateReportsRequest,
+  t_BulkDeleteReportsRequest,
+  t_BulkUpdateReportsRequest,
   t_CursorPagination,
   t_DeleteAdminReportParamSchema,
   t_Error400,
@@ -38,12 +40,11 @@ import type {
   t_RunAdminMediaAuditQuerySchema,
   t_RunAuditResponse,
   t_UpdateAdminMediaAuditParamSchema,
-  t_UpdateAdminMediaAuditRequestBodySchema,
+  t_UpdateAdminMediaAuditRequestBody,
   t_UpdateAdminReportParamSchema,
-  t_UpdateAdminReportRequestBodySchema,
-  t_UpdateAnnouncementRequestBodySchema,
+  t_UpdateReportRequest,
 } from '../models.ts';
-import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateAdminMediaAuditRequestBodyOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
@@ -65,6 +66,7 @@ import {
   s_ReportSource,
   s_ReportTargetType,
   s_RunAuditResponse,
+  s_UpdateAdminMediaAuditRequestBody,
   s_UpdateReportRequest,
 } from '../schemas.ts';
 
@@ -197,7 +199,7 @@ export type UpdateAdminMediaAuditResponder = {
 } & ExpressRuntimeResponder;
 
 export type UpdateAdminMediaAudit = (
-  params: Params<t_UpdateAdminMediaAuditParamSchema, void, t_UpdateAdminMediaAuditRequestBodySchema, void>,
+  params: Params<t_UpdateAdminMediaAuditParamSchema, void, UpdateAdminMediaAuditRequestBodyOutput, void>,
   respond: UpdateAdminMediaAuditResponder,
   req: Request,
   res: Response,
@@ -308,8 +310,15 @@ export type AdminImplementation = {
   updateAnnouncement: UpdateAnnouncement;
 };
 
-export function createAdminRouter(implementation: AdminImplementation): Router {
+export function createAdminRouter(
+  implementation: AdminImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
+
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const listAdminReportsQuerySchema = z.object({
     cursor: z.string().optional(),
@@ -366,30 +375,14 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.listAdminReports(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listAdminReportsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listAdminReports(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listAdminReportsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const batchUpdateAdminReportsRequestBodySchema = s_BatchUpdateReportsRequest;
 
   const batchUpdateAdminReportsResponseBodyValidator = responseValidationFactory(
     [
@@ -409,7 +402,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(batchUpdateAdminReportsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_BatchUpdateReportsRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -437,30 +430,14 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.batchUpdateAdminReports(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(batchUpdateAdminReportsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .batchUpdateAdminReports(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, batchUpdateAdminReportsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const bulkUpdateAdminReportsRequestBodySchema = s_BulkUpdateReportsRequest;
 
   const bulkUpdateAdminReportsResponseBodyValidator = responseValidationFactory(
     [
@@ -480,7 +457,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(bulkUpdateAdminReportsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_BulkUpdateReportsRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -508,30 +485,14 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.bulkUpdateAdminReports(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(bulkUpdateAdminReportsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .bulkUpdateAdminReports(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, bulkUpdateAdminReportsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const bulkDeleteAdminReportsRequestBodySchema = s_BulkDeleteReportsRequest;
 
   const bulkDeleteAdminReportsResponseBodyValidator = responseValidationFactory(
     [
@@ -551,7 +512,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(bulkDeleteAdminReportsRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_BulkDeleteReportsRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -579,32 +540,16 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.bulkDeleteAdminReports(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(bulkDeleteAdminReportsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .bulkDeleteAdminReports(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, bulkDeleteAdminReportsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
   const updateAdminReportParamSchema = z.object({ reportId: z.coerce.number() });
-
-  const updateAdminReportRequestBodySchema = s_UpdateReportRequest;
 
   const updateAdminReportResponseBodyValidator = responseValidationFactory(
     [
@@ -625,7 +570,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const input = {
         params: parseRequestInput(updateAdminReportParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateAdminReportRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_UpdateReportRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -656,24 +601,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.updateAdminReport(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateAdminReportResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateAdminReport(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateAdminReportResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -727,24 +658,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.deleteAdminReport(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteAdminReportResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .deleteAdminReport(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, deleteAdminReportResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -792,35 +709,16 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.listAdminMediaAudits(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listAdminMediaAuditsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listAdminMediaAudits(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listAdminMediaAuditsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
   const updateAdminMediaAuditParamSchema = z.object({ name: z.string() });
-
-  const updateAdminMediaAuditRequestBodySchema = z.object({
-    threshold: z.record(z.string(), z.unknown()).optional(),
-    enabled: PermissiveBoolean.optional(),
-  });
 
   const updateAdminMediaAuditResponseBodyValidator = responseValidationFactory(
     [
@@ -841,7 +739,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const input = {
         params: parseRequestInput(updateAdminMediaAuditParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateAdminMediaAuditRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_UpdateAdminMediaAuditRequestBody, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -872,24 +770,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.updateAdminMediaAudit(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateAdminMediaAuditResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateAdminMediaAudit(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateAdminMediaAuditResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -945,24 +829,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.runAdminMediaAudit(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(runAdminMediaAuditResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .runAdminMediaAudit(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, runAdminMediaAuditResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1019,24 +889,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.listAdminMediaAuditRuns(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listAdminMediaAuditRunsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listAdminMediaAuditRuns(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listAdminMediaAuditRunsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1093,24 +949,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.getAdminMediaAuditRun(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAdminMediaAuditRunResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getAdminMediaAuditRun(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getAdminMediaAuditRunResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1154,30 +996,14 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.getAnnouncement(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getAnnouncementResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getAnnouncement(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getAnnouncementResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const updateAnnouncementRequestBodySchema = s_Announcement;
 
   const updateAnnouncementResponseBodyValidator = responseValidationFactory(
     [
@@ -1197,7 +1023,7 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(updateAnnouncementRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_Announcement, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1225,24 +1051,10 @@ export function createAdminRouter(implementation: AdminImplementation): Router {
         },
       };
 
-      const response = await implementation.updateAnnouncement(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateAnnouncementResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateAnnouncement(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateAnnouncementResponseBodyValidator));
     } catch (error) {
       next(error);
     }

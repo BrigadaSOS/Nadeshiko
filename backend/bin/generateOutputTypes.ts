@@ -176,14 +176,29 @@ function analyzeRouteFile(filePath: string): RouteFileInfo {
   const bodyTypeReplacements = new Map<string, string>();
   const queryTypeReplacements = new Map<string, string>();
 
-  // Build replacement map from schema assignments
+  // Build replacement map from legacy schema assignments (generator <= 0.22).
   for (const assignment of schemaAssignments) {
     bodyTypeReplacements.set(assignment.inputTypeName, assignment.outputTypeName);
   }
 
-  // Find query type imports: t_XQuerySchema (these don't have schema assignments)
-  const queryTypeRegex = /t_(\w+)QuerySchema/g;
+  // Generator >= 0.23 inlines named schemas directly in parseRequestInput
+  // and uses the model input type in Params (for example t_SearchRequest).
+  // Map those input types back to z.output types, where defaults are applied.
+  const parsedBodySchemaRegex = /body:\s*parseRequestInput\(\s*s_(\w+)\s*,/g;
   let match;
+  while ((match = parsedBodySchemaRegex.exec(content)) !== null) {
+    const baseName = match[1];
+    bodyTypeReplacements.set(`t_${baseName}`, `${baseName}Output`);
+  }
+
+  const parsedQuerySchemaRegex = /query:\s*parseRequestInput\(\s*s_(\w+)\s*,/g;
+  while ((match = parsedQuerySchemaRegex.exec(content)) !== null) {
+    const baseName = match[1];
+    queryTypeReplacements.set(`t_${baseName}`, `${baseName}Output`);
+  }
+
+  // Find legacy inline query type imports: t_XQuerySchema.
+  const queryTypeRegex = /t_(\w+)QuerySchema/g;
   while ((match = queryTypeRegex.exec(content)) !== null) {
     const baseName = match[1];
     // t_FetchMediaInfoQuerySchema -> FetchMediaInfoQueryOutput
