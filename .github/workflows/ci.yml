@@ -85,6 +85,9 @@ jobs:
       - name: Install dependencies
         run: cd backend && bun install --frozen-lockfile
 
+      - name: Build backend image
+        run: docker build --file backend/Dockerfile backend
+
       - name: Lint
         run: cd backend && bun run lint:code
 
