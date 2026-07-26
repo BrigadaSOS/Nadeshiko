@@ -6,7 +6,7 @@ import type {
   SearchResponse as SdkSearchResponse,
   GetSegmentContextResponse as SdkGetSegmentContextResponse,
   GetStatsOverviewResponse,
-  SearchStatsResponse as SdkSearchStatsResponse,
+  GetSearchStatsResponse as SdkSearchStatsResponse,
 } from '@brigadasos/nadeshiko-sdk';
 import { BOT_CONFIG } from './config';
 import { createLogger } from './logger';
