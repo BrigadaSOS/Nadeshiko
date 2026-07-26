@@ -56,7 +56,10 @@ export async function getStuckJobs(): Promise<QueueStats[]> {
 
   for (const queue of ALL_QUEUES) {
     try {
-      const stats = await boss.getQueueStats(queue);
+      const stats = await boss.getQueue(queue);
+      if (!stats) {
+        throw new Error(`Queue not found: ${queue}`);
+      }
 
       const failedResult = await db.executeSql(
         `SELECT COUNT(*)::int AS count FROM pgboss.job WHERE name = $1 AND state = 'failed'`,
@@ -89,7 +92,10 @@ export async function fetchQueueDetails(queueName: string): Promise<QueueDetails
   const boss = getPgBoss();
 
   try {
-    const stats = await boss.getQueueStats(queueName);
+    const stats = await boss.getQueue(queueName);
+    if (!stats) {
+      return null;
+    }
 
     return {
       queue: queueName,
