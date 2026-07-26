@@ -2,29 +2,29 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
   t_CreateEpisodeParamSchema,
-  t_CreateEpisodeRequestBodySchema,
-  t_CreateMediaRequestBodySchema,
   t_CreateSegmentParamSchema,
-  t_CreateSegmentRequestBodySchema,
   t_CreateSegmentsBatchParamSchema,
-  t_CreateSegmentsBatchRequestBodySchema,
   t_DeleteEpisodeParamSchema,
   t_DeleteMediaParamSchema,
   t_Episode,
+  t_EpisodeCreateRequest,
   t_EpisodeListResponse,
+  t_EpisodeUpdateRequest,
   t_Error400,
   t_Error401,
   t_Error403,
@@ -44,18 +44,20 @@ import type {
   t_ListSegmentsParamSchema,
   t_ListSegmentsQuerySchema,
   t_Media,
+  t_MediaCreateRequest,
   t_MediaListResponse,
+  t_MediaUpdateRequest,
   t_Segment,
+  t_SegmentBatchCreateRequest,
   t_SegmentContextResponse,
+  t_SegmentCreateRequest,
   t_SegmentInternal,
   t_SegmentListResponse,
   t_SegmentRevision,
+  t_SegmentUpdateRequest,
   t_UpdateEpisodeParamSchema,
-  t_UpdateEpisodeRequestBodySchema,
   t_UpdateMediaParamSchema,
-  t_UpdateMediaRequestBodySchema,
   t_UpdateSegmentParamSchema,
-  t_UpdateSegmentRequestBodySchema,
 } from '../models.ts';
 import type { EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetSegmentContextQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentBatchCreateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
@@ -418,8 +420,15 @@ export type MediaImplementation = {
   createSegmentsBatch: CreateSegmentsBatch;
 };
 
-export function createMediaRouter(implementation: MediaImplementation): Router {
+export function createMediaRouter(
+  implementation: MediaImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
+
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),
@@ -474,30 +483,14 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.listMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
-
-  const createMediaRequestBodySchema = s_MediaCreateRequest;
 
   const createMediaResponseBodyValidator = responseValidationFactory(
     [
@@ -518,7 +511,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       const input = {
         params: undefined,
         query: undefined,
-        body: parseRequestInput(createMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_MediaCreateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -549,24 +542,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.createMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .createMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, createMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -624,32 +603,16 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.getSegment(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getSegmentResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getSegment(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getSegmentResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
   const updateSegmentParamSchema = z.object({ segmentPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')) });
-
-  const updateSegmentRequestBodySchema = s_SegmentUpdateRequest;
 
   const updateSegmentResponseBodyValidator = responseValidationFactory(
     [
@@ -670,7 +633,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       const input = {
         params: parseRequestInput(updateSegmentParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_SegmentUpdateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -701,24 +664,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.updateSegment(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateSegmentResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateSegment(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateSegmentResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -789,24 +738,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.getSegmentContext(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getSegmentContextResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getSegmentContext(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getSegmentContextResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -868,24 +803,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.listSegmentRevisions(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(listSegmentRevisionsResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .listSegmentRevisions(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, listSegmentRevisionsResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -944,32 +865,16 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.getMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
   const updateMediaParamSchema = z.object({ mediaPublicId: z.string() });
-
-  const updateMediaRequestBodySchema = s_MediaUpdateRequest;
 
   const updateMediaResponseBodyValidator = responseValidationFactory(
     [
@@ -990,7 +895,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       const input = {
         params: parseRequestInput(updateMediaParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(updateMediaRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_MediaUpdateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1021,24 +926,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.updateMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(updateMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .updateMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1096,24 +987,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.deleteMedia(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(deleteMediaResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .deleteMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, deleteMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1176,32 +1053,16 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.listEpisodes(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listEpisodesResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listEpisodes(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listEpisodesResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
   const createEpisodeParamSchema = z.object({ mediaPublicId: z.string() });
-
-  const createEpisodeRequestBodySchema = s_EpisodeCreateRequest;
 
   const createEpisodeResponseBodyValidator = responseValidationFactory(
     [
@@ -1223,7 +1084,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
       const input = {
         params: parseRequestInput(createEpisodeParamSchema, req.params, RequestInputType.RouteParam),
         query: undefined,
-        body: parseRequestInput(createEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
+        body: parseRequestInput(s_EpisodeCreateRequest, req.body, RequestInputType.RequestBody),
         headers: undefined,
       };
 
@@ -1257,24 +1118,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         },
       };
 
-      const response = await implementation.createEpisode(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(createEpisodeResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .createEpisode(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, createEpisodeResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -1337,24 +1184,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.getEpisode(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(getEpisodeResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .getEpisode(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, getEpisodeResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1362,8 +1195,6 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   );
 
   const updateEpisodeParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number().min(0) });
-
-  const updateEpisodeRequestBodySchema = s_EpisodeUpdateRequest;
 
   const updateEpisodeResponseBodyValidator = responseValidationFactory(
     [
@@ -1386,7 +1217,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         const input = {
           params: parseRequestInput(updateEpisodeParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(updateEpisodeRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(s_EpisodeUpdateRequest, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -1417,24 +1248,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.updateEpisode(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(updateEpisodeResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .updateEpisode(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, updateEpisodeResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1495,24 +1312,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.deleteEpisode(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(deleteEpisodeResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .deleteEpisode(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, deleteEpisodeResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1578,24 +1381,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.listSegments(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(listSegmentsResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .listSegments(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, listSegmentsResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1603,8 +1392,6 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
   );
 
   const createSegmentParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number() });
-
-  const createSegmentRequestBodySchema = s_SegmentCreateRequest;
 
   const createSegmentResponseBodyValidator = responseValidationFactory(
     [
@@ -1628,7 +1415,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         const input = {
           params: parseRequestInput(createSegmentParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(createSegmentRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(s_SegmentCreateRequest, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -1662,24 +1449,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.createSegment(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(createSegmentResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .createSegment(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, createSegmentResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1690,8 +1463,6 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
     mediaPublicId: z.string(),
     episodeNumber: z.coerce.number().min(0),
   });
-
-  const createSegmentsBatchRequestBodySchema = s_SegmentBatchCreateRequest;
 
   const createSegmentsBatchResponseBodyValidator = responseValidationFactory(
     [
@@ -1714,7 +1485,7 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
         const input = {
           params: parseRequestInput(createSegmentsBatchParamSchema, req.params, RequestInputType.RouteParam),
           query: undefined,
-          body: parseRequestInput(createSegmentsBatchRequestBodySchema, req.body, RequestInputType.RequestBody),
+          body: parseRequestInput(s_SegmentBatchCreateRequest, req.body, RequestInputType.RequestBody),
           headers: undefined,
         };
 
@@ -1748,24 +1519,10 @@ export function createMediaRouter(implementation: MediaImplementation): Router {
           },
         };
 
-        const response = await implementation.createSegmentsBatch(input, responder, req, res, next).catch((err) => {
-          throw ExpressRuntimeError.HandlerError(err);
-        });
-
-        // escape hatch to allow responses to be sent by the implementation handler
-        if (response === SkipResponse) {
-          return;
-        }
-
-        const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-        res.status(status);
-
-        if (body !== undefined) {
-          res.json(createSegmentsBatchResponseBodyValidator(status, body));
-        } else {
-          res.end();
-        }
+        await implementation
+          .createSegmentsBatch(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, createSegmentsBatchResponseBodyValidator));
       } catch (error) {
         next(error);
       }

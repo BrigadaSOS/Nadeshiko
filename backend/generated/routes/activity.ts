@@ -2,16 +2,18 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import {
   type ExpressRuntimeResponder,
   ExpressRuntimeResponse,
+  handleImplementationError,
+  handleResponse,
   type Params,
-  SkipResponse,
+  type SkipResponse,
   type StatusCode,
 } from '@nahkies/typescript-express-runtime/server';
 import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type Response, Router } from 'express';
+import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
   t_CursorPagination,
@@ -60,9 +62,7 @@ export type ListUserActivity = (
 
 export type GetUserActivityHeatmapResponder = {
   with200(): ExpressRuntimeResponse<{
-    activityByDay: {
-      [key: string]: t_HeatmapDayCounts | undefined;
-    };
+    activityByDay: Record<string, t_HeatmapDayCounts>;
   }>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
@@ -100,14 +100,21 @@ export type ActivityImplementation = {
   getUserActivityStats: GetUserActivityStats;
 };
 
-export function createActivityRouter(implementation: ActivityImplementation): Router {
+export function createActivityRouter(
+  implementation: ActivityImplementation,
+  options: { middleware?: RequestHandler[] } = {},
+): Router {
   const router = Router();
+
+  if (options.middleware?.length) {
+    router.use(...options.middleware);
+  }
 
   const listUserActivityQuerySchema = z.object({
     cursor: z.string().optional(),
     take: z.coerce.number().min(1).max(100).optional().default(20),
     activityType: s_ActivityType.optional(),
-    date: z.string().optional(),
+    date: z.iso.date().optional(),
   });
 
   const listUserActivityResponseBodyValidator = responseValidationFactory(
@@ -155,24 +162,10 @@ export function createActivityRouter(implementation: ActivityImplementation): Ro
         },
       };
 
-      const response = await implementation.listUserActivity(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(listUserActivityResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .listUserActivity(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listUserActivityResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -206,9 +199,7 @@ export function createActivityRouter(implementation: ActivityImplementation): Ro
       const responder = {
         with200() {
           return new ExpressRuntimeResponse<{
-            activityByDay: {
-              [key: string]: t_HeatmapDayCounts | undefined;
-            };
+            activityByDay: Record<string, t_HeatmapDayCounts>;
           }>(200);
         },
         with401() {
@@ -228,30 +219,16 @@ export function createActivityRouter(implementation: ActivityImplementation): Ro
         },
       };
 
-      const response = await implementation.getUserActivityHeatmap(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserActivityHeatmapResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getUserActivityHeatmap(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getUserActivityHeatmapResponseBodyValidator));
     } catch (error) {
       next(error);
     }
   });
 
-  const getUserActivityStatsQuerySchema = z.object({ since: z.string().optional() });
+  const getUserActivityStatsQuerySchema = z.object({ since: z.iso.date().optional() });
 
   const getUserActivityStatsResponseBodyValidator = responseValidationFactory(
     [
@@ -295,24 +272,10 @@ export function createActivityRouter(implementation: ActivityImplementation): Ro
         },
       };
 
-      const response = await implementation.getUserActivityStats(input, responder, req, res, next).catch((err) => {
-        throw ExpressRuntimeError.HandlerError(err);
-      });
-
-      // escape hatch to allow responses to be sent by the implementation handler
-      if (response === SkipResponse) {
-        return;
-      }
-
-      const { status, body } = response instanceof ExpressRuntimeResponse ? response.unpack() : response;
-
-      res.status(status);
-
-      if (body !== undefined) {
-        res.json(getUserActivityStatsResponseBodyValidator(status, body));
-      } else {
-        res.end();
-      }
+      await implementation
+        .getUserActivityStats(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getUserActivityStatsResponseBodyValidator));
     } catch (error) {
       next(error);
     }
