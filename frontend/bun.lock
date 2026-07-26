@@ -5,7 +5,7 @@
     "": {
       "name": "nuxt-app",
       "dependencies": {
-        "@brigadasos/nadeshiko-sdk": "2.2.0-internal.fce7d00",
+        "@brigadasos/nadeshiko-sdk": "2.2.2-internal.8b055f5",
         "@grafana/faro-transport-otlp-http": "^2.7.1",
         "@grafana/faro-web-sdk": "^2.7.0",
         "@grafana/faro-web-tracing": "^2.7.1",
@@ -133,7 +133,7 @@
 
     "@bomb.sh/tab": ["@bomb.sh/tab@0.0.15", "", { "peerDependencies": { "cac": "^6.7.14", "citty": "^0.1.6 || ^0.2.0", "commander": "^13.1.0" }, "optionalPeers": ["cac", "citty", "commander"], "bin": { "tab": "dist/bin/cli.mjs" } }, "sha512-Y90ub44TAvbdO9P8mcD/XPyQjFhiR5xmd4Fk7JErmWmEWEUimNnjWiBrVZ16Tj3GA1rLZ+uvCN2V/pzLawv31g=="],
 
-    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.2.0-internal.fce7d00", "", {}, "sha512-rJ5dSEjk++SOZrTOludAsaPWZy3XmVBOIRoWW+57QqfalESe6uiTkf9tybvzsqhiwe9dBvaDkVbveAFMCVcN9g=="],
+    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.2.2-internal.8b055f5", "", {}, "sha512-LCrhVhcQ6+GXw6O9vaS7IX817MuxtWC2PJxKiSPykK8EiZ/4dj+BKFajsnRPddci7Sn/3k5cVVrJXCnZMqqW7g=="],
 
     "@capsizecss/unpack": ["@capsizecss/unpack@4.0.0", "", { "dependencies": { "fontkitten": "^1.0.0" } }, "sha512-VERIM64vtTP1C4mxQ5thVT9fK0apjPFobqybMtA1UdUujWka24ERHbRHFGmpbbhp73MhV+KSsHQH9C6uOTdEQA=="],
 
