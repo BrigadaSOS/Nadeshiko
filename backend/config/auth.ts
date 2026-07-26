@@ -309,7 +309,6 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       }),
       magicLink({
         expiresIn: 15 * 60,
-        allowedAttempts: 3,
         rateLimit: { window: 5 * 60, max: 3 },
         sendMagicLink: async ({ email, url }) => {
           const existingUser = await User.findOne({ where: { email } });
