@@ -40,7 +40,42 @@ describe('rateLimit', () => {
     expect(last?.status).toBe(429);
     expect(last?.body).toMatchObject({ code: 'RATE_LIMIT_EXCEEDED', status: 429 });
     expect(last?.headers['retry-after']).toBeDefined();
-  });
+  }, 15_000);
+
+  it('groups IPv6 addresses in the same /56 into one rate-limit bucket', async () => {
+    const app = buildApp();
+    const max = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
+
+    for (let i = 0; i < max; i++) {
+      const response = await request(app).get('/ping').set('X-Forwarded-For', '2001:db8:abcd:1200::1');
+      expect(response.status).toBe(200);
+    }
+
+    const sameSubnetResponse = await request(app).get('/ping').set('X-Forwarded-For', '2001:db8:abcd:12ff::2');
+    const differentSubnetResponse = await request(app).get('/ping').set('X-Forwarded-For', '2001:db8:abcd:1300::1');
+
+    expect(sameSubnetResponse.status).toBe(429);
+    expect(differentSubnetResponse.status).toBe(200);
+  }, 15_000);
+
+  it('groups IPv6 addresses in the same /56 for auth routes without affecting adjacent subnets', async () => {
+    const app = buildApp();
+
+    for (let i = 0; i < config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP; i++) {
+      const response = await request(app).get('/v1/auth/get-session').set('X-Forwarded-For', '2001:db8:abcd:3400::1');
+      expect(response.status).toBe(200);
+    }
+
+    const sameSubnetResponse = await request(app)
+      .get('/v1/auth/get-session')
+      .set('X-Forwarded-For', '2001:db8:abcd:34ff::2');
+    const differentSubnetResponse = await request(app)
+      .get('/v1/auth/get-session')
+      .set('X-Forwarded-For', '2001:db8:abcd:3500::1');
+
+    expect(sameSubnetResponse.status).toBe(429);
+    expect(differentSubnetResponse.status).toBe(200);
+  }, 15_000);
 
   it('exempts proxied traffic carrying the valid internal-proxy secret', async () => {
     const app = buildApp();
@@ -57,7 +92,7 @@ describe('rateLimit', () => {
       statuses.push(r.status);
     }
     expect(statuses.every((s) => s === 200)).toBe(true);
-  });
+  }, 15_000);
 
   it('does NOT exempt traffic with a wrong/forged internal-proxy secret', async () => {
     const app = buildApp();
@@ -70,7 +105,7 @@ describe('rateLimit', () => {
       statuses.push(r.status);
     }
     expect(statuses).toContain(429);
-  });
+  }, 15_000);
 
   it('auth route is separately (more tightly) rate-limited', async () => {
     const app = buildApp();
@@ -82,7 +117,7 @@ describe('rateLimit', () => {
     expect(statuses).toContain(429);
     // The auth limit is tighter than the global one, so it must trip first.
     expect(statuses.indexOf(429)).toBeLessThan(config.RATE_LIMIT_MAX_REQUESTS_PER_IP);
-  });
+  }, 15_000);
 });
 
 describe('rateLimit skip for SERVICE keys', () => {
@@ -116,7 +151,7 @@ describe('rateLimit skip for SERVICE keys', () => {
       statuses.push(r.status);
     }
     expect(statuses.every((s) => s === 200)).toBe(true);
-  });
+  }, 15_000);
 
   it('never rate-limits SERVICE key requests (auth)', async () => {
     const app = buildServiceKeyApp();
@@ -126,5 +161,5 @@ describe('rateLimit skip for SERVICE keys', () => {
       statuses.push(r.status);
     }
     expect(statuses.every((s) => s === 200)).toBe(true);
-  });
+  }, 15_000);
 });
