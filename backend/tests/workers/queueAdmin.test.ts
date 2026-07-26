@@ -10,11 +10,11 @@ import {
 import { ALL_QUEUES } from '@app/workers/queueNames';
 
 describe('queueAdmin', () => {
-  let getQueueStats: ReturnType<typeof vi.fn>;
+  let getQueue: ReturnType<typeof vi.fn>;
   let executeSql: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    getQueueStats = vi.fn().mockResolvedValue({
+    getQueue = vi.fn().mockResolvedValue({
       deferredCount: 1,
       queuedCount: 2,
       activeCount: 3,
@@ -39,7 +39,7 @@ describe('queueAdmin', () => {
     executeSql = vi.fn().mockResolvedValue({ rows: [] });
 
     setBossInstance({
-      getQueueStats,
+      getQueue,
       getDb: () => ({ executeSql }),
     } as any);
   });
@@ -47,7 +47,7 @@ describe('queueAdmin', () => {
   it('returns stuck-job stats for all queues', async () => {
     const stats = await getStuckJobs();
 
-    expect(getQueueStats).toHaveBeenCalledTimes(ALL_QUEUES.length);
+    expect(getQueue).toHaveBeenCalledTimes(ALL_QUEUES.length);
     expect(stats).toEqual([
       { queue: 'es-sync-create', queued: 2, active: 3, failed: 0, completed: 0 },
       { queue: 'es-sync-update', queued: 2, active: 3, failed: 0, completed: 0 },
@@ -74,6 +74,18 @@ describe('queueAdmin', () => {
         updatedOn: '2026-02-01T01:00:00.000Z',
       },
     });
+  });
+
+  it('returns null when pg-boss does not know the queue', async () => {
+    getQueue.mockResolvedValueOnce(null);
+
+    await expect(fetchQueueDetails('missing-queue')).resolves.toBeNull();
+  });
+
+  it('returns null when pg-boss rejects the queue lookup', async () => {
+    getQueue.mockRejectedValueOnce(new Error('queue lookup failed'));
+
+    await expect(fetchQueueDetails('broken-queue')).resolves.toBeNull();
   });
 
   it('returns failed jobs from the pgboss table', async () => {
