@@ -5,7 +5,7 @@
     "": {
       "name": "nuxt-app",
       "dependencies": {
-        "@brigadasos/nadeshiko-sdk": "2.2.2-internal.8b055f5",
+        "@brigadasos/nadeshiko-sdk": "2.2.2",
         "@grafana/faro-transport-otlp-http": "^2.8.2",
         "@grafana/faro-web-sdk": "^2.8.2",
         "@grafana/faro-web-tracing": "^2.8.2",
@@ -135,7 +135,7 @@
 
     "@bomb.sh/tab": ["@bomb.sh/tab@0.0.15", "", { "peerDependencies": { "cac": "^6.7.14", "citty": "^0.1.6 || ^0.2.0", "commander": "^13.1.0" }, "optionalPeers": ["cac", "citty", "commander"], "bin": { "tab": "dist/bin/cli.mjs" } }, "sha512-Y90ub44TAvbdO9P8mcD/XPyQjFhiR5xmd4Fk7JErmWmEWEUimNnjWiBrVZ16Tj3GA1rLZ+uvCN2V/pzLawv31g=="],
 
-    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.2.2-internal.8b055f5", "", {}, "sha512-LCrhVhcQ6+GXw6O9vaS7IX817MuxtWC2PJxKiSPykK8EiZ/4dj+BKFajsnRPddci7Sn/3k5cVVrJXCnZMqqW7g=="],
+    "@brigadasos/nadeshiko-sdk": ["@brigadasos/nadeshiko-sdk@2.2.2", "", {}, "sha512-pSYRmLaweRO/6SEPm+qURJXOHAuW2zSnxNymJYGhiXyJaqAivVFJ0FDyfxAtF+aJF+xWchvEbfbqakL1XbgeFg=="],
 
     "@clack/core": ["@clack/core@1.2.0", "", { "dependencies": { "fast-wrap-ansi": "^0.1.3", "sisteransi": "^1.0.5" } }, "sha512-qfxof/3T3t9DPU/Rj3OmcFyZInceqj/NVtO9rwIuJqCUgh32gwPjpFQQp/ben07qKlhpwq7GzfWpST4qdJ5Drg=="],
 
