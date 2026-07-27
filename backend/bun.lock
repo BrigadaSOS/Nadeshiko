@@ -455,7 +455,7 @@
 
     "@protobufjs/utf8": ["@protobufjs/utf8@1.1.0", "", {}, "sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw=="],
 
-    "@redocly/cli": ["@redocly/cli@2.40.0", "", { "bin": { "openapi": "bin/cli.js", "redocly": "bin/cli.js" } }, "sha512-1uQ4GeNjhApy9EtypZgp70ZN5GC2JFfst3UkNEXSqkXgVIPGdEAnlz5Xwgax/4cEUGOvaZoM3X25iSQcqbplFg=="],
+    "@redocly/cli": ["@redocly/cli@2.41.0", "", { "bin": { "openapi": "bin/cli.js", "redocly": "bin/cli.js" } }, "sha512-7MjbLQ7u7zPT5sWN6PaBBOCflue//fgmmoGYui8pKmi1dw6um2pYwjElXjC0qycNEGXo3pCJc599GqEgFdKbxQ=="],
 
     "@smithy/abort-controller": ["@smithy/abort-controller@4.2.11", "", { "dependencies": { "@smithy/types": "^4.13.0", "tslib": "^2.6.2" } }, "sha512-Hj4WoYWMJnSpM6/kchsm4bUNTL9XiSyhvoMb2KIq4VJzyDt7JpGHUZHkVNPZVC7YE1tf8tPeVauxpFBKGW4/KQ=="],
 
