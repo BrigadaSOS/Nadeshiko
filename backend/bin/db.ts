@@ -107,6 +107,7 @@ async function setupElasticsearchUserAndRole(options: { recreateIfExists?: boole
   logger.info('Setting up Elasticsearch user and role...');
   try {
     const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@config/elasticsearch');
+    const { ELASTICSEARCH_CLIENT_DEFAULTS } = await import('@config/elasticsearch-client');
     const { Client } = await import('@elastic/elasticsearch');
 
     // Create admin client
@@ -126,6 +127,7 @@ async function setupElasticsearchUserAndRole(options: { recreateIfExists?: boole
         password: adminPassword,
       },
       Connection: HttpConnection,
+      ...ELASTICSEARCH_CLIENT_DEFAULTS,
     });
 
     // Create user and role first
@@ -175,6 +177,7 @@ Commands:
   setup     Reset target database tables + ES role/user/index + migrate + seed (destructive)
   reset     Alias for setup (destructive)
   prepare   Non-destructive deploy task: migrate if needed + infrastructure checks
+  prepare-es  Create the Elasticsearch app role/user and initialize its alias only
   drop      Drop all tables (destructive!)
   status    Show if there are pending migrations
 
@@ -223,6 +226,9 @@ async function main(): Promise<void> {
         }
         await AppDataSource.initialize();
         await prepare();
+        break;
+      case 'prepare-es':
+        await setupElasticsearchUserAndRole();
         break;
       case 'drop':
         ensureDestructiveAllowed('db:drop', commandArgs);
