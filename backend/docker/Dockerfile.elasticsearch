@@ -1,9 +1,17 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:8.17.10
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:785913a22bd053dde1fb93d7098a1a58e0fc894cffc195752772c0d2682900ec
 RUN bin/elasticsearch-plugin install analysis-icu
-RUN bin/elasticsearch-plugin install \
-  https://github.com/WorksApplications/elasticsearch-sudachi/releases/download/v3.4.0/elasticsearch-8.17.10-analysis-sudachi-3.4.0.zip
+# Sudachi 3.6 declares read access to config/sudachi; --batch accepts that
+# reviewed entitlement so image builds remain non-interactive.
+ADD --chown=elasticsearch:root --chmod=0644 \
+  --checksum=sha256:ba5f83df76ef26e47fc005df2c7614fee0f7318958edf261623b09e9d39621c3 \
+  https://github.com/WorksApplications/elasticsearch-sudachi/releases/download/v3.6.0/elasticsearch-8.19.15-analysis-sudachi-3.6.0.zip \
+  /tmp/elasticsearch-analysis-sudachi.zip
+RUN bin/elasticsearch-plugin install --batch file:///tmp/elasticsearch-analysis-sudachi.zip && \
+  rm /tmp/elasticsearch-analysis-sudachi.zip
 USER root
-ADD https://github.com/WorksApplications/SudachiDict/releases/download/v20260116/sudachi-dictionary-20260116-full.zip /tmp/sudachi-dict-full.zip
+ADD --checksum=sha256:2a1eda5a0240a42f45daf8003d97df5565c5d252bb2d58e71807bbbd082f7eea \
+  https://github.com/WorksApplications/SudachiDict/releases/download/v20260116/sudachi-dictionary-20260116-full.zip \
+  /tmp/sudachi-dict-full.zip
 RUN apt-get update && apt-get install -y --no-install-recommends unzip && \
   mkdir -p config/sudachi && \
   unzip /tmp/sudachi-dict-full.zip -d /tmp/sudachi-dict && \
