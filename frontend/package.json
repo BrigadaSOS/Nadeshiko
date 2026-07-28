@@ -41,7 +41,7 @@
     "@opentelemetry/sdk-node": "^0.221.0",
     "@opentelemetry/sdk-trace-node": "^2.10.0",
     "@pinia/nuxt": "^1.0.1",
-    "@posthog/nuxt": "^1.7.80",
+    "@posthog/nuxt": "^1.7.81",
     "@vue/devtools-api": "^8.1.5",
     "gray-matter": "^4.0.3",
     "marked": "^18.0.7",
