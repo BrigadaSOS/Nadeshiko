@@ -100,7 +100,7 @@
     "@types/recursive-readdir": "^2.2.4",
     "@types/request-ip": "^0.0.41",
     "@types/supertest": "7.2.1",
-    "@usebruno/cli": "^3.5.3",
+    "@usebruno/cli": "^4.0.0",
     "@usebruno/converters": "0.22.0",
     "cloc": "^2.11.0",
     "js-yaml": "^5.2.2",
