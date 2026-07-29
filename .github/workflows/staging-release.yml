@@ -245,6 +245,12 @@ jobs:
               ssh nadeshiko 'docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
               cd backend
               ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
+            elif ! ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{range .Config.Env}}{{println .}}{{end}}" | grep -q "^ELASTIC_PASSWORD="'; then
+              # Recreate only the container so the official entrypoint and
+              # bootstrap environment apply; preserve the named data volume.
+              ssh nadeshiko 'docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
+              cd backend
+              ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
             elif [ "$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.State.Running}}"')" != true ]; then
               ssh nadeshiko 'docker start nadeshiko-backend-stg-elasticsearch >/dev/null'
             fi
@@ -255,6 +261,37 @@ jobs:
 
           actual=$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
           test "$actual" = "$expected"
+
+          # Wait until the HTTP security layer is ready. A secured node answers
+          # unauthenticated requests with 401; 200 also supports security-off
+          # diagnostics without weakening the authenticated health gate below.
+          for attempt in $(seq 1 90); do
+            http_status=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --silent --output /dev/null --write-out \"%{http_code}\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
+            if [ "$http_status" = 401 ] || [ "$http_status" = 200 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 90 ]; then
+              ssh nadeshiko 'docker logs --tail 200 nadeshiko-backend-stg-elasticsearch'
+              exit 1
+            fi
+            sleep 2
+          done
+
+          health=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
+          if ! grep -q '"timed_out":false' <<<"$health"; then
+            # Volumes initialized before ELASTIC_PASSWORD reached the official
+            # entrypoint have an unknown generated password. Reconcile only the
+            # built-in elastic user through Elasticsearch's supported tool;
+            # never delete the persistent volume to repair credentials.
+            ssh nadeshiko 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          docker exec nadeshiko-backend-stg-elasticsearch bash -ceu '
+            test -n "$ELASTICSEARCH_ADMIN_PASSWORD"
+            printf "%s\n%s\n" "$ELASTICSEARCH_ADMIN_PASSWORD" "$ELASTICSEARCH_ADMIN_PASSWORD" |
+              ./bin/elasticsearch-reset-password --username elastic --interactive --batch >/dev/null
+          '
+          REMOTE
+          fi
 
           for attempt in $(seq 1 90); do
             health=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)

@@ -70,6 +70,7 @@ accessories:
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
+        - ELASTIC_PASSWORD
       clear:
         discovery.type: single-node
         ES_JAVA_OPTS: "-Xms512m -Xmx512m"
@@ -78,11 +79,6 @@ accessories:
         http.host: "0.0.0.0"
     volumes:
       - nadeshiko-elasticsearch-stg-v9-data:/usr/share/elasticsearch/data
-    cmd: >
-      bash -c '
-        export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
-        ./bin/elasticsearch
-      '
     options:
       # Isolated staging canary; sized for functional validation, not production load.
       memory: 2g
