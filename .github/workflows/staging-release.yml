@@ -42,6 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
+        if: github.event_name == 'push'
         id: filter
         with:
           filters: |
@@ -65,7 +66,8 @@ jobs:
     if: >-
       always() &&
       (needs.changes.outputs.backend == 'true' || inputs.force_backend == true || inputs.bootstrap_elasticsearch_canary == true) &&
-      (needs.changes.outputs.elasticsearch != 'true' || needs.bootstrap-elasticsearch-canary.result == 'success')
+      (needs.changes.outputs.elasticsearch != 'true' || needs.bootstrap-elasticsearch-canary.result == 'success') &&
+      (inputs.bootstrap_elasticsearch_canary != true || needs.bootstrap-elasticsearch-canary.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -122,12 +124,12 @@ jobs:
         run: |
           set -euo pipefail
           ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
-          health=$(ssh nadeshiko "sudo -n docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'")
+          health=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'")
           grep -q '"timed_out":false' <<<"$health"
           grep -Eq '"status":"(yellow|green)"' <<<"$health"
-          version=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
+          version=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
           grep -q 'Version: 9.4.1' <<<"$version"
-          plugins=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
+          plugins=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
           grep -qx analysis-icu <<<"$plugins"
           grep -qx analysis-sudachi <<<"$plugins"
 
@@ -167,7 +169,7 @@ jobs:
           tar -C "$stage" -cf - . | ssh nadeshiko '
             set -euo pipefail
             stage=$(mktemp -d)
-            trap '\''sudo -n rm -rf "$stage"'\'' EXIT
+            trap '\''rm -rf "$stage"'\'' EXIT
             tar -C "$stage" -xf -
             bash "$stage/run.sh" "$stage/admin.env"
           '
@@ -237,37 +239,37 @@ jobs:
           test -n "$expected"
           test "$component_digest" = "$expected"
 
-          if ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch >/dev/null 2>&1'; then
-            actual=$(ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
+          if ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch >/dev/null 2>&1'; then
+            actual=$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
             if [ "$actual" != "$expected" ]; then
-              ssh nadeshiko 'sudo -n docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
+              ssh nadeshiko 'docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
               cd backend
               ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
-            elif [ "$(ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.State.Running}}"')" != true ]; then
-              ssh nadeshiko 'sudo -n docker start nadeshiko-backend-stg-elasticsearch >/dev/null'
+            elif [ "$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.State.Running}}"')" != true ]; then
+              ssh nadeshiko 'docker start nadeshiko-backend-stg-elasticsearch >/dev/null'
             fi
           else
             cd backend
             ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
           fi
 
-          actual=$(ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
+          actual=$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
           test "$actual" = "$expected"
 
           for attempt in $(seq 1 90); do
-            health=$(ssh nadeshiko "sudo -n docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
+            health=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
             if grep -q '"timed_out":false' <<<"$health" && grep -Eq '"status":"(yellow|green)"' <<<"$health"; then
               break
             fi
             if [ "$attempt" -eq 90 ]; then
-              ssh nadeshiko 'sudo -n docker logs --tail 200 nadeshiko-backend-stg-elasticsearch'
+              ssh nadeshiko 'docker logs --tail 200 nadeshiko-backend-stg-elasticsearch'
               exit 1
             fi
             sleep 2
           done
-          version=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
+          version=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
           grep -q 'Version: 9.4.1' <<<"$version"
-          plugins=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
+          plugins=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
           grep -qx analysis-icu <<<"$plugins"
           grep -qx analysis-sudachi <<<"$plugins"
 
