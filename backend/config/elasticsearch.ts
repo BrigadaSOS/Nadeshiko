@@ -1,6 +1,7 @@
 import { Client, HttpConnection } from '@elastic/elasticsearch';
 import { config, type AppConfig } from '@config/config';
 import { logger } from '@config/log';
+import { ELASTICSEARCH_CLIENT_DEFAULTS } from '@config/elasticsearch-client';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 import type { ReindexResponse } from '@app/models/segmentDocument/SegmentIndexer';
 
@@ -13,6 +14,7 @@ export const client = new Client({
     password: config.ELASTICSEARCH_PASSWORD,
   },
   Connection: HttpConnection,
+  ...ELASTICSEARCH_CLIENT_DEFAULTS,
 });
 
 /**
@@ -34,6 +36,7 @@ function createAdminClient(configValues: AppConfig): Client {
       password: adminPassword,
     },
     Connection: HttpConnection,
+    ...ELASTICSEARCH_CLIENT_DEFAULTS,
   });
 }
 
