@@ -101,4 +101,23 @@ describe('SegmentIndexer.reindex', () => {
     expect(createQueryBuilderSpy).toHaveBeenCalledTimes(3);
     expect(bulkIndexSpy).toHaveBeenCalledTimes(2);
   });
+
+  it('returns failure when any bulk item fails', async () => {
+    vi.spyOn(Segment, 'createQueryBuilder').mockImplementation(() => {
+      return createSegmentQueryBuilderMock((state) =>
+        Number(state.params.lastId ?? 0) === 0 ? [{ id: 1, mediaId: 10, contentJa: 'a' }] : [],
+      ) as any;
+    });
+    vi.spyOn(SegmentIndexer, 'bulkIndex').mockResolvedValue({
+      succeeded: 0,
+      failed: 1,
+      errors: [{ segmentId: 1, error: 'mapper failure' }],
+    });
+
+    const result = await SegmentIndexer.reindex();
+
+    expect(result.success).toBe(false);
+    expect(result.stats.failedIndexes).toBe(1);
+    expect(result.errors).toEqual([{ segmentId: 1, error: 'mapper failure' }]);
+  });
 });

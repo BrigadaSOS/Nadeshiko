@@ -12,6 +12,7 @@ const mockIndicesGet = vi.fn();
 const mockIndicesCreate = vi.fn();
 const mockIndicesDelete = vi.fn();
 const mockIndicesUpdateAliases = vi.fn();
+const mockIndicesRefresh = vi.fn();
 
 vi.mock('@elastic/elasticsearch', () => {
   class MockClient {
@@ -31,6 +32,7 @@ vi.mock('@elastic/elasticsearch', () => {
       create: (...args: unknown[]) => mockIndicesCreate(...args),
       delete: (...args: unknown[]) => mockIndicesDelete(...args),
       updateAliases: (...args: unknown[]) => mockIndicesUpdateAliases(...args),
+      refresh: (...args: unknown[]) => mockIndicesRefresh(...args),
     };
   }
 
@@ -60,9 +62,11 @@ vi.mock('@config/log', () => ({
 const {
   INDEX_NAME,
   initializeElasticsearchIndexWithClient,
+  reindexZeroDowntime,
   resetElasticsearchIndexWithClient,
   setupElasticsearchUser,
 } = await import('@config/elasticsearch');
+const { ELASTICSEARCH_CLIENT_DEFAULTS } = await import('@config/elasticsearch-client');
 const { config } = await import('@config/config');
 
 function makeMockClient() {
@@ -75,6 +79,7 @@ function makeMockClient() {
       create: mockIndicesCreate,
       delete: mockIndicesDelete,
       updateAliases: mockIndicesUpdateAliases,
+      refresh: mockIndicesRefresh,
     },
     security: {
       deleteUser: mockDeleteUser,
@@ -107,6 +112,7 @@ beforeEach(() => {
   mockIndicesCreate.mockResolvedValue(undefined);
   mockIndicesDelete.mockResolvedValue(undefined);
   mockIndicesUpdateAliases.mockResolvedValue(undefined);
+  mockIndicesRefresh.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -114,6 +120,10 @@ afterEach(() => {
 });
 
 describe('setupElasticsearchUser', () => {
+  it('preserves the Elasticsearch v8 default request timeout explicitly', () => {
+    expect(ELASTICSEARCH_CLIENT_DEFAULTS).toEqual({ requestTimeout: 30_000 });
+  });
+
   it('skips setup when ELASTICSEARCH_ADMIN_PASSWORD is missing', async () => {
     const configValues = makeConfig({
       ELASTICSEARCH_ADMIN_PASSWORD: undefined,
@@ -266,5 +276,22 @@ describe('resetElasticsearchIndexWithClient', () => {
 
     expect(mockIndicesDelete).not.toHaveBeenCalled();
     expect(mockIndicesCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('reindexZeroDowntime', () => {
+  it('does not swap the alias when population reports bulk failures', async () => {
+    mockIndicesGetAlias.mockResolvedValue({ [`${INDEX_NAME}_v1`]: {} });
+    const populate = vi.fn().mockResolvedValue({
+      success: false,
+      message: 'Reindex completed with 1 failed document(s)',
+      stats: { totalSegments: 1, successfulIndexes: 0, failedIndexes: 1, mediaProcessed: 1 },
+      errors: [{ segmentId: 1, error: 'mapper failure' }],
+    });
+
+    await expect(reindexZeroDowntime(populate, makeMockClient() as any)).rejects.toThrow('Reindex population failed');
+
+    expect(mockIndicesUpdateAliases).not.toHaveBeenCalled();
+    expect(mockIndicesDelete).toHaveBeenCalledWith({ index: `${INDEX_NAME}_v2` });
   });
 });

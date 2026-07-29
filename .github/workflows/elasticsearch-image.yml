@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 env:
-  ELASTICSEARCH_IMAGE_TAG: 8.19.15-sudachi-3.6.0-dict-20260116
+  ELASTICSEARCH_IMAGE_TAG: 9.4.1-sudachi-3.6.0-dict-20260116
 
 jobs:
   build:
