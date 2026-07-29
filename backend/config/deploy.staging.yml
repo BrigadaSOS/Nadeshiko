@@ -54,7 +54,7 @@ env:
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432
 
-    ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
+    ELASTICSEARCH_HOST: "http://nadeshiko-backend-stg-elasticsearch:9200"
     ELASTICSEARCH_INDEX: nadedb_dev
 
     R2_BASE_URL: https://cdn.nadeshiko.co
@@ -62,4 +62,32 @@ env:
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
+
+accessories:
+  elasticsearch:
+    image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
+    host: nadeshiko
+    env:
+      secret:
+        - ELASTICSEARCH_ADMIN_PASSWORD
+      clear:
+        discovery.type: single-node
+        ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        xpack.security.enabled: "true"
+        xpack.security.http.ssl.enabled: "false"
+        http.host: "0.0.0.0"
+    volumes:
+      - nadeshiko-elasticsearch-stg-v9-data:/usr/share/elasticsearch/data
+    cmd: >
+      bash -c '
+        export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
+        ./bin/elasticsearch
+      '
+    options:
+      # Isolated staging canary; sized for functional validation, not production load.
+      memory: 2g
+      memory-swap: 2.5g
+      ulimit:
+        - nofile=65536:65536
+        - memlock=-1:-1
 

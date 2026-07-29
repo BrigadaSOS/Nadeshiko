@@ -13,6 +13,7 @@ COPY package.json tsconfig.json main.ts instrumentation.ts ./
 COPY app ./app
 COPY config ./config
 COPY db ./db
+COPY bin ./bin
 COPY lib ./lib
 COPY generated ./generated
 ENTRYPOINT []

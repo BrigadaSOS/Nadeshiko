@@ -10,6 +10,10 @@ permissions:
   packages: write
   id-token: write
 
+concurrency:
+  group: nadeshiko-production-release
+  cancel-in-progress: false
+
 jobs:
   release-backend:
     runs-on: ubuntu-latest
@@ -32,11 +36,11 @@ jobs:
       - name: Install backend dependencies
         run: cd backend && bun install --frozen-lockfile
 
-      - name: Get latest release tag
+      - name: Read triggering release tag
         id: get-tag
         run: |
           set -euo pipefail
-          RELEASE_TAG=$(git describe --tags --abbrev=0)
+          RELEASE_TAG=${GITHUB_REF_NAME:?tag ref is required}
           echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           VERSION="${RELEASE_TAG#v}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -51,6 +55,8 @@ jobs:
             echo "Invalid semver tag: ${RELEASE_TAG}"
             exit 1
           fi
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           bun run release:check-version "${VERSION}"
 
       - name: Generate OpenAPI specs
@@ -119,14 +125,46 @@ jobs:
       - name: Install Kamal
         run: gem install kamal -v '~> 2.0'
 
-      - name: Deploy backend to prod
+      - name: Migrate Elasticsearch and deploy backend to prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          component='ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116'
+          source_sha=$(git log --first-parent -1 --format=%H -- backend/docker/Dockerfile.elasticsearch)
+          commit_tag="${component}-${source_sha}"
+          docker pull "$component"
+          docker pull "$commit_tag"
+          component_digest=$(docker image inspect "$component" --format '{{index .RepoDigests 0}}')
+          elasticsearch_image=$(docker image inspect "$commit_tag" --format '{{index .RepoDigests 0}}')
+          test -n "$elasticsearch_image"
+          test "$component_digest" = "$elasticsearch_image"
+
+          backend_tag="ghcr.io/brigadasos/nadeshiko-backend-prod:${GITHUB_SHA}"
+          docker pull "$backend_tag"
+          backend_image=$(docker image inspect "$backend_tag" --format '{{index .RepoDigests 0}}')
+          test -n "$backend_image"
+
+          admin_user=$(aws ssm get-parameter --name "/nadeshiko/prod/ELASTICSEARCH_ADMIN_USER" --with-decryption --query 'Parameter.Value' --output text)
+          admin_password=$(aws ssm get-parameter --name "/nadeshiko/prod/ELASTICSEARCH_ADMIN_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
+          test -n "$admin_user"
+          test -n "$admin_password"
+          if [[ "$admin_user" == *$'\n'* || "$admin_user" == *$'\r'* || "$admin_password" == *$'\n'* || "$admin_password" == *$'\r'* ]]; then
+            echo 'Elasticsearch administrative values must not contain CR/LF characters.' >&2
+            exit 1
+          fi
+          echo "::add-mask::${admin_user}"
+          echo "::add-mask::${admin_password}"
+          admin_env=$(mktemp)
+          trap 'rm -f "$admin_env"' EXIT
+          umask 077
+          printf 'ELASTICSEARCH_ADMIN_USER=%s\nELASTICSEARCH_ADMIN_PASSWORD=%s\n' \
+            "$admin_user" "$admin_password" >"$admin_env"
+
           cd backend
-          kamal deploy -d prod --skip-push
+          bash scripts/migrate-elasticsearch-production.sh "$elasticsearch_image" "$backend_image" "$GITHUB_SHA" "$admin_env"
 
   release-frontend:
     needs: release-backend
@@ -269,8 +307,8 @@ jobs:
           set -euo pipefail
           gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
             -f event_type='backend_release' \
-            -f client_payload[release_channel]="stable" \
-            -f client_payload[backend_sha]="${GITHUB_SHA}"
+            -f 'client_payload[release_channel]=stable' \
+            -f "client_payload[backend_sha]=${GITHUB_SHA}"
 
   dispatch-sdk-python:
     needs: release-backend
@@ -283,5 +321,5 @@ jobs:
           set -euo pipefail
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
-            -f client_payload[release_channel]="stable" \
-            -f client_payload[backend_sha]="${GITHUB_SHA}"
+            -f 'client_payload[release_channel]=stable' \
+            -f "client_payload[backend_sha]=${GITHUB_SHA}"

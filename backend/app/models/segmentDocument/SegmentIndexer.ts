@@ -235,6 +235,15 @@ export class SegmentIndexer {
         'Reindex completed',
       );
 
+      if (stats.failedIndexes > 0 || errors.length > 0) {
+        return {
+          success: false,
+          message: `Reindex completed with ${stats.failedIndexes} failed document(s)`,
+          stats,
+          errors,
+        };
+      }
+
       return { success: true, message: 'Reindex operation completed', stats, errors };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

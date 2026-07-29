@@ -16,11 +16,20 @@ on:
         required: false
         default: 'false'
         type: boolean
+      bootstrap_elasticsearch_canary:
+        description: 'Boot and populate the isolated Elasticsearch staging canary'
+        required: false
+        default: 'false'
+        type: boolean
 
 permissions:
   contents: read
   packages: write
   id-token: write
+
+concurrency:
+  group: nadeshiko-staging-release
+  cancel-in-progress: false
 
 jobs:
   changes:
@@ -29,6 +38,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       openapi: ${{ steps.filter.outputs.openapi }}
+      elasticsearch: ${{ steps.filter.outputs.elasticsearch }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -37,14 +47,25 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+            elasticsearch:
+              - 'backend/docker/Dockerfile.elasticsearch'
+              - 'backend/package.json'
+              - 'backend/bun.lock'
+              - 'backend/config/elasticsearch.ts'
+              - 'backend/config/elasticsearch-client.ts'
+              - 'backend/config/deploy.staging.yml'
+              - 'backend/scripts/bootstrap-elasticsearch-staging-canary.sh'
             frontend:
               - 'frontend/**'
             openapi:
               - 'backend/docs/openapi/**'
 
   deploy-backend:
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || inputs.force_backend == 'true'
+    needs: [changes, bootstrap-elasticsearch-canary]
+    if: >-
+      always() &&
+      (needs.changes.outputs.backend == 'true' || inputs.force_backend == true || inputs.bootstrap_elasticsearch_canary == true) &&
+      (needs.changes.outputs.elasticsearch != 'true' || needs.bootstrap-elasticsearch-canary.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -96,6 +117,19 @@ jobs:
           chmod 700 ~/.ssh
           chmod 600 ~/.ssh/config
 
+      - name: Verify Elasticsearch 9 prerequisite
+        run: |
+          set -euo pipefail
+          ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
+          health=$(ssh nadeshiko "sudo -n docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'")
+          grep -q '"timed_out":false' <<<"$health"
+          grep -Eq '"status":"(yellow|green)"' <<<"$health"
+          version=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
+          grep -q 'Version: 9.4.1' <<<"$version"
+          plugins=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
+          grep -qx analysis-icu <<<"$plugins"
+          grep -qx analysis-sudachi <<<"$plugins"
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -113,9 +147,132 @@ jobs:
           cd backend
           kamal deploy -d staging --skip-push
 
+      - name: Populate and verify Elasticsearch canary
+        if: inputs.bootstrap_elasticsearch_canary == true
+        run: |
+          set -euo pipefail
+          admin_user=$(aws ssm get-parameter --name "/nadeshiko/staging/ELASTICSEARCH_ADMIN_USER" --with-decryption --query 'Parameter.Value' --output text)
+          admin_password=$(aws ssm get-parameter --name "/nadeshiko/staging/ELASTICSEARCH_ADMIN_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
+          echo "::add-mask::${admin_user}"
+          echo "::add-mask::${admin_password}"
+
+          stage=$(mktemp -d)
+          trap 'rm -rf "$stage"' EXIT
+          umask 077
+          printf 'ELASTICSEARCH_ADMIN_USER=%s\nELASTICSEARCH_ADMIN_PASSWORD=%s\n' \
+            "$admin_user" "$admin_password" >"$stage/admin.env"
+          cp backend/scripts/bootstrap-elasticsearch-staging-canary.sh "$stage/run.sh"
+
+          tar -C "$stage" -cf - . | ssh nadeshiko '
+            set -euo pipefail
+            stage=$(mktemp -d)
+            trap '\''sudo -n rm -rf "$stage"'\'' EXIT
+            tar -C "$stage" -xf -
+            bash "$stage/run.sh" "$stage/admin.env"
+          '
+
+  bootstrap-elasticsearch-canary:
+    if: inputs.bootstrap_elasticsearch_canary == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
+          aws-region: eu-north-1
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: nadeshiko
+
+      - name: Configure SSH over Tailscale
+        run: |
+          mkdir -p ~/.ssh
+          cat >> ~/.ssh/config <<'EOF'
+          Host nadeshiko
+            ProxyCommand tailscale nc %h %p
+          EOF
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/config
+          ssh-keyscan -H nadeshiko >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+
+      - name: Install Kamal
+        run: gem install kamal -v '~> 2.0'
+
+      - name: Boot isolated Elasticsearch canary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          component='ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116'
+          source_sha=$(git log --first-parent -1 --format=%H -- backend/docker/Dockerfile.elasticsearch)
+          commit_tag="${component}-${source_sha}"
+          docker pull "$component"
+          docker pull "$commit_tag"
+          component_digest=$(docker image inspect "$component" --format '{{index .RepoDigests 0}}')
+          expected=$(docker image inspect "$commit_tag" --format '{{index .RepoDigests 0}}')
+          test -n "$expected"
+          test "$component_digest" = "$expected"
+
+          if ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch >/dev/null 2>&1'; then
+            actual=$(ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
+            if [ "$actual" != "$expected" ]; then
+              ssh nadeshiko 'sudo -n docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
+              cd backend
+              ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
+            elif [ "$(ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.State.Running}}"')" != true ]; then
+              ssh nadeshiko 'sudo -n docker start nadeshiko-backend-stg-elasticsearch >/dev/null'
+            fi
+          else
+            cd backend
+            ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
+          fi
+
+          actual=$(ssh nadeshiko 'sudo -n docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
+          test "$actual" = "$expected"
+
+          for attempt in $(seq 1 90); do
+            health=$(ssh nadeshiko "sudo -n docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
+            if grep -q '"timed_out":false' <<<"$health" && grep -Eq '"status":"(yellow|green)"' <<<"$health"; then
+              break
+            fi
+            if [ "$attempt" -eq 90 ]; then
+              ssh nadeshiko 'sudo -n docker logs --tail 200 nadeshiko-backend-stg-elasticsearch'
+              exit 1
+            fi
+            sleep 2
+          done
+          version=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
+          grep -q 'Version: 9.4.1' <<<"$version"
+          plugins=$(ssh nadeshiko 'sudo -n docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
+          grep -qx analysis-icu <<<"$plugins"
+          grep -qx analysis-sudachi <<<"$plugins"
+
+
   deploy-frontend:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -263,8 +420,8 @@ jobs:
           set -euo pipefail
           gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
             -f event_type='backend_release' \
-            -f client_payload[release_channel]="internal" \
-            -f client_payload[backend_sha]="${GITHUB_SHA}"
+            -f 'client_payload[release_channel]=internal' \
+            -f "client_payload[backend_sha]=${GITHUB_SHA}"
 
   dispatch-sdk-python:
     needs: changes
@@ -294,5 +451,5 @@ jobs:
           set -euo pipefail
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
-            -f client_payload[release_channel]="internal" \
-            -f client_payload[backend_sha]="${GITHUB_SHA}"
+            -f 'client_payload[release_channel]=internal' \
+            -f "client_payload[backend_sha]=${GITHUB_SHA}"

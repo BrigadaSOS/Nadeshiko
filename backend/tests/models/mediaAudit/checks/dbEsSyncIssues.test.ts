@@ -48,6 +48,33 @@ describe('dbEsSyncIssues check', () => {
     expect(results).toHaveLength(0);
   });
 
+  it('uses top-level aggregations accepted by the Elasticsearch 9 client', async () => {
+    let searchParams: unknown;
+    const esClient = {
+      search: async (params: unknown) => {
+        searchParams = params;
+        return { aggregations: { media: { buckets: [] } } };
+      },
+    } as unknown as Client;
+
+    await dbEsSyncIssues.run({
+      threshold: { minDifference: 5 },
+      dataSource: TestDataSource,
+      esClient,
+    });
+
+    expect(searchParams).toEqual({
+      index: '_all',
+      size: 0,
+      aggs: {
+        media: {
+          terms: { field: 'mediaId', size: 10000 },
+        },
+      },
+    });
+    expect((searchParams as { body?: unknown }).body).toBeUndefined();
+  });
+
   it('flags media where DB and ES counts diverge beyond threshold', async () => {
     const media = createMedia({ nameRomaji: 'Out of Sync', segmentCount: 100 });
     await media.save();
