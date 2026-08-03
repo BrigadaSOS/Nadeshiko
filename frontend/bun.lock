@@ -6,7 +6,7 @@
       "name": "nuxt-app",
       "dependencies": {
         "@brigadasos/nadeshiko-sdk": "2.2.2-internal.8b055f5",
-        "@grafana/faro-transport-otlp-http": "^2.8.2",
+        "@grafana/faro-transport-otlp-http": "^2.9.0",
         "@grafana/faro-web-sdk": "^2.8.2",
         "@grafana/faro-web-tracing": "^2.8.2",
         "@mdi/js": "^7.4.47",
@@ -229,7 +229,7 @@
 
     "@grafana/faro-core": ["@grafana/faro-core@2.8.2", "", { "dependencies": { "@opentelemetry/api": "^1.9.0", "@opentelemetry/otlp-transformer": "^0.219.0" } }, "sha512-63C6+N/P9/ySUMaGut8yVb1DkPuHS5I/lfRm97+aDXFj3+8pxRT/QzyXNe0r6KMU5O95wC9FLVGxG9ZvkwEhJQ=="],
 
-    "@grafana/faro-transport-otlp-http": ["@grafana/faro-transport-otlp-http@2.8.2", "", { "dependencies": { "@opentelemetry/otlp-transformer": "^0.219.0", "@opentelemetry/semantic-conventions": "^1.28.0" } }, "sha512-ZrTTQ081PmWWZ7+mjPHi9J2wWXBrALohdpJqpmfrNKZiywS1zmUiVNyTGQmRUid4EEtRIZ0wTtugaUNXBQJltQ=="],
+    "@grafana/faro-transport-otlp-http": ["@grafana/faro-transport-otlp-http@2.9.0", "", { "dependencies": { "@opentelemetry/otlp-transformer": "^0.219.0", "@opentelemetry/semantic-conventions": "^1.28.0" } }, "sha512-lxSqBe6WKeg4M+0uCJgP/4ZTsOOA75cxvLmirG5oTezfR1SWlIJHpHBWqgNjJVnZ55N6RqNiq7f21CFbChVxgw=="],
 
     "@grafana/faro-web-sdk": ["@grafana/faro-web-sdk@2.8.2", "", { "dependencies": { "@grafana/faro-core": "^2.8.2", "ua-parser-js": "1.0.41", "web-vitals": "^5.1.0" } }, "sha512-WnUDnyQSQRq22Nb5kqm+g9SellSEUfiEuWQ7Pgwnvj5tnIO72E9JHNnJdurk4MveX8ulWrdyKxyk1L10FUJyzg=="],
 
