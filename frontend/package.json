@@ -26,7 +26,7 @@
     "@grafana/faro-web-sdk": "^2.8.2",
     "@grafana/faro-web-tracing": "^2.8.2",
     "@mdi/js": "^7.4.47",
-    "@nuxtjs/i18n": "^10.5.0",
+    "@nuxtjs/i18n": "^10.6.0",
     "@nuxtjs/seo": "5.3.6",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/core": "^2.10.0",
