@@ -23,7 +23,7 @@
     "@opentelemetry/resources": "^2.10.0",
     "@opentelemetry/sdk-metrics": "^2.10.0",
     "@opentelemetry/sdk-trace-node": "^2.10.0",
-    "better-sqlite3": "^13.0.1",
+    "better-sqlite3": "^13.0.2",
     "discord.js": "^14.27.0",
     "pino": "^10.3.1",
     "tsx": "^4.23.1"
