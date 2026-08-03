@@ -62,7 +62,7 @@
     "@playwright/test": "^1.62.0",
     "@vue/test-utils": "^2.4.11",
     "@vueuse/core": "^14.3.0",
-    "@vueuse/nuxt": "^14.3.0",
+    "@vueuse/nuxt": "^14.4.0",
     "happy-dom": "^20.11.1",
     "nuxt": "^4.4.8",
     "pino-pretty": "^13.1.3",
