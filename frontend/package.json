@@ -24,7 +24,7 @@
     "@brigadasos/nadeshiko-sdk": "2.2.2-internal.8b055f5",
     "@grafana/faro-transport-otlp-http": "^2.8.2",
     "@grafana/faro-web-sdk": "^2.8.2",
-    "@grafana/faro-web-tracing": "^2.8.2",
+    "@grafana/faro-web-tracing": "^2.9.0",
     "@mdi/js": "^7.4.47",
     "@nuxtjs/i18n": "^10.5.0",
     "@nuxtjs/seo": "5.3.6",
