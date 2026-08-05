@@ -5,13 +5,13 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { BOT_CONFIG } from '../config';
+import { aboutUrl, homeUrl } from '../links';
 
 export const data = new SlashCommandBuilder().setName('info').setDescription('About Nadeshiko and useful links');
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const lines = [
-    `🌸 **[Nadeshiko: Japanese Sentence Search Engine](<${BOT_CONFIG.frontendUrl}>)**`,
+    `🌸 **[Nadeshiko: Japanese Sentence Search Engine](<${homeUrl()}>)**`,
     '',
     `Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.`,
     '',
@@ -26,12 +26,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     new ButtonBuilder()
       .setLabel('Homepage')
       .setStyle(ButtonStyle.Link)
-      .setURL(BOT_CONFIG.frontendUrl)
+      .setURL(homeUrl())
       .setEmoji({ id: '1488442092823777410' }),
     new ButtonBuilder()
       .setLabel('About')
       .setStyle(ButtonStyle.Link)
-      .setURL(`${BOT_CONFIG.frontendUrl}/about`)
+      .setURL(aboutUrl())
       .setEmoji({ id: '1488442092823777410' }),
     new ButtonBuilder()
       .setLabel('Patreon')

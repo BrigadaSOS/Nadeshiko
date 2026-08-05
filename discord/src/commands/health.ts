@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder, type ChatInputCommandInteraction } from 'discord.js';
 import { BOT_CONFIG } from '../config';
+import { homeUrl, searchUrl } from '../links';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
 
@@ -27,8 +28,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   try {
     const [api, homepage, searchPage] = await Promise.all([
       checkEndpoint(`${BOT_CONFIG.apiBaseUrl}/up`),
-      checkEndpoint(BOT_CONFIG.frontendUrl),
-      checkEndpoint(`${BOT_CONFIG.frontendUrl}/search`),
+      checkEndpoint(homeUrl()),
+      checkEndpoint(searchUrl()),
     ]);
 
     const allUp = api.ok && homepage.ok && searchPage.ok;

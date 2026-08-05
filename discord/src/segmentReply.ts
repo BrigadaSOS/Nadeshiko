@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { downloadFile, getSegmentContext } from './api';
 import { buildSegmentMessage, getMediaName, formatTimestamp, stripAllHtmlTags, type DisplayOptions } from './embeds';
-import { BOT_CONFIG } from './config';
+import { sentenceUrl } from './links';
 import type { Segment, Media } from './api';
 
 const CONTEXT_TAKE = 12;
@@ -224,7 +224,7 @@ function buildContextSelectComponents(
     new ButtonBuilder()
       .setLabel('Search on Nadeshiko')
       .setStyle(ButtonStyle.Link)
-      .setURL(`${BOT_CONFIG.frontendUrl}/sentence/${currentPublicId}`)
+      .setURL(sentenceUrl(currentPublicId))
       .setEmoji({ id: '1488442092823777410' }),
   );
   rows.push(buttonRow);

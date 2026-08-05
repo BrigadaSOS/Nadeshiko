@@ -9,7 +9,7 @@ import {
   handleBackToOriginal,
   buildLinkOnlyRow,
 } from '../segmentReply';
-import { BOT_CONFIG } from '../config';
+import { searchUrl } from '../links';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
 import { getGuildSettings } from '../settings';
@@ -42,13 +42,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     const contextState = createContextState();
     const mediaName = getMediaName(resolvedMedia);
 
-    const params = new URLSearchParams();
-    if (resolvedMedia) {
-      params.set('media', resolvedMedia.publicId);
-      params.set('episode', String(segment.episode));
-    }
-    const qs = params.toString();
-    const linkUrl = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
+    const buildLinkUrl = () =>
+      searchUrl(resolvedMedia ? { mediaPublicId: resolvedMedia.publicId, episodes: [segment.episode] } : {});
+    const linkUrl = buildLinkUrl();
 
     const extraButtons: ButtonBuilder[] = [];
     if (resolvedMedia) {
@@ -110,14 +106,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     collector.on('end', async (_, reason) => {
       if (reason === 'search_transition') return;
       try {
-        const params = new URLSearchParams();
-        if (resolvedMedia) {
-          params.set('media', resolvedMedia.publicId);
-          params.set('episode', String(segment.episode));
-        }
-        const qs = params.toString();
-        const url = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
-        await interaction.editReply({ components: [buildLinkOnlyRow(url)] });
+        await interaction.editReply({ components: [buildLinkOnlyRow(buildLinkUrl())] });
       } catch {}
     });
   } catch (error) {
