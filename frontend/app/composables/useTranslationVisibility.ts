@@ -9,7 +9,6 @@ type TranslationVisibilityPreferences = Partial<Record<LanguageCode, Translation
 
 const USER_PREFS_KEY = 'translationVisibilityPreferences';
 const COOKIE_NAME = 'nd_lang_prefs';
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 // Cookie uses lowercase ISO codes for compactness and to preserve backward
 // compatibility with cookies set before the EN/ES rename.
@@ -17,14 +16,6 @@ const COOKIE_KEY_BY_CODE: Record<LanguageCode, string> = { EN: 'en', ES: 'es' };
 const CODE_BY_COOKIE_KEY: Record<string, LanguageCode> = { en: 'EN', es: 'ES' };
 
 const LANGUAGE_CODES: readonly LanguageCode[] = ['EN', 'ES'];
-
-const cookieOptions = {
-  maxAge: COOKIE_MAX_AGE,
-  path: '/',
-  sameSite: 'lax',
-  encode: String,
-  decode: String,
-} as const;
 
 // Holds the "user preferences changed" watcher. Client-only: on the server a
 // module-level scope would be shared by every request.
@@ -83,15 +74,16 @@ function decodeCookie(value: string | null | undefined): TranslationVisibilityPr
 export function useTranslationVisibility() {
   const user = userStore();
 
-  const prefs = useState<TranslationVisibilityPreferences>('translation-visibility-prefs', defaultPreferences);
+  const {
+    state: prefs,
+    cookie: langCookie,
+    set: setPrefs,
+  } = useCookiePreference<TranslationVisibilityPreferences>(COOKIE_NAME, 'translation-visibility-prefs', {
+    parse: decodeCookie,
+    serialize: (p) => encodeCookie(p) || null,
+  });
+
   const initialized = useState<boolean>('translation-visibility-initialized', () => false);
-
-  const langCookie = useCookie(COOKIE_NAME, { ...cookieOptions });
-
-  const syncCookie = (p: TranslationVisibilityPreferences) => {
-    const encoded = encodeCookie(p);
-    langCookie.value = encoded || null;
-  };
 
   const getServerPreferences = () => normalizePreferences(user.preferences?.[USER_PREFS_KEY]);
 
@@ -112,18 +104,16 @@ export function useTranslationVisibility() {
     }
   };
 
-  // SSR: always read from cookie (works for both guests and logged-in users)
+  // SSR reads from the cookie for guests and logged-in users alike; that is
+  // `useCookiePreference`'s own server pass, so only the flag is left to set.
   if (import.meta.server) {
-    prefs.value = decodeCookie(langCookie.value);
     initialized.value = true;
   } else if (!initialized.value) {
     // Client init: logged-in users get DB prefs (if saved), otherwise cookie
     if (user.isLoggedIn && user.preferences?.[USER_PREFS_KEY] != null) {
-      const dbPrefs = getServerPreferences();
-      prefs.value = dbPrefs;
-      syncCookie(dbPrefs);
+      setPrefs(getServerPreferences());
     } else {
-      prefs.value = decodeCookie(langCookie.value);
+      prefs.value = decodeCookie(langCookie.value ?? null);
     }
     initialized.value = true;
   }
@@ -136,8 +126,7 @@ export function useTranslationVisibility() {
       [code]: mode,
     };
 
-    prefs.value = next;
-    syncCookie(next);
+    setPrefs(next);
 
     if (user.isLoggedIn) {
       await persistToServer(next);
@@ -151,7 +140,7 @@ export function useTranslationVisibility() {
   if (import.meta.client && !dbSyncScope) {
     dbSyncScope = effectScope(true);
     dbSyncScope.run(() => {
-      const scopedCookie = useCookie(COOKIE_NAME, { ...cookieOptions });
+      const scopedCookie = useCookie(COOKIE_NAME, { ...PREFERENCE_COOKIE_OPTIONS });
 
       watch(
         () => user.preferences?.[USER_PREFS_KEY],

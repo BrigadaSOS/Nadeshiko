@@ -11,6 +11,7 @@ const sdkMocks = vi.hoisted(() => ({
 
 vi.mock('@brigadasos/nadeshiko-sdk', () => sdkMocks);
 
+import { deferred } from './deferred';
 import {
   COLLECTION_PAGE_SIZE,
   SEARCH_PAGE_SIZE,
@@ -43,15 +44,6 @@ const searchPayload = (id: string) => ({
   includes: { media: {} },
   pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
 });
-
-/** A promise plus the handle to settle it later, so tests can interleave two in-flight requests. */
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((r) => {
-    resolve = r;
-  });
-  return { promise, resolve };
-}
 
 beforeEach(() => {
   for (const mock of Object.values(sdkMocks)) {

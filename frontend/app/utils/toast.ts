@@ -11,7 +11,3 @@ export function useToastError(msg: string) {
 export function useToastInfo(msg: string) {
   useToast().info(msg);
 }
-
-export function useToastWarning(msg: string) {
-  useToast().warning(msg);
-}

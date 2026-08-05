@@ -3,10 +3,34 @@ import type { SearchResult, Media } from '~/types/search';
 type MetaTag = { name?: string; property?: string; content: string };
 type MetaTags = { title: string; meta: MetaTag[] };
 
-export const TITLE_SUFFIX = ' | Nadeshiko';
+const TITLE_SUFFIX = ' | Nadeshiko';
 
 export function socialTitle(title: string): string {
   return `${title}${TITLE_SUFFIX}`;
+}
+
+/**
+ * The tag set every page starts from: description plus the Open Graph and Twitter
+ * card fields, all carrying the same title and description.
+ *
+ * Both search and sentence pages built this list inline and identically, so a tag
+ * added for one crawler on one page silently missed the other.
+ */
+export function buildDefaultMetaTags(title: string, description: string): MetaTags {
+  const social = socialTitle(title);
+
+  return {
+    title,
+    meta: [
+      { name: 'description', content: description },
+      { property: 'og:title', content: social },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: social },
+      { name: 'twitter:description', content: description },
+    ],
+  };
 }
 
 export function buildSentenceMetaTags(

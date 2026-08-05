@@ -11,7 +11,7 @@
 
 import { createError } from 'h3';
 
-export const INTERNAL_PROXY_HEADER = 'x-internal-proxy-auth';
+const INTERNAL_PROXY_HEADER = 'x-internal-proxy-auth';
 
 export type InternalBackendConfig = {
   backendInternalUrl?: unknown;
@@ -23,7 +23,7 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 }
 
-export function getBackendInternalBaseUrl(config: InternalBackendConfig): string {
+function getBackendInternalBaseUrl(config: InternalBackendConfig): string {
   const baseUrl = String(config.backendInternalUrl || '').trim();
 
   if (!baseUrl) {

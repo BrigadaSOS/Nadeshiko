@@ -8,7 +8,6 @@ export type {
   SearchStatsResponse as SdkSearchStatsResponse,
   SearchMultipleResponse as SdkSearchMultipleResponse,
   SegmentContextResponse as SdkSegmentContextResponse,
-  MediaListResponse as SdkMediaListResponse,
 } from '@brigadasos/nadeshiko-sdk';
 
 import type {
@@ -59,12 +58,6 @@ export type SearchSidebarData = {
   results?: SearchResult[];
   media?: ResolvedMediaStats[];
   categories?: ResolvedCategoryCount[];
-};
-
-export type MediaBrowseResponse = {
-  readonly media: Media[];
-  readonly cursor?: string | null;
-  readonly hasMore: boolean;
 };
 
 export type SegmentContextResponse = {
