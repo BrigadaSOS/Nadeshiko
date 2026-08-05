@@ -1,4 +1,4 @@
-import { seedAuditConfigs } from '@app/models/mediaAudit/runner';
+import { seedAuditConfigs } from '@app/services/mediaAudit/runner';
 import type { RuntimeInitializer } from './types';
 
 export const mediaAuditsInitializer: RuntimeInitializer = {

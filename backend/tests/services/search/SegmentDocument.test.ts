@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { client } from '@config/elasticsearch';
 import { InvalidRequestError } from '@app/errors';
-import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { encodeKeysetCursor } from '@lib/cursor';
 import { CategoryType } from '@app/models';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
-import { setupSearchSuite } from '../helpers/searchSetup';
-import { isEsAvailable, seedSegmentsIntoEs } from '../helpers/esFixtures';
+import { setupSearchSuite } from '../../helpers/searchSetup';
+import { isEsAvailable, seedSegmentsIntoEs } from '../../helpers/esFixtures';
 
 vi.mock('@config/log', () => {
   const noop = () => {};

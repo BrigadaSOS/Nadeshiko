@@ -61,13 +61,14 @@ function buildCompoundRanges(highlightedRanges: CharRange[], tokens: SlimToken[]
     const hasVerbAdjStem = overlappingTokens.some((t) => VERB_ADJECTIVE_POS.has(t.p));
 
     const lastOverlapping = overlappingTokens[overlappingTokens.length - 1];
+    if (!lastOverlapping) continue;
     const lastIdx = tokens.indexOf(lastOverlapping);
     if (lastIdx === -1) continue;
 
     let extendEnd = range.end;
     for (let j = lastIdx + 1; j < tokens.length; j++) {
       const next = tokens[j];
-      if (next.b !== extendEnd) break;
+      if (!next || next.b !== extendEnd) break;
       const canExtend =
         HIRAGANA_RE.test(next.s) && (COMPOUND_EXTENDING_POS.has(next.p) || (hasVerbAdjStem && next.p === '助詞'));
       if (!canExtend) break;

@@ -1,5 +1,20 @@
+import type { estypes } from '@elastic/elasticsearch';
 import { logger } from '@config/log';
 import type { QueryParserMode } from './SegmentQuery';
+
+/**
+ * `_msearch` reports per-sub-search failures in-band: a failed item still carries a
+ * `status` (400, 503, ...) plus an `error`, and has no `hits`/`aggregations`. Only a 2xx
+ * item may be read as a search response body.
+ */
+export function isSuccessfulMsearchItem(
+  response: estypes.MsearchResponseItem | undefined,
+): response is estypes.MsearchMultiSearchItem {
+  if (!response || 'error' in response) return false;
+
+  const { status } = response;
+  return status === undefined || (status >= 200 && status < 300);
+}
 
 export function isQuerySyntaxError(error: unknown): boolean {
   const elasticError = error as {

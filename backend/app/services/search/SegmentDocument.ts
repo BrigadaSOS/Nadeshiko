@@ -1,9 +1,11 @@
 import type { estypes } from '@elastic/elasticsearch';
 import { client, INDEX_NAME } from '@config/elasticsearch';
+import { logger } from '@config/log';
 import { ALL_CATEGORIES, Media, Segment } from '@app/models';
 import { InvalidRequestError } from '@app/errors';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { decodeKeysetCursor } from '@lib/cursor';
+import { excludedSearchLanguages } from '@lib/searchLanguages';
 import type {
   SearchResponseOutput,
   SearchMultipleResponseOutput,
@@ -20,7 +22,7 @@ import type { ReindexResponse } from './segmentDocument/SegmentIndexer';
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
 import { SegmentResponse } from './segmentDocument/SegmentResponse';
 import { SegmentIndexer } from './segmentDocument/SegmentIndexer';
-import { withSafeQueryFallback } from './segmentDocument/errors';
+import { isSuccessfulMsearchItem, withSafeQueryFallback } from './segmentDocument/errors';
 
 export interface QuerySurroundingSegmentsRequest {
   readonly mediaId: number;
@@ -30,6 +32,16 @@ export interface QuerySurroundingSegmentsRequest {
   readonly contentRating?: string[];
 }
 
+/** One morphological token, as stored and as served.
+ *
+ * The ten short names are the published contract: they are in our OpenAPI, in
+ * the npm and PyPI SDKs, and in third-party Anki note types, so they do not
+ * change. What changed is who fills them. Shirabe parses the corpus now, and
+ * groups more coarsely than the old SudachiPy pipeline did: 食べました arrives as
+ * ONE token reading タベマシタ where it used to arrive as three. That is the
+ * point (it is a word a reader looks up, and it makes furigana come out right),
+ * but it means `parts` is what you reach for when you need the finer pieces.
+ */
 export interface SlimToken {
   s: string;
   d: string;
@@ -41,6 +53,23 @@ export interface SlimToken {
   p2?: string;
   p4?: string;
   cf?: string;
+  /** word | compound | inflected | counter | function | expression | symbol. */
+  kind?: string;
+  /** Where this word reads about: GET /v1/words/{wid} on Shirabe. Absent for
+   *  names, numbers, punctuation and anything the dictionary has no entry for,
+   *  which means "show it, do not link it". */
+  wid?: string;
+  /** The finer morphemes inside a grouped token, each positioned like its
+   *  parent. Elasticsearch highlights against its OWN analyzer, so a match can
+   *  land inside one of our tokens: these are the boundaries that let a partial
+   *  highlight render. Absent when the token is already atomic. */
+  parts?: TokenPart[];
+}
+
+export interface TokenPart {
+  s: string;
+  b: number;
+  e: number;
 }
 
 export interface SegmentDocumentShape {
@@ -78,6 +107,12 @@ type SearchRequestInput = Omit<SearchRequestOutput, 'include'> & { include?: Sea
 type SearchStatsRequestInput = Omit<SearchStatsRequestOutput, 'include'> & {
   include?: SearchStatsRequestOutput['include'];
 };
+
+/**
+ * Caller-supplied id lists (collection contents) are unbounded, while a single search is
+ * capped by `index.max_result_window` (10k by default) and `index.max_terms_count`.
+ */
+const FIND_BY_IDS_CHUNK_SIZE = 1000;
 
 export class SegmentDocument {
   static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats');
@@ -124,10 +159,11 @@ export class SegmentDocument {
       throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
     }
 
+    const excludedLanguages = excludedSearchLanguages(filters.languages);
     const { must, isMatchAll, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
       parserMode,
-      Array.isArray(filters.languages) ? filters.languages : undefined,
+      excludedLanguages,
     );
 
     const { filter, must_not } = SegmentQuery.buildCommonFilters(filters);
@@ -152,17 +188,16 @@ export class SegmentDocument {
       }
     }
 
-    const excludeLangs = new Set((Array.isArray(filters.languages) ? filters.languages : undefined) ?? []);
     const highlightFields: Record<string, estypes.SearchHighlightField> = {
       textJa: {
         matched_fields: ['textJa', 'textJa.kana', 'textJa.baseform', 'textJa.normalized'],
         type: 'fvh',
       },
     };
-    if (!excludeLangs.has('EN')) {
+    if (!excludedLanguages.includes('EN')) {
       highlightFields.textEn = { matched_fields: ['textEn', 'textEn.exact'], type: 'fvh' };
     }
-    if (!excludeLangs.has('ES')) {
+    if (!excludedLanguages.includes('ES')) {
       highlightFields.textEs = { matched_fields: ['textEs', 'textEs.exact'], type: 'fvh' };
     }
 
@@ -208,7 +243,7 @@ export class SegmentDocument {
     const { must, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
       parserMode,
-      Array.isArray(filters.languages) ? filters.languages : undefined,
+      excludedSearchLanguages(filters.languages),
     );
     const mediaInfo = Media.getMediaInfoMap();
 
@@ -241,7 +276,7 @@ export class SegmentDocument {
         word,
         exactMatch,
         parserMode,
-        filters && Array.isArray(filters.languages) ? filters.languages : undefined,
+        excludedSearchLanguages(filters?.languages),
       );
       const filteredBody: estypes.MsearchRequestItem = {
         size: 0,
@@ -289,7 +324,7 @@ export class SegmentDocument {
         word,
         false,
         parserMode,
-        filters && Array.isArray(filters.languages) ? filters.languages : undefined,
+        excludedSearchLanguages(filters?.languages),
       );
       return [
         {},
@@ -305,10 +340,10 @@ export class SegmentDocument {
       async () => {
         const esResponse = await client.msearch({ index: INDEX_NAME, searches });
         const result = new Map<string, number>();
-        for (let i = 0; i < words.length; i++) {
+        for (const [i, word] of words.entries()) {
           const response = esResponse.responses[i] as estypes.SearchResponseBody;
           const total = response.hits?.total as estypes.SearchTotalHits | undefined;
-          result.set(words[i], total?.value ?? 0);
+          result.set(word, total?.value ?? 0);
         }
         return result;
       },
@@ -322,6 +357,7 @@ export class SegmentDocument {
   }
 
   static async surroundingSegments(request: QuerySurroundingSegmentsRequest): Promise<SegmentContextResponseOutput> {
+    // Sub-search 0 walks forward from the requested position (inclusive), sub-search 1 walks backward.
     const contextSearches: estypes.MsearchRequestItem[] = [
       {},
       {
@@ -355,28 +391,28 @@ export class SegmentDocument {
     const mediaMapData = await Media.getMediaInfoMap();
 
     const mergedMediaMap: Record<string, MediaOutput> = {};
+    let forwardSegments: SegmentOutput[] = [];
     let previousSegments: SegmentOutput[] = [];
-    let nextSegments: SegmentOutput[] = [];
 
-    if (esResponse.responses[0].status) {
-      const result = SegmentResponse.buildSearchResultSegments(
-        esResponse.responses[0] as estypes.SearchResponseBody,
-        mediaMapData,
-      );
+    const forwardResponse = esResponse.responses[0];
+    if (isSuccessfulMsearchItem(forwardResponse)) {
+      const result = SegmentResponse.buildSearchResultSegments(forwardResponse, mediaMapData);
+      forwardSegments = result.segments;
+      Object.assign(mergedMediaMap, result.mediaMap);
+    } else {
+      logger.warn({ request, response: forwardResponse }, 'Forward context sub-search failed');
+    }
+
+    const previousResponse = esResponse.responses[1];
+    if (isSuccessfulMsearchItem(previousResponse)) {
+      const result = SegmentResponse.buildSearchResultSegments(previousResponse, mediaMapData);
       previousSegments = result.segments;
       Object.assign(mergedMediaMap, result.mediaMap);
+    } else {
+      logger.warn({ request, response: previousResponse }, 'Previous context sub-search failed');
     }
 
-    if (esResponse.responses[1].status) {
-      const result = SegmentResponse.buildSearchResultSegments(
-        esResponse.responses[1] as estypes.SearchResponseBody,
-        mediaMapData,
-      );
-      nextSegments = result.segments;
-      Object.assign(mergedMediaMap, result.mediaMap);
-    }
-
-    const sortedSegments = [...previousSegments, ...nextSegments].sort((a, b) => a.position - b.position);
+    const sortedSegments = [...previousSegments, ...forwardSegments].sort((a, b) => a.position - b.position);
 
     return { segments: sortedSegments, includes: { media: mergedMediaMap } };
   }
@@ -386,15 +422,24 @@ export class SegmentDocument {
   ): Promise<{ segments: SegmentOutput[]; includes: { media: Record<string, MediaOutput> } }> {
     if (ids.length === 0) return { segments: [], includes: { media: {} } };
 
-    const esResponse = await client.search({
-      index: INDEX_NAME,
-      size: ids.length,
-      query: { terms: { _id: ids.map(String) } },
-    });
-
     const mediaInfo = await Media.getMediaInfoMap();
-    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
-    return { segments, includes: { media: mediaMap } };
+    const segments: SegmentOutput[] = [];
+    const media: Record<string, MediaOutput> = {};
+
+    for (let offset = 0; offset < ids.length; offset += FIND_BY_IDS_CHUNK_SIZE) {
+      const chunk = ids.slice(offset, offset + FIND_BY_IDS_CHUNK_SIZE);
+      const esResponse = await client.search({
+        index: INDEX_NAME,
+        size: chunk.length,
+        query: { terms: { _id: chunk.map(String) } },
+      });
+
+      const result = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
+      segments.push(...result.segments);
+      Object.assign(media, result.mediaMap);
+    }
+
+    return { segments, includes: { media } };
   }
 
   static index(segment: Segment): Promise<boolean> {
