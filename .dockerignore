@@ -1,0 +1,57 @@
+# All three images build from the repository root because npm workspaces need
+# the root package.json + package-lock.json to resolve any single workspace.
+# Only this file applies during those builds; the per-app .dockerignore files
+# are inert once the context stops being the app directory.
+
+.git
+.gitignore
+.gitattributes
+.jj
+.jj.broken*
+.github
+.claude
+.codex
+.playwright-mcp
+.ruff_cache
+
+node_modules
+**/node_modules
+
+# Local content and derived artifacts; none of it belongs in an image.
+media
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/.nuxt
+**/.output
+**/dist
+**/build
+**/playwright-report
+**/test-results
+backend/scripts/.jpdb-cache
+backend/scripts/.jiten-cache
+frontend/public/docs/api
+frontend/public/docs/api-internal
+
+Dockerfile
+**/Dockerfile
+**/Dockerfile.*
+**/docker-compose*
+.dockerignore
+
+# Only the repo's own prose. frontend/content/**/*.md is site content that Nuxt
+# reads at build time, so this must not become a blanket `**/*.md`.
+*.md
+backend/README.md
+frontend/README.md
+discord/README.md
+.vscode
+.idea
+.editorconfig
+
+# Generated API reference. The frontend image builds it from backend/docs so the
+# published docs match the committed spec; without this, Docker would copy in
+# whatever a developer happened to have generated locally (the context ignores
+# .gitignore, which is how production ended up serving a stale spec version).
+frontend/public/docs/

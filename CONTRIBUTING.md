@@ -4,7 +4,7 @@ Thanks for your interest in contributing to Nadeshiko! This guide will help you 
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/)
+- [Node.js 24+](https://nodejs.org/) (npm ships with it)
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 
 ## Getting started
@@ -14,12 +14,11 @@ Thanks for your interest in contributing to Nadeshiko! This guide will help you 
 git clone https://github.com/BrigadaSOS/Nadeshiko.git
 cd Nadeshiko
 
-# Install dependencies
-bun install --cwd backend
-bun install --cwd frontend
+# Install dependencies for every workspace with a single install at the root
+npm install
 
 # Run the setup (creates .env files, starts Docker containers, runs migrations and seeds)
-bun run setup
+npm run setup
 ```
 
 The setup script will:
@@ -34,18 +33,31 @@ The setup script will:
 Once setup is complete, start both servers:
 
 ```bash
-bun run dev
+npm run dev
 ```
 
 Or run them individually:
 
 ```bash
-bun run dev:backend    # API on http://localhost:5000
-bun run dev:frontend   # App on http://localhost:3000
+npm run dev:backend    # API on http://localhost:5000
+npm run dev:frontend   # App on http://localhost:3000
 ```
 
-`bun run dev` runs both in one shell and tears them down together on Ctrl-C. It
-does not fail fast: if one server dies the other keeps running, so watch the
+`npm run dev` serves each workspace package at a stable `https://<name>.localhost`
+through a local reverse proxy ([portless](https://portless.sh)), so there is no
+port to remember and no port to collide with. It asks for sudo once, to bind 443,
+and Ctrl-C takes everything down together.
+
+Worth it beyond taste: the frontend and backend stop sharing an origin, so their
+cookies and local storage stop overwriting each other, and the AirPlay collision
+below stops mattering.
+
+```bash
+npm run dev:ports
+```
+
+runs them on bare ports instead, for a machine where binding 443 is not on offer.
+It does not fail fast: if one server dies the other keeps running, so watch the
 output for a process that has dropped out.
 
 On macOS, the AirPlay Receiver listens on port 5000 and the backend will fail to
@@ -58,20 +70,29 @@ set `PORT=5050` in `backend/.env` and point the frontend at it with
 Backend-specific (run from `backend/`):
 
 ```bash
-bun run dev            # Start the API server in dev mode
-bun run test           # Run tests
-bun run generate:all   # Regenerate OpenAPI types, Zod schemas, and route types
-bun run db:migrate     # Run pending migrations
-bun run db:seed        # Re-run seeds
-bun run db:rollback    # Rollback last migration
-bun run es:reindex     # Reindex Elasticsearch
+npm run dev            # Start the API server in dev mode
+npm run test           # Run tests
+npm run typecheck      # Typecheck the app (this is what CI enforces)
+npm run typecheck:tests # Typecheck the test tree too — see the note below
+npm run generate:all   # Regenerate OpenAPI types, Zod schemas, and route types
+npm run db:migrate     # Run pending migrations
+npm run db:seed        # Re-run seeds
+npm run db:rollback    # Rollback last migration
+npm run es:reindex     # Reindex Elasticsearch
 ```
+
+`npm run typecheck` covers the app (`typecheck:app`) *and* the test tree
+(`typecheck:tests`), and CI runs it. Keep it that way: for a long time the test
+tree was excluded, and the gap let real breakage through — a helper calling an
+unimported symbol, a `spyOn` left over from the bun-to-vitest migration, and
+fixtures built against shapes the DTOs had since renamed. None of it failed a
+test; it was simply invisible.
 
 Frontend-specific (run from `frontend/`):
 
 ```bash
-bun run dev            # Start the Nuxt dev server
-bun run build          # Build for production
+npm run dev            # Start the Nuxt dev server
+npm run build          # Build for production
 ```
 
 ## Keeping the local Elasticsearch image current
@@ -82,7 +103,7 @@ a locally built image on its own, so when someone bumps the pinned version your
 machine keeps running the old one until you rebuild it yourself — a stack can sit
 several versions behind without any visible symptom.
 
-`bun run setup` now compares the version baked into your image against the one
+`npm run setup` now compares the version baked into your image against the one
 the Dockerfile pins and tells you when they have drifted. To rebuild:
 
 ```bash
@@ -102,16 +123,20 @@ cd backend
 docker compose down elasticsearch
 docker volume rm backend_nadeshiko_elasticsearch_data
 docker compose up -d elasticsearch
-bun run es:reindex
+npm run es:reindex
 ```
 
-If Elasticsearch fails to start for some other reason, `bun run setup` prints the
+If Elasticsearch fails to start for some other reason, `npm run setup` prints the
 tail of the container log rather than just timing out.
 
 ## Project structure
 
+This is an npm workspaces monorepo: one `npm install` at the root installs
+every package, and the packages reference each other directly rather than
+through published versions.
+
 ```
-backend/               Bun + Express + TypeScript API
+backend/               Node + Express + TypeScript API
   bin/                 CLI scripts (setup, db, es)
   app/                 Application code (controllers, services, entities)
   db/                  Migrations and seeds
@@ -122,8 +147,44 @@ frontend/              Nuxt 4 + Vue 3 app
   app/                 Pages, components, composables
   i18n/                Translations (en, es, ja)
 
+discord/               Discord bot
+
+packages/
+  nadeshiko-sdk/       TypeScript SDK, generated from the OpenAPI spec.
+                       Consumed by frontend and discord as a workspace
+                       dependency; published to npm on release.
+
 infra/                 Infrastructure tooling
+  seed-worker/         Cloudflare Worker serving the seed database
 ```
+
+### Changing the API
+
+The SDK is generated, so a contract change is one commit rather than a
+publish-and-bump cycle:
+
+```bash
+# after editing backend/docs/openapi/**
+npm run generate:api --workspace backend   # server types, route auth, proxy allowlist
+npm run sdk:codegen                        # packages/nadeshiko-sdk
+```
+
+Commit the regenerated `generated/` directories with your change — CI fails if
+they are stale, and never hand-edit generated files.
+
+### Where the published SDK comes from
+
+`packages/nadeshiko-sdk` is what the frontend and the bot import. The npm
+package that external users install is built separately by
+[nadeshiko-sdk-ts](https://github.com/BrigadaSOS/nadeshiko-sdk-ts), which
+regenerates from the released OpenAPI spec when a production release dispatches
+it.
+
+Both therefore carry a copy of the generator and the hand-written helpers
+(`src/paginate.ts`, `src/retry.ts`). A change to those files only reaches
+internal consumers until the same change is made in the SDK repo, so anything
+that must reach npm users needs applying in both places. Consolidating the two
+copies is a known follow-up.
 
 ## Reporting issues
 
@@ -134,5 +195,5 @@ If you see a bug and want to provide a fix for it, you are free to just open a p
 ## Submitting changes
 
 1. Fork the repository and create a branch from `main`.
-2. Make your changes and make sure `bun run lint` and `bun run build` pass.
+2. Make your changes and make sure `npm run lint` and `npm run build` pass.
 3. Open a pull request against `main` with a clear description of what you changed and why.

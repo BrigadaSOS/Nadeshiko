@@ -7,3 +7,4 @@
 /backend/scripts/.jiten-cache/
 .claude/
 .codex
+node_modules/
