@@ -1,4 +1,4 @@
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import type { Search, GetSearchStats, SearchWords } from 'generated/routes/search';
 import { toSearchResponseDTO } from './mappers/searchMapper';
 import { normalizeLanguageFilter, resolveMediaFilterIds } from './searchFilters';

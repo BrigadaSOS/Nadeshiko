@@ -1,16 +1,36 @@
 import { client, INDEX_NAME } from '@config/elasticsearch';
+import { config } from '@config/config';
 import { Media, Episode, Segment, CategoryType, SegmentStatus, SegmentStorage, ContentRating } from '@app/models';
-import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 
 let mediaSeq = 0;
+let warnedEsUnavailable = false;
+
+function describeEsError(error: unknown): string {
+  const statusCode = (error as { meta?: { statusCode?: number } })?.meta?.statusCode;
+  const message = error instanceof Error ? error.message : String(error);
+  return statusCode ? `HTTP ${statusCode} - ${message}` : message;
+}
 
 export async function isEsAvailable(): Promise<boolean> {
   try {
     await client.indices.exists({ index: INDEX_NAME });
     return true;
-  } catch {
+  } catch (error) {
+    // Silently returning false here used to skip the whole integration suite
+    // with no trace of why -- a 401 from an unprovisioned test user looked
+    // exactly like a green run. console.warn survives LOG_LEVEL=silent.
+    if (!warnedEsUnavailable) {
+      warnedEsUnavailable = true;
+      console.warn(`[esFixtures] Elasticsearch unavailable: ${describeEsError(error)}`);
+      console.warn(
+        `[esFixtures] Target: ${config.ELASTICSEARCH_HOST} index '${INDEX_NAME}' as user '${config.ELASTICSEARCH_USER}'`,
+      );
+      console.warn('[esFixtures] Elasticsearch-backed tests will be SKIPPED.');
+      console.warn("[esFixtures] A 401/403 means the test user is not provisioned yet -- run 'bun run setup'.");
+    }
     return false;
   }
 }
