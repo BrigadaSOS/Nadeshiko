@@ -1,6 +1,6 @@
-import request from 'supertest';
+import { request } from '../helpers/http';
 import express, { type Request, type Response, type ErrorRequestHandler } from 'express';
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
 

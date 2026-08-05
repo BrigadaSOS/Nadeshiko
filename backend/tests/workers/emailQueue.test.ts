@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { EMAIL_SEND_QUEUE } from '@app/workers/queueNames';

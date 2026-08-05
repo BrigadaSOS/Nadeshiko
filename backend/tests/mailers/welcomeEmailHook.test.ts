@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { auth } from '@config/auth';
 import * as emailModule from '@app/mailers/email';
 import * as emailQueueModule from '@app/workers/emailQueue';
 import { deleteAuthUserByEmail } from '../helpers/authUsers';
 
-let sendWelcomeEmailSpy: ReturnType<typeof vi.fn>;
-let sendEmailJobSpy: ReturnType<typeof vi.fn>;
+let sendWelcomeEmailSpy: MockInstance;
+let sendEmailJobSpy: MockInstance;
 
 // better-auth uses its own pg.Pool, not TypeORM's QueryRunner,
 // so transaction rollback won't cover these rows. Each test email is

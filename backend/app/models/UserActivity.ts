@@ -18,7 +18,7 @@ export enum ActivityType {
   SHARE = 'SHARE',
 }
 
-export interface UserActivityTrackData {
+interface UserActivityTrackData {
   segmentId?: string;
   mediaPublicId?: string;
   searchQuery?: string;

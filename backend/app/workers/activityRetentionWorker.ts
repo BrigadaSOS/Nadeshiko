@@ -2,14 +2,13 @@ import { PgBoss, Job } from 'pg-boss';
 import { UserActivity } from '@app/models/UserActivity';
 import { LessThan } from 'typeorm';
 import { logger } from '@config/log';
+import { ACTIVITY_RETENTION_QUEUE } from './queueNames';
 import { instrumentedHandler } from './workerInstrumentation';
-
-const QUEUE_NAME = 'activity-retention-cleanup';
 
 export async function registerActivityRetentionWorker(boss: PgBoss): Promise<void> {
   await boss.work(
-    QUEUE_NAME,
-    instrumentedHandler(QUEUE_NAME, async (_jobs: Job[]) => {
+    ACTIVITY_RETENTION_QUEUE,
+    instrumentedHandler(ACTIVITY_RETENTION_QUEUE, async (_jobs: Job[]) => {
       await handleRetentionCleanup();
     }),
   );

@@ -109,7 +109,7 @@ function buildHandler(scope: 'global' | 'auth', detail: string): RequestHandler 
   };
 }
 
-export const globalRateLimit: RequestHandler = rateLimit({
+export const globalRateLimit = rateLimit({
   windowMs: WINDOW_MS,
   limit: DEFAULT_MAX,
   ipv6Subnet: 56,
@@ -119,7 +119,7 @@ export const globalRateLimit: RequestHandler = rateLimit({
   handler: buildHandler('global', 'Too many requests from this IP. Please slow down.'),
 });
 
-export const authRateLimit: RequestHandler = rateLimit({
+export const authRateLimit = rateLimit({
   windowMs: WINDOW_MS,
   limit: AUTH_MAX,
   ipv6Subnet: 56,
@@ -129,3 +129,20 @@ export const authRateLimit: RequestHandler = rateLimit({
   // Applies to /v1/auth/* (scoped where it is mounted in routes.ts).
   handler: buildHandler('auth', 'Too many auth requests from this IP. Please slow down.'),
 });
+
+/**
+ * Clears every limiter's hit counters.
+ *
+ * The limiters are module singletons backed by an in-memory store, so in a
+ * single-process test run one file that deliberately exhausts a bucket leaves
+ * the next file being rate limited — which surfaces as an unrelated assertion
+ * failing on a 429, in a different file, only when the whole suite runs.
+ * Intended for test setup; production has no reason to call it.
+ */
+export function resetRateLimiters(): void {
+  // `resetAll` is optional on the store rather than the handler, so it is not on
+  // the handler's public type even though the default memory store implements it.
+  for (const limiter of [globalRateLimit, authRateLimit]) {
+    (limiter as unknown as { resetAll?: () => void }).resetAll?.();
+  }
+}

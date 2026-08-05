@@ -2,10 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, BeforeInsert 
 import type { FindOptionsRelations } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
-import { MediaCharacter } from './MediaCharacter';
 import { MediaExternalId } from './MediaExternalId';
 import type { Segment } from './Segment';
-import type { SeriesMedia } from './SeriesMedia';
 import { getMediaCoverUrl, getMediaBannerUrl } from '@lib/utils/storage';
 import { SegmentStorage } from './Segment';
 import { Cache, createCacheNamespace } from '@lib/cache';
@@ -123,12 +121,6 @@ export class Media extends BaseEntity {
   @OneToMany('Episode', 'media', { cascade: true })
   episodes!: Episode[];
 
-  @OneToMany('MediaCharacter', 'media', { cascade: true })
-  characters!: MediaCharacter[];
-
-  @OneToMany('SeriesMedia', 'media')
-  seriesEntries!: SeriesMedia[];
-
   @OneToMany('MediaExternalId', 'media', { cascade: true })
   externalIds!: MediaExternalId[];
 
@@ -142,89 +134,83 @@ export class Media extends BaseEntity {
     };
   }
 
-  static async getMediaInfoMap(): Promise<{
-    results: Map<number, ReturnType<typeof Media.toMediaInfoData>>;
-    stats: {
-      totalAnimes: number;
-      totalSegments: number;
-      fullTotalAnimes: number;
-      fullTotalSegments: number;
-    };
-  }> {
-    const cached = Cache.get<{
-      results: Map<number, ReturnType<typeof Media.toMediaInfoData>>;
-      stats: {
-        totalAnimes: number;
-        totalSegments: number;
-        fullTotalAnimes: number;
-        fullTotalSegments: number;
-      };
-    }>(MEDIA_INFO_CACHE, 'all');
+  /**
+   * Shared while the map is being built. A cache miss is not one query, it is a `Media.find`
+   * across two relations, and every concurrent search wants the same answer -- without this
+   * the moment the entry expires is the moment every in-flight request runs that query for
+   * itself. The promise is dropped once settled so a failure does not stick.
+   */
+  private static inFlightInfoMap: Promise<MediaInfoMapResult> | null = null;
+  private static inFlightGlobalStats: Promise<MediaGlobalStats> | null = null;
+
+  static async getMediaInfoMap(): Promise<MediaInfoMapResult> {
+    const cached = Cache.get<MediaInfoMapResult>(MEDIA_INFO_CACHE, 'all');
     if (cached) {
       return cached;
     }
-
-    const allMedia = await Media.find({
-      relations: ['episodes', 'externalIds'],
-      order: { createdAt: 'DESC' },
-    });
-
-    const mediaMap = new Map<number, ReturnType<typeof Media.toMediaInfoData>>();
-    let totalSegments = 0;
-
-    for (const media of allMedia) {
-      const info = Media.toMediaInfoData(media);
-      mediaMap.set(media.id, info);
-      totalSegments += info.segmentCount ?? 0;
+    if (Media.inFlightInfoMap) {
+      return Media.inFlightInfoMap;
     }
 
-    const stats = await Media.getGlobalStats();
+    Media.inFlightInfoMap = Cache.getOrCompute(MEDIA_INFO_CACHE, 'all', MEDIA_INFO_TTL_MS, async () => {
+      const allMedia = await Media.find({
+        relations: ['episodes', 'externalIds'],
+        order: { createdAt: 'DESC' },
+      });
 
-    const result = {
-      results: mediaMap,
-      stats: {
-        totalAnimes: mediaMap.size,
-        totalSegments,
-        ...stats,
-      },
-    };
+      const mediaMap = new Map<number, ReturnType<typeof Media.toMediaInfoData>>();
+      let totalSegments = 0;
 
-    Cache.set(MEDIA_INFO_CACHE, 'all', result, MEDIA_INFO_TTL_MS);
-    return result;
+      for (const media of allMedia) {
+        const info = Media.toMediaInfoData(media);
+        mediaMap.set(media.id, info);
+        totalSegments += info.segmentCount ?? 0;
+      }
+
+      const stats = await Media.getGlobalStats();
+
+      return {
+        results: mediaMap,
+        stats: {
+          totalAnimes: mediaMap.size,
+          totalSegments,
+          ...stats,
+        },
+      };
+    }).finally(() => {
+      Media.inFlightInfoMap = null;
+    });
+
+    return Media.inFlightInfoMap;
   }
 
-  static async getGlobalStats(): Promise<{
-    fullTotalAnimes: number;
-    fullTotalSegments: number;
-    fullTotalEpisodes: number;
-  }> {
-    const cached = Cache.get<{
-      fullTotalAnimes: number;
-      fullTotalSegments: number;
-      fullTotalEpisodes: number;
-    }>(MEDIA_INFO_CACHE, 'globalStats');
+  static async getGlobalStats(): Promise<MediaGlobalStats> {
+    const cached = Cache.get<MediaGlobalStats>(MEDIA_INFO_CACHE, 'globalStats');
     if (cached) return cached;
+    if (Media.inFlightGlobalStats) return Media.inFlightGlobalStats;
 
-    const [mediaCount, segmentCountResult, episodeCount] = await Promise.all([
-      Media.count(),
-      Episode.createQueryBuilder('e')
-        .select('COALESCE(SUM(e.segmentCount), 0)', 'total')
-        .getRawOne<{ total: string }>(),
-      Episode.count(),
-    ]);
-    const segmentCount = Number(segmentCountResult?.total ?? 0);
+    Media.inFlightGlobalStats = Cache.getOrCompute(MEDIA_INFO_CACHE, 'globalStats', MEDIA_INFO_TTL_MS, async () => {
+      const [mediaCount, segmentCountResult, episodeCount] = await Promise.all([
+        Media.count(),
+        Episode.createQueryBuilder('e')
+          .select('COALESCE(SUM(e.segmentCount), 0)', 'total')
+          .getRawOne<{ total: string }>(),
+        Episode.count(),
+      ]);
 
-    const stats = {
-      fullTotalAnimes: mediaCount,
-      fullTotalSegments: segmentCount,
-      fullTotalEpisodes: episodeCount,
-    };
+      return {
+        fullTotalAnimes: mediaCount,
+        fullTotalSegments: Number(segmentCountResult?.total ?? 0),
+        fullTotalEpisodes: episodeCount,
+      };
+    }).finally(() => {
+      Media.inFlightGlobalStats = null;
+    });
 
-    Cache.set(MEDIA_INFO_CACHE, 'globalStats', stats, MEDIA_INFO_TTL_MS);
-    return stats;
+    return Media.inFlightGlobalStats;
   }
 
-  private static toMediaInfoData(media: Media) {
+  static toMediaInfoData(media: Media) {
     const externalIds: Record<string, string> = {};
     for (const ext of media.externalIds ?? []) {
       externalIds[ext.source.toLowerCase()] = ext.externalId;
@@ -258,4 +244,22 @@ export class Media extends BaseEntity {
       storageBasePath: media.storageBasePath,
     };
   }
+}
+
+type MediaInfoData = ReturnType<typeof Media.toMediaInfoData>;
+
+interface MediaGlobalStats {
+  fullTotalAnimes: number;
+  fullTotalSegments: number;
+  fullTotalEpisodes: number;
+}
+
+export interface MediaInfoMapResult {
+  results: Map<number, MediaInfoData>;
+  stats: {
+    totalAnimes: number;
+    totalSegments: number;
+    fullTotalAnimes: number;
+    fullTotalSegments: number;
+  };
 }

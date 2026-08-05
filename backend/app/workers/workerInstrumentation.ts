@@ -1,7 +1,7 @@
 import type { Job, PgBoss } from 'pg-boss';
 import type { Attributes } from '@opentelemetry/api';
 import { getTracer, getMeter } from '@config/telemetry';
-import { recordError } from '@app/lib/errorFingerprint';
+import { recordError } from '@lib/errorFingerprint';
 import { logger } from '@config/log';
 
 const DURATION_BUCKETS = [0.01, 0.05, 0.1, 0.5, 1, 5, 10, 30, 60];

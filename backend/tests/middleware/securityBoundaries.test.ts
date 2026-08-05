@@ -1,7 +1,6 @@
-import 'dotenv/config';
-import request from 'supertest';
+import { request } from '../helpers/http';
 import { type Application, type Request, type Response, type NextFunction } from 'express';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { nanoid } from 'nanoid';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
@@ -535,7 +534,7 @@ describe('collections auth matrix', () => {
     const res = await request(app)
       .patch(`/v1/collections/${collection.publicId}/segments/TestSeg001`)
       .set('Authorization', 'Bearer fake_for_routing')
-      .send({ note: 'nope' });
+      .send({ position: 2 });
     expect(res.status).toBe(403);
     expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
   });
@@ -546,7 +545,7 @@ describe('collections auth matrix', () => {
     {
       method: 'patch' as const,
       path: (id: string) => `/v1/collections/${id}/segments/TestSeg001`,
-      body: { note: 'hi' },
+      body: { position: 2 },
     },
   ];
 

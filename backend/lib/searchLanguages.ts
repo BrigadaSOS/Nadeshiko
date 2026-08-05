@@ -13,7 +13,7 @@ export const SEARCH_LANGUAGES = ['EN', 'ES'] as const;
 
 export type SearchLanguage = (typeof SEARCH_LANGUAGES)[number];
 
-export type LanguagesFilter = readonly string[] | { readonly exclude?: readonly string[] } | null | undefined;
+type LanguagesFilter = readonly string[] | { readonly exclude?: readonly string[] } | null | undefined;
 
 /** Translation languages to match alongside Japanese. Omitted filter means all of them. */
 export function includedSearchLanguages(languages: LanguagesFilter): SearchLanguage[] {

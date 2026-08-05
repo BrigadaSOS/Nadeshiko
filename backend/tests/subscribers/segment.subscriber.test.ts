@@ -1,22 +1,25 @@
-import { describe, it, expect, beforeEach, vi, spyOn } from 'bun:test';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import { loadFixtures, type LoadedFixtures } from '../fixtures/loader';
 import { Segment, SegmentStatus } from '@app/models/Segment';
 import { Cache } from '@lib/cache';
-import { MEDIA_INFO_CACHE } from '@app/models/Media';
+import { Media, MEDIA_INFO_CACHE } from '@app/models/Media';
 import { setBossInstance } from '@app/workers/pgBossClient';
 
 setupTestSuite();
 
 let fixtures: LoadedFixtures;
-let invalidateSpy: ReturnType<typeof spyOn>;
+let invalidateSpy: ReturnType<typeof vi.spyOn>;
 let mockSendDebounced: ReturnType<typeof vi.fn>;
 
 beforeEach(async () => {
   fixtures = await loadFixtures(['mediaWithEpisode']);
   mockSendDebounced = vi.fn().mockResolvedValue('mock-job-id');
   setBossInstance({ sendDebounced: mockSendDebounced } as any);
-  invalidateSpy = spyOn(Cache, 'invalidate');
+  // Fixtures come back with fresh ids every test, so a map cached by an earlier one would
+  // describe media that no longer exists and make "does this media look new?" answer yes.
+  Cache.invalidate(MEDIA_INFO_CACHE);
+  invalidateSpy = vi.spyOn(Cache, 'invalidate');
 });
 
 function buildSegment(overrides: Partial<Segment> = {}): Segment {
@@ -36,7 +39,6 @@ function buildSegment(overrides: Partial<Segment> = {}): Segment {
     contentEnMt: false,
     contentRating: 'SAFE',
     ratingAnalysis: { scores: {}, tags: {} },
-    posAnalysis: { nouns: 0 },
     storage: 'R2',
     hashedId: `hashed-${Date.now()}`,
     mediaId: media.id,
@@ -59,6 +61,29 @@ describe('SegmentSubscriber', () => {
         1,
         `${segment.id}`,
       );
+    });
+
+    // An ingest run inserts segments by the thousand for media the map already describes.
+    // Dropping the namespace on each one kept the map permanently cold, so it never survived
+    // long enough to be read twice and every concurrent search rebuilt it from scratch.
+    it('leaves the cache alone for a media the cached map already knows', async () => {
+      await Media.getMediaInfoMap();
+      invalidateSpy.mockClear();
+
+      await buildSegment().save();
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
+    });
+
+    it('still invalidates for a media the cached map has never seen', async () => {
+      const cached = await Media.getMediaInfoMap();
+      expect(cached.results.has(fixtures.media.testShow.id)).toBe(true);
+      cached.results.delete(fixtures.media.testShow.id);
+      invalidateSpy.mockClear();
+
+      await buildSegment().save();
+
+      expect(invalidateSpy).toHaveBeenCalledWith(MEDIA_INFO_CACHE);
     });
   });
 

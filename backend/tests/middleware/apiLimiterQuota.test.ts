@@ -1,5 +1,4 @@
-import 'dotenv/config';
-import { describe, it, expect, beforeAll, vi } from 'bun:test';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
