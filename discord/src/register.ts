@@ -1,16 +1,18 @@
 import { REST, Routes } from 'discord.js';
-import { BOT_CONFIG, getApplicationId } from './config';
+import { BOT_CONFIG, getApplicationId, validateConfig } from './config';
 import { createLogger } from './logger';
 import { allCommands } from './commands';
 
 const log = createLogger('register');
 
-const token = BOT_CONFIG.token;
-if (!token) {
-  log.fatal('DISCORD_BOT_TOKEN is required');
+try {
+  validateConfig();
+} catch (error) {
+  log.fatal({ err: error }, 'Invalid configuration');
   process.exit(1);
 }
 
+const token = BOT_CONFIG.token;
 const applicationId = getApplicationId();
 
 const rest = new REST({ version: '10' }).setToken(token);

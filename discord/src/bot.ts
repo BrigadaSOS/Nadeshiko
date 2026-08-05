@@ -1,6 +1,6 @@
 import { shutdownTelemetry } from './telemetry';
 import { Client, GatewayIntentBits, REST, Routes, Collection, Events } from 'discord.js';
-import { BOT_CONFIG, getApplicationId } from './config';
+import { BOT_CONFIG, getApplicationId, validateConfig } from './config';
 import { createLogger } from './logger';
 import { traceCommand, traceOperation } from './instrumentation';
 import { startHealthServer } from './health';
@@ -34,10 +34,7 @@ async function registerCommands() {
 }
 
 async function main() {
-  if (!BOT_CONFIG.token) {
-    log.fatal('DISCORD_BOT_TOKEN is required');
-    process.exit(1);
-  }
+  validateConfig();
 
   initSdk();
   initSettings();

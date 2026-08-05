@@ -4,7 +4,7 @@ import {
   type ButtonInteraction,
   type Message,
 } from 'discord.js';
-import { search, fetchRandom, getSearchStats, type SearchResponse } from '../api';
+import { search, fetchRandom, getSearchStats, parseCategory, type Category, type SearchResponse } from '../api';
 import type { DisplayOptions } from '../embeds';
 import {
   renderSegmentReply,
@@ -37,6 +37,7 @@ import {
   goToSkipForward,
 } from '../searchModal';
 import { BOT_CONFIG } from '../config';
+import { searchUrl } from '../links';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
 import { getGuildSettings, type Language } from '../settings';
@@ -82,7 +83,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await executeSearch(interaction, {
     query: interaction.options.getString('query') ?? undefined,
     exact: interaction.options.getBoolean('exact') ?? false,
-    category: interaction.options.getString('category') ?? undefined,
+    category: parseCategory(interaction.options.getString('category')),
     mediaPublicId: interaction.options.getString('media') ?? undefined,
     display: {
       language: (interaction.options.getString('language') as Language) ?? settings.language,
@@ -93,7 +94,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 export type SearchParams = {
   query?: string;
   exact?: boolean;
-  category?: string;
+  category?: Category;
   mediaPublicId?: string;
   episodes?: number[];
   display: DisplayOptions;
@@ -131,7 +132,7 @@ export async function executeSearch(
       if (isRandomMode) {
         await interaction.editReply({ content: 'No results found.' });
       } else {
-        const url = `${BOT_CONFIG.frontendUrl}/search/${encodeURIComponent(searchQuery)}`;
+        const url = searchUrl({ query: searchQuery });
         await interaction.editReply({
           content: `No results found for \`${searchQuery}\` -- [Search on Nadeshiko](<${url}>)`,
         });
@@ -149,16 +150,12 @@ export async function executeSearch(
 
     const actionButtons = [advancedSearchButton, randomResultButton, filterMediaButton];
 
-    const buildSearchUrl = () => {
-      const q = searchState.lastQuery;
-      const base = q ? `${BOT_CONFIG.frontendUrl}/search/${encodeURIComponent(q)}` : `${BOT_CONFIG.frontendUrl}/search`;
-      const params = new URLSearchParams();
-      if (searchState.mediaPublicId) params.set('media', searchState.mediaPublicId);
-      const eps = searchState.lastSearchOptions.episodes;
-      if (eps?.length) params.set('episode', eps.join(','));
-      const qs = params.toString();
-      return qs ? `${base}?${qs}` : base;
-    };
+    const buildSearchUrl = () =>
+      searchUrl({
+        query: searchState.lastQuery,
+        mediaPublicId: searchState.mediaPublicId,
+        episodes: searchState.lastSearchOptions.episodes,
+      });
 
     const syncCurrentSegment = () => {
       if (!searchState.results) return;
