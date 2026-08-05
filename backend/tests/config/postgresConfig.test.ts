@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { type AppConfig, config } from '@config/config';
 import { getAdminPostgresConfig, getAppPostgresConfig } from '@config/postgresConfig';
 

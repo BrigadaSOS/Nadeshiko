@@ -1,4 +1,4 @@
-import { expect } from 'bun:test';
+import { expect } from 'vitest';
 
 function equalsWithExpect(actual: unknown, expected: unknown): boolean {
   try {

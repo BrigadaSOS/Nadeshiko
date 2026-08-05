@@ -1,9 +1,9 @@
-import { vi } from 'bun:test';
+import { vi } from 'vitest';
 import * as emailQueueModule from '@app/workers/emailQueue';
 import * as esSyncQueueModule from '@app/workers/esSyncQueue';
-import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { sendEmail } from '@app/mailers/email';
 import { Segment } from '@app/models';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import type { EmailJobData } from '@app/workers/emailQueue';
 import type { EsSyncJobData } from '@app/workers/esSyncQueue';
 
@@ -55,12 +55,12 @@ export async function performEnqueuedJobs(block: () => Promise<void>): Promise<v
   for (const job of esSyncJobs) {
     if (job.operation === 'CREATE') {
       const segment = await Segment.findOne({ where: { id: job.segmentId } });
-      if (segment) await SegmentDocument.index(segment);
+      if (segment) await SegmentIndexer.index(segment);
     } else if (job.operation === 'UPDATE') {
       const segment = await Segment.findOne({ where: { id: job.segmentId } });
-      if (segment) await SegmentDocument.index(segment);
+      if (segment) await SegmentIndexer.index(segment);
     } else if (job.operation === 'DELETE') {
-      await SegmentDocument.delete(job.segmentId);
+      await SegmentIndexer.delete(job.segmentId);
     }
   }
 

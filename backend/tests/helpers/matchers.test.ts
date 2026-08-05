@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 
 describe('toEqualUnordered', () => {
   it('matches same items regardless of order', () => {
