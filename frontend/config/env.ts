@@ -17,6 +17,11 @@ const envSchema = z.object({
   NUXT_PUBLIC_FARO_APP_NAME: optionalString,
   NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),
   NUXT_NADESHIKO_API_KEY: z.string().trim().default(''),
+  // Shirabe parses the corpus and serves the definitions behind every word. The
+  // key is a service identity of ours, so it is read server-side only (see
+  // server/api/shirabe/words/[wid].get.ts) and never lands in runtimeConfig.public.
+  NUXT_SHIRABE_API_KEY: z.string().trim().default(''),
+  NUXT_SHIRABE_API_BASE: z.string().trim().default('https://shirabe.org'),
   // Shared secret sent to the backend on every proxied request so its per-IP
   // rate limiter can recognise (and exempt) traffic coming through this proxy.
   // Must match the backend's INTERNAL_PROXY_SECRET.

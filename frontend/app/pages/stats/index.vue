@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { userStore } from '~/stores/auth';
 import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
+import { handleApiError } from '~/utils/apiError';
 
 const { t, locale } = useI18n();
 const localePath = useLocalePath();
@@ -46,8 +47,13 @@ async function triggerUpdate(onlyUncovered: boolean) {
   try {
     updateResult.value = await sdk.triggerCoveredWordsUpdate({ onlyUncovered });
     await refreshStats();
-  } catch (err) {
-    console.error('stats.coverage_update_failed', err);
+  } catch (error) {
+    // `updateResult` stays null on failure, which renders exactly like a run that
+    // has not been triggered yet.
+    handleApiError('stats:coverage-update-failed', error, {
+      toastKey: 'statsPage.coverage.updateError',
+      context: { 'stats.onlyUncovered': String(onlyUncovered) },
+    });
   } finally {
     updating.value = false;
   }

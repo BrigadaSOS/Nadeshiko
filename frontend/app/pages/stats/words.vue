@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CoveredWord, GetCoveredWordsResponse } from '@brigadasos/nadeshiko-sdk';
 import { buildWordSearchPath } from '~/utils/routes';
+import { reportError } from '~/utils/reportError';
 
 const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000] as const;
 
@@ -48,6 +49,9 @@ const words = ref<CoveredWord[]>([]);
 const nextCursor = ref<string | null>(null);
 const tierStats = ref<GetCoveredWordsResponse['tierStats'] | null>(null);
 const loading = ref(false);
+// A failed tier fetch leaves `words` empty, which the grid below renders as a page
+// with nothing on it -- same as a tier that genuinely has no entries.
+const loadFailed = ref(false);
 const scrollSentinel = ref<HTMLElement | null>(null);
 
 function formatNumber(value: number): string {
@@ -65,7 +69,13 @@ async function fetchWordsRaw(
 ): Promise<GetCoveredWordsResponse | null> {
   return await sdk
     .getCoveredWords({ tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take })
-    .catch(() => null);
+    .catch((error: unknown) => {
+      // Also runs during SSR. Callers keep whatever is already on screen rather than
+      // blanking the list, and `loadFailed` drives the inline notice.
+      reportError('stats:covered-words-fetch-failed', error, { 'stats.tier': String(tier) });
+      loadFailed.value = true;
+      return null;
+    });
 }
 
 const { data: initialData } = await useAsyncData(
@@ -80,6 +90,7 @@ tierStats.value = initialData.value?.tierStats ?? null;
 
 async function fetchWords(cursor: string | undefined = undefined, append: boolean = false) {
   loading.value = true;
+  loadFailed.value = false;
   try {
     const data = await fetchWordsRaw(activeTier.value, tierMinRank(activeTier.value), activeFilter.value, cursor, 500);
     if (!data) return;
@@ -194,6 +205,17 @@ onUnmounted(() => observer?.disconnect());
           <template v-else>{{ $t('statsWordsPage.filters.missing', { count: filterCount('UNCOVERED') }) }}</template>
         </button>
       </div>
+    </div>
+
+    <div v-if="loadFailed && !loading" class="py-12 text-center text-sm" data-testid="words-load-error">
+      <p class="text-red-400">{{ $t('statsWordsPage.loadError') }}</p>
+      <button
+        type="button"
+        class="mt-3 py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+        @click="fetchWords()"
+      >
+        {{ $t('searchContainer.retryButton') }}
+      </button>
     </div>
 
     <template v-if="words.length || loading">

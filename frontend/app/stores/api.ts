@@ -1,13 +1,11 @@
 import { defineStore } from 'pinia';
+import { handleApiError } from '~/utils/apiError';
 
+// The /v1/auth/* API-key endpoints are served by better-auth and are not part of the
+// OpenAPI spec, so the SDK has no generated types for them. These local shapes stand in
+// until those routes are contracted (see phase 2 "Contract" work).
 interface ApiResponse {
   status: number;
-}
-
-interface QuotaInfo {
-  quotaUsed: number;
-  quotaLimit: number;
-  quotaRemaining: number;
 }
 
 interface ApiKeyPermission {
@@ -22,11 +20,6 @@ export interface ApiKeyListItem {
   createdAt: string;
   hint: string;
   permissions: ApiKeyPermission[];
-}
-
-export interface ApiKeysByUserResponse extends ApiResponse {
-  keys: ApiKeyListItem[];
-  quota: QuotaInfo;
 }
 
 interface ApiKeyActionResponse extends ApiResponse {
@@ -69,43 +62,8 @@ export function asObject(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }
 
-async function fetchMe() {
-  return useNadeshikoSdk()
-    .getMe()
-    .catch(() => null);
-}
-
 export const apiStore = defineStore('api', {
   actions: {
-    async getApiKeysByUser(): Promise<ApiKeysByUserResponse> {
-      try {
-        const [keysRaw, meResult] = await Promise.all([
-          $fetch<unknown[]>('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []),
-          fetchMe(),
-        ]);
-
-        const keys = (Array.isArray(keysRaw) ? keysRaw : []).map(normalizeApiKey);
-        const quotaData = asObject(meResult?.quota);
-        const quota: QuotaInfo = {
-          quotaUsed: Number(quotaData?.used ?? 0),
-          quotaLimit: Number(quotaData?.limit ?? 5000),
-          quotaRemaining: Number(quotaData?.remaining ?? 0),
-        };
-
-        return { status: 200, keys, quota };
-      } catch {
-        return {
-          status: 500,
-          keys: [],
-          quota: {
-            quotaUsed: 0,
-            quotaLimit: 5000,
-            quotaRemaining: 5000,
-          },
-        };
-      }
-    },
-
     async deactivateApiKey(apiKeyId: string): Promise<ApiResponse> {
       try {
         const data = await $fetch('/v1/auth/api-key/update', {
@@ -118,7 +76,9 @@ export const apiStore = defineStore('api', {
         });
 
         return { status: 200, ...asObject(data) };
-      } catch {
+      } catch (error) {
+        // DeveloperModule branches on `status` to render its inline error banner.
+        handleApiError('api-keys:deactivate-failed', error, { toastKey: false });
         return { status: 500 };
       }
     },
@@ -135,7 +95,9 @@ export const apiStore = defineStore('api', {
         });
 
         return { status: 200, ...asObject(data) };
-      } catch {
+      } catch (error) {
+        // DeveloperModule branches on `status` to render its inline error banner.
+        handleApiError('api-keys:rename-failed', error, { toastKey: false });
         return { status: 500 };
       }
     },
@@ -151,7 +113,9 @@ export const apiStore = defineStore('api', {
         });
 
         return { status: 200, ...asObject(data) };
-      } catch {
+      } catch (error) {
+        // DeveloperModule branches on `status` to render its inline error banner.
+        handleApiError('api-keys:create-failed', error, { toastKey: false });
         return { status: 500 };
       }
     },

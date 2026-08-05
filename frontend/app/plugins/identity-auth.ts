@@ -8,19 +8,18 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
     if (event) {
       try {
-        // Dynamic import keeps this server-only util (and its node:crypto
+        // Dynamic import keeps these server-only utils (and their node:crypto
         // dependency) out of the client bundle.
         const { ssrAuthFetch } = await import('~~/server/utils/ssrAuthCache');
+        const { buildInternalBackendHeaders, internalBackendUrl } = await import('~~/server/utils/internalBackend');
         const cookieHeader = getRequestHeader(event, 'cookie');
         const config = useRuntimeConfig();
-        const sessionUrl = `${config.backendInternalUrl}/v1/auth/get-session`;
+        const sessionUrl = internalBackendUrl(config, '/v1/auth/get-session');
 
-        const headers: Record<string, string> = {
-          cookie: cookieHeader || '',
-        };
-        if (config.backendHostHeader) {
-          headers.host = String(config.backendHostHeader);
-        }
+        // Same headers the /v1 Nitro proxy sends: the internal-proxy secret
+        // keeps these SSR calls out of the backend's per-IP bucket, which every
+        // render would otherwise share (they all come from this host's IP).
+        const headers = buildInternalBackendHeaders(config, { cookie: cookieHeader || '' });
 
         const response = await ssrAuthFetch(event, () =>
           $fetch<{ user?: any; session?: any }>(sessionUrl, {
@@ -41,7 +40,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
             impersonatedUsername: impersonating ? (response.user.name ?? null) : null,
           });
 
-          const prefsUrl = `${config.backendInternalUrl}/v1/user/preferences`;
+          const prefsUrl = internalBackendUrl(config, '/v1/user/preferences');
           store.preferences = await $fetch<Record<string, any>>(prefsUrl, {
             method: 'GET',
             headers,

@@ -1,3 +1,5 @@
+import type { Ref } from 'vue';
+
 /**
  * Inline YouTube playback for YOUTUBE segments via the IFrame Player API.
  *
@@ -9,8 +11,29 @@
  * later tap. One floating iframe is positioned over whichever segment is active,
  * so it still looks inline without re-parenting (which would reload the iframe).
  */
-const activeSegmentId = ref<string | null>(null);
-const clipProgress = ref(0);
+
+type PlayerState = {
+  activeSegmentId: Ref<string | null>;
+  clipProgress: Ref<number>;
+};
+
+/**
+ * The reactive part of the player lives in `useState` so an SSR render can
+ * never observe a value another request left behind. The cached handle is only
+ * ever filled in on the client -- where there is a single app instance -- so the
+ * DOM callbacks below (scroll/resize listeners, the progress interval) can reach
+ * the state without a Nuxt context.
+ */
+let clientState: PlayerState | null = null;
+
+function usePlayerState(): PlayerState {
+  const state: PlayerState = {
+    activeSegmentId: useState<string | null>('yt-segment-active-id', () => null),
+    clipProgress: useState<number>('yt-segment-clip-progress', () => 0),
+  };
+  if (import.meta.client) clientState = state;
+  return state;
+}
 
 type YtPlayer = {
   destroy?: () => void;
@@ -110,7 +133,7 @@ function ensureWarmPlayer(videoId: string) {
         playerReady = true;
         // A tap happened before we were ready — start it now (cold-start only;
         // iOS may not autoplay this first one since it's outside the gesture).
-        if (pendingVideoId && activeSegmentId.value) {
+        if (pendingVideoId && clientState?.activeSegmentId.value) {
           const id = pendingVideoId;
           pendingVideoId = null;
           startPlayback(id);
@@ -122,8 +145,9 @@ function ensureWarmPlayer(videoId: string) {
 
 /** Align the floating iframe with the active segment's host element. */
 function positionOverActive() {
-  if (!container || !activeSegmentId.value) return;
-  const anchor = document.getElementById(hostElId(activeSegmentId.value));
+  const activeId = clientState?.activeSegmentId.value;
+  if (!container || !activeId) return;
+  const anchor = document.getElementById(hostElId(activeId));
   if (!anchor) return;
   const r = anchor.getBoundingClientRect();
   container.style.top = `${r.top}px`;
@@ -159,7 +183,9 @@ function startPoll() {
   pollTimer = setInterval(() => {
     const t = player?.getCurrentTime?.() ?? 0;
     const span = endSeconds - startSeconds;
-    clipProgress.value = span > 0 ? Math.min(1, Math.max(0, (t - startSeconds) / span)) : 0;
+    if (clientState) {
+      clientState.clipProgress.value = span > 0 ? Math.min(1, Math.max(0, (t - startSeconds) / span)) : 0;
+    }
     if (endSeconds > 0 && t >= endSeconds) finishClip();
   }, 200);
 }
@@ -186,11 +212,15 @@ function hide() {
   pendingVideoId = null;
   player?.pauseVideo?.();
   if (container) container.style.display = 'none';
-  clipProgress.value = 0;
-  activeSegmentId.value = null;
+  if (clientState) {
+    clientState.clipProgress.value = 0;
+    clientState.activeSegmentId.value = null;
+  }
 }
 
 export function useYoutubeSegmentPlayer() {
+  const { activeSegmentId, clipProgress } = usePlayerState();
+
   // The card renders <div :id="hostId(publicId)"> used to anchor the player.
   const hostId = (publicId: string) => hostElId(publicId);
 

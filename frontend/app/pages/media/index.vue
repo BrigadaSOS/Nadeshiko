@@ -1,6 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight, mdiPencilOutline, mdiEyeOff } from '@mdi/js';
+import type { Category, Media } from '@brigadasos/nadeshiko-sdk';
 import { userStore } from '@/stores/auth';
+import { handleApiError } from '~/utils/apiError';
+import { reportError } from '~/utils/reportError';
 import { buildMediaSearchPath } from '~/utils/routes';
 
 const { t } = useI18n();
@@ -26,30 +29,27 @@ const { mediaName, language } = useMediaName();
 const { hiddenMediaIds } = useHiddenMedia();
 const user = userStore();
 
-const mediaToEdit = ref(null);
+const mediaToEdit = ref<Media | null>(null);
 
-const EDIT_OVERLAY_ID = '#nd-vertically-centered-scrollable-media-edit';
-
-const openEditModal = (mediaInfo) => {
+const openEditModal = (mediaInfo: Media) => {
   mediaToEdit.value = mediaInfo;
-  nextTick(() => {
-    window.NDOverlay?.open(EDIT_OVERLAY_ID);
-  });
 };
 
-const onEditSuccess = (updatedMedia) => {
+const onEditSuccess = (updatedMedia: Media | null) => {
+  if (!updatedMedia) return;
   const index = media.value.findIndex((m) => m.publicId === updatedMedia.publicId);
-  if (index !== -1) {
-    media.value[index] = { ...media.value[index], ...updatedMedia };
+  const current = media.value[index];
+  if (current) {
+    media.value[index] = { ...current, ...updatedMedia };
   }
 };
 
-const onDeleteSuccess = (mediaPublicId) => {
+const onDeleteSuccess = (mediaPublicId: string) => {
   media.value = media.value.filter((m) => m.publicId !== mediaPublicId);
 };
 
-const secondaryMediaNames = (mediaInfo) => {
-  const namesByLanguage = {
+const secondaryMediaNames = (mediaInfo: Media) => {
+  const namesByLanguage: Record<string, string> = {
     ENGLISH: mediaInfo?.nameEn || '',
     JAPANESE: mediaInfo?.nameJa || '',
     ROMAJI: mediaInfo?.nameRomaji || '',
@@ -64,22 +64,28 @@ const secondaryMediaNames = (mediaInfo) => {
   return secondary.join(' - ');
 };
 
-const allowedFilterTypes = new Set(['ANIME', 'JDRAMA', 'YOUTUBE']);
+const allowedFilterTypes = new Set<string>(['ANIME', 'JDRAMA', 'YOUTUBE']);
 const pageSize = 28;
-let debounceTimeout = null;
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const normalizeView = (value) => (value === 'list' ? 'list' : 'grid');
-const normalizeQuery = (value) => (typeof value === 'string' ? value : '');
-const normalizeCategory = (value) => {
+const normalizeView = (value: unknown) => (value === 'list' ? 'list' : 'grid');
+const normalizeQuery = (value: unknown) => (typeof value === 'string' ? value : '');
+const normalizeCategory = (value: unknown): Category | '' => {
   const category = typeof value === 'string' ? value : '';
-  return allowedFilterTypes.has(category) ? category : '';
+  return allowedFilterTypes.has(category) ? (category as Category) : '';
 };
 
 const currentView = computed(() => normalizeView(route.query.view));
 const searchQuery = computed(() => normalizeQuery(route.query.query));
 const filterCategory = computed(() => normalizeCategory(route.query.category));
 
-const buildQueryParams = (params = {}) => {
+type MediaBrowseParams = {
+  view?: unknown;
+  query?: unknown;
+  category?: unknown;
+};
+
+const buildQueryParams = (params: MediaBrowseParams = {}) => {
   const nextView = normalizeView(params.view ?? currentView.value);
   const nextQuery = normalizeQuery(params.query ?? searchQuery.value);
   const nextCategory = normalizeCategory(params.category ?? filterCategory.value);
@@ -91,21 +97,22 @@ const buildQueryParams = (params = {}) => {
   };
 };
 
-const updateUrl = async (params = {}) => {
+const updateUrl = async (params: MediaBrowseParams = {}) => {
   const nextQuery = buildQueryParams(params);
   await router.push({ query: nextQuery });
 };
 
-const media = ref([]);
+const media = ref<Media[]>([]);
 const hasMore = ref(false);
-const nextCursor = ref(undefined);
+const nextCursor = ref<string | undefined>(undefined);
 const loadingMore = ref(false);
-const sentinelRef = ref(null);
+const sentinelRef = ref<HTMLElement | null>(null);
 
 const {
   data: initialResponse,
   pending,
   error,
+  refresh,
 } = await useAsyncData(
   () => `search-media-${searchQuery.value}-${filterCategory.value}`,
   async () => {
@@ -188,7 +195,7 @@ watch(query, (value) => {
 
 watch(error, (fetchError) => {
   if (fetchError) {
-    console.error('Error fetching media:', fetchError);
+    reportError('media:list-fetch-failed', fetchError);
   }
 });
 
@@ -221,18 +228,20 @@ const loadMore = async () => {
     media.value = [...media.value, ...newMedia];
     hasMore.value = raw?.pagination?.hasMore ?? false;
     nextCursor.value = raw?.pagination?.cursor ?? undefined;
-  } catch (err) {
-    console.error('Error loading more media:', err);
+  } catch (error) {
+    // Infinite scroll: the sentinel just stops producing rows, so without a toast
+    // the page reads as "that's everything" when the next page actually failed.
+    handleApiError('media:load-more-failed', error, { toastKey: 'mediaBrowse.loadMoreError' });
   } finally {
     loadingMore.value = false;
   }
 };
 
-const handleFilterChange = (category) => {
+const handleFilterChange = (category: string) => {
   updateUrl({ category });
 };
 
-const trackMediaSelected = (mediaInfo, viewMode) => {
+const trackMediaSelected = (mediaInfo: Media, viewMode: string) => {
   const posthog = usePostHog();
   posthog?.capture('media_selected', {
     media_id: mediaInfo.publicId,
@@ -241,7 +250,7 @@ const trackMediaSelected = (mediaInfo, viewMode) => {
   });
 };
 
-let observer = null;
+let observer: IntersectionObserver | null = null;
 
 const setupObserver = () => {
   if (!import.meta.client) return;
@@ -343,8 +352,18 @@ watch([searchQuery, filterCategory], () => {
           </UiButtonPrimaryAction>
         </div>
       </div>
+      <div v-if="error && media.length === 0 && !loading" class="py-12 text-center text-sm" data-testid="media-load-error">
+        <p class="text-red-400">{{ t('mediaBrowse.loadError') }}</p>
+        <button
+          type="button"
+          class="mt-3 py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          @click="refresh()"
+        >
+          {{ t('searchContainer.retryButton') }}
+        </button>
+      </div>
       <div
-        v-if="currentView === 'grid'"
+        v-else-if="currentView === 'grid'"
         data-testid="media-grid"
         class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 md:gap-4 lg:gap-5 xl:gap-6"
       >
@@ -543,6 +562,7 @@ watch([searchQuery, filterCategory], () => {
         :media="mediaToEdit"
         @update:success="onEditSuccess"
         @delete:success="onDeleteSuccess"
+        @close="mediaToEdit = null"
       />
     </div>
 </template>

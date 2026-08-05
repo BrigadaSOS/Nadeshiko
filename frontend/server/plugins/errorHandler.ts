@@ -56,10 +56,50 @@ function getRequestBody(event: any): any {
   return body;
 }
 
-function getRedactedRequestPayload(event: any) {
+const REDACTED = '[REDACTED]';
+
+// Anything that carries a credential: session cookies, bearer tokens/API keys
+// and the internal proxy shared secret.
+const SENSITIVE_HEADERS = new Set([
+  'cookie',
+  'set-cookie',
+  'authorization',
+  'proxy-authorization',
+  'x-internal-proxy-auth',
+  'x-api-key',
+]);
+
+const SENSITIVE_BODY_KEY = /^(password|newpassword|token|refreshtoken|secret|apikey|api_key|authorization|cookie)$/i;
+
+const MAX_BODY_DEPTH = 4;
+
+function redactHeaders(headers: Record<string, unknown>): Record<string, unknown> {
+  const redacted: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    redacted[name] = SENSITIVE_HEADERS.has(name.toLowerCase()) ? REDACTED : value;
+  }
+  return redacted;
+}
+
+function redactBody(body: any, depth = 0): any {
+  if (!body || typeof body !== 'object' || depth >= MAX_BODY_DEPTH) return body;
+  if (Array.isArray(body)) return body.map((entry) => redactBody(entry, depth + 1));
+
+  const redacted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(body)) {
+    redacted[key] = SENSITIVE_BODY_KEY.test(key) ? REDACTED : redactBody(value, depth + 1);
+  }
+  return redacted;
+}
+
+// Bodies are only attached to error logs -- a successful request never needs
+// its payload in the log stream. Note the pino `req` serializer (utils/logger.ts)
+// keeps a fixed shape and drops the body, so the redaction that actually reaches
+// the output today is the header one.
+function getRedactedRequestPayload(event: any, { includeBody = false }: { includeBody?: boolean } = {}) {
   return {
-    headers: event.node.req.headers,
-    body: getRequestBody(event),
+    headers: redactHeaders(event.node.req.headers ?? {}),
+    body: includeBody ? redactBody(getRequestBody(event)) : undefined,
   };
 }
 
@@ -142,7 +182,7 @@ export default defineNitroPlugin((nitroApp) => {
         type: 'error',
         method,
         url,
-        req: event ? getRedactedRequestPayload(event) : undefined,
+        req: event ? getRedactedRequestPayload(event, { includeBody: true }) : undefined,
         requestId: context?.requestId,
         stack: error.stack,
         'error.fingerprint': fingerprint,
@@ -173,7 +213,7 @@ export default defineNitroPlugin((nitroApp) => {
         type: 'handlerError',
         method,
         url,
-        req: getRedactedRequestPayload(event),
+        req: getRedactedRequestPayload(event, { includeBody: true }),
         requestId: event.context.requestId,
         stack: error.stack,
         'error.fingerprint': fingerprint,

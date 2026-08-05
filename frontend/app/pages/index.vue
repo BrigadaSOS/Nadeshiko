@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
 import { buildMediaSearchPath } from '~/utils/routes';
 

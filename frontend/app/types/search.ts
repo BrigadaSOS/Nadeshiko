@@ -51,6 +51,16 @@ export type SearchStatsResponse = {
   categories: ResolvedCategoryCount[];
 };
 
+/**
+ * The subset of the merged search state (results + stats) that the sidebar and its filter
+ * panels read. Kept structural so it stays decoupled from how the container assembles it.
+ */
+export type SearchSidebarData = {
+  results?: SearchResult[];
+  media?: ResolvedMediaStats[];
+  categories?: ResolvedCategoryCount[];
+};
+
 export type MediaBrowseResponse = {
   readonly media: Media[];
   readonly cursor?: string | null;
