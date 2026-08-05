@@ -1,4 +1,4 @@
-import { expect } from 'bun:test';
+import { expect } from 'vitest';
 import { TestDataSource } from './setup';
 
 let _savepointCounter = 0;

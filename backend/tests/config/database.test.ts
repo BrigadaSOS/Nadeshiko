@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'bun:test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppDataSource, initializeDatabase, runMigrations } from '@config/database';
 import { logger } from '@config/log';
 

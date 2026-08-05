@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'bun:test';
+import { describe, expect, it, vi } from 'vitest';
 import { initializeBoot, installProcessHandlers, writeFatal } from '@config/boot';
 
 describe('writeFatal', () => {

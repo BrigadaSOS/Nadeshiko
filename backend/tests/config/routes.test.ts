@@ -1,6 +1,6 @@
 import express from 'express';
-import request from 'supertest';
-import { describe, expect, it, vi } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, expect, it, vi } from 'vitest';
 
 const { mountRoutes, noCache } = await import('@config/routes');
 

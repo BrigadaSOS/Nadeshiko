@@ -6,13 +6,13 @@
  * that gets rolled back — no truncation, no deadlocks, instant cleanup.
  *
  * Uses a module-level QueryRunner patched into TestDataSource.createQueryRunner
- * so all TypeORM operations in a test share the same transaction. Tests within
- * a file run serially (default); between files they run in parallel.
+ * so all TypeORM operations in a test share the same transaction. Tests run
+ * serially within a file and, per vitest.config.ts, one file at a time.
  *
  * Controllers are integration-tested through the full Express stack via supertest.
  */
 import 'dotenv/config';
-import { beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import type { Application, Request, Response, NextFunction } from 'express';
 import { DataSource, type QueryRunner } from 'typeorm';
 import { User } from '@app/models';
@@ -20,7 +20,9 @@ import { ApiKeyKind, ApiPermission, AuthType } from '@app/models/ApiPermission';
 import { APP_ENTITIES, APP_SUBSCRIBERS, getDbLogging } from '@config/schema';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { buildApplication } from '@config/application';
+import type { Server } from 'http';
 import { MediaRoutes, UserRoutes, CollectionsRoutes, ActivityRoutes, SearchRoutes } from '@config/routes';
+import { resetRateLimiters } from '@app/middleware/rateLimit';
 
 const postgres = getAppPostgresConfig();
 
@@ -29,7 +31,7 @@ const postgres = getAppPostgresConfig();
  * Shares the same entities and subscribers as production via config/schema.ts.
  *
  * Schema setup: run once before running tests (drops and remigrates the test DB):
- *   bun run test:setup
+ *   npm run test:setup
  */
 export const TestDataSource = new DataSource({
   type: 'postgres',
@@ -48,11 +50,17 @@ export const TestDataSource = new DataSource({
 let _testQueryRunner: QueryRunner | null = null;
 let _originalCreateQueryRunner: DataSource['createQueryRunner'] | null = null;
 
+/** A listening test server, keeping a handle on the Express app it serves. */
+export type TestServer = Server & { app: Application };
+
 /**
  * Set the user for subsequent requests on this app instance.
  * Pass null to sign out.
  */
-export function signInAs(app: Application, user: User | null) {
+export function signInAs(target: Application | TestServer, user: User | null) {
+  // Accepts either, so callers holding a `createTestApp()` server and callers
+  // holding a hand-built app both work without knowing which they have.
+  const app = 'locals' in target ? target : target.app;
   app.locals.testUser = user;
 }
 
@@ -71,22 +79,35 @@ function testAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
+/** Servers opened by `createTestApp`, closed together in `afterAll`. */
+const _openServers: TestServer[] = [];
+
 /**
  * Builds a minimal Express app with the same middleware stack as production,
  * but with test auth injected instead of real auth.
+ *
+ * Returns an already-listening server rather than the bare app. Supertest binds
+ * a fresh ephemeral server for every `request(app)` when handed an app, and a
+ * full-suite run makes thousands of those; the resulting port churn made a random
+ * test fail with ETIMEDOUT roughly one run in five. Handed a listening server it
+ * reuses the address instead, so a file now binds once rather than per request.
  */
-export function createTestApp() {
-  return buildApplication({
+export function createTestApp(): TestServer {
+  const app = buildApplication({
     rateLimit: false,
     beforeRoutes: [testAuthMiddleware],
-    mountRoutes: (app) => {
-      app.use('/', SearchRoutes);
-      app.use('/', MediaRoutes);
-      app.use('/', ActivityRoutes);
-      app.use('/', UserRoutes);
-      app.use('/', CollectionsRoutes);
+    mountRoutes: (instance) => {
+      instance.use('/', SearchRoutes);
+      instance.use('/', MediaRoutes);
+      instance.use('/', ActivityRoutes);
+      instance.use('/', UserRoutes);
+      instance.use('/', CollectionsRoutes);
     },
   });
+
+  const server = Object.assign(app.listen(0), { app }) as TestServer;
+  _openServers.push(server);
+  return server;
 }
 
 // ------------------------------------------------------------------
@@ -111,7 +132,17 @@ export function setupTestSuite() {
   });
 
   beforeEach(async () => {
-    const runner = _originalCreateQueryRunner?.();
+    // The limiters are in-process singletons shared by every test file in a
+    // single-fork run, so a file that exhausts a bucket would 429 the next one.
+    resetRateLimiters();
+
+    // beforeAll assigns this; if it is missing the suite is misconfigured and
+    // every following line would fail on undefined anyway. Say so once, here.
+    if (!_originalCreateQueryRunner) {
+      throw new Error('setupTestSuite: beforeAll did not run, so no query runner factory is available');
+    }
+
+    const runner = _originalCreateQueryRunner();
     await runner.connect();
     await runner.startTransaction();
 
@@ -126,14 +157,19 @@ export function setupTestSuite() {
     const runner = _testQueryRunner;
     if (runner) {
       await runner.rollbackTransaction();
-      // Remove the no-op override to restore the prototype method
-      delete (runner as any).release;
+      // beforeEach assigned a no-op `release` as an own property, shadowing the
+      // prototype method; deleting it uncovers the real one again.
+      delete (runner as { release?: QueryRunner['release'] }).release;
       await runner.release();
       _testQueryRunner = null;
     }
   });
 
   afterAll(async () => {
+    await Promise.all(
+      _openServers.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+    );
+
     if (_originalCreateQueryRunner) {
       TestDataSource.createQueryRunner = _originalCreateQueryRunner;
       _originalCreateQueryRunner = null;

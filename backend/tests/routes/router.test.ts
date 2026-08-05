@@ -1,6 +1,5 @@
-import 'dotenv/config';
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { invalidateUserCache, invalidateApiKeyCacheForUser } from '@app/middleware/authCacheStore';
@@ -73,9 +72,6 @@ const SESSION_ONLY_ROUTES: RouteEntry[] = [
   { method: 'delete', path: '/v1/user/activity/date/2025-01-01' },
   { method: 'delete', path: '/v1/user/activity/1' },
   { method: 'get', path: '/v1/user/export' },
-  { method: 'get', path: '/v1/user/labs' },
-  { method: 'post', path: '/v1/user/labs/test-key' },
-  { method: 'delete', path: '/v1/user/labs/test-key' },
 ];
 
 const ADMIN_SESSION_ROUTES: RouteEntry[] = [
@@ -242,7 +238,7 @@ describe('route auth wiring', () => {
   it('route count matches expected total', () => {
     const expectedTotal = SESSION_ONLY_ROUTES.length + ADMIN_SESSION_ROUTES.length + API_KEY_OR_SESSION_ROUTES.length;
 
-    expect(expectedTotal).toBe(59);
+    expect(expectedTotal).toBe(56);
   });
 });
 

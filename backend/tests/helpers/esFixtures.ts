@@ -29,7 +29,7 @@ export async function isEsAvailable(): Promise<boolean> {
         `[esFixtures] Target: ${config.ELASTICSEARCH_HOST} index '${INDEX_NAME}' as user '${config.ELASTICSEARCH_USER}'`,
       );
       console.warn('[esFixtures] Elasticsearch-backed tests will be SKIPPED.');
-      console.warn("[esFixtures] A 401/403 means the test user is not provisioned yet -- run 'bun run setup'.");
+      console.warn("[esFixtures] A 401/403 means the test user is not provisioned yet -- run 'npm run setup'.");
     }
     return false;
   }
@@ -84,7 +84,6 @@ export async function seedSegmentsIntoEs(
       contentEsMt: true,
       contentRating: ContentRating.SAFE,
       ratingAnalysis: { scores: {}, tags: {} },
-      posAnalysis: { nouns: 0 },
       storage: SegmentStorage.R2,
       hashedId: `hash-${media.id}-${i}`,
       episode: episodeNumber,
@@ -93,8 +92,8 @@ export async function seedSegmentsIntoEs(
       ...segments[i],
     });
     await seg.save();
-    await SegmentIndexer.index(seg);
-    savedSegments.push(seg);
+    await SegmentIndexer.index(seg as Segment);
+    savedSegments.push(seg as Segment);
   }
 
   await client.indices.refresh({ index: INDEX_NAME });

@@ -1,5 +1,5 @@
-import request from 'supertest';
-import { describe, expect, it } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, expect, it } from 'vitest';
 import { buildApplication } from '@config/application';
 
 describe('buildApplication', () => {
@@ -58,14 +58,21 @@ describe('buildApplication', () => {
       },
     });
 
-    let lastStatus = 0;
-    for (let i = 0; i < 302; i++) {
-      lastStatus = (await request(app).get('/unlimited').set('X-Forwarded-For', '203.0.113.77')).status;
-    }
+    // One server for all 302 requests. `request(app)` binds a fresh ephemeral
+    // server per call, and 302 of those under a loaded full-suite run exhausted
+    // sockets often enough to fail this test with ETIMEDOUT roughly one run in
+    // five -- a flake in the harness, not in the limiter being tested.
+    const server = app.listen(0);
+    try {
+      let lastStatus = 0;
+      for (let i = 0; i < 302; i++) {
+        lastStatus = (await request(server).get('/unlimited').set('X-Forwarded-For', '203.0.113.77')).status;
+      }
 
-    expect(lastStatus).toBe(200);
-    // 302 sequential requests is inherently slow; the 5s default times this out
-    // on a loaded machine even though nothing is wrong.
+      expect(lastStatus).toBe(200);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   }, 30_000);
 
   it('returns catch-all 404 with request instance id', async () => {

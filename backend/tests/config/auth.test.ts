@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from 'bun:test';
+import { describe, expect, it, vi } from 'vitest';
 import { ApiPermission, UserRoleType } from '@app/models';
 import { config, type AppConfig } from '@config/config';
+import { logger } from '@config/log';
 import {
   BETTER_AUTH_API_PERMISSION_RESOURCE,
   buildAuthOptions,
@@ -206,6 +207,36 @@ describe('buildAuthOptions', () => {
 
     await afterHook({ id: 11, name: 'nadeshiko', email: 'nadeshiko@test.local' });
     expect(sendWelcomeEmailFn).toHaveBeenCalledWith(11, 'nadeshiko', 'nadeshiko@test.local');
+  });
+
+  it('logs, without failing sign-up, when default collections cannot be created', async () => {
+    const ensureDefaultCollectionsFn = vi.fn(async () => {
+      throw new Error('collection provisioning failed');
+    });
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation((() => undefined) as never);
+
+    const options = buildAuthOptions({
+      configValues: makeConfig(),
+      production: false,
+      sendWelcomeEmailFn: vi.fn(async () => undefined) as any,
+      onWelcomeEmailError: vi.fn(),
+      ensureDefaultCollectionsFn: ensureDefaultCollectionsFn as any,
+    });
+    const afterHook = (options as any).databaseHooks.user.create.after;
+
+    try {
+      // Still non-fatal — the account is created either way — but a half
+      // provisioned signup used to leave no trace at all.
+      await expect(afterHook({ id: 12, name: 'half', email: 'half@test.local' })).resolves.toBeUndefined();
+
+      expect(ensureDefaultCollectionsFn).toHaveBeenCalledWith(12);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 12 }),
+        'Failed to create default collections for new user',
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });
 
