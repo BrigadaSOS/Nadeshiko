@@ -1,26 +1,42 @@
-FROM oven/bun:1 AS base
-WORKDIR /app
+# Build from the repository root, not from backend/: npm workspaces resolve the
+# API's dependencies against the root package.json and package-lock.json.
+#
+#   docker build -f backend/Dockerfile .
+FROM node:24-slim AS build
+WORKDIR /build
 
-FROM base AS install
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY package.json bun.lock ./
+# `npm ci` reconciles the whole workspace set against the root lockfile, so every
+# workspace manifest has to be present even though only `backend` is installed.
+COPY package.json package-lock.json ./
+COPY backend/package.json backend/
+COPY frontend/package.json frontend/
+COPY discord/package.json discord/
+COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
 # The image runs TypeScript directly through tsx, which is a regular dependency,
-# so --production keeps everything the runtime needs. Nothing under app/, config/,
+# so --omit=dev keeps everything the runtime needs. Nothing under app/, config/,
 # db/, lib/ or generated/ imports a devDependency; the bin/ scripts that do
 # (generateBrunoCollection, generateErrorProfiles, ...) are code generators that
 # only ever run in dev and CI, never in a deployed container.
-RUN bun install --frozen-lockfile --production
+RUN npm ci --workspace backend --include-workspace-root --omit=dev
 
-FROM node:22-slim AS release
+COPY backend backend
+
+# The shipped image keeps the API at /app rather than mirroring the monorepo, so
+# that `kamal app exec 'node --import tsx bin/es.ts ...'` and the other documented
+# runbook commands keep resolving relative to the working directory. Flatten the
+# workspace tree into that layout: hoisted root modules first, backend's own
+# nested overrides on top.
+RUN set -eux; \
+  mkdir -p /app/node_modules; \
+  cp -a node_modules/. /app/node_modules/; \
+  if [ -d backend/node_modules ]; then cp -a backend/node_modules/. /app/node_modules/; fi; \
+  cd backend; \
+  cp -a package.json tsconfig.json main.ts instrumentation.ts app config db bin lib generated /app/; \
+  node -e "require.resolve('tsx',{paths:['/app']})"
+
+FROM node:24-slim AS release
 WORKDIR /app
-COPY --from=install /app/node_modules ./node_modules
-COPY package.json tsconfig.json main.ts instrumentation.ts ./
-COPY app ./app
-COPY config ./config
-COPY db ./db
-COPY bin ./bin
-COPY lib ./lib
-COPY generated ./generated
+COPY --from=build /app /app
 USER node
 # Docker sets net.ipv4.ip_unprivileged_port_start=0, so the unprivileged `node`
 # user can still bind the PORT 80 the deploy configs use.

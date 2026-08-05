@@ -3,7 +3,9 @@
 # Block pushes to main that fail lint or typecheck.
 # Can also be run directly: ./scripts/pre-push
 
-export PATH="$HOME/.bun/bin:$PATH"
+# Git hooks run with a minimal environment, so add the usual Node locations
+# (mise shims, nvm's current symlink) ahead of the inherited PATH.
+export PATH="$HOME/.local/share/mise/shims:$HOME/.nvm/current/bin:$PATH"
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
 
@@ -24,21 +26,30 @@ fi
 echo "Running lint and typecheck..."
 
 echo "=> Backend: lint"
-(cd backend && bun run lint:code) || { echo "Backend lint failed"; exit 1; }
+(cd backend && npm run lint:code) || { echo "Backend lint failed"; exit 1; }
 
 echo "=> Backend: typecheck"
-(cd backend && bun run typecheck) || { echo "Backend typecheck failed"; exit 1; }
+(cd backend && npm run typecheck) || { echo "Backend typecheck failed"; exit 1; }
 
 echo "=> Frontend: lint"
-(cd frontend && bun run lint) || { echo "Frontend lint failed"; exit 1; }
+(cd frontend && npm run lint) || { echo "Frontend lint failed"; exit 1; }
 
 echo "=> Frontend: typecheck"
-(cd frontend && bun run typecheck) || { echo "Frontend typecheck failed"; exit 1; }
+(cd frontend && npm run typecheck) || { echo "Frontend typecheck failed"; exit 1; }
 
 echo "=> Discord: lint"
-(cd discord && bun run lint) || { echo "Discord lint failed"; exit 1; }
+(cd discord && npm run lint) || { echo "Discord lint failed"; exit 1; }
 
 echo "=> Discord: typecheck"
-(cd discord && bun run typecheck) || { echo "Discord typecheck failed"; exit 1; }
+(cd discord && npm run typecheck) || { echo "Discord typecheck failed"; exit 1; }
+
+# The SDK is generated from the OpenAPI spec, so a spec change that was not
+# regenerated fails CI's drift check. Catch it before the push instead.
+echo "=> SDK: drift check"
+npm run sdk:codegen >/dev/null 2>&1 || { echo "SDK codegen failed"; exit 1; }
+git diff --quiet -- packages/nadeshiko-sdk/generated || {
+  echo "SDK generated code is stale. Review and commit packages/nadeshiko-sdk/generated."
+  exit 1
+}
 
 echo "All checks passed."

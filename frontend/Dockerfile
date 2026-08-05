@@ -1,30 +1,80 @@
-FROM oven/bun:1 AS deps
-WORKDIR /app
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# Build from the repository root, not from frontend/: npm workspaces resolve the
+# app's dependencies (including the vendored @brigadasos/nadeshiko-sdk, whose
+# TypeScript sources Nuxt compiles into the bundle) against the root
+# package.json and package-lock.json.
+#
+#   docker build -f frontend/Dockerfile .
+FROM node:24-slim AS deps
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+# `npm ci` reconciles the whole workspace set against the root lockfile, so every
+# workspace manifest has to be present even though only `frontend` is installed.
+COPY package.json package-lock.json ./
+COPY backend/package.json backend/
+COPY frontend/package.json frontend/
+COPY discord/package.json discord/
+COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
+# Warm npm's cache from the lockfile alone, so the download cost stays in a
+# layer that source edits do not invalidate.
+RUN npm ci --workspace frontend --include-workspace-root --ignore-scripts \
+  && rm -rf node_modules frontend/node_modules
 
-FROM node:22-slim AS build
-WORKDIR /app
-RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+FROM deps AS build
+COPY frontend frontend
+COPY packages/nadeshiko-sdk packages/nadeshiko-sdk
+# Install from the lockfile, skipping lifecycle scripts: the frontend's
+# postinstall is `nuxt prepare`, which npm runs before the tree is complete.
+# `nuxt build` re-runs the same preparation, so nothing is lost.
+RUN npm ci --ignore-scripts
+
+# Nuxt's toolchain (oxc-parser, oxc-transform, ...) loads compiled binaries from
+# platform-specific optional packages that `npm ci` cannot install on Linux from
+# a macOS-generated lockfile. See the script for the full explanation.
+COPY scripts/install-linux-native-bindings.mjs scripts/
+RUN node scripts/install-linux-native-bindings.mjs
+
+# The API reference served at /docs/api is generated from the committed OpenAPI
+# spec, here, rather than being whatever a developer last built locally.
+# `frontend/public/docs/api/` is gitignored, but Docker's build context ignores
+# .gitignore -- so before this step the `COPY frontend frontend` above shipped a
+# stale local copy on a developer's machine and nothing at all on a clean CI
+# builder. Redocly needs the backend's docs/ and its config, and it runs from
+# backend/ so the relative paths in redocly.yaml resolve.
+COPY backend/package.json backend/
+COPY backend/redocly.yaml backend/
+COPY backend/docs backend/docs
+RUN npm run docs:build --workspace backend
+
 ARG NUXT_PUBLIC_ENVIRONMENT
 ARG NITRO_PRESET=node-server
 ENV NUXT_PUBLIC_ENVIRONMENT=${NUXT_PUBLIC_ENVIRONMENT}
 ENV NITRO_PRESET=${NITRO_PRESET}
-RUN npx nuxt build
+RUN npm run build --workspace frontend
 
-FROM oven/bun:1 AS otel-deps
+# Nitro bundles the app's own dependencies into .output, but the OpenTelemetry
+# SDK is loaded through --import before the bundle and so has to ship separately.
+FROM node:24-slim AS otel-deps
 WORKDIR /deps
-RUN bun init -y && bun add @opentelemetry/sdk-node @opentelemetry/sdk-trace-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/exporter-metrics-otlp-http @opentelemetry/resources @opentelemetry/sdk-metrics @opentelemetry/instrumentation-http @opentelemetry/instrumentation-undici @opentelemetry/instrumentation-runtime-node @opentelemetry/instrumentation-pino
+RUN npm init -y >/dev/null \
+  && npm install --omit=dev --no-audit --no-fund \
+    @opentelemetry/sdk-node \
+    @opentelemetry/sdk-trace-node \
+    @opentelemetry/exporter-trace-otlp-http \
+    @opentelemetry/exporter-metrics-otlp-http \
+    @opentelemetry/resources \
+    @opentelemetry/sdk-metrics \
+    @opentelemetry/instrumentation-http \
+    @opentelemetry/instrumentation-undici \
+    @opentelemetry/instrumentation-runtime-node \
+    @opentelemetry/instrumentation-pino
 
-FROM node:22-slim
+FROM node:24-slim
 WORKDIR /app
-COPY --from=build /app/.output ./.output
+COPY --from=build /build/frontend/.output ./.output
 RUN rm -rf .output/server/node_modules/@opentelemetry/api
 COPY --from=otel-deps /deps/node_modules ./node_modules
-COPY instrumentation.mjs route-normalization.mjs ./
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY frontend/instrumentation.mjs frontend/route-normalization.mjs ./
+COPY frontend/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENV HOST=0.0.0.0
 ENV PORT=3000

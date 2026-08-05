@@ -28,7 +28,7 @@ Supports romaji, kanji, kana, English, and Spanish queries. Use `exactMatch: tru
 
 ### Prerequisites
 
-- bun
+- Node.js 24 (npm ships with it)
 - Docker and Docker Compose
 
 ### Quick Start
@@ -39,11 +39,12 @@ Start local dependencies:
 docker compose up -d
 ```
 
-Then, run the setup script to configure everything else:
+Then, run the setup script to configure everything else. This is an npm
+workspaces monorepo, so dependencies install once from the repository root:
 
 ```bash
-bun install
-bun run setup
+npm install          # from the repository root
+npm run setup        # from backend/
 ```
 
 This will:
@@ -58,14 +59,14 @@ This will:
 For development (hot reloading):
 
 ```bash
-bun run dev
+npm run dev
 ```
 
 For production:
 
 ```bash
-bun run build
-bun run start
+npm run build
+npm run start
 ```
 
 The API will be available at `http://localhost:5000`
@@ -109,8 +110,8 @@ matches the deployed backend release.
 Install `oasdiff` first, then run:
 
 ```bash
-bun run openapi:breaking -- --from origin/main
-bun run openapi:changelog -- --from v2.1.0 --output docs/generated/openapi-changelog.md
+npm run openapi:breaking -- --from origin/main
+npm run openapi:changelog -- --from v2.1.0 --output docs/generated/openapi-changelog.md
 ```
 
 Notes:
