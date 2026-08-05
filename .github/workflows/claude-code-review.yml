@@ -5,10 +5,9 @@ on:
     types: [opened, synchronize, ready_for_review, reopened]
     # Only run on specific file changes
     paths:
-      - "src/**/*.ts"
-      - "src/**/*.tsx"
-      - "src/**/*.js"
-      - "src/**/*.jsx"
+      - "backend/**"
+      - "frontend/**"
+      - "discord/src/**"
 
 jobs:
   claude-review:
