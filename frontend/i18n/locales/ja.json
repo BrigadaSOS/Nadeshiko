@@ -1,4 +1,8 @@
 {
+  "errors": {
+    "generic": "エラーが発生しました。もう一度お試しください。",
+    "rateLimited": "リクエストが多すぎます。しばらく待ってからもう一度お試しください。"
+  },
   "navbar": {
     "buttons": {
       "home": "ホーム",
@@ -20,11 +24,14 @@
     }
   },
   "common": {
+    "cancel": "キャンセル",
     "close": "閉じる",
+    "confirm": "確認",
     "logoAlt": "Nadeshikoのロゴ",
     "navigationMenu": "ナビゲーションメニュー",
     "searchAnything": "何でも検索",
-    "toggleNavigation": "ナビゲーションを切り替え"
+    "toggleNavigation": "ナビゲーションを切り替え",
+    "translationUnavailable": "このページはまだお使いの言語に翻訳されていないため、英語版を表示しています。"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
@@ -101,9 +108,14 @@
     "youtubeButton": "YouTube",
     "vocabularyButton": "語彙"
   },
+  "hiddenMedia": {
+    "updateError": "非表示メディアを更新できませんでした。もう一度お試しください。"
+  },
   "mediaBrowse": {
     "showHiddenMedia": "非表示の作品を表示",
-    "hideHiddenMedia": "非表示の作品を隠す"
+    "hideHiddenMedia": "非表示の作品を隠す",
+    "loadError": "メディア一覧を読み込めませんでした。",
+    "loadMoreError": "これ以上のメディアを読み込めませんでした。"
   },
   "searchSettingsModal": {
     "exactMatchTitle": "完全一致検索",
@@ -142,6 +154,7 @@
     "wordLimitExceeded": "単語数の上限を超えました: {count} / 500",
     "inputFormatError": "入力形式が正しくありません。カンマと改行が同時に含まれていないか確認してください。",
     "notAvailable": "利用不可",
+    "searchError": "単語検索を完了できませんでした。もう一度お試しください。",
     "searchTypeLabel": "検索タイプ: {type}",
     "searchTypeExact": "完全一致",
     "searchTypeNormal": "通常",
@@ -153,6 +166,9 @@
   "modalMediaEdit": {
     "title": "メディア編集",
     "editButton": "編集",
+    "publicId": "公開ID",
+    "cover": "カバー画像",
+    "banner": "バナー画像",
     "nameJa": "日本語名",
     "nameRomaji": "ローマ字名",
     "nameEn": "英語名",
@@ -246,7 +262,10 @@
     "noEpisodes": "エピソードが見つかりませんでした"
   },
   "segmentSidebar": {
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "filtersTitle": "フィルター",
+    "openActionsMenu": "操作メニューを開く",
+    "close": "閉じる"
   },
   "searchpage": {
     "main": {
@@ -312,12 +331,16 @@
         "errorcopiedsharingurl": "URLのコピーに失敗しました。再試行してください。",
         "collectionAdded": "\"{name}\" に追加しました",
         "collectionAddFailed": "コレクションへの追加に失敗しました。再試行してください。",
-        "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります"
+        "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります",
+        "zoomedImage": "拡大画像",
+        "collectionsLoadFailed": "コレクションを読み込めませんでした。",
+        "collectionRemoveFailed": "この文をコレクションから削除できませんでした。"
       }
     },
     "modalcontext": {
       "labels": {
-        "context": "文脈"
+        "context": "文脈",
+        "loadError": "前後の文脈を読み込めませんでした。"
       }
     }
   },
@@ -375,7 +398,12 @@
         "showing": "{total} 件中 {start}〜{end} 件を表示",
         "previous": "前へ",
         "next": "次へ"
-      }
+      },
+      "loadError": "ユーザー一覧を読み込めませんでした。",
+      "banSuccess": "{name} を停止しました。",
+      "banError": "{name} を停止できませんでした。",
+      "unbanSuccess": "{name} の停止を解除しました。",
+      "unbanError": "{name} の停止を解除できませんでした。"
     },
     "announcement": {
       "title": "お知らせ",
@@ -517,7 +545,11 @@
         "nameLabel": "名前",
         "namePlaceholder": "このAPIキーの新しい名前を入力してください",
         "save": "保存"
-      }
+      },
+      "loadError": "APIキーを読み込めませんでした。",
+      "createKeyError": "APIキーを作成できませんでした。",
+      "renameKeyError": "APIキーの名前を変更できませんでした。",
+      "deactivateKeyError": "APIキーを無効化できませんでした。"
     },
     "account": {
       "infoTitle": "情報",
@@ -614,7 +646,8 @@
         "desktop": "デスクトップ",
         "unknownOs": "不明なOS",
         "unknownBrowser": "不明なブラウザ"
-      }
+      },
+      "exportError": "データをエクスポートできませんでした。もう一度お試しください。"
     },
     "collections": {
       "title": "コレクション",
@@ -662,7 +695,8 @@
       "createSuccess": "コレクションを作成しました",
       "createError": "コレクションの作成に失敗しました",
       "nameLabel": "名前",
-      "namePlaceholder": "マイコレクション"
+      "namePlaceholder": "マイコレクション",
+      "loadError": "コレクションを読み込めませんでした。"
     },
     "anki": {
       "syncStatus": "同期状態",
@@ -701,19 +735,36 @@
       "modal": {
         "cancel": "キャンセル",
         "save": "保存"
-      }
+      },
+      "profileSaveError": "Ankiプロファイルを保存できませんでした。"
     },
     "labs": {
       "title": "Nadeshiko Labs",
       "description": "一般公開前の実験的な機能を試せます。",
       "feedbackDescription": "これらの機能はまだテスト中で、いつでも変更される可能性があります。Nadeshikoの標準機能になる前に改善するため、ぜひフィードバックをお寄せください。",
-      "empty": "現在利用できるLabs機能はありません。"
+      "empty": "現在利用できるLabs機能はありません。",
+      "toggleError": "この実験機能を変更できませんでした。もう一度お試しください。"
+    }
+  },
+  "blog": {
+    "title": "ブログ",
+    "empty": "まだ記事がありません。お楽しみに！",
+    "readMore": "続きを読む",
+    "backToBlog": "ブログ一覧に戻る",
+    "pagination": {
+      "label": "ブログのページ送り",
+      "previous": "前へ",
+      "next": "次へ",
+      "previousPage": "前のページ",
+      "nextPage": "次のページ"
     }
   },
   "errorPage": {
     "pageNotFound": "ページが見つかりません",
     "somethingWentWrong": "エラーが発生しました。",
-    "goHome": "ホームへ戻る"
+    "goHome": "ホームへ戻る",
+    "metaDescription": "お探しのページは見つかりませんでした。",
+    "imageAlt": "ページが見つかりません"
   },
   "contentPage": {
     "emptyMessage": "近日公開予定 😉"
@@ -764,7 +815,9 @@
     "hiddenMediaNotice": "この作品は非表示リストに含まれています",
     "hiddenMediaDescription": "この作品は検索結果から非表示にされています。一時的に表示することができます。",
     "hiddenMediaShowAnyway": "表示する",
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "hiddenMediaImageAlt": "非表示コンテンツのイラスト",
+    "noResultsImageAlt": "検索結果なしのイラスト"
   },
   "reports": {
     "modalTitle": "問題を報告する",
@@ -1003,7 +1056,8 @@
       "empty": "まだカバレッジデータがありません。",
       "fullCorpus": "コーパス全体（{count}k語）",
       "topWordsK": "上位{count}k語",
-      "topWords": "上位{count}語"
+      "topWords": "上位{count}語",
+      "updateError": "カバレッジ更新を開始できませんでした。"
     },
     "translations": {
       "title": "翻訳の対応状況",
@@ -1047,6 +1101,7 @@
       "prefix": "",
       "source": "Jiten",
       "suffix": "のアニメコーパス頻度データを使用。{shown} / {total}語を表示中。"
-    }
+    },
+    "loadError": "単語リストを読み込めませんでした。"
   }
 }

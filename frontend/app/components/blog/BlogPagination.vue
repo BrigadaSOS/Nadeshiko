@@ -40,14 +40,14 @@ const getPageNumbers = (current: number, total: number) => {
 </script>
 
 <template>
-  <nav class="flex justify-center items-center gap-2 mt-8" aria-label="Blog pagination">
+  <nav class="flex justify-center items-center gap-2 mt-8" :aria-label="$t('blog.pagination.label')">
     <NuxtLink
       v-if="currentPage > 1"
       :to="`${basePath}?page=${currentPage - 1}`"
       class="px-3 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
-      aria-label="Previous page"
+      :aria-label="$t('blog.pagination.previousPage')"
     >
-      Previous
+      {{ $t('blog.pagination.previous') }}
     </NuxtLink>
 
     <template v-for="page in getPageNumbers(currentPage, totalPages)" :key="page">
@@ -73,9 +73,9 @@ const getPageNumbers = (current: number, total: number) => {
       v-if="currentPage < totalPages"
       :to="`${basePath}?page=${currentPage + 1}`"
       class="px-3 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
-      aria-label="Next page"
+      :aria-label="$t('blog.pagination.nextPage')"
     >
-      Next
+      {{ $t('blog.pagination.next') }}
     </NuxtLink>
   </nav>
 </template>

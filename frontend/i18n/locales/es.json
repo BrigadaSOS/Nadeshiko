@@ -1,4 +1,8 @@
 {
+  "errors": {
+    "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "rateLimited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
+  },
   "navbar": {
     "buttons": {
       "home": "Inicio",
@@ -20,11 +24,14 @@
     }
   },
   "common": {
+    "cancel": "Cancelar",
     "close": "Cerrar",
+    "confirm": "Confirmar",
     "logoAlt": "Logotipo de Nadeshiko",
     "navigationMenu": "Menú de navegación",
     "searchAnything": "Buscar cualquier cosa",
-    "toggleNavigation": "Alternar navegación"
+    "toggleNavigation": "Alternar navegación",
+    "translationUnavailable": "Esta página aún no está disponible en tu idioma, por lo que se muestra la versión en inglés."
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko: Buscador de oraciones de anime en Japonés",
@@ -101,9 +108,14 @@
     "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulario"
   },
+  "hiddenMedia": {
+    "updateError": "No se pudo actualizar tu lista de medios ocultos. Inténtalo de nuevo."
+  },
   "mediaBrowse": {
     "showHiddenMedia": "Mostrar contenido oculto",
-    "hideHiddenMedia": "Ocultar contenido oculto"
+    "hideHiddenMedia": "Ocultar contenido oculto",
+    "loadError": "No se pudo cargar la lista de medios.",
+    "loadMoreError": "No se pudieron cargar más medios."
   },
   "searchSettingsModal": {
     "exactMatchTitle": "Habilitar búsqueda exacta",
@@ -142,6 +154,7 @@
     "wordLimitExceeded": "Se ha excedido el límite de palabras permitidas: {count} / 500",
     "inputFormatError": "El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneamente.",
     "notAvailable": "No disponible",
+    "searchError": "No se ha podido completar la búsqueda de palabras. Inténtalo de nuevo.",
     "searchTypeLabel": "Tipo de búsqueda: {type}",
     "searchTypeExact": "Exacta",
     "searchTypeNormal": "Normal",
@@ -153,6 +166,9 @@
   "modalMediaEdit": {
     "title": "Editar Media",
     "editButton": "Editar",
+    "publicId": "ID público",
+    "cover": "Portada",
+    "banner": "Banner",
     "nameJa": "Nombre en Japonés",
     "nameRomaji": "Nombre en Romaji",
     "nameEn": "Nombre en Inglés",
@@ -246,7 +262,10 @@
     "noEpisodes": "No se encontraron episodios"
   },
   "segmentSidebar": {
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "filtersTitle": "Filtros",
+    "openActionsMenu": "Abrir menú de acciones",
+    "close": "Cerrar"
   },
   "searchpage": {
     "main": {
@@ -312,12 +331,16 @@
         "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo.",
         "collectionAdded": "Añadido a \"{name}\"",
         "collectionAddFailed": "No se pudo añadir a la colección. Inténtalo de nuevo.",
-        "mtTooltip": "Esta frase ha sido traducida automáticamente, puede que el contenido no sea exacto"
+        "mtTooltip": "Esta frase ha sido traducida automáticamente, puede que el contenido no sea exacto",
+        "zoomedImage": "Imagen ampliada",
+        "collectionsLoadFailed": "No se pudieron cargar tus colecciones.",
+        "collectionRemoveFailed": "No se pudo quitar esa frase de la colección."
       }
     },
     "modalcontext": {
       "labels": {
-        "context": "Contexto"
+        "context": "Contexto",
+        "loadError": "No se pudo cargar el contexto."
       }
     }
   },
@@ -375,7 +398,12 @@
         "showing": "Mostrando {start}–{end} de {total}",
         "previous": "Anterior",
         "next": "Siguiente"
-      }
+      },
+      "loadError": "No se pudo cargar la lista de usuarios.",
+      "banSuccess": "{name} ha sido bloqueado.",
+      "banError": "No se pudo bloquear a {name}.",
+      "unbanSuccess": "{name} ha sido desbloqueado.",
+      "unbanError": "No se pudo desbloquear a {name}."
     },
     "announcement": {
       "title": "Anuncio",
@@ -517,7 +545,11 @@
         "nameLabel": "Nombre",
         "namePlaceholder": "Introduce un nuevo nombre para esta llave API",
         "save": "Guardar"
-      }
+      },
+      "loadError": "No se pudieron cargar tus claves de API.",
+      "createKeyError": "No se pudo crear la clave de API.",
+      "renameKeyError": "No se pudo renombrar la clave de API.",
+      "deactivateKeyError": "No se pudo desactivar la clave de API."
     },
     "account": {
       "infoTitle": "Información",
@@ -614,7 +646,8 @@
         "desktop": "Escritorio",
         "unknownOs": "SO desconocido",
         "unknownBrowser": "Navegador desconocido"
-      }
+      },
+      "exportError": "No se pudieron exportar tus datos. Inténtalo de nuevo."
     },
     "collections": {
       "title": "Colecciones",
@@ -662,7 +695,8 @@
       "createSuccess": "Colección creada",
       "createError": "Error al crear la colección",
       "nameLabel": "Nombre",
-      "namePlaceholder": "Mi colección"
+      "namePlaceholder": "Mi colección",
+      "loadError": "No se pudieron cargar tus colecciones."
     },
     "anki": {
       "syncStatus": "Estado Sincronización",
@@ -701,19 +735,36 @@
       "modal": {
         "cancel": "Cancelar",
         "save": "Guardar"
-      }
+      },
+      "profileSaveError": "No se pudo guardar tu perfil de Anki."
     },
     "labs": {
       "title": "Nadeshiko Labs",
       "description": "Prueba funciones experimentales antes de que se publiquen para todo el mundo.",
       "feedbackDescription": "Estas funciones todavía están en pruebas y pueden cambiar en cualquier momento, pero nos encantaría recibir tus comentarios para mejorarlas antes de convertirlas en funciones predeterminadas de Nadeshiko.",
-      "empty": "No hay funciones de laboratorio disponibles en este momento."
+      "empty": "No hay funciones de laboratorio disponibles en este momento.",
+      "toggleError": "No se pudo cambiar ese experimento. Inténtalo de nuevo."
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "empty": "Todavía no hay entradas en el blog. ¡Vuelve pronto!",
+    "readMore": "Leer más",
+    "backToBlog": "Volver al blog",
+    "pagination": {
+      "label": "Paginación del blog",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "previousPage": "Página anterior",
+      "nextPage": "Página siguiente"
     }
   },
   "errorPage": {
     "pageNotFound": "Página no encontrada",
     "somethingWentWrong": "Algo salió mal.",
-    "goHome": "Ir al inicio"
+    "goHome": "Ir al inicio",
+    "metaDescription": "No se ha podido encontrar la página que buscas.",
+    "imageAlt": "No encontrado"
   },
   "contentPage": {
     "emptyMessage": "Próximamente disponible 😉"
@@ -764,7 +815,9 @@
     "hiddenMediaNotice": "Este contenido está en tu lista de ocultos",
     "hiddenMediaDescription": "Has ocultado este contenido de los resultados de búsqueda. Aún puedes verlo temporalmente.",
     "hiddenMediaShowAnyway": "Mostrar de todas formas",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "hiddenMediaImageAlt": "Ilustración de contenido oculto",
+    "noResultsImageAlt": "Ilustración de búsqueda sin resultados"
   },
   "reports": {
     "modalTitle": "Reportar un problema",
@@ -1003,7 +1056,8 @@
       "empty": "Todavía no hay datos de cobertura.",
       "fullCorpus": "Corpus completo ({count} mil palabras)",
       "topWordsK": "Top {count} mil palabras",
-      "topWords": "Top {count} palabras"
+      "topWords": "Top {count} palabras",
+      "updateError": "No se pudo iniciar la actualización de cobertura."
     },
     "translations": {
       "title": "Disponibilidad de traducciones",
@@ -1047,6 +1101,7 @@
       "prefix": "Datos de frecuencia del corpus de anime de",
       "source": "Jiten",
       "suffix": ". Mostrando {shown} de {total} palabras."
-    }
+    },
+    "loadError": "No se pudo cargar la lista de palabras."
   }
 }

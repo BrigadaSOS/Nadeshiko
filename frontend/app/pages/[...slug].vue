@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { reportError } from '~/utils/reportError';
+
 interface MarkdownPagePayload {
   title: string;
   description: string;
@@ -7,10 +9,12 @@ interface MarkdownPagePayload {
   date?: string | null;
   author?: string | null;
   image?: string | null;
+  /** True when the requested locale had no content and the English copy is served instead. */
+  isFallback?: boolean;
 }
 
 const route = useRoute();
-const { locale } = useI18n();
+const { locale, t, d } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 const localePath = useLocalePath();
 
@@ -31,7 +35,14 @@ const { data } = await useAsyncData(
   () =>
     $fetch<MarkdownPagePayload>(`/api/_site/page/${slug.value}`, {
       query: { locale: locale.value.toLowerCase() },
-    }).catch(() => null),
+    }).catch((error: { statusCode?: number; status?: number }) => {
+      // A missing page is a genuine 404; anything else is our content route failing
+      // and must not be dressed up as "this page does not exist".
+      const status = error?.statusCode ?? error?.status;
+      if (status === 404) return null;
+      reportError('content:page-fetch-failed', error, { 'content.slug': slug.value });
+      throw createError({ statusCode: 500, statusMessage: 'Failed to load page' });
+    }),
   { watch: [() => route.path, locale] },
 );
 
@@ -50,6 +61,11 @@ const contentDate = computed(() => {
   if (raw instanceof Date) return raw.toISOString();
   return null;
 });
+// The English copy is served verbatim when the active locale has no translation,
+// so the body has to declare its real language for screen readers and search engines.
+const isEnglishFallback = computed(() => data.value?.isFallback === true);
+const contentLang = computed(() => (isEnglishFallback.value ? 'en' : locale.value));
+
 const contentAuthor = computed(() => {
   const d = data.value as Record<string, any> | null;
   const raw = d?.author ?? d?.meta?.author;
@@ -62,13 +78,13 @@ const schemaOrgDefs = computed(() => {
       name: title.value,
       description: description.value || undefined,
       url: canonicalUrl.value,
-      inLanguage: locale.value,
+      inLanguage: contentLang.value,
     }),
   ];
 
-  const breadcrumbItems = [{ name: 'Home', item: localePath('/') }];
+  const breadcrumbItems = [{ name: t('navbar.buttons.home'), item: localePath('/') }];
   if (isBlogPost.value) {
-    breadcrumbItems.push({ name: 'Blog', item: localePath('/blog') });
+    breadcrumbItems.push({ name: t('blog.title'), item: localePath('/blog') });
   }
   breadcrumbItems.push({ name: title.value ?? '', item: route.path });
   defs.push(defineBreadcrumb({ itemListElement: breadcrumbItems }));
@@ -114,16 +130,19 @@ useHead(() => ({
       <div v-if="data" class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
         <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost }">
           <template v-if="isBlogPost">
-            <h1 class="blog-title">{{ title }}</h1>
+            <h1 class="blog-title" :lang="contentLang">{{ title }}</h1>
             <time v-if="contentDate" class="blog-date" :datetime="contentDate">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {{ new Date(contentDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}
+              {{ d(new Date(contentDate), 'short') }}
             </time>
             <img v-if="(data as any).image" :src="(data as any).image" :alt="title" class="blog-cover" loading="eager" />
           </template>
-          <div v-html="data.html" />
+          <p v-if="isEnglishFallback" class="translation-notice">
+            {{ t('common.translationUnavailable') }}
+          </p>
+          <div :lang="contentLang" v-html="data.html" />
 
           <div v-if="isBlogPost" class="mt-10 pt-6 border-t border-gray-800">
             <NuxtLink
@@ -133,7 +152,7 @@ useHead(() => ({
               <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
-              <span>Back to Blog</span>
+              <span>{{ t('blog.backToBlog') }}</span>
             </NuxtLink>
           </div>
         </div>
@@ -144,6 +163,16 @@ useHead(() => ({
 <style scoped>
 .content-markdown {
   padding: 0;
+}
+
+.translation-notice {
+  margin: 0 0 2rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--button-color-accent);
+  background-color: color-mix(in srgb, var(--button-color-accent) 8%, transparent);
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #e5e7eb;
+  font-size: 0.9375rem;
 }
 
 /* Lists */

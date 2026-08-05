@@ -8,16 +8,18 @@ export default defineEventHandler(async (event) => {
   const isBlog = slug.startsWith('blog/');
   if (isBlog) {
     const blogSlug = slug.replace(/^blog\//, '');
-    const post = (await getBlogPost(locale, blogSlug)) || (locale !== 'en' ? await getBlogPost('en', blogSlug) : null);
+    const localized = await getBlogPost(locale, blogSlug);
+    const post = localized || (locale !== 'en' ? await getBlogPost('en', blogSlug) : null);
     if (!post) {
       throw createError({ statusCode: 404, statusMessage: 'Not Found' });
     }
-    return post;
+    return { ...post, isFallback: !localized };
   }
 
-  const page = (await getContentPage(locale, slug)) || (locale !== 'en' ? await getContentPage('en', slug) : null);
+  const localized = await getContentPage(locale, slug);
+  const page = localized || (locale !== 'en' ? await getContentPage('en', slug) : null);
   if (!page) {
     throw createError({ statusCode: 404, statusMessage: 'Not Found' });
   }
-  return page;
+  return { ...page, isFallback: !localized };
 });
