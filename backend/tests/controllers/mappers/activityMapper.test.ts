@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { toUserActivityDTO, toUserActivityListDTO } from '@app/controllers/mappers/activityMapper';
 import { ActivityType } from '@app/models/UserActivity';
 

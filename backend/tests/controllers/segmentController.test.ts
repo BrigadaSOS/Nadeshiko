@@ -1,16 +1,17 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach, afterEach, spyOn } from 'bun:test';
-import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { setupTestSuite, createTestApp, signInAs, TestDataSource } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
-import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { toSegmentDTO } from '@app/controllers/mappers/segmentMapper';
 import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';
 import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/models/Segment';
+import { SegmentRevision } from '@app/models/SegmentRevision';
 import { Media } from '@app/models/Media';
 import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
+import * as SegmentContext from '@app/services/search/segmentDocument/SegmentContext';
 
 setupTestSuite();
 
@@ -43,6 +44,7 @@ async function seedSegment(mediaId: number, episodeNumber: number, overrides: Pa
   segmentSeedCounter += 1;
 
   const uuid = `seg-${mediaId}-${episodeNumber}-${segmentSeedCounter}`;
+  // `save` is declared on BaseEntity, so its static return type is the base class.
   return Segment.save({
     uuid,
     publicId: overrides.publicId ?? `seg${String(segmentSeedCounter).padStart(9, '0')}`,
@@ -57,14 +59,13 @@ async function seedSegment(mediaId: number, episodeNumber: number, overrides: Pa
     contentEsMt: false,
     contentRating: ContentRating.SAFE,
     ratingAnalysis: { scores: {}, tags: {} },
-    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${segmentSeedCounter}`,
     storageBasePath: '/test',
     mediaId,
     episode: episodeNumber,
     ...overrides,
-  });
+  }) as Promise<Segment>;
 }
 
 describe('GET /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
@@ -246,7 +247,6 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
         position: 9,
         storage: 'LOCAL',
         ratingAnalysis: { scores: { violence: 0.1 }, tags: { action: true } },
-        posAnalysis: { nouns: 3 },
         hashedId: 'updated-hash',
       });
 
@@ -283,6 +283,90 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it('has written the revision by the time it responds', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const segment = await seedSegment(fixtures.media.testShow.id, fixtures.episodes.pilot.episodeNumber, {
+      contentJa: 'before',
+    });
+
+    const res = await request(app)
+      .patch(`/v1/media/segments/${segment.publicId}`)
+      .send({ textJa: { content: 'after' } });
+
+    expect(res.status).toBe(200);
+
+    // No polling: the revision shares the update's transaction, so a 200 means it
+    // is already committed rather than merely scheduled.
+    const revisions = await SegmentRevision.find({ where: { segmentId: segment.id } });
+    expect(revisions).toHaveLength(1);
+    expect(revisions[0]).toMatchObject({
+      revisionNumber: 1,
+      userId: core.users.kevin.id,
+    });
+    expect(revisions[0].snapshot).toMatchObject({ contentJa: 'before' });
+  });
+
+  it('numbers successive revisions without gaps or repeats', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const segment = await seedSegment(fixtures.media.testShow.id, fixtures.episodes.pilot.episodeNumber, {
+      contentJa: 'first',
+    });
+
+    await request(app)
+      .patch(`/v1/media/segments/${segment.publicId}`)
+      .send({ textJa: { content: 'second' } });
+    await request(app)
+      .patch(`/v1/media/segments/${segment.publicId}`)
+      .send({ textJa: { content: 'third' } });
+
+    const revisions = await SegmentRevision.find({
+      where: { segmentId: segment.id },
+      order: { revisionNumber: 'ASC' },
+    });
+
+    expect(revisions.map((r) => r.revisionNumber)).toEqual([1, 2]);
+    expect(revisions.map((r) => r.snapshot.contentJa)).toEqual(['first', 'second']);
+  });
+
+  it('rolls the segment update back when the revision cannot be written', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const segment = await seedSegment(fixtures.media.testShow.id, fixtures.episodes.pilot.episodeNumber, {
+      contentJa: 'original',
+    });
+
+    const revisionSpy = vi.spyOn(SegmentRevision, 'create').mockImplementationOnce(() => {
+      throw new Error('revision write failed');
+    });
+    activeSpies.push(revisionSpy);
+
+    const res = await request(app)
+      .patch(`/v1/media/segments/${segment.publicId}`)
+      .send({ textJa: { content: 'should not stick' } });
+
+    expect(res.status).toBe(500);
+
+    // An edit with no audit trail is worse than a rejected edit, so neither lands.
+    const unchanged = await Segment.findOneByOrFail({ id: segment.id });
+    expect(unchanged.contentJa).toBe('original');
+    expect(await SegmentRevision.countBy({ segmentId: segment.id })).toBe(0);
+  });
+});
+
+describe('SegmentRevision numbering', () => {
+  it('is backed by a unique constraint on (segment_id, revision_number)', async () => {
+    // The controller derives the next number under a row lock. True concurrency is
+    // not reproducible here, so assert the constraint that makes a collision a
+    // failed write rather than two revisions sharing a number.
+    const rows = await TestDataSource.query(`
+      SELECT indexdef FROM pg_indexes
+      WHERE tablename = 'SegmentRevision' AND indexdef LIKE '%UNIQUE%'
+    `);
+
+    expect(rows).toContainEqual(
+      expect.objectContaining({ indexdef: expect.stringMatching(/UNIQUE.*\(segment_id, revision_number\)/) }),
+    );
+  });
 });
 
 describe('GET /v1/media/segments/:publicId/context', () => {
@@ -301,7 +385,9 @@ describe('GET /v1/media/segments/:publicId/context', () => {
       },
     };
 
-    const surroundingSpy = spyOn(SegmentDocument, 'surroundingSegments').mockResolvedValueOnce(contextResponse as any);
+    const surroundingSpy = vi
+      .spyOn(SegmentContext, 'surroundingSegments')
+      .mockResolvedValueOnce(contextResponse as any);
     activeSpies.push(surroundingSpy);
 
     const res = await request(app).get(`/v1/media/segments/${segment.publicId}/context?take=5&contentRating=SAFE`);
@@ -318,7 +404,7 @@ describe('GET /v1/media/segments/:publicId/context', () => {
   });
 
   it('returns 404 when base segment publicId does not exist', async () => {
-    const surroundingSpy = spyOn(SegmentDocument, 'surroundingSegments').mockResolvedValueOnce({
+    const surroundingSpy = vi.spyOn(SegmentContext, 'surroundingSegments').mockResolvedValueOnce({
       segments: [],
       includes: { media: {} },
     } as any);

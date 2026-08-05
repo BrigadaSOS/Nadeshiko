@@ -61,7 +61,6 @@ export const toSegmentInternalDTO = (
     hashedId: all || include?.includes('hashedId') ? segment.hashedId : null,
     storageBasePath: all || include?.includes('storageBasePath') ? segment.storageBasePath : null,
     ratingAnalysis: all || include?.includes('ratingAnalysis') ? toJsonObjectOrNull(segment.ratingAnalysis) : null,
-    posAnalysis: all || include?.includes('posAnalysis') ? toJsonObjectOrNull(segment.posAnalysis) : null,
   };
 };
 
@@ -105,7 +104,6 @@ export function toSegmentCreateAttributes(input: SegmentCreateAttributesInput): 
     contentEnMt: body.textEn?.isMachineTranslated ?? false,
     contentRating: (body.contentRating ?? ContentRating.SAFE) as ContentRating,
     ratingAnalysis: body.ratingAnalysis ?? { scores: {}, tags: {} },
-    posAnalysis: body.posAnalysis ?? { nouns: 0 },
     storage: body.storage as SegmentStorage,
     hashedId: body.hashedId,
     episode: episodeNumber,
@@ -125,7 +123,6 @@ export function toSegmentSnapshot(segment: Segment): Record<string, unknown> {
     startTimeMs: segment.startTimeMs,
     endTimeMs: segment.endTimeMs,
     ratingAnalysis: toJsonObjectOrNull(segment.ratingAnalysis),
-    posAnalysis: toJsonObjectOrNull(segment.posAnalysis),
   };
 }
 
@@ -153,7 +150,6 @@ export function toSegmentUpdatePatch(body: SegmentUpdateRequestOutput): Partial<
     position: body.position,
     contentRating: body.contentRating as ContentRating | undefined,
     ratingAnalysis: body.ratingAnalysis,
-    posAnalysis: body.posAnalysis,
     hashedId: body.hashedId,
   };
 

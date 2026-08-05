@@ -49,7 +49,11 @@ export const toMediaBaseDTO = (media: Media): t_Media => ({
   endDate: media.endDate ? toDateString(media.endDate) : null,
   category: media.category as t_Media['category'],
   segmentCount: media.segmentCount,
-  episodeCount: media.episodes?.length ?? 0,
+  // The denormalised column, not `episodes?.length`: a trigger keeps it correct
+  // (see 1743000000000-add-media-stats-columns) whereas the relation length is
+  // silently 0 for any caller that did not load the relation, and it is what the
+  // search path already reports via `toMediaInfoData`.
+  episodeCount: media.episodeCount,
   studio: media.studio ?? null,
   seasonName: media.seasonName as t_Media['seasonName'],
   seasonYear: media.seasonYear,

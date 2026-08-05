@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { toExportCollectionDTO, toUserExportDTO } from '@app/controllers/mappers/userExportMapper';
 
 function buildCollection(overrides: Record<string, unknown> = {}) {

@@ -1,5 +1,5 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { Application, Request, Response, NextFunction } from 'express';
 import { buildApplication } from '@config/application';
 import { AdminRoutes } from '@config/routes';

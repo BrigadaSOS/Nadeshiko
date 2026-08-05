@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { toEpisodeDTO, toEpisodeListDTO } from '@app/controllers/mappers/episodeMapper';
 
 let seq = 0;

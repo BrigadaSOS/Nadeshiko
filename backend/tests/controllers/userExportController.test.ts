@@ -1,5 +1,5 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { setupTestSuite, createTestApp, signInAs, TestDataSource } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
@@ -27,7 +27,6 @@ async function createTestSegment(mediaId: number): Promise<Segment> {
     contentEn: 'test',
     contentRating: ContentRating.SAFE,
     ratingAnalysis: { scores: {}, tags: {} },
-    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-export-${segmentCounter}`,
     episode: 1,
@@ -65,6 +64,20 @@ describe('GET /v1/user/export', () => {
     });
     expect(res.body.profile.createdAt).toBeDefined();
     expect(res.body.preferences).toBeDefined();
+  });
+
+  // The whole export ships as one JSON body, so each section has a ceiling. Saying so in the
+  // response is what keeps a capped export from reading as a complete one.
+  it('reports every section as complete when nothing hit its ceiling', async () => {
+    const res = await request(app).get('/v1/user/export');
+
+    expect(res.status).toBe(200);
+    expect(res.body.truncated).toEqual({
+      activity: false,
+      collections: false,
+      collectionSegments: false,
+      reports: false,
+    });
   });
 
   it('includes activity records for the user', async () => {
@@ -107,14 +120,12 @@ describe('GET /v1/user/export', () => {
       segmentId: segB.id,
       mediaId: media.id,
       position: 2,
-      note: null,
     });
     await CollectionSegment.save({
       collectionId: collection.id,
       segmentId: segA.id,
       mediaId: media.id,
       position: 1,
-      note: null,
     });
 
     const res = await request(app).get('/v1/user/export');
@@ -170,11 +181,13 @@ describe('GET /v1/user/export', () => {
       reason: ReportReason.WRONG_METADATA,
       userId: fixtures.users.kevin.id,
     });
+    // Distinct reasons: UQ_Report_user_target_reason forbids the same user filing the same
+    // reason against the same target twice, and what this test is about is the ordering.
     const newReport = await Report.save({
       source: ReportSource.USER,
       targetType: ReportTargetType.MEDIA,
       targetMediaId: media.id,
-      reason: ReportReason.WRONG_METADATA,
+      reason: ReportReason.MISSING_EPISODES,
       userId: fixtures.users.kevin.id,
     });
 
