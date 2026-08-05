@@ -16,3 +16,11 @@ logs
 *.sln
 *.sw?
 docs/generated/index.html
+# Written by `docs:bundle:public` for consumers that regenerate it first (the
+# CI oasdiff job, the release artifact). Committing it only creates a second
+# copy of the public contract to keep in sync with the one `docs:build`
+# publishes under frontend/public/docs/api -- and the stale one is the one git
+# presents as authoritative.
+docs/generated/openapi-public.yaml
+# Built by `generate:auth-spec` from the main bundle plus better-auth's schema.
+docs/generated/openapi-sdk.yaml

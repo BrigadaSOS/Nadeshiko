@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -18,6 +18,7 @@ const ROOT_DIR = join(__dirname, '..');
 const BACKEND_PACKAGE_JSON_PATH = join(ROOT_DIR, 'backend', 'package.json');
 const FRONTEND_PACKAGE_JSON_PATH = join(ROOT_DIR, 'frontend', 'package.json');
 const DISCORD_PACKAGE_JSON_PATH = join(ROOT_DIR, 'discord', 'package.json');
+const SDK_PACKAGE_JSON_PATH = join(ROOT_DIR, 'packages', 'nadeshiko-sdk', 'package.json');
 const OPENAPI_PATH = join(ROOT_DIR, 'backend', 'docs', 'openapi', 'openapi.yaml');
 const OPENAPI_GENERATED_PATH = join(ROOT_DIR, 'backend', 'docs', 'generated', 'openapi.yaml');
 
@@ -134,6 +135,15 @@ function runSet(versionInput: unknown): void {
   );
   console.log(`discord/package.json: ${previousDiscordVersion} -> ${version}`);
 
+  // The SDK is published from this package, so its version is the npm version
+  // external consumers install.
+  const previousSdkVersion = writePackageVersion(
+    SDK_PACKAGE_JSON_PATH,
+    'packages/nadeshiko-sdk/package.json',
+    version,
+  );
+  console.log(`packages/nadeshiko-sdk/package.json: ${previousSdkVersion} -> ${version}`);
+
   console.log(`Next: commit + jj tag v${version} && jj git push --remote origin`);
 }
 
@@ -146,6 +156,7 @@ function runCheck(expectedInput: unknown | undefined): void {
   const backendVersion = readPackageVersion(BACKEND_PACKAGE_JSON_PATH, 'backend/package.json');
   const frontendVersion = readPackageVersion(FRONTEND_PACKAGE_JSON_PATH, 'frontend/package.json');
   const discordVersion = readPackageVersion(DISCORD_PACKAGE_JSON_PATH, 'discord/package.json');
+  const sdkVersion = readPackageVersion(SDK_PACKAGE_JSON_PATH, 'packages/nadeshiko-sdk/package.json');
   const openApiVersion = readOpenApiVersion();
   const generatedOpenApiVersion = readGeneratedOpenApiVersion();
 
@@ -171,6 +182,11 @@ function runCheck(expectedInput: unknown | undefined): void {
     if (discordVersion !== expected) {
       fail(`discord/package.json version (${discordVersion}) does not match expected version (${expected})`);
     }
+    if (sdkVersion !== expected) {
+      fail(
+        `packages/nadeshiko-sdk/package.json version (${sdkVersion}) does not match expected version (${expected})`,
+      );
+    }
   }
 
   if (backendVersion !== frontendVersion) {
@@ -183,12 +199,16 @@ function runCheck(expectedInput: unknown | undefined): void {
     fail(`backend version (${backendVersion}) does not match discord version (${discordVersion})`);
   }
 
+  if (backendVersion !== sdkVersion) {
+    fail(`backend version (${backendVersion}) does not match SDK version (${sdkVersion})`);
+  }
+
   console.log(`Version check OK: ${backendVersion}`);
 }
 
 function printUsage(): void {
-  console.log('Usage: bun run scripts/releaseVersion.ts <set|check> [version]');
-  console.log('  set <version>    Update all version targets (backend, frontend, discord, OpenAPI)');
+  console.log('Usage: node --import tsx scripts/releaseVersion.ts <set|check> [version]');
+  console.log('  set <version>    Update all version targets (backend, frontend, discord, SDK, OpenAPI)');
   console.log('  check [version]  Validate all versions match');
 }
 
@@ -203,7 +223,7 @@ function main(): void {
 
   if (command === 'set') {
     const version = rawArgs[1];
-    if (!version) fail('Missing version. Usage: bun run scripts/releaseVersion.ts set <version>');
+    if (!version) fail('Missing version. Usage: node --import tsx scripts/releaseVersion.ts set <version>');
     runSet(version);
     return;
   }

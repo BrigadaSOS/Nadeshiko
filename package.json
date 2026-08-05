@@ -2,15 +2,36 @@
   "name": "nadeshiko-root",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "backend",
+    "frontend",
+    "discord",
+    "infra/seed-worker"
+  ],
+  "//sdk:sync": "Bundles the spec before regenerating the SDK from it, so starting the stack right after a spec edit does not build the SDK from the previous bundle. Runs once per `npm run dev`, not per Nuxt restart, and deliberately stops short of backend `generate:api` -- `dev:backend` does that for itself.",
   "scripts": {
-    "dev": "bun run dev:backend & bun run dev:frontend",
-    "dev:backend": "bun run --cwd backend dev",
-    "dev:frontend": "bun run --cwd frontend dev",
-    "build": "bun run --cwd backend build && bun run --cwd frontend build",
-    "lint": "bun run --cwd backend lint && bun run --cwd frontend lint",
-    "lint:fix": "bun run --cwd backend lint:fix && bun run --cwd frontend lint:fix",
-    "release:set-version": "bash -c 'bun run scripts/releaseVersion.ts set \"$1\" && bun run --cwd backend generate:all && bun run scripts/releaseVersion.ts check \"$1\"' --",
-    "setup": "sh scripts/setup-hooks.sh && bun run --cwd backend setup && bun run --cwd frontend setup",
-    "release:check-version": "bun run scripts/releaseVersion.ts check"
+    "predev": "npm run sdk:sync",
+    "dev": "portless",
+    "predev:ports": "npm run sdk:sync",
+    "dev:ports": "trap 'kill 0' INT TERM EXIT; npm run dev:backend & npm run dev:frontend & wait",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace backend && npm run sdk:codegen && npm run build --workspace frontend",
+    "lint": "npm run lint --workspace backend && npm run lint --workspace frontend && npm run lint --workspace discord",
+    "lint:fix": "npm run lint:fix --workspace backend && npm run lint:fix --workspace frontend",
+    "test": "npm run test --workspace backend && npm run test --workspace frontend && npm run test --workspace discord",
+    "sdk:codegen": "OPENAPI_SPEC_PATH=../../backend/docs/generated/openapi-sdk.yaml npm run codegen --workspace @brigadasos/nadeshiko-sdk",
+    "sdk:sync": "npm run docs:bundle --workspace backend && npm run generate:auth-spec --workspace backend && npm run sdk:codegen",
+    "release:set-version": "bash -c 'node --import tsx scripts/releaseVersion.ts set \"$1\" && npm run generate:all --workspace backend && npm run sdk:codegen && node --import tsx scripts/releaseVersion.ts check \"$1\"' --",
+    "release:check-version": "node --import tsx scripts/releaseVersion.ts check",
+    "setup": "sh scripts/setup-hooks.sh && npm run setup --workspace backend && npm run setup --workspace frontend"
+  },
+  "devDependencies": {
+    "portless": "^0.15.5",
+    "tsx": "^4.20.6"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
