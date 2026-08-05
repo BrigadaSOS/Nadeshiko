@@ -15,11 +15,11 @@ import {
   ReportTargetType,
 } from '@app/models';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
-import { auditRegistry } from '@app/models/mediaAudit/checks';
+import { auditRegistry } from '@app/services/mediaAudit/checks';
 
 const mockRunAllAudits = vi.fn();
 
-vi.mock('@app/models/mediaAudit/runner', () => ({
+vi.mock('@app/services/mediaAudit/runner', () => ({
   runAllAudits: (...args: unknown[]) => mockRunAllAudits(...args),
 }));
 

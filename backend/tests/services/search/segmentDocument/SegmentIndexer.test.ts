@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'bun:test';
 import { Segment } from '@app/models';
-import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 
 vi.mock('@config/log', () => {
   const noop = () => {};

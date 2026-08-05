@@ -77,6 +77,7 @@
  */
 
 import type { estypes } from '@elastic/elasticsearch';
+import { excludedSearchLanguages, type SearchLanguage } from '@lib/searchLanguages';
 import type { SearchRequestOutput, SearchFiltersOutput } from 'generated/outputTypes';
 
 export enum InputScript {
@@ -101,7 +102,7 @@ export class SegmentQuery {
   static buildSearchMust(
     request: { query?: SearchRequestOutput['query']; filters: SearchFiltersOutput },
     parserMode: QueryParserMode,
-    excludeLanguages?: string[],
+    excludeLanguages?: readonly SearchLanguage[],
   ): { must: estypes.QueryDslQueryContainer[]; isMatchAll: boolean; hasQuery: boolean } {
     const must: estypes.QueryDslQueryContainer[] = [];
     const searchTerm = request.query?.search;
@@ -227,7 +228,7 @@ export class SegmentQuery {
     exactMatch: boolean,
     hasLengthConstraints: boolean,
     parserMode: QueryParserMode = 'strict',
-    excludeLanguages?: string[],
+    excludeLanguages?: readonly SearchLanguage[],
   ): estypes.QueryDslQueryContainer {
     const baseQuery = SegmentQuery.buildMultiLanguage(query, exactMatch, parserMode, excludeLanguages);
 
@@ -249,11 +250,11 @@ export class SegmentQuery {
     query: string,
     exactMatch: boolean,
     parserMode: QueryParserMode = 'strict',
-    excludeLanguages?: string[],
+    excludeLanguages?: readonly SearchLanguage[],
   ): estypes.QueryDslQueryContainer {
     const queryText = exactMatch ? `"${query}"` : query;
     const boosts = SegmentQuery.getScriptBoosts(SegmentQuery.detectInputScript(query));
-    const excludeSet = new Set(excludeLanguages ?? []);
+    const excludeSet = new Set<SearchLanguage>(excludeLanguages ?? []);
 
     const japaneseBaseQuery = SegmentQuery.buildStringQuery({
       query: queryText,
@@ -298,14 +299,14 @@ export class SegmentQuery {
     }
 
     if (exactMatch) {
-      if (!excludeSet.has('es')) {
+      if (!excludeSet.has('ES')) {
         languageQueries.push({ multi_match: { query, fields: [`textEs.exact^${boosts.spanish}`] } });
       }
-      if (!excludeSet.has('en')) {
+      if (!excludeSet.has('EN')) {
         languageQueries.push({ multi_match: { query, fields: [`textEn.exact^${boosts.english}`] } });
       }
     } else {
-      if (!excludeSet.has('es')) {
+      if (!excludeSet.has('ES')) {
         const esBaseQuery = SegmentQuery.buildStringQuery({
           query,
           parserMode,
@@ -321,7 +322,7 @@ export class SegmentQuery {
           },
         });
       }
-      if (!excludeSet.has('en')) {
+      if (!excludeSet.has('EN')) {
         const enBaseQuery = SegmentQuery.buildStringQuery({
           query,
           parserMode,
@@ -366,6 +367,7 @@ export class SegmentQuery {
       exactMatch: Boolean(request.query?.exactMatch),
       status: SegmentQuery.normalizeStringArray(f.status),
       category: SegmentQuery.normalizeStringArray(f.category),
+      excludedLanguages: excludedSearchLanguages(f.languages),
       contentRating: SegmentQuery.normalizeStringArray(f.contentRating),
       mediaInclude:
         f.media?.include?.map((m) => ({ mediaPublicId: m.mediaPublicId, episodes: m.episodes?.sort() })) ?? null,

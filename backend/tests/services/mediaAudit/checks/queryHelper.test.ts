@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
-import { runCategoryFilteredQuery } from '@app/models/mediaAudit/checks/queryHelper';
+import { runCategoryFilteredQuery } from '@app/services/mediaAudit/checks/queryHelper';
 
 setupTestSuite();
 

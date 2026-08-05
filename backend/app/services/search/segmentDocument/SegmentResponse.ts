@@ -6,6 +6,7 @@ import type { Media } from '@app/models';
 import { ALL_CATEGORIES, type CategoryType } from '@app/models';
 import type { SegmentDocumentShape, SlimToken } from '../SegmentDocument';
 import { enhanceHighlight } from './HighlightEnhancer';
+import { isSuccessfulMsearchItem } from './errors';
 import type {
   SearchPaginationOutput,
   SearchResponseOutput,
@@ -33,8 +34,9 @@ export class SegmentResponse {
 
     let cursor: string | undefined;
     const hits = esResponse.hits.hits as SegmentSearchHit[];
-    if (hits.length >= 1) {
-      const sortValue = hits[hits.length - 1].sort;
+    const lastHit = hits[hits.length - 1];
+    if (lastHit) {
+      const sortValue = lastHit.sort;
       if (sortValue) cursor = encodeKeysetCursor(sortValue as estypes.FieldValue[]);
     }
 
@@ -208,9 +210,14 @@ export class SegmentResponse {
     const mediaMap: Record<string, MediaOutput> = {};
     const stride = hasRealCountQueries ? 2 : 1;
 
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      const response = esResponse.responses[i * stride] as estypes.SearchResponseBody;
+    for (const [i, word] of words.entries()) {
+      const item = esResponse.responses[i * stride];
+      if (!isSuccessfulMsearchItem(item)) {
+        logger.warn({ word, response: item }, 'Word match sub-search failed');
+        results.push({ word, isMatch: false, matchCount: 0, realMatchCount: 0, media: [] });
+        continue;
+      }
+      const response = item as estypes.SearchResponseBody;
 
       let isMatch = false;
       let matchCount = 0;
@@ -223,8 +230,13 @@ export class SegmentResponse {
       let realMatchCount = matchCount;
       if (hasRealCountQueries) {
         // True when wordsMatched() ran a second real-count query for each word.
-        const realResponse = esResponse.responses[i * stride + 1] as estypes.SearchResponseBody;
-        realMatchCount = (realResponse.hits.total as estypes.SearchTotalHits).value;
+        const realItem = esResponse.responses[i * stride + 1];
+        if (isSuccessfulMsearchItem(realItem)) {
+          const realTotal = (realItem as estypes.SearchResponseBody).hits?.total as estypes.SearchTotalHits | undefined;
+          realMatchCount = realTotal?.value ?? matchCount;
+        } else {
+          logger.warn({ word, response: realItem }, 'Word match real-count sub-search failed');
+        }
       }
 
       let media: WordMatchMediaOutput[] = [];

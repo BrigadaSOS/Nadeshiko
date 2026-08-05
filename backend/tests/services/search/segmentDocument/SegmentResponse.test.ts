@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { estypes } from '@elastic/elasticsearch';
-import { SegmentResponse } from '@app/models/segmentDocument/SegmentResponse';
-import type { SegmentDocumentShape, SlimToken } from '@app/models/SegmentDocument';
+import { SegmentResponse } from '@app/services/search/segmentDocument/SegmentResponse';
+import type { SegmentDocumentShape, SlimToken } from '@app/services/search/SegmentDocument';
 
 function token(s: string, d: string, b: number, e: number, p: string): SlimToken {
   return { s, d, r: '', b, e, p };

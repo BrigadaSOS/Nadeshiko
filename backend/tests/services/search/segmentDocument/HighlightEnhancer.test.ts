@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { enhanceHighlight } from '@app/models/segmentDocument/HighlightEnhancer';
-import type { SlimToken } from '@app/models/SegmentDocument';
+import { enhanceHighlight } from '@app/services/search/segmentDocument/HighlightEnhancer';
+import type { SlimToken } from '@app/services/search/SegmentDocument';
 
 function token(s: string, d: string, b: number, e: number, p: string): SlimToken {
   return { s, d, r: '', b, e, p };
