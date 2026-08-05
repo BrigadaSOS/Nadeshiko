@@ -1,9 +1,9 @@
 import type { ZodTypeAny } from 'zod/v4';
 
-function formatIssues(issues: Array<{ path: Array<string | number>; message: string }>): string {
+function formatIssues(issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>): string {
   return issues
     .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join('.') : '<root>';
+      const path = issue.path.length > 0 ? issue.path.map(String).join('.') : '<root>';
       return `- ${path}: ${issue.message}`;
     })
     .join('\n');

@@ -1,7 +1,8 @@
 import 'dotenv/config';
-import { beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { client as esClient, INDEX_NAME } from '@config/elasticsearch';
 import { TestDataSource } from './setup';
+import { isElasticsearchNotFound } from '@lib/elasticsearchErrors';
 
 export { createTestApp, signInAs } from './setup';
 
@@ -33,7 +34,7 @@ export { createTestApp, signInAs } from './setup';
  *
  * @example
  * // searchController.test.ts
- * import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+ * import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
  * import { setupSearchSuite, createTestApp, signInAs } from '../helpers/searchSetup';
  * import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
  * import { performEnqueuedJobs } from '../helpers/jobs';
@@ -83,12 +84,16 @@ export function setupSearchSuite() {
  */
 async function clearEsIndex(): Promise<void> {
   try {
+    // Client v9 takes the query at the top level; the old `body` wrapper is gone.
     await esClient.deleteByQuery({
       index: INDEX_NAME,
-      body: { query: { match_all: {} } },
+      query: { match_all: {} },
       refresh: true,
     });
-  } catch {
-    // Index may not exist yet on first run — that's fine.
+  } catch (error) {
+    // A missing index on the first run is fine -- there is nothing to clear.
+    // Anything else means the index was NOT cleared, and swallowing that would
+    // leak documents into the next test's search results.
+    if (!isElasticsearchNotFound(error)) throw error;
   }
 }

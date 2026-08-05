@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { getAppEnvironment, isLocalEnvironment, isDevEnvironment, isProdEnvironment } from '@config/environment';
 
 describe('getAppEnvironment', () => {
