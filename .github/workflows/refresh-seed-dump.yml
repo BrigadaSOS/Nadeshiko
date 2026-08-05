@@ -1,0 +1,95 @@
+name: "[Infra] Refresh seed dump"
+
+# Regenerates the contributor seed database from production and publishes it to
+# the R2 bucket the seed worker serves.
+#
+# Manual dispatch only for now. The monthly schedule below is commented out
+# deliberately: this reads production and publishes the result, so it should run
+# a few times by hand — with `dry_run` first — before it runs unattended.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dump and verify without publishing to R2'
+        required: false
+        default: true
+        type: boolean
+  # schedule:
+  #   - cron: '0 4 1 * *'   # 04:00 UTC on the 1st of each month
+
+# Nothing here assumes an AWS role, so no id-token. Tailscale authenticates with
+# its OAuth client secret and Cloudflare with an API token.
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # pg_dump reads the production database over the same SSH path deploys use.
+    # Serialize it against deploys rather than risk dumping mid-migration.
+    concurrency:
+      group: nadeshiko-host-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.6'
+
+      - name: Install seed worker dependencies
+        run: cd infra/seed-worker && bun install --frozen-lockfile
+
+      # The runner needs pg_restore to verify the dump's contents. Its major
+      # version must be >= the server's (17) to read the archive.
+      - name: Install PostgreSQL client
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" |
+            sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          pg_restore --version
+
+      - name: Set up Tailscale, SSH and Kamal
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Refresh the seed dump
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # A scheduled run always publishes; a dispatched run defaults to dry.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "${DRY_RUN}" = true ]; then
+            args+=(--no-upload)
+            echo "::notice title=Dry run::Dumping and verifying only; nothing will be published."
+          fi
+          infra/seed-worker/scripts/refresh-seed-dump.sh "${args[@]}"
+
+      - name: Summarize
+        if: always()
+        run: |
+          set -euo pipefail
+          dump=infra/seed-worker/seed.dump
+          {
+            echo "## Seed dump refresh"
+            if [ -f "$dump" ]; then
+              echo
+              echo "Produced \`$(du -h "$dump" | cut -f1)\` of content tables."
+            else
+              echo
+              echo "No dump was produced."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,236 @@
+name: Checks
+
+# Reusable lint/typecheck/test suite. Called by CI for pull requests and by the
+# release workflows so no deploy can run against code that has not been checked.
+on:
+  workflow_call:
+    inputs:
+      backend:
+        description: "Run the backend checks"
+        required: false
+        default: true
+        type: boolean
+      frontend:
+        description: "Run the frontend checks"
+        required: false
+        default: true
+        type: boolean
+      discord:
+        description: "Run the discord bot checks"
+        required: false
+        default: true
+        type: boolean
+      seed_worker:
+        description: "Run the seed worker checks"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  BUN_VERSION: '1.3.6'
+  # Published by .github/workflows/elasticsearch-image.yml; keep both in sync.
+  ELASTICSEARCH_IMAGE: ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116
+
+jobs:
+  backend:
+    if: inputs.backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nadeshiko_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # CI-only bootstrap password for the built-in `elastic` superuser. The
+      # application user is provisioned from it by `bun run test:setup`.
+      ELASTICSEARCH_ADMIN_USER: elastic
+      ELASTICSEARCH_ADMIN_PASSWORD: nadeshiko-ci-elastic
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start test Elasticsearch
+        run: |
+          set -euo pipefail
+          docker pull "$ELASTICSEARCH_IMAGE"
+          docker run --detach \
+            --name nadeshiko-ci-elasticsearch \
+            --publish 9200:9200 \
+            --env discovery.type=single-node \
+            --env xpack.security.enabled=true \
+            --env xpack.security.enrollment.enabled=false \
+            --env xpack.security.http.ssl.enabled=false \
+            --env ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD" \
+            --env ES_JAVA_OPTS="-Xms512m -Xmx512m" \
+            "$ELASTICSEARCH_IMAGE"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: cd backend && bun install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Lint
+        run: cd backend && bun run lint:code
+
+      - name: Typecheck
+        run: cd backend && bun run typecheck
+
+      - name: Check generated code is up to date
+        run: |
+          set -euo pipefail
+          git add --intent-to-add -- backend/generated frontend/server/utils/generated
+          if ! git diff --exit-code -- backend/generated frontend/server/utils/generated; then
+            echo "::error::Generated code is stale. Run 'bun run generate:api' in backend/ and commit the result."
+            exit 1
+          fi
+
+      - name: Wait for test Elasticsearch
+        run: |
+          set -euo pipefail
+          # A secured node answers unauthenticated requests with 401 once the
+          # HTTP security layer is up; 200 covers a security-off diagnostic run.
+          # 90 attempts x 2s matches the 180s budget used by the deploy workflows.
+          for attempt in $(seq 1 90); do
+            http_status=$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:9200/_cluster/health || true)
+            if [ "$http_status" = 401 ] || [ "$http_status" = 200 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 90 ]; then
+              docker logs --tail 200 nadeshiko-ci-elasticsearch
+              exit 1
+            fi
+            sleep 2
+          done
+
+          for attempt in $(seq 1 90); do
+            health=$(curl --fail --silent --user "elastic:${ELASTICSEARCH_ADMIN_PASSWORD}" http://localhost:9200/_cluster/health || true)
+            if grep -q '"timed_out":false' <<<"$health" && grep -Eq '"status":"(yellow|green)"' <<<"$health"; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs --tail 200 nadeshiko-ci-elasticsearch
+          exit 1
+
+      - name: Setup test database
+        env:
+          LOG_LEVEL: info
+        run: cd backend && bun run test:setup
+
+      - name: Test
+        run: cd backend && bun run test
+
+      - name: Stop test Elasticsearch
+        if: always()
+        run: docker rm --force nadeshiko-ci-elasticsearch || true
+
+  frontend:
+    if: inputs.frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: cd frontend && bun install --frozen-lockfile
+
+      - name: Lint
+        run: cd frontend && bun run lint
+
+      - name: Typecheck
+        run: cd frontend && bun run typecheck
+
+      - name: Test
+        run: cd frontend && bun run test
+
+  discord:
+    if: inputs.discord
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: cd discord && bun install --frozen-lockfile
+
+      - name: Lint
+        run: cd discord && bun run lint
+
+      - name: Typecheck
+        run: cd discord && bun run typecheck
+
+      # discord/package.json has no `test` script; the suite runs on Bun's runner.
+      - name: Test
+        run: cd discord && bun test
+
+  seed-worker:
+    if: inputs.seed_worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: cd infra/seed-worker && bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: cd infra/seed-worker && bun run typecheck
+
+      - name: Build Worker bundle
+        run: cd infra/seed-worker && bunx wrangler deploy --dry-run

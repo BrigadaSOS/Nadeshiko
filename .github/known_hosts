@@ -1,0 +1,15 @@
+# Pinned SSH host keys for the deploy hosts, consumed by
+# .github/actions/kamal-deploy-setup. Without a matching entry that action falls
+# back to trust-on-first-use and prints a warning annotation on every deploy.
+#
+# To populate, from a machine already on the Tailnet:
+#
+#   ssh-keyscan nadeshiko >> .github/known_hosts
+#
+# Use plain `ssh-keyscan`, not `ssh-keyscan -H`: the action matches the host name
+# at the start of the line, which hashing would hide. Verify the fingerprints
+# against the host itself before committing (`ssh-keygen -lf` on the pasted keys
+# vs `ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub` on the server) — pinning a key
+# you learned over the same untrusted channel proves nothing.
+#
+# Replace the keys here whenever the host is rebuilt or its keys are rotated.
