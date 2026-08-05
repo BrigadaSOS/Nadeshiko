@@ -1,23 +1,42 @@
 <script setup lang="ts">
 import { useLabsStore } from '@/stores/labs';
+import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
 const labsStore = useLabsStore();
 const togglingKey = ref<string | null>(null);
 const sdk = useNadeshikoSdk();
 
-const { data: featuresData } = await useAsyncData(
+const { data: featuresData, status } = await useAsyncData(
   'settings-labs-features',
   async () => {
-    return await sdk.listUserLabs().catch(() => [] as typeof labsStore.features);
+    return await sdk.listUserLabs().catch((error: unknown) => {
+      // The persisted feature list stays on screen (see `applyFeatures` below), so
+      // a failed refresh degrades to stale data rather than an empty panel.
+      handleApiError('labs:list-failed', error, { toastKey: false });
+      return [] as typeof labsStore.features;
+    });
   },
   {
+    // Session-scoped: an SSR call would carry the shared API key instead of the
+    // user's session, so it can only return the wrong data.
+    server: false,
     default: () => [],
   },
 );
 
-labsStore.features = featuresData.value;
-labsStore.loaded = true;
+const applyFeatures = (features: typeof labsStore.features) => {
+  labsStore.features = features;
+  labsStore.loaded = true;
+};
+
+// During hydration `server: false` defers the fetch to the client, so only
+// publish once it resolved -- otherwise the empty default would wipe the
+// persisted feature list until the response lands.
+if (status.value === 'success') {
+  applyFeatures(featuresData.value);
+}
+watch(featuresData, applyFeatures);
 
 const toggleFeature = async (key: string, currentActive: boolean) => {
   if (togglingKey.value) return;
@@ -26,7 +45,11 @@ const toggleFeature = async (key: string, currentActive: boolean) => {
   try {
     await labsStore.toggleLab(key, !currentActive);
   } catch (error) {
-    console.error('[Labs] Failed to toggle feature:', error);
+    // The toggle springs back to its previous position with no explanation otherwise.
+    handleApiError('labs:toggle-failed', error, {
+      toastKey: 'accountSettings.labs.toggleError',
+      context: { 'lab.key': key },
+    });
   } finally {
     togglingKey.value = null;
   }

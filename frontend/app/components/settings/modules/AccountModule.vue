@@ -5,8 +5,10 @@ import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 
 import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
-import { useToastSuccess, useToastError } from '~/utils/toast';
+import { useToastSuccess } from '~/utils/toast';
+import { handleApiError } from '~/utils/apiError';
 import { resolveContextResponse } from '~/utils/resolvers';
+import { reportError } from '~/utils/reportError';
 
 const { t, locale } = useI18n();
 
@@ -55,8 +57,10 @@ const updatePreference = async (key: string, value: string) => {
     posthog?.capture('setting_changed', { setting_name: key, value });
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
-    console.error('Failed to update preference:', error);
-    useToastError(t('accountSettings.account.preferenceError'));
+    handleApiError('account:preference-update-failed', error, {
+      toastKey: 'accountSettings.account.preferenceError',
+      context: { 'preference.key': key },
+    });
   } finally {
     savingPreferences.value = false;
   }
@@ -84,7 +88,12 @@ const { data: previewData } = await useLazyAsyncData('content-rating-preview', (
   sdk
     .getSegmentContext({ segmentPublicId: PREVIEW_SEGMENT_UUID, take: 1 })
     .then((r) => resolveContextResponse(r))
-    .catch(() => null),
+    // Decorative preview for the content-rating setting: the panel renders fine
+    // without it, so a failure must not interrupt the settings page.
+    .catch((error: unknown) => {
+      reportError('account:content-rating-preview-failed', error);
+      return null;
+    }),
 );
 const previewSegment = computed(() => previewData.value?.segments?.[0] ?? null);
 
@@ -111,8 +120,9 @@ const updateContentRatingPreference = async (value: NsfwMode) => {
     user_store.preferences = { ...user_store.preferences, contentRatingPreferences: updated };
     useToastSuccess(t('accountSettings.account.preferenceSaved'));
   } catch (error) {
-    console.error('Failed to update content rating preference:', error);
-    useToastError(t('accountSettings.account.preferenceError'));
+    handleApiError('account:content-rating-update-failed', error, {
+      toastKey: 'accountSettings.account.preferenceError',
+    });
   } finally {
     savingPreferences.value = false;
   }
@@ -255,7 +265,8 @@ const exportData = async () => {
     a.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('[Account] Failed to export data:', error);
+    // The download simply never starts otherwise, with nothing on screen to say why.
+    handleApiError('account:data-export-failed', error, { toastKey: 'accountSettings.account.exportError' });
   } finally {
     exportingData.value = false;
   }

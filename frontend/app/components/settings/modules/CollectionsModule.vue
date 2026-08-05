@@ -1,24 +1,47 @@
 <script setup lang="ts">
 import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiEyeOutline, mdiEyeOffOutline } from '@mdi/js';
 import type { Collection } from '@brigadasos/nadeshiko-sdk';
+import { handleApiError } from '~/utils/apiError';
 
 const { t, locale } = useI18n();
 
 const sdk = useNadeshikoSdk();
 const posthog = usePostHog();
 
-const { data: initialData } = await useAsyncData(
+// Distinguishes "you have no collections" from "we could not load them"; without
+// it a failed fetch renders the same empty-state copy as a brand-new account.
+const loadFailed = ref(false);
+
+const { data: initialData, refresh: refreshCollections } = await useAsyncData(
   'settings-account-collections',
   async () => {
-    const data = await sdk.listCollections({ take: 100 }).catch(() => null);
+    const data = await sdk.listCollections({ take: 100 }).catch((error: unknown) => {
+      handleApiError('collections:list-failed', error, { toastKey: false });
+      loadFailed.value = true;
+      return null;
+    });
     return data?.collections ?? ([] as Collection[]);
   },
   {
+    // Session-scoped: an SSR call would carry the shared API key instead of the
+    // user's session, so it can only return the wrong data.
+    server: false,
     default: () => [] as Collection[],
   },
 );
 
+const retryLoad = async () => {
+  loadFailed.value = false;
+  await refreshCollections();
+};
+
 const collections = ref<Collection[]>(initialData.value);
+
+// With `server: false` the fetch is deferred to the client during hydration, so
+// the data can land after this component's local copy was seeded.
+watch(initialData, (data) => {
+  collections.value = data ?? [];
+});
 
 const formatDate = (dateStr?: string | null) => {
   if (!dateStr) return '';
@@ -80,8 +103,8 @@ const submitRename = async () => {
 
     useToastSuccess(t('accountSettings.collections.renamed'));
     renameTarget.value = null;
-  } catch {
-    useToastError(t('accountSettings.collections.renameError'));
+  } catch (error) {
+    handleApiError('collections:rename-failed', error, { toastKey: 'accountSettings.collections.renameError' });
   } finally {
     isRenaming.value = false;
   }
@@ -112,8 +135,8 @@ const submitCreate = async () => {
     posthog?.capture('collection_created');
     useToastSuccess(t('accountSettings.collections.createSuccess'));
     showCreateModal.value = false;
-  } catch {
-    useToastError(t('accountSettings.collections.createError'));
+  } catch (error) {
+    handleApiError('collections:create-failed', error, { toastKey: 'accountSettings.collections.createError' });
   } finally {
     isCreating.value = false;
   }
@@ -146,8 +169,10 @@ const submitToggleVisibility = async () => {
     posthog?.capture('collection_visibility_changed', { new_visibility: newVisibility });
     useToastSuccess(t('accountSettings.collections.visibilityChanged'));
     visibilityTarget.value = null;
-  } catch {
-    useToastError(t('accountSettings.collections.visibilityError'));
+  } catch (error) {
+    handleApiError('collections:visibility-update-failed', error, {
+      toastKey: 'accountSettings.collections.visibilityError',
+    });
   } finally {
     isTogglingVisibility.value = false;
   }
@@ -174,8 +199,8 @@ const submitDelete = async () => {
     posthog?.capture('collection_deleted');
     useToastSuccess(t('accountSettings.collections.deleted'));
     deleteTarget.value = null;
-  } catch {
-    useToastError(t('accountSettings.collections.deleteError'));
+  } catch (error) {
+    handleApiError('collections:delete-failed', error, { toastKey: 'accountSettings.collections.deleteError' });
   } finally {
     isDeleting.value = false;
   }
@@ -300,6 +325,17 @@ const submitDelete = async () => {
           </tr>
         </tbody>
       </table>
+
+      <div v-else-if="loadFailed" class="text-sm" data-testid="collections-load-error">
+        <p class="text-red-400">{{ t('accountSettings.collections.loadError') }}</p>
+        <button
+          type="button"
+          class="mt-2 py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          @click="retryLoad"
+        >
+          {{ t('searchContainer.retryButton') }}
+        </button>
+      </div>
 
       <p v-else class="text-gray-400 text-sm">{{ t('accountSettings.collections.noCollections') }}</p>
     </div>
