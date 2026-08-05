@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Two paths, selected by what production is actually running:
+#
+#   already on 9.4.1  -> verify the accessory, plain `kamal deploy`, exit.
+#   still on 8.19.15  -> one-time write-frozen migration onto a fresh v9 volume,
+#                        then deploy. See backend/docs/elasticsearch-9-migration.md.
+#
+# The migration branch has not run yet: it landed after the newest release tag,
+# and only a `v*` tag invokes this script. Once a tagged release has migrated
+# production and the retained ES8 container has been removed (see
+# scripts/cleanup-es8-rollback.sh), everything below the "already migrated"
+# early exit is dead and should be deleted along with the $rollback_es plumbing.
+
 elasticsearch_image=${1:?immutable Elasticsearch image reference is required}
 backend_image=${2:?immutable backend image reference is required}
 release_version=${3:?release commit SHA is required}
@@ -146,7 +158,11 @@ if grep -q "Version: ${expected_version}" <<<"$current_version"; then
   exit 0
 fi
 
-grep -q 'Version: 8.19.15' <<<"$current_version"
+if ! grep -q 'Version: 8.19.15' <<<"$current_version"; then
+  echo "Production Elasticsearch must be on the 8.19.15 bridge image before migrating to ${expected_version}; found: ${current_version:-<no container>}" >&2
+  echo 'See backend/docs/elasticsearch-9-migration.md for the bridge image tags.' >&2
+  exit 1
+fi
 ssh "$remote" "sudo -n mkdir '$remote_lock'"
 locked=true
 ssh "$remote" "! sudo -n docker inspect '$rollback_es' >/dev/null 2>&1"

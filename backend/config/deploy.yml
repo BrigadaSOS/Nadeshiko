@@ -17,6 +17,15 @@ builder:
 ssh:
   user: docker
 
+# Kamal defaults to a single 10m json-file with no rotation history, which
+# truncates away the context around an incident. Accessories get no log options
+# at all by default, so each one sets these explicitly under `options`.
+logging:
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: 5
+
 aliases:
   console: app exec -i bash
   logs: app logs -f

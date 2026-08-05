@@ -13,6 +13,13 @@ proxy:
   ssl: true
   host: api.nadeshiko.co
   forward_headers: true
+  # /up verifies Postgres before reporting healthy, so a container that boots
+  # but cannot reach the database never takes traffic. Elasticsearch is reported
+  # as a field and never fails the check -- see DEPLOYMENT.md.
+  healthcheck:
+    path: /up
+    interval: 2
+    timeout: 5
 
 env:
   secret:
@@ -75,6 +82,12 @@ accessories:
       memory: 1g
       publish:
         - "127.0.0.1:5432:5432"
+      # Accessories get no logging defaults from Kamal, so auto_explain output
+      # would grow unbounded on the host disk.
+      log-driver: json-file
+      log-opt:
+        - max-size=20m
+        - max-file=5
     cmd: >
       -c shared_preload_libraries='pg_stat_statements,auto_explain'
       -c pg_stat_statements.track=all
@@ -116,10 +129,19 @@ accessories:
       ulimit:
         - nofile=65536:65536
         - memlock=-1:-1
+      log-driver: json-file
+      log-opt:
+        - max-size=20m
+        - max-file=5
 
   pg-backup:
     image: kartoza/pg-backup:17-3.5
     host: nadeshiko
+    options:
+      log-driver: json-file
+      log-opt:
+        - max-size=20m
+        - max-file=5
     env:
       clear:
         CRON_SCHEDULE: "0 2 * * *"
