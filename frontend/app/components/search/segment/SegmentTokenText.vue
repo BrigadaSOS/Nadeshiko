@@ -4,7 +4,6 @@ import {
   enrichTokens,
   hiraganaToKatakana,
   hiraganaToRomaji,
-  segmentFurigana,
   type SlimToken,
   type EnrichedToken,
 } from '~/utils/tokenEnrichment';
@@ -15,7 +14,24 @@ type Props = {
   highlight?: string;
 };
 
+// Only what the popup renders. Shirabe's word object carries a good deal more
+// (pitch, frequency, cross references, kanji breakdown); reading a narrow shape
+// here keeps the popup from quietly depending on the rest of it.
+interface ShirabeWord {
+  id: string;
+  headword: string;
+  reading?: string;
+  entries?: Array<{
+    dictionary: string;
+    senses?: Array<{
+      definitions?: Array<{ lang: string; text: string }>;
+      tags?: Array<{ category: string; code: string; label: string }>;
+    }>;
+  }>;
+}
+
 const props = defineProps<Props>();
+const { locale } = useI18n();
 const emit = defineEmits<{
   'token-click': [dictionaryForm: string];
 }>();
@@ -40,10 +56,58 @@ const cancelHide = () => {
   }
 };
 
+// Definitions come from Shirabe, which parsed these tokens and stamped each one
+// with the id of its own entry. Fetched through our server route so the service
+// key stays on the server, and keyed by `wid` so the cache is shared across every
+// segment on the page that mentions the same word.
+const definitions = ref<ShirabeWord | null>(null);
+const definitionsState = ref<'idle' | 'loading' | 'missing'>('idle');
+const definitionCache = new Map<string, ShirabeWord | null>();
+
+async function loadDefinitions(token: EnrichedToken): Promise<void> {
+  // No id means the dictionary has no entry for it: a name, a number, a coinage.
+  // Showing the word without a definition is the right answer, not an error.
+  if (!token.wid) {
+    definitions.value = null;
+    definitionsState.value = 'missing';
+    return;
+  }
+
+  // Keyed by language too: Shirabe resolves the sense tags into the reader's
+  // own, so the same word cached under `en` would show English labels to
+  // somebody who has just switched to Spanish.
+  const wid = token.wid;
+  const key = `${wid}:${locale.value}`;
+  if (definitionCache.has(key)) {
+    definitions.value = definitionCache.get(key) ?? null;
+    definitionsState.value = definitions.value ? 'idle' : 'missing';
+    return;
+  }
+
+  definitions.value = null;
+  definitionsState.value = 'loading';
+  try {
+    const word = await $fetch<ShirabeWord>(`/api/shirabe/words/${encodeURIComponent(wid)}`, {
+      query: { locale: locale.value },
+    });
+    definitionCache.set(key, word);
+    // The pointer may have moved on while this was in flight; only paint if the
+    // answer still belongs to the word under the cursor.
+    if (hoveredToken.value?.wid !== wid) return;
+    definitions.value = word;
+    definitionsState.value = 'idle';
+  } catch {
+    definitionCache.set(key, null);
+    if (hoveredToken.value?.wid !== wid) return;
+    definitionsState.value = 'missing';
+  }
+}
+
 const onTokenEnter = async (token: EnrichedToken, event: MouseEvent) => {
   cancelHide();
   if (!showHoverDefinitions.value) return;
   hoveredToken.value = token;
+  void loadDefinitions(token);
   const el = event.currentTarget as HTMLElement;
   const tokenRect = el.getBoundingClientRect();
 
@@ -98,8 +162,8 @@ const { furiganaMode } = useHiraganaVisibility();
 const { presets, enabledDictionaries } = useDictionaryLinks();
 
 const tooltipReading = computed(() => {
-  if (!hoveredToken.value?.dictReading) return '';
-  const reading = hoveredToken.value.dictReading;
+  if (!hoveredToken.value?.reading) return '';
+  const reading = hoveredToken.value.reading;
   switch (tooltipReadingMode.value) {
     case 'katakana':
       return hiraganaToKatakana(reading);
@@ -112,6 +176,29 @@ const tooltipReading = computed(() => {
   }
 });
 
+// What the dictionary says this word IS, as opposed to what this occurrence of
+// it is doing. The token's own p/p4/cf are UniDic morphology (動詞, 下一段,
+// 連用形): true of the form in front of you, and the same for every verb. These
+// come off the entry (v1, vt, uk) and say the useful thing: Ichidan, transitive,
+// usually written in kana. Shirabe resolves them to the reader's language, so
+// there is no table to keep here.
+const senseTags = computed<string[]>(() => {
+  const tags = definitions.value?.entries?.[0]?.senses?.[0]?.tags ?? [];
+  return [
+    ...new Set(
+      tags.filter((tag) => tag.category === 'partOfSpeech' || tag.category === 'misc').map((tag) => tag.label),
+    ),
+  ];
+});
+
+const glosses = computed<string[]>(() => {
+  const senses = definitions.value?.entries?.[0]?.senses ?? [];
+  return senses
+    .slice(0, 3)
+    .map((sense) => (sense.definitions ?? []).map((d) => d.text).join('; '))
+    .filter((text) => text.length > 0);
+});
+
 const dictionaryLinks = computed(() => {
   const token = hoveredToken.value;
   if (!token) return [];
@@ -120,7 +207,7 @@ const dictionaryLinks = computed(() => {
     .map((preset) => ({
       id: preset.id,
       label: preset.label,
-      href: preset.buildUrl(token.dictForm, token.dictReading ?? ''),
+      href: preset.buildUrl(token.dictForm, token.reading ?? ''),
     }));
 });
 </script>
@@ -129,19 +216,20 @@ const dictionaryLinks = computed(() => {
   <span lang="ja" class="token-text">
     <template v-for="token in enrichedTokens" :key="token.b">
       <span
-        v-if="token.groupId === null || token.isGroupStem"
         class="token"
         :class="[
           POS_CLASS[token.p] ?? '',
           {
             'token--match': token.matchType === 'match',
-            'token--compound': token.matchType === 'compound',
+            // A match that covers only part of this token: Elasticsearch found
+            // it with its own analyzer, which cuts words where we do not.
+            'token--compound': token.matchType === 'partial',
           },
         ]"
         @click="emit('token-click', token.searchText)"
         @mouseenter="onTokenEnter(token, $event)"
         @mouseleave="onTokenLeave"
-      ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in segmentFurigana(token.displaySurface, token.reading)" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
+      ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
     <Transition name="tooltip">
@@ -164,17 +252,22 @@ const dictionaryLinks = computed(() => {
             <span class="token-tooltip__pos">{{ hoveredToken.posEn }}</span>
             <span v-if="hoveredToken.posSubEn" class="token-tooltip__pos-sub">{{ hoveredToken.posSubEn }}</span>
             <span v-if="hoveredToken.conjClassEn" class="token-tooltip__pos-sub">{{ hoveredToken.conjClassEn }}</span>
-            <template v-if="hoveredToken.auxMeanings.length > 0">
-              <div class="token-tooltip__meta-divider" />
-              <span class="token-tooltip__conj">
-                {{ hoveredToken.auxMeanings.map(a => a.en).join(' › ') }}
-              </span>
-            </template>
-            <template v-else-if="hoveredToken.conjFormEn">
+            <template v-if="hoveredToken.conjFormEn">
               <div class="token-tooltip__meta-divider" />
               <span class="token-tooltip__conj">{{ hoveredToken.conjFormEn }}</span>
             </template>
           </div>
+        </div>
+        <div v-if="senseTags.length > 0" class="token-tooltip__tags">
+          <span v-for="tag in senseTags" :key="tag" class="token-tooltip__tag">{{ tag }}</span>
+        </div>
+        <div v-if="glosses.length > 0" class="token-tooltip__glosses">
+          <p v-for="(gloss, gi) in glosses" :key="gi" class="token-tooltip__gloss">
+            <span class="token-tooltip__gloss-number">{{ gi + 1 }}</span>{{ gloss }}
+          </p>
+        </div>
+        <div v-else-if="definitionsState === 'loading'" class="token-tooltip__glosses">
+          <p class="token-tooltip__gloss token-tooltip__gloss--muted">…</p>
         </div>
         <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
           <span class="token-tooltip__links-label">{{ $t('tokenTooltip.lookupIn') }}</span>
@@ -247,6 +340,49 @@ const dictionaryLinks = computed(() => {
 .token-tooltip__body {
   display: flex;
   align-items: stretch;
+}
+
+.token-tooltip__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 16px 0;
+}
+
+.token-tooltip__tag {
+  padding: 1px 6px;
+  border: 1px solid rgb(70 70 70);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgb(190 190 190);
+}
+
+.token-tooltip__glosses {
+  padding: 8px 16px;
+  border-top: 1px solid rgb(60 60 60);
+  max-width: 34ch;
+}
+
+.token-tooltip__gloss {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgb(225 225 225);
+}
+
+.token-tooltip__gloss + .token-tooltip__gloss {
+  margin-top: 4px;
+}
+
+.token-tooltip__gloss--muted {
+  color: rgb(150 150 150);
+}
+
+.token-tooltip__gloss-number {
+  display: inline-block;
+  min-width: 1.2em;
+  color: rgb(150 150 150);
 }
 
 .token-tooltip__links {
