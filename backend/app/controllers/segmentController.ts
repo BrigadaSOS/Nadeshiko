@@ -8,6 +8,7 @@ import type {
   ListSegmentRevisions,
 } from 'generated/routes/media';
 import type { SegmentUpdateRequestOutput } from 'generated/outputTypes';
+import type { EntityManager } from 'typeorm';
 import { Segment, Episode, Media, SegmentRevision, ExternalSourceType } from '@app/models';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import {
@@ -20,12 +21,12 @@ import {
   toSegmentUpdatePatch,
 } from './mappers/segmentMapper';
 import { toSearchResponseDTO } from './mappers/searchMapper';
-import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { sendBulkEsSyncJobs } from '@app/workers/esSyncQueue';
 import { Cache } from '@lib/cache';
 import { logger } from '@config/log';
 import { assertUser } from '@app/middleware/authentication';
 import { InvalidRequestError, NotFoundError } from '@app/errors';
+import { surroundingSegments } from '@app/services/search/segmentDocument/SegmentContext';
 
 export const listSegments: ListSegments = async ({ params, query }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
@@ -108,7 +109,6 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
         'content_spanish_mt',
         'content_rating',
         'rating_analysis',
-        'pos_analysis',
         'storage',
         'hashed_id',
         'storage_base_path',
@@ -134,9 +134,9 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
 export const updateSegment: UpdateSegment = async ({ params, body }, respond, req) => {
   const { segment, mediaPublicId } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
 
-  await applySegmentUpdate(segment, body, assertUser(req).id);
+  const updated = await applySegmentUpdate(segment.id, body, assertUser(req).id);
 
-  return respond.with200().body(toSegmentInternalDTO(segment, undefined, mediaPublicId));
+  return respond.with200().body(toSegmentInternalDTO(updated, undefined, mediaPublicId));
 };
 
 export const getSegment: GetSegment = async ({ params }, respond) => {
@@ -162,7 +162,7 @@ export const listSegmentRevisions: ListSegmentRevisions = async ({ params }, res
 export const getSegmentContext: GetSegmentContext = async ({ params, query }, respond) => {
   const { segment } = await findSegmentByUuidOrPublicId(params.segmentPublicId);
 
-  const searchResults = await SegmentDocument.surroundingSegments({
+  const searchResults = await surroundingSegments({
     mediaId: segment.mediaId,
     episodeNumber: segment.episode,
     segmentPosition: segment.position,
@@ -209,22 +209,41 @@ async function getEpisodeExternalVideoId(mediaId: number, episodeNumber: number)
   return episode?.externalVideoId ?? null;
 }
 
-async function applySegmentUpdate(segment: Segment, body: SegmentUpdateRequestOutput, userId: number): Promise<void> {
-  const snapshot = toSegmentSnapshot(segment);
-  Object.assign(segment, toSegmentUpdatePatch(body));
-  await segment.save();
+async function applySegmentUpdate(
+  segmentId: number,
+  body: SegmentUpdateRequestOutput,
+  userId: number,
+): Promise<Segment> {
+  // The revision is this edit's audit trail, so it is written in the same
+  // transaction as the edit: a caller that gets a 200 has both rows, or neither.
+  return Segment.getRepository().manager.transaction(async (manager) => {
+    // Serialises concurrent edits of the same segment. Without the lock two writers
+    // read the same MAX(revision_number) and collide on the unique index, and both
+    // snapshot the same stale pre-state instead of chaining.
+    const segment = await manager
+      .createQueryBuilder(Segment, 'segment')
+      .setLock('pessimistic_write')
+      .where('segment.id = :id', { id: segmentId })
+      .getOneOrFail();
 
-  createSegmentRevision(segment.id, snapshot, userId).catch((err) => {
-    logger.error({ err }, 'Failed to create segment revision');
+    const snapshot = toSegmentSnapshot(segment);
+    Object.assign(segment, toSegmentUpdatePatch(body));
+    await manager.save(segment);
+
+    await createSegmentRevision(manager, segmentId, snapshot, userId);
+
+    return segment;
   });
 }
 
 async function createSegmentRevision(
+  manager: EntityManager,
   segmentId: number,
   snapshot: Record<string, unknown>,
   userId: number,
 ): Promise<void> {
-  const row = await SegmentRevision.createQueryBuilder('r')
+  const row = await manager
+    .createQueryBuilder(SegmentRevision, 'r')
     .select('COALESCE(MAX(r.revision_number), 0)', 'max')
     .where('r.segment_id = :segmentId', { segmentId })
     .getRawOne<{ max: number }>();
@@ -236,5 +255,5 @@ async function createSegmentRevision(
     snapshot,
     userId,
   });
-  await revision.save();
+  await manager.save(revision);
 }

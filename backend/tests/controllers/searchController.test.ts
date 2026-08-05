@@ -1,14 +1,15 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import * as schemas from 'generated/schemas';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { assertMatchesSchema } from '../helpers/openapiContract';
+import type { MediaOutput } from 'generated/outputTypes';
 
 let mockSearch: Mock<typeof SegmentDocument.search>;
 let mockSearchStats: Mock<typeof SegmentDocument.searchStats>;
 let mockWordsMatched: Mock<typeof SegmentDocument.wordsMatched>;
 
-function buildMediaRecord(id: number) {
+function buildMediaRecord(id: number): MediaOutput {
   const publicId = `Media${String(id).padStart(7, '0')}`;
   return {
     publicId,
@@ -127,7 +128,7 @@ describe('search controller', () => {
 
   it('search stats strips includes by default', async () => {
     mockSearchStats.mockResolvedValue({
-      media: [{ mediaId: 1, publicId: 'pub1', matchCount: 2, episodeHits: { 1: 2 } }],
+      media: [{ mediaPublicId: 'pub1', matchCount: 2, episodeHits: [{ episode: 1, hitCount: 2 }] }],
       categories: [{ category: 'ANIME', count: 2, realCount: 2 }],
       includes: { media: { 1: buildMediaRecord(1) } },
     });

@@ -1,5 +1,5 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { User } from '@app/models/User';
@@ -61,6 +61,33 @@ describe('PATCH /v1/user/preferences', () => {
       searchHistory: { enabled: false },
       hiddenMedia: [{ mediaPublicId: 'untouched-01' }],
     });
+  });
+
+  it('merges against the stored row, not the cached request user', async () => {
+    const kevin = fixtures.users.kevin;
+    kevin.preferences = { searchHistory: { enabled: true } };
+    await kevin.save();
+    signInAs(app, kevin);
+
+    // Another tab writes after this request's user was loaded. The whole column is
+    // rewritten on every update, so merging into the stale copy would drop it.
+    await User.update(
+      { id: kevin.id },
+      { preferences: { searchHistory: { enabled: true }, hiddenMedia: [{ mediaPublicId: 'concurrent1' }] } },
+    );
+
+    const res = await request(app)
+      .patch('/v1/user/preferences')
+      .send({ searchHistory: { enabled: false } });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      searchHistory: { enabled: false },
+      hiddenMedia: [{ mediaPublicId: 'concurrent1' }],
+    });
+
+    const saved = await User.findOneByOrFail({ id: kevin.id });
+    expect(saved.preferences.hiddenMedia).toEqual([{ mediaPublicId: 'concurrent1' }]);
   });
 
   it('replaces arrays instead of deep-merging them', async () => {

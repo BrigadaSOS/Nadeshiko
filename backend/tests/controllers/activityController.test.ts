@@ -1,5 +1,5 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { z } from 'zod/v4';
 import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';

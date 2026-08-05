@@ -1,8 +1,22 @@
 import type { ListEpisodes, CreateEpisode, GetEpisode, UpdateEpisode, DeleteEpisode } from 'generated/routes/media';
 import { Episode, Media, Segment } from '@app/models';
-import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
+import { enqueueSegmentEsDeletes } from './mediaController';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episodeMapper';
 import { encodeKeysetCursor, decodeKeysetCursor } from '@lib/cursor';
+import { Cache } from '@lib/cache';
+import { MEDIA_INFO_CACHE } from '@app/models/Media';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
+
+/**
+ * Both caches key off per-media episode data — MEDIA_INFO_CACHE carries
+ * `episodeCount`, and the search stats carry `fullTotalEpisodes` — so creating
+ * or deleting an episode makes them stale exactly the way a media mutation
+ * does. Media handlers already invalidate on write; episodes did not.
+ */
+function invalidateEpisodeDerivedCaches(): void {
+  Cache.invalidate(MEDIA_INFO_CACHE);
+  Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);
+}
 
 export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => {
   // findOneOrFail handles the 404 case if the media doesn't exist
@@ -57,6 +71,8 @@ export const createEpisode: CreateEpisode = async ({ params, body }, respond) =>
     externalVideoId: body.externalVideoId,
   });
 
+  invalidateEpisodeDerivedCaches();
+
   return respond.with201().body(toEpisodeDTO(episode, media.publicId));
 };
 
@@ -98,9 +114,9 @@ export const deleteEpisode: DeleteEpisode = async ({ params }, respond) => {
 
   await Episode.deleteOrFail({ where: { mediaId: media.id, episodeNumber: params.episodeNumber } });
 
-  if (segmentIds.length > 0) {
-    await SegmentIndexer.bulkDelete(segmentIds);
-  }
+  await enqueueSegmentEsDeletes(segmentIds);
+
+  invalidateEpisodeDerivedCaches();
 
   return respond.with204();
 };

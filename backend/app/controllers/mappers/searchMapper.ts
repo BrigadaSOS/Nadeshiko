@@ -1,6 +1,6 @@
 import type { t_IncludeExpansion } from 'generated/models';
 
-export const SearchInclude = {
+const SearchInclude = {
   MEDIA: 'media',
 } as const;
 

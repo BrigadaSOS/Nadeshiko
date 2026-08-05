@@ -1,5 +1,5 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import type { Application, Request, Response, NextFunction } from 'express';
 import { buildApplication } from '@config/application';
 import { UserRoutes, AdminRoutes } from '@config/routes';
@@ -55,7 +55,6 @@ async function seedSegment(mediaId: number, episodeNumber: number, overrides: Pa
     contentEsMt: false,
     contentRating: ContentRating.SAFE,
     ratingAnalysis: { scores: {}, tags: {} },
-    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${segmentSeedCounter}`,
     storageBasePath: '/test',
@@ -156,6 +155,141 @@ describe('POST /v1/user/reports', () => {
     expect(saved.targetType).toBe(ReportTargetType.SEGMENT);
     expect(saved.targetSegmentId).toBe(segment.id);
     expect(saved.targetEpisodeNumber).toBe(episode.episodeNumber);
+  });
+
+  it('returns the existing report rather than creating a second one', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+    const body = {
+      target: { type: 'MEDIA', mediaPublicId: media.publicId },
+      reason: 'OTHER',
+      description: 'metadata mismatch',
+    };
+
+    const first = await request(app).post('/v1/user/reports').send(body);
+    const second = await request(app).post('/v1/user/reports').send(body);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(second.body.id).toBe(first.body.id);
+    expect(await Report.countBy({ targetMediaId: media.id, userId: core.users.regular.id })).toBe(1);
+  });
+
+  it('is the database, not the controller, that refuses the duplicate', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+
+    const first = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: { type: 'MEDIA', mediaPublicId: media.publicId },
+        reason: 'OTHER',
+      });
+    expect(first.status).toBe(201);
+
+    // Two concurrent submissions are not reproducible inside one transactional
+    // test, so go straight at the guarantee the controller leans on: an identical
+    // row is refused even when nothing looks first. Nothing may query after this
+    // — the rejected statement leaves the surrounding transaction aborted.
+    const duplicate = Report.create({
+      source: ReportSource.USER,
+      targetType: ReportTargetType.MEDIA,
+      targetMediaId: media.id,
+      targetEpisodeNumber: null,
+      targetSegmentId: null,
+      reason: ReportReason.OTHER,
+      status: ReportStatus.OPEN,
+      userId: core.users.regular.id,
+    });
+
+    await expect(duplicate.save()).rejects.toMatchObject({ driverError: { code: '23505' } });
+  });
+
+  it('still allows the same reason on a different segment of the same media', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    const episode = fixtures.episodes.pilot;
+    const firstSegment = await seedSegment(media.id, episode.episodeNumber);
+    const secondSegment = await seedSegment(media.id, episode.episodeNumber);
+
+    const reportSegment = (segmentPublicId: string) =>
+      request(app)
+        .post('/v1/user/reports')
+        .send({
+          target: {
+            type: 'SEGMENT',
+            mediaPublicId: media.publicId,
+            episodeNumber: episode.episodeNumber,
+            segmentPublicId,
+          },
+          reason: 'WRONG_TRANSLATION',
+        });
+
+    const firstRes = await reportSegment(firstSegment.publicId);
+    const secondRes = await reportSegment(secondSegment.publicId);
+
+    expect(firstRes.status).toBe(201);
+    expect(secondRes.status).toBe(201);
+    expect(secondRes.body.id).not.toBe(firstRes.body.id);
+    expect(await Report.countBy({ targetMediaId: media.id, userId: core.users.regular.id })).toBe(2);
+  });
+
+  it('does not mistake a segment report for a report about the media itself', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    const episode = fixtures.episodes.pilot;
+    const segment = await seedSegment(media.id, episode.episodeNumber);
+
+    const segmentRes = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: {
+          type: 'SEGMENT',
+          mediaPublicId: media.publicId,
+          episodeNumber: episode.episodeNumber,
+          segmentPublicId: segment.publicId,
+        },
+        reason: 'OTHER',
+      });
+
+    // The old duplicate lookup passed `undefined` for a missing segment id, which
+    // TypeORM drops from the WHERE entirely — so reporting the media came back
+    // with the segment report above instead of creating its own.
+    const mediaRes = await request(app)
+      .post('/v1/user/reports')
+      .send({
+        target: { type: 'MEDIA', mediaPublicId: media.publicId },
+        reason: 'OTHER',
+      });
+
+    expect(segmentRes.status).toBe(201);
+    expect(mediaRes.status).toBe(201);
+    expect(mediaRes.body.id).not.toBe(segmentRes.body.id);
+    expect(mediaRes.body.target).toMatchObject({ type: 'MEDIA' });
+  });
+
+  it('does not constrain AUTO reports, which repeat per audit run', async () => {
+    const fixtures = await loadFixtures(['singleMedia']);
+    const media = fixtures.media.testShow;
+
+    // The audit runner writes one report per run for the same target, with no
+    // user_id. The index is partial so those are untouched by it.
+    const buildAutoReport = () =>
+      Report.create({
+        source: ReportSource.AUTO,
+        targetType: ReportTargetType.MEDIA,
+        targetMediaId: media.id,
+        targetEpisodeNumber: null,
+        targetSegmentId: null,
+        reason: ReportReason.LOW_SEGMENT_MEDIA,
+        status: ReportStatus.OPEN,
+        userId: null,
+      });
+
+    await buildAutoReport().save();
+    await buildAutoReport().save();
+
+    expect(await Report.countBy({ targetMediaId: media.id, source: ReportSource.AUTO })).toBe(2);
   });
 
   it('returns 404 when target media does not exist', async () => {

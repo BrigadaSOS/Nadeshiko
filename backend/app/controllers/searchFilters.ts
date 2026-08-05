@@ -1,8 +1,12 @@
 import { Media } from '@app/models';
+import { InvalidRequestError } from '@app/errors';
 import { includedSearchLanguages } from '@lib/searchLanguages';
 import type { t_MediaFilterItem, t_SearchFilters } from 'generated/models';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>['results'];
+
+/** How many unresolved identifiers an error message names before it trails off. */
+const MAX_REPORTED_UNKNOWN_MEDIA = 5;
 
 /**
  * Rewrites the deprecated `{ exclude: [...] }` shape into the canonical array of
@@ -15,48 +19,116 @@ export function normalizeLanguageFilter(filters?: t_SearchFilters): void {
   filters.languages = includedSearchLanguages(filters.languages);
 }
 
-export async function resolveMediaFilterIds(filters?: t_SearchFilters): Promise<void> {
-  if (!filters?.media) return;
+/**
+ * Resolves the public identifiers in `filters.media` to internal media ids, returning a
+ * copy. The request body is left untouched so a caller can still report on what was asked
+ * for after the filters have been rewritten.
+ */
+export async function resolveMediaFilterIds<TFilters extends t_SearchFilters>(
+  filters?: TFilters,
+): Promise<ResolvedSearchFilters<TFilters> | undefined> {
+  // No media filter means nothing to resolve; the result is vacuously resolved.
+  if (!filters?.media) return filters as ResolvedSearchFilters<TFilters> | undefined;
 
-  const hasItems =
-    (filters.media.include && filters.media.include.length > 0) ||
-    (filters.media.exclude && filters.media.exclude.length > 0);
-  if (!hasItems) return;
+  const { include, exclude } = filters.media;
+  const hasItems = (include && include.length > 0) || (exclude && exclude.length > 0);
+  if (!hasItems) return filters as ResolvedSearchFilters<TFilters>;
 
   const mediaInfo = await Media.getMediaInfoMap();
+  const identifiers = buildMediaIdentifierIndex(mediaInfo.results);
 
-  resolveItems(filters.media.include, mediaInfo.results);
-  resolveItems(filters.media.exclude, mediaInfo.results);
+  return {
+    ...filters,
+    media: {
+      ...filters.media,
+      ...(include ? { include: resolveIncludeItems(include, identifiers) } : {}),
+      ...(exclude ? { exclude: resolveExcludeItems(exclude, identifiers) } : {}),
+    },
+  } as ResolvedSearchFilters<TFilters>;
 }
 
 /** The internal id resolved from the public identifier; not part of the wire shape. */
-type ResolvedMediaFilterItem = t_MediaFilterItem & { mediaId: number };
+export type ResolvedMediaFilterItem = t_MediaFilterItem & { mediaId: number };
 
-function resolveItems(items: t_MediaFilterItem[] | undefined, mediaMap: MediaInfoMap): void {
-  if (!items) return;
+/**
+ * Filters whose media entries carry the internal `mediaId`, i.e. filters that have
+ * been through `resolveMediaFilterIds`.
+ *
+ * The query builder matches on `mediaId`, which only exists after resolution --
+ * the wire shape carries `mediaPublicId`. Naming that as a distinct type makes the
+ * ordering a compile error instead of an unwritten rule: handing unresolved filters
+ * to the query builder used to produce `term: { mediaId: undefined }`, which matches
+ * nothing and reports no error.
+ */
+export type ResolvedSearchFilters<TFilters extends t_SearchFilters = t_SearchFilters> = Omit<TFilters, 'media'> & {
+  media?: Omit<NonNullable<TFilters['media']>, 'include' | 'exclude'> & {
+    include?: ResolvedMediaFilterItem[];
+    exclude?: ResolvedMediaFilterItem[];
+  };
+};
 
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i];
+/**
+ * An include entry naming a media we cannot resolve used to be dropped, and dropping the
+ * last entry turned "only these media" into no media filter at all -- a deliberately narrow
+ * request answered with the whole corpus. An unknown identifier is a client mistake, so it
+ * is reported rather than quietly widening the result set.
+ */
+function resolveIncludeItems(items: t_MediaFilterItem[], identifiers: Map<string, number>): ResolvedMediaFilterItem[] {
+  const resolved: ResolvedMediaFilterItem[] = [];
+  const unknown: string[] = [];
+
+  for (const item of items) {
     if (!item) continue;
 
-    const resolved = resolveMediaId(item.mediaPublicId, mediaMap);
-    if (resolved !== null) {
-      (item as ResolvedMediaFilterItem).mediaId = resolved;
-    } else {
-      items.splice(i, 1);
+    const mediaId = identifiers.get(item.mediaPublicId);
+    if (mediaId === undefined) {
+      unknown.push(item.mediaPublicId);
+      continue;
     }
+    resolved.push({ ...item, mediaId });
   }
+
+  if (unknown.length > 0) {
+    const named = unknown.slice(0, MAX_REPORTED_UNKNOWN_MEDIA).join(', ');
+    const rest =
+      unknown.length > MAX_REPORTED_UNKNOWN_MEDIA ? ` (and ${unknown.length - MAX_REPORTED_UNKNOWN_MEDIA} more)` : '';
+    throw new InvalidRequestError(`Unknown media in filters.media.include: ${named}${rest}`);
+  }
+
+  return resolved;
 }
 
-function resolveMediaId(identifier: string, mediaMap: MediaInfoMap): number | null {
+/** Excluding a media that does not exist excludes nothing, which is already the answer the
+ *  caller asked for, so unresolved entries are dropped instead of rejected. */
+function resolveExcludeItems(items: t_MediaFilterItem[], identifiers: Map<string, number>): ResolvedMediaFilterItem[] {
+  const resolved: ResolvedMediaFilterItem[] = [];
+
+  for (const item of items) {
+    if (!item) continue;
+
+    const mediaId = identifiers.get(item.mediaPublicId);
+    if (mediaId !== undefined) resolved.push({ ...item, mediaId });
+  }
+
+  return resolved;
+}
+
+/**
+ * Both accepted identifier forms in one lookup table, built once per request rather than
+ * scanning the whole media map per filter item. publicIds are indexed first so they keep
+ * winning over an anilist id that happens to look the same.
+ */
+function buildMediaIdentifierIndex(mediaMap: MediaInfoMap): Map<string, number> {
+  const identifiers = new Map<string, number>();
+
   for (const [id, info] of mediaMap) {
-    if (info.publicId === identifier) return id;
+    identifiers.set(info.publicId, id);
   }
 
   for (const [id, info] of mediaMap) {
     const anilistId = info.externalIds?.anilist;
-    if (anilistId && anilistId === identifier) return id;
+    if (anilistId && !identifiers.has(anilistId)) identifiers.set(anilistId, id);
   }
 
-  return null;
+  return identifiers;
 }

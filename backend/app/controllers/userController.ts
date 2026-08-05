@@ -1,9 +1,10 @@
 import type { GetMe, ListExcludedMedia, AddExcludedMedia, RemoveExcludedMedia } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
-import { AccountQuotaUsage, Media, User } from '@app/models';
+import { AccountQuotaUsage, Media } from '@app/models';
 import { NotFoundError } from '@app/errors';
 import { toMediaSummaryDTO } from './mappers/sharedMapper';
 import { toUserMeDTO } from './mappers/userMapper';
+import { mutateUserPreferences } from './preferencesController';
 
 export const getMe: GetMe = async (_params, respond, req) => {
   const user = assertUser(req);
@@ -43,46 +44,42 @@ export const addExcludedMedia: AddExcludedMedia = async ({ body }, respond, req)
     throw new NotFoundError('Media not found.');
   }
 
-  const hiddenMedia = user.preferences?.hiddenMedia ?? [];
-  if (hiddenMedia.some((item) => item.mediaPublicId === media.publicId)) {
-    return respond.with204();
-  }
+  user.preferences = await mutateUserPreferences(user.id, (current) => {
+    const hiddenMedia = current.hiddenMedia ?? [];
+    if (hiddenMedia.some((item) => item.mediaPublicId === media.publicId)) {
+      return current;
+    }
 
-  const updatedPreferences = {
-    ...user.preferences,
-    hiddenMedia: [
-      ...hiddenMedia,
-      {
-        mediaPublicId: media.publicId,
-        nameEn: media.nameEn,
-        nameJa: media.nameJa,
-        nameRomaji: media.nameRomaji,
-      },
-    ],
-  };
-
-  await User.update({ id: user.id }, { preferences: updatedPreferences });
-  user.preferences = updatedPreferences;
+    return {
+      ...current,
+      hiddenMedia: [
+        ...hiddenMedia,
+        {
+          mediaPublicId: media.publicId,
+          nameEn: media.nameEn,
+          nameJa: media.nameJa,
+          nameRomaji: media.nameRomaji,
+        },
+      ],
+    };
+  });
 
   return respond.with204();
 };
 
 export const removeExcludedMedia: RemoveExcludedMedia = async ({ params }, respond, req) => {
   const user = assertUser(req);
-  const hiddenMedia = user.preferences?.hiddenMedia ?? [];
-  const nextHiddenMedia = hiddenMedia.filter((item) => item.mediaPublicId !== params.mediaPublicId);
 
-  if (nextHiddenMedia.length === hiddenMedia.length) {
-    throw new NotFoundError('Excluded media not found.');
-  }
+  user.preferences = await mutateUserPreferences(user.id, (current) => {
+    const hiddenMedia = current.hiddenMedia ?? [];
+    const nextHiddenMedia = hiddenMedia.filter((item) => item.mediaPublicId !== params.mediaPublicId);
 
-  const updatedPreferences = {
-    ...user.preferences,
-    hiddenMedia: nextHiddenMedia,
-  };
+    if (nextHiddenMedia.length === hiddenMedia.length) {
+      throw new NotFoundError('Excluded media not found.');
+    }
 
-  await User.update({ id: user.id }, { preferences: updatedPreferences });
-  user.preferences = updatedPreferences;
+    return { ...current, hiddenMedia: nextHiddenMedia };
+  });
 
   return respond.with204();
 };

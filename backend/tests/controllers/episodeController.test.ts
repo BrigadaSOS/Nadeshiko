@@ -1,22 +1,68 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { assertDifference, assertNoDifference, assertChanges } from '../helpers/assertions';
+import { setBossInstance } from '@app/workers/pgBossClient';
+import { ES_SYNC_DELETE_QUEUE } from '@app/workers/queueNames';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { Episode } from '@app/models/Episode';
+import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 
 setupTestSuite();
 
 const app = createTestApp();
 
 let fixtures: CoreFixtures;
+let segmentSeedCounter = 0;
+let insertedJobs: unknown[][] = [];
+const activeSpies: Array<{ mockRestore: () => void }> = [];
+
 beforeAll(async () => {
+  setBossInstance({
+    sendDebounced: async () => 'test-job-id',
+    insert: async (...args: unknown[]) => {
+      insertedJobs.push(args);
+      return ['test-job-id'];
+    },
+  } as any);
   fixtures = await seedCoreFixtures();
 });
 beforeEach(() => {
+  insertedJobs = [];
   signInAs(app, fixtures.users.kevin);
 });
+afterEach(() => {
+  while (activeSpies.length > 0) {
+    activeSpies.pop()?.mockRestore();
+  }
+});
+
+async function seedSegment(mediaId: number, episodeNumber: number): Promise<Segment> {
+  segmentSeedCounter += 1;
+
+  return Segment.save({
+    uuid: `ep-del-${mediaId}-${episodeNumber}-${segmentSeedCounter}`,
+    publicId: `edl${String(segmentSeedCounter).padStart(9, '0')}`,
+    position: segmentSeedCounter,
+    status: SegmentStatus.ACTIVE,
+    startTimeMs: 1000,
+    endTimeMs: 2000,
+    contentJa: `ja-${segmentSeedCounter}`,
+    contentEn: `en-${segmentSeedCounter}`,
+    contentEnMt: false,
+    contentEs: `es-${segmentSeedCounter}`,
+    contentEsMt: false,
+    contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    storage: SegmentStorage.R2,
+    hashedId: `edl-hash-${segmentSeedCounter}`,
+    storageBasePath: '/test',
+    mediaId,
+    episode: episodeNumber,
+  });
+}
 
 describe('GET /v1/media/:mediaId/episodes', () => {
   it('returns episodes for a media', async () => {
@@ -234,5 +280,23 @@ describe('DELETE /v1/media/:mediaId/episodes/:episodeNumber', () => {
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('queues the segment ES deletes instead of calling the indexer inline', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    const pilot = fixtures.episodes.pilot;
+    const segment = await seedSegment(media.id, pilot.episodeNumber);
+
+    const bulkDeleteSpy = vi.spyOn(SegmentIndexer, 'bulkDelete');
+    activeSpies.push(bulkDeleteSpy);
+
+    const res = await request(app).delete(`/v1/media/${media.publicId}/episodes/${pilot.episodeNumber}`);
+    expect(res.status).toBe(204);
+
+    // Going straight to Elasticsearch means one failed call orphans the documents
+    // for good; the queue is what retries.
+    expect(bulkDeleteSpy).not.toHaveBeenCalled();
+    expect(insertedJobs).toEqual([[ES_SYNC_DELETE_QUEUE, [{ data: { segmentId: segment.id, operation: 'DELETE' } }]]]);
   });
 });
