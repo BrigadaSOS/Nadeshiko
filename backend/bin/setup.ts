@@ -1,10 +1,13 @@
 import { execFileSync } from 'child_process';
-import { existsSync, copyFileSync, unlinkSync } from 'fs';
+import { existsSync, copyFileSync, readFileSync, unlinkSync } from 'fs';
 import { createInterface } from 'readline';
 
 const SEED_DUMP_PATH = '/tmp/nadeshiko-seed.dump';
 const SEED_URL = process.env.SEED_URL || 'https://seed.nadeshiko.co/seed.dump';
 const DOCKER_COMPOSE_FILE = 'docker-compose.yaml';
+const ES_DOCKERFILE = 'docker/Dockerfile.elasticsearch';
+const ES_CONTAINER = 'nadeshiko-elasticsearch';
+const ES_DATA_VOLUME = 'backend_nadeshiko_elasticsearch_data';
 
 function printHeader() {
   console.log('');
@@ -55,6 +58,67 @@ function ensureEnvFile(): void {
   printSuccess('Created .env from .env.example');
 }
 
+/** The Elasticsearch version `docker/Dockerfile.elasticsearch` currently pins. */
+function pinnedElasticsearchVersion(): string | null {
+  try {
+    const from = readFileSync(ES_DOCKERFILE, 'utf-8');
+    return from.match(/^FROM\s+\S+?:(\d+\.\d+\.\d+)(?:@|\s|$)/m)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The Elasticsearch version baked into the image the local stack actually runs. */
+function builtElasticsearchVersion(): string | null {
+  try {
+    const listed = execFileSync('docker', ['compose', 'images', '--format', 'json', 'elasticsearch'], {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const imageId = JSON.parse(listed)?.[0]?.ID;
+    if (!imageId) return null;
+
+    return (
+      execFileSync(
+        'docker',
+        ['image', 'inspect', imageId, '--format', '{{index .Config.Labels "org.label-schema.version"}}'],
+        {
+          encoding: 'utf-8',
+          stdio: ['pipe', 'pipe', 'pipe'],
+        },
+      ).trim() || null
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Docker never rebuilds a locally built image on its own, so a bumped pin in
+ * the Dockerfile leaves the old image running indefinitely -- that is how the
+ * stack sat on a stale 8.17 image for months. Both lookups return null on a
+ * machine that has not built the image yet, which is not drift.
+ */
+function checkElasticsearchImageFreshness(): void {
+  const pinned = pinnedElasticsearchVersion();
+  const built = builtElasticsearchVersion();
+  if (!pinned || !built || pinned === built) return;
+
+  printWarning(`Elasticsearch image is ${built}, but ${ES_DOCKERFILE} pins ${pinned}`);
+  printInfo('Rebuild it:');
+  printInfo('  docker compose build elasticsearch && docker compose up -d elasticsearch');
+
+  if (built.split('.')[0] !== pinned.split('.')[0]) {
+    printInfo('');
+    printInfo(`This crosses a major version: ${pinned} refuses to open a data directory`);
+    printInfo(`written by ${built}, so the old volume has to go as well.`);
+    printInfo('  docker compose down elasticsearch');
+    printInfo(`  docker volume rm ${ES_DATA_VOLUME}`);
+    printInfo('The local index is derived from Postgres -- `bun run es:reindex` rebuilds it.');
+  }
+  printInfo('');
+}
+
 function ensureDockerContainers(adminUser: string): void {
   printSection('Checking Docker containers...');
 
@@ -62,6 +126,8 @@ function ensureDockerContainers(adminUser: string): void {
     printWarning('docker-compose.yaml not found, skipping container check');
     return;
   }
+
+  checkElasticsearchImageFreshness();
 
   try {
     const output = execFileSync('docker', ['compose', 'ps', '--format', 'json'], {
@@ -108,17 +174,64 @@ function ensureDockerContainers(adminUser: string): void {
   const esMaxAttempts = 60;
   for (let i = 0; i < esMaxAttempts; i++) {
     try {
-      execFileSync('curl', ['-sf', 'http://127.0.0.1:9200/_cluster/health'], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      printSuccess('Elasticsearch ready');
-      return;
+      // The node runs with xpack.security enabled, so an anonymous probe is
+      // answered with 401. That still proves the HTTP layer is serving, which
+      // is all this poll needs to know -- `curl -sf` would reject it and time
+      // out against a perfectly healthy node.
+      const status = execFileSync(
+        'curl',
+        ['-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://127.0.0.1:9200/_cluster/health'],
+        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
+      ).trim();
+      if (status === '200' || status === '401') {
+        printSuccess('Elasticsearch ready');
+        return;
+      }
     } catch {
-      Bun.sleepSync(2000);
+      // curl could not connect at all yet
     }
+    Bun.sleepSync(2000);
   }
 
+  reportElasticsearchStartupFailure();
   throw new Error('Elasticsearch did not become ready in time');
+}
+
+/**
+ * A bare timeout says nothing about why. The two failures worth naming are an
+ * old data directory a newer Elasticsearch refuses to open, and an image built
+ * for the wrong CPU architecture -- both look identical from the outside.
+ */
+function reportElasticsearchStartupFailure(): void {
+  let logs = '';
+  try {
+    logs = execFileSync('docker', ['logs', '--tail', '50', ES_CONTAINER], {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch {
+    return;
+  }
+
+  if (/created with version|cannot be read by version|IndexFormatTooOld|upgrade to version/i.test(logs)) {
+    printWarning('Elasticsearch is refusing to open the existing data directory.');
+    printInfo('It was written by an older major version. The local index is derived');
+    printInfo('from Postgres, so the volume can be discarded and rebuilt:');
+    printInfo('  docker compose down elasticsearch');
+    printInfo(`  docker volume rm ${ES_DATA_VOLUME}`);
+    printInfo('  docker compose up -d elasticsearch');
+    return;
+  }
+
+  if (/does not support all of the following CPU features|Please rebuild the executable/i.test(logs)) {
+    printWarning("The Elasticsearch image does not match this machine's CPU architecture.");
+    printInfo('Rebuild it locally so it picks the host platform:');
+    printInfo('  docker compose build elasticsearch');
+    return;
+  }
+
+  printWarning(`Elasticsearch never became ready. Last log lines from ${ES_CONTAINER}:`);
+  for (const line of logs.trim().split('\n').slice(-10)) printInfo(line);
 }
 
 function runDbSetup(): void {
@@ -131,6 +244,44 @@ function runDbSetup(): void {
 
   execFileSync('bun', ['run', 'bin/db.ts', 'setup'], { stdio: 'inherit' });
   printSuccess('Infrastructure ready');
+}
+
+/**
+ * The test suite authenticates to Elasticsearch as the `.env.test` user, which
+ * nothing else creates: `bun run test:setup` runs with `--env-file=.env.test`,
+ * and that file carries no admin password, so its role/user step silently
+ * no-ops. On a fresh cluster the whole Elasticsearch integration suite then
+ * skips itself. Provision it here, where `.env` supplies admin credentials.
+ */
+function setupElasticsearchTestUser(): void {
+  printSection('Provisioning Elasticsearch test user...');
+
+  if (!process.env.ELASTICSEARCH_ADMIN_PASSWORD) {
+    printWarning('ELASTICSEARCH_ADMIN_PASSWORD is not set in .env; skipping test user provisioning');
+    printInfo('Elasticsearch-backed tests will skip themselves until it is provisioned.');
+    return;
+  }
+
+  // Shell env beats --env-file, so the dev-stack values loaded from .env have to
+  // be dropped for .env.test's test-user/index values to take effect.
+  const childEnv = { ...process.env };
+  for (const key of ['ELASTICSEARCH_USER', 'ELASTICSEARCH_PASSWORD', 'ELASTICSEARCH_INDEX', 'POSTGRES_DB']) {
+    delete childEnv[key];
+  }
+  // ...and for the same reason LOG_LEVEL has to be forced, or `.env.test`'s
+  // `silent` would make this step produce no output at all, success or failure.
+  childEnv.LOG_LEVEL = 'info';
+
+  try {
+    execFileSync('bun', ['--env-file=.env.test', 'run', 'bin/es.ts', 'setup-role'], {
+      stdio: 'inherit',
+      env: childEnv,
+    });
+    printSuccess('Elasticsearch test user ready');
+  } catch {
+    printWarning('Could not provision the Elasticsearch test user');
+    printInfo('Elasticsearch-backed tests will skip themselves until it is provisioned.');
+  }
 }
 
 async function downloadSeedDump(token: string): Promise<boolean> {
@@ -166,10 +317,15 @@ async function downloadSeedDump(token: string): Promise<boolean> {
 }
 
 const SEED_CONTENT_TABLES = [
-  'Media', 'Episode', 'Segment',
-  'Character', 'Seiyuu', 'MediaCharacter',
+  'Media',
+  'Episode',
+  'Segment',
+  'Character',
+  'Seiyuu',
+  'MediaCharacter',
   'MediaExternalId',
-  'Series', 'SeriesMedia',
+  'Series',
+  'SeriesMedia',
 ];
 
 function restoreSeedDump(adminUser: string, appDatabase: string): void {
@@ -181,10 +337,10 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
 
   // List what's in the dump so we can verify table names match
   try {
-    const listing = execFileSync('docker', [
-      'exec', 'nadeshiko-postgres',
-      'pg_restore', '-l', '/tmp/seed.dump',
-    ], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const listing = execFileSync('docker', ['exec', 'nadeshiko-postgres', 'pg_restore', '-l', '/tmp/seed.dump'], {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     const tables = listing.split('\n').filter((l) => l.includes(' TABLE DATA '));
     for (const line of tables) printInfo(`  ${line.trim()}`);
   } catch {}
@@ -192,13 +348,25 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
   printInfo('Restoring content tables...');
   const tableArgs = SEED_CONTENT_TABLES.flatMap((t) => ['-t', t]);
   try {
-    const result = execFileSync('docker', [
-      'exec', 'nadeshiko-postgres',
-      'pg_restore', '-U', adminUser, '-d', appDatabase,
-      '--no-owner', '--no-privileges', '--data-only', '--disable-triggers',
-      ...tableArgs,
-      '/tmp/seed.dump',
-    ], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const result = execFileSync(
+      'docker',
+      [
+        'exec',
+        'nadeshiko-postgres',
+        'pg_restore',
+        '-U',
+        adminUser,
+        '-d',
+        appDatabase,
+        '--no-owner',
+        '--no-privileges',
+        '--data-only',
+        '--disable-triggers',
+        ...tableArgs,
+        '/tmp/seed.dump',
+      ],
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
+    );
     if (result) printInfo(result.trim());
   } catch (error: any) {
     const stdout = error.stdout?.toString().trim();
@@ -208,12 +376,15 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
   }
 
   // Verify data was restored
-  const countQuery = SEED_CONTENT_TABLES.map((t) => `SELECT '${t}' AS t, COUNT(*) AS c FROM "${t}"`).join(' UNION ALL ');
+  const countQuery = SEED_CONTENT_TABLES.map((t) => `SELECT '${t}' AS t, COUNT(*) AS c FROM "${t}"`).join(
+    ' UNION ALL ',
+  );
   try {
-    const counts = execFileSync('docker', [
-      'exec', 'nadeshiko-postgres',
-      'psql', '-U', adminUser, '-d', appDatabase, '-t', '-c', countQuery,
-    ], { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+    const counts = execFileSync(
+      'docker',
+      ['exec', 'nadeshiko-postgres', 'psql', '-U', adminUser, '-d', appDatabase, '-t', '-c', countQuery],
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
+    );
     for (const line of counts.trim().split('\n').filter(Boolean)) {
       const [table, count] = line.split('|').map((s) => s.trim());
       if (count && count !== '0') printInfo(`  ${table}: ${count} rows`);
@@ -224,7 +395,9 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
   execFileSync('docker', ['exec', 'nadeshiko-postgres', 'rm', '-f', '/tmp/seed.dump'], {
     stdio: 'pipe',
   });
-  try { unlinkSync(SEED_DUMP_PATH); } catch {}
+  try {
+    unlinkSync(SEED_DUMP_PATH);
+  } catch {}
 
   printSuccess('Seed database restored');
 }
@@ -290,6 +463,7 @@ async function main() {
 
     ensureDockerContainers(adminUser);
     runDbSetup();
+    setupElasticsearchTestUser();
     await handleSeedDownload(adminUser, appDatabase);
 
     console.log('');
@@ -307,7 +481,7 @@ async function main() {
     console.log('');
     console.log('To start developing, run these in separate terminals:');
     console.log('');
-    console.log('  cd backend  && bun run dev     # API on http://localhost:' + config.PORT);
+    console.log(`  cd backend  && bun run dev     # API on http://localhost:${config.PORT}`);
     console.log('  cd frontend && bun run dev     # App on http://localhost:3000');
     console.log('');
 

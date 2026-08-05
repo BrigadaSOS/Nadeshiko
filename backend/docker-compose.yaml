@@ -10,6 +10,12 @@ services:
       - nadeshiko_db:/var/lib/postgresql/data
     ports:
       - ${POSTGRES_PORT}:5432
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
 
   elasticsearch:
@@ -31,6 +37,18 @@ services:
       - 127.0.0.1:9300:9300
     volumes:
       - nadeshiko_elasticsearch_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    healthcheck:
+      # Security is on, so the probe authenticates as the bootstrap elastic user
+      # rather than treating the 401 from an anonymous request as "up".
+      test:
+        - CMD-SHELL
+        - curl -sf -u "elastic:$${ELASTIC_PASSWORD}" http://localhost:9200/_cluster/health >/dev/null
+      interval: 10s
+      timeout: 5s
+      # Elasticsearch needs well over a minute for a cold start on a fresh volume.
+      retries: 6
+      start_period: 180s
 
 
 volumes:

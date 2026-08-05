@@ -1,4 +1,6 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:9.4.1@sha256:268f65f1b32ea367e49c9be2acab144011b8c66c462c890f6190707743199050
+# Multi-arch index digest (contains linux/amd64 + linux/arm64); CI builds pin
+# --platform linux/amd64, local dev picks the host platform.
+FROM docker.elastic.co/elasticsearch/elasticsearch:9.4.1@sha256:74c82c22b899cdd184598c96456d0f2d254c17ab204210fb470c1901e0b646f4
 RUN bin/elasticsearch-plugin install analysis-icu
 # Sudachi 3.6 declares read access to config/sudachi; --batch accepts that
 # reviewed entitlement so image builds remain non-interactive.

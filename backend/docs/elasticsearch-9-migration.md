@@ -21,7 +21,18 @@ Production Elasticsearch contains a derived search index whose authoritative sou
 7. deploy and expose the client-9 backend only after every migration gate passes;
 8. retain the stopped Elasticsearch 8 container and volume through the rollback observation window.
 
-This fresh-volume rebuild avoids an in-place, irreversible data-directory upgrade. The earlier 8.19.15 bridge image remains available for format/snapshot rehearsal, but production does not need to traverse it when no old Elasticsearch data directory is opened.
+This fresh-volume rebuild avoids an in-place, irreversible data-directory upgrade: no Elasticsearch 8 data directory is ever opened by Elasticsearch 9.
+
+### The 8.19.15 bridge image is still a prerequisite
+
+Not opening the old data directory removes the *format* reason to traverse 8.19, but it does not remove the traversal. `scripts/migrate-elasticsearch-production.sh` fails closed unless the running production container reports `Version: 8.19.15`, so production must already be on the bridge image before a tagged release can migrate it. There is no automation for the 8.17.10 → 8.19.15 step; it is an operator action.
+
+The bridge image is published and immutable, but the repository can no longer rebuild it. `backend/docker/Dockerfile.elasticsearch` now pins 9.4.1, and both the release and canary workflows resolve the Dockerfile's own last-touching commit, which is the 9.4.1 revision. Reproducing the bridge image means checking out commit `0e10441` and building from there. The published tags are:
+
+```text
+ghcr.io/brigadasos/nadeshiko-elasticsearch:8.19.15-sudachi-3.6.0-dict-20260116
+ghcr.io/brigadasos/nadeshiko-elasticsearch:8.19.15-sudachi-3.6.0-dict-20260116-0e10441566f2ee5dceb02b449d99086e5e768cef
+```
 
 ## Compatibility and safety gates
 

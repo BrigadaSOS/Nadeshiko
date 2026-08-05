@@ -17,6 +17,12 @@ proxy:
   host: stg.nadeshiko.co
   app_port: 3000
   forward_headers: true
+  # Liveness of the Nitro server only; it deliberately does not probe the
+  # backend -- see frontend/server/routes/up.ts.
+  healthcheck:
+    path: /up
+    interval: 2
+    timeout: 5
 
 env:
   secret:

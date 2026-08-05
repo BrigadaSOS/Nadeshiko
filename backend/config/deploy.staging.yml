@@ -12,6 +12,13 @@ proxy:
   ssl: true
   host: api-stg.nadeshiko.co
   forward_headers: true
+  # /up verifies Postgres before reporting healthy, so a container that boots
+  # but cannot reach the database never takes traffic. Elasticsearch is reported
+  # as a field and never fails the check -- see DEPLOYMENT.md.
+  healthcheck:
+    path: /up
+    interval: 2
+    timeout: 5
 
 env:
   secret:
@@ -86,4 +93,9 @@ accessories:
       ulimit:
         - nofile=65536:65536
         - memlock=-1:-1
+      # Accessories get no logging defaults from Kamal.
+      log-driver: json-file
+      log-opt:
+        - max-size=20m
+        - max-file=5
 
