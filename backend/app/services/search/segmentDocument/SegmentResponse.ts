@@ -4,7 +4,8 @@ import { type Storage, getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUr
 import { encodeKeysetCursor } from '@lib/cursor';
 import type { Media } from '@app/models';
 import { ALL_CATEGORIES, type CategoryType } from '@app/models';
-import type { SegmentDocumentShape, SlimToken } from '../SegmentDocument';
+import type { SegmentDocumentShape } from '../SegmentDocument';
+import type { SlimToken } from '@app/models/Segment';
 import { enhanceHighlight } from './HighlightEnhancer';
 import { isSuccessfulMsearchItem } from './errors';
 import type {
@@ -147,6 +148,7 @@ export class SegmentResponse {
 
     return tokens.map((token) => ({
       ...token,
+      kind: SegmentResponse.toTokenKind(token.kind),
       p1: token.p1 ?? null,
       p2: token.p2 ?? null,
       p4: token.p4 ?? null,
@@ -379,6 +381,23 @@ export class SegmentResponse {
         return 'ACTIVE';
       default:
         return 'ACTIVE';
+    }
+  }
+
+  private static toTokenKind(value: string | undefined): NonNullable<TokenOutput>[number]['kind'] {
+    switch (value) {
+      case 'word':
+      case 'compound':
+      case 'inflected':
+      case 'counter':
+      case 'function':
+      case 'expression':
+      case 'symbol':
+        return value;
+      // Shirabe may name a kind we do not publish yet. Leaving the field off says we have
+      // nothing to tell; picking one of ours would be inventing a grammatical category.
+      default:
+        return undefined;
     }
   }
 

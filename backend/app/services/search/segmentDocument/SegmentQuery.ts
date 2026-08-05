@@ -79,15 +79,17 @@
 import type { estypes } from '@elastic/elasticsearch';
 import { excludedSearchLanguages, type SearchLanguage } from '@lib/searchLanguages';
 import type { SearchRequestOutput, SearchFiltersOutput } from 'generated/outputTypes';
+import type { ResolvedSearchFilters } from '@app/controllers/searchFilters';
+import { buildCommonFilters, expandContentRatingTerms } from './filterRegistry';
 
-export enum InputScript {
+enum InputScript {
   KANJI = 'kanji',
   KATAKANA = 'katakana',
   KANA = 'kana',
   ROMAJI = 'romaji',
 }
 
-export interface ScriptBoostConfig {
+interface ScriptBoostConfig {
   japanese: number;
   japaneseBaseform: number;
   japaneseNormalized: number;
@@ -139,46 +141,12 @@ export class SegmentQuery {
     return { must, isMatchAll, hasQuery };
   }
 
-  static buildCommonFilters(filters: SearchFiltersOutput): {
+  /** @see buildCommonFilters in ./filterRegistry -- kept here so call sites stay put. */
+  static buildCommonFilters(filters: ResolvedSearchFilters<SearchFiltersOutput>): {
     filter: estypes.QueryDslQueryContainer[];
     must_not: estypes.QueryDslQueryContainer[];
   } {
-    const filter: estypes.QueryDslQueryContainer[] = [];
-    const must_not: estypes.QueryDslQueryContainer[] = [];
-
-    filter.push({ terms: { status: filters.status } });
-
-    if (filters.segmentLengthChars?.min !== undefined || filters.segmentLengthChars?.max !== undefined) {
-      const rangeFilter: { gte?: number; lte?: number } = {};
-      if (filters.segmentLengthChars.min !== undefined) rangeFilter.gte = filters.segmentLengthChars.min;
-      if (filters.segmentLengthChars.max !== undefined) rangeFilter.lte = filters.segmentLengthChars.max;
-      filter.push({ range: { characterCount: rangeFilter } });
-    }
-
-    if (filters.segmentDurationMs?.min !== undefined || filters.segmentDurationMs?.max !== undefined) {
-      const rangeFilter: { gte?: number; lte?: number } = {};
-      if (filters.segmentDurationMs.min !== undefined) rangeFilter.gte = filters.segmentDurationMs.min;
-      if (filters.segmentDurationMs.max !== undefined) rangeFilter.lte = filters.segmentDurationMs.max;
-      filter.push({ range: { durationMs: rangeFilter } });
-    }
-
-    if (filters.media?.include && filters.media.include.length > 0) {
-      filter.push(SegmentQuery.buildMediaFilter(filters.media.include as any));
-    }
-
-    if (filters.media?.exclude && filters.media.exclude.length > 0) {
-      must_not.push(SegmentQuery.buildMediaFilter(filters.media.exclude as any));
-    }
-
-    if (filters.contentRating && filters.contentRating.length > 0) {
-      filter.push({ terms: { contentRating: SegmentQuery.expandContentRatingTerms(filters.contentRating) } });
-    }
-
-    if (filters.category && filters.category.length > 0) {
-      filter.push({ terms: { category: filters.category } });
-    }
-
-    return { filter, must_not };
+    return buildCommonFilters(filters);
   }
 
   static buildSortAndRandomScore(
@@ -351,7 +319,7 @@ export class SegmentQuery {
   ): estypes.QueryDslQueryContainer {
     const filter: estypes.QueryDslQueryContainer[] = [{ term: { mediaId } }, { term: { episode } }, rangeQuery];
     if (contentRating?.length) {
-      filter.push({ terms: { contentRating: SegmentQuery.expandContentRatingTerms(contentRating) } });
+      filter.push({ terms: { contentRating: expandContentRatingTerms(contentRating) } });
     }
     return { bool: { filter } };
   }
@@ -421,15 +389,6 @@ export class SegmentQuery {
       },
     };
     return boostConfigs[detectedScript];
-  }
-
-  private static expandContentRatingTerms(contentRating: string[]): string[] {
-    const values = new Set<string>();
-    for (const rating of contentRating) {
-      values.add(rating.toUpperCase());
-      values.add(rating.toLowerCase());
-    }
-    return [...values];
   }
 
   private static withStableSortTieBreakers(sort: estypes.Sort): estypes.Sort {
@@ -502,21 +461,5 @@ export class SegmentQuery {
         quote_field_suffix: quoteFieldSuffix,
       },
     };
-  }
-
-  private static buildMediaFilter(
-    include: Array<{ mediaId: number | string; episodes?: number[] }>,
-  ): estypes.QueryDslQueryContainer {
-    const mediaQueries: estypes.QueryDslQueryContainer[] = include.flatMap((mediaFilter) => {
-      if (!mediaFilter.episodes || mediaFilter.episodes.length === 0) {
-        return { bool: { must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }] } };
-      }
-      return mediaFilter.episodes.map((episode) => ({
-        bool: {
-          must: [{ term: { mediaId: { value: mediaFilter.mediaId } } }, { term: { episode: { value: episode } } }],
-        },
-      }));
-    });
-    return { bool: { should: mediaQueries } };
   }
 }

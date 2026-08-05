@@ -1,7 +1,6 @@
 import type { estypes } from '@elastic/elasticsearch';
 import { client, INDEX_NAME } from '@config/elasticsearch';
-import { logger } from '@config/log';
-import { ALL_CATEGORIES, Media, Segment } from '@app/models';
+import { Media } from '@app/models';
 import { InvalidRequestError } from '@app/errors';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { decodeKeysetCursor } from '@lib/cursor';
@@ -9,68 +8,19 @@ import { excludedSearchLanguages } from '@lib/searchLanguages';
 import type {
   SearchResponseOutput,
   SearchMultipleResponseOutput,
-  SegmentContextResponseOutput,
-  SegmentOutput,
-  MediaOutput,
-  SearchRequestOutput,
-  SearchStatsRequestOutput,
-  SearchFiltersOutput,
   SearchStatsResponseOutput,
 } from 'generated/outputTypes';
-import type { ReindexResponse } from './segmentDocument/SegmentIndexer';
 
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
 import { SegmentResponse } from './segmentDocument/SegmentResponse';
-import { SegmentIndexer } from './segmentDocument/SegmentIndexer';
-import { isSuccessfulMsearchItem, withSafeQueryFallback } from './segmentDocument/errors';
-
-export interface QuerySurroundingSegmentsRequest {
-  readonly mediaId: number;
-  readonly episodeNumber: number;
-  readonly segmentPosition: number;
-  readonly limit?: number;
-  readonly contentRating?: string[];
-}
-
-/** One morphological token, as stored and as served.
- *
- * The ten short names are the published contract: they are in our OpenAPI, in
- * the npm and PyPI SDKs, and in third-party Anki note types, so they do not
- * change. What changed is who fills them. Shirabe parses the corpus now, and
- * groups more coarsely than the old SudachiPy pipeline did: 食べました arrives as
- * ONE token reading タベマシタ where it used to arrive as three. That is the
- * point (it is a word a reader looks up, and it makes furigana come out right),
- * but it means `parts` is what you reach for when you need the finer pieces.
- */
-export interface SlimToken {
-  s: string;
-  d: string;
-  r: string;
-  b: number;
-  e: number;
-  p: string;
-  p1?: string;
-  p2?: string;
-  p4?: string;
-  cf?: string;
-  /** word | compound | inflected | counter | function | expression | symbol. */
-  kind?: string;
-  /** Where this word reads about: GET /v1/words/{wid} on Shirabe. Absent for
-   *  names, numbers, punctuation and anything the dictionary has no entry for,
-   *  which means "show it, do not link it". */
-  wid?: string;
-  /** The finer morphemes inside a grouped token, each positioned like its
-   *  parent. Elasticsearch highlights against its OWN analyzer, so a match can
-   *  land inside one of our tokens: these are the boundaries that let a partial
-   *  highlight render. Absent when the token is already atomic. */
-  parts?: TokenPart[];
-}
-
-export interface TokenPart {
-  s: string;
-  b: number;
-  e: number;
-}
+import { withSafeQueryFallback } from './segmentDocument/errors';
+import {
+  resolveSearchFilters,
+  type ResolvedFilters,
+  type SearchRequestInput,
+  type SearchStatsRequestInput,
+} from './segmentDocument/searchInputs';
+import type { SlimToken } from '@app/models/Segment';
 
 export interface SegmentDocumentShape {
   uuid: string;
@@ -103,16 +53,18 @@ export interface ReindexMediaItem {
 }
 
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories' | 'includes'>;
-type SearchRequestInput = Omit<SearchRequestOutput, 'include'> & { include?: SearchRequestOutput['include'] };
-type SearchStatsRequestInput = Omit<SearchStatsRequestOutput, 'include'> & {
-  include?: SearchStatsRequestOutput['include'];
-};
 
 /**
  * Caller-supplied id lists (collection contents) are unbounded, while a single search is
  * capped by `index.max_result_window` (10k by default) and `index.max_terms_count`.
+ *
+ * Chunking into one search per chunk would mean one sort, one `search_after` cursor and
+ * one hit total per chunk, none of which merge back into a single paginated response.
+ * Splitting the list into `should` clauses instead keeps every clause well under
+ * `index.max_terms_count` (65,536 by default) while staying ONE search, so ordering and
+ * pagination behave exactly as they do without an id filter.
  */
-const FIND_BY_IDS_CHUNK_SIZE = 1000;
+const SEARCH_IN_IDS_CHUNK_SIZE = 1000;
 
 export class SegmentDocument {
   static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats');
@@ -142,7 +94,7 @@ export class SegmentDocument {
       };
     }
 
-    return SegmentDocument.executeSearch(request, parserMode, [{ ids: { values: segmentIds.map(String) } }]);
+    return SegmentDocument.executeSearch(request, parserMode, [buildIdsFilter(segmentIds)]);
   }
 
   private static async executeSearch(
@@ -150,14 +102,7 @@ export class SegmentDocument {
     parserMode: QueryParserMode,
     extraFilters: estypes.QueryDslQueryContainer[] = [],
   ): Promise<SearchResponseOutput> {
-    const filters: SearchFiltersOutput = request.filters ?? {
-      status: ['ACTIVE'],
-      category: ALL_CATEGORIES,
-    };
-    const sl = filters.segmentLengthChars;
-    if (sl?.min !== undefined && sl?.max !== undefined && sl.min > sl.max) {
-      throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
-    }
+    const filters = resolveSearchFilters(request.filters);
 
     const excludedLanguages = excludedSearchLanguages(filters.languages);
     const { must, isMatchAll, hasQuery } = SegmentQuery.buildSearchMust(
@@ -231,14 +176,7 @@ export class SegmentDocument {
     request: SearchStatsRequestInput,
     parserMode: QueryParserMode = 'strict',
   ): Promise<SearchStatsResponseOutput> {
-    const filters: SearchFiltersOutput = request.filters ?? {
-      status: ['ACTIVE'],
-      category: ALL_CATEGORIES,
-    };
-    const sl = filters.segmentLengthChars;
-    if (sl?.min !== undefined && sl?.max !== undefined && sl.min > sl.max) {
-      throw new InvalidRequestError('segmentLengthChars.min cannot be greater than segmentLengthChars.max');
-    }
+    const filters = resolveSearchFilters(request.filters);
 
     const { must, hasQuery } = SegmentQuery.buildSearchMust(
       { query: request.query, filters },
@@ -262,7 +200,7 @@ export class SegmentDocument {
   static async wordsMatched(
     words: string[],
     exactMatch: boolean,
-    filters?: SearchFiltersOutput,
+    filters?: ResolvedFilters,
     parserMode: QueryParserMode = 'strict',
   ): Promise<SearchMultipleResponseOutput> {
     const { filter, must_not } = filters
@@ -312,7 +250,7 @@ export class SegmentDocument {
 
   static async wordsCoverageCount(
     words: string[],
-    filters?: SearchFiltersOutput,
+    filters?: ResolvedFilters,
     parserMode: QueryParserMode = 'strict',
   ): Promise<Map<string, number>> {
     const { filter, must_not } = filters
@@ -355,116 +293,26 @@ export class SegmentDocument {
       },
     );
   }
+}
 
-  static async surroundingSegments(request: QuerySurroundingSegmentsRequest): Promise<SegmentContextResponseOutput> {
-    // Sub-search 0 walks forward from the requested position (inclusive), sub-search 1 walks backward.
-    const contextSearches: estypes.MsearchRequestItem[] = [
-      {},
-      {
-        sort: [{ position: { order: 'asc' } }],
-        size: request.limit ? request.limit + 1 : 16,
-        query: SegmentQuery.buildUuidContext(
-          request.mediaId,
-          request.episodeNumber,
-          {
-            range: { position: { gte: request.segmentPosition } },
-          },
-          request.contentRating,
-        ),
-      },
-      {},
-      {
-        sort: [{ position: { order: 'desc' } }],
-        size: request.limit || 14,
-        query: SegmentQuery.buildUuidContext(
-          request.mediaId,
-          request.episodeNumber,
-          {
-            range: { position: { lt: request.segmentPosition } },
-          },
-          request.contentRating,
-        ),
-      },
-    ];
-
-    const esResponse = await client.msearch({ index: INDEX_NAME, searches: contextSearches });
-    const mediaMapData = await Media.getMediaInfoMap();
-
-    const mergedMediaMap: Record<string, MediaOutput> = {};
-    let forwardSegments: SegmentOutput[] = [];
-    let previousSegments: SegmentOutput[] = [];
-
-    const forwardResponse = esResponse.responses[0];
-    if (isSuccessfulMsearchItem(forwardResponse)) {
-      const result = SegmentResponse.buildSearchResultSegments(forwardResponse, mediaMapData);
-      forwardSegments = result.segments;
-      Object.assign(mergedMediaMap, result.mediaMap);
-    } else {
-      logger.warn({ request, response: forwardResponse }, 'Forward context sub-search failed');
-    }
-
-    const previousResponse = esResponse.responses[1];
-    if (isSuccessfulMsearchItem(previousResponse)) {
-      const result = SegmentResponse.buildSearchResultSegments(previousResponse, mediaMapData);
-      previousSegments = result.segments;
-      Object.assign(mergedMediaMap, result.mediaMap);
-    } else {
-      logger.warn({ request, response: previousResponse }, 'Previous context sub-search failed');
-    }
-
-    const sortedSegments = [...previousSegments, ...forwardSegments].sort((a, b) => a.position - b.position);
-
-    return { segments: sortedSegments, includes: { media: mergedMediaMap } };
+function buildIdsFilter(segmentIds: number[]): estypes.QueryDslQueryContainer {
+  const values = segmentIds.map(String);
+  if (values.length <= SEARCH_IN_IDS_CHUNK_SIZE) {
+    return { ids: { values } };
   }
 
-  static async findByIds(
-    ids: number[],
-  ): Promise<{ segments: SegmentOutput[]; includes: { media: Record<string, MediaOutput> } }> {
-    if (ids.length === 0) return { segments: [], includes: { media: {} } };
-
-    const mediaInfo = await Media.getMediaInfoMap();
-    const segments: SegmentOutput[] = [];
-    const media: Record<string, MediaOutput> = {};
-
-    for (let offset = 0; offset < ids.length; offset += FIND_BY_IDS_CHUNK_SIZE) {
-      const chunk = ids.slice(offset, offset + FIND_BY_IDS_CHUNK_SIZE);
-      const esResponse = await client.search({
-        index: INDEX_NAME,
-        size: chunk.length,
-        query: { terms: { _id: chunk.map(String) } },
-      });
-
-      const result = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
-      segments.push(...result.segments);
-      Object.assign(media, result.mediaMap);
-    }
-
-    return { segments, includes: { media } };
+  const should: estypes.QueryDslQueryContainer[] = [];
+  for (let offset = 0; offset < values.length; offset += SEARCH_IN_IDS_CHUNK_SIZE) {
+    should.push({ ids: { values: values.slice(offset, offset + SEARCH_IN_IDS_CHUNK_SIZE) } });
   }
 
-  static index(segment: Segment): Promise<boolean> {
-    return SegmentIndexer.index(segment);
-  }
-
-  static bulkIndex(segments: Segment[]) {
-    return SegmentIndexer.bulkIndex(segments);
-  }
-
-  static delete(id: number): Promise<boolean> {
-    return SegmentIndexer.delete(id);
-  }
-
-  static bulkDelete(ids: number[]) {
-    return SegmentIndexer.bulkDelete(ids);
-  }
-
-  static reindex(media?: ReindexMediaItem[], targetIndex?: string): Promise<ReindexResponse> {
-    return SegmentIndexer.reindex(media, targetIndex);
-  }
+  // `minimum_should_match` is 1 by default for a bool with no other clause, but this sits
+  // inside a `filter` array where the default has moved before; say it outright.
+  return { bool: { should, minimum_should_match: 1 } };
 }
 
 async function querySearchStatisticsWithMustQueries(
-  request: { query?: SearchStatsRequestInput['query']; filters: SearchFiltersOutput },
+  request: { query?: SearchStatsRequestInput['query']; filters: ResolvedFilters },
   mustQueries: estypes.QueryDslQueryContainer[],
   mediaInfoPromise: Promise<Awaited<ReturnType<typeof Media.getMediaInfoMap>>>,
   parserMode: QueryParserMode,

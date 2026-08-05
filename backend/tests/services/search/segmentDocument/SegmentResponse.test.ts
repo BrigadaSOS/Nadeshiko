@@ -1,13 +1,15 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import type { estypes } from '@elastic/elasticsearch';
 import { SegmentResponse } from '@app/services/search/segmentDocument/SegmentResponse';
-import type { SegmentDocumentShape, SlimToken } from '@app/services/search/SegmentDocument';
+import type { SegmentDocumentShape } from '@app/services/search/SegmentDocument';
+import type { SlimToken } from '@app/models/Segment';
+import { CategoryType, Media } from '@app/models';
 
 function token(s: string, d: string, b: number, e: number, p: string): SlimToken {
   return { s, d, r: '', b, e, p };
 }
 
-function makeMediaInfoMap(mediaId: number) {
+function makeMediaInfoMap(mediaId: number): Awaited<ReturnType<typeof Media.getMediaInfoMap>> {
   return {
     results: new Map([
       [
@@ -15,8 +17,9 @@ function makeMediaInfoMap(mediaId: number) {
         {
           mediaId,
           publicId: 'media-pub-1',
-          category: 'ANIME',
-          categoryName: 'ANIME',
+          slug: 'test-anime',
+          category: CategoryType.ANIME,
+          categoryName: CategoryType.ANIME,
           createdAt: '2025-01-01T00:00:00.000Z',
           updatedAt: undefined,
           nameRomaji: 'Test Anime',
@@ -29,13 +32,13 @@ function makeMediaInfoMap(mediaId: number) {
           banner: 'https://example.com/banner.jpg',
           startDate: '2025-01-01',
           endDate: '2025-03-01' as string | undefined,
-          version: 1,
+          version: '1',
           segmentCount: 100,
           episodeCount: 12,
           studio: 'Test Studio',
           seasonName: 'WINTER',
           seasonYear: 2025,
-          externalIds: { anilist: null, imdb: null, tmdb: null, tvdb: null },
+          externalIds: {},
           storageBasePath: 'anime/test-anime',
         },
       ],
