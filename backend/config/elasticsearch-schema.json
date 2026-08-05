@@ -675,6 +675,14 @@
         "type": "keyword",
         "index": false
       },
+      "publicId": {
+        "type": "keyword",
+        "index": false
+      },
+      "externalVideoId": {
+        "type": "keyword",
+        "index": false
+      },
       "position": {
         "type": "integer"
       },

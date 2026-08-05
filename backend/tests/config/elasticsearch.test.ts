@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockDeleteUser = vi.fn();
 const mockDeleteRole = vi.fn();
@@ -14,20 +14,18 @@ const mockIndicesDelete = vi.fn();
 const mockIndicesUpdateAliases = vi.fn();
 const mockIndicesRefresh = vi.fn();
 
-// Every function under test takes a client, so nothing here mocks
-// '@elastic/elasticsearch' itself -- vi.mock replaces the module for the whole
-// test process, breaking any file that happens to be co-run in the same
-// `bun test` invocation.
+// Every function under test takes a client, so nothing here needs to mock
+// '@elastic/elasticsearch' itself -- the hand-rolled client below is enough.
 
-// Spy on the real logger rather than vi.mock('@config/log'): mocking replaces the module
-// for the whole test process, so any file sharing that process loses the exports this
-// file does not reproduce (httpLogger, buildHttpLoggerOptions, ...). LOG_LEVEL=silent in
+// Spy on the real logger rather than vi.mock('@config/log'): a factory mock has
+// to reproduce every export the module under test touches (httpLogger,
+// buildHttpLoggerOptions, ...), and spying costs nothing. LOG_LEVEL=silent in
 // .env.test keeps the output quiet.
 const { logger } = await import('@config/log');
 
 const {
   INDEX_NAME,
-  initializeElasticsearchIndexWithClient,
+  initializeElasticsearchIndex,
   reindexZeroDowntime,
   resetElasticsearchIndexWithClient,
   setupElasticsearchUser,
@@ -84,9 +82,9 @@ beforeEach(() => {
   mockIndicesUpdateAliases.mockResolvedValue(undefined);
   mockIndicesRefresh.mockResolvedValue(undefined);
 
-  spyOn(logger, 'info');
-  spyOn(logger, 'warn');
-  spyOn(logger, 'error');
+  vi.spyOn(logger, 'info');
+  vi.spyOn(logger, 'warn');
+  vi.spyOn(logger, 'error');
 });
 
 afterEach(() => {
@@ -195,12 +193,12 @@ describe('setupElasticsearchUser', () => {
   });
 });
 
-describe('initializeElasticsearchIndexWithClient', () => {
+describe('initializeElasticsearchIndex', () => {
   it('skips when alias already exists', async () => {
     mockIndicesExistsAlias.mockResolvedValue(true);
     mockIndicesGetAlias.mockResolvedValue({ [`${INDEX_NAME}_v1`]: {} });
 
-    await initializeElasticsearchIndexWithClient(makeMockClient() as any);
+    await initializeElasticsearchIndex(makeMockClient() as any);
 
     expect(mockIndicesCreate).not.toHaveBeenCalled();
   });
@@ -209,7 +207,7 @@ describe('initializeElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(false);
     mockIndicesExists.mockResolvedValue(true);
 
-    await initializeElasticsearchIndexWithClient(makeMockClient() as any);
+    await initializeElasticsearchIndex(makeMockClient() as any);
 
     expect(mockIndicesCreate).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
@@ -219,7 +217,7 @@ describe('initializeElasticsearchIndexWithClient', () => {
     mockIndicesExistsAlias.mockResolvedValue(false);
     mockIndicesExists.mockResolvedValue(false);
 
-    await initializeElasticsearchIndexWithClient(makeMockClient() as any);
+    await initializeElasticsearchIndex(makeMockClient() as any);
 
     expect(mockIndicesCreate).toHaveBeenCalledTimes(1);
     const createArgs = mockIndicesCreate.mock.calls[0]?.[0];
