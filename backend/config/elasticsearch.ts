@@ -3,7 +3,27 @@ import { config, type AppConfig } from '@config/config';
 import { logger } from '@config/log';
 import { ELASTICSEARCH_CLIENT_DEFAULTS } from '@config/elasticsearch-client';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
+import type { IndicesIndexSettings, MappingTypeMapping } from '@elastic/elasticsearch/lib/api/types';
 import type { ReindexResponse } from '@app/services/search/segmentDocument/SegmentIndexer';
+import { isElasticsearchNotFound } from '@lib/elasticsearchErrors';
+
+/**
+ * The index definition, asserted to the client's types once here rather than at
+ * each of the four call sites that create an index.
+ *
+ * TypeScript infers a JSON import as its literal shape, which never structurally
+ * satisfies Elasticsearch's settings/mapping types (analyzers and field types are
+ * open-ended string unions there). This is the one place that gap is bridged, so
+ * a schema edit that the client would reject is a mismatch to reason about here
+ * instead of four separately-silenced `any`s.
+ */
+const indexSchema: { settings: IndicesIndexSettings; mappings: MappingTypeMapping } = {
+  // Via `unknown` because the inferred literal type and the client's open-ended
+  // union types do not overlap enough for a direct assertion -- which is exactly
+  // what the previous `as any` was hiding, four times over.
+  settings: elasticsearchSchema.settings as unknown as IndicesIndexSettings,
+  mappings: elasticsearchSchema.mappings as unknown as MappingTypeMapping,
+};
 
 export const INDEX_NAME = config.ELASTICSEARCH_INDEX;
 
@@ -21,7 +41,7 @@ export const client = new Client({
  * Creates an admin client using ELASTICSEARCH_ADMIN_* credentials.
  * Only used for setup operations (creating users/roles).
  */
-function createAdminClient(configValues: AppConfig): Client {
+export function createAdminClient(configValues: AppConfig): Client {
   const adminUser = configValues.ELASTICSEARCH_ADMIN_USER || 'elastic';
   const adminPassword = configValues.ELASTICSEARCH_ADMIN_PASSWORD;
 
@@ -80,11 +100,11 @@ export async function setupElasticsearchUser(
       logger.info({ username, roleName }, 'Recreating Elasticsearch app user and role');
 
       await adminClient.security.deleteUser({ username }).catch((error) => {
-        if (error.meta?.statusCode !== 404) throw error;
+        if (!isElasticsearchNotFound(error)) throw error;
       });
 
       await adminClient.security.deleteRole({ name: roleName }).catch((error) => {
-        if (error.meta?.statusCode !== 404) throw error;
+        if (!isElasticsearchNotFound(error)) throw error;
       });
     }
 
@@ -92,7 +112,7 @@ export async function setupElasticsearchUser(
       .getUser({ username })
       .then(() => true)
       .catch((error) => {
-        if (error.meta?.statusCode === 404) return false;
+        if (isElasticsearchNotFound(error)) return false;
         throw error;
       });
 
@@ -124,19 +144,18 @@ export async function setupElasticsearchUser(
   }
 }
 
-export async function resolvePhysicalIndex(esClient?: Client): Promise<string | null> {
-  const clientToUse = esClient || client;
+export async function resolvePhysicalIndex(esClient: Client = client): Promise<string | null> {
   try {
-    const aliasResponse = await clientToUse.indices.getAlias({ name: INDEX_NAME });
+    const aliasResponse = await esClient.indices.getAlias({ name: INDEX_NAME });
     const indices = Object.keys(aliasResponse);
     return indices[0] ?? null;
-  } catch (error: any) {
-    if (error.meta?.statusCode === 404) return null;
+  } catch (error) {
+    if (isElasticsearchNotFound(error)) return null;
     throw error;
   }
 }
 
-export function nextVersionName(current: string | null): string {
+function nextVersionName(current: string | null): string {
   if (!current) return `${INDEX_NAME}_v1`;
 
   const match = current.match(/_v(\d+)$/);
@@ -146,35 +165,28 @@ export function nextVersionName(current: string | null): string {
   return `${INDEX_NAME}_v${nextVersion}`;
 }
 
-export async function listVersionedIndices(esClient?: Client): Promise<string[]> {
-  const clientToUse = esClient || client;
+export async function listVersionedIndices(esClient: Client = client): Promise<string[]> {
   try {
-    const response = await clientToUse.indices.get({ index: `${INDEX_NAME}_v*` });
+    const response = await esClient.indices.get({ index: `${INDEX_NAME}_v*` });
     return Object.keys(response).sort();
-  } catch (error: any) {
-    if (error.meta?.statusCode === 404) return [];
+  } catch (error) {
+    if (isElasticsearchNotFound(error)) return [];
     throw error;
   }
 }
 
-export async function initializeElasticsearchIndex(): Promise<void> {
-  await initializeElasticsearchIndexWithClient(client);
-}
-
-export async function initializeElasticsearchIndexWithClient(esClient?: Client): Promise<void> {
-  const clientToUse = esClient || client;
-
-  const aliasExists = await clientToUse.indices.existsAlias({ name: INDEX_NAME });
+export async function initializeElasticsearchIndex(esClient: Client = client): Promise<void> {
+  const aliasExists = await esClient.indices.existsAlias({ name: INDEX_NAME });
   if (aliasExists) {
-    const physical = await resolvePhysicalIndex(clientToUse);
+    const physical = await resolvePhysicalIndex(esClient);
     logger.info({ alias: INDEX_NAME, physical }, 'Elasticsearch alias exists');
     return;
   }
 
-  const concreteExists = await clientToUse.indices.exists({ index: INDEX_NAME });
+  const concreteExists = await esClient.indices.exists({ index: INDEX_NAME });
   if (concreteExists) {
     logger.warn(
-      `Elasticsearch index '${INDEX_NAME}' exists as a concrete index (legacy). Run 'bun run bin/es.ts migrate' to convert to alias-based setup.`,
+      `Elasticsearch index '${INDEX_NAME}' exists as a concrete index (legacy). Run 'node --import tsx bin/es.ts migrate' to convert to alias-based setup.`,
     );
     return;
   }
@@ -182,13 +194,13 @@ export async function initializeElasticsearchIndexWithClient(esClient?: Client):
   const physicalName = `${INDEX_NAME}_v1`;
   logger.info({ index: physicalName, alias: INDEX_NAME }, 'Creating Elasticsearch index');
 
-  await clientToUse.indices.create({
+  await esClient.indices.create({
     index: physicalName,
-    settings: elasticsearchSchema.settings as any,
-    mappings: elasticsearchSchema.mappings as any,
+    settings: indexSchema.settings,
+    mappings: indexSchema.mappings,
   });
 
-  await clientToUse.indices.updateAliases({
+  await esClient.indices.updateAliases({
     actions: [{ add: { index: physicalName, alias: INDEX_NAME, is_write_index: true } }],
   });
 
@@ -199,31 +211,29 @@ export async function resetElasticsearchIndex(): Promise<void> {
   await resetElasticsearchIndexWithClient(client);
 }
 
-export async function resetElasticsearchIndexWithClient(esClient?: Client): Promise<void> {
-  const clientToUse = esClient || client;
-
-  const aliasExists = await clientToUse.indices.existsAlias({ name: INDEX_NAME });
+export async function resetElasticsearchIndexWithClient(esClient: Client = client): Promise<void> {
+  const aliasExists = await esClient.indices.existsAlias({ name: INDEX_NAME });
   if (aliasExists) {
-    const allVersioned = await listVersionedIndices(clientToUse);
+    const allVersioned = await listVersionedIndices(esClient);
     for (const idx of allVersioned) {
-      await clientToUse.indices.delete({ index: idx });
+      await esClient.indices.delete({ index: idx });
     }
     logger.info({ alias: INDEX_NAME, count: allVersioned.length }, 'Deleted alias and versioned indices');
   } else {
-    const concreteExists = await clientToUse.indices.exists({ index: INDEX_NAME });
+    const concreteExists = await esClient.indices.exists({ index: INDEX_NAME });
     if (concreteExists) {
-      await clientToUse.indices.delete({ index: INDEX_NAME });
+      await esClient.indices.delete({ index: INDEX_NAME });
     }
   }
 
   const physicalName = `${INDEX_NAME}_v1`;
-  await clientToUse.indices.create({
+  await esClient.indices.create({
     index: physicalName,
-    settings: elasticsearchSchema.settings as any,
-    mappings: elasticsearchSchema.mappings as any,
+    settings: indexSchema.settings,
+    mappings: indexSchema.mappings,
   });
 
-  await clientToUse.indices.updateAliases({
+  await esClient.indices.updateAliases({
     actions: [{ add: { index: physicalName, alias: INDEX_NAME, is_write_index: true } }],
   });
 
@@ -232,11 +242,9 @@ export async function resetElasticsearchIndexWithClient(esClient?: Client): Prom
 
 export async function reindexZeroDowntime(
   populateFn: (targetIndex: string) => Promise<ReindexResponse>,
-  esClient?: Client,
+  esClient: Client = client,
 ): Promise<ReindexResponse> {
-  const clientToUse = esClient || client;
-
-  const currentPhysical = await resolvePhysicalIndex(clientToUse);
+  const currentPhysical = await resolvePhysicalIndex(esClient);
   if (!currentPhysical) {
     throw new Error(`Alias '${INDEX_NAME}' does not exist. Run initialization first.`);
   }
@@ -244,10 +252,10 @@ export async function reindexZeroDowntime(
   const newPhysical = nextVersionName(currentPhysical);
   logger.info({ currentPhysical, newPhysical }, 'Starting zero-downtime reindex');
 
-  await clientToUse.indices.create({
+  await esClient.indices.create({
     index: newPhysical,
-    settings: elasticsearchSchema.settings as any,
-    mappings: elasticsearchSchema.mappings as any,
+    settings: indexSchema.settings,
+    mappings: indexSchema.mappings,
   });
 
   try {
@@ -257,9 +265,9 @@ export async function reindexZeroDowntime(
       throw new Error(`Reindex population failed: ${result.message}`);
     }
 
-    await clientToUse.indices.refresh({ index: newPhysical });
+    await esClient.indices.refresh({ index: newPhysical });
 
-    await clientToUse.indices.updateAliases({
+    await esClient.indices.updateAliases({
       actions: [
         { remove: { index: currentPhysical, alias: INDEX_NAME } },
         { add: { index: newPhysical, alias: INDEX_NAME, is_write_index: true } },
@@ -271,22 +279,20 @@ export async function reindexZeroDowntime(
     return result;
   } catch (error) {
     logger.error({ newPhysical, error }, 'Zero-downtime reindex failed, cleaning up new index');
-    await clientToUse.indices.delete({ index: newPhysical }).catch((deleteError) => {
+    await esClient.indices.delete({ index: newPhysical }).catch((deleteError) => {
       logger.warn({ newPhysical, deleteError }, 'Failed to clean up new index after reindex failure');
     });
     throw error;
   }
 }
 
-export async function rollbackAlias(esClient?: Client): Promise<{ from: string; to: string }> {
-  const clientToUse = esClient || client;
-
-  const currentPhysical = await resolvePhysicalIndex(clientToUse);
+export async function rollbackAlias(esClient: Client = client): Promise<{ from: string; to: string }> {
+  const currentPhysical = await resolvePhysicalIndex(esClient);
   if (!currentPhysical) {
     throw new Error(`Alias '${INDEX_NAME}' does not exist.`);
   }
 
-  const allVersioned = await listVersionedIndices(clientToUse);
+  const allVersioned = await listVersionedIndices(esClient);
   const currentVersion = extractVersion(currentPhysical);
 
   const previousIndices = allVersioned
@@ -299,7 +305,7 @@ export async function rollbackAlias(esClient?: Client): Promise<{ from: string; 
     throw new Error('No previous index available for rollback.');
   }
 
-  await clientToUse.indices.updateAliases({
+  await esClient.indices.updateAliases({
     actions: [
       { remove: { index: currentPhysical, alias: INDEX_NAME } },
       { add: { index: rollbackTarget, alias: INDEX_NAME, is_write_index: true } },
@@ -311,35 +317,31 @@ export async function rollbackAlias(esClient?: Client): Promise<{ from: string; 
   return { from: currentPhysical, to: rollbackTarget };
 }
 
-export async function cleanupOldIndices(esClient?: Client): Promise<string[]> {
-  const clientToUse = esClient || client;
-
-  const currentPhysical = await resolvePhysicalIndex(clientToUse);
+export async function cleanupOldIndices(esClient: Client = client): Promise<string[]> {
+  const currentPhysical = await resolvePhysicalIndex(esClient);
   if (!currentPhysical) {
     throw new Error(`Alias '${INDEX_NAME}' does not exist.`);
   }
 
-  const allVersioned = await listVersionedIndices(clientToUse);
+  const allVersioned = await listVersionedIndices(esClient);
   const toDelete = allVersioned.filter((idx) => idx !== currentPhysical);
 
   for (const idx of toDelete) {
-    await clientToUse.indices.delete({ index: idx });
+    await esClient.indices.delete({ index: idx });
     logger.info({ index: idx }, 'Deleted old versioned index');
   }
 
   return toDelete;
 }
 
-export async function migrateToAlias(esClient?: Client): Promise<void> {
-  const clientToUse = esClient || client;
-
-  const aliasExists = await clientToUse.indices.existsAlias({ name: INDEX_NAME });
+export async function migrateToAlias(esClient: Client = client): Promise<void> {
+  const aliasExists = await esClient.indices.existsAlias({ name: INDEX_NAME });
   if (aliasExists) {
     logger.info({ alias: INDEX_NAME }, 'Already an alias, no migration needed');
     return;
   }
 
-  const concreteExists = await clientToUse.indices.exists({ index: INDEX_NAME });
+  const concreteExists = await esClient.indices.exists({ index: INDEX_NAME });
   if (!concreteExists) {
     throw new Error(`Neither alias nor concrete index '${INDEX_NAME}' exists. Run initialization first.`);
   }
@@ -347,14 +349,14 @@ export async function migrateToAlias(esClient?: Client): Promise<void> {
   const physicalName = `${INDEX_NAME}_v1`;
   logger.info({ source: INDEX_NAME, target: physicalName }, 'Migrating concrete index to alias-based setup');
 
-  await clientToUse.indices.create({
+  await esClient.indices.create({
     index: physicalName,
-    settings: elasticsearchSchema.settings as any,
-    mappings: elasticsearchSchema.mappings as any,
+    settings: indexSchema.settings,
+    mappings: indexSchema.mappings,
   });
 
   logger.info('Copying documents from concrete index to versioned index via ES _reindex API...');
-  const reindexResult = await clientToUse.reindex(
+  const reindexResult = await esClient.reindex(
     {
       source: { index: INDEX_NAME },
       dest: { index: physicalName },
@@ -364,18 +366,18 @@ export async function migrateToAlias(esClient?: Client): Promise<void> {
   );
   logger.info({ total: reindexResult.total, created: reindexResult.created }, 'ES _reindex completed');
 
-  const oldCount = await clientToUse.count({ index: INDEX_NAME });
-  const newCount = await clientToUse.count({ index: physicalName });
+  const oldCount = await esClient.count({ index: INDEX_NAME });
+  const newCount = await esClient.count({ index: physicalName });
 
   if (oldCount.count !== newCount.count) {
-    await clientToUse.indices.delete({ index: physicalName }).catch(() => {});
+    await esClient.indices.delete({ index: physicalName }).catch(() => {});
     throw new Error(`Document count mismatch after migration: old=${oldCount.count}, new=${newCount.count}. Aborting.`);
   }
 
   logger.info({ count: newCount.count }, 'Document counts match. Swapping concrete index to alias...');
 
-  await clientToUse.indices.delete({ index: INDEX_NAME });
-  await clientToUse.indices.updateAliases({
+  await esClient.indices.delete({ index: INDEX_NAME });
+  await esClient.indices.updateAliases({
     actions: [{ add: { index: physicalName, alias: INDEX_NAME, is_write_index: true } }],
   });
 
