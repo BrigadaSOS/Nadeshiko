@@ -20,3 +20,11 @@ builder:
 
 ssh:
   user: docker
+
+# Kamal defaults to a single 10m json-file with no rotation history, which
+# truncates away the context around an incident.
+logging:
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: 5

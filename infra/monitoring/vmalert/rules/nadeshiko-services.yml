@@ -1,0 +1,92 @@
+# Alerts derived from OpenTelemetry span metrics, which are the only Nadeshiko
+# signals that reach VictoriaMetrics today. Every expression here was checked
+# against live series before being written; nothing alerts on a metric that is
+# not collected.
+#
+# Caveat that applies to the whole group: these come from the trace pipeline
+# (app -> otelcol spanmetrics connector -> VictoriaMetrics), so they go silent
+# when the pipeline breaks, not only when the service breaks. That is a feature
+# for NoTraffic (a dead exporter is also an outage worth knowing about) and a
+# limitation for the ratio alerts, which simply stop evaluating.
+#
+# The metric name really does read `..._calls_milliseconds_total`: the collector
+# appends the span-duration unit to the calls counter as well. Do not "fix" it to
+# `traces_span_metrics_calls_total` — that series exists but is only populated
+# for the browser service.
+
+groups:
+  - name: nadeshiko-services
+    interval: 1m
+    rules:
+      # `or vector(0)` is load-bearing. When a service stops reporting, its
+      # series disappears from the lookbehind window entirely and a bare
+      # `rate(...) == 0` would return an empty result — resolving the alert at
+      # exactly the moment it should fire. The fallback is only reachable when
+      # the left side is empty, because sum() without `by` yields the same empty
+      # label set that vector(0) carries.
+      - alert: NadeshikoBackendProdNoTraffic
+        expr: |
+          (sum(rate(traces_span_metrics_calls_milliseconds_total{service_name="nadeshiko-backend-prod",span_kind="SPAN_KIND_SERVER"}[10m])) or vector(0)) == 0
+        for: 15m
+        labels:
+          severity: critical
+          service: nadeshiko-backend-prod
+        annotations:
+          summary: "Production backend has served no requests for 15 minutes"
+          description: >-
+            No server spans from nadeshiko-backend-prod reached VictoriaMetrics in the
+            last 10 minutes. Either the API is down or its telemetry export is broken;
+            both need looking at. Check `https://api.nadeshiko.co/up`, then the
+            container on the host.
+          runbook: DEPLOYMENT.md#health-checks
+
+      - alert: NadeshikoFrontendProdNoTraffic
+        expr: |
+          (sum(rate(traces_span_metrics_calls_milliseconds_total{service_name="nadeshiko-frontend-prod",span_kind="SPAN_KIND_SERVER"}[10m])) or vector(0)) == 0
+        for: 15m
+        labels:
+          severity: critical
+          service: nadeshiko-frontend-prod
+        annotations:
+          summary: "Production frontend has served no requests for 15 minutes"
+          description: >-
+            No server spans from nadeshiko-frontend-prod reached VictoriaMetrics in the
+            last 10 minutes. Check `https://nadeshiko.co` and the Nitro container.
+          runbook: DEPLOYMENT.md#health-checks
+
+      # Guarded by a floor on total volume: at three requests per minute a single
+      # error would be a 30%+ ratio, and paging on that is how alerting gets muted.
+      - alert: NadeshikoBackendProdErrorRatio
+        expr: |
+          sum(rate(traces_span_metrics_calls_milliseconds_total{service_name="nadeshiko-backend-prod",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}[15m]))
+            /
+          sum(rate(traces_span_metrics_calls_milliseconds_total{service_name="nadeshiko-backend-prod",span_kind="SPAN_KIND_SERVER"}[15m]))
+            > 0.05
+          and
+          sum(rate(traces_span_metrics_calls_milliseconds_total{service_name="nadeshiko-backend-prod",span_kind="SPAN_KIND_SERVER"}[15m])) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          service: nadeshiko-backend-prod
+        annotations:
+          summary: "Over 5% of production backend requests are failing"
+          description: >-
+            {{ $value | humanizePercentage }} of server spans on nadeshiko-backend-prod
+            carry STATUS_CODE_ERROR over the last 15 minutes. Break it down by
+            span_name in Grafana to find the endpoint.
+
+      - alert: NadeshikoBackendProdLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name="nadeshiko-backend-prod",span_kind="SPAN_KIND_SERVER"}[15m]))
+          ) > 2000
+        for: 20m
+        labels:
+          severity: warning
+          service: nadeshiko-backend-prod
+        annotations:
+          summary: "Production backend p95 latency is above 2s"
+          description: >-
+            p95 server-span duration is {{ $value | humanize }}ms over 15 minutes.
+            Search queries hitting a degraded Elasticsearch are the usual cause —
+            check NadeshikoElasticsearchDown and the search index state.

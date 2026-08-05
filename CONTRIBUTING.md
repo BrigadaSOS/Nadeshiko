@@ -44,6 +44,15 @@ bun run dev:backend    # API on http://localhost:5000
 bun run dev:frontend   # App on http://localhost:3000
 ```
 
+`bun run dev` runs both in one shell and tears them down together on Ctrl-C. It
+does not fail fast: if one server dies the other keeps running, so watch the
+output for a process that has dropped out.
+
+On macOS, the AirPlay Receiver listens on port 5000 and the backend will fail to
+bind. Either turn it off under System Settings → General → AirDrop & Handoff, or
+set `PORT=5050` in `backend/.env` and point the frontend at it with
+`NUXT_BACKEND_INTERNAL_URL=http://localhost:5050` in `frontend/.env`.
+
 ## Commands
 
 Backend-specific (run from `backend/`):
@@ -64,6 +73,40 @@ Frontend-specific (run from `frontend/`):
 bun run dev            # Start the Nuxt dev server
 bun run build          # Build for production
 ```
+
+## Keeping the local Elasticsearch image current
+
+The Elasticsearch container is built locally from `backend/docker/Dockerfile.elasticsearch`
+(the stock image plus the ICU and Sudachi analysis plugins). Docker never rebuilds
+a locally built image on its own, so when someone bumps the pinned version your
+machine keeps running the old one until you rebuild it yourself — a stack can sit
+several versions behind without any visible symptom.
+
+`bun run setup` now compares the version baked into your image against the one
+the Dockerfile pins and tells you when they have drifted. To rebuild:
+
+```bash
+cd backend
+docker compose build elasticsearch
+docker compose up -d elasticsearch
+```
+
+**Across a major version you also have to discard the data volume.** Elasticsearch
+refuses to open a data directory written by an older major (it asks you to upgrade
+through the intervening version first), so the container will just fail to start.
+The local index is derived data — Postgres is the source of truth — so throwing it
+away is safe:
+
+```bash
+cd backend
+docker compose down elasticsearch
+docker volume rm backend_nadeshiko_elasticsearch_data
+docker compose up -d elasticsearch
+bun run es:reindex
+```
+
+If Elasticsearch fails to start for some other reason, `bun run setup` prints the
+tail of the container log rather than just timing out.
 
 ## Project structure
 

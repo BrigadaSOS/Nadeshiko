@@ -30,5 +30,9 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 EXPOSE 3000
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/up').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+
+# The entrypoint needs root to edit /etc/hosts; it drops to `node` before exec'ing.
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "--import", "./instrumentation.mjs", ".output/server/index.mjs"]
