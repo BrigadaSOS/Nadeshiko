@@ -1,7 +1,7 @@
 import { type Message } from 'discord.js';
 import { getSegment } from './api';
 import { buildSegmentMessage } from './embeds';
-import { BOT_CONFIG } from './config';
+import { searchUrl } from './links';
 import {
   buildSegmentButtons,
   loadVideoFiles,
@@ -32,13 +32,8 @@ export async function handleAutoEmbed(message: Message) {
 
   try {
     const { segment, media } = await getSegment(segmentId);
-    const params = new URLSearchParams();
-    if (media) {
-      params.set('media', media.publicId);
-      params.set('episode', String(segment.episode));
-    }
-    const qs = params.toString();
-    const linkUrl = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
+    const buildLinkUrl = () => searchUrl(media ? { mediaPublicId: media.publicId, episodes: [segment.episode] } : {});
+    const linkUrl = buildLinkUrl();
 
     const content = buildSegmentMessage(segment, media ?? undefined, settings);
     const row = buildSegmentButtons(linkUrl);
@@ -69,14 +64,7 @@ export async function handleAutoEmbed(message: Message) {
 
     collector.on('end', async () => {
       try {
-        const params = new URLSearchParams();
-        if (media) {
-          params.set('media', media.publicId);
-          params.set('episode', String(segment.episode));
-        }
-        const qs = params.toString();
-        const url = qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
-        await reply.edit({ components: [buildLinkOnlyRow(url)] });
+        await reply.edit({ components: [buildLinkOnlyRow(buildLinkUrl())] });
       } catch {}
     });
   } catch (error) {

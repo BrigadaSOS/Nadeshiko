@@ -61,6 +61,7 @@ export function registerMocks() {
       maxSearchResults: 20,
     },
     getApplicationId: () => 'fake-app-id',
+    validateConfig: () => {},
   }));
 
   mock.module('../../instrumentation', () => ({

@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { BOT_CONFIG } from './config';
+import { mediaSearchUrl, sentenceUrl, statsUrl } from './links';
 import type { Segment, Media, StatsResponse, MediaAutocompleteItem } from './api';
 import type { GuildSettings } from './settings';
 
@@ -46,12 +47,6 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}...`;
 }
 
-function mediaSearchUrl(media: { publicId: string }, episode?: number): string {
-  const params = new URLSearchParams({ media: media.publicId });
-  if (episode != null) params.set('episode', String(episode));
-  return `${BOT_CONFIG.frontendUrl}/search?${params}`;
-}
-
 export function buildSegmentMessage(
   segment: Segment,
   media: Media | undefined,
@@ -60,12 +55,11 @@ export function buildSegmentMessage(
   const mediaName = getMediaName(media);
   const timestamp = formatTimestamp(segment.startTimeMs);
 
-  const sentenceUrl = `${BOT_CONFIG.frontendUrl}/sentence/${segment.publicId}`;
-  const mediaLink = media ? `[${mediaName}](<${mediaSearchUrl(media)}>)` : mediaName;
+  const mediaLink = media ? `[${mediaName}](<${mediaSearchUrl(media.publicId)}>)` : mediaName;
   const episodeLink = media
-    ? `[Episode ${segment.episode}](<${mediaSearchUrl(media, segment.episode)}>)`
+    ? `[Episode ${segment.episode}](<${mediaSearchUrl(media.publicId, segment.episode)}>)`
     : `Episode ${segment.episode}`;
-  const timestampLink = `[${timestamp}](<${sentenceUrl}>)`;
+  const timestampLink = `[${timestamp}](<${sentenceUrl(segment.publicId)}>)`;
 
   const jaText = segment.textJa.highlight ? highlightToMarkdown(segment.textJa.highlight) : segment.textJa.content;
 
@@ -99,7 +93,7 @@ export function buildContextLines(
   const ep = segments[0]?.episode;
 
   const selectedSeg = segments[selectedIndex];
-  const mediaLink = firstMedia ? `[${mediaName}](<${mediaSearchUrl(firstMedia)}>)` : mediaName;
+  const mediaLink = firstMedia ? `[${mediaName}](<${mediaSearchUrl(firstMedia.publicId)}>)` : mediaName;
   const timestamp = formatTimestamp(selectedSeg.startTimeMs);
 
   const lines = segments.map((seg, i) => {
@@ -125,7 +119,7 @@ export function buildContextLines(
   });
 
   const header = `**Context: ${mediaName}** -- Episode ${ep}\n`;
-  const episodeLink = firstMedia ? `[Episode ${ep}](<${mediaSearchUrl(firstMedia, ep)}>)` : `Episode ${ep}`;
+  const episodeLink = firstMedia ? `[Episode ${ep}](<${mediaSearchUrl(firstMedia.publicId, ep)}>)` : `Episode ${ep}`;
   const footer = `\n\n${mediaLink} • ${episodeLink} • ${timestamp}`;
   return truncate(header + lines.join('\n\n') + footer, 2000);
 }
@@ -146,7 +140,7 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
   return new EmbedBuilder()
     .setColor(BOT_CONFIG.embedColor)
     .setTitle('Nadeshiko in Numbers')
-    .setURL(`${BOT_CONFIG.frontendUrl}/stats`)
+    .setURL(statsUrl())
     .addFields(
       {
         name: 'Corpus',
@@ -184,7 +178,7 @@ export function buildMediaSearchMessage(media: MediaAutocompleteItem[], query: s
   const lines = media.map((m, i) => {
     const name = getMediaName(m);
     const jaName = m.nameJa && m.nameJa !== name ? ` (${m.nameJa})` : '';
-    const link = mediaSearchUrl(m);
+    const link = mediaSearchUrl(m.publicId);
     return `**${i + 1}.** [${name}](<${link}>)${jaName}`;
   });
 

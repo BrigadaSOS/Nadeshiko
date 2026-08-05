@@ -6,7 +6,7 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { searchMedia, fetchRandom } from '../api';
+import { searchMedia, fetchRandom, parseCategory } from '../api';
 import type { Segment, Media } from '../api';
 import { buildMediaSearchMessage, getMediaName, type DisplayOptions } from '../embeds';
 import {
@@ -31,7 +31,7 @@ import {
   setupModalListener,
   MEDIA_PER_PAGE,
 } from '../searchModal';
-import { BOT_CONFIG } from '../config';
+import { searchUrl } from '../links';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
 import { getGuildSettings } from '../settings';
@@ -54,7 +54,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
   const query = interaction.options.getString('query', true);
-  const category = interaction.options.getString('category') as 'ANIME' | 'JDRAMA' | null;
+  const category = parseCategory(interaction.options.getString('category'));
 
   try {
     const result = await searchMedia(query);
@@ -98,12 +98,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const randomButtons = [rerollButton, advancedSearchButton, filterMediaButton];
 
-    const getMediaUrl = () => {
-      const params = new URLSearchParams();
-      if (searchState.mediaPublicId) params.set('media', searchState.mediaPublicId);
-      const qs = params.toString();
-      return qs ? `${BOT_CONFIG.frontendUrl}/search?${qs}` : `${BOT_CONFIG.frontendUrl}/search`;
-    };
+    const getMediaUrl = () => searchUrl({ mediaPublicId: searchState.mediaPublicId });
 
     const cleanupModal = setupModalListener(
       interaction.client,

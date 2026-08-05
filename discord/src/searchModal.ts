@@ -11,8 +11,8 @@ import {
   type StringSelectMenuInteraction,
   type Client,
 } from 'discord.js';
-import { search, getSearchStats } from './api';
-import type { SearchResponse, SearchStatsResponse } from './api';
+import { search, getSearchStats, parseSortMode } from './api';
+import type { Category, SearchResponse, SearchStatsResponse, SortMode } from './api';
 import { buildSegmentMessage, getMediaName, type DisplayOptions } from './embeds';
 import { buildSearchSelectComponents, loadVideoFiles } from './segmentReply';
 import { findMediaByPublicId } from './mediaCache';
@@ -43,9 +43,9 @@ export type SearchModalState = {
   currentPage: number;
   lastSearchOptions: {
     exactMatch?: boolean;
-    category?: string;
+    category?: Category;
     episodes?: number[];
-    sort?: string;
+    sort?: SortMode;
   };
 };
 
@@ -275,7 +275,7 @@ export function showSearchModal(
     .setLabel('Sort')
     .setPlaceholder('asc, desc, time_asc, time_desc, or random')
     .setStyle(TextInputStyle.Short)
-    .setValue(defaults?.sort ?? '')
+    .setValue(defaults?.sort?.toLowerCase() ?? '')
     .setRequired(false);
 
   modal.addComponents(
@@ -315,10 +315,10 @@ export async function handleModalSubmit(
 
   const searchQuery = modalInteraction.fields.getTextInputValue('search_query').trim();
   const episodesRaw = modalInteraction.fields.getTextInputValue('search_episodes').trim();
-  const sortRaw = modalInteraction.fields.getTextInputValue('search_sort').trim().toLowerCase();
+  const sortRaw = modalInteraction.fields.getTextInputValue('search_sort');
 
   const episodes = parseEpisodes(episodesRaw);
-  const sort = ['asc', 'desc', 'time_asc', 'time_desc', 'random'].includes(sortRaw) ? sortRaw : undefined;
+  const sort = parseSortMode(sortRaw);
 
   state.lastSearchOptions = { episodes, sort };
 
