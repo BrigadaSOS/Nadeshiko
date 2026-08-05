@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { reportError } from '~/utils/reportError';
+
 type AnnouncementData = {
   message: string;
   type: 'INFO' | 'WARNING' | 'MAINTENANCE';
@@ -16,7 +18,10 @@ const { data: announcement } = await useAsyncData(
         return null;
       }
       return { message: data.message, type: data.type, active: data.active } as AnnouncementData;
-    } catch {
+    } catch (error) {
+      // Silence is correct: the banner is purely additive chrome on every page, and
+      // "no announcement" is served as an error by the same endpoint. Report only.
+      reportError('system-announcement:fetch-failed', error);
       return null;
     }
   },

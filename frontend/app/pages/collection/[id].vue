@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 import { socialTitle } from '~/utils/metaTags';
+import { reportError } from '~/utils/reportError';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -24,7 +25,10 @@ const fetchSentenceData = async () => {
       return null;
     }
     return resolveSearchResponse(result.data);
-  } catch {
+  } catch (error) {
+    // Runs during SSR, where a toast has nowhere to go. SearchContainer renders its
+    // own empty/error state from the null; the report is what keeps this visible.
+    reportError('collection:sentences-fetch-failed', error, { 'collection.publicId': collectionId.value });
     return null;
   }
 };
@@ -34,7 +38,8 @@ const fetchStatsData = async () => {
     const sdk = useNadeshikoSdk();
     const data = await sdk.getCollectionStats(collectionId.value);
     return resolveStatsResponse(data);
-  } catch {
+  } catch (error) {
+    reportError('collection:stats-fetch-failed', error, { 'collection.publicId': collectionId.value });
     return null;
   }
 };

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse } from '~/utils/resolvers';
+import { reportError } from '~/utils/reportError';
 import type { SearchStatsResponse } from '~/types/search';
 
 const { t } = useI18n();
@@ -20,7 +21,10 @@ const fetchSentenceData = async () => {
       includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
       pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
     });
-  } catch {
+  } catch (error) {
+    // Runs during SSR, where a toast has nowhere to go. A missing segment and a
+    // failed lookup both render the empty permalink page, so report the difference.
+    reportError('sentence:fetch-failed', error, { 'segment.publicId': id.value });
     return null;
   }
 };

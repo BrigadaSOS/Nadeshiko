@@ -1,3 +1,6 @@
+import { type EffectScope, effectScope } from 'vue';
+import { handleApiError } from '~/utils/apiError';
+
 export type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
 type LanguageCode = 'EN' | 'ES';
@@ -14,6 +17,18 @@ const COOKIE_KEY_BY_CODE: Record<LanguageCode, string> = { EN: 'en', ES: 'es' };
 const CODE_BY_COOKIE_KEY: Record<string, LanguageCode> = { en: 'EN', es: 'ES' };
 
 const LANGUAGE_CODES: readonly LanguageCode[] = ['EN', 'ES'];
+
+const cookieOptions = {
+  maxAge: COOKIE_MAX_AGE,
+  path: '/',
+  sameSite: 'lax',
+  encode: String,
+  decode: String,
+} as const;
+
+// Holds the "user preferences changed" watcher. Client-only: on the server a
+// module-level scope would be shared by every request.
+let dbSyncScope: EffectScope | null = null;
 
 const defaultPreferences = (): TranslationVisibilityPreferences => ({});
 
@@ -70,15 +85,8 @@ export function useTranslationVisibility() {
 
   const prefs = useState<TranslationVisibilityPreferences>('translation-visibility-prefs', defaultPreferences);
   const initialized = useState<boolean>('translation-visibility-initialized', () => false);
-  const watchersReady = useState<boolean>('translation-visibility-watchers-ready', () => false);
 
-  const langCookie = useCookie(COOKIE_NAME, {
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-    sameSite: 'lax',
-    encode: String,
-    decode: String,
-  });
+  const langCookie = useCookie(COOKIE_NAME, { ...cookieOptions });
 
   const syncCookie = (p: TranslationVisibilityPreferences) => {
     const encoded = encodeCookie(p);
@@ -96,7 +104,10 @@ export function useTranslationVisibility() {
         [USER_PREFS_KEY]: next,
       };
       return true;
-    } catch {
+    } catch (error) {
+      // The cookie was already updated, so the preference holds for this browser --
+      // only cross-device persistence is lost. Not worth interrupting the reader.
+      handleApiError('translation-visibility:persist-failed', error, { toastKey: false });
       return false;
     }
   };
@@ -133,20 +144,27 @@ export function useTranslationVisibility() {
     }
   };
 
-  if (import.meta.client && !watchersReady.value) {
-    watchersReady.value = true;
+  // Registered once, in a detached scope: bound to the calling component it
+  // would be torn down as soon as that component unmounts, leaving later
+  // preference updates unobserved. The scope owns its own cookie ref for the
+  // same reason -- `useCookie`'s writer is scope-bound too.
+  if (import.meta.client && !dbSyncScope) {
+    dbSyncScope = effectScope(true);
+    dbSyncScope.run(() => {
+      const scopedCookie = useCookie(COOKIE_NAME, { ...cookieOptions });
 
-    watch(
-      () => user.preferences?.[USER_PREFS_KEY],
-      (newVal) => {
-        if (!user.isLoggedIn) return;
-        if (newVal === undefined || newVal === null) return;
-        const dbPrefs = getServerPreferences();
-        prefs.value = dbPrefs;
-        syncCookie(dbPrefs);
-      },
-      { deep: true },
-    );
+      watch(
+        () => user.preferences?.[USER_PREFS_KEY],
+        (newVal) => {
+          if (!user.isLoggedIn) return;
+          if (newVal === undefined || newVal === null) return;
+          const dbPrefs = getServerPreferences();
+          prefs.value = dbPrefs;
+          scopedCookie.value = encodeCookie(dbPrefs) || null;
+        },
+        { deep: true },
+      );
+    });
   }
 
   const englishMode = computed(() => modeOf(prefs.value, 'EN'));
