@@ -9,17 +9,25 @@ export interface SlimToken {
   p2?: string;
   p4?: string;
   cf?: string;
+  /** word | compound | inflected | counter | function | expression | symbol. */
+  kind?: string;
+  /** Where this word reads about on Shirabe: GET /v1/words/{wid}. Absent for
+   *  names, numbers, punctuation and anything with no dictionary entry. */
+  wid?: string;
+  /** Ruby, already aligned to this surface. Absent when there is none to show,
+   *  which is the ordinary case for an all-kana word. */
+  f?: Array<{ t: string; r?: string }>;
+  /** The finer morphemes inside a grouped token. Elasticsearch highlights
+   *  against its own analyzer, so a match can land inside one of ours. */
+  parts?: Array<{ s: string; b: number; e: number }>;
 }
 
 export interface EnrichedToken extends SlimToken {
-  matchType: 'match' | 'compound' | 'none';
+  matchType: 'match' | 'partial' | 'none';
   searchText: string;
-  groupId: number | null;
-  isGroupStem: boolean;
   displaySurface: string;
   dictForm: string;
   reading: string;
-  dictReading: string;
   posJa: string;
   posEn: string;
   posSubJa: string;
@@ -28,88 +36,29 @@ export interface EnrichedToken extends SlimToken {
   conjClassEn: string;
   conjFormJa: string;
   conjFormEn: string;
-  auxMeanings: Array<{ ja: string; en: string }>;
+  furigana: FuriganaSegment[];
+  /** Highlighted spans in token-local characters, when a match covers only part
+   *  of this token. Empty unless matchType is 'partial'. */
+  highlightRanges: Array<{ start: number; end: number }>;
 }
-
-interface GroupData {
-  stemIdx: number;
-  surface: string;
-  size: number;
-  readingKata: string;
-  auxMeanings: Array<{ ja: string; en: string }>;
-}
-
-const KANJI_RE = /[\u4E00-\u9FFF\u3400-\u4DBF]/;
 
 export interface FuriganaSegment {
   text: string;
   reading: string;
 }
 
-export function segmentFurigana(surface: string, reading: string): FuriganaSegment[] {
-  if (!KANJI_RE.test(surface)) return [{ text: surface, reading: '' }];
-
-  const parts: Array<{ text: string; isKanji: boolean }> = [];
-  let current = '';
-  let currentIsKanji = KANJI_RE.test(surface[0] ?? '');
-
-  for (const ch of surface) {
-    const isKanji = KANJI_RE.test(ch);
-    if (isKanji !== currentIsKanji) {
-      if (current) parts.push({ text: current, isKanji: currentIsKanji });
-      current = ch;
-      currentIsKanji = isKanji;
-    } else {
-      current += ch;
-    }
-  }
-  if (current) parts.push({ text: current, isKanji: currentIsKanji });
-
-  if (parts.length === 1) {
-    return [{ text: surface, reading: parts[0]?.isKanji ? reading : '' }];
-  }
-
-  const segments: FuriganaSegment[] = [];
-  let readingPos = 0;
-
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    if (!part) continue;
-
-    if (!part.isKanji) {
-      const kanaReading = katakanaToHiragana(part.text);
-      const idx = reading.indexOf(kanaReading, readingPos);
-      if (idx >= readingPos && idx <= readingPos + 10) {
-        if (idx > readingPos && i > 0) {
-          const prev = segments[segments.length - 1];
-          if (prev?.reading) {
-            prev.reading += reading.slice(readingPos, idx);
-          }
-        }
-        segments.push({ text: part.text, reading: '' });
-        readingPos = idx + kanaReading.length;
-      } else {
-        segments.push({ text: part.text, reading: '' });
-      }
-    } else {
-      let kanjiReading = '';
-      const nextNonKanji = parts[i + 1];
-      if (nextNonKanji && !nextNonKanji.isKanji) {
-        const kanaReading = katakanaToHiragana(nextNonKanji.text);
-        const idx = reading.indexOf(kanaReading, readingPos);
-        if (idx > readingPos) {
-          kanjiReading = reading.slice(readingPos, idx);
-          readingPos = idx;
-        }
-      } else if (i === parts.length - 1) {
-        kanjiReading = reading.slice(readingPos);
-        readingPos = reading.length;
-      }
-      segments.push({ text: part.text, reading: kanjiReading });
-    }
-  }
-
-  return segments;
+/** Ruby for a token, as Shirabe aligned it.
+ *
+ * There used to be a `segmentFurigana` here that split a surface into kanji runs
+ * and dealt them the reading a character at a time. It is gone: aligning kana to
+ * a mixed surface goes wrong on okurigana, 熟字訓, and any reading that spans two
+ * kanji runs, and Shirabe already does it against the dictionary that knows which
+ * reading applies to which writing. A token with no `f` has nothing to show, so
+ * it renders bare.
+ */
+export function furiganaOf(token: SlimToken): FuriganaSegment[] {
+  if (!token.f || token.f.length === 0) return [{ text: token.s, reading: '' }];
+  return token.f.map((segment) => ({ text: segment.t, reading: segment.r ?? '' }));
 }
 
 /**
@@ -127,8 +76,7 @@ export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): stri
     if (token.b > pos) {
       result += content.slice(pos, token.b);
     }
-    const reading = katakanaToHiragana(token.r ?? '');
-    for (const seg of segmentFurigana(token.s, reading)) {
+    for (const seg of furiganaOf(token)) {
       result += seg.reading ? ` ${seg.text}[${seg.reading}]` : seg.text;
     }
     pos = token.e;
@@ -141,9 +89,6 @@ export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): stri
   // No separator space needed when the sentence opens with a furigana word.
   return result.replace(/^ /, '');
 }
-
-const STEM_POS = new Set(['動詞', '形容詞']);
-const MORPHO_CONJ_PARTICLES = new Set(['て', 'で', 'ちゃ']);
 
 export function katakanaToHiragana(str: string): string {
   return str.replace(/[\u30A1-\u30F6]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
@@ -318,6 +263,12 @@ export function hiraganaToRomaji(str: string): string {
 
 export const POS_LABELS: Record<string, string> = {
   動詞: 'Verb',
+  // Shirabe groups a grammatical expression (について, ことになる) into one token,
+  // and 連語 is what it labels the result: there is no single morpheme to take a
+  // part of speech from. 形状詞 is ordinary UniDic for a na-adjective, which this
+  // table simply never had.
+  連語: 'Expression',
+  形状詞: 'Adjectival noun',
   名詞: 'Noun',
   形容詞: 'Adjective',
   副詞: 'Adverb',
@@ -370,192 +321,80 @@ export const CONJ_CLASS_LABELS: Record<string, string> = {
   文語サ行変格: 'Classical irreg.',
 };
 
-export const AUX_LABELS: Record<string, { ja: string; en: string }> = {
-  // 助動詞 (grammatical auxiliaries)
-  れる: { ja: '受身/可能', en: 'Passive/Potential' },
-  られる: { ja: '受身/可能', en: 'Passive/Potential' },
-  せる: { ja: '使役', en: 'Causative' },
-  させる: { ja: '使役', en: 'Causative' },
-  ない: { ja: '否定', en: 'Negative' },
-  ぬ: { ja: '否定', en: 'Negative' },
-  た: { ja: '過去', en: 'Past' },
-  て: { ja: 'て形', en: 'Te-form' },
-  てる: { ja: '進行/継続', en: 'Progressive' },
-  ます: { ja: '丁寧', en: 'Polite' },
-  たい: { ja: '希望', en: 'Desiderative' },
-  だ: { ja: '断定', en: 'Copula' },
-  です: { ja: '丁寧', en: 'Polite Copula' },
-  そうだ: { ja: '様態/伝聞', en: 'Hearsay/Seems' },
-  ようだ: { ja: '様態', en: 'Appears (like)' },
-  らしい: { ja: '推定', en: 'Apparently' },
-  べし: { ja: '当然/義務', en: 'Should/Must' },
-  // 補助動詞 (subsidiary verbs — 動詞 with p1=非自立可能)
-  いる: { ja: '進行/状態', en: 'Progressive' },
-  居る: { ja: '進行/状態', en: 'Progressive' },
-  ある: { ja: '結果状態', en: 'Resultative' },
-  有る: { ja: '結果状態', en: 'Resultative' },
-  くる: { ja: '変化', en: 'Gradual change' },
-  来る: { ja: '変化', en: 'Gradual change' },
-  いく: { ja: '推移', en: 'Ongoing change' },
-  行く: { ja: '推移', en: 'Ongoing change' },
-  しまう: { ja: '完了', en: 'Completive' },
-  仕舞う: { ja: '完了', en: 'Completive' },
-  おく: { ja: '準備', en: 'Preparatory' },
-  置く: { ja: '準備', en: 'Preparatory' },
-  みる: { ja: '試み', en: 'Try' },
-  見る: { ja: '試み', en: 'Try' },
-  くれる: { ja: '恩恵(くれる)', en: 'For me' },
-  くださる: { ja: '丁寧恩恵', en: 'Please (polite)' },
-  あげる: { ja: '恩恵(あげる)', en: 'For someone' },
-  上げる: { ja: '恩恵(あげる)', en: 'For someone' },
-  もらう: { ja: '恩恵(もらう)', en: 'Receive favor' },
-  貰う: { ja: '恩恵(もらう)', en: 'Receive favor' },
-  いただく: { ja: '丁寧恩恵', en: 'Receive (humble)' },
-  なる: { ja: '変化', en: 'Become' },
-  する: { ja: '〜する', en: 'Suru' },
-  できる: { ja: '可能', en: 'Can' },
-  出す: { ja: '突発', en: 'Start suddenly' },
-  始める: { ja: '開始', en: 'Begin' },
-  続ける: { ja: '継続', en: 'Continue' },
-  終わる: { ja: '完了', en: 'Finish' },
-  すぎる: { ja: '過度', en: 'Too much' },
-  過ぎる: { ja: '過度', en: 'Too much' },
-  // 補助形容詞 (subsidiary adjectives — 形容詞 with p1=非自立可能)
-  いい: { ja: '許容', en: 'OK/Fine' },
-  よい: { ja: '許容', en: 'OK/Fine' },
-  良い: { ja: '許容', en: 'OK/Fine' },
-  欲しい: { ja: '希望', en: 'Want' },
-  なし: { ja: '否定', en: 'Negative' },
-};
+/** Parse the `<em>` spans Elasticsearch marks a match with into character ranges
+ *  over the plain text. */
+function highlightRanges(highlight: string): Array<{ start: number; end: number }> {
+  const ranges: Array<{ start: number; end: number }> = [];
+  let charPos = 0;
+  let i = 0;
 
-function addAuxLabel(group: GroupData, dictForm: string) {
-  const label = AUX_LABELS[dictForm];
-  if (label && !group.auxMeanings.some((a) => a.en === label.en)) {
-    group.auxMeanings.push(label);
-  }
-}
-
-function canContinueGroup(token: SlimToken): boolean {
-  if (token.p === '助動詞') return true;
-  if (token.p === '助詞' && token.p1 === '接続助詞' && MORPHO_CONJ_PARTICLES.has(token.s)) return true;
-  if (STEM_POS.has(token.p) && token.p1 === '非自立可能') return true;
-  return false;
-}
-
-export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedToken[] {
-  if (tokens.length === 0) return [];
-
-  const matchRanges: Array<{ start: number; end: number }> = [];
-  if (highlight) {
-    let charPos = 0;
-    let i = 0;
-    while (i < highlight.length) {
-      if (highlight.startsWith('<em>', i)) {
-        const start = charPos;
-        i += 4;
-        while (i < highlight.length && !highlight.startsWith('</em>', i)) {
-          charPos++;
-          i++;
-        }
-        matchRanges.push({ start, end: charPos });
-        i += 5;
-      } else {
+  while (i < highlight.length) {
+    if (highlight.startsWith('<em>', i)) {
+      const start = charPos;
+      i += 4;
+      while (i < highlight.length && !highlight.startsWith('</em>', i)) {
         charPos++;
         i++;
       }
-    }
-  }
-
-  // Build compound groups in a single pass: stem (verb/adjective) + auxiliaries/particles
-  const groupByIndex = new Map<number, number>();
-  const groups = new Map<number, GroupData>();
-  let groupId = 0;
-  let inGroup = false;
-
-  for (let idx = 0; idx < tokens.length; idx++) {
-    const token = tokens[idx];
-    if (!token) continue;
-    const isAuxCapable = STEM_POS.has(token.p) && token.p1 === '非自立可能';
-
-    if (STEM_POS.has(token.p) && !(inGroup && isAuxCapable)) {
-      if (inGroup) groupId++;
-      inGroup = true;
-      groupByIndex.set(idx, groupId);
-      groups.set(groupId, {
-        stemIdx: idx,
-        surface: token.s,
-        size: 1,
-        readingKata: token.r,
-        auxMeanings: [],
-      });
-    } else if (inGroup && canContinueGroup(token)) {
-      groupByIndex.set(idx, groupId);
-      const g = groups.get(groupId);
-      if (!g) continue;
-      g.surface += token.s;
-      g.size++;
-      g.readingKata += token.r;
-      addAuxLabel(g, token.d);
+      ranges.push({ start, end: charPos });
+      i += 5;
     } else {
-      if (inGroup) {
-        groupId++;
-        inGroup = false;
-      }
+      charPos++;
+      i++;
     }
   }
+  return ranges;
+}
 
-  // Base match types from ES highlight ranges
-  const baseMatchTypes = tokens.map((token) =>
-    matchRanges.some((r) => token.b < r.end && token.e > r.start) ? ('match' as const) : ('none' as const),
-  );
+/** Presentation for a token, from a token that already knows what it is.
+ *
+ * This used to reconstruct the word: a pass that walked the array joining a verb
+ * to its auxiliaries, a table of 55 auxiliary glosses, and a set of rules about
+ * which particles continue a group. Shirabe does that upstream now and 食べました
+ * arrives as one token, so all of it is gone and this only labels and highlights.
+ *
+ * The one genuinely harder thing is highlighting. Elasticsearch analyzes textJa
+ * with its OWN embedded Sudachi, so a match range can land inside one of our
+ * tokens rather than on its edges. Such a token is 'partial' and carries the
+ * offending ranges in token-local characters, so a caller can emphasize the part
+ * that matched instead of lighting up a whole word the reader did not search for.
+ */
+export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedToken[] {
+  if (tokens.length === 0) return [];
 
-  return tokens.map((token, idx) => {
-    const gid = groupByIndex.get(idx);
-    const group = gid !== undefined ? groups.get(gid) : undefined;
-    const isMultiTokenGroup = group !== undefined && group.size > 1;
-    const stemToken = group ? tokens[group.stemIdx] : undefined;
+  const ranges = highlight ? highlightRanges(highlight) : [];
 
-    let matchType: 'match' | 'compound' | 'none' = baseMatchTypes[idx] ?? 'none';
-    if (matchType === 'none' && isMultiTokenGroup && group?.stemIdx !== idx) {
-      if (baseMatchTypes[group?.stemIdx] === 'match') {
-        matchType = 'compound';
-      }
-    }
+  return tokens.map((token) => {
+    const overlapping = ranges.filter((r) => token.b < r.end && token.e > r.start);
+    const covered = overlapping.some((r) => r.start <= token.b && r.end >= token.e);
+    const matchType: EnrichedToken['matchType'] = covered ? 'match' : overlapping.length > 0 ? 'partial' : 'none';
 
-    const posForLabel = isMultiTokenGroup && stemToken ? stemToken.p : token.p;
-    const tokenForSub = isMultiTokenGroup && stemToken ? stemToken : token;
-    const posSubJa = tokenForSub.p1 ?? '';
-    const showSubPos = posSubJa && posSubJa !== '非自立可能';
-
-    const stemForClass = isMultiTokenGroup && stemToken ? stemToken : token;
-    const p4Base = stemForClass.p4?.split('-')[0] ?? '';
-    const conjClassJa = STEM_POS.has(stemForClass.p) && p4Base ? p4Base : '';
-
-    const cfBase = token.cf?.split('-')[0] ?? '';
-    const isConjugatable = token.p === '動詞' || token.p === '形容詞' || token.p === '助動詞';
-    const conjFormJa = !isMultiTokenGroup && isConjugatable && cfBase ? cfBase : '';
-
-    const isGroupStem = isMultiTokenGroup && group?.stemIdx === idx;
+    const posSubJa = token.p1 ?? '';
+    const conjClassJa = token.p4?.split('-')[0] ?? '';
+    const conjFormJa = token.cf?.split('-')[0] ?? '';
 
     return {
       ...token,
       matchType,
-      searchText: isMultiTokenGroup && stemToken ? stemToken.d : token.d,
-      groupId: isMultiTokenGroup ? (gid ?? null) : null,
-      isGroupStem,
-      displaySurface: isMultiTokenGroup ? group?.surface : token.s,
-      dictForm: isMultiTokenGroup && stemToken ? stemToken.d : token.d,
-      reading: isMultiTokenGroup ? katakanaToHiragana(group?.readingKata) : katakanaToHiragana(token.r),
-      dictReading: isMultiTokenGroup ? '' : katakanaToHiragana(token.r),
-      posJa: posForLabel,
-      posEn: POS_LABELS[posForLabel] ?? posForLabel,
-      posSubJa: showSubPos ? posSubJa : '',
-      posSubEn: showSubPos ? (POS_SUB_LABELS[posSubJa] ?? '') : '',
+      highlightRanges: covered
+        ? []
+        : overlapping.map((r) => ({
+            start: Math.max(0, r.start - token.b),
+            end: Math.min(token.e - token.b, r.end - token.b),
+          })),
+      searchText: token.d,
+      displaySurface: token.s,
+      dictForm: token.d,
+      reading: katakanaToHiragana(token.r),
+      furigana: furiganaOf(token),
+      posJa: token.p,
+      posEn: POS_LABELS[token.p] ?? token.p,
+      posSubJa,
+      posSubEn: posSubJa ? (POS_SUB_LABELS[posSubJa] ?? '') : '',
       conjClassJa,
       conjClassEn: conjClassJa ? (CONJ_CLASS_LABELS[conjClassJa] ?? '') : '',
       conjFormJa,
       conjFormEn: conjFormJa ? (CONJ_FORM_LABELS[conjFormJa] ?? '') : '',
-      auxMeanings: isMultiTokenGroup ? group?.auxMeanings : [],
     };
   });
 }
