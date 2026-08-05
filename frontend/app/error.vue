@@ -12,13 +12,13 @@ const pageTitle = computed(() => {
   return `${msg} | Nadeshiko`;
 });
 
-useHead({
-  title: pageTitle,
+useHead(() => ({
+  title: pageTitle.value,
   meta: [
-    { name: 'description', content: 'The page you are looking for could not be found.' },
+    { name: 'description', content: t('errorPage.metaDescription') },
     { name: 'robots', content: 'noindex' },
   ],
-});
+}));
 
 const homePath = computed(() => localePath('/'));
 const handleError = () => clearError({ redirect: homePath.value });
@@ -32,7 +32,7 @@ const handleError = () => clearError({ redirect: homePath.value });
           data-testid="error-image"
           class="mb-6"
           src="/assets/no-results.gif"
-          alt="Not found"
+          :alt="t('errorPage.imageAlt')"
         >
         <h2 data-testid="error-status-code" class="font-bold text-red-400 text-3xl">
           {{ error.statusCode }}

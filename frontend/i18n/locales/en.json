@@ -1,4 +1,8 @@
 {
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "rateLimited": "Too many requests. Please wait a moment and try again."
+  },
   "navbar": {
     "buttons": {
       "home": "Home",
@@ -20,11 +24,14 @@
     }
   },
   "common": {
+    "cancel": "Cancel",
     "close": "Close",
+    "confirm": "Confirm",
     "logoAlt": "Nadeshiko logo",
     "navigationMenu": "Navigation menu",
     "searchAnything": "Search anything!",
-    "toggleNavigation": "Toggle navigation"
+    "toggleNavigation": "Toggle navigation",
+    "translationUnavailable": "This page is not available in your language yet, so the English version is shown."
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",
@@ -101,9 +108,14 @@
     "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulary"
   },
+  "hiddenMedia": {
+    "updateError": "Couldn't update your hidden media. Please try again."
+  },
   "mediaBrowse": {
     "showHiddenMedia": "Show hidden media",
-    "hideHiddenMedia": "Hide hidden media"
+    "hideHiddenMedia": "Hide hidden media",
+    "loadError": "Couldn't load the media list.",
+    "loadMoreError": "Couldn't load more media."
   },
   "searchSettingsModal": {
     "exactMatchTitle": "Exact match",
@@ -142,6 +154,7 @@
     "wordLimitExceeded": "The word limit has been exceeded: {count} / 500",
     "inputFormatError": "The input format is incorrect. Check if there are commas and line breaks simultaneously.",
     "notAvailable": "Not available",
+    "searchError": "The word search could not be completed. Please try again.",
     "searchTypeLabel": "Search type: {type}",
     "searchTypeExact": "Exact",
     "searchTypeNormal": "Normal",
@@ -153,6 +166,9 @@
   "modalMediaEdit": {
     "title": "Edit Media",
     "editButton": "Edit",
+    "publicId": "Public ID",
+    "cover": "Cover",
+    "banner": "Banner",
     "nameJa": "Japanese Name",
     "nameRomaji": "Romaji Name",
     "nameEn": "English Name",
@@ -246,7 +262,10 @@
     "noEpisodes": "No episodes found"
   },
   "segmentSidebar": {
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "filtersTitle": "Filters",
+    "openActionsMenu": "Open actions menu",
+    "close": "Close"
   },
   "searchpage": {
     "main": {
@@ -312,12 +331,16 @@
         "errorcopiedsharingurl": "Error copying URL to clipboard. Try again.",
         "collectionAdded": "Added to \"{name}\"",
         "collectionAddFailed": "Could not add to collection. Try again.",
-        "mtTooltip": "This sentence has been machine translated, content might not be accurate"
+        "mtTooltip": "This sentence has been machine translated, content might not be accurate",
+        "zoomedImage": "Zoomed image",
+        "collectionsLoadFailed": "Couldn't load your collections.",
+        "collectionRemoveFailed": "Couldn't remove that sentence from the collection."
       }
     },
     "modalcontext": {
       "labels": {
-        "context": "Context"
+        "context": "Context",
+        "loadError": "Couldn't load the surrounding context."
       }
     }
   },
@@ -375,7 +398,12 @@
         "showing": "Showing {start}–{end} of {total}",
         "previous": "Previous",
         "next": "Next"
-      }
+      },
+      "loadError": "Could not load the user list.",
+      "banSuccess": "{name} has been banned.",
+      "banError": "Could not ban {name}.",
+      "unbanSuccess": "{name} has been unbanned.",
+      "unbanError": "Could not unban {name}."
     },
     "announcement": {
       "title": "Announcement",
@@ -517,7 +545,11 @@
         "nameLabel": "Name",
         "namePlaceholder": "Enter a new name for this API key",
         "save": "Save"
-      }
+      },
+      "loadError": "Couldn't load your API keys.",
+      "createKeyError": "Couldn't create the API key.",
+      "renameKeyError": "Couldn't rename the API key.",
+      "deactivateKeyError": "Couldn't deactivate the API key."
     },
     "account": {
       "infoTitle": "Information",
@@ -614,7 +646,8 @@
         "desktop": "Desktop",
         "unknownOs": "Unknown OS",
         "unknownBrowser": "Unknown browser"
-      }
+      },
+      "exportError": "Couldn't export your data. Please try again."
     },
     "collections": {
       "title": "Collections",
@@ -662,7 +695,8 @@
       "createSuccess": "Collection created",
       "createError": "Failed to create collection",
       "nameLabel": "Name",
-      "namePlaceholder": "My collection"
+      "namePlaceholder": "My collection",
+      "loadError": "Couldn't load your collections."
     },
     "anki": {
       "syncStatus": "Sync Status",
@@ -701,19 +735,36 @@
       "modal": {
         "cancel": "Cancel",
         "save": "Save"
-      }
+      },
+      "profileSaveError": "Couldn't save your Anki profile."
     },
     "labs": {
       "title": "Nadeshiko Labs",
       "description": "Try experimental features before they are released to everyone!",
       "feedbackDescription": "These features are still under testing and might change at any time, but we would love to hear your feedback to help us improve them before they become default features in Nadeshiko.",
-      "empty": "No lab features available at this time."
+      "empty": "No lab features available at this time.",
+      "toggleError": "Couldn't change that experiment. Please try again."
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "empty": "No blog posts available yet. Stay tuned!",
+    "readMore": "Read more",
+    "backToBlog": "Back to Blog",
+    "pagination": {
+      "label": "Blog pagination",
+      "previous": "Previous",
+      "next": "Next",
+      "previousPage": "Previous page",
+      "nextPage": "Next page"
     }
   },
   "errorPage": {
     "pageNotFound": "Page Not Found",
     "somethingWentWrong": "Something went wrong.",
-    "goHome": "Go Home"
+    "goHome": "Go Home",
+    "metaDescription": "The page you are looking for could not be found.",
+    "imageAlt": "Not found"
   },
   "contentPage": {
     "emptyMessage": "Stay tuned; it will be added later 😉"
@@ -764,7 +815,9 @@
     "hiddenMediaNotice": "This media is in your hidden list",
     "hiddenMediaDescription": "You've hidden this media from your search results. You can still view it temporarily.",
     "hiddenMediaShowAnyway": "Show anyway",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "hiddenMediaImageAlt": "Hidden media illustration",
+    "noResultsImageAlt": "No results illustration"
   },
   "reports": {
     "modalTitle": "Report an Issue",
@@ -1003,7 +1056,8 @@
       "empty": "No coverage data available yet.",
       "fullCorpus": "Full corpus ({count}k words)",
       "topWordsK": "Top {count}k words",
-      "topWords": "Top {count} words"
+      "topWords": "Top {count} words",
+      "updateError": "Couldn't start the coverage update."
     },
     "translations": {
       "title": "Translation Availability",
@@ -1047,6 +1101,7 @@
       "prefix": "Frequency data from the",
       "source": "Jiten",
       "suffix": "anime corpus. Showing {shown} of {total} words."
-    }
+    },
+    "loadError": "Couldn't load the word list."
   }
 }
