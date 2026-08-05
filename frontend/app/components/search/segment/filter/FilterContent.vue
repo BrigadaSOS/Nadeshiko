@@ -1,23 +1,34 @@
-<script setup>
+<script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
+import type { ResolvedMediaStats, SearchSidebarData } from '~/types/search';
+
+/** One row of the media filter list; the leading "all" row carries a null id. */
+type MediaFilterRow = {
+  mediaPublicId: string | null;
+  displayName: string;
+  matchCount: number;
+};
 
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const { mediaName: getMediaName } = useMediaName();
-const props = defineProps(['searchData', 'categorySelected']);
-const mediaStatistics = ref([]);
+const props = defineProps<{
+  searchData?: SearchSidebarData | null;
+  categorySelected?: string | null;
+}>();
+const mediaStatistics = ref<ResolvedMediaStats[]>([]);
 const querySearchMedia = ref('');
 const debouncedQuerySearchMedia = ref('');
-const categorySelected = ref(props.categorySelected);
+const categorySelected = ref<string>(props.categorySelected ?? 'all');
 const categoryApiMapping = CATEGORY_API_MAPPING;
 
 // Cache translated strings outside computed to avoid repeated lookups
 const allLabel = computed(() => t('searchpage.main.labels.all'));
 
 // Debounce implementation: update debounced value 300ms after input changes
-let debounceTimer = null;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 watch(
   querySearchMedia,
   (newValue) => {
@@ -64,11 +75,11 @@ const normalizedStatistics = computed(() => {
   }));
 });
 
-const filteredMedia = computed(() => {
+const filteredMedia = computed<MediaFilterRow[]>(() => {
   const selectedCategory = categoryApiMapping[categorySelected.value];
   const totalCount = normalizedStatistics.value
     .filter((item) => categorySelected.value === 'all' || item.category === selectedCategory)
-    .reduce((a, b) => a + parseInt(b.matchCount || 0, 10), 0);
+    .reduce((a, b) => a + (b.matchCount ?? 0), 0);
 
   const filteredItems = normalizedStatistics.value.filter((item) => {
     const categoryFilter = categorySelected.value === 'all' || item.category === selectedCategory;
@@ -111,7 +122,7 @@ const scrollToTop = () => {
   }
 };
 
-const filterAnime = (mediaPublicId, _animeName) => {
+const filterAnime = (mediaPublicId: string | null, _animeName: string) => {
   const query = { ...route.query };
 
   if (!mediaPublicId) {

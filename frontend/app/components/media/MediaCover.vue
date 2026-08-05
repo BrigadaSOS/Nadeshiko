@@ -1,8 +1,15 @@
-<script setup>
-const props = defineProps({
-  media: { type: Object, required: true },
-  alt: { type: String, default: 'Media cover image' },
-});
+<script setup lang="ts">
+import type { Media } from '@brigadasos/nadeshiko-sdk';
+
+const props = withDefaults(
+  defineProps<{
+    media: Pick<Media, 'category' | 'coverUrl'>;
+    alt?: string;
+  }>(),
+  {
+    alt: 'Media cover image',
+  },
+);
 
 const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
 </script>

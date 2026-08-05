@@ -7,11 +7,13 @@
     </div>
   </template>
 
-  <script setup>
-defineProps({
-  showBorder: {
-    type: Boolean,
-    default: true,
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    showBorder?: boolean;
+  }>(),
+  {
+    showBorder: true,
   },
-});
+);
 </script>

@@ -1,25 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import { mdiTranslate } from '@mdi/js';
 
 import { useI18n } from 'vue-i18n';
 import { useLocalePreference } from '~/composables/useLocalePreference';
 
-const props = defineProps({
-  testId: {
-    type: String,
-    default: 'language-selector',
+const props = withDefaults(
+  defineProps<{
+    testId?: string;
+    dropUp?: boolean;
+  }>(),
+  {
+    testId: 'language-selector',
+    dropUp: false,
   },
-  dropUp: {
-    type: Boolean,
-    default: false,
-  },
-});
+);
 
 const { locale, locales, setLocale } = useI18n();
 const switchLocalePath = useSwitchLocalePath();
 const { setPreferredLocale } = useLocalePreference();
 
-function getLocaleName(code) {
+type LocaleCode = Parameters<typeof setLocale>[0];
+
+function getLocaleName(code: LocaleCode) {
   const locale = locales.value.find((i) => i.code === code);
   return locale ? locale.name : code;
 }
@@ -28,14 +30,14 @@ const availableLocales = computed(() => {
   return locales.value;
 });
 
-async function switchLanguage(localeCode) {
+async function switchLanguage(localeCode: LocaleCode) {
   setPreferredLocale(localeCode);
   await setLocale(localeCode);
 }
 
 const dropdownContainerClass = computed(() => {
   const position = props.dropUp ? 'bottom-full mb-1' : 'top-full mt-1';
-  return `nd-dropdown-menu absolute ${position} right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 dark:bg-neutral-800 border-none rounded-lg`;
+  return `absolute ${position} right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 dark:bg-neutral-800 border-none rounded-lg`;
 });
 </script>
 <template>
@@ -43,7 +45,7 @@ const dropdownContainerClass = computed(() => {
     :dropdownContainerClass="dropdownContainerClass">
     <template #default>
       <SearchDropdownMainButton
-        dropdownButtonClass="nd-dropdown-toggle py-2 px-4 w-full inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
+        dropdownButtonClass="py-2 px-4 w-full inline-flex items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg  border hover:bg-black/5 hover:border-white/70 transition-all  text-gray-800   disabled:opacity-50 disabled:pointer-events-none  dark:text-white"
         dropdownId="nd-dropdown-language">
         <UiBaseIcon :path="mdiTranslate" />
         {{ getLocaleName(locale) }}

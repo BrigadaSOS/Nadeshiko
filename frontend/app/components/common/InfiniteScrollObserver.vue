@@ -2,10 +2,12 @@
   <div ref="observer" class="h-10 w-full"></div>
 </template>
 
-<script setup>
-const observer = ref(null);
-const emit = defineEmits(['intersect']);
-const intersectionObserver = ref(null);
+<script setup lang="ts">
+const observer = ref<HTMLElement | null>(null);
+const emit = defineEmits<{
+  intersect: [];
+}>();
+const intersectionObserver = ref<IntersectionObserver | null>(null);
 
 onMounted(async () => {
   await nextTick();

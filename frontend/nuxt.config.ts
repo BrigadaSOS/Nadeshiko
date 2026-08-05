@@ -71,6 +71,11 @@ export default defineNuxtConfig({
   css: ['~/assets/css/tailwind.css'],
   runtimeConfig: {
     nadeshikoApiKey: env.NUXT_NADESHIKO_API_KEY,
+    // Shirabe parses the corpus and serves the definitions behind every word.
+    // Server-side only, deliberately: it is a service key of ours, and anything
+    // under `public` below is shipped to the browser.
+    shirabeApiKey: env.NUXT_SHIRABE_API_KEY,
+    shirabeApiBase: env.NUXT_SHIRABE_API_BASE || 'https://shirabe.org',
     internalProxySecret: env.NUXT_INTERNAL_PROXY_SECRET,
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
