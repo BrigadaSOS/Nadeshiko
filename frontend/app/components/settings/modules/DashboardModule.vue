@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core';
+import { handleApiError } from '~/utils/apiError';
 
+// TODO(sdk): `/v1/admin/users-with-providers` is now in the OpenAPI spec, but the SDK has
+// not been republished yet, so no generated type exists to import. Drop this local shape
+// (and the `id` widening below — the contract types it as an integer) once it has.
 type AdminUser = {
   id: string;
   name: string;
@@ -80,6 +84,8 @@ async function fetchUsers() {
     });
     users.value = result.users ?? [];
     total.value = result.total ?? 0;
+  } catch (error) {
+    handleApiError('admin:users-fetch-failed', error, { toastKey: 'accountSettings.dashboard.loadError' });
   } finally {
     isLoading.value = false;
   }
@@ -119,21 +125,39 @@ async function handleImpersonate(user: AdminUser) {
 
 async function handleBan(user: AdminUser) {
   closeMenu();
-  await $fetch('/v1/auth/admin/ban-user', {
-    method: 'POST',
-    credentials: 'include',
-    body: { userId: user.id, banReason: '' },
-  });
+  try {
+    await $fetch('/v1/auth/admin/ban-user', {
+      method: 'POST',
+      credentials: 'include',
+      body: { userId: user.id, banReason: '' },
+    });
+  } catch (error) {
+    // Toasted here rather than via `toastKey`: the copy interpolates the user's name.
+    handleApiError('admin:ban-user-failed', error, { toastKey: false, context: { 'user.id': user.id } });
+    useToastError(t('accountSettings.dashboard.banError', { name: user.name || user.email }));
+    return;
+  }
+
+  useToastSuccess(t('accountSettings.dashboard.banSuccess', { name: user.name || user.email }));
   await fetchUsers();
 }
 
 async function handleUnban(user: AdminUser) {
   closeMenu();
-  await $fetch('/v1/auth/admin/unban-user', {
-    method: 'POST',
-    credentials: 'include',
-    body: { userId: user.id },
-  });
+  try {
+    await $fetch('/v1/auth/admin/unban-user', {
+      method: 'POST',
+      credentials: 'include',
+      body: { userId: user.id },
+    });
+  } catch (error) {
+    // Toasted here rather than via `toastKey`: the copy interpolates the user's name.
+    handleApiError('admin:unban-user-failed', error, { toastKey: false, context: { 'user.id': user.id } });
+    useToastError(t('accountSettings.dashboard.unbanError', { name: user.name || user.email }));
+    return;
+  }
+
+  useToastSuccess(t('accountSettings.dashboard.unbanSuccess', { name: user.name || user.email }));
   await fetchUsers();
 }
 

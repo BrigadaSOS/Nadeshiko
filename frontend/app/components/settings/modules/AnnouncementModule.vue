@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { handleApiError } from '~/utils/apiError';
+
 type AnnouncementData = {
   message: string;
   type: 'INFO' | 'WARNING' | 'MAINTENANCE';
@@ -21,7 +23,10 @@ const { data: existing } = await useAsyncData(
     try {
       const data = await sdk.getAnnouncement();
       return data ? ({ message: data.message, type: data.type, active: data.active } as AnnouncementData) : null;
-    } catch {
+    } catch (error) {
+      // No announcement configured is the normal case and also throws here, so the
+      // form still opens blank -- but the failure must not vanish entirely.
+      handleApiError('admin:announcement-fetch-failed', error, { toastKey: false });
       return null;
     }
   },
@@ -57,8 +62,10 @@ const save = async () => {
     });
     existing.value = data as AnnouncementData;
     useToastSuccess(t('accountSettings.announcement.updated'));
-  } catch {
-    useToastError(t('accountSettings.announcement.updateError'));
+  } catch (error) {
+    handleApiError('admin:announcement-update-failed', error, {
+      toastKey: 'accountSettings.announcement.updateError',
+    });
   } finally {
     saving.value = false;
   }
@@ -77,8 +84,10 @@ const clear = async () => {
     existing.value = data as AnnouncementData;
     form.active = false;
     useToastSuccess(t('accountSettings.announcement.deactivated'));
-  } catch {
-    useToastError(t('accountSettings.announcement.deactivateError'));
+  } catch (error) {
+    handleApiError('admin:announcement-deactivate-failed', error, {
+      toastKey: 'accountSettings.announcement.deactivateError',
+    });
   } finally {
     saving.value = false;
   }
