@@ -15,7 +15,6 @@ const ROUTE_PATTERNS = [
   [/^\/search\/[^/]+$/, '/search/:query'],
   [/^\/blog\/[^/]+$/, '/blog/:slug'],
   [/^\/admin\//, '/admin/:slug'],
-  [/^\/settings\//, '/settings/:slug'],
 ];
 
 const IGNORED_PREFIXES = ['/_nuxt/', '/_i18n/', '/__nuxt'];

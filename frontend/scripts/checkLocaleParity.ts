@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Fails when the locale files drift apart: every locale must expose exactly the
  * same set of leaf keys, so a missing translation can never fall back silently.

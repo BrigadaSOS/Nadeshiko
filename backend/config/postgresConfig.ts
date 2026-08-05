@@ -1,6 +1,6 @@
 import { config, type AppConfig } from '@config/config';
 
-export interface PostgresConnectionConfig {
+interface PostgresConnectionConfig {
   host: string;
   port: number;
   user: string;

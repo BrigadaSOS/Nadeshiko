@@ -7,7 +7,7 @@ export const APP_ENVIRONMENT = {
   PROD: 'production',
 } as const;
 
-export type AppEnvironment = (typeof APP_ENVIRONMENT)[keyof typeof APP_ENVIRONMENT];
+type AppEnvironment = (typeof APP_ENVIRONMENT)[keyof typeof APP_ENVIRONMENT];
 
 function normalizeEnvironment(rawValue: string | undefined): string {
   return rawValue?.trim().toLowerCase() || '';
