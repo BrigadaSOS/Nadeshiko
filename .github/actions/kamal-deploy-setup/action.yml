@@ -1,0 +1,88 @@
+name: "Kamal deploy setup"
+description: "Join the Tailscale network, configure SSH to the deploy host, and install Ruby + Kamal."
+
+inputs:
+  tailscale-oauth-client-id:
+    description: "Tailscale OAuth client id"
+    required: true
+  tailscale-oauth-secret:
+    description: "Tailscale OAuth client secret"
+    required: true
+  host:
+    description: "SSH host alias reachable over Tailscale"
+    required: false
+    default: nadeshiko
+  ssh-user:
+    description: "Remote user for raw ssh invocations (Kamal itself uses ssh.user from deploy.yml)"
+    required: false
+    default: docker
+  ruby-version:
+    description: "Ruby version used to run Kamal"
+    required: false
+    default: '3.4'
+  kamal-version:
+    description: "Exact Kamal gem version to install"
+    required: false
+    default: '2.12.0'
+  known-hosts-file:
+    description: "Repo-relative file holding the deploy host's pinned SSH public keys"
+    required: false
+    default: .github/known_hosts
+
+runs:
+  using: composite
+  steps:
+    - name: Connect to Tailscale
+      uses: tailscale/github-action@v4
+      with:
+        oauth-client-id: ${{ inputs.tailscale-oauth-client-id }}
+        oauth-secret: ${{ inputs.tailscale-oauth-secret }}
+        tags: tag:ci
+        ping: ${{ inputs.host }}
+
+    - name: Configure SSH over Tailscale
+      shell: bash
+      env:
+        SSH_HOST: ${{ inputs.host }}
+        SSH_USER: ${{ inputs.ssh-user }}
+        KNOWN_HOSTS_FILE: ${{ inputs.known-hosts-file }}
+      run: |
+        set -euo pipefail
+        mkdir -p ~/.ssh
+        chmod 700 ~/.ssh
+        touch ~/.ssh/known_hosts
+
+        # Pinned keys live in the repo so a hijacked Tailscale name cannot hand
+        # a runner its own host key. Only fall back to trust-on-first-use when
+        # the pin file has no entry for this host, and say so loudly: a silent
+        # fallback would look identical to real pinning in the logs. Entries must
+        # be unhashed (plain `ssh-keyscan`, not `-H`) for this check to see them.
+        strict=no
+        pin_file="${GITHUB_WORKSPACE}/${KNOWN_HOSTS_FILE}"
+        if [ -f "$pin_file" ] && grep -Eq "^${SSH_HOST}[ ,]" "$pin_file"; then
+          grep -Ev '^[[:space:]]*(#|$)' "$pin_file" >> ~/.ssh/known_hosts
+          strict=yes
+          echo "Pinned SSH host keys for ${SSH_HOST} from ${KNOWN_HOSTS_FILE}."
+        else
+          echo "::warning title=Unpinned SSH host key::${KNOWN_HOSTS_FILE} has no entry for ${SSH_HOST}; falling back to trust-on-first-use. Run 'ssh-keyscan ${SSH_HOST}' from a trusted machine and commit the output."
+          ssh-keyscan -H "${SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+        fi
+
+        cat >> ~/.ssh/config <<EOF
+        Host ${SSH_HOST}
+          User ${SSH_USER}
+          StrictHostKeyChecking ${strict}
+          ProxyCommand tailscale nc %h %p
+        EOF
+        chmod 600 ~/.ssh/config ~/.ssh/known_hosts
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ inputs.ruby-version }}
+
+    - name: Install Kamal
+      shell: bash
+      env:
+        KAMAL_VERSION: ${{ inputs.kamal-version }}
+      run: gem install kamal -v "${KAMAL_VERSION}"

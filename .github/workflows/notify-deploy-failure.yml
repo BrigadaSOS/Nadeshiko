@@ -1,0 +1,82 @@
+name: "Notify deploy failure"
+
+# Posts a Discord message when a deploy workflow fails. Called by the release
+# workflows with `if: failure()`, so it only ever runs on a real failure.
+#
+# Optional by design: without a DISCORD_DEPLOY_WEBHOOK secret the job runs and
+# exits green with a notice. That keeps forks and fresh checkouts from showing a
+# permanently red workflow for a notification channel they have not set up.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment the failed deploy targeted (stg / prod)"
+        required: true
+        type: string
+      failed-jobs:
+        description: "toJSON of the caller's `needs` context, used to name the failed jobs"
+        required: false
+        type: string
+        default: '{}'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post failure to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_DEPLOY_WEBHOOK }}
+          ENVIRONMENT: ${{ inputs.environment }}
+          NEEDS_JSON: ${{ inputs.failed-jobs }}
+          WORKFLOW: ${{ github.workflow }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REF: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${WEBHOOK_URL}" ]; then
+            echo "::notice title=Deploy failure notification skipped::DISCORD_DEPLOY_WEBHOOK is not configured for this repository."
+            exit 0
+          fi
+
+          # Name the jobs that actually failed rather than saying "something
+          # broke": the caller passes toJSON(needs), whose values carry a result.
+          failed=$(jq -r 'to_entries | map(select(.value.result == "failure")) | map(.key) | join(", ")' <<<"${NEEDS_JSON}")
+          [ -n "$failed" ] || failed="unknown"
+
+          jq -n \
+            --arg env "$ENVIRONMENT" \
+            --arg workflow "$WORKFLOW" \
+            --arg failed "$failed" \
+            --arg repo "$REPO" \
+            --arg ref "$REF" \
+            --arg sha "${SHA:0:7}" \
+            --arg actor "$ACTOR" \
+            --arg url "$RUN_URL" \
+            '{
+              username: "Nadeshiko deploys",
+              embeds: [{
+                title: ($workflow + " failed"),
+                url: $url,
+                color: 15548997,
+                fields: [
+                  { name: "Environment", value: $env, inline: true },
+                  { name: "Failed jobs", value: $failed, inline: true },
+                  { name: "Ref", value: ($ref + " @ " + $sha), inline: false },
+                  { name: "Triggered by", value: $actor, inline: true }
+                ]
+              }]
+            }' > payload.json
+
+          # Never let a broken notification channel fail an otherwise-informative
+          # run: the deploy failure is already reported by the failing job.
+          if ! curl --fail --silent --show-error --max-time 20 \
+            -H 'Content-Type: application/json' \
+            --data-binary @payload.json "${WEBHOOK_URL}"; then
+            echo "::warning title=Deploy failure notification failed::Could not post to the Discord webhook."
+          fi

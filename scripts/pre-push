@@ -35,4 +35,10 @@ echo "=> Frontend: lint"
 echo "=> Frontend: typecheck"
 (cd frontend && bun run typecheck) || { echo "Frontend typecheck failed"; exit 1; }
 
+echo "=> Discord: lint"
+(cd discord && bun run lint) || { echo "Discord lint failed"; exit 1; }
+
+echo "=> Discord: typecheck"
+(cd discord && bun run typecheck) || { echo "Discord typecheck failed"; exit 1; }
+
 echo "All checks passed."

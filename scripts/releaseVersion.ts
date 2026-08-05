@@ -17,6 +17,7 @@ const __dirname = dirname(__filename);
 const ROOT_DIR = join(__dirname, '..');
 const BACKEND_PACKAGE_JSON_PATH = join(ROOT_DIR, 'backend', 'package.json');
 const FRONTEND_PACKAGE_JSON_PATH = join(ROOT_DIR, 'frontend', 'package.json');
+const DISCORD_PACKAGE_JSON_PATH = join(ROOT_DIR, 'discord', 'package.json');
 const OPENAPI_PATH = join(ROOT_DIR, 'backend', 'docs', 'openapi', 'openapi.yaml');
 const OPENAPI_GENERATED_PATH = join(ROOT_DIR, 'backend', 'docs', 'generated', 'openapi.yaml');
 
@@ -126,6 +127,13 @@ function runSet(versionInput: unknown): void {
   );
   console.log(`frontend/package.json: ${previousFrontendVersion} -> ${version}`);
 
+  const previousDiscordVersion = writePackageVersion(
+    DISCORD_PACKAGE_JSON_PATH,
+    'discord/package.json',
+    version,
+  );
+  console.log(`discord/package.json: ${previousDiscordVersion} -> ${version}`);
+
   console.log(`Next: commit + jj tag v${version} && jj git push --remote origin`);
 }
 
@@ -137,6 +145,7 @@ function runCheck(expectedInput: unknown | undefined): void {
 
   const backendVersion = readPackageVersion(BACKEND_PACKAGE_JSON_PATH, 'backend/package.json');
   const frontendVersion = readPackageVersion(FRONTEND_PACKAGE_JSON_PATH, 'frontend/package.json');
+  const discordVersion = readPackageVersion(DISCORD_PACKAGE_JSON_PATH, 'discord/package.json');
   const openApiVersion = readOpenApiVersion();
   const generatedOpenApiVersion = readGeneratedOpenApiVersion();
 
@@ -159,6 +168,9 @@ function runCheck(expectedInput: unknown | undefined): void {
     if (frontendVersion !== expected) {
       fail(`frontend/package.json version (${frontendVersion}) does not match expected version (${expected})`);
     }
+    if (discordVersion !== expected) {
+      fail(`discord/package.json version (${discordVersion}) does not match expected version (${expected})`);
+    }
   }
 
   if (backendVersion !== frontendVersion) {
@@ -167,12 +179,16 @@ function runCheck(expectedInput: unknown | undefined): void {
     );
   }
 
+  if (backendVersion !== discordVersion) {
+    fail(`backend version (${backendVersion}) does not match discord version (${discordVersion})`);
+  }
+
   console.log(`Version check OK: ${backendVersion}`);
 }
 
 function printUsage(): void {
   console.log('Usage: bun run scripts/releaseVersion.ts <set|check> [version]');
-  console.log('  set <version>    Update all version targets (backend, frontend, OpenAPI)');
+  console.log('  set <version>    Update all version targets (backend, frontend, discord, OpenAPI)');
   console.log('  check [version]  Validate all versions match');
 }
 
