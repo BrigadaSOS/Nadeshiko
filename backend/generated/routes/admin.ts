@@ -17,6 +17,7 @@ import { type NextFunction, type Request, type RequestHandler, type Response, Ro
 import { z } from 'zod/v4';
 import type {
   t_AdminReportListResponse,
+  t_AdminUserWithProviders,
   t_AffectedCountResponse,
   t_Announcement,
   t_BatchUpdateReportsRequest,
@@ -31,6 +32,7 @@ import type {
   t_Error429,
   t_Error500,
   t_GetAdminMediaAuditRunParamSchema,
+  t_GetAdminUsersWithProvidersQuerySchema,
   t_ListAdminMediaAuditRunsQuerySchema,
   t_ListAdminReportsQuerySchema,
   t_MediaAudit,
@@ -44,10 +46,11 @@ import type {
   t_UpdateAdminReportParamSchema,
   t_UpdateReportRequest,
 } from '../models.ts';
-import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateAdminMediaAuditRequestBodyOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateAdminMediaAuditRequestBodyOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
+  s_AdminUserWithProviders,
   s_AffectedCountResponse,
   s_Announcement,
   s_BatchUpdateReportsRequest,
@@ -294,6 +297,25 @@ export type UpdateAnnouncement = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type GetAdminUsersWithProvidersResponder = {
+  with200(): ExpressRuntimeResponse<{
+    total: number;
+    users: t_AdminUserWithProviders[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminUsersWithProviders = (
+  params: Params<void, GetAdminUsersWithProvidersQueryOutput, void, void>,
+  respond: GetAdminUsersWithProvidersResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type AdminImplementation = {
   listAdminReports: ListAdminReports;
   batchUpdateAdminReports: BatchUpdateAdminReports;
@@ -308,6 +330,7 @@ export type AdminImplementation = {
   getAdminMediaAuditRun: GetAdminMediaAuditRun;
   getAnnouncement: GetAnnouncement;
   updateAnnouncement: UpdateAnnouncement;
+  getAdminUsersWithProviders: GetAdminUsersWithProviders;
 };
 
 export function createAdminRouter(
@@ -1055,6 +1078,66 @@ export function createAdminRouter(
         .updateAnnouncement(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, updateAnnouncementResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminUsersWithProvidersQuerySchema = z.object({
+    limit: z.coerce.number().min(1).max(100).optional().default(20),
+    offset: z.coerce.number().min(0).optional().default(0),
+    search: z.string().optional(),
+  });
+
+  const getAdminUsersWithProvidersResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ users: z.array(s_AdminUserWithProviders), total: z.coerce.number() })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminUsersWithProviders
+  router.get(`/v1/admin/users-with-providers`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: parseRequestInput(getAdminUsersWithProvidersQuerySchema, req.query, RequestInputType.QueryString),
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            total: number;
+            users: t_AdminUserWithProviders[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .getAdminUsersWithProviders(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getAdminUsersWithProvidersResponseBodyValidator));
     } catch (error) {
       next(error);
     }
