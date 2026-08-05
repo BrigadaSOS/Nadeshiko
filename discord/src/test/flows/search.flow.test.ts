@@ -1,6 +1,6 @@
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeEach } from 'vitest';
+// Importing the mocks registers them; it has to come before the command handlers.
 import {
-  registerMocks,
   resetApiMocks,
   mockSearch,
   mockFetchRandom,
@@ -8,9 +8,6 @@ import {
   mockGetSegmentContext,
   mockDownloadFile,
 } from '../mocks/api';
-
-// Register mocks BEFORE importing command handlers
-registerMocks();
 
 import { execute } from '../../commands/search';
 import { FlowRunner } from '../harness/flow';
