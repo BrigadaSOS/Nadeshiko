@@ -1,12 +1,11 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach, afterEach, spyOn, vi } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures, type LoadedFixtures } from '../fixtures/loader';
 import { assertDifference, assertNoDifference } from '../helpers/assertions';
 import { assertMatchesSchema } from '../helpers/openapiContract';
-import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';
 import { Collection, CollectionSegment, CollectionVisibility, Segment } from '@app/models';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
@@ -45,7 +44,7 @@ async function createTestCollection(
   );
 }
 
-async function createTestSegment(mediaId: number, uuid: string): Promise<Segment> {
+async function createTestSegment(mediaId: number, uuid: string, episode = 1): Promise<Segment> {
   segmentSeedCounter += 1;
   return Segment.save({
     uuid,
@@ -59,10 +58,9 @@ async function createTestSegment(mediaId: number, uuid: string): Promise<Segment
     contentEn: 'test',
     contentRating: ContentRating.SAFE,
     ratingAnalysis: { scores: {}, tags: {} },
-    posAnalysis: { nouns: 0 },
     storage: SegmentStorage.R2,
     hashedId: `hash-${uuid}`,
-    episode: 1,
+    episode,
     mediaId,
     storageBasePath: '/test',
   });
@@ -136,7 +134,6 @@ describe('GET /v1/collections', () => {
       segmentId: segment.id,
       mediaId: segment.mediaId,
       position: 1,
-      note: null,
     });
 
     const res = await request(app).get('/v1/collections');
@@ -178,7 +175,7 @@ describe('POST /v1/collections', () => {
       visibility: 'PRIVATE',
       segmentCount: 0,
     });
-    expect(res.body.createdAt).toBeString();
+    expect(typeof res.body.createdAt).toBe('string');
   });
 });
 
@@ -370,28 +367,6 @@ describe('PATCH /v1/collections/:id/segments/:segmentPublicId', () => {
     expect(item.position).toBe(42);
   });
 
-  it('updates note (including setting to null)', async () => {
-    const collection = await createTestCollection();
-    const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-note-1');
-    await request(app)
-      .post(`/v1/collections/${collection.publicId}/segments`)
-      .send({ segmentPublicId: segment.publicId, note: 'initial' });
-
-    // Set note
-    await request(app)
-      .patch(`/v1/collections/${collection.publicId}/segments/${segment.publicId}`)
-      .send({ note: 'updated' });
-    let item = await CollectionSegment.findOneByOrFail({ collectionId: collection.id, segmentId: segment.id });
-    expect(item.note).toBe('updated');
-
-    // Clear note
-    await request(app)
-      .patch(`/v1/collections/${collection.publicId}/segments/${segment.publicId}`)
-      .send({ note: null });
-    item = await CollectionSegment.findOneByOrFail({ collectionId: collection.id, segmentId: segment.id });
-    expect(item.note).toBeNull();
-  });
-
   it('returns 403 when non-owner tries to update', async () => {
     const collection = await createTestCollection({ userId: core.users.david.id });
     const segment = await createTestSegment(fixtures.media.testShow.id, 'seg-upd-deny');
@@ -400,7 +375,6 @@ describe('PATCH /v1/collections/:id/segments/:segmentPublicId', () => {
       segmentId: segment.id,
       mediaId: segment.mediaId,
       position: 1,
-      note: null,
     });
     signInAs(app, core.users.regular);
 
@@ -446,7 +420,6 @@ describe('DELETE /v1/collections/:id/segments/:segmentPublicId', () => {
       segmentId: segment.id,
       mediaId: segment.mediaId,
       position: 1,
-      note: null,
     });
     signInAs(app, core.users.regular);
 
@@ -474,17 +447,15 @@ describe('POST /v1/collections/:id/search', () => {
       segmentId: seg1.id,
       mediaId: seg1.mediaId,
       position: 1,
-      note: null,
     });
     await CollectionSegment.save({
       collectionId: collection.id,
       segmentId: seg2.id,
       mediaId: seg2.mediaId,
       position: 2,
-      note: null,
     });
 
-    spyOn(SegmentDocument, 'searchInIds').mockResolvedValueOnce({
+    vi.spyOn(SegmentDocument, 'searchInIds').mockResolvedValueOnce({
       segments: [toSearchResultSegment(seg2)],
       includes: { media: {} },
       pagination: {
@@ -537,59 +508,66 @@ describe('GET /v1/collections/:id/stats', () => {
     expect(res.body.categories).toEqual([]);
   });
 
-  it('returns aggregated stats only for the collection segment uuids', async () => {
+  it('groups counts by media and episode across the whole collection', async () => {
+    const episodic = await loadFixtures(['mediaWithThreeEpisodes'], { users: core.users });
+    const show = episodic.media.episodicShow;
     const collection = await createTestCollection();
-    const seg1 = await createTestSegment(fixtures.media.testShow.id, 'seg-stats-1');
-    const seg2 = await createTestSegment(fixtures.media.testShow.id, 'seg-stats-2');
 
-    await CollectionSegment.save({
-      collectionId: collection.id,
-      segmentId: seg1.id,
-      mediaId: seg1.mediaId,
-      position: 1,
-      note: null,
-    });
-    await CollectionSegment.save({
-      collectionId: collection.id,
-      segmentId: seg2.id,
-      mediaId: seg2.mediaId,
-      position: 2,
-      note: null,
-    });
-
-    spyOn(SegmentDocument, 'findByIds').mockResolvedValueOnce({
-      segments: [
-        toSearchResultSegment(seg1, { mediaPublicId: fixtures.media.testShow.publicId, episode: 1 }),
-        toSearchResultSegment(seg2, { mediaPublicId: fixtures.media.testShow.publicId, episode: 2 }),
-      ],
-      includes: {
-        media: {
-          [fixtures.media.testShow.publicId]: toMediaBaseDTO(fixtures.media.testShow as any),
-        },
-      },
-    });
+    const segments = await Promise.all([
+      createTestSegment(show.id, 'seg-stats-1', 1),
+      createTestSegment(show.id, 'seg-stats-2', 2),
+      createTestSegment(show.id, 'seg-stats-3', 2),
+    ]);
+    for (const [index, segment] of segments.entries()) {
+      await CollectionSegment.save({
+        collectionId: collection.id,
+        segmentId: segment.id,
+        mediaId: segment.mediaId,
+        position: index + 1,
+      });
+    }
 
     const res = await request(app).get(`/v1/collections/${collection.publicId}/stats`);
     expect(res.status).toBe(200);
     expect(res.body.includes).toEqual({
       media: {
-        [fixtures.media.testShow.publicId]: expect.objectContaining({
-          publicId: fixtures.media.testShow.publicId,
-          category: 'ANIME',
-        }),
+        [show.publicId]: expect.objectContaining({ publicId: show.publicId, category: 'ANIME' }),
       },
     });
     expect(res.body.media).toEqual([
       {
-        mediaPublicId: fixtures.media.testShow.publicId,
-        matchCount: 2,
+        mediaPublicId: show.publicId,
+        matchCount: 3,
         episodeHits: [
           { episode: 1, hitCount: 1 },
-          { episode: 2, hitCount: 1 },
+          { episode: 2, hitCount: 2 },
         ],
       },
     ]);
-    expect(res.body.categories).toEqual([{ category: 'ANIME', count: 2, realCount: 2 }]);
+    expect(res.body.categories).toEqual([{ category: 'ANIME', count: 3, realCount: 3 }]);
+  });
+
+  it('counts only the segments the collection actually holds', async () => {
+    const collection = await createTestCollection();
+    const included = await createTestSegment(fixtures.media.testShow.id, 'seg-stats-in');
+    await createTestSegment(fixtures.media.testShow.id, 'seg-stats-out');
+
+    await CollectionSegment.save({
+      collectionId: collection.id,
+      segmentId: included.id,
+      mediaId: included.mediaId,
+      position: 1,
+    });
+
+    const res = await request(app).get(`/v1/collections/${collection.publicId}/stats`);
+    expect(res.status).toBe(200);
+    expect(res.body.media).toEqual([
+      {
+        mediaPublicId: fixtures.media.testShow.publicId,
+        matchCount: 1,
+        episodeHits: [{ episode: 1, hitCount: 1 }],
+      },
+    ]);
   });
 
   it('returns 403 for private collections owned by another user', async () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';
 import { SegmentStorage } from '@app/models/Segment';
 
@@ -17,7 +17,7 @@ function buildMedia(overrides: Record<string, unknown> = {}) {
     endDate: null,
     category: 'ANIME',
     segmentCount: 7,
-    episodes: [{ id: 1 }, { id: 2 }, { id: 3 }],
+    episodeCount: 3,
     studio: 'Studio',
     seasonName: 'SPRING',
     seasonYear: 2024,
@@ -32,6 +32,7 @@ describe('shared.mapper', () => {
     expect(dto.externalIds).toEqual({ anilist: '123', imdb: null, tmdb: null, tvdb: null, youtube: null });
     expect(dto.startDate).toBe('2024-02-03');
     expect(dto.endDate).toBeNull();
+    // Read from the trigger-maintained column, not a loaded relation.
     expect(dto.episodeCount).toBe(3);
     expect(dto.coverUrl).toContain('/media/base/cover.webp');
     expect(dto.bannerUrl).toContain('/media/base/banner.webp');

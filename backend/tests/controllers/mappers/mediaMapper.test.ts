@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import {
   toMediaCreateAttributes,
   toMediaDTO,
@@ -56,6 +56,9 @@ describe('media.mapper', () => {
     const attrs = toMediaExternalIdAttributes({
       anilist: '123',
       imdb: 'tt001',
+      tmdb: null,
+      tvdb: null,
+      youtube: null,
     });
 
     expect(attrs).toEqual([

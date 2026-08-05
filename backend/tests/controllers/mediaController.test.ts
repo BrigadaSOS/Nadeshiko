@@ -1,29 +1,74 @@
-import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'bun:test';
+import { request } from '../helpers/http';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import * as schemas from 'generated/schemas';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
 import { assertMatchesSchema } from '../helpers/openapiContract';
+import { setBossInstance } from '@app/workers/pgBossClient';
+import { ES_SYNC_DELETE_QUEUE } from '@app/workers/queueNames';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { CategoryType, Media } from '@app/models/Media';
 import { MediaExternalId, ExternalSourceType } from '@app/models/MediaExternalId';
-import { SegmentStorage } from '@app/models/Segment';
+import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 
 setupTestSuite();
 
 const app = createTestApp();
 
 let fixtures: CoreFixtures;
+let segmentSeedCounter = 0;
+let insertedJobs: unknown[][] = [];
+const activeSpies: Array<{ mockRestore: () => void }> = [];
 const MISSING_MEDIA_PUBLIC_ID = 'MissingMed01';
 
 beforeAll(async () => {
+  setBossInstance({
+    sendDebounced: async () => 'test-job-id',
+    insert: async (...args: unknown[]) => {
+      insertedJobs.push(args);
+      return ['test-job-id'];
+    },
+  } as any);
   fixtures = await seedCoreFixtures();
 });
 
 beforeEach(() => {
+  insertedJobs = [];
   signInAs(app, fixtures.users.kevin);
 });
+
+afterEach(() => {
+  while (activeSpies.length > 0) {
+    activeSpies.pop()?.mockRestore();
+  }
+});
+
+async function seedSegment(mediaId: number, episodeNumber: number): Promise<Segment> {
+  segmentSeedCounter += 1;
+
+  return Segment.save({
+    uuid: `media-del-${mediaId}-${episodeNumber}-${segmentSeedCounter}`,
+    publicId: `mdl${String(segmentSeedCounter).padStart(9, '0')}`,
+    position: segmentSeedCounter,
+    status: SegmentStatus.ACTIVE,
+    startTimeMs: 1000,
+    endTimeMs: 2000,
+    contentJa: `ja-${segmentSeedCounter}`,
+    contentEn: `en-${segmentSeedCounter}`,
+    contentEnMt: false,
+    contentEs: `es-${segmentSeedCounter}`,
+    contentEsMt: false,
+    contentRating: ContentRating.SAFE,
+    ratingAnalysis: { scores: {}, tags: {} },
+    storage: SegmentStorage.R2,
+    hashedId: `mdl-hash-${segmentSeedCounter}`,
+    storageBasePath: '/test',
+    mediaId,
+    episode: episodeNumber,
+  });
+}
 
 function buildCreateMediaBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -60,6 +105,32 @@ describe('GET /v1/media', () => {
     expect(page2.status).toBe(200);
     expect(page2.body.media).toHaveLength(1);
     expect(page2.body.pagination).toEqual({ hasMore: false, cursor: null });
+  });
+
+  it('starts over when a cursor crosses between the browse and search modes', async () => {
+    await loadFixtures(['twoMedias']);
+
+    // Browsing paginates by keyset; searching paginates by offset. Carrying a
+    // cursor across that boundary used to fail the request outright.
+    const browsed = await request(app).get('/v1/media?take=1');
+    expect(browsed.status).toBe(200);
+    const keysetCursor = browsed.body.pagination.cursor;
+
+    const searched = await request(app).get(`/v1/media?take=1&query=a&cursor=${keysetCursor}`);
+    expect(searched.status).toBe(200);
+
+    const offsetCursor = searched.body.pagination.cursor;
+    if (offsetCursor) {
+      const backToBrowsing = await request(app).get(`/v1/media?take=1&cursor=${offsetCursor}`);
+      expect(backToBrowsing.status).toBe(200);
+    }
+  });
+
+  it('still rejects a malformed cursor', async () => {
+    await loadFixtures(['twoMedias']);
+
+    const res = await request(app).get('/v1/media?take=1&cursor=not-a-real-cursor');
+    expect(res.status).toBe(400);
   });
 
   it('filters by query and category', async () => {
@@ -174,7 +245,9 @@ describe('POST /v1/media', () => {
       },
     );
 
-    const created = await Media.findOneByOrFail({ publicId: createdPublicId as string });
+    if (!createdPublicId) throw new Error('the create request did not return a publicId');
+
+    const created = await Media.findOneByOrFail({ publicId: createdPublicId });
     const rows = await MediaExternalId.findBy({ mediaId: created.id });
     expect(rows).toHaveLength(2);
   });
@@ -262,9 +335,57 @@ describe('PATCH /v1/media/:id', () => {
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it('keeps the previous external ids when the replacement fails partway', async () => {
+    const loaded = await loadFixtures(['singleMedia']);
+    const media = loaded.media.testShow;
+
+    await MediaExternalId.save([{ mediaId: media.id, source: ExternalSourceType.ANILIST, externalId: 'old-anilist' }]);
+
+    // Fail after the old rows are deleted but before the new ones are written.
+    const createSpy = vi.spyOn(MediaExternalId, 'create').mockImplementationOnce(() => {
+      throw new Error('external id write failed');
+    });
+    activeSpies.push(createSpy);
+
+    const res = await request(app)
+      .patch(`/v1/media/${media.publicId}`)
+      .send({
+        nameEn: 'Should Not Stick',
+        externalIds: { anilist: null, imdb: null, tvdb: 'new-tvdb', tmdb: null, youtube: null },
+      });
+
+    expect(res.status).toBe(500);
+
+    // A media with zero external ids is not merely stale: getPrimaryExternalId
+    // throws on it, so every later segment creation for this media would fail.
+    const rows = await MediaExternalId.findBy({ mediaId: media.id });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ source: ExternalSourceType.ANILIST, externalId: 'old-anilist' });
+
+    const unchanged = await Media.findOneByOrFail({ id: media.id });
+    expect(unchanged.nameEn).toBe(media.nameEn);
+  });
 });
 
 describe('DELETE /v1/media/:id', () => {
+  it('queues the segment ES deletes instead of calling the indexer inline', async () => {
+    const loaded = await loadFixtures(['mediaWithEpisode']);
+    const media = loaded.media.testShow;
+    const segment = await seedSegment(media.id, loaded.episodes.pilot.episodeNumber);
+
+    const bulkDeleteSpy = vi.spyOn(SegmentIndexer, 'bulkDelete');
+    activeSpies.push(bulkDeleteSpy);
+
+    const res = await request(app).delete(`/v1/media/${media.publicId}`);
+    expect(res.status).toBe(204);
+
+    // Going straight to Elasticsearch means one failed call orphans the documents
+    // for good; the queue is what retries.
+    expect(bulkDeleteSpy).not.toHaveBeenCalled();
+    expect(insertedJobs).toEqual([[ES_SYNC_DELETE_QUEUE, [{ data: { segmentId: segment.id, operation: 'DELETE' } }]]]);
+  });
+
   it('hard-deletes media and returns 204', async () => {
     const loaded = await loadFixtures(['singleMedia']);
     const media = loaded.media.testShow;

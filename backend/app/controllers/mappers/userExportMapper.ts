@@ -7,14 +7,14 @@ import { toCollectionDTO } from './collectionMapper';
 import { type ReportPublicIdMaps, toReportDTO } from './reportMapper';
 import { toUserActivityDTO } from './activityMapper';
 
-export const toExportCollectionDTO = (collection: Collection): t_UserExportCollection => ({
-  ...toCollectionDTO(collection, collection.segmentItems?.length ?? 0),
-  segmentIds:
-    collection.segmentItems
-      ?.slice()
-      .sort((a, b) => a.position - b.position)
-      .map((s) => s.segmentId) || [],
-});
+export const toExportCollectionDTO = (collection: Collection): t_UserExportCollection => {
+  const orderedItems = collection.segmentItems?.slice().sort((a, b) => a.position - b.position) ?? [];
+
+  return {
+    ...toCollectionDTO(collection, orderedItems.length),
+    segmentIds: orderedItems.map((item) => item.segmentId),
+  };
+};
 
 export const toUserExportDTO = (
   user: User,
@@ -22,7 +22,14 @@ export const toUserExportDTO = (
   collections: Collection[],
   reports: Report[],
   publicIdMaps: ReportPublicIdMaps,
+  truncated: t_UserExportResponse['truncated'] = {
+    activity: false,
+    collections: false,
+    collectionSegments: false,
+    reports: false,
+  },
 ): t_UserExportResponse => ({
+  truncated,
   profile: {
     id: user.id,
     username: user.username,

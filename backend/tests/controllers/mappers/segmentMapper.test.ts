@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import {
   toSegmentCreateAttributes,
   toSegmentDTO,
@@ -32,7 +32,6 @@ function buildSegment(overrides: Record<string, unknown> = {}) {
     hashedId: 'hash1',
     storageBasePath: 'media/path',
     ratingAnalysis: { score: 0.9 },
-    posAnalysis: { nouns: 1 },
     ...overrides,
   };
 }
@@ -60,13 +59,12 @@ describe('segment.mapper', () => {
     });
   });
 
-  it('maps internal dto and normalizes non-object analyses to null', () => {
-    const dto = toSegmentInternalDTO(buildSegment({ ratingAnalysis: 'bad', posAnalysis: null }) as any);
+  it('maps internal dto and normalizes a non-object analysis to null', () => {
+    const dto = toSegmentInternalDTO(buildSegment({ ratingAnalysis: 'bad' }) as any);
     expect(dto.storage).toBe('R2');
     expect(dto.hashedId).toBe('hash1');
     expect(dto.storageBasePath).toBe('media/path');
     expect(dto.ratingAnalysis).toBeNull();
-    expect(dto.posAnalysis).toBeNull();
   });
 
   it('maps segment and internal segment lists', () => {
@@ -138,7 +136,6 @@ describe('segment.mapper', () => {
       position: 0,
       contentRating: 'QUESTIONABLE',
       ratingAnalysis: null,
-      posAnalysis: null,
       hashedId: 'newhash',
     } as any);
 
@@ -155,7 +152,6 @@ describe('segment.mapper', () => {
       position: 0,
       contentRating: ContentRating.QUESTIONABLE,
       ratingAnalysis: null,
-      posAnalysis: null,
       hashedId: 'newhash',
     });
   });
