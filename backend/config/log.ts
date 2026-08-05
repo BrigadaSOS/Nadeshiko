@@ -25,6 +25,36 @@ export const safeParseJson = (value: string): any => {
   }
 };
 
+/**
+ * Bodies larger than this are logged as a marker instead of their content. The
+ * JSON body limit is 10mb, and access logs run at info level on every request,
+ * so an uncapped body is both a log-volume problem and a retention problem (the
+ * captured copy lives on the request object for the life of the request).
+ *
+ * Oversized bodies are replaced wholesale rather than clipped: a prefix would
+ * leak content past the `redact` paths, which only apply to parsed fields.
+ */
+export const MAX_LOGGED_BODY_BYTES = 16 * 1024;
+
+export const oversizedBodyPlaceholder = (bytes: number): string =>
+  `[Body omitted: ${bytes} bytes exceeds the ${MAX_LOGGED_BODY_BYTES} byte log limit]`;
+
+function loggedBodyByteLength(value: unknown): number {
+  if (typeof value === 'string') return Buffer.byteLength(value, 'utf8');
+  if (Buffer.isBuffer(value)) return value.length;
+  try {
+    return Buffer.byteLength(JSON.stringify(value) ?? '', 'utf8');
+  } catch {
+    // Circular or otherwise unserializable: leave it to pino.
+    return 0;
+  }
+}
+
+export function capLoggedBody(value: unknown): unknown {
+  const bytes = loggedBodyByteLength(value);
+  return bytes > MAX_LOGGED_BODY_BYTES ? oversizedBodyPlaceholder(bytes) : value;
+}
+
 const baseOptions: pino.LoggerOptions = {
   level: config.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
@@ -73,11 +103,12 @@ const baseOptions: pino.LoggerOptions = {
     'res.body.user.email',
     'res.body.user.username',
 
-    // Verbose content in response body (search results)
-    'res.body.sentences',
-    'res.body.mediaStatistics',
-    'res.body.categoryStatistics',
-    'res.body.posAnalysis',
+    // Verbose content in response body (search results, list endpoints)
+    'res.body.segments',
+    'res.body.media',
+    'res.body.categories',
+    'res.body.results',
+    'res.body.includes',
     'res.body.revisions',
   ],
 
@@ -159,7 +190,9 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
           headers: raw.getHeaders ? raw.getHeaders() : {},
         };
         if (raw.statusCode >= 400 && raw.responseBody !== undefined) {
-          serialized.body = typeof raw.responseBody === 'string' ? safeParseJson(raw.responseBody) : raw.responseBody;
+          serialized.body = capLoggedBody(
+            typeof raw.responseBody === 'string' ? safeParseJson(raw.responseBody) : raw.responseBody,
+          );
         }
         return serialized;
       },

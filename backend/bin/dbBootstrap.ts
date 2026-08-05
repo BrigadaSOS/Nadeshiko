@@ -3,6 +3,7 @@ import { Client } from 'pg';
 import { getAdminPostgresConfig, getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
 import { ensureDestructiveAllowed } from './destructiveGuard';
+import { reportFatalError } from './reportFatal';
 
 function requireEnv(name: string, value: string | undefined): string {
   if (!value) {
@@ -135,13 +136,16 @@ async function ensureSchemaAccess(adminConfig: Client, appUser: string): Promise
     await adminConfig.query(`GRANT ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA public TO ${quotedUser}`);
 
     // Transfer ownership of all functions in public schema so the app user can drop them.
-    const publicFunctions = await adminConfig.query<{ oid: string; signature: string }>(`
+    const publicFunctions = await adminConfig.query<{ oid: string; signature: string }>(
+      `
       SELECT p.oid, p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' AS signature
       FROM pg_proc p
       JOIN pg_namespace n ON p.pronamespace = n.oid
       WHERE n.nspname = 'public'
         AND p.proowner <> (SELECT oid FROM pg_roles WHERE rolname = $1)
-    `, [appUser]);
+    `,
+      [appUser],
+    );
     for (const fn of publicFunctions.rows) {
       await adminConfig.query(`ALTER FUNCTION public.${fn.signature} OWNER TO ${quotedUser}`);
     }
@@ -202,7 +206,18 @@ export async function bootstrapPostgresWithOptions(options: BootstrapPostgresOpt
 
   const adminClient = new Client(adminConnectionConfig);
 
-  await adminClient.connect();
+  try {
+    await adminClient.connect();
+  } catch (error) {
+    throw new Error(
+      `Could not connect to PostgreSQL as '${adminUser}' at ${adminHost}:${adminPostgres.port}/${adminPostgres.database}. ` +
+        'POSTGRES_ADMIN_USER and POSTGRES_ADMIN_PASSWORD must name the superuser the container was created with; ' +
+        'docker compose reads those from backend/.env. Shell variables beat --env-file, so a one-off run can pass them ' +
+        'inline, e.g. POSTGRES_ADMIN_USER=admin POSTGRES_ADMIN_PASSWORD=admin bun run test:setup',
+      { cause: error },
+    );
+  }
+
   try {
     if (recreateRoleAndDatabase) {
       await dropRoleAndDatabase(adminClient, adminConnectionConfig, appUser, appDatabase, adminUser);
@@ -238,7 +253,7 @@ if (import.meta.main) {
   }
 
   bootstrapPostgresWithOptions({ recreateRoleAndDatabase }).catch((error) => {
-    logger.error(error, 'PostgreSQL bootstrap failed');
+    reportFatalError('PostgreSQL bootstrap failed', error);
     process.exit(1);
   });
 }

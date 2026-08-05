@@ -30,7 +30,7 @@ export const toMediaSummaryDTO = (media: Media): t_MediaSummary => ({
 
 const toDateString = (date: Date | string): string => {
   if (typeof date === 'string') return date;
-  return date.toISOString().split('T')[0];
+  return date.toISOString().slice(0, 10);
 };
 
 export const toMediaBaseDTO = (media: Media): t_Media => ({

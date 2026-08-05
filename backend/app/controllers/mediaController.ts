@@ -22,8 +22,8 @@ import {
 import { toMediaSummaryDTO } from './mappers/sharedMapper';
 import { Cache } from '@lib/cache';
 import { decodeOffsetCursor, encodeOffsetCursor } from '@lib/cursor';
-import { SegmentDocument } from '@app/models/SegmentDocument';
-import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { InvalidRequestError } from '@app/errors';
 import { slugify, hasJapaneseChars } from '@lib/utils/slug';
 

@@ -15,7 +15,7 @@ const operationDuration = meter.createHistogram('db.elasticsearch.operation.dura
 });
 
 function extractOperation(method: string, path: string): string {
-  const cleanPath = path.split('?')[0];
+  const cleanPath = path.split('?')[0] ?? path;
 
   if (cleanPath.endsWith('/_search')) return 'search';
   if (cleanPath.endsWith('/_msearch')) return 'msearch';

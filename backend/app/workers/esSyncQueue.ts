@@ -37,20 +37,6 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
   }
 }
 
-/**
- * Cancel all pending jobs for a specific segment.
- * Note: PgBoss has no direct API to cancel jobs by debounce key.
- */
-export async function cancelJobsForSegment(segmentId: number): Promise<boolean> {
-  try {
-    logger.info({ segmentId }, 'Cancel jobs requested for segment (handled by debounce)');
-    return true;
-  } catch (error) {
-    logger.error({ err: error, segmentId }, 'Failed to cancel jobs for segment');
-    return false;
-  }
-}
-
 export async function sendBulkEsSyncJobs(jobs: EsSyncJobData[]): Promise<void> {
   const jobsByQueue: Record<EsSyncQueueName, EsSyncJobData[]> = {
     [ES_SYNC_CREATE_QUEUE]: [],

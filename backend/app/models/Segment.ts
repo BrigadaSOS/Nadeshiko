@@ -30,7 +30,15 @@ export interface RatingAnalysisData {
 }
 
 // Typed as `object` to avoid TypeORM's _QueryDeepPartialEntity recursion issue with JSONB columns.
-// Actual shape: { sudachi?: Array<{surface, dictionary_form, reading, begin, end, pos}>, unidic?: Array<...>, _tokenizer_*: string }
+//
+// Actual shape: { tokens: SlimToken[] }, written by the Shirabe import (see
+// scripts/import-shirabe-tokens.ts). One analysis, in the field names we serve.
+//
+// It used to hold several: { sudachi: [...], unidic: [...], _tokenizer_*: ... },
+// each in its own shape, with SegmentIndexer choosing between them and slimming
+// the winner down. Two stored analyses nobody read was two things to keep in
+// sync and two answers to "what is a word here", so the import replaces the
+// whole column rather than adding a third.
 export type PosAnalysisData = object;
 
 export enum SegmentStorage {

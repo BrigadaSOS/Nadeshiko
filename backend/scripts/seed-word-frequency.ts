@@ -24,7 +24,7 @@ function parseCsv(csv: string): FreqWord[] {
   let position = 0;
 
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const line = lines[i]?.trim();
     if (!line) continue;
 
     const parts = line.split(',');
@@ -36,7 +36,7 @@ function parseCsv(csv: string): FreqWord[] {
     if (!word) continue;
 
     position++;
-    const reading = form !== word ? form : null;
+    const reading = form && form !== word ? form : null;
     words.push({ rank: position, word, reading });
   }
 

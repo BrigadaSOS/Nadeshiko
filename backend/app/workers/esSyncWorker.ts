@@ -1,6 +1,6 @@
 import { PgBoss, Job } from 'pg-boss';
 import { Segment } from '@app/models';
-import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { logger } from '@config/log';
 import { In } from 'typeorm';
 import type { EsSyncJobData } from './esSyncQueue';

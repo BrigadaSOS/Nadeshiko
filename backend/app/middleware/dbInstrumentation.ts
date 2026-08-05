@@ -1,3 +1,4 @@
+import type { Counter, Histogram, Meter } from '@opentelemetry/api';
 import type { Logger as TypeOrmLogger, QueryRunner } from 'typeorm';
 import { getMeter } from '@config/telemetry';
 import { config } from '@config/config';
@@ -5,14 +6,6 @@ import { logger } from '@config/log';
 import { getDbLogging } from '@config/schema';
 
 const DB_DURATION_BUCKETS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10];
-
-const meter = getMeter();
-
-const operationDuration = meter.createHistogram('db.postgresql.operation.duration', {
-  description: 'Duration of PostgreSQL client operations',
-  unit: 's',
-  advice: { explicitBucketBoundaries: DB_DURATION_BUCKETS },
-});
 
 function extractOperation(query: string): string {
   const trimmed = query.trimStart().toUpperCase();
@@ -25,10 +18,9 @@ function extractTable(query: string): string | undefined {
   return match?.[1];
 }
 
-function recordQuery(query: string, durationMs: number, failed: boolean) {
+function queryAttributes(query: string): Record<string, string | number> {
   const operation = extractOperation(query);
   const table = extractTable(query);
-  const durationS = durationMs / 1000;
 
   const attrs: Record<string, string | number> = {
     'db.system.name': 'postgresql',
@@ -42,19 +34,42 @@ function recordQuery(query: string, durationMs: number, failed: boolean) {
     attrs['db.collection.name'] = table;
   }
 
-  if (failed) {
-    attrs['error.type'] = 'query_error';
-  }
-
-  operationDuration.record(durationS, attrs);
+  return attrs;
 }
 
 export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
   private verboseLogging: boolean;
+  private operationDuration: Histogram;
+  private operationErrors: Counter;
 
-  constructor() {
+  // The meter is resolved per instance rather than at module load: the OTel
+  // metrics API binds instruments to whichever provider is registered at
+  // creation time, so a module-level meter would silently no-op whenever this
+  // file is imported before the SDK starts.
+  constructor(meter: Meter = getMeter()) {
     const logging = getDbLogging();
     this.verboseLogging = logging === true || (Array.isArray(logging) && logging.includes('query'));
+
+    this.operationDuration = meter.createHistogram('db.postgresql.operation.duration', {
+      description: 'Duration of PostgreSQL client operations',
+      unit: 's',
+      advice: { explicitBucketBoundaries: DB_DURATION_BUCKETS },
+    });
+
+    // TypeORM's error hook carries no timing, so failures are counted separately
+    // instead of being folded into the histogram as 0s samples.
+    this.operationErrors = meter.createCounter('db.postgresql.operation.errors', {
+      description: 'Count of failed PostgreSQL client operations',
+      unit: '{operation}',
+    });
+  }
+
+  private recordQuery(query: string, durationMs: number): void {
+    this.operationDuration.record(durationMs / 1000, queryAttributes(query));
+  }
+
+  private recordQueryError(query: string): void {
+    this.operationErrors.add(1, { ...queryAttributes(query), 'error.type': 'query_error' });
   }
 
   logQuery(query: string, _parameters?: unknown[], _queryRunner?: QueryRunner): void {
@@ -67,7 +82,7 @@ export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
   }
 
   logQuerySlow(time: number, query: string, _parameters?: unknown[], _queryRunner?: QueryRunner): void {
-    recordQuery(query, time, false);
+    this.recordQuery(query, time);
 
     if (time > config.DB_SLOW_QUERY_THRESHOLD_MS) {
       const operation = extractOperation(query);
@@ -78,7 +93,7 @@ export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
   }
 
   logQueryError(error: string | Error, query: string, _parameters?: unknown[], _queryRunner?: QueryRunner): void {
-    recordQuery(query, 0, true);
+    this.recordQueryError(query);
     const operation = extractOperation(query);
     const table = extractTable(query);
     const label = table ? `${operation} ${table} error` : `${operation} error`;

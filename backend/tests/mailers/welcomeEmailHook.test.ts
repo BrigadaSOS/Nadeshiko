@@ -15,6 +15,7 @@ const TEST_EMAILS = [
   'hookfail@nadeshiko.test',
   'dedupetest@nadeshiko.test',
   'verified@nadeshiko.test',
+  'unverified@nadeshiko.test',
 ];
 
 beforeEach(async () => {
@@ -80,14 +81,20 @@ describe('better-auth user creation hook', () => {
     sendWelcomeEmailSpy = vi.spyOn(emailModule, 'sendWelcomeEmail').mockResolvedValue();
   });
 
-  it('sets emailVerified to true via the before hook', async () => {
+  it('leaves emailVerified to the flow that created the account', async () => {
     const ctx = await auth.$context;
 
-    const user = await ctx.internalAdapter.createUser({
+    const unproven = await ctx.internalAdapter.createUser({
+      name: 'unverifiedtest',
+      email: 'unverified@nadeshiko.test',
+    });
+    expect(unproven.emailVerified).toBe(false);
+
+    const proven = await ctx.internalAdapter.createUser({
       name: 'verifiedtest',
       email: 'verified@nadeshiko.test',
+      emailVerified: true,
     });
-
-    expect(user.emailVerified).toBe(true);
+    expect(proven.emailVerified).toBe(true);
   });
 });

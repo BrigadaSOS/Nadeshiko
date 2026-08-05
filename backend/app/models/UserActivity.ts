@@ -149,8 +149,12 @@ export class UserActivity extends BaseEntity {
 
     const result: Record<string, Record<string, number>> = {};
     for (const row of rows) {
-      if (!result[row.day]) result[row.day] = {};
-      result[row.day][row.activityType] = Number(row.count);
+      let dayCounts = result[row.day];
+      if (!dayCounts) {
+        dayCounts = {};
+        result[row.day] = dayCounts;
+      }
+      dayCounts[row.activityType] = Number(row.count);
     }
     return result;
   }

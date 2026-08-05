@@ -8,7 +8,7 @@ import type {
   BulkUpdateAdminReports,
   BulkDeleteAdminReports,
 } from 'generated/routes/admin';
-import { In } from 'typeorm';
+import { In, type EntityManager } from 'typeorm';
 import { Report, ReportReason, ReportSource, ReportTargetType, Segment, Media } from '@app/models';
 import { NotFoundError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
@@ -113,7 +113,7 @@ export const updateAdminReport: UpdateAdminReport = async ({ params, body }, res
 
   // Propagate only status to siblings (admin notes are per-report, not per-group)
   if (body.status !== undefined) {
-    await updateReportGroup(r, { status: body.status });
+    await updateReportGroup(r, { status: body.status }, Report.getRepository().manager);
   }
 
   const ids = await resolveReportPublicIdsForOne(r);
@@ -234,8 +234,12 @@ function applyTargetGroupWhere(
   }
 }
 
-async function updateReportGroup(report: Report, patch: Record<string, unknown>): Promise<number> {
-  const qb = Report.createQueryBuilder('r').update(Report).set(patch);
+async function updateReportGroup(
+  report: Report,
+  patch: Record<string, unknown>,
+  manager: EntityManager,
+): Promise<number> {
+  const qb = manager.createQueryBuilder(Report, 'r').update(Report).set(patch);
   applyTargetGroupWhere(qb, '"Report"', report, 'g');
   const result = await qb.execute();
   return result.affected ?? 0;
@@ -254,8 +258,16 @@ async function updateReportGroups(reports: Report[], patch: Record<string, unkno
     unique.push(report);
   }
 
-  const results = await Promise.all(unique.map((r) => updateReportGroup(r, patch)));
-  return results.reduce((sum, n) => sum + n, 0);
+  // One statement per group, so a failure partway through would otherwise leave
+  // some groups moved to the new status and others not. A transaction runs on a
+  // single query runner, so these have to be issued sequentially.
+  return Report.getRepository().manager.transaction(async (manager) => {
+    let updated = 0;
+    for (const report of unique) {
+      updated += await updateReportGroup(report, patch, manager);
+    }
+    return updated;
+  });
 }
 
 async function deleteReportGroup(report: Report): Promise<number> {
@@ -337,8 +349,7 @@ async function fetchGroupMembers(groupReps: Report[], filters: AdminReportFilter
 
   const conditions: string[] = [];
   const params: Record<string, unknown> = {};
-  for (let i = 0; i < groupReps.length; i++) {
-    const rep = groupReps[i];
+  for (const [i, rep] of groupReps.entries()) {
     let cond = `(r.target_type = :g${i}_tt AND r.target_media_id = :g${i}_mid`;
     params[`g${i}_tt`] = rep.targetType;
     params[`g${i}_mid`] = rep.targetMediaId;

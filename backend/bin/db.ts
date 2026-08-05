@@ -3,6 +3,7 @@ import { AppDataSource } from '@config/database';
 import { seed } from '@db/seeds';
 import { bootstrapPostgresWithOptions } from './dbBootstrap';
 import { ensureDestructiveAllowed } from './destructiveGuard';
+import { reportFatalError } from './reportFatal';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
 import { config } from '@config/config';
@@ -252,6 +253,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  logger.error(error);
+  reportFatalError('Database command failed', error);
   process.exit(1);
 });
