@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, vi } from 'vitest';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 
 describe('requestIdMiddleware', () => {

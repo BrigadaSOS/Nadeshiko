@@ -1,7 +1,6 @@
-import 'dotenv/config';
-import request from 'supertest';
+import { request } from '../helpers/http';
 import express, { type Request, type Response, type ErrorRequestHandler } from 'express';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { requestIdMiddleware } from '@app/middleware/requestId';
@@ -38,7 +37,17 @@ beforeEach(() => {
   invalidateUserCache(fixtures.users.david.id);
 });
 
+/**
+ * Both apps are built once and reused. Each gets its own ephemeral port for the
+ * file's lifetime (see helpers/http), and rebuilding one per test churned through
+ * ports fast enough to occasionally time out or hit a recycled one. They take no
+ * arguments and hold no per-test state, so one instance serves every test.
+ */
+let _apiKeyApp: ReturnType<typeof express> | null = null;
+let _sessionApp: ReturnType<typeof express> | null = null;
+
 function createApiKeyApp() {
+  if (_apiKeyApp) return _apiKeyApp;
   const app = express();
   app.use(requestIdMiddleware);
   app.use(express.json());
@@ -51,10 +60,12 @@ function createApiKeyApp() {
     });
   });
   app.use(handleErrors as ErrorRequestHandler);
+  _apiKeyApp = app;
   return app;
 }
 
 function createSessionApp() {
+  if (_sessionApp) return _sessionApp;
   const app = express();
   app.use(requestIdMiddleware);
   app.use(express.json());
@@ -66,6 +77,7 @@ function createSessionApp() {
     });
   });
   app.use(handleErrors as ErrorRequestHandler);
+  _sessionApp = app;
   return app;
 }
 

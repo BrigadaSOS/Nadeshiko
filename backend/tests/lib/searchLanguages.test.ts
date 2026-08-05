@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { SEARCH_LANGUAGES, excludedSearchLanguages, includedSearchLanguages } from '@lib/searchLanguages';
 
 describe('includedSearchLanguages', () => {

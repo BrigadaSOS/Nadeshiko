@@ -29,7 +29,7 @@ export function invalidateUserCache(userId: number): void {
   Cache.delete(AUTH_USER_CACHE, String(userId));
 }
 
-export interface ApiKeyCacheEntry {
+interface ApiKeyCacheEntry {
   userId: number;
   apiKeyId: string | undefined;
   apiKeyKind: ApiKeyKind;

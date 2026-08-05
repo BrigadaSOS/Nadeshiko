@@ -21,9 +21,6 @@ export class CollectionSegment extends BaseEntity {
   @Column({ type: 'int' })
   position!: number;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  note!: string | null;
-
   @ManyToOne('Collection', 'segmentItems', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'collection_id' })
   collection!: Collection;

@@ -37,6 +37,15 @@ export async function sendEsSyncJob(data: EsSyncJobData): Promise<string | null>
   }
 }
 
+/**
+ * Enqueue one job per segment, grouped by queue.
+ *
+ * `insert` and not `send`: `send(queue, jobs)` stores the whole array as a single
+ * job's payload, and the workers read a batch as one job per segment
+ * (`jobs.map((j) => j.data.segmentId)`), so every id came back undefined and
+ * nothing was ever indexed or removed. `insert` is the batch API — one row per
+ * entry, each with its own `data`.
+ */
 export async function sendBulkEsSyncJobs(jobs: EsSyncJobData[]): Promise<void> {
   const jobsByQueue: Record<EsSyncQueueName, EsSyncJobData[]> = {
     [ES_SYNC_CREATE_QUEUE]: [],
@@ -54,7 +63,10 @@ export async function sendBulkEsSyncJobs(jobs: EsSyncJobData[]): Promise<void> {
 
     try {
       const boss = getPgBoss();
-      await boss.send(queueName, queueJobs);
+      await boss.insert(
+        queueName,
+        queueJobs.map((data) => ({ data })),
+      );
       logger.info({ count: queueJobs.length, queueName }, 'Enqueued bulk ES sync jobs');
     } catch (error) {
       logger.error({ err: error, queueName }, 'Failed to enqueue bulk ES sync jobs');

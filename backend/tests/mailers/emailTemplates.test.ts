@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'bun:test';
-import { renderTemplate, buildWelcomeEmail, buildAnnouncementEmail } from '@app/mailers/emailTemplates';
+import { describe, it, expect } from 'vitest';
+import { renderTemplate, buildWelcomeEmail } from '@app/mailers/emailTemplates';
 
 describe('renderTemplate', () => {
   it('replaces placeholders with values', async () => {
@@ -59,27 +59,5 @@ describe('buildWelcomeEmail', () => {
 
     expect(result.html).not.toContain('<img src=x');
     expect(result.html).toContain('&lt;img');
-  });
-});
-
-describe('buildAnnouncementEmail', () => {
-  it('returns the subject as provided', async () => {
-    const result = await buildAnnouncementEmail('bob', 'New Terms of Service', 'Please review the new terms.');
-
-    expect(result.subject).toBe('New Terms of Service');
-  });
-
-  it('includes the username and message in the html', async () => {
-    const result = await buildAnnouncementEmail('bob', 'Update', 'Important changes ahead.');
-
-    expect(result.html).toContain('bob');
-    expect(result.html).toContain('Important changes ahead.');
-  });
-
-  it('escapes HTML in the message body', async () => {
-    const result = await buildAnnouncementEmail('bob', 'Update', '<script>steal(cookies)</script>');
-
-    expect(result.html).not.toContain('<script>steal');
-    expect(result.html).toContain('&lt;script&gt;');
   });
 });

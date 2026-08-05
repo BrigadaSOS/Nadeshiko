@@ -30,25 +30,6 @@ export async function buildWelcomeEmail(username: string): Promise<{
   return { subject, html };
 }
 
-export async function buildAnnouncementEmail(
-  username: string,
-  subject: string,
-  message: string,
-): Promise<{
-  subject: string;
-  html: string;
-}> {
-  const html = await renderTemplate('announcement', {
-    username,
-    subject,
-    message,
-    logoUrl: getLogoUrl(),
-    year: getCurrentYear(),
-  });
-
-  return { subject, html };
-}
-
 export async function buildMagicLinkEmail(url: string): Promise<{ subject: string; html: string }> {
   const subject = 'Nadeshiko: Your sign-in link';
   const html = await renderTemplate('magic-link', {

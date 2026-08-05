@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, afterAll, describe, expect, it, vi, type Mock } from 'bun:test';
+import { beforeAll, beforeEach, afterAll, describe, expect, it, vi, type Mock } from 'vitest';
 import type { NextFunction, Request, Response } from 'express';
 import { auth } from '@config/auth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';

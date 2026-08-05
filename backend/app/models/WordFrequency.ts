@@ -7,7 +7,7 @@ import { logger } from '@config/log';
 const STATS_CACHE = createCacheNamespace('stats');
 const COVERAGE_BATCH_SIZE = 200;
 
-export interface CoverageUpdateResult {
+interface CoverageUpdateResult {
   wordsChecked: number;
   newlyCovered: number;
   totalCovered: number;
@@ -21,9 +21,6 @@ export class WordFrequency extends BaseEntity {
 
   @Column({ type: 'varchar', length: 50 })
   word!: string;
-
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  reading!: string | null;
 
   @Column({ name: 'match_count', type: 'int', default: 0 })
   matchCount!: number;

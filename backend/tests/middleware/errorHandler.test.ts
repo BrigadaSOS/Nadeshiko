@@ -1,7 +1,6 @@
-import 'dotenv/config';
-import request from 'supertest';
+import { request } from '../helpers/http';
 import express, { type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { QueryFailedError, EntityNotFoundError, TypeORMError } from 'typeorm';
 import { ExpressRuntimeError, RequestInputType } from '@nahkies/typescript-express-runtime/errors';
 import { handleErrors } from '@app/middleware/errorHandler';
@@ -9,28 +8,44 @@ import { requestIdMiddleware } from '@app/middleware/requestId';
 import { NotFoundError, InternalServerError } from '@app/errors';
 
 /**
- * Builds a mini Express app where GET /test throws the given error.
- * Uses a plain app.get() route so req.route.path is set (needed for
- * the routeErrorCodes validation in handleErrors).
+ * Mini Express apps where the route throws whatever the current test asks for.
+ * A plain app.get() route is used so req.route.path is set, which
+ * handleErrors' routeErrorCodes validation depends on.
+ *
+ * One app per route path, reused across tests, with the thrower swapped in
+ * rather than a new app built per test. Each app is bound to its own ephemeral
+ * port for the lifetime of the file (see helpers/http), and building ~33 of them
+ * churned through ports fast enough that a request occasionally timed out or
+ * landed on a recycled one. Reusing them is the same late-binding trick
+ * securityBoundaries.test.ts already uses for its auth state.
  */
-function createErrorApp(thrower: (req: Request) => void) {
-  const app = express();
-  app.use(requestIdMiddleware);
-  app.get('/test', (req: Request, _res: Response) => {
-    thrower(req);
-  });
-  app.use(handleErrors as ErrorRequestHandler);
+const errorApps = new Map<string, ReturnType<typeof express>>();
+const throwers = new Map<string, (req: Request) => void>();
+
+function errorAppForRoute(routePath: string, thrower: (req: Request) => void) {
+  throwers.set(routePath, thrower);
+
+  let app = errorApps.get(routePath);
+  if (!app) {
+    app = express();
+    app.use(requestIdMiddleware);
+    app.get(routePath, (req: Request, _res: Response) => {
+      // Read at request time, so the swap above applies to this test's request.
+      throwers.get(routePath)?.(req);
+    });
+    app.use(handleErrors as ErrorRequestHandler);
+    errorApps.set(routePath, app);
+  }
+
   return app;
 }
 
+function createErrorApp(thrower: (req: Request) => void) {
+  return errorAppForRoute('/test', thrower);
+}
+
 function createErrorAppWithRoute(routePath: string, thrower: (req: Request) => void) {
-  const app = express();
-  app.use(requestIdMiddleware);
-  app.get(routePath, (req: Request, _res: Response) => {
-    thrower(req);
-  });
-  app.use(handleErrors as ErrorRequestHandler);
-  return app;
+  return errorAppForRoute(routePath, thrower);
 }
 
 describe('handleErrors', () => {

@@ -19,5 +19,12 @@ declare module 'express-serve-static-core' {
       quotaUsed: number;
       quotaRemaining: number;
     };
+    /** Raw request body captured by `rawBodySaver` for the pino serializer. */
+    rawBody?: string;
+  }
+
+  interface Response {
+    /** Response body captured by `responseBodyLogger` for the pino serializer. */
+    responseBody?: unknown;
   }
 }

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'bun:test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AggregationTemporality,
   InMemoryMetricExporter,
   MeterProvider,
   PeriodicExportingMetricReader,
 } from '@opentelemetry/sdk-metrics';
+import type { DataPoint, ExponentialHistogram, Histogram } from '@opentelemetry/sdk-metrics';
 import { InstrumentedTypeOrmLogger } from '@app/middleware/dbInstrumentation';
 import { logger } from '@config/log';
 import { config } from '@config/config';
@@ -17,14 +18,24 @@ function createLogger(): InstrumentedTypeOrmLogger {
   return new InstrumentedTypeOrmLogger(meter);
 }
 
-async function collectMetric(name: string) {
+/**
+ * The data points recorded for one metric since the last flush.
+ *
+ * `metric.dataPoints` is a union of three per-value-type arrays (counter,
+ * histogram, exponential histogram), and flat-mapping across the union leaves
+ * TypeScript with an unusable `never`-ish element type. Naming the element type
+ * once here is what lets call sites index and read `.attributes` directly.
+ */
+type RecordedPoint = DataPoint<number | Histogram | ExponentialHistogram>;
+
+async function collectMetric(name: string): Promise<RecordedPoint[]> {
   await reader.forceFlush();
   return exporter
     .getMetrics()
     .flatMap((resourceMetrics) => resourceMetrics.scopeMetrics)
     .flatMap((scopeMetrics) => scopeMetrics.metrics)
     .filter((metric) => metric.descriptor.name === name)
-    .flatMap((metric) => metric.dataPoints);
+    .flatMap((metric) => metric.dataPoints as RecordedPoint[]);
 }
 
 afterEach(async () => {
