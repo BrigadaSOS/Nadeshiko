@@ -112,7 +112,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         lang="ja"
         :maxlength="TEXT_MAX_LENGTH"
         rows="2"
-        class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+        class="nd-input"
       />
       <div class="text-right text-xs mt-0.5" :class="charCountColor(form.ja.length)">
         {{ form.ja.length }}/{{ TEXT_MAX_LENGTH }}
@@ -135,7 +135,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         v-model="form.en"
         :maxlength="TEXT_MAX_LENGTH"
         rows="2"
-        class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+        class="nd-input"
       />
       <div class="text-right text-xs mt-0.5" :class="charCountColor(form.en.length)">
         {{ form.en.length }}/{{ TEXT_MAX_LENGTH }}
@@ -158,7 +158,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         v-model="form.es"
         :maxlength="TEXT_MAX_LENGTH"
         rows="2"
-        class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+        class="nd-input"
       />
       <div class="text-right text-xs mt-0.5" :class="charCountColor(form.es.length)">
         {{ form.es.length }}/{{ TEXT_MAX_LENGTH }}
@@ -177,7 +177,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
             v-model.number="form.position"
             type="number"
             min="0"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+            class="nd-input font-mono"
           />
         </div>
         <div>
@@ -186,7 +186,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
             v-model.number="form.startTimeMs"
             type="number"
             min="0"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+            class="nd-input font-mono"
           />
         </div>
         <div>
@@ -195,7 +195,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
             v-model.number="form.endTimeMs"
             type="number"
             min="0"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+            class="nd-input font-mono"
           />
         </div>
       </div>
@@ -254,25 +254,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         @blur="validateField(form.ratingAnalysisJson, 'ratingAnalysis')"
       />
       <p v-if="jsonErrors.ratingAnalysis" class="text-xs text-red-400 mt-0.5">{{ jsonErrors.ratingAnalysis }}</p>
-    </div>
-
-    <!-- POS Analysis -->
-    <div>
-      <div class="flex items-center justify-between mb-1">
-        <label class="text-sm font-medium text-gray-300">
-          {{ t('modalSegmentEdit.posAnalysis') }}
-        </label>
-        <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
-      </div>
-      <p class="text-xs text-neutral-500 mb-1.5">{{ t('modalSegmentEdit.posAnalysisDesc') }}</p>
-      <textarea
-        v-model="form.posAnalysisJson"
-        rows="6"
-        class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
-        :class="jsonErrors.posAnalysis ? 'border-red-500' : 'border-neutral-600'"
-        @blur="validateField(form.posAnalysisJson, 'posAnalysis')"
-      />
-      <p v-if="jsonErrors.posAnalysis" class="text-xs text-red-400 mt-0.5">{{ jsonErrors.posAnalysis }}</p>
     </div>
   </div>
 </template>

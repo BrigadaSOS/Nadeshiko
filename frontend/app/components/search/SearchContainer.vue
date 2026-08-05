@@ -47,7 +47,7 @@ const posthog = usePostHog();
 const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const route = useRoute();
-const router = useRouter();
+const { setQuery } = useQuerySync();
 const playerStore = usePlayerStore();
 
 const isSentencePath = (path: string) => splitLocalePrefix(path).localizedPath.startsWith('/sentence/');
@@ -61,6 +61,7 @@ const isSingleSentenceView = computed(() => isSentencePath(route.path));
 const hasMoreResults = ref(!isSentencePath(route.path));
 const showLoadMoreButton = ref(false);
 const initialError = ref(false);
+const statsError = ref(false);
 
 const query = ref('');
 const category = ref('all');
@@ -81,17 +82,6 @@ const showAnywayAndRefresh = () => {
   showHiddenMediaOverride.value = true;
   loadStats();
   loadSentences({ append: false });
-};
-
-const firstQueryValue = (
-  value: LocationQueryValue | LocationQueryValue[] | undefined,
-): LocationQueryValue | undefined => (Array.isArray(value) ? value[0] : value);
-const getStringQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined): string | null => {
-  const normalized = firstQueryValue(value);
-  if (normalized === undefined || normalized === null || normalized === '') {
-    return null;
-  }
-  return String(normalized);
 };
 
 const searchData = computed(() => {
@@ -202,8 +192,18 @@ const loadStats = async () => {
     await navigateTo(localePath('/'), { redirectCode: 302 });
     return;
   }
+  if (outcome.status === 'error') {
+    // The category tabs and the whole media/episode sidebar are driven by this
+    // payload. An empty one is indistinguishable from a query that matched
+    // nothing, and keeping the previous query's counts is worse still, so drop it
+    // and let the template say what happened.
+    statsData.value = null;
+    statsError.value = true;
+    return;
+  }
 
-  statsData.value = outcome.status === 'ok' ? outcome.data : { media: [], categories: [] };
+  statsError.value = false;
+  statsData.value = outcome.data;
 };
 
 const resetSentencePagination = () => {
@@ -390,17 +390,7 @@ const categoryFilter = (categoryKey: string) => {
     query: query.value,
   });
 
-  const queryParams = {
-    ...route.query,
-  };
-
-  if (categoryKey === 'all') {
-    delete queryParams.category;
-  } else {
-    queryParams.category = categoryKey;
-  }
-
-  router.push({ path: route.path, query: queryParams });
+  setQuery({ category: categoryKey === 'all' ? null : categoryKey });
 };
 
 const selectedMediaStat = computed(() => {
@@ -585,6 +575,21 @@ onBeforeRouteUpdate(async (to, from) => {
                     </CommonTabsContainer>
                 </div>
                 <div class="shrink-0">
+                    <SearchResultControls />
+                </div>
+            </div>
+        </div>
+        <div v-else-if="statsError" class="pb-3 yomitan-ignore" data-testid="search-stats-error">
+            <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
+                <p class="text-sm text-red-400">{{ $t('searchContainer.errorMessage1') }}</p>
+                <button
+                    type="button"
+                    class="py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                    @click="loadStats()"
+                >
+                    {{ $t('searchContainer.retryButton') }}
+                </button>
+                <div class="shrink-0 ml-auto">
                     <SearchResultControls />
                 </div>
             </div>

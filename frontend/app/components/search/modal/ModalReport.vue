@@ -70,11 +70,6 @@ const contentRatingBadgeClasses: Record<string, string> = {
   EXPLICIT: 'bg-red-600/30 text-red-300 border border-red-700',
 };
 
-const copyUuid = async () => {
-  if (!props.segment) return;
-  await navigator.clipboard.writeText(props.segment.segment.publicId);
-};
-
 watch(
   () => props.target,
   () => {
@@ -130,7 +125,7 @@ const submitReport = async () => {
     @close="closeModal"
   >
       <!-- Header -->
-      <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
+      <div class="nd-modal-header">
         <h3 id="nd-report-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('reports.modalTitle') }}
         </h3>
@@ -205,22 +200,6 @@ const submitReport = async () => {
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
             <span class="font-mono text-neutral-300">#{{ segment.segment.publicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
-          </div>
-          <!-- UUID -->
-          <div class="flex items-center gap-2 text-neutral-300">
-            <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.uuid') }}</span>
-            <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[18rem]">{{ segment.segment.publicId }}</code>
-            <button
-              type="button"
-              class="text-neutral-500 hover:text-neutral-300 transition-colors"
-              :title="t('modalSegmentEdit.metadata.copyUuid')"
-              @click="copyUuid"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-              </svg>
-            </button>
           </div>
           <!-- Content rating -->
           <div class="flex items-center gap-2 text-neutral-300">
@@ -302,7 +281,7 @@ const submitReport = async () => {
             maxlength="1000"
             rows="3"
             :placeholder="t('reports.descriptionPlaceholder')"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+            class="nd-input"
           />
         </div>
       </div>
@@ -319,12 +298,12 @@ const submitReport = async () => {
         <button
           type="button"
           :disabled="isSubmitting || !form.reason"
-          class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
+          class="nd-btn-accent"
           @click="submitReport"
         >
           <span
             v-if="isSubmitting"
-            class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+            class="nd-spinner"
           />
           {{ isSubmitting ? t('reports.submitting') : t('reports.submit') }}
         </button>

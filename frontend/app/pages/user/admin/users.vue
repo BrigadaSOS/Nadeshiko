@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import DashboardModule from '~/components/settings/modules/DashboardModule.vue';
+import UsersManager from '~/components/admin/UsersManager.vue';
 </script>
 
 <template>
-  <DashboardModule />
+  <UsersManager />
 </template>

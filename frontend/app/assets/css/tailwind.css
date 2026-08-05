@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Repeated multi-class combinations, named once.
+ *
+ * Only patterns that appeared verbatim in many templates live here -- these are
+ * shorthands for strings that were already being copied, not an attempt to build
+ * a component library in CSS. Anything used once or twice stays inline where it
+ * is easier to read alongside the markup.
+ */
+@layer components {
+  /* Text/number/password inputs on dark surfaces. */
+  .nd-input {
+    @apply w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm;
+    @apply focus:ring-2 focus:ring-input-focus-ring focus:border-transparent;
+  }
+
+  /* The primary call-to-action button. */
+  .nd-btn-accent {
+    @apply py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white;
+    @apply hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* Inline loading spinner sized to sit next to button text. */
+  .nd-spinner {
+    @apply animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1;
+  }
+
+  /* Title row of a modal, with its dividing rule. */
+  .nd-modal-header {
+    @apply flex justify-between items-center py-3 px-4 border-b dark:border-modal-border;
+  }
+}
+
 @layer utilities {
   .bg-sgray {
     background-color: #2c2c2c;

@@ -10,11 +10,8 @@ const emit = defineEmits<{
   'update:range': [range: StatsRange];
 }>();
 
-const { t, locale } = useI18n();
-
-function formatNumber(value: number): string {
-  return value.toLocaleString(locale.value);
-}
+const { t } = useI18n();
+const { formatNumber } = useFormat();
 </script>
 
 <template>

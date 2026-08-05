@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import AccountModule from '~/components/settings/modules/AccountModule.vue';
+import AccountSettings from '~/components/user/AccountSettings.vue';
 </script>
 
 <template>
-  <AccountModule />
+  <AccountSettings />
 </template>

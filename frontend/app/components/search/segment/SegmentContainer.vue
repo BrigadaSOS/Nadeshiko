@@ -250,7 +250,15 @@ const onEditSuccess = (updated: SearchResult) => {
   }
 };
 
-const { revertActiveConcatenation, loadNextSegment } = useSegmentConcatenation();
+const { revertActiveConcatenation, concatenatedResult, loadNextSegment } = useSegmentConcatenation();
+
+// An expanded card that a new search scrolls off the list can no longer be
+// reverted from the UI, so its concatenated audio blob would never be released.
+// Appends (infinite scroll) keep the card, and with it the expansion.
+watch(resultList, (list) => {
+  const expanded = concatenatedResult.value;
+  if (expanded && !list.includes(expanded)) revertActiveConcatenation();
+});
 
 // Filter navigation method
 const localePath = useLocalePath();
@@ -621,7 +629,7 @@ watch(playingVideoId, (id) => {
         <div class="w-full align-top items-center">
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
             <img class="mb-6"
-              src="/assets/no-results.gif" alt="No results illustration" />
+              src="/assets/no-results.gif" :alt="$t('searchContainer.noResultsImageAlt')" />
             <h2 class="font-bold text-red-400 text-3xl">{{ $t('segment.noResultsTitle') }}</h2>
             <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchpage.main.labels.noresults') }}</h1>
             <p class="mt-4 text-gray-500 dark:text-gray-400">

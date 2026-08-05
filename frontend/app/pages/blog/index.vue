@@ -1,18 +1,27 @@
 <script setup lang="ts">
+import { handleApiError } from '~/utils/apiError';
+
 const { locale, t } = useI18n();
 const route = useRoute();
 
 const page = computed(() => Number(route.query.page || 1));
 const pageSize = 9;
 
-const { data: posts } = await useAsyncData(
+const { data: posts, refresh } = await useAsyncData(
   `blog-posts-${locale.value}-${page.value}`,
   async () => {
     const lang = locale.value.toLowerCase();
 
-    const result = await $fetch('/api/blog/posts', {
+    const result = await $fetch<{ posts: any[]; isFallback: boolean }>('/api/blog/posts', {
       query: { locale: lang },
-    }).catch(() => ({ posts: [] as any[], isFallback: false }));
+    }).catch((error: unknown) => {
+      // Also runs during SSR, where a toast has nowhere to go; the inline notice
+      // below is what stops a failed fetch from reading as "no posts yet".
+      handleApiError('blog:posts-fetch-failed', error, { toastKey: false });
+      return null;
+    });
+
+    if (!result) return null;
 
     const allPosts = result.posts;
     const start = (page.value - 1) * pageSize;
@@ -53,7 +62,18 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
             {{ t('common.translationUnavailable') }}
           </p>
 
-          <div v-if="posts?.posts.length" :lang="posts.isFallback ? 'en' : undefined">
+          <div v-if="!posts" class="py-20 text-center text-sm" data-testid="blog-load-error">
+            <p class="text-red-400">{{ t('errors.generic') }}</p>
+            <button
+              type="button"
+              class="mt-3 py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              @click="refresh()"
+            >
+              {{ t('searchContainer.retryButton') }}
+            </button>
+          </div>
+
+          <div v-else-if="posts.posts.length" :lang="posts.isFallback ? 'en' : undefined">
             <BlogCard v-for="post in posts.posts" :key="(post as any).slug || post.path" :post="post as any" />
           </div>
 

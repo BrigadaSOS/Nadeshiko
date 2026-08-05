@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
+import { NadeshikoError } from '@brigadasos/nadeshiko-sdk';
+import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import { reportError } from '~/utils/reportError';
 import type { SearchStatsResponse } from '~/types/search';
@@ -11,28 +12,44 @@ const { mediaName } = useMediaName();
 const id = computed(() => String(route.params.id));
 
 const fetchSentenceData = async () => {
-  try {
-    const sdk = useNadeshikoSdk();
-    const segment = await sdk.getSegment(id.value);
-    if (!segment) return null;
-    const media = await sdk.getMedia(segment.mediaPublicId);
-    return resolveSearchResponse({
-      segments: [segment],
-      includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
-      pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
-    });
-  } catch (error) {
-    // Runs during SSR, where a toast has nowhere to go. A missing segment and a
-    // failed lookup both render the empty permalink page, so report the difference.
+  const sdk = useNadeshikoSdk();
+
+  const segment = await sdk.getSegment(id.value).catch((error: unknown) => {
+    // A deleted or mistyped permalink is a genuine 404; anything else is our own
+    // failure and must not be dressed up as "this sentence does not exist".
+    if (error instanceof NadeshikoError && error.status === 404) return null;
     reportError('sentence:fetch-failed', error, { 'segment.publicId': id.value });
+    throw error;
+  });
+  if (!segment) return null;
+
+  const media = await sdk.getMedia(segment.mediaPublicId).catch((error: unknown) => {
+    // The sentence itself resolved; a missing media only costs the page its title card.
+    reportError('sentence:media-fetch-failed', error, { 'media.publicId': segment.mediaPublicId });
     return null;
-  }
+  });
+
+  return resolveSearchResponse({
+    segments: [segment],
+    includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
+    pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
+  });
 };
 
-const { data: initialSentenceData } = await useAsyncData(`sentence-${id.value}`, () => fetchSentenceData(), {
-  server: true,
-  lazy: false,
-});
+const { data: initialSentenceData, error: sentenceError } = await useAsyncData(
+  `sentence-${id.value}`,
+  () => fetchSentenceData(),
+  { server: true, lazy: false },
+);
+
+// Returning `null` would render the permalink as an empty page at HTTP 200, which
+// crawlers happily index and users read as "the site is broken".
+if (sentenceError.value) {
+  throw createError({ statusCode: 500, statusMessage: 'Failed to load sentence' });
+}
+if (!initialSentenceData.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Sentence Not Found' });
+}
 
 const initialStatsData = computed<SearchStatsResponse | null>(() => {
   const result = initialSentenceData.value?.results?.[0];
@@ -59,18 +76,7 @@ const metaTags = computed(() => {
   const defaultTitle = t('seo.sentence.title');
   const defaultDescription = t('seo.sentence.defaultDescription');
 
-  const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: defaultTitle,
-    meta: [
-      { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: socialTitle(defaultTitle) },
-      { property: 'og:description', content: defaultDescription },
-      { property: 'og:type', content: 'website' },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: socialTitle(defaultTitle) },
-      { name: 'twitter:description', content: defaultDescription },
-    ],
-  };
+  const tags = buildDefaultMetaTags(defaultTitle, defaultDescription);
 
   const result = initialSentenceData.value?.results?.[0];
 

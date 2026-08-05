@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { MediaAuditRun } from '@brigadasos/nadeshiko-sdk';
-import { formatDate, formatNumber } from './reportHelpers';
 
 defineProps<{
   runs: MediaAuditRun[];
@@ -10,7 +9,8 @@ const emit = defineEmits<{
   'view-results': [];
 }>();
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber, formatDate } = useFormat();
 </script>
 
 <template>
@@ -35,10 +35,10 @@ const { t, locale } = useI18n();
           <td class="px-3 py-3 text-xs text-gray-400">{{ run.category || t('reports.admin.runHistory.allCategories') }}</td>
           <td class="px-3 py-3">
             <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">
-              {{ formatNumber(run.resultCount, locale) }}
+              {{ formatNumber(run.resultCount) }}
             </span>
           </td>
-          <td class="px-3 py-3 text-xs text-gray-400">{{ formatDate(run.createdAt, locale) }}</td>
+          <td class="px-3 py-3 text-xs text-gray-400">{{ formatDate(run.createdAt, 'dateTime') }}</td>
           <td class="px-3 py-3">
             <button
               class="text-xs text-cyan-400 hover:text-cyan-300"

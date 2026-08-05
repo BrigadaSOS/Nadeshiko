@@ -8,15 +8,21 @@ import type {
   UpdateReportRequest,
 } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
-import { ALL_STATUSES, formatNumber, type ReportGroup } from './reports/reportHelpers';
+import { ALL_STATUSES, type ReportGroup } from './reports/reportHelpers';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber } = useFormat();
 const sdk = useNadeshikoSdk();
 
 const groups = ref<ReportGroup[]>([]);
-const isLoading = ref(false);
-const hasMore = ref(false);
-const cursor = ref<string | null>(null);
+const {
+  hasMore,
+  loading: isReloading,
+  loadingMore,
+  load: loadFirstPage,
+  loadMore: fetchNextPage,
+} = useCursorPagination();
+const isLoading = computed(() => isReloading.value || loadingMore.value);
 
 const sourceFilter = ref<'' | 'USER' | 'AUTO'>('');
 const orphanedFilter = ref(false);
@@ -63,32 +69,40 @@ const showAuditConfig = ref(false);
 const editingAudit = ref<MediaAudit | null>(null);
 const editThreshold = ref<Record<string, number | boolean>>({});
 
-const buildReportQuery = (append = false) => {
+const buildReportQuery = (cursor: string | null) => {
   const query: Record<string, string | number | boolean> = { take: 20 };
-  if (cursor.value && append) query.cursor = cursor.value;
+  if (cursor) query.cursor = cursor;
   if (statusFilterQuery.value) query.status = statusFilterQuery.value;
   if (sourceFilter.value) query.source = sourceFilter.value;
   if (orphanedFilter.value) query.orphaned = true;
   return query;
 };
 
-const fetchReports = async (append = false) => {
-  isLoading.value = true;
+const fetchReportPage = async (cursor: string | null) => {
   try {
-    const result = await sdk.listAdminReports(buildReportQuery(append));
-
-    if (append) {
-      groups.value.push(...result.groups);
-    } else {
-      groups.value = result.groups;
-    }
-    hasMore.value = result.pagination.hasMore;
-    cursor.value = result.pagination.cursor;
+    const result = await sdk.listAdminReports(buildReportQuery(cursor));
+    return {
+      groups: result.groups,
+      hasMore: result.pagination?.hasMore ?? false,
+      cursor: result.pagination?.cursor ?? null,
+    };
   } catch (err) {
     handleApiError('reports.fetchReports', err);
-  } finally {
-    isLoading.value = false;
+    return null;
   }
+};
+
+/** Reloads the first page for the active filters, dropping any page still in flight. */
+const fetchReports = async () => {
+  const outcome = await loadFirstPage(fetchReportPage);
+  if (outcome.status !== 'ok') return;
+  groups.value = outcome.page.groups;
+};
+
+const loadMoreReports = async () => {
+  const outcome = await fetchNextPage(fetchReportPage);
+  if (outcome.status !== 'ok') return;
+  groups.value.push(...outcome.page.groups);
 };
 
 const fetchAudits = async () => {
@@ -116,7 +130,6 @@ onMounted(() => {
 });
 
 watch([sourceFilter, statusFilterQuery, orphanedFilter], () => {
-  cursor.value = null;
   autoSubTab.value = 'results';
   selectedGroupIndices.value = new Set();
   expandedGroups.value = new Set();
@@ -130,7 +143,7 @@ const runAudit = async (auditName: string) => {
     useToastSuccess(
       t('reports.admin.auditRunResult', {
         audit: auditName,
-        count: formatNumber(data.totalReports ?? 0, locale.value),
+        count: formatNumber(data.totalReports ?? 0),
       }),
     );
     await fetchReports();
@@ -236,7 +249,7 @@ const batchUpdate = async (status: string) => {
   try {
     const data = await sdk.batchUpdateAdminReports({ ids, status: status as ReportStatus });
     selectedGroupIndices.value = new Set();
-    useToastSuccess(t('reports.admin.batchUpdated', { count: formatNumber(data.count, locale.value) }));
+    useToastSuccess(t('reports.admin.batchUpdated', { count: formatNumber(data.count) }));
     await fetchReports();
   } catch (err) {
     handleApiError('reports.batchUpdate', err, { toastKey: 'reports.admin.batchUpdateError' });
@@ -262,9 +275,8 @@ const batchDelete = async () => {
   }
 
   selectedGroupIndices.value = new Set();
-  if (succeeded > 0) useToastSuccess(t('reports.admin.batchDeleted', { count: formatNumber(succeeded, locale.value) }));
-  if (failed > 0)
-    useToastError(t('reports.admin.batchDeletePartialError', { count: formatNumber(failed, locale.value) }));
+  if (succeeded > 0) useToastSuccess(t('reports.admin.batchDeleted', { count: formatNumber(succeeded) }));
+  if (failed > 0) useToastError(t('reports.admin.batchDeletePartialError', { count: formatNumber(failed) }));
   await fetchReports();
   isBatchUpdating.value = false;
 };
@@ -286,7 +298,7 @@ const bulkDismissAllMatching = async () => {
       filters: buildBulkFilters(),
     });
 
-    useToastSuccess(t('reports.admin.batchDismissed', { count: formatNumber(data.count, locale.value) }));
+    useToastSuccess(t('reports.admin.batchDismissed', { count: formatNumber(data.count) }));
     await fetchReports();
   } catch (err) {
     handleApiError('reports.bulkDismiss', err, { toastKey: 'reports.admin.batchDismissError' });
@@ -325,7 +337,7 @@ const bulkDeleteAllMatching = async () => {
       filters: buildBulkFilters() as BulkDeleteReportsRequest['filters'],
     });
 
-    useToastSuccess(t('reports.admin.batchDeleted', { count: formatNumber(data.count, locale.value) }));
+    useToastSuccess(t('reports.admin.batchDeleted', { count: formatNumber(data.count) }));
     await fetchReports();
   } catch (err) {
     handleApiError('reports.bulkDelete', err, { toastKey: 'reports.admin.batchDeleteError' });
@@ -337,7 +349,6 @@ const bulkDeleteAllMatching = async () => {
 const viewRunResults = () => {
   autoSubTab.value = 'results';
   activeStatuses.value = new Set(ALL_STATUSES);
-  cursor.value = null;
   fetchReports();
 };
 </script>
@@ -348,7 +359,7 @@ const viewRunResults = () => {
       <h1 class="text-2xl font-bold text-white" data-testid="reports-title">{{ t('reports.admin.title') }}</h1>
     </div>
 
-    <SettingsModulesReportsFilters
+    <AdminReportsFilters
       v-model:source="sourceFilter"
       v-model:orphaned="orphanedFilter"
       :active-statuses="activeStatuses"
@@ -356,7 +367,7 @@ const viewRunResults = () => {
     />
 
     <!-- Audit Cards (Auto tab) -->
-    <SettingsModulesReportsAuditCards
+    <AdminReportsAuditCards
       v-if="sourceFilter === 'AUTO'"
       :audits="audits"
       :running-audits="runningAudits"
@@ -383,7 +394,7 @@ const viewRunResults = () => {
     </div>
 
     <!-- Batch Actions Bar -->
-    <SettingsModulesReportsSelectionBar
+    <AdminReportsSelectionBar
       v-if="selectedGroupIndices.size > 0"
       :count="selectedGroupIndices.size"
       :is-updating="isBatchUpdating"
@@ -393,7 +404,7 @@ const viewRunResults = () => {
     />
 
     <!-- Bulk Actions -->
-    <SettingsModulesReportsBulkActions
+    <AdminReportsBulkActions
       :is-dismissing="isBulkDismissing"
       :is-deleting="isBulkDeleting"
       :has-results="groups.length > 0"
@@ -402,7 +413,7 @@ const viewRunResults = () => {
     />
 
     <!-- Report Groups Table -->
-    <SettingsModulesReportsTable
+    <AdminReportsTable
       v-if="sourceFilter !== 'AUTO' || autoSubTab === 'results'"
       :groups="groups"
       :is-loading="isLoading"
@@ -416,17 +427,17 @@ const viewRunResults = () => {
       @update-status="updateReport"
       @delete-report="confirmDeleteReport"
       @save-notes="saveNotes"
-      @load-more="fetchReports(true)"
+      @load-more="loadMoreReports"
     />
 
     <!-- Run History (Auto tab) -->
-    <SettingsModulesReportsRunHistory
+    <AdminReportsRunHistory
       v-if="sourceFilter === 'AUTO' && autoSubTab === 'runHistory'"
       :runs="runs"
       @view-results="viewRunResults"
     />
 
-    <SettingsModulesReportsAuditConfigModal
+    <AdminReportsAuditConfigModal
       :open="showAuditConfig"
       :audit="editingAudit"
       :threshold="editThreshold"
@@ -434,7 +445,7 @@ const viewRunResults = () => {
       @save="saveAuditConfig"
     />
 
-    <ConfirmModal
+    <CommonConfirmModal
       :visible="showDismissConfirm"
       :title="t('reports.admin.confirm.dismissAllTitle')"
       :description="t('reports.admin.confirm.dismissAllDescription')"
@@ -443,7 +454,7 @@ const viewRunResults = () => {
       @cancel="showDismissConfirm = false"
     />
 
-    <ConfirmModal
+    <CommonConfirmModal
       :visible="showDeleteConfirm"
       :title="t('reports.admin.confirm.deleteAllTitle')"
       :description="t('reports.admin.confirm.deleteAllDescription')"
@@ -452,7 +463,7 @@ const viewRunResults = () => {
       @cancel="showDeleteConfirm = false"
     />
 
-    <ConfirmModal
+    <CommonConfirmModal
       :visible="pendingDeleteId !== null"
       :title="t('reports.admin.confirm.deleteGroupTitle')"
       :description="t('reports.admin.confirm.deleteGroupDescription')"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import DeveloperModule from '~/components/settings/modules/DeveloperModule.vue';
+import DeveloperSettings from '~/components/user/DeveloperSettings.vue';
 </script>
 
 <template>
-  <DeveloperModule />
+  <DeveloperSettings />
 </template>

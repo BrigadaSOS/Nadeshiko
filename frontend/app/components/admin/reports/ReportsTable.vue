@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import { buildMediaSearchPath, buildSentencePath } from '~/utils/routes';
-import {
-  formatDate,
-  formatNumber,
-  formatRelativeDate,
-  type ReportGroup,
-  sourceClass,
-  statusClass,
-} from './reportHelpers';
+import { type ReportGroup, sourceClass, statusClass } from './reportHelpers';
 
 const props = defineProps<{
   groups: ReportGroup[];
@@ -29,7 +22,8 @@ const emit = defineEmits<{
   'load-more': [];
 }>();
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber, formatDate, formatRelativeTime } = useFormat();
 const localePath = useLocalePath();
 
 const statusLabel = (status: string) => t(`reports.statuses.${status}`);
@@ -111,23 +105,23 @@ const startEditNotes = (reportId: number, adminNotes: string | null | undefined)
               <span v-else class="text-red-400 italic">{{ t('reports.admin.deletedTarget') }}</span>
             </td>
             <td class="px-3 py-3 text-center">
-              <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">{{ formatNumber(group.reportCount, locale) }}</span>
+              <span class="px-2 py-1 text-xs font-bold rounded bg-neutral-700 text-white">{{ formatNumber(group.reportCount) }}</span>
               <span
                 v-if="group.reporterCount > 0"
                 class="block text-[10px] text-neutral-500 mt-0.5 cursor-help"
                 :title="[...new Set(group.reports.map(r => r.reporterName))].join(', ')"
               >
-                {{ t('reports.admin.reporters', { count: formatNumber(group.reporterCount, locale) }) }}
+                {{ t('reports.admin.reporters', { count: formatNumber(group.reporterCount) }) }}
               </span>
             </td>
             <td class="px-3 py-3">
               <span class="px-2 py-1 text-xs font-medium rounded border" :class="statusClass(group.status)">{{ statusLabel(group.status) }}</span>
             </td>
-            <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="formatDate(group.firstReportedAt, locale)">
-              {{ formatRelativeDate(group.firstReportedAt, locale) }}
+            <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="formatDate(group.firstReportedAt, 'dateTime')">
+              {{ formatRelativeTime(group.firstReportedAt) }}
             </td>
-            <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="group.lastStatusChange ? formatDate(group.lastStatusChange, locale) : ''">
-              {{ group.lastStatusChange ? formatRelativeDate(group.lastStatusChange, locale) : '-' }}
+            <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="group.lastStatusChange ? formatDate(group.lastStatusChange, 'dateTime') : ''">
+              {{ formatRelativeTime(group.lastStatusChange) }}
             </td>
             <td class="px-3 py-3" @click.stop>
               <div v-if="group.reports[0]" class="flex gap-1 flex-wrap">
@@ -151,7 +145,7 @@ const startEditNotes = (reportId: number, adminNotes: string | null | undefined)
             </td>
             <td class="px-3 py-2 text-xs text-neutral-300">{{ report.reporterName }}</td>
             <td />
-            <td class="px-3 py-2 text-xs text-gray-500" :title="formatDate(report.createdAt, locale)">{{ formatRelativeDate(report.createdAt, locale) }}</td>
+            <td class="px-3 py-2 text-xs text-gray-500" :title="formatDate(report.createdAt, 'dateTime')">{{ formatRelativeTime(report.createdAt) }}</td>
             <td class="px-3 py-2 max-w-[150px]">
               <template v-if="editingNotes[report.id] !== undefined">
                 <input

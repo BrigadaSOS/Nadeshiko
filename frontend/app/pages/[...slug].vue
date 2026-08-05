@@ -30,25 +30,42 @@ const slug = computed(() => {
 
 const isBlogPost = computed(() => slug.value.startsWith('blog/'));
 
-const { data } = await useAsyncData(
+const { data, error } = await useAsyncData(
   () => `content-${locale.value}-${route.path}`,
   () =>
     $fetch<MarkdownPagePayload>(`/api/_site/page/${slug.value}`, {
       query: { locale: locale.value.toLowerCase() },
-    }).catch((error: { statusCode?: number; status?: number }) => {
+    }).catch((fetchError: { statusCode?: number; status?: number }) => {
       // A missing page is a genuine 404; anything else is our content route failing
       // and must not be dressed up as "this page does not exist".
-      const status = error?.statusCode ?? error?.status;
+      const status = fetchError?.statusCode ?? fetchError?.status;
       if (status === 404) return null;
-      reportError('content:page-fetch-failed', error, { 'content.slug': slug.value });
-      throw createError({ statusCode: 500, statusMessage: 'Failed to load page' });
+      reportError('content:page-fetch-failed', fetchError, { 'content.slug': slug.value });
+      throw fetchError;
     }),
   { watch: [() => route.path, locale] },
 );
 
-if (!data.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Page Not Found' });
+const notFound = () => createError({ statusCode: 404, statusMessage: 'Page Not Found' });
+const loadFailed = () => createError({ statusCode: 500, statusMessage: 'Failed to load page' });
+
+if (error.value) {
+  throw loadFailed();
 }
+if (!data.value) {
+  throw notFound();
+}
+
+// `useAsyncData` refetches whenever the path or locale changes, but setup runs
+// once: without this, hopping to another missing page keeps this component alive
+// and renders a blank body instead of the error page.
+watch([data, error], ([page, fetchError]) => {
+  if (fetchError) {
+    showError(loadFailed());
+  } else if (!page) {
+    showError(notFound());
+  }
+});
 
 const title = computed(() => data.value?.title || undefined);
 const description = computed(() => data.value?.description || '');

@@ -10,7 +10,8 @@ import { handleApiError } from '~/utils/apiError';
 import { resolveContextResponse } from '~/utils/resolvers';
 import { reportError } from '~/utils/reportError';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatDate } = useFormat();
 
 const user_store = userStore();
 const sdk = useNadeshikoSdk();
@@ -144,13 +145,6 @@ const refreshSessions = async () => {
 onMounted(() => {
   void refreshSessions();
 });
-
-const formatDate = (value?: string | null) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString(locale.value);
-};
 
 const detectDeviceType = (userAgent?: string | null) => {
   if (!userAgent) return t('accountSettings.account.sessionDetails.unknownDevice');
@@ -420,8 +414,8 @@ const logoutCurrentUser = async () => {
                 {{ $t('accountSettings.account.sessions.current') }}
               </span>
             </td>
-            <td class="py-3 text-sm text-gray-200">{{ formatDate(session.createdAt) }}</td>
-            <td class="py-3 text-sm text-gray-200">{{ formatDate(session.expiresAt) }}</td>
+            <td class="py-3 text-sm text-gray-200">{{ formatDate(session.createdAt, 'dateTime') }}</td>
+            <td class="py-3 text-sm text-gray-200">{{ formatDate(session.expiresAt, 'dateTime') }}</td>
             <td class="py-3 text-sm text-right">
               <button
                 v-if="!isCurrentSession(session.token)"

@@ -2,8 +2,8 @@
 import type { MediaSearchStats } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
-const router = useRouter();
 const route = useRoute();
+const { setQuery } = useQuerySync();
 
 const props = withDefaults(
   defineProps<{
@@ -36,30 +36,12 @@ const toggleEpisode = (episodeId: number) => {
   updateUrlParams(newEpisodeId);
 };
 
-const scrollToTop = () => {
-  if (import.meta.client) {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }
-};
-
 const updateUrlParams = (episode: number | null) => {
-  const query = { ...route.query };
-
-  if (episode !== null) {
-    query.episode = String(episode);
-  } else {
-    delete query.episode;
-  }
-
-  router.push({ path: route.path, query });
-  scrollToTop();
+  setQuery({ episode: episode === null ? null : String(episode) }, { scroll: true });
 };
 
 const clearFilters = () => {
-  const query = { ...route.query };
-  delete query.episode;
-  router.push({ path: route.path, query });
-  scrollToTop();
+  setQuery({ episode: null }, { scroll: true });
 };
 </script>
 
