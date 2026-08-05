@@ -10,11 +10,14 @@
  *   [{SessionCookie: [ADMIN]}]                     → requireSession(enforceAdminAccess)
  *   [{ApiKey: [P]}, {SessionCookie: []}]           → requireAuth(enforceApiKeyScope(ApiPermission.P))
  *   [{ApiKey: [P]}, {SessionCookie: [ADMIN]}]      → requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.P))
+ *   [{ApiKey: [P]}]                                → requireAuth(enforceApiKeyScope(ApiPermission.P))
+ *   [{ApiKey: [W]}] where W is a corpus write      → requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.W))
  *   no security                                    → (skipped, handled manually)
  */
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { parse } from 'yaml';
+import { ApiPermission } from '@app/models/ApiPermission';
 
 const GENERATED_DIR = resolve(import.meta.dir, '../generated');
 const BUNDLED_SPEC = resolve(import.meta.dir, '../docs/generated/openapi.yaml');
@@ -37,30 +40,65 @@ interface PathItem {
   delete?: Operation;
 }
 
+/**
+ * Permissions that mutate the shared media corpus rather than data the caller
+ * owns. The spec marks these routes ApiKey-only, but browser traffic still
+ * reaches them through the frontend proxy carrying only a session cookie, and
+ * `enforceApiKeyScope` waves sessions straight through. Without an explicit
+ * admin check any signed-in user could create, edit or delete corpus entries.
+ *
+ * Owner-scoped permissions (profile, activity, collections) stay out of this
+ * set: those routes are legitimately session-driven from the web app and the
+ * controllers already enforce per-user ownership.
+ */
+const CORPUS_WRITE_PERMISSIONS = new Set<string>([
+  ApiPermission.ADD_MEDIA,
+  ApiPermission.UPDATE_MEDIA,
+  ApiPermission.REMOVE_MEDIA,
+]);
+
 function openApiPathToExpress(path: string): string {
   return path.replace(/\{(\w+)\}/g, ':$1');
+}
+
+/**
+ * A scheme key present with no scope list means the bundled spec is malformed.
+ * Deriving middleware from it would silently emit a weaker guard than the route
+ * is meant to have, so refuse to generate instead.
+ */
+function requireScopes(requirement: SecurityRequirement, scheme: string): string[] {
+  const scopes = requirement[scheme];
+  if (!scopes) {
+    throw new Error(`Malformed spec: security scheme "${scheme}" has no scope list`);
+  }
+  return scopes;
+}
+
+function requireApiKeyPermission(requirement: SecurityRequirement): string {
+  const permission = requireScopes(requirement, 'ApiKey')[0];
+  if (!permission) {
+    throw new Error('Malformed spec: ApiKey security requirement has no permission scope');
+  }
+  return permission;
 }
 
 function deriveMiddleware(security: SecurityRequirement[]): string | null {
   if (security.length === 0) return null;
 
-  const hasApiKey = security.some(s => 'ApiKey' in s);
-  const hasSession = security.some(s => 'SessionCookie' in s);
+  const apiKeyReq = security.find((s) => 'ApiKey' in s);
+  const sessionReq = security.find((s) => 'SessionCookie' in s);
 
-  if (hasSession && !hasApiKey) {
-    const sessionReq = security.find(s => 'SessionCookie' in s)!;
-    const roles = sessionReq.SessionCookie;
+  if (sessionReq && !apiKeyReq) {
+    const roles = requireScopes(sessionReq, 'SessionCookie');
     if (roles.includes('ADMIN')) {
       return 'requireSession(enforceAdminAccess)';
     }
     return 'requireSession()';
   }
 
-  if (hasApiKey && hasSession) {
-    const apiKeyReq = security.find(s => 'ApiKey' in s)!;
-    const sessionReq = security.find(s => 'SessionCookie' in s)!;
-    const permission = apiKeyReq.ApiKey[0];
-    const roles = sessionReq.SessionCookie;
+  if (apiKeyReq && sessionReq) {
+    const permission = requireApiKeyPermission(apiKeyReq);
+    const roles = requireScopes(sessionReq, 'SessionCookie');
 
     if (roles.includes('ADMIN')) {
       return `requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.${permission}))`;
@@ -68,9 +106,13 @@ function deriveMiddleware(security: SecurityRequirement[]): string | null {
     return `requireAuth(enforceApiKeyScope(ApiPermission.${permission}))`;
   }
 
-  if (hasApiKey && !hasSession) {
-    const apiKeyReq = security.find(s => 'ApiKey' in s)!;
-    const permission = apiKeyReq.ApiKey[0];
+  if (apiKeyReq && !sessionReq) {
+    const permission = requireApiKeyPermission(apiKeyReq);
+
+    if (CORPUS_WRITE_PERMISSIONS.has(permission)) {
+      return `requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.${permission}))`;
+    }
+
     return `requireAuth(enforceApiKeyScope(ApiPermission.${permission}))`;
   }
 
@@ -112,12 +154,12 @@ function generate(): void {
     }
   }
 
-  const usesApiPermission = entries.some(e => e.middleware.includes('ApiPermission'));
-  const usesEnforceSessionAdmin = entries.some(e => e.middleware.includes('enforceSessionAdmin'));
-  const usesEnforceAdminAccess = entries.some(e => e.middleware.includes('enforceAdminAccess'));
-  const usesEnforceApiKeyScope = entries.some(e => e.middleware.includes('enforceApiKeyScope'));
-  const usesRequireAuth = entries.some(e => e.middleware.includes('requireAuth'));
-  const usesRequireSession = entries.some(e => e.middleware.includes('requireSession'));
+  const usesApiPermission = entries.some((e) => e.middleware.includes('ApiPermission'));
+  const usesEnforceSessionAdmin = entries.some((e) => e.middleware.includes('enforceSessionAdmin'));
+  const usesEnforceAdminAccess = entries.some((e) => e.middleware.includes('enforceAdminAccess'));
+  const usesEnforceApiKeyScope = entries.some((e) => e.middleware.includes('enforceApiKeyScope'));
+  const usesRequireAuth = entries.some((e) => e.middleware.includes('requireAuth'));
+  const usesRequireSession = entries.some((e) => e.middleware.includes('requireSession'));
 
   const imports: string[] = [];
   if (usesApiPermission) imports.push('ApiPermission');

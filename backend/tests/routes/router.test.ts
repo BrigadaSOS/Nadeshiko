@@ -76,9 +76,6 @@ const SESSION_ONLY_ROUTES: RouteEntry[] = [
   { method: 'get', path: '/v1/user/labs' },
   { method: 'post', path: '/v1/user/labs/test-key' },
   { method: 'delete', path: '/v1/user/labs/test-key' },
-  { method: 'patch', path: '/v1/collections/V1StGXR8_Z5d' },
-  { method: 'patch', path: '/v1/collections/V1StGXR8_Z5d/segments/V1StGXR8_Z5d' },
-  { method: 'get', path: '/v1/collections/V1StGXR8_Z5d/stats' },
 ];
 
 const ADMIN_SESSION_ROUTES: RouteEntry[] = [
@@ -91,7 +88,13 @@ const ADMIN_SESSION_ROUTES: RouteEntry[] = [
   { method: 'post', path: '/v1/admin/media/audits/test-name/run' },
   { method: 'get', path: '/v1/admin/media/audits/runs' },
   { method: 'get', path: '/v1/admin/media/audits/runs/1' },
+  { method: 'get', path: '/v1/admin/users-with-providers' },
 ];
+
+// Mirrors CORPUS_WRITE_PERMISSIONS in bin/generateRouteAuth.ts. Routes carrying
+// one of these mutate the shared media corpus, so a session reaching them has to
+// belong to an admin — an API key still only needs the matching scope.
+const CORPUS_WRITE_PERMISSIONS = new Set(['ADD_MEDIA', 'UPDATE_MEDIA', 'REMOVE_MEDIA']);
 
 const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: string }[] = [
   { method: 'post', path: '/v1/search', permission: 'READ_MEDIA' },
@@ -129,6 +132,9 @@ const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: str
   { method: 'post', path: '/v1/collections/V1StGXR8_Z5d/segments', permission: 'UPDATE_COLLECTIONS' },
   { method: 'post', path: '/v1/collections/V1StGXR8_Z5d/search', permission: 'READ_COLLECTIONS' },
   { method: 'delete', path: '/v1/collections/V1StGXR8_Z5d/segments/V1StGXR8_Z5d', permission: 'DELETE_COLLECTIONS' },
+  { method: 'patch', path: '/v1/collections/V1StGXR8_Z5d', permission: 'UPDATE_COLLECTIONS' },
+  { method: 'patch', path: '/v1/collections/V1StGXR8_Z5d/segments/V1StGXR8_Z5d', permission: 'UPDATE_COLLECTIONS' },
+  { method: 'get', path: '/v1/collections/V1StGXR8_Z5d/stats', permission: 'READ_COLLECTIONS' },
 ];
 
 describe('route auth wiring', () => {
@@ -208,12 +214,27 @@ describe('route auth wiring', () => {
           expect(res.status).not.toBe(403);
         });
 
-        it('accepts regular session auth (no permission check)', async () => {
-          mockSessionAuth(fixtures.users.regular.id);
-          const res = await sendRequest(route.method, route.path);
-          expect(res.status).not.toBe(401);
-          expect(res.status).not.toBe(403);
-        });
+        if (CORPUS_WRITE_PERMISSIONS.has(route.permission)) {
+          it('rejects regular session auth with 403', async () => {
+            mockSessionAuth(fixtures.users.regular.id);
+            const res = await sendRequest(route.method, route.path);
+            expect(res.status).toBe(403);
+          });
+
+          it('accepts admin session auth', async () => {
+            mockSessionAuth(fixtures.users.kevin.id);
+            const res = await sendRequest(route.method, route.path);
+            expect(res.status).not.toBe(401);
+            expect(res.status).not.toBe(403);
+          });
+        } else {
+          it('accepts regular session auth (no permission check)', async () => {
+            mockSessionAuth(fixtures.users.regular.id);
+            const res = await sendRequest(route.method, route.path);
+            expect(res.status).not.toBe(401);
+            expect(res.status).not.toBe(403);
+          });
+        }
       });
     }
   });
@@ -221,7 +242,7 @@ describe('route auth wiring', () => {
   it('route count matches expected total', () => {
     const expectedTotal = SESSION_ONLY_ROUTES.length + ADMIN_SESSION_ROUTES.length + API_KEY_OR_SESSION_ROUTES.length;
 
-    expect(expectedTotal).toBe(58);
+    expect(expectedTotal).toBe(59);
   });
 });
 

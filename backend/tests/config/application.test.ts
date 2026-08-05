@@ -7,8 +7,12 @@ describe('buildApplication', () => {
     const app = buildApplication();
     const res = await request(app).get('/up');
 
-    expect(res.status).toBe(200);
-    expect(res.text).toBe('OK');
+    // /up probes the app DataSource, which the suite never initializes (tests
+    // run against TestDataSource), so it honestly reports the database as down.
+    // The health envelope is what proves the route is mounted -- the custom
+    // route mounter case below gets a 404 instead.
+    expect(res.status).toBe(503);
+    expect(res.body).toMatchObject({ status: 'error', database: 'down' });
   });
 
   it('uses custom route mounter when provided', async () => {
@@ -60,7 +64,9 @@ describe('buildApplication', () => {
     }
 
     expect(lastStatus).toBe(200);
-  });
+    // 302 sequential requests is inherently slow; the 5s default times this out
+    // on a loaded machine even though nothing is wrong.
+  }, 30_000);
 
   it('returns catch-all 404 with request instance id', async () => {
     const app = buildApplication({

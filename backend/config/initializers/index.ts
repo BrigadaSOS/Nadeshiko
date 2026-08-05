@@ -1,6 +1,7 @@
 import { logger } from '@config/log';
 import { authInitializer } from './auth';
 import { databaseInitializer } from './database';
+import { masterApiKeyInitializer } from './masterApiKey';
 import { mediaAuditsInitializer } from './mediaAudits';
 import { telemetryInitializer } from './telemetry';
 import type { RuntimeContext, RuntimeInitializer } from './types';
@@ -10,6 +11,7 @@ const initializers: RuntimeInitializer[] = [
   telemetryInitializer,
   authInitializer,
   databaseInitializer,
+  masterApiKeyInitializer,
   workersInitializer,
   mediaAuditsInitializer,
 ];
