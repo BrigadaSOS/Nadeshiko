@@ -1,22 +1,10 @@
 <script setup lang="ts">
-import { useDebounceFn } from '@vueuse/core';
+import { useTimeoutFn } from '@vueuse/core';
+import type { AdminUserWithProviders as AdminUser } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
 
-// TODO(sdk): `/v1/admin/users-with-providers` is now in the OpenAPI spec, but the SDK has
-// not been republished yet, so no generated type exists to import. Drop this local shape
-// (and the `id` widening below — the contract types it as an integer) once it has.
-type AdminUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
-  banned: boolean;
-  providers: string[];
-};
-
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber, formatDate, formatRelativeTime } = useFormat();
 const store = userStore();
 
 const users = ref<AdminUser[]>([]);
@@ -26,30 +14,7 @@ const searchQuery = ref('');
 const currentOffset = ref(0);
 const limit = 20;
 
-const openMenuId = ref<string | null>(null);
-
-function formatDate(dateStr: string) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString(locale.value);
-}
-
-function formatRelative(dateStr: string) {
-  if (!dateStr) return '—';
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const formatter = new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' });
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return formatter.format(0, 'minute');
-  if (diffMins < 60) return formatter.format(-diffMins, 'minute');
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return formatter.format(-diffHours, 'hour');
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 30) return formatter.format(-diffDays, 'day');
-  return formatDate(dateStr);
-}
-
-const formatNumber = (value: number) => new Intl.NumberFormat(locale.value).format(value);
+const openMenuId = ref<number | null>(null);
 
 const providerLabel = (provider: string) => {
   switch (provider) {
@@ -78,10 +43,7 @@ async function fetchUsers() {
     if (searchQuery.value.trim()) {
       query.search = searchQuery.value.trim();
     }
-    const result = await $fetch<{ users: AdminUser[]; total: number }>('/v1/admin/users-with-providers', {
-      credentials: 'include',
-      query,
-    });
+    const result = await useNadeshikoSdk().getAdminUsersWithProviders(query);
     users.value = result.users ?? [];
     total.value = result.total ?? 0;
   } catch (error) {
@@ -91,12 +53,19 @@ async function fetchUsers() {
   }
 }
 
-const debouncedSearch = useDebounceFn(() => {
-  currentOffset.value = 0;
-  fetchUsers();
-}, 300);
+// `useTimeoutFn` rather than `useDebounceFn`: the latter holds a bare
+// `setTimeout` with no scope teardown, so a pending fetch would still run (and
+// try to toast) after the admin left this tab.
+const { start: scheduleSearch } = useTimeoutFn(
+  () => {
+    currentOffset.value = 0;
+    fetchUsers();
+  },
+  300,
+  { immediate: false },
+);
 
-watch(searchQuery, debouncedSearch);
+watch(searchQuery, () => scheduleSearch());
 
 function goToPrev() {
   if (currentOffset.value <= 0) return;
@@ -110,7 +79,7 @@ function goToNext() {
   fetchUsers();
 }
 
-function toggleMenu(userId: string) {
+function toggleMenu(userId: number) {
   openMenuId.value = openMenuId.value === userId ? null : userId;
 }
 
@@ -120,20 +89,16 @@ function closeMenu() {
 
 async function handleImpersonate(user: AdminUser) {
   closeMenu();
-  await store.impersonateUser(Number(user.id));
+  await store.impersonateUser(user.id);
 }
 
 async function handleBan(user: AdminUser) {
   closeMenu();
   try {
-    await $fetch('/v1/auth/admin/ban-user', {
-      method: 'POST',
-      credentials: 'include',
-      body: { userId: user.id, banReason: '' },
-    });
+    await useNadeshikoSdk().banUser({ userId: user.id, banReason: '' });
   } catch (error) {
     // Toasted here rather than via `toastKey`: the copy interpolates the user's name.
-    handleApiError('admin:ban-user-failed', error, { toastKey: false, context: { 'user.id': user.id } });
+    handleApiError('admin:ban-user-failed', error, { toastKey: false, context: { 'user.id': String(user.id) } });
     useToastError(t('accountSettings.dashboard.banError', { name: user.name || user.email }));
     return;
   }
@@ -145,14 +110,10 @@ async function handleBan(user: AdminUser) {
 async function handleUnban(user: AdminUser) {
   closeMenu();
   try {
-    await $fetch('/v1/auth/admin/unban-user', {
-      method: 'POST',
-      credentials: 'include',
-      body: { userId: user.id },
-    });
+    await useNadeshikoSdk().unbanUser({ userId: user.id });
   } catch (error) {
     // Toasted here rather than via `toastKey`: the copy interpolates the user's name.
-    handleApiError('admin:unban-user-failed', error, { toastKey: false, context: { 'user.id': user.id } });
+    handleApiError('admin:unban-user-failed', error, { toastKey: false, context: { 'user.id': String(user.id) } });
     useToastError(t('accountSettings.dashboard.unbanError', { name: user.name || user.email }));
     return;
   }
@@ -247,7 +208,7 @@ onUnmounted(() => {
                 </div>
               </td>
               <td class="px-4 py-3 text-gray-400">{{ formatDate(user.createdAt) }}</td>
-              <td class="px-4 py-3 text-gray-400">{{ formatRelative(user.updatedAt) }}</td>
+              <td class="px-4 py-3 text-gray-400">{{ formatRelativeTime(user.updatedAt) }}</td>
               <td class="px-4 py-3">
                 <span
                   v-if="user.banned"

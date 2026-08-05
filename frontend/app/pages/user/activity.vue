@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import ActivityModule from '~/components/settings/modules/ActivityModule.vue';
+import ActivityDashboard from '~/components/user/ActivityDashboard.vue';
 </script>
 
 <template>
-  <ActivityModule />
+  <ActivityDashboard />
 </template>

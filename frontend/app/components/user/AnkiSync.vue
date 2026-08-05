@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiCheckBold, mdiVideo, mdiImage, mdiVolumeHigh, mdiText, mdiPlus, mdiDelete, mdiPencil } from '@mdi/js';
+import { useTimeoutFn } from '@vueuse/core';
 import type { AnkiProfile } from '@/stores/anki';
 import { handleApiError } from '~/utils/apiError';
 
@@ -25,7 +26,6 @@ const showNameModal = ref(false);
 const nameModalInput = ref('');
 const nameModalMode = ref<'create' | 'rename'>('create');
 
-let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let suppressWatchers = false;
 
 const activeProfileId = computed(() => store.activeProfile?.id ?? null);
@@ -44,11 +44,11 @@ const loadFromActiveProfile = () => {
 
 let pendingSaveData: Partial<AnkiProfile> = {};
 
-const debouncedSave = (data: Partial<AnkiProfile>) => {
-  if (suppressWatchers) return;
-  Object.assign(pendingSaveData, data);
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(async () => {
+// `useTimeoutFn` cancels the pending write on unmount, which is what we want
+// here: a save that lands after the user navigated away would write whatever
+// the form held mid-edit, with nothing left on screen to report a failure.
+const { start: scheduleSave } = useTimeoutFn(
+  async () => {
     const toSave = { ...pendingSaveData };
     pendingSaveData = {};
     isSaving.value = true;
@@ -60,7 +60,15 @@ const debouncedSave = (data: Partial<AnkiProfile>) => {
     } finally {
       isSaving.value = false;
     }
-  }, 400);
+  },
+  400,
+  { immediate: false },
+);
+
+const debouncedSave = (data: Partial<AnkiProfile>) => {
+  if (suppressWatchers) return;
+  Object.assign(pendingSaveData, data);
+  scheduleSave();
 };
 
 const setKeyValueField = (fieldName: string, value: string) => {
@@ -496,36 +504,40 @@ watch(ankiconnectAddress, (newValue) => {
 
     </template>
 
-    <Teleport to="body">
-      <div v-if="showNameModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="showNameModal = false">
-        <div class="bg-neutral-800 rounded-lg p-6 w-full max-w-sm shadow-xl">
-          <h3 class="text-lg font-semibold text-white mb-4">
-            {{ nameModalMode === 'create' ? $t('accountSettings.anki.newProfile') : $t('accountSettings.anki.renameProfile') }}
-          </h3>
-          <input
-            v-model="nameModalInput"
-            type="text"
-            :placeholder="$t('accountSettings.anki.profileNamePlaceholder')"
-            class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-input-focus-ring focus:border-input-focus-ring"
-            @keydown.enter="confirmNameModal"
-          />
-          <div class="flex justify-end gap-2 mt-4">
-            <button
-              class="px-4 py-2 text-sm font-medium text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-              @click="showNameModal = false"
-            >
-              {{ $t('accountSettings.anki.modal.cancel') }}
-            </button>
-            <button
-              class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-red-500 hover:bg-red-600 transition-colors"
-              :disabled="!nameModalInput.trim()"
-              @click="confirmNameModal"
-            >
-              {{ nameModalMode === 'create' ? $t('accountSettings.anki.newProfile') : $t('accountSettings.anki.modal.save') }}
-            </button>
-          </div>
-        </div>
+    <CommonBaseModal
+      :open="showNameModal"
+      z-index-class="z-50"
+      overlay-class="items-center justify-center bg-black/60"
+      panel-class="bg-neutral-800 rounded-lg p-6 w-full max-w-sm shadow-xl"
+      labelledby="nd-anki-profile-name-title"
+      @close="showNameModal = false"
+    >
+      <h3 id="nd-anki-profile-name-title" class="text-lg font-semibold text-white mb-4">
+        {{ nameModalMode === 'create' ? $t('accountSettings.anki.newProfile') : $t('accountSettings.anki.renameProfile') }}
+      </h3>
+      <input
+        v-model="nameModalInput"
+        data-autofocus
+        type="text"
+        :placeholder="$t('accountSettings.anki.profileNamePlaceholder')"
+        class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-input-focus-ring focus:border-input-focus-ring"
+        @keydown.enter="confirmNameModal"
+      />
+      <div class="flex justify-end gap-2 mt-4">
+        <button
+          class="px-4 py-2 text-sm font-medium text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          @click="showNameModal = false"
+        >
+          {{ $t('accountSettings.anki.modal.cancel') }}
+        </button>
+        <button
+          class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-red-500 hover:bg-red-600 transition-colors"
+          :disabled="!nameModalInput.trim()"
+          @click="confirmNameModal"
+        >
+          {{ nameModalMode === 'create' ? $t('accountSettings.anki.newProfile') : $t('accountSettings.anki.modal.save') }}
+        </button>
       </div>
-    </Teleport>
+    </CommonBaseModal>
   </div>
 </template>

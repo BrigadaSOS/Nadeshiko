@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { MediaAudit } from '@brigadasos/nadeshiko-sdk';
-import { formatRelativeDate } from './reportHelpers';
 
 defineProps<{
   audits: MediaAudit[];
@@ -12,7 +11,8 @@ const emit = defineEmits<{
   run: [auditName: string];
 }>();
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatRelativeTime } = useFormat();
 </script>
 
 <template>
@@ -60,7 +60,7 @@ const { t, locale } = useI18n();
         </div>
 
         <div class="mt-2 pt-2 border-t border-neutral-700/50">
-          <span v-if="audit.latestRun" class="text-xs text-gray-500">{{ t('reports.admin.lastRun', { date: formatRelativeDate(audit.latestRun.createdAt, locale) }) }}</span>
+          <span v-if="audit.latestRun" class="text-xs text-gray-500">{{ t('reports.admin.lastRun', { date: formatRelativeTime(audit.latestRun.createdAt) }) }}</span>
           <span v-else class="text-xs text-gray-600">{{ t('reports.admin.neverRun') }}</span>
         </div>
       </div>

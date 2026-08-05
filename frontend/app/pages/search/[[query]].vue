@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SearchScope } from '~/composables/useSearchFetch';
-import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
+import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
 import { splitLocalePrefix } from '~/utils/routes';
 
@@ -11,15 +11,6 @@ const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const { hiddenMediaExcludeFilter } = useHiddenMedia();
-
-const firstQueryValue = (value: string | string[] | undefined | null) => (Array.isArray(value) ? value[0] : value);
-const getStringQueryValue = (value: string | string[] | undefined | null) => {
-  const normalized = firstQueryValue(value);
-  if (normalized === undefined || normalized === null || normalized === '') {
-    return null;
-  }
-  return String(normalized);
-};
 
 const mediaQueryParam = computed(() =>
   getStringQueryValue((route.query.media ?? route.query.mediaId) as string | string[] | undefined),
@@ -118,18 +109,7 @@ const metaTags = computed(() => {
   const defaultTitle = t('seo.search.title');
   const defaultDescription = t('seo.search.defaultDescription');
 
-  const tags: { title: string; meta: Array<{ name?: string; property?: string; content: string }> } = {
-    title: defaultTitle,
-    meta: [
-      { name: 'description', content: defaultDescription },
-      { property: 'og:title', content: socialTitle(defaultTitle) },
-      { property: 'og:description', content: defaultDescription },
-      { property: 'og:type', content: 'website' },
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: socialTitle(defaultTitle) },
-      { name: 'twitter:description', content: defaultDescription },
-    ],
-  };
+  const tags = buildDefaultMetaTags(defaultTitle, defaultDescription);
 
   if (isJapaneseSearchRoute.value) {
     tags.meta.push({ name: 'robots', content: 'noindex, follow' });

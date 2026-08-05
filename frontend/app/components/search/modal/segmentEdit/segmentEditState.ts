@@ -12,10 +12,9 @@ export interface SegmentEditFormState {
   startTimeMs: number;
   endTimeMs: number;
   ratingAnalysisJson: string;
-  posAnalysisJson: string;
 }
 
-export type SegmentEditJsonField = 'ratingAnalysis' | 'posAnalysis';
+export type SegmentEditJsonField = 'ratingAnalysis';
 
 export type SegmentEditJsonErrors = Record<SegmentEditJsonField, string>;
 

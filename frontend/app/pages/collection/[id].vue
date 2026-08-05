@@ -9,28 +9,33 @@ const localePath = useLocalePath();
 
 const collectionId = computed(() => String(route.params.id));
 
+// A private collection is answered by the redirect below, so no 404 or 500 may be
+// raised on top of it once this is set.
+const accessDenied = ref(false);
+
 const fetchSentenceData = async () => {
-  try {
-    const sdk = useNadeshikoSdk();
-    const result = await sdk.searchCollectionSegments({
-      collectionPublicId: collectionId.value,
-      take: 20,
-      include: ['media'],
-      throwOnError: false,
-    });
-    if ('error' in result) {
-      if (result.response.status === 403 || result.response.status === 401) {
-        await navigateTo(localePath('/'), { redirectCode: 302 });
-      }
+  const sdk = useNadeshikoSdk();
+  const result = await sdk.searchCollectionSegments({
+    collectionPublicId: collectionId.value,
+    take: 20,
+    include: ['media'],
+    throwOnError: false,
+  });
+
+  if ('error' in result) {
+    const status = result.response.status;
+    if (status === 403 || status === 401) {
+      accessDenied.value = true;
+      await navigateTo(localePath('/'), { redirectCode: 302 });
       return null;
     }
-    return resolveSearchResponse(result.data);
-  } catch (error) {
-    // Runs during SSR, where a toast has nowhere to go. SearchContainer renders its
-    // own empty/error state from the null; the report is what keeps this visible.
-    reportError('collection:sentences-fetch-failed', error, { 'collection.publicId': collectionId.value });
-    return null;
+    // A deleted or mistyped collection link is a genuine 404; anything else is our
+    // own failure and must not be dressed up as "this collection does not exist".
+    if (status === 404) return null;
+    throw result.error;
   }
+
+  return resolveSearchResponse(result.data);
 };
 
 const fetchStatsData = async () => {
@@ -44,11 +49,27 @@ const fetchStatsData = async () => {
   }
 };
 
-const { data: initialSentenceData } = await useAsyncData(
+const { data: initialSentenceData, error: sentenceError } = await useAsyncData(
   `collection-sentences-${collectionId.value}`,
   () => fetchSentenceData(),
   { server: true, lazy: false, watch: [] },
 );
+
+// Returning `null` would render the collection as an empty page at HTTP 200, which
+// crawlers happily index and users read as "the site is broken".
+if (!accessDenied.value) {
+  if (sentenceError.value) {
+    // Runs during SSR, where a toast has nowhere to go; the error page is what the
+    // user sees, and the report is what keeps this visible to us.
+    reportError('collection:sentences-fetch-failed', sentenceError.value, {
+      'collection.publicId': collectionId.value,
+    });
+    throw createError({ statusCode: 500, statusMessage: 'Failed to load collection' });
+  }
+  if (!initialSentenceData.value) {
+    throw createError({ statusCode: 404, statusMessage: 'Collection Not Found' });
+  }
+}
 
 const { data: initialStatsData } = await useAsyncData(
   `collection-stats-${collectionId.value}`,

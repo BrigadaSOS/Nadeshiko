@@ -5,7 +5,8 @@ import { reportError } from '~/utils/reportError';
 
 const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000] as const;
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber } = useFormat();
 const route = useRoute();
 const router = useRouter();
 const localePath = useLocalePath();
@@ -46,17 +47,17 @@ useSeoMeta({
 });
 
 const words = ref<CoveredWord[]>([]);
-const nextCursor = ref<string | null>(null);
 const tierStats = ref<GetCoveredWordsResponse['tierStats'] | null>(null);
-const loading = ref(false);
-// A failed tier fetch leaves `words` empty, which the grid below renders as a page
-// with nothing on it -- same as a tier that genuinely has no entries.
-const loadFailed = ref(false);
-const scrollSentinel = ref<HTMLElement | null>(null);
 
-function formatNumber(value: number): string {
-  return value.toLocaleString(locale.value);
-}
+const {
+  hasMore,
+  loading: loadingTier,
+  loadingMore,
+  load: loadTier,
+  loadMore: fetchNextPage,
+  seed: seedPagination,
+} = useCursorPagination();
+const loading = computed(() => loadingTier.value || loadingMore.value);
 
 const sdk = useNadeshikoSdk();
 
@@ -70,10 +71,10 @@ async function fetchWordsRaw(
   return await sdk
     .getCoveredWords({ tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take })
     .catch((error: unknown) => {
-      // Also runs during SSR. Callers keep whatever is already on screen rather than
-      // blanking the list, and `loadFailed` drives the inline notice.
+      // Also runs during SSR, where a toast has nowhere to go. Returning null keeps
+      // whatever is already on screen; the caller turns it into `loadFailed`, which
+      // drives the inline notice.
       reportError('stats:covered-words-fetch-failed', error, { 'stats.tier': String(tier) });
-      loadFailed.value = true;
       return null;
     });
 }
@@ -84,26 +85,36 @@ const { data: initialData } = await useAsyncData(
   { server: true, lazy: false },
 );
 
-words.value = initialData.value?.words ?? [];
-nextCursor.value = initialData.value?.pagination?.cursor ?? null;
-tierStats.value = initialData.value?.tierStats ?? null;
+// A failed tier fetch leaves `words` empty, which the grid below renders as a page
+// with nothing on it -- same as a tier that genuinely has no entries.
+const loadFailed = ref(initialData.value === null);
 
-async function fetchWords(cursor: string | undefined = undefined, append: boolean = false) {
-  loading.value = true;
-  loadFailed.value = false;
-  try {
-    const data = await fetchWordsRaw(activeTier.value, tierMinRank(activeTier.value), activeFilter.value, cursor, 500);
-    if (!data) return;
-    if (append) {
-      words.value = [...words.value, ...data.words];
-    } else {
-      words.value = data.words;
-    }
-    tierStats.value = data.tierStats;
-    nextCursor.value = data.pagination?.cursor ?? null;
-  } finally {
-    loading.value = false;
-  }
+words.value = initialData.value?.words ?? [];
+tierStats.value = initialData.value?.tierStats ?? null;
+seedPagination(initialData.value?.pagination);
+
+const fetchWordsPage = async (cursor: string | null) => {
+  const data = await fetchWordsRaw(
+    activeTier.value,
+    tierMinRank(activeTier.value),
+    activeFilter.value,
+    cursor ?? undefined,
+    500,
+  );
+  if (!data) return null;
+  return { words: data.words, tierStats: data.tierStats, ...data.pagination };
+};
+
+/** Restarts the list for the active tier/filter, dropping any page still in flight. */
+async function fetchWords() {
+  const outcome = await loadTier(fetchWordsPage);
+  if (outcome.status === 'stale') return;
+
+  loadFailed.value = outcome.status === 'error';
+  if (outcome.status !== 'ok') return;
+
+  words.value = outcome.page.words;
+  tierStats.value = outcome.page.tierStats;
 }
 
 function updateUrl() {
@@ -128,9 +139,14 @@ async function selectFilter(filter: 'ALL' | 'COVERED' | 'UNCOVERED') {
 }
 
 async function loadMore() {
-  if (nextCursor.value && !loading.value) {
-    await fetchWords(nextCursor.value, true);
-  }
+  const outcome = await fetchNextPage(fetchWordsPage);
+  if (outcome.status === 'stale') return;
+
+  loadFailed.value = outcome.status === 'error';
+  if (outcome.status !== 'ok') return;
+
+  words.value = [...words.value, ...outcome.page.words];
+  tierStats.value = outcome.page.tierStats;
 }
 
 function filterCount(filter: 'ALL' | 'COVERED' | 'UNCOVERED'): string {
@@ -140,24 +156,11 @@ function filterCount(filter: 'ALL' | 'COVERED' | 'UNCOVERED'): string {
   return formatNumber(tierStats.value.uncovered);
 }
 
-let observer: IntersectionObserver | null = null;
-
-onMounted(() => {
-  if (!scrollSentinel.value) return;
-
-  observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0]?.isIntersecting && nextCursor.value != null && !loading.value) {
-        loadMore();
-      }
-    },
-    { rootMargin: '400px' },
-  );
-
-  observer.observe(scrollSentinel.value);
-});
-
-onUnmounted(() => observer?.disconnect());
+const onSentinelVisible = () => {
+  if (hasMore.value && !loading.value) {
+    loadMore();
+  }
+};
 </script>
 
 <template>
@@ -252,7 +255,7 @@ onUnmounted(() => observer?.disconnect());
         {{ $t('statsWordsPage.empty') }}
       </div>
 
-      <div ref="scrollSentinel" class="h-1" />
+      <CommonInfiniteScrollObserver root-margin="400px" @intersect="onSentinelVisible" />
 
       <div v-if="loading" class="mt-4 text-center">
         <span class="text-white/40 text-sm">{{ $t('statsWordsPage.loading') }}</span>

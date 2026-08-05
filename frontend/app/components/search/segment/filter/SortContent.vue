@@ -10,8 +10,8 @@ import {
 } from '@mdi/js';
 
 const { t } = useI18n();
-const router = useRouter();
 const route = useRoute();
+const { setQuery } = useQuerySync();
 /** `?sort=` is always a single value; anything else is treated as unset. */
 const readSortFromRoute = () => (typeof route.query.sort === 'string' ? route.query.sort : undefined);
 
@@ -23,16 +23,9 @@ const emit = defineEmits<{
 const previousSort = ref<string>(readSortFromRoute() ?? 'none');
 
 const sortContent = async (type: string) => {
-  const query = { ...route.query };
-  if (type === 'none') {
-    delete query.sort;
-  } else {
-    query.sort = type;
-  }
-
   if (type !== previousSort.value) {
     sortType.value = type;
-    await router.push({ path: route.path, query });
+    await setQuery({ sort: type === 'none' ? null : type });
   } else if (type === 'random') {
     // El sort no ha cambiado, pero es 'random', emitimos el evento
     emit('randomSortSelected');

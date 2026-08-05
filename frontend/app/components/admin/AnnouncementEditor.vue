@@ -1,11 +1,6 @@
 <script setup lang="ts">
+import type { Announcement as AnnouncementData } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
-
-type AnnouncementData = {
-  message: string;
-  type: 'INFO' | 'WARNING' | 'MAINTENANCE';
-  active: boolean;
-};
 
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();

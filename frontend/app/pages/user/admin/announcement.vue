@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import AnnouncementModule from '~/components/settings/modules/AnnouncementModule.vue';
+import AnnouncementEditor from '~/components/admin/AnnouncementEditor.vue';
 </script>
 
 <template>
-  <AnnouncementModule />
+  <AnnouncementEditor />
 </template>

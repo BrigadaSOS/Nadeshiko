@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTimeoutFn } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import type { ResolvedMediaStats, SearchSidebarData } from '~/types/search';
@@ -11,8 +12,8 @@ type MediaFilterRow = {
 };
 
 const { t } = useI18n();
-const router = useRouter();
 const route = useRoute();
+const { setQuery } = useQuerySync();
 const { mediaName: getMediaName } = useMediaName();
 const props = defineProps<{
   searchData?: SearchSidebarData | null;
@@ -27,18 +28,17 @@ const categoryApiMapping = CATEGORY_API_MAPPING;
 // Cache translated strings outside computed to avoid repeated lookups
 const allLabel = computed(() => t('searchpage.main.labels.all'));
 
-// Debounce implementation: update debounced value 300ms after input changes
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-watch(
-  querySearchMedia,
-  (newValue) => {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      debouncedQuerySearchMedia.value = newValue.toLowerCase();
-    }, 300);
+// Each keystroke restarts the timer, so the list only re-filters 300ms after
+// the reader stops typing. `useTimeoutFn` cancels it on unmount for us.
+const { start: scheduleFilter } = useTimeoutFn(
+  (value: string) => {
+    debouncedQuerySearchMedia.value = value.toLowerCase();
   },
-  { immediate: true },
+  300,
+  { immediate: false },
 );
+
+watch(querySearchMedia, (newValue) => scheduleFilter(newValue), { immediate: true });
 
 watch(
   () => props.searchData,
@@ -116,31 +116,15 @@ const selectedMediaId = computed(() => {
   return route.query.media ? String(route.query.media) : null;
 });
 
-const scrollToTop = () => {
-  if (import.meta.client) {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }
-};
-
 const filterAnime = (mediaPublicId: string | null, _animeName: string) => {
-  const query = { ...route.query };
-
-  if (!mediaPublicId) {
-    delete query.media;
-  } else {
-    query.media = mediaPublicId;
-    delete query.episode;
-  }
-
-  router.push({ path: route.path, query });
-  scrollToTop();
+  // Switching media drops the episode filter with it: episode numbers do not
+  // carry across titles, so the old one would filter the new list to nothing.
+  const patch = mediaPublicId ? { media: mediaPublicId, episode: null } : { media: null };
+  setQuery(patch, { scroll: true });
 };
 
 const clearFilters = () => {
-  const query = { ...route.query };
-  delete query.media;
-  router.push({ path: route.path, query });
-  scrollToTop();
+  setQuery({ media: null }, { scroll: true });
 };
 </script>
 

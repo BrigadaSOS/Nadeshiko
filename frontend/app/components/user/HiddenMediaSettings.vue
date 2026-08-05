@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiClose, mdiMagnify } from '@mdi/js';
+import { useTimeoutFn } from '@vueuse/core';
 
 import type { MediaSummary } from '@brigadasos/nadeshiko-sdk';
 import type { HiddenMediaItem } from '~/composables/useHiddenMedia';
@@ -13,7 +14,8 @@ type NamedMedia = {
   nameRomaji?: string;
 };
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber } = useFormat();
 const sdk = useNadeshikoSdk();
 const { mediaName, language } = useMediaName();
 const { items: hiddenItems, toggleHideMedia, isMediaHidden } = useHiddenMedia();
@@ -24,7 +26,6 @@ const searchLoading = ref(false);
 // Without this the "no media matched" copy also covers a failed request, which is
 // how a search outage reads as "we have nothing by that name".
 const searchFailed = ref(false);
-let hiddenMediaSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const SEARCH_MAX_RESULTS = 25;
 
@@ -62,45 +63,39 @@ const hiddenMediaItems = computed(() =>
   [...hiddenItems.value].sort((a, b) => Date.parse(b.hiddenAt || '') - Date.parse(a.hiddenAt || '')),
 );
 
-const formatNumber = (value: number) => new Intl.NumberFormat(locale.value).format(value);
+// Restarted on each keystroke, and cancelled on unmount by `useTimeoutFn`.
+const { start: scheduleSearch, stop: cancelSearch } = useTimeoutFn(
+  async (trimmedQuery: string) => {
+    searchLoading.value = true;
+    searchFailed.value = false;
+    try {
+      const response = await sdk.searchMedia({ query: trimmedQuery, take: SEARCH_MAX_RESULTS });
+      hiddenMediaSearchResults.value = response.media;
+    } catch (error) {
+      handleApiError('hidden-media:media-search-failed', error, { toastKey: false });
+      hiddenMediaSearchResults.value = [];
+      searchFailed.value = true;
+    } finally {
+      searchLoading.value = false;
+    }
+  },
+  120,
+  { immediate: false },
+);
 
 const searchMediaToHide = (query: string) => {
-  if (hiddenMediaSearchTimeout) {
-    clearTimeout(hiddenMediaSearchTimeout);
-  }
-
   const trimmedQuery = query.trim();
   if (!trimmedQuery) {
+    cancelSearch();
     hiddenMediaSearchResults.value = [];
     searchFailed.value = false;
     return;
   }
 
-  hiddenMediaSearchTimeout = setTimeout(() => {
-    void (async () => {
-      searchLoading.value = true;
-      searchFailed.value = false;
-      try {
-        const response = await sdk.searchMedia({ query: trimmedQuery, take: SEARCH_MAX_RESULTS });
-        hiddenMediaSearchResults.value = response.media;
-      } catch (error) {
-        handleApiError('hidden-media:media-search-failed', error, { toastKey: false });
-        hiddenMediaSearchResults.value = [];
-        searchFailed.value = true;
-      } finally {
-        searchLoading.value = false;
-      }
-    })();
-  }, 120);
+  scheduleSearch(trimmedQuery);
 };
 
 watch(hiddenMediaSearchQuery, searchMediaToHide);
-
-onBeforeUnmount(() => {
-  if (hiddenMediaSearchTimeout) {
-    clearTimeout(hiddenMediaSearchTimeout);
-  }
-});
 
 const posthog = usePostHog();
 
