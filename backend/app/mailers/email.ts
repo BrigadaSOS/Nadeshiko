@@ -2,12 +2,7 @@ import nodemailer from 'nodemailer';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { config } from '@config/config';
 import { logger } from '@config/log';
-import {
-  buildWelcomeEmail,
-  buildAnnouncementEmail,
-  buildVerifyNewEmailEmail,
-  buildMagicLinkEmail,
-} from './emailTemplates';
+import { buildWelcomeEmail, buildVerifyNewEmailEmail, buildMagicLinkEmail } from './emailTemplates';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
@@ -68,7 +63,7 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
 /**
  * Email sending options.
  */
-export interface EmailOptions {
+interface EmailOptions {
   to: string;
   subject: string;
   html: string;
@@ -132,35 +127,6 @@ export async function sendWelcomeEmail(userId: number, username: string, email: 
   );
 }
 
-/**
- * Sends an announcement email to a user.
- * Used for terms/conditions updates, API SDK changes, or admin communications.
- *
- * @param userId - User ID for deduplication
- * @param username - Username of the recipient
- * @param email - Email address of the recipient
- * @param subject - Subject of the announcement
- * @param message - Message body (can contain HTML)
- */
-export async function sendAnnouncementEmail(
-  userId: number,
-  username: string,
-  email: string,
-  subject: string,
-  message: string,
-): Promise<void> {
-  const { subject: emailSubject, html } = await buildAnnouncementEmail(username, subject, message);
-
-  await sendEmailJob(
-    {
-      to: email,
-      subject: emailSubject,
-      html,
-    },
-    `announcement-${userId}-${subject.replace(/\s+/g, '-').toLowerCase()}`, // Dedupe key per user and announcement
-  );
-}
-
 export async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
   const { subject, html } = await buildMagicLinkEmail(url);
   await sendEmail({ to: email, subject, html });
@@ -171,7 +137,7 @@ export async function sendVerifyNewEmail(email: string, verificationUrl: string)
   await sendEmail({ to: email, subject, html });
 }
 
-export type TestEmailTemplate = 'welcome' | 'announcement' | 'verify-new-email' | 'magic-link';
+export type TestEmailTemplate = 'welcome' | 'verify-new-email' | 'magic-link';
 
 /**
  * Sends a test email synchronously (bypassing the queue) and returns the Ethereal preview URL.
@@ -187,14 +153,8 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     ({ subject, html } = await buildWelcomeEmail(username));
   } else if (template === 'verify-new-email') {
     ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
-  } else if (template === 'magic-link') {
-    ({ subject, html } = await buildMagicLinkEmail(`${config.BASE_URL}/v1/auth/magic-link/verify?token=test-token`));
   } else {
-    ({ subject, html } = await buildAnnouncementEmail(
-      username,
-      'Test Announcement',
-      'This is a test announcement email.',
-    ));
+    ({ subject, html } = await buildMagicLinkEmail(`${config.BASE_URL}/v1/auth/magic-link/verify?token=test-token`));
   }
 
   const fromEmail = config.SES_FROM_EMAIL;

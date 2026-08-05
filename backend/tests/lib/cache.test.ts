@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'bun:test';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Cache, createCacheNamespace } from '../../lib/cache';
 
 const ns = createCacheNamespace('test');

@@ -4,6 +4,16 @@ import { ApiKeyKind, AuthType } from '@app/models';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 import { logger } from '@config/log';
 
+/**
+ * Requests that already carry a quota increment listener.
+ *
+ * A request that matched two `routeAuth` entries would run this middleware
+ * twice and register two `finish` listeners, billing the caller twice for one
+ * call. No route overlaps today, so this only ever guards against a future one
+ * — the same re-entry guard `requireSessionAuth` keeps on `req.auth`.
+ */
+const quotaCountedRequests = new WeakSet<Request>();
+
 export const rateLimitApiQuota = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   if (req.auth?.type !== AuthType.API_KEY) {
     next();
@@ -29,18 +39,22 @@ export const rateLimitApiQuota = async (req: Request, res: Response, next: NextF
     );
   }
 
-  res.on('finish', () => {
-    logger.debug({ userId: user.id, statusCode: res.statusCode }, 'API quota finish callback fired');
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      AccountQuotaUsage.incrementForUser(user.id)
-        .then(() => {
-          logger.debug({ userId: user.id }, 'Account quota incremented successfully');
-        })
-        .catch((err: unknown) => {
-          logger.warn({ err, userId: user.id }, 'Failed to increment account quota usage');
-        });
-    }
-  });
+  if (!quotaCountedRequests.has(req)) {
+    quotaCountedRequests.add(req);
+
+    res.on('finish', () => {
+      logger.debug({ userId: user.id, statusCode: res.statusCode }, 'API quota finish callback fired');
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        AccountQuotaUsage.incrementForUser(user.id)
+          .then(() => {
+            logger.debug({ userId: user.id }, 'Account quota incremented successfully');
+          })
+          .catch((err: unknown) => {
+            logger.warn({ err, userId: user.id }, 'Failed to increment account quota usage');
+          });
+      }
+    });
+  }
 
   next();
 };

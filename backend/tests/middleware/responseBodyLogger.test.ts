@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, vi } from 'vitest';
 import { responseBodyLogger } from '@app/middleware/responseBodyLogger';
 
 function buildMockRes() {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { rawBodySaver } from '@app/middleware/rawBodySaver';
 import { MAX_LOGGED_BODY_BYTES } from '@config/log';
 

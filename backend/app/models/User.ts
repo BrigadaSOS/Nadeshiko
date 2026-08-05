@@ -1,8 +1,6 @@
-import { Entity, PrimaryColumn, Column, OneToOne, OneToMany, Index } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import type { ApiAuth } from './ApiAuth';
 import type { AccountQuotaUsage } from './AccountQuotaUsage';
-import type { LabEnrollment } from './LabEnrollment';
 
 export enum UserRoleType {
   ADMIN = 'ADMIN',
@@ -11,7 +9,7 @@ export enum UserRoleType {
   PATREON = 'PATREON',
 }
 
-export interface AnkiProfile {
+interface AnkiProfile {
   id: string;
   name: string;
   deck?: string | null;
@@ -21,7 +19,7 @@ export interface AnkiProfile {
   serverAddress: string;
 }
 
-export interface HiddenMediaItem {
+interface HiddenMediaItem {
   mediaPublicId: string;
   nameEn?: string;
   nameJa?: string;
@@ -52,9 +50,6 @@ export class User extends BaseEntity {
   @Column({ name: 'modified_at', type: 'timestamp', nullable: true })
   modifiedAt?: Date;
 
-  @Column({ name: 'last_login', type: 'timestamp', nullable: true })
-  lastLogin?: Date;
-
   @Column({ name: 'is_verified', type: 'boolean', default: false })
   isVerified!: boolean;
 
@@ -71,12 +66,6 @@ export class User extends BaseEntity {
   preferences!: UserPreferences;
 
   // Relations
-  @OneToOne('ApiAuth', 'user')
-  apiAuth?: ApiAuth;
-
   @OneToMany('AccountQuotaUsage', 'user')
   accountQuotaUsages?: AccountQuotaUsage[];
-
-  @OneToMany('LabEnrollment', 'user')
-  labEnrollments?: LabEnrollment[];
 }

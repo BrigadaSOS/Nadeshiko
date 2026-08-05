@@ -20,10 +20,10 @@ export const rawBodySaver = (req: Request, _res: Response, buf: Buffer, _encodin
   // Only keep what the logger will actually emit. The body limit is 10mb, and
   // this copy would otherwise be retained for the life of the request.
   if (buf.length > MAX_LOGGED_BODY_BYTES) {
-    (req as any).rawBody = oversizedBodyPlaceholder(buf.length);
+    req.rawBody = oversizedBodyPlaceholder(buf.length);
     return;
   }
 
   // Store the raw body as a string for logging
-  (req as any).rawBody = buf.toString('utf8');
+  req.rawBody = buf.toString('utf8');
 };

@@ -4,7 +4,7 @@ import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { trace } from '@opentelemetry/api';
 import { logger } from '@config/log';
 import { ApiError, ValidationFailedError, NotFoundError, InternalServerError, isApiError } from '@app/errors';
-import { recordError, recordClientError } from '@app/lib/errorFingerprint';
+import { recordError, recordClientError } from '@lib/errorFingerprint';
 import { routeErrorCodes } from 'generated/errorProfiles';
 
 type PgDriverError = {
@@ -237,7 +237,6 @@ function entityNameToDetail(entityName: string): string {
     Media: 'Media not found',
     Episode: 'Episode not found',
     Segment: 'Segment not found',
-    ApiAuth: 'API key not found',
   };
 
   return entityMap[entityName] ?? `${entityName} not found`;
@@ -285,16 +284,10 @@ const PUBLIC_RESOURCE_NAMES = new Map<string, string>([
   ['collection', 'Collection'],
   ['collectionsegment', 'Collection segment'],
   ['report', 'Report'],
-  ['series', 'Series'],
-  ['seriesmedia', 'Series media'],
-  ['character', 'Character'],
-  ['mediacharacter', 'Media character'],
-  ['seiyuu', 'Seiyuu'],
   ['mediaexternalid', 'Media External Id'],
   ['announcement', 'Announcement'],
   ['apiauth', 'API key'],
   ['apikey', 'API key'],
-  ['labenrollment', 'Lab enrollment'],
   ['useractivity', 'User activity'],
   ['mediaaudit', 'Media audit'],
   ['mediaauditrun', 'Media audit run'],

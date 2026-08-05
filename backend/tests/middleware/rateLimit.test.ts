@@ -1,8 +1,8 @@
-import 'dotenv/config';
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { type Server } from 'node:http';
 import { type Application } from 'express';
-import request from 'supertest';
+import { request } from '../helpers/http';
+import type { Response as SupertestResponse } from 'supertest';
 import { authRateLimit } from '@app/middleware/rateLimit';
 import { setCachedApiKey } from '@app/middleware/authCacheStore';
 import { buildApplication } from '@config/application';
@@ -57,7 +57,7 @@ describe('rateLimit', () => {
   it('returns 429 in the standard error envelope once the global limit is exceeded', async () => {
     await withServer(async (server) => {
       const max = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
-      let last: request.Response | undefined;
+      let last: SupertestResponse | undefined;
       for (let i = 0; i < max + 2; i++) {
         last = await request(server).get('/ping').set('X-Forwarded-For', '9.9.9.9');
       }

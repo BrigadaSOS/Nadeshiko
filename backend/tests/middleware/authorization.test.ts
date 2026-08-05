@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, vi } from 'vitest';
 import { requirePermissions } from '@app/middleware/authorization';
 import { ApiPermission } from '@app/models/ApiPermission';
 import { InsufficientPermissionsError } from '@app/errors';

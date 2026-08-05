@@ -2,6 +2,58 @@ import { Entity, PrimaryColumn, Column, Index, ManyToOne, JoinColumn, BeforeInse
 import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
 import { nanoid } from 'nanoid';
+
+/** One morphological token, as stored and as served.
+ *
+ * The ten short names are the published contract: they are in our OpenAPI, in
+ * the npm and PyPI SDKs, and in third-party Anki note types, so they do not
+ * change. What changed is who fills them. Shirabe parses the corpus now, and
+ * groups more coarsely than the old SudachiPy pipeline did: 食べました arrives as
+ * ONE token reading タベマシタ where it used to arrive as three. That is the
+ * point (it is a word a reader looks up, and it makes furigana come out right),
+ * but it means `parts` is what you reach for when you need the finer pieces.
+ */
+export interface SlimToken {
+  s: string;
+  d: string;
+  r: string;
+  b: number;
+  e: number;
+  p: string;
+  p1?: string;
+  p2?: string;
+  p4?: string;
+  cf?: string;
+  /** word | compound | inflected | counter | function | expression | symbol. */
+  kind?: string;
+  /** The part of speech as a reader would say it ("Verb", "Noun"), where `p` carries the
+   *  raw UniDic tag. Absent when the parser offers no label. */
+  posLabel?: string;
+  /** Where this word reads about: GET /v1/words/{wid} on Shirabe. Absent for
+   *  names, numbers, punctuation and anything the dictionary has no entry for,
+   *  which means "show it, do not link it". */
+  wid?: string;
+  /** The finer morphemes inside a grouped token, each positioned like its
+   *  parent. Elasticsearch highlights against its OWN analyzer, so a match can
+   *  land inside one of our tokens: these are the boundaries that let a partial
+   *  highlight render. Absent when the token is already atomic. */
+  parts?: TokenPart[];
+  /** Ruby, aligned to this surface: 食べました is 食(た) + べました, over the kanji
+   *  and not the okurigana. Absent when there is none to show. */
+  f?: Array<{ t: string; r?: string }>;
+  /** What this surface does to its dictionary form, outermost step first:
+   *  食べました is ["past", "polite"]. Japanese stacks, so it is a chain rather
+   *  than one name, and an ambiguous step says so ("potential / passive")
+   *  instead of picking a side. Absent for anything not an inflected word. */
+  inflection?: { labels: string[]; base: string };
+}
+
+export interface TokenPart {
+  s: string;
+  b: number;
+  e: number;
+}
+
 export enum SegmentStatus {
   ACTIVE = 'ACTIVE',
   HIDDEN = 'HIDDEN',
@@ -28,18 +80,6 @@ export interface RatingAnalysisData {
   scores?: Record<string, number>;
   tags?: Record<string, number>;
 }
-
-// Typed as `object` to avoid TypeORM's _QueryDeepPartialEntity recursion issue with JSONB columns.
-//
-// Actual shape: { tokens: SlimToken[] }, written by the Shirabe import (see
-// scripts/import-shirabe-tokens.ts). One analysis, in the field names we serve.
-//
-// It used to hold several: { sudachi: [...], unidic: [...], _tokenizer_*: ... },
-// each in its own shape, with SegmentIndexer choosing between them and slimming
-// the winner down. Two stored analyses nobody read was two things to keep in
-// sync and two answers to "what is a word here", so the import replaces the
-// whole column rather than adding a third.
-export type PosAnalysisData = object;
 
 export enum SegmentStorage {
   LOCAL = 'LOCAL',
@@ -101,8 +141,13 @@ export class Segment extends BaseEntity {
   @Column({ name: 'rating_analysis', type: 'jsonb' })
   ratingAnalysis!: RatingAnalysisData;
 
-  @Column({ name: 'pos_analysis', type: 'jsonb' })
-  posAnalysis!: PosAnalysisData;
+  // Shirabe's analysis: a SlimToken[] in the field names we publish, already
+  // grouped the way a reader looks words up. The only tokenization we store:
+  // this replaced the SudachiPy `pos_analysis` bag, which is gone. Null until
+  // the reparse reaches a row, which is an ordinary state during a 1.5M-row pass
+  // and renders as plain highlight HTML rather than as an error.
+  @Column({ name: 'tokens', type: 'jsonb', nullable: true })
+  tokens!: SlimToken[] | null;
 
   @Column({ name: 'storage', type: 'enum', enum: SegmentStorage, default: SegmentStorage.R2 })
   storage!: SegmentStorage;

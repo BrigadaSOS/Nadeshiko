@@ -1,4 +1,4 @@
-export type CacheNamespace = symbol;
+type CacheNamespace = symbol;
 
 /** Fallback cap for namespaces created without an explicit limit. */
 const DEFAULT_MAX_ENTRIES = 10_000;

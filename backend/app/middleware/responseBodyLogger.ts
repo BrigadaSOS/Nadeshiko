@@ -11,16 +11,16 @@ export function responseBodyLogger(_req: Request, res: Response, next: NextFunct
   const originalSend = res.send.bind(res);
 
   // Override res.json to capture response body for pino serializer
-  res.json = ((body: any) => {
-    (res as any).responseBody = body;
+  res.json = (body: unknown) => {
+    res.responseBody = body;
     return originalJson(body);
-  }) as any;
+  };
 
   // Override res.send to capture response body for pino serializer
-  res.send = ((body: any) => {
-    (res as any).responseBody = body;
+  res.send = (body: unknown) => {
+    res.responseBody = body;
     return originalSend(body);
-  }) as any;
+  };
 
   next();
 }
