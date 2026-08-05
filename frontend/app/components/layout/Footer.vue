@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 const config = useRuntimeConfig();
 const localePath = useLocalePath();
 </script>
@@ -15,7 +15,6 @@ const localePath = useLocalePath();
           <NuxtLink
             :to="localePath('/')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Home"
           >
             {{ $t('navbar.buttons.home') }}
           </NuxtLink>
@@ -23,7 +22,6 @@ const localePath = useLocalePath();
           <NuxtLink
             :to="localePath('/about')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="About"
           >
             {{ $t('navbar.buttons.about') }}
           </NuxtLink>
@@ -31,7 +29,6 @@ const localePath = useLocalePath();
           <NuxtLink
             :to="localePath('/privacy')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="Privacy"
           >
             {{ $t('navbar.buttons.privacy') }}
           </NuxtLink>
@@ -39,7 +36,6 @@ const localePath = useLocalePath();
           <NuxtLink
             :to="localePath('/terms-and-conditions')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="TermsAndConditions"
           >
             {{ $t('navbar.buttons.terms') }}
           </NuxtLink>
@@ -47,7 +43,6 @@ const localePath = useLocalePath();
           <NuxtLink
             :to="localePath('/dmca')"
             class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
-            aria-label="DMCA"
           >
             {{ $t('navbar.buttons.dmca') }}
           </NuxtLink>

@@ -13,6 +13,8 @@ const props = defineProps<{
   post: BlogPost;
 }>();
 
+const { d } = useI18n();
+
 const blogPath = computed(() => {
   if (props.post.path) {
     return props.post.path;
@@ -33,11 +35,7 @@ const formattedDate = computed(() => {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return null;
 
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    return d(date, 'short');
   } catch {
     return null;
   }
@@ -108,7 +106,7 @@ const contentPreview = computed(() => {
 
       <!-- Read more -->
       <span class="inline-flex items-center gap-2 text-base font-semibold text-red-400 group-hover:text-red-300 transition-colors duration-200 mt-4">
-        <span>Read more</span>
+        <span>{{ $t('blog.readMore') }}</span>
         <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>

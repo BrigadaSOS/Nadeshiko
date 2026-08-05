@@ -10,10 +10,11 @@ const { data: posts } = await useAsyncData(
   async () => {
     const lang = locale.value.toLowerCase();
 
-    const allPosts = await $fetch('/api/blog/posts', {
+    const result = await $fetch('/api/blog/posts', {
       query: { locale: lang },
-    }).catch(() => [] as any[]);
+    }).catch(() => ({ posts: [] as any[], isFallback: false }));
 
+    const allPosts = result.posts;
     const start = (page.value - 1) * pageSize;
     const end = start + pageSize;
 
@@ -21,6 +22,7 @@ const { data: posts } = await useAsyncData(
       posts: allPosts.slice(start, end),
       total: allPosts.length,
       totalPages: Math.ceil(allPosts.length / pageSize),
+      isFallback: result.isFallback,
     };
   },
   { watch: [page, locale] },
@@ -45,14 +47,18 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
       <!-- Content -->
       <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
         <div class="content-markdown">
-          <h1>Blog</h1>
+          <h1>{{ t('blog.title') }}</h1>
 
-          <div v-if="posts?.posts.length">
+          <p v-if="posts?.isFallback" class="translation-notice">
+            {{ t('common.translationUnavailable') }}
+          </p>
+
+          <div v-if="posts?.posts.length" :lang="posts.isFallback ? 'en' : undefined">
             <BlogCard v-for="post in posts.posts" :key="(post as any).slug || post.path" :post="post as any" />
           </div>
 
           <div v-else class="text-center text-gray-400 py-20">
-            No blog posts available yet. Stay tuned!
+            {{ t('blog.empty') }}
           </div>
 
           <div v-if="posts && posts.totalPages > 1" class="mt-12 flex justify-center">
@@ -98,5 +104,15 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
   .content-markdown :deep(h1) {
     font-size: 2.75rem;
   }
+}
+
+.translation-notice {
+  margin: 0 0 2rem 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--button-color-accent);
+  background-color: color-mix(in srgb, var(--button-color-accent) 8%, transparent);
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #e5e7eb;
+  font-size: 0.9375rem;
 }
 </style>
