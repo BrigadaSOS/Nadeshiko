@@ -1,25 +1,15 @@
 version: 2
 updates:
-  - package-ecosystem: bun
-    directory: /backend
+  # One npm workspace rooted at the repository root: a single entry covers every
+  # workspace, because they share the root package-lock.json.
+  - package-ecosystem: npm
+    directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
 
-  - package-ecosystem: bun
-    directory: /frontend
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
-
-  - package-ecosystem: bun
-    directory: /discord
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
-
-  - package-ecosystem: bun
-    directory: /infra/seed-worker
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5

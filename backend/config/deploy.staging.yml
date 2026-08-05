@@ -52,6 +52,8 @@ env:
 
     - E2E_USER_PASSWORD
 
+    - SHIRABE_API_KEY
+
   clear:
     ENVIRONMENT: development
     PORT: 80

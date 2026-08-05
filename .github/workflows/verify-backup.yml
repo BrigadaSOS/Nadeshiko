@@ -1,0 +1,147 @@
+name: "[Infra] Verify Postgres backup"
+
+# Confirms the nightly Postgres backups actually landed in R2.
+#
+# The `pg-backup` accessory (backend/config/deploy.prod.yml) dumps at 02:00 and
+# prunes anything older than 30 days. Nothing watched it: if the cron started
+# failing -- rotated R2 credentials, a full disk, a bucket policy change -- it
+# would log to the container and nothing else, while retention quietly aged out
+# the backups that were still good. A silent, self-erasing failure.
+#
+# The database is checked BY NAME rather than as "the newest .dmp.gz". kartoza
+# dumps every database on the server unless DBLIST says otherwise, and staging
+# shares prod's Postgres -- so the bucket used to receive two dumps a night, and
+# "newest" landed on prod only because prod happened to dump second. DBLIST now
+# pins it to prod alone; naming the database here means a silent revert to
+# dumping everything, or prod dropping out of the list, is itself a failure.
+#
+# This does not verify a dump *restores*; that needs a scratch database and is a
+# separate job. It answers the cheaper questions that catch most of the risk: is
+# there a recent dump for prod, and is it the size we expect?
+
+on:
+  schedule:
+    # 03:30 UTC. The dumps finish around 02:20; the freshness threshold below is
+    # what absorbs timing drift, not this offset.
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+# OIDC for the AWS role that can read the R2 credentials out of SSM.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
+
+      - name: Check each database has a recent, plausible backup
+        env:
+          # Every database expected in the bucket, as it appears in the dump name
+          # (`PG_<db>.<DD-Month-YYYY>.dmp.gz`). A database that stops being dumped
+          # is the failure this list exists to catch, so it is written out rather
+          # than derived from whatever happens to be there.
+          EXPECTED_DATABASES: 'nadeshiko-prod'
+          # A dump older than this means at least one nightly run was missed.
+          # 26h rather than 24h so a slow dump, a clock offset or a DST shift is
+          # not reported as a failure.
+          MAX_AGE_HOURS: '26'
+          # Sizes are strikingly stable day to day (prod moves ~0.01%), so a real
+          # truncation shows up as a large drop. Compared against the previous
+          # dump of the SAME database, which keeps working as the corpus grows --
+          # an absolute floor would need raising forever and, set low enough to be
+          # safe, would miss a dump truncated to a few hundred MB.
+          MIN_FRACTION_OF_PREVIOUS: '70'
+          # Backstop for the first-ever dump of a database, where there is no
+          # previous size to compare against.
+          MIN_BYTES: '1048576'
+        run: |
+          set -euo pipefail
+
+          read_param() {
+            aws ssm get-parameter --name "/nadeshiko/prod/$1" --with-decryption \
+              --query 'Parameter.Value' --output text
+          }
+
+          bucket=$(read_param R2_BACKUP_BUCKET)
+          host_base=$(read_param R2_BACKUP_HOST_BASE)
+          AWS_ACCESS_KEY_ID=$(read_param R2_BACKUP_ACCESS_KEY_ID)
+          AWS_SECRET_ACCESS_KEY=$(read_param R2_BACKUP_SECRET_ACCESS_KEY)
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+          # The R2 credentials are not the OIDC role's; drop the session token so
+          # the CLI does not try to combine the two.
+          unset AWS_SESSION_TOKEN
+
+          test -n "$bucket" && test -n "$host_base"
+          endpoint="https://${host_base#https://}"
+
+          failed=0
+
+          for db in $EXPECTED_DATABASES; do
+            # Two newest dumps for this database: [0] is current, [1] is the size
+            # baseline. R2 speaks the S3 API but has no regions; `auto` is what it
+            # expects.
+            rows=$(aws s3api list-objects-v2 \
+              --bucket "$bucket" \
+              --endpoint-url "$endpoint" \
+              --region auto \
+              --query "reverse(sort_by(Contents[?contains(Key, 'PG_${db}.')], &LastModified))[:2].[Key,LastModified,Size]" \
+              --output text)
+
+            if [ -z "$rows" ] || [ "$rows" = "None" ]; then
+              echo "::error title=No backup for ${db}::No PG_${db}.*.dmp.gz in s3://$bucket. That database is no longer being dumped, or was renamed."
+              failed=1
+              continue
+            fi
+
+            key=$(sed -n '1p' <<<"$rows" | cut -f1)
+            modified=$(sed -n '1p' <<<"$rows" | cut -f2)
+            size=$(sed -n '1p' <<<"$rows" | cut -f3)
+            previous_size=$(sed -n '2p' <<<"$rows" | cut -f3)
+
+            # Parsed separately so an unreadable timestamp fails with a clear
+            # message rather than yielding an empty operand below.
+            modified_epoch=$(date -u -d "$modified" +%s) || {
+              echo "::error title=Unreadable timestamp for ${db}::Could not parse LastModified '$modified' for $key."
+              failed=1
+              continue
+            }
+            age_hours=$(( ( $(date -u +%s) - modified_epoch ) / 3600 ))
+
+            echo "${db}: ${key##*/}  ${age_hours}h old  ${size} bytes"
+
+            if [ "$age_hours" -gt "$MAX_AGE_HOURS" ]; then
+              echo "::error title=Backup for ${db} is stale::Newest is ${age_hours}h old (limit ${MAX_AGE_HOURS}h). Retention prunes at 30 days, so this window is finite."
+              failed=1
+            fi
+
+            if [ -n "$previous_size" ] && [ "$previous_size" != "None" ] && [ "$previous_size" -gt 0 ]; then
+              min_size=$(( previous_size * MIN_FRACTION_OF_PREVIOUS / 100 ))
+              if [ "$size" -lt "$min_size" ]; then
+                echo "::error title=Backup for ${db} shrank::$key is $size bytes against $previous_size the run before (under ${MIN_FRACTION_OF_PREVIOUS}%). A dump that breaks partway still uploads."
+                failed=1
+              fi
+            elif [ "$size" -lt "$MIN_BYTES" ]; then
+              echo "::error title=Backup for ${db} is tiny::$key is $size bytes with no previous dump to compare against (floor ${MIN_BYTES})."
+              failed=1
+            fi
+          done
+
+          [ "$failed" -eq 0 ] || exit 1
+          echo "All expected databases have a recent, plausible backup."
+
+  notify:
+    needs: verify
+    if: failure()
+    uses: ./.github/workflows/notify-deploy-failure.yml
+    with:
+      environment: prod
+      failed-jobs: ${{ toJSON(needs) }}
+    secrets: inherit

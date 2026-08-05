@@ -9,7 +9,7 @@ permissions:
   packages: read
 
 env:
-  BUN_VERSION: '1.3.6'
+  NODE_VERSION: '24'
 
 jobs:
   changes:
@@ -64,18 +64,23 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           path: base
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
-      - name: Install backend dependencies
-        run: cd head/backend && bun install --frozen-lockfile
+      # Installed once in the head checkout; the base checkout only needs its
+      # spec bundled, which the head's redocly can do.
+      - name: Install dependencies
+        run: npm ci
+        working-directory: head
 
       - name: Bundle base OpenAPI specs
         run: |
           set -euo pipefail
-          REDOCLY="${GITHUB_WORKSPACE}/head/backend/node_modules/.bin/redocly"
+          # Workspace dependencies hoist to the checkout root, not backend/.
+          REDOCLY="${GITHUB_WORKSPACE}/head/node_modules/.bin/redocly"
           cd "${GITHUB_WORKSPACE}/base/backend"
           "$REDOCLY" bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
           "$REDOCLY" bundle main -o docs/generated/openapi.yaml --remove-unused-components
@@ -83,9 +88,10 @@ jobs:
       - name: Bundle head OpenAPI specs
         run: |
           set -euo pipefail
+          REDOCLY="${GITHUB_WORKSPACE}/head/node_modules/.bin/redocly"
           cd "${GITHUB_WORKSPACE}/head/backend"
-          ./node_modules/.bin/redocly bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
-          ./node_modules/.bin/redocly bundle main -o docs/generated/openapi.yaml --remove-unused-components
+          "$REDOCLY" bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
+          "$REDOCLY" bundle main -o docs/generated/openapi.yaml --remove-unused-components
 
       - name: Check public API breaking changes
         uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.1

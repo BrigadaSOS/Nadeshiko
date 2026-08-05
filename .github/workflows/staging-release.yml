@@ -28,7 +28,7 @@ permissions:
   id-token: write
 
 env:
-  BUN_VERSION: '1.3.6'
+  NODE_VERSION: '24'
 
 jobs:
   changes:
@@ -309,6 +309,9 @@ jobs:
 
 
   deploy-frontend:
+    # Deliberately not ordered after deploy-backend: staging is for feedback, so
+    # the frontend ships as soon as it is ready rather than queueing behind (or
+    # being blocked by) a backend deploy. Production does enforce that ordering.
     needs: [changes, checks]
     if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == true
     runs-on: ubuntu-latest
@@ -387,9 +390,10 @@ jobs:
           echo "::add-mask::${E2E_USER_PASSWORD}"
           echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - uses: actions/setup-node@v7
         with:
@@ -398,8 +402,8 @@ jobs:
       - name: Install dependencies and Playwright
         run: |
           cd frontend
-          bun install --frozen-lockfile
-          bunx playwright install --with-deps chromium
+          npm ci
+          npx playwright install --with-deps chromium
 
       - name: Run E2E tests
         run: |
@@ -416,37 +420,6 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 14
 
-  dispatch-sdk-ts:
-    needs: [changes, checks]
-    if: needs.changes.outputs.openapi == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - name: Install backend dependencies
-        run: cd backend && bun install --frozen-lockfile
-
-      - name: Generate OpenAPI spec
-        run: |
-          cd backend
-          bun run docs:bundle
-          test -f docs/generated/openapi.yaml
-
-      - name: Dispatch TypeScript SDK internal release
-        env:
-          GH_TOKEN: ${{ secrets.SDK_REPO_DISPATCH_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
-            -f event_type='backend_release' \
-            -f 'client_payload[release_channel]=internal' \
-            -f "client_payload[backend_sha]=${GITHUB_SHA}"
-
   dispatch-sdk-python:
     needs: [changes, checks]
     if: needs.changes.outputs.openapi == 'true'
@@ -454,18 +427,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install backend dependencies
-        run: cd backend && bun install --frozen-lockfile
+        run: npm ci
 
       - name: Generate OpenAPI spec
         run: |
           cd backend
-          bun run docs:bundle
+          npm run docs:bundle
           test -f docs/generated/openapi.yaml
 
       - name: Dispatch Python SDK internal release
@@ -482,7 +456,7 @@ jobs:
   # merge skips the backend deploy, and being told about it is the entire point.
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, elasticsearch-gate, bootstrap-elasticsearch-canary, deploy-backend, deploy-frontend, e2e, dispatch-sdk-ts, dispatch-sdk-python]
+    needs: [checks, elasticsearch-gate, bootstrap-elasticsearch-canary, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit
