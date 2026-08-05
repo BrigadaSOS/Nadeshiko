@@ -6,17 +6,17 @@ Cloudflare Worker that serves the seed database dump from a private R2 bucket, g
 
 ```bash
 cd infra/seed-worker
-bun install
+npm install   # from the repository root
 ```
 
 ## Deploy
 
 ```bash
 # Set the shared download token
-bunx wrangler secret put SEED_TOKEN
+npx wrangler secret put SEED_TOKEN
 
 # Deploy the worker
-bun run deploy
+npm run deploy
 ```
 
 ## Refreshing the seed dump
@@ -61,5 +61,5 @@ docker exec nadeshiko-postgres pg_dump -U admin -d nadedb \
   -f /tmp/seed.dump
 docker cp nadeshiko-postgres:/tmp/seed.dump ./seed.dump
 
-bunx wrangler r2 object put nadeshiko-seed/seed.dump --file ./seed.dump --remote
+npx wrangler r2 object put nadeshiko-seed/seed.dump --file ./seed.dump --remote
 ```

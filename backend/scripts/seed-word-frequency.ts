@@ -3,7 +3,7 @@
  * Downloads the anime-specific CSV frequency list from jiten.moe.
  *
  * Usage:
- *   bun run scripts/seed-word-frequency.ts
+ *   node --import tsx scripts/seed-word-frequency.ts
  */
 
 import { AppDataSource } from '@config/database';
@@ -13,7 +13,6 @@ const JITEN_URL = 'https://api.jiten.moe/api/frequency-list/download?mediaType=a
 interface FreqWord {
   rank: number;
   word: string;
-  reading: string | null;
 }
 
 const BATCH_SIZE = 1000;
@@ -31,13 +30,11 @@ function parseCsv(csv: string): FreqWord[] {
     if (parts.length < 3) continue;
 
     const word = parts[0];
-    const form = parts[1];
 
     if (!word) continue;
 
     position++;
-    const reading = form && form !== word ? form : null;
-    words.push({ rank: position, word, reading });
+    words.push({ rank: position, word });
   }
 
   return words;
@@ -70,18 +67,17 @@ async function main() {
     const batch = words.slice(i, i + BATCH_SIZE);
 
     const values = batch.map((_, idx) => {
-      const base = idx * 3;
-      return `($${base + 1}, $${base + 2}, $${base + 3})`;
+      const base = idx * 2;
+      return `($${base + 1}, $${base + 2})`;
     });
 
-    const params = batch.flatMap((w) => [w.rank, w.word, w.reading ?? null]);
+    const params = batch.flatMap((w) => [w.rank, w.word]);
 
     await AppDataSource.query(
-      `INSERT INTO "WordFrequency" ("rank", "word", "reading")
+      `INSERT INTO "WordFrequency" ("rank", "word")
        VALUES ${values.join(', ')}
        ON CONFLICT ("rank") DO UPDATE SET
-         "word" = EXCLUDED."word",
-         "reading" = EXCLUDED."reading"`,
+         "word" = EXCLUDED."word"`,
       params,
     );
 

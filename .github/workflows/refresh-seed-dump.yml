@@ -35,13 +35,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: '1.3.6'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install seed worker dependencies
-        run: cd infra/seed-worker && bun install --frozen-lockfile
+        run: npm ci
 
       # The runner needs pg_restore to verify the dump's contents. Its major
       # version must be >= the server's (17) to read the archive.
