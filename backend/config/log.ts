@@ -1,5 +1,7 @@
 import pino from 'pino';
 import pinoHttp from 'pino-http';
+import type { IncomingMessage, ServerResponse } from 'http';
+import type { Request, Response } from 'express';
 import { basename } from 'path';
 import { trace, context } from '@opentelemetry/api';
 import { config } from '@config/config';
@@ -17,7 +19,7 @@ export function shouldUsePrettyLogsForEntrypoint(entrypointArg?: string): boolea
 const usePrettyLogs = shouldUsePrettyLogsForEntrypoint();
 
 // Helper function to safely parse JSON, returns original value if parsing fails
-export const safeParseJson = (value: string): any => {
+export const safeParseJson = (value: string): unknown => {
   try {
     return JSON.parse(value);
   } catch {
@@ -150,13 +152,29 @@ const loggerOptions: pino.LoggerOptions = usePrettyLogs
 export const logger = pino(loggerOptions);
 export const createLogger = (context: string) => logger.child({ context });
 
+/**
+ * pino-http hands the serializers either the raw Node request or its own wrapper
+ * holding one on `.raw`, depending on where in the lifecycle it fires. These
+ * aliases name that union once instead of falling back to `any` at each callback.
+ */
+type PinoRequest = (IncomingMessage | Request) & { raw?: IncomingMessage | Request };
+type PinoResponse = (ServerResponse | Response) & { raw?: ServerResponse | Response };
+
+function unwrapRequest(req: PinoRequest): Partial<Request> {
+  return (req.raw ?? req) as Partial<Request>;
+}
+
+function unwrapResponse(res: PinoResponse): Partial<Response> & { statusCode: number } {
+  return (res.raw ?? res) as Partial<Response> & { statusCode: number };
+}
+
 export function buildHttpLoggerOptions(currentLogger = logger) {
   return {
     logger: currentLogger,
     serializers: {
-      req: (req: any) => {
+      req: (req: PinoRequest) => {
         // pino-http wraps the request, so we need to access req.raw for the Express request
-        const rawReq = req.raw || req;
+        const rawReq = unwrapRequest(req);
         const serialized = pino.stdSerializers.req(req);
         // Strip sensitive query params from the logged URL
         if (serialized.url) {
@@ -172,23 +190,26 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
             // leave url as-is if parsing fails
           }
         }
-        // Include requestId if available
-        if ((rawReq as any).requestId) {
-          (serialized as any).requestId = (rawReq as any).requestId;
+        // requestId and rawBody are attached by our own middleware; both are
+        // declared on Express's Request in lib/express_ext/express.d.ts.
+        const extras: { requestId?: string; body?: unknown } = {};
+        if (rawReq.requestId) {
+          extras.requestId = rawReq.requestId;
         }
-        // Include raw body if captured by rawBodySaver middleware
-        // Parse string to object so pino redact paths work properly
-        if ((rawReq as any).rawBody) {
-          (serialized as any).body = safeParseJson((rawReq as any).rawBody);
+        // Parse the string to an object so pino redact paths can reach into it.
+        if (rawReq.rawBody) {
+          extras.body = safeParseJson(rawReq.rawBody);
         }
-        return serialized;
+        return { ...serialized, ...extras };
       },
-      res: (res: any) => {
-        const raw = res.raw || res;
-        const serialized: any = {
+      res: (res: PinoResponse) => {
+        const raw = unwrapResponse(res);
+        const serialized: { statusCode: number; headers: unknown; body?: unknown } = {
           statusCode: raw.statusCode,
           headers: raw.getHeaders ? raw.getHeaders() : {},
         };
+        // Only error responses carry their body into the log; success bodies are
+        // large, uninteresting, and the most likely to hold personal data.
         if (raw.statusCode >= 400 && raw.responseBody !== undefined) {
           serialized.body = capLoggedBody(
             typeof raw.responseBody === 'string' ? safeParseJson(raw.responseBody) : raw.responseBody,
@@ -197,9 +218,9 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         return serialized;
       },
     },
-    customProps: (req: any, res: any) => {
-      const rawReq = req.raw || req;
-      const props: Record<string, any> = {
+    customProps: (req: PinoRequest, res: PinoResponse) => {
+      const rawReq = unwrapRequest(req);
+      const props: Record<string, unknown> = {
         'http.method': rawReq.method,
         'http.url': rawReq.url,
         'http.status_code': res.statusCode,
@@ -213,7 +234,7 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       }
       return props;
     },
-    customLogLevel: (_req: any, res: any, err: any) => {
+    customLogLevel: (_req: PinoRequest, res: PinoResponse, err?: Error) => {
       const statusCode = res.statusCode;
       if (err || statusCode >= 500) {
         return 'error';
@@ -222,14 +243,14 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       }
       return 'info';
     },
-    customSuccessMessage: (req: any, res: any) =>
+    customSuccessMessage: (req: PinoRequest, res: PinoResponse) =>
       `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} completed with ${res.statusCode}`,
-    customErrorMessage: (req: any, res: any, error: any) =>
+    customErrorMessage: (req: PinoRequest, res: PinoResponse, error?: Error) =>
       `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} failed with ${res.statusCode} - ${error?.message}`,
   };
 }
 
 // HTTP request logger configuration
-export const httpLogger = pinoHttp(buildHttpLoggerOptions(logger) as any);
+export const httpLogger = pinoHttp(buildHttpLoggerOptions(logger));
 
 export default logger;

@@ -1,3 +1,10 @@
+// First, and before anything that reads process.env. `boot` loads .env and
+// installs the uncaught-exception and unhandled-rejection handlers, and
+// `@config/config` validates the whole environment at module load, so importing
+// it first (as bin/db.ts, bin/es.ts and bin/dbBootstrap.ts already do) is what
+// makes that validation see the file. Without it `npm run dev` dies with a
+// ZodError naming every variable, and the server runs with no fatal handlers.
+import '@config/boot';
 import http, { type Server } from 'node:http';
 import { buildApplication } from '@config/application';
 import { config } from '@config/config';

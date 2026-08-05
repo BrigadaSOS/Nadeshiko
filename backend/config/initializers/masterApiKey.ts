@@ -18,7 +18,7 @@ import type { RuntimeInitializer } from './types';
  * A USER key in that slot would silently drain one account's monthly quota on
  * behalf of the whole internet, so boot refuses to continue outside local.
  */
-export async function assertMasterApiKeyIsService(): Promise<void> {
+async function assertMasterApiKeyIsService(): Promise<void> {
   const hashedKey = await defaultKeyHasher(config.API_KEY_MASTER);
   const rows: { metadata: unknown }[] = await AppDataSource.query(
     `SELECT "metadata" FROM "apikey" WHERE "key" = $1 LIMIT 1`,

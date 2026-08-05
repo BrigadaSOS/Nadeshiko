@@ -15,7 +15,7 @@ const JSON_BODY_LIMIT = '10mb';
 
 type RouteMounter = (app: Application) => void;
 
-export interface BuildApplicationOptions {
+interface BuildApplicationOptions {
   beforeRoutes?: RequestHandler[];
   mountRoutes?: RouteMounter;
   rateLimit?: RequestHandler | false;
@@ -39,7 +39,7 @@ function mountPreRouteMiddleware(app: Application, middleware: RequestHandler[] 
   }
 }
 
-export function configureMiddleware(
+function configureMiddleware(
   app: Application,
   rateLimitMiddleware: RequestHandler | false = globalRateLimit,
 ): Application {
@@ -89,12 +89,12 @@ export function configureMiddleware(
   return app;
 }
 
-export function configureRoutes(app: Application, mountRoutes?: RouteMounter): Application {
+function configureRoutes(app: Application, mountRoutes?: RouteMounter): Application {
   mountCustomRoutes(app, mountRoutes);
   return app;
 }
 
-export function configureErrorHandling(app: Application): Application {
+function configureErrorHandling(app: Application): Application {
   // Catch-all 404 handler
   app.use((req, res) => {
     const error = new NotFoundError(`Cannot ${req.method} ${req.originalUrl}`);
