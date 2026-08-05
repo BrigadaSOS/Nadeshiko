@@ -1,15 +1,15 @@
-import { mock } from 'bun:test';
+import { vi } from 'vitest';
 import type { SearchResponse, SearchStatsResponse, ContextResponse, StatsResponse } from '../../api';
 
-export const mockSearch = mock((): Promise<SearchResponse> => Promise.resolve({} as any));
-export const mockFetchRandom = mock((): Promise<SearchResponse> => Promise.resolve({} as any));
-export const mockGetSegmentContext = mock((): Promise<ContextResponse> => Promise.resolve({} as any));
-export const mockGetSegmentByUuid = mock((): Promise<any> => Promise.resolve({} as any));
-export const mockGetStats = mock((): Promise<StatsResponse> => Promise.resolve({} as any));
-export const mockGetSearchStats = mock((): Promise<SearchStatsResponse> => Promise.resolve({} as any));
-export const mockAutocompleteMedia = mock((): Promise<any> => Promise.resolve({} as any));
-export const mockListMedia = mock((): Promise<any> => Promise.resolve({} as any));
-export const mockDownloadFile = mock((): Promise<Buffer | null> => Promise.resolve(null));
+export const mockSearch = vi.fn((): Promise<SearchResponse> => Promise.resolve({} as any));
+export const mockFetchRandom = vi.fn((): Promise<SearchResponse> => Promise.resolve({} as any));
+export const mockGetSegmentContext = vi.fn((): Promise<ContextResponse> => Promise.resolve({} as any));
+export const mockGetSegmentByUuid = vi.fn((): Promise<any> => Promise.resolve({} as any));
+export const mockGetStats = vi.fn((): Promise<StatsResponse> => Promise.resolve({} as any));
+export const mockGetSearchStats = vi.fn((): Promise<SearchStatsResponse> => Promise.resolve({} as any));
+export const mockAutocompleteMedia = vi.fn((): Promise<any> => Promise.resolve({} as any));
+export const mockListMedia = vi.fn((): Promise<any> => Promise.resolve({} as any));
+export const mockDownloadFile = vi.fn((): Promise<Buffer | null> => Promise.resolve(null));
 
 export function resetApiMocks() {
   mockSearch.mockReset();
@@ -24,71 +24,74 @@ export function resetApiMocks() {
   mockDownloadFile.mockResolvedValue(null);
 }
 
-export function registerMocks() {
-  mock.module('../../api', () => ({
-    search: mockSearch,
-    fetchRandom: mockFetchRandom,
-    getSegmentContext: mockGetSegmentContext,
-    getSegment: mockGetSegmentByUuid,
-    getStats: mockGetStats,
-    getSearchStats: mockGetSearchStats,
+// Registration happens as this module is evaluated, which is why test files have
+// to import it before the command handlers they exercise.
+// The real module is spread back in so that pure helpers such as `parseCategory`
+// keep working; only the network-facing calls are replaced.
+vi.mock('../../api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../api')>()),
+  search: mockSearch,
+  fetchRandom: mockFetchRandom,
+  getSegmentContext: mockGetSegmentContext,
+  getSegment: mockGetSegmentByUuid,
+  getStats: mockGetStats,
+  getSearchStats: mockGetSearchStats,
 
-    searchMedia: mockAutocompleteMedia,
-    listMedia: mockListMedia,
-    downloadFile: mockDownloadFile,
-    initSdk: () => {},
-  }));
+  searchMedia: mockAutocompleteMedia,
+  listMedia: mockListMedia,
+  downloadFile: mockDownloadFile,
+  initSdk: () => {},
+}));
 
-  mock.module('../../settings', () => ({
-    initSettings: () => {},
-    getGuildSettings: () => ({ language: 'both', autoEmbed: true }),
-    setGuildSetting: () => {},
-    resetGuildSettings: () => {},
-  }));
+vi.mock('../../settings', () => ({
+  initSettings: () => {},
+  getGuildSettings: () => ({ language: 'both', autoEmbed: true }),
+  setGuildSetting: () => {},
+  resetGuildSettings: () => {},
+}));
 
-  mock.module('../../mediaCache', () => ({
-    searchMediaCache: async () => [],
-    findMediaByPublicId: () => undefined,
-  }));
+vi.mock('../../mediaCache', () => ({
+  searchMediaCache: async () => [],
+  findMediaByPublicId: () => undefined,
+}));
 
-  mock.module('../../config', () => ({
-    BOT_CONFIG: {
-      token: 'fake-token.fake.fake',
-      apiBaseUrl: 'http://localhost:5000',
-      apiKey: 'fake-key',
-      frontendUrl: 'https://nadeshiko.co',
-      embedColor: 0x8b5cf6,
-      maxSearchResults: 20,
-    },
-    getApplicationId: () => 'fake-app-id',
-    validateConfig: () => {},
-  }));
+vi.mock('../../config', () => ({
+  BOT_CONFIG: {
+    token: 'fake-token.fake.fake',
+    apiBaseUrl: 'http://localhost:5000',
+    apiKey: 'fake-key',
+    frontendUrl: 'https://nadeshiko.co',
+    embedColor: 0x8b5cf6,
+    maxSearchResults: 20,
+  },
+  getApplicationId: () => 'fake-app-id',
+  validateConfig: () => {},
+}));
 
-  mock.module('../../instrumentation', () => ({
-    traceCommand: async (_name: string, _interaction: unknown, fn: () => Promise<void>) => fn(),
-    getActiveTraceId: () => undefined,
-  }));
+vi.mock('../../instrumentation', () => ({
+  traceCommand: async (_name: string, _interaction: unknown, fn: () => Promise<void>) => fn(),
+  getActiveTraceId: () => undefined,
+}));
 
-  mock.module('../../telemetry', () => ({
-    initTelemetry: () => {},
-    shutdownTelemetry: async () => {},
-    getMeter: () => ({
-      createHistogram: () => ({ record: () => {} }),
-      createCounter: () => ({ add: () => {} }),
-    }),
-    getTracer: () => ({
-      startActiveSpan: (_n: string, _o: unknown, fn: Function) =>
-        fn({ setStatus: () => {}, recordException: () => {}, end: () => {} }),
-    }),
-  }));
+vi.mock('../../telemetry', () => ({
+  initTelemetry: () => {},
+  shutdownTelemetry: async () => {},
+  getMeter: () => ({
+    createHistogram: () => ({ record: () => {} }),
+    createCounter: () => ({ add: () => {} }),
+  }),
+  getTracer: () => ({
+    startActiveSpan: (_n: string, _o: unknown, fn: Function) =>
+      fn({ setStatus: () => {}, recordException: () => {}, end: () => {} }),
+  }),
+}));
 
-  mock.module('../../logger', () => ({
-    createLogger: () => ({
-      info: () => {},
-      debug: () => {},
-      warn: () => {},
-      error: () => {},
-      child: () => ({ info: () => {}, debug: () => {}, warn: () => {}, error: () => {} }),
-    }),
-  }));
-}
+vi.mock('../../logger', () => ({
+  createLogger: () => ({
+    info: () => {},
+    debug: () => {},
+    warn: () => {},
+    error: () => {},
+    child: () => ({ info: () => {}, debug: () => {}, warn: () => {}, error: () => {} }),
+  }),
+}));

@@ -29,4 +29,4 @@ logging:
 aliases:
   console: app exec -i bash
   logs: app logs -f
-  register: app exec bun run register
+  register: app exec npm run register
