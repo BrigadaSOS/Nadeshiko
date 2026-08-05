@@ -31,10 +31,6 @@ AddSegmentToCollectionRequest:
       pattern: '^[A-Za-z0-9_-]{12}$'
       description: Segment public ID
       example: "V1StGXR8_Z5d"
-    note:
-      type: string
-      maxLength: 500
-      description: Optional annotation
 
 UpdateCollectionSegmentRequest:
   type: object
@@ -43,8 +39,3 @@ UpdateCollectionSegmentRequest:
       type: integer
       description: New position in the collection
       example: 2
-    note:
-      type: string
-      nullable: true
-      maxLength: 500
-      description: Updated annotation

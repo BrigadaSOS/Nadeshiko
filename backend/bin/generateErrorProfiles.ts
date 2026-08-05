@@ -8,21 +8,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as yaml from 'yaml';
+import { listOperations, loadBundledSpec, resolveRef, type OpenApiSpec } from './lib/spec';
 
-const BUNDLED_SPEC = path.join(import.meta.dir, '../docs/generated/openapi.yaml');
-const OUTPUT_FILE = path.join(import.meta.dir, '../generated/errorProfiles.ts');
-
-interface OpenAPISpec {
-  paths: Record<string, Record<string, PathOperation>>;
-  components?: {
-    schemas?: Record<string, SchemaObject>;
-  };
-}
-
-interface PathOperation {
-  responses?: Record<string, ResponseObject>;
-}
+const OUTPUT_FILE = path.join(import.meta.dirname, '../generated/errorProfiles.ts');
 
 interface ResponseObject {
   content?: {
@@ -49,76 +37,45 @@ function isRef(obj: unknown): obj is RefObject {
 }
 
 /**
- * Resolve a $ref to the actual schema object.
- * Handles #/components/schemas/Error400 style refs.
+ * Resolve the JSON schema behind a response, following a response-level `$ref`
+ * (e.g. `#/components/responses/BadRequest`) and then a schema-level one.
  */
-function resolveRef(spec: OpenAPISpec, ref: string): SchemaObject | undefined {
-  const parts = ref.replace('#/', '').split('/');
-  let current: unknown = spec;
-  for (const part of parts) {
-    if (current && typeof current === 'object' && part in current) {
-      current = (current as Record<string, unknown>)[part];
-    } else {
-      return undefined;
-    }
-  }
-  return current as SchemaObject;
-}
+function resolveResponseSchema(spec: OpenApiSpec, response: unknown): SchemaObject | undefined {
+  const responseObj = isRef(response) ? resolveRef<ResponseObject>(spec, response.$ref) : (response as ResponseObject);
 
-/**
- * Convert OpenAPI path params {id} to Express-style :id
- */
-function toExpressPath(openapiPath: string): string {
-  return openapiPath.replace(/\{(\w+)\}/g, ':$1');
+  const schemaRef = responseObj?.content?.['application/json']?.schema;
+  if (!schemaRef) return undefined;
+
+  return isRef(schemaRef) ? resolveRef<SchemaObject>(spec, schemaRef.$ref) : (schemaRef as SchemaObject);
 }
 
 function main() {
   console.log('Generating error profiles...');
 
-  const specContent = fs.readFileSync(BUNDLED_SPEC, 'utf-8');
-  const spec = yaml.parse(specContent) as OpenAPISpec;
+  const spec = loadBundledSpec();
 
   const entries: Array<{ routeKey: string; codes: string[] }> = [];
 
-  for (const [pathStr, pathItem] of Object.entries(spec.paths)) {
-    const expressPath = toExpressPath(pathStr);
+  for (const op of listOperations(spec)) {
+    if (!op.operation.responses) continue;
 
-    for (const [method, operation] of Object.entries(pathItem)) {
-      if (!operation.responses) continue;
+    const allCodes = new Set<string>();
 
-      const allCodes = new Set<string>();
+    for (const [statusCode, response] of Object.entries(op.operation.responses)) {
+      const status = parseInt(statusCode, 10);
+      if (status < 400) continue;
 
-      for (const [statusCode, response] of Object.entries(operation.responses)) {
-        const status = parseInt(statusCode, 10);
-        if (status < 400) continue;
+      const schema = resolveResponseSchema(spec, response);
 
-        let schema: SchemaObject | undefined;
-        const responseObj = response as ResponseObject | RefObject;
-
-        if (isRef(responseObj)) {
-          // Response-level $ref (e.g., $ref: '#/components/responses/BadRequest')
-          // Resolve the response, then get its schema
-          const resolved = resolveRef(spec, responseObj.$ref) as unknown as ResponseObject;
-          if (resolved?.content?.['application/json']?.schema) {
-            const schemaRef = resolved.content['application/json'].schema;
-            schema = isRef(schemaRef) ? resolveRef(spec, schemaRef.$ref) : (schemaRef as SchemaObject);
-          }
-        } else if (responseObj.content?.['application/json']?.schema) {
-          const schemaRef = responseObj.content['application/json'].schema;
-          schema = isRef(schemaRef) ? resolveRef(spec, schemaRef.$ref) : (schemaRef as SchemaObject);
-        }
-
-        if (schema?.properties?.code?.enum) {
-          for (const code of schema.properties.code.enum) {
-            allCodes.add(code);
-          }
+      if (schema?.properties?.code?.enum) {
+        for (const code of schema.properties.code.enum) {
+          allCodes.add(code);
         }
       }
+    }
 
-      if (allCodes.size > 0) {
-        const routeKey = `${method.toUpperCase()}:${expressPath}`;
-        entries.push({ routeKey, codes: [...allCodes].sort() });
-      }
+    if (allCodes.size > 0) {
+      entries.push({ routeKey: `${op.method.toUpperCase()}:${op.expressPath}`, codes: [...allCodes].sort() });
     }
   }
 

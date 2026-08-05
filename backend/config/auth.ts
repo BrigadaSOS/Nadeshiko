@@ -21,12 +21,6 @@ const pool = new Pool({
   database: postgres.database,
 });
 
-export const BETTER_AUTH_SESSION_COOKIE = 'nadeshiko.session_token';
-export const BETTER_AUTH_SESSION_COOKIE_ALIASES = [
-  BETTER_AUTH_SESSION_COOKIE,
-  `__Secure-${BETTER_AUTH_SESSION_COOKIE}`,
-  `__Host-${BETTER_AUTH_SESSION_COOKIE}`,
-];
 export const BETTER_AUTH_API_PERMISSION_RESOURCE = 'api';
 
 const DISABLED_PATHS = [
@@ -95,7 +89,7 @@ const defaultWelcomeEmailErrorLogger: WelcomeEmailErrorLogger = (error) => {
   logger.error({ err: error }, 'Failed to send welcome email');
 };
 
-export interface BuildAuthOptionsDependencies {
+interface BuildAuthOptionsDependencies {
   configValues?: AppConfig;
   databasePool?: Pool;
   production?: boolean;
@@ -413,7 +407,11 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
               onWelcomeEmailError,
             );
             if (user.id) {
-              await ensureDefaultCollectionsFn(Number(user.id)).catch(() => {});
+              // Non-fatal: a failure here must not fail the sign-up, but it does
+              // leave the account half-provisioned, so it has to be visible.
+              await ensureDefaultCollectionsFn(Number(user.id)).catch((error) => {
+                logger.error({ err: error, userId: user.id }, 'Failed to create default collections for new user');
+              });
             }
           },
         },

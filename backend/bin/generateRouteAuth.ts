@@ -12,33 +12,16 @@
  *   [{ApiKey: [P]}, {SessionCookie: [ADMIN]}]      → requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.P))
  *   [{ApiKey: [P]}]                                → requireAuth(enforceApiKeyScope(ApiPermission.P))
  *   [{ApiKey: [W]}] where W is a corpus write      → requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.W))
- *   no security                                    → (skipped, handled manually)
+ *   no security                                    → throws, unless the operationId is in INTENTIONALLY_PUBLIC_OPERATIONS
  */
-import { readFileSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { resolve, join } from 'path';
-import { parse } from 'yaml';
+import { pathToFileURL } from 'url';
 import { ApiPermission } from '@app/models/ApiPermission';
+import { listOperations, loadBundledSpec, type PathItem, type SecurityRequirement } from './lib/spec';
 
-const GENERATED_DIR = resolve(import.meta.dir, '../generated');
-const BUNDLED_SPEC = resolve(import.meta.dir, '../docs/generated/openapi.yaml');
+const GENERATED_DIR = resolve(import.meta.dirname, '../generated');
 const OUTPUT_FILE = join(GENERATED_DIR, 'routeAuth.ts');
-
-interface SecurityRequirement {
-  [scheme: string]: string[];
-}
-
-interface Operation {
-  operationId?: string;
-  security?: SecurityRequirement[];
-}
-
-interface PathItem {
-  get?: Operation;
-  post?: Operation;
-  patch?: Operation;
-  put?: Operation;
-  delete?: Operation;
-}
 
 /**
  * Permissions that mutate the shared media corpus rather than data the caller
@@ -57,9 +40,22 @@ const CORPUS_WRITE_PERMISSIONS = new Set<string>([
   ApiPermission.REMOVE_MEDIA,
 ]);
 
-function openApiPathToExpress(path: string): string {
-  return path.replace(/\{(\w+)\}/g, ':$1');
-}
+/**
+ * Operations that are deliberately reachable with no credentials at all.
+ *
+ * An operation with no `security` block gets no entry in routeAuth and so no
+ * auth middleware — which is correct for a genuinely public route and a silent
+ * hole for every other one. The spec alone cannot tell the two apart, so the
+ * default is to refuse: generation throws on any operation missing `security`
+ * unless its operationId is listed here. Adding a name to this set is the one
+ * place "this route is public" gets written down, and it should be argued for
+ * in review like any other auth change.
+ *
+ *   getAnnouncement — GET /v1/admin/announcement. The site-wide banner renders
+ *   for signed-out visitors too, so the read is public. The PUT that writes the
+ *   announcement still carries `SessionCookie: [ADMIN]`.
+ */
+export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>(['getAnnouncement']);
 
 /**
  * A scheme key present with no scope list means the bundled spec is malformed.
@@ -82,9 +78,11 @@ function requireApiKeyPermission(requirement: SecurityRequirement): string {
   return permission;
 }
 
-function deriveMiddleware(security: SecurityRequirement[]): string | null {
-  if (security.length === 0) return null;
-
+/**
+ * Callers handle the empty-security case; a non-empty requirement that resolves
+ * to no guard would leave the route wide open just as silently, so refuse.
+ */
+function deriveMiddleware(security: SecurityRequirement[], operationId: string): string {
   const apiKeyReq = security.find((s) => 'ApiKey' in s);
   const sessionReq = security.find((s) => 'SessionCookie' in s);
 
@@ -116,7 +114,10 @@ function deriveMiddleware(security: SecurityRequirement[]): string | null {
     return `requireAuth(enforceApiKeyScope(ApiPermission.${permission}))`;
   }
 
-  return null;
+  throw new Error(
+    `Malformed spec: security requirement for "${operationId}" names neither ApiKey nor SessionCookie, ` +
+      'so no auth middleware can be derived for it.',
+  );
 }
 
 interface RouteEntry {
@@ -126,33 +127,42 @@ interface RouteEntry {
   middleware: string;
 }
 
-function generate(): void {
-  const spec = parse(readFileSync(BUNDLED_SPEC, 'utf8'));
-  const paths: Record<string, PathItem> = spec.paths;
+/**
+ * Walks the spec's paths and derives one routeAuth entry per guarded operation.
+ * Exported so the coverage test can drive it over a hand-built fragment without
+ * writing anything to disk.
+ */
+export function buildRouteAuthEntries(paths: Record<string, PathItem>): RouteEntry[] {
   const entries: RouteEntry[] = [];
-  const methods = ['get', 'post', 'patch', 'put', 'delete'] as const;
 
-  for (const [openApiPath, pathItem] of Object.entries(paths)) {
-    const expressPath = openApiPathToExpress(openApiPath);
+  for (const op of listOperations({ paths })) {
+    const operationId = op.operationId ?? 'unknown';
+    const security = op.security;
 
-    for (const method of methods) {
-      const operation = pathItem[method];
-      if (!operation) continue;
+    if (!security || security.length === 0) {
+      if (INTENTIONALLY_PUBLIC_OPERATIONS.has(operationId)) continue;
 
-      const security = operation.security;
-      if (!security || security.length === 0) continue;
-
-      const middleware = deriveMiddleware(security);
-      if (!middleware) continue;
-
-      entries.push({
-        method,
-        path: expressPath,
-        operationId: operation.operationId ?? 'unknown',
-        middleware,
-      });
+      throw new Error(
+        `Missing security block: ${op.method.toUpperCase()} ${op.path} ("${operationId}") would ship as a ` +
+          'fully public route. Give it a `security:` block, or — if it is meant to be public — add its ' +
+          'operationId to INTENTIONALLY_PUBLIC_OPERATIONS in bin/generateRouteAuth.ts.',
+      );
     }
+
+    entries.push({
+      method: op.method,
+      path: op.expressPath,
+      operationId,
+      middleware: deriveMiddleware(security, operationId),
+    });
   }
+
+  return entries;
+}
+
+function generate(): void {
+  const spec = loadBundledSpec();
+  const entries = buildRouteAuthEntries(spec.paths);
 
   const usesApiPermission = entries.some((e) => e.middleware.includes('ApiPermission'));
   const usesEnforceSessionAdmin = entries.some((e) => e.middleware.includes('enforceSessionAdmin'));
@@ -195,4 +205,9 @@ function generate(): void {
   console.log(`Generated ${OUTPUT_FILE} with ${entries.length} route auth entries.`);
 }
 
-generate();
+// Only generate when run as a script. The coverage test imports the allowlist
+// and the spec walker from this module and must not rewrite generated/ as a
+// side effect of that import.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  generate();
+}

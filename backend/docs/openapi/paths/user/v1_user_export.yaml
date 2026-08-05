@@ -8,6 +8,10 @@ get:
     Returns a full JSON export of all user-related data for GDPR data portability.
     Includes profile, preferences, activity history, collections, and reports.
 
+    The whole export is one JSON body, so each section is capped: 50000 activity entries,
+    5000 reports, 1000 collections, and 50000 collection segment references. The `truncated`
+    object reports which sections, if any, hit their ceiling.
+
   security:
     - SessionCookie: []
   responses:
