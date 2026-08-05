@@ -1,4 +1,4 @@
-import type { SlimToken } from '../SegmentDocument';
+import type { SlimToken } from '@app/models/Segment';
 
 interface CharRange {
   start: number;

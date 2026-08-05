@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { SegmentQuery } from '@app/services/search/segmentDocument/SegmentQuery';
 import { excludedSearchLanguages } from '@lib/searchLanguages';
 import type { SearchFiltersOutput } from 'generated/outputTypes';
