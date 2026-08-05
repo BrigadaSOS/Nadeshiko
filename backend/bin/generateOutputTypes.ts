@@ -54,6 +54,7 @@ function extractSchemaNames(): SchemaInfo[] {
   let match;
   while ((match = schemaRegex.exec(content)) !== null) {
     const name = match[1];
+    if (!name) continue;
     // Convert s_SearchRequest -> SearchRequestOutput
     const baseName = name.replace(/^s_/, '');
     schemas.push({
@@ -78,6 +79,7 @@ function extractInlineQuerySchemas(content: string): InlineQuerySchema[] {
   let match;
   while ((match = schemaStartRegex.exec(content)) !== null) {
     const variableName = match[1];
+    if (!variableName) continue;
     const startIndex = match.index + match[0].length - 'z.object({'.length;
 
     // Find the matching closing brace by counting braces
@@ -143,6 +145,7 @@ function extractSchemaAssignments(content: string): SchemaAssignment[] {
   while ((match = bodySchemaRegex.exec(content)) !== null) {
     const variableName = match[1]; // e.g., "loginDiscordRequestBodySchema"
     const schemaName = match[2]; // e.g., "s_DiscordLoginRequest"
+    if (!variableName || !schemaName) continue;
 
     // Derive input type name from variable name
     // loginDiscordRequestBodySchema -> t_LoginDiscordRequestBodySchema

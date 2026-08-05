@@ -56,7 +56,10 @@ try {
     ['git', 'ls-tree', '-r', '--name-only', from, '--', 'backend/docs/openapi', 'backend/redocly.yaml'],
     { cwd: REPO_ROOT },
   );
-  const paths = pathsResult.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
+  const paths = pathsResult.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
   if (paths.length === 0) fail(`Git ref ${from} does not contain backend OpenAPI files.`);
 
   for (const repoRelativePath of paths) {

@@ -1,0 +1,61 @@
+type: object
+required:
+  - id
+  - name
+  - email
+  - role
+  - emailVerified
+  - banned
+  - banReason
+  - createdAt
+  - updatedAt
+  - providers
+properties:
+  id:
+    type: integer
+    description: Internal user ID.
+    example: 42
+  name:
+    type: string
+    description: The user's display name.
+    example: tanaka_san
+  email:
+    type: string
+    format: email
+    description: The user's email address.
+    example: tanaka@example.com
+  role:
+    type: string
+    enum:
+      - ADMIN
+      - MOD
+      - USER
+      - PATREON
+    description: The user's account tier or role.
+    example: USER
+  emailVerified:
+    type: boolean
+    description: Whether the account's email address has been verified.
+  banned:
+    type: boolean
+    description: Whether the account is currently banned.
+  banReason:
+    type: string
+    nullable: true
+    description: Reason recorded when the account was banned, if any.
+  createdAt:
+    type: string
+    format: date-time
+    description: When the account was created.
+    example: "2024-03-15T10:00:00.000Z"
+  updatedAt:
+    type: string
+    format: date-time
+    description: When the account was last modified.
+    example: "2024-03-15T10:00:00.000Z"
+  providers:
+    type: array
+    description: Linked authentication providers (empty when the account has none).
+    items:
+      type: string
+      example: google

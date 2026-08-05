@@ -51,7 +51,7 @@ patch:
     Updates collection name or visibility. Requires collection ownership.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [UPDATE_COLLECTIONS]
   parameters:
     - name: collectionPublicId
       in: path

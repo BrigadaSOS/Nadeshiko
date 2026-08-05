@@ -1913,7 +1913,8 @@ paths:
       description: |
         Updates collection name or visibility. Requires collection ownership.
       security:
-        - SessionCookie: []
+        - ApiKey:
+            - UPDATE_COLLECTIONS
       parameters:
         - name: collectionPublicId
           in: path
@@ -2083,7 +2084,8 @@ paths:
       description: |
         Updates the note or position of a segment in a collection. Requires collection ownership.
       security:
-        - SessionCookie: []
+        - ApiKey:
+            - UPDATE_COLLECTIONS
       parameters:
         - name: collectionPublicId
           in: path
@@ -2176,7 +2178,8 @@ paths:
         Returns per-media segment counts and per-category counts for all segments in a collection.
         Pages through all collection segments internally to compute statistics.
       security:
-        - SessionCookie: []
+        - ApiKey:
+            - READ_COLLECTIONS
       parameters:
         - name: collectionPublicId
           in: path
@@ -2745,6 +2748,66 @@ paths:
                 $ref: '#/components/schemas/Announcement'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/users-with-providers:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminUsersWithProviders
+      summary: List users with linked auth providers
+      description: |
+        Returns active accounts together with the authentication providers linked to each one, for the admin dashboard.
+        Uses offset pagination because the dashboard exposes page-back navigation.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Number of results to skip
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive substring match against email and username
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - users
+                  - total
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUserWithProviders'
+                  total:
+                    type: integer
+                    description: Total number of active accounts matching the search
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -6048,6 +6111,68 @@ components:
         active:
           type: boolean
           example: true
+    AdminUserWithProviders:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - emailVerified
+        - banned
+        - banReason
+        - createdAt
+        - updatedAt
+        - providers
+      properties:
+        id:
+          type: integer
+          description: Internal user ID.
+          example: 42
+        name:
+          type: string
+          description: The user's display name.
+          example: tanaka_san
+        email:
+          type: string
+          format: email
+          description: The user's email address.
+          example: tanaka@example.com
+        role:
+          type: string
+          enum:
+            - ADMIN
+            - MOD
+            - USER
+            - PATREON
+          description: The user's account tier or role.
+          example: USER
+        emailVerified:
+          type: boolean
+          description: Whether the account's email address has been verified.
+        banned:
+          type: boolean
+          description: Whether the account is currently banned.
+        banReason:
+          type: string
+          nullable: true
+          description: Reason recorded when the account was banned, if any.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the account was created.
+          example: '2024-03-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the account was last modified.
+          example: '2024-03-15T10:00:00.000Z'
+        providers:
+          type: array
+          description: Linked authentication providers (empty when the account has none).
+          items:
+            type: string
+            example: google
   examples:
     ValidationFailed:
       summary: Validation Failed

@@ -8,7 +8,7 @@ patch:
     Updates the note or position of a segment in a collection. Requires collection ownership.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [UPDATE_COLLECTIONS]
   parameters:
     - name: collectionPublicId
       in: path

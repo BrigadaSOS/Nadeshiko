@@ -20,6 +20,19 @@ export const s_AddSegmentToCollectionRequest = z.object({
   note: z.string().max(500).optional(),
 });
 
+export const s_AdminUserWithProviders = z.object({
+  id: z.coerce.number(),
+  name: z.string(),
+  email: z.email(),
+  role: z.enum(['ADMIN', 'MOD', 'USER', 'PATREON']),
+  emailVerified: PermissiveBoolean,
+  banned: PermissiveBoolean,
+  banReason: z.string().nullable(),
+  createdAt: z.iso.datetime({ offset: true }),
+  updatedAt: z.iso.datetime({ offset: true }),
+  providers: z.array(z.string()),
+});
+
 export const s_AffectedCountResponse = z.object({ count: z.coerce.number() });
 
 export const s_Announcement = z.object({

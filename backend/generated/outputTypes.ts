@@ -9,6 +9,7 @@ import * as schemas from './schemas';
 // ============================================
 export type ActivityTypeOutput = z.output<typeof schemas.s_ActivityType>;
 export type AddSegmentToCollectionRequestOutput = z.output<typeof schemas.s_AddSegmentToCollectionRequest>;
+export type AdminUserWithProvidersOutput = z.output<typeof schemas.s_AdminUserWithProviders>;
 export type AffectedCountResponseOutput = z.output<typeof schemas.s_AffectedCountResponse>;
 export type AnnouncementOutput = z.output<typeof schemas.s_Announcement>;
 export type CategoryOutput = z.output<typeof schemas.s_Category>;
@@ -151,6 +152,13 @@ export const listAdminMediaAuditRunsQuerySchema = z.object({
     take: z.coerce.number().max(100).optional().default(20),
   });
 export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
+
+export const getAdminUsersWithProvidersQuerySchema = z.object({
+    limit: z.coerce.number().min(1).max(100).optional().default(20),
+    offset: z.coerce.number().min(0).optional().default(0),
+    search: z.string().optional(),
+  });
+export type GetAdminUsersWithProvidersQueryOutput = z.output<typeof getAdminUsersWithProvidersQuerySchema>;
 
 export const listCollectionsQuerySchema = z.object({
     visibility: schemas.s_CollectionVisibility.optional(),

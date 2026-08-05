@@ -101,11 +101,11 @@ function main() {
           const resolved = resolveRef(spec, responseObj.$ref) as unknown as ResponseObject;
           if (resolved?.content?.['application/json']?.schema) {
             const schemaRef = resolved.content['application/json'].schema;
-            schema = isRef(schemaRef) ? resolveRef(spec, schemaRef.$ref) : schemaRef as SchemaObject;
+            schema = isRef(schemaRef) ? resolveRef(spec, schemaRef.$ref) : (schemaRef as SchemaObject);
           }
         } else if (responseObj.content?.['application/json']?.schema) {
           const schemaRef = responseObj.content['application/json'].schema;
-          schema = isRef(schemaRef) ? resolveRef(spec, schemaRef.$ref) : schemaRef as SchemaObject;
+          schema = isRef(schemaRef) ? resolveRef(spec, schemaRef.$ref) : (schemaRef as SchemaObject);
         }
 
         if (schema?.properties?.code?.enum) {

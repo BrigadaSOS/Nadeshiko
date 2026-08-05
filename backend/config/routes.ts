@@ -9,7 +9,8 @@ import { toNodeHandler } from 'better-auth/node';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { context as otelContext } from '@opentelemetry/api';
 import { auth } from '@config/auth';
-import { requireSession, enforceAdminAccess } from '@app/middleware/routePolicies';
+import { AppDataSource } from '@config/database';
+import { client as elasticsearchClient } from '@config/elasticsearch';
 import { routeAuth } from 'generated/routeAuth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
 import { authRateLimit } from '@app/middleware/rateLimit';
@@ -96,6 +97,73 @@ export const noCache = (_req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+// `/up` is what kamal-proxy polls (once a second) while a deploy is in flight
+// and what the container HEALTHCHECK polls afterwards, so the probes are
+// deduplicated, cached for a few seconds and hard-bounded in time.
+//
+// Postgres is a hard dependency: without it the API cannot serve anything, so a
+// failed probe answers 503 and a bad deploy is rolled back instead of shipped.
+// Elasticsearch is deliberately soft: only search degrades when it is down, and
+// restart-looping the whole API over a search outage would turn a partial
+// outage into a total one. Its state is reported as a field at 200 instead.
+const HEALTH_CACHE_MS = 5_000;
+const HEALTH_PROBE_TIMEOUT_MS = 2_000;
+
+interface HealthSnapshot {
+  database: boolean;
+  elasticsearch: boolean;
+}
+
+let cachedHealth: { at: number; snapshot: HealthSnapshot } | null = null;
+let inFlightHealth: Promise<HealthSnapshot> | null = null;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('health probe timed out')), ms);
+    promise.then(resolve, reject).finally(() => clearTimeout(timer));
+  });
+}
+
+async function probeDatabase(): Promise<boolean> {
+  if (!AppDataSource.isInitialized) return false;
+  await AppDataSource.query('SELECT 1');
+  return true;
+}
+
+async function probeElasticsearch(): Promise<boolean> {
+  return elasticsearchClient.ping({}, { requestTimeout: HEALTH_PROBE_TIMEOUT_MS, maxRetries: 0 });
+}
+
+function checkHealth(): Promise<HealthSnapshot> {
+  const now = Date.now();
+  if (cachedHealth && now - cachedHealth.at < HEALTH_CACHE_MS) return Promise.resolve(cachedHealth.snapshot);
+  if (inFlightHealth) return inFlightHealth;
+
+  inFlightHealth = Promise.all([
+    withTimeout(probeDatabase(), HEALTH_PROBE_TIMEOUT_MS).catch(() => false),
+    withTimeout(probeElasticsearch(), HEALTH_PROBE_TIMEOUT_MS).catch(() => false),
+  ])
+    .then(([database, elasticsearch]) => {
+      const snapshot: HealthSnapshot = { database, elasticsearch };
+      cachedHealth = { at: Date.now(), snapshot };
+      return snapshot;
+    })
+    .finally(() => {
+      inFlightHealth = null;
+    });
+
+  return inFlightHealth;
+}
+
+const healthCheck: RequestHandler = async (_req, res) => {
+  const { database, elasticsearch } = await checkHealth();
+  res.status(database ? 200 : 503).json({
+    status: database ? 'ok' : 'error',
+    database: database ? 'up' : 'down',
+    elasticsearch: elasticsearch ? 'up' : 'down',
+  });
+};
+
 const magicLinkBanRedirect: RequestHandler = (req, res, next) => {
   const originalEnd = res.end.bind(res);
   (res.end as any) = (chunk?: any, encoding?: any, callback?: any) => {
@@ -179,6 +247,7 @@ const AdminRoutes = createAdminRouter({
   getAdminMediaAuditRun,
   getAnnouncement,
   updateAnnouncement,
+  getAdminUsersWithProviders,
 });
 
 const StatsRoutes = createStatsRouter({
@@ -219,10 +288,8 @@ router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
 
-router.get('/v1/admin/users-with-providers', requireSession(enforceAdminAccess), getAdminUsersWithProviders);
-
 export function mountRoutes(app: Application): Application {
-  app.get('/up', (_req, res) => res.status(200).send('OK'));
+  app.get('/up', noCache, healthCheck);
 
   // Tighter per-IP limit on the auth surface (scoped before the auth handlers).
   app.use('/v1/auth', authRateLimit);
