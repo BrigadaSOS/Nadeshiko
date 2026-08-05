@@ -107,36 +107,24 @@ async function resetElasticsearchIndex(): Promise<void> {
 async function setupElasticsearchUserAndRole(options: { recreateIfExists?: boolean } = {}): Promise<void> {
   logger.info('Setting up Elasticsearch user and role...');
   try {
-    const { setupElasticsearchUser, initializeElasticsearchIndexWithClient } = await import('@config/elasticsearch');
-    const { ELASTICSEARCH_CLIENT_DEFAULTS } = await import('@config/elasticsearch-client');
-    const { Client } = await import('@elastic/elasticsearch');
-
-    // Create admin client
-    const adminUser = config.ELASTICSEARCH_ADMIN_USER || 'elastic';
-    const adminPassword = config.ELASTICSEARCH_ADMIN_PASSWORD;
-
-    if (!adminPassword) {
+    const { setupElasticsearchUser, initializeElasticsearchIndex, createAdminClient } = await import(
+      '@config/elasticsearch'
+    );
+    // Bootstrap skips rather than fails when no admin credentials are configured;
+    // `createAdminClient` throws instead, so the check stays here.
+    if (!config.ELASTICSEARCH_ADMIN_PASSWORD) {
       logger.info('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping user/role creation');
       return;
     }
 
-    const { HttpConnection } = await import('@elastic/elasticsearch');
-    const adminClient = new Client({
-      node: config.ELASTICSEARCH_HOST,
-      auth: {
-        username: adminUser,
-        password: adminPassword,
-      },
-      Connection: HttpConnection,
-      ...ELASTICSEARCH_CLIENT_DEFAULTS,
-    });
+    const adminClient = createAdminClient(config);
 
     // Create user and role first
     await setupElasticsearchUser({ recreateIfExists: options.recreateIfExists });
 
     // Use admin client to create the index (since app user may not exist yet)
     logger.info('Using admin client to create index');
-    await initializeElasticsearchIndexWithClient(adminClient);
+    await initializeElasticsearchIndex(adminClient);
   } catch (error) {
     logger.error(error, 'Elasticsearch user setup failed');
     throw error;
@@ -169,7 +157,7 @@ async function prepare(): Promise<void> {
 
 function printUsage(): void {
   console.log(`
-Usage: bun run bin/db.ts <command>
+Usage: node --import tsx bin/db.ts <command>
 
 Commands:
   migrate   Run pending migrations

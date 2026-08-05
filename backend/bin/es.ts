@@ -11,7 +11,7 @@ import {
 } from '@config/elasticsearch';
 import { logger } from '@config/log';
 import { Segment } from '@app/models';
-import { SegmentDocument } from '@app/services/search/SegmentDocument';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { AppDataSource } from '@config/database';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 
@@ -20,7 +20,7 @@ const commandArgs = process.argv.slice(3);
 async function reindex(): Promise<void> {
   logger.info(`Starting zero-downtime reindex for alias '${INDEX_NAME}'...`);
 
-  const result = await reindexZeroDowntime((targetIndex) => SegmentDocument.reindex(undefined, targetIndex));
+  const result = await reindexZeroDowntime((targetIndex) => SegmentIndexer.reindex(undefined, targetIndex));
 
   if (!result.success) {
     throw new Error(result.message);
@@ -116,7 +116,7 @@ async function setupRole(): Promise<void> {
 
 function printUsage(): void {
   console.log(`
-Usage: bun run bin/es.ts <command>
+Usage: node --import tsx bin/es.ts <command>
 
 Commands:
   reindex      Zero-downtime reindex: creates new versioned index, populates from DB, swaps alias
