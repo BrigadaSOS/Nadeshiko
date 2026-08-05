@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, spyOn, vi } from 'bun:test';
 
 const mockDeleteUser = vi.fn();
 const mockDeleteRole = vi.fn();
@@ -14,50 +14,16 @@ const mockIndicesDelete = vi.fn();
 const mockIndicesUpdateAliases = vi.fn();
 const mockIndicesRefresh = vi.fn();
 
-vi.mock('@elastic/elasticsearch', () => {
-  class MockClient {
-    security = {
-      deleteUser: (...args: unknown[]) => mockDeleteUser(...args),
-      deleteRole: (...args: unknown[]) => mockDeleteRole(...args),
-      getUser: (...args: unknown[]) => mockGetUser(...args),
-      putRole: (...args: unknown[]) => mockPutRole(...args),
-      putUser: (...args: unknown[]) => mockPutUser(...args),
-    };
+// Every function under test takes a client, so nothing here mocks
+// '@elastic/elasticsearch' itself -- vi.mock replaces the module for the whole
+// test process, breaking any file that happens to be co-run in the same
+// `bun test` invocation.
 
-    indices = {
-      exists: (...args: unknown[]) => mockIndicesExists(...args),
-      existsAlias: (...args: unknown[]) => mockIndicesExistsAlias(...args),
-      getAlias: (...args: unknown[]) => mockIndicesGetAlias(...args),
-      get: (...args: unknown[]) => mockIndicesGet(...args),
-      create: (...args: unknown[]) => mockIndicesCreate(...args),
-      delete: (...args: unknown[]) => mockIndicesDelete(...args),
-      updateAliases: (...args: unknown[]) => mockIndicesUpdateAliases(...args),
-      refresh: (...args: unknown[]) => mockIndicesRefresh(...args),
-    };
-  }
-
-  class MockHttpConnection {}
-
-  return {
-    Client: MockClient,
-    HttpConnection: MockHttpConnection,
-  };
-});
-
-const noop = vi.fn();
-const logger: Record<string, unknown> = {
-  trace: noop,
-  debug: noop,
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  fatal: noop,
-  child: () => logger,
-};
-
-vi.mock('@config/log', () => ({
-  logger,
-}));
+// Spy on the real logger rather than vi.mock('@config/log'): mocking replaces the module
+// for the whole test process, so any file sharing that process loses the exports this
+// file does not reproduce (httpLogger, buildHttpLoggerOptions, ...). LOG_LEVEL=silent in
+// .env.test keeps the output quiet.
+const { logger } = await import('@config/log');
 
 const {
   INDEX_NAME,
@@ -91,6 +57,10 @@ function makeMockClient() {
   };
 }
 
+function setupUser(options: Parameters<typeof setupElasticsearchUser>[0] = {}) {
+  return setupElasticsearchUser({ adminClient: makeMockClient() as any, ...options });
+}
+
 type AppConfig = typeof config;
 
 function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
@@ -113,6 +83,10 @@ beforeEach(() => {
   mockIndicesDelete.mockResolvedValue(undefined);
   mockIndicesUpdateAliases.mockResolvedValue(undefined);
   mockIndicesRefresh.mockResolvedValue(undefined);
+
+  spyOn(logger, 'info');
+  spyOn(logger, 'warn');
+  spyOn(logger, 'error');
 });
 
 afterEach(() => {
@@ -130,7 +104,7 @@ describe('setupElasticsearchUser', () => {
       ELASTICSEARCH_USER: 'app_user',
     });
 
-    const username = await setupElasticsearchUser({ configValues });
+    const username = await setupUser({ configValues });
 
     expect(username).toBe('app_user');
     expect(logger.info).toHaveBeenCalledWith('ELASTICSEARCH_ADMIN_PASSWORD not set, skipping user/role setup');
@@ -144,7 +118,7 @@ describe('setupElasticsearchUser', () => {
       ELASTICSEARCH_PASSWORD: '',
     });
 
-    await expect(setupElasticsearchUser({ configValues })).rejects.toThrow(
+    await expect(setupUser({ configValues })).rejects.toThrow(
       'ELASTICSEARCH_PASSWORD is required to create the application user',
     );
   });
@@ -156,7 +130,7 @@ describe('setupElasticsearchUser', () => {
     });
     mockGetUser.mockResolvedValue({ existing_user: {} });
 
-    const username = await setupElasticsearchUser({ configValues });
+    const username = await setupUser({ configValues });
 
     expect(username).toBe('existing_user');
     expect(mockGetUser).toHaveBeenCalledWith({ username: 'existing_user' });
@@ -171,7 +145,7 @@ describe('setupElasticsearchUser', () => {
     });
     mockGetUser.mockRejectedValue({ meta: { statusCode: 404 } });
 
-    await setupElasticsearchUser({ configValues });
+    await setupUser({ configValues });
 
     const roleArgs = mockPutRole.mock.calls[0]?.[0];
     expect(roleArgs.indices[0].names).toEqual([INDEX_NAME, `${INDEX_NAME}_v*`]);
@@ -187,7 +161,7 @@ describe('setupElasticsearchUser', () => {
     mockGetUser.mockRejectedValue({ meta: { statusCode: 404 } });
 
     const expectedUsername = `${INDEX_NAME.replace(/[^a-zA-Z0-9]/g, '_')}_user`;
-    const username = await setupElasticsearchUser({ recreateIfExists: true, configValues });
+    const username = await setupUser({ recreateIfExists: true, configValues });
 
     expect(username).toBe(expectedUsername);
     expect(mockDeleteUser).toHaveBeenCalledWith({ username: expectedUsername });
@@ -200,8 +174,24 @@ describe('setupElasticsearchUser', () => {
     const configValues = makeConfig({ ELASTICSEARCH_ADMIN_PASSWORD: 'admin-secret' });
     mockGetUser.mockRejectedValue({ meta: { statusCode: 500 }, message: 'es down' });
 
-    await expect(setupElasticsearchUser({ configValues })).rejects.toBeDefined();
+    await expect(setupUser({ configValues })).rejects.toBeDefined();
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('surfaces connection errors that carry no meta instead of a TypeError', async () => {
+    const configValues = makeConfig({ ELASTICSEARCH_ADMIN_PASSWORD: 'admin-secret' });
+    const connectionError = new Error('connect ECONNREFUSED 127.0.0.1:9200');
+    mockGetUser.mockRejectedValue(connectionError);
+
+    await expect(setupUser({ configValues })).rejects.toBe(connectionError);
+  });
+
+  it('surfaces meta-less delete failures during recreate instead of a TypeError', async () => {
+    const configValues = makeConfig({ ELASTICSEARCH_ADMIN_PASSWORD: 'admin-secret' });
+    const connectionError = new Error('connect ECONNREFUSED 127.0.0.1:9200');
+    mockDeleteUser.mockRejectedValue(connectionError);
+
+    await expect(setupUser({ recreateIfExists: true, configValues })).rejects.toBe(connectionError);
   });
 });
 

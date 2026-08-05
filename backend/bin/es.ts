@@ -11,7 +11,7 @@ import {
 } from '@config/elasticsearch';
 import { logger } from '@config/log';
 import { Segment } from '@app/models';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { AppDataSource } from '@config/database';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 
@@ -43,7 +43,9 @@ async function status(): Promise<void> {
   if (!physical) {
     const concreteExists = await client.indices.exists({ index: INDEX_NAME });
     if (concreteExists) {
-      logger.warn(`'${INDEX_NAME}' exists as a concrete index (legacy). Run 'migrate' to convert to alias-based setup.`);
+      logger.warn(
+        `'${INDEX_NAME}' exists as a concrete index (legacy). Run 'migrate' to convert to alias-based setup.`,
+      );
       const countResponse = await client.count({ index: INDEX_NAME });
       logger.info(`DB segments: ${dbSegmentCount}`);
       logger.info(`ES documents: ${countResponse.count}`);

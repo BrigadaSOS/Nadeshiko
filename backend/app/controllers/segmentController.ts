@@ -20,7 +20,7 @@ import {
   toSegmentUpdatePatch,
 } from './mappers/segmentMapper';
 import { toSearchResponseDTO } from './mappers/searchMapper';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { sendBulkEsSyncJobs } from '@app/workers/esSyncQueue';
 import { Cache } from '@lib/cache';
 import { logger } from '@config/log';

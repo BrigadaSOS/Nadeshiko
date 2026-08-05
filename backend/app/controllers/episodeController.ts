@@ -1,6 +1,6 @@
 import type { ListEpisodes, CreateEpisode, GetEpisode, UpdateEpisode, DeleteEpisode } from 'generated/routes/media';
 import { Episode, Media, Segment } from '@app/models';
-import { SegmentIndexer } from '@app/models/segmentDocument/SegmentIndexer';
+import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { toEpisodeDTO, toEpisodeListDTO } from './mappers/episodeMapper';
 import { encodeKeysetCursor, decodeKeysetCursor } from '@lib/cursor';
 
@@ -23,7 +23,8 @@ export const listEpisodes: ListEpisodes = async ({ params, query }, respond) => 
   const rows = await qb.getMany();
   const hasMore = rows.length > take;
   const episodes = hasMore ? rows.slice(0, take) : rows;
-  const nextCursor = hasMore ? encodeKeysetCursor(episodes[episodes.length - 1].episodeNumber) : null;
+  const lastEpisode = episodes[episodes.length - 1];
+  const nextCursor = hasMore && lastEpisode ? encodeKeysetCursor(lastEpisode.episodeNumber) : null;
 
   return respond.with200().body({
     episodes: toEpisodeListDTO(episodes, media.publicId),
