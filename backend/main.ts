@@ -69,6 +69,15 @@ async function startRuntime(): Promise<void> {
     logger.info('===================================');
     logger.info(`Current environment: [${environment}]`);
 
+    // Without the shared secret the per-IP limiter cannot tell frontend traffic
+    // apart from the public internet, so every SSR render and proxied call
+    // competes for one bucket keyed on the frontend's IP.
+    if (!config.INTERNAL_PROXY_SECRET && config.ENVIRONMENT !== 'local') {
+      logger.warn(
+        'INTERNAL_PROXY_SECRET is not set: requests proxied by the frontend are rate limited as a single client IP',
+      );
+    }
+
     context.server = await startServer(context, config.PORT);
     logger.info(`API listening on port ${config.PORT}`);
 

@@ -73,7 +73,7 @@ function isKnownAuthError(
 
 function extractBearerToken(req: Request): string | undefined {
   const authorization = req.headers.authorization;
-  if (!authorization || !authorization.startsWith('Bearer ')) {
+  if (!authorization?.startsWith('Bearer ')) {
     return undefined;
   }
 
@@ -131,7 +131,7 @@ const BETTER_AUTH_API_KEY_ERROR_FACTORIES: Record<string, () => MappedApiKeyErro
   KEY_NOT_FOUND: () => new AuthCredentialsInvalidError('Invalid API key.'),
 };
 
-function inferApiKeyKind(apiKey: { metadata?: unknown }): ApiKeyKind {
+export function inferApiKeyKind(apiKey: { metadata?: unknown }): ApiKeyKind {
   const metadata = parseApiKeyMetadata(apiKey.metadata);
   if (!metadata) {
     return ApiKeyKind.USER;
@@ -217,7 +217,7 @@ async function loadActiveUser(userId: number): Promise<User> {
   let user = getCachedUser(userId);
   if (!user) {
     user = await User.findOne({ where: { id: userId }, relations: ['labEnrollments'] });
-    if (!user || !user.isActive) {
+    if (!user?.isActive) {
       throw new AuthCredentialsInvalidError('User is invalid or inactive.');
     }
     setCachedUser(user);
