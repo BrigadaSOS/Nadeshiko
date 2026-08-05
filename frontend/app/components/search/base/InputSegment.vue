@@ -1,19 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { mdiTextSearch } from '@mdi/js';
 
-const props = defineProps({
-  compact: {
-    type: Boolean,
-    default: false,
+const props = withDefaults(
+  defineProps<{
+    compact?: boolean;
+  }>(),
+  {
+    compact: false,
   },
-});
+);
 
 const localePath = useLocalePath();
 const route = useRoute();
 const router = useRouter();
 const query = ref('');
 const forceSearchCounter = useState('force-search-counter', () => 0);
-const inputRef = ref(null);
+const inputRef = ref<HTMLInputElement | null>(null);
 
 onMounted(() => {
   const isMobile = /Android|webOS|iPhone|iPad|Opera Mini/i.test(navigator.userAgent);
@@ -45,10 +47,12 @@ const syncQueryFromRoute = () => {
 
 syncQueryFromRoute();
 
+const showBatchModal = ref(false);
+
 watch(() => [route.params.query, route.query.query], syncQueryFromRoute);
 </script>
 <template>
-  <SearchModalBatch />
+  <SearchModalBatch :open="showBatchModal" @close="showBatchModal = false" />
 
   <!-- Form -->
   <div @submit.prevent="navigateSearchSentence" class="yomitan-ignore">
@@ -98,7 +102,7 @@ watch(() => [route.params.query, route.query.query], syncQueryFromRoute);
 
         <button
           class="col-span-1 py-4 px-4 dark:border-neutral-700 border inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
-          data-nd-overlay="#nd-vertically-centered-scrollable-batch">
+          @click="showBatchModal = true">
           <UiBaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
         </button>
       </div>

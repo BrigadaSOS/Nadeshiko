@@ -1,9 +1,16 @@
-<script setup>
-const props = defineProps({
-  media: { type: Object, required: true },
-  // List view shows "Videos: 12"; grid views show "12 Videos".
-  labelFirst: { type: Boolean, default: false },
-});
+<script setup lang="ts">
+import type { Media } from '@brigadasos/nadeshiko-sdk';
+
+const props = withDefaults(
+  defineProps<{
+    media: Pick<Media, 'category' | 'airingFormat' | 'episodeCount'>;
+    // List view shows "Videos: 12"; grid views show "12 Videos".
+    labelFirst?: boolean;
+  }>(),
+  {
+    labelFirst: false,
+  },
+);
 
 const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
 const isMovie = computed(() => !isYoutube.value && props.media?.airingFormat === 'MOVIE');

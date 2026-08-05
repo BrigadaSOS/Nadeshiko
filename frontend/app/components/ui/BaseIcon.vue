@@ -1,43 +1,28 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
-const props = defineProps({
-  path: {
-    type: String,
-    required: false,
+const props = withDefaults(
+  defineProps<{
+    path?: string;
+    w?: string;
+    h?: string;
+    size?: string | number | null;
+    display?: string;
+    fill?: string;
+    strokewidth?: string;
+    verticalAlign?: string;
+    stroke?: string;
+  }>(),
+  {
+    w: 'w-6',
+    h: 'h-6',
+    size: null,
+    display: 'inline-flex',
+    fill: 'currentColor',
+    strokewidth: '',
+    verticalAlign: 'middle',
+    stroke: '',
   },
-  w: {
-    type: String,
-    default: 'w-6',
-  },
-  h: {
-    type: String,
-    default: 'h-6',
-  },
-  size: {
-    type: [String, Number],
-    default: null,
-  },
-  display: {
-    type: String,
-    default: 'inline-flex',
-  },
-  fill: {
-    type: String,
-    default: 'currentColor',
-  },
-  strokewidth: {
-    type: String,
-    default: '',
-  },
-  verticalAlign: {
-    type: String,
-    default: 'middle',
-  },
-  stroke: {
-    type: String,
-    default: '',
-  },
-});
+);
 const spanClass = computed(() => `${props.display} justify-center items-center ${props.w} ${props.h}`);
 const iconSize = computed(() => props.size ?? 16);
 </script>

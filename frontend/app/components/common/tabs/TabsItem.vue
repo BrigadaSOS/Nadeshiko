@@ -13,9 +13,16 @@
   </li>
 </template>
 
-<script setup>
-const props = defineProps(['categoryName', 'count', 'totalCount', 'isActive']);
-const emit = defineEmits(['click']);
+<script setup lang="ts">
+const props = defineProps<{
+  categoryName?: string;
+  count?: number;
+  totalCount?: number;
+  isActive?: boolean;
+}>();
+const emit = defineEmits<{
+  click: [];
+}>();
 
 const hasTotal = computed(() => typeof props.totalCount === 'number' && props.totalCount > (props.count ?? 0));
 
