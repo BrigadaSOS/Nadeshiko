@@ -1,7 +1,7 @@
 import { vi } from 'bun:test';
 import * as emailQueueModule from '@app/workers/emailQueue';
 import * as esSyncQueueModule from '@app/workers/esSyncQueue';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { sendEmail } from '@app/mailers/email';
 import { Segment } from '@app/models';
 import type { EmailJobData } from '@app/workers/emailQueue';

@@ -1,7 +1,14 @@
 export type CacheNamespace = symbol;
 
-export function createCacheNamespace(name: string): CacheNamespace {
-  return Symbol(name);
+/** Fallback cap for namespaces created without an explicit limit. */
+const DEFAULT_MAX_ENTRIES = 10_000;
+
+const namespaceLimits = new Map<CacheNamespace, number>();
+
+export function createCacheNamespace(name: string, maxEntries: number = DEFAULT_MAX_ENTRIES): CacheNamespace {
+  const namespace = Symbol(name);
+  namespaceLimits.set(namespace, maxEntries);
+  return namespace;
 }
 
 interface CacheEntry {
@@ -31,6 +38,11 @@ class AppCache {
       return null;
     }
 
+    // Map iterates in insertion order, so re-inserting marks this key as most
+    // recently used and keeps the eviction pass in `set` LRU rather than FIFO.
+    nsStore.delete(key);
+    nsStore.set(key, entry);
+
     return entry.value as T;
   }
 
@@ -50,7 +62,9 @@ class AppCache {
       this.store.set(namespace, targetStore);
     }
 
+    targetStore.delete(key);
     targetStore.set(key, { expiresAt, value });
+    this.evict(namespace, targetStore);
   }
 
   delete(namespace: CacheNamespace, key: string): void {
@@ -89,6 +103,30 @@ class AppCache {
 
   invalidate(namespace: CacheNamespace): void {
     this.store.delete(namespace);
+  }
+
+  /**
+   * Keeps a namespace within its entry cap. Expired entries are dropped first so
+   * a burst of unique keys does not evict live entries while dead ones linger.
+   */
+  private evict(namespace: CacheNamespace, nsStore: Map<string, CacheEntry>): void {
+    const maxEntries = namespaceLimits.get(namespace) ?? DEFAULT_MAX_ENTRIES;
+    if (nsStore.size <= maxEntries) {
+      return;
+    }
+
+    const now = Date.now();
+    for (const [key, entry] of nsStore) {
+      if (nsStore.size <= maxEntries) break;
+      if (entry.expiresAt <= now) {
+        nsStore.delete(key);
+      }
+    }
+
+    for (const key of nsStore.keys()) {
+      if (nsStore.size <= maxEntries) break;
+      nsStore.delete(key);
+    }
   }
 }
 

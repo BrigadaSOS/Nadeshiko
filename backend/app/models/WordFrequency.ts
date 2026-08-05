@@ -1,6 +1,6 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
 import { BaseEntity } from './base.entity';
-import { SegmentDocument } from './SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { logger } from '@config/log';
 

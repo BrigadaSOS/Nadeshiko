@@ -20,7 +20,10 @@ export const AppDataSource = new DataSource({
   migrations: ['./db/migrations/**/*.ts'],
   synchronize: false, // Use migrations instead!
   logging: true,
-  maxQueryExecutionTime: 0,
+  // TypeORM only calls `logQuerySlow` when this is truthy and exceeded, and that
+  // is the hook InstrumentedTypeOrmLogger records durations from. 0 disabled it
+  // entirely; 1 means everything above a millisecond is measured.
+  maxQueryExecutionTime: 1,
   logger: new InstrumentedTypeOrmLogger(),
   extra: {
     max: 15, // Reduced from 20 - still 7.5x peak needs for 20 req/min

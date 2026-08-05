@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'bun:test';
 import { setBossInstance } from '@app/workers/pgBossClient';
-import { cancelJobsForSegment, sendBulkEsSyncJobs, sendEsSyncJob } from '@app/workers/esSyncQueue';
+import { sendBulkEsSyncJobs, sendEsSyncJob } from '@app/workers/esSyncQueue';
 import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from '@app/workers/queueNames';
 
 describe('esSyncQueue', () => {
@@ -62,9 +62,5 @@ describe('esSyncQueue', () => {
       { segmentId: 3, operation: 'CREATE' },
     ]);
     expect(send).toHaveBeenCalledWith(ES_SYNC_UPDATE_QUEUE, [{ segmentId: 2, operation: 'UPDATE' }]);
-  });
-
-  it('returns true for cancel request (debounce-based behavior)', async () => {
-    await expect(cancelJobsForSegment(999)).resolves.toBe(true);
   });
 });

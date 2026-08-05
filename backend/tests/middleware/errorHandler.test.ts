@@ -137,6 +137,34 @@ describe('handleErrors', () => {
 
       expect(res.body.detail).toContain('Media External Id');
     });
+
+    it('does not echo a table name that is not a public resource', async () => {
+      const app = createErrorApp(() => {
+        const driverError: any = new Error('duplicate key');
+        driverError.code = '23505';
+        driverError.table = 'ApiAuthPermission';
+        throw new QueryFailedError('INSERT ...', [], driverError);
+      });
+
+      const res = await request(app).get('/test');
+
+      expect(res.status).toBe(409);
+      expect(res.body.detail).toBe('A resource with this unique identifier already exists');
+    });
+
+    it('does not echo a TypeORM-generated constraint hash', async () => {
+      const app = createErrorApp(() => {
+        const driverError: any = new Error('duplicate key');
+        driverError.code = '23505';
+        driverError.constraint = 'IDX_9a1f3c2b7d4e5f6081927a3b4c';
+        throw new QueryFailedError('INSERT ...', [], driverError);
+      });
+
+      const res = await request(app).get('/test');
+
+      expect(res.status).toBe(409);
+      expect(res.body.detail).toBe('A resource with this unique identifier already exists');
+    });
   });
 
   describe('unique violation — constraint patterns', () => {
@@ -218,6 +246,20 @@ describe('handleErrors', () => {
         const driverError: any = new Error('fk violation');
         driverError.code = '23503';
         driverError.constraint = 'randomstring';
+        throw new QueryFailedError('INSERT ...', [], driverError);
+      });
+
+      const res = await request(app).get('/test');
+
+      expect(res.status).toBe(404);
+      expect(res.body.detail).toBe('Related resource not found');
+    });
+
+    it('does not echo the referenced table of a non-public FK constraint', async () => {
+      const app = createErrorApp(() => {
+        const driverError: any = new Error('fk violation');
+        driverError.code = '23503';
+        driverError.constraint = 'FK_apiauthpermission_apipermission';
         throw new QueryFailedError('INSERT ...', [], driverError);
       });
 

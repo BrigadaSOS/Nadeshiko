@@ -9,12 +9,15 @@
     "ignoreUnknown": true,
     "includes": [
       "main.ts",
+      "instrumentation.ts",
       "app/**",
       "!app/mailers/templates",
+      "bin/**",
       "config/**",
       "db/**",
       "lib/**",
       "!lib/emails",
+      "scripts/**",
       "tests/**",
       "package.json",
       "tsconfig.json"
@@ -54,5 +57,21 @@
   },
   "assist": {
     "enabled": false
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["bin/**", "scripts/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noImplicitAnyLet": "off",
+            "noAssignInExpressions": "off"
+          }
+        }
+      }
+    }
+  ]
 }

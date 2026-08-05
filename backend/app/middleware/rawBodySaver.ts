@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { MAX_LOGGED_BODY_BYTES, oversizedBodyPlaceholder } from '@config/log';
 
 /**
  * Verify callback for express.json() and express.urlencoded() to capture raw request bodies for logging via pino.
@@ -16,6 +17,13 @@ import { Request, Response } from 'express';
  * @see https://expressjs.com/en/4x/api.html#req.body
  */
 export const rawBodySaver = (req: Request, _res: Response, buf: Buffer, _encoding: string) => {
+  // Only keep what the logger will actually emit. The body limit is 10mb, and
+  // this copy would otherwise be retained for the life of the request.
+  if (buf.length > MAX_LOGGED_BODY_BYTES) {
+    (req as any).rawBody = oversizedBodyPlaceholder(buf.length);
+    return;
+  }
+
   // Store the raw body as a string for logging
   (req as any).rawBody = buf.toString('utf8');
 };

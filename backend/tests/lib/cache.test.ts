@@ -129,6 +129,85 @@ describe('Cache.invalidate', () => {
   });
 });
 
+describe('Cache eviction', () => {
+  it('caps a namespace at its configured size', () => {
+    const bounded = createCacheNamespace('bounded', 3);
+
+    for (let i = 0; i < 10; i++) {
+      Cache.set(bounded, `k${i}`, i, 1000);
+    }
+
+    const survivors = Array.from({ length: 10 }, (_, i) => Cache.get<number>(bounded, `k${i}`)).filter(
+      (value) => value !== null,
+    );
+    expect(survivors).toHaveLength(3);
+
+    Cache.invalidate(bounded);
+  });
+
+  it('evicts the least recently used entry first', () => {
+    const bounded = createCacheNamespace('lru', 2);
+
+    Cache.set(bounded, 'a', 'alpha', 1000);
+    Cache.set(bounded, 'b', 'beta', 1000);
+    // Touching 'a' makes 'b' the least recently used.
+    expect(Cache.get<string>(bounded, 'a')).toBe('alpha');
+    Cache.set(bounded, 'c', 'gamma', 1000);
+
+    expect(Cache.get<string>(bounded, 'a')).toBe('alpha');
+    expect(Cache.get<string>(bounded, 'b')).toBeNull();
+    expect(Cache.get<string>(bounded, 'c')).toBe('gamma');
+
+    Cache.invalidate(bounded);
+  });
+
+  it('drops expired entries before evicting live ones', async () => {
+    const bounded = createCacheNamespace('expiry-first', 2);
+
+    Cache.set(bounded, 'stale', 'old', 1);
+    await new Promise((r) => setTimeout(r, 5));
+    Cache.set(bounded, 'live', 'current', 1000);
+    Cache.set(bounded, 'fresh', 'newest', 1000);
+
+    expect(Cache.get<string>(bounded, 'stale')).toBeNull();
+    expect(Cache.get<string>(bounded, 'live')).toBe('current');
+    expect(Cache.get<string>(bounded, 'fresh')).toBe('newest');
+
+    Cache.invalidate(bounded);
+  });
+
+  it('does not evict across namespaces', () => {
+    const boundedA = createCacheNamespace('tight', 1);
+    const boundedB = createCacheNamespace('roomy', 100);
+
+    Cache.set(boundedA, 'a', 1, 1000);
+    Cache.set(boundedB, 'a', 1, 1000);
+    Cache.set(boundedB, 'b', 2, 1000);
+    Cache.set(boundedA, 'b', 2, 1000);
+
+    expect(Cache.get<number>(boundedA, 'a')).toBeNull();
+    expect(Cache.get<number>(boundedA, 'b')).toBe(2);
+    expect(Cache.get<number>(boundedB, 'a')).toBe(1);
+    expect(Cache.get<number>(boundedB, 'b')).toBe(2);
+
+    Cache.invalidate(boundedA);
+    Cache.invalidate(boundedB);
+  });
+
+  it('overwriting an existing key does not grow the namespace', () => {
+    const bounded = createCacheNamespace('overwrite', 2);
+
+    Cache.set(bounded, 'a', 1, 1000);
+    Cache.set(bounded, 'a', 2, 1000);
+    Cache.set(bounded, 'b', 3, 1000);
+
+    expect(Cache.get<number>(bounded, 'a')).toBe(2);
+    expect(Cache.get<number>(bounded, 'b')).toBe(3);
+
+    Cache.invalidate(bounded);
+  });
+});
+
 describe('External compute pattern', () => {
   it('supports get-or-compute behavior without cache helper', async () => {
     let calls = 0;
