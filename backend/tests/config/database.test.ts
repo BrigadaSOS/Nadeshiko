@@ -6,6 +6,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('AppDataSource options', () => {
+  it('keeps maxQueryExecutionTime truthy so TypeORM calls the instrumented slow-query hook', () => {
+    const { maxQueryExecutionTime } = AppDataSource.options;
+    expect(maxQueryExecutionTime).toBeGreaterThan(0);
+  });
+});
+
 describe('initializeDatabase', () => {
   it('logs success when database initialization succeeds', async () => {
     vi.spyOn(AppDataSource, 'initialize').mockResolvedValueOnce(AppDataSource as any);

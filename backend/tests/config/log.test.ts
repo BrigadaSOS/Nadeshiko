@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { buildHttpLoggerOptions, safeParseJson, shouldUsePrettyLogsForEntrypoint } from '@config/log';
+import {
+  buildHttpLoggerOptions,
+  capLoggedBody,
+  MAX_LOGGED_BODY_BYTES,
+  safeParseJson,
+  shouldUsePrettyLogsForEntrypoint,
+} from '@config/log';
 
 describe('shouldUsePrettyLogsForEntrypoint', () => {
   it('returns true for known script entrypoints', () => {
@@ -21,6 +27,34 @@ describe('safeParseJson', () => {
 
   it('returns original value for invalid JSON', () => {
     expect(safeParseJson('not-json')).toBe('not-json');
+  });
+});
+
+describe('capLoggedBody', () => {
+  it('passes small bodies through untouched', () => {
+    const body = { ok: true };
+    expect(capLoggedBody(body)).toBe(body);
+  });
+
+  it('replaces an oversized object body with a marker', () => {
+    const body = { blob: 'x'.repeat(MAX_LOGGED_BODY_BYTES) };
+
+    expect(capLoggedBody(body)).toContain('exceeds the');
+  });
+
+  it('replaces an oversized string body with a marker', () => {
+    const body = 'x'.repeat(MAX_LOGGED_BODY_BYTES + 1);
+
+    expect(capLoggedBody(body)).toBe(
+      `[Body omitted: ${MAX_LOGGED_BODY_BYTES + 1} bytes exceeds the ${MAX_LOGGED_BODY_BYTES} byte log limit]`,
+    );
+  });
+
+  it('leaves unserializable bodies to pino instead of throwing', () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+
+    expect(capLoggedBody(circular)).toBe(circular);
   });
 });
 
@@ -72,6 +106,19 @@ describe('buildHttpLoggerOptions', () => {
 
     const serialized = (options as any).serializers.res(res);
     expect(serialized.body).toEqual({ nested: true });
+  });
+
+  it('caps an oversized error response body', () => {
+    const res = {
+      raw: {
+        statusCode: 500,
+        getHeaders: () => ({}),
+        responseBody: { blob: 'x'.repeat(MAX_LOGGED_BODY_BYTES) },
+      },
+    };
+
+    const serialized = (options as any).serializers.res(res);
+    expect(serialized.body).toContain('exceeds the');
   });
 
   it('does not include body for successful responses', () => {

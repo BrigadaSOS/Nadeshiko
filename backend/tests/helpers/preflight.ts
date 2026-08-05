@@ -8,7 +8,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const backendRoot = path.resolve(__dirname, '../..');
 
-loadDotenv({ path: path.join(backendRoot, '.env.test'), quiet: true });
+// `.env.test` overrides: bun has already loaded `.env` into process.env by the
+// time this preload runs, and dotenv leaves already-set vars alone, so without
+// `override` a bare `bun test` would inherit the dev database. `.env` is then
+// loaded without override purely to fill in keys `.env.test` does not define
+// (local admin credentials, for instance).
+loadDotenv({ path: path.join(backendRoot, '.env.test'), quiet: true, override: true });
 loadDotenv({ path: path.join(backendRoot, '.env'), quiet: true });
 
 interface PostgresTarget {

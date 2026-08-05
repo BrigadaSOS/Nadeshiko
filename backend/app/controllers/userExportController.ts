@@ -48,6 +48,7 @@ async function loadUserActivityForExport(userId: number): Promise<UserActivity[]
     }
 
     const last = batch[batch.length - 1];
+    if (!last) break;
     cursor = { createdAt: last.createdAt, id: last.id };
   }
 
@@ -80,6 +81,7 @@ async function loadUserReportsForExport(userId: number): Promise<Report[]> {
     }
 
     const last = batch[batch.length - 1];
+    if (!last) break;
     cursor = { createdAt: last.createdAt, id: last.id };
   }
 
@@ -107,7 +109,9 @@ async function loadCollectionsForExport(userId: number): Promise<Collection[]> {
       break;
     }
 
-    cursorId = batch[batch.length - 1].id;
+    const last = batch[batch.length - 1];
+    if (!last) break;
+    cursorId = last.id;
   }
 
   if (collections.length === 0) {

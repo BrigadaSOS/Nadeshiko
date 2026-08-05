@@ -10,10 +10,10 @@
     "declaration": false,
     "composite": false,
     "removeComments": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
+    // `strict` alone was already clean across the whole repo when it was turned
+    // on. `noUncheckedIndexedAccess` is not implied by it and lives in
+    // tsconfig.app.json, which is the config `typecheck:app` enforces.
+    "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": true,
     "noImplicitReturns": false,

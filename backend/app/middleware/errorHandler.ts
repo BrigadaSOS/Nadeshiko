@@ -270,33 +270,90 @@ function getEntityTargetName(entityTarget: unknown): string | null {
   return null;
 }
 
-function humanizeResourceName(raw: string): string {
+/**
+ * Table and constraint names are schema detail, and TypeORM's auto-generated
+ * ones (`PK_<hash>`, `IDX_<hash>`) are meaningless to a client anyway. Only the
+ * public resource names on this list are ever echoed back; every other
+ * identifier falls through to a generic message.
+ */
+const PUBLIC_RESOURCE_NAMES = new Map<string, string>([
+  ['user', 'User'],
+  ['media', 'Media'],
+  ['episode', 'Episode'],
+  ['segment', 'Segment'],
+  ['segmentrevision', 'Segment revision'],
+  ['collection', 'Collection'],
+  ['collectionsegment', 'Collection segment'],
+  ['report', 'Report'],
+  ['series', 'Series'],
+  ['seriesmedia', 'Series media'],
+  ['character', 'Character'],
+  ['mediacharacter', 'Media character'],
+  ['seiyuu', 'Seiyuu'],
+  ['mediaexternalid', 'Media External Id'],
+  ['announcement', 'Announcement'],
+  ['apiauth', 'API key'],
+  ['apikey', 'API key'],
+  ['labenrollment', 'Lab enrollment'],
+  ['useractivity', 'User activity'],
+  ['mediaaudit', 'Media audit'],
+  ['mediaauditrun', 'Media audit run'],
+]);
+
+/** Trailing tokens that name a constraint's shape rather than its resource. */
+const CONSTRAINT_SUFFIX_TOKENS = new Set(['fkey', 'key', 'id']);
+
+function toResourceKey(raw: string): string {
   return raw
     .replace(/^["']|["']$/g, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .join('');
+}
+
+function lookupPublicResourceName(identifier: string | undefined): string | null {
+  if (!identifier) return null;
+  return PUBLIC_RESOURCE_NAMES.get(toResourceKey(identifier)) ?? null;
+}
+
+/**
+ * Constraint names carry suffixes a table name does not (`..._id_fkey`), so they
+ * get trimmed back to the resource token before the lookup.
+ */
+function lookupPublicResourceNameFromConstraintToken(token: string | undefined): string | null {
+  if (!token) return null;
+
+  const parts = token
+    .replace(/^["']|["']$/g, '')
+    .split('_')
+    .filter(Boolean);
+  while (parts.length > 1) {
+    const tail = parts[parts.length - 1];
+    if (!tail || !CONSTRAINT_SUFFIX_TOKENS.has(tail.toLowerCase())) break;
+    parts.pop();
+  }
+
+  return lookupPublicResourceName(parts.join('_'));
 }
 
 function getResourceNameFromUniqueViolation(driverError: PgDriverError): string | null {
-  if (driverError.table) {
-    return humanizeResourceName(driverError.table);
-  }
+  const fromTable = lookupPublicResourceName(driverError.table);
+  if (fromTable) return fromTable;
 
   const constraint = driverError.constraint;
   if (!constraint) return null;
 
   const pkMatch = constraint.match(/^PK_(.+)$/i);
   if (pkMatch?.[1]) {
-    return humanizeResourceName(pkMatch[1]);
+    const fromPk = lookupPublicResourceNameFromConstraintToken(pkMatch[1]);
+    if (fromPk) return fromPk;
   }
 
   const idxMatch = constraint.match(/^IDX_([^_]+)/i);
   if (idxMatch?.[1]) {
-    return humanizeResourceName(idxMatch[1]);
+    return lookupPublicResourceNameFromConstraintToken(idxMatch[1]);
   }
 
   return null;
@@ -307,26 +364,26 @@ function getMissingResourceNameFromForeignKeyConstraint(constraint: string | und
 
   const namedFkMatch = constraint.match(/^FK_[^_]+_(.+)$/i);
   if (namedFkMatch?.[1]) {
-    return humanizeResourceName(namedFkMatch[1]);
+    const fromNamedFk = lookupPublicResourceNameFromConstraintToken(namedFkMatch[1]);
+    if (fromNamedFk) return fromNamedFk;
   }
 
   const parts = constraint.split('_');
-  if (parts.length < 3 || parts[parts.length - 1].toLowerCase() !== 'fkey') {
+  if (parts.length < 3 || parts[parts.length - 1]?.toLowerCase() !== 'fkey') {
     return null;
   }
 
-  const idTokenOffset = parts[parts.length - 2].toLowerCase() === 'id' ? 3 : 2;
-  const entityToken = parts[parts.length - idTokenOffset];
-  return entityToken ? humanizeResourceName(entityToken) : null;
+  const idTokenOffset = parts[parts.length - 2]?.toLowerCase() === 'id' ? 3 : 2;
+  return lookupPublicResourceName(parts[parts.length - idTokenOffset]);
+}
+
+class DuplicateKeyError extends ApiError {
+  readonly code = 'DUPLICATE_KEY' as const;
+  readonly title = 'Resource already exists';
+  readonly status = 409;
 }
 
 function createDuplicateKeyError(driverError: PgDriverError, requestId: string): ApiError {
-  class DuplicateKeyError extends ApiError {
-    readonly code = 'DUPLICATE_KEY' as const;
-    readonly title = 'Resource already exists';
-    readonly status = 409;
-  }
-
   const resourceName = getResourceNameFromUniqueViolation(driverError);
   const detail = resourceName
     ? `${resourceName} already exists`

@@ -3,10 +3,7 @@
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import {
-  OTLPMetricExporter,
-  AggregationTemporalityPreference,
-} from '@opentelemetry/exporter-metrics-otlp-http';
+import { OTLPMetricExporter, AggregationTemporalityPreference } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -20,7 +17,7 @@ const IGNORED_INCOMING_PATHS = new Set(['/up', '/favicon.ico']);
 const IGNORED_INCOMING_PREFIXES = ['/_nuxt/', '/_i18n/'];
 
 function isIgnoredIncoming(url: string): boolean {
-  const path = url.split('?')[0];
+  const path = url.split('?')[0] ?? url;
   if (IGNORED_INCOMING_PATHS.has(path)) return true;
   return IGNORED_INCOMING_PREFIXES.some((p) => path.startsWith(p));
 }
@@ -59,10 +56,13 @@ if (endpoint) {
         requestHook: (span, queryInfo) => {
           const sql = queryInfo.query?.text;
           if (!sql) return;
-          const match = sql.match(/\bFROM\s+"?(?:\w+\.)?"?(\w+)"?/i) || sql.match(/\bINTO\s+"?(?:\w+\.)?"?(\w+)"?/i) || sql.match(/\bUPDATE\s+"?(?:\w+\.)?"?(\w+)"?/i);
+          const match =
+            sql.match(/\bFROM\s+"?(?:\w+\.)?"?(\w+)"?/i) ||
+            sql.match(/\bINTO\s+"?(?:\w+\.)?"?(\w+)"?/i) ||
+            sql.match(/\bUPDATE\s+"?(?:\w+\.)?"?(\w+)"?/i);
           if (match?.[1]) {
             const table = match[1];
-            const op = sql.trimStart().split(/\s/)[0].toUpperCase();
+            const op = (sql.trimStart().split(/\s/)[0] ?? '').toUpperCase();
             span.updateName(`pg.query:${op} ${table}`);
           }
         },
