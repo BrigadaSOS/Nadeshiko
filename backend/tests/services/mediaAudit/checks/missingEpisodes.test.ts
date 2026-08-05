@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
 import { Media, Episode, CategoryType, SegmentStorage } from '@app/models';
-import { missingEpisodes } from '@app/models/mediaAudit/checks/missingEpisodes';
+import { missingEpisodes } from '@app/services/mediaAudit/checks/missingEpisodes';
 
 setupTestSuite();
 

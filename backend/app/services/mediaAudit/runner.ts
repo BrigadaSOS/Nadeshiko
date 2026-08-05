@@ -2,10 +2,16 @@ import { AppDataSource } from '@config/database';
 import { client as esClient } from '@config/elasticsearch';
 import type { DataSource } from 'typeorm';
 import type { Client } from '@elastic/elasticsearch';
-import { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason } from '@app/models';
-import { MediaAudit } from './MediaAudit';
-import { MediaAuditRun } from './MediaAuditRun';
-import { MediaAuditTargetType } from './MediaAudit';
+import {
+  MediaAudit,
+  MediaAuditRun,
+  MediaAuditTargetType,
+  Report,
+  ReportSource,
+  ReportTargetType,
+  ReportStatus,
+  ReportReason,
+} from '@app/models';
 import { auditRegistry, type MediaAuditCheck, type CheckResult } from './checks';
 import { logger } from '@config/log';
 

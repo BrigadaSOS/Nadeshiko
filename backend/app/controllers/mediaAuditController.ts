@@ -7,9 +7,9 @@ import type {
 } from 'generated/routes/admin';
 import { MediaAudit, MediaAuditRun, Report } from '@app/models';
 import { InvalidRequestError, NotFoundError } from '@app/errors';
-import { runAllAudits } from '@app/models/mediaAudit/runner';
-import { auditRegistry } from '@app/models/mediaAudit/checks';
-import type { MediaAuditCheck, ThresholdField } from '@app/models/mediaAudit/checks';
+import { runAllAudits } from '@app/services/mediaAudit/runner';
+import { auditRegistry } from '@app/services/mediaAudit/checks';
+import type { MediaAuditCheck, ThresholdField } from '@app/services/mediaAudit/checks';
 import { toReportDTO, resolveReportPublicIds } from '@app/controllers/mappers/reportMapper';
 import {
   toAdminMediaAuditListDTO,

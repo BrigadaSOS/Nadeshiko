@@ -283,7 +283,9 @@ export class SegmentIndexer {
       stats.failedIndexes += result.failed;
       errors.push(...result.errors);
 
-      lastId = segments[segments.length - 1].id;
+      const lastSegment = segments[segments.length - 1];
+      if (!lastSegment) return;
+      lastId = lastSegment.id;
     }
   }
 
@@ -314,33 +316,28 @@ export class SegmentIndexer {
     };
   }
 
+  /** Tokens as Shirabe wrote them.
+   *
+   * `pos_analysis` used to be a bag of analyses (`sudachi`, `unidic`, plus
+   * `_tokenizer_*` markers saying which was which) and this method slimmed the
+   * `sudachi` one down to the ten published fields. Shirabe now parses the whole
+   * corpus and stores the served shape directly, so there is nothing left to
+   * choose between and nothing left to slim: one analysis, already in the right
+   * field names, already free of Sudachi's "*" and "一般" placeholders.
+   *
+   * There is no fallback to the old shape on purpose. Import the tokens first,
+   * then reindex: in that order every row already carries `tokens` by the time
+   * anything reads them, and a row that somehow does not degrades to no tokens
+   * at all, which the frontend already handles by rendering plain highlight HTML.
+   * Reindexing first would show that degraded state to everybody for the length
+   * of the import, which is the only reason the order matters.
+   */
   private static extractSlimTokens(posAnalysis: PosAnalysisData | null): SlimToken[] | undefined {
     if (!posAnalysis) return undefined;
 
-    const data = posAnalysis as Record<string, unknown>;
-    const sudachi = data.sudachi;
-    if (!Array.isArray(sudachi) || sudachi.length === 0) return undefined;
+    const tokens = (posAnalysis as Record<string, unknown>).tokens;
+    if (!Array.isArray(tokens) || tokens.length === 0) return undefined;
 
-    return sudachi.map((token: Record<string, unknown>) => {
-      const pos = Array.isArray(token.pos) ? token.pos : [];
-      const meaningful = (v: unknown) => v !== undefined && v !== '*' && v !== '一般';
-      const p1 = pos.length > 1 && meaningful(pos[1]) ? String(pos[1]) : undefined;
-      const p2 = pos.length > 2 && meaningful(pos[2]) ? String(pos[2]) : undefined;
-      const p4 = pos.length > 4 && meaningful(pos[4]) ? String(pos[4]) : undefined;
-      const cf = pos.length > 5 && meaningful(pos[5]) ? String(pos[5]) : undefined;
-      const slim: SlimToken = {
-        s: String(token.surface ?? ''),
-        d: String(token.dictionary_form ?? token.surface ?? ''),
-        r: String(token.reading ?? ''),
-        b: Number(token.begin ?? 0),
-        e: Number(token.end ?? 0),
-        p: String(pos[0] ?? ''),
-      };
-      if (p1) slim.p1 = p1;
-      if (p2) slim.p2 = p2;
-      if (p4) slim.p4 = p4;
-      if (cf) slim.cf = cf;
-      return slim;
-    });
+    return tokens as SlimToken[];
   }
 }

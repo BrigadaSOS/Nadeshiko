@@ -20,8 +20,8 @@ import {
   getPreviousRunData,
   AUDIT_NAME_TO_REASON,
   runAllAuditsWithDeps,
-} from '@app/models/mediaAudit/runner';
-import type { CheckResult } from '@app/models/mediaAudit/checks';
+} from '@app/services/mediaAudit/runner';
+import type { CheckResult } from '@app/services/mediaAudit/checks';
 
 setupTestSuite();
 

@@ -1,6 +1,6 @@
 import type { t_MediaAudit, t_MediaAuditRun } from 'generated/models';
 import type { MediaAudit, MediaAuditRun } from '@app/models';
-import type { MediaAuditCheck, ThresholdField } from '@app/models/mediaAudit/checks';
+import type { MediaAuditCheck, ThresholdField } from '@app/services/mediaAudit/checks';
 
 type AuditRunSummary = {
   auditName: string;

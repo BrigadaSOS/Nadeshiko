@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
 import { Media, CategoryType, SegmentStorage } from '@app/models';
-import { dbEsSyncIssues } from '@app/models/mediaAudit/checks/dbEsSyncIssues';
+import { dbEsSyncIssues } from '@app/services/mediaAudit/checks/dbEsSyncIssues';
 import type { Client } from '@elastic/elasticsearch';
 
 setupTestSuite();
