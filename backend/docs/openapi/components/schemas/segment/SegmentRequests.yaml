@@ -55,11 +55,6 @@ SegmentFields: &segmentFields
     additionalProperties: true
     nullable: true
     description: Raw WD Tagger v3 classifier output used to derive content rating
-  posAnalysis:
-    type: object
-    additionalProperties: true
-    nullable: true
-    description: POS tokenization results keyed by engine (sudachi, unidic)
   storage:
     type: string
     enum: [LOCAL, R2]

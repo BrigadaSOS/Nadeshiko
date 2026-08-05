@@ -1,5 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
+import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -17,16 +18,30 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-async function run(
-  cmd: string[],
+function run(
+  cmd: [string, ...string[]],
   options: { cwd?: string; allowFailure?: boolean } = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const proc = Bun.spawn(cmd, { cwd: options.cwd, stdout: 'pipe', stderr: 'pipe' });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
+): { exitCode: number; stdout: string; stderr: string } {
+  const [executable, ...args] = cmd;
+  const proc = spawnSync(executable, args, {
+    cwd: options.cwd,
+    encoding: 'utf-8',
+    // A wide `changelog` renders megabytes of markdown to stdout, which the
+    // 1 MB default would truncate into an ENOBUFS failure.
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (proc.error) {
+    if ((proc.error as NodeJS.ErrnoException).code === 'ENOENT') {
+      fail(
+        `${executable} is not installed or not on PATH. Install it (oasdiff: https://github.com/oasdiff/oasdiff) and retry.`,
+      );
+    }
+    throw proc.error;
+  }
+
+  const stdout = proc.stdout ?? '';
+  const stderr = proc.stderr ?? '';
+  const exitCode = proc.status ?? 1;
   if (exitCode !== 0 && !options.allowFailure) {
     const rendered = [stdout.trim(), stderr.trim()].filter(Boolean).join('\n');
     fail(`Command failed (${cmd.join(' ')}).\n${rendered}`);
@@ -36,7 +51,7 @@ async function run(
 
 const [commandArg, ...rest] = process.argv.slice(2);
 if (!commandArg || !['breaking', 'changelog', 'diff'].includes(commandArg)) {
-  fail('Usage: bun run bin/openapiDiff.ts <breaking|changelog|diff> [--from <git-ref>]');
+  fail('Usage: npm run openapi:<breaking|changelog|diff> -- [--from <git-ref>]');
 }
 const command = commandArg as Command;
 
@@ -52,8 +67,20 @@ for (let i = 0; i < rest.length; i += 1) {
 const tempRoot = await mkdtemp(join(tmpdir(), 'nadeshiko-oasdiff-'));
 
 try {
-  const pathsResult = await run(
-    ['git', 'ls-tree', '-r', '--name-only', from, '--', 'backend/docs/openapi', 'backend/redocly.yaml'],
+  const pathsResult = run(
+    // redocly.yaml loads plugins by relative path, so they have to come along or
+    // bundling the base ref fails before oasdiff ever runs.
+    [
+      'git',
+      'ls-tree',
+      '-r',
+      '--name-only',
+      from,
+      '--',
+      'backend/docs/openapi',
+      'backend/docs/plugins',
+      'backend/redocly.yaml',
+    ],
     { cwd: REPO_ROOT },
   );
   const paths = pathsResult.stdout
@@ -63,7 +90,7 @@ try {
   if (paths.length === 0) fail(`Git ref ${from} does not contain backend OpenAPI files.`);
 
   for (const repoRelativePath of paths) {
-    const fileResult = await run(['git', 'show', `${from}:${repoRelativePath}`], { cwd: REPO_ROOT });
+    const fileResult = run(['git', 'show', `${from}:${repoRelativePath}`], { cwd: REPO_ROOT });
     const destination = join(tempRoot, repoRelativePath);
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, fileResult.stdout);
@@ -73,13 +100,13 @@ try {
   const revisionBundlePath = join(tempRoot, 'revision-openapi.yaml');
   const bundleArgs = ['bundle', 'public', '--remove-unused-components', '-o'];
 
-  await run([REDOCLY_BIN, ...bundleArgs, baseBundlePath], { cwd: join(tempRoot, 'backend') });
-  await run([REDOCLY_BIN, ...bundleArgs, revisionBundlePath], { cwd: BACKEND_DIR });
+  run([REDOCLY_BIN, ...bundleArgs, baseBundlePath], { cwd: join(tempRoot, 'backend') });
+  run([REDOCLY_BIN, ...bundleArgs, revisionBundlePath], { cwd: BACKEND_DIR });
 
-  const commandArgs = [OASDIFF_BIN, command, baseBundlePath, revisionBundlePath];
+  const commandArgs: [string, ...string[]] = [OASDIFF_BIN, command, baseBundlePath, revisionBundlePath];
   if (command === 'changelog') commandArgs.push('--format', 'markdown');
 
-  const result = await run(commandArgs, { cwd: BACKEND_DIR, allowFailure: command === 'breaking' });
+  const result = run(commandArgs, { cwd: BACKEND_DIR, allowFailure: command === 'breaking' });
 
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr.trim()) process.stderr.write(result.stderr);

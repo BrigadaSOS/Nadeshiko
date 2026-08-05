@@ -22,7 +22,6 @@ import type {
   t_DeleteUserActivityByDateParamSchema,
   t_DeleteUserActivityByIdParamSchema,
   t_DeleteUserActivityQuerySchema,
-  t_EnrollUserLabParamSchema,
   t_Error400,
   t_Error401,
   t_Error403,
@@ -32,10 +31,8 @@ import type {
   t_MediaSummary,
   t_RemoveExcludedMediaParamSchema,
   t_Report,
-  t_UnenrollUserLabParamSchema,
   t_UserActivityRequest,
   t_UserExportResponse,
-  t_UserLabFeature,
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
@@ -55,7 +52,6 @@ import {
   s_Report,
   s_UserActivityRequest,
   s_UserExportResponse,
-  s_UserLabFeature,
   s_UserMe,
   s_UserPreferences,
 } from '../schemas.ts';
@@ -261,56 +257,6 @@ export type ExportUserData = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type ListUserLabsResponder = {
-  with200(): ExpressRuntimeResponse<t_UserLabFeature[]>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListUserLabs = (
-  params: Params<void, void, void, void>,
-  respond: ListUserLabsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type EnrollUserLabResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type EnrollUserLab = (
-  params: Params<t_EnrollUserLabParamSchema, void, void, void>,
-  respond: EnrollUserLabResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type UnenrollUserLabResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type UnenrollUserLab = (
-  params: Params<t_UnenrollUserLabParamSchema, void, void, void>,
-  respond: UnenrollUserLabResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
 export type UserImplementation = {
   getMe: GetMe;
   listExcludedMedia: ListExcludedMedia;
@@ -324,9 +270,6 @@ export type UserImplementation = {
   deleteUserActivityByDate: DeleteUserActivityByDate;
   deleteUserActivityById: DeleteUserActivityById;
   exportUserData: ExportUserData;
-  listUserLabs: ListUserLabs;
-  enrollUserLab: EnrollUserLab;
-  unenrollUserLab: UnenrollUserLab;
 };
 
 export function createUserRouter(
@@ -986,171 +929,6 @@ export function createUserRouter(
         .exportUserData(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, exportUserDataResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listUserLabsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.array(s_UserLabFeature)],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listUserLabs
-  router.get(`/v1/user/labs`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_UserLabFeature[]>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .listUserLabs(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, listUserLabsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const enrollUserLabParamSchema = z.object({ key: z.string() });
-
-  const enrollUserLabResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // enrollUserLab
-  router.post(`/v1/user/labs/:key`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(enrollUserLabParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with204() {
-          return new ExpressRuntimeResponse<void>(204);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .enrollUserLab(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, enrollUserLabResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const unenrollUserLabParamSchema = z.object({ key: z.string() });
-
-  const unenrollUserLabResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // unenrollUserLab
-  router.delete(`/v1/user/labs/:key`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(unenrollUserLabParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with204() {
-          return new ExpressRuntimeResponse<void>(204);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .unenrollUserLab(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, unenrollUserLabResponseBodyValidator));
     } catch (error) {
       next(error);
     }

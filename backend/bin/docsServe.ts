@@ -1,7 +1,9 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { extname, join, resolve } from 'node:path';
 
 const ROOT_DIR = process.cwd();
@@ -18,7 +20,7 @@ const PORT_ATTEMPTS = Number(process.env.DOCS_PORT_ATTEMPTS || 20);
 const POLL_INTERVAL_MS = 1000;
 const REBUILD_DEBOUNCE_MS = 250;
 
-const clients = new Set<ReadableStreamDefaultController<string>>();
+const clients = new Set<ServerResponse>();
 let lastFingerprint = '';
 let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
 let building = false;
@@ -69,13 +71,33 @@ function computeFingerprint(): string {
 }
 
 function notifyReload(): void {
-  for (const controller of clients) {
+  for (const client of clients) {
     try {
-      controller.enqueue('data: reload\\n\\n');
+      client.write('data: reload\n\n');
     } catch {
-      clients.delete(controller);
+      clients.delete(client);
     }
   }
+}
+
+function runBuildCommand(): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const proc = spawn('npm', ['run', BUILD_COMMAND], { cwd: ROOT_DIR, stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.setEncoding('utf-8');
+    proc.stderr.setEncoding('utf-8');
+    proc.stdout.on('data', (chunk: string) => {
+      stdout += chunk;
+    });
+    proc.stderr.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+
+    proc.on('error', rejectPromise);
+    proc.on('close', (code) => resolvePromise({ stdout, stderr, exitCode: code ?? 1 }));
+  });
 }
 
 async function buildDocs(): Promise<void> {
@@ -87,17 +109,7 @@ async function buildDocs(): Promise<void> {
   building = true;
   console.log(`[docs:serve] Building docs with "${BUILD_COMMAND}"...`);
 
-  const proc = Bun.spawn(['bun', 'run', BUILD_COMMAND], {
-    cwd: ROOT_DIR,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
+  const { stdout, stderr, exitCode } = await runBuildCommand();
 
   if (exitCode !== 0) {
     if (stdout.trim()) process.stdout.write(stdout);
@@ -161,36 +173,31 @@ function contentType(filePath: string): string {
   }
 }
 
-function sseResponse(): Response {
-  let controllerRef: ReadableStreamDefaultController<string> | null = null;
+function sendText(response: ServerResponse, status: number, body: string): void {
+  response.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8' });
+  response.end(body);
+}
 
-  const stream = new ReadableStream<string>({
-    start(controller) {
-      controllerRef = controller;
-      clients.add(controller);
-      controller.enqueue(': connected\\n\\n');
-    },
-    cancel() {
-      if (controllerRef) {
-        clients.delete(controllerRef);
-      }
-    },
+function openEventStream(response: ServerResponse): void {
+  response.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
   });
+  response.write(': connected\n\n');
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-    },
+  clients.add(response);
+  response.on('close', () => {
+    clients.delete(response);
   });
 }
 
-async function handleRequest(request: Request): Promise<Response> {
-  const url = new URL(request.url);
+async function handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
 
   if (url.pathname === LIVE_RELOAD_PATH) {
-    return sseResponse();
+    openEventStream(response);
+    return;
   }
 
   const requestPath = url.pathname === '/' ? '/index.html' : url.pathname;
@@ -198,39 +205,55 @@ async function handleRequest(request: Request): Promise<Response> {
   const generatedRoot = resolve(ARTIFACTS_DIR);
 
   if (!absolutePath.startsWith(generatedRoot)) {
-    return new Response('Forbidden', { status: 403 });
+    sendText(response, 403, 'Forbidden');
+    return;
   }
 
   if (!existsSync(absolutePath) || statSync(absolutePath).isDirectory()) {
-    return new Response('Not found', { status: 404 });
+    sendText(response, 404, 'Not found');
+    return;
   }
 
   if (extname(absolutePath).toLowerCase() === '.html') {
     const html = await readFile(absolutePath, 'utf-8');
-    return new Response(injectLiveReload(html), {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-cache',
-      },
+    response.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
     });
+    response.end(injectLiveReload(html));
+    return;
   }
 
-  return new Response(Bun.file(absolutePath), {
-    headers: {
-      'Content-Type': contentType(absolutePath),
-      'Cache-Control': 'no-cache',
-    },
+  response.writeHead(200, {
+    'Content-Type': contentType(absolutePath),
+    'Cache-Control': 'no-cache',
+    'Content-Length': statSync(absolutePath).size,
+  });
+  createReadStream(absolutePath).pipe(response);
+}
+
+function listen(port: number): Promise<void> {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const server = createServer((request, response) => {
+      void handleRequest(request, response).catch(() => {
+        if (!response.headersSent) sendText(response, 500, 'Internal error');
+        else response.end();
+      });
+    });
+
+    server.once('error', rejectPromise);
+    server.listen(port, () => {
+      server.removeListener('error', rejectPromise);
+      resolvePromise();
+    });
   });
 }
 
-function startServerWithPortFallback(initialPort: number): number {
+async function startServerWithPortFallback(initialPort: number): Promise<number> {
   for (let attempt = 0; attempt < PORT_ATTEMPTS; attempt++) {
     const candidatePort = initialPort + attempt;
     try {
-      Bun.serve({
-        port: candidatePort,
-        fetch: handleRequest,
-      });
+      await listen(candidatePort);
       return candidatePort;
     } catch (error: any) {
       if (error?.code === 'EADDRINUSE') {
@@ -249,7 +272,7 @@ async function main(): Promise<void> {
   lastFingerprint = computeFingerprint();
   await buildDocs();
 
-  const boundPort = startServerWithPortFallback(PORT);
+  const boundPort = await startServerWithPortFallback(PORT);
 
   if (boundPort !== PORT) {
     console.warn(`[docs:serve] Port ${PORT} is in use, serving on ${boundPort} instead.`);

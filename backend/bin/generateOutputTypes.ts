@@ -12,7 +12,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const GENERATED_DIR = path.join(import.meta.dir, '../generated');
+// Overridable so the test suite can point the script at a fixture tree instead
+// of the real generated output.
+const GENERATED_DIR = process.env.OUTPUT_TYPES_GENERATED_DIR ?? path.join(import.meta.dirname, '../generated');
 const SCHEMAS_FILE = path.join(GENERATED_DIR, 'schemas.ts');
 const OUTPUT_TYPES_FILE = path.join(GENERATED_DIR, 'outputTypes.ts');
 const ROUTES_DIR = path.join(GENERATED_DIR, 'routes');
@@ -267,31 +269,83 @@ function generateOutputTypesFile(schemas: SchemaInfo[], routeFiles: RouteFileInf
 }
 
 /**
- * Post-process a route file to use output types
+ * Apply a global replacement, reporting how many times it fired.
+ *
+ * Every rewrite below is anchored on the *position* of a type inside a
+ * `Params<P, Q, B, H>` generic, so a change to the generator's whitespace or
+ * generic arity makes the pattern stop matching. Counting is what lets the
+ * caller tell "nothing to do" apart from "the pattern went stale".
  */
-function postProcessRouteFile(routeFile: RouteFileInfo): void {
+function replaceCounted(content: string, pattern: RegExp, replacement: string): { content: string; count: number } {
+  const matches = content.match(pattern);
+  if (!matches) return { content, count: 0 };
+  return { content: content.replace(pattern, replacement), count: matches.length };
+}
+
+/**
+ * Find input types that survived the rewrite inside a `Params<>` generic.
+ *
+ * A name only reaches `inputTypeNames` because the route parses that slot with
+ * a Zod schema, so it must not appear in any slot of the emitted generic --
+ * path and header slots use their own `t_XParamSchema` / `t_XHeaderSchema`
+ * names, which are never replacement keys. Checking every slot rather than
+ * just the query and body positions means a change in generic arity is caught
+ * too, instead of quietly moving the body type somewhere we do not look.
+ */
+function findUnreplacedInputTypes(content: string, inputTypeNames: Set<string>): string[] {
+  const stale = new Set<string>();
+
+  for (const match of content.matchAll(/Params<([^>]*)>/g)) {
+    for (const slot of (match[1] ?? '').split(',')) {
+      const name = slot.trim();
+      if (inputTypeNames.has(name)) stale.add(name);
+    }
+  }
+
+  return [...stale].sort();
+}
+
+/**
+ * Post-process a route file to use output types
+ *
+ * Returns the number of type replacements applied. Throws if the rewrite did
+ * not land: a silent no-op leaves the backend compiling against Zod *input*
+ * types, so applied defaults disappear from the types while everything still
+ * typechecks.
+ */
+function postProcessRouteFile(routeFile: RouteFileInfo): number {
+  const fileName = path.basename(routeFile.filePath);
   let content = fs.readFileSync(routeFile.filePath, 'utf-8');
 
   // Collect all output types we need to import
   const outputTypesToImport: string[] = [];
+  // Every input type we expect to be gone from the generics by the end.
+  const inputTypeNames = new Set<string>();
+  let replacements = 0;
 
   // Replace body types in Params<P, Q, B, H> generics
   for (const [inputType, outputType] of routeFile.bodyTypeReplacements) {
+    inputTypeNames.add(inputType);
     // Find the pattern: Params<..., ..., t_XRequestBodySchema, ...>
     // and replace with: Params<..., ..., XRequestOutput, ...>
     const paramsRegex = new RegExp(`(Params<[^>]*,\\s*[^,]*,\\s*)${inputType}(\\s*,)`, 'g');
-    if (paramsRegex.test(content)) {
-      content = content.replace(paramsRegex, `$1${outputType}$2`);
+    const result = replaceCounted(content, paramsRegex, `$1${outputType}$2`);
+    if (result.count > 0) {
+      content = result.content;
+      replacements += result.count;
       outputTypesToImport.push(outputType);
     }
   }
 
   // Replace query types in Params<P, Q, B, H> generics
   for (const [inputType, outputType] of routeFile.queryTypeReplacements) {
+    inputTypeNames.add(inputType);
     // Find the pattern: Params<..., t_XQuerySchema, ..., ...>
     const paramsRegex = new RegExp(`(Params<[^,]*,\\s*)${inputType}(\\s*,)`, 'g');
-    if (paramsRegex.test(content)) {
-      content = content.replace(paramsRegex, `$1${outputType}$2`);
+    const result = replaceCounted(content, paramsRegex, `$1${outputType}$2`);
+    if (result.count > 0) {
+      content = result.content;
+      replacements += result.count;
       outputTypesToImport.push(outputType);
     }
   }
@@ -306,10 +360,13 @@ function postProcessRouteFile(routeFile: RouteFileInfo): void {
     const baseName = inlineSchema.variableName.replace(/QuerySchema$/, '');
     const pascalCaseName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
     const inputTypeName = `t_${pascalCaseName}QuerySchema`;
+    inputTypeNames.add(inputTypeName);
 
     const paramsRegex = new RegExp(`(Params<[^,]*,\\s*)${inputTypeName}(\\s*,)`, 'g');
-    if (paramsRegex.test(content)) {
-      content = content.replace(paramsRegex, `$1${outputType}$2`);
+    const result = replaceCounted(content, paramsRegex, `$1${outputType}$2`);
+    if (result.count > 0) {
+      content = result.content;
+      replacements += result.count;
       outputTypesToImport.push(outputType);
     }
   }
@@ -330,9 +387,28 @@ function postProcessRouteFile(routeFile: RouteFileInfo): void {
       const lastImportRegex = /(import [^;]+;?\n)(?!import)/;
       content = content.replace(lastImportRegex, `$1${importStatement}\n`);
     }
+
+    if (!content.includes(importStatement)) {
+      throw new Error(
+        `${fileName}: rewrote ${replacements} type(s) but could not insert the outputTypes import; ` +
+          'neither the models import nor the trailing-import fallback matched the generated file.',
+      );
+    }
   }
 
+  const stale = findUnreplacedInputTypes(content, inputTypeNames);
+  if (stale.length > 0) {
+    throw new Error(
+      `${fileName}: input type(s) still present in a Params<> generic after post-processing: ${stale.join(', ')}. ` +
+        'The route would compile against Zod input types, dropping applied defaults from the types.',
+    );
+  }
+
+  // Written only once every assertion has passed, so a failure leaves the
+  // generator's own output in place rather than a half-rewritten file.
   fs.writeFileSync(routeFile.filePath, content);
+
+  return replacements;
 }
 
 /**
@@ -361,6 +437,9 @@ function main() {
   console.log(`   Generated ${OUTPUT_TYPES_FILE}`);
 
   // Phase 4: Post-process route files
+  let totalReplacements = 0;
+  let expectedReplacements = 0;
+
   for (const routeFile of routeFiles) {
     const hasReplacements =
       routeFile.bodyTypeReplacements.size > 0 ||
@@ -368,12 +447,30 @@ function main() {
       routeFile.inlineQuerySchemas.length > 0;
 
     if (hasReplacements) {
-      postProcessRouteFile(routeFile);
-      console.log(`   Post-processed ${path.basename(routeFile.filePath)}`);
+      expectedReplacements++;
+      const replaced = postProcessRouteFile(routeFile);
+      totalReplacements += replaced;
+      console.log(`   Post-processed ${path.basename(routeFile.filePath)} (${replaced} replacements)`);
     }
   }
 
-  console.log('✅ Output types generation complete!');
+  // Per-file assertions catch a pattern that half-matched. This catches the
+  // case where none of them can match at all -- a renamed wrapper, or a
+  // generic reshaped past what the position-anchored patterns understand --
+  // which would otherwise report a clean run having rewritten nothing.
+  if (expectedReplacements > 0 && totalReplacements === 0) {
+    throw new Error(
+      `${expectedReplacements} route file(s) parse a request with Zod but no Params<> generic was rewritten. ` +
+        'The generator output no longer matches the expected shape; check @nahkies/openapi-code-generator.',
+    );
+  }
+
+  console.log(`✅ Output types generation complete! (${totalReplacements} replacements)`);
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  console.error(`❌ Output types generation failed: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+}

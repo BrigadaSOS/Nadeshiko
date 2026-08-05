@@ -213,7 +213,7 @@ export async function bootstrapPostgresWithOptions(options: BootstrapPostgresOpt
       `Could not connect to PostgreSQL as '${adminUser}' at ${adminHost}:${adminPostgres.port}/${adminPostgres.database}. ` +
         'POSTGRES_ADMIN_USER and POSTGRES_ADMIN_PASSWORD must name the superuser the container was created with; ' +
         'docker compose reads those from backend/.env. Shell variables beat --env-file, so a one-off run can pass them ' +
-        'inline, e.g. POSTGRES_ADMIN_USER=admin POSTGRES_ADMIN_PASSWORD=admin bun run test:setup',
+        'inline, e.g. POSTGRES_ADMIN_USER=admin POSTGRES_ADMIN_PASSWORD=admin npm run test:setup',
       { cause: error },
     );
   }

@@ -1,17 +1,19 @@
 meta {
-  name: Unenroll from a lab feature
+  name: List users with linked auth providers
   type: http
-  seq: 39
+  seq: 63
 }
 
-delete {
-  url: {{baseUrl}}/v1/user/labs/:key
+get {
+  url: {{baseUrl}}/v1/admin/users-with-providers?limit=20
   body: none
   auth: none
 }
 
 params:query {
-  key:
+  limit: 20
+  offset:
+  search:
 }
 
 settings {

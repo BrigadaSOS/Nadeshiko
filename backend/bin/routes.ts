@@ -1,5 +1,5 @@
 // List API routes from OpenAPI spec + runtime Better Auth routes
-// Usage: bun run bin/routes.ts
+// Usage: node --import tsx bin/routes.ts
 
 import { readFileSync, existsSync } from 'fs';
 import { parse } from 'yaml';
@@ -122,7 +122,7 @@ const spec = loadSpec('docs/generated/openapi.yaml');
 
 if (!spec) {
   console.error('OpenAPI spec not found at docs/generated/openapi.yaml');
-  console.error('Run "bun run docs:bundle" first to generate it.');
+  console.error('Run "npm run docs:bundle" first to generate it.');
   process.exit(1);
 }
 
