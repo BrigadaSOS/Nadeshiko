@@ -1,7 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { BOT_CONFIG } from './config';
 import { mediaSearchUrl, sentenceUrl, statsUrl } from './links';
-import type { Segment, Media, StatsResponse, MediaAutocompleteItem } from './api';
+import type { Segment, Media, StatsResponse } from './api';
 import type { GuildSettings } from './settings';
 
 export type DisplayOptions = Pick<GuildSettings, 'language'>;
@@ -167,22 +167,6 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
       },
     )
     .setFooter({ text: 'nadeshiko.co' });
-}
-
-export function buildMediaSearchMessage(media: MediaAutocompleteItem[], query: string): string {
-  if (media.length === 0) {
-    return `No media found for **${truncate(query, 200)}**`;
-  }
-
-  const header = `🔎 **Media matching "${truncate(query, 200)}":**\n\n`;
-  const lines = media.map((m, i) => {
-    const name = getMediaName(m);
-    const jaName = m.nameJa && m.nameJa !== name ? ` (${m.nameJa})` : '';
-    const link = mediaSearchUrl(m.publicId);
-    return `**${i + 1}.** [${name}](<${link}>)${jaName}`;
-  });
-
-  return truncate(header + lines.join('\n'), 2000);
 }
 
 function buildProgressBar(percentage: number, length: number): string {
