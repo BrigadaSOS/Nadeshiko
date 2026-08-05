@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { SearchFilters } from '~/types/search';
-import { CATEGORY_API_MAPPING } from '~/utils/categories';
+import type { SearchScope } from '~/composables/useSearchFetch';
 import { buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
-import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
+import { reportError } from '~/utils/reportError';
 import { splitLocalePrefix } from '~/utils/routes';
 
 const { t } = useI18n();
@@ -44,109 +43,38 @@ const searchQuery = computed(() => {
   return String(route.query.query || '');
 });
 
-const searchFetchFailed = ref(false);
+const { fetchSentences, fetchStats } = useSearchFetch();
+
+const searchScope = computed<SearchScope>(() => ({
+  query: searchQuery.value,
+  category: getStringQueryValue(route.query.category as string | string[] | undefined) ?? 'all',
+  mediaPublicId: mediaQueryParam.value,
+  episode: episodeNumberParam.value,
+  sort: getStringQueryValue(route.query.sort as string | string[] | undefined),
+  segmentPublicId: getStringQueryValue(route.query.uuid as string | string[] | undefined),
+  collectionId: null,
+  listMediaIds: null,
+  contentRating: contentRating.value,
+  languages: includedLanguages.value,
+  hiddenMediaExclude: hiddenMediaExcludeFilter.value,
+}));
 
 const fetchSentenceData = async () => {
-  try {
-    const sdk = useNadeshikoSdk();
-
-    const filters: SearchFilters = {};
-    const q = searchQuery.value;
-
-    if (route.query.uuid) {
-      const segmentPublicId = String(route.query.uuid);
-      const segment = await sdk.getSegment(segmentPublicId);
-      if (!segment) return null;
-      const media = await sdk.getMedia(segment.mediaPublicId);
-      return resolveSearchResponse({
-        segments: [segment],
-        includes: { media: media ? { [segment.mediaPublicId]: media } : {} },
-        pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
-      });
-    }
-
-    const categoryValue = CATEGORY_API_MAPPING[route.query.category as string];
-    if (categoryValue) {
-      filters.category = [categoryValue];
-    }
-
-    if (mediaQueryParam.value) {
-      const mediaEntry: { mediaPublicId: string; episodes?: number[] } = {
-        mediaPublicId: mediaQueryParam.value,
-      };
-      if (episodeNumberParam.value !== null) {
-        mediaEntry.episodes = [episodeNumberParam.value];
-      }
-      filters.media = { include: [mediaEntry] };
-    }
-
-    filters.contentRating = contentRating.value;
-    if (includedLanguages.value) {
-      filters.languages = includedLanguages.value;
-    }
-    if (!mediaQueryParam.value && hiddenMediaExcludeFilter.value.length > 0) {
-      filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
-    }
-
-    const sortParam = route.query.sort ? String(route.query.sort).toUpperCase() : null;
-    const sort =
-      sortParam && sortParam !== 'RELEVANCE'
-        ? { mode: sortParam as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
-        : undefined;
-
-    const result = await sdk.search({
-      query: q ? { search: q } : undefined,
-      take: 30,
-      sort,
-      filters,
-      include: ['media'],
-      throwOnError: false,
-    });
-
-    if ('error' in result) {
-      if (result.response.status >= 500) {
-        searchFetchFailed.value = true;
-      }
-      return null;
-    }
-
-    return resolveSearchResponse(result.data);
-  } catch {
-    searchFetchFailed.value = true;
-    return null;
-  }
+  const outcome = await fetchSentences(searchScope.value);
+  return outcome.status === 'ok' ? outcome.data : null;
 };
 
 const fetchStatsData = async () => {
-  try {
-    const sdk = useNadeshikoSdk();
-
-    const filters: SearchFilters = {};
-    const q = searchQuery.value;
-
-    const categoryValue = CATEGORY_API_MAPPING[route.query.category as string];
-    if (categoryValue) {
-      filters.category = [categoryValue];
-    }
-
-    filters.contentRating = contentRating.value;
-    if (includedLanguages.value) {
-      filters.languages = includedLanguages.value;
-    }
-    if (hiddenMediaExcludeFilter.value.length > 0) {
-      filters.media = { ...(filters.media || {}), exclude: hiddenMediaExcludeFilter.value };
-    }
-
-    const data = await sdk.getSearchStats({
-      query: q ? { search: q } : undefined,
-      filters,
-      include: ['media'],
-    });
-    return resolveStatsResponse(data);
-  } catch (error) {
-    console.error('Error fetching search stats:', error);
-    return null;
+  const outcome = await fetchStats(searchScope.value);
+  if (outcome.status === 'ok') {
+    return outcome.data;
   }
+  if (outcome.status !== 'stale') {
+    reportError('search:stats-fetch-failed', new Error(`search stats fetch returned "${outcome.status}"`), {
+      'search.outcome': outcome.status,
+    });
+  }
+  return null;
 };
 
 const sentenceCacheKey = computed(() => {
