@@ -1,9 +1,22 @@
 import { defineStore } from 'pinia';
 import type { SearchResult } from '~/types/search';
+import { reportError } from '~/utils/reportError';
 
 function isYoutube(result: SearchResult | null): boolean {
   return !!result && result.media.category === 'YOUTUBE' && !!result.segment.externalVideoId;
 }
+
+/**
+ * Identifies the most recent playback intent. `HTMLAudioElement.play()` settles
+ * asynchronously, so a promise from a track the user already skipped past would
+ * otherwise flip `isPlaying` and fire analytics for whatever is playing *now* —
+ * and its expected AbortError would report as a failure. Every action that
+ * supersedes playback (new track, pause, hide) takes a fresh token; stale
+ * settlements compare unequal and do nothing.
+ *
+ * Module scope is safe: audio only ever exists on the client.
+ */
+let playbackToken = 0;
 
 interface PlayerState {
   playlist: SearchResult[];
@@ -91,25 +104,64 @@ export const usePlayerStore = defineStore('player', {
             mediaName: this.currentResult?.media.nameRomaji,
             japaneseText: this.currentResult?.segment.textJa.content,
           })
-          .catch(() => {});
+          // Fire-and-forget telemetry: never let it interrupt or warn about audio
+          // that is already playing.
+          .catch((error: unknown) => reportError('player:track-play-activity-failed', error));
       }
     },
 
+    /**
+     * Start `audio` under a fresh playback token. Resolves/rejects that arrive
+     * after a newer playback took over are discarded.
+     */
+    startAudio(audio: HTMLAudioElement, track: boolean) {
+      const token = ++playbackToken;
+
+      audio
+        .play()
+        .then(() => {
+          if (token !== playbackToken) return;
+          this.isPlaying = true;
+          if (track) this.trackPlay();
+        })
+        .catch((error) => {
+          if (token !== playbackToken) return;
+          this.isPlaying = false;
+          reportError('player:audio-play-failed', error, {
+            'segment.publicId': this.currentResult?.segment.publicId ?? '',
+          });
+        });
+    },
+
+    /**
+     * Detach the current media element: stop the download, drop the `onended`
+     * closure holding this store, and let it be collected. Blob URLs are *not*
+     * revoked here — they belong to `useSegmentConcatenation`, which still needs
+     * them for the download/revert actions.
+     */
+    releaseAudio() {
+      const audio = this.currentAudio;
+      if (!audio) return;
+      audio.pause();
+      audio.onended = null;
+      audio.src = '';
+      audio.load();
+      this.currentAudio = null;
+    },
+
     playCurrent() {
-      if (this.currentAudio) {
-        this.currentAudio.pause();
-        this.currentAudio.onended = null;
-        this.currentAudio.src = '';
-        this.currentAudio.load();
-        this.currentAudio = null;
-      }
+      this.releaseAudio();
 
       const result = this.currentResult;
-      if (!result) return;
+      if (!result) {
+        playbackToken++;
+        return;
+      }
 
       const yt = useYoutubeSegmentPlayer();
 
       if (isYoutube(result)) {
+        playbackToken++;
         const seg = result.segment;
         yt.play(seg.publicId, seg.externalVideoId ?? '', seg.startTimeMs, seg.endTimeMs, () => this.handleEnded());
         this.isPlaying = true;
@@ -119,33 +171,28 @@ export const usePlayerStore = defineStore('player', {
 
       yt.stop();
       const audioUrl = result.blobAudioUrl ?? result.segment.urls.audioUrl;
-      this.currentAudio = new Audio(audioUrl);
+      // markRaw: the media element is a DOM handle, not state to make reactive or
+      // serialize into the SSR payload.
+      const audio = markRaw(new Audio(audioUrl));
+      this.currentAudio = audio;
 
-      this.currentAudio
-        .play()
-        .then(() => {
-          this.isPlaying = true;
-          this.trackPlay();
-        })
-        .catch((error) => {
-          console.error('Error playing audio:', error);
-          this.isPlaying = false;
-        });
+      this.startAudio(audio, true);
 
-      this.currentAudio.onended = () => this.handleEnded();
+      audio.onended = () => this.handleEnded();
     },
 
     play() {
       if (isYoutube(this.currentResult)) {
         const yt = useYoutubeSegmentPlayer();
         if (yt.activeSegmentId.value === this.currentResult?.segment.publicId) {
+          playbackToken++;
           yt.resume();
         } else {
           this.playCurrent();
         }
         this.isPlaying = true;
       } else if (this.currentAudio) {
-        this.currentAudio.play();
+        this.startAudio(this.currentAudio, false);
         this.isPlaying = true;
       } else {
         this.playCurrent();
@@ -154,9 +201,11 @@ export const usePlayerStore = defineStore('player', {
 
     pause() {
       if (isYoutube(this.currentResult)) {
+        playbackToken++;
         useYoutubeSegmentPlayer().pause();
         this.isPlaying = false;
       } else if (this.currentAudio) {
+        playbackToken++;
         this.currentAudio.pause();
         this.isPlaying = false;
       }
@@ -216,11 +265,12 @@ export const usePlayerStore = defineStore('player', {
 
     restart() {
       if (isYoutube(this.currentResult)) {
+        playbackToken++;
         useYoutubeSegmentPlayer().restart();
         this.isPlaying = true;
       } else if (this.currentAudio) {
         this.currentAudio.currentTime = 0;
-        this.currentAudio.play();
+        this.startAudio(this.currentAudio, false);
         this.isPlaying = true;
       } else {
         return;
@@ -233,15 +283,13 @@ export const usePlayerStore = defineStore('player', {
     },
 
     hidePlayer() {
-      if (this.currentAudio) {
-        this.currentAudio.pause();
-      }
+      playbackToken++;
+      this.releaseAudio();
       useYoutubeSegmentPlayer().stop();
       this.showPlayer = false;
       this.playlist = [];
       this.currentIndex = null;
       this.isPlaying = false;
-      this.currentAudio = null;
       this.isImmersive = false;
     },
   },

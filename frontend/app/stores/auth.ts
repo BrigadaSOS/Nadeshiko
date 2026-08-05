@@ -1,5 +1,7 @@
 import { useNuxtApp } from '#app';
+import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import { defineStore } from 'pinia';
+import { handleApiError } from '~/utils/apiError';
 
 type UserRole = 'ADMIN' | 'MOD' | 'USER' | 'PATREON';
 
@@ -20,7 +22,7 @@ function defaultAuthState() {
     currentSessionToken: null as string | null,
     userInfo: { role: 'USER' as UserRole },
     activeSessions: [] as UserSession[],
-    preferences: {} as Record<string, any>,
+    preferences: {} as UserPreferences,
     isImpersonating: false,
     impersonatedUsername: null as string | null,
   };
@@ -101,8 +103,11 @@ export const userStore = defineStore('user', {
         if (response?.url) {
           window.location.href = response.url;
         }
-      } catch {
-        useToastError($i18n.t('modalauth.labels.errorlogin400'));
+      } catch (error) {
+        handleApiError('auth:social-login-failed', error, {
+          toastKey: 'modalauth.labels.errorlogin400',
+          context: { provider },
+        });
       }
     },
 
@@ -123,7 +128,9 @@ export const userStore = defineStore('user', {
           body: { email, callbackURL },
         });
         return true;
-      } catch {
+      } catch (error) {
+        // The caller renders the failure inline in the auth modal.
+        handleApiError('auth:magic-link-request-failed', error, { toastKey: false });
         return false;
       }
     },
@@ -143,9 +150,9 @@ export const userStore = defineStore('user', {
         if (this.isLoggedIn) {
           useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
         }
-      } catch {
+      } catch (error) {
         restoreImpersonationStateBackup();
-        useToastError($i18n.t('modalauth.labels.errorlogin400'));
+        handleApiError('auth:impersonate-failed', error, { toastKey: 'modalauth.labels.errorlogin400' });
       }
     },
 
@@ -158,7 +165,10 @@ export const userStore = defineStore('user', {
         restoreImpersonationStateBackup();
         await this.getBasicInfo();
         await useLabsStore().fetchFeatures();
-      } catch {
+      } catch (error) {
+        // Reload to `/` happens either way, so the toast would be destroyed before
+        // it could be read; the report is what matters here.
+        handleApiError('auth:stop-impersonating-failed', error, { toastKey: false });
         restoreImpersonationStateBackup();
         this.resetAuthState();
       } finally {
@@ -173,8 +183,10 @@ export const userStore = defineStore('user', {
 
       try {
         await $fetch('/v1/auth/sign-out', { method: 'POST', credentials: 'include' });
-      } catch {
-        // no-op: clear local auth state even if sign out request fails
+      } catch (error) {
+        // Local auth state is cleared regardless, and the success toast below still
+        // fires, so surface nothing to the user -- but do not lose the failure.
+        handleApiError('auth:sign-out-failed', error, { toastKey: false });
       }
 
       if (import.meta.client) {
@@ -226,10 +238,23 @@ export const userStore = defineStore('user', {
 
         this.preferences = await useNadeshikoSdk()
           .getUserPreferences()
-          .then((r) => r as Record<string, any>)
-          .catch(() => ({}) as Record<string, any>);
-      } catch {
-        this.resetAuthState();
+          .catch((error: unknown) => {
+            // Preferences are additive: every reader falls back to a default, so the
+            // session stays usable. Report it rather than toasting on every page load.
+            handleApiError('auth:preferences-fetch-failed', error, { toastKey: false });
+            return {} as UserPreferences;
+          });
+      } catch (error: any) {
+        // Only a 401 means the session is really gone. Backend 5xx, a network
+        // blip or a rate limit must not silently log out a valid session.
+        const status = error?.status ?? error?.statusCode ?? error?.response?.status;
+        if (status === 401) {
+          this.resetAuthState();
+        }
+        handleApiError('auth:session-fetch-failed', error, {
+          toastKey: false,
+          context: { recovered: status === 401 ? 'reset' : 'kept-session' },
+        });
       }
     },
 
@@ -243,7 +268,9 @@ export const userStore = defineStore('user', {
         const normalized = Array.isArray(raw) ? (raw as UserSession[]) : [];
         this.activeSessions = normalized;
         return normalized;
-      } catch {
+      } catch (error) {
+        // AccountModule tells an empty list apart from a failure via `sessionsError`.
+        handleApiError('auth:list-sessions-failed', error, { toastKey: false });
         this.activeSessions = [];
         return [];
       }
@@ -260,7 +287,9 @@ export const userStore = defineStore('user', {
         await this.listSessions();
         await this.getBasicInfo();
         return true;
-      } catch {
+      } catch (error) {
+        // The caller renders `sessions.errors.revokeSingle` inline.
+        handleApiError('auth:revoke-session-failed', error, { toastKey: false });
         return false;
       }
     },
@@ -274,7 +303,9 @@ export const userStore = defineStore('user', {
 
         await this.logout();
         return true;
-      } catch {
+      } catch (error) {
+        // The caller renders `sessions.errors.revokeAll` inline.
+        handleApiError('auth:revoke-sessions-failed', error, { toastKey: false });
         return false;
       }
     },
@@ -288,7 +319,9 @@ export const userStore = defineStore('user', {
 
         await this.listSessions();
         return true;
-      } catch {
+      } catch (error) {
+        // The caller renders `sessions.errors.revokeOthers` inline.
+        handleApiError('auth:revoke-other-sessions-failed', error, { toastKey: false });
         return false;
       }
     },
@@ -305,6 +338,8 @@ export const userStore = defineStore('user', {
         });
         return { success: true };
       } catch (error: any) {
+        // The caller renders the returned message inline next to the email field.
+        handleApiError('auth:change-email-failed', error, { toastKey: false });
         const message = error?.data?.message || error?.message || 'Failed to change email';
         return { success: false, error: message };
       }
@@ -326,7 +361,9 @@ export const userStore = defineStore('user', {
 
         this.resetAuthState();
         return true;
-      } catch {
+      } catch (error) {
+        // The caller renders `deleteAccountError` inline in the danger-zone panel.
+        handleApiError('auth:delete-account-failed', error, { toastKey: false });
         return false;
       }
     },

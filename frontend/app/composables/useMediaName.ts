@@ -17,7 +17,10 @@ export function useMediaName() {
   const store = userStore();
 
   const language = computed<MediaNameLanguage>(() => {
-    if (import.meta.client && store.isLoggedIn && store.preferences?.mediaNameLanguage) {
+    // Preferences are loaded during SSR too (see plugins/identity-auth.ts), so
+    // gating this on the client would render every name twice: once from the
+    // locale, then again from the preference on hydration.
+    if (store.isLoggedIn && store.preferences?.mediaNameLanguage) {
       return store.preferences.mediaNameLanguage as MediaNameLanguage;
     }
     return localeToLanguage[locale.value] ?? 'ENGLISH';

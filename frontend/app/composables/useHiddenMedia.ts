@@ -1,5 +1,6 @@
 import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import type { MediaFilterItem } from '~/types/search';
+import { handleApiError } from '~/utils/apiError';
 
 type SdkHiddenMediaItem = NonNullable<UserPreferences['hiddenMedia']>[number];
 
@@ -9,10 +10,16 @@ export type HiddenMediaItem = SdkHiddenMediaItem & {
 
 const LEGACY_LOCAL_STORAGE_KEY = 'nadeshiko.hiddenMedia';
 
+// Hidden media moved to user preferences; the leftover key only needs clearing
+// once per session, not on every call. Client-only, so the module-level flag is
+// never shared between SSR requests.
+let legacyStorageCleared = false;
+
 export function useHiddenMedia() {
   const user = userStore();
 
-  if (import.meta.client) {
+  if (import.meta.client && !legacyStorageCleared) {
+    legacyStorageCleared = true;
     localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY);
   }
 
@@ -20,7 +27,11 @@ export function useHiddenMedia() {
     if (!user.isLoggedIn) return [];
     const raw = user.preferences?.hiddenMedia;
     if (!Array.isArray(raw)) return [];
-    return raw.filter((item: any) => item && typeof item === 'object' && typeof item.mediaPublicId === 'string');
+    // The API type has no `hiddenAt`; the predicate states what this composable
+    // has always assumed about stored entries, which the `any` here used to hide.
+    return raw.filter(
+      (item): item is HiddenMediaItem => !!item && typeof item === 'object' && typeof item.mediaPublicId === 'string',
+    );
   });
 
   const hiddenMediaIds = computed<string[]>(() => items.value.map((item) => item.mediaPublicId));
@@ -56,6 +67,7 @@ export function useHiddenMedia() {
           },
         ];
 
+    const previousItems = items.value;
     user.preferences = {
       ...(user.preferences ?? {}),
       hiddenMedia: nextItems,
@@ -68,8 +80,17 @@ export function useHiddenMedia() {
       } else {
         await sdk.addExcludedMedia({ mediaPublicId: media.publicId });
       }
-    } catch {
-      // Revert on failure by re-fetching would be ideal, but keep optimistic update for now
+    } catch (error) {
+      // Roll the optimistic update back: leaving it would show the media as hidden
+      // while every other device -- and the next page load -- still shows it.
+      user.preferences = {
+        ...(user.preferences ?? {}),
+        hiddenMedia: previousItems,
+      };
+      handleApiError('hidden-media:toggle-failed', error, {
+        toastKey: 'hiddenMedia.updateError',
+        context: { 'media.publicId': media.publicId, action: isUnhiding ? 'unhide' : 'hide' },
+      });
     }
 
     const forceSearchCounter = useState('force-search-counter', () => 0);

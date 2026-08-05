@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import type { UserLabFeature } from '@brigadasos/nadeshiko-sdk';
+import { handleApiError } from '~/utils/apiError';
 
 export const useLabsStore = defineStore('labs', {
   state: () => ({
@@ -26,7 +27,9 @@ export const useLabsStore = defineStore('labs', {
         this.features = await sdk.listUserLabs();
         this.loaded = true;
       } catch (error) {
-        console.error('[Labs] Failed to fetch features:', error);
+        // Labs are opt-in extras; the persisted feature list stays in place and the
+        // settings panel renders its own state, so no toast on a background refresh.
+        handleApiError('labs:fetch-features-failed', error, { toastKey: false });
       }
     },
     async toggleLab(key: string, enable: boolean) {

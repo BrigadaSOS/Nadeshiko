@@ -73,6 +73,8 @@ interface NotesInfoResponse {
 import type { SearchResult } from '~/types/search';
 import { defineStore } from 'pinia';
 import { userStore } from '@/stores/auth';
+import { handleApiError } from '~/utils/apiError';
+import { reportError } from '~/utils/reportError';
 import { buildSentencePath } from '~/utils/routes';
 
 const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
@@ -98,7 +100,10 @@ export const ankiStore = defineStore('anki', {
   }),
   getters: {
     profiles(): AnkiProfile[] {
-      return userStore().preferences?.ankiProfiles ?? [];
+      // Anki profiles are app-owned data kept inside user preferences. The generated schema
+      // describes a subset of what this store writes (`fields` optional there and required
+      // here, no `openBrowserOnExport`), so narrow to the local shape.
+      return (userStore().preferences?.ankiProfiles ?? []) as AnkiProfile[];
     },
     activeProfile(): AnkiProfile | null {
       const profiles = this.profiles;
@@ -180,20 +185,17 @@ export const ankiStore = defineStore('anki', {
 
         return await response.json();
       } catch (error) {
-        console.error(`Error while requesting ${action}:`, error);
+        reportError('anki:connect-request-failed', error, { 'anki.action': action });
       }
     },
 
     async loadAnkiData() {
       if (!import.meta.client) return;
       try {
-        const permission = await this.requestPermission();
+        await this.requestPermission();
         const decks = await this.getAllDeckNames();
         const models = await this.getAllModels();
 
-        if (permission && permission !== 'granted') {
-          console.log('Permission was denied.');
-        }
         if (decks && Array.isArray(decks)) {
           this.availableDecks = decks;
         }
@@ -262,7 +264,7 @@ export const ankiStore = defineStore('anki', {
 
         return notesInfo;
       } catch (error) {
-        console.error('Error while fetching notes:', error);
+        reportError('anki:fetch-notes-failed', error);
       }
 
       return [];
@@ -283,7 +285,10 @@ export const ankiStore = defineStore('anki', {
         });
 
         return created.publicId;
-      } catch {
+      } catch (error) {
+        // Best-effort bookkeeping alongside the export the user actually asked for.
+        // The caller aborts the sync quietly; the Anki card itself still lands.
+        handleApiError('anki:exports-collection-resolve-failed', error, { toastKey: false });
         return null;
       }
     },
@@ -302,11 +307,12 @@ export const ankiStore = defineStore('anki', {
           segmentPublicId: sentence.segment.publicId,
         });
       } catch (error: unknown) {
+        // 409 means the segment is already in the collection -- the desired end state.
         const err = error as { statusCode?: number };
         if (err.statusCode !== 409) {
-          console.warn('[Anki] Could not sync segment to Anki Exports collection', {
-            segmentId: sentence.segment.publicId,
-            error,
+          handleApiError('anki:exports-collection-sync-failed', error, {
+            toastKey: false,
+            context: { 'segment.publicId': sentence.segment.publicId },
           });
         }
       }
@@ -515,7 +521,9 @@ export const ankiStore = defineStore('anki', {
               mediaName: mediaName(sentence.media),
               japaneseText: sentence.segment.textJa.content,
             })
-            .catch(() => {});
+            // Activity tracking is fire-and-forget telemetry: never let it interrupt
+            // or warn about an export that already succeeded.
+            .catch((error: unknown) => reportError('anki:track-export-activity-failed', error));
         }
 
         const posthog = usePostHog();
@@ -527,7 +535,7 @@ export const ankiStore = defineStore('anki', {
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
-        console.error(error);
+        reportError('anki:export-failed', error, { 'segment.publicId': sentence.segment.publicId });
         const posthog = usePostHog();
         posthog?.capture('anki_export_failed', {
           error_message: error instanceof Error ? error.message : String(error),
@@ -582,7 +590,7 @@ export const ankiStore = defineStore('anki', {
         localStorage.setItem('anki-migrated', 'true');
         localStorage.removeItem('settings');
       } catch (error) {
-        console.error('[Anki] Migration from localStorage failed:', error);
+        reportError('anki:localstorage-migration-failed', error);
       }
     },
   },

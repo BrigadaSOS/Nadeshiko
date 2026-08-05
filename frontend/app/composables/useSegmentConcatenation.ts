@@ -1,4 +1,5 @@
 import type { SearchResult, Segment } from '~/types/search';
+import { reportError } from '~/utils/reportError';
 import { resolveContextResponse } from '~/utils/resolvers';
 
 interface IOriginalContent {
@@ -166,7 +167,7 @@ export function useSegmentConcatenation() {
             result.blobAudioUrl = concatenatedAudio.blob_url;
             result.blobAudio = concatenatedAudio.blob;
           } catch (audioErr) {
-            console.error('Audio concatenation failed:', audioErr);
+            reportError('segment:audio-concatenation-failed', audioErr, { direction });
           }
         } else if (direction === 'backward') {
           if (!previousSegment) return;
@@ -184,7 +185,7 @@ export function useSegmentConcatenation() {
             result.blobAudioUrl = concatenatedAudio.blob_url;
             result.blobAudio = concatenatedAudio.blob;
           } catch (audioErr) {
-            console.error('Audio concatenation failed:', audioErr);
+            reportError('segment:audio-concatenation-failed', audioErr, { direction });
           }
         } else if (direction === 'both') {
           if (!previousSegment || !nextSegment) return;
@@ -218,12 +219,15 @@ export function useSegmentConcatenation() {
             result.blobAudioUrl = concatenatedAudio.blob_url;
             result.blobAudio = concatenatedAudio.blob;
           } catch (audioErr) {
-            console.error('Audio concatenation failed:', audioErr);
+            reportError('segment:audio-concatenation-failed', audioErr, { direction });
           }
         }
       }
     } catch (error) {
-      console.error('Segment expansion failed:', error);
+      reportError('segment:expansion-failed', error, {
+        'segment.publicId': result.segment.publicId,
+        direction,
+      });
       activeConcatenation = { result: null, originalContent: null };
     } finally {
       document.querySelectorAll('#concatenate-button').forEach((e) => {
