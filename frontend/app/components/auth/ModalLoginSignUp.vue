@@ -7,13 +7,14 @@ const posthog = usePostHog();
 const magicLinkEmail = ref('');
 const magicLinkSent = ref(false);
 const magicLinkLoading = ref(false);
+const { isLoginModalOpen, closeLoginModal } = useLoginModal();
 
 watch(
   () => store.isLoggedIn,
   async (newVal) => {
     if (newVal) {
       await nextTick();
-      window.NDOverlay?.close('#nd-vertically-centered-scrollable-loginsignup-modal');
+      closeLoginModal();
     }
   },
 );
@@ -47,34 +48,26 @@ function resetMagicLinkState() {
   magicLinkEmail.value = '';
 }
 
-onMounted(() => {
-  const modal = document.getElementById('nd-vertically-centered-scrollable-loginsignup-modal');
-  if (!modal) return;
-  const observer = new MutationObserver(() => {
-    if (modal.classList.contains('hidden')) {
-      resetMagicLinkState();
-    }
-  });
-  observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
-  onUnmounted(() => observer.disconnect());
+watch(isLoginModalOpen, (open) => {
+  if (!open) resetMagicLinkState();
 });
 </script>
 
 <template>
-  <div
-    id="nd-vertically-centered-scrollable-loginsignup-modal"
-    class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+  <CommonBaseModal
+    data-testid="login-modal"
+    :open="isLoginModalOpen"
+    overlay-class="items-center justify-center bg-neutral-900/40"
+    panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full lg:max-w-2xl m-3 sm:mx-auto"
+    labelledby="nd-login-modal-title"
+    @close="closeLoginModal"
   >
-    <div
-      class="justify-center nd-overlay-open:opacity-100 nd-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-2xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
-    >
-      <div class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full">
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
-          <h3 class="font-bold text-gray-600 dark:text-gray-300">{{ $t('modalauth.headers.auth') }}</h3>
+          <h3 id="nd-login-modal-title" class="font-bold text-gray-600 dark:text-gray-300">{{ $t('modalauth.headers.auth') }}</h3>
           <button
             type="button"
             class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400"
-            data-nd-overlay="#nd-vertically-centered-scrollable-loginsignup-modal"
+            @click="closeLoginModal"
           >
             <span class="sr-only">{{ $t('modalauth.labels.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -130,7 +123,5 @@ onMounted(() => {
             </p>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+  </CommonBaseModal>
 </template>

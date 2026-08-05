@@ -26,6 +26,8 @@ const { mediaName } = useMediaName();
 const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
   storeToRefs(playerStore);
 
+const { isAnyModalOpen } = useModalState();
+
 const progress = ref(0);
 const animationFrameId = ref<number | null>(null);
 let lastScrollTime = 0;
@@ -68,8 +70,7 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       playerStore.toggleAutoplay();
       break;
     case 'Escape': {
-      const hasOpenModal = document.querySelector('[data-nd-modal-open]');
-      if (hasOpenModal) break;
+      if (isAnyModalOpen.value) break;
       if (isImmersive.value) {
         event.stopPropagation();
         playerStore.toggleImmersive();

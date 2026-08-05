@@ -9,12 +9,6 @@ const close = () => {
   showModal.value = false;
 };
 
-const handleBackdropClick = (event: MouseEvent) => {
-  if (event.target === event.currentTarget) {
-    close();
-  }
-};
-
 const handleKeydown = (event: KeyboardEvent) => {
   const target = event.target as HTMLElement;
   if (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
@@ -24,12 +18,6 @@ const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === '?' || (event.shiftKey && event.code === 'Slash')) {
     event.preventDefault();
     showModal.value = !showModal.value;
-    return;
-  }
-
-  if (event.code === 'Escape' && showModal.value) {
-    event.stopImmediatePropagation();
-    close();
   }
 };
 
@@ -45,16 +33,17 @@ defineExpose({ open });
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="showModal"
-      data-nd-modal-open
-      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50"
-      @click="handleBackdropClick"
-    >
-      <div class="bg-[#1b1b1b] border border-[#2f2f2f] rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+  <CommonBaseModal
+    data-testid="shortcuts-modal"
+    :open="showModal"
+    z-index-class="z-[70]"
+    overlay-class="items-center justify-center bg-black/50"
+    panel-class="bg-[#1b1b1b] border border-[#2f2f2f] rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto"
+    labelledby="nd-shortcuts-modal-title"
+    @close="close"
+  >
         <div class="flex justify-between items-center py-3 px-5 border-b border-[#2f2f2f]">
-          <h3 class="font-bold text-white text-lg">{{ $t('shortcuts.title') }}</h3>
+          <h3 id="nd-shortcuts-modal-title" class="font-bold text-white text-lg">{{ $t('shortcuts.title') }}</h3>
           <button
             type="button"
             class="inline-flex justify-center items-center h-8 w-8 rounded-md text-gray-400 hover:text-white transition-colors"
@@ -103,7 +92,5 @@ defineExpose({ open });
         <div class="px-5 pb-4">
           <p class="text-xs text-gray-500">{{ $t('shortcuts.hint') }}</p>
         </div>
-      </div>
-    </div>
-  </Teleport>
+  </CommonBaseModal>
 </template>

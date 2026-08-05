@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { handleApiError } from '~/utils/apiError';
 import type { SearchResult } from '~/types/search';
 import type { CreateReportRequest, UserReportTarget } from '@brigadasos/nadeshiko-sdk';
 import { mdiTranslate } from '@mdi/js';
@@ -84,8 +85,10 @@ watch(
   },
 );
 
+const emit = defineEmits<{ close: [] }>();
+
 const closeModal = () => {
-  window.NDOverlay?.close('#nd-vertically-centered-scrollable-report');
+  emit('close');
 };
 
 const submitReport = async () => {
@@ -108,7 +111,9 @@ const submitReport = async () => {
 
     useToastSuccess(t('reports.submitSuccess'));
     closeModal();
-  } catch {
+  } catch (error) {
+    // Rendered inline inside the still-open modal, next to the form the user filled in.
+    handleApiError('reports:submit-failed', error, { toastKey: false });
     errorMessage.value = t('reports.submitError');
   } finally {
     isSubmitting.value = false;
@@ -117,22 +122,22 @@ const submitReport = async () => {
 </script>
 
 <template>
-  <div
-    id="nd-vertically-centered-scrollable-report"
-    class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/60 hidden w-full h-full flex items-center justify-center fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+  <CommonBaseModal
+    data-testid="report-modal"
+    :open="!!target"
+    labelledby="nd-report-modal-title"
+    panel-class="w-full max-w-2xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
+    @close="closeModal"
   >
-    <div
-      class="w-full max-w-2xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
-    >
       <!-- Header -->
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
-        <h3 class="font-bold text-gray-800 dark:text-white">
+        <h3 id="nd-report-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('reports.modalTitle') }}
         </h3>
         <button
           type="button"
-          class="nd-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-          data-nd-overlay="#nd-vertically-centered-scrollable-report"
+          class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+          @click="closeModal"
         >
           <span class="sr-only">{{ t('modalSegmentEdit.close') }}</span>
           <svg class="w-3.5 h-3.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -307,7 +312,7 @@ const submitReport = async () => {
         <button
           type="button"
           class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-          data-nd-overlay="#nd-vertically-centered-scrollable-report"
+          @click="closeModal"
         >
           {{ t('reports.cancel') }}
         </button>
@@ -324,6 +329,5 @@ const submitReport = async () => {
           {{ isSubmitting ? t('reports.submitting') : t('reports.submit') }}
         </button>
       </div>
-    </div>
-  </div>
+  </CommonBaseModal>
 </template>

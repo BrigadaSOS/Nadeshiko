@@ -46,50 +46,72 @@
   }
 }
 
-/* Overlay (modal/offcanvas) transitions — the nd-overlay-open: prefix classes
-   are not real Tailwind variants, so we provide real CSS rules here. */
-.nd-overlay > div {
-  transition: opacity 300ms ease-out;
+/* Modal transitions (see components/common/BaseModal.vue). The backdrop fades
+   while the panel animates in; `nd-drawer` slides the panel from the end edge. */
+.nd-modal-enter-active,
+.nd-modal-leave-active,
+.nd-drawer-enter-active,
+.nd-drawer-leave-active {
+  transition: opacity 200ms ease-out;
 }
 
-.nd-overlay.nd-overlay-open.nd-overlay-open > div {
-  opacity: 1;
+.nd-modal-enter-active .nd-modal-panel,
+.nd-modal-leave-active .nd-modal-panel {
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
 }
 
-.nd-dropdown-toggle svg {
-  transition: transform 300ms;
-}
-
-.nd-dropdown-open .nd-dropdown-toggle svg {
-  transform: rotate(180deg);
-}
-
-.nd-dropdown-menu {
+.nd-modal-enter-from,
+.nd-modal-leave-to,
+.nd-drawer-enter-from,
+.nd-drawer-leave-to {
   opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+}
+
+.nd-modal-enter-from .nd-modal-panel,
+.nd-modal-leave-to .nd-modal-panel {
+  opacity: 0;
+  transform: scale(0.97);
+}
+
+.nd-drawer-enter-active .nd-modal-panel,
+.nd-drawer-leave-active .nd-modal-panel {
+  transition: transform 300ms ease-out;
+}
+
+.nd-drawer-enter-from .nd-modal-panel,
+.nd-drawer-leave-to .nd-modal-panel {
+  transform: translateX(100%);
+}
+
+/* Dropdown menu transition (see components/search/dropdown/DropdownContainer.vue). */
+.nd-dropdown-enter-active,
+.nd-dropdown-leave-active {
   transition:
     opacity 150ms ease,
     transform 150ms ease;
+}
+
+.nd-dropdown-enter-from,
+.nd-dropdown-leave-to {
+  opacity: 0;
   transform: translateY(-4px);
 }
 
-.nd-dropdown-open > .nd-dropdown-menu {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-html:not(.nd-ui-ready) .nd-dropdown:focus-within > .nd-dropdown-menu {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-html:not(.nd-ui-ready) .nd-dropdown:focus-within .nd-dropdown-toggle svg {
-  transform: rotate(180deg);
+@media (prefers-reduced-motion: reduce) {
+  .nd-modal-enter-active,
+  .nd-modal-leave-active,
+  .nd-drawer-enter-active,
+  .nd-drawer-leave-active,
+  .nd-modal-enter-active .nd-modal-panel,
+  .nd-modal-leave-active .nd-modal-panel,
+  .nd-drawer-enter-active .nd-modal-panel,
+  .nd-drawer-leave-active .nd-modal-panel,
+  .nd-dropdown-enter-active,
+  .nd-dropdown-leave-active {
+    transition-duration: 1ms;
+  }
 }
 
 .nd-sidebar-link {

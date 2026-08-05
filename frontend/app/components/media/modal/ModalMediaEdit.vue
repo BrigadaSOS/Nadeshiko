@@ -10,6 +10,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:success': [media: typeof props.media];
   'delete:success': [mediaPublicId: string];
+  close: [];
 }>();
 
 const sdk = useNadeshikoSdk();
@@ -17,8 +18,6 @@ const isSubmitting = ref(false);
 const isDeleting = ref(false);
 const showDeleteConfirm = ref(false);
 const errorMessage = ref('');
-
-const OVERLAY_ID = '#nd-vertically-centered-scrollable-media-edit';
 
 const form = reactive({
   nameJa: '',
@@ -80,7 +79,7 @@ watch(
 );
 
 const closeModal = () => {
-  window.NDOverlay?.close(OVERLAY_ID);
+  emit('close');
 };
 
 const submitEdit = async () => {
@@ -179,21 +178,21 @@ const submitDelete = async () => {
 </script>
 
 <template>
-  <div
-    id="nd-vertically-centered-scrollable-media-edit"
-    class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/60 hidden w-full h-full flex items-center justify-center fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
+  <CommonBaseModal
+    data-testid="media-edit-modal"
+    :open="!!media"
+    labelledby="nd-media-edit-modal-title"
+    panel-class="w-full max-w-3xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
+    @close="closeModal"
   >
-    <div
-      class="w-full max-w-3xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
-    >
       <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
-        <h3 class="font-bold text-gray-800 dark:text-white">
+        <h3 id="nd-media-edit-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('modalMediaEdit.title') }}
         </h3>
         <button
           type="button"
-          class="nd-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-          :data-nd-overlay="OVERLAY_ID"
+          class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+          @click="closeModal"
         >
           <span class="sr-only">{{ t('modalMediaEdit.close') }}</span>
           <svg class="w-3.5 h-3.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -223,15 +222,15 @@ const submitDelete = async () => {
             />
             <div class="space-y-2 min-w-0 flex-1">
               <div class="flex items-center gap-2 text-neutral-300">
-                <span class="text-neutral-500 min-w-[4.5rem]">Public ID</span>
+                <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalMediaEdit.publicId') }}</span>
                 <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ media.publicId }}</code>
               </div>
               <div v-if="media.coverUrl" class="flex items-center gap-2 text-neutral-300">
-                <span class="text-neutral-500 min-w-[4.5rem]">Cover</span>
+                <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalMediaEdit.cover') }}</span>
                 <a :href="media.coverUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ media.coverUrl }}</a>
               </div>
               <div v-if="media.bannerUrl" class="flex items-center gap-2 text-neutral-300">
-                <span class="text-neutral-500 min-w-[4.5rem]">Banner</span>
+                <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalMediaEdit.banner') }}</span>
                 <a :href="media.bannerUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ media.bannerUrl }}</a>
               </div>
             </div>
@@ -465,7 +464,7 @@ const submitDelete = async () => {
           <button
             type="button"
             class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-            :data-nd-overlay="OVERLAY_ID"
+            @click="closeModal"
           >
             {{ t('modalMediaEdit.cancel') }}
           </button>
@@ -483,6 +482,5 @@ const submitDelete = async () => {
           </button>
         </div>
       </div>
-    </div>
-  </div>
+  </CommonBaseModal>
 </template>

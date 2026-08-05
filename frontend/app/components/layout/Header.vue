@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {
   mdiAccountCircleOutline,
   mdiMagnify,
@@ -19,13 +19,20 @@ const store = userStore();
 const isAuth = computed(() => store.isLoggedIn);
 const localePath = useLocalePath();
 
+const { openLoginModal: showLoginModal } = useLoginModal();
+const isNavSidebarOpen = ref(false);
+
+const closeNavSidebar = () => {
+  isNavSidebarOpen.value = false;
+};
+
 function openLoginModal() {
-  window.NDOverlay?.close('#nd-nav-sidebar');
-  window.NDOverlay?.open('#nd-vertically-centered-scrollable-loginsignup-modal');
+  closeNavSidebar();
+  showLoginModal();
 }
 
 async function logout() {
-  window.NDOverlay?.close('#nd-nav-sidebar');
+  closeNavSidebar();
   await store.logout();
 }
 
@@ -33,9 +40,14 @@ const sidebarSearch = ref('');
 async function submitSidebarSearch() {
   const term = sidebarSearch.value?.trim();
   if (!term) return;
-  window.NDOverlay?.close('#nd-nav-sidebar');
+  closeNavSidebar();
   await navigateTo(localePath(`/search/${encodeURIComponent(term)}`));
 }
+
+// Links inside the drawer navigate away; close it so it isn't left open behind
+// the new page.
+const route = useRoute();
+watch(() => route.fullPath, closeNavSidebar);
 </script>
 <template>
     <header
@@ -54,8 +66,8 @@ async function submitSidebarSearch() {
                     <button type="button"
                         class="relative size-9 flex justify-center items-center rounded-lg bg-white/10 text-white hover:bg-white/20 focus:outline-none focus:bg-white/20"
                         data-testid="hamburger-menu"
-                        aria-haspopup="dialog" aria-expanded="false" aria-controls="nd-nav-sidebar"
-                        :aria-label="$t('common.toggleNavigation')" data-nd-overlay="#nd-nav-sidebar">
+                        aria-haspopup="dialog" :aria-expanded="isNavSidebarOpen" aria-controls="nd-nav-sidebar"
+                        :aria-label="$t('common.toggleNavigation')" @click="isNavSidebarOpen = !isNavSidebarOpen">
                         <svg class="shrink-0 size-5" xmlns="http://www.w3.org/2000/svg"
                             width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -117,10 +129,10 @@ async function submitSidebarSearch() {
                     </div>
                     <CommonLanguageSelector />
                     <SearchDropdownContainer data-testid="profile-dropdown" dropdownId="nd-dropdown-profile"
-                        dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+                        dropdownContainerClass="absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
                         <template #default>
                             <SearchDropdownMainButton
-                                dropdownButtonClass="nd-dropdown-toggle py-2 px-4 inline-flex w-full items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg border hover:bg-black/5 hover:border-white/70 transition-all text-gray-800 disabled:opacity-50 disabled:pointer-events-none dark:text-white"
+                                dropdownButtonClass="py-2 px-4 inline-flex w-full items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg border hover:bg-black/5 hover:border-white/70 transition-all text-gray-800 disabled:opacity-50 disabled:pointer-events-none dark:text-white"
                                 dropdownId="nd-dropdown-profile">
                                 <UiBaseIcon :path="mdiAccountCircleOutline" />
                                 {{ $t("navbar.buttons.profile") }}
@@ -156,10 +168,17 @@ async function submitSidebarSearch() {
         </nav>
     </header>
 
-    <div id="nd-nav-sidebar"
+    <CommonBaseModal
+        id="nd-nav-sidebar"
         data-testid="nav-menu"
-        class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 nd-overlay-open:translate-x-0 hidden translate-x-full fixed top-0 end-0 transition-all duration-300 transform h-full max-w-xs w-full z-[80] bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 md:hidden"
-        role="dialog" tabindex="-1" :aria-label="$t('common.navigationMenu')">
+        :open="isNavSidebarOpen"
+        transition="nd-drawer"
+        z-index-class="z-[80]"
+        overlay-class="justify-end bg-neutral-900/40 md:hidden"
+        panel-class="h-full max-w-xs w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700"
+        :label="$t('common.navigationMenu')"
+        @close="closeNavSidebar"
+    >
 
         <div class="flex items-center justify-between py-3 px-4 border-b dark:border-neutral-700">
             <NuxtLink :to="localePath('/')" class="inline-flex items-center font-semibold text-gray-800 dark:text-white">
@@ -168,7 +187,7 @@ async function submitSidebarSearch() {
             </NuxtLink>
             <button type="button"
                 class="size-8 inline-flex justify-center items-center rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600"
-                :aria-label="$t('common.close')" data-nd-overlay="#nd-nav-sidebar">
+                :aria-label="$t('common.close')" @click="closeNavSidebar">
                 <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 6 6 18" />
                     <path d="m6 6 12 12" />
@@ -290,5 +309,5 @@ async function submitSidebarSearch() {
                 </div>
             </div>
         </div>
-    </div>
+    </CommonBaseModal>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { handleApiError } from '~/utils/apiError';
 import {
   mdiFileDocumentPlusOutline,
   mdiStarShootingOutline,
@@ -70,6 +71,7 @@ onMounted(() => {
         lastCollection.value = parsed;
       }
     } catch {
+      // Hand-edited or stale localStorage; the quick-add shortcut just stays hidden.
       lastCollection.value = null;
     }
   }
@@ -138,7 +140,11 @@ const loadCollections = async () => {
       if (defaultItem) lastCollection.value = { id: defaultItem.id, name: defaultItem.name };
     }
   } catch (error) {
-    console.error('Failed to load collections:', error);
+    // The picker would otherwise open on an empty list reading as "no collections yet".
+    // `collectionsLoaded` stays false so the next open retries.
+    handleApiError('collections:picker-load-failed', error, {
+      toastKey: 'searchpage.main.labels.collectionsLoadFailed',
+    });
     collections.value = [];
     collectionsLoaded.value = false;
   } finally {
@@ -161,8 +167,11 @@ const addToCollection = async (collection: CollectionOption, isQuickAdd = false)
     });
     useToastSuccess(t('searchpage.main.labels.collectionAdded', { name: collection.name }));
     saveLastCollection(collection);
-  } catch {
-    useToastError(t('searchpage.main.labels.collectionAddFailed'));
+  } catch (error) {
+    handleApiError('collections:add-segment-failed', error, {
+      toastKey: 'searchpage.main.labels.collectionAddFailed',
+      context: { 'segment.publicId': props.content.segment.publicId },
+    });
   } finally {
     addingCollectionId.value = null;
   }
@@ -209,8 +218,7 @@ const copyFurigana = () => {
             <!-- Anki by ID -->
             <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
               @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
-              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
-              data-nd-overlay="#nd-vertically-centered-scrollable-anki-collection" />
+              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined" />
           </template>
           <template v-else>
             <div class="hidden min-[1250px]:block">
@@ -349,7 +357,7 @@ const copyFurigana = () => {
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction v-if="!hideContextButton" data-nd-overlay="#nd-vertically-centered-scrollable-context" class="mr-2 text-xs py-2.5 px-3"
+  <UiButtonPrimaryAction v-if="!hideContextButton" class="mr-2 text-xs py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.context') }}</span>
@@ -365,7 +373,7 @@ const copyFurigana = () => {
   </UiButtonPrimaryAction>
 
   <SearchDropdownContainer data-testid="more-dropdown" class="mr-2 my-1" dropdownId="nd-dropdown-with-header"
-    dropdownContainerClass="nd-dropdown-menu absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+    dropdownContainerClass="absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
     <template #default>
       <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiDotsHorizontal" />
@@ -388,7 +396,6 @@ const copyFurigana = () => {
           <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
             :isDisabled="!user.isLoggedIn"
             :tooltip="!user.isLoggedIn ? $t('reports.loginRequired') : undefined"
-            data-nd-overlay="#nd-vertically-centered-scrollable-report"
             @click="user.isLoggedIn && emit('open-report-modal', content)" />
         </div>
         <template v-if="user.isAdmin">
@@ -396,7 +403,6 @@ const copyFurigana = () => {
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
           </div>
           <SearchDropdownItem :text="$t('modalSegmentEdit.editButton')" :iconPath="mdiPencilOutline"
-            data-nd-overlay="#nd-vertically-centered-scrollable-segment-edit"
             @click="emit('open-edit-modal', content)" />
         </template>
       </SearchDropdownContent>
