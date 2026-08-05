@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
 import { Media, Episode, CategoryType, SegmentStorage } from '@app/models';
 import { missingEpisodes } from '@app/services/mediaAudit/checks/missingEpisodes';
