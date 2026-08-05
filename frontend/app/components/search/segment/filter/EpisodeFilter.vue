@@ -1,18 +1,20 @@
-<script setup>
+<script setup lang="ts">
+import type { MediaSearchStats } from '@brigadasos/nadeshiko-sdk';
+
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 
-const props = defineProps({
-  episodeHits: {
-    type: Array,
-    default: () => [],
+const props = withDefaults(
+  defineProps<{
+    episodeHits?: MediaSearchStats['episodeHits'];
+    selectedMediaId?: number | string | null;
+  }>(),
+  {
+    episodeHits: () => [],
+    selectedMediaId: null,
   },
-  selectedMediaId: {
-    type: [Number, String],
-    default: null,
-  },
-});
+);
 
 const selectedEpisodeId = computed(() => {
   if (!route.query.episode) return null;
@@ -29,7 +31,7 @@ const episodesList = computed(() => {
     .sort((a, b) => a.episode - b.episode);
 });
 
-const toggleEpisode = (episodeId) => {
+const toggleEpisode = (episodeId: number) => {
   const newEpisodeId = selectedEpisodeId.value === episodeId ? null : episodeId;
   updateUrlParams(newEpisodeId);
 };
@@ -40,11 +42,11 @@ const scrollToTop = () => {
   }
 };
 
-const updateUrlParams = (episode) => {
+const updateUrlParams = (episode: number | null) => {
   const query = { ...route.query };
 
   if (episode !== null) {
-    query.episode = episode;
+    query.episode = String(episode);
   } else {
     delete query.episode;
   }

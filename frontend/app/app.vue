@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 const { t } = useI18n();
 const { origin } = useRequestURL();
 const ogImage = `${origin}/logo-og-5bc76788.png`;

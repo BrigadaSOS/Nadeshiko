@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import {
   mdiFilterOutline,
   mdiSort,
@@ -12,12 +12,17 @@ import {
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
-const sortType = ref(route.query.sort);
-const emit = defineEmits(['randomSortSelected']);
+/** `?sort=` is always a single value; anything else is treated as unset. */
+const readSortFromRoute = () => (typeof route.query.sort === 'string' ? route.query.sort : undefined);
 
-const previousSort = ref(route.query.sort || 'none');
+const sortType = ref<string | undefined>(readSortFromRoute());
+const emit = defineEmits<{
+  randomSortSelected: [];
+}>();
 
-const sortContent = async (type) => {
+const previousSort = ref<string>(readSortFromRoute() ?? 'none');
+
+const sortContent = async (type: string) => {
   const query = { ...route.query };
   if (type === 'none') {
     delete query.sort;
@@ -38,7 +43,7 @@ const sortContent = async (type) => {
 watch(
   () => route.query.sort,
   (newSort) => {
-    previousSort.value = newSort || 'none';
+    previousSort.value = typeof newSort === 'string' ? newSort : 'none';
   },
   { immediate: true },
 );

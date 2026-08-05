@@ -14,7 +14,7 @@ export const test = base.extend({
       await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
       await page.waitForFunction(
         () => {
-          if (typeof window === 'undefined' || !window.NDOverlay) return false;
+          if (typeof window === 'undefined') return false;
           const nuxt = document.querySelector('#__nuxt') as any;
           const app = nuxt?.__vue_app__;
           if (!app) return false;

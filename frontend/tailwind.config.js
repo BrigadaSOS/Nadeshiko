@@ -4,16 +4,7 @@ export default {
   darkMode: ['class'],
   safelist: ['dark'],
   prefix: '',
-  content: [
-    './app/**/*.{js,ts,vue}',
-    './components/**/*.{js,ts,vue}',
-    './layouts/**/*.vue',
-    './pages/**/*.vue',
-    './plugins/**/*.{js,ts}',
-    './composables/**/*.{js,ts}',
-    './utils/**/*.{js,ts}',
-    './content/**/*.md',
-  ],
+  content: ['./app/**/*.{js,ts,vue}', './content/**/*.md'],
   theme: {
     container: {
       center: true,
