@@ -1,20 +1,18 @@
 import { Media } from '@app/models';
+import { includedSearchLanguages } from '@lib/searchLanguages';
 import type { t_MediaFilterItem, t_SearchFilters } from 'generated/models';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>['results'];
 
+/**
+ * Rewrites the deprecated `{ exclude: [...] }` shape into the canonical array of
+ * languages to match. Read sites go through `@lib/searchLanguages` and accept both
+ * shapes, so this is a normalization step, not a prerequisite.
+ */
 export function normalizeLanguageFilter(filters?: t_SearchFilters): void {
-  if (!filters) return;
-  const langs = filters.languages as unknown;
-  if (langs == null) return;
-  if (Array.isArray(langs)) {
-    filters.languages = langs.map((x) => String(x).toUpperCase()) as t_SearchFilters['languages'];
-    return;
-  }
-  const exclude = (langs as { exclude?: unknown }).exclude;
-  filters.languages = (
-    Array.isArray(exclude) ? exclude.map((x) => String(x).toUpperCase()) : []
-  ) as t_SearchFilters['languages'];
+  if (!filters || filters.languages == null) return;
+
+  filters.languages = includedSearchLanguages(filters.languages);
 }
 
 export async function resolveMediaFilterIds(filters?: t_SearchFilters): Promise<void> {
@@ -31,13 +29,19 @@ export async function resolveMediaFilterIds(filters?: t_SearchFilters): Promise<
   resolveItems(filters.media.exclude, mediaInfo.results);
 }
 
+/** The internal id resolved from the public identifier; not part of the wire shape. */
+type ResolvedMediaFilterItem = t_MediaFilterItem & { mediaId: number };
+
 function resolveItems(items: t_MediaFilterItem[] | undefined, mediaMap: MediaInfoMap): void {
   if (!items) return;
 
   for (let i = items.length - 1; i >= 0; i--) {
-    const resolved = resolveMediaId(items[i].mediaPublicId, mediaMap);
+    const item = items[i];
+    if (!item) continue;
+
+    const resolved = resolveMediaId(item.mediaPublicId, mediaMap);
     if (resolved !== null) {
-      (items[i] as any).mediaId = resolved;
+      (item as ResolvedMediaFilterItem).mediaId = resolved;
     } else {
       items.splice(i, 1);
     }

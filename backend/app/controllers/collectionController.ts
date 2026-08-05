@@ -11,6 +11,8 @@ import type {
   GetCollectionStats,
 } from 'generated/routes/collections';
 import {
+  ALL_CATEGORIES,
+  CategoryType,
   Collection,
   CollectionSegment,
   CollectionType,
@@ -22,7 +24,7 @@ import type { CategoryOutput } from 'generated/outputTypes';
 import type { User } from '@app/models/User';
 import { toCollectionDTO } from './mappers/collectionMapper';
 import { toSearchResponseDTO } from './mappers/searchMapper';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { AccessDeniedError, InvalidRequestError } from '@app/errors';
 import { assertUser } from '@app/middleware/authentication';
 import { resolveMediaFilterIds } from './searchFilters';
@@ -256,6 +258,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
     })),
   }));
 
+  // Collection stats apply no hidden-media exclusion, so `realCount` equals `count` by definition.
   const categories = Array.from(categoryCountMap.entries()).map(([category, count]) => ({
     category,
     count,
@@ -295,7 +298,8 @@ const assertCollectionReadable = (collection: Collection, user: Pick<User, 'id' 
   throw new AccessDeniedError('You do not have permission to view this collection.');
 };
 
-const toCategory = (value: string | undefined): CategoryOutput => (value === 'JDRAMA' ? 'JDRAMA' : 'ANIME');
+const toCategory = (value: string | undefined): CategoryOutput =>
+  ALL_CATEGORIES.includes(value as CategoryType) ? (value as CategoryOutput) : CategoryType.ANIME;
 
 const toCollectionVisibility = (value: string): CollectionVisibility =>
   value === 'PUBLIC' ? CollectionVisibility.PUBLIC : CollectionVisibility.PRIVATE;

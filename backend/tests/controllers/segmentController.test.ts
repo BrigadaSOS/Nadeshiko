@@ -4,7 +4,7 @@ import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { toSegmentDTO } from '@app/controllers/mappers/segmentMapper';
 import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';

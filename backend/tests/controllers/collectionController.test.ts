@@ -9,7 +9,7 @@ import { assertMatchesSchema } from '../helpers/openapiContract';
 import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';
 import { Collection, CollectionSegment, CollectionVisibility, Segment } from '@app/models';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 
 setupTestSuite();
 

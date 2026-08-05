@@ -3,7 +3,7 @@ import { config, type AppConfig } from '@config/config';
 import { logger } from '@config/log';
 import { ELASTICSEARCH_CLIENT_DEFAULTS } from '@config/elasticsearch-client';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
-import type { ReindexResponse } from '@app/models/segmentDocument/SegmentIndexer';
+import type { ReindexResponse } from '@app/services/search/segmentDocument/SegmentIndexer';
 
 export const INDEX_NAME = config.ELASTICSEARCH_INDEX;
 
@@ -48,10 +48,13 @@ function createAdminClient(configValues: AppConfig): Client {
  * This function uses ADMIN credentials and is idempotent - safe to run multiple times.
  * By default, it will skip creation if the user already exists.
  *
+ * `adminClient` exists so tests can supply a double instead of mocking
+ * `@elastic/elasticsearch`, which would replace the module process-wide.
+ *
  * @returns The username that was created (or already existed)
  */
 export async function setupElasticsearchUser(
-  options: { recreateIfExists?: boolean; configValues?: AppConfig } = {},
+  options: { recreateIfExists?: boolean; configValues?: AppConfig; adminClient?: Client } = {},
 ): Promise<string> {
   const { recreateIfExists = false, configValues = config } = options;
   const indexName = configValues.ELASTICSEARCH_INDEX;
@@ -70,18 +73,18 @@ export async function setupElasticsearchUser(
   const username = appUsername || `${indexName.replace(/[^a-zA-Z0-9]/g, '_')}_user`;
   const roleName = `${username}_role`;
 
-  const adminClient = createAdminClient(configValues);
+  const adminClient = options.adminClient ?? createAdminClient(configValues);
 
   try {
     if (recreateIfExists) {
       logger.info({ username, roleName }, 'Recreating Elasticsearch app user and role');
 
       await adminClient.security.deleteUser({ username }).catch((error) => {
-        if (error.meta.statusCode !== 404) throw error;
+        if (error.meta?.statusCode !== 404) throw error;
       });
 
       await adminClient.security.deleteRole({ name: roleName }).catch((error) => {
-        if (error.meta.statusCode !== 404) throw error;
+        if (error.meta?.statusCode !== 404) throw error;
       });
     }
 
@@ -89,7 +92,7 @@ export async function setupElasticsearchUser(
       .getUser({ username })
       .then(() => true)
       .catch((error) => {
-        if (error.meta.statusCode === 404) return false;
+        if (error.meta?.statusCode === 404) return false;
         throw error;
       });
 
@@ -126,7 +129,7 @@ export async function resolvePhysicalIndex(esClient?: Client): Promise<string | 
   try {
     const aliasResponse = await clientToUse.indices.getAlias({ name: INDEX_NAME });
     const indices = Object.keys(aliasResponse);
-    return indices.length > 0 ? indices[0] : null;
+    return indices[0] ?? null;
   } catch (error: any) {
     if (error.meta?.statusCode === 404) return null;
     throw error;
@@ -137,7 +140,7 @@ export function nextVersionName(current: string | null): string {
   if (!current) return `${INDEX_NAME}_v1`;
 
   const match = current.match(/_v(\d+)$/);
-  if (!match) return `${INDEX_NAME}_v1`;
+  if (!match?.[1]) return `${INDEX_NAME}_v1`;
 
   const nextVersion = parseInt(match[1], 10) + 1;
   return `${INDEX_NAME}_v${nextVersion}`;
@@ -291,11 +294,10 @@ export async function rollbackAlias(esClient?: Client): Promise<{ from: string; 
     .filter((idx) => extractVersion(idx) < currentVersion)
     .sort((a, b) => extractVersion(b) - extractVersion(a));
 
-  if (previousIndices.length === 0) {
+  const rollbackTarget = previousIndices[0];
+  if (!rollbackTarget) {
     throw new Error('No previous index available for rollback.');
   }
-
-  const rollbackTarget = previousIndices[0];
 
   await clientToUse.indices.updateAliases({
     actions: [
@@ -382,5 +384,5 @@ export async function migrateToAlias(esClient?: Client): Promise<void> {
 
 function extractVersion(indexName: string): number {
   const match = indexName.match(/_v(\d+)$/);
-  return match ? parseInt(match[1], 10) : 0;
+  return match?.[1] ? parseInt(match[1], 10) : 0;
 }

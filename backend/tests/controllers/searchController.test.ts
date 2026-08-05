@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'bun:test';
 import * as schemas from 'generated/schemas';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
-import { SegmentDocument } from '@app/models/SegmentDocument';
+import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { assertMatchesSchema } from '../helpers/openapiContract';
 
 let mockSearch: Mock<typeof SegmentDocument.search>;
