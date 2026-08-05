@@ -1,3 +1,4 @@
+import { handleApiError } from '~/utils/apiError';
 import { buildSentencePath } from '~/utils/routes';
 
 type ConcatenatedAudio = {
@@ -139,14 +140,25 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
   }
 
   fetch(url)
-    .then((response) => response.blob())
+    .then((response) => {
+      if (!response.ok) throw new Error(`Download failed with status ${response.status}`);
+      return response.blob();
+    })
     .then((blob) => {
-      const url = window.URL.createObjectURL(blob);
+      const objectUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.download = filename;
-      a.href = url;
+      a.href = objectUrl;
       a.click();
-      window.URL.revokeObjectURL(url);
+      // Revoking in the same tick can race the browser starting the download,
+      // which leaves the user with a click that silently did nothing.
+      setTimeout(() => window.URL.revokeObjectURL(objectUrl), 60_000);
+    })
+    .catch((error: unknown) => {
+      handleApiError('media:download-failed', error, {
+        toastKey: 'searchpage.main.labels.downloadFailed',
+        context: { 'download.filename': filename },
+      });
     });
 }
 
@@ -164,11 +176,20 @@ const stripHTMLTags = (html: string): string => {
   return div.textContent || div.innerText || '';
 };
 
-export async function copyToClipboard(item: string) {
+/** Copies `item` with its HTML stripped, toasting either outcome. */
+export async function copyToClipboard(item: string): Promise<boolean> {
   const { $i18n } = useNuxtApp();
-  const message = $i18n.t('searchpage.main.labels.copiedcontent');
-  await navigator.clipboard.writeText(stripHTMLTags(item));
-  useToastSuccess(message);
+  try {
+    await navigator.clipboard.writeText(stripHTMLTags(item));
+  } catch (error) {
+    // A denied clipboard permission (or a non-secure origin) rejects here, and
+    // the button otherwise reads as having worked.
+    handleApiError('media:clipboard-copy-failed', error, { toastKey: false });
+    useToastError($i18n.t('searchpage.main.labels.errorcopiedcontent'));
+    return false;
+  }
+  useToastSuccess($i18n.t('searchpage.main.labels.copiedcontent'));
+  return true;
 }
 
 export async function getSharingURL(params: {

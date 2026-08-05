@@ -38,7 +38,7 @@ export function proxyToBackend(event: H3Event): Promise<any> {
   // is only ever attached to routes the generated allowlist marks as reading
   // the shared corpus. Injecting it on an owner-scoped route would answer with
   // the service account's own data. Regenerate the allowlist from the OpenAPI
-  // spec with `bun run generate:api` in ../backend.
+  // spec with `npm run generate:api` in ../backend.
   const apiKey = String(config.nadeshikoApiKey || '').trim();
   if (apiKey && !headers.authorization && shouldInjectApiKey(method, requestUrl.pathname)) {
     headers.authorization = `Bearer ${apiKey}`;

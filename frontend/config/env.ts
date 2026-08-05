@@ -28,8 +28,6 @@ const envSchema = z.object({
   NUXT_INTERNAL_PROXY_SECRET: z.string().trim().default(''),
   NUXT_BACKEND_HOST_HEADER: optionalString,
   NUXT_MEDIA_FILES_PATH: optionalString,
-  NUXT_FALLBACK_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
-  NUXT_FALLBACK_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(300),
   NUXT_RATE_LIMIT_V1_AUTH_MAX: z.coerce.number().int().positive().default(30),
   NUXT_RATE_LIMIT_V1_API_MAX: z.coerce.number().int().positive().default(120),
   NUXT_RATE_LIMIT_HTML_MAX: z.coerce.number().int().positive().default(60),

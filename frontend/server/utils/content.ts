@@ -19,8 +19,14 @@ export interface BlogPost {
   rawbody: string;
 }
 
-const pageCache = new Map<string, ContentPage | null>();
+// Content ships as build-time serverAssets, so a parsed page is good for the
+// life of the process and nothing can ever invalidate it. Only successful reads
+// are memoised: both `locale` and `slug` reach these functions straight from the
+// query string, so caching misses too would let any request grow these Maps.
+// As written they are bounded by the number of files in content/.
+const pageCache = new Map<string, ContentPage>();
 const blogCache = new Map<string, BlogPost[]>();
+const blogPostCache = new Map<string, BlogPost & { html: string }>();
 
 const SHIKI_THEME: BundledTheme = 'github-dark';
 const SHIKI_LANGS: BundledLanguage[] = ['typescript', 'javascript', 'python', 'bash', 'shell', 'json', 'yaml'];
@@ -50,35 +56,23 @@ marked.use({
   },
 });
 
-function stripMdcDirectives(content: string): string {
-  return content
-    .split('\n')
-    .filter((line) => !/^::\w/.test(line.trim()))
-    .join('\n');
-}
-
 async function parseMarkdown(
   raw: string,
 ): Promise<{ frontmatter: Record<string, unknown>; html: string; rawbody: string }> {
   const { data, content } = matter(raw);
-  const cleaned = stripMdcDirectives(content);
-  const html = await marked.parse(cleaned);
+  const html = await marked.parse(content);
   return { frontmatter: data, html, rawbody: raw };
 }
 
 export async function getContentPage(locale: string, slug: string): Promise<ContentPage | null> {
   const cacheKey = `${locale}:${slug}`;
-  if (pageCache.has(cacheKey)) {
-    return pageCache.get(cacheKey) ?? null;
-  }
+  const cached = pageCache.get(cacheKey);
+  if (cached) return cached;
 
   const storage = useStorage('assets:content');
   const key = `${locale}:${slug}.md`;
   const raw = await storage.getItem<string>(key);
-  if (!raw) {
-    pageCache.set(cacheKey, null);
-    return null;
-  }
+  if (!raw) return null;
 
   const { frontmatter, html } = await parseMarkdown(raw);
   const page: ContentPage = {
@@ -93,9 +87,8 @@ export async function getContentPage(locale: string, slug: string): Promise<Cont
 }
 
 export async function getBlogPosts(locale: string): Promise<BlogPost[]> {
-  if (blogCache.has(locale)) {
-    return blogCache.get(locale) ?? [];
-  }
+  const cached = blogCache.get(locale);
+  if (cached) return cached;
 
   const storage = useStorage('assets:content');
   const keys = await storage.getKeys(`${locale}:blog`);
@@ -126,11 +119,17 @@ export async function getBlogPosts(locale: string): Promise<BlogPost[]> {
     return dateB - dateA;
   });
 
-  blogCache.set(locale, posts);
+  if (posts.length > 0) {
+    blogCache.set(locale, posts);
+  }
   return posts;
 }
 
 export async function getBlogPost(locale: string, slug: string): Promise<(BlogPost & { html: string }) | null> {
+  const cacheKey = `${locale}:${slug}`;
+  const cached = blogPostCache.get(cacheKey);
+  if (cached) return cached;
+
   const storage = useStorage('assets:content');
   const key = `${locale}:blog:${slug}.md`;
   const raw = await storage.getItem<string>(key);
@@ -138,7 +137,8 @@ export async function getBlogPost(locale: string, slug: string): Promise<(BlogPo
 
   const { frontmatter, html, rawbody } = await parseMarkdown(raw);
   if (frontmatter.draft === true) return null;
-  return {
+
+  const post = {
     path: `/blog/${slug}`,
     title: (frontmatter.title as string) || '',
     description: (frontmatter.description as string) || '',
@@ -147,4 +147,7 @@ export async function getBlogPost(locale: string, slug: string): Promise<(BlogPo
     rawbody,
     html,
   };
+
+  blogPostCache.set(cacheKey, post);
+  return post;
 }

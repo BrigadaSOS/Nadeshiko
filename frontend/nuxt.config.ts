@@ -5,7 +5,6 @@ const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
 const SITE_URL = isDev ? 'https://stg.nadeshiko.co' : 'https://nadeshiko.co';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
-const UMAMI_ORIGIN = 'https://cloud.umami.is';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
 const FARO_ORIGIN = 'https://o.nadeshiko.co';
@@ -80,15 +79,26 @@ export default defineNuxtConfig({
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
     mediaFilesPath: env.NUXT_MEDIA_FILES_PATH,
-    fallbackRateLimitWindowMs: env.NUXT_FALLBACK_RATE_LIMIT_WINDOW_MS,
-    fallbackRateLimitMaxRequests: env.NUXT_FALLBACK_RATE_LIMIT_MAX_REQUESTS,
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
+      // Whether word lookups are configured at all. The KEY stays server-side;
+      // this is only the boolean, so the browser can leave the feature alone
+      // instead of firing a doomed request on every hover and cacheing the
+      // failure. Without it the card still shows what the token itself knows:
+      // the word, its reading, and what the form is doing.
+      shirabeLookups: Boolean(env.NUXT_SHIRABE_API_KEY),
       faroUrl: env.NUXT_PUBLIC_FARO_URL || '',
       faroAppName: env.NUXT_PUBLIC_FARO_APP_NAME || '',
     },
   },
+  // Only .vue files are components. The default scan also picks up .ts, which
+  // registered the helper modules colocated with their components (activityHelpers,
+  // reportHelpers, segmentEditState) as components -- they export no component, so
+  // the entries were dead weight in the auto-import namespace and a name there could
+  // shadow a real component. Colocation stays; the phantom registrations go.
+  components: [{ path: '~/components', pathPrefix: true, extensions: ['vue'] }],
+
   pages: true,
   ssr: true,
   modules: [
@@ -98,13 +108,19 @@ export default defineNuxtConfig({
     '@nuxtjs/seo',
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
-    'nuxt-umami',
     '@posthog/nuxt',
 
     '@nuxtjs/critters',
     'nuxt-security',
   ],
   security: {
+    // Per-request nonces, so `script-src` can drop 'unsafe-inline' below.
+    // nuxt-security stamps the nonce onto the scripts Nuxt renders (the SSR
+    // payload especially); scripts loaded from the allow-listed origins are
+    // matched by host and need no nonce. Requires SSR per request -- if a page
+    // is ever prerendered or shared-cached, its baked-in nonce will not match
+    // the header and its inline scripts will be blocked.
+    nonce: true,
     headers: {
       referrerPolicy: 'strict-origin-when-cross-origin',
       contentSecurityPolicy: process.dev
@@ -113,20 +129,21 @@ export default defineNuxtConfig({
             'default-src': ["'self'"],
             'script-src': [
               "'self'",
-              "'unsafe-inline'",
+              // Not 'unsafe-inline': a nonce is present, so browsers ignore
+              // 'unsafe-inline' anyway, and inline scripts are trusted only when
+              // they carry this request's nonce.
+              "'nonce-{{nonce}}'",
               "'wasm-unsafe-eval'",
-              UMAMI_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
               'https://www.youtube.com',
             ],
             'style-src': ["'self'", "'unsafe-inline'"],
-            'img-src': ["'self'", 'data:', CDN_ORIGIN, UMAMI_ORIGIN],
+            'img-src': ["'self'", 'data:', CDN_ORIGIN],
             'font-src': ["'self'"],
             'connect-src': [
               "'self'",
               CDN_ORIGIN,
-              UMAMI_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
               FARO_ORIGIN,
@@ -167,11 +184,6 @@ export default defineNuxtConfig({
     serverConfig: {
       enableExceptionAutocapture: false,
     },
-  },
-  umami: {
-    id: '98441c04-c8f9-4882-93c8-0215535b02f1',
-    host: UMAMI_ORIGIN,
-    autoTrack: true,
   },
   site: {
     url: SITE_URL,
@@ -289,6 +301,14 @@ export default defineNuxtConfig({
     // `/` is the per-user locale router (server/middleware/00-locale-router.ts) and
     // must never be shared-cached.
     '/': { headers: { 'Cache-Control': 'private, no-store' } },
+    // Word definitions are identical for every reader and change only when a
+    // dictionary is reimported, so they are cached HERE, on the server, not just
+    // in each browser. That is the difference between Shirabe answering once per
+    // word per day and answering once per word per reader per day: a page of
+    // twenty segments holds a few hundred distinct words, and 兄 is 兄 for
+    // everyone. `swr` keeps serving the stale copy while it refreshes, so a
+    // reader never waits on a revalidation.
+    '/api/shirabe/**': { swr: 60 * 60 * 24, headers: { 'Cache-Control': 'public, max-age=86400' } },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {
@@ -296,16 +316,10 @@ export default defineNuxtConfig({
       },
     }),
     // Private/authenticated areas should never be indexed.
-    '/en/settings/**': { robots: false },
     '/en/user/**': { robots: false },
     '/en/admin/**': { robots: false },
-    '/en/reports': { robots: false },
-    '/en/reports/**': { robots: false },
-    '/es/settings/**': { robots: false },
     '/es/user/**': { robots: false },
     '/es/admin/**': { robots: false },
-    '/es/reports': { robots: false },
-    '/es/reports/**': { robots: false },
     '/ja/**': { robots: false },
     // Homepage, blog index, blog posts, and static markdown pages are no longer
     // cached at the origin. Cloudflare Cache Rules are the single source of

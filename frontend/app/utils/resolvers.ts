@@ -6,7 +6,6 @@ import type {
   SdkSearchStatsResponse,
   SdkSearchMultipleResponse,
   SdkSegmentContextResponse,
-  SdkMediaListResponse,
   SearchResult,
   SearchResponse,
   SearchStatsResponse,
@@ -14,7 +13,6 @@ import type {
   ResolvedCategoryCount,
   SegmentContextResponse,
   MultiSearchResponse,
-  MediaBrowseResponse,
 } from '~/types/search';
 import type { WordMatch, Category } from '@brigadasos/nadeshiko-sdk';
 
@@ -106,13 +104,5 @@ export function resolveWordsResponse(raw: SdkSearchMultipleResponse): MultiSearc
         matchCount: entry.matchCount ?? 0,
         media: entry.media,
       })) ?? [],
-  };
-}
-
-export function resolveMediaBrowseResponse(raw: SdkMediaListResponse): MediaBrowseResponse {
-  return {
-    media: (raw.media ?? []) as Media[],
-    cursor: raw.pagination?.cursor ?? null,
-    hasMore: raw.pagination?.hasMore ?? false,
   };
 }

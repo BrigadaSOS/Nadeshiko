@@ -6,7 +6,6 @@ const DYNAMIC_ROUTE_PATTERNS: [RegExp, string][] = [
   [/^\/collection\/.*/, '/collection/:id'],
   [/^\/s\/.*/, '/s/:id'],
   [/^\/admin\/.*/, '/admin/:slug'],
-  [/^\/settings\/.*/, '/settings/:slug'],
   [/^\/user\/.*/, '/user/:slug'],
 ];
 

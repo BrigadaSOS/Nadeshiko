@@ -18,6 +18,11 @@ const options = {
     },
   },
 };
-export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.vueApp.use(Toast, options);
+export default defineNuxtPlugin({
+  // Named so `auth-callback` can declare it as a dependency: that plugin toasts
+  // the outcome of an OAuth callback and needs this installed first.
+  name: 'vue-toastification',
+  setup(nuxtApp) {
+    nuxtApp.vueApp.use(Toast, options);
+  },
 });

@@ -17,6 +17,15 @@ export interface SlimToken {
   /** Ruby, already aligned to this surface. Absent when there is none to show,
    *  which is the ordinary case for an all-kana word. */
   f?: Array<{ t: string; r?: string }>;
+  /** The part of speech in words ("Verb", "Particle", "Expression"). Shirabe
+   *  resolves it, so there is no UniDic table to keep here and no gap when it
+   *  emits a category a hand-written table never had. */
+  posLabel?: string;
+  /** What this surface does to its dictionary form, outermost step first:
+   *  食べました is ["past", "polite"]. Japanese stacks, so it is a chain rather
+   *  than one name, and an ambiguous step says so ("potential / passive")
+   *  rather than picking a side. Absent for anything uninflected. */
+  inflection?: { labels: string[]; base: string };
   /** The finer morphemes inside a grouped token. Elasticsearch highlights
    *  against its own analyzer, so a match can land inside one of ours. */
   parts?: Array<{ s: string; b: number; e: number }>;
@@ -28,14 +37,11 @@ export interface EnrichedToken extends SlimToken {
   displaySurface: string;
   dictForm: string;
   reading: string;
-  posJa: string;
-  posEn: string;
-  posSubJa: string;
-  posSubEn: string;
-  conjClassJa: string;
-  conjClassEn: string;
-  conjFormJa: string;
-  conjFormEn: string;
+  /** The part of speech to print, as Shirabe worded it. */
+  pos: string;
+  /** The inflection chain to print, already ordered and localized. Empty when
+   *  the token is not an inflected word. */
+  inflectionLabels: string[];
   furigana: FuriganaSegment[];
   /** Highlighted spans in token-local characters, when a match covers only part
    *  of this token. Empty unless matchType is 'partial'. */
@@ -90,7 +96,7 @@ export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): stri
   return result.replace(/^ /, '');
 }
 
-export function katakanaToHiragana(str: string): string {
+function katakanaToHiragana(str: string): string {
   return str.replace(/[\u30A1-\u30F6]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
 }
 
@@ -261,66 +267,6 @@ export function hiraganaToRomaji(str: string): string {
   return result;
 }
 
-export const POS_LABELS: Record<string, string> = {
-  動詞: 'Verb',
-  // Shirabe groups a grammatical expression (について, ことになる) into one token,
-  // and 連語 is what it labels the result: there is no single morpheme to take a
-  // part of speech from. 形状詞 is ordinary UniDic for a na-adjective, which this
-  // table simply never had.
-  連語: 'Expression',
-  形状詞: 'Adjectival noun',
-  名詞: 'Noun',
-  形容詞: 'Adjective',
-  副詞: 'Adverb',
-  助詞: 'Particle',
-  助動詞: 'Auxiliary',
-  連体詞: 'Adnominal',
-  接続詞: 'Conjunction',
-  感動詞: 'Interjection',
-  接頭辞: 'Prefix',
-  接尾辞: 'Suffix',
-  記号: 'Symbol',
-  補助記号: 'Punctuation',
-  空白: 'Whitespace',
-};
-
-export const POS_SUB_LABELS: Record<string, string> = {
-  普通名詞: 'Common Noun',
-  固有名詞: 'Proper Noun',
-  数詞: 'Numeral',
-  代名詞: 'Pronoun',
-  非自立可能: 'Auxiliary-capable',
-  格助詞: 'Case Particle',
-  係助詞: 'Binding Particle',
-  副助詞: 'Adverbial Particle',
-  接続助詞: 'Conjunctive Particle',
-  終助詞: 'Sentence-final Particle',
-  準体助詞: 'Nominalizing Particle',
-};
-
-export const CONJ_FORM_LABELS: Record<string, string> = {
-  連用形: 'Continuative',
-  終止形: 'Plain Form',
-  連体形: 'Attributive',
-  未然形: 'Irrealis',
-  仮定形: 'Conditional',
-  命令形: 'Imperative',
-  意志推量形: 'Volitional',
-  語幹: 'Stem',
-  音便形: 'Euphonic',
-};
-
-export const CONJ_CLASS_LABELS: Record<string, string> = {
-  五段: 'Godan',
-  上一段: 'Ichidan (-iru)',
-  下一段: 'Ichidan (-eru)',
-  サ行変格: 'Irregular (する)',
-  カ行変格: 'Irregular (くる)',
-  形容詞: 'I-adjective',
-  文語形容詞: 'Classical adj.',
-  文語サ行変格: 'Classical irreg.',
-};
-
 /** Parse the `<em>` spans Elasticsearch marks a match with into character ranges
  *  over the plain text. */
 function highlightRanges(highlight: string): Array<{ start: number; end: number }> {
@@ -369,10 +315,6 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
     const covered = overlapping.some((r) => r.start <= token.b && r.end >= token.e);
     const matchType: EnrichedToken['matchType'] = covered ? 'match' : overlapping.length > 0 ? 'partial' : 'none';
 
-    const posSubJa = token.p1 ?? '';
-    const conjClassJa = token.p4?.split('-')[0] ?? '';
-    const conjFormJa = token.cf?.split('-')[0] ?? '';
-
     return {
       ...token,
       matchType,
@@ -387,14 +329,13 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
       dictForm: token.d,
       reading: katakanaToHiragana(token.r),
       furigana: furiganaOf(token),
-      posJa: token.p,
-      posEn: POS_LABELS[token.p] ?? token.p,
-      posSubJa,
-      posSubEn: posSubJa ? (POS_SUB_LABELS[posSubJa] ?? '') : '',
-      conjClassJa,
-      conjClassEn: conjClassJa ? (CONJ_CLASS_LABELS[conjClassJa] ?? '') : '',
-      conjFormJa,
-      conjFormEn: conjFormJa ? (CONJ_FORM_LABELS[conjFormJa] ?? '') : '',
+      // Both come off the token. There used to be four tables here mapping
+      // UniDic to English, and they were wrong in both directions: they had no
+      // entry for a category Shirabe emits (連語, 形状詞), and `cf` named the slot
+      // a stem sits in (連用形) rather than what the whole form does, so a polite
+      // past read as "continuative".
+      pos: token.posLabel ?? token.p,
+      inflectionLabels: token.inflection?.labels ?? [],
     };
   });
 }

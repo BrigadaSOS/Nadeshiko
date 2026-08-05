@@ -3,16 +3,22 @@ export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
 export type DictionaryPreset = {
   id: DictionaryId;
   label: string;
-  buildUrl: (word: string, reading: string) => string;
+  /**
+   * `slug` is Shirabe's own id for the word, present once the hover card has
+   * loaded one. It beats the surface because it has already picked the
+   * homograph, but it is an id Shirabe issued: no other dictionary can be
+   * handed it, so every other preset builds its url from `word`.
+   */
+  buildUrl: (word: string, reading: string, slug?: string) => string;
   defaultEnabled: boolean;
 };
 
-export const DICTIONARY_PRESETS: DictionaryPreset[] = [
+const DICTIONARY_PRESETS: DictionaryPreset[] = [
   {
     id: 'jisho',
     label: 'Jisho',
     buildUrl: (word) => `https://jisho.org/search/${encodeURIComponent(word)}`,
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     id: 'jpdb',
@@ -21,10 +27,14 @@ export const DICTIONARY_PRESETS: DictionaryPreset[] = [
     defaultEnabled: false,
   },
   {
+    // The dictionary behind the hover card itself, so it is where a reader who
+    // wants more than the card holds lands by default. A web page rather than
+    // the `shirabelookup://` app scheme this used to be: a scheme with no app
+    // installed fails silently, and the card is already on the web.
     id: 'shirabe',
-    label: 'Shirabe Jisho',
-    buildUrl: (word) => `shirabelookup://search?w=${encodeURIComponent(word)}`,
-    defaultEnabled: false,
+    label: 'shirabe.org',
+    buildUrl: (word, _reading, slug) => `https://shirabe.org/word/${encodeURIComponent(slug ?? word)}`,
+    defaultEnabled: true,
   },
   {
     id: 'weblio',
@@ -40,9 +50,13 @@ export const DICTIONARY_PRESETS: DictionaryPreset[] = [
   },
 ];
 
+// The cookie stores ids, and anything not in this set is dropped from it on the
+// next read. So a preset is retired by leaving it here: delete one and every
+// reader who had chosen it loses that choice the next time they change any
+// other, silently. Turning one off by default only affects readers who have
+// never set the preference at all, which is what `decodeEnabled` falls back to.
 const VALID_IDS = new Set<string>(DICTIONARY_PRESETS.map((d) => d.id));
 const COOKIE_NAME = 'nd_dict_links';
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 const decodeEnabled = (raw: string | null | undefined): DictionaryId[] => {
   if (raw === null || raw === undefined) {
@@ -56,27 +70,22 @@ const decodeEnabled = (raw: string | null | undefined): DictionaryId[] => {
 };
 
 export function useDictionaryLinks() {
-  const cookie = useCookie<string | null>(COOKIE_NAME, {
-    maxAge: COOKIE_MAX_AGE,
-    path: '/',
-    sameSite: 'lax',
-    encode: String,
-    decode: String,
-  });
-
-  const enabledDictionaries = useState<DictionaryId[]>('dictionary-links-enabled', () => decodeEnabled(cookie.value));
-
-  if (import.meta.server) {
-    enabledDictionaries.value = decodeEnabled(cookie.value);
-  }
+  const { state: enabledDictionaries, set } = useCookiePreference<DictionaryId[]>(
+    COOKIE_NAME,
+    'dictionary-links-enabled',
+    {
+      parse: decodeEnabled,
+      // An empty string, not `null`: "every dictionary off" has to be tellable
+      // from "never chose", which is what `decodeEnabled` falls back on.
+      serialize: (ids) => ids.join(','),
+    },
+  );
 
   const setDictionaryEnabled = (id: DictionaryId, enabled: boolean) => {
     const next = new Set(enabledDictionaries.value);
     if (enabled) next.add(id);
     else next.delete(id);
-    const ordered = DICTIONARY_PRESETS.filter((d) => next.has(d.id)).map((d) => d.id);
-    enabledDictionaries.value = ordered;
-    cookie.value = ordered.join(',');
+    set(DICTIONARY_PRESETS.filter((d) => next.has(d.id)).map((d) => d.id));
   };
 
   const isDictionaryEnabled = (id: DictionaryId) => enabledDictionaries.value.includes(id);
