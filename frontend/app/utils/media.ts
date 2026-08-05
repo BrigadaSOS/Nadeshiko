@@ -150,31 +150,6 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
     });
 }
 
-export function zoomImage(url: string) {
-  const ampliada = document.createElement('div');
-  ampliada.className = 'ampliada';
-  ampliada.dataset.testid = 'image-zoom-overlay';
-  const imgAmpliada = document.createElement('img');
-  imgAmpliada.dataset.testid = 'zoomed-image';
-  imgAmpliada.src = url;
-  ampliada.appendChild(imgAmpliada);
-  document.body.appendChild(ampliada);
-
-  const close = () => {
-    document.removeEventListener('keydown', onKeydown, true);
-    document.body.removeChild(ampliada);
-  };
-  const onKeydown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-      close();
-    }
-  };
-  document.addEventListener('keydown', onKeydown, true);
-  ampliada.onclick = close;
-}
-
 export function youtubeWatchUrl(videoId: string, startMs: number): string {
   return `https://www.youtube.com/watch?v=${videoId}&t=${Math.max(0, Math.floor(startMs / 1000))}`;
 }

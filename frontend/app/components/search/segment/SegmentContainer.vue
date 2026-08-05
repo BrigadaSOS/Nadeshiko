@@ -44,6 +44,8 @@ const { mediaName } = useMediaName();
 const { shouldBlur, isRestricted } = useContentRating();
 const { englishMode, spanishMode } = useTranslationVisibility();
 
+const { isAnyModalOpen } = useModalState();
+
 const containerRef = ref<HTMLElement | null>(null);
 const selectedResult = ref<SearchResult | null>(null);
 const searchNoteResult = ref<SearchResult | null>(null);
@@ -82,13 +84,10 @@ const handleKeydown = (event: KeyboardEvent) => {
     return;
   }
 
-  const insideOverlay = containerRef.value?.closest('.nd-overlay');
-  const hasOpenOverlay = document.querySelector('.nd-overlay:not(.hidden), [data-nd-modal-open]');
-  if (insideOverlay) {
-    if (insideOverlay.classList.contains('hidden')) return;
-  } else {
-    if (hasOpenOverlay) return;
-  }
+  // Cards rendered inside a modal (e.g. the context modal) keep their
+  // shortcuts; cards on the page behind an open modal do not.
+  const insideModal = !!containerRef.value?.closest('.nd-modal');
+  if (!insideModal && isAnyModalOpen.value) return;
 
   if (event.code === 'KeyS' && event.shiftKey) {
     event.preventDefault();
@@ -285,10 +284,12 @@ watch(
   { immediate: true },
 );
 
+const zoomedImageUrl = ref<string | null>(null);
+
 const onImageClick = (result: SearchResult) => {
   const { segment } = result;
   if (shouldBlur(segment.contentRating) && !revealedContent.value.has(segment.publicId)) return;
-  zoomImage(segment.urls.imageUrl);
+  zoomedImageUrl.value = segment.urls.imageUrl;
 };
 
 watch(playingVideoId, (id) => {
@@ -301,17 +302,39 @@ watch(playingVideoId, (id) => {
 <template>
   <div ref="containerRef" v-if="(searchData?.results?.length ?? 0) > 0 && searchData">
 
-    <SearchModalContext v-if="!hideContextButton" :sentence="selectedResult" />
+    <SearchModalContext v-if="!hideContextButton" :sentence="selectedResult" @close="selectedResult = null" />
+
+    <CommonBaseModal
+      data-testid="image-zoom-overlay"
+      :open="!!zoomedImageUrl"
+      z-index-class="z-[9999]"
+      overlay-class="items-center justify-center bg-black/80"
+      panel-class="flex items-center justify-center max-w-[90%] max-h-[90%]"
+      :label="$t('searchpage.main.labels.zoomedImage')"
+      @close="zoomedImageUrl = null"
+    >
+      <img
+        v-if="zoomedImageUrl"
+        data-testid="zoomed-image"
+        :src="zoomedImageUrl"
+        alt=""
+        class="max-w-full max-h-full object-contain cursor-zoom-out"
+        @click="zoomedImageUrl = null"
+      />
+    </CommonBaseModal>
 
     <SearchModalAnkiNotes :sentence="searchNoteResult"
-      :onClick="(result: SearchResult, id: number) => ankiStore().addSentenceToAnki(result, id)" />
+      :onClick="(result: SearchResult, id: number) => ankiStore().addSentenceToAnki(result, id)"
+      @close="searchNoteResult = null" />
 
-    <SearchModalSegmentEdit :segment="segmentToEdit" @update:success="onEditSuccess" />
+    <SearchModalSegmentEdit :segment="segmentToEdit" @update:success="onEditSuccess"
+      @close="segmentToEdit = null" />
 
     <SearchModalReport
       :target="reportTarget?.target ?? null"
       :segment="reportTarget?.segment ?? null"
       :mediaName="reportTarget?.mediaName"
+      @close="reportTarget = null"
     />
 
     <div v-for="(result, index) in resultList" :key="result.segment.publicId"
@@ -616,24 +639,6 @@ watch(playingVideoId, (id) => {
   </div>
 </template>
 <style>
-.ampliada {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.ampliada img {
-  max-width: 90%;
-  max-height: 90%;
-}
-
 .image-container {
   position: relative;
 }

@@ -1,17 +1,29 @@
-<script setup>
+<script setup lang="ts">
+import { handleApiError } from '~/utils/apiError';
 import { mdiTagSearchOutline } from '@mdi/js';
+import { useI18n } from 'vue-i18n';
 import { resolveWordsResponse } from '~/utils/resolvers';
 import { buildWordSearchPath } from '~/utils/routes';
+import type { MultiSearchResult } from '~/types/search';
 
-const words = ref('');
-import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const sdk = useNadeshikoSdk();
 
+defineProps<{ open: boolean }>();
+const emit = defineEmits<{ close: [] }>();
+
+const closeModal = () => {
+  showResults.value = false;
+  emit('close');
+};
+
+/** Parsed from `inputText` by the watcher below; the API takes the words as a list. */
+const words = ref<string[]>([]);
 const inputText = ref('');
-const wordCount = ref(0);
+/** Shows the parsed word count, or a "not available" label when the input is malformed. */
+const wordCount = ref<number | string>(0);
 const errorMessage = ref('');
-const wordsMatch = ref([]);
+const wordsMatch = ref<MultiSearchResult[]>([]);
 const totalWordsSearched = ref(0);
 const checkExactSearch = ref(false);
 const isLoading = ref(false);
@@ -51,8 +63,8 @@ const getWordMatch = async () => {
     const response = data ? resolveWordsResponse(data) : { results: [] };
     wordsMatch.value = response.results;
     totalWordsSearched.value = words.value.length;
-  } catch (e) {
-    useToastError(e);
+  } catch (error) {
+    handleApiError('search:batch-words-failed', error, { toastKey: 'modalBatch.searchError' });
   } finally {
     isLoading.value = false;
   }
@@ -93,19 +105,19 @@ watch(inputText, (newValue) => {
 </script>
 
 <template>
-  <div id="nd-vertically-centered-scrollable-batch"
-    class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
-    <div
-      class="justify-center nd-overlay-open:opacity-100 nd-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all lg:max-w-3xl m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center">
-      <div
-        class="max-h-full w-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border">
+  <CommonBaseModal
+    data-testid="batch-modal"
+    :open="open"
+    labelledby="nd-batch-modal-title"
+    overlay-class="items-center justify-center bg-neutral-900/40"
+    panel-class="max-h-[calc(100%-3.5rem)] w-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border lg:max-w-3xl m-3 sm:mx-auto"
+    @close="closeModal">
         <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
-          <h3 class="font-bold text-gray-800 dark:text-white">
+          <h3 id="nd-batch-modal-title" class="font-bold text-gray-800 dark:text-white">
             {{ showResults ? t("batchSearch.results.title") : t("batchSearch.title") }}
           </h3>
-          <button type="button" @click="showResults = false"
-            class="nd-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
-            data-nd-overlay="#nd-vertically-centered-scrollable-batch">
+          <button type="button" @click="closeModal"
+            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800">
             <span class="sr-only">{{ t('modalBatch.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
@@ -246,8 +258,8 @@ watch(inputText, (newValue) => {
               {{ t("batchSearch.search") }}
             </button>
             <button type="button"
-              class="nd-dropdown-toggle h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-input-focus-ring transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
-              data-nd-overlay="#nd-vertically-centered-scrollable-batch">
+              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-input-focus-ring transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+              @click="closeModal">
               {{ t("batchSearch.close") }}
             </button>
           </template>
@@ -258,7 +270,5 @@ watch(inputText, (newValue) => {
             </button>
           </template>
         </div>
-      </div>
-    </div>
-  </div>
+  </CommonBaseModal>
 </template>

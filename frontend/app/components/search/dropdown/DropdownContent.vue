@@ -9,11 +9,13 @@
   </div>
 </template>
 
-<script setup>
-defineProps({
-  header: {
-    type: String,
-    default: 'Options',
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    header?: string;
+  }>(),
+  {
+    header: 'Options',
   },
-});
+);
 </script>

@@ -15,29 +15,23 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  href: {
-    type: String,
-    default: '#',
+<script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    href?: string;
+    text?: string;
+    iconPath?: string | null;
+    isDisabled?: boolean;
+    tooltip?: string | null;
+  }>(),
+  {
+    href: '#',
+    text: 'Item',
+    iconPath: null,
+    isDisabled: false,
+    tooltip: null,
   },
-  text: {
-    type: String,
-    default: 'Item',
-  },
-  iconPath: {
-    type: String,
-    default: null,
-  },
-  isDisabled: {
-    type: Boolean,
-    default: false,
-  },
-  tooltip: {
-    type: String,
-    default: null,
-  },
-});
+);
 
 const buttonClass = computed(() => {
   if (props.isDisabled) {
