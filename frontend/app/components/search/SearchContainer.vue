@@ -1,19 +1,15 @@
 <script setup lang="ts">
+import { handleApiError } from '~/utils/apiError';
+import { reportError } from '~/utils/reportError';
 import { mdiRefresh, mdiEyeOff } from '@mdi/js';
 import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
-import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 import { splitLocalePrefix } from '~/utils/routes';
-import type {
-  SearchResponse,
-  SearchStatsResponse,
-  SearchFilters,
-  ResolvedMediaStats,
-  ResolvedCategoryCount,
-} from '~/types/search';
+import type { SearchScope } from '~/composables/useSearchFetch';
+import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
 const { mediaName } = useMediaName();
 const { hiddenMediaIds, hiddenMediaExcludeFilter, isMediaHidden } = useHiddenMedia();
@@ -46,6 +42,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const localePath = useLocalePath();
 const sdk = useNadeshikoSdk();
+const { fetchSentences, fetchStats, cancelSentences } = useSearchFetch();
 const posthog = usePostHog();
 const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
@@ -82,9 +79,8 @@ const isViewingHiddenMedia = computed(
 
 const showAnywayAndRefresh = () => {
   showHiddenMediaOverride.value = true;
-  resetSentencePagination();
-  fetchStats();
-  fetchSentences();
+  loadStats();
+  loadSentences({ append: false });
 };
 
 const firstQueryValue = (
@@ -180,223 +176,34 @@ const applyRouteQuery = (r: RouteLocationNormalized) => {
 
 applyRouteQuery(route);
 
-const fetchStats = async () => {
-  try {
-    if (props.collectionId) {
-      const result = await sdk.getCollectionStats({
-        collectionPublicId: props.collectionId,
-        throwOnError: false,
-      });
-      if ('error' in result) {
-        if (result.response.status === 403 || result.response.status === 401) {
-          await navigateTo(localePath('/'), { redirectCode: 302 });
-          return;
-        }
-        statsData.value = { media: [], categories: [] };
-        return;
-      }
-      statsData.value = resolveStatsResponse(result.data);
-      return;
-    }
+const pageSize = computed(() => (props.collectionId ? COLLECTION_PAGE_SIZE : SEARCH_PAGE_SIZE));
 
-    const filters: SearchFilters = {};
+const searchScope = computed<SearchScope>(() => ({
+  query: query.value,
+  category: category.value,
+  mediaPublicId: media.value,
+  episode: episode.value,
+  sort: sort.value,
+  segmentPublicId: uuid.value,
+  collectionId: props.collectionId ?? null,
+  listMediaIds: props.listMediaIds ?? null,
+  contentRating: contentRating.value,
+  languages: includedLanguages.value,
+  hiddenMediaExclude: hiddenMediaExcludeFilter.value,
+}));
 
-    const mappedCategory = categoryApiMapping[category.value];
-    if (mappedCategory) {
-      filters.category = [mappedCategory];
-    }
+const loadStats = async () => {
+  const outcome = await fetchStats(searchScope.value);
 
-    if (props.listMediaIds && props.listMediaIds.length > 0) {
-      filters.media = {
-        include: props.listMediaIds.map((id: number) => ({ mediaPublicId: String(id) })),
-      };
-    }
-
-    filters.contentRating = contentRating.value;
-    if (hiddenMediaExcludeFilter.value.length > 0) {
-      filters.media = {
-        ...(filters.media || {}),
-        exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
-      };
-    }
-    if (includedLanguages.value) {
-      filters.languages = includedLanguages.value;
-    }
-
-    const data = await sdk.getSearchStats({
-      query: query.value ? { search: query.value } : undefined,
-      filters,
-      include: ['media'],
-    });
-    statsData.value = resolveStatsResponse(data);
-  } catch {
-    statsData.value = {
-      media: [],
-      categories: [],
-    };
+  if (outcome.status === 'stale') {
+    return;
   }
-};
-
-const fetchSentences = async () => {
-  try {
-    if (isViewingHiddenMedia.value) {
-      sentenceData.value = { results: [] };
-      endOfResults.value = true;
-      hasMoreResults.value = false;
-      return;
-    }
-
-    if (endOfResults.value || isLoading.value) {
-      return;
-    }
-
-    if (cursor.value === null) {
-      playerStore.hidePlayer();
-    }
-
-    isLoading.value = true;
-    showLoadMoreButton.value = false;
-
-    let response;
-
-    if (props.collectionId) {
-      const result = await sdk.searchCollectionSegments({
-        collectionPublicId: props.collectionId,
-        ...(cursor.value ? { cursor: cursor.value } : {}),
-        take: 20,
-        throwOnError: false,
-      });
-      if ('error' in result) {
-        if (result.response.status === 403 || result.response.status === 401) {
-          await navigateTo(localePath('/'), { redirectCode: 302 });
-          return;
-        }
-        response = null;
-      } else {
-        response = resolveSearchResponse(result.data);
-      }
-    } else {
-      const filters: SearchFilters = {};
-
-      const mappedCategory = categoryApiMapping[category.value];
-      if (mappedCategory) {
-        filters.category = [mappedCategory];
-      }
-
-      const mediaInclude: Array<{ mediaPublicId: string; episodes?: number[] }> = [];
-      if (media.value) {
-        const mediaEntry: { mediaPublicId: string; episodes?: number[] } = {
-          mediaPublicId: String(media.value),
-        };
-        if (episode.value !== null) {
-          mediaEntry.episodes = [episode.value];
-        }
-        mediaInclude.push(mediaEntry);
-      }
-      if (props.listMediaIds && props.listMediaIds.length > 0) {
-        for (const id of props.listMediaIds) {
-          mediaInclude.push({ mediaPublicId: String(id) });
-        }
-      }
-      if (mediaInclude.length > 0) {
-        filters.media = { include: mediaInclude };
-      }
-
-      filters.contentRating = contentRating.value;
-      if (!media.value && hiddenMediaExcludeFilter.value.length > 0) {
-        filters.media = {
-          ...(filters.media || {}),
-          exclude: [...(filters.media?.exclude || []), ...hiddenMediaExcludeFilter.value],
-        };
-      }
-      if (includedLanguages.value) {
-        filters.languages = includedLanguages.value;
-      }
-
-      const isInitialSearch = !cursor.value;
-      const data = await sdk.search({
-        query: query.value ? { search: query.value } : undefined,
-        take: 30,
-        sort:
-          sort.value && sort.value.toUpperCase() !== 'RELEVANCE'
-            ? { mode: sort.value.toUpperCase() as 'ASC' | 'DESC' | 'TIME_ASC' | 'TIME_DESC' | 'RANDOM' }
-            : undefined,
-        cursor: cursor.value || undefined,
-        filters,
-        include: ['media'],
-      });
-      response = resolveSearchResponse(data);
-
-      if (isInitialSearch && query.value && query.value !== lastTrackedQuery.value && import.meta.client) {
-        lastTrackedQuery.value = query.value;
-        const resultsCount = response?.pagination?.estimatedTotalHits ?? 0;
-
-        let mediaId: string | null = null;
-        let mediaNameValue: string | null = null;
-        if (media.value) {
-          mediaId = String(media.value);
-          const mediaSource = response?.results?.[0]?.media ?? null;
-          if (mediaSource) {
-            mediaNameValue = mediaName(mediaSource);
-          }
-        }
-
-        const searchEventProps = {
-          query: query.value,
-          category: category.value,
-          has_media_filter: !!media.value,
-          media_id: mediaId,
-          media_name: mediaNameValue,
-          episode_number: episode.value,
-          results_count: resultsCount,
-        };
-
-        posthog?.capture('sentence_searched', searchEventProps);
-        if (resultsCount === 0) {
-          posthog?.capture('search_results_empty', searchEventProps);
-        }
-        if (userStore().isLoggedIn) {
-          sdk.trackUserActivity({ activityType: 'SEARCH', searchQuery: query.value }).catch(() => {});
-        }
-      }
-    }
-    const incomingResults = response?.results || [];
-
-    if (cursor.value === null) {
-      sentenceData.value = {
-        ...response,
-        results: incomingResults,
-      };
-    } else {
-      const previousResults = sentenceData.value?.results || [];
-      sentenceData.value = {
-        ...sentenceData.value,
-        ...response,
-        results: [...previousResults, ...incomingResults],
-      };
-    }
-
-    const nextCursor = response?.pagination?.cursor || null;
-    const hasMore = response?.pagination?.hasMore ?? false;
-    cursor.value = nextCursor;
-
-    if (!hasMore || !nextCursor || isSingleSentenceView.value) {
-      endOfResults.value = true;
-      hasMoreResults.value = false;
-    } else {
-      hasMoreResults.value = true;
-    }
-
-    initialError.value = false;
-  } catch {
-    if (!sentenceData.value?.results || sentenceData.value.results.length === 0) {
-      initialError.value = true;
-    }
-    hasMoreResults.value = false;
-    showLoadMoreButton.value = true;
-  } finally {
-    isLoading.value = false;
+  if (outcome.status === 'forbidden') {
+    await navigateTo(localePath('/'), { redirectCode: 302 });
+    return;
   }
+
+  statsData.value = outcome.status === 'ok' ? outcome.data : { media: [], categories: [] };
 };
 
 const resetSentencePagination = () => {
@@ -409,12 +216,139 @@ const resetSentencePagination = () => {
   };
 };
 
+const trackSearch = (response: SearchResponse) => {
+  if (!import.meta.client || !query.value || query.value === lastTrackedQuery.value) {
+    return;
+  }
+  lastTrackedQuery.value = query.value;
+
+  let mediaId: string | null = null;
+  let mediaNameValue: string | null = null;
+  if (media.value) {
+    mediaId = String(media.value);
+    const mediaSource = response?.results?.[0]?.media ?? null;
+    if (mediaSource) {
+      mediaNameValue = mediaName(mediaSource);
+    }
+  }
+
+  const resultsCount = response?.pagination?.estimatedTotalHits ?? 0;
+  const searchEventProps = {
+    query: query.value,
+    category: category.value,
+    has_media_filter: !!media.value,
+    media_id: mediaId,
+    media_name: mediaNameValue,
+    episode_number: episode.value,
+    results_count: resultsCount,
+  };
+
+  posthog?.capture('sentence_searched', searchEventProps);
+  if (resultsCount === 0) {
+    posthog?.capture('search_results_empty', searchEventProps);
+  }
+  if (userStore().isLoggedIn) {
+    // Fire-and-forget telemetry: never let it interrupt or warn about a search that
+    // already rendered its results.
+    sdk
+      .trackUserActivity({ activityType: 'SEARCH', searchQuery: query.value })
+      .catch((error: unknown) => reportError('search:track-activity-failed', error));
+  }
+};
+
+/**
+ * `append: false` starts a fresh result list and cancels whatever was in
+ * flight, so a route change always wins over the request it replaces.
+ * `append: true` is the pagination path and steps aside while a fetch is
+ * already running, since cancelling it would drop a page of results.
+ */
+const loadSentences = async ({ append }: { append: boolean }) => {
+  if (isViewingHiddenMedia.value) {
+    cancelSentences();
+    sentenceData.value = { results: [] };
+    endOfResults.value = true;
+    hasMoreResults.value = false;
+    isLoading.value = false;
+    return;
+  }
+
+  if (append && (endOfResults.value || isLoading.value)) {
+    return;
+  }
+
+  if (!append) {
+    resetSentencePagination();
+    playerStore.hidePlayer();
+  }
+
+  isLoading.value = true;
+  showLoadMoreButton.value = false;
+
+  const requestCursor = append ? cursor.value : null;
+  const outcome = await fetchSentences(searchScope.value, { cursor: requestCursor });
+
+  // A newer request owns the state now — it will clear `isLoading` itself.
+  if (outcome.status === 'stale') {
+    return;
+  }
+
+  if (outcome.status === 'forbidden') {
+    isLoading.value = false;
+    await navigateTo(localePath('/'), { redirectCode: 302 });
+    return;
+  }
+
+  if (outcome.status === 'error') {
+    if (!sentenceData.value?.results || sentenceData.value.results.length === 0) {
+      initialError.value = true;
+    }
+    hasMoreResults.value = false;
+    showLoadMoreButton.value = true;
+    isLoading.value = false;
+    return;
+  }
+
+  const response = outcome.data;
+  const incomingResults = response.results || [];
+
+  if (requestCursor === null) {
+    sentenceData.value = {
+      ...response,
+      results: incomingResults,
+    };
+  } else {
+    const previousResults = sentenceData.value?.results || [];
+    sentenceData.value = {
+      ...sentenceData.value,
+      ...response,
+      results: [...previousResults, ...incomingResults],
+    };
+  }
+
+  const nextCursor = response.pagination?.cursor || null;
+  const hasMore = response.pagination?.hasMore ?? false;
+  cursor.value = nextCursor;
+
+  if (!hasMore || !nextCursor || isSingleSentenceView.value) {
+    endOfResults.value = true;
+    hasMoreResults.value = false;
+  } else {
+    hasMoreResults.value = true;
+  }
+
+  initialError.value = false;
+  if (requestCursor === null && !props.collectionId && !uuid.value) {
+    trackSearch(response);
+  }
+  isLoading.value = false;
+};
+
 const loadMore = () => {
   posthog?.capture('search_load_more', {
     query: query.value,
     results_so_far: sentenceData.value?.results?.length ?? 0,
   });
-  fetchSentences();
+  loadSentences({ append: true });
 };
 
 const getCategoryCount = (categoryKey: string): number => {
@@ -495,15 +429,18 @@ const handleRemoveFromCollection = async (segmentPublicId: string) => {
       };
     }
     // Refresh stats
-    fetchStats();
-  } catch {
-    // Collection removal failed — UI keeps segment visible
+    loadStats();
+  } catch (error) {
+    // The row stays on screen, which reads exactly like a no-op click.
+    handleApiError('collections:remove-segment-failed', error, {
+      toastKey: 'searchpage.main.labels.collectionRemoveFailed',
+      context: { 'segment.publicId': segmentPublicId },
+    });
   }
 };
 
 const handleRandomLogic = () => {
-  resetSentencePagination();
-  fetchSentences();
+  loadSentences({ append: false });
 };
 
 if (props.initialSentenceData) {
@@ -512,7 +449,7 @@ if (props.initialSentenceData) {
   if (
     !props.initialSentenceData.pagination?.hasMore ||
     !props.initialSentenceData.pagination?.cursor ||
-    initialResults.length < 30
+    initialResults.length < pageSize.value
   ) {
     endOfResults.value = true;
     hasMoreResults.value = false;
@@ -521,21 +458,19 @@ if (props.initialSentenceData) {
 
 onMounted(async () => {
   if (props.initialSentenceData == null) {
-    resetSentencePagination();
-    await fetchSentences();
+    await loadSentences({ append: false });
   }
 
   if (props.initialStatsData == null) {
-    fetchStats();
+    loadStats();
   }
 });
 
 const forceSearchCounter = useState('force-search-counter', () => 0);
 
 watch(forceSearchCounter, () => {
-  resetSentencePagination();
-  fetchStats();
-  fetchSentences();
+  loadStats();
+  loadSentences({ append: false });
 });
 
 onBeforeRouteUpdate(async (to, from) => {
@@ -545,13 +480,12 @@ onBeforeRouteUpdate(async (to, from) => {
 
   applyRouteQuery(to);
   showHiddenMediaOverride.value = false;
-  resetSentencePagination();
 
   if (statsScopeChanged) {
-    fetchStats();
+    loadStats();
   }
 
-  await fetchSentences();
+  await loadSentences({ append: false });
 });
 </script>
 
@@ -560,7 +494,7 @@ onBeforeRouteUpdate(async (to, from) => {
     <div v-if="isViewingHiddenMedia" class="flex-1 mx-auto">
         <section class="w-full py-10 px-4">
             <div class="flex flex-col items-center max-w-lg mx-auto text-center">
-                <img class="mb-6" src="/assets/hidden-media.gif" alt="Hidden media illustration" />
+                <img class="mb-6" src="/assets/hidden-media.gif" :alt="$t('searchContainer.hiddenMediaImageAlt')" />
                 <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.hiddenMediaNotice') }}</h1>
                 <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.hiddenMediaDescription') }}</p>
                 <button
@@ -585,13 +519,13 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div class="w-full align-top items-center">
                     <div class="flex flex-col items-center max-w-lg mx-auto text-center">
                         <img class="mb-6"
-                            src="/assets/no-results.gif" alt="No results illustration" />
+                            src="/assets/no-results.gif" :alt="$t('searchContainer.noResultsImageAlt')" />
                         <h2 class="font-bold text-red-400 text-3xl">{{ $t('searchContainer.errorTitle') }}</h2>
                         <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.errorMessage1') }}</h1>
                         <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.errorMessage2') }}
                         </p>
 
-                        <UiButtonPrimaryAction class="my-4" @click="fetchSentences()">
+                        <UiButtonPrimaryAction class="my-4" @click="loadSentences({ append: false })">
                             <template v-if="isLoading">
                                 {{ $t('searchContainer.retrying') }}
                                 <div role="status">
@@ -637,7 +571,7 @@ onBeforeRouteUpdate(async (to, from) => {
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
                             <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')" :totalCount="getCategoryTotalCount('all')"
-                                :isActive="category === 'all' || media" @click="categoryFilter('all')" />
+                                :isActive="category === 'all' || !!media" @click="categoryFilter('all')" />
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'ANIME')"
                                 category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :totalCount="getCategoryTotalCount('anime')" :isActive="category === 'anime'"
                                 @click="categoryFilter('anime')" />
@@ -686,7 +620,7 @@ onBeforeRouteUpdate(async (to, from) => {
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" :collectionId="collectionId" @remove-from-collection="handleRemoveFromCollection" />
-                <CommonInfiniteScrollObserver @intersect="fetchSentences" v-if="hasMoreResults && !isLoading" />
+                <CommonInfiniteScrollObserver @intersect="loadSentences({ append: true })" v-if="hasMoreResults && !isLoading" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8 yomitan-ignore">
                     <UiButtonPrimaryAction class="my-1" @click="loadMore">
                         <UiBaseIcon :path="mdiRefresh" />
