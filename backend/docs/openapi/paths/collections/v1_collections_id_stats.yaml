@@ -9,7 +9,7 @@ get:
     Pages through all collection segments internally to compute statistics.
 
   security:
-    - SessionCookie: []
+    - ApiKey: [READ_COLLECTIONS]
   parameters:
     - name: collectionPublicId
       in: path

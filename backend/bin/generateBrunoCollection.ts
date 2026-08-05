@@ -83,7 +83,7 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
   if (item.type !== 'http-request') return;
 
   const request = item.request;
-  const fileName = sanitizeName(item.name) + '.bru';
+  const fileName = `${sanitizeName(item.name)}.bru`;
   const filePath = join(folderPath, fileName);
 
   // Extract bearer token value for auth block
@@ -376,8 +376,8 @@ function extractSecurityScheme(openApiSpec: OpenAPISpec, request: any): void {
             request.auth = {
               mode: 'bearer',
               bearer: {
-                token: '{{apiKey}}'
-              }
+                token: '{{apiKey}}',
+              },
             };
             return;
           }

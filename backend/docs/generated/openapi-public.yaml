@@ -1137,11 +1137,6 @@ components:
       scheme: bearer
       bearerFormat: APIKey
       description: 'Send `Authorization: Bearer <api_key>`. Get your API key from https://nadeshiko.co/user/developer'
-    SessionCookie:
-      type: apiKey
-      in: cookie
-      name: nadeshiko.session_token
-      description: Session authentication via cookie
   schemas:
     SearchQuery:
       type: object

@@ -35,6 +35,19 @@ export type t_AdminReportListResponse = {
   pagination: t_CursorPagination;
 };
 
+export type t_AdminUserWithProviders = {
+  banReason: string | null;
+  banned: boolean;
+  createdAt: string;
+  email: string;
+  emailVerified: boolean;
+  id: number;
+  name: string;
+  providers: string[];
+  role: 'ADMIN' | 'MOD' | 'USER' | 'PATREON';
+  updatedAt: string;
+};
+
 export type t_AffectedCountResponse = {
   count: number;
 };
@@ -955,6 +968,12 @@ export type t_EnrollUserLabParamSchema = {
 
 export type t_GetAdminMediaAuditRunParamSchema = {
   auditRunId: number;
+};
+
+export type t_GetAdminUsersWithProvidersQuerySchema = {
+  limit?: number;
+  offset?: number;
+  search?: string;
 };
 
 export type t_GetCollectionParamSchema = {

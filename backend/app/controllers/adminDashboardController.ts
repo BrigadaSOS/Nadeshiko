@@ -1,18 +1,45 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { GetAdminUsersWithProviders } from 'generated/routes/admin';
+import type { t_AdminUserWithProviders } from 'generated/models';
+import { UserRoleType } from '@app/models';
 import { AppDataSource } from '@config/database';
 
-export const getAdminUsersWithProviders = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const limit = Math.min(Number(req.query.limit) || 20, 100);
-    const offset = Number(req.query.offset) || 0;
-    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+interface AdminUserRow {
+  id: number;
+  name: string | null;
+  email: string;
+  role: UserRoleType;
+  emailVerified: boolean;
+  banned: boolean;
+  banReason: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  providers: string[];
+}
 
-    const searchCondition = search ? `AND (u.email ILIKE $3 OR u.username ILIKE $3)` : '';
-    const params: (string | number)[] = [limit, offset];
-    if (search) params.push(`%${search}%`);
+function toAdminUserDTO(row: AdminUserRow): t_AdminUserWithProviders {
+  return {
+    id: row.id,
+    name: row.name ?? '',
+    email: row.email,
+    role: row.role,
+    emailVerified: row.emailVerified,
+    banned: row.banned,
+    banReason: row.banReason,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: (row.updatedAt ?? row.createdAt).toISOString(),
+    providers: row.providers,
+  };
+}
 
-    const rows = await AppDataSource.query(
-      `SELECT
+export const getAdminUsersWithProviders: GetAdminUsersWithProviders = async ({ query }, respond) => {
+  const search = query.search?.trim() ?? '';
+
+  const searchCondition = search ? `AND (u.email ILIKE $3 OR u.username ILIKE $3)` : '';
+  const params: (string | number)[] = [query.limit, query.offset];
+  if (search) params.push(`%${search}%`);
+
+  const rows: AdminUserRow[] = await AppDataSource.query(
+    `SELECT
         u.id,
         u.username AS name,
         u.email,
@@ -32,16 +59,16 @@ export const getAdminUsersWithProviders = async (req: Request, res: Response, ne
       GROUP BY u.id
       ORDER BY u.created_at DESC
       LIMIT $1 OFFSET $2`,
-      params,
-    );
+    params,
+  );
 
-    const [{ count }] = await AppDataSource.query(
-      `SELECT COUNT(*) AS count FROM "User" u WHERE u.is_active = true ${search ? 'AND (u.email ILIKE $1 OR u.username ILIKE $1)' : ''}`,
-      search ? [`%${search}%`] : [],
-    );
+  const [{ count }] = await AppDataSource.query(
+    `SELECT COUNT(*) AS count FROM "User" u WHERE u.is_active = true ${search ? 'AND (u.email ILIKE $1 OR u.username ILIKE $1)' : ''}`,
+    search ? [`%${search}%`] : [],
+  );
 
-    res.json({ users: rows, total: Number(count) });
-  } catch (err) {
-    next(err);
-  }
+  return respond.with200().body({
+    users: rows.map(toAdminUserDTO),
+    total: Number(count),
+  });
 };

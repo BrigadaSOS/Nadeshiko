@@ -26,9 +26,14 @@ describe('mountRoutes', () => {
 
     expect(mounted).toBe(app);
 
+    // The app DataSource is not initialized in the suite (tests use
+    // TestDataSource), so the probe reports the database down and answers 503.
+    // Elasticsearch is reported as a field and never affects the status code.
     const upRes = await request(app).get('/up');
-    expect(upRes.status).toBe(200);
-    expect(upRes.text).toBe('OK');
+    expect(upRes.status).toBe(503);
+    expect(upRes.body).toMatchObject({ status: 'error', database: 'down' });
+    expect(upRes.body).toHaveProperty('elasticsearch');
+    expect(upRes.headers['cache-control']).toBe('no-store');
 
     const authRes = await request(app).get('/v1/auth');
     expect(authRes.status).not.toBe(500);

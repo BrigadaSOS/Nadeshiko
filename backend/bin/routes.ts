@@ -155,8 +155,9 @@ for (const runtimeRoute of [...runtimeRoutes, ...manualRuntimeRoutes]) {
 
 const byTag = routes.reduce(
   (acc, route) => {
-    if (!acc[route.tag]) acc[route.tag] = [];
-    acc[route.tag].push(route);
+    const bucket = acc[route.tag] ?? [];
+    bucket.push(route);
+    acc[route.tag] = bucket;
     return acc;
   },
   {} as Record<string, RouteInfo[]>,
@@ -165,7 +166,7 @@ const byTag = routes.reduce(
 const sortedTags = Object.keys(byTag).sort();
 
 for (const tag of sortedTags) {
-  const tagRoutes = byTag[tag];
+  const tagRoutes = byTag[tag] ?? [];
   console.log(`\n${tag}`);
   console.log('─'.repeat(70));
 
