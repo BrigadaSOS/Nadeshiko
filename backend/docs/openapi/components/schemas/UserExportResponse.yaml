@@ -6,7 +6,29 @@ required:
   - activity
   - collections
   - reports
+  - truncated
 properties:
+  truncated:
+    type: object
+    description: |
+      Which sections were cut short. The export is assembled and returned as a single JSON
+      body, so each section has a ceiling: 50000 activity entries, 5000 reports, 1000
+      collections, and 50000 collection segment references in total. A `true` here means more
+      data exists than the response carries.
+    required:
+      - activity
+      - collections
+      - collectionSegments
+      - reports
+    properties:
+      activity:
+        type: boolean
+      collections:
+        type: boolean
+      collectionSegments:
+        type: boolean
+      reports:
+        type: boolean
   profile:
     type: object
     required:

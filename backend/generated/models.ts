@@ -5,7 +5,6 @@
 export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'SHARE';
 
 export type t_AddSegmentToCollectionRequest = {
-  note?: string;
   segmentPublicId: string;
 };
 
@@ -679,7 +678,6 @@ export type t_SegmentCreateRequest = {
   contentRating?: t_ContentRating;
   endTimeMs: number;
   hashedId: string;
-  posAnalysis?: Record<string, unknown> | null;
   position: number;
   ratingAnalysis?: Record<string, unknown> | null;
   startTimeMs: number;
@@ -700,7 +698,6 @@ export type t_SegmentCreateRequest = {
 
 export type t_SegmentInternal = t_Segment & {
   hashedId?: string | null;
-  posAnalysis?: Record<string, unknown> | null;
   ratingAnalysis?: Record<string, unknown> | null;
   storage?: 'LOCAL' | 'R2' | null;
   storageBasePath?: string | null;
@@ -725,7 +722,6 @@ export type t_SegmentUpdateRequest = {
   contentRating?: t_ContentRating;
   endTimeMs?: number;
   hashedId?: string;
-  posAnalysis?: Record<string, unknown> | null;
   position?: number;
   ratingAnalysis?: Record<string, unknown> | null;
   startTimeMs?: number;
@@ -766,16 +762,31 @@ export type t_Token = {
   cf: string | null;
   d: string;
   e: number;
+  f?: {
+    r?: string;
+    t: string;
+  }[];
+  inflection?: {
+    base: string;
+    labels: string[];
+  };
+  kind?: 'word' | 'compound' | 'inflected' | 'counter' | 'function' | 'expression' | 'symbol';
   p: string;
   p1: string | null;
   p2: string | null;
   p4: string | null;
+  parts?: {
+    b: number;
+    e: number;
+    s: string;
+  }[];
+  posLabel?: string;
   r: string;
   s: string;
+  wid?: string;
 };
 
 export type t_UpdateCollectionSegmentRequest = {
-  note?: string | null;
   position?: number;
 };
 
@@ -832,13 +843,12 @@ export type t_UserExportResponse = {
     username: string;
   };
   reports: t_Report[];
-};
-
-export type t_UserLabFeature = {
-  active: boolean;
-  description?: string;
-  key: string;
-  name?: string;
+  truncated: {
+    activity: boolean;
+    collectionSegments: boolean;
+    collections: boolean;
+    reports: boolean;
+  };
 };
 
 export type t_UserMe = {
@@ -960,10 +970,6 @@ export type t_DeleteUserActivityByDateParamSchema = {
 
 export type t_DeleteUserActivityByIdParamSchema = {
   activityId: number;
-};
-
-export type t_EnrollUserLabParamSchema = {
-  key: string;
 };
 
 export type t_GetAdminMediaAuditRunParamSchema = {
@@ -1104,10 +1110,6 @@ export type t_RunAdminMediaAuditQuerySchema = {
 
 export type t_SearchCollectionSegmentsParamSchema = {
   collectionPublicId: string;
-};
-
-export type t_UnenrollUserLabParamSchema = {
-  key: string;
 };
 
 export type t_UpdateAdminMediaAuditParamSchema = {

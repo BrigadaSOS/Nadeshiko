@@ -17,7 +17,6 @@ export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', '
 
 export const s_AddSegmentToCollectionRequest = z.object({
   segmentPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  note: z.string().max(500).optional(),
 });
 
 export const s_AdminUserWithProviders = z.object({
@@ -223,7 +222,7 @@ export const s_MediaAuditRun = z.object({
 
 export const s_MediaFilterItem = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  episodes: z.array(z.coerce.number().min(0)).optional(),
+  episodes: z.array(z.coerce.number().min(0)).max(500).optional(),
 });
 
 export const s_MediaGlobalStats = z.object({
@@ -344,12 +343,15 @@ export const s_Token = z.object({
   p2: z.string().min(1).nullable(),
   p4: z.string().min(1).nullable(),
   cf: z.string().min(1).nullable(),
+  posLabel: z.string().optional(),
+  kind: z.enum(['word', 'compound', 'inflected', 'counter', 'function', 'expression', 'symbol']).optional(),
+  wid: z.string().optional(),
+  f: z.array(z.object({ t: z.string(), r: z.string().optional() })).optional(),
+  inflection: z.object({ labels: z.array(z.string()), base: z.string() }).optional(),
+  parts: z.array(z.object({ s: z.string(), b: z.coerce.number(), e: z.coerce.number() })).optional(),
 });
 
-export const s_UpdateCollectionSegmentRequest = z.object({
-  position: z.coerce.number().optional(),
-  note: z.string().max(500).nullable().optional(),
-});
+export const s_UpdateCollectionSegmentRequest = z.object({ position: z.coerce.number().optional() });
 
 export const s_UserActivityRequest = z.object({
   activityType: z.enum(['SEARCH', 'SEGMENT_PLAY', 'SHARE', 'ANKI_EXPORT']),
@@ -369,13 +371,6 @@ export const s_UserActivityStats = z.object({
   topMedia: z.array(
     z.object({ mediaPublicId: z.string().min(1), mediaName: z.string().min(1), count: z.coerce.number().min(1) }),
   ),
-});
-
-export const s_UserLabFeature = z.object({
-  key: z.string(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  active: PermissiveBoolean,
 });
 
 export const s_UserMe = z.object({
@@ -600,7 +595,10 @@ export const s_ReportTarget = z.discriminatedUnion('type', [
 
 export const s_SearchFilters = z.object({
   media: z
-    .object({ include: z.array(s_MediaFilterItem).optional(), exclude: z.array(s_MediaFilterItem).optional() })
+    .object({
+      include: z.array(s_MediaFilterItem).max(100).optional(),
+      exclude: z.array(s_MediaFilterItem).max(100).optional(),
+    })
     .optional(),
   category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE']),
   contentRating: z.array(s_ContentRating).optional(),
@@ -668,7 +666,6 @@ export const s_SegmentCreateRequest = z.object({
     .optional(),
   contentRating: s_ContentRating.optional(),
   ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
-  posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
   storage: z.enum(['LOCAL', 'R2']).default('R2'),
   hashedId: z.string().min(1),
 });
@@ -687,7 +684,6 @@ export const s_SegmentUpdateRequest = z.object({
     .optional(),
   contentRating: s_ContentRating.optional(),
   ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
-  posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
   storage: z.enum(['LOCAL', 'R2']).optional(),
   hashedId: z.string().min(1).optional(),
 });
@@ -851,7 +847,6 @@ export const s_SegmentInternal = s_Segment.extend({
   hashedId: z.string().nullable().optional(),
   storageBasePath: z.string().nullable().optional(),
   ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
-  posAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export const s_SegmentListResponse = z.object({ segments: z.array(s_Segment), pagination: s_CursorPagination });
@@ -864,6 +859,12 @@ export const s_AdminReportListResponse = z.object({
 });
 
 export const s_UserExportResponse = z.object({
+  truncated: z.object({
+    activity: PermissiveBoolean,
+    collections: PermissiveBoolean,
+    collectionSegments: PermissiveBoolean,
+    reports: PermissiveBoolean,
+  }),
   profile: z.object({
     id: z.coerce.number(),
     username: z.string(),

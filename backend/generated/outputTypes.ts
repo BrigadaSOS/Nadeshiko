@@ -56,7 +56,6 @@ export type TokenOutput = z.output<typeof schemas.s_Token>;
 export type UpdateCollectionSegmentRequestOutput = z.output<typeof schemas.s_UpdateCollectionSegmentRequest>;
 export type UserActivityRequestOutput = z.output<typeof schemas.s_UserActivityRequest>;
 export type UserActivityStatsOutput = z.output<typeof schemas.s_UserActivityStats>;
-export type UserLabFeatureOutput = z.output<typeof schemas.s_UserLabFeature>;
 export type UserMeOutput = z.output<typeof schemas.s_UserMe>;
 export type UserPreferencesOutput = z.output<typeof schemas.s_UserPreferences>;
 export type WordCoverageTierOutput = z.output<typeof schemas.s_WordCoverageTier>;

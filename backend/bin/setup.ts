@@ -1,5 +1,6 @@
 import { execFileSync } from 'child_process';
 import { existsSync, copyFileSync, readFileSync, unlinkSync } from 'fs';
+import { writeFile } from 'fs/promises';
 import { createInterface } from 'readline';
 
 const SEED_DUMP_PATH = '/tmp/nadeshiko-seed.dump';
@@ -8,6 +9,11 @@ const DOCKER_COMPOSE_FILE = 'docker-compose.yaml';
 const ES_DOCKERFILE = 'docker/Dockerfile.elasticsearch';
 const ES_CONTAINER = 'nadeshiko-elasticsearch';
 const ES_DATA_VOLUME = 'backend_nadeshiko_elasticsearch_data';
+
+/** Blocks the thread outright; the readiness polls below are deliberately serial. */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
 
 function printHeader() {
   console.log('');
@@ -114,7 +120,7 @@ function checkElasticsearchImageFreshness(): void {
     printInfo(`written by ${built}, so the old volume has to go as well.`);
     printInfo('  docker compose down elasticsearch');
     printInfo(`  docker volume rm ${ES_DATA_VOLUME}`);
-    printInfo('The local index is derived from Postgres -- `bun run es:reindex` rebuilds it.');
+    printInfo('The local index is derived from Postgres -- `npm run es:reindex` rebuilds it.');
   }
   printInfo('');
 }
@@ -165,7 +171,7 @@ function ensureDockerContainers(adminUser: string): void {
       printSuccess('PostgreSQL ready');
       break;
     } catch {
-      Bun.sleepSync(1000);
+      sleepSync(1000);
     }
     if (i === maxAttempts - 1) throw new Error('PostgreSQL did not become ready in time');
   }
@@ -190,7 +196,7 @@ function ensureDockerContainers(adminUser: string): void {
     } catch {
       // curl could not connect at all yet
     }
-    Bun.sleepSync(2000);
+    sleepSync(2000);
   }
 
   reportElasticsearchStartupFailure();
@@ -242,16 +248,16 @@ function runDbSetup(): void {
   printInfo('- Elasticsearch role/user + index reset');
   console.log('');
 
-  execFileSync('bun', ['run', 'bin/db.ts', 'setup'], { stdio: 'inherit' });
+  execFileSync('npm', ['run', 'db:setup'], { stdio: 'inherit' });
   printSuccess('Infrastructure ready');
 }
 
 /**
  * The test suite authenticates to Elasticsearch as the `.env.test` user, which
- * nothing else creates: `bun run test:setup` runs with `--env-file=.env.test`,
- * and that file carries no admin password, so its role/user step silently
- * no-ops. On a fresh cluster the whole Elasticsearch integration suite then
- * skips itself. Provision it here, where `.env` supplies admin credentials.
+ * nothing else creates: `npm run test:setup` loads `.env.test`, and that file
+ * carries no admin password, so its role/user step silently no-ops. On a fresh
+ * cluster the whole Elasticsearch integration suite then skips itself.
+ * Provision it here, where `.env` supplies admin credentials.
  */
 function setupElasticsearchTestUser(): void {
   printSection('Provisioning Elasticsearch test user...');
@@ -273,7 +279,7 @@ function setupElasticsearchTestUser(): void {
   childEnv.LOG_LEVEL = 'info';
 
   try {
-    execFileSync('bun', ['--env-file=.env.test', 'run', 'bin/es.ts', 'setup-role'], {
+    execFileSync('node', ['--env-file=.env.test', '--import', 'tsx', 'bin/es.ts', 'setup-role'], {
       stdio: 'inherit',
       env: childEnv,
     });
@@ -307,7 +313,7 @@ async function downloadSeedDump(token: string): Promise<boolean> {
     printInfo(`Downloading${sizeInfo}...`);
 
     const arrayBuffer = await response.arrayBuffer();
-    await Bun.write(SEED_DUMP_PATH, arrayBuffer);
+    await writeFile(SEED_DUMP_PATH, Buffer.from(arrayBuffer));
     printSuccess('Seed database downloaded');
     return true;
   } catch (error) {
@@ -316,17 +322,7 @@ async function downloadSeedDump(token: string): Promise<boolean> {
   }
 }
 
-const SEED_CONTENT_TABLES = [
-  'Media',
-  'Episode',
-  'Segment',
-  'Character',
-  'Seiyuu',
-  'MediaCharacter',
-  'MediaExternalId',
-  'Series',
-  'SeriesMedia',
-];
+const SEED_CONTENT_TABLES = ['Media', 'Episode', 'Segment', 'MediaExternalId'];
 
 function restoreSeedDump(adminUser: string, appDatabase: string): void {
   printInfo('Copying dump into PostgreSQL container...');
@@ -404,13 +400,13 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
 
 function rerunSeeds(): void {
   printInfo('Re-running seeds to match local credentials...');
-  execFileSync('bun', ['run', 'bin/db.ts', 'seed'], { stdio: 'inherit' });
+  execFileSync('npm', ['run', 'db:seed'], { stdio: 'inherit' });
   printSuccess('Seeds applied');
 }
 
 function reindexElasticsearch(): void {
   printInfo('Indexing segments into Elasticsearch...');
-  execFileSync('bun', ['run', 'bin/es.ts', 'reindex'], { stdio: 'inherit' });
+  execFileSync('npm', ['run', 'es:reindex'], { stdio: 'inherit' });
   printSuccess('Elasticsearch reindex complete');
 }
 
@@ -481,8 +477,8 @@ async function main() {
     console.log('');
     console.log('To start developing, run these in separate terminals:');
     console.log('');
-    console.log(`  cd backend  && bun run dev     # API on http://localhost:${config.PORT}`);
-    console.log('  cd frontend && bun run dev     # App on http://localhost:3000');
+    console.log(`  cd backend  && npm run dev     # API on http://localhost:${config.PORT}`);
+    console.log('  cd frontend && npm run dev     # App on http://localhost:3000');
     console.log('');
 
     process.exit(0);

@@ -7,12 +7,20 @@ properties:
     properties:
       include:
         type: array
-        description: Include only segments from these media (with optional episode filter)
+        description: |
+          Include only segments from these media (with optional episode filter).
+          A `mediaPublicId` that matches no media is rejected with `400`: dropping it would
+          turn a deliberately narrow request into an unfiltered one.
+        maxItems: 100
         items:
           $ref: "./MediaFilterItem.yaml"
       exclude:
         type: array
-        description: Exclude segments from these media (with optional episode filter)
+        description: |
+          Exclude segments from these media (with optional episode filter).
+          A `mediaPublicId` that matches no media is ignored, since excluding a media that
+          does not exist excludes nothing.
+        maxItems: 100
         items:
           $ref: "./MediaFilterItem.yaml"
   category:

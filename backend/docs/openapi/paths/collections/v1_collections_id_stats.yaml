@@ -6,7 +6,8 @@ get:
   summary: Get collection statistics
   description: |
     Returns per-media segment counts and per-category counts for all segments in a collection.
-    Pages through all collection segments internally to compute statistics.
+    Counts are aggregated in the database, so the response size follows the number of media
+    and episodes the collection touches rather than its segment count.
 
   security:
     - ApiKey: [READ_COLLECTIONS]

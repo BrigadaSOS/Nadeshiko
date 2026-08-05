@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.2.2
+  version: 2.3.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -58,7 +58,7 @@ tags:
   - name: Admin
     x-internal: true
     description: |
-      Administrative endpoints for system management, queue monitoring, and automated review.
+      Administrative endpoints for system management and automated review.
 paths:
   /v1/search:
     post:
@@ -1668,6 +1668,10 @@ paths:
       description: |
         Returns a full JSON export of all user-related data for GDPR data portability.
         Includes profile, preferences, activity history, collections, and reports.
+
+        The whole export is one JSON body, so each section is capped: 50000 activity entries,
+        5000 reports, 1000 collections, and 50000 collection segment references. The `truncated`
+        object reports which sections, if any, hit their ceiling.
       security:
         - SessionCookie: []
       responses:
@@ -1681,98 +1685,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/user/labs:
-    get:
-      tags:
-        - User
-      x-internal: true
-      operationId: listUserLabs
-      summary: List lab features with user opt-in status
-      description: |
-        Returns all available lab features merged with the authenticated user's
-        opt-in status. Features gated by role are excluded if the user lacks
-        the required role.
-      security:
-        - SessionCookie: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserLabFeature'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/user/labs/{key}:
-    post:
-      tags:
-        - User
-      x-internal: true
-      operationId: enrollUserLab
-      summary: Enroll in a lab feature
-      description: |
-        Opts the authenticated user into a lab feature. The user must be eligible
-        for the lab (correct role, in allowlist or rollout percentage).
-      security:
-        - SessionCookie: []
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Lab feature key
-      responses:
-        '204':
-          description: No Content
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags:
-        - User
-      x-internal: true
-      operationId: unenrollUserLab
-      summary: Unenroll from a lab feature
-      description: |
-        Opts the authenticated user out of a lab feature.
-      security:
-        - SessionCookie: []
-      parameters:
-        - name: key
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Lab feature key
-      responses:
-        '204':
-          description: No Content
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -2037,6 +1949,9 @@ paths:
         All search semantics, query parsing, sorting, filters, pagination, and `include`
         expansions behave the same as `/v1/search`, with one additional constraint:
         results are limited to segments already present in the target collection.
+
+        Restricting the result set means every segment id in the collection is part of the
+        query, so collections larger than 20000 segments cannot be searched and return `400`.
       security:
         - ApiKey:
             - READ_COLLECTIONS
@@ -2176,7 +2091,8 @@ paths:
       summary: Get collection statistics
       description: |
         Returns per-media segment counts and per-category counts for all segments in a collection.
-        Pages through all collection segments internally to compute statistics.
+        Counts are aggregated in the database, so the response size follows the number of media
+        and episodes the collection touches rather than its segment count.
       security:
         - ApiKey:
             - READ_COLLECTIONS
@@ -2881,6 +2797,7 @@ components:
         episodes:
           type: array
           description: Specific episodes (omit for all episodes). Use 0 for movies/specials
+          maxItems: 500
           items:
             type: integer
             minimum: 0
@@ -2929,12 +2846,20 @@ components:
           properties:
             include:
               type: array
-              description: Include only segments from these media (with optional episode filter)
+              description: |
+                Include only segments from these media (with optional episode filter).
+                A `mediaPublicId` that matches no media is rejected with `400`: dropping it would
+                turn a deliberately narrow request into an unfiltered one.
+              maxItems: 100
               items:
                 $ref: '#/components/schemas/MediaFilterItem'
             exclude:
               type: array
-              description: Exclude segments from these media (with optional episode filter)
+              description: |
+                Exclude segments from these media (with optional episode filter).
+                A `mediaPublicId` that matches no media is ignored, since excluding a media that
+                does not exist excludes nothing.
+              maxItems: 100
               items:
                 $ref: '#/components/schemas/MediaFilterItem'
         category:
@@ -3112,6 +3037,78 @@ components:
           minLength: 1
           description: Conjugation form (UniDic pos[5])
           example: 連用形-一般
+        posLabel:
+          type: string
+          description: The part of speech in words, so a client needs no UniDic table.
+          example: Verb
+        kind:
+          type: string
+          description: |
+            How this token was grouped: a plain word, a compound, an inflected form, a counter, a function word, a merged grammatical expression, or a symbol.
+          enum:
+            - word
+            - compound
+            - inflected
+            - counter
+            - function
+            - expression
+            - symbol
+          example: inflected
+        wid:
+          type: string
+          description: |
+            Where this word reads about on Shirabe (`/v1/words/{wid}`). Absent for names, numbers, punctuation and anything with no dictionary entry, which means show the word without linking it.
+          example: 開く-ひらく-1202650
+        f:
+          type: array
+          description: |
+            Ruby, aligned to this surface: 食べました is 食(た) + べました, over the kanji and not the okurigana. Absent when there is none to show.
+          items:
+            type: object
+            required:
+              - t
+            properties:
+              t:
+                type: string
+                description: The run of text.
+              r:
+                type: string
+                description: Its reading. Absent when it needs none.
+        inflection:
+          type: object
+          description: |
+            What this surface does to its dictionary form, outermost step first. Japanese stacks, so it is a chain rather than one name, and a step that is genuinely ambiguous says so ("potential / passive") instead of picking a side. Absent for anything that is not an inflected verb or adjective.
+          required:
+            - labels
+            - base
+          properties:
+            labels:
+              type: array
+              items:
+                type: string
+              example:
+                - past
+                - polite
+            base:
+              type: string
+              example: 食べる
+        parts:
+          type: array
+          description: |
+            The finer morphemes inside a grouped token, positioned like their parent. Elasticsearch highlights with its own analyzer, so a match can land inside one of these tokens; these are the boundaries that let it render as a partial highlight. Absent when the token is already atomic.
+          items:
+            type: object
+            required:
+              - s
+              - b
+              - e
+            properties:
+              s:
+                type: string
+              b:
+                type: integer
+              e:
+                type: integer
     Segment:
       type: object
       description: Segment with content, translations, search-related highlights, and media URLs
@@ -4503,11 +4500,6 @@ components:
           additionalProperties: true
           nullable: true
           description: Raw WD Tagger v3 classifier output used to derive content rating
-        posAnalysis:
-          type: object
-          additionalProperties: true
-          nullable: true
-          description: POS tokenization results keyed by engine (sudachi, unidic)
         storage:
           type: string
           enum:
@@ -4551,11 +4543,6 @@ components:
               additionalProperties: true
               nullable: true
               description: Raw WD Tagger v3 classifier output used to derive content rating
-            posAnalysis:
-              type: object
-              additionalProperties: true
-              nullable: true
-              description: POS tokenization results keyed by engine (sudachi, unidic)
     SegmentContextResponse:
       type: object
       required:
@@ -4955,11 +4942,6 @@ components:
           additionalProperties: true
           nullable: true
           description: Raw WD Tagger v3 classifier output used to derive content rating
-        posAnalysis:
-          type: object
-          additionalProperties: true
-          nullable: true
-          description: POS tokenization results keyed by engine (sudachi, unidic)
         storage:
           type: string
           enum:
@@ -5621,7 +5603,29 @@ components:
         - activity
         - collections
         - reports
+        - truncated
       properties:
+        truncated:
+          type: object
+          description: |
+            Which sections were cut short. The export is assembled and returned as a single JSON
+            body, so each section has a ceiling: 50000 activity entries, 5000 reports, 1000
+            collections, and 50000 collection segment references in total. A `true` here means more
+            data exists than the response carries.
+          required:
+            - activity
+            - collections
+            - collectionSegments
+            - reports
+          properties:
+            activity:
+              type: boolean
+            collections:
+              type: boolean
+            collectionSegments:
+              type: boolean
+            reports:
+              type: boolean
         profile:
           type: object
           required:
@@ -5653,24 +5657,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Report'
-    UserLabFeature:
-      type: object
-      required:
-        - key
-        - active
-      properties:
-        key:
-          type: string
-          description: Unique identifier for the feature
-        name:
-          type: string
-          description: Human-readable feature name
-        description:
-          type: string
-          description: Description of what the feature does
-        active:
-          type: boolean
-          description: Whether this feature is currently active for the user
     CollectionListResponse:
       type: object
       description: Paginated collection list response
@@ -5715,10 +5701,6 @@ components:
           pattern: ^[A-Za-z0-9_-]{12}$
           description: Segment public ID
           example: V1StGXR8_Z5d
-        note:
-          type: string
-          maxLength: 500
-          description: Optional annotation
     UpdateCollectionSegmentRequest:
       type: object
       properties:
@@ -5726,11 +5708,6 @@ components:
           type: integer
           description: New position in the collection
           example: 2
-        note:
-          type: string
-          nullable: true
-          maxLength: 500
-          description: Updated annotation
     ReportTargetType:
       type: string
       description: Kind of entity a report is about

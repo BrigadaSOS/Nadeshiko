@@ -11,6 +11,7 @@ properties:
   episodes:
     type: array
     description: Specific episodes (omit for all episodes). Use 0 for movies/specials
+    maxItems: 500
     items:
       type: integer
       minimum: 0

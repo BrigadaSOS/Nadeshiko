@@ -1,0 +1,13 @@
+[2026-08-06T12:44:25.306Z] Error: Missing $ref pointer "#/components/schemas/User". Token "User" does not exist.
+Stack:
+MissingPointerError: Missing $ref pointer "#/components/schemas/User". Token "User" does not exist.
+    at Pointer.resolve (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/pointer.js:113:23)
+    at $Ref.resolve (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/ref.js:79:24)
+    at $Refs._resolve (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/refs.js:168:21)
+    at inventory$Ref (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:136:25)
+    at crawl (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:266:21)
+    at crawl (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:281:21)
+    at crawl (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:281:21)
+    at crawl (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:281:21)
+    at crawl (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:281:21)
+    at crawl (/Users/davafons/workspace/Nadeshiko/node_modules/@hey-api/json-schema-ref-parser/dist/lib/bundle.js:281:21)

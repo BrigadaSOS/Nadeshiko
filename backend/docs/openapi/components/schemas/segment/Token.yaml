@@ -60,3 +60,65 @@ properties:
     minLength: 1
     description: Conjugation form (UniDic pos[5])
     example: 連用形-一般
+
+  # Added when Shirabe became the parser. All optional, so an existing consumer
+  # reading the ten fields above sees no difference, and the SDKs stay compatible.
+  posLabel:
+    type: string
+    description: The part of speech in words, so a client needs no UniDic table.
+    example: Verb
+  kind:
+    type: string
+    description: >
+      How this token was grouped: a plain word, a compound, an inflected form, a
+      counter, a function word, a merged grammatical expression, or a symbol.
+    enum: [word, compound, inflected, counter, function, expression, symbol]
+    example: inflected
+  wid:
+    type: string
+    description: >
+      Where this word reads about on Shirabe (`/v1/words/{wid}`). Absent for
+      names, numbers, punctuation and anything with no dictionary entry, which
+      means show the word without linking it.
+    example: 開く-ひらく-1202650
+  f:
+    type: array
+    description: >
+      Ruby, aligned to this surface: 食べました is 食(た) + べました, over the kanji
+      and not the okurigana. Absent when there is none to show.
+    items:
+      type: object
+      required: [t]
+      properties:
+        t: { type: string, description: The run of text. }
+        r: { type: string, description: Its reading. Absent when it needs none. }
+  inflection:
+    type: object
+    description: >
+      What this surface does to its dictionary form, outermost step first.
+      Japanese stacks, so it is a chain rather than one name, and a step that is
+      genuinely ambiguous says so ("potential / passive") instead of picking a
+      side. Absent for anything that is not an inflected verb or adjective.
+    required: [labels, base]
+    properties:
+      labels:
+        type: array
+        items: { type: string }
+        example: [past, polite]
+      base:
+        type: string
+        example: 食べる
+  parts:
+    type: array
+    description: >
+      The finer morphemes inside a grouped token, positioned like their parent.
+      Elasticsearch highlights with its own analyzer, so a match can land inside
+      one of these tokens; these are the boundaries that let it render as a
+      partial highlight. Absent when the token is already atomic.
+    items:
+      type: object
+      required: [s, b, e]
+      properties:
+        s: { type: string }
+        b: { type: integer }
+        e: { type: integer }
