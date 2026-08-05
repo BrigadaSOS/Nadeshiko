@@ -1,10 +1,11 @@
 import { client, INDEX_NAME } from '@config/elasticsearch';
 import { logger } from '@config/log';
-import { Media, Segment, type PosAnalysisData } from '@app/models';
+import { Media, Segment } from '@app/models';
 import { In, type SelectQueryBuilder } from 'typeorm';
-import type { SegmentDocumentShape, SlimToken, ReindexMediaItem } from '../SegmentDocument';
+import type { SegmentDocumentShape, ReindexMediaItem } from '../SegmentDocument';
+import { isElasticsearchNotFound } from '@lib/elasticsearchErrors';
 
-export interface BulkResult {
+interface BulkResult {
   succeeded: number;
   failed: number;
   errors: { segmentId: number; error: string }[];
@@ -43,7 +44,7 @@ const REINDEX_SEGMENT_SELECT_FIELDS: ReadonlyArray<keyof Segment> = [
   'externalVideoId',
   'mediaId',
   'storageBasePath',
-  'posAnalysis',
+  'tokens',
 ] as const;
 
 export class SegmentIndexer {
@@ -65,7 +66,7 @@ export class SegmentIndexer {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if ((error as any)?.meta?.statusCode === 404 || message.includes('document_missing_exception')) {
+      if (isElasticsearchNotFound(error) || message.includes('document_missing_exception')) {
         logger.warn({ segmentId: segment.id }, 'Segment not found in ES during update (may have been deleted)');
         return true;
       }
@@ -133,7 +134,7 @@ export class SegmentIndexer {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if ((error as any)?.meta?.statusCode === 404 || message.includes('document_missing_exception')) {
+      if (isElasticsearchNotFound(error) || message.includes('document_missing_exception')) {
         logger.info({ segmentId: id }, 'Segment already deleted from ES');
         return true;
       }
@@ -312,32 +313,7 @@ export class SegmentIndexer {
       externalVideoId: segment.externalVideoId ?? null,
       mediaId: segment.mediaId,
       storageBasePath: segment.storageBasePath,
-      tokens: SegmentIndexer.extractSlimTokens(segment.posAnalysis),
+      tokens: segment.tokens?.length ? segment.tokens : undefined,
     };
-  }
-
-  /** Tokens as Shirabe wrote them.
-   *
-   * `pos_analysis` used to be a bag of analyses (`sudachi`, `unidic`, plus
-   * `_tokenizer_*` markers saying which was which) and this method slimmed the
-   * `sudachi` one down to the ten published fields. Shirabe now parses the whole
-   * corpus and stores the served shape directly, so there is nothing left to
-   * choose between and nothing left to slim: one analysis, already in the right
-   * field names, already free of Sudachi's "*" and "一般" placeholders.
-   *
-   * There is no fallback to the old shape on purpose. Import the tokens first,
-   * then reindex: in that order every row already carries `tokens` by the time
-   * anything reads them, and a row that somehow does not degrades to no tokens
-   * at all, which the frontend already handles by rendering plain highlight HTML.
-   * Reindexing first would show that degraded state to everybody for the length
-   * of the import, which is the only reason the order matters.
-   */
-  private static extractSlimTokens(posAnalysis: PosAnalysisData | null): SlimToken[] | undefined {
-    if (!posAnalysis) return undefined;
-
-    const tokens = (posAnalysis as Record<string, unknown>).tokens;
-    if (!Array.isArray(tokens) || tokens.length === 0) return undefined;
-
-    return tokens as SlimToken[];
   }
 }

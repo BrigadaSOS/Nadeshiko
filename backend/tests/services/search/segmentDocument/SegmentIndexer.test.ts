@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'bun:test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Segment } from '@app/models';
 import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 
@@ -72,7 +72,7 @@ describe('SegmentIndexer.reindex', () => {
     const findSpy = vi.spyOn(Segment, 'find');
     const createQueryBuilderSpy = vi.spyOn(Segment, 'createQueryBuilder').mockImplementation(() => {
       return createSegmentQueryBuilderMock((state) => {
-        expect(state.selectedFields).toContain('segment.posAnalysis');
+        expect(state.selectedFields).toContain('segment.tokens');
         expect(state.selectedFields).not.toContain('segment.ratingAnalysis');
         expect(state.takeValue).toBe(500);
         return pages.get(Number(state.params.lastId ?? 0)) ?? [];

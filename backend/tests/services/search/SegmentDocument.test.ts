@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { client } from '@config/elasticsearch';
 import { InvalidRequestError } from '@app/errors';
-import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { encodeKeysetCursor } from '@lib/cursor';
 import { CategoryType } from '@app/models';
 import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { setupSearchSuite } from '../../helpers/searchSetup';
 import { isEsAvailable, seedSegmentsIntoEs } from '../../helpers/esFixtures';
+import { surroundingSegments } from '@app/services/search/segmentDocument/SegmentContext';
 
 vi.mock('@config/log', () => {
   const noop = () => {};
@@ -45,7 +45,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(result.segments).toHaveLength(1);
       expect(result.segments[0].textJa.content).toBe('こんにちは世界');
       expect(result.segments[0].textJa.highlight).toContain('こんにちは');
-      expect(result.includes.media).toBeDefined();
+      expect(result.includes?.media).toBeDefined();
     });
 
     it('finds segment by Japanese baseform (食べました → 食べる)', async () => {
@@ -125,7 +125,11 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       const result = await SegmentDocument.search({
         query: { search: '特別', exactMatch: false },
         take: 25,
-        filters: { status: ['ACTIVE'], category: ['ANIME'], media: { include: [{ mediaId: media1.id }] } },
+        filters: {
+          status: ['ACTIVE'],
+          category: ['ANIME'],
+          media: { include: [{ mediaPublicId: media1.publicId, mediaId: media1.id }] },
+        },
       });
 
       expect(result.segments).toHaveLength(1);
@@ -306,7 +310,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
         { contentJa: '後のセグメント', position: 3 },
       ]);
 
-      const result = await SegmentDocument.surroundingSegments({
+      const result = await surroundingSegments({
         mediaId: media.id,
         episodeNumber: 1,
         segmentPosition: 2,
@@ -316,26 +320,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       for (let i = 1; i < result.segments.length; i++) {
         expect(result.segments[i].position).toBeGreaterThanOrEqual(result.segments[i - 1].position);
       }
-      expect(result.includes.media).toBeDefined();
-    });
-  });
-
-  describe('findByIds()', () => {
-    it('finds segments by ID', async () => {
-      const { segments } = await seedSegmentsIntoEs({}, [{ contentJa: 'ID検索' }]);
-
-      const result = await SegmentDocument.findByIds([segments[0].id]);
-
-      expect(result.segments).toHaveLength(1);
-      expect(result.segments[0].id).toBe(segments[0].id);
-      expect(result.includes.media).toBeDefined();
-    });
-
-    it('returns empty for empty ID array without calling ES', async () => {
-      const result = await SegmentDocument.findByIds([]);
-
-      expect(result.segments).toHaveLength(0);
-      expect(result.includes.media).toEqual({});
+      expect(result.includes?.media).toBeDefined();
     });
   });
 });
@@ -398,45 +383,6 @@ describe('SegmentDocument (mocked)', () => {
           },
         }),
       ).rejects.toThrow(InvalidRequestError);
-    });
-  });
-
-  describe('delegate methods', () => {
-    it('delegates index() to SegmentIndexer', async () => {
-      const spy = vi.spyOn(SegmentIndexer, 'index').mockResolvedValue(true);
-      const segment = { id: 1 } as any;
-
-      const result = await SegmentDocument.index(segment);
-
-      expect(result).toBe(true);
-      expect(spy).toHaveBeenCalledWith(segment);
-      spy.mockRestore();
-    });
-
-    it('delegates delete() to SegmentIndexer', async () => {
-      const spy = vi.spyOn(SegmentIndexer, 'delete').mockResolvedValue(true);
-
-      const result = await SegmentDocument.delete(42);
-
-      expect(result).toBe(true);
-      expect(spy).toHaveBeenCalledWith(42);
-      spy.mockRestore();
-    });
-
-    it('delegates reindex() to SegmentIndexer', async () => {
-      const reindexResult = {
-        success: true,
-        message: 'done',
-        stats: { totalSegments: 0, successfulIndexes: 0, failedIndexes: 0, mediaProcessed: 0 },
-        errors: [],
-      };
-      const spy = vi.spyOn(SegmentIndexer, 'reindex').mockResolvedValue(reindexResult);
-
-      const result = await SegmentDocument.reindex();
-
-      expect(result).toEqual(reindexResult);
-      expect(spy).toHaveBeenCalledWith(undefined, undefined);
-      spy.mockRestore();
     });
   });
 });
