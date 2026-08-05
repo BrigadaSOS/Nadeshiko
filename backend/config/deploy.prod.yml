@@ -146,6 +146,11 @@ accessories:
       clear:
         CRON_SCHEDULE: "0 2 * * *"
         REMOVE_BEFORE: "30"
+        # Prod only. Staging shares this Postgres server, and with DBLIST unset
+        # kartoza dumps every database on it -- so the bucket was also collecting
+        # a nightly ~1.2GB dump of nadeshiko-dev, which is disposable data we
+        # would never restore.
+        DBLIST: "nadeshiko-prod"
         STORAGE_BACKEND: "S3"
         CONSOLE_LOGGING: "True"
         SSL_SECURE: "True"

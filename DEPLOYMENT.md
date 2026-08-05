@@ -19,10 +19,12 @@ the Discord bot are separate Kamal services on that host.
 
 - **`main` is staging.** Any merge or direct push to `main` deploys to stg.
 - **A `vX.Y.Z` tag is production.** Tagging a commit deploys that commit to prod.
-- **The OpenAPI spec drives the SDKs.** When the spec changes, the SDK repos
-  rebuild and publish a new package. The frontend consumes the TypeScript SDK,
-  so backend API changes flow to the frontend through a published SDK version,
-  not through direct imports.
+- **The OpenAPI spec drives the SDK, and the SDK lives in this repo.** The
+  TypeScript SDK is a workspace package at `packages/nadeshiko-sdk`, generated
+  from the spec by `npm run sdk:codegen`. The frontend and the Discord bot
+  consume it directly as a workspace dependency, so an API change and the code
+  using it land in the same commit. Nothing is published or version-pinned to
+  move a change between them.
 
 We have not split prod into separate backend/frontend tags. A single `vX.Y.Z`
 tag releases the whole stack.
@@ -39,57 +41,35 @@ relevant work:
 | --- | --- |
 | `backend/**` | Build + deploy backend to stg (`kamal deploy -d staging`) |
 | `frontend/**` | Build + deploy frontend to stg |
-| `backend/docs/openapi/**` | Dispatch an **internal** SDK rebuild (TS + Python) |
+| `backend/docs/openapi/**` | Dispatch a **Python** SDK rebuild (the TS SDK is in-repo) |
 | `discord/**` | Deploy the Discord bot to **prod** (see note below) |
 
 After the backend and/or frontend deploy, the E2E suite runs against
 `https://stg.nadeshiko.co`.
 
 A backend change that does **not** touch the OpenAPI spec deploys the backend
-but does not rebuild any SDK. Only changes under `backend/docs/openapi/**`
-trigger an SDK rebuild.
-
-### Internal SDK versions
-
-When the spec changes on `main`, the staging workflow sends a
-`repository_dispatch` to the SDK repos with `release_channel=internal`:
-
-- TypeScript: https://github.com/BrigadaSOS/nadeshiko-sdk-ts
-- Python: https://github.com/BrigadaSOS/nadeshiko-sdk-python
-
-The TS SDK is published to npm as a prerelease, for example
-`@brigadasos/nadeshiko-sdk@2.2.0-internal.<hash>`. The base version (`2.2.0`)
-comes from the backend version; only the `<hash>` suffix changes per build.
-See the versions tab:
-https://www.npmjs.com/package/@brigadasos/nadeshiko-sdk?activeTab=versions
+but does not rebuild the Python SDK. Only changes under
+`backend/docs/openapi/**` trigger that dispatch.
 
 ## A typical change that spans backend and frontend
 
-Because the frontend talks to the backend through the published SDK, a change
-that touches the API contract is a two-step dance.
+This is a single commit. The TypeScript SDK is generated into
+`packages/nadeshiko-sdk` and consumed from there by the frontend and the
+Discord bot, so there is no publish step in the middle and nothing to wait for.
 
-### Step 1: ship the backend
+1. Update the OpenAPI spec under `backend/docs/openapi/**` and the backend
+   implementation.
+2. Regenerate: `npm run generate:api --workspace backend` (server types, route
+   auth, error profiles, the Nitro proxy allowlist) and `npm run sdk:codegen`
+   (the TypeScript SDK).
+3. Write the frontend code against the new SDK types. They are already there —
+   your editor resolves them from the workspace.
+4. Commit everything together, including the regenerated `generated/`
+   directories, and push.
 
-1. Change the backend: update the OpenAPI spec under
-   `backend/docs/openapi/**` and the implementation.
-2. Push to `main` (directly or via a merged PR).
-3. The staging workflow deploys the new backend to stg and, because the spec
-   changed, dispatches a new **internal** SDK build.
-4. Wait for the new SDK version to appear on npm, for example
-   `@brigadasos/nadeshiko-sdk@2.2.0-internal.<00002>`.
-
-### Step 2: ship the frontend
-
-1. In `frontend/package.json`, bump `@brigadasos/nadeshiko-sdk` from the old
-   internal version (`...-internal.<00001>`) to the new one
-   (`...-internal.<00002>`) and install.
-2. Finish the frontend implementation against the new SDK types.
-3. Push to `main`. The staging workflow deploys the new frontend to stg.
-
-If you prefer PRs, this is two PRs: one for the backend (merge first), then one
-for the frontend that bumps the SDK version. The frontend PR depends on the
-backend SDK build existing, so it has to come second. Pushing straight to
-`main` works too and is what we often do in practice.
+CI fails the build if any generated output is stale, so a spec change that was
+not regenerated cannot merge. External consumers get the SDK on the next
+production release (see below); internal consumers never wait on npm.
 
 ## Production: tagging a release
 
@@ -97,7 +77,7 @@ Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml)
 (`[Prod] Release`), triggered by pushing a tag matching `v*`.
 
 A prod release deploys backend and frontend to prod, publishes the **stable**
-(public, non-internal) SDKs, and creates a GitHub Release.
+(public) SDKs, and creates a GitHub Release.
 
 The tag version must match the version recorded in the package files, so bump
 the version first, then tag the resulting commit.
@@ -105,9 +85,9 @@ the version first, then tag the resulting commit.
 From the repository root:
 
 ```bash
-# 1. Bump version across backend + frontend package.json and the OpenAPI spec
-bun run release:set-version 1.2.3
-bun run release:check-version 1.2.3
+# 1. Bump version across backend, frontend, discord, the SDK package and the spec
+npm run release:set-version 1.2.3
+npm run release:check-version 1.2.3
 
 # 2. Commit the bump to main (push to main -> staging picks it up)
 #    ...commit and push as usual...
@@ -123,8 +103,12 @@ What the prod workflow does, in order:
 2. Builds and deploys the **backend** to prod (`kamal deploy -d prod`).
 3. Builds and deploys the **frontend** to prod (runs after the backend).
 4. Runs E2E against `https://nadeshiko.co`.
-5. Dispatches **stable** SDK releases (TS + Python) -> public npm/PyPI versions.
-6. Creates a GitHub Release with the public OpenAPI spec attached.
+5. Dispatches the **stable** TypeScript SDK release ->
+   https://github.com/BrigadaSOS/nadeshiko-sdk-ts regenerates from this
+   release's spec and publishes `X.Y.Z` to npm. Publishing lives there because
+   npm's trusted publisher (OIDC, no token) is bound to that repository.
+6. Dispatches the **stable** Python SDK release -> public PyPI version.
+7. Creates a GitHub Release with the public OpenAPI spec attached.
 
 ## Discord bot
 
@@ -153,7 +137,7 @@ mechanism is process exit, not a health-check response.
 
 This covers applying migrations to an already-provisioned database. Creating a
 brand-new environment (role, database, grants) is still a one-time
-`bun run db:bootstrap` with admin credentials. To run migrations manually
+`npm run db:bootstrap` with admin credentials. To run migrations manually
 out of band, use `backend/scripts/remote-db.sh <env> migrate` (that script
 reaches the host over Tailscale and sources `.kamal/secrets.<env>`; `env` is
 `dev` or `prod`, and anything that writes to prod needs `--allow-prod`).
@@ -244,7 +228,7 @@ it. Recovery from a lost, corrupted or unopenable ES volume is a reindex, not a
 restore:
 
 Run it **inside the deployed backend container**, not from your machine — the
-local `bun run es:*` scripts read your `.env` and would target your dev index:
+local `npm run es:*` scripts read your `.env` and would target your dev index:
 
 ```bash
 cd backend
@@ -302,6 +286,37 @@ s3://<R2_BACKUP_BUCKET>/<YYYY>/<Month>/PG_<db>.<DD-Month-YYYY>.dmp.gz
 
 for example `2026/August/PG_nadeshiko.05-August-2026.dmp.gz`. The dumps are
 Postgres custom format, so they restore with `pg_restore`, not `psql`.
+
+### Backup monitoring
+
+[`.github/workflows/verify-backup.yml`](.github/workflows/verify-backup.yml) runs
+daily at 03:30 UTC and fails — notifying Discord through the same workflow the
+deploys use — if any expected database lacks a dump newer than 26 hours, or if a
+dump comes in under 70% of the size of the run before it.
+
+It checks the database **by name** (`nadeshiko-prod`). kartoza/pg-backup dumps
+every database on the server unless `DBLIST` says otherwise, and staging shares
+prod's Postgres — so the bucket used to receive two dumps a night and "the newest
+`.dmp.gz`" landed on prod only because prod happened to dump second. `DBLIST` now
+pins the accessory to prod, and naming the database in the check means a silent
+revert to dumping everything, or prod dropping out, is itself a failure.
+
+Staging is deliberately **not** backed up: it is disposable and can be reseeded
+from prod. The `nadeshiko-dev` dumps that predate `DBLIST` were deleted from the
+bucket.
+
+Both conditions matter. Without the freshness check a broken cron is invisible,
+and because retention prunes at 30 days the good backups age out while nobody is
+looking: a silent failure that erases its own evidence. The size check exists
+because a dump that breaks partway still uploads, and a truncated file is
+indistinguishable from a healthy one if you only check that a backup exists. The
+comparison is relative rather than a fixed floor: dumps sit around 1.2 GB and
+move roughly 0.01% night to night, so a real truncation stands out, and the
+threshold keeps working as the corpus grows.
+
+This does **not** prove a dump restores. That needs a scratch database and the
+runbook below; it is worth doing by hand periodically, since an unrestored
+backup is a hypothesis.
 
 ### Restore runbook
 

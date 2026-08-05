@@ -28,6 +28,7 @@ env:
   secret:
     - NUXT_NADESHIKO_API_KEY
     - NUXT_INTERNAL_PROXY_SECRET
+    - NUXT_SHIRABE_API_KEY
 
   clear:
     NUXT_PUBLIC_ENVIRONMENT: development

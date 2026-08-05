@@ -25,17 +25,67 @@ on:
         required: false
         default: true
         type: boolean
+      sdk:
+        description: "Run the SDK package checks"
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
   packages: read
 
 env:
-  BUN_VERSION: '1.3.6'
+  NODE_VERSION: '24'
   # Published by .github/workflows/elasticsearch-image.yml; keep both in sync.
   ELASTICSEARCH_IMAGE: ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116
 
 jobs:
+  # Deliberately ungated. Every other job keys off a paths filter, but generated
+  # code goes stale from editing a *generator* (backend/bin, the SDK's
+  # generate.ts) as readily as from editing the spec, and the filter that covers
+  # every input is the empty one. This job needs no database, no Elasticsearch
+  # and no image build, so running it on every call is cheaper than the class of
+  # bug it catches.
+  codegen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Both generators are named. This step used to run only `sdk:codegen` and
+      # inherit the backend half from a preceding `npm run typecheck --workspace
+      # backend`, which happens to be `generate:api && typecheck:app` -- so
+      # narrowing that script to `typecheck:app` would have silently reduced the
+      # check to the SDK while it kept reporting a pass.
+      - name: Regenerate
+        run: |
+          set -euo pipefail
+          npm run generate:api --workspace backend
+          npm run sdk:codegen
+
+      - name: Check generated code is up to date
+        run: |
+          set -euo pipefail
+          paths="backend/docs/generated backend/generated frontend/server/utils/generated packages/nadeshiko-sdk/generated"
+          # shellcheck disable=SC2086
+          git add --intent-to-add -- $paths
+          # shellcheck disable=SC2086
+          if ! git diff --exit-code -- $paths; then
+            echo "::error::Generated code is stale. Run 'npm run generate:api --workspace backend' and 'npm run sdk:codegen', then commit the result."
+            exit 1
+          fi
+
   backend:
     if: inputs.backend
     runs-on: ubuntu-latest
@@ -58,7 +108,7 @@ jobs:
 
     env:
       # CI-only bootstrap password for the built-in `elastic` superuser. The
-      # application user is provisioned from it by `bun run test:setup`.
+      # application user is provisioned from it by `npm run test:setup`.
       ELASTICSEARCH_ADMIN_USER: elastic
       ELASTICSEARCH_ADMIN_PASSWORD: nadeshiko-ci-elastic
 
@@ -87,13 +137,15 @@ jobs:
             --env ES_JAVA_OPTS="-Xms512m -Xmx512m" \
             "$ELASTICSEARCH_IMAGE"
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
+      # One install at the repository root covers every workspace.
       - name: Install dependencies
-        run: cd backend && bun install --frozen-lockfile
+        run: npm ci
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -101,25 +153,19 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v7
         with:
-          context: ./backend
+          # The image installs the whole workspace, so the build context is the
+          # repository root rather than backend/.
+          context: .
+          file: ./backend/Dockerfile
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Lint
-        run: cd backend && bun run lint:code
+        run: npm run lint:code --workspace backend
 
       - name: Typecheck
-        run: cd backend && bun run typecheck
-
-      - name: Check generated code is up to date
-        run: |
-          set -euo pipefail
-          git add --intent-to-add -- backend/generated frontend/server/utils/generated
-          if ! git diff --exit-code -- backend/generated frontend/server/utils/generated; then
-            echo "::error::Generated code is stale. Run 'bun run generate:api' in backend/ and commit the result."
-            exit 1
-          fi
+        run: npm run typecheck --workspace backend
 
       - name: Wait for test Elasticsearch
         run: |
@@ -153,10 +199,10 @@ jobs:
       - name: Setup test database
         env:
           LOG_LEVEL: info
-        run: cd backend && bun run test:setup
+        run: npm run test:setup --workspace backend
 
       - name: Test
-        run: cd backend && bun run test
+        run: npm run test --workspace backend
 
       - name: Stop test Elasticsearch
         if: always()
@@ -170,22 +216,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install dependencies
-        run: cd frontend && bun install --frozen-lockfile
+        run: npm ci
 
       - name: Lint
-        run: cd frontend && bun run lint
+        run: npm run lint --workspace frontend
 
       - name: Typecheck
-        run: cd frontend && bun run typecheck
+        run: npm run typecheck --workspace frontend
 
       - name: Test
-        run: cd frontend && bun run test
+        run: npm run test --workspace frontend
 
   discord:
     if: inputs.discord
@@ -195,23 +242,47 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install dependencies
-        run: cd discord && bun install --frozen-lockfile
+        run: npm ci
 
       - name: Lint
-        run: cd discord && bun run lint
+        run: npm run lint --workspace discord
 
       - name: Typecheck
-        run: cd discord && bun run typecheck
+        run: npm run typecheck --workspace discord
 
-      # discord/package.json has no `test` script; the suite runs on Bun's runner.
       - name: Test
-        run: cd discord && bun test
+        run: npm run test --workspace discord
+
+  sdk:
+    if: inputs.sdk
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck --workspace @brigadasos/nadeshiko-sdk
+
+      - name: Test
+        run: npm run test --workspace @brigadasos/nadeshiko-sdk
+
 
   seed-worker:
     if: inputs.seed_worker
@@ -221,16 +292,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
       - name: Install dependencies
-        run: cd infra/seed-worker && bun install --frozen-lockfile
+        run: npm ci
 
       - name: Typecheck
-        run: cd infra/seed-worker && bun run typecheck
+        run: npm run typecheck --workspace nadeshiko-seed-worker
 
       - name: Build Worker bundle
-        run: cd infra/seed-worker && bunx wrangler deploy --dry-run
+        run: npx wrangler deploy --dry-run
+        working-directory: infra/seed-worker
