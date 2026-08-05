@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { setupTestSuite, TestDataSource } from '../../../helpers/setup';
 import { runCategoryFilteredQuery } from '@app/services/mediaAudit/checks/queryHelper';
 

@@ -28,7 +28,7 @@ interface RunResult {
   totalReports: number;
 }
 
-export interface AuditDeps {
+interface AuditDeps {
   dataSource: DataSource;
   esClient?: Client;
 }
@@ -146,20 +146,28 @@ async function runSingleAudit(audit: MediaAuditCheck, deps: AuditDeps, category?
     getUserReportCounts(),
   ]);
 
-  const run = MediaAuditRun.create({
-    auditName: audit.name,
-    category: category ?? null,
-    resultCount: results.length,
-    thresholdUsed: threshold,
-  });
-  await run.save();
-
   const enriched = enrichResults(results, previousReports, userReportCounts);
-  const reports = buildReports(enriched, run.id, audit.name);
 
-  if (reports.length > 0) {
-    await Report.save(reports as Report[]);
-  }
+  // The run row advertises `resultCount`, so it and the reports it counts are
+  // written together. Saving them separately lets a failure in between leave a
+  // run claiming N findings with none attached to it.
+  const run = await MediaAuditRun.getRepository().manager.transaction(async (manager) => {
+    const auditRun = await manager.save(
+      MediaAuditRun.create({
+        auditName: audit.name,
+        category: category ?? null,
+        resultCount: results.length,
+        thresholdUsed: threshold,
+      }),
+    );
+
+    const reports = buildReports(enriched, auditRun.id, audit.name);
+    if (reports.length > 0) {
+      await manager.save(reports);
+    }
+
+    return auditRun;
+  });
 
   return {
     auditName: audit.name,

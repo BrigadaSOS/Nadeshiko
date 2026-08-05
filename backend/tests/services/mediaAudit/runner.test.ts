@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { EntityManager } from 'typeorm';
 import { setupTestSuite, TestDataSource } from '../../helpers/setup';
 import {
   Media,
@@ -302,5 +303,37 @@ describe('runAllAuditsWithDeps', () => {
     const run = await MediaAuditRun.findOne({ where: { id: result.checksRun[0].runId } });
     const reports = await Report.find({ where: { auditRunId: run?.id } });
     expect(reports).toHaveLength(0);
+  });
+
+  it('leaves no run behind when its reports fail to save', async () => {
+    const media = createMedia();
+    await media.save();
+    await Episode.create({ mediaId: media.id, episodeNumber: 1, segmentCount: 2 }).save();
+
+    const runsBefore = await MediaAuditRun.count();
+    const originalSave = EntityManager.prototype.save;
+    const saveSpy = vi.spyOn(EntityManager.prototype, 'save').mockImplementation(function (
+      this: EntityManager,
+      ...args: unknown[]
+    ) {
+      const [first] = args;
+      if (Array.isArray(first) && first[0] instanceof Report) {
+        return Promise.reject(new Error('report write failed'));
+      }
+      return (originalSave as (...a: unknown[]) => Promise<unknown>).apply(this, args);
+    } as never);
+
+    try {
+      // runAllAuditsWithDeps logs a failing audit and moves on, so the failure
+      // surfaces here as an audit that reported nothing.
+      const result = await runAllAuditsWithDeps({ dataSource: TestDataSource }, undefined, 'lowSegmentEpisodes');
+      expect(result.checksRun).toHaveLength(0);
+    } finally {
+      saveSpy.mockRestore();
+    }
+
+    // A run claiming findings with none attached is worse than no run at all:
+    // getPreviousRunData reads the latest run as the baseline for what changed.
+    expect(await MediaAuditRun.count()).toBe(runsBefore);
   });
 });
