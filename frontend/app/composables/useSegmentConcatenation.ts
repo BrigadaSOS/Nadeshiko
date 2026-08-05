@@ -83,33 +83,44 @@ function concatLangField<T extends TextFieldBase>(
 
 export function useSegmentConcatenation() {
   const { contentRating } = useContentRating();
-  let activeConcatenation: IConcatenation = {
+  const activeConcatenation = shallowRef<IConcatenation>({
     result: null,
     originalContent: null,
-  };
+  });
+
+  /**
+   * True while an expansion is in flight. Callers bind their expand controls to
+   * it; a second expansion started mid-flight would revert the first one while
+   * its audio was still being built, stranding the WAV blob URL.
+   */
+  const isConcatenating = ref(false);
 
   const revertActiveConcatenation = () => {
-    if (activeConcatenation.result && activeConcatenation.originalContent) {
-      if (activeConcatenation.result.blobAudioUrl) {
-        window.URL.revokeObjectURL(activeConcatenation.result.blobAudioUrl);
-      }
+    const { result, originalContent } = activeConcatenation.value;
+    if (!result || !originalContent) return;
 
-      activeConcatenation.result.blobAudioUrl = null;
-      activeConcatenation.result.blobAudio = null;
-
-      activeConcatenation.result.segment = {
-        ...activeConcatenation.result.segment,
-        textJa: { ...activeConcatenation.originalContent.textJa },
-        textEn: { ...activeConcatenation.originalContent.textEn },
-        textEs: { ...activeConcatenation.originalContent.textEs },
-      };
-
-      activeConcatenation = { result: null, originalContent: null };
+    if (result.blobAudioUrl) {
+      window.URL.revokeObjectURL(result.blobAudioUrl);
     }
+
+    result.blobAudioUrl = null;
+    result.blobAudio = null;
+
+    result.segment = {
+      ...result.segment,
+      textJa: { ...originalContent.textJa },
+      textEn: { ...originalContent.textEn },
+      textEs: { ...originalContent.textEs },
+    };
+
+    activeConcatenation.value = { result: null, originalContent: null };
   };
 
+  /** The result currently expanded, so callers can drop it when it leaves their list. */
+  const concatenatedResult = computed(() => activeConcatenation.value.result);
+
   const isConcatenated = (result: SearchResult) => {
-    return activeConcatenation.result === result;
+    return activeConcatenation.value.result === result;
   };
 
   const loadNextSegment = async (
@@ -117,15 +128,20 @@ export function useSegmentConcatenation() {
     direction: 'forward' | 'backward' | 'both',
     isLoading: boolean,
   ) => {
-    if (isLoading) return;
+    if (isLoading || isConcatenating.value) return;
 
     revertActiveConcatenation();
 
-    document.querySelectorAll('#concatenate-button').forEach((e) => {
-      (e as HTMLButtonElement).disabled = true;
-    });
+    isConcatenating.value = true;
 
     const audioUrls: string[] = [result.segment.urls.audioUrl];
+    // Snapshot before any branch mutates `result.segment`; which branch (if any)
+    // ends up owning it is decided after the neighbour guards below.
+    const originalContent: IOriginalContent = {
+      textJa: { ...result.segment.textJa },
+      textEn: { ...result.segment.textEn },
+      textEs: { ...result.segment.textEs },
+    };
 
     try {
       const sdk = useNadeshikoSdk();
@@ -142,18 +158,10 @@ export function useSegmentConcatenation() {
         const previousSegment = response.segments[currentIdx - 1];
         const nextSegment = response.segments[currentIdx + 1];
 
-        activeConcatenation = {
-          result,
-          originalContent: {
-            textJa: { ...result.segment.textJa },
-            textEn: { ...result.segment.textEn },
-            textEs: { ...result.segment.textEs },
-          },
-        };
-
         if (direction === 'forward') {
           if (!nextSegment) return;
 
+          activeConcatenation.value = { result, originalContent };
           result.segment = {
             ...result.segment,
             textJa: concatLangField(result.segment.textJa, nextSegment.segment.textJa, 'forward'),
@@ -172,6 +180,7 @@ export function useSegmentConcatenation() {
         } else if (direction === 'backward') {
           if (!previousSegment) return;
 
+          activeConcatenation.value = { result, originalContent };
           result.segment = {
             ...result.segment,
             textJa: concatLangField(result.segment.textJa, previousSegment.segment.textJa, 'backward'),
@@ -190,6 +199,7 @@ export function useSegmentConcatenation() {
         } else if (direction === 'both') {
           if (!previousSegment || !nextSegment) return;
 
+          activeConcatenation.value = { result, originalContent };
           result.segment = {
             ...result.segment,
             textJa: concatLangField(
@@ -228,13 +238,18 @@ export function useSegmentConcatenation() {
         'segment.publicId': result.segment.publicId,
         direction,
       });
-      activeConcatenation = { result: null, originalContent: null };
+      // Reverting rather than blanking: if the failure landed after a branch had
+      // already swapped in the concatenated text, blanking would leave the card
+      // expanded with no way back and its blob URL unreachable.
+      revertActiveConcatenation();
     } finally {
-      document.querySelectorAll('#concatenate-button').forEach((e) => {
-        (e as HTMLButtonElement).disabled = false;
-      });
+      isConcatenating.value = false;
     }
   };
 
-  return { revertActiveConcatenation, isConcatenated, loadNextSegment };
+  // Without this the WAV blob URL of whatever was expanded outlives the
+  // component and stays allocated for the rest of the tab's life.
+  onScopeDispose(revertActiveConcatenation);
+
+  return { revertActiveConcatenation, isConcatenated, concatenatedResult, isConcatenating, loadNextSegment };
 }

@@ -17,9 +17,19 @@ import { logger } from '~~/server/utils/logger';
 
 const CACHE_SECONDS = 60 * 60 * 24;
 
+// `locale` resolves the part-of-speech and misc labels into ONE language, and it
+// is the only thing about this response that varies by reader: the definitions
+// come back in every language the entry has and the caller picks. Clamped to
+// what Shirabe ships a UI in, so an arbitrary query string cannot multiply the
+// cached copies of a word that is the same for everyone.
+const LABEL_LOCALES = new Set(['en', 'es']);
+
 export default defineEventHandler(async (event) => {
   const wid = getRouterParam(event, 'wid');
   if (!wid) throw createError({ statusCode: 400, statusMessage: 'wid is required' });
+
+  const requested = String(getQuery(event).locale ?? '');
+  const locale = LABEL_LOCALES.has(requested) ? requested : 'en';
 
   const config = useRuntimeConfig();
   const base = String(config.shirabeApiBase || 'https://shirabe.org').replace(/\/$/, '');
@@ -29,7 +39,11 @@ export default defineEventHandler(async (event) => {
   try {
     const word = await $fetch(`${base}/v1/words/${encodeURIComponent(wid)}`, {
       headers: { authorization: `Bearer ${apiKey}` },
-      query: { locale: (getQuery(event).locale as string) || 'en' },
+      // Examples are off for now (owner, 2026-08-06). Asking for them is what
+      // makes them exist: `include=examples` is opt-in, it costs 2 to 3x the
+      // latency on a common word, and with it absent `cardExamples` finds
+      // nothing and the block does not render. Put 'examples' back to restore.
+      query: { locale },
       timeout: 5000,
     });
 

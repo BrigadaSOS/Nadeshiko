@@ -1,7 +1,7 @@
 import { faro } from '@grafana/faro-web-sdk';
 import { getPagePath } from '~/utils/pagePath';
 
-export function toError(value: unknown): Error {
+function toError(value: unknown): Error {
   if (value instanceof Error) return value;
   return new Error(typeof value === 'string' ? value : 'Unknown error');
 }

@@ -3,7 +3,7 @@ import { TracingInstrumentation } from '@grafana/faro-web-tracing';
 import { getPagePath } from '~/utils/pagePath';
 
 const TRACE_HEADER_CORS_URLS = [/^https?:\/\/(stg\.)?nadeshiko\.co/, /^https:\/\/api(?:-stg)?\.nadeshiko\.co/];
-const IGNORED_URLS = [/cloud\.umami\.is/, /static\.cloudflareinsights\.com/];
+const IGNORED_URLS = [/static\.cloudflareinsights\.com/];
 
 function getFaroOrigin(url: string): string | undefined {
   try {

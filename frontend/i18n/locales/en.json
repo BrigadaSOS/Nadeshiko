@@ -31,7 +31,8 @@
     "navigationMenu": "Navigation menu",
     "searchAnything": "Search anything!",
     "toggleNavigation": "Toggle navigation",
-    "translationUnavailable": "This page is not available in your language yet, so the English version is shown."
+    "translationUnavailable": "This page is not available in your language yet, so the English version is shown.",
+    "justNow": "Just now"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",
@@ -218,8 +219,6 @@
     "endTimeMs": "End (ms)",
     "ratingAnalysis": "Rating Analysis",
     "ratingAnalysisDesc": "WD Tagger v3 classifier output (scores/tags) used to derive content rating",
-    "posAnalysis": "POS Analysis",
-    "posAnalysisDesc": "Part-of-speech tokenization results keyed by engine (sudachi, unidic)",
     "invalidJson": "Invalid JSON",
     "loading": "Loading...",
     "history": "History",
@@ -235,8 +234,6 @@
       "duration": "Duration",
       "id": "ID",
       "position": "Position",
-      "uuid": "UUID",
-      "copyUuid": "Copy UUID",
       "publicId": "Public ID",
       "copyPublicId": "Copy Public ID",
       "mediaId": "Media ID",
@@ -327,6 +324,7 @@
         "searchbar": "Filter",
         "all": "All",
         "copiedcontent": "The content has been copied to the clipboard.",
+        "errorcopiedcontent": "Error copying content to clipboard. Try again.",
         "copiedsharingurl": "The URL has been copied to the clipboard.",
         "errorcopiedsharingurl": "Error copying URL to clipboard. Try again.",
         "collectionAdded": "Added to \"{name}\"",
@@ -334,7 +332,8 @@
         "mtTooltip": "This sentence has been machine translated, content might not be accurate",
         "zoomedImage": "Zoomed image",
         "collectionsLoadFailed": "Couldn't load your collections.",
-        "collectionRemoveFailed": "Couldn't remove that sentence from the collection."
+        "collectionRemoveFailed": "Couldn't remove that sentence from the collection.",
+        "downloadFailed": "Couldn't download that file. Try again."
       }
     },
     "modalcontext": {
@@ -352,7 +351,8 @@
     "menu": {
       "generalTitle": "General",
       "advancedTitle": "Advanced",
-      "adminTitle": "Admin"
+      "adminTitle": "Admin",
+      "tabsAriaLabel": "Account settings sections"
     },
     "tabs": {
       "settings": "Settings",
@@ -361,7 +361,6 @@
       "activity": "Activity",
       "hideMedia": "Hide Media",
       "developer": "Developer",
-      "labs": "Labs",
       "users": "Users",
       "reports": "Reports",
       "announcement": "Announcement"
@@ -737,13 +736,6 @@
         "save": "Save"
       },
       "profileSaveError": "Couldn't save your Anki profile."
-    },
-    "labs": {
-      "title": "Nadeshiko Labs",
-      "description": "Try experimental features before they are released to everyone!",
-      "feedbackDescription": "These features are still under testing and might change at any time, but we would love to hear your feedback to help us improve them before they become default features in Nadeshiko.",
-      "empty": "No lab features available at this time.",
-      "toggleError": "Couldn't change that experiment. Please try again."
     }
   },
   "blog": {
@@ -765,9 +757,6 @@
     "goHome": "Go Home",
     "metaDescription": "The page you are looking for could not be found.",
     "imageAlt": "Not found"
-  },
-  "contentPage": {
-    "emptyMessage": "Stay tuned; it will be added later 😉"
   },
   "segment": {
     "noResultsTitle": "404",
@@ -796,7 +785,8 @@
     "revert": "Revert"
   },
   "tokenTooltip": {
-    "lookupIn": "Look up in"
+    "lookupIn": "Look up in",
+    "loading": "Looking up…"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -834,7 +824,6 @@
     "cancel": "Cancel",
     "reportSegment": "Report",
     "loginRequired": "Please log in to use this feature",
-    "allStatuses": "All statuses",
     "noReports": "No reports found",
     "loading": "Loading...",
     "loadMore": "Load more",
@@ -865,15 +854,11 @@
     "table": {
       "type": "Type",
       "target": "Target",
-      "reason": "Reason",
-      "status": "Status",
-      "description": "Description"
+      "status": "Status"
     },
     "admin": {
       "title": "Report Management",
-      "reporter": "Reporter",
       "count": "Count",
-      "notes": "Admin Notes",
       "actions": "Actions",
       "filters": {
         "all": "All",
@@ -890,8 +875,6 @@
       "resultsTab": "Results",
       "runHistoryTab": "Run History",
       "selectedGroups": "{count} group(s) selected",
-      "processing": "Processing",
-      "fixed": "Fixed",
       "dismiss": "Dismiss",
       "delete": "Delete",
       "clearSelection": "Clear",
@@ -899,7 +882,6 @@
       "dismissAllMatching": "Dismiss All Matching",
       "deletingAll": "Deleting all...",
       "deleteAllMatching": "Delete All Matching",
-      "reopen": "Reopen",
       "save": "Save",
       "addNote": "Click to add note...",
       "updateSuccess": "Report updated",
@@ -1062,10 +1044,10 @@
     "translations": {
       "title": "Translation Availability",
       "description": "Every sentence has Japanese subtitles. We aim to include English and Spanish translations for all content. Some sources lack reliable Spanish subtitles, so coverage may be lower for that language.",
-      "translated": "{percent}% translated",
-      "official": "Official {percent}%",
-      "machine": "DeepL {percent}%",
-      "none": "None {percent}%",
+      "translated": "{percent} translated",
+      "official": "Official {percent}",
+      "machine": "DeepL {percent}",
+      "none": "None {percent}",
       "languages": {
         "english": "English",
         "spanish": "Spanish"

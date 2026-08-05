@@ -1,4 +1,5 @@
 import { createNadeshikoClient, type NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
+import { createInternalSdk } from '#shared/utils/backendSdk';
 
 /**
  * Returns a configured NadeshikoClient that works on both SSR and client.
@@ -14,24 +15,7 @@ export function useNadeshikoSdk(): NadeshikoClient {
 }
 
 function useSSRSdk(): NadeshikoClient {
-  const config = useRuntimeConfig();
-  const baseURL = String(config.backendInternalUrl || '');
-  const hostHeader = String(config.backendHostHeader || '');
-  const apiKey = String(config.nadeshikoApiKey || '');
-
-  const client = createNadeshikoClient({
-    apiKey,
-    baseURL,
-  });
-
-  if (hostHeader) {
-    client.client.interceptors.request.use((request) => {
-      request.headers.set('Host', hostHeader);
-      return request;
-    });
-  }
-
-  return client;
+  return createInternalSdk(useRuntimeConfig());
 }
 
 let clientSdk: NadeshikoClient | null = null;
@@ -39,12 +23,8 @@ let clientSdk: NadeshikoClient | null = null;
 /**
  * `'PROXY'` is an SDK environment constant that resolves to an empty base URL,
  * so requests stay same-origin (`/v1/...`) and land on the Nitro proxy, which
- * attaches credentials. It is absent from the SDK's `baseURL` union type and
- * only typechecks because that union widens to `string`.
- *
- * Note for anyone reaching for `'LOCAL'` instead: it resolves to
- * `http://localhost:5000/api`, and the backend serves no `/api` prefix. Both
- * fixes belong in the SDK repo, not here.
+ * attaches credentials. Reaching for `'LOCAL'` instead would point the browser
+ * straight at the backend on localhost, bypassing the proxy and its credentials.
  */
 function useClientSdk(): NadeshikoClient {
   if (!clientSdk) {

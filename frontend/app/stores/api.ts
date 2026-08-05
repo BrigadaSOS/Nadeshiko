@@ -1,9 +1,15 @@
 import { defineStore } from 'pinia';
 import { handleApiError } from '~/utils/apiError';
 
-// The /v1/auth/* API-key endpoints are served by better-auth and are not part of the
-// OpenAPI spec, so the SDK has no generated types for them. These local shapes stand in
-// until those routes are contracted (see phase 2 "Contract" work).
+// These are view models, not stand-ins for a missing contract: `/v1/auth/api-key/*`
+// IS contracted now (backend/bin/generateAuthSpec.ts feeds the SDK), and the wire
+// shape differs from what this screen renders -- `isActive` comes from `enabled`,
+// `hint` from `start ?? prefix`, and `permissions` is flattened from an object.
+//
+// `normalizeApiKey` deliberately reads from `unknown` rather than the generated
+// type. better-auth's OpenAPI output is derived from its plugins and does not
+// always match what the server sends (better-auth#8122), so this is the boundary
+// where an optimistic contract meets a real response.
 interface ApiResponse {
   status: number;
 }
@@ -26,7 +32,7 @@ interface ApiKeyActionResponse extends ApiResponse {
   key?: string;
 }
 
-export function normalizePermissionList(permissions: unknown): ApiKeyPermission[] {
+function normalizePermissionList(permissions: unknown): ApiKeyPermission[] {
   if (!permissions || typeof permissions !== 'object') {
     return [];
   }
@@ -58,66 +64,42 @@ export function normalizeApiKey(key: unknown): ApiKeyListItem {
   };
 }
 
-export function asObject(data: unknown): Record<string, unknown> {
+function asObject(data: unknown): Record<string, unknown> {
   return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+}
+
+/**
+ * Runs an API-key mutation and reports it as a status, never a throw.
+ *
+ * DeveloperSettings branches on `status` to render its inline error banner, so
+ * every one of these actions has to resolve rather than reject. The three of them
+ * differed only in the call and the error key.
+ */
+async function asStatus<T>(errorKey: string, call: () => Promise<T>): Promise<ApiKeyActionResponse> {
+  try {
+    return { status: 200, ...asObject(await call()) };
+  } catch (error) {
+    handleApiError(errorKey, error, { toastKey: false });
+    return { status: 500 };
+  }
 }
 
 export const apiStore = defineStore('api', {
   actions: {
-    async deactivateApiKey(apiKeyId: string): Promise<ApiResponse> {
-      try {
-        const data = await $fetch('/v1/auth/api-key/update', {
-          method: 'POST',
-          credentials: 'include',
-          body: {
-            keyId: apiKeyId,
-            enabled: false,
-          },
-        });
-
-        return { status: 200, ...asObject(data) };
-      } catch (error) {
-        // DeveloperModule branches on `status` to render its inline error banner.
-        handleApiError('api-keys:deactivate-failed', error, { toastKey: false });
-        return { status: 500 };
-      }
+    deactivateApiKey(apiKeyId: string): Promise<ApiResponse> {
+      return asStatus('api-keys:deactivate-failed', () =>
+        useNadeshikoSdk().authApiKeyUpdate({ keyId: apiKeyId, enabled: false }),
+      );
     },
 
-    async renameApiKey(apiKeyId: string, newName: string): Promise<ApiResponse> {
-      try {
-        const data = await $fetch('/v1/auth/api-key/update', {
-          method: 'POST',
-          credentials: 'include',
-          body: {
-            keyId: apiKeyId,
-            name: newName,
-          },
-        });
-
-        return { status: 200, ...asObject(data) };
-      } catch (error) {
-        // DeveloperModule branches on `status` to render its inline error banner.
-        handleApiError('api-keys:rename-failed', error, { toastKey: false });
-        return { status: 500 };
-      }
+    renameApiKey(apiKeyId: string, newName: string): Promise<ApiResponse> {
+      return asStatus('api-keys:rename-failed', () =>
+        useNadeshikoSdk().authApiKeyUpdate({ keyId: apiKeyId, name: newName }),
+      );
     },
 
-    async createApiKeyGeneral(nameApiKey: string): Promise<ApiKeyActionResponse> {
-      try {
-        const data = await $fetch('/v1/auth/api-key/create', {
-          method: 'POST',
-          credentials: 'include',
-          body: {
-            name: nameApiKey,
-          },
-        });
-
-        return { status: 200, ...asObject(data) };
-      } catch (error) {
-        // DeveloperModule branches on `status` to render its inline error banner.
-        handleApiError('api-keys:create-failed', error, { toastKey: false });
-        return { status: 500 };
-      }
+    createApiKeyGeneral(nameApiKey: string): Promise<ApiKeyActionResponse> {
+      return asStatus('api-keys:create-failed', () => useNadeshikoSdk().authApiKeyCreate({ name: nameApiKey }));
     },
   },
 });

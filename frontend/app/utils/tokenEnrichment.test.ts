@@ -25,6 +25,8 @@ const INFLECTED: SlimToken = {
   cf: '連用形-一般',
   kind: 'inflected',
   wid: '焼ける-やける',
+  posLabel: 'Verb',
+  inflection: { labels: ['past'], base: '焼ける' },
   f: [{ t: '焼', r: 'や' }, { t: 'けた' }],
   parts: [
     { s: '焼け', b: 0, e: 2 },
@@ -38,6 +40,7 @@ const FRYPAN: SlimToken = {
   b: 3,
   e: 8,
   p: '名詞',
+  posLabel: 'Noun',
   p1: '普通名詞',
   kind: 'word',
 };
@@ -58,22 +61,43 @@ describe('enrichTokens', () => {
     expect(yaketa?.reading).toBe('やけた');
   });
 
-  it('labels the parts of speech it is given', () => {
+  // Printed as Shirabe worded it. There used to be four tables here mapping
+  // UniDic to English, and they had no entry for a category Shirabe emits.
+  it('prints the part of speech the token carries', () => {
     const [yaketa, frypan] = enrichTokens(YAKETA);
 
-    expect(yaketa?.posEn).toBe('Verb');
-    expect(yaketa?.conjClassJa).toBe('下一段');
-    expect(frypan?.posEn).toBe('Noun');
+    expect(yaketa?.pos).toBe('Verb');
+    expect(frypan?.pos).toBe('Noun');
   });
 
-  it('labels the two parts of speech Shirabe emits that the old table lacked', () => {
-    const [expression, adjectival] = enrichTokens([
+  it('falls back to the raw category rather than printing nothing', () => {
+    const [expression] = enrichTokens([
       { s: 'について', d: 'について', r: 'ニツイテ', b: 0, e: 4, p: '連語', kind: 'expression' },
-      { s: '静か', d: '静か', r: 'シズカ', b: 4, e: 6, p: '形状詞', kind: 'word' },
     ]);
 
-    expect(expression?.posEn).toBe('Expression');
-    expect(adjectival?.posEn).toBe('Adjectival noun');
+    expect(expression?.pos).toBe('連語');
+  });
+
+  // The chain, not one name: calling 食べさせられた a past tense would be true of
+  // its last step only. An ambiguous step keeps its ambiguity.
+  it('carries the inflection chain in order', () => {
+    const [stacked] = enrichTokens([
+      {
+        s: '食べさせられた',
+        d: '食べる',
+        r: 'タベサセラレタ',
+        b: 0,
+        e: 7,
+        p: '動詞',
+        inflection: { labels: ['past', 'potential / passive', 'causative'], base: '食べる' },
+      },
+    ]);
+
+    expect(stacked?.inflectionLabels).toEqual(['past', 'potential / passive', 'causative']);
+  });
+
+  it('leaves an uninflected token with no chain', () => {
+    expect(enrichTokens(YAKETA)[1]?.inflectionLabels).toEqual([]);
   });
 });
 

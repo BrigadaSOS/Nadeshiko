@@ -31,7 +31,8 @@
     "navigationMenu": "Menú de navegación",
     "searchAnything": "Buscar cualquier cosa",
     "toggleNavigation": "Alternar navegación",
-    "translationUnavailable": "Esta página aún no está disponible en tu idioma, por lo que se muestra la versión en inglés."
+    "translationUnavailable": "Esta página aún no está disponible en tu idioma, por lo que se muestra la versión en inglés.",
+    "justNow": "Justo ahora"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko: Buscador de oraciones de anime en Japonés",
@@ -218,8 +219,6 @@
     "endTimeMs": "Fin (ms)",
     "ratingAnalysis": "Análisis de Clasificación",
     "ratingAnalysisDesc": "Resultado del clasificador WD Tagger v3 (puntuaciones/etiquetas) usado para derivar la clasificación de contenido",
-    "posAnalysis": "Análisis POS",
-    "posAnalysisDesc": "Resultados de tokenización por parte del habla por motor (sudachi, unidic)",
     "invalidJson": "JSON inválido",
     "loading": "Cargando...",
     "history": "Historial",
@@ -235,8 +234,6 @@
       "duration": "Duración",
       "id": "ID",
       "position": "Posición",
-      "uuid": "UUID",
-      "copyUuid": "Copiar UUID",
       "publicId": "ID Público",
       "copyPublicId": "Copiar ID Público",
       "mediaId": "ID de Media",
@@ -327,6 +324,7 @@
         "searchbar": "Filtro",
         "all": "Todo",
         "copiedcontent": "Se ha copiado el contenido al portapapeles.",
+        "errorcopiedcontent": "No ha sido posible copiar el contenido al portapapeles. Inténtalo de nuevo.",
         "copiedsharingurl": "Se ha copiado la URL al portapapeles.",
         "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo.",
         "collectionAdded": "Añadido a \"{name}\"",
@@ -334,7 +332,8 @@
         "mtTooltip": "Esta frase ha sido traducida automáticamente, puede que el contenido no sea exacto",
         "zoomedImage": "Imagen ampliada",
         "collectionsLoadFailed": "No se pudieron cargar tus colecciones.",
-        "collectionRemoveFailed": "No se pudo quitar esa frase de la colección."
+        "collectionRemoveFailed": "No se pudo quitar esa frase de la colección.",
+        "downloadFailed": "No se pudo descargar ese archivo. Inténtalo de nuevo."
       }
     },
     "modalcontext": {
@@ -352,7 +351,8 @@
     "menu": {
       "generalTitle": "General",
       "advancedTitle": "Avanzado",
-      "adminTitle": "Admin"
+      "adminTitle": "Admin",
+      "tabsAriaLabel": "Secciones de ajustes de la cuenta"
     },
     "tabs": {
       "settings": "Ajustes",
@@ -361,7 +361,6 @@
       "activity": "Actividad",
       "hideMedia": "Ocultar medios",
       "developer": "Desarrollador",
-      "labs": "Labs",
       "users": "Usuarios",
       "reports": "Reportes",
       "announcement": "Anuncios"
@@ -737,13 +736,6 @@
         "save": "Guardar"
       },
       "profileSaveError": "No se pudo guardar tu perfil de Anki."
-    },
-    "labs": {
-      "title": "Nadeshiko Labs",
-      "description": "Prueba funciones experimentales antes de que se publiquen para todo el mundo.",
-      "feedbackDescription": "Estas funciones todavía están en pruebas y pueden cambiar en cualquier momento, pero nos encantaría recibir tus comentarios para mejorarlas antes de convertirlas en funciones predeterminadas de Nadeshiko.",
-      "empty": "No hay funciones de laboratorio disponibles en este momento.",
-      "toggleError": "No se pudo cambiar ese experimento. Inténtalo de nuevo."
     }
   },
   "blog": {
@@ -765,9 +757,6 @@
     "goHome": "Ir al inicio",
     "metaDescription": "No se ha podido encontrar la página que buscas.",
     "imageAlt": "No encontrado"
-  },
-  "contentPage": {
-    "emptyMessage": "Próximamente disponible 😉"
   },
   "segment": {
     "noResultsTitle": "404",
@@ -796,7 +785,8 @@
     "revert": "Revertir"
   },
   "tokenTooltip": {
-    "lookupIn": "Buscar en"
+    "lookupIn": "Buscar en",
+    "loading": "Buscando…"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -834,7 +824,6 @@
     "cancel": "Cancelar",
     "reportSegment": "Reportar",
     "loginRequired": "Inicia sesión para usar esta función",
-    "allStatuses": "Todos los estados",
     "noReports": "No se encontraron reportes",
     "loading": "Cargando...",
     "loadMore": "Cargar más",
@@ -865,15 +854,11 @@
     "table": {
       "type": "Tipo",
       "target": "Objetivo",
-      "reason": "Razón",
-      "status": "Estado",
-      "description": "Descripción"
+      "status": "Estado"
     },
     "admin": {
       "title": "Gestión de Reportes",
-      "reporter": "Reportador",
       "count": "Cantidad",
-      "notes": "Notas del Admin",
       "actions": "Acciones",
       "filters": {
         "all": "Todos",
@@ -890,8 +875,6 @@
       "resultsTab": "Resultados",
       "runHistoryTab": "Historial de ejecuciones",
       "selectedGroups": "{count} grupo(s) seleccionados",
-      "processing": "En proceso",
-      "fixed": "Corregido",
       "dismiss": "Descartar",
       "delete": "Eliminar",
       "clearSelection": "Limpiar",
@@ -899,7 +882,6 @@
       "dismissAllMatching": "Descartar todos los coincidentes",
       "deletingAll": "Eliminando todo...",
       "deleteAllMatching": "Eliminar todos los coincidentes",
-      "reopen": "Reabrir",
       "save": "Guardar",
       "addNote": "Haz clic para añadir nota...",
       "updateSuccess": "Reporte actualizado",
@@ -1062,10 +1044,10 @@
     "translations": {
       "title": "Disponibilidad de traducciones",
       "description": "Todas las oraciones tienen subtítulos en japonés. Queremos incluir traducciones al inglés y al español para todo el contenido. Algunas fuentes no tienen subtítulos fiables en español, así que la cobertura puede ser menor en ese idioma.",
-      "translated": "{percent}% traducido",
-      "official": "Oficial {percent}%",
-      "machine": "DeepL {percent}%",
-      "none": "Sin traducción {percent}%",
+      "translated": "{percent} traducido",
+      "official": "Oficial {percent}",
+      "machine": "DeepL {percent}",
+      "none": "Sin traducción {percent}",
       "languages": {
         "english": "Inglés",
         "spanish": "Español"

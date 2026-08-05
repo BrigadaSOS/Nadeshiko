@@ -14,6 +14,20 @@ export type UserSession = {
   userAgent?: string | null;
 };
 
+/** The shape of a better-auth session as both entry points receive it. */
+export interface SessionUser {
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  createdAt?: string | null;
+  provider?: string | null;
+}
+
+export interface SessionInfo {
+  token?: string | null;
+  impersonatedBy?: unknown;
+}
+
 function defaultAuthState() {
   return {
     isLoggedIn: false,
@@ -28,7 +42,7 @@ function defaultAuthState() {
   };
 }
 
-const IMPERSONATION_BACKUP_KEYS = ['labs', 'anki-active-profile', 'nd-last-collection'] as const;
+const IMPERSONATION_BACKUP_KEYS = ['anki-active-profile', 'nd-last-collection'] as const;
 const IMPERSONATION_BACKUP_SESSION_KEY = '_nade_impersonation_backup';
 
 function backupAndClearImpersonationState() {
@@ -59,6 +73,23 @@ function restoreImpersonationStateBackup() {
   }
 }
 
+/**
+ * Runs an action and reports failure as `false` rather than throwing.
+ *
+ * The session screens render their own inline error next to the control that
+ * failed, so these actions must resolve either way. Each differed only in which
+ * follow-up it ran afterwards.
+ */
+async function reportedAsBoolean(errorKey: string, run: () => Promise<void>): Promise<boolean> {
+  try {
+    await run();
+    return true;
+  } catch (error) {
+    handleApiError(errorKey, error, { toastKey: false });
+    return false;
+  }
+}
+
 export const userStore = defineStore('user', {
   state: () => ({
     ...defaultAuthState(),
@@ -81,21 +112,53 @@ export const userStore = defineStore('user', {
       this.$patch(defaultAuthState());
     },
 
+    /**
+     * Writes a better-auth session into auth state, or clears it when there is none.
+     *
+     * Both entry points land here: the SSR plugin bootstrapping from the cookie, and
+     * the client re-reading after a login, impersonation switch or callback. The
+     * mapping used to be spelled out in both, so a field added to the session could
+     * be picked up on one path and not the other -- leaving the server-rendered page
+     * and the hydrated app disagreeing about who is signed in, or about their role.
+     */
+    applySession(response: { user?: SessionUser | null; session?: SessionInfo | null } | null): boolean {
+      const sessionUser = response?.user;
+      if (!sessionUser && !response?.session) {
+        this.resetAuthState();
+        return false;
+      }
+
+      const impersonating = !!response?.session?.impersonatedBy;
+      this.$patch({
+        isLoggedIn: true,
+        userName: sessionUser?.name ?? null,
+        userEmail: sessionUser?.email ?? null,
+        currentSessionToken: response?.session?.token ?? null,
+        userInfo: { role: (sessionUser?.role as UserRole) ?? 'USER' },
+        isImpersonating: impersonating,
+        impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
+      });
+
+      return true;
+    },
+
     async loginWithProvider(provider: 'google' | 'discord') {
       const { $i18n } = useNuxtApp();
 
       try {
-        const response = await $fetch<{ url?: string; error?: { message?: string } }>('/v1/auth/sign-in/social', {
-          method: 'POST',
-          credentials: 'include',
-          body: {
-            provider,
-            callbackURL: window.location.href,
-            errorCallbackURL: window.location.href,
-          },
+        const response = await useNadeshikoSdk().socialSignIn({
+          provider,
+          callbackURL: window.location.href,
+          errorCallbackURL: window.location.href,
         });
 
-        if (response?.error) {
+        // The spec declares no `error` field -- better-auth signals failure with a
+        // non-2xx, which throws below. This guard predates the contract though, and
+        // better-auth's generated schema has already proved not to describe this
+        // deployment exactly (see SCHEMA_CORRECTIONS in generateAuthSpec.ts), so it
+        // is kept rather than deleted on the strength of that schema.
+        const declaredError = (response as { error?: { message?: string } })?.error;
+        if (declaredError) {
           useToastError($i18n.t('modalauth.labels.errorlogin400'));
           return;
         }
@@ -122,11 +185,7 @@ export const userStore = defineStore('user', {
     async sendMagicLink(email: string): Promise<boolean> {
       try {
         const callbackURL = '/?magic_callback=1';
-        await $fetch('/v1/auth/sign-in/magic-link', {
-          method: 'POST',
-          credentials: 'include',
-          body: { email, callbackURL },
-        });
+        await useNadeshikoSdk().signInWithMagicLink({ email, callbackURL });
         return true;
       } catch (error) {
         // The caller renders the failure inline in the auth modal.
@@ -140,13 +199,8 @@ export const userStore = defineStore('user', {
 
       try {
         backupAndClearImpersonationState();
-        await $fetch('/v1/auth/admin/impersonate-user', {
-          method: 'POST',
-          credentials: 'include',
-          body: { userId: String(userId) },
-        });
+        await useNadeshikoSdk().impersonateUser({ userId });
         await this.getBasicInfo();
-        await useLabsStore().fetchFeatures();
         if (this.isLoggedIn) {
           useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
         }
@@ -158,13 +212,9 @@ export const userStore = defineStore('user', {
 
     async stopImpersonating() {
       try {
-        await $fetch('/v1/auth/admin/stop-impersonating', {
-          method: 'POST',
-          credentials: 'include',
-        });
+        await useNadeshikoSdk().authAdminStopImpersonating();
         restoreImpersonationStateBackup();
         await this.getBasicInfo();
-        await useLabsStore().fetchFeatures();
       } catch (error) {
         // Reload to `/` happens either way, so the toast would be destroyed before
         // it could be read; the report is what matters here.
@@ -182,7 +232,7 @@ export const userStore = defineStore('user', {
       const { $i18n } = useNuxtApp();
 
       try {
-        await $fetch('/v1/auth/sign-out', { method: 'POST', credentials: 'include' });
+        await useNadeshikoSdk().signOut({});
       } catch (error) {
         // Local auth state is cleared regardless, and the success toast below still
         // fires, so surface nothing to the user -- but do not lose the failure.
@@ -202,28 +252,16 @@ export const userStore = defineStore('user', {
 
     async getBasicInfo(): Promise<void> {
       try {
-        const response = await $fetch<{ user?: any; session?: any }>('/v1/auth/get-session', {
-          method: 'GET',
-          credentials: 'include',
-        });
+        const response = await useNadeshikoSdk().getSession();
 
-        const sessionUser = response?.user;
-        if (!sessionUser && !response?.session) {
-          this.resetAuthState();
-          return;
-        }
-
-        const impersonating = !!response?.session?.impersonatedBy;
+        // The generated `AuthUser` is better-auth's base schema. `customSession` in
+        // config/auth.ts enriches what the server actually returns (role, provider),
+        // and the generator has no way to see that, so the enriched fields are read
+        // through our own `SessionUser` -- which is the type that documents them.
+        const sessionUser = response?.user as SessionUser | undefined;
         const wasLoggedIn = this.isLoggedIn;
-        this.$patch({
-          isLoggedIn: true,
-          userName: sessionUser?.name ?? null,
-          userEmail: sessionUser?.email ?? null,
-          currentSessionToken: response?.session?.token ?? null,
-          userInfo: { role: sessionUser?.role ?? 'USER' },
-          isImpersonating: impersonating,
-          impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
-        });
+
+        if (!this.applySession(response)) return;
 
         if (!wasLoggedIn && sessionUser?.createdAt) {
           const createdAt = new Date(sessionUser.createdAt).getTime();
@@ -260,98 +298,62 @@ export const userStore = defineStore('user', {
 
     async listSessions(): Promise<UserSession[]> {
       try {
-        const raw = await $fetch<unknown[]>('/v1/auth/list-sessions', {
-          method: 'GET',
-          credentials: 'include',
-        });
+        const raw = await useNadeshikoSdk().listUserSessions();
 
         const normalized = Array.isArray(raw) ? (raw as UserSession[]) : [];
         this.activeSessions = normalized;
         return normalized;
       } catch (error) {
-        // AccountModule tells an empty list apart from a failure via `sessionsError`.
+        // AccountSettings tells an empty list apart from a failure via `sessionsError`.
         handleApiError('auth:list-sessions-failed', error, { toastKey: false });
         this.activeSessions = [];
         return [];
       }
     },
 
-    async revokeSession(token: string): Promise<boolean> {
-      try {
-        await $fetch('/v1/auth/revoke-session', {
-          method: 'POST',
-          credentials: 'include',
-          body: { token },
-        });
-
+    revokeSession(token: string): Promise<boolean> {
+      return reportedAsBoolean('auth:revoke-session-failed', async () => {
+        await useNadeshikoSdk().authRevokeSession({ token });
         await this.listSessions();
         await this.getBasicInfo();
-        return true;
-      } catch (error) {
-        // The caller renders `sessions.errors.revokeSingle` inline.
-        handleApiError('auth:revoke-session-failed', error, { toastKey: false });
-        return false;
-      }
+      });
     },
 
-    async revokeSessions(): Promise<boolean> {
-      try {
-        await $fetch('/v1/auth/revoke-sessions', {
-          method: 'POST',
-          credentials: 'include',
-        });
-
+    revokeSessions(): Promise<boolean> {
+      return reportedAsBoolean('auth:revoke-sessions-failed', async () => {
+        await useNadeshikoSdk().authRevokeSessions({});
         await this.logout();
-        return true;
-      } catch (error) {
-        // The caller renders `sessions.errors.revokeAll` inline.
-        handleApiError('auth:revoke-sessions-failed', error, { toastKey: false });
-        return false;
-      }
+      });
     },
 
-    async revokeOtherSessions(): Promise<boolean> {
-      try {
-        await $fetch('/v1/auth/revoke-other-sessions', {
-          method: 'POST',
-          credentials: 'include',
-        });
-
+    revokeOtherSessions(): Promise<boolean> {
+      return reportedAsBoolean('auth:revoke-other-sessions-failed', async () => {
+        await useNadeshikoSdk().authRevokeOtherSessions({});
         await this.listSessions();
-        return true;
-      } catch (error) {
-        // The caller renders `sessions.errors.revokeOthers` inline.
-        handleApiError('auth:revoke-other-sessions-failed', error, { toastKey: false });
-        return false;
-      }
+      });
     },
 
     async changeEmail(newEmail: string): Promise<{ success: boolean; error?: string }> {
       try {
-        await $fetch('/v1/auth/change-email', {
-          method: 'POST',
-          credentials: 'include',
-          body: {
-            newEmail,
-            callbackURL: `${window.location.origin}/settings`,
-          },
+        await useNadeshikoSdk().changeEmail({
+          newEmail,
+          callbackURL: `${window.location.origin}/settings`,
         });
         return { success: true };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // The caller renders the returned message inline next to the email field.
         handleApiError('auth:change-email-failed', error, { toastKey: false });
-        const message = error?.data?.message || error?.message || 'Failed to change email';
+        const message =
+          (error as { data?: { message?: string } })?.data?.message ||
+          (error instanceof Error ? error.message : '') ||
+          'Failed to change email';
         return { success: false, error: message };
       }
     },
 
     async deleteAccount(): Promise<boolean> {
       try {
-        await $fetch('/v1/auth/delete-user', {
-          method: 'POST',
-          credentials: 'include',
-          body: {},
-        });
+        await useNadeshikoSdk().deleteUser({});
 
         if (import.meta.client) {
           const posthog = usePostHog();

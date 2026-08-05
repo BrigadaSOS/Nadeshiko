@@ -1,4 +1,7 @@
-const RESERVED_PREFIXES = [
+// Paths that belong to the app itself rather than to any locale. Exported
+// because the HTML rate limiter (server/middleware/99-rate-limit-html.ts)
+// skips exactly this set too.
+export const RESERVED_PREFIXES = [
   '/_nuxt/',
   '/_i18n/',
   '/api/',
@@ -10,7 +13,7 @@ const RESERVED_PREFIXES = [
   '/media/',
 ];
 
-const RESERVED_EXACT = new Set(['/__nuxt_error', '/up', '/robots.txt', '/opensearch.xml', '/favicon.ico']);
+export const RESERVED_EXACT = new Set(['/__nuxt_error', '/up', '/robots.txt', '/opensearch.xml', '/favicon.ico']);
 
 export function isReservedLocalePath(path: string): boolean {
   if (RESERVED_EXACT.has(path)) return true;

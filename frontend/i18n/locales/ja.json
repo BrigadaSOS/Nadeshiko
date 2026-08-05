@@ -31,7 +31,8 @@
     "navigationMenu": "ナビゲーションメニュー",
     "searchAnything": "何でも検索",
     "toggleNavigation": "ナビゲーションを切り替え",
-    "translationUnavailable": "このページはまだお使いの言語に翻訳されていないため、英語版を表示しています。"
+    "translationUnavailable": "このページはまだお使いの言語に翻訳されていないため、英語版を表示しています。",
+    "justNow": "たった今"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
@@ -218,8 +219,6 @@
     "endTimeMs": "終了 (ms)",
     "ratingAnalysis": "レーティング分析",
     "ratingAnalysisDesc": "コンテンツレーティングの導出に使用されたWD Tagger v3分類器の出力（スコア/タグ）",
-    "posAnalysis": "品詞分析",
-    "posAnalysisDesc": "エンジン別の品詞トークン化結果（sudachi、unidic）",
     "invalidJson": "無効なJSON",
     "loading": "読み込み中...",
     "history": "履歴",
@@ -235,8 +234,6 @@
       "duration": "長さ",
       "id": "ID",
       "position": "位置",
-      "uuid": "UUID",
-      "copyUuid": "UUIDをコピー",
       "publicId": "公開ID",
       "copyPublicId": "公開IDをコピー",
       "mediaId": "メディアID",
@@ -327,6 +324,7 @@
         "searchbar": "フィルター",
         "all": "すべて",
         "copiedcontent": "内容がクリップボードにコピーされました。",
+        "errorcopiedcontent": "内容のコピーに失敗しました。再試行してください。",
         "copiedsharingurl": "URLがクリップボードにコピーされました。",
         "errorcopiedsharingurl": "URLのコピーに失敗しました。再試行してください。",
         "collectionAdded": "\"{name}\" に追加しました",
@@ -334,7 +332,8 @@
         "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります",
         "zoomedImage": "拡大画像",
         "collectionsLoadFailed": "コレクションを読み込めませんでした。",
-        "collectionRemoveFailed": "この文をコレクションから削除できませんでした。"
+        "collectionRemoveFailed": "この文をコレクションから削除できませんでした。",
+        "downloadFailed": "ファイルをダウンロードできませんでした。もう一度お試しください。"
       }
     },
     "modalcontext": {
@@ -352,7 +351,8 @@
     "menu": {
       "generalTitle": "一般",
       "advancedTitle": "高度な設定",
-      "adminTitle": "管理者"
+      "adminTitle": "管理者",
+      "tabsAriaLabel": "アカウント設定のセクション"
     },
     "tabs": {
       "settings": "設定",
@@ -361,7 +361,6 @@
       "activity": "アクティビティ",
       "hideMedia": "非表示メディア",
       "developer": "開発者",
-      "labs": "Labs",
       "users": "ユーザー",
       "reports": "レポート",
       "announcement": "お知らせ"
@@ -737,13 +736,6 @@
         "save": "保存"
       },
       "profileSaveError": "Ankiプロファイルを保存できませんでした。"
-    },
-    "labs": {
-      "title": "Nadeshiko Labs",
-      "description": "一般公開前の実験的な機能を試せます。",
-      "feedbackDescription": "これらの機能はまだテスト中で、いつでも変更される可能性があります。Nadeshikoの標準機能になる前に改善するため、ぜひフィードバックをお寄せください。",
-      "empty": "現在利用できるLabs機能はありません。",
-      "toggleError": "この実験機能を変更できませんでした。もう一度お試しください。"
     }
   },
   "blog": {
@@ -765,9 +757,6 @@
     "goHome": "ホームへ戻る",
     "metaDescription": "お探しのページは見つかりませんでした。",
     "imageAlt": "ページが見つかりません"
-  },
-  "contentPage": {
-    "emptyMessage": "近日公開予定 😉"
   },
   "segment": {
     "noResultsTitle": "404",
@@ -796,7 +785,8 @@
     "revert": "元に戻す"
   },
   "tokenTooltip": {
-    "lookupIn": "辞書で調べる"
+    "lookupIn": "辞書で調べる",
+    "loading": "検索中…"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -834,7 +824,6 @@
     "cancel": "キャンセル",
     "reportSegment": "報告",
     "loginRequired": "この機能を使用するにはログインしてください",
-    "allStatuses": "すべてのステータス",
     "noReports": "レポートが見つかりません",
     "loading": "読み込み中...",
     "loadMore": "もっと読み込む",
@@ -865,15 +854,11 @@
     "table": {
       "type": "タイプ",
       "target": "対象",
-      "reason": "理由",
-      "status": "ステータス",
-      "description": "説明"
+      "status": "ステータス"
     },
     "admin": {
       "title": "レポート管理",
-      "reporter": "報告者",
       "count": "件数",
-      "notes": "管理者メモ",
       "actions": "アクション",
       "filters": {
         "all": "すべて",
@@ -890,8 +875,6 @@
       "resultsTab": "結果",
       "runHistoryTab": "実行履歴",
       "selectedGroups": "{count} 件のグループを選択中",
-      "processing": "対応中",
-      "fixed": "修正済み",
       "dismiss": "却下",
       "delete": "削除",
       "clearSelection": "クリア",
@@ -899,7 +882,6 @@
       "dismissAllMatching": "一致するものをすべて却下",
       "deletingAll": "すべて削除中...",
       "deleteAllMatching": "一致するものをすべて削除",
-      "reopen": "再開",
       "save": "保存",
       "addNote": "クリックしてメモを追加...",
       "updateSuccess": "レポートが更新されました",
@@ -1062,10 +1044,10 @@
     "translations": {
       "title": "翻訳の対応状況",
       "description": "すべての文に日本語字幕があります。すべてのコンテンツに英語とスペイン語の翻訳を付けることを目指しています。ソースによっては信頼できるスペイン語字幕がないため、その言語のカバレッジは低くなる場合があります。",
-      "translated": "{percent}% 翻訳済み",
-      "official": "公式 {percent}%",
-      "machine": "DeepL {percent}%",
-      "none": "なし {percent}%",
+      "translated": "{percent} 翻訳済み",
+      "official": "公式 {percent}",
+      "machine": "DeepL {percent}",
+      "none": "なし {percent}",
       "languages": {
         "english": "英語",
         "spanish": "スペイン語"
