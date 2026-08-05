@@ -1,6 +1,7 @@
 import type { Request, Response, RequestHandler } from 'express';
 import { requireApiKeyAuth, requireSessionAuth } from '@app/middleware/authentication';
 import { AuthType, ApiPermission } from '@app/models/ApiPermission';
+import { UserRoleType } from '@app/models/User';
 import { requirePermissions } from '@app/middleware/authorization';
 import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
 import { InsufficientPermissionsError } from '@app/errors';
@@ -59,7 +60,7 @@ export const requireSession = (...authorizers: RequestHandler[]): RequestHandler
 };
 
 export const enforceAdminAccess: RequestHandler = (req, _res, next) => {
-  if (req.user?.role !== 'ADMIN') {
+  if (req.user?.role !== UserRoleType.ADMIN) {
     throw new InsufficientPermissionsError('Admin access required.');
   }
 
@@ -72,7 +73,7 @@ export const enforceSessionAdmin: RequestHandler = (req, _res, next) => {
     return;
   }
 
-  if (req.user?.role !== 'ADMIN') {
+  if (req.user?.role !== UserRoleType.ADMIN) {
     throw new InsufficientPermissionsError('Admin access required.');
   }
 

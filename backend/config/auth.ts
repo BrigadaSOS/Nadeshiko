@@ -9,6 +9,7 @@ import { apiKey } from '@better-auth/api-key';
 import { admin, createAccessControl, customSession, magicLink } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { logger } from '@config/log';
+import { Cache, createCacheNamespace } from '@lib/cache';
 
 const postgres = getAppPostgresConfig();
 
@@ -43,7 +44,10 @@ const DISABLED_PATHS = [
   '/forget-password',
 ];
 
-const magicLinkCooldown = new Map<number, number>();
+// Tracked in the shared cache rather than a bare Map so entries expire with the
+// cooldown instead of accumulating one permanent row per user who ever
+// requested a magic link, and so the namespace stays within an entry cap.
+const MAGIC_LINK_COOLDOWN_CACHE = createCacheNamespace('magicLinkCooldown', 10_000);
 const MAGIC_LINK_COOLDOWN_MS = 14 * 60 * 1000;
 
 const adminAc = createAccessControl({
@@ -135,7 +139,7 @@ export function buildSocialProviders(configValues: AppConfig): Record<string, Re
 }
 
 export function extractBearerToken(authorization: string | undefined | null): string | null {
-  if (!authorization || !authorization.startsWith('Bearer ')) {
+  if (!authorization?.startsWith('Bearer ')) {
     return null;
   }
 
@@ -143,26 +147,39 @@ export function extractBearerToken(authorization: string | undefined | null): st
   return token.length > 0 ? token : null;
 }
 
+const DEFAULT_USER_API_PERMISSIONS = [
+  ApiPermission.READ_MEDIA,
+  ApiPermission.READ_PROFILE,
+  ApiPermission.WRITE_PROFILE,
+  ApiPermission.READ_ACTIVITY,
+  ApiPermission.WRITE_ACTIVITY,
+  ApiPermission.READ_COLLECTIONS,
+  ApiPermission.CREATE_COLLECTIONS,
+  ApiPermission.UPDATE_COLLECTIONS,
+  ApiPermission.DELETE_COLLECTIONS,
+];
+
+/**
+ * An admin's key can rewrite the shared media corpus, so being an admin is a
+ * reason to grant less by default rather than more: a key created without an
+ * explicit scope list can only read. Corpus writes have to be asked for.
+ */
+const DEFAULT_ADMIN_API_PERMISSIONS = [
+  ApiPermission.READ_MEDIA,
+  ApiPermission.READ_PROFILE,
+  ApiPermission.READ_ACTIVITY,
+  ApiPermission.READ_COLLECTIONS,
+];
+
 export async function resolveDefaultApiPermissions(
   userId: string,
   findUserById: FindUserById = defaultFindUserById,
 ): Promise<Record<string, ApiPermission[]>> {
   const numericUserId = Number(userId);
-  const defaultUserPermissions = [
-    ApiPermission.READ_MEDIA,
-    ApiPermission.READ_PROFILE,
-    ApiPermission.WRITE_PROFILE,
-    ApiPermission.READ_ACTIVITY,
-    ApiPermission.WRITE_ACTIVITY,
-    ApiPermission.READ_COLLECTIONS,
-    ApiPermission.CREATE_COLLECTIONS,
-    ApiPermission.UPDATE_COLLECTIONS,
-    ApiPermission.DELETE_COLLECTIONS,
-  ];
 
   if (!Number.isInteger(numericUserId) || numericUserId <= 0) {
     return {
-      [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultUserPermissions,
+      [BETTER_AUTH_API_PERMISSION_RESOURCE]: DEFAULT_USER_API_PERMISSIONS,
     };
   }
 
@@ -170,7 +187,7 @@ export async function resolveDefaultApiPermissions(
   const isAdmin = user?.role === UserRoleType.ADMIN;
 
   return {
-    [BETTER_AUTH_API_PERMISSION_RESOURCE]: isAdmin ? Object.values(ApiPermission) : defaultUserPermissions,
+    [BETTER_AUTH_API_PERMISSION_RESOURCE]: isAdmin ? DEFAULT_ADMIN_API_PERMISSIONS : DEFAULT_USER_API_PERMISSIONS,
   };
 }
 
@@ -313,11 +330,12 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
         sendMagicLink: async ({ email, url }) => {
           const existingUser = await User.findOne({ where: { email } });
           if (existingUser) {
-            const lastSent = magicLinkCooldown.get(existingUser.id);
-            if (lastSent && Date.now() - lastSent < MAGIC_LINK_COOLDOWN_MS) {
+            const cooldownKey = String(existingUser.id);
+            // A live entry means a link went out within the cooldown window.
+            if (Cache.get<true>(MAGIC_LINK_COOLDOWN_CACHE, cooldownKey)) {
               return;
             }
-            magicLinkCooldown.set(existingUser.id, Date.now());
+            Cache.set(MAGIC_LINK_COOLDOWN_CACHE, cooldownKey, true, MAGIC_LINK_COOLDOWN_MS);
           }
           await sendMagicLinkEmailFn(email, url);
         },
@@ -364,7 +382,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
           after: async (session) => {
             const userId = Number(session.userId);
             if (Number.isInteger(userId) && userId > 0) {
-              magicLinkCooldown.delete(userId);
+              Cache.delete(MAGIC_LINK_COOLDOWN_CACHE, String(userId));
             }
           },
         },
@@ -374,13 +392,17 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
           before: async (user) => {
             const name = (
               user.name?.trim() ||
-              (user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'user' : 'user')
+              (user.email ? (user.email.split('@')[0] ?? '').replace(/[^a-zA-Z0-9_]/g, '') || 'user' : 'user')
             ).slice(0, 30);
+            // `emailVerified` is left to the flow that created the account:
+            // the magic-link plugin sets it because the link itself proves the
+            // address, and OAuth carries the provider's own claim. Forcing it
+            // true here would also vouch for email/password sign-ups, which
+            // prove nothing (that path is disabled today — see DISABLED_PATHS).
             return {
               data: {
                 ...user,
                 name,
-                emailVerified: true,
               },
             };
           },

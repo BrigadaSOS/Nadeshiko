@@ -5,6 +5,7 @@ import { config } from '@config/config';
 import { logger } from '@config/log';
 import { RateLimitExceededError } from '@app/errors';
 import { ApiKeyKind, AuthType } from '@app/models';
+import { getCachedApiKey } from '@app/middleware/authCacheStore';
 
 const WINDOW_MS = config.RATE_LIMIT_WINDOW_MS;
 const DEFAULT_MAX = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
@@ -31,12 +32,40 @@ const INTERNAL_PROXY_SECRET = config.INTERNAL_PROXY_SECRET;
 // through kamal-proxy, so neither the source IP nor the TCP peer can be trusted
 // to distinguish them.
 
+// Mirrors the bearer parsing in authentication.ts. Duplicated rather than
+// imported so the limiter does not have to pull in the whole better-auth stack
+// just to read a header.
+function extractBearerToken(req: Request): string | undefined {
+  const authorization = req.headers.authorization;
+  if (!authorization?.startsWith('Bearer ')) return undefined;
+
+  const token = authorization.slice('Bearer '.length).trim();
+  return token.length > 0 ? token : undefined;
+}
+
+// SERVICE keys are server-to-server (our own services, GitHub Actions, the
+// Discord bot). They share a handful of source IPs at the backend, so limiting
+// them per IP would throttle unrelated callers against one bucket.
 function isServiceKeyRequest(req: Request): boolean {
-  // The auth middleware sets req.auth with type API_KEY and the resolved
-  // apiKey. SERVICE keys are server-to-server (our own services, GitHub
-  // Actions, etc.) and all share the frontend container's IP at the backend,
-  // so they must not be rate-limited per source IP.
-  return req.auth?.type === AuthType.API_KEY && req.auth.apiKey?.kind === ApiKeyKind.SERVICE;
+  // These limiters are mounted before the router (see application.ts) so that
+  // abusive traffic is rejected without parsing a body, which means the
+  // route-level auth middleware has not run yet and `req.auth` is normally
+  // unset. Check it anyway for the case where a caller mounts the limiter
+  // behind auth.
+  if (req.auth) {
+    return req.auth.type === AuthType.API_KEY && req.auth.apiKey?.kind === ApiKeyKind.SERVICE;
+  }
+
+  // Otherwise resolve the key against the synchronous auth cache — the same
+  // cache requireApiKeyAuth populates. A key is only ever in there after it has
+  // verified against the database, so this cannot be forged by presenting an
+  // arbitrary bearer token. A cold or expired entry simply falls through and the
+  // request is limited like any other (fail-safe: never a silent bypass), and
+  // the request that repopulates the cache re-arms the exemption.
+  const token = extractBearerToken(req);
+  if (!token) return false;
+
+  return getCachedApiKey(token)?.apiKeyKind === ApiKeyKind.SERVICE;
 }
 
 // True when the request came through our own frontend Nitro proxy, proven by a

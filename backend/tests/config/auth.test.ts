@@ -77,12 +77,26 @@ describe('resolveDefaultApiPermissions', () => {
     expect(zero).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultPerms });
   });
 
-  it('returns full permissions for admin users', async () => {
+  it('returns read-only permissions for admin users', async () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
     const result = await resolveDefaultApiPermissions('42', findUserById as any);
 
     expect(findUserById).toHaveBeenCalledWith(42);
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual(Object.values(ApiPermission));
+    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual([
+      ApiPermission.READ_MEDIA,
+      ApiPermission.READ_PROFILE,
+      ApiPermission.READ_ACTIVITY,
+      ApiPermission.READ_COLLECTIONS,
+    ]);
+  });
+
+  it('never hands an admin key a corpus write scope by default', async () => {
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
+    const result = await resolveDefaultApiPermissions('42', findUserById as any);
+
+    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).not.toContain(ApiPermission.ADD_MEDIA);
+    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).not.toContain(ApiPermission.UPDATE_MEDIA);
+    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).not.toContain(ApiPermission.REMOVE_MEDIA);
   });
 
   it('returns readonly permissions for non-admin users', async () => {
@@ -185,7 +199,7 @@ describe('buildAuthOptions', () => {
     const beforeResult = await beforeHook({ emailVerified: false, foo: 'bar' });
     expect(beforeResult).toMatchObject({
       data: {
-        emailVerified: true,
+        emailVerified: false,
         foo: 'bar',
       },
     });

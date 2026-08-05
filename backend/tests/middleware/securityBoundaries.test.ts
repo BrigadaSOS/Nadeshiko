@@ -68,6 +68,7 @@ describe('unauthenticated access', () => {
     { method: 'get' as const, path: '/v1/media' },
     { method: 'get' as const, path: '/v1/collections' },
     { method: 'get' as const, path: '/v1/admin/reports' },
+    { method: 'get' as const, path: '/v1/admin/users-with-providers' },
   ];
 
   for (const route of protectedRoutes) {
@@ -89,6 +90,7 @@ describe('admin route protection', () => {
   const adminRoutes = [
     { method: 'get' as const, path: '/v1/admin/reports' },
     { method: 'get' as const, path: '/v1/admin/media/audits' },
+    { method: 'get' as const, path: '/v1/admin/users-with-providers' },
   ];
 
   for (const route of adminRoutes) {
@@ -215,6 +217,128 @@ describe('API key permission scoping', () => {
   });
 });
 
+describe('corpus write routes', () => {
+  let app: Application;
+  let authState: AuthState | null = null;
+
+  beforeAll(() => {
+    app = createSecurityApp(() => authState);
+  });
+
+  beforeEach(() => {
+    authState = null;
+  });
+
+  // These routes are ApiKey-only in the OpenAPI spec, but browser traffic still
+  // reaches them through the frontend proxy carrying just a session cookie, and
+  // none of the controllers behind them check a role. A plain session must not
+  // be able to write to the shared media corpus.
+  const corpusWriteRoutes = [
+    { method: 'post' as const, path: '/v1/media' },
+    { method: 'patch' as const, path: '/v1/media/TestMedia001' },
+    { method: 'delete' as const, path: '/v1/media/TestMedia001' },
+    { method: 'patch' as const, path: '/v1/media/segments/TestSeg001' },
+    { method: 'post' as const, path: '/v1/media/TestMedia001/episodes' },
+    { method: 'delete' as const, path: '/v1/media/TestMedia001/episodes/1' },
+    { method: 'post' as const, path: '/v1/media/TestMedia001/episodes/1/segments' },
+    { method: 'post' as const, path: '/v1/media/TestMedia001/episodes/1/segments/batch' },
+  ];
+
+  for (const route of corpusWriteRoutes) {
+    it(`rejects non-admin session for ${route.method.toUpperCase()} ${route.path}`, async () => {
+      authState = {
+        user: fixtures.users.regular,
+        type: AuthType.SESSION,
+      };
+
+      const res = await request(app)[route.method](route.path).send({});
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
+    });
+  }
+
+  it('rejects unauthenticated corpus writes', async () => {
+    const res = await request(app).post('/v1/media').send({});
+    expect(res.status).toBe(401);
+  });
+
+  it('allows an admin session to reach the corpus write handler', async () => {
+    authState = {
+      user: fixtures.users.kevin,
+      type: AuthType.SESSION,
+    };
+
+    const res = await request(app).post('/v1/media').send({});
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
+  it('still allows a non-admin API key holding the required scope', async () => {
+    authState = {
+      user: fixtures.users.regular,
+      type: AuthType.API_KEY,
+      apiKey: {
+        kind: ApiKeyKind.USER,
+        permissions: [ApiPermission.ADD_MEDIA],
+      },
+    };
+
+    const res = await request(app).post('/v1/media').set('Authorization', 'Bearer fake_for_routing').send({});
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
+  it('still rejects an API key missing the required scope', async () => {
+    authState = {
+      user: fixtures.users.regular,
+      type: AuthType.API_KEY,
+      apiKey: {
+        kind: ApiKeyKind.USER,
+        permissions: [ApiPermission.READ_MEDIA],
+      },
+    };
+
+    const res = await request(app)
+      .post('/v1/media/TestMedia001/episodes/1/segments/batch')
+      .set('Authorization', 'Bearer fake_for_routing')
+      .send({});
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
+  });
+});
+
+describe('session-accessible routes stay reachable', () => {
+  let app: Application;
+  let authState: AuthState | null = null;
+
+  beforeAll(() => {
+    app = createSecurityApp(() => authState);
+  });
+
+  // The spec marks these ApiKey-only too, but the frontend proxy only injects an
+  // API key for a narrow public-read allowlist — everything else arrives with
+  // just the session cookie. Tightening corpus writes must not catch them.
+  const sessionRoutes = [
+    { method: 'get' as const, path: '/v1/media' },
+    { method: 'get' as const, path: '/v1/user/me' },
+    { method: 'get' as const, path: '/v1/collections' },
+    { method: 'get' as const, path: '/v1/user/activity' },
+  ];
+
+  for (const route of sessionRoutes) {
+    it(`allows a non-admin session on ${route.method.toUpperCase()} ${route.path}`, async () => {
+      authState = {
+        user: fixtures.users.regular,
+        type: AuthType.SESSION,
+      };
+
+      const res = await request(app)[route.method](route.path);
+      expect(res.status).not.toBe(401);
+      expect(res.status).not.toBe(403);
+    });
+  }
+});
+
 describe('cross-user collection isolation', () => {
   let app: Application;
   let authState: AuthState | null = null;
@@ -327,4 +451,114 @@ describe('admin role boundary', () => {
     const res = await request(app).get('/v1/admin/reports');
     expect(res.status).toBe(403);
   });
+});
+
+describe('collections auth matrix', () => {
+  let app: Application;
+  let authState: AuthState | null = null;
+
+  beforeAll(() => {
+    app = createSecurityApp(() => authState);
+  });
+
+  async function ownedCollection(): Promise<Collection> {
+    return Collection.save({
+      publicId: nanoid(12),
+      name: 'Matrix collection',
+      visibility: CollectionVisibility.PRIVATE,
+      userId: fixtures.users.regular.id,
+    });
+  }
+
+  function asApiKey(permissions: ApiPermission[]): AuthState {
+    return {
+      user: fixtures.users.regular,
+      type: AuthType.API_KEY,
+      apiKey: { kind: ApiKeyKind.USER, permissions },
+    };
+  }
+
+  // These three used to be session-only while their siblings took API keys, so
+  // a key could create and delete a collection but not rename it or read its
+  // stats. Granting the matching scope closed the gap without taking session
+  // access away.
+  it('lets an API key with UPDATE_COLLECTIONS rename a collection', async () => {
+    const collection = await ownedCollection();
+    authState = asApiKey([ApiPermission.UPDATE_COLLECTIONS]);
+
+    const res = await request(app)
+      .patch(`/v1/collections/${collection.publicId}`)
+      .set('Authorization', 'Bearer fake_for_routing')
+      .send({ name: 'Renamed by key' });
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
+  it('rejects a collection rename by a key without UPDATE_COLLECTIONS', async () => {
+    const collection = await ownedCollection();
+    authState = asApiKey([ApiPermission.READ_COLLECTIONS]);
+
+    const res = await request(app)
+      .patch(`/v1/collections/${collection.publicId}`)
+      .set('Authorization', 'Bearer fake_for_routing')
+      .send({ name: 'Renamed by key' });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
+  });
+
+  it('lets an API key with READ_COLLECTIONS read collection stats', async () => {
+    const collection = await ownedCollection();
+    authState = asApiKey([ApiPermission.READ_COLLECTIONS]);
+
+    const res = await request(app)
+      .get(`/v1/collections/${collection.publicId}/stats`)
+      .set('Authorization', 'Bearer fake_for_routing');
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
+  it('rejects collection stats for a key without READ_COLLECTIONS', async () => {
+    const collection = await ownedCollection();
+    authState = asApiKey([ApiPermission.CREATE_COLLECTIONS]);
+
+    const res = await request(app)
+      .get(`/v1/collections/${collection.publicId}/stats`)
+      .set('Authorization', 'Bearer fake_for_routing');
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
+  });
+
+  it('rejects a collection segment update by a key without UPDATE_COLLECTIONS', async () => {
+    const collection = await ownedCollection();
+    authState = asApiKey([ApiPermission.READ_COLLECTIONS]);
+
+    const res = await request(app)
+      .patch(`/v1/collections/${collection.publicId}/segments/TestSeg001`)
+      .set('Authorization', 'Bearer fake_for_routing')
+      .send({ note: 'nope' });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('INSUFFICIENT_PERMISSIONS');
+  });
+
+  const sessionReachableRoutes = [
+    { method: 'patch' as const, path: (id: string) => `/v1/collections/${id}`, body: { name: 'Renamed' } },
+    { method: 'get' as const, path: (id: string) => `/v1/collections/${id}/stats`, body: null },
+    {
+      method: 'patch' as const,
+      path: (id: string) => `/v1/collections/${id}/segments/TestSeg001`,
+      body: { note: 'hi' },
+    },
+  ];
+
+  for (const route of sessionReachableRoutes) {
+    it(`keeps ${route.method.toUpperCase()} ${route.path('{id}')} reachable with only a session`, async () => {
+      const collection = await ownedCollection();
+      authState = { user: fixtures.users.regular, type: AuthType.SESSION };
+
+      const pending = request(app)[route.method](route.path(collection.publicId));
+      const res = await (route.body ? pending.send(route.body) : pending);
+      expect(res.status).not.toBe(401);
+      expect(res.status).not.toBe(403);
+    });
+  }
 });
