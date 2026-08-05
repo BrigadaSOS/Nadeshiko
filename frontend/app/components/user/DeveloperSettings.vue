@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { mdiPlus, mdiCheckBold, mdiPencilOutline, mdiContentCopy } from '@mdi/js';
+import { useTimeoutFn } from '@vueuse/core';
 
 import type { ApiKeyListItem } from '@/stores/api';
 import { normalizeApiKey } from '@/stores/api';
 import { handleApiError } from '~/utils/apiError';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatDate } = useFormat();
 const api_store = apiStore();
 const sdk = useNadeshikoSdk();
 const isLoading = ref(false);
@@ -13,11 +15,14 @@ const generatedApiKey = ref<string | null>(null);
 const deactivatedApiKey = ref(false);
 const apiKeyCopied = ref(false);
 
+// Clears the inline "Copied!" hint, and is cancelled on unmount by `useTimeoutFn`.
+const { start: scheduleCopiedReset } = useTimeoutFn(() => (apiKeyCopied.value = false), 2000, { immediate: false });
+
 async function copyApiKey() {
   if (!generatedApiKey.value) return;
-  await navigator.clipboard.writeText(generatedApiKey.value);
+  if (!(await copyToClipboard(generatedApiKey.value))) return;
   apiKeyCopied.value = true;
-  setTimeout(() => (apiKeyCopied.value = false), 2000);
+  scheduleCopiedReset();
 }
 
 // Create modal state
@@ -44,13 +49,13 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
     return [];
   };
 
-  const data = await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(
-    (error: unknown) => {
+  const data = await useNadeshikoSdk()
+    .authApiKeyList()
+    .catch((error: unknown) => {
       handleApiError('api-keys:list-failed', error, { toastKey: false });
       loadFailed.value = true;
       return [];
-    },
-  );
+    });
   return unwrap(data);
 };
 
@@ -177,12 +182,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
   } finally {
     isLoading.value = false;
   }
-};
-
-const formatDate = (value?: string) => {
-  const iso = new Date(value || '2025-03-01').toISOString();
-  const day = iso.split('T')[0] ?? '2025-03-01';
-  return new Date(day).toLocaleDateString(locale.value);
 };
 </script>
 
@@ -441,7 +440,7 @@ const formatDate = (value?: string) => {
         @close="closeCreateModal"
     >
                 <div
-                    class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
+                    class="nd-modal-header"
                 >
                     <h3 class="font-bold text-gray-800 dark:text-gray-200">{{ $t('accountSettings.developer.createApiKeyModal.title') }}</h3>
                     <button
@@ -509,7 +508,7 @@ const formatDate = (value?: string) => {
         @close="closeRenameModal"
     >
                 <div
-                    class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
+                    class="nd-modal-header"
                 >
                     <h3 class="font-bold text-gray-800 dark:text-gray-200">{{ $t('accountSettings.developer.renameApiKeyModal.title') }}</h3>
                     <button

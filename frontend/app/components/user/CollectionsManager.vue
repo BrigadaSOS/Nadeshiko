@@ -3,7 +3,8 @@ import { mdiDotsVertical, mdiPencilOutline, mdiDeleteOutline, mdiEyeOutline, mdi
 import type { Collection } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber, formatDate } = useFormat();
 
 const sdk = useNadeshikoSdk();
 const posthog = usePostHog();
@@ -43,11 +44,6 @@ watch(initialData, (data) => {
   collections.value = data ?? [];
 });
 
-const formatDate = (dateStr?: string | null) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString(locale.value, { year: 'numeric', month: 'short', day: 'numeric' });
-};
-
 // Actions dropdown
 const openMenuId = ref<string | null>(null);
 
@@ -73,16 +69,15 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside));
 const renameTarget = ref<Collection | null>(null);
 const renameValue = ref('');
 const isRenaming = ref(false);
+const renameInput = ref<HTMLInputElement | null>(null);
 
 const openRename = (collection: Collection) => {
   closeMenu();
   renameTarget.value = collection;
   renameValue.value = collection.name;
-  nextTick(() => {
-    const input = document.querySelector<HTMLInputElement>('#nd-rename-input');
-    input?.focus();
-    input?.select();
-  });
+  // BaseModal focuses `[data-autofocus]` on open; only the pre-selection of the
+  // current name is left to do here.
+  nextTick(() => renameInput.value?.select());
 };
 
 const submitRename = async () => {
@@ -118,10 +113,6 @@ const isCreating = ref(false);
 const openCreate = () => {
   createName.value = '';
   showCreateModal.value = true;
-  nextTick(() => {
-    const input = document.querySelector<HTMLInputElement>('#nd-create-collection-input');
-    input?.focus();
-  });
 };
 
 const submitCreate = async () => {
@@ -212,7 +203,7 @@ const submitDelete = async () => {
     <div class="flex flex-wrap items-center gap-2 justify-between">
       <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.collections.title') }}</h3>
       <div class="flex items-center gap-3">
-        <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ t('accountSettings.collections.count', { count: collections.length.toLocaleString(locale) }) }}</p>
+        <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ t('accountSettings.collections.count', { count: formatNumber(collections.length) }) }}</p>
         <button
           type="button"
           class="flex items-center gap-1.5 py-2 px-4 text-sm font-bold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover transition-colors"
@@ -248,7 +239,7 @@ const submitDelete = async () => {
               </NuxtLink>
             </td>
             <td class="py-3 text-sm text-gray-300 tabular-nums text-center">
-              {{ (collection.segmentCount ?? 0).toLocaleString(locale) }}
+              {{ formatNumber(collection.segmentCount ?? 0) }}
             </td>
             <td class="py-3 text-sm">
               <span
@@ -341,222 +332,174 @@ const submitDelete = async () => {
     </div>
 
     <!-- Rename modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="renameTarget"
-          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
-          @click.self="renameTarget = null"
+    <CommonBaseModal
+      :open="!!renameTarget"
+      labelledby="nd-collection-rename-title"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      @close="renameTarget = null"
+    >
+      <div class="px-4 py-3 border-b border-modal-border">
+        <h3 id="nd-collection-rename-title" class="font-bold text-white">{{ t('accountSettings.collections.renameTitle') }}</h3>
+      </div>
+      <div class="p-4">
+        <input
+          ref="renameInput"
+          v-model="renameValue"
+          data-autofocus
+          type="text"
+          maxlength="100"
+          class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
+          @keydown.enter="submitRename"
+        />
+      </div>
+      <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+        <button
+          type="button"
+          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          @click="renameTarget = null"
         >
-          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
-            <div class="px-4 py-3 border-b border-modal-border">
-              <h3 class="font-bold text-white">{{ t('accountSettings.collections.renameTitle') }}</h3>
-            </div>
-            <div class="p-4">
-              <input
-                id="nd-rename-input"
-                v-model="renameValue"
-                type="text"
-                maxlength="100"
-                class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
-                @keydown.enter="submitRename"
-                @keydown.escape="renameTarget = null"
-              />
-            </div>
-            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
-              <button
-                type="button"
-                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-                @click="renameTarget = null"
-              >
-                {{ t('accountSettings.collections.renameCancel') }}
-              </button>
-              <button
-                type="button"
-                data-testid="collection-rename-submit"
-                :disabled="isRenaming || !renameValue.trim()"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
-                @click="submitRename"
-              >
-                <span
-                  v-if="isRenaming"
-                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
-                />
-                {{ t('accountSettings.collections.renameConfirm') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+          {{ t('accountSettings.collections.renameCancel') }}
+        </button>
+        <button
+          type="button"
+          data-testid="collection-rename-submit"
+          :disabled="isRenaming || !renameValue.trim()"
+          class="nd-btn-accent"
+          @click="submitRename"
+        >
+          <span
+            v-if="isRenaming"
+            class="nd-spinner"
+          />
+          {{ t('accountSettings.collections.renameConfirm') }}
+        </button>
+      </div>
+    </CommonBaseModal>
 
     <!-- Create collection modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="showCreateModal"
-          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
-          @click.self="showCreateModal = false"
+    <CommonBaseModal
+      :open="showCreateModal"
+      labelledby="nd-collection-create-title"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      @close="showCreateModal = false"
+    >
+      <div class="px-4 py-3 border-b border-modal-border">
+        <h3 id="nd-collection-create-title" class="font-bold text-white">{{ t('accountSettings.collections.createTitle') }}</h3>
+      </div>
+      <div class="p-4">
+        <label class="block text-sm text-gray-400 mb-1.5" for="nd-create-collection-input">{{ t('accountSettings.collections.nameLabel') }}</label>
+        <input
+          id="nd-create-collection-input"
+          v-model="createName"
+          data-autofocus
+          type="text"
+          maxlength="100"
+          :placeholder="t('accountSettings.collections.namePlaceholder')"
+          class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
+          @keydown.enter="submitCreate"
+        />
+      </div>
+      <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+        <button
+          type="button"
+          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          @click="showCreateModal = false"
         >
-          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
-            <div class="px-4 py-3 border-b border-modal-border">
-              <h3 class="font-bold text-white">{{ t('accountSettings.collections.createTitle') }}</h3>
-            </div>
-            <div class="p-4">
-              <label class="block text-sm text-gray-400 mb-1.5">{{ t('accountSettings.collections.nameLabel') }}</label>
-              <input
-                id="nd-create-collection-input"
-                v-model="createName"
-                type="text"
-                maxlength="100"
-                :placeholder="t('accountSettings.collections.namePlaceholder')"
-                class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
-                @keydown.enter="submitCreate"
-                @keydown.escape="showCreateModal = false"
-              />
-            </div>
-            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
-              <button
-                type="button"
-                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-                @click="showCreateModal = false"
-              >
-                {{ t('accountSettings.collections.renameCancel') }}
-              </button>
-              <button
-                type="button"
-                data-testid="collection-create-submit"
-                :disabled="isCreating || !createName.trim()"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
-                @click="submitCreate"
-              >
-                <span
-                  v-if="isCreating"
-                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
-                />
-                {{ t('accountSettings.collections.createConfirm') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+          {{ t('accountSettings.collections.renameCancel') }}
+        </button>
+        <button
+          type="button"
+          data-testid="collection-create-submit"
+          :disabled="isCreating || !createName.trim()"
+          class="nd-btn-accent"
+          @click="submitCreate"
+        >
+          <span
+            v-if="isCreating"
+            class="nd-spinner"
+          />
+          {{ t('accountSettings.collections.createConfirm') }}
+        </button>
+      </div>
+    </CommonBaseModal>
 
     <!-- Visibility toggle confirmation modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="visibilityTarget"
-          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
-          @click.self="visibilityTarget = null"
+    <CommonBaseModal
+      :open="!!visibilityTarget"
+      labelledby="nd-collection-visibility-title"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      @close="visibilityTarget = null"
+    >
+      <div class="px-4 py-3 border-b border-modal-border">
+        <h3 id="nd-collection-visibility-title" class="font-bold text-white">{{ t('accountSettings.collections.visibilityTitle') }}</h3>
+      </div>
+      <div class="p-4">
+        <p v-if="visibilityTarget" class="text-sm text-gray-300">
+          {{ visibilityTarget.visibility === 'PUBLIC'
+            ? t('accountSettings.collections.makePrivateMessage', { name: visibilityTarget.name })
+            : t('accountSettings.collections.makePublicMessage', { name: visibilityTarget.name }) }}
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+        <button
+          type="button"
+          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          @click="visibilityTarget = null"
         >
-          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
-            <div class="px-4 py-3 border-b border-modal-border">
-              <h3 class="font-bold text-white">{{ t('accountSettings.collections.visibilityTitle') }}</h3>
-            </div>
-            <div class="p-4">
-              <p class="text-sm text-gray-300">
-                {{ visibilityTarget.visibility === 'PUBLIC'
-                  ? t('accountSettings.collections.makePrivateMessage', { name: visibilityTarget.name })
-                  : t('accountSettings.collections.makePublicMessage', { name: visibilityTarget.name }) }}
-              </p>
-            </div>
-            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
-              <button
-                type="button"
-                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-                @click="visibilityTarget = null"
-              >
-                {{ t('accountSettings.collections.renameCancel') }}
-              </button>
-              <button
-                type="button"
-                :disabled="isTogglingVisibility"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
-                @click="submitToggleVisibility"
-              >
-                <span
-                  v-if="isTogglingVisibility"
-                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
-                />
-                {{ t('accountSettings.collections.visibilityConfirm') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+          {{ t('accountSettings.collections.renameCancel') }}
+        </button>
+        <button
+          type="button"
+          :disabled="isTogglingVisibility"
+          class="nd-btn-accent"
+          @click="submitToggleVisibility"
+        >
+          <span
+            v-if="isTogglingVisibility"
+            class="nd-spinner"
+          />
+          {{ t('accountSettings.collections.visibilityConfirm') }}
+        </button>
+      </div>
+    </CommonBaseModal>
 
     <!-- Delete confirmation modal -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition duration-150 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition duration-100 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="deleteTarget"
-          class="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-900/60"
-          @click.self="deleteTarget = null"
+    <CommonBaseModal
+      :open="!!deleteTarget"
+      labelledby="nd-collection-delete-title"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      @close="deleteTarget = null"
+    >
+      <div class="px-4 py-3 border-b border-modal-border">
+        <h3 id="nd-collection-delete-title" class="font-bold text-white">{{ t('accountSettings.collections.deleteTitle') }}</h3>
+      </div>
+      <div class="p-4">
+        <p v-if="deleteTarget" class="text-sm text-gray-300">
+          {{ t('accountSettings.collections.deleteMessage', { name: deleteTarget.name }) }}
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
+        <button
+          type="button"
+          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          @click="deleteTarget = null"
         >
-          <div class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl">
-            <div class="px-4 py-3 border-b border-modal-border">
-              <h3 class="font-bold text-white">{{ t('accountSettings.collections.deleteTitle') }}</h3>
-            </div>
-            <div class="p-4">
-              <p class="text-sm text-gray-300">
-                {{ t('accountSettings.collections.deleteMessage', { name: deleteTarget.name }) }}
-              </p>
-            </div>
-            <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
-              <button
-                type="button"
-                class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
-                @click="deleteTarget = null"
-              >
-                {{ t('accountSettings.collections.deleteCancel') }}
-              </button>
-              <button
-                type="button"
-                data-testid="collection-delete-submit"
-                :disabled="isDeleting"
-                class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
-                @click="submitDelete"
-              >
-                <span
-                  v-if="isDeleting"
-                  class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
-                />
-                {{ t('accountSettings.collections.deleteConfirm') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+          {{ t('accountSettings.collections.deleteCancel') }}
+        </button>
+        <button
+          type="button"
+          data-testid="collection-delete-submit"
+          :disabled="isDeleting"
+          class="nd-btn-accent"
+          @click="submitDelete"
+        >
+          <span
+            v-if="isDeleting"
+            class="nd-spinner"
+          />
+          {{ t('accountSettings.collections.deleteConfirm') }}
+        </button>
+      </div>
+    </CommonBaseModal>
   </div>
 </template>

@@ -3,7 +3,8 @@ import { userStore } from '~/stores/auth';
 import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { formatNumber, formatPercent, formatDate } = useFormat();
 const localePath = useLocalePath();
 
 useSeoMeta({
@@ -30,17 +31,6 @@ const {
 const updating = ref(false);
 const updateResult = ref<TriggerCoveredWordsUpdateResponse | null>(null);
 
-function formatNumber(value: number): string {
-  return value.toLocaleString(locale.value);
-}
-
-function formatPercent(value: number): string {
-  return new Intl.NumberFormat(locale.value, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-
 async function triggerUpdate(onlyUncovered: boolean) {
   updating.value = true;
   updateResult.value = null;
@@ -66,18 +56,10 @@ function tierLabel(tier: number): string {
     });
   if (tier >= 1000) {
     return t('statsPage.coverage.topWordsK', {
-      count: (tier / 1000).toLocaleString(locale.value),
+      count: formatNumber(tier / 1000),
     });
   }
-  return t('statsPage.coverage.topWords', { count: tier.toLocaleString(locale.value) });
-}
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat(locale.value, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date(iso));
+  return t('statsPage.coverage.topWords', { count: formatNumber(tier) });
 }
 
 const totalWordsCovered = computed(() => {
@@ -86,14 +68,15 @@ const totalWordsCovered = computed(() => {
   return largest?.covered ?? 0;
 });
 
-function translationPercent(count: number): number {
+// Rounded to the precision `formatPercent` renders at, so the official, machine and
+// none shares still add up to exactly 100%.
+function translationRatio(count: number): number {
   const total = stats.value?.translations?.total || 1;
-  return Math.round((count / total) * 1000) / 10;
+  return Math.round((count / total) * 1000) / 1000;
 }
 
-function translationNonePercent(human: number, machine: number): string {
-  const none = 100 - translationPercent(human) - translationPercent(machine);
-  return formatPercent(Math.max(0, none));
+function translationNoneRatio(human: number, machine: number): number {
+  return Math.max(0, 1 - translationRatio(human) - translationRatio(machine));
 }
 
 function translationBarWidth(count: number): string {
@@ -206,7 +189,7 @@ const translationLanguages = computed(() => {
           <div class="flex justify-between items-baseline mb-2">
             <span class="text-sm font-medium">{{ $t(`statsPage.translations.languages.${lang.label}`) }}</span>
             <span class="text-xs text-white/40 tabular-nums">
-              {{ $t('statsPage.translations.translated', { percent: formatPercent(translationPercent(lang.human) + translationPercent(lang.machine)) }) }}
+              {{ $t('statsPage.translations.translated', { percent: formatPercent(translationRatio(lang.human) + translationRatio(lang.machine)) }) }}
             </span>
           </div>
           <div class="w-full h-2 rounded-full bg-white/[0.04] flex overflow-hidden">
@@ -222,15 +205,15 @@ const translationLanguages = computed(() => {
           <div class="flex gap-4 mt-2 text-xs text-white/50">
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full bg-button-accent-main" />
-              {{ $t('statsPage.translations.official', { percent: formatPercent(translationPercent(lang.human)) }) }}
+              {{ $t('statsPage.translations.official', { percent: formatPercent(translationRatio(lang.human)) }) }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full nd-accent-bg-muted" />
-              {{ $t('statsPage.translations.machine', { percent: formatPercent(translationPercent(lang.machine)) }) }}
+              {{ $t('statsPage.translations.machine', { percent: formatPercent(translationRatio(lang.machine)) }) }}
             </span>
             <span class="flex items-center gap-1.5">
               <span class="inline-block w-2 h-2 rounded-full bg-white/10" />
-              {{ $t('statsPage.translations.none', { percent: translationNonePercent(lang.human, lang.machine) }) }}
+              {{ $t('statsPage.translations.none', { percent: formatPercent(translationNoneRatio(lang.human, lang.machine)) }) }}
             </span>
           </div>
         </div>

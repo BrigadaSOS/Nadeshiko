@@ -62,7 +62,7 @@ watch(isLoginModalOpen, (open) => {
     labelledby="nd-login-modal-title"
     @close="closeLoginModal"
   >
-        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
+        <div class="nd-modal-header">
           <h3 id="nd-login-modal-title" class="font-bold text-gray-600 dark:text-gray-300">{{ $t('modalauth.headers.auth') }}</h3>
           <button
             type="button"

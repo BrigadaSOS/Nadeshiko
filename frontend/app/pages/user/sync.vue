@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import AnkiModule from '~/components/settings/modules/AnkiModule.vue';
+import AnkiSync from '~/components/user/AnkiSync.vue';
 </script>
 
 <template>
-  <AnkiModule />
+  <AnkiSync />
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiGrid, mdiFormatListBulletedSquare, mdiArrowRight, mdiPencilOutline, mdiEyeOff } from '@mdi/js';
+import { useTimeoutFn } from '@vueuse/core';
 import type { Category, Media } from '@brigadasos/nadeshiko-sdk';
 import { userStore } from '@/stores/auth';
 import { handleApiError } from '~/utils/apiError';
@@ -25,6 +26,7 @@ const sdk = useNadeshikoSdk();
 const router = useRouter();
 const route = useRoute();
 const localePath = useLocalePath();
+const { scrollToTop } = useQuerySync();
 const { mediaName, language } = useMediaName();
 const { hiddenMediaIds } = useHiddenMedia();
 const user = userStore();
@@ -66,7 +68,6 @@ const secondaryMediaNames = (mediaInfo: Media) => {
 
 const allowedFilterTypes = new Set<string>(['ANIME', 'JDRAMA', 'YOUTUBE']);
 const pageSize = 28;
-let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const normalizeView = (value: unknown) => (value === 'list' ? 'list' : 'grid');
 const normalizeQuery = (value: unknown) => (typeof value === 'string' ? value : '');
@@ -103,10 +104,7 @@ const updateUrl = async (params: MediaBrowseParams = {}) => {
 };
 
 const media = ref<Media[]>([]);
-const hasMore = ref(false);
-const nextCursor = ref<string | undefined>(undefined);
-const loadingMore = ref(false);
-const sentinelRef = ref<HTMLElement | null>(null);
+const { hasMore, loadingMore, loadMore: fetchNextPage, seed: seedPagination } = useCursorPagination();
 
 const {
   data: initialResponse,
@@ -124,7 +122,7 @@ const {
     return {
       media: raw?.media ?? [],
       hasMore: raw?.pagination?.hasMore ?? false,
-      cursor: raw?.pagination?.cursor ?? undefined,
+      cursor: raw?.pagination?.cursor ?? null,
     };
   },
   {
@@ -132,17 +130,16 @@ const {
     server: true,
     lazy: false,
     default: () => ({
-      media: [],
+      media: [] as Media[],
       hasMore: false,
-      cursor: undefined,
+      cursor: null as string | null,
     }),
   },
 );
 
 const syncFromResponse = () => {
   media.value = initialResponse.value?.media ?? [];
-  hasMore.value = initialResponse.value?.hasMore ?? false;
-  nextCursor.value = initialResponse.value?.cursor ?? undefined;
+  seedPagination(initialResponse.value);
 };
 
 syncFromResponse();
@@ -179,29 +176,27 @@ watch(searchQuery, (value) => {
   }
 });
 
+// Cancelled on unmount by `useTimeoutFn`: a pending push landing after the
+// reader has left would navigate them back to this page.
+const { start: scheduleUrlUpdate } = useTimeoutFn(
+  (value: string) => {
+    updateUrl({ query: value.trim() });
+  },
+  300,
+  { immediate: false },
+);
+
 watch(query, (value) => {
   if (value === searchQuery.value) {
     return;
   }
 
-  if (debounceTimeout) {
-    clearTimeout(debounceTimeout);
-  }
-
-  debounceTimeout = setTimeout(() => {
-    updateUrl({ query: value.trim() });
-  }, 300);
+  scheduleUrlUpdate(value);
 });
 
 watch(error, (fetchError) => {
   if (fetchError) {
     reportError('media:list-fetch-failed', fetchError);
-  }
-});
-
-onBeforeUnmount(() => {
-  if (debounceTimeout) {
-    clearTimeout(debounceTimeout);
   }
 });
 
@@ -214,27 +209,29 @@ const setListView = () => {
 };
 
 const loadMore = async () => {
-  if (loadingMore.value || !hasMore.value || !nextCursor.value) return;
+  const outcome = await fetchNextPage(async (cursor) => {
+    try {
+      const raw = await sdk.listMedia({
+        cursor: cursor ?? undefined,
+        query: searchQuery.value || undefined,
+        take: pageSize,
+        category: filterCategory.value || undefined,
+      });
+      return {
+        media: raw?.media ?? [],
+        hasMore: raw?.pagination?.hasMore ?? false,
+        cursor: raw?.pagination?.cursor ?? null,
+      };
+    } catch (error) {
+      // Infinite scroll: the sentinel just stops producing rows, so without a toast
+      // the page reads as "that's everything" when the next page actually failed.
+      handleApiError('media:load-more-failed', error, { toastKey: 'mediaBrowse.loadMoreError' });
+      return null;
+    }
+  });
 
-  loadingMore.value = true;
-  try {
-    const raw = await sdk.listMedia({
-      cursor: nextCursor.value,
-      query: searchQuery.value || undefined,
-      take: pageSize,
-      category: filterCategory.value || undefined,
-    });
-    const newMedia = raw?.media ?? [];
-    media.value = [...media.value, ...newMedia];
-    hasMore.value = raw?.pagination?.hasMore ?? false;
-    nextCursor.value = raw?.pagination?.cursor ?? undefined;
-  } catch (error) {
-    // Infinite scroll: the sentinel just stops producing rows, so without a toast
-    // the page reads as "that's everything" when the next page actually failed.
-    handleApiError('media:load-more-failed', error, { toastKey: 'mediaBrowse.loadMoreError' });
-  } finally {
-    loadingMore.value = false;
-  }
+  if (outcome.status !== 'ok') return;
+  media.value = [...media.value, ...outcome.page.media];
 };
 
 const handleFilterChange = (category: string) => {
@@ -250,43 +247,14 @@ const trackMediaSelected = (mediaInfo: Media, viewMode: string) => {
   });
 };
 
-let observer: IntersectionObserver | null = null;
-
-const setupObserver = () => {
-  if (!import.meta.client) return;
-
-  observer?.disconnect();
-
-  observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0]?.isIntersecting && hasMore.value && !loadingMore.value && !loading.value) {
-        loadMore();
-      }
-    },
-    { rootMargin: '200px' },
-  );
-
-  if (sentinelRef.value) {
-    observer.observe(sentinelRef.value);
+const onSentinelVisible = () => {
+  if (hasMore.value && !loadingMore.value && !loading.value) {
+    loadMore();
   }
 };
 
-watch(sentinelRef, () => {
-  setupObserver();
-});
-
-onMounted(() => {
-  setupObserver();
-});
-
-onBeforeUnmount(() => {
-  observer?.disconnect();
-});
-
 watch([searchQuery, filterCategory], () => {
-  if (import.meta.client) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  scrollToTop();
 });
 </script>
 
@@ -555,7 +523,7 @@ watch([searchQuery, filterCategory], () => {
       </div>
 
       <!-- Infinite scroll sentinel -->
-      <div ref="sentinelRef" v-if="hasMore && !loading" class="h-1"></div>
+      <CommonInfiniteScrollObserver v-if="hasMore && !loading" root-margin="200px" @intersect="onSentinelVisible" />
 
       <MediaModalMediaEdit
         v-if="user.isAdmin"

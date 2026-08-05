@@ -64,10 +64,15 @@ const stats = ref<ActivityStats | null>(initialData.value.stats);
 const statsRange = ref<StatsRange>('7d');
 
 const activities = ref<ActivityItem[]>(initialData.value.activities);
-const hasMore = ref(initialData.value.hasMore);
-const activityCursor = ref<string | null>(initialData.value.cursor);
-const loadingMore = ref(false);
-const loadingActivities = ref(false);
+const {
+  hasMore,
+  loading: loadingActivities,
+  loadingMore,
+  load: loadActivityPage,
+  loadMore: fetchNextActivityPage,
+  seed: seedActivityPagination,
+} = useCursorPagination();
+seedActivityPagination(initialData.value);
 const trackingEnabled = ref(initialData.value.trackingEnabled);
 const togglingTracking = ref(false);
 const clearingHistory = ref(false);
@@ -82,8 +87,7 @@ const activityTypeFilter = ref<string | null>(null);
 watch(initialData, (data) => {
   stats.value = data.stats;
   activities.value = data.activities;
-  hasMore.value = data.hasMore;
-  activityCursor.value = data.cursor;
+  seedActivityPagination(data);
   trackingEnabled.value = data.trackingEnabled;
   heatmapRaw.value = data.heatmapRaw;
 });
@@ -106,9 +110,9 @@ const fetchStats = async () => {
   stats.value = data as ActivityStats | null;
 };
 
-const fetchActivity = async (append = false) => {
+const fetchActivityPage = async (cursor: string | null) => {
   const query: Record<string, any> = { take: ACTIVITY_PAGE_SIZE };
-  if (append && activityCursor.value) query.cursor = activityCursor.value;
+  if (cursor) query.cursor = cursor;
   if (selectedDay.value) query.date = selectedDay.value;
   if (activityTypeFilter.value) query.activityType = activityTypeFilter.value;
 
@@ -116,28 +120,26 @@ const fetchActivity = async (append = false) => {
     handleApiError('activity.fetchActivity', err, { toastKey: false });
     return null;
   });
+  if (!data) return null;
 
-  if (append) {
-    activities.value.push(...((data?.activities ?? []) as ActivityItem[]));
-  } else {
-    activities.value = (data?.activities ?? []) as ActivityItem[];
-  }
-  hasMore.value = data?.pagination?.hasMore ?? false;
-  activityCursor.value = data?.pagination?.cursor ?? null;
+  return {
+    activities: (data.activities ?? []) as ActivityItem[],
+    hasMore: data.pagination?.hasMore ?? false,
+    cursor: data.pagination?.cursor ?? null,
+  };
 };
 
 const refetchActivity = async () => {
-  loadingActivities.value = true;
-  activityCursor.value = null;
-  await fetchActivity();
-  loadingActivities.value = false;
+  const outcome = await loadActivityPage(fetchActivityPage);
+  if (outcome.status === 'stale') return;
+  // A failed refetch must not leave the previous day/type filter's rows on screen.
+  activities.value = outcome.status === 'ok' ? outcome.page.activities : [];
 };
 
 const loadMore = async () => {
-  if (loadingMore.value || !hasMore.value) return;
-  loadingMore.value = true;
-  await fetchActivity(true);
-  loadingMore.value = false;
+  const outcome = await fetchNextActivityPage(fetchActivityPage);
+  if (outcome.status !== 'ok') return;
+  activities.value.push(...outcome.page.activities);
 };
 
 const selectDay = async (dayKey: string) => {
@@ -174,8 +176,7 @@ const clearHistory = async () => {
   try {
     await sdk.deleteUserActivity();
     activities.value = [];
-    hasMore.value = false;
-    activityCursor.value = null;
+    seedActivityPagination(null);
     selectedDay.value = null;
     heatmapRaw.value = {};
     await fetchStats();
@@ -213,8 +214,7 @@ const clearDayActivity = async () => {
   try {
     await sdk.deleteUserActivityByDate(selectedDay.value);
     activities.value = [];
-    hasMore.value = false;
-    activityCursor.value = null;
+    seedActivityPagination(null);
     const updated = { ...heatmapRaw.value };
     delete updated[selectedDay.value];
     heatmapRaw.value = updated;
@@ -245,14 +245,14 @@ watch(activityTypeFilter, () => {
 });
 
 onMounted(async () => {
-  await Promise.all([fetchTrackingState(), fetchStats(), fetchActivity()]);
+  await Promise.all([fetchTrackingState(), fetchStats(), refetchActivity()]);
 });
 </script>
 
 <template>
-  <SettingsModulesActivityStatsCards :stats="stats" v-model:range="statsRange" />
+  <UserActivityStatsCards :stats="stats" v-model:range="statsRange" />
 
-  <SettingsModulesActivityHeatmap
+  <UserActivityHeatmap
     :raw="heatmapRaw"
     :loading="heatmapLoading"
     v-model:filter="heatmapFilter"
@@ -260,7 +260,7 @@ onMounted(async () => {
     @select-day="selectDay"
   />
 
-  <SettingsModulesActivityHistory
+  <UserActivityHistory
     :activities="activities"
     :loading="loadingActivities"
     :loading-more="loadingMore"
@@ -275,7 +275,7 @@ onMounted(async () => {
     @delete="(ids) => ids.forEach((id) => deleteActivity(id))"
   />
 
-  <SettingsModulesActivityPrivacy
+  <UserActivityPrivacy
     :tracking-enabled="trackingEnabled"
     :toggling="togglingTracking"
     :clearing="clearingHistory"

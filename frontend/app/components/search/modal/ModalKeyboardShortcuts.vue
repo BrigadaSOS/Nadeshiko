@@ -61,9 +61,9 @@ defineExpose({ open });
           <div>
             <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ $t('shortcuts.navigation') }}</h4>
             <div class="space-y-2">
-              <ShortcutRow :keys="['↑', '↓']" :description="$t('shortcuts.navigateCards')" />
-              <ShortcutRow :keys="['←', '→']" :description="$t('shortcuts.prevNextSegment')" />
-              <ShortcutRow :keys="['Shift', 'S']" :description="$t('shortcuts.backToSearch')" />
+              <SearchModalShortcutRow :keys="['↑', '↓']" :description="$t('shortcuts.navigateCards')" />
+              <SearchModalShortcutRow :keys="['←', '→']" :description="$t('shortcuts.prevNextSegment')" />
+              <SearchModalShortcutRow :keys="['Shift', 'S']" :description="$t('shortcuts.backToSearch')" />
             </div>
           </div>
 
@@ -71,11 +71,11 @@ defineExpose({ open });
           <div>
             <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ $t('shortcuts.playback') }}</h4>
             <div class="space-y-2">
-              <ShortcutRow :keys="['Enter']" :description="$t('shortcuts.playSelected')" />
-              <ShortcutRow :keys="['Space']" :description="$t('shortcuts.playPause')" />
-              <ShortcutRow :keys="['R']" :description="$t('shortcuts.restart')" />
-              <ShortcutRow :keys="['L']" :description="$t('shortcuts.toggleAutoplay')" />
-              <ShortcutRow :keys="['F']" :description="$t('shortcuts.toggleImmersive')" />
+              <SearchModalShortcutRow :keys="['Enter']" :description="$t('shortcuts.playSelected')" />
+              <SearchModalShortcutRow :keys="['Space']" :description="$t('shortcuts.playPause')" />
+              <SearchModalShortcutRow :keys="['R']" :description="$t('shortcuts.restart')" />
+              <SearchModalShortcutRow :keys="['L']" :description="$t('shortcuts.toggleAutoplay')" />
+              <SearchModalShortcutRow :keys="['F']" :description="$t('shortcuts.toggleImmersive')" />
             </div>
           </div>
 
@@ -83,8 +83,8 @@ defineExpose({ open });
           <div>
             <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ $t('shortcuts.actions') }}</h4>
             <div class="space-y-2">
-              <ShortcutRow :keys="['A']" :description="$t('shortcuts.openAnki')" />
-              <ShortcutRow :keys="['C']" :description="$t('shortcuts.openContext')" />
+              <SearchModalShortcutRow :keys="['A']" :description="$t('shortcuts.openAnki')" />
+              <SearchModalShortcutRow :keys="['C']" :description="$t('shortcuts.openContext')" />
             </div>
           </div>
         </div>

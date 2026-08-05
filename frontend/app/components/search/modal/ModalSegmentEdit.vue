@@ -36,17 +36,15 @@ const form = reactive<SegmentEditFormState>({
   startTimeMs: 0,
   endTimeMs: 0,
   ratingAnalysisJson: '',
-  posAnalysisJson: '',
 });
 
 const jsonErrors = reactive<SegmentEditJsonErrors>({
   ratingAnalysis: '',
-  posAnalysis: '',
 });
 
 const sdk = useNadeshikoSdk();
 
-const populateFormFromSegment = (seg: SearchResult, ratingAnalysis?: object | null, posAnalysis?: object | null) => {
+const populateFormFromSegment = (seg: SearchResult, ratingAnalysis?: object | null) => {
   form.ja = seg.segment.textJa.content || '';
   form.en = seg.segment.textEn.content || '';
   form.enMt = seg.segment.textEn.isMachineTranslated;
@@ -58,11 +56,9 @@ const populateFormFromSegment = (seg: SearchResult, ratingAnalysis?: object | nu
   form.startTimeMs = seg.segment.startTimeMs;
   form.endTimeMs = seg.segment.endTimeMs;
   form.ratingAnalysisJson = ratingAnalysis ? JSON.stringify(ratingAnalysis, null, 2) : '';
-  form.posAnalysisJson = posAnalysis ? JSON.stringify(posAnalysis, null, 2) : '';
 };
 
 let lastRatingAnalysis: object | null = null;
-let lastPosAnalysis: object | null = null;
 
 const internalHashedId = ref<string | null>(null);
 const internalStorage = ref<string | null>(null);
@@ -75,7 +71,6 @@ watch(
 
     populateFormFromSegment(seg);
     jsonErrors.ratingAnalysis = '';
-    jsonErrors.posAnalysis = '';
     errorMessage.value = '';
     activeSnapshotNumber.value = null;
     revisions.value = [];
@@ -126,7 +121,6 @@ const loadSnapshot = (snapshot: Record<string, unknown>) => {
   form.startTimeMs = (snapshot.startTimeMs as number) ?? 0;
   form.endTimeMs = (snapshot.endTimeMs as number) ?? 0;
   form.ratingAnalysisJson = snapshot.ratingAnalysis ? JSON.stringify(snapshot.ratingAnalysis, null, 2) : '';
-  form.posAnalysisJson = snapshot.posAnalysis ? JSON.stringify(snapshot.posAnalysis, null, 2) : '';
 };
 
 const selectRevision = (revision: SegmentRevision) => {
@@ -137,7 +131,7 @@ const selectRevision = (revision: SegmentRevision) => {
 const restoreCurrent = () => {
   if (!props.segment) return;
   activeSnapshotNumber.value = null;
-  populateFormFromSegment(props.segment, lastRatingAnalysis, lastPosAnalysis);
+  populateFormFromSegment(props.segment, lastRatingAnalysis);
 };
 
 const closeModal = () => {
@@ -176,9 +170,7 @@ const submitEdit = async () => {
   if (!props.segment || isSubmitting.value) return;
 
   const invalidMessage = t('modalSegmentEdit.invalidJson');
-  const ratingValid = validateJson(form.ratingAnalysisJson, 'ratingAnalysis', jsonErrors, invalidMessage);
-  const posValid = validateJson(form.posAnalysisJson, 'posAnalysis', jsonErrors, invalidMessage);
-  if (!ratingValid || !posValid) return;
+  if (!validateJson(form.ratingAnalysisJson, 'ratingAnalysis', jsonErrors, invalidMessage)) return;
 
   isSubmitting.value = true;
   errorMessage.value = '';
@@ -198,16 +190,12 @@ const submitEdit = async () => {
     if (form.ratingAnalysisJson.trim()) {
       body.ratingAnalysis = JSON.parse(form.ratingAnalysisJson);
     }
-    if (form.posAnalysisJson.trim()) {
-      body.posAnalysis = JSON.parse(form.posAnalysisJson);
-    }
 
     const updatedSegment = await sdk.updateSegment({
       segmentPublicId: props.segment.segment.publicId,
       ...body,
     });
     lastRatingAnalysis = updatedSegment.ratingAnalysis ?? null;
-    lastPosAnalysis = updatedSegment.posAnalysis ?? null;
     internalHashedId.value = updatedSegment.hashedId ?? null;
     internalStorage.value = updatedSegment.storage ?? null;
     internalStorageBasePath.value = updatedSegment.storageBasePath ?? null;
@@ -229,7 +217,6 @@ const submitEdit = async () => {
 
     activeSnapshotNumber.value = null;
     lastRatingAnalysis = form.ratingAnalysisJson.trim() ? JSON.parse(form.ratingAnalysisJson) : null;
-    lastPosAnalysis = form.posAnalysisJson.trim() ? JSON.parse(form.posAnalysisJson) : null;
 
     if (showHistory.value) {
       fetchRevisions();
@@ -260,7 +247,7 @@ const submitEdit = async () => {
     @close="closeModal"
   >
       <!-- Header -->
-      <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
+      <div class="nd-modal-header">
         <h3 id="nd-segment-edit-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('modalSegmentEdit.title') }}
         </h3>
@@ -370,12 +357,12 @@ const submitEdit = async () => {
           <button
             type="button"
             :disabled="isSubmitting"
-            class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
+            class="nd-btn-accent"
             @click="submitEdit"
           >
             <span
               v-if="isSubmitting"
-              class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+              class="nd-spinner"
             />
             {{ isSubmitting ? t('modalSegmentEdit.saving') : t('modalSegmentEdit.save') }}
           </button>

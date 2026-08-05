@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import CollectionsModule from '~/components/settings/modules/CollectionsModule.vue';
+import CollectionsManager from '~/components/user/CollectionsManager.vue';
 </script>
 
 <template>
-  <CollectionsModule />
+  <CollectionsManager />
 </template>

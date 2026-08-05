@@ -185,7 +185,7 @@ const submitDelete = async () => {
     panel-class="w-full max-w-3xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
     @close="closeModal"
   >
-      <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
+      <div class="nd-modal-header">
         <h3 id="nd-media-edit-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('modalMediaEdit.title') }}
         </h3>
@@ -244,7 +244,7 @@ const submitDelete = async () => {
               v-model="form.nameJa"
               lang="ja"
               type="text"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              class="nd-input"
             />
           </div>
           <div>
@@ -252,7 +252,7 @@ const submitDelete = async () => {
             <input
               v-model="form.nameRomaji"
               type="text"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              class="nd-input"
             />
           </div>
           <div>
@@ -260,7 +260,7 @@ const submitDelete = async () => {
             <input
               v-model="form.nameEn"
               type="text"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              class="nd-input"
             />
           </div>
         </div>
@@ -270,7 +270,7 @@ const submitDelete = async () => {
           <input
             v-model="form.studio"
             type="text"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+            class="nd-input"
           />
         </div>
 
@@ -280,7 +280,7 @@ const submitDelete = async () => {
             v-model="form.genres"
             type="text"
             :placeholder="t('modalMediaEdit.genresPlaceholder')"
-            class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+            class="nd-input"
           />
         </div>
 
@@ -335,7 +335,7 @@ const submitDelete = async () => {
             <input
               v-model="form.startDate"
               type="date"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              class="nd-input"
             />
           </div>
           <div>
@@ -343,7 +343,7 @@ const submitDelete = async () => {
             <input
               v-model="form.endDate"
               type="date"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              class="nd-input"
             />
           </div>
           <div>
@@ -367,7 +367,7 @@ const submitDelete = async () => {
               type="number"
               min="1900"
               max="2100"
-              class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+              class="nd-input font-mono"
             />
           </div>
         </div>
@@ -381,7 +381,7 @@ const submitDelete = async () => {
                 v-model="form.anilistId"
                 type="text"
                 placeholder="e.g. 21459"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+                class="nd-input font-mono"
               />
             </div>
             <div>
@@ -390,7 +390,7 @@ const submitDelete = async () => {
                 v-model="form.imdbId"
                 type="text"
                 placeholder="e.g. tt1234567"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+                class="nd-input font-mono"
               />
             </div>
             <div>
@@ -399,7 +399,7 @@ const submitDelete = async () => {
                 v-model="form.tvdbId"
                 type="text"
                 placeholder="e.g. 12345"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+                class="nd-input font-mono"
               />
             </div>
             <div>
@@ -408,7 +408,7 @@ const submitDelete = async () => {
                 v-model="form.tmdbId"
                 type="text"
                 placeholder="e.g. 90955"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+                class="nd-input font-mono"
               />
             </div>
             <div>
@@ -417,7 +417,7 @@ const submitDelete = async () => {
                 v-model="form.youtubeId"
                 type="text"
                 placeholder="e.g. UCxxxxxxxxxxxxxxxx"
-                class="w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
+                class="nd-input font-mono"
               />
             </div>
           </div>
@@ -471,12 +471,12 @@ const submitDelete = async () => {
           <button
             type="button"
             :disabled="isSubmitting"
-            class="py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none"
+            class="nd-btn-accent"
             @click="submitEdit"
           >
             <span
               v-if="isSubmitting"
-              class="animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1"
+              class="nd-spinner"
             />
             {{ isSubmitting ? t('modalMediaEdit.saving') : t('modalMediaEdit.save') }}
           </button>

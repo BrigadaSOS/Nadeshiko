@@ -112,7 +112,7 @@ watch(inputText, (newValue) => {
     overlay-class="items-center justify-center bg-neutral-900/40"
     panel-class="max-h-[calc(100%-3.5rem)] w-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border lg:max-w-3xl m-3 sm:mx-auto"
     @close="closeModal">
-        <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
+        <div class="nd-modal-header">
           <h3 id="nd-batch-modal-title" class="font-bold text-gray-800 dark:text-white">
             {{ showResults ? t("batchSearch.results.title") : t("batchSearch.title") }}
           </h3>

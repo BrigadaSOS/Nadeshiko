@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import HiddenMediaModule from '~/components/settings/modules/HiddenMediaModule.vue';
+import HiddenMediaSettings from '~/components/user/HiddenMediaSettings.vue';
 </script>
 
 <template>
-  <HiddenMediaModule />
+  <HiddenMediaSettings />
 </template>

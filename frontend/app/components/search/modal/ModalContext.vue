@@ -80,7 +80,7 @@ const scrollToElement = (id: string) => {
     panel-class="w-full max-w-7xl mx-auto h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
     :panel-style="{ maxHeight: showPlayer ? '85vh' : '95vh', marginBottom: showPlayer ? '5rem' : '0' }"
     @close="emit('close')">
-    <div class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border">
+    <div class="nd-modal-header">
       <h3 id="nd-context-modal-title" data-testid="context-modal-title" class="font-bold text-gray-800 dark:text-white">
         {{ t('searchpage.modalcontext.labels.context') }} - {{
           contextData?.results?.[0]?.media ? mediaName(contextData.results[0].media) : '' }}

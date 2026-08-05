@@ -11,13 +11,9 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const copyUuid = async () => {
-  await navigator.clipboard.writeText(props.segment.segment.publicId);
-};
-
-const copyPublicId = async () => {
-  await navigator.clipboard.writeText(props.segment.segment.publicId);
-};
+// One handler behind both buttons: a segment carries a single identifier, and
+// the "UUID" and "Public ID" rows below are two labels over that same nanoid.
+const copySegmentId = () => copyToClipboard(props.segment.segment.publicId);
 </script>
 
 <template>
@@ -51,22 +47,6 @@ const copyPublicId = async () => {
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
       <span class="font-mono text-neutral-300">#{{ segment.segment.publicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
     </div>
-    <!-- UUID -->
-    <div class="flex items-center gap-2 text-neutral-300">
-      <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.uuid') }}</span>
-      <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.publicId }}</code>
-      <button
-        type="button"
-        class="text-neutral-500 hover:text-neutral-300 transition-colors"
-        :title="t('modalSegmentEdit.metadata.copyUuid')"
-        @click="copyUuid"
-      >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-        </svg>
-      </button>
-    </div>
     <!-- Public ID -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.publicId') }}</span>
@@ -75,7 +55,7 @@ const copyPublicId = async () => {
         type="button"
         class="text-neutral-500 hover:text-neutral-300 transition-colors"
         :title="t('modalSegmentEdit.metadata.copyPublicId')"
-        @click="copyPublicId"
+        @click="copySegmentId"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

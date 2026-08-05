@@ -5,7 +5,6 @@ import {
   mdiAccount,
   mdiSync,
   mdiCodeTags,
-  mdiFlask,
   mdiEyeOffOutline,
   mdiHistory,
   mdiFormatListBulletedSquare,
@@ -14,7 +13,6 @@ import {
   mdiBullhornOutline,
 } from '@mdi/js';
 import { useDragScroll } from '~/composables/useDragScroll';
-import { useLocalePreference } from '~/composables/useLocalePreference';
 import { splitLocalePrefix } from '~/utils/routes';
 
 const { t } = useI18n();
@@ -33,7 +31,6 @@ const tabsGeneral = computed(() => [
 
 const tabsAdvanced = computed(() => [
   { name: t('accountSettings.tabs.developer'), icon: mdiCodeTags, route: '/user/developer' },
-  { name: t('accountSettings.tabs.labs'), icon: mdiFlask, route: '/user/labs' },
 ]);
 
 const tabsAdmin = computed(() => [
@@ -61,28 +58,22 @@ definePageMeta({
   // Applies to every /user/** child route: Nuxt collects middleware from all
   // matched records, parent first. Per-route redirects (/user, /user/admin and
   // unknown paths) live in the pages that own those URLs.
-  middleware: defineNuxtRouteMiddleware((to) => {
-    const store = userStore();
-    const localePath = useLocalePath();
-    const { preferredLocale } = useLocalePreference();
-
-    if (!store.isLoggedIn) {
-      return navigateTo(localePath('/'), { replace: true });
-    }
-
-    const { localizedPath } = splitLocalePrefix(to.path);
-
-    if (preferredLocale.value) {
-      const preferredPath = localePath(localizedPath, preferredLocale.value);
-      if (preferredPath && preferredPath !== to.path) {
-        return navigateTo({ path: preferredPath, query: to.query, hash: to.hash }, { replace: true });
+  middleware: [
+    defineNuxtRouteMiddleware(() => {
+      const store = userStore();
+      if (!store.isLoggedIn) {
+        return navigateTo(useLocalePath()('/'), { replace: true });
       }
-    }
-
-    if (localizedPath.startsWith('/user/admin') && !store.isAdmin) {
-      return navigateTo(localePath('/user/settings'), { replace: true });
-    }
-  }),
+    }),
+    'locale-preference',
+    defineNuxtRouteMiddleware((to) => {
+      const store = userStore();
+      const { localizedPath } = splitLocalePrefix(to.path);
+      if (localizedPath.startsWith('/user/admin') && !store.isAdmin) {
+        return navigateTo(useLocalePath()('/user/settings'), { replace: true });
+      }
+    }),
+  ],
 });
 
 const mobileTabsRef = ref<HTMLElement | null>(null);
@@ -92,7 +83,9 @@ function scrollActiveTabIntoView() {
   nextTick(() => {
     const container = mobileTabsRef.value;
     if (!container) return;
-    const activeBtn = container.querySelector<HTMLElement>('.border-red-500');
+    // Keyed off the marker attribute rather than the active tab's styling, so
+    // restyling the tab can't quietly stop it from scrolling into view.
+    const activeBtn = container.querySelector<HTMLElement>('[data-active-tab]');
     if (activeBtn) {
       activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
     }
@@ -107,7 +100,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
   <div class="w-11/12 mx-auto my-2 text-white min-h-screen">
       <div class="flex flex-col md:flex-row">
         <div class="hidden mx-auto md:block md:w-1/4 xl:w-3/12 md:min-w-[220px]">
-          <nav aria-label="Tabs" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
+          <nav :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
             <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.generalTitle") }}</h3>
             <div class="border-b border-white/10" />
             <NuxtLink
@@ -152,11 +145,12 @@ watch(activeTabRoute, scrollActiveTabIntoView);
         </div>
 
         <div class="block md:hidden">
-          <nav ref="mobileTabsRef" aria-label="Tabs" class="mobile-settings-tabs flex select-none overflow-x-auto">
+          <nav ref="mobileTabsRef" :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="mobile-settings-tabs flex select-none overflow-x-auto">
             <NuxtLink
               v-for="tab in allTabs"
               :key="tab.route"
               :to="localePath(tab.route)"
+              :data-active-tab="activeTabRoute === tab.route ? '' : undefined"
               :class="[
                 'mobile-settings-tab relative px-4 py-3 text-sm text-nowrap shrink-0 transition-colors border-b-2 cursor-pointer',
                 activeTabRoute === tab.route

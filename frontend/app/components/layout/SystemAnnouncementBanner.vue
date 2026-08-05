@@ -1,11 +1,6 @@
 <script setup lang="ts">
+import type { Announcement as AnnouncementData } from '@brigadasos/nadeshiko-sdk';
 import { reportError } from '~/utils/reportError';
-
-type AnnouncementData = {
-  message: string;
-  type: 'INFO' | 'WARNING' | 'MAINTENANCE';
-  active: boolean;
-};
 
 const sdk = useNadeshikoSdk();
 

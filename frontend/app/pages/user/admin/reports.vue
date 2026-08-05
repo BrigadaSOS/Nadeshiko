@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import ReportsModule from '~/components/settings/modules/ReportsModule.vue';
+import ReportsManager from '~/components/admin/ReportsManager.vue';
 </script>
 
 <template>
-  <ReportsModule />
+  <ReportsManager />
 </template>

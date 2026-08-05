@@ -14,6 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const { t, locale } = useI18n();
+const { formatDate } = useFormat();
 
 const DAY_LABELS = computed(() => {
   const base = new Date('2024-01-01T00:00:00');
@@ -103,7 +104,7 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
     currentGroup?.days.push({
       key,
       count: heatmapCountsByDay.value[key] ?? 0,
-      label: cursor.toLocaleDateString(locale.value, { month: 'short', day: 'numeric', year: 'numeric' }),
+      label: formatDate(cursor, 'short'),
       dayOfWeek: cursor.getDay(),
     });
     cursor.setDate(cursor.getDate() + 1);
@@ -122,7 +123,7 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
       </div>
     </div>
 
-    <SettingsModulesActivityTypeFilter
+    <UserActivityTypeFilter
       class="mt-3"
       :model-value="filter"
       @update:model-value="emit('update:filter', $event)"

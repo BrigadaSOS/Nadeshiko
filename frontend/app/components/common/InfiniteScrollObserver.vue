@@ -3,6 +3,18 @@
 </template>
 
 <script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    /**
+     * How far ahead of the viewport the next page starts loading. The default
+     * buys a full screen of lead time on the sentence list, where rows are tall
+     * and a page takes a moment to arrive; denser grids want less.
+     */
+    rootMargin?: string;
+  }>(),
+  { rootMargin: '1200px' },
+);
+
 const observer = ref<HTMLElement | null>(null);
 const emit = defineEmits<{
   intersect: [];
@@ -19,7 +31,7 @@ onMounted(async () => {
       }
     },
     {
-      rootMargin: '1200px',
+      rootMargin: props.rootMargin,
       threshold: 0.1,
     },
   );

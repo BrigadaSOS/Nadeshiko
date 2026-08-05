@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>();
 
 const { t, locale } = useI18n();
+const { formatDate } = useFormat();
 const localePath = useLocalePath();
 
 const stripTags = (text: string) => {
@@ -32,12 +33,6 @@ const stripTags = (text: string) => {
     result = result.replace(/<[^>]*>/g, '');
   } while (result !== previous);
   return result;
-};
-
-const formatDate = (dateStr: string) => {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString(locale.value, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 type GroupedActivity = ActivityItem & { count: number; ids: number[] };
@@ -94,7 +89,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
       </div>
     </div>
 
-    <SettingsModulesActivityTypeFilter
+    <UserActivityTypeFilter
       class="mt-4"
       :model-value="typeFilter"
       @update:model-value="emit('update:typeFilter', $event)"
@@ -157,7 +152,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
               <span v-else class="text-gray-500">{{ t('accountSettings.activity.history.noDetails') }}</span>
             </td>
             <td class="py-2.5 pr-4 text-right text-gray-400 text-xs whitespace-nowrap">
-              {{ formatDate(activity.createdAt) }}
+              {{ formatDate(activity.createdAt, 'dateTime') }}
             </td>
             <td class="py-2.5 text-center w-8">
               <button
