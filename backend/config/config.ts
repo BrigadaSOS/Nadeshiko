@@ -42,6 +42,10 @@ const envSchema = z.object({
   USERNAME_API_NADEDB: requiredString,
   EMAIL_API_NADEDB: requiredString,
   API_KEY_MASTER: requiredString,
+  // Shirabe parses every segment we serve and supplies the definitions behind
+  // each word. The key is a quota-exempt service identity of ours.
+  SHIRABE_API_BASE: z.string().url().default('https://shirabe.org'),
+  SHIRABE_API_KEY: z.string().default(''),
 
   API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(150),

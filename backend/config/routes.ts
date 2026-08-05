@@ -63,7 +63,6 @@ import {
   bulkDeleteAdminReports,
 } from '@app/controllers/reportController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
-import { listUserLabs, enrollUserLab, unenrollUserLab } from '@app/controllers/labsController';
 import {
   listUserActivity,
   getUserActivityHeatmap,
@@ -269,9 +268,6 @@ const UserRoutes = createUserRouter({
   deleteUserActivityByDate,
   deleteUserActivityById,
   exportUserData,
-  listUserLabs,
-  enrollUserLab,
-  unenrollUserLab,
 });
 
 const router = express.Router();
