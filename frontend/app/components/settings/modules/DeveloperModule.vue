@@ -3,13 +3,12 @@ import { mdiPlus, mdiCheckBold, mdiPencilOutline, mdiContentCopy } from '@mdi/js
 
 import type { ApiKeyListItem } from '@/stores/api';
 import { normalizeApiKey } from '@/stores/api';
+import { handleApiError } from '~/utils/apiError';
 
 const { t, locale } = useI18n();
 const api_store = apiStore();
 const sdk = useNadeshikoSdk();
 const isLoading = ref(false);
-const isError = ref(false);
-const isSuccess = ref(false);
 const generatedApiKey = ref<string | null>(null);
 const deactivatedApiKey = ref(false);
 const apiKeyCopied = ref(false);
@@ -28,6 +27,9 @@ const modalKeyName = ref('');
 const renameKeyId = ref<string | null>(null);
 const renameKeyName = ref('');
 
+// Tells "no API keys yet" apart from "the list could not be loaded".
+const loadFailed = ref(false);
+
 const fetchApiKeyList = async (): Promise<unknown[]> => {
   const unwrap = (data: unknown): unknown[] => {
     if (Array.isArray(data)) return data;
@@ -42,14 +44,29 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
     return [];
   };
 
-  return unwrap(await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(() => []));
+  const data = await $fetch('/v1/auth/api-key/list', { method: 'GET', credentials: 'include' }).catch(
+    (error: unknown) => {
+      handleApiError('api-keys:list-failed', error, { toastKey: false });
+      loadFailed.value = true;
+      return [];
+    },
+  );
+  return unwrap(data);
 };
 
-const fetchMe = () => sdk.getMe().catch(() => null);
+const fetchMe = () =>
+  sdk.getMe().catch((error: unknown) => {
+    // Quota falls back to placeholder numbers, which would otherwise read as a
+    // genuine "0 requests used" to anyone whose session just failed to load.
+    handleApiError('api-keys:quota-fetch-failed', error, { toastKey: false });
+    loadFailed.value = true;
+    return null;
+  });
 
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData(
   'developer-api-keys',
   async () => {
+    loadFailed.value = false;
     const [keysRaw, meRes] = await Promise.all([fetchApiKeyList(), fetchMe()]);
 
     const keys = (Array.isArray(keysRaw) ? keysRaw : [])
@@ -82,66 +99,47 @@ const quotaPercentage = computed(() => {
   return (used / limit) * 100;
 });
 
+const showCreateModal = ref(false);
+const showRenameModal = ref(false);
+
 const openCreateModal = () => {
   modalKeyName.value = '';
-  window.NDOverlay?.open('#nd-vertically-centered-scrollable-createapikey-modal');
+  showCreateModal.value = true;
 };
 
 const closeCreateModal = () => {
-  window.NDOverlay?.close('#nd-vertically-centered-scrollable-createapikey-modal');
-};
-
-const handleCreateBackdropClick = (event: MouseEvent) => {
-  if (event.target === event.currentTarget) {
-    closeCreateModal();
-  }
+  showCreateModal.value = false;
 };
 
 const openRenameModal = (item: ApiKeyListItem) => {
   renameKeyId.value = item.id;
   renameKeyName.value = item.name;
-  window.NDOverlay?.open('#nd-vertically-centered-scrollable-renameapikey-modal');
+  showRenameModal.value = true;
 };
 
 const closeRenameModal = () => {
-  window.NDOverlay?.close('#nd-vertically-centered-scrollable-renameapikey-modal');
-};
-
-const handleRenameBackdropClick = (event: MouseEvent) => {
-  if (event.target === event.currentTarget) {
-    closeRenameModal();
-  }
+  showRenameModal.value = false;
 };
 
 const confirmRenameApiKey = async () => {
   if (!renameKeyId.value || !renameKeyName.value) return;
 
   isLoading.value = true;
-  isError.value = false;
 
   try {
-    await api_store.renameApiKey(renameKeyId.value, renameKeyName.value);
+    // The store reports the failure and answers with a non-200 status rather than
+    // throwing, so branching on `status` is the only way to notice it here.
+    const response = await api_store.renameApiKey(renameKeyId.value, renameKeyName.value);
+    if (response.status !== 200) {
+      useToastError(t('accountSettings.developer.renameKeyError'));
+      return;
+    }
     closeRenameModal();
     await refreshApiKeys();
-  } catch (error) {
-    isError.value = true;
-    console.error(error);
   } finally {
     isLoading.value = false;
   }
 };
-
-// Cleanup modal state when navigating away
-onBeforeUnmount(() => {
-  const createModal = document.querySelector('#nd-vertically-centered-scrollable-createapikey-modal');
-  if (createModal && !createModal.classList.contains('hidden')) {
-    window.NDOverlay?.close('#nd-vertically-centered-scrollable-createapikey-modal');
-  }
-  const renameModal = document.querySelector('#nd-vertically-centered-scrollable-renameapikey-modal');
-  if (renameModal && !renameModal.classList.contains('hidden')) {
-    window.NDOverlay?.close('#nd-vertically-centered-scrollable-renameapikey-modal');
-  }
-});
 
 const confirmCreateApiKey = async () => {
   if (!modalKeyName.value) {
@@ -149,23 +147,17 @@ const confirmCreateApiKey = async () => {
   }
 
   isLoading.value = true;
-  isError.value = false;
-  isSuccess.value = false;
   generatedApiKey.value = null;
 
   try {
     const response = await api_store.createApiKeyGeneral(modalKeyName.value);
-    if (response?.key) {
-      generatedApiKey.value = response.key;
-      isSuccess.value = true;
-      closeCreateModal();
-      await refreshApiKeys();
-    } else {
-      isError.value = true;
+    if (!response?.key) {
+      useToastError(t('accountSettings.developer.createKeyError'));
+      return;
     }
-  } catch (error) {
-    isError.value = true;
-    console.error(error);
+    generatedApiKey.value = response.key;
+    closeCreateModal();
+    await refreshApiKeys();
   } finally {
     isLoading.value = false;
   }
@@ -175,14 +167,13 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
   try {
     isLoading.value = true;
 
-    await api_store.deactivateApiKey(item.id);
-    isSuccess.value = true;
-    isLoading.value = false;
+    const response = await api_store.deactivateApiKey(item.id);
+    if (response.status !== 200) {
+      useToastError(t('accountSettings.developer.deactivateKeyError'));
+      return;
+    }
     deactivatedApiKey.value = true;
     await refreshApiKeys();
-  } catch (error) {
-    isError.value = true;
-    console.error(error);
   } finally {
     isLoading.value = false;
   }
@@ -329,10 +320,17 @@ const formatDate = (value?: string) => {
                             <td
                                 class="w-2/12 py-4 align-middle whitespace-nowrap text-base px-2 font-medium text-gray-800 dark:text-gray-200 ">
                                 <div class="flex justify-center items-center h-full">
-                                    <div class="nd-dropdown relative mb-2 mx-auto">
-                                        <button id="nd-dropdown-with-title" type="button" data-testid="dropdown-toggle"
-                                            class="border-transparent dark:hover:bg-sgrayhover nd-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-lg border font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800">
-                                            <svg class="nd-dropdown-open:rotate-180 w-5 h-5 rotate-180 fill-white text-gray-300"
+                                    <SearchDropdownContainer
+                                        class="mb-2 mx-auto"
+                                        dropdown-id="nd-apikey-actions"
+                                        dropdown-container-class="absolute right-0 top-full z-30 min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
+                                    >
+                                        <template #default="{ isOpen, toggle, dropdownId }">
+                                        <button :id="dropdownId" type="button" data-testid="dropdown-toggle"
+                                            aria-haspopup="menu" :aria-expanded="isOpen"
+                                            class="border-transparent dark:hover:bg-sgrayhover py-3 px-4 inline-flex justify-center items-center gap-2 rounded-lg border font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all text-sm xxl:text-base xxm:text-2xl dark:text-gray-300 dark:hover:text-white dark:focus:ring-offset-gray-800"
+                                            @click="toggle()">
+                                            <svg class="w-5 h-5 rotate-180 fill-white text-gray-300"
                                                 viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path
                                                     d="M14 5C14 6.10457 13.1046 7 12 7C10.8954 7 10 6.10457 10 5C10 3.89543 10.8954 3 12 3C13.1046 3 14 3.89543 14 5Z" />
@@ -342,9 +340,9 @@ const formatDate = (value?: string) => {
                                                     d="M12 21C13.1046 21 14 20.1046 14 19C14 17.8954 13.1046 17 12 17C10.8954 17 10 17.8954 10 19C10 20.1046 10.8954 21 12 21Z" />
                                             </svg>
                                         </button>
+                                        </template>
 
-                                        <div class="nd-dropdown-menu absolute right-0 top-full z-30 min-w-[15rem] bg-white shadow-md rounded-lg p-2 mt-2 divide-y divide-gray-200 dark:bg-sgray dark:divide-gray-700"
-                                            aria-labelledby="nd-dropdown-with-title">
+                                        <template #content>
                                             <div class="py-2 first:pt-0 last:pb-0">
                                                 <a class="flex items-center cursor-pointer bg-sgray gap-x-3.5 py-2 px-3 rounded-md text-sm xxl:text-base xxm:text-2xl text-gray-800 dark:text-gray-400 dark:hover:bg-sgrayhover dark:hover:text-gray-300"
                                                     @click="openRenameModal(item)">
@@ -380,8 +378,8 @@ const formatDate = (value?: string) => {
                                                     {{ $t('accountSettings.developer.deactivate') }}
                                                 </a>
                                             </div>
-                                        </div>
-                                    </div>
+                                        </template>
+                                    </SearchDropdownContainer>
                                 </div>
                             </td>
                         </tr>
@@ -396,6 +394,20 @@ const formatDate = (value?: string) => {
                                     role="status">
                                 </span>
                             </div>
+                        </div>
+                    </div>
+                </section>
+                <section v-else-if="loadFailed" class="rounded-xl mx-auto" data-testid="api-keys-load-error">
+                    <div class="flex items-center text-center h-96 dark:border-gray-700 bg-card-background">
+                        <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
+                            <p class="text-red-400">{{ $t('accountSettings.developer.loadError') }}</p>
+                            <button
+                                type="button"
+                                class="mt-3 mx-auto py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+                                @click="refreshApiKeys()"
+                            >
+                                {{ $t('searchContainer.retryButton') }}
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -421,17 +433,13 @@ const formatDate = (value?: string) => {
     </div>
 
     <!-- Create API Key Modal -->
-    <div id="nd-vertically-centered-scrollable-createapikey-modal" data-testid="create-apikey-modal"
-        class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
-        @click="handleCreateBackdropClick">
-        <div
-            class="justify-center nd-overlay-open:opacity-100 nd-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
-            @click="handleCreateBackdropClick"
-        >
-            <div
-                class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
-                @click.stop
-            >
+    <CommonBaseModal
+        data-testid="create-apikey-modal"
+        :open="showCreateModal"
+        overlay-class="items-center justify-center bg-neutral-900/40"
+        panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full sm:max-w-lg m-3 sm:mx-auto"
+        @close="closeCreateModal"
+    >
                 <div
                     class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
                 >
@@ -490,22 +498,16 @@ const formatDate = (value?: string) => {
                         {{ $t('accountSettings.developer.createApiKeyModal.create') }}
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+    </CommonBaseModal>
 
     <!-- Rename API Key Modal -->
-    <div id="nd-vertically-centered-scrollable-renameapikey-modal" data-testid="rename-apikey-modal"
-        class="nd-overlay nd-overlay-backdrop-open:bg-neutral-900/40 hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto"
-        @click="handleRenameBackdropClick">
-        <div
-            class="justify-center nd-overlay-open:opacity-100 nd-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg m-3 sm:mx-auto h-[calc(100%-3.5rem)] min-h-[calc(100%-3.5rem)] flex items-center"
-            @click="handleRenameBackdropClick"
-        >
-            <div
-                class="max-h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full"
-                @click.stop
-            >
+    <CommonBaseModal
+        data-testid="rename-apikey-modal"
+        :open="showRenameModal"
+        overlay-class="items-center justify-center bg-neutral-900/40"
+        panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full sm:max-w-lg m-3 sm:mx-auto"
+        @close="closeRenameModal"
+    >
                 <div
                     class="flex justify-between items-center py-3 px-4 border-b dark:border-modal-border"
                 >
@@ -551,9 +553,7 @@ const formatDate = (value?: string) => {
                         {{ $t('accountSettings.developer.renameApiKeyModal.save') }}
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+    </CommonBaseModal>
 
 </template>
 <style></style>

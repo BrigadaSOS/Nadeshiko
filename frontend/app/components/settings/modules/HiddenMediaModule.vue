@@ -3,6 +3,7 @@ import { mdiClose, mdiMagnify } from '@mdi/js';
 
 import type { MediaSummary } from '@brigadasos/nadeshiko-sdk';
 import type { HiddenMediaItem } from '~/composables/useHiddenMedia';
+import { handleApiError } from '~/utils/apiError';
 
 type NamedMedia = {
   publicId?: string;
@@ -20,6 +21,9 @@ const { items: hiddenItems, toggleHideMedia, isMediaHidden } = useHiddenMedia();
 const hiddenMediaSearchQuery = ref('');
 const hiddenMediaSearchResults = ref<MediaSummary[]>([]);
 const searchLoading = ref(false);
+// Without this the "no media matched" copy also covers a failed request, which is
+// how a search outage reads as "we have nothing by that name".
+const searchFailed = ref(false);
 let hiddenMediaSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const SEARCH_MAX_RESULTS = 25;
@@ -68,17 +72,21 @@ const searchMediaToHide = (query: string) => {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) {
     hiddenMediaSearchResults.value = [];
+    searchFailed.value = false;
     return;
   }
 
   hiddenMediaSearchTimeout = setTimeout(() => {
     void (async () => {
       searchLoading.value = true;
+      searchFailed.value = false;
       try {
         const response = await sdk.searchMedia({ query: trimmedQuery, take: SEARCH_MAX_RESULTS });
         hiddenMediaSearchResults.value = response.media;
-      } catch {
+      } catch (error) {
+        handleApiError('hidden-media:media-search-failed', error, { toastKey: false });
         hiddenMediaSearchResults.value = [];
+        searchFailed.value = true;
       } finally {
         searchLoading.value = false;
       }
@@ -181,6 +189,9 @@ const unhide = async (item: HiddenMediaItem) => {
         </tbody>
       </table>
     </div>
+    <p v-else-if="searchFailed && !searchLoading" class="mt-3 text-sm text-red-400" data-testid="hidden-media-search-error">
+      {{ t('errors.generic') }}
+    </p>
     <p v-else-if="hiddenMediaSearchQuery.trim().length > 0 && !searchLoading" class="mt-3 text-sm text-gray-400">
       {{ t('accountSettings.account.hiddenMediaNoResults') }}
     </p>

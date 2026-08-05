@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiCheckBold, mdiVideo, mdiImage, mdiVolumeHigh, mdiText, mdiPlus, mdiDelete, mdiPencil } from '@mdi/js';
 import type { AnkiProfile } from '@/stores/anki';
+import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
 
@@ -54,7 +55,8 @@ const debouncedSave = (data: Partial<AnkiProfile>) => {
     try {
       await store.updateActiveProfile(toSave);
     } catch (error) {
-      console.error('[Anki] Failed to save profile:', error);
+      // Autosave: the user gets no other signal that their field mapping was lost.
+      handleApiError('anki:profile-save-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
     } finally {
       isSaving.value = false;
     }
@@ -104,7 +106,7 @@ const confirmNameModal = async () => {
       await nextTick();
       await fetchAndLoad();
     } catch (error) {
-      console.error('[Anki] Failed to create profile:', error);
+      handleApiError('anki:profile-create-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
     } finally {
       suppressWatchers = false;
       isSaving.value = false;
@@ -114,7 +116,7 @@ const confirmNameModal = async () => {
     try {
       await store.updateActiveProfile({ name: trimmed });
     } catch (error) {
-      console.error('[Anki] Failed to rename profile:', error);
+      handleApiError('anki:profile-rename-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
     } finally {
       isSaving.value = false;
     }
@@ -135,7 +137,7 @@ const deleteCurrentProfile = async () => {
       await fetchAndLoad();
     }
   } catch (error) {
-    console.error('[Anki] Failed to delete profile:', error);
+    handleApiError('anki:profile-delete-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
   } finally {
     suppressWatchers = false;
     isSaving.value = false;
@@ -166,8 +168,10 @@ const fetchAndLoad = async () => {
     modelOptions.value = store.availableModels;
     isSuccess.value = true;
   } catch (error) {
+    // AnkiConnect runs on the user's own machine; `isError` already renders the
+    // "can't reach Anki" panel with setup instructions, so no toast on top of it.
     isError.value = true;
-    console.error(error);
+    handleApiError('anki:connect-load-failed', error, { toastKey: false });
   } finally {
     isLoading.value = false;
   }
@@ -190,7 +194,10 @@ watch(selectedModel, async (newValue, oldValue) => {
       }
       debouncedSave({ model: newValue, fields: fieldOptions.value });
     } catch (error) {
-      console.error(t('accountSettings.anki.fieldLoadError'), error);
+      handleApiError('anki:model-fields-load-failed', error, {
+        toastKey: 'accountSettings.anki.fieldLoadError',
+        context: { 'anki.model': newValue },
+      });
     }
   }
 });
@@ -421,7 +428,7 @@ watch(ankiconnectAddress, (newValue) => {
                       <div class="flex flex-col divide-y text-left border-s border-s-neutral-600">
                         <div>
                           <SearchDropdownContainer dropdownId="nd-dropdown-with-header"
-                            dropdownContainerClass="nd-dropdown-menu absolute top-full end-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+                            dropdownContainerClass="absolute top-full end-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
                             <template #default>
                               <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
                                 <UiBaseIcon />
