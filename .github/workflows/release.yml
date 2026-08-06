@@ -99,7 +99,11 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v7
         with:
-          context: ./backend
+          # Root context: every image installs from the workspace lockfile, so the
+          # build needs the root package.json/package-lock.json and the sibling
+          # workspace manifests. See .dockerignore.
+          context: .
+          file: backend/Dockerfile
           push: true
           tags: |
             ghcr.io/brigadasos/nadeshiko-backend-prod:${{ github.sha }}
@@ -195,7 +199,11 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v7
         with:
-          context: ./frontend
+          # Root context: every image installs from the workspace lockfile, so the
+          # build needs the root package.json/package-lock.json and the sibling
+          # workspace manifests. See .dockerignore.
+          context: .
+          file: frontend/Dockerfile
           push: true
           tags: |
             ghcr.io/brigadasos/nadeshiko-frontend-prod:${{ github.sha }}
