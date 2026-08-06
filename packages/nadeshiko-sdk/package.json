@@ -15,7 +15,7 @@
     "clean": "rm -rf generated"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.90.9",
+    "@hey-api/openapi-ts": "^0.99.0",
     "typescript": "^6.0.3",
     "vitest": "^3.2.4",
     "yaml": "^2.8.2"
