@@ -52,7 +52,7 @@
     "node": "^24 || >=26"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.1095.0",
+    "@aws-sdk/client-sesv2": "^3.1101.0",
     "@better-auth/api-key": "^1.6.25",
     "@elastic/elasticsearch": "^9.4.2",
     "@nahkies/typescript-express-runtime": "0.26.0",
