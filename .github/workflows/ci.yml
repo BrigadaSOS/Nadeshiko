@@ -94,7 +94,7 @@ jobs:
           "$REDOCLY" bundle main -o docs/generated/openapi.yaml --remove-unused-components
 
       - name: Check public API breaking changes
-        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.1
+        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.3
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
@@ -105,14 +105,14 @@ jobs:
       # but should be visible in review.
       - name: Check internal API breaking changes
         continue-on-error: true
-        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.1
+        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.3
         with:
           base: base/backend/docs/generated/openapi.yaml
           revision: head/backend/docs/generated/openapi.yaml
           fail-on: ERR
 
       - name: Generate public API changelog
-        uses: oasdiff/oasdiff-action/changelog@v0.0.40-beta.1
+        uses: oasdiff/oasdiff-action/changelog@v0.0.40-beta.3
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
