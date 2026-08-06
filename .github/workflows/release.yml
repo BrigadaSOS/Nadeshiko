@@ -38,7 +38,7 @@ jobs:
           aws-region: eu-north-1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -174,7 +174,7 @@ jobs:
           aws-region: eu-north-1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -240,7 +240,7 @@ jobs:
           echo "::add-mask::${E2E_USER_PASSWORD}"
           echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
