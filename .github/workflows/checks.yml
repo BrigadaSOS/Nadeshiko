@@ -63,6 +63,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # npm records a package's optional deps only for the platform that resolved
+      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
+      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
+      # this runner cannot produce one. The image build already runs this; CI did
+      # not, so any step that loaded Nuxt died on a missing native binding.
+      - name: Install Linux native bindings
+        run: node scripts/install-linux-native-bindings.mjs
+
       # Both generators are named. This step used to run only `sdk:codegen` and
       # inherit the backend half from a preceding `npm run typecheck --workspace
       # backend`, which happens to be `generate:api && typecheck:app` -- so
@@ -147,6 +155,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # npm records a package's optional deps only for the platform that resolved
+      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
+      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
+      # this runner cannot produce one. The image build already runs this; CI did
+      # not, so any step that loaded Nuxt died on a missing native binding.
+      - name: Install Linux native bindings
+        run: node scripts/install-linux-native-bindings.mjs
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -225,6 +241,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # npm records a package's optional deps only for the platform that resolved
+      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
+      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
+      # this runner cannot produce one. The image build already runs this; CI did
+      # not, so any step that loaded Nuxt died on a missing native binding.
+      - name: Install Linux native bindings
+        run: node scripts/install-linux-native-bindings.mjs
+
       - name: Lint
         run: npm run lint --workspace frontend
 
@@ -250,6 +274,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # npm records a package's optional deps only for the platform that resolved
+      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
+      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
+      # this runner cannot produce one. The image build already runs this; CI did
+      # not, so any step that loaded Nuxt died on a missing native binding.
+      - name: Install Linux native bindings
+        run: node scripts/install-linux-native-bindings.mjs
 
       - name: Lint
         run: npm run lint --workspace discord
@@ -277,6 +309,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # npm records a package's optional deps only for the platform that resolved
+      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
+      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
+      # this runner cannot produce one. The image build already runs this; CI did
+      # not, so any step that loaded Nuxt died on a missing native binding.
+      - name: Install Linux native bindings
+        run: node scripts/install-linux-native-bindings.mjs
+
       - name: Typecheck
         run: npm run typecheck --workspace @brigadasos/nadeshiko-sdk
 
@@ -300,6 +340,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # npm records a package's optional deps only for the platform that resolved
+      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
+      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
+      # this runner cannot produce one. The image build already runs this; CI did
+      # not, so any step that loaded Nuxt died on a missing native binding.
+      - name: Install Linux native bindings
+        run: node scripts/install-linux-native-bindings.mjs
 
       - name: Typecheck
         run: npm run typecheck --workspace nadeshiko-seed-worker
