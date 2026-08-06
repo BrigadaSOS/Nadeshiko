@@ -22,5 +22,3 @@ docs/generated/index.html
 # publishes under frontend/public/docs/api -- and the stale one is the one git
 # presents as authoritative.
 docs/generated/openapi-public.yaml
-# Built by `generate:auth-spec` from the main bundle plus better-auth's schema.
-docs/generated/openapi-sdk.yaml

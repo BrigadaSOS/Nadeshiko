@@ -17,7 +17,7 @@
     "lint:code": "biome check .",
     "lint:openapi": "redocly lint",
     "lint:fix": "biome check . --write",
-    "generate:api": "rm -rf generated && npm run docs:bundle && openapi-code-generator --input ./docs/generated/openapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v4 --grouping-strategy first-tag && node --import tsx bin/generateOutputTypes.ts && node --import tsx bin/generateRouteAuth.ts && node --import tsx bin/generateErrorProfiles.ts && node --import tsx bin/generatePublicRoutes.ts && npm run generate:auth-spec",
+    "generate:api": "rm -rf generated && npm run docs:bundle && openapi-code-generator --input ./docs/generated/openapi.yaml --input-type openapi3 --output ./generated --template typescript-express --schema-builder zod-v4 --grouping-strategy first-tag && node --import tsx bin/generateOutputTypes.ts && node --import tsx bin/generateRouteAuth.ts && node --import tsx bin/generateErrorProfiles.ts && node --import tsx bin/generatePublicRoutes.ts",
     "generate:auth-spec": "node --env-file-if-exists=.env --import tsx bin/generateAuthSpec.ts",
     "generate:bruno": "npm run docs:bundle && node --env-file-if-exists=.env --import tsx bin/generateBrunoCollection.ts",
     "generate:all": "npm run generate:api && npm run generate:bruno && npm run docs:build",

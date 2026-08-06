@@ -27,6 +27,13 @@
  * The main bundle, the public bundle, and every generator above are untouched.
  *
  * The public spec is unaffected either way: these are marked `x-internal: true`.
+ *
+ * Deliberately NOT part of `generate:api`. It builds a real better-auth instance
+ * to ask it for its schema, which loads `@config/config` and so needs a valid
+ * environment -- something CI does not have. Its output is committed instead, the
+ * way `docs/generated/openapi.yaml` is, and this is re-run by hand when the auth
+ * plugin set or EXPOSED_ROUTES changes. The throw on a missing route is what
+ * catches the spec drifting from what better-auth actually serves.
  */
 import { writeFileSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
