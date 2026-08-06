@@ -60,14 +60,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      # Mirrors frontend/Dockerfile. Two problems compound here:
+      #
+      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+      # which npm runs before the tree is complete -- and which needs the very
+      # binding the next step installs, so a plain `npm ci` fails inside itself.
+      #
+      # Then the bindings: npm records a package's optional deps only for the
+      # platform that resolved them (npm/cli#4828), so a lockfile generated on
+      # macOS carries no Linux entry for the napi packages (oxc-parser,
+      # rolldown, ...) and `npm ci` on this runner cannot produce one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # npm records a package's optional deps only for the platform that resolved
-      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
-      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
-      # this runner cannot produce one. The image build already runs this; CI did
-      # not, so any step that loaded Nuxt died on a missing native binding.
       - name: Install Linux native bindings
         run: node scripts/install-linux-native-bindings.mjs
 
@@ -152,14 +157,19 @@ jobs:
           cache: npm
 
       # One install at the repository root covers every workspace.
+      # Mirrors frontend/Dockerfile. Two problems compound here:
+      #
+      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+      # which npm runs before the tree is complete -- and which needs the very
+      # binding the next step installs, so a plain `npm ci` fails inside itself.
+      #
+      # Then the bindings: npm records a package's optional deps only for the
+      # platform that resolved them (npm/cli#4828), so a lockfile generated on
+      # macOS carries no Linux entry for the napi packages (oxc-parser,
+      # rolldown, ...) and `npm ci` on this runner cannot produce one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # npm records a package's optional deps only for the platform that resolved
-      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
-      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
-      # this runner cannot produce one. The image build already runs this; CI did
-      # not, so any step that loaded Nuxt died on a missing native binding.
       - name: Install Linux native bindings
         run: node scripts/install-linux-native-bindings.mjs
 
@@ -238,16 +248,29 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      # Mirrors frontend/Dockerfile. Two problems compound here:
+      #
+      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+      # which npm runs before the tree is complete -- and which needs the very
+      # binding the next step installs, so a plain `npm ci` fails inside itself.
+      #
+      # Then the bindings: npm records a package's optional deps only for the
+      # platform that resolved them (npm/cli#4828), so a lockfile generated on
+      # macOS carries no Linux entry for the napi packages (oxc-parser,
+      # rolldown, ...) and `npm ci` on this runner cannot produce one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # npm records a package's optional deps only for the platform that resolved
-      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
-      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
-      # this runner cannot produce one. The image build already runs this; CI did
-      # not, so any step that loaded Nuxt died on a missing native binding.
       - name: Install Linux native bindings
         run: node scripts/install-linux-native-bindings.mjs
+
+      # `--ignore-scripts` above skipped the postinstall that normally does this.
+      # vue-tsc reads Nuxt's generated types (auto-imports, components.d.ts, the
+      # generated tsconfig), so without it the typecheck fails on every
+      # auto-imported symbol rather than on anything real.
+      - name: Prepare Nuxt types
+        run: npx nuxi prepare
+        working-directory: frontend
 
       - name: Lint
         run: npm run lint --workspace frontend
@@ -272,14 +295,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      # Mirrors frontend/Dockerfile. Two problems compound here:
+      #
+      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+      # which npm runs before the tree is complete -- and which needs the very
+      # binding the next step installs, so a plain `npm ci` fails inside itself.
+      #
+      # Then the bindings: npm records a package's optional deps only for the
+      # platform that resolved them (npm/cli#4828), so a lockfile generated on
+      # macOS carries no Linux entry for the napi packages (oxc-parser,
+      # rolldown, ...) and `npm ci` on this runner cannot produce one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # npm records a package's optional deps only for the platform that resolved
-      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
-      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
-      # this runner cannot produce one. The image build already runs this; CI did
-      # not, so any step that loaded Nuxt died on a missing native binding.
       - name: Install Linux native bindings
         run: node scripts/install-linux-native-bindings.mjs
 
@@ -306,14 +334,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      # Mirrors frontend/Dockerfile. Two problems compound here:
+      #
+      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+      # which npm runs before the tree is complete -- and which needs the very
+      # binding the next step installs, so a plain `npm ci` fails inside itself.
+      #
+      # Then the bindings: npm records a package's optional deps only for the
+      # platform that resolved them (npm/cli#4828), so a lockfile generated on
+      # macOS carries no Linux entry for the napi packages (oxc-parser,
+      # rolldown, ...) and `npm ci` on this runner cannot produce one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # npm records a package's optional deps only for the platform that resolved
-      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
-      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
-      # this runner cannot produce one. The image build already runs this; CI did
-      # not, so any step that loaded Nuxt died on a missing native binding.
       - name: Install Linux native bindings
         run: node scripts/install-linux-native-bindings.mjs
 
@@ -338,14 +371,19 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      # Mirrors frontend/Dockerfile. Two problems compound here:
+      #
+      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+      # which npm runs before the tree is complete -- and which needs the very
+      # binding the next step installs, so a plain `npm ci` fails inside itself.
+      #
+      # Then the bindings: npm records a package's optional deps only for the
+      # platform that resolved them (npm/cli#4828), so a lockfile generated on
+      # macOS carries no Linux entry for the napi packages (oxc-parser,
+      # rolldown, ...) and `npm ci` on this runner cannot produce one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # npm records a package's optional deps only for the platform that resolved
-      # them (npm/cli#4828), so a lockfile generated on macOS carries no Linux
-      # entry for the napi bindings (oxc-parser, rolldown, ...) and `npm ci` on
-      # this runner cannot produce one. The image build already runs this; CI did
-      # not, so any step that loaded Nuxt died on a missing native binding.
       - name: Install Linux native bindings
         run: node scripts/install-linux-native-bindings.mjs
 
