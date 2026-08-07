@@ -9,19 +9,20 @@ test.describe('Infinite scroll', () => {
 
     const initialCount = await search.getResultCount();
 
-    // Keep scrolling until more results load or we give up
-    for (let i = 0; i < 5; i++) {
+    // Scroll and wait for a CONDITION, not a fixed delay. The previous version
+    // slept 1s per attempt, which is simultaneously too long when the fetch is
+    // quick and too short when it is not — the latter being the flake. `toPass`
+    // retries the scroll as well as the check, so a batch that arrives late is
+    // still seen, and one that arrives fast costs no wait at all.
+    await expect(async () => {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(1_000);
 
-      const currentCount = await search.getResultCount();
-      if (currentCount > initialCount) {
-        expect(currentCount).toBeGreaterThan(initialCount);
-        return;
-      }
-    }
+      const grew = (await search.getResultCount()) > initialCount;
+      const ended = await search.endOfResults.isVisible();
 
-    // If scrolling didn't load more, the dataset fits in one page
-    await expect(search.endOfResults).toBeVisible({ timeout: 10_000 });
+      // Either outcome is correct: more results loaded, or the dataset genuinely
+      // fits on one page. Only "neither, yet" is worth retrying.
+      expect(grew || ended).toBe(true);
+    }).toPass({ timeout: 30_000, intervals: [250, 500, 1_000] });
   });
 });

@@ -348,6 +348,7 @@ watch(playingVideoId, (id) => {
     <div v-for="(result, index) in resultList" :key="result.segment.publicId"
       :id="result.segment.publicId"
       data-testid="segment-card"
+      :data-focused="focusedIndex === index ? 'true' : 'false'"
       class="items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
       :class="{
         'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.publicId === currentResult.segment.publicId,
