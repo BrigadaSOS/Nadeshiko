@@ -88,7 +88,7 @@ describe('admin route protection', () => {
 
   const adminRoutes = [
     { method: 'get' as const, path: '/v1/admin/reports' },
-    { method: 'get' as const, path: '/v1/admin/media/audits' },
+    { method: 'get' as const, path: '/v1/admin/agent-activity' },
     { method: 'get' as const, path: '/v1/admin/users-with-providers' },
   ];
 

@@ -11,6 +11,7 @@ export type ActivityTypeOutput = z.output<typeof schemas.s_ActivityType>;
 export type AddSegmentToCollectionRequestOutput = z.output<typeof schemas.s_AddSegmentToCollectionRequest>;
 export type AdminUserWithProvidersOutput = z.output<typeof schemas.s_AdminUserWithProviders>;
 export type AffectedCountResponseOutput = z.output<typeof schemas.s_AffectedCountResponse>;
+export type AgentActivityResponseOutput = z.output<typeof schemas.s_AgentActivityResponse>;
 export type AnnouncementOutput = z.output<typeof schemas.s_Announcement>;
 export type CategoryOutput = z.output<typeof schemas.s_Category>;
 export type CollectionVisibilityOutput = z.output<typeof schemas.s_CollectionVisibility>;
@@ -32,8 +33,6 @@ export type Error500Output = z.output<typeof schemas.s_Error500>;
 export type ExternalIdOutput = z.output<typeof schemas.s_ExternalId>;
 export type HeatmapDayCountsOutput = z.output<typeof schemas.s_HeatmapDayCounts>;
 export type IncludeExpansionOutput = z.output<typeof schemas.s_IncludeExpansion>;
-export type MediaAuditOutput = z.output<typeof schemas.s_MediaAudit>;
-export type MediaAuditRunOutput = z.output<typeof schemas.s_MediaAuditRun>;
 export type MediaFilterItemOutput = z.output<typeof schemas.s_MediaFilterItem>;
 export type MediaGlobalStatsOutput = z.output<typeof schemas.s_MediaGlobalStats>;
 export type MediaSearchStatsOutput = z.output<typeof schemas.s_MediaSearchStats>;
@@ -45,7 +44,6 @@ export type ReportTargetMediaOutput = z.output<typeof schemas.s_ReportTargetMedi
 export type ReportTargetSegmentOutput = z.output<typeof schemas.s_ReportTargetSegment>;
 export type ReportTargetSegmentInputOutput = z.output<typeof schemas.s_ReportTargetSegmentInput>;
 export type ReportTargetTypeOutput = z.output<typeof schemas.s_ReportTargetType>;
-export type RunAuditResponseOutput = z.output<typeof schemas.s_RunAuditResponse>;
 export type SearchMultipleQueryOutput = z.output<typeof schemas.s_SearchMultipleQuery>;
 export type SearchPaginationOutput = z.output<typeof schemas.s_SearchPagination>;
 export type SearchQueryOutput = z.output<typeof schemas.s_SearchQuery>;
@@ -74,6 +72,7 @@ export type MediaOutput = z.output<typeof schemas.s_Media>;
 export type MediaCreateRequestOutput = z.output<typeof schemas.s_MediaCreateRequest>;
 export type MediaSummaryOutput = z.output<typeof schemas.s_MediaSummary>;
 export type MediaUpdateRequestOutput = z.output<typeof schemas.s_MediaUpdateRequest>;
+export type ModerateEpisodeSegmentsRequestOutput = z.output<typeof schemas.s_ModerateEpisodeSegmentsRequest>;
 export type ReportTargetOutput = z.output<typeof schemas.s_ReportTarget>;
 export type SearchFiltersOutput = z.output<typeof schemas.s_SearchFilters>;
 export type SearchMediaFiltersOutput = z.output<typeof schemas.s_SearchMediaFilters>;
@@ -106,7 +105,6 @@ export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCol
 export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
 export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
-export type UpdateAdminMediaAuditRequestBodyOutput = z.output<typeof schemas.s_UpdateAdminMediaAuditRequestBody>;
 
 // ============================================
 // Inline query schemas and their output types
@@ -137,20 +135,16 @@ export const listAdminReportsQuerySchema = z.object({
     'target.mediaId': z.coerce.number().optional(),
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentId': z.coerce.number().optional(),
-    auditRunId: z.coerce.number().optional(),
     orphaned: schemas.PermissiveBoolean.optional(),
   });
 export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
 
-export const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
-export type RunAdminMediaAuditQueryOutput = z.output<typeof runAdminMediaAuditQuerySchema>;
-
-export const listAdminMediaAuditRunsQuerySchema = z.object({
-    auditName: z.string().optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
+export const listAgentActivityQuerySchema = z.object({
+    since: z.iso.datetime({ offset: true }).optional(),
+    reportId: z.coerce.number().optional(),
+    take: z.coerce.number().min(1).max(500).optional().default(100),
   });
-export type ListAdminMediaAuditRunsQueryOutput = z.output<typeof listAdminMediaAuditRunsQuerySchema>;
+export type ListAgentActivityQueryOutput = z.output<typeof listAgentActivityQuerySchema>;
 
 export const getAdminUsersWithProvidersQuerySchema = z.object({
     limit: z.coerce.number().min(1).max(100).optional().default(20),

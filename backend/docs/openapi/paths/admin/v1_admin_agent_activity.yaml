@@ -1,0 +1,60 @@
+get:
+  operationId: listAgentActivity
+  x-internal: true
+  tags:
+    - Admin
+  summary: List edits made by the moderation agent
+  description: |
+    Returns segment revisions written under a service credential, newest first,
+    joined to the segment they changed and the report they answered.
+
+    This is the independent record of what the agent actually did. The agent's own
+    Discord digest reports what it believes it did; this reports what landed in the
+    database. Reading both is how a run that half-failed, or an action the agent
+    did not mention, becomes visible.
+
+    Each entry carries the pre-edit `snapshot`, so a bad edit can be reverted
+    straight from here through the revision restore endpoint without going hunting
+    for the revision number.
+
+  security:
+    - ApiKey: [READ_MEDIA]
+    - SessionCookie: [ADMIN]
+  parameters:
+    - name: since
+      in: query
+      schema:
+        type: string
+        format: date-time
+      description: Only return activity at or after this timestamp. Defaults to 24 hours ago.
+      example: "2026-08-06T00:00:00Z"
+    - name: reportId
+      in: query
+      schema:
+        type: integer
+      description: Only return edits made in answer to this report
+    - name: take
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 100
+      description: Maximum entries to return
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/AgentActivityResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

@@ -55,11 +55,6 @@ get:
       schema:
         type: integer
       description: Filter by target segment ID
-    - name: auditRunId
-      in: query
-      schema:
-        type: integer
-      description: Filter by audit run ID
     - name: orphaned
       in: query
       schema:

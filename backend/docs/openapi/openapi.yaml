@@ -111,6 +111,8 @@ paths:
     $ref: "./paths/media/v1_media_segments_publicId_context.yaml"
   "/v1/media/segments/{segmentPublicId}/revisions":
     $ref: "./paths/media/v1_media_segments_publicId_revisions.yaml"
+  "/v1/media/segments/{segmentPublicId}/revisions/{revisionNumber}/restore":
+    $ref: "./paths/media/v1_media_segments_publicId_revisions_number_restore.yaml"
 
   # Parameterized media route — MUST come after all static /v1/media/* routes
   "/v1/media/{mediaPublicId}":
@@ -127,6 +129,8 @@ paths:
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments.yaml"
   "/v1/media/{mediaPublicId}/episodes/{episodeNumber}/segments/batch":
     $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_batch.yaml"
+  "/v1/media/{mediaPublicId}/episodes/{episodeNumber}/segments/moderate":
+    $ref: "./paths/media/v1_media_mediaId_episodes_episodeNumber_segments_moderate.yaml"
 
   # User endpoints
   "/v1/user/me":
@@ -175,16 +179,8 @@ paths:
     $ref: "./paths/admin/v1_admin_reports_bulk.yaml"
   "/v1/admin/reports/{reportId}":
     $ref: "./paths/admin/v1_admin_reports_id.yaml"
-  "/v1/admin/media/audits":
-    $ref: "./paths/admin/v1_admin_media_audits.yaml"
-  "/v1/admin/media/audits/{name}":
-    $ref: "./paths/admin/v1_admin_media_audits_name.yaml"
-  "/v1/admin/media/audits/{name}/run":
-    $ref: "./paths/admin/v1_admin_media_audits_name_run.yaml"
-  "/v1/admin/media/audits/runs":
-    $ref: "./paths/admin/v1_admin_media_audits_runs.yaml"
-  "/v1/admin/media/audits/runs/{auditRunId}":
-    $ref: "./paths/admin/v1_admin_media_audits_runs_id.yaml"
+  "/v1/admin/agent-activity":
+    $ref: "./paths/admin/v1_admin_agent_activity.yaml"
   "/v1/admin/announcement":
     $ref: "./paths/admin/v1_admin_announcement.yaml"
   "/v1/admin/users-with-providers":

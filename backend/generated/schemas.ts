@@ -34,6 +34,23 @@ export const s_AdminUserWithProviders = z.object({
 
 export const s_AffectedCountResponse = z.object({ count: z.coerce.number() });
 
+export const s_AgentActivityResponse = z.object({
+  entries: z.array(
+    z.object({
+      revisionId: z.coerce.number(),
+      revisionNumber: z.coerce.number(),
+      segmentPublicId: z.string(),
+      mediaPublicId: z.string(),
+      episodeNumber: z.coerce.number(),
+      snapshot: z.record(z.string(), z.unknown()),
+      current: z.record(z.string(), z.unknown()),
+      reportId: z.coerce.number().nullable(),
+      actedBy: z.string().nullable(),
+      createdAt: z.iso.datetime({ offset: true }),
+    }),
+  ),
+});
+
 export const s_Announcement = z.object({
   message: z.string().max(500),
   type: z.enum(['INFO', 'WARNING', 'MAINTENANCE']),
@@ -186,40 +203,6 @@ export const s_HeatmapDayCounts = z.object({
 
 export const s_IncludeExpansion = z.literal('media');
 
-export const s_MediaAudit = z.object({
-  id: z.coerce.number(),
-  name: z.string(),
-  label: z.string(),
-  description: z.string(),
-  targetType: z.enum(['MEDIA', 'EPISODE']),
-  threshold: z.record(z.string(), z.unknown()),
-  enabled: PermissiveBoolean,
-  thresholdSchema: z.array(
-    z.object({
-      key: z.string(),
-      label: z.string(),
-      type: z.enum(['number', 'boolean']),
-      default: z.union([z.coerce.number(), PermissiveBoolean]),
-      min: z.coerce.number().optional(),
-      max: z.coerce.number().optional(),
-    }),
-  ),
-  latestRun: z
-    .object({ id: z.coerce.number(), resultCount: z.coerce.number(), createdAt: z.iso.datetime({ offset: true }) })
-    .nullable(),
-  createdAt: z.iso.datetime({ offset: true }).nullable(),
-  updatedAt: z.iso.datetime({ offset: true }).nullable(),
-});
-
-export const s_MediaAuditRun = z.object({
-  id: z.coerce.number(),
-  auditName: z.string(),
-  category: z.string().nullable().optional(),
-  resultCount: z.coerce.number(),
-  thresholdUsed: z.record(z.string(), z.unknown()),
-  createdAt: z.iso.datetime({ offset: true }),
-});
-
 export const s_MediaFilterItem = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
   episodes: z.array(z.coerce.number().min(0)).max(500).optional(),
@@ -292,14 +275,6 @@ export const s_ReportTargetSegmentInput = z.object({
 
 export const s_ReportTargetType = z.enum(['SEGMENT', 'EPISODE', 'MEDIA']);
 
-export const s_RunAuditResponse = z.object({
-  category: z.string().nullable(),
-  checksRun: z.array(
-    z.object({ auditName: z.string(), label: z.string(), resultCount: z.coerce.number(), runId: z.coerce.number() }),
-  ),
-  totalReports: z.coerce.number(),
-});
-
 export const s_SearchMultipleQuery = z.object({
   words: z.array(z.string().min(1).max(100)).min(1).max(100),
   exactMatch: PermissiveBoolean.optional().default(false),
@@ -326,6 +301,8 @@ export const s_SegmentRevision = z.object({
   id: z.coerce.number(),
   revisionNumber: z.coerce.number(),
   snapshot: z.record(z.string(), z.unknown()),
+  actor: z.enum(['HUMAN', 'AGENT']),
+  reportId: z.coerce.number().nullable(),
   userName: z.string().nullable().optional(),
   createdAt: z.iso.datetime({ offset: true }),
 });
@@ -457,7 +434,6 @@ export const s_BulkDeleteReportsRequest = z.object({
       targetMediaId: z.coerce.number().optional(),
       targetEpisodeNumber: z.coerce.number().optional(),
       targetSegmentId: z.coerce.number().optional(),
-      auditRunId: z.coerce.number().optional(),
       orphaned: PermissiveBoolean.optional(),
     })
     .optional(),
@@ -474,7 +450,6 @@ export const s_BulkUpdateReportsRequest = z.object({
       targetMediaId: z.coerce.number().optional(),
       targetEpisodeNumber: z.coerce.number().optional(),
       targetSegmentId: z.coerce.number().optional(),
-      auditRunId: z.coerce.number().optional(),
       orphaned: PermissiveBoolean.optional(),
     })
     .optional(),
@@ -587,6 +562,14 @@ export const s_MediaUpdateRequest = z.object({
   segmentCount: z.coerce.number().min(0).optional(),
 });
 
+export const s_ModerateEpisodeSegmentsRequest = z.object({
+  action: z.enum(['shiftTimings', 'setStatus']),
+  offsetMs: z.coerce.number().optional(),
+  status: s_SegmentStatus.optional(),
+  maxAffected: z.coerce.number().min(1).max(5000),
+  reportId: z.coerce.number().optional(),
+});
+
 export const s_ReportTarget = z.discriminatedUnion('type', [
   s_ReportTargetMedia,
   s_ReportTargetEpisode,
@@ -686,6 +669,7 @@ export const s_SegmentUpdateRequest = z.object({
   ratingAnalysis: z.record(z.string(), z.unknown()).nullable().optional(),
   storage: z.enum(['LOCAL', 'R2']).optional(),
   hashedId: z.string().min(1).optional(),
+  reportId: z.coerce.number().optional(),
 });
 
 export const s_StatsOverview = z.object({
@@ -780,7 +764,6 @@ export const s_Report = z.object({
   id: z.coerce.number(),
   source: s_ReportSource,
   target: s_ReportTarget,
-  auditRunId: z.coerce.number().nullable(),
   reason: s_ReportReason,
   description: z.string().nullable(),
   data: z.record(z.string(), z.unknown()).nullable(),
@@ -879,9 +862,4 @@ export const s_UserExportResponse = z.object({
 
 export const s_AddExcludedMediaRequestBody = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-});
-
-export const s_UpdateAdminMediaAuditRequestBody = z.object({
-  threshold: z.record(z.string(), z.unknown()).optional(),
-  enabled: PermissiveBoolean.optional(),
 });

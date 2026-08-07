@@ -1,0 +1,57 @@
+type: object
+required:
+  - entries
+properties:
+  entries:
+    type: array
+    items:
+      type: object
+      required:
+        - revisionId
+        - revisionNumber
+        - segmentPublicId
+        - mediaPublicId
+        - episodeNumber
+        - snapshot
+        - current
+        - reportId
+        - actedBy
+        - createdAt
+      properties:
+        revisionId:
+          type: integer
+          description: Revision ID
+        revisionNumber:
+          type: integer
+          description: The revision number to pass to the restore endpoint to undo this edit
+        segmentPublicId:
+          type: string
+          description: Public ID of the segment that was changed
+        mediaPublicId:
+          type: string
+          description: Public ID of the media the segment belongs to
+        episodeNumber:
+          type: integer
+          description: Episode the segment belongs to
+        snapshot:
+          type: object
+          additionalProperties: true
+          description: The segment's editable fields as they were before this edit
+        current:
+          type: object
+          additionalProperties: true
+          description: |
+            The same fields as they are now. Paired with `snapshot` this is the
+            diff, without the caller having to fetch the segment separately.
+        reportId:
+          type: integer
+          nullable: true
+          description: The report this edit answered, when it answered one
+        actedBy:
+          type: string
+          nullable: true
+          description: Account the service credential belongs to
+        createdAt:
+          type: string
+          format: date-time
+          description: When the edit was made

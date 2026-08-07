@@ -16,6 +16,7 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
+  t_AffectedCountResponse,
   t_CreateEpisodeParamSchema,
   t_CreateSegmentParamSchema,
   t_CreateSegmentsBatchParamSchema,
@@ -47,6 +48,9 @@ import type {
   t_MediaCreateRequest,
   t_MediaListResponse,
   t_MediaUpdateRequest,
+  t_ModerateEpisodeSegmentsParamSchema,
+  t_ModerateEpisodeSegmentsRequest,
+  t_RestoreSegmentRevisionParamSchema,
   t_Segment,
   t_SegmentBatchCreateRequest,
   t_SegmentContextResponse,
@@ -59,8 +63,9 @@ import type {
   t_UpdateMediaParamSchema,
   t_UpdateSegmentParamSchema,
 } from '../models.ts';
-import type { EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetSegmentContextQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, SegmentBatchCreateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
+import type { EpisodeCreateRequestOutput, EpisodeUpdateRequestOutput, GetSegmentContextQueryOutput, ListEpisodesQueryOutput, ListMediaQueryOutput, ListSegmentsQueryOutput, MediaCreateRequestOutput, MediaUpdateRequestOutput, ModerateEpisodeSegmentsRequestOutput, SegmentBatchCreateRequestOutput, SegmentCreateRequestOutput, SegmentUpdateRequestOutput } from '../outputTypes.ts';
 import {
+  s_AffectedCountResponse,
   s_ContentRating,
   s_Episode,
   s_EpisodeCreateRequest,
@@ -78,6 +83,7 @@ import {
   s_MediaCreateRequest,
   s_MediaListResponse,
   s_MediaUpdateRequest,
+  s_ModerateEpisodeSegmentsRequest,
   s_Segment,
   s_SegmentBatchCreateRequest,
   s_SegmentContextResponse,
@@ -192,6 +198,24 @@ export type ListSegmentRevisionsResponder = {
 export type ListSegmentRevisions = (
   params: Params<t_ListSegmentRevisionsParamSchema, void, void, void>,
   respond: ListSegmentRevisionsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type RestoreSegmentRevisionResponder = {
+  with200(): ExpressRuntimeResponse<t_SegmentInternal>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type RestoreSegmentRevision = (
+  params: Params<t_RestoreSegmentRevisionParamSchema, void, void, void>,
+  respond: RestoreSegmentRevisionResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -400,6 +424,24 @@ export type CreateSegmentsBatch = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type ModerateEpisodeSegmentsResponder = {
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ModerateEpisodeSegments = (
+  params: Params<t_ModerateEpisodeSegmentsParamSchema, void, ModerateEpisodeSegmentsRequestOutput, void>,
+  respond: ModerateEpisodeSegmentsResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type MediaImplementation = {
   listMedia: ListMedia;
   createMedia: CreateMedia;
@@ -407,6 +449,7 @@ export type MediaImplementation = {
   updateSegment: UpdateSegment;
   getSegmentContext: GetSegmentContext;
   listSegmentRevisions: ListSegmentRevisions;
+  restoreSegmentRevision: RestoreSegmentRevision;
   getMedia: GetMedia;
   updateMedia: UpdateMedia;
   deleteMedia: DeleteMedia;
@@ -418,6 +461,7 @@ export type MediaImplementation = {
   listSegments: ListSegments;
   createSegment: CreateSegment;
   createSegmentsBatch: CreateSegmentsBatch;
+  moderateEpisodeSegments: ModerateEpisodeSegments;
 };
 
 export function createMediaRouter(
@@ -807,6 +851,73 @@ export function createMediaRouter(
           .listSegmentRevisions(input, responder, req, res, next)
           .catch(handleImplementationError)
           .then(handleResponse(res, listSegmentRevisionsResponseBodyValidator));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const restoreSegmentRevisionParamSchema = z.object({
+    segmentPublicId: z.string(),
+    revisionNumber: z.coerce.number().min(1),
+  });
+
+  const restoreSegmentRevisionResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_SegmentInternal],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // restoreSegmentRevision
+  router.post(
+    `/v1/media/segments/:segmentPublicId/revisions/:revisionNumber/restore`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(restoreSegmentRevisionParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: undefined,
+          headers: undefined,
+        };
+
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_SegmentInternal>(200);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        await implementation
+          .restoreSegmentRevision(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, restoreSegmentRevisionResponseBodyValidator));
       } catch (error) {
         next(error);
       }
@@ -1523,6 +1634,70 @@ export function createMediaRouter(
           .createSegmentsBatch(input, responder, req, res, next)
           .catch(handleImplementationError)
           .then(handleResponse(res, createSegmentsBatchResponseBodyValidator));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  const moderateEpisodeSegmentsParamSchema = z.object({ mediaPublicId: z.string(), episodeNumber: z.coerce.number() });
+
+  const moderateEpisodeSegmentsResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_AffectedCountResponse],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // moderateEpisodeSegments
+  router.post(
+    `/v1/media/:mediaPublicId/episodes/:episodeNumber/segments/moderate`,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const input = {
+          params: parseRequestInput(moderateEpisodeSegmentsParamSchema, req.params, RequestInputType.RouteParam),
+          query: undefined,
+          body: parseRequestInput(s_ModerateEpisodeSegmentsRequest, req.body, RequestInputType.RequestBody),
+          headers: undefined,
+        };
+
+        const responder = {
+          with200() {
+            return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
+          },
+          with400() {
+            return new ExpressRuntimeResponse<t_Error400>(400);
+          },
+          with401() {
+            return new ExpressRuntimeResponse<t_Error401>(401);
+          },
+          with403() {
+            return new ExpressRuntimeResponse<t_Error403>(403);
+          },
+          with404() {
+            return new ExpressRuntimeResponse<t_Error404>(404);
+          },
+          with429() {
+            return new ExpressRuntimeResponse<t_Error429>(429);
+          },
+          with500() {
+            return new ExpressRuntimeResponse<t_Error500>(500);
+          },
+          withStatus(status: StatusCode) {
+            return new ExpressRuntimeResponse(status);
+          },
+        };
+
+        await implementation
+          .moderateEpisodeSegments(input, responder, req, res, next)
+          .catch(handleImplementationError)
+          .then(handleResponse(res, moderateEpisodeSegmentsResponseBodyValidator));
       } catch (error) {
         next(error);
       }

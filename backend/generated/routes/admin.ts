@@ -19,11 +19,11 @@ import type {
   t_AdminReportListResponse,
   t_AdminUserWithProviders,
   t_AffectedCountResponse,
+  t_AgentActivityResponse,
   t_Announcement,
   t_BatchUpdateReportsRequest,
   t_BulkDeleteReportsRequest,
   t_BulkUpdateReportsRequest,
-  t_CursorPagination,
   t_DeleteAdminReportParamSchema,
   t_Error400,
   t_Error401,
@@ -31,45 +31,33 @@ import type {
   t_Error404,
   t_Error429,
   t_Error500,
-  t_GetAdminMediaAuditRunParamSchema,
   t_GetAdminUsersWithProvidersQuerySchema,
-  t_ListAdminMediaAuditRunsQuerySchema,
   t_ListAdminReportsQuerySchema,
-  t_MediaAudit,
-  t_MediaAuditRun,
+  t_ListAgentActivityQuerySchema,
   t_Report,
-  t_RunAdminMediaAuditParamSchema,
-  t_RunAdminMediaAuditQuerySchema,
-  t_RunAuditResponse,
-  t_UpdateAdminMediaAuditParamSchema,
-  t_UpdateAdminMediaAuditRequestBody,
   t_UpdateAdminReportParamSchema,
   t_UpdateReportRequest,
 } from '../models.ts';
-import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminMediaAuditRunsQueryOutput, ListAdminReportsQueryOutput, RunAdminMediaAuditQueryOutput, UpdateAdminMediaAuditRequestBodyOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminReportsQueryOutput, ListAgentActivityQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
   s_AdminReportListResponse,
   s_AdminUserWithProviders,
   s_AffectedCountResponse,
+  s_AgentActivityResponse,
   s_Announcement,
   s_BatchUpdateReportsRequest,
   s_BulkDeleteReportsRequest,
   s_BulkUpdateReportsRequest,
-  s_CursorPagination,
   s_Error400,
   s_Error401,
   s_Error403,
   s_Error404,
   s_Error429,
   s_Error500,
-  s_MediaAudit,
-  s_MediaAuditRun,
   s_Report,
   s_ReportSource,
   s_ReportTargetType,
-  s_RunAuditResponse,
-  s_UpdateAdminMediaAuditRequestBody,
   s_UpdateReportRequest,
 } from '../schemas.ts';
 
@@ -175,91 +163,18 @@ export type DeleteAdminReport = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
-export type ListAdminMediaAuditsResponder = {
-  with200(): ExpressRuntimeResponse<t_MediaAudit[]>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListAdminMediaAudits = (
-  params: Params<void, void, void, void>,
-  respond: ListAdminMediaAuditsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type UpdateAdminMediaAuditResponder = {
-  with200(): ExpressRuntimeResponse<t_MediaAudit>;
+export type ListAgentActivityResponder = {
+  with200(): ExpressRuntimeResponse<t_AgentActivityResponse>;
   with400(): ExpressRuntimeResponse<t_Error400>;
   with401(): ExpressRuntimeResponse<t_Error401>;
   with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
   with429(): ExpressRuntimeResponse<t_Error429>;
   with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
-export type UpdateAdminMediaAudit = (
-  params: Params<t_UpdateAdminMediaAuditParamSchema, void, UpdateAdminMediaAuditRequestBodyOutput, void>,
-  respond: UpdateAdminMediaAuditResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type RunAdminMediaAuditResponder = {
-  with200(): ExpressRuntimeResponse<t_RunAuditResponse>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type RunAdminMediaAudit = (
-  params: Params<t_RunAdminMediaAuditParamSchema, RunAdminMediaAuditQueryOutput, void, void>,
-  respond: RunAdminMediaAuditResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type ListAdminMediaAuditRunsResponder = {
-  with200(): ExpressRuntimeResponse<{
-    pagination: t_CursorPagination;
-    runs: t_MediaAuditRun[];
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type ListAdminMediaAuditRuns = (
-  params: Params<void, ListAdminMediaAuditRunsQueryOutput, void, void>,
-  respond: ListAdminMediaAuditRunsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
-
-export type GetAdminMediaAuditRunResponder = {
-  with200(): ExpressRuntimeResponse<{
-    reports: t_Report[];
-    run: t_MediaAuditRun;
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
-} & ExpressRuntimeResponder;
-
-export type GetAdminMediaAuditRun = (
-  params: Params<t_GetAdminMediaAuditRunParamSchema, void, void, void>,
-  respond: GetAdminMediaAuditRunResponder,
+export type ListAgentActivity = (
+  params: Params<void, ListAgentActivityQueryOutput, void, void>,
+  respond: ListAgentActivityResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -323,11 +238,7 @@ export type AdminImplementation = {
   bulkDeleteAdminReports: BulkDeleteAdminReports;
   updateAdminReport: UpdateAdminReport;
   deleteAdminReport: DeleteAdminReport;
-  listAdminMediaAudits: ListAdminMediaAudits;
-  updateAdminMediaAudit: UpdateAdminMediaAudit;
-  runAdminMediaAudit: RunAdminMediaAudit;
-  listAdminMediaAuditRuns: ListAdminMediaAuditRuns;
-  getAdminMediaAuditRun: GetAdminMediaAuditRun;
+  listAgentActivity: ListAgentActivity;
   getAnnouncement: GetAnnouncement;
   updateAnnouncement: UpdateAnnouncement;
   getAdminUsersWithProviders: GetAdminUsersWithProviders;
@@ -352,7 +263,6 @@ export function createAdminRouter(
     'target.mediaId': z.coerce.number().optional(),
     'target.episodeNumber': z.coerce.number().optional(),
     'target.segmentId': z.coerce.number().optional(),
-    auditRunId: z.coerce.number().optional(),
     orphaned: PermissiveBoolean.optional(),
   });
 
@@ -690,9 +600,16 @@ export function createAdminRouter(
     }
   });
 
-  const listAdminMediaAuditsResponseBodyValidator = responseValidationFactory(
+  const listAgentActivityQuerySchema = z.object({
+    since: z.iso.datetime({ offset: true }).optional(),
+    reportId: z.coerce.number().optional(),
+    take: z.coerce.number().min(1).max(500).optional().default(100),
+  });
+
+  const listAgentActivityResponseBodyValidator = responseValidationFactory(
     [
-      ['200', z.array(s_MediaAudit)],
+      ['200', s_AgentActivityResponse],
+      ['400', s_Error400],
       ['401', s_Error401],
       ['403', s_Error403],
       ['429', s_Error429],
@@ -701,74 +618,19 @@ export function createAdminRouter(
     undefined,
   );
 
-  // listAdminMediaAudits
-  router.get(`/v1/admin/media/audits`, async (req: Request, res: Response, next: NextFunction) => {
+  // listAgentActivity
+  router.get(`/v1/admin/agent-activity`, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const input = {
         params: undefined,
-        query: undefined,
+        query: parseRequestInput(listAgentActivityQuerySchema, req.query, RequestInputType.QueryString),
         body: undefined,
         headers: undefined,
       };
 
       const responder = {
         with200() {
-          return new ExpressRuntimeResponse<t_MediaAudit[]>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .listAdminMediaAudits(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, listAdminMediaAuditsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const updateAdminMediaAuditParamSchema = z.object({ name: z.string() });
-
-  const updateAdminMediaAuditResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_MediaAudit],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // updateAdminMediaAudit
-  router.patch(`/v1/admin/media/audits/:name`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(updateAdminMediaAuditParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: parseRequestInput(s_UpdateAdminMediaAuditRequestBody, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_MediaAudit>(200);
+          return new ExpressRuntimeResponse<t_AgentActivityResponse>(200);
         },
         with400() {
           return new ExpressRuntimeResponse<t_Error400>(400);
@@ -779,9 +641,6 @@ export function createAdminRouter(
         with403() {
           return new ExpressRuntimeResponse<t_Error403>(403);
         },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
         with429() {
           return new ExpressRuntimeResponse<t_Error429>(429);
         },
@@ -794,188 +653,9 @@ export function createAdminRouter(
       };
 
       await implementation
-        .updateAdminMediaAudit(input, responder, req, res, next)
+        .listAgentActivity(input, responder, req, res, next)
         .catch(handleImplementationError)
-        .then(handleResponse(res, updateAdminMediaAuditResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const runAdminMediaAuditParamSchema = z.object({ name: z.string() });
-
-  const runAdminMediaAuditQuerySchema = z.object({ category: z.enum(['ANIME', 'JDRAMA']).optional() });
-
-  const runAdminMediaAuditResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_RunAuditResponse],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // runAdminMediaAudit
-  router.post(`/v1/admin/media/audits/:name/run`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(runAdminMediaAuditParamSchema, req.params, RequestInputType.RouteParam),
-        query: parseRequestInput(runAdminMediaAuditQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_RunAuditResponse>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .runAdminMediaAudit(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, runAdminMediaAuditResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const listAdminMediaAuditRunsQuerySchema = z.object({
-    auditName: z.string().optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-  });
-
-  const listAdminMediaAuditRunsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ runs: z.array(s_MediaAuditRun), pagination: s_CursorPagination })],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // listAdminMediaAuditRuns
-  router.get(`/v1/admin/media/audits/runs`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(listAdminMediaAuditRunsQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            pagination: t_CursorPagination;
-            runs: t_MediaAuditRun[];
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .listAdminMediaAuditRuns(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, listAdminMediaAuditRunsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  const getAdminMediaAuditRunParamSchema = z.object({ auditRunId: z.coerce.number() });
-
-  const getAdminMediaAuditRunResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ run: s_MediaAuditRun, reports: z.array(s_Report) })],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
-
-  // getAdminMediaAuditRun
-  router.get(`/v1/admin/media/audits/runs/:auditRunId`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(getAdminMediaAuditRunParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
-
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            reports: t_Report[];
-            run: t_MediaAuditRun;
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
-
-      await implementation
-        .getAdminMediaAuditRun(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getAdminMediaAuditRunResponseBodyValidator));
+        .then(handleResponse(res, listAgentActivityResponseBodyValidator));
     } catch (error) {
       next(error);
     }
