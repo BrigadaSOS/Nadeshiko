@@ -3,6 +3,7 @@ import pinoHttp from 'pino-http';
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Request, Response } from 'express';
 import { basename } from 'path';
+import { createRequire } from 'module';
 import { trace, context } from '@opentelemetry/api';
 import { config } from '@config/config';
 
@@ -16,7 +17,29 @@ export function shouldUsePrettyLogsForEntrypoint(entrypointArg?: string): boolea
   );
 }
 
-const usePrettyLogs = shouldUsePrettyLogsForEntrypoint();
+/**
+ * Pretty logs are for a human watching a CLI script, and `pino-pretty` is a
+ * devDependency -- so it is present when one is, and absent from the deployed
+ * image. But these scripts also run IN that image, as one-off jobs: an ES
+ * reindex, a migration. Asking pino for a transport that is not installed throws
+ * while the module is still being imported, which killed the script before it
+ * could report anything ("unable to determine transport target for pino-pretty")
+ * and made every one of these entrypoints unrunnable in staging and production.
+ *
+ * So the entrypoint decides whether pretty output is WANTED, and this decides
+ * whether it is possible. Absent, the script keeps the structured logger it
+ * would have had anyway.
+ */
+function prettyTransportAvailable(): boolean {
+  try {
+    createRequire(import.meta.url).resolve('pino-pretty');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const usePrettyLogs = shouldUsePrettyLogsForEntrypoint() && prettyTransportAvailable();
 
 // Helper function to safely parse JSON, returns original value if parsing fails
 export const safeParseJson = (value: string): unknown => {
