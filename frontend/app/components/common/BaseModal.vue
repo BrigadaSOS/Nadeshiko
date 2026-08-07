@@ -167,6 +167,20 @@ onBeforeUnmount(() => {
 const onBackdropClick = () => {
   if (props.closeOnBackdrop) emit('close');
 };
+
+/**
+ * `inheritAttrs: false` puts the caller's `data-testid` on the PANEL, which is
+ * the useful default — but it leaves the backdrop, the element that actually
+ * carries the dismiss handler, with no handle at all. A test aiming for
+ * "clicking outside closes it" would land on the panel instead and pass or fail
+ * for the wrong reason. Mirror the panel's id onto the backdrop with a
+ * `-backdrop` suffix so the two are separately addressable.
+ */
+const attrs = useAttrs();
+const backdropTestId = computed(() => {
+  const id = attrs['data-testid'];
+  return typeof id === 'string' && id ? `${id}-backdrop` : undefined;
+});
 </script>
 
 <template>
@@ -174,6 +188,7 @@ const onBackdropClick = () => {
     <Transition :name="transition" @after-leave="onAfterLeave">
       <div
         v-if="open"
+        :data-testid="backdropTestId"
         class="nd-modal fixed inset-0 flex w-full h-full overflow-x-hidden overflow-y-auto"
         :class="[zIndexClass, overlayClass]"
         @click.self="onBackdropClick"

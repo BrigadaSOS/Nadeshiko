@@ -22,15 +22,22 @@ test.describe('Image zoom', () => {
     await expect(zoomedImage).toBeVisible();
   });
 
-  test('clicking the overlay dismisses it', async ({ page }) => {
+  test('clicking the backdrop dismisses it', async ({ page }) => {
     const image = search.segmentImages.first();
     await image.click();
 
     const overlay = page.getByTestId('image-zoom-overlay');
     await expect(overlay).toBeVisible({ timeout: 5_000 });
 
-    await overlay.click();
-    await expect(overlay).not.toBeVisible();
+    // The dismiss handler is `@click.self` on the BACKDROP, and BaseModal puts
+    // the caller's data-testid on the panel — so clicking `image-zoom-overlay`
+    // hit the panel (really the image inside it), which closes for an entirely
+    // different reason. Target the backdrop, off-centre so the click does not
+    // land on the centred panel and get ignored by `.self`.
+    const backdrop = page.getByTestId('image-zoom-overlay-backdrop');
+    await backdrop.click({ position: { x: 5, y: 5 } });
+
+    await expect(overlay).toBeHidden();
   });
 
   test('pressing Escape dismisses the overlay', async ({ page }) => {
@@ -41,6 +48,6 @@ test.describe('Image zoom', () => {
     await expect(overlay).toBeVisible({ timeout: 5_000 });
 
     await page.keyboard.press('Escape');
-    await expect(overlay).not.toBeVisible();
+    await expect(overlay).toBeHidden();
   });
 });
