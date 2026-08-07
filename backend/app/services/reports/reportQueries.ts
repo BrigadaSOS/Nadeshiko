@@ -95,9 +95,6 @@ export function applyReportFilters(
       [`${p}_targetSegmentId`]: filters.targetSegmentId,
     });
   }
-  if (filters.auditRunId !== undefined) {
-    qb.andWhere(`${alias}.audit_run_id = :${p}_auditRunId`, { [`${p}_auditRunId`]: filters.auditRunId });
-  }
   if (filters.orphaned) {
     qb.andWhere(`${alias}.target_media_id NOT IN (${Media.createQueryBuilder('m').select('m.id').getQuery()})`);
   }
@@ -187,7 +184,6 @@ type BulkReportFilterInput = {
   targetMediaId?: number;
   targetEpisodeNumber?: number;
   targetSegmentId?: number;
-  auditRunId?: number;
   orphaned?: boolean;
 };
 
@@ -199,7 +195,6 @@ function parseBulkFilters(filters: BulkReportFilterInput): AdminReportFilters {
     targetMediaId: filters.targetMediaId,
     targetEpisodeNumber: filters.targetEpisodeNumber,
     targetSegmentId: filters.targetSegmentId,
-    auditRunId: filters.auditRunId,
     orphaned: filters.orphaned,
   };
 }
@@ -216,7 +211,6 @@ function hasAnyFilter(filters: AdminReportFilters): boolean {
     filters.targetMediaId !== undefined ||
     filters.targetEpisodeNumber !== undefined ||
     filters.targetSegmentId !== undefined ||
-    filters.auditRunId !== undefined ||
     filters.orphaned
   );
 }
