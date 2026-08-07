@@ -1,5 +1,6 @@
 import { createNadeshikoClient, type NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
 import { createInternalSdk } from '#shared/utils/backendSdk';
+import { trafficHeaders } from '#shared/utils/traffic';
 
 /**
  * Returns a configured NadeshikoClient that works on both SSR and client.
@@ -15,7 +16,11 @@ export function useNadeshikoSdk(): NadeshikoClient {
 }
 
 function useSSRSdk(): NadeshikoClient {
-  return createInternalSdk(useRuntimeConfig());
+  // The visitor's classification rides along, so the backend work this render
+  // causes (Elasticsearch searches, most of all) is attributed to the crawler
+  // that asked for it rather than to "a reader". `useRequestEvent` is a no-op
+  // on the client; this branch only runs on the server anyway.
+  return createInternalSdk(useRuntimeConfig(), trafficHeaders(useRequestEvent()));
 }
 
 let clientSdk: NadeshikoClient | null = null;

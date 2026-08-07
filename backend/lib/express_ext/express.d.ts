@@ -1,4 +1,5 @@
 import 'express-serve-static-core';
+import type { TrafficKind } from '@lib/traffic';
 import type { User } from '@app/models';
 import type { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 
@@ -21,6 +22,10 @@ declare module 'express-serve-static-core' {
     };
     /** Raw request body captured by `rawBodySaver` for the pino serializer. */
     rawBody?: string;
+    /** reader / bot / monitor, set by `trafficClassification`. */
+    traffic?: TrafficKind;
+    /** The crawler's name when `traffic` is "bot", e.g. "gptbot". */
+    botFamily?: string;
   }
 
   interface Response {
