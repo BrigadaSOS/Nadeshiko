@@ -1,4 +1,5 @@
 import { metrics } from '@opentelemetry/api';
+import { resolveEventTraffic, trafficAttributes } from '#shared/utils/traffic';
 import { normalizeRoute } from '~~/route-normalization.mjs';
 import { createLogger } from '../utils/logger';
 
@@ -67,6 +68,13 @@ function getRedactedRequestPayload(event: any) {
   };
 }
 
+/** reader/bot/monitor for a log line or an error counter. The telemetry plugin
+ *  has normally already resolved it; this returns the memoised answer. */
+function trafficFields(event: any): Record<string, string> {
+  const { traffic, family } = resolveEventTraffic(event);
+  return trafficAttributes(traffic, family);
+}
+
 export default defineNitroPlugin((nitroApp) => {
   // Add requestId to all requests
   nitroApp.hooks.hook('request', (event) => {
@@ -97,6 +105,10 @@ export default defineNitroPlugin((nitroApp) => {
         statusCode,
         duration: `${duration}ms`,
         requestId: event.context.requestId,
+        // One field per line is what makes `traffic:"bot"` a filter rather than
+        // a User-Agent grep, and `bot.family` is what answers *which* crawler
+        // once the metric moves.
+        ...trafficFields(event),
       },
       `[NITRO] ${method} ${url} - ${statusCode} (${duration}ms)`,
     );
@@ -117,6 +129,9 @@ export default defineNitroPlugin((nitroApp) => {
       'error.severity': statusCode >= 500 ? '5xx' : '4xx',
       'error.group': group,
       'http.route': normalizeRoute(url),
+      // An error burst that is entirely one crawler on a URL shape nobody links
+      // to is a different morning from the same burst hitting readers.
+      ...(event ? trafficFields(event) : {}),
     });
 
     logger.error(
@@ -127,6 +142,7 @@ export default defineNitroPlugin((nitroApp) => {
         url,
         req: event ? getRedactedRequestPayload(event) : undefined,
         requestId: context?.requestId,
+        ...(event ? trafficFields(event) : {}),
         stack: error.stack,
         'error.fingerprint': fingerprint,
         'error.group': group,
@@ -148,6 +164,7 @@ export default defineNitroPlugin((nitroApp) => {
       'error.severity': statusCode >= 500 ? '5xx' : '4xx',
       'error.group': group,
       'http.route': normalizeRoute(url),
+      ...trafficFields(event),
     });
 
     logger.error(
@@ -158,6 +175,7 @@ export default defineNitroPlugin((nitroApp) => {
         url,
         req: getRedactedRequestPayload(event),
         requestId: event.context.requestId,
+        ...trafficFields(event),
         stack: error.stack,
         'error.fingerprint': fingerprint,
         'error.group': group,

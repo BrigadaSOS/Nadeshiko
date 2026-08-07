@@ -12,10 +12,18 @@ export default defineNuxtPlugin({
   name: 'errorHandler',
   setup(nuxtApp) {
     nuxtApp.vueApp.config.errorHandler = (err, instance, info) => {
-      reportError('vue:error', err, {
-        'vue.info': info || '',
-        'vue.component': getComponentName(instance),
-      });
+      // Faro only: `@posthog/nuxt` already captures every error that reaches here,
+      // through its own `vue:error` hook, so sending it to PostHog too would record
+      // the same throw twice.
+      reportError(
+        'vue:error',
+        err,
+        {
+          'vue.info': info || '',
+          'vue.component': getComponentName(instance),
+        },
+        { faroOnly: true },
+      );
     };
   },
 });
