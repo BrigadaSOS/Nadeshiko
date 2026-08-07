@@ -7,6 +7,25 @@ servers:
       # Memory limit: 768MB RAM + 256MB swap for stg
       memory: 768m
       memory-swap: 1g
+      # Resolve Shirabe's own hostname to inari's Tailscale address, so a word
+      # lookup goes straight over the tailnet instead of out to Cloudflare and
+      # back for two boxes in the same city (~175ms against ~33ms of real work).
+      #
+      # Same trick this container already uses for the backend, where
+      # api-stg.nadeshiko.co resolves to kamal-proxy on this host: because the
+      # name is genuine, SNI, Host and the certificate all still line up, and it
+      # reaches Shirabe through its normal proxy rather than a second door.
+      #
+      # A published port on inari was the first attempt and was wrong: a fixed
+      # host port cannot be held by two containers at once, so it broke Kamal's
+      # zero-downtime deploy on the very next Shirabe release.
+      #
+      # This is also why the fallback below is www.shirabe.org and not
+      # shirabe.org -- that name now points at the tailnet from inside this
+      # container, so it could not fall back to anything.
+      add-host:
+        - host.docker.internal:host-gateway
+        - shirabe.org:100.73.93.89
 
 builder:
   args:
@@ -39,6 +58,19 @@ env:
     # where the key IS configured: turning it on without one is exactly the doomed
     # per-hover request the flag exists to prevent.
     NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
+    # The fast path and the fallback are the same service under two of its own
+    # hostnames, which is what lets one skip Cloudflare while the other keeps
+    # working if the tailnet does not.
+    #
+    # shirabe.org is mapped to inari's Tailscale IP by add-host above, so this
+    # goes over the tailnet with a genuine hostname and certificate. Prod Shirabe
+    # deliberately: staging has no Shirabe of its own, and the public URL reached
+    # the same service anyway.
+    NUXT_SHIRABE_API_DIRECT: https://shirabe.org
+    # www resolves normally through Cloudflare, so this is the path that still
+    # answers when the tailnet is down. Both names are served by the same
+    # kamal-proxy and covered by the same certificate.
+    NUXT_SHIRABE_API_BASE: https://www.shirabe.org
     NODE_ENV: production
     NUXT_BACKEND_INTERNAL_URL: https://api-stg.nadeshiko.co
     PORT: 3000

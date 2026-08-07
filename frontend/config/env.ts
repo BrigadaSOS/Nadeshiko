@@ -22,6 +22,11 @@ const envSchema = z.object({
   // server/api/shirabe/words/[wid].get.ts) and never lands in runtimeConfig.public.
   NUXT_SHIRABE_API_KEY: z.string().trim().default(''),
   NUXT_SHIRABE_API_BASE: z.string().trim().default('https://shirabe.org'),
+  // Optional tailnet address for the same service. The public name resolves to
+  // Cloudflare, so without this a lookup between two boxes in the same city
+  // routes out to the edge and back. Tried first when set, with the public host
+  // as the fallback, so it only ever changes how fast the answer arrives.
+  NUXT_SHIRABE_API_DIRECT: z.string().trim().default(''),
   // Shared secret sent to the backend on every proxied request so its per-IP
   // rate limiter can recognise (and exempt) traffic coming through this proxy.
   // Must match the backend's INTERNAL_PROXY_SECRET.
