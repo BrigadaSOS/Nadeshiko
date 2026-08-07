@@ -577,7 +577,6 @@
       },
       "dictionaryLinks": "Dictionary integrations",
       "dictionaryLinksDescription": "Choose which dictionaries appear as quick lookup links in the token popup.",
-      "dictionaryAlwaysOn": "(always on)",
       "deleteAccount": "Delete account (Irreversible action)",
       "deleteAccountButton": "Delete account",
       "deletingAccount": "Deleting...",

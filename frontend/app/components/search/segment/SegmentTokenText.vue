@@ -49,6 +49,10 @@ const VIEWPORT_MARGIN = 8; // px from viewport edges
 // scrolls instead. A viewport too short even for that is one where clamping the
 // top edge is what keeps the headword readable.
 const MIN_CARD_HEIGHT = 180;
+// How long a pointer has to rest on a word before it is worth asking about it.
+// Long enough that crossing a sentence costs nothing, short enough that it is
+// still ahead of the click that follows.
+const PREFETCH_DELAY = 140;
 
 // What the reader reads, which is not what the interface is in: the UI language
 // and the translation language are separate settings, and only this one decides
@@ -64,6 +68,10 @@ const glossLanguages = computed(() => glossPreference(locale.value, { en: englis
 // own copy.
 const word = ref<ShirabeWord | null>(null);
 const wordState = ref<'idle' | 'loading' | 'missing'>('idle');
+// The word this card is currently waiting on, so a late answer for a word the
+// reader has moved off can be told apart from the one they are looking at.
+// Deliberately not the token object: those are rebuilt by a computed.
+let pendingLookup: string | null = null;
 
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
@@ -122,20 +130,27 @@ async function loadWord(token: EnrichedToken): Promise<void> {
 
   word.value = null;
   wordState.value = 'loading';
+  pendingLookup = wid;
 
-  // `fetchWord` never rejects -- a failed lookup resolves to null -- so there is
-  // no catch here and, importantly, no path that leaves `wordState` on
-  // 'loading'. The previous version returned early on a stale answer without
-  // resetting it, which is how the card could sit on "Looking up…" forever.
   const found = await fetchWord(wid, locale);
 
-  // The reader may have moved on while this was in flight; only paint if the
-  // answer still belongs to the open card. Compared against the token that
-  // STARTED this request, not against its `wid`: a particle has no id and looks
-  // itself up by dictionary form, so comparing ids there meant `undefined !==
-  // 'は'` and the answer was fetched and then dropped, every time, which is why
-  // grammar words never filled in.
-  if (hoveredToken.value !== token) return;
+  // Staleness is judged on the WORD being looked up, not on the token object
+  // that asked for it.
+  //
+  // This compared `hoveredToken.value !== token` by identity, and that is what
+  // left cards reading "Looking up…" over a request that had already returned
+  // 200. `enrichedTokens` is a computed: any re-evaluation builds fresh token
+  // objects, so the one captured when the card opened can quietly stop being the
+  // one the ref holds, and an answer for exactly the word on screen was thrown
+  // away as belonging to something else. Nothing then cleared the loading state,
+  // because the guard that would have cleared it compared the same way.
+  //
+  // A word is a string and two tokens for the same word are interchangeable
+  // here, so this holds however often the list re-renders. Note `wid` is never
+  // null by this point -- it is the id or the surface fallback -- so the earlier
+  // problem of `undefined` ids matching each other cannot come back.
+  if (pendingLookup !== wid) return;
+  pendingLookup = null;
 
   word.value = found;
   wordState.value = found ? 'idle' : 'missing';
@@ -210,13 +225,32 @@ async function placeTooltip(): Promise<void> {
  * already seen; a hover that never becomes a click has warmed the cache for the
  * next reader of that word on the page.
  */
+let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
+
 const onTokenHover = (token: EnrichedToken) => {
   if (!lookupsEnabled) return;
-  const lookup = token.wid ?? (lookupableWithoutId(token) ? token.s : null);
-  if (!lookup) return;
-  const locale = glossLanguages.value.labels;
-  if (peekWord(lookup, locale) !== undefined) return;
-  void fetchWord(lookup, locale);
+
+  // Only for a pointer that has STOPPED. Firing on every mouseenter meant a
+  // pointer crossing a sentence on its way to one word started a request for
+  // every token it passed over -- and with a browser capping concurrent requests
+  // per host, the word actually clicked then queued behind a dozen nobody asked
+  // for. That made the click slower than no prefetching at all, which is the
+  // opposite of the point.
+  if (prefetchTimer !== null) clearTimeout(prefetchTimer);
+  prefetchTimer = setTimeout(() => {
+    prefetchTimer = null;
+    const lookup = token.wid ?? (lookupableWithoutId(token) ? token.s : null);
+    if (!lookup) return;
+    const locale = glossLanguages.value.labels;
+    if (peekWord(lookup, locale) !== undefined) return;
+    void fetchWord(lookup, locale);
+  }, PREFETCH_DELAY);
+};
+
+const onTokenHoverEnd = () => {
+  if (prefetchTimer === null) return;
+  clearTimeout(prefetchTimer);
+  prefetchTimer = null;
 };
 
 const onTokenEnter = (token: EnrichedToken, event: MouseEvent) => {
@@ -245,6 +279,7 @@ const closeTooltip = () => {
   // happened to reset it.
   word.value = null;
   wordState.value = 'idle';
+  pendingLookup = null;
 };
 
 // With the card opened by click it no longer closes when the pointer leaves, so
@@ -447,15 +482,20 @@ const searchExampleToken = (query: string) => {
 const dictionaryLinks = computed(() => {
   const token = hoveredToken.value;
   if (!token) return [];
-  return presets
-    .filter((preset) => isDictionaryEnabled(preset.id))
-    .map((preset) => ({
-      id: preset.id,
-      label: preset.label,
-      // Shirabe's id for this word is the slug of its own page, so hand it over
-      // once the card has it: it names the homograph the surface cannot.
-      href: preset.buildUrl(token.dictForm, token.reading ?? '', word.value?.id),
-    }));
+  return (
+    presets
+      .filter((preset) => isDictionaryEnabled(preset.id))
+      // Shirabe first: it is the dictionary this card is already showing, so it is
+      // where "more than fits here" leads. The rest keep their configured order.
+      .toSorted((a, b) => Number(b.required ?? false) - Number(a.required ?? false))
+      .map((preset) => ({
+        id: preset.id,
+        label: preset.label,
+        // Shirabe's id for this word is the slug of its own page, so hand it over
+        // once the card has it: it names the homograph the surface cannot.
+        href: preset.buildUrl(token.dictForm, token.reading ?? '', word.value?.id),
+      }))
+  );
 });
 </script>
 
@@ -475,6 +515,7 @@ const dictionaryLinks = computed(() => {
         ]"
         @click.stop="onTokenEnter(token, $event)"
         @mouseenter="onTokenHover(token)"
+        @mouseleave="onTokenHoverEnd"
       ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
