@@ -21,6 +21,24 @@ import type { SlimToken } from '@app/models/Segment';
 const PARSE_BATCH = 200; // measured sweet spot: throughput falls off past this
 const TIMEOUT_MS = 30_000;
 
+/**
+ * How many parse batches are in flight at once.
+ *
+ * The batch SIZE is already tuned (see above); what was left on the table is
+ * that batches ran strictly one after another, so a corpus reparse spent ~90% of
+ * its time waiting on a round trip and moved at ~95 segments/s while using 13% of
+ * the character budget and 6% of the request budget.
+ *
+ * Deliberately a small number rather than "as many as the limits allow". Shirabe
+ * serves readers from the same box, and the published limits are a ceiling, not a
+ * target: a bulk job that saturates them stops being a background job. Three puts
+ * a full corpus pass comfortably under half the character budget.
+ *
+ * `SHIRABE_PARSE_CONCURRENCY` exists so a one-off migration can be nudged without
+ * a deploy, and so it can be pinned back to 1 if Shirabe is having a bad day.
+ */
+const PARSE_CONCURRENCY = Math.max(1, Number(process.env.SHIRABE_PARSE_CONCURRENCY ?? 3) || 3);
+
 /** One token as Shirabe serves it. Narrowed to what the mapping reads. */
 interface ShirabeToken {
   position: number;
@@ -106,42 +124,59 @@ export async function parseSegments(texts: string[]): Promise<SlimToken[][]> {
   if (texts.length === 0) return [];
   if (!config.SHIRABE_API_KEY) throw new Error('SHIRABE_API_KEY is not set: nothing can be parsed without it');
 
-  const out: SlimToken[][] = [];
-
+  const chunks: string[][] = [];
   for (let i = 0; i < texts.length; i += PARSE_BATCH) {
-    const chunk = texts.slice(i, i + PARSE_BATCH);
-    const response = await fetch(`${config.SHIRABE_API_BASE.replace(/\/$/, '')}/v1/parse`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${config.SHIRABE_API_KEY}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ texts: chunk }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      logger.error({ status: response.status, body: body.slice(0, 500) }, 'Shirabe parse failed');
-      throw new Error(`Shirabe parse failed: ${response.status}`);
-    }
-
-    const parsed = (await response.json()) as ShirabeParseResponse;
-    for (const tokens of parsed.tokens) {
-      out.push(
-        tokens.map((token) =>
-          toSlimToken(
-            token,
-            // The word id lives on the pool rather than the token, because it is
-            // a property of the word and a sentence can say it twice.
-            token.vocabIndex === undefined ? undefined : parsed.vocabulary[token.vocabIndex]?.id,
-          ),
-        ),
-      );
-    }
+    chunks.push(texts.slice(i, i + PARSE_BATCH));
   }
 
-  return out;
+  // Results are placed by chunk index, not appended, so concurrency cannot
+  // reorder them: the contract is one token array per input, in input order.
+  const results: SlimToken[][][] = new Array(chunks.length);
+  let next = 0;
+
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const index = next++;
+      const chunk = chunks[index];
+      if (!chunk) return;
+      results[index] = await parseChunk(chunk);
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(PARSE_CONCURRENCY, chunks.length) }, worker));
+
+  return results.flat();
 }
 
-export const __testing = { toSlimToken, PARSE_BATCH };
+/** One request to Shirabe, mapped into our token shape. */
+async function parseChunk(chunk: string[]): Promise<SlimToken[][]> {
+  const response = await fetch(`${config.SHIRABE_API_BASE.replace(/\/$/, '')}/v1/parse`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${config.SHIRABE_API_KEY}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ texts: chunk }),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    logger.error({ status: response.status, body: body.slice(0, 500) }, 'Shirabe parse failed');
+    throw new Error(`Shirabe parse failed: ${response.status}`);
+  }
+
+  const parsed = (await response.json()) as ShirabeParseResponse;
+  return parsed.tokens.map((tokens) =>
+    tokens.map((token) =>
+      toSlimToken(
+        token,
+        // The word id lives on the pool rather than the token, because it is
+        // a property of the word and a sentence can say it twice.
+        token.vocabIndex === undefined ? undefined : parsed.vocabulary[token.vocabIndex]?.id,
+      ),
+    ),
+  );
+}
+
+export const __testing = { toSlimToken, PARSE_BATCH, PARSE_CONCURRENCY };

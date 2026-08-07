@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { __testing } from '@app/services/shirabe/parseSegments';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { __testing, parseSegments } from '@app/services/shirabe/parseSegments';
 
 const { toSlimToken } = __testing;
 
@@ -99,5 +99,74 @@ describe('toSlimToken', () => {
     expect(token.f).toBeUndefined();
     expect(token.parts).toBeUndefined();
     expect(token.inflection).toBeUndefined();
+  });
+});
+
+/**
+ * Batches run concurrently, so the one property that cannot be left to chance is
+ * that the answers still line up with what was sent. Every caller zips the result
+ * back against its own rows by position -- the corpus backfill writes
+ * `tokens` per segment that way -- so a reordering here silently attaches one
+ * sentence's analysis to another sentence.
+ */
+describe('parseSegments batching', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** A response whose single token's surface is the text that was sent. */
+  const echoResponse = (texts: string[]) => ({
+    tokens: texts.map((text) => [{ position: 0, length: text.length, surface: text, pos: 'noun' }]),
+    vocabulary: [],
+  });
+
+  it('returns one entry per input, in input order, when later batches answer first', async () => {
+    const { PARSE_BATCH } = __testing;
+    // Three batches, so there is a middle one to get out of order.
+    const texts = Array.from({ length: PARSE_BATCH * 2 + 5 }, (_, i) => `文${i}`);
+
+    let call = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      const sent = JSON.parse(String((init as RequestInit).body)).texts as string[];
+      // Invert the delay: the last batch dispatched resolves first. With results
+      // appended as they arrive rather than placed by index, this reorders.
+      const delay = Math.max(0, 30 - call++ * 10);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return new Response(JSON.stringify(echoResponse(sent)), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    const out = await parseSegments(texts);
+
+    expect(out).toHaveLength(texts.length);
+    expect(out.map((tokens) => tokens[0]?.s)).toEqual(texts);
+  });
+
+  it('sends every input exactly once across the batches', async () => {
+    const { PARSE_BATCH } = __testing;
+    const texts = Array.from({ length: PARSE_BATCH + 1 }, (_, i) => `文${i}`);
+    const seen: string[] = [];
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      const sent = JSON.parse(String((init as RequestInit).body)).texts as string[];
+      seen.push(...sent);
+      return new Response(JSON.stringify(echoResponse(sent)), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    await parseSegments(texts);
+
+    expect(seen).toHaveLength(texts.length);
+    expect(new Set(seen).size).toBe(texts.length);
+  });
+
+  it('answers an empty input without calling Shirabe', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    await expect(parseSegments([])).resolves.toEqual([]);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
