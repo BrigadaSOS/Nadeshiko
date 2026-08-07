@@ -1,0 +1,69 @@
+post:
+  operationId: moderateEpisodeSegments
+  x-internal: true
+  tags:
+    - Media
+  summary: Apply a moderation action to every segment in an episode
+  description: |
+    Applies one action across a whole episode. This exists for defects that are
+    properties of the episode rather than of any single line — a subtitle file
+    offset against the audio, or a bad rip that makes every clip unusable.
+
+    Two actions are supported:
+
+    - `shiftTimings` moves every segment's start and end by `offsetMs`, which may
+      be negative. Segments whose start would go below zero are clamped to zero
+      rather than skipped, so the episode stays contiguous.
+    - `setStatus` sets every segment's status, which is how an episode is hidden
+      from search without deleting anything.
+
+    Every affected segment gets its own revision, so this is revertible one segment
+    at a time through the restore endpoint, and shows up per segment in the agent
+    activity feed.
+
+    **Bounded by `maxAffected`.** If the episode has more segments than that, the
+    request is rejected with 400 and nothing is written — no partial application.
+    The cap is what keeps an automated caller's mistake to a size a person can
+    review, so callers are expected to set it deliberately rather than to the
+    largest value they can.
+
+  security:
+    - ApiKey: [UPDATE_MEDIA]
+  parameters:
+    - name: mediaPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Media public ID
+    - name: episodeNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Episode number
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/ModerateEpisodeSegmentsRequest.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/AffectedCountResponse.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

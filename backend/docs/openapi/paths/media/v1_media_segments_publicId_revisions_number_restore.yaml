@@ -1,0 +1,55 @@
+post:
+  operationId: restoreSegmentRevision
+  x-internal: true
+  tags:
+    - Media
+  summary: Restore a segment revision
+  description: |
+    Writes the values captured in the given revision's snapshot back onto the
+    segment, undoing every edit made since.
+
+    The restore is itself an edit: it writes a new revision snapshotting the state
+    it replaced, so restoring is reversible by restoring again. Revision numbers
+    are never rewound — a segment at revision 7 restored to revision 3 lands at
+    revision 8, whose snapshot holds what revision 7 left behind.
+
+    This is the undo path for a bad moderation edit, whether a person or the agent
+    made it.
+
+  security:
+    - ApiKey: [UPDATE_MEDIA]
+  parameters:
+    - name: segmentPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Segment public ID
+      example: V1StGXR8_Z5d
+    - name: revisionNumber
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      description: The revision number to restore this segment to
+      example: 3
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/segment/SegmentInternal.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

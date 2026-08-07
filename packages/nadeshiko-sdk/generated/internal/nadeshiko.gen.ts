@@ -4,7 +4,7 @@ import { createClient as createApiClient, createConfig, type Client } from './cl
 import type { Auth } from './core/auth.gen';
 import type { ClientOptions } from './types.gen';
 import type * as Types from './types.gen';
-import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAdminMediaAudits, updateAdminMediaAudit, runAdminMediaAudit, listAdminMediaAuditRuns, getAdminMediaAuditRun, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
+import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
 import { withRetry, type RetryOptions } from './retry';
 import { NadeshikoError, type NadeshikoProblemDetails } from './errors';
 import { flatPaginate } from './paginate';
@@ -184,6 +184,10 @@ export type NadeshikoClient = {
       (params: Types.ListSegmentRevisionsData['path'] & { throwOnError: false }): Promise<{ data: Types.ListSegmentRevisionsResponse; response: Response; request: Request } | { error: Types.ListSegmentRevisionsErrors; response: Response; request: Request }>;
       (params: Types.ListSegmentRevisionsData['path']): Promise<Types.ListSegmentRevisionsResponse>;
     };
+    restoreSegmentRevision: {
+      (params: Types.RestoreSegmentRevisionData['path'] & { throwOnError: false }): Promise<{ data: Types.RestoreSegmentRevisionResponse; response: Response; request: Request } | { error: Types.RestoreSegmentRevisionErrors; response: Response; request: Request }>;
+      (params: Types.RestoreSegmentRevisionData['path']): Promise<Types.RestoreSegmentRevisionResponse>;
+    };
     updateMedia: {
       (id: string): Promise<Types.UpdateMediaResponse>;
       (params: Types.UpdateMediaData['path'] & NonNullable<Types.UpdateMediaData['body']> & { throwOnError: false }): Promise<{ data: Types.UpdateMediaResponse; response: Response; request: Request } | { error: Types.UpdateMediaErrors; response: Response; request: Request }>;
@@ -218,6 +222,10 @@ export type NadeshikoClient = {
     createSegmentsBatch: {
       (params: Types.CreateSegmentsBatchData['path'] & NonNullable<Types.CreateSegmentsBatchData['body']> & { throwOnError: false }): Promise<{ data: Types.CreateSegmentsBatchResponse; response: Response; request: Request } | { error: Types.CreateSegmentsBatchErrors; response: Response; request: Request }>;
       (params: Types.CreateSegmentsBatchData['path'] & NonNullable<Types.CreateSegmentsBatchData['body']>): Promise<Types.CreateSegmentsBatchResponse>;
+    };
+    moderateEpisodeSegments: {
+      (params: Types.ModerateEpisodeSegmentsData['path'] & NonNullable<Types.ModerateEpisodeSegmentsData['body']> & { throwOnError: false }): Promise<{ data: Types.ModerateEpisodeSegmentsResponse; response: Response; request: Request } | { error: Types.ModerateEpisodeSegmentsErrors; response: Response; request: Request }>;
+      (params: Types.ModerateEpisodeSegmentsData['path'] & NonNullable<Types.ModerateEpisodeSegmentsData['body']>): Promise<Types.ModerateEpisodeSegmentsResponse>;
     };
     createUserReport: {
       (params: NonNullable<Types.CreateUserReportData['body']> & { throwOnError: false }): Promise<{ data: Types.CreateUserReportResponse; response: Response; request: Request } | { error: Types.CreateUserReportErrors; response: Response; request: Request }>;
@@ -294,29 +302,9 @@ export type NadeshikoClient = {
       (params: Types.DeleteAdminReportData['path'] & { throwOnError: false }): Promise<{ data: Types.DeleteAdminReportResponse; response: Response; request: Request } | { error: Types.DeleteAdminReportErrors; response: Response; request: Request }>;
       (params: Types.DeleteAdminReportData['path']): Promise<Types.DeleteAdminReportResponse>;
     };
-    listAdminMediaAudits: {
-      (params: { throwOnError: false }): Promise<{ data: Types.ListAdminMediaAuditsResponse; response: Response; request: Request } | { error: Types.ListAdminMediaAuditsErrors; response: Response; request: Request }>;
-      (): Promise<Types.ListAdminMediaAuditsResponse>;
-    };
-    updateAdminMediaAudit: {
-      (id: string): Promise<Types.UpdateAdminMediaAuditResponse>;
-      (params: Types.UpdateAdminMediaAuditData['path'] & NonNullable<Types.UpdateAdminMediaAuditData['body']> & { throwOnError: false }): Promise<{ data: Types.UpdateAdminMediaAuditResponse; response: Response; request: Request } | { error: Types.UpdateAdminMediaAuditErrors; response: Response; request: Request }>;
-      (params: Types.UpdateAdminMediaAuditData['path'] & NonNullable<Types.UpdateAdminMediaAuditData['body']>): Promise<Types.UpdateAdminMediaAuditResponse>;
-    };
-    runAdminMediaAudit: {
-      (id: string): Promise<Types.RunAdminMediaAuditResponse>;
-      (params: Types.RunAdminMediaAuditData['path'] & NonNullable<Types.RunAdminMediaAuditData['query']> & { throwOnError: false }): Promise<{ data: Types.RunAdminMediaAuditResponse; response: Response; request: Request } | { error: Types.RunAdminMediaAuditErrors; response: Response; request: Request }>;
-      (params: Types.RunAdminMediaAuditData['path'] & NonNullable<Types.RunAdminMediaAuditData['query']>): Promise<Types.RunAdminMediaAuditResponse>;
-    };
-    listAdminMediaAuditRuns: {
-      (params: NonNullable<Types.ListAdminMediaAuditRunsData['query']> & { throwOnError: false }): Promise<{ data: Types.ListAdminMediaAuditRunsResponse; response: Response; request: Request } | { error: Types.ListAdminMediaAuditRunsErrors; response: Response; request: Request }>;
-      (params?: NonNullable<Types.ListAdminMediaAuditRunsData['query']>): Promise<Types.ListAdminMediaAuditRunsResponse>;
-      paginate: (params?: NonNullable<Types.ListAdminMediaAuditRunsData['query']>) => AsyncGenerator<Types.ListAdminMediaAuditRunsResponse['runs'][number], void, unknown>;
-    };
-    getAdminMediaAuditRun: {
-      (id: number): Promise<Types.GetAdminMediaAuditRunResponse>;
-      (params: Types.GetAdminMediaAuditRunData['path'] & { throwOnError: false }): Promise<{ data: Types.GetAdminMediaAuditRunResponse; response: Response; request: Request } | { error: Types.GetAdminMediaAuditRunErrors; response: Response; request: Request }>;
-      (params: Types.GetAdminMediaAuditRunData['path']): Promise<Types.GetAdminMediaAuditRunResponse>;
+    listAgentActivity: {
+      (params: NonNullable<Types.ListAgentActivityData['query']> & { throwOnError: false }): Promise<{ data: Types.ListAgentActivityResponse; response: Response; request: Request } | { error: Types.ListAgentActivityErrors; response: Response; request: Request }>;
+      (params?: NonNullable<Types.ListAgentActivityData['query']>): Promise<Types.ListAgentActivityResponse>;
     };
     getAnnouncement: {
       (params: { throwOnError: false }): Promise<{ data: Types.GetAnnouncementResponse; response: Response; request: Request } | { error: Types.GetAnnouncementErrors; response: Response; request: Request }>;
@@ -723,6 +711,12 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
+  const _restoreSegmentRevision = (params?: any) => {
+    const { throwOnError: tOE, segmentPublicId, revisionNumber } = params ?? {};
+    const p = restoreSegmentRevision({ path: { segmentPublicId, revisionNumber }, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
   const _updateMedia = (paramsOrId?: any) => {
     if (typeof paramsOrId === 'string') {
       return updateMedia({ throwOnError: true, path: { mediaPublicId: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
@@ -784,6 +778,12 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
   const _createSegmentsBatch = (params?: any) => {
     const { throwOnError: tOE, mediaPublicId, episodeNumber, ...body } = params ?? {};
     const p = createSegmentsBatch({ path: { mediaPublicId, episodeNumber }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
+  const _moderateEpisodeSegments = (params?: any) => {
+    const { throwOnError: tOE, mediaPublicId, episodeNumber, ...body } = params ?? {};
+    const p = moderateEpisodeSegments({ path: { mediaPublicId, episodeNumber }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -920,52 +920,9 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
-  const _listAdminMediaAudits = (params?: any) => {
-    const tOE = params?.throwOnError;
-    const p = listAdminMediaAudits({ client: clientInstance, throwOnError: tOE === false ? false : true } as any);
-    return tOE === false ? p : p.then((r: any) => r.data);
-  };
-
-  const _updateAdminMediaAudit = (paramsOrId?: any) => {
-    if (typeof paramsOrId === 'string') {
-      return updateAdminMediaAudit({ throwOnError: true, path: { name: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
-    }
-    const params = paramsOrId;
-    const { throwOnError: tOE, name, ...body } = params ?? {};
-    const p = updateAdminMediaAudit({ path: { name }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
-    return tOE === false ? p : p.then((r: any) => r.data);
-  };
-
-  const _runAdminMediaAudit = (paramsOrId?: any) => {
-    if (typeof paramsOrId === 'string') {
-      return runAdminMediaAudit({ throwOnError: true, path: { name: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
-    }
-    const params = paramsOrId;
-    const { throwOnError: tOE, name, ...query } = params ?? {};
-    const p = runAdminMediaAudit({ path: { name }, ...(Object.keys(query).length > 0 ? { query } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
-    return tOE === false ? p : p.then((r: any) => r.data);
-  };
-
-  const _listAdminMediaAuditRuns = (params?: any) => {
+  const _listAgentActivity = (params?: any) => {
     const { throwOnError: tOE, ...query } = params ?? {};
-    const p = listAdminMediaAuditRuns({ ...(Object.keys(query).length > 0 ? { query } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
-    return tOE === false ? p : p.then((r: any) => r.data);
-  };
-  _listAdminMediaAuditRuns.paginate = (params?: any) => flatPaginate(
-    params ?? {},
-    (flat: any) => {
-      return listAdminMediaAuditRuns({ query: flat, client: clientInstance } as any);
-    },
-    (data: any) => ({ items: data.runs, pagination: data.pagination }),
-  );
-
-  const _getAdminMediaAuditRun = (paramsOrId?: any) => {
-    if (typeof paramsOrId === 'number') {
-      return getAdminMediaAuditRun({ throwOnError: true, path: { auditRunId: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
-    }
-    const params = paramsOrId;
-    const { throwOnError: tOE, auditRunId } = params ?? {};
-    const p = getAdminMediaAuditRun({ path: { auditRunId }, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = listAgentActivity({ ...(Object.keys(query).length > 0 ? { query } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1127,6 +1084,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     createMedia: _createMedia,
     updateSegment: _updateSegment,
     listSegmentRevisions: _listSegmentRevisions,
+    restoreSegmentRevision: _restoreSegmentRevision,
     updateMedia: _updateMedia,
     deleteMedia: _deleteMedia,
     createEpisode: _createEpisode,
@@ -1135,6 +1093,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     listSegments: _listSegments,
     createSegment: _createSegment,
     createSegmentsBatch: _createSegmentsBatch,
+    moderateEpisodeSegments: _moderateEpisodeSegments,
     createUserReport: _createUserReport,
     getUserPreferences: _getUserPreferences,
     updateUserPreferences: _updateUserPreferences,
@@ -1152,11 +1111,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     bulkDeleteAdminReports: _bulkDeleteAdminReports,
     updateAdminReport: _updateAdminReport,
     deleteAdminReport: _deleteAdminReport,
-    listAdminMediaAudits: _listAdminMediaAudits,
-    updateAdminMediaAudit: _updateAdminMediaAudit,
-    runAdminMediaAudit: _runAdminMediaAudit,
-    listAdminMediaAuditRuns: _listAdminMediaAuditRuns,
-    getAdminMediaAuditRun: _getAdminMediaAuditRun,
+    listAgentActivity: _listAgentActivity,
     getAnnouncement: _getAnnouncement,
     updateAnnouncement: _updateAnnouncement,
     getAdminUsersWithProviders: _getAdminUsersWithProviders,

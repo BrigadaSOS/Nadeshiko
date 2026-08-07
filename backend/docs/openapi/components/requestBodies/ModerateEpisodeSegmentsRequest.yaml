@@ -1,0 +1,33 @@
+type: object
+required:
+  - action
+  - maxAffected
+properties:
+  action:
+    type: string
+    enum: [shiftTimings, setStatus]
+    description: Which bulk action to apply
+  offsetMs:
+    type: integer
+    description: |
+      Milliseconds to shift every segment by; negative moves clips earlier.
+      Required for `shiftTimings`, ignored otherwise.
+    example: -1200
+  status:
+    $ref: "../schemas/SegmentStatus.yaml"
+  maxAffected:
+    type: integer
+    minimum: 1
+    maximum: 5000
+    description: |
+      Refuse the request if the episode has more segments than this.
+
+      There is no safe default, so it is required: the right ceiling depends on
+      whether a person is about to review the result. The request is rejected
+      whole — a cap smaller than the episode changes nothing rather than applying
+      to the first N segments.
+    example: 500
+  reportId:
+    type: integer
+    description: The report this action answers, recorded on every revision it writes
+    example: 4821

@@ -2,7 +2,6 @@ import { logger } from '@config/log';
 import { authInitializer } from './auth';
 import { databaseInitializer } from './database';
 import { masterApiKeyInitializer } from './masterApiKey';
-import { mediaAuditsInitializer } from './mediaAudits';
 import { telemetryInitializer } from './telemetry';
 import type { RuntimeContext, RuntimeInitializer } from './types';
 import { workersInitializer } from './workers';
@@ -13,7 +12,6 @@ const initializers: RuntimeInitializer[] = [
   databaseInitializer,
   masterApiKeyInitializer,
   workersInitializer,
-  mediaAuditsInitializer,
 ];
 
 export async function runInitializers(context: RuntimeContext): Promise<void> {

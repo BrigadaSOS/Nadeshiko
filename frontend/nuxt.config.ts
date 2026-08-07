@@ -2,10 +2,27 @@ import { readFileSync } from 'node:fs';
 import { env } from './config/env';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
+// Analytics ship in production only. Everywhere else the SDK just fails against
+// CSP and fills the console with noise, and any event it did get through would
+// land in the same project as real traffic. App code reaches for `posthog-js`
+// directly and guards on `posthog.__loaded`, so leaving the module out simply
+// makes every capture a no-op.
+const isProd = env.NUXT_PUBLIC_ENVIRONMENT === 'production';
+// Not `process.dev`: that is injected into app code, not into this file, which
+// Nuxt evaluates in plain Node. There it is just a missing property -- undefined,
+// no error -- so every `process.dev` test here silently took its production
+// branch and the dev server was served the production CSP.
+const isLocal = env.NUXT_PUBLIC_ENVIRONMENT === 'local';
 const SITE_URL = isDev ? 'https://stg.nadeshiko.co' : 'https://nadeshiko.co';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
+const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
+// Where browsers post CSP violations. Sent through our own PostHog proxy rather
+// than posthog.com so content blockers don't silently swallow the reports, and
+// `/report/` keeps its trailing slash -- PostHog drops the report without it.
+// Reports bypass `connect-src`, so the endpoint needs no CSP allowance.
+const CSP_REPORT_URI = `${POSTHOG_ORIGIN}/report/?token=${POSTHOG_PUBLIC_KEY}`;
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
 const FARO_ORIGIN = 'https://o.nadeshiko.co';
 
@@ -56,12 +73,12 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' },
         { rel: 'preconnect', href: CDN_ORIGIN },
-        { rel: 'preconnect', href: POSTHOG_ORIGIN },
+        ...(isProd ? [{ rel: 'preconnect' as const, href: POSTHOG_ORIGIN }] : []),
       ],
     },
   },
   devtools: {
-    enabled: process.dev,
+    enabled: isLocal,
 
     timeline: {
       enabled: true,
@@ -79,6 +96,10 @@ export default defineNuxtConfig({
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
     mediaFilesPath: env.NUXT_MEDIA_FILES_PATH,
+    // Read by the middleware that emits `Reporting-Endpoints`, so the endpoint
+    // is declared next to the `report-to` directive that names it. Absent outside
+    // production, which the middleware already treats as "emit no header".
+    ...(isProd && { cspReportUri: `${CSP_REPORT_URI}&type=report-to` }),
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
@@ -108,11 +129,13 @@ export default defineNuxtConfig({
     '@nuxtjs/seo',
     'pinia-plugin-persistedstate/nuxt',
     '@vueuse/nuxt',
-    '@posthog/nuxt',
-
+    ...(isProd ? ['@posthog/nuxt'] : []),
     '@nuxtjs/critters',
     'nuxt-security',
   ],
+  // Only when `@posthog/nuxt` is absent, so the shim can never shadow the real
+  // `usePostHog()` in production.
+  ...(isProd ? {} : { imports: { dirs: ['shims/posthog'] } }),
   security: {
     // Per-request nonces, so `script-src` can drop 'unsafe-inline' below.
     // nuxt-security stamps the nonce onto the scripts Nuxt renders (the SSR
@@ -123,7 +146,7 @@ export default defineNuxtConfig({
     nonce: true,
     headers: {
       referrerPolicy: 'strict-origin-when-cross-origin',
-      contentSecurityPolicy: process.dev
+      contentSecurityPolicy: isLocal
         ? false
         : {
             'default-src': ["'self'"],
@@ -163,6 +186,18 @@ export default defineNuxtConfig({
             'frame-ancestors': ["'none'"],
             'base-uri': ["'self'"],
             'form-action': ["'self'"],
+            // Both, deliberately: `report-to` is what Chrome still honours, and
+            // `report-uri` is all Firefox and Safari understand. `report-to`
+            // names the endpoint declared in the `Reporting-Endpoints` header
+            // (server/middleware/98-html-response-headers.ts).
+            //
+            // Production only, like the SDK: the endpoint is a PostHog project,
+            // and staging violations reported into it are indistinguishable from
+            // real ones. On staging the browser console is the signal instead.
+            ...(isProd && {
+              'report-uri': [`${CSP_REPORT_URI}&type=report-uri`],
+              'report-to': 'posthog',
+            }),
           },
       // COEP disabled: cross-origin media from cdn.nadeshiko.co lacks CORP headers
       crossOriginEmbedderPolicy: false,
@@ -172,19 +207,21 @@ export default defineNuxtConfig({
     requestSizeLimiter: false,
     corsHandler: false,
   },
-  posthogConfig: {
-    publicKey: 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD',
-    host: 'https://t.nadeshiko.co',
-    clientConfig: {
-      capture_exceptions: true,
-      capture_pageview: true,
-      capture_pageleave: false,
-      autocapture: false,
+  ...(isProd && {
+    posthogConfig: {
+      publicKey: POSTHOG_PUBLIC_KEY,
+      host: POSTHOG_ORIGIN,
+      clientConfig: {
+        capture_exceptions: true,
+        capture_pageview: true,
+        capture_pageleave: false,
+        autocapture: false,
+      },
+      serverConfig: {
+        enableExceptionAutocapture: false,
+      },
     },
-    serverConfig: {
-      enableExceptionAutocapture: false,
-    },
-  },
+  }),
   site: {
     url: SITE_URL,
     name: 'Nadeshiko',
@@ -259,20 +296,24 @@ export default defineNuxtConfig({
   },
   i18n: {
     vueI18n: 'i18n.config.ts',
+    // `language`, not `iso`: v10 renamed the field, and it reads a missing
+    // `language` as "no ISO code" and silently emits no hreflang alternates at
+    // all -- the warning is the only signal. Keep these in sync with the
+    // hreflang values Google expects.
     locales: [
       {
         code: 'en',
-        iso: 'en',
+        language: 'en',
         name: 'English',
       },
       {
         code: 'es',
-        iso: 'es',
+        language: 'es',
         name: 'Español',
       },
       {
         code: 'ja',
-        iso: 'ja',
+        language: 'ja',
         name: '日本語',
       },
     ],
@@ -365,6 +406,21 @@ export default defineNuxtConfig({
     '/github/**': {
       headers: {
         'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    // Unversioned filenames (`github.svg`, `orange-pi.jpg`), so a week with
+    // background revalidation rather than the `immutable` year used above:
+    // replacing one of these in place has to become visible eventually.
+    // Without a rule they fall through to the zone's 1h browser TTL, which has
+    // every reader refetching the same blog images hourly.
+    '/icons/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+      },
+    },
+    '/images/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
       },
     },
   },
