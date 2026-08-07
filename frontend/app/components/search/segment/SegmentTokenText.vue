@@ -245,7 +245,7 @@ const COMMON_LABEL: Record<GlossLanguage, string> = { en: 'Common', es: 'Frecuen
 
 const { tooltipReadingMode } = useTooltipReadingVisibility();
 const { furiganaMode } = useHiraganaVisibility();
-const { presets, enabledDictionaries } = useDictionaryLinks();
+const { presets, isDictionaryEnabled } = useDictionaryLinks();
 
 // 1. Head. The headword is the dictionary form and the reading is the
 // dictionary's, not the surface's: 焼けた reads やけた, but the word above the
@@ -360,7 +360,7 @@ const dictionaryLinks = computed(() => {
   const token = hoveredToken.value;
   if (!token) return [];
   return presets
-    .filter((preset) => enabledDictionaries.value.includes(preset.id))
+    .filter((preset) => isDictionaryEnabled(preset.id))
     .map((preset) => ({
       id: preset.id,
       label: preset.label,
