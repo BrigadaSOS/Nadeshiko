@@ -576,6 +576,7 @@
       },
       "dictionaryLinks": "Integraciones de diccionario",
       "dictionaryLinksDescription": "Elige qué diccionarios aparecen como enlaces rápidos en el popup de tokens.",
+      "dictionaryAlwaysOn": "(siempre activo)",
       "deleteAccount": "Eliminar cuenta (Acción irreversible)",
       "deleteAccountButton": "Eliminar cuenta",
       "deletingAccount": "Eliminando...",

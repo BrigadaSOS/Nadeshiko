@@ -479,15 +479,20 @@ const logoutCurrentUser = async () => {
           <label
             v-for="preset in dictionaryPresets"
             :key="preset.id"
-            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800 border border-white/10 text-sm text-white cursor-pointer hover:bg-neutral-700"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800 border border-white/10 text-sm text-white"
+            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-neutral-700'"
           >
             <input
               type="checkbox"
               :checked="isDictionaryEnabled(preset.id)"
+              :disabled="preset.required"
               class="accent-button-primary-main"
               @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)"
             />
             <span>{{ preset.label }}</span>
+            <span v-if="preset.required" class="text-xs text-gray-400">{{
+              $t('accountSettings.account.dictionaryAlwaysOn')
+            }}</span>
           </label>
         </div>
       </div>
