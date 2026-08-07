@@ -1,9 +1,18 @@
 import { faro } from '@grafana/faro-web-sdk';
+import posthog from 'posthog-js';
 import { getPagePath } from '~/utils/pagePath';
 
 function toError(value: unknown): Error {
   if (value instanceof Error) return value;
   return new Error(typeof value === 'string' ? value : 'Unknown error');
+}
+
+export interface ReportErrorOptions {
+  /**
+   * Report to Faro only. For errors PostHog already records through one of its own
+   * handlers, so this does not add a second copy of the same throw.
+   */
+  faroOnly?: boolean;
 }
 
 /**
@@ -17,7 +26,12 @@ function toError(value: unknown): Error {
  * Falls back to `console.error` on the server and before Faro boots (no `faroUrl`
  * configured, or the plugin hasn't run yet).
  */
-export function reportError(name: string, error: unknown, attributes?: Record<string, string>): void {
+export function reportError(
+  name: string,
+  error: unknown,
+  attributes?: Record<string, string>,
+  options: ReportErrorOptions = {},
+): void {
   if (!import.meta.client || !faro.api) {
     console.error(`[${name}]`, error);
     return;
@@ -34,10 +48,11 @@ export function reportError(name: string, error: unknown, attributes?: Record<st
     },
   });
 
-  try {
-    usePostHog()?.captureException(normalized, { error_source: name, ...attributes });
-  } catch {
-    // Called from an async catch block that lost the Nuxt context. Faro already
-    // has the error, so there is nothing to recover here.
+  // Not `usePostHog()`: that resolves through `useNuxtApp()`, which throws whenever
+  // this is reached from a detached async catch — the common case here — so every
+  // such capture was silently swallowed and PostHog only ever saw what its own
+  // handlers caught. The singleton needs no Nuxt context.
+  if (!options.faroOnly && posthog.__loaded) {
+    posthog.captureException(normalized, { error_source: name, ...attributes });
   }
 }
