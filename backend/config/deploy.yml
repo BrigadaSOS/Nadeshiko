@@ -13,6 +13,12 @@ registry:
 
 builder:
   arch: amd64
+  # The image installs from the workspace lockfile, so the build context is the
+  # repository root rather than this app's directory. CI builds separately and
+  # deploys with --skip-push, so without this a plain `kamal deploy` fails on a
+  # missing /package-lock.json while CI stays green.
+  context: ..
+  dockerfile: Dockerfile
 
 ssh:
   user: docker

@@ -23,7 +23,9 @@ COPY backend backend
 
 # The shipped image keeps the API at /app rather than mirroring the monorepo, so
 # that `kamal app exec 'node --import tsx bin/es.ts ...'` and the other documented
-# runbook commands keep resolving relative to the working directory. Flatten the
+# runbook commands keep resolving relative to the working directory. `scripts` is
+# here for the same reason: the corpus reparse is run that way against a deployed
+# environment, and it is no use on a machine that cannot reach the database. Flatten the
 # workspace tree into that layout: hoisted root modules first, backend's own
 # nested overrides on top.
 RUN set -eux; \
@@ -31,7 +33,7 @@ RUN set -eux; \
   cp -a node_modules/. /app/node_modules/; \
   if [ -d backend/node_modules ]; then cp -a backend/node_modules/. /app/node_modules/; fi; \
   cd backend; \
-  cp -a package.json tsconfig.json main.ts instrumentation.ts app config db bin lib generated /app/; \
+  cp -a package.json tsconfig.json main.ts instrumentation.ts app config db bin lib scripts generated /app/; \
   node -e "require.resolve('tsx',{paths:['/app']})"
 
 FROM node:24-slim AS release
