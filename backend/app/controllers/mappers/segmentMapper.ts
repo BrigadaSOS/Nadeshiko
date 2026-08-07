@@ -126,11 +126,42 @@ export function toSegmentSnapshot(segment: Segment): Record<string, unknown> {
   };
 }
 
+/**
+ * The inverse of `toSegmentSnapshot`: turns a stored snapshot back into a patch.
+ *
+ * Keys are picked explicitly rather than spread. A snapshot is `jsonb` written by
+ * whatever version of `toSegmentSnapshot` was deployed at the time, so an old row
+ * can carry fields that have since been renamed or removed — and spreading it
+ * onto the entity would write those straight back, including anything that is no
+ * longer a column. Picking means an unknown key is ignored and a field added
+ * since the snapshot keeps its current value, which is the only sane reading of
+ * "restore what we recorded".
+ */
+export function fromSegmentSnapshot(snapshot: Record<string, unknown>): Partial<Segment> {
+  const restorable: Partial<Record<keyof Segment, unknown>> = {
+    contentJa: snapshot.contentJa,
+    contentEn: snapshot.contentEn,
+    contentEnMt: snapshot.contentEnMt,
+    contentEs: snapshot.contentEs,
+    contentEsMt: snapshot.contentEsMt,
+    status: snapshot.status,
+    contentRating: snapshot.contentRating,
+    position: snapshot.position,
+    startTimeMs: snapshot.startTimeMs,
+    endTimeMs: snapshot.endTimeMs,
+    ratingAnalysis: snapshot.ratingAnalysis,
+  };
+
+  return Object.fromEntries(Object.entries(restorable).filter(([, value]) => value !== undefined)) as Partial<Segment>;
+}
+
 export function toSegmentRevisionDTO(revision: SegmentRevision, userName: string | null): t_SegmentRevision {
   return {
     id: revision.id,
     revisionNumber: revision.revisionNumber,
     snapshot: revision.snapshot,
+    actor: revision.actor,
+    reportId: revision.reportId ?? null,
     userName,
     createdAt: revision.createdAt.toISOString(),
   };
