@@ -92,6 +92,11 @@ export default defineNuxtConfig({
     // under `public` below is shipped to the browser.
     shirabeApiKey: env.NUXT_SHIRABE_API_KEY,
     shirabeApiBase: env.NUXT_SHIRABE_API_BASE || 'https://shirabe.org',
+    // Optional fast path to Shirabe over the tailnet, skipping the round trip
+    // out to Cloudflare and back for two boxes in the same city. Unset means
+    // "public host only"; the lookup route falls back to it either way, so this
+    // only ever changes latency.
+    shirabeApiDirect: env.NUXT_SHIRABE_API_DIRECT || '',
     internalProxySecret: env.NUXT_INTERNAL_PROXY_SECRET,
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
