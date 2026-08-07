@@ -3,7 +3,6 @@ required:
   - id
   - source
   - target
-  - auditRunId
   - reason
   - description
   - data
@@ -21,10 +20,6 @@ properties:
     $ref: "./ReportSource.yaml"
   target:
     $ref: "./ReportTarget.yaml"
-  auditRunId:
-    type: integer
-    nullable: true
-    description: ID of the audit run that created this report (AUTO only)
   reason:
     $ref: "./ReportReason.yaml"
   description:

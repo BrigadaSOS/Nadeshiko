@@ -8,6 +8,7 @@ import { rawBodySaver } from '@app/middleware/rawBodySaver';
 import { httpLogger } from '@config/log';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { globalRateLimit } from '@app/middleware/rateLimit';
+import { trafficClassification, trafficAttributesFor } from '@app/middleware/trafficClassification';
 import { mountRoutes as defaultMountRoutes } from '@config/routes';
 import { getMeter } from '@config/telemetry';
 
@@ -61,6 +62,11 @@ function configureMiddleware(
 
   app.use(requestIdMiddleware);
 
+  // Label the traffic before anything can reject it: a 429 or a parse error is
+  // worth splitting by reader/bot/monitor too, and everything downstream (the
+  // access log, the error counters) reads the answer off the request.
+  app.use(trafficClassification);
+
   // Rate-limit unauthenticated traffic BEFORE parsing bodies so abusive bots
   // are rejected cheaply without burning CPU on JSON parse.
   if (rateLimitMiddleware) {
@@ -81,8 +87,12 @@ function configureMiddleware(
     unit: '{request}',
   });
   app.use((req, res, next) => {
-    activeRequests.add(1, { 'http.request.method': req.method });
-    res.on('finish', () => activeRequests.add(-1, { 'http.request.method': req.method }));
+    // The attributes have to be identical on both sides of the pair or the
+    // gauge never returns to zero, so they are computed once here rather than
+    // read off the request again on finish.
+    const attributes = { 'http.request.method': req.method, ...trafficAttributesFor(req) };
+    activeRequests.add(1, attributes);
+    res.on('finish', () => activeRequests.add(-1, attributes));
     next();
   });
 

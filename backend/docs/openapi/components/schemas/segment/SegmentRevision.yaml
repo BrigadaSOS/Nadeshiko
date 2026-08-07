@@ -4,6 +4,8 @@ SegmentRevision:
     - id
     - revisionNumber
     - snapshot
+    - actor
+    - reportId
     - createdAt
   properties:
     id:
@@ -15,11 +17,23 @@ SegmentRevision:
     snapshot:
       type: object
       additionalProperties: true
-      description: Snapshot of editable fields at the time of the revision
+      description: |
+        The segment's editable fields as they were *before* this revision's edit.
+        Restoring a revision writes these values back.
+    actor:
+      type: string
+      enum: [HUMAN, AGENT]
+      description: |
+        Whether a person or the moderation agent made the change. Derived from the
+        credential at write time — a service API key is the agent.
+    reportId:
+      type: integer
+      nullable: true
+      description: The report this edit answered, when it answered one
     userName:
       type: string
       nullable: true
-      description: Name of the user who made the change
+      description: Name of the account the change was made under
     createdAt:
       type: string
       format: date-time

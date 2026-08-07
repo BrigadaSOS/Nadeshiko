@@ -1,0 +1,35 @@
+meta {
+  name: Apply a moderation action to every segment in an episode
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/v1/media/:mediaPublicId/episodes/:episodeNumber/segments/moderate
+  body: json
+  auth: bearer
+}
+
+params:query {
+  mediaPublicId:
+  episodeNumber:
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "action": "shiftTimings",
+    "offsetMs": -1200,
+    "status": "ACTIVE",
+    "maxAffected": 500,
+    "reportId": 4821
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

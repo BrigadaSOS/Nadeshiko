@@ -17,6 +17,7 @@ import { authRateLimit } from '@app/middleware/rateLimit';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
+import { listAgentActivity } from '@app/controllers/agentActivityController';
 import {
   listMedia,
   createMedia,
@@ -52,6 +53,8 @@ import {
   getSegmentContext,
   updateSegment,
   listSegmentRevisions,
+  restoreSegmentRevision,
+  moderateEpisodeSegments,
 } from '@app/controllers/segmentController';
 import {
   createUserReport,
@@ -74,13 +77,6 @@ import {
 } from '@app/controllers/activityController';
 import { getMe, listExcludedMedia, addExcludedMedia, removeExcludedMedia } from '@app/controllers/userController';
 import { exportUserData } from '@app/controllers/userExportController';
-import {
-  listAdminMediaAudits,
-  updateAdminMediaAudit,
-  runAdminMediaAudit,
-  listAdminMediaAuditRuns,
-  getAdminMediaAuditRun,
-} from '@app/controllers/mediaAuditController';
 import { getStatsOverview, getCoveredWords, triggerCoveredWordsUpdate } from '@app/controllers/statsController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
@@ -211,6 +207,8 @@ const MediaRoutes = createMediaRouter({
   getSegmentContext,
   updateSegment,
   listSegmentRevisions,
+  restoreSegmentRevision,
+  moderateEpisodeSegments,
 });
 
 const ActivityRoutes = createActivityRouter({
@@ -239,11 +237,7 @@ const AdminRoutes = createAdminRouter({
   bulkDeleteAdminReports,
   updateAdminReport,
   deleteAdminReport,
-  listAdminMediaAudits,
-  updateAdminMediaAudit,
-  runAdminMediaAudit,
-  listAdminMediaAuditRuns,
-  getAdminMediaAuditRun,
+  listAgentActivity,
   getAnnouncement,
   updateAnnouncement,
   getAdminUsersWithProviders,

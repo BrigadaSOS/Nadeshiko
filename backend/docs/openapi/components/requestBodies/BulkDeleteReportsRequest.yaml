@@ -22,9 +22,6 @@ properties:
       targetSegmentId:
         type: integer
         description: Filter by target segment ID
-      auditRunId:
-        type: integer
-        description: Filter by audit run ID
       orphaned:
         type: boolean
         description: Only delete reports whose target media no longer exists

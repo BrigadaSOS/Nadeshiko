@@ -1,0 +1,26 @@
+meta {
+  name: List edits made by the moderation agent
+  type: http
+  seq: 58
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/agent-activity?since=2026-08-06T00:00:00Z&take=100
+  body: none
+  auth: bearer
+}
+
+params:query {
+  since: 2026-08-06T00:00:00Z
+  reportId:
+  take: 100
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

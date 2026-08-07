@@ -1,0 +1,25 @@
+meta {
+  name: Restore a segment revision
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/v1/media/segments/:segmentPublicId/revisions/:revisionNumber/restore?segmentPublicId=V1StGXR8_Z5d&revisionNumber=3
+  body: none
+  auth: bearer
+}
+
+params:query {
+  segmentPublicId: V1StGXR8_Z5d
+  revisionNumber: 3
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -639,6 +639,62 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/media/segments/{segmentPublicId}/revisions/{revisionNumber}/restore:
+    post:
+      operationId: restoreSegmentRevision
+      x-internal: true
+      tags:
+        - Media
+      summary: Restore a segment revision
+      description: |
+        Writes the values captured in the given revision's snapshot back onto the
+        segment, undoing every edit made since.
+
+        The restore is itself an edit: it writes a new revision snapshotting the state
+        it replaced, so restoring is reversible by restoring again. Revision numbers
+        are never rewound — a segment at revision 7 restored to revision 3 lands at
+        revision 8, whose snapshot holds what revision 7 left behind.
+
+        This is the undo path for a bad moderation edit, whether a person or the agent
+        made it.
+      security:
+        - ApiKey:
+            - UPDATE_MEDIA
+      parameters:
+        - name: segmentPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Segment public ID
+          example: V1StGXR8_Z5d
+        - name: revisionNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The revision number to restore this segment to
+          example: 3
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentInternal'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/media/{mediaPublicId}:
     get:
       tags:
@@ -1153,6 +1209,76 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/SegmentBatchCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/media/{mediaPublicId}/episodes/{episodeNumber}/segments/moderate:
+    post:
+      operationId: moderateEpisodeSegments
+      x-internal: true
+      tags:
+        - Media
+      summary: Apply a moderation action to every segment in an episode
+      description: |
+        Applies one action across a whole episode. This exists for defects that are
+        properties of the episode rather than of any single line — a subtitle file
+        offset against the audio, or a bad rip that makes every clip unusable.
+
+        Two actions are supported:
+
+        - `shiftTimings` moves every segment's start and end by `offsetMs`, which may
+          be negative. Segments whose start would go below zero are clamped to zero
+          rather than skipped, so the episode stays contiguous.
+        - `setStatus` sets every segment's status, which is how an episode is hidden
+          from search without deleting anything.
+
+        Every affected segment gets its own revision, so this is revertible one segment
+        at a time through the restore endpoint, and shows up per segment in the agent
+        activity feed.
+
+        **Bounded by `maxAffected`.** If the episode has more segments than that, the
+        request is rejected with 400 and nothing is written — no partial application.
+        The cap is what keeps an automated caller's mistake to a size a person can
+        review, so callers are expected to set it deliberately rather than to the
+        largest value they can.
+      security:
+        - ApiKey:
+            - UPDATE_MEDIA
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Media public ID
+        - name: episodeNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Episode number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerateEpisodeSegmentsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AffectedCountResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2180,11 +2306,6 @@ paths:
           schema:
             type: integer
           description: Filter by target segment ID
-        - name: auditRunId
-          in: query
-          schema:
-            type: integer
-          description: Filter by audit run ID
         - name: orphaned
           in: query
           schema:
@@ -2390,228 +2511,64 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits:
+  /v1/admin/agent-activity:
     get:
+      operationId: listAgentActivity
+      x-internal: true
       tags:
         - Admin
-      x-internal: true
-      operationId: listAdminMediaAudits
-      summary: List all media audits
+      summary: List edits made by the moderation agent
       description: |
-        Returns all audit definitions with current config, threshold schema, and latest run info.
+        Returns segment revisions written under a service credential, newest first,
+        joined to the segment they changed and the report they answered.
+
+        This is the independent record of what the agent actually did. The agent's own
+        Discord digest reports what it believes it did; this reports what landed in the
+        database. Reading both is how a run that half-failed, or an action the agent
+        did not mention, becomes visible.
+
+        Each entry carries the pre-edit `snapshot`, so a bad edit can be reverted
+        straight from here through the revision restore endpoint without going hunting
+        for the revision number.
       security:
-        - SessionCookie:
-            - ADMIN
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MediaAudit'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/{name}:
-    patch:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: updateAdminMediaAudit
-      summary: Update media audit config
-      description: |
-        Updates the threshold values or enabled status of an audit.
-      security:
+        - ApiKey:
+            - READ_MEDIA
         - SessionCookie:
             - ADMIN
       parameters:
-        - name: name
-          in: path
-          required: true
+        - name: since
+          in: query
           schema:
             type: string
-          description: Audit name identifier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                threshold:
-                  type: object
-                  description: New threshold values
-                  additionalProperties: true
-                enabled:
-                  type: boolean
-                  description: Enable or disable this audit
+            format: date-time
+          description: Only return activity at or after this timestamp. Defaults to 24 hours ago.
+          example: '2026-08-06T00:00:00Z'
+        - name: reportId
+          in: query
+          schema:
+            type: integer
+          description: Only return edits made in answer to this report
+        - name: take
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+          description: Maximum entries to return
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaAudit'
+                $ref: '#/components/schemas/AgentActivityResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/{name}/run:
-    post:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: runAdminMediaAudit
-      summary: Run media audit
-      description: |
-        Triggers all enabled audits (or a specific one). Creates MediaAuditRun records and AUTO reports for any findings.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: name
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Audit name to run, or "all" to run all enabled audits
-        - name: category
-          in: query
-          schema:
-            type: string
-            enum:
-              - ANIME
-              - JDRAMA
-          description: Optional category filter
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RunAuditResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/runs:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: listAdminMediaAuditRuns
-      summary: List past audit runs
-      description: |
-        Returns past media audit runs with summary stats. Supports filtering by audit name and cursor pagination.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: auditName
-          in: query
-          schema:
-            type: string
-          description: Filter by audit name
-        - name: cursor
-          in: query
-          schema:
-            type: string
-          description: Opaque pagination cursor token
-        - name: take
-          in: query
-          schema:
-            type: integer
-            default: 20
-            maximum: 100
-          description: Number of results per page
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - runs
-                  - pagination
-                properties:
-                  runs:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/MediaAuditRun'
-                  pagination:
-                    $ref: '#/components/schemas/CursorPagination'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /v1/admin/media/audits/runs/{auditRunId}:
-    get:
-      tags:
-        - Admin
-      x-internal: true
-      operationId: getAdminMediaAuditRun
-      summary: Get audit run details
-      description: |
-        Returns a specific media audit run record with its linked reports.
-      security:
-        - SessionCookie:
-            - ADMIN
-      parameters:
-        - name: auditRunId
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: Run ID
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - run
-                  - reports
-                properties:
-                  run:
-                    $ref: '#/components/schemas/MediaAuditRun'
-                  reports:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Report'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -4512,6 +4469,15 @@ components:
           minLength: 1
           description: Hash identifier for the segment (from segment JSON)
           example: 0d39e46b14
+        reportId:
+          type: integer
+          description: |
+            The report this edit answers, recorded on the resulting revision.
+
+            Optional, and only meaningful for moderation traffic — it is what lets the
+            agent activity feed show which reported problem an edit was made for. Edits
+            that did not come from a report leave it unset.
+          example: 4821
     SegmentInternal:
       description: |
         Segment with internal fields. For write operations (create, update) all fields are always populated.
@@ -4567,6 +4533,8 @@ components:
         - id
         - revisionNumber
         - snapshot
+        - actor
+        - reportId
         - createdAt
       properties:
         id:
@@ -4578,11 +4546,25 @@ components:
         snapshot:
           type: object
           additionalProperties: true
-          description: Snapshot of editable fields at the time of the revision
+          description: |
+            The segment's editable fields as they were *before* this revision's edit.
+            Restoring a revision writes these values back.
+        actor:
+          type: string
+          enum:
+            - HUMAN
+            - AGENT
+          description: |
+            Whether a person or the moderation agent made the change. Derived from the
+            credential at write time — a service API key is the agent.
+        reportId:
+          type: integer
+          nullable: true
+          description: The report this edit answered, when it answered one
         userName:
           type: string
           nullable: true
-          description: Name of the user who made the change
+          description: Name of the account the change was made under
         createdAt:
           type: string
           format: date-time
@@ -4966,6 +4948,52 @@ components:
           maxItems: 1000
           items:
             $ref: '#/components/schemas/SegmentCreateRequest'
+    ModerateEpisodeSegmentsRequest:
+      type: object
+      required:
+        - action
+        - maxAffected
+      properties:
+        action:
+          type: string
+          enum:
+            - shiftTimings
+            - setStatus
+          description: Which bulk action to apply
+        offsetMs:
+          type: integer
+          description: |
+            Milliseconds to shift every segment by; negative moves clips earlier.
+            Required for `shiftTimings`, ignored otherwise.
+          example: -1200
+        status:
+          $ref: '#/components/schemas/SegmentStatus'
+        maxAffected:
+          type: integer
+          minimum: 1
+          maximum: 5000
+          description: |
+            Refuse the request if the episode has more segments than this.
+
+            There is no safe default, so it is required: the right ceiling depends on
+            whether a person is about to review the result. The request is rejected
+            whole — a cap smaller than the episode changes nothing rather than applying
+            to the first N segments.
+          example: 500
+        reportId:
+          type: integer
+          description: The report this action answers, recorded on every revision it writes
+          example: 4821
+    AffectedCountResponse:
+      type: object
+      description: Number of records affected by a bulk operation
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          description: Number of records affected
+          example: 42
     UserMe:
       type: object
       required:
@@ -5230,7 +5258,6 @@ components:
         - id
         - source
         - target
-        - auditRunId
         - reason
         - description
         - data
@@ -5248,10 +5275,6 @@ components:
           $ref: '#/components/schemas/ReportSource'
         target:
           $ref: '#/components/schemas/ReportTarget'
-        auditRunId:
-          type: integer
-          nullable: true
-          description: ID of the audit run that created this report (AUTO only)
         reason:
           $ref: '#/components/schemas/ReportReason'
         description:
@@ -5454,16 +5477,6 @@ components:
           type: string
         searchQuery:
           type: string
-    AffectedCountResponse:
-      type: object
-      description: Number of records affected by a bulk operation
-      required:
-        - count
-      properties:
-        count:
-          type: integer
-          description: Number of records affected
-          example: 42
     HeatmapDayCounts:
       type: object
       description: Activity counts for a single day, broken down by type. Only types with at least 1 event are present.
@@ -5850,9 +5863,6 @@ components:
             targetSegmentId:
               type: integer
               description: Filter by target segment ID
-            auditRunId:
-              type: integer
-              description: Filter by audit run ID
             orphaned:
               type: boolean
               description: Only delete reports whose target media no longer exists
@@ -5888,9 +5898,6 @@ components:
             targetSegmentId:
               type: integer
               description: Filter by target segment ID
-            auditRunId:
-              type: integer
-              description: Filter by audit run ID
             orphaned:
               type: boolean
               description: Only update reports whose target media no longer exists
@@ -5904,168 +5911,64 @@ components:
           maxLength: 1000
           description: Admin notes about the report
           example: Confirmed wrong translation, will fix
-    MediaAudit:
+    AgentActivityResponse:
       type: object
       required:
-        - id
-        - name
-        - label
-        - description
-        - targetType
-        - threshold
-        - enabled
-        - thresholdSchema
-        - latestRun
-        - createdAt
-        - updatedAt
+        - entries
       properties:
-        id:
-          type: integer
-          description: Audit ID
-        name:
-          type: string
-          description: Unique audit identifier
-          example: lowSegmentMedia
-        label:
-          type: string
-          description: Human-readable label
-          example: Low Segment Media
-        description:
-          type: string
-          description: What this audit does
-        targetType:
-          type: string
-          enum:
-            - MEDIA
-            - EPISODE
-          description: What level this audit operates on
-        threshold:
-          type: object
-          description: Current threshold configuration
-          additionalProperties: true
-        enabled:
-          type: boolean
-          description: Whether this audit is active
-        thresholdSchema:
-          type: array
-          description: Schema for threshold fields (from registry)
-          items:
-            type: object
-            required:
-              - key
-              - label
-              - type
-              - default
-            properties:
-              key:
-                type: string
-              label:
-                type: string
-              type:
-                type: string
-                enum:
-                  - number
-                  - boolean
-              default:
-                oneOf:
-                  - type: number
-                  - type: boolean
-              min:
-                type: number
-              max:
-                type: number
-        latestRun:
-          type: object
-          nullable: true
-          description: Latest run info for this audit
-          required:
-            - id
-            - resultCount
-            - createdAt
-          properties:
-            id:
-              type: integer
-            resultCount:
-              type: integer
-            createdAt:
-              type: string
-              format: date-time
-        createdAt:
-          type: string
-          format: date-time
-          nullable: true
-        updatedAt:
-          type: string
-          format: date-time
-          nullable: true
-    RunAuditResponse:
-      type: object
-      required:
-        - category
-        - checksRun
-        - totalReports
-      properties:
-        category:
-          type: string
-          nullable: true
-          description: Category filter used
-        checksRun:
+        entries:
           type: array
           items:
             type: object
             required:
-              - auditName
-              - label
-              - resultCount
-              - runId
+              - revisionId
+              - revisionNumber
+              - segmentPublicId
+              - mediaPublicId
+              - episodeNumber
+              - snapshot
+              - current
+              - reportId
+              - actedBy
+              - createdAt
             properties:
-              auditName:
-                type: string
-                description: Audit identifier
-              label:
-                type: string
-                description: Human-readable audit name
-              resultCount:
+              revisionId:
                 type: integer
-                description: Number of reports created
-              runId:
+                description: Revision ID
+              revisionNumber:
                 type: integer
-                description: ID of the created run record
-        totalReports:
-          type: integer
-          description: Total reports created across all audits
-    MediaAuditRun:
-      type: object
-      required:
-        - id
-        - auditName
-        - resultCount
-        - thresholdUsed
-        - createdAt
-      properties:
-        id:
-          type: integer
-          description: Run ID
-        auditName:
-          type: string
-          description: Name of the audit that was run
-          example: lowSegmentMedia
-        category:
-          type: string
-          nullable: true
-          description: Category filter used (ANIME/JDRAMA) or null for all
-        resultCount:
-          type: integer
-          description: Number of reports created in this run
-          example: 12
-        thresholdUsed:
-          type: object
-          description: Snapshot of threshold at run time
-          additionalProperties: true
-        createdAt:
-          type: string
-          format: date-time
-          description: When this run was executed
+                description: The revision number to pass to the restore endpoint to undo this edit
+              segmentPublicId:
+                type: string
+                description: Public ID of the segment that was changed
+              mediaPublicId:
+                type: string
+                description: Public ID of the media the segment belongs to
+              episodeNumber:
+                type: integer
+                description: Episode the segment belongs to
+              snapshot:
+                type: object
+                additionalProperties: true
+                description: The segment's editable fields as they were before this edit
+              current:
+                type: object
+                additionalProperties: true
+                description: |
+                  The same fields as they are now. Paired with `snapshot` this is the
+                  diff, without the caller having to fetch the segment separately.
+              reportId:
+                type: integer
+                nullable: true
+                description: The report this edit answered, when it answered one
+              actedBy:
+                type: string
+                nullable: true
+                description: Account the service credential belongs to
+              createdAt:
+                type: string
+                format: date-time
+                description: When the edit was made
     Announcement:
       type: object
       description: Site-wide announcement banner

@@ -51,6 +51,21 @@ export type t_AffectedCountResponse = {
   count: number;
 };
 
+export type t_AgentActivityResponse = {
+  entries: {
+    actedBy: string | null;
+    createdAt: string;
+    current: Record<string, unknown>;
+    episodeNumber: number;
+    mediaPublicId: string;
+    reportId: number | null;
+    revisionId: number;
+    revisionNumber: number;
+    segmentPublicId: string;
+    snapshot: Record<string, unknown>;
+  }[];
+};
+
 export type t_Announcement = {
   active: boolean;
   message: string;
@@ -65,7 +80,6 @@ export type t_BatchUpdateReportsRequest = {
 
 export type t_BulkDeleteReportsRequest = {
   filters?: {
-    auditRunId?: number;
     orphaned?: boolean;
     source?: t_ReportSource;
     status?: string;
@@ -79,7 +93,6 @@ export type t_BulkDeleteReportsRequest = {
 export type t_BulkUpdateReportsRequest = {
   adminNotes?: string;
   filters?: {
-    auditRunId?: number;
     orphaned?: boolean;
     source?: t_ReportSource;
     status?: string;
@@ -332,40 +345,6 @@ export type t_Media = {
   studio: string | null;
 };
 
-export type t_MediaAudit = {
-  createdAt: string | null;
-  description: string;
-  enabled: boolean;
-  id: number;
-  label: string;
-  latestRun: {
-    createdAt: string;
-    id: number;
-    resultCount: number;
-  } | null;
-  name: string;
-  targetType: 'MEDIA' | 'EPISODE';
-  threshold: Record<string, unknown>;
-  thresholdSchema: {
-    default: number | boolean;
-    key: string;
-    label: string;
-    max?: number;
-    min?: number;
-    type: 'number' | 'boolean';
-  }[];
-  updatedAt: string | null;
-};
-
-export type t_MediaAuditRun = {
-  auditName: string;
-  category?: string | null;
-  createdAt: string;
-  id: number;
-  resultCount: number;
-  thresholdUsed: Record<string, unknown>;
-};
-
 export type t_MediaAutocompleteResponse = {
   media: t_MediaSummary[];
 };
@@ -447,9 +426,16 @@ export type t_MediaUpdateRequest = {
   version?: string;
 };
 
+export type t_ModerateEpisodeSegmentsRequest = {
+  action: 'shiftTimings' | 'setStatus';
+  maxAffected: number;
+  offsetMs?: number;
+  reportId?: number;
+  status?: t_SegmentStatus;
+};
+
 export type t_Report = {
   adminNotes: string | null;
-  auditRunId: number | null;
   createdAt: string;
   data: Record<string, unknown> | null;
   description: string | null;
@@ -520,17 +506,6 @@ export type t_ReportTargetSegmentInput = {
 };
 
 export type t_ReportTargetType = 'SEGMENT' | 'EPISODE' | 'MEDIA';
-
-export type t_RunAuditResponse = {
-  category: string | null;
-  checksRun: {
-    auditName: string;
-    label: string;
-    resultCount: number;
-    runId: number;
-  }[];
-  totalReports: number;
-};
 
 export type t_SearchFilters = {
   category?: t_Category[];
@@ -709,8 +684,10 @@ export type t_SegmentListResponse = {
 };
 
 export type t_SegmentRevision = {
+  actor: 'HUMAN' | 'AGENT';
   createdAt: string;
   id: number;
+  reportId: number | null;
   revisionNumber: number;
   snapshot: Record<string, unknown>;
   userName?: string | null;
@@ -724,6 +701,7 @@ export type t_SegmentUpdateRequest = {
   hashedId?: string;
   position?: number;
   ratingAnalysis?: Record<string, unknown> | null;
+  reportId?: number;
   startTimeMs?: number;
   status?: t_SegmentStatus;
   storage?: 'LOCAL' | 'R2';
@@ -972,10 +950,6 @@ export type t_DeleteUserActivityByIdParamSchema = {
   activityId: number;
 };
 
-export type t_GetAdminMediaAuditRunParamSchema = {
-  auditRunId: number;
-};
-
 export type t_GetAdminUsersWithProvidersQuerySchema = {
   limit?: number;
   offset?: number;
@@ -1029,14 +1003,7 @@ export type t_GetUserActivityStatsQuerySchema = {
   since?: string;
 };
 
-export type t_ListAdminMediaAuditRunsQuerySchema = {
-  auditName?: string;
-  cursor?: string;
-  take?: number;
-};
-
 export type t_ListAdminReportsQuerySchema = {
-  auditRunId?: number;
   cursor?: string;
   orphaned?: boolean;
   source?: t_ReportSource;
@@ -1046,6 +1013,12 @@ export type t_ListAdminReportsQuerySchema = {
   'target.mediaId'?: number;
   'target.segmentId'?: number;
   'target.type'?: t_ReportTargetType;
+};
+
+export type t_ListAgentActivityQuerySchema = {
+  reportId?: number;
+  since?: string;
+  take?: number;
 };
 
 export type t_ListCollectionsQuerySchema = {
@@ -1091,6 +1064,11 @@ export type t_ListUserActivityQuerySchema = {
   take?: number;
 };
 
+export type t_ModerateEpisodeSegmentsParamSchema = {
+  episodeNumber: number;
+  mediaPublicId: string;
+};
+
 export type t_RemoveExcludedMediaParamSchema = {
   mediaPublicId: string;
 };
@@ -1100,25 +1078,13 @@ export type t_RemoveSegmentFromCollectionParamSchema = {
   segmentPublicId: string;
 };
 
-export type t_RunAdminMediaAuditParamSchema = {
-  name: string;
-};
-
-export type t_RunAdminMediaAuditQuerySchema = {
-  category?: 'ANIME' | 'JDRAMA';
+export type t_RestoreSegmentRevisionParamSchema = {
+  revisionNumber: number;
+  segmentPublicId: string;
 };
 
 export type t_SearchCollectionSegmentsParamSchema = {
   collectionPublicId: string;
-};
-
-export type t_UpdateAdminMediaAuditParamSchema = {
-  name: string;
-};
-
-export type t_UpdateAdminMediaAuditRequestBody = {
-  enabled?: boolean;
-  threshold?: Record<string, unknown>;
 };
 
 export type t_UpdateAdminReportParamSchema = {

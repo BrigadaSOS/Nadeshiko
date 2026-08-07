@@ -131,3 +131,12 @@ SegmentUpdateRequest:
   description: All fields are optional for partial updates
   properties:
     <<: *segmentFields
+    reportId:
+      type: integer
+      description: |
+        The report this edit answers, recorded on the resulting revision.
+
+        Optional, and only meaningful for moderation traffic — it is what lets the
+        agent activity feed show which reported problem an edit was made for. Edits
+        that did not come from a report leave it unset.
+      example: 4821
