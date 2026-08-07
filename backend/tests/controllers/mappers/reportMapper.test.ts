@@ -17,7 +17,6 @@ function buildReport(overrides: Record<string, unknown> = {}) {
     targetMediaId: 10,
     targetEpisodeNumber: null,
     targetSegmentId: null,
-    auditRunId: null,
     reason: ReportReason.OTHER,
     description: null,
     data: null,
@@ -162,7 +161,6 @@ describe('report.mapper', () => {
       'target.mediaId': 9,
       'target.episodeNumber': 3,
       'target.segmentId': 9,
-      auditRunId: 12,
     } as any);
 
     expect(filters).toEqual({
@@ -172,7 +170,6 @@ describe('report.mapper', () => {
       targetMediaId: 9,
       targetEpisodeNumber: 3,
       targetSegmentId: 9,
-      auditRunId: 12,
     });
   });
 

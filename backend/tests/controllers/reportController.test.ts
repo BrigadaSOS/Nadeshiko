@@ -7,7 +7,7 @@ import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
-import { MediaAuditRun, Segment } from '@app/models';
+import { Segment } from '@app/models';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { Report, ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models/Report';
 import { setBossInstance } from '@app/workers/pgBossClient';
@@ -388,12 +388,6 @@ describe('GET /v1/admin/reports', () => {
     const media = fixtures.media.testShow;
     const episode = fixtures.episodes.pilot;
     const seg1 = await seedSegment(media.id, episode.episodeNumber);
-    const auditRun = (await MediaAuditRun.save({
-      auditName: 'db-es-sync-issues',
-      category: 'ANIME',
-      resultCount: 2,
-      thresholdUsed: { maxMismatchRatio: 0.1 },
-    })) as MediaAuditRun;
 
     // Two reports for the same target (different reasons) -> one group with 2 individual reports
     await Report.save({
@@ -404,7 +398,6 @@ describe('GET /v1/admin/reports', () => {
       targetSegmentId: seg1.id,
       reason: ReportReason.DB_ES_SYNC_ISSUES,
       status: ReportStatus.PROCESSING,
-      auditRunId: auditRun.id,
       userId: null,
     });
 
@@ -416,12 +409,11 @@ describe('GET /v1/admin/reports', () => {
       targetSegmentId: seg1.id,
       reason: ReportReason.BAD_SEGMENT_RATIO,
       status: ReportStatus.PROCESSING,
-      auditRunId: auditRun.id,
       userId: null,
     });
 
     const res = await request(app).get(
-      `/v1/admin/reports?status=PROCESSING&source=AUTO&target.type=SEGMENT&target.mediaId=${media.id}&target.episodeNumber=${episode.episodeNumber}&target.segmentId=${seg1.id}&auditRunId=${auditRun.id}&take=20`,
+      `/v1/admin/reports?status=PROCESSING&source=AUTO&target.type=SEGMENT&target.mediaId=${media.id}&target.episodeNumber=${episode.episodeNumber}&target.segmentId=${seg1.id}&take=20`,
     );
 
     expect(res.status).toBe(200);

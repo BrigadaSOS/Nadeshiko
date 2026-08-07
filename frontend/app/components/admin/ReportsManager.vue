@@ -2,8 +2,6 @@
 import type {
   BulkDeleteReportsRequest,
   BulkUpdateReportsRequest,
-  MediaAudit,
-  MediaAuditRun,
   ReportStatus,
   UpdateReportRequest,
 } from '@brigadasos/nadeshiko-sdk';
@@ -59,16 +57,6 @@ const toggleStatus = (status: string) => {
   activeStatuses.value = next;
 };
 
-const audits = ref<MediaAudit[]>([]);
-const runningAudits = ref<Set<string>>(new Set());
-const runs = ref<MediaAuditRun[]>([]);
-
-const autoSubTab = ref<'results' | 'runHistory'>('results');
-
-const showAuditConfig = ref(false);
-const editingAudit = ref<MediaAudit | null>(null);
-const editThreshold = ref<Record<string, number | boolean>>({});
-
 const buildReportQuery = (cursor: string | null) => {
   const query: Record<string, string | number | boolean> = { take: 20 };
   if (cursor) query.cursor = cursor;
@@ -105,55 +93,16 @@ const loadMoreReports = async () => {
   groups.value.push(...outcome.page.groups);
 };
 
-const fetchAudits = async () => {
-  const data = await sdk.listAdminMediaAudits().catch((err) => {
-    // The audit cards are a secondary panel; an empty list is the inline state.
-    handleApiError('reports.fetchAudits', err, { toastKey: false });
-    return null;
-  });
-  audits.value = (Array.isArray(data) ? data : []) as MediaAudit[];
-};
-
-const fetchRuns = async () => {
-  try {
-    const data = await sdk.listAdminMediaAuditRuns({ take: 50 });
-    runs.value = data.runs;
-  } catch (err) {
-    handleApiError('reports.fetchRuns', err, { toastKey: false });
-  }
-};
-
 // Admin pages require auth -- skip SSR data fetch, load client-side only
 onMounted(() => {
   fetchReports();
-  fetchAudits();
 });
 
 watch([sourceFilter, statusFilterQuery, orphanedFilter], () => {
-  autoSubTab.value = 'results';
   selectedGroupIndices.value = new Set();
   expandedGroups.value = new Set();
   fetchReports();
 });
-
-const runAudit = async (auditName: string) => {
-  runningAudits.value.add(auditName);
-  try {
-    const data = await sdk.runAdminMediaAudit(auditName);
-    useToastSuccess(
-      t('reports.admin.auditRunResult', {
-        audit: auditName,
-        count: formatNumber(data.totalReports ?? 0),
-      }),
-    );
-    await fetchReports();
-    await fetchAudits();
-  } catch (err) {
-    handleApiError('reports.runAudit', err);
-  } finally {
-    runningAudits.value.delete(auditName);
-  }
-};
 
 const updateReport = async (reportId: number, status?: string, adminNotes?: string) => {
   const body: UpdateReportRequest = {};
@@ -166,28 +115,6 @@ const updateReport = async (reportId: number, status?: string, adminNotes?: stri
     useToastSuccess(t('reports.admin.updateSuccess'));
   } catch (err) {
     handleApiError('reports.updateReport', err, { toastKey: 'reports.admin.updateError' });
-  }
-};
-
-const openAuditConfig = (audit: MediaAudit) => {
-  editingAudit.value = audit;
-  editThreshold.value = { ...audit.threshold } as Record<string, number | boolean>;
-  showAuditConfig.value = true;
-};
-
-const saveAuditConfig = async () => {
-  if (!editingAudit.value) return;
-
-  try {
-    await sdk.updateAdminMediaAudit({
-      name: editingAudit.value.name,
-      threshold: editThreshold.value,
-    });
-    useToastSuccess(t('reports.admin.auditConfigUpdated'));
-    showAuditConfig.value = false;
-    await fetchAudits();
-  } catch (err) {
-    handleApiError('reports.saveAuditConfig', err);
   }
 };
 
@@ -345,12 +272,6 @@ const bulkDeleteAllMatching = async () => {
     isBulkDeleting.value = false;
   }
 };
-
-const viewRunResults = () => {
-  autoSubTab.value = 'results';
-  activeStatuses.value = new Set(ALL_STATUSES);
-  fetchReports();
-};
 </script>
 
 <template>
@@ -365,33 +286,6 @@ const viewRunResults = () => {
       :active-statuses="activeStatuses"
       @toggle-status="toggleStatus"
     />
-
-    <!-- Audit Cards (Auto tab) -->
-    <AdminReportsAuditCards
-      v-if="sourceFilter === 'AUTO'"
-      :audits="audits"
-      :running-audits="runningAudits"
-      @configure="openAuditConfig"
-      @run="runAudit"
-    />
-
-    <!-- Auto Checks Sub-tabs -->
-    <div v-if="sourceFilter === 'AUTO'" class="inline-flex rounded-lg border border-neutral-700 overflow-hidden mb-4">
-      <button
-        class="px-4 py-2 text-sm"
-        :class="autoSubTab === 'results' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
-        @click="autoSubTab = 'results'"
-      >
-        {{ t('reports.admin.resultsTab') }}
-      </button>
-      <button
-        class="px-4 py-2 text-sm border-l border-neutral-700"
-        :class="autoSubTab === 'runHistory' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
-        @click="autoSubTab = 'runHistory'; fetchRuns()"
-      >
-        {{ t('reports.admin.runHistoryTab') }}
-      </button>
-    </div>
 
     <!-- Batch Actions Bar -->
     <AdminReportsSelectionBar
@@ -414,7 +308,6 @@ const viewRunResults = () => {
 
     <!-- Report Groups Table -->
     <AdminReportsTable
-      v-if="sourceFilter !== 'AUTO' || autoSubTab === 'results'"
       :groups="groups"
       :is-loading="isLoading"
       :has-more="hasMore"
@@ -428,21 +321,6 @@ const viewRunResults = () => {
       @delete-report="confirmDeleteReport"
       @save-notes="saveNotes"
       @load-more="loadMoreReports"
-    />
-
-    <!-- Run History (Auto tab) -->
-    <AdminReportsRunHistory
-      v-if="sourceFilter === 'AUTO' && autoSubTab === 'runHistory'"
-      :runs="runs"
-      @view-results="viewRunResults"
-    />
-
-    <AdminReportsAuditConfigModal
-      :open="showAuditConfig"
-      :audit="editingAudit"
-      :threshold="editThreshold"
-      @close="showAuditConfig = false"
-      @save="saveAuditConfig"
     />
 
     <CommonConfirmModal

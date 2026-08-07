@@ -40,7 +40,9 @@ export enum ReportReason {
   // Shared reasons
   INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
   OTHER = 'OTHER',
-  // Auto-check reason codes
+  // Legacy values kept for DB enum compatibility — the media audit runner that
+  // produced them was removed. Dropping a Postgres enum value means rewriting the
+  // type, and any AUTO rows still in the table reference these.
   LOW_SEGMENT_MEDIA = 'LOW_SEGMENT_MEDIA',
   EMPTY_EPISODES = 'EMPTY_EPISODES',
   MISSING_EPISODES_AUTO = 'MISSING_EPISODES_AUTO',
@@ -54,7 +56,6 @@ export enum ReportReason {
 @Entity('Report')
 @Index(['source'])
 @Index(['targetType', 'targetMediaId'])
-@Index(['auditRunId'])
 @Index(['status'])
 @Index(['userId'])
 export class Report extends BaseEntity {
@@ -75,9 +76,6 @@ export class Report extends BaseEntity {
 
   @Column({ name: 'target_segment_id', type: 'int', nullable: true })
   targetSegmentId?: number | null;
-
-  @Column({ name: 'audit_run_id', type: 'int', nullable: true })
-  auditRunId?: number | null;
 
   @Column({ type: 'enum', enum: ReportReason })
   reason!: ReportReason;
@@ -100,8 +98,4 @@ export class Report extends BaseEntity {
   @ManyToOne('User', { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user?: User | null;
-
-  @ManyToOne('MediaAuditRun', { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'audit_run_id' })
-  auditRun?: unknown;
 }

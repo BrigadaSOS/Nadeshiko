@@ -50,7 +50,6 @@ export type AdminReportFilters = {
   targetMediaId?: number;
   targetEpisodeNumber?: number;
   targetSegmentId?: number;
-  auditRunId?: number;
   orphaned?: boolean;
 };
 
@@ -59,7 +58,6 @@ export const toReportDTO = (report: Report, ids: ReportPublicIds): t_Report => {
     id: report.id,
     source: report.source,
     target: toReportTargetDTO(report, ids),
-    auditRunId: report.auditRunId ?? null,
     reason: report.reason,
     description: report.description ?? null,
     data: report.data ?? null,
@@ -194,7 +192,6 @@ export function toAdminReportFilters(query: ListAdminReportsQueryOutput): AdminR
     targetMediaId: query['target.mediaId'],
     targetEpisodeNumber: query['target.episodeNumber'],
     targetSegmentId: query['target.segmentId'],
-    auditRunId: query.auditRunId,
     orphaned: query.orphaned,
   };
 }
