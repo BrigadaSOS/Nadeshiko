@@ -14,7 +14,6 @@ import {
   kanjiIn,
   pitchMorae,
   shirabeKanjiUrl,
-  shirabeWordUrl,
   type GlossLanguage,
   type ShirabeWord,
 } from '~/utils/wordCard';
@@ -50,15 +49,6 @@ const VIEWPORT_MARGIN = 8; // px from viewport edges
 // scrolls instead. A viewport too short even for that is one where clamping the
 // top edge is what keeps the headword readable.
 const MIN_CARD_HEIGHT = 180;
-const HIDE_DELAY = 120; // ms grace period for cursor to bridge token → tooltip
-
-let hideTimer: ReturnType<typeof setTimeout> | null = null;
-const cancelHide = () => {
-  if (hideTimer !== null) {
-    clearTimeout(hideTimer);
-    hideTimer = null;
-  }
-};
 
 // What the reader reads, which is not what the interface is in: the UI language
 // and the translation language are separate settings, and only this one decides
@@ -198,8 +188,21 @@ async function placeTooltip(): Promise<void> {
   };
 }
 
+/**
+ * Open the card for a token.
+ *
+ * Click rather than hover: hovering opened a card over every word the pointer
+ * crossed on its way somewhere else, which made the sentence hard to read and
+ * fired a lookup per word passed over. A click is deliberate, so the card only
+ * appears when it was asked for, and it stays put until dismissed -- which is
+ * what makes the links inside it reachable.
+ */
 const onTokenEnter = (token: EnrichedToken, event: MouseEvent) => {
-  cancelHide();
+  // Re-clicking the open token closes it, so a click is its own undo.
+  if (hoveredToken.value === token) {
+    closeTooltip();
+    return;
+  }
   hoveredToken.value = token;
   hoveredElement = event.currentTarget as HTMLElement;
   tooltipBelow.value = false;
@@ -211,21 +214,66 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent) => {
 };
 
 const closeTooltip = () => {
-  cancelHide();
   hoveredToken.value = null;
   hoveredElement = null;
+  // Reset, so the next open never inherits this one's tail. A request abandoned
+  // in flight (the reader closed the card before it answered) returns early
+  // without touching `wordState`, which used to leave it reading 'loading'
+  // forever -- the card reopened stuck on "Looking up…" until something else
+  // happened to reset it.
+  word.value = null;
+  wordState.value = 'idle';
 };
 
-const scheduleHide = () => {
-  cancelHide();
-  hideTimer = setTimeout(closeTooltip, HIDE_DELAY);
+// With the card opened by click it no longer closes when the pointer leaves, so
+// it needs its own dismissals. A click anywhere outside it and Escape are the
+// two a reader will already try; token clicks stop propagation, so opening one
+// card while another is open does not read as an outside click.
+const onDocumentPointerDown = (event: Event) => {
+  if (!hoveredToken.value) return;
+  const target = event.target as Node | null;
+  if (target && tooltipRef.value?.contains(target)) return;
+  closeTooltip();
 };
 
-const onTokenLeave = scheduleHide;
-const onTooltipEnter = cancelHide;
-const onTooltipLeave = scheduleHide;
+const onDocumentKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && hoveredToken.value) closeTooltip();
+};
 
-onBeforeUnmount(cancelHide);
+// The card is position:fixed against the token's viewport rect, which was fine
+// while hovering held it open for a moment. Opened by click it outlives the
+// scroll that follows, so it has to be re-anchored -- otherwise it sits where
+// the word USED to be. Capture phase because the scroll that matters is often an
+// inner container's, not the document's, and passive because this only reads.
+const onViewportChange = () => {
+  if (!hoveredToken.value) return;
+  // Scrolled out of sight: the card has nothing left to point at, and one
+  // pinned to the edge of the viewport is just in the way.
+  if (hoveredElement && !isAnchorVisible(hoveredElement)) {
+    closeTooltip();
+    return;
+  }
+  void placeTooltip();
+};
+
+function isAnchorVisible(anchor: HTMLElement): boolean {
+  const rect = anchor.getBoundingClientRect();
+  return rect.bottom > 0 && rect.top < window.innerHeight;
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentPointerDown);
+  document.addEventListener('keydown', onDocumentKeydown);
+  window.addEventListener('scroll', onViewportChange, { capture: true, passive: true });
+  window.addEventListener('resize', onViewportChange, { passive: true });
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown);
+  document.removeEventListener('keydown', onDocumentKeydown);
+  window.removeEventListener('scroll', onViewportChange, { capture: true });
+  window.removeEventListener('resize', onViewportChange);
+});
 
 const POS_CLASS: Record<string, string> = {
   動詞: 'token--verb',
@@ -274,10 +322,6 @@ const headReading = computed(() => {
   if (!reading || reading === headword.value) return '';
   return inPreferredScript(reading);
 });
-
-const wordUrl = computed(() =>
-  hoveredToken.value?.wid ? shirabeWordUrl(hoveredToken.value.wid, glossLanguages.value.labels) : '',
-);
 
 // 2. What this occurrence does to the dictionary form, outermost step first:
 // 食べさせられた is "past · potential / passive · causative" rather than one name
@@ -385,9 +429,7 @@ const dictionaryLinks = computed(() => {
             'token--compound': token.matchType === 'partial',
           },
         ]"
-        @click="emit('token-click', token.searchText)"
-        @mouseenter="onTokenEnter(token, $event)"
-        @mouseleave="onTokenLeave"
+        @click.stop="onTokenEnter(token, $event)"
       ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
@@ -399,11 +441,20 @@ const dictionaryLinks = computed(() => {
         :class="{ 'token-tooltip--below': tooltipBelow }"
         :style="tooltipStyle"
         @click.stop
-        @mouseenter="onTooltipEnter"
-        @mouseleave="onTooltipLeave"
       >
         <div class="token-tooltip__head">
-          <component :is="wordUrl ? 'a' : 'span'" v-bind="wordUrl ? { href: wordUrl, target: '_blank', rel: 'noopener noreferrer' } : {}" class="token-tooltip__word" lang="ja">
+          <!-- The headword searches Nadeshiko for the word, in place: the reader
+               is here for sentences, and this is the biggest thing on the card.
+               The dictionaries live in the chips at the foot, which leave the
+               site, so the two kinds of destination never share an appearance. -->
+          <component
+            :is="hoveredToken ? 'button' : 'span'"
+            v-bind="hoveredToken ? { type: 'button' } : {}"
+            class="token-tooltip__word"
+            :class="{ 'token-tooltip__word--action': hoveredToken }"
+            lang="ja"
+            @click="hoveredToken && searchExampleToken(hoveredToken.searchText)"
+          >
             <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
             <template v-else>{{ headword }}</template>
           </component>
@@ -431,7 +482,18 @@ const dictionaryLinks = computed(() => {
 
           <ol v-if="senses.length > 0" class="token-tooltip__senses">
             <li v-for="(sense, si) in senses" :key="si" class="token-tooltip__sense">
-              <span v-if="sense.partsOfSpeech.length > 0" class="token-tooltip__pos">{{ sense.partsOfSpeech.join(', ') }}</span><i v-if="sense.tags.length > 0" class="token-tooltip__tags">{{ sense.tags.join(', ') }}</i>
+              <span v-if="sense.partsOfSpeech.length > 0 || sense.tags.length > 0" class="token-tooltip__chips"><span
+                v-for="chip in sense.partsOfSpeech"
+                :key="`p-${chip.label}`"
+                class="token-tooltip__chip token-tooltip__chip--pos"
+                :title="chip.title"
+              >{{ chip.label }}</span><span
+                v-for="chip in sense.tags"
+                :key="`t-${chip.label}`"
+                class="token-tooltip__chip"
+                :class="`token-tooltip__chip--${chip.category}`"
+                :title="chip.title"
+              >{{ chip.label }}</span></span>
               <span v-for="row in sense.glosses" :key="row.lang" class="token-tooltip__gloss-row">
                 <span class="token-tooltip__lang">{{ row.label }}</span>{{ row.text }}
               </span>
@@ -480,6 +542,19 @@ const dictionaryLinks = computed(() => {
               </ul>
             </div>
           </div>
+        </div>
+
+        <!-- Its own row, not gated on the dictionary list: it is not a
+             dictionary, and a reader who turned every dictionary off would
+             otherwise lose the one link that stays on this site. Styled apart
+             from the chips beside it because it navigates in place while every
+             one of them opens a tab. -->
+        <div v-if="hoveredToken" class="token-tooltip__actions">
+          <button
+            type="button"
+            class="token-tooltip__action"
+            @click="searchExampleToken(hoveredToken.searchText)"
+          >{{ $t('tokenTooltip.moreSentences') }}</button>
         </div>
 
         <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
@@ -696,19 +771,42 @@ a.token-tooltip__word:hover {
   color: var(--tt-ink-faint);
 }
 
-.token-tooltip__pos {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--tt-ink-muted);
+/* Chips rather than a run-on line of prose. JMdict's own labels repeat
+   themselves ("noun (common) (futsuumeishi)"), so the chip prints the short form
+   keyed off the tag code and keeps the full wording in its `title`. Coloured by
+   category so a usage qualifier never reads as a part of speech -- the same
+   split Shirabe makes between its POS and qualifier chips. */
+.token-tooltip__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 3px;
 }
 
-.token-tooltip__tags {
+.token-tooltip__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, currentColor 26%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
   color: var(--tt-ink-faint);
 }
 
-.token-tooltip__tags::after {
-  content: ' ';
+.token-tooltip__chip--pos {
+  color: var(--tt-accent, #f472b6);
+}
+
+.token-tooltip__chip--field {
+  color: #60a5fa;
+}
+
+.token-tooltip__chip--dialect {
+  color: #a78bfa;
 }
 
 .token-tooltip__pending {
@@ -843,6 +941,51 @@ a.token-tooltip__word:hover {
 .token-tooltip__example-jp .is-matched {
   color: var(--tt-accent);
   font-weight: 600;
+}
+
+/* The one destination that stays on Nadeshiko, so it reads as an action rather
+   than as another entry in the dictionary list: full width, filled, above the
+   chips instead of among them. */
+.token-tooltip__actions {
+  flex: 0 0 auto;
+  display: flex;
+  margin-top: 10px;
+  padding: 8px 14px 0;
+  border-top: 1px solid var(--tt-line);
+}
+
+.token-tooltip__action {
+  flex: 1;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--tt-accent, #f472b6) 34%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tt-accent, #f472b6) 14%, transparent);
+  color: var(--tt-accent, #f472b6);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.token-tooltip__action:hover {
+  background: color-mix(in srgb, var(--tt-accent, #f472b6) 24%, transparent);
+}
+
+/* The headword navigates too, so it has to look like it does -- but quietly:
+   it is the title of the card first and a link second. */
+.token-tooltip__word--action {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.token-tooltip__word--action:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .token-tooltip__links {
