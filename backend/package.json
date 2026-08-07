@@ -39,6 +39,7 @@
     "db:prepare": "node --import tsx bin/db.ts prepare",
     "db:drop": "node --import tsx bin/db.ts drop",
     "db:status": "node --import tsx bin/db.ts status",
+    "create:service-key": "node --env-file-if-exists=.env --import tsx bin/createServiceKey.ts",
     "es:reindex": "node --import tsx bin/es.ts reindex",
     "es:status": "node --import tsx bin/es.ts status",
     "routes": "node --import tsx bin/routes.ts",
