@@ -15,8 +15,8 @@ import {
   pitchMorae,
   shirabeKanjiUrl,
   type GlossLanguage,
-  type ShirabeWord,
 } from '~/utils/wordCard';
+import { fetchWord, peekWord } from '~/utils/wordLookup';
 
 type Props = {
   tokens: Token[];
@@ -59,12 +59,11 @@ const glossLanguages = computed(() => glossPreference(locale.value, { en: englis
 
 // Definitions come from Shirabe, which parsed these tokens and stamped each one
 // with the id of its own entry. Fetched through our server route so the service
-// key stays on the server. This cache spares a re-hover inside one segment; the
-// same word in the segment below is covered by the route's own cache-control,
-// which is a day long because a dictionary entry is the same for everyone.
+// key stays on the server, and cached in `~/utils/wordLookup` -- a module, so one
+// answer serves every segment on the page rather than every segment keeping its
+// own copy.
 const word = ref<ShirabeWord | null>(null);
 const wordState = ref<'idle' | 'loading' | 'missing'>('idle');
-const wordCache = new Map<string, ShirabeWord | null>();
 
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
@@ -107,38 +106,39 @@ async function loadWord(token: EnrichedToken): Promise<void> {
     return;
   }
 
-  // Keyed by the label language, because that is the only thing that varies the
-  // response: Shirabe resolves the sense tags into one language, while the
-  // definitions come back in every language the entry has and are chosen here.
   const wid = lookup;
-  const key = `${wid}:${glossLanguages.value.labels}`;
-  if (wordCache.has(key)) {
-    word.value = wordCache.get(key) ?? null;
-    wordState.value = word.value ? 'idle' : 'missing';
+  const locale = glossLanguages.value.labels;
+
+  // Already answered, from this card or any other on the page: paint it now.
+  // Synchronously, with no intermediate 'loading', so a word the reader has
+  // seen before (or that hovering prefetched a moment ago) opens filled in
+  // rather than flashing "Looking up…" for a frame first.
+  const cached = peekWord(wid, locale);
+  if (cached !== undefined) {
+    word.value = cached;
+    wordState.value = cached ? 'idle' : 'missing';
     return;
   }
 
   word.value = null;
   wordState.value = 'loading';
-  try {
-    const found = await $fetch<ShirabeWord>(`/api/shirabe/words/${encodeURIComponent(wid)}`, {
-      query: { locale: glossLanguages.value.labels },
-    });
-    wordCache.set(key, found);
-    // The pointer may have moved on while this was in flight; only paint if the
-    // answer still belongs to the word under the cursor. Compared against the
-    // token that STARTED this request, not against its `wid`: a particle has no
-    // id and looks itself up by dictionary form, so comparing ids there meant
-    // `undefined !== 'は'` and the answer was fetched and then dropped, every
-    // time, which is why grammar words never filled in.
-    if (hoveredToken.value !== token) return;
-    word.value = found;
-    wordState.value = 'idle';
-  } catch {
-    wordCache.set(key, null);
-    if (hoveredToken.value !== token) return;
-    wordState.value = 'missing';
-  }
+
+  // `fetchWord` never rejects -- a failed lookup resolves to null -- so there is
+  // no catch here and, importantly, no path that leaves `wordState` on
+  // 'loading'. The previous version returned early on a stale answer without
+  // resetting it, which is how the card could sit on "Looking up…" forever.
+  const found = await fetchWord(wid, locale);
+
+  // The reader may have moved on while this was in flight; only paint if the
+  // answer still belongs to the open card. Compared against the token that
+  // STARTED this request, not against its `wid`: a particle has no id and looks
+  // itself up by dictionary form, so comparing ids there meant `undefined !==
+  // 'は'` and the answer was fetched and then dropped, every time, which is why
+  // grammar words never filled in.
+  if (hoveredToken.value !== token) return;
+
+  word.value = found;
+  wordState.value = found ? 'idle' : 'missing';
   // The card just grew from one line to its full height, so where it fits has
   // changed with it.
   void placeTooltip();
@@ -197,6 +197,28 @@ async function placeTooltip(): Promise<void> {
  * appears when it was asked for, and it stays put until dismissed -- which is
  * what makes the links inside it reachable.
  */
+/**
+ * Warm the cache for a word the pointer is resting on.
+ *
+ * The card opens on click, and a lookup takes a round trip -- so without this
+ * the reader clicks and then waits, every time. Hovering is a good signal they
+ * are about to: the answer is usually here before the click lands, and the card
+ * opens filled in rather than on "Looking up…".
+ *
+ * Cheap to be wrong about. The cache is shared and deduped, so a pointer sweeping
+ * a sentence costs one request per distinct word and none at all for words
+ * already seen; a hover that never becomes a click has warmed the cache for the
+ * next reader of that word on the page.
+ */
+const onTokenHover = (token: EnrichedToken) => {
+  if (!lookupsEnabled) return;
+  const lookup = token.wid ?? (lookupableWithoutId(token) ? token.s : null);
+  if (!lookup) return;
+  const locale = glossLanguages.value.labels;
+  if (peekWord(lookup, locale) !== undefined) return;
+  void fetchWord(lookup, locale);
+};
+
 const onTokenEnter = (token: EnrichedToken, event: MouseEvent) => {
   // Re-clicking the open token closes it, so a click is its own undo.
   if (hoveredToken.value === token) {
@@ -329,9 +351,31 @@ const headReading = computed(() => {
 // Ruby for the headword. Shirabe aligns it on the word response (`furigana`), so
 // this is the dictionary form's own ruby: the token's `f` is aligned to the
 // surface it appeared as, which is a different string (焼けた, not 焼ける).
-const headFurigana = computed(() =>
-  (word.value?.furigana ?? []).filter((seg) => seg.text).map((seg) => ({ text: seg.text, reading: seg.ruby ?? '' })),
-);
+/**
+ * Ruby for the headword: Shirabe's alignment once the card has it, and the
+ * token's own until then.
+ *
+ * Falling back matters for more than completeness. With only Shirabe's, the head
+ * had NO furigana while the lookup was in flight, so the reading rendered as a
+ * separate label beside the word -- and then jumped to ruby above it the moment
+ * the answer arrived. The card visibly rebuilt itself mid-read. The token was
+ * carrying furigana the whole time; using it keeps the head one shape from the
+ * first frame, and Shirabe's replaces it invisibly because it is the same
+ * alignment of the same word.
+ */
+const headFurigana = computed(() => {
+  const fromWord = (word.value?.furigana ?? [])
+    .filter((seg) => seg.text)
+    .map((seg) => ({ text: seg.text, reading: seg.ruby ?? '' }));
+  if (fromWord.length > 0) return fromWord;
+
+  // Only when the head IS the token's own surface. An inflected token shows its
+  // dictionary form up here (食べている → 食べる), and the surface's ruby does not
+  // align with a word it does not spell.
+  const token = hoveredToken.value;
+  if (!token || token.displaySurface !== headword.value) return [];
+  return token.furigana.filter((seg) => seg.text).map((seg) => ({ text: seg.text, reading: seg.reading ?? '' }));
+});
 
 const inflectionLine = computed(() => {
   const token = hoveredToken.value;
@@ -430,6 +474,7 @@ const dictionaryLinks = computed(() => {
           },
         ]"
         @click.stop="onTokenEnter(token, $event)"
+        @mouseenter="onTokenHover(token)"
       ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
@@ -943,36 +988,34 @@ a.token-tooltip__word:hover {
   font-weight: 600;
 }
 
-/* The one destination that stays on Nadeshiko, so it reads as an action rather
-   than as another entry in the dictionary list: full width, filled, above the
-   chips instead of among them. */
+/* A link, not a button: it navigates, and dressing it as a control put a filled
+   box and a rule across a card that is otherwise text. Accent colour is enough
+   to say it is clickable. */
 .token-tooltip__actions {
   flex: 0 0 auto;
   display: flex;
-  margin-top: 10px;
-  padding: 8px 14px 0;
-  border-top: 1px solid var(--tt-line);
+  margin-top: 8px;
+  padding: 0 14px;
 }
 
 .token-tooltip__action {
-  flex: 1;
-  padding: 5px 10px;
-  border: 1px solid color-mix(in srgb, var(--tt-accent, #f472b6) 34%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--tt-accent, #f472b6) 14%, transparent);
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--tt-accent, #f472b6);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.12s ease;
 }
 
 .token-tooltip__action:hover {
-  background: color-mix(in srgb, var(--tt-accent, #f472b6) 24%, transparent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-/* The headword navigates too, so it has to look like it does -- but quietly:
-   it is the title of the card first and a link second. */
+/* The headword navigates too, so it says so on hover -- in the same accent as
+   the link below, since they lead to the same place. Quiet until then: it is the
+   title of the card first and a link second. */
 .token-tooltip__word--action {
   border: 0;
   padding: 0;
@@ -981,11 +1024,11 @@ a.token-tooltip__word:hover {
   color: inherit;
   cursor: pointer;
   text-align: left;
+  transition: color 0.12s ease;
 }
 
 .token-tooltip__word--action:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: var(--tt-accent, #f472b6);
 }
 
 .token-tooltip__links {
