@@ -363,6 +363,7 @@
       "developer": "Developer",
       "users": "Users",
       "reports": "Reports",
+      "agentActivity": "Agent Activity",
       "announcement": "Announcement"
     },
     "dashboard": {
@@ -867,14 +868,6 @@
         "auto": "Auto Checks",
         "orphaned": "Orphaned"
       },
-      "availableChecks": "Available checks",
-      "configure": "Configure",
-      "running": "Running",
-      "run": "Run",
-      "lastRun": "Last run {date}",
-      "neverRun": "Never run",
-      "resultsTab": "Results",
-      "runHistoryTab": "Run History",
       "selectedGroups": "{count} group(s) selected",
       "dismiss": "Dismiss",
       "delete": "Delete",
@@ -887,8 +880,6 @@
       "addNote": "Click to add note...",
       "updateSuccess": "Report updated",
       "updateError": "Failed to update report",
-      "auditRunResult": "{audit}: {count} findings",
-      "auditConfigUpdated": "Audit config updated",
       "batchUpdated": "{count} report(s) updated",
       "batchUpdateError": "Failed to update reports",
       "batchDeleted": "{count} report(s) deleted",
@@ -911,16 +902,6 @@
         "SEGMENT": "Segment",
         "EPISODE": "Episode",
         "MEDIA": "Media"
-      },
-      "runHistory": {
-        "check": "Check",
-        "category": "Category",
-        "findings": "Findings",
-        "date": "Date",
-        "actions": "Actions",
-        "allCategories": "All",
-        "viewResults": "View Results",
-        "empty": "No runs yet"
       },
       "confirm": {
         "dismissAllTitle": "Dismiss all matching reports?",
@@ -1086,5 +1067,28 @@
       "suffix": "anime corpus. Showing {shown} of {total} words."
     },
     "loadError": "Couldn't load the word list."
+  },
+  "agentActivity": {
+    "title": "Agent Activity",
+    "description": "Edits made by the moderation agent, read back from the revisions it wrote. Spot-check a few and restore anything that looks wrong.",
+    "empty": "No agent activity in this window",
+    "episode": "EP{number}",
+    "noReport": "no report",
+    "restore": "Restore",
+    "restoring": "Restoring...",
+    "restoreSuccess": "Segment restored",
+    "restoreError": "Failed to restore segment",
+    "window": {
+      "day": "Last 24 hours",
+      "week": "Last 7 days",
+      "month": "Last 30 days"
+    },
+    "table": {
+      "segment": "Segment",
+      "change": "Change",
+      "report": "Report",
+      "when": "When",
+      "actions": "Actions"
+    }
   }
 }
