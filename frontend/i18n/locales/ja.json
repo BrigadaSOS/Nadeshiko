@@ -577,7 +577,6 @@
       },
       "dictionaryLinks": "辞書連携",
       "dictionaryLinksDescription": "トークンのポップアップに表示する辞書リンクを選択します。",
-      "dictionaryAlwaysOn": "(常にオン)",
       "deleteAccount": "アカウント削除（取り消し不可）",
       "deleteAccountButton": "アカウントを削除",
       "deletingAccount": "削除中...",

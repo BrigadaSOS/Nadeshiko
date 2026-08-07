@@ -29,15 +29,14 @@ function cacheKey(wid: string, locale: string): string {
   return `${wid}:${locale}`;
 }
 
-/** True when the answer is already here, so a caller can render without a
- *  loading state rather than flashing one for a word it already has. */
-export function hasWord(wid: string, locale: string): boolean {
-  return resolved.has(cacheKey(wid, locale));
-}
-
-/** The resolved answers, so a synchronous render can use one immediately. */
+/** The answers we already have. Separate from `inFlight` because a caller needs
+ *  to distinguish "answered, and it was nothing" (null) from "never asked"
+ *  (undefined), which a promise map cannot express. */
 const resolved = new Map<string, ShirabeWord | null>();
 
+/** The answer if it is already here, so a card can open filled in rather than
+ *  flashing a loading state for a word the page has seen. `undefined` means it
+ *  has not been asked; `null` means asked, with no entry. */
 export function peekWord(wid: string, locale: string): ShirabeWord | null | undefined {
   return resolved.get(cacheKey(wid, locale));
 }
@@ -60,6 +59,12 @@ export function fetchWord(wid: string, locale: string): Promise<ShirabeWord | nu
 
   const request = $fetch<ShirabeWord>(`/api/shirabe/words/${encodeURIComponent(wid)}`, {
     query: { locale },
+    // The server route already bounds its own calls (1.5s direct, 5s public), so
+    // anything past this is not the dictionary being slow -- it is a request
+    // that is never coming back, and without a bound the card waits on it
+    // forever. Resolving to null at least lets the card fall back to what the
+    // token itself knows.
+    timeout: 8000,
   })
     .then((word) => {
       resolved.set(key, word);
