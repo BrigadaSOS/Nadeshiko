@@ -110,6 +110,12 @@ What the prod workflow does, in order:
 6. Dispatches the **stable** Python SDK release -> public PyPI version.
 7. Creates a GitHub Release with the public OpenAPI spec attached.
 
+> **Pending one-time step, not automated:** the root-path locale redirect is
+> meant to be answered by Cloudflare, and the zone is not configured for it yet.
+> The app change that makes it possible is already merged, so the rules can go on
+> the first prod deploy that carries it. See
+> [Cloudflare edge configuration](#cloudflare-edge-configuration).
+
 ## Discord bot
 
 Workflow: [`.github/workflows/release-discord.yml`](.github/workflows/release-discord.yml).
@@ -483,6 +489,121 @@ only static AWS credentials left, and nothing rotates them.
 schedule with two active keys so rotation does not require downtime. This needs
 changes in the AWS account, so it cannot be done by editing anything here.
 
+## Cloudflare edge configuration
+
+`nadeshiko.co` is proxied by Cloudflare. Everything below is **dashboard/API
+state, not code** — nothing in this repository applies it, so it survives no
+deploy and is recreated by nobody. Treat it as part of the release checklist.
+
+### The bare-path locale redirect
+
+**Status: written down, NOT YET APPLIED.** Apply on the first prod deploy that
+ships the origin change described below.
+
+`/` is the first request of every cold visit and it carries no content. Answered
+at the origin it is a full round trip to Helsinki for a zero-byte 302: measured
+from Tokyo (2026-08-07) at **~1.2 s TTFB, against 10 ms p50 of actual origin
+work** (`duration_ms` on `path="/"` in the kamal-proxy logs). Roughly 99% of that
+is network the response never needed to cross. Answered at the edge it costs a
+few tens of milliseconds.
+
+Three **Single Redirect** rules, phase `http_request_dynamic_redirect`,
+evaluated top-down (first match wins), each a 302 with *preserve query string*
+on. All three share this condition:
+
+```
+http.host eq "nadeshiko.co"
+  and http.request.uri.path eq "/"
+  and http.request.method in {"GET" "HEAD"}
+```
+
+| # | Extra condition                                     | Redirect to                            |
+| - | --------------------------------------------------- | -------------------------------------- |
+| 1 | `and http.cookie contains "nd-locale-preference=es"` | `concat("https://", http.host, "/es")` |
+| 2 | `and http.cookie contains "nd-locale-preference=ja"` | `concat("https://", http.host, "/ja")` |
+| 3 | *(none — the default)*                              | `concat("https://", http.host, "/en")` |
+
+There is deliberately no rule for `en`: it would share a target with the
+default, so rule 3 covers it. Crawlers send no cookie and land on rule 3.
+
+**The host test is not decoration.** Redirect Rules apply to the whole zone, and
+this zone also carries `cdn.`, `t.`, `o.`, `api.` and `stg.nadeshiko.co`.
+Without the host test these rules answer `https://cdn.nadeshiko.co/` with a 302
+to `/en`, which is nonsense for a bucket. Any new hostname that should get the
+locale redirect has to be added here explicitly.
+
+**`www` is intentionally absent.** It already 301s to `https://nadeshiko.co/`,
+so it reaches these rules on the second hop; listing it here would only race
+that existing rule. `stg.nadeshiko.co` is also left out, so staging keeps
+answering at its own origin and cannot disagree with prod while the two run
+different builds.
+
+**Test the cookie with `http.cookie contains "…"`**, against the raw Cookie
+header as a string — *not* the documented-looking
+`any(len(http.request.cookies["nd-locale-preference"][*]) > 0)`. The ruleset API
+rejects that form outright (`cannot perform this operation on type Array`), so
+do not "restore" it. Note `contains` is a substring test: a forged
+`nd-locale-preference=espanol` matches rule 1 at the edge while the origin
+resolves it to `/en`. It only affects whoever forged it.
+
+### The origin half, and why the two agree
+
+`resolveRootLocale` (`frontend/server/utils/localeRouting.ts`) is a pure function
+of one input: the plain `nd-locale-preference` cookie, defaulting to `en`. That
+is what makes the decision movable to the edge, and it is the whole reason the
+rules above are three static lines instead of a generator.
+
+It used to also infer from `Accept-Language`, weighing q-values. Cloudflare
+cannot do that, so keeping it would have meant one decision with two
+implementations answering the same request differently depending on who caught
+it. The trade: a Spanish speaker's first visit starts in English and costs one
+click on the language selector, which then remembers. That is also what Google
+asks for — no automatic language redirection, offer a switcher.
+
+**Do not add an input the edge cannot read** (stored settings, a session lookup,
+`CF-IPCountry`, `Accept-Language`). Any of them forces `/` back to the origin and
+the latency back with it. `frontend/server/utils/localeRouting.test.ts` pins the
+resolver's argument count for exactly this reason, and the cases it asserts are
+the ones the rules above mirror — if a change there makes them fail, the
+Cloudflare rules have to change in the same breath.
+
+Unprefixed deep links (`/about` -> `/en/about`) stay at the origin on purpose:
+answering them at the edge would mean restating `isReservedLocalePath` as a
+Cloudflare expression, in a second home that drifts silently. `/` is where the
+first-visit cost actually is.
+
+### Applying it
+
+`PUT …/entrypoint` **replaces the whole ruleset**, and the `www` -> apex redirect
+very likely lives in this same phase. Read it before writing, then PUT the merged
+list:
+
+```bash
+curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
+  -H "Authorization: Bearer $CF_TOKEN" | jq '.result.rules[] | {description, expression}'
+```
+
+Verify afterwards, allowing a few minutes for the edit to reach every PoP:
+
+```bash
+for c in '' 'nd-locale-preference=es' 'nd-locale-preference=ja' 'nd-locale-preference=de'; do
+  curl -sI ${c:+--cookie "$c"} https://nadeshiko.co/ | grep -iE '^(location|x-request-id)'
+done
+# expected: /en, /es, /ja, /en — and no x-request-id, which would mean the
+# origin answered
+```
+
+### Not applicable yet: purging HTML on deploy
+
+Shirabe runs a post-deploy Cloudflare purge because edge-cached HTML goes on
+referencing asset digests a new deploy has replaced. Nadeshiko edge-caches no
+HTML today (`/en` answers `cf-cache-status: DYNAMIC` with no `Cache-Control`;
+see the caching note in `frontend/nuxt.config.ts` `routeRules`), so there is
+nothing stale to purge. **If HTML caching is ever turned on, a purge hook stops
+being optional.** Note also that prod and staging share this zone, and
+purge-by-hostname is an Enterprise feature — a purge from staging would throw
+away production's entire edge cache.
+
 ## Manual / emergency deploys
 
 The staging workflow supports `workflow_dispatch` with `force_backend`,
@@ -499,3 +620,7 @@ kamal deploy -d staging   # or -d prod
 ```
 
 Prefer the workflows; reach for a manual deploy only when CI is unavailable.
+
+After a **frontend prod** deploy, check
+[Cloudflare edge configuration](#cloudflare-edge-configuration) — it lists zone
+state that no deploy applies and that is currently outstanding.
