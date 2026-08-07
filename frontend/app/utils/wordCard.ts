@@ -175,12 +175,23 @@ export interface CardGlossRow {
   text: string;
 }
 
+export interface CardTag {
+  /** The short label to print on the chip ("Noun"). */
+  label: string;
+  /** JMdict's own wording, kept for the chip's tooltip ("noun (common)
+   *  (futsuumeishi)"). Nothing is lost by shortening the chip: the full text is
+   *  a hover away. */
+  title: string;
+  /** JMdict tag category, so a usage qualifier never reads as a part of speech. */
+  category: string;
+}
+
 export interface CardSense {
-  /** Learner-facing labels off the entry ("Ichidan verb"), as Shirabe worded
-   *  them: what the word IS, not what this occurrence of it is doing. */
-  partsOfSpeech: string[];
+  /** Learner-facing labels off the entry ("Ichidan verb"): what the word IS,
+   *  not what this occurrence of it is doing. */
+  partsOfSpeech: CardTag[];
   /** Misc, field, and dialect labels ("usually written using kana alone"). */
-  tags: string[];
+  tags: CardTag[];
   /** One row per language, badged. Joining the two into one line read as a
    *  single definition that happened to change language halfway through. */
   glosses: CardGlossRow[];
@@ -204,6 +215,84 @@ function glossRows(definitions: ShirabeText[]): CardGlossRow[] {
 
 const MISC_TAG_CATEGORIES = new Set(['misc', 'field', 'dialect']);
 
+/**
+ * Short chip labels keyed off JMdict's stable tag *code*.
+ *
+ * The English label JMdict ships is verbose and inconsistent -- "n" arrives as
+ * "noun (common) (futsuumeishi)", which reads as three tags rather than one and
+ * repeats itself. Shirabe renders its own chips this way (see `POS_LABELS` in
+ * its search_helper.rb); this is the same table, so a word reads the same in
+ * both products. The full JMdict wording survives as the chip's tooltip.
+ */
+const POS_LABELS: Record<string, string> = {
+  n: 'Noun',
+  pn: 'Pronoun',
+  num: 'Numeric',
+  ctr: 'Counter',
+  'n-pref': 'Noun (prefix)',
+  'n-suf': 'Noun (suffix)',
+  adv: 'Adverb',
+  'adv-to': 'Adverb',
+  prt: 'Particle',
+  conj: 'Conjunction',
+  int: 'Interjection',
+  exp: 'Expression',
+  pref: 'Prefix',
+  suf: 'Suffix',
+  aux: 'Auxiliary',
+  'aux-v': 'Aux. verb',
+  'aux-adj': 'Aux. adjective',
+  cop: 'Copula',
+  vt: 'Transitive verb',
+  vi: 'Intransitive verb',
+  vs: 'Suru verb',
+  'vs-i': 'Suru verb',
+  'vs-s': 'Suru verb',
+  'vs-c': 'Suru verb',
+  vk: 'Kuru verb',
+  'adj-i': 'I-adjective',
+  'adj-ix': 'I-adjective',
+  'adj-na': 'Na-adjective',
+  'adj-no': 'No-adjective',
+  'adj-pn': 'Prenominal',
+  'adj-t': 'Taru-adjective',
+  'adj-f': 'Prenominal',
+};
+
+/** The chip label for one tag: the curated short form where there is one, the
+ *  verb family for the many `v5*`/`v1*` codes, and otherwise JMdict's label with
+ *  its parenthetical asides and trailing " - ..." note stripped off. */
+export function posLabel(code: string, full: string): string {
+  const mapped = POS_LABELS[code];
+  if (mapped) return mapped;
+
+  if (/^v5/.test(code)) return 'Godan verb';
+  if (/^v1/.test(code)) return 'Ichidan verb';
+  if (/^v[24]/.test(code)) return 'Classical verb';
+  if (/^v/.test(code)) return 'Verb';
+
+  const stripped = full
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+-\s.*$/, '')
+    .trim();
+  if (!stripped) return code;
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
+/** Chips for one sense, deduped by the label that will be printed: JMdict often
+ *  carries several codes that shorten to the same word (`vs-i` and `vs-s` both
+ *  read "Suru verb"), and printing it twice is the duplication this replaces. */
+function cardTags(tags: ShirabeTag[], keep: (tag: ShirabeTag) => boolean): CardTag[] {
+  const chips: CardTag[] = [];
+  for (const tag of tags) {
+    if (!keep(tag)) continue;
+    const label = posLabel(tag.code, tag.label);
+    if (chips.some((chip) => chip.label === label)) continue;
+    chips.push({ label, title: tag.label, category: tag.category });
+  }
+  return chips;
+}
+
 const SENSE_LIMIT = 6;
 
 /** The numbered senses to print. A sense left with no gloss the reader can read
@@ -218,8 +307,8 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
 
     const tags = sense.tags ?? [];
     cards.push({
-      partsOfSpeech: unique(tags.filter((tag) => tag.category === 'partOfSpeech').map((tag) => tag.label)),
-      tags: unique(tags.filter((tag) => MISC_TAG_CATEGORIES.has(tag.category)).map((tag) => tag.label)),
+      partsOfSpeech: cardTags(tags, (tag) => tag.category === 'partOfSpeech'),
+      tags: cardTags(tags, (tag) => MISC_TAG_CATEGORIES.has(tag.category)),
       glosses,
     });
     if (cards.length === limit) break;
@@ -365,8 +454,4 @@ export function shirabeWordUrl(wid: string, locale: GlossLanguage): string {
 
 export function shirabeKanjiUrl(character: string, locale: GlossLanguage): string {
   return `${SHIRABE_SITE}/${locale}/kanji/${encodeURIComponent(character)}`;
-}
-
-function unique(values: string[]): string[] {
-  return [...new Set(values)];
 }

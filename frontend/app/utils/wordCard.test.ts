@@ -180,8 +180,16 @@ describe('cardSenses', () => {
   it('splits the labels Shirabe resolved into parts of speech and misc tags', () => {
     const [first] = cardSenses(WORD, preference('en'));
 
-    expect(first?.partsOfSpeech).toEqual(['Ichidan verb', 'intransitive verb']);
-    expect(first?.tags).toEqual(['usually kana', 'food']);
+    // Chips carry the short label keyed off the JMdict code, with JMdict's own
+    // wording kept for the tooltip.
+    expect(first?.partsOfSpeech).toEqual([
+      { label: 'Ichidan verb', title: 'Ichidan verb', category: 'partOfSpeech' },
+      { label: 'Intransitive verb', title: 'intransitive verb', category: 'partOfSpeech' },
+    ]);
+    expect(first?.tags).toEqual([
+      { label: 'Usually kana', title: 'usually kana', category: 'misc' },
+      { label: 'Food', title: 'food', category: 'field' },
+    ]);
     // One row per language, badged, rather than one line that changes language
     // halfway through and reads as a single definition.
     expect(first?.glosses).toEqual([
