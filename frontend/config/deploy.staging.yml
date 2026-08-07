@@ -32,6 +32,13 @@ env:
 
   clear:
     NUXT_PUBLIC_ENVIRONMENT: development
+    # `shirabeLookups` is derived from NUXT_SHIRABE_API_KEY in nuxt.config, which
+    # is evaluated during `nuxt build` -- inside the image, where the key is not
+    # present and must not be. The boolean therefore bakes in as false however the
+    # key is set at runtime, so the public flag is set here instead. Only valid
+    # where the key IS configured: turning it on without one is exactly the doomed
+    # per-hover request the flag exists to prevent.
+    NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
     NODE_ENV: production
     NUXT_BACKEND_INTERNAL_URL: https://api-stg.nadeshiko.co
     PORT: 3000
