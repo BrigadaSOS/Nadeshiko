@@ -38,8 +38,21 @@ export class SearchPage {
     await this.page.waitForURL(/\/search\//, { timeout: 10_000 });
   }
 
+  /**
+   * Waits for hydration as well as for cards, because the cards arrive first.
+   * They are server-rendered, so they are visible and clickable before Vue has
+   * attached anything — the keyboard listener, the image-zoom click, the
+   * infinite-scroll observer all mount later. Interacting in that window is
+   * silently dropped, which is what made these specs flaky rather than red.
+   */
   async expectResultsVisible() {
     await expect(this.segmentCards.first()).toBeVisible({ timeout: 15_000 });
+    await this.expectHydrated();
+  }
+
+  /** Set by app/plugins/hydrated.client.ts once Vue finishes hydrating. */
+  async expectHydrated() {
+    await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
   }
 
   async expectCategoryTabsVisible() {

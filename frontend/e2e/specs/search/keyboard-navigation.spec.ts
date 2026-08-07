@@ -20,7 +20,7 @@ test.describe('Keyboard navigation', () => {
     await page.keyboard.press('ArrowDown');
 
     const firstCard = search.segmentCards.first();
-    await expect(firstCard).toHaveClass(/bg-neutral-700\/30/);
+    await expect(firstCard).toHaveAttribute('data-focused', 'true');
   });
 
   test('Arrow Down then Arrow Up stays on first result', async ({ page }) => {
@@ -31,8 +31,8 @@ test.describe('Keyboard navigation', () => {
     const firstCard = search.segmentCards.first();
     const secondCard = search.segmentCards.nth(1);
 
-    await expect(firstCard).toHaveClass(/bg-neutral-700\/30/);
-    await expect(secondCard).not.toHaveClass(/bg-neutral-700\/30/);
+    await expect(firstCard).toHaveAttribute('data-focused', 'true');
+    await expect(secondCard).toHaveAttribute('data-focused', 'false');
   });
 
   test('Arrow Down twice highlights the second result', async ({ page }) => {
@@ -40,7 +40,7 @@ test.describe('Keyboard navigation', () => {
     await page.keyboard.press('ArrowDown');
 
     const secondCard = search.segmentCards.nth(1);
-    await expect(secondCard).toHaveClass(/bg-neutral-700\/30/);
+    await expect(secondCard).toHaveAttribute('data-focused', 'true');
   });
 
   test('keyboard navigation does not activate when input is focused', async ({ page }) => {
@@ -49,6 +49,6 @@ test.describe('Keyboard navigation', () => {
     await page.keyboard.press('ArrowDown');
 
     const firstCard = search.segmentCards.first();
-    await expect(firstCard).not.toHaveClass(/bg-neutral-700\/30/);
+    await expect(firstCard).toHaveAttribute('data-focused', 'false');
   });
 });
