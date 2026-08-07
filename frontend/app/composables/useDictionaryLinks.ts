@@ -1,4 +1,4 @@
-export type DictionaryId = 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
+export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
 
 export type DictionaryPreset = {
   id: DictionaryId;
@@ -20,6 +20,12 @@ export type DictionaryPreset = {
 };
 
 const DICTIONARY_PRESETS: DictionaryPreset[] = [
+  {
+    id: 'jisho',
+    label: 'Jisho',
+    buildUrl: (word) => `https://jisho.org/search/${encodeURIComponent(word)}`,
+    defaultEnabled: false,
+  },
   {
     id: 'jpdb',
     label: 'JPDB',
