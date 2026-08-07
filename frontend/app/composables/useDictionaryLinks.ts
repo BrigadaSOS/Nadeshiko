@@ -1,4 +1,4 @@
-export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
+export type DictionaryId = 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
 
 export type DictionaryPreset = {
   id: DictionaryId;
@@ -11,15 +11,15 @@ export type DictionaryPreset = {
    */
   buildUrl: (word: string, reading: string, slug?: string) => string;
   defaultEnabled: boolean;
+  /**
+   * Always on, and not offered as a toggle. shirabe.org is the dictionary the
+   * hover card itself is built from, so "turn it off" would mean "hide the link
+   * to the thing you are already reading".
+   */
+  required?: boolean;
 };
 
 const DICTIONARY_PRESETS: DictionaryPreset[] = [
-  {
-    id: 'jisho',
-    label: 'Jisho',
-    buildUrl: (word) => `https://jisho.org/search/${encodeURIComponent(word)}`,
-    defaultEnabled: false,
-  },
   {
     id: 'jpdb',
     label: 'JPDB',
@@ -35,6 +35,7 @@ const DICTIONARY_PRESETS: DictionaryPreset[] = [
     label: 'shirabe.org',
     buildUrl: (word, _reading, slug) => `https://shirabe.org/word/${encodeURIComponent(slug ?? word)}`,
     defaultEnabled: true,
+    required: true,
   },
   {
     id: 'weblio',
@@ -56,6 +57,7 @@ const DICTIONARY_PRESETS: DictionaryPreset[] = [
 // other, silently. Turning one off by default only affects readers who have
 // never set the preference at all, which is what `decodeEnabled` falls back to.
 const VALID_IDS = new Set<string>(DICTIONARY_PRESETS.map((d) => d.id));
+const REQUIRED_IDS = new Set<DictionaryId>(DICTIONARY_PRESETS.filter((d) => d.required).map((d) => d.id));
 const COOKIE_NAME = 'nd_dict_links';
 
 const decodeEnabled = (raw: string | null | undefined): DictionaryId[] => {
@@ -82,13 +84,18 @@ export function useDictionaryLinks() {
   );
 
   const setDictionaryEnabled = (id: DictionaryId, enabled: boolean) => {
+    // Required presets ignore the write rather than throwing: the UI does not
+    // offer the toggle, so reaching here means a stale cookie or a caller that
+    // does not know, and neither should be able to switch it off.
+    if (REQUIRED_IDS.has(id)) return;
+
     const next = new Set(enabledDictionaries.value);
     if (enabled) next.add(id);
     else next.delete(id);
     set(DICTIONARY_PRESETS.filter((d) => next.has(d.id)).map((d) => d.id));
   };
 
-  const isDictionaryEnabled = (id: DictionaryId) => enabledDictionaries.value.includes(id);
+  const isDictionaryEnabled = (id: DictionaryId) => REQUIRED_IDS.has(id) || enabledDictionaries.value.includes(id);
 
   return {
     presets: DICTIONARY_PRESETS,
