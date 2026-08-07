@@ -24,6 +24,20 @@ import { parseSegments } from '@app/services/shirabe/parseSegments';
 const PAGE_SIZE = Math.max(1, Number(process.env.REPARSE_PAGE_SIZE ?? 1000) || 1000);
 
 /**
+ * Segments per second to hold the job to, or 0 to run as fast as Shirabe allows.
+ *
+ * Concurrency alone is a poor throttle: at concurrency 1 this still drove Shirabe
+ * to ~96/s and walked its workers up to ~2.1GB each, because Ruby heap growth
+ * tracks total requests served rather than how many arrive at once. Pacing bounds
+ * the request *rate*, which is the thing both CPU headroom for readers and that
+ * heap growth actually follow.
+ *
+ * Applied by sleeping off whatever is left of a page's time budget, so a page
+ * that was slow for its own reasons is never made slower.
+ */
+const TARGET_RATE = Math.max(0, Number(process.env.REPARSE_TARGET_RATE ?? 0) || 0);
+
+/**
  * Shirabe restarts mid-run: a deploy drains and replaces the container, and the
  * in-flight request dies with ECONNRESET. An earlier run of this migration lost
  * ~440k segments of progress to exactly that, so a transient network failure
@@ -110,6 +124,7 @@ async function main(): Promise<void> {
 
     if (rows.length === 0) break;
 
+    const pageStartedAt = Date.now();
     const tokens = await parseWithRetry(rows.map((row) => row.content));
 
     await AppDataSource.query(
@@ -125,6 +140,14 @@ async function main(): Promise<void> {
 
     const rate = Math.round(written / Math.max(1, (Date.now() - startedAt) / 1000));
     logger.info({ written, total, rate, lastId: cursor }, 'reparse progress');
+
+    if (TARGET_RATE > 0) {
+      const budgetMs = (rows.length / TARGET_RATE) * 1000;
+      const spentMs = Date.now() - pageStartedAt;
+      if (spentMs < budgetMs) {
+        await new Promise((resolve) => setTimeout(resolve, budgetMs - spentMs));
+      }
+    }
   }
 
   logger.info({ written, lastId: cursor }, 'reparse finished');
