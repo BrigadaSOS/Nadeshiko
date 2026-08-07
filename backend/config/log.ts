@@ -232,6 +232,16 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       if (rawReq.route?.path) {
         props['http.route'] = rawReq.route.path;
       }
+      // Set by trafficClassification, which is mounted before this logger.
+      // `bot.family` is only on the log line, never on the request metrics:
+      // breadth costs nothing in a log field and it is the thing that answers
+      // *which* crawler once a metric moves.
+      if (rawReq.traffic) {
+        props.traffic = rawReq.traffic;
+      }
+      if (rawReq.botFamily) {
+        props['bot.family'] = rawReq.botFamily;
+      }
       return props;
     },
     customLogLevel: (_req: PinoRequest, res: PinoResponse, err?: Error) => {

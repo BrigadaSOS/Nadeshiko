@@ -75,12 +75,20 @@ accessories:
   postgres:
     image: postgres:17
     host: nadeshiko
-    port: "100.95.40.11:5432:5432"
+    # Tailnet address of the `nadeshiko` host. This is a moving target: it was
+    # 100.95.40.11 when written and the host now answers on 100.114.126.96, with
+    # dockerd left holding a socket bound to an address the box no longer had.
+    # Nothing here broke only because of the loopback publish below, which is
+    # what the Alloy exporter actually dials. Keep both.
+    port: "100.114.126.96:5432:5432"
     options:
       # Memory limit: 1GB (current ~310MB, 3x headroom)
       # Postgres persists data to disk, safe to OOM-kill and restart
       memory: 1g
       publish:
+        # Loopback as well as the tailnet address above. This is the only reason
+        # the Alloy Postgres exporter kept working through the IP change, and it
+        # is why Elasticsearch — which had no equivalent — did not.
         - "127.0.0.1:5432:5432"
       # Accessories get no logging defaults from Kamal, so auto_explain output
       # would grow unbounded on the host disk.
@@ -103,7 +111,13 @@ accessories:
   elasticsearch:
     image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
     host: nadeshiko
-    port: "100.95.40.11:9200:9200"
+    # See the note on postgres above: this pinned 100.95.40.11, the host's old
+    # tailnet address, and unlike postgres there was no second publish to fall
+    # back on. The Alloy Elasticsearch exporter timed out against it for weeks —
+    # every scrape failing, no elasticsearch_* series, and nothing alerting
+    # because a target that never reports looks the same as one that does not
+    # exist. ES itself was fine the whole time; only the door was.
+    port: "100.114.126.96:9200:9200"
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD
@@ -116,7 +130,18 @@ accessories:
     volumes:
       # ES9 is rebuilt from PostgreSQL on a fresh volume. The ES8 volume is
       # retained untouched through the rollback observation window.
-      - nadeshiko-elasticsearch-v9-data:/usr/share/elasticsearch/data
+      #
+      # Overridable, and it has to be. The 8.17.10 -> 8.19.15 bridge that
+      # `scripts/migrate-elasticsearch-production.sh` demands before it will run
+      # is an operator step with no automation, and it must boot the bridge image
+      # against the EXISTING v8 volume. With this hardcoded to v9, the obvious
+      # `ELASTICSEARCH_IMAGE=<bridge> kamal accessory reboot elasticsearch`
+      # would instead start the bridge on an empty volume AND create
+      # nadeshiko-elasticsearch-v9-data — which the migration script requires to
+      # be absent, so it would then refuse to run until the volume was deleted
+      # by hand. The default stays v9, so the script's own `kamal accessory boot`
+      # (line 212) is unaffected.
+      - <%= ENV.fetch("ELASTICSEARCH_VOLUME", "nadeshiko-elasticsearch-v9-data") %>:/usr/share/elasticsearch/data
     cmd: >
       bash -c '
         export ELASTIC_PASSWORD="$ELASTICSEARCH_ADMIN_PASSWORD";
@@ -126,6 +151,13 @@ accessories:
       # Memory limit: 3.5GB (current ~2.7GB, 800MB headroom for growth)
       # JVM heap fixed at 1GB via ES_JAVA_OPTS; rest is Lucene off-heap
       memory: 3.5g
+      publish:
+        # The loopback publish Postgres always had and this never did, which is
+        # the whole difference between an exporter that survived the tailnet IP
+        # change and one that did not. The Alloy Elasticsearch exporter dials
+        # http://127.0.0.1:9200 (brigadasos-infra machines/nadeshiko/alloy),
+        # deliberately, so that it stops depending on an address that moves.
+        - "127.0.0.1:9200:9200"
       ulimit:
         - nofile=65536:65536
         - memlock=-1:-1
