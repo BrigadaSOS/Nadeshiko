@@ -159,14 +159,25 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   void placeTooltip();
 }
 
+/**
+ * Put the card where the word is, once.
+ *
+ * The maths is done in viewport coordinates -- that is what
+ * `getBoundingClientRect` gives, and what "does it fit above or below" is asking
+ * about -- and the page scroll is added at the end, because the card is placed
+ * on the PAGE rather than on the screen. It therefore scrolls away with the
+ * sentence it belongs to instead of following the reader down the page, and
+ * nothing has to re-run on scroll to keep it honest.
+ */
 async function placeTooltip(): Promise<void> {
   const anchor = hoveredElement;
   if (!anchor?.isConnected) return;
   const tokenRect = anchor.getBoundingClientRect();
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
 
-  // Work entirely in viewport coordinates (tooltip is position:fixed)
   const idealLeft = tokenRect.left + tokenRect.width / 2;
-  tooltipStyle.value = { left: `${idealLeft}px`, top: `${tokenRect.top - GAP}px` };
+  tooltipStyle.value = { left: `${idealLeft + scrollX}px`, top: `${tokenRect.top - GAP + scrollY}px` };
 
   await nextTick();
   const tip = tooltipRef.value;
@@ -195,10 +206,14 @@ async function placeTooltip(): Promise<void> {
   const below = tipRect.height > roomAbove && roomBelow > roomAbove;
   const room = Math.max(below ? roomBelow : roomAbove, MIN_CARD_HEIGHT);
 
+  const top = below
+    ? tokenRect.bottom + GAP
+    : Math.max(tokenRect.top - GAP, VIEWPORT_MARGIN + Math.min(tipRect.height, room));
+
   tooltipBelow.value = below;
   tooltipStyle.value = {
-    left: `${left}px`,
-    top: `${below ? tokenRect.bottom + GAP : Math.max(tokenRect.top - GAP, VIEWPORT_MARGIN + Math.min(tipRect.height, room))}px`,
+    left: `${left + scrollX}px`,
+    top: `${top + scrollY}px`,
     maxHeight: `${room}px`,
   };
 }
@@ -297,39 +312,18 @@ const onDocumentKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape' && hoveredToken.value) closeTooltip();
 };
 
-// The card is position:fixed against the token's viewport rect, which was fine
-// while hovering held it open for a moment. Opened by click it outlives the
-// scroll that follows, so it has to be re-anchored -- otherwise it sits where
-// the word USED to be. Capture phase because the scroll that matters is often an
-// inner container's, not the document's, and passive because this only reads.
-const onViewportChange = () => {
-  if (!hoveredToken.value) return;
-  // Scrolled out of sight: the card has nothing left to point at, and one
-  // pinned to the edge of the viewport is just in the way.
-  if (hoveredElement && !isAnchorVisible(hoveredElement)) {
-    closeTooltip();
-    return;
-  }
-  void placeTooltip();
-};
-
-function isAnchorVisible(anchor: HTMLElement): boolean {
-  const rect = anchor.getBoundingClientRect();
-  return rect.bottom > 0 && rect.top < window.innerHeight;
-}
-
+// Nothing re-anchors on scroll. The card is placed on the page, so it moves with
+// the sentence and scrolls out of sight like any other content -- which is what
+// a reader expects of something attached to a word, and it means scrolling can
+// never leave it pointing at a word that has moved.
 onMounted(() => {
   document.addEventListener('pointerdown', onDocumentPointerDown);
   document.addEventListener('keydown', onDocumentKeydown);
-  window.addEventListener('scroll', onViewportChange, { capture: true, passive: true });
-  window.addEventListener('resize', onViewportChange, { passive: true });
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onDocumentPointerDown);
   document.removeEventListener('keydown', onDocumentKeydown);
-  window.removeEventListener('scroll', onViewportChange, { capture: true });
-  window.removeEventListener('resize', onViewportChange);
 });
 
 const POS_CLASS: Record<string, string> = {
@@ -415,7 +409,16 @@ const headFurigana = computed(() => {
 const inflectionLine = computed(() => {
   const token = hoveredToken.value;
   if (!token || token.inflectionLabels.length === 0) return '';
-  return `${token.displaySurface} → ${token.dictForm} · ${token.inflectionLabels.join(' · ')}`;
+  // The chain alone -- "progressive · te-form" -- and not "食らって → 食らう ·
+  // te-form". Both ends of that arrow are already on screen: the surface is the
+  // word the reader just pointed at in the sentence, and the dictionary form is
+  // the headword directly above this line. Spelling the conversion out again
+  // pushed the one thing this line is FOR to the far right of it.
+  //
+  // The labels are Shirabe's own, verbatim from the parse, so a form reads the
+  // same here as it does there: its wording carries the detail a bare name
+  // would lose ("potential / passive", "provisional (〜ば)").
+  return token.inflectionLabels.join(' · ');
 });
 
 // 3. Badges: how common the word is, in the three ways the dictionary knows.
@@ -519,143 +522,145 @@ const dictionaryLinks = computed(() => {
       ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
-    <Transition name="tooltip">
-      <div
-        v-if="hoveredToken"
-        ref="tooltipRef"
-        class="token-tooltip"
-        :class="{ 'token-tooltip--below': tooltipBelow }"
-        :style="tooltipStyle"
-        @click.stop
-      >
-        <div class="token-tooltip__head">
-          <!-- The headword searches Nadeshiko for the word, in place: the reader
-               is here for sentences, and this is the biggest thing on the card.
-               The dictionaries live in the chips at the foot, which leave the
-               site, so the two kinds of destination never share an appearance. -->
-          <component
-            :is="hoveredToken ? 'button' : 'span'"
-            v-bind="hoveredToken ? { type: 'button' } : {}"
-            class="token-tooltip__word"
-            :class="{ 'token-tooltip__word--action': hoveredToken }"
-            lang="ja"
-            @click="hoveredToken && searchExampleToken(hoveredToken.searchText)"
-          >
-            <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
-            <template v-else>{{ headword }}</template>
-          </component>
-          <span v-if="headReading && headFurigana.length === 0" class="token-tooltip__reading">{{ headReading }}</span>
-        </div>
-
-        <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
-
-        <div v-if="badges.length > 0" class="token-tooltip__badges">
-          <span v-for="badge in badges" :key="badge.id" class="token-tooltip__badge" :class="badge.kind">{{ badge.text }}</span>
-        </div>
-
-        <div class="token-tooltip__body">
-          <div v-if="pitchPatterns.length > 0" class="token-tooltip__pitch">
-            <span v-for="(pattern, pi) in pitchPatterns" :key="pi" class="token-tooltip__pitch-pattern">
-              <span
-                v-for="(mora, mi) in pattern.morae"
-                :key="mi"
-                class="token-tooltip__mora"
-                :class="{ 'is-high': mora.high, 'is-drop': mora.drop }"
-              >{{ mora.text }}</span>
-              <span class="token-tooltip__downstep">[{{ pattern.downstep }}]</span>
-            </span>
+    <Teleport to="body">
+      <Transition name="tooltip">
+        <div
+          v-if="hoveredToken"
+          ref="tooltipRef"
+          class="token-tooltip"
+          :class="{ 'token-tooltip--below': tooltipBelow }"
+          :style="tooltipStyle"
+          @click.stop
+        >
+          <div class="token-tooltip__head">
+            <!-- The headword searches Nadeshiko for the word, in place: the reader
+                 is here for sentences, and this is the biggest thing on the card.
+                 The dictionaries live in the chips at the foot, which leave the
+                 site, so the two kinds of destination never share an appearance. -->
+            <component
+              :is="hoveredToken ? 'button' : 'span'"
+              v-bind="hoveredToken ? { type: 'button' } : {}"
+              class="token-tooltip__word"
+              :class="{ 'token-tooltip__word--action': hoveredToken }"
+              lang="ja"
+              @click="hoveredToken && searchExampleToken(hoveredToken.searchText)"
+            >
+              <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
+              <template v-else>{{ headword }}</template>
+            </component>
+            <span v-if="headReading && headFurigana.length === 0" class="token-tooltip__reading">{{ headReading }}</span>
           </div>
 
-          <ol v-if="senses.length > 0" class="token-tooltip__senses">
-            <li v-for="(sense, si) in senses" :key="si" class="token-tooltip__sense">
-              <span v-if="sense.partsOfSpeech.length > 0 || sense.tags.length > 0" class="token-tooltip__chips"><span
-                v-for="chip in sense.partsOfSpeech"
-                :key="`p-${chip.label}`"
-                class="token-tooltip__chip token-tooltip__chip--pos"
-                :title="chip.title"
-              >{{ chip.label }}</span><span
-                v-for="chip in sense.tags"
-                :key="`t-${chip.label}`"
-                class="token-tooltip__chip"
-                :class="`token-tooltip__chip--${chip.category}`"
-                :title="chip.title"
-              >{{ chip.label }}</span></span>
-              <span v-for="row in sense.glosses" :key="row.lang" class="token-tooltip__gloss-row">
-                <span class="token-tooltip__lang">{{ row.label }}</span>{{ row.text }}
+          <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
+
+          <div v-if="badges.length > 0" class="token-tooltip__badges">
+            <span v-for="badge in badges" :key="badge.id" class="token-tooltip__badge" :class="badge.kind">{{ badge.text }}</span>
+          </div>
+
+          <div class="token-tooltip__body">
+            <div v-if="pitchPatterns.length > 0" class="token-tooltip__pitch">
+              <span v-for="(pattern, pi) in pitchPatterns" :key="pi" class="token-tooltip__pitch-pattern">
+                <span
+                  v-for="(mora, mi) in pattern.morae"
+                  :key="mi"
+                  class="token-tooltip__mora"
+                  :class="{ 'is-high': mora.high, 'is-drop': mora.drop }"
+                >{{ mora.text }}</span>
+                <span class="token-tooltip__downstep">[{{ pattern.downstep }}]</span>
               </span>
-            </li>
-          </ol>
-          <p v-else-if="wordState === 'loading'" class="token-tooltip__pending">
-            <span class="token-tooltip__spinner" aria-hidden="true" />
-            <span>{{ $t('tokenTooltip.loading') }}</span>
-          </p>
+            </div>
 
-          <div v-if="kanjiChips.length > 0" class="token-tooltip__kanji">
-            <a
-              v-for="chip in kanjiChips"
-              :key="chip.character"
-              :href="chip.href"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="token-tooltip__kanji-link"
-            >{{ chip.character }}</a>
-          </div>
+            <ol v-if="senses.length > 0" class="token-tooltip__senses">
+              <li v-for="(sense, si) in senses" :key="si" class="token-tooltip__sense">
+                <span v-if="sense.partsOfSpeech.length > 0 || sense.tags.length > 0" class="token-tooltip__chips"><span
+                  v-for="chip in sense.partsOfSpeech"
+                  :key="`p-${chip.label}`"
+                  class="token-tooltip__chip token-tooltip__chip--pos"
+                  :title="chip.title"
+                >{{ chip.label }}</span><span
+                  v-for="chip in sense.tags"
+                  :key="`t-${chip.label}`"
+                  class="token-tooltip__chip"
+                  :class="`token-tooltip__chip--${chip.category}`"
+                  :title="chip.title"
+                >{{ chip.label }}</span></span>
+                <span v-for="row in sense.glosses" :key="row.lang" class="token-tooltip__gloss-row">
+                  <span class="token-tooltip__lang">{{ row.label }}</span>{{ row.text }}
+                </span>
+              </li>
+            </ol>
+            <p v-else-if="wordState === 'loading'" class="token-tooltip__pending">
+              <span class="token-tooltip__spinner" aria-hidden="true" />
+              <span>{{ $t('tokenTooltip.loading') }}</span>
+            </p>
 
-          <div v-if="examples.length > 0" class="token-tooltip__examples">
-            <div v-for="(example, ei) in examples" :key="ei" class="token-tooltip__example">
-              <span lang="ja" class="token-tooltip__example-jp"><template v-if="example.tokens.length > 0"><template v-for="(token, ti) in example.tokens" :key="ti"><span v-if="token.query" class="token-tooltip__example-token" :class="{ 'is-matched': token.matched }" @click="searchExampleToken(token.query)">{{ token.text }}</span><span v-else :class="{ 'is-matched': token.matched }">{{ token.text }}</span></template></template><template v-else>{{ example.japanese }}</template></span>
-              <ul v-if="example.translations.length > 0" class="m-0 mt-1 w-full list-none space-y-1 p-0 text-gray-400">
-                <li v-for="row in example.translations" :key="row.lang" class="flex items-center gap-2 text-xs transition-opacity duration-200">
-                  <span
-                    class="token-tooltip__lang"
-                    :class="row.mode === 'spoiler' ? 'is-spoiler' : ''"
-                  >{{ row.label }}</span>
-                  <div class="min-w-0 flex-1">
+            <div v-if="kanjiChips.length > 0" class="token-tooltip__kanji">
+              <a
+                v-for="chip in kanjiChips"
+                :key="chip.character"
+                :href="chip.href"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="token-tooltip__kanji-link"
+              >{{ chip.character }}</a>
+            </div>
+
+            <div v-if="examples.length > 0" class="token-tooltip__examples">
+              <div v-for="(example, ei) in examples" :key="ei" class="token-tooltip__example">
+                <span lang="ja" class="token-tooltip__example-jp"><template v-if="example.tokens.length > 0"><template v-for="(token, ti) in example.tokens" :key="ti"><span v-if="token.query" class="token-tooltip__example-token" :class="{ 'is-matched': token.matched }" @click="searchExampleToken(token.query)">{{ token.text }}</span><span v-else :class="{ 'is-matched': token.matched }">{{ token.text }}</span></template></template><template v-else>{{ example.japanese }}</template></span>
+                <ul v-if="example.translations.length > 0" class="m-0 mt-1 w-full list-none space-y-1 p-0 text-gray-400">
+                  <li v-for="row in example.translations" :key="row.lang" class="flex items-center gap-2 text-xs transition-opacity duration-200">
                     <span
-                      class="group/translation"
-                      :class="row.mode === 'spoiler' && !isTranslationRevealed(ei, row.lang) ? 'cursor-pointer' : ''"
-                      @click="row.mode === 'spoiler' && toggleTranslationReveal(ei, row.lang)"
-                    >
+                      class="token-tooltip__lang"
+                      :class="row.mode === 'spoiler' ? 'is-spoiler' : ''"
+                    >{{ row.label }}</span>
+                    <div class="min-w-0 flex-1">
                       <span
-                        class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
-                        :class="row.mode === 'spoiler' && !isTranslationRevealed(ei, row.lang)
-                          ? 'bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
-                          : 'bg-transparent text-gray-400'"
-                      >{{ row.text }}</span>
-                    </span>
-                  </div>
-                </li>
-              </ul>
+                        class="group/translation"
+                        :class="row.mode === 'spoiler' && !isTranslationRevealed(ei, row.lang) ? 'cursor-pointer' : ''"
+                        @click="row.mode === 'spoiler' && toggleTranslationReveal(ei, row.lang)"
+                      >
+                        <span
+                          class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
+                          :class="row.mode === 'spoiler' && !isTranslationRevealed(ei, row.lang)
+                            ? 'bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
+                            : 'bg-transparent text-gray-400'"
+                        >{{ row.text }}</span>
+                      </span>
+                    </div>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Its own row, not gated on the dictionary list: it is not a
-             dictionary, and a reader who turned every dictionary off would
-             otherwise lose the one link that stays on this site. Styled apart
-             from the chips beside it because it navigates in place while every
-             one of them opens a tab. -->
-        <div v-if="hoveredToken" class="token-tooltip__actions">
-          <button
-            type="button"
-            class="token-tooltip__action"
-            @click="searchExampleToken(hoveredToken.searchText)"
-          >{{ $t('tokenTooltip.moreSentences') }}</button>
-        </div>
+          <!-- Its own row, not gated on the dictionary list: it is not a
+               dictionary, and a reader who turned every dictionary off would
+               otherwise lose the one link that stays on this site. Styled apart
+               from the chips beside it because it navigates in place while every
+               one of them opens a tab. -->
+          <div v-if="hoveredToken" class="token-tooltip__actions">
+            <button
+              type="button"
+              class="token-tooltip__action"
+              @click="searchExampleToken(hoveredToken.searchText)"
+            >{{ $t('tokenTooltip.moreSentences') }}</button>
+          </div>
 
-        <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
-          <span class="token-tooltip__links-label">{{ $t('tokenTooltip.lookupIn') }}</span>
-          <a
-            v-for="link in dictionaryLinks"
-            :key="link.id"
-            :href="link.href"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="token-tooltip__link"
-          >{{ link.label }}</a>
+          <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
+            <span class="token-tooltip__links-label">{{ $t('tokenTooltip.lookupIn') }}</span>
+            <a
+              v-for="link in dictionaryLinks"
+              :key="link.id"
+              :href="link.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="token-tooltip__link"
+            >{{ link.label }}</a>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </span>
 </template>
 
@@ -700,7 +705,10 @@ const dictionaryLinks = computed(() => {
   --tt-ink-faint: rgb(138 138 138);
   --tt-accent: #df848d;
 
-  position: fixed;
+  /* absolute, not fixed: the card belongs to the page, so it scrolls away with
+     the sentence rather than following the reader. Teleported to <body> so these
+     coordinates are page coordinates whatever the segment sits inside. */
+  position: absolute;
   transform: translate(-50%, -100%);
   display: flex;
   flex-direction: column;
