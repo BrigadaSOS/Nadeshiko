@@ -2,7 +2,7 @@ import type { SitemapUrlInput } from '#sitemap/types';
 import { getSitemapLocale, localizeSitemapPath } from './utils';
 
 export default defineSitemapEventHandler(async (event) => {
-  const sdk = useServerSdk();
+  const sdk = useServerSdk(event);
   const urls: SitemapUrlInput[] = [];
   const locale = getSitemapLocale(event);
 

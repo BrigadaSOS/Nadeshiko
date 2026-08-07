@@ -363,6 +363,7 @@
       "developer": "開発者",
       "users": "ユーザー",
       "reports": "レポート",
+      "agentActivity": "エージェント履歴",
       "announcement": "お知らせ"
     },
     "dashboard": {
@@ -867,14 +868,6 @@
         "auto": "自動チェック",
         "orphaned": "孤立"
       },
-      "availableChecks": "利用可能なチェック",
-      "configure": "設定",
-      "running": "実行中",
-      "run": "実行",
-      "lastRun": "前回実行 {date}",
-      "neverRun": "未実行",
-      "resultsTab": "結果",
-      "runHistoryTab": "実行履歴",
       "selectedGroups": "{count} 件のグループを選択中",
       "dismiss": "却下",
       "delete": "削除",
@@ -887,8 +880,6 @@
       "addNote": "クリックしてメモを追加...",
       "updateSuccess": "レポートが更新されました",
       "updateError": "レポートの更新に失敗しました",
-      "auditRunResult": "{audit}: {count} 件の検出結果",
-      "auditConfigUpdated": "監査設定を更新しました",
       "batchUpdated": "{count} 件のレポートを更新しました",
       "batchUpdateError": "レポートの更新に失敗しました",
       "batchDeleted": "{count} 件のレポートを削除しました",
@@ -911,16 +902,6 @@
         "SEGMENT": "セグメント",
         "EPISODE": "エピソード",
         "MEDIA": "メディア"
-      },
-      "runHistory": {
-        "check": "チェック",
-        "category": "カテゴリ",
-        "findings": "検出数",
-        "date": "日時",
-        "actions": "操作",
-        "allCategories": "すべて",
-        "viewResults": "結果を見る",
-        "empty": "まだ実行履歴がありません"
       },
       "confirm": {
         "dismissAllTitle": "一致するレポートをすべて却下しますか？",
@@ -1086,5 +1067,28 @@
       "suffix": "のアニメコーパス頻度データを使用。{shown} / {total}語を表示中。"
     },
     "loadError": "単語リストを読み込めませんでした。"
+  },
+  "agentActivity": {
+    "title": "エージェント履歴",
+    "description": "モデレーションエージェントによる編集を、実際に書き込まれたリビジョンから表示します。抜き取りで確認し、問題があれば復元してください。",
+    "empty": "この期間のエージェント履歴はありません",
+    "episode": "第{number}話",
+    "noReport": "報告なし",
+    "restore": "復元",
+    "restoring": "復元中...",
+    "restoreSuccess": "セグメントを復元しました",
+    "restoreError": "セグメントの復元に失敗しました",
+    "window": {
+      "day": "過去24時間",
+      "week": "過去7日間",
+      "month": "過去30日間"
+    },
+    "table": {
+      "segment": "セグメント",
+      "change": "変更",
+      "report": "報告",
+      "when": "日時",
+      "actions": "操作"
+    }
   }
 }

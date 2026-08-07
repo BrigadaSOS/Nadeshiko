@@ -23,7 +23,7 @@ export default defineNuxtPlugin({
           // Same headers the /v1 Nitro proxy sends: the internal-proxy secret
           // keeps these SSR calls out of the backend's per-IP bucket, which every
           // render would otherwise share (they all come from this host's IP).
-          const headers = buildInternalBackendHeaders(config, { cookie: cookieHeader || '' });
+          const headers = buildInternalBackendHeaders(config, { cookie: cookieHeader || '' }, event);
 
           // `$fetch` rather than the SDK, for two reasons that both still hold:
           // `/v1/auth/*` is mounted by better-auth and is not in the OpenAPI spec,
