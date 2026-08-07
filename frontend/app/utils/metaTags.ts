@@ -1,6 +1,11 @@
 import type { SearchResult, Media } from '~/types/search';
 
-type MetaTag = { name?: string; property?: string; content: string };
+// A union rather than one shape with both keys optional: unhead v3 narrows the
+// `meta` entries it accepts, and an all-optional shape matches none of its
+// branches -- it falls through to the one demanding `charset`. Every tag we
+// build carries exactly one of `name` or `property`, so this is also the more
+// honest type.
+type MetaTag = { name: string; content: string } | { property: string; content: string };
 type MetaTags = { title: string; meta: MetaTag[] };
 
 const TITLE_SUFFIX = ' | Nadeshiko';

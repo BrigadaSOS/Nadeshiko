@@ -6,30 +6,13 @@ import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
-import { CATEGORY_API_MAPPING } from '~/utils/categories';
+import { CATEGORY_API_MAPPING, discountHiddenMedia } from '~/utils/categories';
 import { splitLocalePrefix } from '~/utils/routes';
 import type { SearchScope } from '~/composables/useSearchFetch';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
 const { mediaName } = useMediaName();
 const { hiddenMediaIds, hiddenMediaExcludeFilter, isMediaHidden } = useHiddenMedia();
-
-const recomputeCategories = (
-  media: ResolvedMediaStats[],
-  originalCategories: ResolvedCategoryCount[],
-): ResolvedCategoryCount[] => {
-  const counts = new Map<ResolvedCategoryCount['category'], number>();
-  for (const m of media) {
-    const cat = m.category;
-    counts.set(cat, (counts.get(cat) ?? 0) + m.matchCount);
-  }
-  const realByCategory = new Map(originalCategories.map((c) => [c.category, c.realCount]));
-  return Array.from(counts.entries()).map(([category, count]) => ({
-    category,
-    count,
-    realCount: realByCategory.get(category) ?? count,
-  }));
-};
 
 const props = defineProps<{
   initialSentenceData?: SearchResponse | null;
@@ -91,11 +74,11 @@ const searchData = computed(() => {
 
   const allMedia = statsPayload?.media || ([] as ResolvedMediaStats[]);
   const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.mediaPublicId)) : allMedia;
+  const hiddenMediaInPayload = hidden.size > 0 ? allMedia.filter((m) => hidden.has(m.mediaPublicId)) : [];
 
+  const serverCategories = statsPayload?.categories || ([] as ResolvedCategoryCount[]);
   const categories =
-    hidden.size > 0
-      ? recomputeCategories(filteredMedia, statsPayload?.categories ?? [])
-      : statsPayload?.categories || ([] as ResolvedCategoryCount[]);
+    hiddenMediaInPayload.length > 0 ? discountHiddenMedia(serverCategories, hiddenMediaInPayload) : serverCategories;
 
   return {
     results: sentencePayload?.results || [],

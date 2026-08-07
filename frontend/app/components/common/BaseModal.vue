@@ -126,9 +126,30 @@ const deactivate = () => {
   previouslyFocused = null;
 };
 
+/**
+ * Whether the `<Teleport>` itself is in the tree, as opposed to whether the panel
+ * inside it is visible.
+ *
+ * Vue's `TeleportImpl.remove` walks its children unconditionally when the teleport
+ * unmounts, so a teleport that is always present — on pages carrying four to eight
+ * modals, all closed — hands `unmountComponent` a child vnode that was never
+ * mounted whenever the page tears down mid-render, and it crashes destructuring a
+ * null instance. A closed modal has nothing to teleport, so the cheapest fix is to
+ * not be in the tree at all.
+ */
+const isRendered = ref(props.open);
+
+/** Holds the teleport open for the leave transition, which removing it on `open`
+ * flipping false would otherwise cut short. */
+const onAfterLeave = () => {
+  // A reopen during the leave must win, or the panel would vanish mid-transition.
+  if (!props.open) isRendered.value = false;
+};
+
 watch(
   () => props.open,
   (open) => {
+    if (open) isRendered.value = true;
     if (!import.meta.client) return;
     if (open) activate();
     else deactivate();
@@ -149,8 +170,8 @@ const onBackdropClick = () => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition :name="transition">
+  <Teleport v-if="isRendered" to="body">
+    <Transition :name="transition" @after-leave="onAfterLeave">
       <div
         v-if="open"
         class="nd-modal fixed inset-0 flex w-full h-full overflow-x-hidden overflow-y-auto"

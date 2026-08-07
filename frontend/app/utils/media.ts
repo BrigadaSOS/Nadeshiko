@@ -79,9 +79,28 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     audioContext = new AudioContext();
   }
 
-  const audioRes = await Promise.all(urls.map((url) => fetch(url)));
+  // `Promise.all` rejects on the first failure and leaves the remaining rejections
+  // unowned, so a CDN blip that fails several segments at once surfaces the rest as
+  // unhandled rejections — reported as a bare uncaught `Failed to fetch` even though
+  // every caller wraps this in try/catch. `allSettled` keeps every rejection owned.
+  const settled = await Promise.allSettled(
+    urls.map(async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Audio segment request failed with status ${res.status}`);
+      return res;
+    }),
+  );
+
+  const failed = settled.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+  if (failed) {
+    throw failed.reason instanceof Error ? failed.reason : new Error(String(failed.reason));
+  }
+
+  const audioRes = settled.filter(
+    (result): result is PromiseFulfilledResult<Response> => result.status === 'fulfilled',
+  );
   for (const res of audioRes) {
-    audioBuffers.push(await audioContext.decodeAudioData(await res.arrayBuffer()));
+    audioBuffers.push(await audioContext.decodeAudioData(await res.value.arrayBuffer()));
   }
 
   // Should always be 2, but just in case

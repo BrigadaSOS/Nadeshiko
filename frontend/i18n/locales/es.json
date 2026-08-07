@@ -363,6 +363,7 @@
       "developer": "Desarrollador",
       "users": "Usuarios",
       "reports": "Reportes",
+      "agentActivity": "Actividad del agente",
       "announcement": "Anuncios"
     },
     "dashboard": {
@@ -867,14 +868,6 @@
         "auto": "Comprobaciones automáticas",
         "orphaned": "Huérfanos"
       },
-      "availableChecks": "Comprobaciones disponibles",
-      "configure": "Configurar",
-      "running": "Ejecutando",
-      "run": "Ejecutar",
-      "lastRun": "Última ejecución {date}",
-      "neverRun": "Nunca ejecutado",
-      "resultsTab": "Resultados",
-      "runHistoryTab": "Historial de ejecuciones",
       "selectedGroups": "{count} grupo(s) seleccionados",
       "dismiss": "Descartar",
       "delete": "Eliminar",
@@ -887,8 +880,6 @@
       "addNote": "Haz clic para añadir nota...",
       "updateSuccess": "Reporte actualizado",
       "updateError": "No se pudo actualizar el reporte",
-      "auditRunResult": "{audit}: {count} hallazgos",
-      "auditConfigUpdated": "Configuración de auditoría actualizada",
       "batchUpdated": "{count} reporte(s) actualizados",
       "batchUpdateError": "No se pudieron actualizar los reportes",
       "batchDeleted": "{count} reporte(s) eliminados",
@@ -911,16 +902,6 @@
         "SEGMENT": "Segmento",
         "EPISODE": "Episodio",
         "MEDIA": "Contenido"
-      },
-      "runHistory": {
-        "check": "Comprobación",
-        "category": "Categoría",
-        "findings": "Hallazgos",
-        "date": "Fecha",
-        "actions": "Acciones",
-        "allCategories": "Todos",
-        "viewResults": "Ver resultados",
-        "empty": "Todavía no hay ejecuciones"
       },
       "confirm": {
         "dismissAllTitle": "¿Descartar todos los reportes coincidentes?",
@@ -1086,5 +1067,28 @@
       "suffix": ". Mostrando {shown} de {total} palabras."
     },
     "loadError": "No se pudo cargar la lista de palabras."
+  },
+  "agentActivity": {
+    "title": "Actividad del agente",
+    "description": "Ediciones hechas por el agente de moderación, leídas de las revisiones que escribió. Revisa algunas al azar y restaura lo que no cuadre.",
+    "empty": "Sin actividad del agente en este periodo",
+    "episode": "EP{number}",
+    "noReport": "sin reporte",
+    "restore": "Restaurar",
+    "restoring": "Restaurando...",
+    "restoreSuccess": "Segmento restaurado",
+    "restoreError": "No se pudo restaurar el segmento",
+    "window": {
+      "day": "Últimas 24 horas",
+      "week": "Últimos 7 días",
+      "month": "Últimos 30 días"
+    },
+    "table": {
+      "segment": "Segmento",
+      "change": "Cambio",
+      "report": "Reporte",
+      "when": "Cuándo",
+      "actions": "Acciones"
+    }
   }
 }
