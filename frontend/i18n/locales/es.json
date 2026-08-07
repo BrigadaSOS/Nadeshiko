@@ -788,7 +788,8 @@
   },
   "tokenTooltip": {
     "lookupIn": "Buscar en",
-    "loading": "Buscando…"
+    "loading": "Buscando…",
+    "moreSentences": "Más frases"
   },
   "searchContainer": {
     "errorTitle": "502",

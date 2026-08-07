@@ -788,7 +788,8 @@
   },
   "tokenTooltip": {
     "lookupIn": "辞書で調べる",
-    "loading": "検索中…"
+    "loading": "検索中…",
+    "moreSentences": "他の例文"
   },
   "searchContainer": {
     "errorTitle": "502",

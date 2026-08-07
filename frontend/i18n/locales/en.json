@@ -788,7 +788,8 @@
   },
   "tokenTooltip": {
     "lookupIn": "Look up in",
-    "loading": "Looking up…"
+    "loading": "Looking up…",
+    "moreSentences": "More sentences"
   },
   "searchContainer": {
     "errorTitle": "502",
