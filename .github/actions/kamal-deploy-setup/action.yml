@@ -32,13 +32,22 @@ inputs:
 runs:
   using: composite
   steps:
+    # `ping:` is deliberately NOT set. It is a readiness probe, not the thing we
+    # need, and as a gate it is strictly worse than the SSH check below: it
+    # retries for three minutes and then reports "❌ Ping host <h> did not
+    # respond", which is the same message whether the host is down, the grant is
+    # missing, the node never got its tag, or ICMP simply is not the right probe.
+    # It cost this repo eight days of red deploys saying nothing more than that.
+    #
+    # SSH is what Kamal actually uses, it is pinned by .github/known_hosts, and
+    # it fails in seconds with a real error. So connectivity is verified below,
+    # against the protocol that has to work, rather than one that only correlates.
     - name: Connect to Tailscale
       uses: tailscale/github-action@v4
       with:
         oauth-client-id: ${{ inputs.tailscale-oauth-client-id }}
         oauth-secret: ${{ inputs.tailscale-oauth-secret }}
         tags: tag:ci
-        ping: ${{ inputs.host }}
 
     - name: Configure SSH over Tailscale
       shell: bash
@@ -75,6 +84,37 @@ runs:
           ProxyCommand tailscale nc %h %p
         EOF
         chmod 600 ~/.ssh/config ~/.ssh/known_hosts
+
+    # The real readiness gate, replacing the action's ping. Verifies the one
+    # thing Kamal depends on, and prints enough on failure to tell the causes
+    # apart instead of leaving "did not respond" to cover all of them:
+    # the runner's own tailnet identity (is it tagged tag:ci at all?), whether
+    # nadeshiko is even in its netmap (a missing grant shows up as an absent
+    # peer), and then the SSH attempt itself.
+    - name: Verify SSH reachability
+      shell: bash
+      env:
+        SSH_HOST: ${{ inputs.host }}
+      run: |
+        set -uo pipefail
+        echo "::group::Tailnet identity and peer visibility"
+        tailscale status --peers=false --json \
+          | python3 -c 'import json,sys; s=json.load(sys.stdin)["Self"]; print("self:", s.get("DNSName"), "tags:", s.get("Tags"))' \
+          || echo "could not read local tailscale status"
+        tailscale status | grep -E "(^|\s)${SSH_HOST}(\s|$|\.)" \
+          || echo "NOTE: ${SSH_HOST} is not in this runner's netmap — usually a missing grant or an untagged node, not a down host."
+        echo "::endgroup::"
+
+        for attempt in 1 2 3; do
+          if ssh -o ConnectTimeout=15 -o BatchMode=yes "${SSH_HOST}" true 2>&1; then
+            echo "✅ SSH to ${SSH_HOST} succeeded on attempt ${attempt}"
+            exit 0
+          fi
+          echo "attempt ${attempt}: SSH to ${SSH_HOST} failed; retrying"
+          sleep 10
+        done
+        echo "::error title=SSH unreachable::Could not SSH to ${SSH_HOST} over Tailscale. See the group above for whether the runner is tagged and whether ${SSH_HOST} is in its netmap."
+        exit 1
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
