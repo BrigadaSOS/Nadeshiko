@@ -30,7 +30,7 @@ export function shouldInjectApiKey(method: string, pathname: string): boolean {
 
 export function proxyToBackend(event: H3Event): Promise<any> {
   const config = useRuntimeConfig();
-  const headers = buildInternalBackendHeaders(config, getProxyRequestHeaders(event, { host: false }));
+  const headers = buildInternalBackendHeaders(config, getProxyRequestHeaders(event, { host: false }), event);
   const requestUrl = getRequestURL(event);
   const method = event.node.req.method || 'GET';
 

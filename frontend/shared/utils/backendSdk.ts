@@ -40,7 +40,10 @@ export function normalizeBackendBaseUrl(raw: unknown): string {
  * `backendHostHeader` exists for deployments where the backend routes by Host and
  * the internal URL is an address rather than the public hostname.
  */
-export function createInternalSdk(config: InternalSdkConfig): NadeshikoClient {
+export function createInternalSdk(
+  config: InternalSdkConfig,
+  extraHeaders: Record<string, string> = {},
+): NadeshikoClient {
   const baseURL = normalizeBackendBaseUrl(config.backendInternalUrl);
   const hostHeader = String(config.backendHostHeader ?? '');
   const apiKey = String(config.nadeshikoApiKey ?? '');
@@ -50,6 +53,21 @@ export function createInternalSdk(config: InternalSdkConfig): NadeshikoClient {
   if (hostHeader) {
     client.client.interceptors.request.use((request) => {
       request.headers.set('Host', hostHeader);
+      return request;
+    });
+  }
+
+  // `extraHeaders` is how the visitor's reader/bot/monitor classification
+  // reaches the backend. Without it, the searches an SSR render runs on a
+  // crawler's behalf arrive there as anonymous load — the request carries the
+  // service API key, not the crawler's User-Agent — and the backend's traffic
+  // split would say almost every request came from a reader.
+  const headerEntries = Object.entries(extraHeaders);
+  if (headerEntries.length > 0) {
+    client.client.interceptors.request.use((request) => {
+      for (const [name, value] of headerEntries) {
+        request.headers.set(name, value);
+      }
       return request;
     });
   }
