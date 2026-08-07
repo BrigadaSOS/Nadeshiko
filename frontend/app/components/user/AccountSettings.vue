@@ -489,10 +489,10 @@ const logoutCurrentUser = async () => {
               class="accent-button-primary-main"
               @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)"
             />
+            <!-- A required dictionary is a checked, disabled box and nothing
+                 else: the control already says it cannot be turned off, and the
+                 label spelled out in words what the disabled state shows. -->
             <span>{{ preset.label }}</span>
-            <span v-if="preset.required" class="text-xs text-gray-400">{{
-              $t('accountSettings.account.dictionaryAlwaysOn')
-            }}</span>
           </label>
         </div>
       </div>
