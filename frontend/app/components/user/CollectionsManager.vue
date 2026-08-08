@@ -24,9 +24,10 @@ const { data: initialData, refresh: refreshCollections } = await useAsyncData(
     return data?.collections ?? ([] as Collection[]);
   },
   {
-    // Session-scoped: an SSR call would carry the shared API key instead of the
-    // user's session, so it can only return the wrong data.
-    server: false,
+    // Server-rendered, via `useNadeshikoSdk`: this is the reader's own data, and the
+    // call now carries their session rather than the service key. It used to be
+    // `server: false` for exactly that reason. The `/user/**` route guard runs
+    // before setup, so this only ever executes for someone signed in.
     default: () => [] as Collection[],
   },
 );
@@ -38,8 +39,9 @@ const retryLoad = async () => {
 
 const collections = ref<Collection[]>(initialData.value);
 
-// With `server: false` the fetch is deferred to the client during hydration, so
-// the data can land after this component's local copy was seeded.
+// Still watched, for `refreshCollections()` after a create/rename/delete -- the
+// SSR pass now seeds `collections` directly, but a refresh still replaces
+// `initialData` underneath it.
 watch(initialData, (data) => {
   collections.value = data ?? [];
 });
@@ -343,8 +345,10 @@ const submitDelete = async () => {
       </div>
       <div class="p-4">
         <input
+          id="nd-rename-input"
           ref="renameInput"
           v-model="renameValue"
+          :aria-label="t('accountSettings.collections.nameLabel')"
           data-autofocus
           type="text"
           maxlength="100"

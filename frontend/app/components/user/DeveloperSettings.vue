@@ -49,13 +49,11 @@ const fetchApiKeyList = async (): Promise<unknown[]> => {
     return [];
   };
 
-  const data = await useNadeshikoSdk()
-    .authApiKeyList()
-    .catch((error: unknown) => {
-      handleApiError('api-keys:list-failed', error, { toastKey: false });
-      loadFailed.value = true;
-      return [];
-    });
+  const data = await sdk.authApiKeyList().catch((error: unknown) => {
+    handleApiError('api-keys:list-failed', error, { toastKey: false });
+    loadFailed.value = true;
+    return [];
+  });
   return unwrap(data);
 };
 
@@ -68,27 +66,28 @@ const fetchMe = () =>
     return null;
   });
 
-const { data: apiData, refresh: refreshApiKeys } = await useAsyncData(
-  'developer-api-keys',
-  async () => {
-    loadFailed.value = false;
-    const [keysRaw, meRes] = await Promise.all([fetchApiKeyList(), fetchMe()]);
+// Server-rendered. `/v1/auth/api-key/list` and `/v1/user/me` are both off the
+// public allowlist, so the SDK sends the reader's session cookie rather than the
+// service key and the keys that come back are theirs. This was `server: false`
+// while the SSR client signed everything as the service, which would have listed
+// the service account's API keys instead.
+const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
+  loadFailed.value = false;
+  const [keysRaw, meRes] = await Promise.all([fetchApiKeyList(), fetchMe()]);
 
-    const keys = (Array.isArray(keysRaw) ? keysRaw : [])
-      .map(normalizeApiKey)
-      .filter((k) => k.isActive)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return {
-      keys,
-      quota: {
-        quotaUsed: meRes?.quota?.used ?? 0,
-        quotaLimit: meRes?.quota?.limit ?? 5000,
-        quotaRemaining: meRes?.quota?.remaining ?? 0,
-      },
-    };
-  },
-  { server: false },
-);
+  const keys = (Array.isArray(keysRaw) ? keysRaw : [])
+    .map(normalizeApiKey)
+    .filter((k) => k.isActive)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return {
+    keys,
+    quota: {
+      quotaUsed: meRes?.quota?.used ?? 0,
+      quotaLimit: meRes?.quota?.limit ?? 5000,
+      quotaRemaining: meRes?.quota?.remaining ?? 0,
+    },
+  };
+});
 
 const fieldOptions = computed(
   () =>
