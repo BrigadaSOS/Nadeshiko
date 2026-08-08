@@ -2,31 +2,20 @@ import type { H3Event } from 'h3';
 import { getProxyRequestHeaders, getRequestURL, proxyRequest } from 'h3';
 import { buildInternalBackendHeaders, internalBackendUrl } from '~~/server/utils/internalBackend';
 import { publicApiRoutes } from '~~/server/utils/generated/publicApiRoutes';
+import { createPublicRouteMatcher } from '#shared/utils/backendSdk';
 
 function getTargetUrl(event: H3Event): string {
   const requestUrl = getRequestURL(event);
   return internalBackendUrl(useRuntimeConfig(), `${requestUrl.pathname}${requestUrl.search}`);
 }
 
-function toPathMatcher(openApiPath: string): RegExp {
-  const pattern = openApiPath
-    .split('/')
-    .map((segment) =>
-      segment.startsWith('{') && segment.endsWith('}') ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-    )
-    .join('/');
-  return new RegExp(`^${pattern}$`);
-}
-
-const publicRouteMatchers = publicApiRoutes.map((route) => ({
-  method: route.method,
-  matcher: toPathMatcher(route.path),
-}));
-
-export function shouldInjectApiKey(method: string, pathname: string): boolean {
-  const normalizedMethod = method.toUpperCase();
-  return publicRouteMatchers.some((route) => route.method === normalizedMethod && route.matcher.test(pathname));
-}
+/**
+ * Shared with the SSR SDK rather than kept as a second copy of the same regex.
+ * The proxy always asked this question; the SSR path did not, and that gap is
+ * what let a server render read private collections with the master key. One
+ * implementation now answers for both.
+ */
+export const shouldInjectApiKey = createPublicRouteMatcher(publicApiRoutes);
 
 export function proxyToBackend(event: H3Event): Promise<any> {
   const config = useRuntimeConfig();

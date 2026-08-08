@@ -25,8 +25,11 @@ const fetchSentenceData = async () => {
   if ('error' in result) {
     const status = result.response.status;
     if (status === 403 || status === 401) {
+      // Only recorded here. `navigateTo` called from inside an async-data fetcher
+      // does not propagate as a redirect during SSR -- it resolves, the fetcher
+      // returns, and the render carries on to emit a 200 shell. The redirect is
+      // issued from setup below, where it does abort the render.
       accessDenied.value = true;
-      await navigateTo(localePath('/'), { redirectCode: 302 });
       return null;
     }
     // A deleted or mistyped collection link is a genuine 404; anything else is our
@@ -44,7 +47,15 @@ const fetchStatsData = async () => {
     const data = await sdk.getCollectionStats(collectionId.value);
     return resolveStatsResponse(data);
   } catch (error) {
-    reportError('collection:stats-fetch-failed', error, { 'collection.publicId': collectionId.value });
+    // 401 and 403 are ordinary answers now that this asks as the reader rather
+    // than as the service: an anonymous visitor cannot read any collection, and
+    // a stranger cannot read a private one. The sentence fetch above has already
+    // started the redirect; reporting the same refusal again would turn every
+    // such visit into an error in the logs.
+    const status = (error as { response?: { status?: number }; status?: number })?.response?.status;
+    if (status !== 401 && status !== 403) {
+      reportError('collection:stats-fetch-failed', error, { 'collection.publicId': collectionId.value });
+    }
     return null;
   }
 };
@@ -54,6 +65,14 @@ const { data: initialSentenceData, error: sentenceError } = await useAsyncData(
   () => fetchSentenceData(),
   { server: true, lazy: false, watch: [] },
 );
+
+// Refused: this reader may not see this collection, and — since the backend
+// requires authentication to read any collection, public ones included — that
+// covers every anonymous visitor. Sent from setup so SSR really does answer 302
+// rather than rendering a shell for a page the caller cannot have.
+if (accessDenied.value) {
+  await navigateTo(localePath('/'), { redirectCode: 302, replace: true });
+}
 
 // Returning `null` would render the collection as an empty page at HTTP 200, which
 // crawlers happily index and users read as "the site is broken".
@@ -86,9 +105,10 @@ const { data: collectionDetails } = await useAsyncData(
       throwOnError: false,
     });
     if ('error' in result) {
-      if (result.response.status === 403 || result.response.status === 401) {
-        await navigateTo(localePath('/'), { redirectCode: 302 });
-      }
+      // No redirect here. A refusal on this call cannot happen without the same
+      // refusal on the sentence fetch above -- both go through the backend's
+      // `loadReadableCollection` -- and that one has already redirected out of
+      // setup. Calling `navigateTo` from inside a fetcher would not work anyway.
       return null;
     }
     return { name: result.data.name };
