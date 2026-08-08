@@ -13,10 +13,22 @@ describe('withRetry', () => {
       expect(result.status).toBe(status);
       expect(fetch).toHaveBeenCalledTimes(1);
     });
+
+    test('does NOT retry 429 — a rate limit is an instruction to stop', async () => {
+      // Regression test for the 2026-08-09 outage. 429 was in the retryable
+      // set, so each throttled server-side render fired three requests at a
+      // bucket that was already full: ~2k visitor requests became 31,422
+      // internal ones. Retrying the one status that means "you are sending too
+      // much" is the single response guaranteed to deepen the hole.
+      const fetch = vi.fn(() => Promise.resolve(makeResponse(429, { 'Retry-After': '60' })));
+      const result = await withRetry(fetch, { initialDelayMs: 0 })('https://example.com');
+      expect(result.status).toBe(429);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('retryable status codes', () => {
-    test.each([408, 429, 500, 502, 503, 504])('retries on %i', async (status) => {
+    test.each([408, 500, 502, 503, 504])('retries on %i', async (status) => {
       const fetch = vi.fn()
         .mockResolvedValueOnce(makeResponse(status))
         .mockResolvedValueOnce(makeResponse(status))
@@ -83,7 +95,7 @@ describe('withRetry', () => {
       globalThis.setTimeout = sleepSpy as any;
 
       const fetch = vi.fn()
-        .mockResolvedValueOnce(makeResponse(429, { 'Retry-After': '2' }))
+        .mockResolvedValueOnce(makeResponse(503, { 'Retry-After': '2' }))
         .mockResolvedValue(makeResponse(200));
 
       try {
@@ -94,6 +106,35 @@ describe('withRetry', () => {
 
       // The Retry-After: 2 should translate to 2000ms delay
       expect(delays.some(d => d === 2000)).toBe(true);
+    });
+
+    test('clamps Retry-After to maxDelayMs', async () => {
+      // Retry-After is a value the *server* picks, so unclamped it lets the
+      // server decide how long this client is unavailable. Nadeshiko's backend
+      // sends the whole remaining window (up to 60s), which is long enough to
+      // hold a server-side render — and the worker running it — hostage.
+      // maxDelayMs is the caller stating a ceiling; a header does not outrank it.
+      const delays: number[] = [];
+      const realSleep = globalThis.setTimeout;
+      globalThis.setTimeout = vi.fn((fn: () => void, ms: number) => {
+        delays.push(ms);
+        return realSleep(fn, 0);
+      }) as any;
+
+      const fetch = vi.fn()
+        .mockResolvedValueOnce(makeResponse(503, { 'Retry-After': '600' }))
+        .mockResolvedValue(makeResponse(200));
+
+      try {
+        await withRetry(fetch, { maxRetries: 1, initialDelayMs: 10, maxDelayMs: 1_000 })(
+          'https://example.com',
+        );
+      } finally {
+        globalThis.setTimeout = realSleep;
+      }
+
+      expect(delays.every(d => d <= 1_000)).toBe(true);
+      expect(delays).not.toContain(600_000);
     });
   });
 
