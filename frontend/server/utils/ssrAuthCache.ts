@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { getCookie, getRequestHeader } from 'h3';
+import { getCookie } from 'h3';
 import type { H3Event } from 'h3';
 
 const SESSION_COOKIE = 'nadeshiko.session_token';
@@ -24,17 +24,31 @@ function getSessionKey(event: H3Event): string | null {
   return null;
 }
 
-function getAnonKey(event: H3Event): string {
-  // Mirror h3's getRequestIP({ xForwardedFor: true }) without depending on
-  // event.context (Cloudflare always sets X-Forwarded-For).
-  const xForwardedFor = getRequestHeader(event, 'x-forwarded-for')?.split(',').shift()?.trim();
-  const ip = xForwardedFor || event.node?.req?.socket?.remoteAddress || 'unknown';
-  return `anon:${ip}`;
+function cacheKey(event: H3Event): string {
+  // Session cookie only. There used to be an anonymous fallback keyed on client
+  // IP, from when this cache saw every render; `identity-auth` now returns before
+  // reaching here when the request carries no session cookie, so that branch
+  // became unreachable -- and with it this module's only reason to know a
+  // visitor's IP address.
+  const sk = getSessionKey(event);
+  return (sk ?? 'anonymous').slice(0, MAX_KEY_LEN);
 }
 
-function cacheKey(event: H3Event): string {
-  const sk = getSessionKey(event);
-  return (sk ?? getAnonKey(event)).slice(0, MAX_KEY_LEN);
+/**
+ * Whether this request carries a session cookie at all.
+ *
+ * The SSR bootstrap used to ask the backend who the visitor was on every render,
+ * including the renders where the request carried no session cookie -- and a
+ * request with no session cookie has exactly one possible answer. The cache below
+ * absorbed bursts from one address, but a crawler sweeping the corpus arrives from
+ * a different IP each time and every one of those renders paid a round trip, in
+ * the critical path, to be told what the absent cookie already said.
+ *
+ * Exported rather than folded into `ssrAuthFetch` so the caller can skip building
+ * the request at all, and so the same cookie names are recognised in one place.
+ */
+export function hasSessionCookie(event: H3Event): boolean {
+  return getSessionKey(event) !== null;
 }
 
 function gc(now: number): void {
