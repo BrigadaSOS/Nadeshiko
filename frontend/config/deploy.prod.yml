@@ -62,6 +62,42 @@ env:
     NITRO_PRESET: node_cluster
     NITRO_CLUSTER_WORKERS: 3
 
+    # Per-IP rate limits, set here rather than left to the defaults in
+    # config/env.ts because the default is not the number that gets enforced.
+    #
+    # The buckets are an in-process Map (server/utils/ipRateLimit.ts) and there
+    # are NITRO_CLUSTER_WORKERS of them, each keeping its own count. A visitor
+    # is spread across workers, so the ceiling they actually meet is up to three
+    # times whatever is written here. These are therefore PER WORKER, set to one
+    # third of the intended limit:
+    #
+    #   HTML     20 x 3 =  60/min
+    #   /v1/*    40 x 3 = 120/min   search, media, the browser-facing proxy.
+    #   /v1/auth 10 x 3 =  30/min   tighter: the credential-stuffing door.
+    #
+    # Chosen against measured traffic rather than picked, from kamal-proxy logs
+    # over a normal 3.5h window (per client IP per minute, busiest first):
+    #
+    #   HTML    133/min  an IP sending NO user-agent at all -- the bot
+    #            27/min  busiest real browser
+    #            <=11/min  everyone else
+    #   /v1/*    34/min  busiest real browser
+    #
+    # So 60/min leaves the heaviest genuine reader ~2x headroom while sitting
+    # well under the crawler, which is the gap these want to land in. Note this
+    # is a deliberate TIGHTENING: the old defaults worked out to 180/360/90
+    # effective, above even the bot, so nothing was ever going to trip them.
+    #
+    # If NITRO_CLUSTER_WORKERS changes, these have to change with it or the
+    # effective limit moves silently. A shared store would remove the coupling;
+    # until then the arithmetic lives here, next to the worker count.
+    #
+    # Staging is deliberately not given these: it runs a single process, so the
+    # config/env.ts defaults are already its true limits.
+    NUXT_RATE_LIMIT_HTML_MAX: 20
+    NUXT_RATE_LIMIT_V1_API_MAX: 40
+    NUXT_RATE_LIMIT_V1_AUTH_MAX: 10
+
     # Diagnostics for the recurring crash where a Nitro process dies on a
     # general protection fault at the same libc offset every time (+0x50f),
     # taking the container with it and turning every in-flight request into a
