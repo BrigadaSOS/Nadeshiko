@@ -250,19 +250,53 @@ function cardTags(tags: ShirabeTag[], lang: TagLanguage, keep: (tag: ShirabeTag)
 
 const SENSE_LIMIT = 6;
 
-/** The numbered senses to print. A sense left with no gloss the reader can read
- *  drops out rather than printing its labels over an empty line. */
+/** Whether two senses carry the same part of speech, by the labels that would be
+ *  printed rather than by the codes behind them: `vs-i` and `vs-s` both read
+ *  "Suru verb", and a reader cannot see the difference we would be preserving. */
+function samePartsOfSpeech(a: CardTag[], b: CardTag[]): boolean {
+  return a.length === b.length && a.every((chip, index) => chip.label === b[index]?.label);
+}
+
+/**
+ * The numbered senses to print. A sense left with no gloss the reader can read
+ * drops out rather than printing its labels over an empty line.
+ *
+ * A sense whose part of speech is the same as the sense above it prints no POS
+ * chip at all. 顔 is a noun in all six of its senses, and repeating "Noun" six
+ * times down a 340px card is six chips that say nothing new -- the reader reads
+ * the first one and then has to look past the rest to reach the definitions. A
+ * blank means "same as above", which is how a paper dictionary has always
+ * carried a part of speech down a numbered list.
+ *
+ * Only the POS. Usage qualifiers stay on every sense they belong to: "usually
+ * kana" on sense 3 and not on sense 4 is a real difference between those two
+ * senses, and carrying it down would state something false.
+ *
+ * This is a deliberate divergence from Shirabe, which prints the chip on every
+ * sense (`_word_body.html.erb`). Its word page has the width to spend and this
+ * card does not. Owner intends to make the same change there (2026-08-10), at
+ * which point the two agree again.
+ */
 export function cardSenses(word: ShirabeWord | null, preference: GlossPreference, limit = SENSE_LIMIT): CardSense[] {
   const senses = (word?.entries ?? []).flatMap((entry) => entry.senses ?? []);
   const cards: CardSense[] = [];
+  // The last POS actually printed, which is not the same as the previous card's
+  // own: once a repeat is blanked, the next sense still has to be compared
+  // against the chip the reader can SEE, or an A / A / A run would print the
+  // first and third.
+  let shown: CardTag[] = [];
 
   for (const sense of senses) {
     const glosses = glossRows(selectDefinitions(sense.definitions, preference));
     if (glosses.length === 0) continue;
 
     const tags = sense.tags ?? [];
+    const partsOfSpeech = cardTags(tags, preference.tags, (tag) => tag.category === 'partOfSpeech');
+    const repeated = samePartsOfSpeech(partsOfSpeech, shown);
+    if (!repeated) shown = partsOfSpeech;
+
     cards.push({
-      partsOfSpeech: cardTags(tags, preference.tags, (tag) => tag.category === 'partOfSpeech'),
+      partsOfSpeech: repeated ? [] : partsOfSpeech,
       tags: cardTags(tags, preference.tags, (tag) => MISC_TAG_CATEGORIES.has(tag.category)),
       glosses,
     });

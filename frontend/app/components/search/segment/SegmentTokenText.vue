@@ -7,6 +7,8 @@ import {
   type SlimToken,
   type EnrichedToken,
 } from '~/utils/tokenEnrichment';
+import { placeCard } from '~/utils/cardPlacement';
+import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
   cardExamples,
   cardSenses,
@@ -16,7 +18,7 @@ import {
   shirabeKanjiUrl,
   type GlossLanguage,
 } from '~/utils/wordCard';
-import { fetchWord, peekWord } from '~/utils/wordLookup';
+import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
 
 type Props = {
   tokens: Token[];
@@ -25,7 +27,31 @@ type Props = {
 
 const props = defineProps<Props>();
 const { locale } = useI18n();
-const lookupsEnabled = Boolean(useRuntimeConfig().public.shirabeLookups);
+
+// Two separate switches, and the difference matters.
+//
+// `wordCardEnabled` is whether the card exists for the reader at all. It is off
+// in production while the card is unfinished, and with it off a token behaves
+// exactly as it did before any of this: plain text that searches this site when
+// clicked. Nothing below opens, focuses, prefetches or renders.
+//
+// `lookupsEnabled` is the older and narrower one: whether the card, once open,
+// can carry real definitions. It only ever suppressed the request, so an
+// unconfigured key still left a card opening on the headword and inflection --
+// the half-built state the flag above is there to keep off production.
+// Read strictly, because these two do not arrive the way the schema in
+// config/env.ts left them. That schema runs at `nuxt build`; a NUXT_PUBLIC_*
+// variable set on the deployed container overrides the baked value afterwards,
+// through Nuxt rather than through zod. Nuxt parses what it finds, so "false",
+// "0" and "" all land falsy -- but an unrecognised value lands as the STRING it
+// was, and `Boolean('yes')` is true. Requiring exactly `true` means a
+// misspelled flag reads as off, which is the direction a gate on unfinished work
+// has to fail in.
+const isOn = (value: unknown): boolean => value === true || value === 'true';
+
+const config = useRuntimeConfig().public;
+const wordCardEnabled = isOn(config.shirabeWordCard);
+const lookupsEnabled = wordCardEnabled && isOn(config.shirabeLookups);
 const emit = defineEmits<{
   'token-click': [dictionaryForm: string];
 }>();
@@ -37,18 +63,11 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
 const hoveredToken = ref<EnrichedToken | null>(null);
 const tooltipStyle = ref<Record<string, string>>({});
 const tooltipRef = ref<HTMLElement | null>(null);
-// Which side of the token the card hangs off. A word card is several times the
-// height of the two-line tooltip this replaced, so near the top of the viewport
-// there is no longer room above.
+// Which side of the token the card hangs off. Decided once when it opens and
+// never revisited -- see `placeTooltip`.
 const tooltipBelow = ref(false);
 let hoveredElement: HTMLElement | null = null;
 
-const GAP = 8; // px between token top and tooltip bottom
-const VIEWPORT_MARGIN = 8; // px from viewport edges
-// Below this the card is not worth showing at all, so it stops shrinking and
-// scrolls instead. A viewport too short even for that is one where clamping the
-// top edge is what keeps the headword readable.
-const MIN_CARD_HEIGHT = 180;
 // How long a pointer has to rest on a word before it is worth asking about it.
 // Long enough that crossing a sentence costs nothing, short enough that it is
 // still ahead of the click that follows.
@@ -67,6 +86,11 @@ const glossLanguages = computed(() => glossPreference(locale.value, { en: englis
 // answer serves every segment on the page rather than every segment keeping its
 // own copy.
 const word = ref<ShirabeWord | null>(null);
+// 'missing' is specifically "we asked and there is no entry", which the card
+// says out loud. It is not the same as "we never asked" (lookups unconfigured,
+// a token that could not be a word) -- claiming no entry for a question nobody
+// put would be a lie, so those stay 'idle' and the card simply answers from the
+// token alone, which is what it did before any of this loaded.
 const wordState = ref<'idle' | 'loading' | 'missing'>('idle');
 // The word this card is currently waiting on, so a late answer for a word the
 // reader has moved off can be told apart from the one they are looking at.
@@ -87,7 +111,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // caching the failure, and the card still answers from the token alone.
   if (!lookupsEnabled) {
     word.value = null;
-    wordState.value = 'missing';
+    wordState.value = 'idle';
     return;
   }
 
@@ -110,7 +134,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   const lookup = token.wid ?? (lookupableWithoutId(token) ? token.s : null);
   if (!lookup) {
     word.value = null;
-    wordState.value = 'missing';
+    wordState.value = 'idle';
     return;
   }
 
@@ -123,8 +147,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // rather than flashing "Looking up…" for a frame first.
   const cached = peekWord(wid, locale);
   if (cached !== undefined) {
-    word.value = cached;
-    wordState.value = cached ? 'idle' : 'missing';
+    applyLookup(cached);
     return;
   }
 
@@ -152,70 +175,55 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   if (pendingLookup !== wid) return;
   pendingLookup = null;
 
-  word.value = found;
-  wordState.value = found ? 'idle' : 'missing';
-  // The card just grew from one line to its full height, so where it fits has
-  // changed with it.
-  void placeTooltip();
+  applyLookup(found);
+  // Deliberately no re-placement here. The card has just grown from one line to
+  // its full height, but where it goes was settled against its maximum size when
+  // it opened, so it grows into room already reserved for it.
+}
+
+/** Paint an answer, whichever of the three it is. Only a dictionary that
+ *  answered "no such word" reaches 'missing' and is said out loud; a lookup that
+ *  could not be made leaves the card quiet, on what the token itself knows. */
+function applyLookup(answer: WordLookup): void {
+  word.value = answer.word;
+  wordState.value = !answer.word && answer.reason === 'missing' ? 'missing' : 'idle';
 }
 
 /**
- * Put the card where the word is, once.
+ * Put the card where the word is, once and for good.
  *
- * The maths is done in viewport coordinates -- that is what
- * `getBoundingClientRect` gives, and what "does it fit above or below" is asking
- * about -- and the page scroll is added at the end, because the card is placed
- * on the PAGE rather than on the screen. It therefore scrolls away with the
- * sentence it belongs to instead of following the reader down the page, and
- * nothing has to re-run on scroll to keep it honest.
+ * The decision itself is `placeCard`, which measures nothing: see the reasoning
+ * there for why the side is settled before the card has any content, and why it
+ * is never revisited when the content arrives.
+ *
+ * All this adds is the page scroll, because the card is placed on the PAGE
+ * rather than on the screen. It therefore scrolls away with the sentence it
+ * belongs to instead of following the reader down the page, and nothing has to
+ * re-run on scroll to keep it honest.
  */
-async function placeTooltip(): Promise<void> {
+function placeTooltip(): void {
   const anchor = hoveredElement;
   if (!anchor?.isConnected) return;
   const tokenRect = anchor.getBoundingClientRect();
-  const scrollX = window.scrollX;
-  const scrollY = window.scrollY;
 
-  const idealLeft = tokenRect.left + tokenRect.width / 2;
-  tooltipStyle.value = { left: `${idealLeft + scrollX}px`, top: `${tokenRect.top - GAP + scrollY}px` };
+  const placement = placeCard(tokenRect, { width: window.innerWidth, height: window.innerHeight });
 
-  await nextTick();
-  const tip = tooltipRef.value;
-  if (!tip) return;
-
-  const tipRect = tip.getBoundingClientRect();
-  let left = idealLeft;
-
-  if (tipRect.left < VIEWPORT_MARGIN) {
-    left += VIEWPORT_MARGIN - tipRect.left;
-  } else if (tipRect.right > window.innerWidth - VIEWPORT_MARGIN) {
-    left -= tipRect.right - (window.innerWidth - VIEWPORT_MARGIN);
-  }
-
-  // Above the token by default: it reads with the sentence and covers nothing
-  // the reader is mid-way through. Below when the card no longer fits above,
-  // because a card clipped by the top of the viewport is a card nobody can read.
-  //
-  // On a short viewport a full word card fits NEITHER side, and then the choice
-  // is which side has more room, not which side it fits. That case is why the
-  // height is capped to the room actually there rather than to a constant: a
-  // 420px cap against 380px of room puts the headword 28px above the top edge,
-  // where the head is pinned and cannot be scrolled back into view.
-  const roomAbove = tokenRect.top - GAP - VIEWPORT_MARGIN;
-  const roomBelow = window.innerHeight - VIEWPORT_MARGIN - (tokenRect.bottom + GAP);
-  const below = tipRect.height > roomAbove && roomBelow > roomAbove;
-  const room = Math.max(below ? roomBelow : roomAbove, MIN_CARD_HEIGHT);
-
-  const top = below
-    ? tokenRect.bottom + GAP
-    : Math.max(tokenRect.top - GAP, VIEWPORT_MARGIN + Math.min(tipRect.height, room));
-
-  tooltipBelow.value = below;
+  tooltipBelow.value = placement.below;
   tooltipStyle.value = {
-    left: `${left + scrollX}px`,
-    top: `${top + scrollY}px`,
-    maxHeight: `${room}px`,
+    left: `${placement.left + window.scrollX}px`,
+    top: `${placement.top + window.scrollY}px`,
+    maxHeight: `${placement.maxHeight}px`,
   };
+}
+
+// Re-place an open card when the viewport is resized. One listener serves every
+// sentence on the page, and it fires only on a WIDTH change -- see
+// `onViewportWidthChange` for why a height-only change must not reach here.
+if (wordCardEnabled) {
+  onViewportWidthChange(() => {
+    if (!hoveredToken.value) return;
+    placeTooltip();
+  });
 }
 
 /**
@@ -268,7 +276,24 @@ const onTokenHoverEnd = () => {
   prefetchTimer = null;
 };
 
-const onTokenEnter = (token: EnrichedToken, event: MouseEvent) => {
+const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) => {
+  // Card switched off: a click on a word does what it did before the card
+  // existed -- searches this site for that word. Not "nothing": the tokens have
+  // been clickable in production for a long time, and taking that away to hide
+  // an unfinished feature would be its own regression.
+  if (!wordCardEnabled) {
+    emit('token-click', token.searchText);
+    return;
+  }
+
+  // Was a `.stop` on the template binding, moved here so it applies only when
+  // there is a card to protect. A modifier cannot be conditional, so with the
+  // card off it would still swallow the click -- and that is not nothing: the
+  // search dropdowns close on a document click, so a `.stop` serving a feature
+  // nobody can reach would leave one open. Mouse only, which is all the modifier
+  // ever covered; the keyboard path reaches here from `onTokenKeydown`.
+  if (event instanceof MouseEvent) event.stopPropagation();
+
   // Re-clicking the open token closes it, so a click is its own undo.
   if (hoveredToken.value === token) {
     closeTooltip();
@@ -276,17 +301,41 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent) => {
   }
   hoveredToken.value = token;
   hoveredElement = event.currentTarget as HTMLElement;
-  tooltipBelow.value = false;
   // A revealed spoiler belongs to the sentence it was revealed on, and the card
   // for the next word is a different set of sentences under the same row keys.
   revealedTranslations.clear();
+  stopHeadword();
+  // Placed before the lookup rather than after it: `loadWord` paints a cached
+  // answer synchronously, and the card should already know where it lives by
+  // then. Either way the side is the same, because it does not depend on what
+  // is in it.
+  placeTooltip();
   void loadWord(token);
-  void placeTooltip();
+
+  // Only a keyboard opener gets its focus moved. Doing it for a mouse click
+  // would paint a focus ring on a card nobody navigated to, and take focus off
+  // whatever the reader had it on.
+  if (openedByKeyboard) {
+    void nextTick(() => tooltipRef.value?.focus());
+  }
 };
 
+/** How the open card was opened, which decides whether closing it owes the
+ *  reader their focus back. Reset by `closeTooltip`, so it never leaks from a
+ *  keyboard open into the next pointer one. */
+let openedByKeyboard = false;
+
 const closeTooltip = () => {
+  // Hand focus back to the word it came from, so Escape returns the reader
+  // where they were rather than dropping them at the top of the document. Only
+  // for a card they navigated into: a mouse user's focus was never taken.
+  const returnTo = openedByKeyboard ? hoveredElement : null;
+  openedByKeyboard = false;
+
   hoveredToken.value = null;
   hoveredElement = null;
+  stopHeadword();
+  if (returnTo?.isConnected) returnTo.focus();
   // Reset, so the next open never inherits this one's tail. A request abandoned
   // in flight (the reader closed the card before it answered) returns early
   // without touching `wordState`, which used to leave it reading 'loading'
@@ -315,16 +364,91 @@ const onDocumentKeydown = (event: KeyboardEvent) => {
 // Nothing re-anchors on scroll. The card is placed on the page, so it moves with
 // the sentence and scrolls out of sight like any other content -- which is what
 // a reader expects of something attached to a word, and it means scrolling can
-// never leave it pointing at a word that has moved.
+// never leave it pointing at a word that has moved. Resize is the exception, and
+// only in one dimension -- and it is not registered here, because one listener
+// serves the whole page rather than one per sentence.
+//
+// Both of these are dismissals for a card that cannot open when the flag is off,
+// and this component is mounted once per sentence -- a page of results would put
+// hundreds of document-level listeners up to serve a feature nobody can reach.
 onMounted(() => {
+  if (!wordCardEnabled) return;
   document.addEventListener('pointerdown', onDocumentPointerDown);
   document.addEventListener('keydown', onDocumentKeydown);
 });
 
 onBeforeUnmount(() => {
+  // Unconditional: `removeEventListener` for a listener that was never added is
+  // a no-op, and matching the flag here would strand the listeners if it ever
+  // changed between mount and unmount.
   document.removeEventListener('pointerdown', onDocumentPointerDown);
   document.removeEventListener('keydown', onDocumentKeydown);
 });
+
+/**
+ * Reaching the words without a mouse.
+ *
+ * The lookup was pointer-only: the tokens were plain `<span>`s with a click
+ * handler, so nothing in a sentence could be focused and the whole dictionary
+ * was unreachable from a keyboard. They are buttons now.
+ *
+ * One tab stop per sentence, not one per word. Making every token tabbable would
+ * be the obvious fix and a bad one: a page of results is thousands of words, and
+ * a reader tabbing to the footer would pay for every one of them. So the
+ * sentence is the stop and the arrow keys walk it -- the roving-tabindex pattern
+ * a composite widget is supposed to use. Exactly one token is tabbable at a time
+ * and the arrows move which.
+ *
+ * Only the words worth asking about take part. Punctuation and whitespace are
+ * skipped, because a stop on 、 is a stop on something the card has nothing to
+ * say about.
+ */
+const rootRef = ref<HTMLElement | null>(null);
+
+// Both the roving tab stop and the button role hang off this, which is what we
+// want: with the card switched off there is no dialog to open, so a token must
+// not announce itself as a control that opens one. It goes back to being text --
+// still clickable, as it has always been, but not focusable and not `aria-expanded`.
+const isLookupable = (token: EnrichedToken): boolean =>
+  wordCardEnabled && (Boolean(token.wid) || lookupableWithoutId(token));
+
+// `b` is the token's byte offset in the sentence: unique within it, stable
+// across the re-renders that rebuild the token objects, and already the v-for
+// key. So it is what the roving tab stop is tracked by.
+const navigableKeys = computed(() => enrichedTokens.value.filter(isLookupable).map((token) => token.b));
+
+/** Which token currently holds the sentence's tab stop. Null until the reader
+ *  has moved, and then the first navigable word answers -- so a sentence never
+ *  has zero tab stops, which would drop it out of the tab order entirely. */
+const rovingKey = ref<number | null>(null);
+
+const tabStopKey = computed(() => tabStop(navigableKeys.value, rovingKey.value));
+
+function focusToken(key: number): void {
+  rovingKey.value = key;
+  // Focus after the tabindex has actually moved: an element still carrying
+  // tabindex="-1" would take focus but leave the tab order pointing elsewhere.
+  void nextTick(() => {
+    rootRef.value?.querySelector<HTMLElement>(`[data-token="${key}"]`)?.focus();
+  });
+}
+
+/** The DOM half of the walk. Which token a press means is `tokenKeyAction`,
+ *  where it can be tested; this only carries the answer out. */
+const onTokenKeydown = (token: EnrichedToken, event: KeyboardEvent) => {
+  const action = tokenKeyAction(event.key, navigableKeys.value, token.b);
+  if (!action) return;
+
+  // Everything the widget claims is claimed fully, 'hold' included: an arrow at
+  // the end of a sentence must not fall through and scroll the page.
+  event.preventDefault();
+  if (action.type === 'open') {
+    openedByKeyboard = true;
+    onTokenEnter(token, event);
+  } else if (action.type === 'move') {
+    focusToken(action.to);
+  }
+};
 
 const POS_CLASS: Record<string, string> = {
   動詞: 'token--verb',
@@ -372,6 +496,67 @@ const headReading = computed(() => {
   // For この the reading IS この, so a second copy of it adds nothing.
   if (!reading || reading === headword.value) return '';
   return inPreferredScript(reading);
+});
+
+/**
+ * The headword said out loud.
+ *
+ * Shirabe pre-generates a clip of each reading spoken at each of its pitch
+ * accents and serves them off its public CDN, so this is a URL that arrives on
+ * the word response -- there is nothing to request, nothing to authorize, and no
+ * work for our own API to do.
+ *
+ * The first pattern with a clip, not the first pattern: coverage is per
+ * (reading, accent) and lights up batch by batch, so a word can have two
+ * patterns with a recording of only the second. A word with none simply has no
+ * button, which is the honest answer -- a dead speaker icon invites a click that
+ * does nothing.
+ */
+const headAudioUrl = computed(() => (word.value?.pitch ?? []).find((pattern) => pattern.audioUrl)?.audioUrl ?? '');
+
+const audioPlaying = ref(false);
+let headAudio: HTMLAudioElement | null = null;
+
+/** Stop whatever is playing and forget it was. The clip belongs to the word on
+ *  the card, so it must not outlive it: leaving it to finish would light up the
+ *  play button on the NEXT word the reader opens, over a recording of the last
+ *  one. */
+const stopHeadword = () => {
+  headAudio?.pause();
+  audioPlaying.value = false;
+};
+
+const playHeadword = () => {
+  const src = headAudioUrl.value;
+  if (!src) return;
+
+  // One element, reused across every word on the page: clips are under a second
+  // and a fresh Audio per click leaks one per lookup. Assigning `src` on an
+  // element that is already playing replaces the clip, which is what re-clicking
+  // should do anyway.
+  if (!headAudio) {
+    headAudio = new Audio();
+    headAudio.addEventListener('ended', () => {
+      audioPlaying.value = false;
+    });
+    headAudio.addEventListener('error', () => {
+      audioPlaying.value = false;
+    });
+  }
+
+  if (headAudio.src !== src) headAudio.src = src;
+  headAudio.currentTime = 0;
+  audioPlaying.value = true;
+  // A clip the CDN has lost, or a browser that declines to play, must not leave
+  // the button stuck mid-play.
+  headAudio.play().catch(() => {
+    audioPlaying.value = false;
+  });
+};
+
+onBeforeUnmount(() => {
+  stopHeadword();
+  headAudio = null;
 });
 
 // 2. What this occurrence does to the dictionary form, outermost step first:
@@ -503,8 +688,13 @@ const dictionaryLinks = computed(() => {
 </script>
 
 <template>
-  <span lang="ja" class="token-text">
+  <span ref="rootRef" lang="ja" class="token-text">
     <template v-for="token in enrichedTokens" :key="token.b">
+      <!-- A button, not a span with a click handler: the whole dictionary used
+           to be pointer-only. `aria-label` is the plain surface because the
+           ruby inside would otherwise be read out interleaved with it, one
+           kana at a time. Only the words worth asking about take a tab stop,
+           and only one of them at a time -- see the roving tabindex above. -->
       <span
         class="token"
         :class="[
@@ -516,20 +706,40 @@ const dictionaryLinks = computed(() => {
             'token--compound': token.matchType === 'partial',
           },
         ]"
-        @click.stop="onTokenEnter(token, $event)"
+        :data-token="token.b"
+        :role="isLookupable(token) ? 'button' : undefined"
+        :tabindex="isLookupable(token) ? (token.b === tabStopKey ? 0 : -1) : undefined"
+        :aria-label="isLookupable(token) ? token.displaySurface : undefined"
+        :aria-expanded="isLookupable(token) ? hoveredToken?.b === token.b : undefined"
+        @click="onTokenEnter(token, $event)"
+        @keydown="isLookupable(token) && onTokenKeydown(token, $event)"
+        @focus="onTokenHover(token)"
+        @blur="onTokenHoverEnd"
         @mouseenter="onTokenHover(token)"
         @mouseleave="onTokenHoverEnd"
       ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
-    <Teleport to="body">
+    <!-- The whole card, behind the flag. `hoveredToken` is already unreachable
+         with the card off, so this is belt and braces -- but it is the one line
+         that makes "production renders none of this" true by inspection, rather
+         than true only if every handler above got its guard right. -->
+    <Teleport v-if="wordCardEnabled" to="body">
       <Transition name="tooltip">
+        <!-- A dialog, but deliberately not a modal one: the page behind it stays
+             readable and usable, which is the point of a word card. `tabindex`
+             so a keyboard opener can be dropped into it and Tab can reach the
+             links inside; `aria-label` names it by the word it is about. -->
         <div
           v-if="hoveredToken"
           ref="tooltipRef"
           class="token-tooltip"
           :class="{ 'token-tooltip--below': tooltipBelow }"
           :style="tooltipStyle"
+          role="dialog"
+          aria-modal="false"
+          :aria-label="headword"
+          tabindex="-1"
           @click.stop
         >
           <div class="token-tooltip__head">
@@ -549,6 +759,21 @@ const dictionaryLinks = computed(() => {
               <template v-else>{{ headword }}</template>
             </component>
             <span v-if="headReading && headFurigana.length === 0" class="token-tooltip__reading">{{ headReading }}</span>
+            <button
+              v-if="headAudioUrl"
+              type="button"
+              class="token-tooltip__audio"
+              :class="{ 'is-playing': audioPlaying }"
+              :aria-label="$t('tokenTooltip.playAudio')"
+              :title="$t('tokenTooltip.playAudio')"
+              @click="playHeadword"
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8.5 2.75 4.9 5.75H2.4v4.5h2.5l3.6 3z" fill="currentColor" stroke="none" />
+                <path d="M11 6a3 3 0 0 1 0 4" />
+                <path d="M13 4a6 6 0 0 1 0 8" />
+              </svg>
+            </button>
           </div>
 
           <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
@@ -557,7 +782,12 @@ const dictionaryLinks = computed(() => {
             <span v-for="badge in badges" :key="badge.id" class="token-tooltip__badge" :class="badge.kind">{{ badge.text }}</span>
           </div>
 
-          <div class="token-tooltip__body">
+          <!-- Live, because the interesting part of this card arrives after it
+               opens. A reader who has been dropped into the dialog would
+               otherwise sit on "Looking up…" in silence and never be told the
+               definition had landed. It changes once per card, so polite
+               announcement is not chatty. -->
+          <div class="token-tooltip__body" aria-live="polite">
             <div v-if="pitchPatterns.length > 0" class="token-tooltip__pitch">
               <span v-for="(pattern, pi) in pitchPatterns" :key="pi" class="token-tooltip__pitch-pattern">
                 <span
@@ -593,6 +823,13 @@ const dictionaryLinks = computed(() => {
               <span class="token-tooltip__spinner" aria-hidden="true" />
               <span>{{ $t('tokenTooltip.loading') }}</span>
             </p>
+            <!-- The lookup came back with nothing: a name, a coinage, or a
+                 spelling the corpus preserved and JMdict never had. Said out
+                 loud, because a card that just stops after the headword reads as
+                 one that is still loading, or broken. The word, its reading and
+                 its kanji are all still up there, and the dictionary chips below
+                 are exactly where to go next. -->
+            <p v-else-if="wordState === 'missing'" class="token-tooltip__pending">{{ $t('tokenTooltip.noEntry') }}</p>
 
             <div v-if="kanjiChips.length > 0" class="token-tooltip__kanji">
               <a
@@ -679,6 +916,16 @@ const dictionaryLinks = computed(() => {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
+/* The keyboard's version of the hover above. Without it the arrow keys move a
+   focus nobody can see, which is the same as not having them: the ring IS the
+   feature for a reader walking a sentence a word at a time. `focus-visible`
+   rather than `focus` so a mouse click does not leave one behind. */
+.token:focus-visible {
+  outline: 2px solid #df848d;
+  outline-offset: 1px;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
 
 .token--match {
   color: #df848d;
@@ -712,8 +959,13 @@ const dictionaryLinks = computed(() => {
   transform: translate(-50%, -100%);
   display: flex;
   flex-direction: column;
-  width: max-content;
-  max-width: min(340px, calc(100vw - 24px));
+  /* A fixed width, not `max-content`. Shrink-to-fit meant the card was one width
+     while it said "Looking up…" and another once the senses arrived, so it slid
+     sideways under the reader as it filled in -- and `placeTooltip` could not
+     clamp it to the viewport in one pass, because the width it was clamping was
+     not the final one. These four numbers are `BOX` in ~/utils/cardPlacement;
+     keep them in step. */
+  width: min(340px, calc(100vw - 24px));
   max-height: min(52vh, 420px);
   padding: 10px 0;
   background: var(--tt-surface);
@@ -728,6 +980,14 @@ const dictionaryLinks = computed(() => {
 
 .token-tooltip--below {
   transform: translate(-50%, 0);
+}
+
+/* Focus lands here when the card is opened from the keyboard, so it says so.
+   Suppressing it would be the tidier-looking choice and the wrong one: the
+   reader has just been moved somewhere, and this is what tells them where. */
+.token-tooltip:focus-visible {
+  outline: 2px solid var(--tt-accent);
+  outline-offset: 2px;
 }
 
 .token-tooltip__head {
@@ -758,6 +1018,35 @@ a.token-tooltip__word:hover {
 
 .token-tooltip__reading {
   font-size: 13px;
+  color: var(--tt-accent);
+}
+
+/* Quiet next to the headword until pointed at, and accented while a clip runs
+   so a second click reads as "again" rather than "did that do anything". Sized
+   to a comfortable tap target rather than to the 14px glyph inside it. */
+.token-tooltip__audio {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--tt-ink-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.token-tooltip__audio:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--tt-ink);
+}
+
+.token-tooltip__audio.is-playing {
   color: var(--tt-accent);
 }
 
