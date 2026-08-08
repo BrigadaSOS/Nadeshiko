@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
+import { PRIVATE_PATH_SEGMENTS } from './shared/utils/privatePaths';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
 // Analytics ship in production only. Everywhere else the SDK just fails against
@@ -42,6 +43,27 @@ const SITEMAP_STATIC_PATHS = [
 ];
 const SITEMAP_STATIC_URLS_EN = ['/en', ...SITEMAP_STATIC_PATHS.map((path) => `/en${path}`)];
 const SITEMAP_STATIC_URLS_ES = ['/es', ...SITEMAP_STATIC_PATHS.map((path) => `/es${path}`)];
+
+// The locales robots is given rules for. `ja` is disallowed wholesale below, so
+// only the two indexed locales need per-path entries.
+const INDEXED_LOCALES = ['en', 'es'] as const;
+
+// Both spellings of every private area, in both indexed locales, from the one
+// list in shared/utils/privatePaths.ts. This used to be twenty hand-written
+// lines, which is how `/settings` and `/reports` ended up disallowed here but
+// missing from the `robots: false` route rules further down -- the two lists
+// were never read side by side.
+const PRIVATE_DISALLOW = INDEXED_LOCALES.flatMap((locale) =>
+  PRIVATE_PATH_SEGMENTS.flatMap((segment) => [`/${locale}${segment}`, `/${locale}${segment}/`]),
+);
+
+// The matching route rules, from the same source, so a segment added to the list
+// is both de-indexed and kept out of the shared cache without a second edit.
+const PRIVATE_ROUTE_RULES = Object.fromEntries(
+  INDEXED_LOCALES.flatMap((locale) =>
+    PRIVATE_PATH_SEGMENTS.map((segment) => [`/${locale}${segment}/**`, { robots: false }] as const),
+  ),
+);
 
 export default defineNuxtConfig({
   devServer: {
@@ -252,29 +274,7 @@ export default defineNuxtConfig({
           {
             userAgent: '*',
             allow: ['/en/', '/es/', '/docs/'],
-            disallow: [
-              '/ja',
-              '/ja/',
-              '/en/settings',
-              '/en/settings/',
-              '/en/user',
-              '/en/user/',
-              '/en/admin',
-              '/en/admin/',
-              '/en/reports',
-              '/en/reports/',
-              '/es/settings',
-              '/es/settings/',
-              '/es/user',
-              '/es/user/',
-              '/es/admin',
-              '/es/admin/',
-              '/es/reports',
-              '/es/reports/',
-              '/api/',
-              '/v1/',
-              '/_nuxt/',
-            ],
+            disallow: ['/ja', '/ja/', ...PRIVATE_DISALLOW, '/api/', '/v1/', '/_nuxt/'],
           },
         ],
         sitemap: `${SITE_URL}/sitemap_index.xml`,
@@ -365,17 +365,40 @@ export default defineNuxtConfig({
     // everyone. `swr` keeps serving the stale copy while it refreshes, so a
     // reader never waits on a revalidation.
     '/api/shirabe/**': { swr: 60 * 60 * 24, headers: { 'Cache-Control': 'public, max-age=86400' } },
+    // Two more answers that are identical for every visitor, cached for the same
+    // reason and on the same mechanism. Both used to be fetched straight from a
+    // component, which meant a backend round trip per render of a page whose
+    // content had not changed since the last one.
+    //
+    // No `headers` on these, deliberately, and it is worth knowing why before
+    // adding one: Nitro's cached handler *overwrites* `cache-control` on any
+    // route with `swr`, to `s-maxage=<maxAge>, stale-while-revalidate`. A
+    // `Cache-Control` set here -- or by the handler itself, which is what
+    // `/api/shirabe/**` above still tries -- never reaches the client. What it
+    // emits instead is fine: `s-maxage` is the shared-cache lifetime, which is
+    // the tier that matters, and Nitro attaches an ETag and `Last-Modified` so a
+    // browser revalidating costs a 304 rather than a render.
+    //
+    // The windows differ by how fast a change needs to show. An announcement is
+    // usually a maintenance notice, so a minute is about the longest it can sit
+    // unseen and still be useful; `swr` keeps serving the old one meanwhile, so
+    // the short window costs one background refresh a minute, not a stampede.
+    '/api/announcement': { swr: 60 },
+    // The home grid changes when media is imported. Five minutes is invisible to
+    // a reader and turns the busiest page's only backend call into a rounding
+    // error. Safe to share because `/` deliberately skips the hidden-media
+    // filter -- the grid is the same list for everyone, signed in or not.
+    '/api/home/recent-media': { swr: 300 },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {
         headers: { 'X-Robots-Tag': 'noindex, nofollow' },
       },
     }),
-    // Private/authenticated areas should never be indexed.
-    '/en/user/**': { robots: false },
-    '/en/admin/**': { robots: false },
-    '/es/user/**': { robots: false },
-    '/es/admin/**': { robots: false },
+    // Private/authenticated areas should never be indexed. Derived, not listed:
+    // the hand-written version covered user and admin but had silently fallen
+    // behind on settings, reports and collections.
+    ...PRIVATE_ROUTE_RULES,
     '/ja/**': { robots: false },
     // Homepage, blog index, blog posts, and static markdown pages are no longer
     // cached at the origin. Cloudflare Cache Rules are the single source of

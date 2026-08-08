@@ -1,3 +1,5 @@
+import { DICT_LINKS_COOKIE } from '#shared/utils/preferenceCookies';
+
 export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
 
 export type DictionaryPreset = {
@@ -64,7 +66,8 @@ const DICTIONARY_PRESETS: DictionaryPreset[] = [
 // never set the preference at all, which is what `decodeEnabled` falls back to.
 const VALID_IDS = new Set<string>(DICTIONARY_PRESETS.map((d) => d.id));
 const REQUIRED_IDS = new Set<DictionaryId>(DICTIONARY_PRESETS.filter((d) => d.required).map((d) => d.id));
-const COOKIE_NAME = 'nd_dict_links';
+// See `shared/utils/preferenceCookies.ts`: read during SSR, so it is a cache key.
+const COOKIE_NAME = DICT_LINKS_COOKIE;
 
 const decodeEnabled = (raw: string | null | undefined): DictionaryId[] => {
   if (raw === null || raw === undefined) {

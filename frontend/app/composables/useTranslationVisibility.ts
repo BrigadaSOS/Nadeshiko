@@ -1,5 +1,6 @@
 import { type EffectScope, effectScope } from 'vue';
 import { handleApiError } from '~/utils/apiError';
+import { LANG_PREFS_COOKIE } from '#shared/utils/preferenceCookies';
 
 export type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
 
@@ -8,7 +9,8 @@ type LanguageCode = 'EN' | 'ES';
 type TranslationVisibilityPreferences = Partial<Record<LanguageCode, TranslationVisibilityMode>>;
 
 const USER_PREFS_KEY = 'translationVisibilityPreferences';
-const COOKIE_NAME = 'nd_lang_prefs';
+// See `shared/utils/preferenceCookies.ts`: read during SSR, so it is a cache key.
+const COOKIE_NAME = LANG_PREFS_COOKIE;
 
 // Cookie uses lowercase ISO codes for compactness and to preserve backward
 // compatibility with cookies set before the EN/ES rename.
