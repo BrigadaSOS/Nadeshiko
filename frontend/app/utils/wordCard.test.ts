@@ -198,6 +198,25 @@ describe('cardSenses', () => {
     ]);
   });
 
+  it('writes the chips in the interface language, definitions or no definitions', () => {
+    // Spanish reads its own glosses, so both halves of the card are Spanish.
+    expect(cardSenses(WORD, preference('es'))[0]?.partsOfSpeech.map((chip) => chip.label)).toEqual([
+      'Verbo ichidan',
+      'Verbo intransitivo',
+    ]);
+
+    // Japanese is the case the gloss language cannot serve: no dictionary writes
+    // definitions in Japanese, so this reader is reading English senses -- and
+    // the chips are still the one thing on the card that can be said in their
+    // own language.
+    const japanese = cardSenses(WORD, preference('ja'))[0];
+    expect(japanese?.partsOfSpeech.map((chip) => chip.label)).toEqual(['一段動詞', '自動詞']);
+    expect(japanese?.glosses.map((row) => row.lang)).toEqual(['en', 'es']);
+    // JMdict's own wording still rides along as the chip's tooltip: it is the
+    // only place the untranslated detail survives.
+    expect(japanese?.partsOfSpeech.map((chip) => chip.title)).toEqual(['Ichidan verb', 'intransitive verb']);
+  });
+
   it('keeps a sense the reader language cannot cover, in the other language', () => {
     const senses = cardSenses(WORD, preference('en', 'show', 'hidden'));
 

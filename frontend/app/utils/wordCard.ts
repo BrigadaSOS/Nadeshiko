@@ -1,4 +1,5 @@
 import type { TranslationVisibilityMode } from '~/composables/useTranslationVisibility';
+import { tagLabel, tagLanguage, type TagLanguage } from '~/utils/wordTagLabels';
 
 /**
  * The word card behind a hovered token: what Shirabe returns for it, and the
@@ -57,6 +58,11 @@ export interface ShirabeExample {
 export interface ShirabePitch {
   downstep: number;
   pattern?: string;
+  /** A pre-generated clip of the reading spoken at this accent, on Shirabe's
+   *  public CDN. Null when that (reading, accent) was never generated: coverage
+   *  is per clip and lights up batch by batch, so a word can have a pitch
+   *  pattern and no recording of it. */
+  audioUrl?: string | null;
 }
 
 /** Only what the card renders. `GET /v1/words/{id}` carries a good deal more
@@ -101,6 +107,13 @@ export interface GlossPreference {
    *  example translation renders as its own row and has to know whether that
    *  row is plain or a spoiler. */
   modes: Record<GlossLanguage, TranslationVisibilityMode>;
+  /** The language the part-of-speech and misc chips are written in: the
+   *  INTERFACE language, not the gloss one. A chip is a label the product puts
+   *  on a word, the way "More sentences" below it is, and it is the one thing on
+   *  this card that can be said in Japanese -- no dictionary writes definitions
+   *  in Japanese, so `labels` above can never be 'ja' and a reader on the
+   *  Japanese interface would otherwise never see a Japanese word here. */
+  tags: TagLanguage;
 }
 
 /**
@@ -124,7 +137,7 @@ export function glossPreference(
   // and the one every entry is most likely to have.
   const home: GlossLanguage = uiLocale === 'es' ? 'es' : 'en';
   const order = homeFirst(home).filter((lang) => modes[lang] !== 'hidden');
-  return { order, labels: order[0] ?? home, modes };
+  return { order, labels: order[0] ?? home, modes, tags: tagLanguage(uiLocale) };
 }
 
 function homeFirst(home: GlossLanguage): GlossLanguage[] {
@@ -215,78 +228,20 @@ function glossRows(definitions: ShirabeText[]): CardGlossRow[] {
 
 const MISC_TAG_CATEGORIES = new Set(['misc', 'field', 'dialect']);
 
-/**
- * Short chip labels keyed off JMdict's stable tag *code*.
- *
- * The English label JMdict ships is verbose and inconsistent -- "n" arrives as
- * "noun (common) (futsuumeishi)", which reads as three tags rather than one and
- * repeats itself. Shirabe renders its own chips this way (see `POS_LABELS` in
- * its search_helper.rb); this is the same table, so a word reads the same in
- * both products. The full JMdict wording survives as the chip's tooltip.
- */
-const POS_LABELS: Record<string, string> = {
-  n: 'Noun',
-  pn: 'Pronoun',
-  num: 'Numeric',
-  ctr: 'Counter',
-  'n-pref': 'Noun (prefix)',
-  'n-suf': 'Noun (suffix)',
-  adv: 'Adverb',
-  'adv-to': 'Adverb',
-  prt: 'Particle',
-  conj: 'Conjunction',
-  int: 'Interjection',
-  exp: 'Expression',
-  pref: 'Prefix',
-  suf: 'Suffix',
-  aux: 'Auxiliary',
-  'aux-v': 'Aux. verb',
-  'aux-adj': 'Aux. adjective',
-  cop: 'Copula',
-  vt: 'Transitive verb',
-  vi: 'Intransitive verb',
-  vs: 'Suru verb',
-  'vs-i': 'Suru verb',
-  'vs-s': 'Suru verb',
-  'vs-c': 'Suru verb',
-  vk: 'Kuru verb',
-  'adj-i': 'I-adjective',
-  'adj-ix': 'I-adjective',
-  'adj-na': 'Na-adjective',
-  'adj-no': 'No-adjective',
-  'adj-pn': 'Prenominal',
-  'adj-t': 'Taru-adjective',
-  'adj-f': 'Prenominal',
-};
-
-/** The chip label for one tag: the curated short form where there is one, the
- *  verb family for the many `v5*`/`v1*` codes, and otherwise JMdict's label with
- *  its parenthetical asides and trailing " - ..." note stripped off. */
-export function posLabel(code: string, full: string): string {
-  const mapped = POS_LABELS[code];
-  if (mapped) return mapped;
-
-  if (/^v5/.test(code)) return 'Godan verb';
-  if (/^v1/.test(code)) return 'Ichidan verb';
-  if (/^v[24]/.test(code)) return 'Classical verb';
-  if (/^v/.test(code)) return 'Verb';
-
-  const stripped = full
-    .replace(/\s*\([^)]*\)/g, '')
-    .replace(/\s+-\s.*$/, '')
-    .trim();
-  if (!stripped) return code;
-  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
-}
-
 /** Chips for one sense, deduped by the label that will be printed: JMdict often
  *  carries several codes that shorten to the same word (`vs-i` and `vs-s` both
- *  read "Suru verb"), and printing it twice is the duplication this replaces. */
-function cardTags(tags: ShirabeTag[], keep: (tag: ShirabeTag) => boolean): CardTag[] {
+ *  read "Suru verb"), and printing it twice is the duplication this replaces.
+ *
+ *  The wording comes from `~/utils/wordTagLabels`, keyed off JMdict's stable tag
+ *  *code* rather than the label Shirabe sent: JMdict's own is verbose and
+ *  inconsistent ("n" arrives as "noun (common) (futsuumeishi)", which reads as
+ *  three tags rather than one), and it is English whatever locale we ask for.
+ *  The full JMdict wording survives as the chip's tooltip. */
+function cardTags(tags: ShirabeTag[], lang: TagLanguage, keep: (tag: ShirabeTag) => boolean): CardTag[] {
   const chips: CardTag[] = [];
   for (const tag of tags) {
     if (!keep(tag)) continue;
-    const label = posLabel(tag.code, tag.label);
+    const label = tagLabel(tag.category, tag.code, tag.label, lang);
     if (chips.some((chip) => chip.label === label)) continue;
     chips.push({ label, title: tag.label, category: tag.category });
   }
@@ -307,8 +262,8 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
 
     const tags = sense.tags ?? [];
     cards.push({
-      partsOfSpeech: cardTags(tags, (tag) => tag.category === 'partOfSpeech'),
-      tags: cardTags(tags, (tag) => MISC_TAG_CATEGORIES.has(tag.category)),
+      partsOfSpeech: cardTags(tags, preference.tags, (tag) => tag.category === 'partOfSpeech'),
+      tags: cardTags(tags, preference.tags, (tag) => MISC_TAG_CATEGORIES.has(tag.category)),
       glosses,
     });
     if (cards.length === limit) break;
