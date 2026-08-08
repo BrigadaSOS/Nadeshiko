@@ -788,7 +788,9 @@
   "tokenTooltip": {
     "lookupIn": "Look up in",
     "loading": "Looking up…",
-    "moreSentences": "More sentences"
+    "moreSentences": "More sentences",
+    "playAudio": "Play pronunciation",
+    "noEntry": "No dictionary entry for this word."
   },
   "searchContainer": {
     "errorTitle": "502",
