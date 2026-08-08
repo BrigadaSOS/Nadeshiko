@@ -8,6 +8,27 @@ servers:
       # Nuxt SSR workers=3, each ~200-300MB
       memory: 1g
       memory-swap: 1.25g
+      # Docker hands the container a core-dump limit of 0, so a segfaulting
+      # worker dies leaving nothing but a one-line kernel trap. Raising it is
+      # only half the job: the kernel writes the dump through the *host's*
+      # kernel.core_pattern, which has to be pointed at systemd-coredump --
+      # see brigadasos-infra/hetzner/setup-coredumps.sh. Without that script
+      # this flag is inert rather than wrong.
+      ulimit: core=-1
+
+# Diagnostic reports written by the Node flags in NODE_OPTIONS below. A bind
+# mount and not a named volume on purpose: the whole value is being able to read
+# the files from the host *after* the container that produced them is gone, and
+# a crash-looping container is exactly when `docker volume inspect` is the least
+# convenient way in.
+#
+# The directory has to exist and be writable by uid 1000 (`node`, which
+# docker-entrypoint.sh drops to) before the first deploy, or Node silently
+# writes nothing:
+#   ssh nadeshiko "sudo mkdir -p /var/lib/nadeshiko/frontend-prod/diagnostics \
+#     && sudo chown 1000:1000 /var/lib/nadeshiko/frontend-prod/diagnostics"
+volumes:
+  - "/var/lib/nadeshiko/frontend-prod/diagnostics:/app/diagnostics"
 
 builder:
   args:
@@ -40,6 +61,28 @@ env:
 
     NITRO_PRESET: node_cluster
     NITRO_CLUSTER_WORKERS: 3
+
+    # Diagnostics for the recurring crash where a Nitro process dies on a
+    # general protection fault at the same libc offset every time (+0x50f),
+    # taking the container with it and turning every in-flight request into a
+    # kamal-proxy 502. Set here rather than in the Dockerfile CMD so it can be
+    # changed with `kamal env push` + a restart instead of a rebuild, and so the
+    # cluster workers inherit it -- they are forked from the primary and get its
+    # environment, which is the half of the process tree actually serving.
+    #
+    # Read what each flag does buy, because it is less than it looks:
+    #   --report-on-fatalerror     V8/runtime fatal errors (heap OOM, failed C++
+    #                              assertions). Verified NOT to fire on SIGSEGV.
+    #   --report-uncaught-exception an uncaught JS throw, with the stack.
+    #   --report-on-signal          a report on demand from a live process:
+    #                                 docker kill -s SIGUSR2 <container>
+    #                              which is the one to reach for during an
+    #                              escalation, while the process is still up.
+    #
+    # None of these catch the GPF itself -- that is what the core dump is for.
+    # They are here to rule in or out the failure modes that could be happening
+    # *alongside* it, at the cost of a ~100KB JSON file when they fire.
+    NODE_OPTIONS: "--report-on-fatalerror --report-uncaught-exception --report-on-signal --report-directory=/app/diagnostics"
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-prod

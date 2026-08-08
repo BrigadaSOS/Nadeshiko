@@ -8,11 +8,25 @@ const optionalString = z
     return trimmed ? trimmed : undefined;
   });
 
+// Off unless something says "true", so an unset, empty or misspelled value fails
+// closed. A flag that gates unfinished work has to default to hidden: forgetting
+// to set it must never be the thing that ships the feature.
+const offByDefault = z
+  .string()
+  .optional()
+  .transform((value) => value?.trim().toLowerCase() === 'true');
+
 const envSchema = z.object({
   NUXT_PUBLIC_ENVIRONMENT: z.preprocess(
     (val) => (val === '' ? undefined : val),
     z.enum(['local', 'development', 'production']).default('production'),
   ),
+  // The word card as a whole: whether a token is something a reader can open at
+  // all. Distinct from NUXT_SHIRABE_API_KEY below, which only decides whether the
+  // card can carry definitions -- with the key absent the card still opened, on
+  // the headword and inflection the token already knows. That is the half-built
+  // state this flag exists to keep off production while the card is finished.
+  NUXT_PUBLIC_SHIRABE_WORD_CARD: offByDefault,
   NUXT_PUBLIC_FARO_URL: optionalString,
   NUXT_PUBLIC_FARO_APP_NAME: optionalString,
   NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),

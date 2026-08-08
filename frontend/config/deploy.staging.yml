@@ -58,6 +58,13 @@ env:
     # where the key IS configured: turning it on without one is exactly the doomed
     # per-hover request the flag exists to prevent.
     NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
+    # The word card itself, which is still being built. Staging is where it is
+    # being built, so it is on here and set nowhere in deploy.prod.yml -- unset
+    # means off, which is the whole point of the default. Delete this line (and
+    # the flag) once the card ships, rather than adding the opposite line to
+    # prod: a flag that has to be turned OFF somewhere is one that ships by
+    # accident from the next environment nobody remembered to edit.
+    NUXT_PUBLIC_SHIRABE_WORD_CARD: "true"
     # The fast path and the fallback are the same service under two of its own
     # hostnames, which is what lets one skip Cloudflare while the other keeps
     # working if the tailnet does not.
