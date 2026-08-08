@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ssrAuthFetch, _resetForTests } from './ssrAuthCache';
+import { hasSessionCookie, ssrAuthFetch, _resetForTests } from './ssrAuthCache';
 
 beforeEach(() => _resetForTests());
 
@@ -9,6 +9,35 @@ function fakeEvent(cookieHeader?: string, ip = '1.2.3.4') {
     headers: { cookie: cookieHeader },
   } as any;
 }
+
+describe('hasSessionCookie', () => {
+  it('is false when the request carries no cookies at all', () => {
+    expect(hasSessionCookie(fakeEvent(undefined))).toBe(false);
+  });
+
+  it('is false when cookies are present but none is a session', () => {
+    expect(hasSessionCookie(fakeEvent('nd_lang_prefs=en:hidden; nd-locale-preference=es'))).toBe(false);
+  });
+
+  it('is true for the plain cookie', () => {
+    expect(hasSessionCookie(fakeEvent('nadeshiko.session_token=tok1'))).toBe(true);
+  });
+
+  it('is true for the __Secure- and __Host- prefixes production uses', () => {
+    expect(hasSessionCookie(fakeEvent('__Secure-nadeshiko.session_token=tok1'))).toBe(true);
+    expect(hasSessionCookie(fakeEvent('__Host-nadeshiko.session_token=tok1'))).toBe(true);
+  });
+
+  it('is false for an empty session cookie value', () => {
+    // An expired session is cleared by setting the cookie to nothing, which must
+    // not read as "there might be a session here" and buy back the round trip.
+    expect(hasSessionCookie(fakeEvent('nadeshiko.session_token='))).toBe(false);
+  });
+
+  it('does not mistake a lookalike cookie name for a session', () => {
+    expect(hasSessionCookie(fakeEvent('nadeshiko.session_token_backup=tok1'))).toBe(false);
+  });
+});
 
 describe('ssrAuthFetch', () => {
   it('returns the upstream response and caches it', async () => {
@@ -27,20 +56,14 @@ describe('ssrAuthFetch', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it('does NOT coalesce across different anonymous IPs', async () => {
+  it('shares one entry for cookie-less requests, whatever their IP', async () => {
+    // The anonymous path no longer reaches this cache at all -- `identity-auth`
+    // checks `hasSessionCookie` and returns first -- so there is nothing left for
+    // a per-IP key to separate, and keying on IP is what made this module care
+    // about a header a client can set. A single bucket is the honest shape.
     const fetcher = vi.fn().mockResolvedValue({});
     await ssrAuthFetch(fakeEvent(undefined, '1.1.1.1'), fetcher);
     await ssrAuthFetch(fakeEvent(undefined, '2.2.2.2'), fetcher);
-    expect(fetcher).toHaveBeenCalledTimes(2);
-  });
-
-  it('coalesces anonymous requests from the same IP', async () => {
-    const fetcher = vi.fn().mockResolvedValue({});
-    await Promise.all([
-      ssrAuthFetch(fakeEvent(undefined, '5.5.5.5'), fetcher),
-      ssrAuthFetch(fakeEvent(undefined, '5.5.5.5'), fetcher),
-      ssrAuthFetch(fakeEvent(undefined, '5.5.5.5'), fetcher),
-    ]);
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 

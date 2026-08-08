@@ -33,22 +33,18 @@ const config = useRuntimeConfig();
 const localePath = useLocalePath();
 const { mediaName } = useMediaName();
 
-const sdk = useNadeshikoSdk();
+// Through `/api/home/recent-media` rather than the SDK directly: the list is the
+// same for every visitor, so the Nitro route is what gives it somewhere to be
+// cached (see the `swr` rule in nuxt.config.ts).
 const {
   data: media,
   pending: isLoading,
   error,
   refresh,
-} = await useAsyncData(
-  'recentMedia',
-  async () => {
-    const data = await sdk.listMedia({ take: 10 });
-    return data ?? null;
-  },
-  {
-    default: () => null,
-  },
-);
+} = await useFetch('/api/home/recent-media', {
+  key: 'recentMedia',
+  default: () => null,
+});
 
 const filteredRecentMedia = computed(() => media.value?.media ?? []);
 </script>
