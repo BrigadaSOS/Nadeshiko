@@ -108,6 +108,16 @@ export default defineNuxtConfig({
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
+      // Whether the word card exists for the reader at all: with this off a token
+      // is plain text that searches this site when clicked, which is what it was
+      // before the card. Everything the card draws is gated on it, so production
+      // shows none of the unfinished half while it is false.
+      //
+      // Like `shirabeLookups` below, this bakes in at `nuxt build` time and is
+      // overridden at runtime by NUXT_PUBLIC_SHIRABE_WORD_CARD -- which is how
+      // staging turns it on without a rebuild. Default false, deliberately: the
+      // way to ship this by accident is for an unset variable to mean "on".
+      shirabeWordCard: env.NUXT_PUBLIC_SHIRABE_WORD_CARD,
       // Whether word lookups are configured at all. The KEY stays server-side;
       // this is only the boolean, so the browser can leave the feature alone
       // instead of firing a doomed request on every hover and cacheing the
