@@ -1,29 +1,15 @@
 <script setup lang="ts">
-import type { Announcement as AnnouncementData } from '@brigadasos/nadeshiko-sdk';
-import { reportError } from '~/utils/reportError';
+// Through `/api/announcement` rather than the SDK directly, so the one answer
+// every visitor shares can be cached once instead of re-fetched per render. The
+// route swallows the failure case too -- "no announcement" is served as an error
+// by the backend endpoint, so a null here covers both, and the banner is purely
+// additive chrome either way.
+const { data } = await useFetch('/api/announcement', {
+  key: 'system-announcement',
+  default: () => ({ announcement: null }),
+});
 
-const sdk = useNadeshikoSdk();
-
-const { data: announcement } = await useAsyncData(
-  'system-announcement',
-  async () => {
-    try {
-      const data = await sdk.getAnnouncement();
-      if (!data || !('active' in data)) {
-        return null;
-      }
-      return { message: data.message, type: data.type, active: data.active } as AnnouncementData;
-    } catch (error) {
-      // Silence is correct: the banner is purely additive chrome on every page, and
-      // "no announcement" is served as an error by the same endpoint. Report only.
-      reportError('system-announcement:fetch-failed', error);
-      return null;
-    }
-  },
-  {
-    default: () => null,
-  },
-);
+const announcement = computed(() => data.value?.announcement ?? null);
 
 const typeLabel = computed(() => {
   switch (announcement.value?.type) {

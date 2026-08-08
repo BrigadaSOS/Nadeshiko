@@ -23,6 +23,7 @@ import {
 
 import { ankiStore } from '@/stores/anki';
 import { userStore } from '@/stores/auth';
+import type { CollectionOption } from '~/composables/useCollectionOptions';
 import type { SearchResult } from '~/types/search';
 import { tokensToAnkiFurigana, type SlimToken } from '~/utils/tokenEnrichment';
 import { useToastError, useToastSuccess } from '~/utils/toast';
@@ -34,13 +35,6 @@ type Props = {
   hideContextButton?: boolean;
 };
 
-type CollectionOption = {
-  id: string;
-  name: string;
-};
-
-const LAST_COLLECTION_KEY = 'nd-last-collection';
-
 const props = defineProps<Props>();
 const anki = ankiStore();
 const user = userStore();
@@ -50,31 +44,27 @@ const { t } = useI18n();
 const router = useRouter();
 const localePath = useLocalePath();
 const isAnkiConfigured = ref(false);
-const collections = ref<CollectionOption[]>([]);
-const collectionsLoading = ref(false);
-const collectionsLoaded = ref(false);
 const addingCollectionId = ref<string | null>(null);
 const showCollectionPicker = ref(false);
 
-const lastCollection = ref<CollectionOption | null>(null);
+// Shared with every other result card on the page: the list belongs to the
+// reader, not to this card. See `useCollectionOptions`.
+const {
+  collections,
+  loading: collectionsLoading,
+  loaded: collectionsLoaded,
+  lastCollection,
+  load: loadCollections,
+  rememberLast: saveLastCollection,
+  restoreLastCollection,
+} = useCollectionOptions();
 
 onMounted(() => {
   const profile = anki.activeProfile;
   isAnkiConfigured.value =
     profile !== null && profile.deck !== null && profile.model !== null && profile.fields.length > 0;
 
-  const stored = localStorage.getItem(LAST_COLLECTION_KEY);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed?.id && parsed?.name) {
-        lastCollection.value = parsed;
-      }
-    } catch {
-      // Hand-edited or stale localStorage; the quick-add shortcut just stays hidden.
-      lastCollection.value = null;
-    }
-  }
+  restoreLastCollection();
 });
 
 const emit = defineEmits([
@@ -108,48 +98,6 @@ const openContextModal = () => {
 
 const openAnkiModal = () => {
   emit('open-anki-modal');
-};
-
-const saveLastCollection = (collection: CollectionOption) => {
-  lastCollection.value = collection;
-  localStorage.setItem(LAST_COLLECTION_KEY, JSON.stringify(collection));
-};
-
-const loadCollections = async () => {
-  if (!user.isLoggedIn || collectionsLoading.value || collectionsLoaded.value) return;
-
-  collectionsLoading.value = true;
-  try {
-    const data = await sdk.listCollections({ take: 100 });
-    const items = data.collections
-      .filter((c) => c.type !== 'ANKI_EXPORT')
-      .map((c) => ({ id: c.publicId, name: c.name }));
-    collections.value = items;
-    collectionsLoaded.value = true;
-
-    if (lastCollection.value) {
-      const stillValid = items.some((c) => c.id === lastCollection.value?.id);
-      if (!stillValid) {
-        lastCollection.value = null;
-        localStorage.removeItem(LAST_COLLECTION_KEY);
-      }
-    }
-
-    if (!lastCollection.value && items.length > 0) {
-      const defaultItem = items[0];
-      if (defaultItem) lastCollection.value = { id: defaultItem.id, name: defaultItem.name };
-    }
-  } catch (error) {
-    // The picker would otherwise open on an empty list reading as "no collections yet".
-    // `collectionsLoaded` stays false so the next open retries.
-    handleApiError('collections:picker-load-failed', error, {
-      toastKey: 'searchpage.main.labels.collectionsLoadFailed',
-    });
-    collections.value = [];
-    collectionsLoaded.value = false;
-  } finally {
-    collectionsLoading.value = false;
-  }
 };
 
 const addToCollection = async (collection: CollectionOption, isQuickAdd = false) => {
