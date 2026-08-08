@@ -404,27 +404,44 @@ secret resolution.
 
 ## Alerting and dashboards
 
-Alert rules and the dashboard export live in
-[`infra/monitoring/`](infra/monitoring/README.md), which also documents how they
-get provisioned onto the monitoring host.
+**None of this is in this repo.** Monitoring config lives with the stack that
+loads it, in `brigadasos-infra`:
 
-The short version of the situation they address: Alertmanager has been running
-on `monitoring:9093` with a working Discord receiver since June, and nothing has
-ever sent it an alert — there is no vmalert and there are no rules. Production
-backend telemetry stopped on 2026-07-24 and was still missing twelve days later
-without anyone being told.
+| What | Where |
+| --- | --- |
+| Alert rules | `machines/monitoring/victoria/config/vmalert-rules/` |
+| Scripts, dashboards, the detail | `machines/nadeshiko/monitoring/` |
 
-Two things are worth knowing before writing a rule of your own. Nadeshiko's only
-metrics in VictoriaMetrics are span metrics derived from traces
-(`traces_span_metrics_*`); the `nadeshiko` host runs no node_exporter, no
-cAdvisor and no database exporters, and the `node_*`/`container_*` series in
-that instance belong to an unrelated host. And VictoriaLogs holds no Nadeshiko
-streams at all, so log-based alerting is not available.
+Rules used to live here and were mounted by nothing — which reads like coverage
+and is worse than an empty directory. Anything that only an infra deploy can
+apply belongs next to that deploy, not next to the application.
 
-`infra/monitoring/scripts/publish-host-metrics.sh` is the cheap way around the
-first gap: one cron on the host publishes Elasticsearch health, Postgres backup
-freshness and container restart counts, which is what the
-`nadeshiko-host` rule group alerts on.
+vmalert runs and evaluates `*.yml` in that directory; everything except
+`noop.yml` currently sits in `disabled/`, so nothing fires. Moving a file up one
+level out of `disabled/` is the entire activation step — deliberately separate
+from writing the rule, so enabling is a decision someone makes rather than a
+side effect of authoring. Alertmanager on `monitoring:9093` has had a working
+Discord receiver since June, so delivery is built and tested; what is missing is
+anything enabled to send. Production backend telemetry stopped on 2026-07-24 and
+was still missing twelve days later without anyone being told.
+
+Before writing a rule, check what actually reports — this used to say "span
+metrics only, and no logs", and both halves are now wrong.
+`brigadasos-infra/machines/nadeshiko/monitoring/README.md` has the current
+inventory: application metrics, span metrics, host and container metrics all
+arrive via the Alloy edge collector, and VictoriaLogs *does* hold Nadeshiko
+streams — in **tenant `1:0`**, which is why querying without the tenant header
+makes them look absent. Two traps worth repeating: always filter host metrics on
+`host_name="nadeshiko"` (the same instance holds other hosts' series), and check
+a metric exists in *production* before alerting on it. Several custom counters
+are emitted only by builds newer than what prod is running.
+
+`machines/nadeshiko/monitoring/scripts/publish-host-metrics.sh` is the cheap way
+around the first gap: a cron on the host publishing Elasticsearch health,
+Postgres backup freshness and container restart counts, which is what the
+`nadeshiko-host` rule group alerts on. Note it is **not installed** — it is in
+no crontab and not present at `/usr/local/bin` on the host, so that rule group
+would alert on data nothing produces. Install it before enabling those rules.
 
 ### Deploy failure notifications
 

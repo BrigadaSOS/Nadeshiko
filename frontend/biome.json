@@ -15,6 +15,7 @@
       "nuxt.config.ts",
       "package.json",
       "server/**",
+      "shared/**",
       "tailwind.config.js",
       "tsconfig.json",
       "README.md",
