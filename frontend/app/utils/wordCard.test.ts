@@ -217,6 +217,74 @@ describe('cardSenses', () => {
     expect(japanese?.partsOfSpeech.map((chip) => chip.title)).toEqual(['Ichidan verb', 'intransitive verb']);
   });
 
+  it('prints a part of speech once, not on every sense that repeats it', () => {
+    const noun = { category: 'partOfSpeech', code: 'n', label: 'noun (common) (futsuumeishi)' };
+    const suru = { category: 'partOfSpeech', code: 'vs', label: 'noun or participle taking the aux. verb suru' };
+    const gloss = (text: string) => [{ lang: 'en', text }];
+
+    const repetitive: ShirabeWord = {
+      ...WORD,
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: [
+            { definitions: gloss('a face'), tags: [noun] },
+            { definitions: gloss('an expression'), tags: [noun] },
+            { definitions: gloss('to do the thing'), tags: [noun, suru] },
+            // Back to a bare noun: it differs from the sense above, so it prints
+            // again rather than being swallowed by the earlier run.
+            { definitions: gloss('honour'), tags: [noun] },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      cardSenses(repetitive, preference('en')).map((sense) => sense.partsOfSpeech.map((chip) => chip.label)),
+    ).toEqual([['Noun'], [], ['Noun', 'Suru verb'], ['Noun']]);
+  });
+
+  it('compares against the chip the reader can see, not the sense above', () => {
+    // Three senses of the same part of speech. Comparing each against its
+    // immediate predecessor's own labels would blank the second and then print
+    // the third again, because the second's are empty by then.
+    const noun = { category: 'partOfSpeech', code: 'n', label: 'noun' };
+    const run: ShirabeWord = {
+      ...WORD,
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: [1, 2, 3].map((n) => ({ definitions: [{ lang: 'en', text: `sense ${n}` }], tags: [noun] })),
+        },
+      ],
+    };
+
+    expect(cardSenses(run, preference('en')).map((sense) => sense.partsOfSpeech.length)).toEqual([1, 0, 0]);
+  });
+
+  it('carries no usage qualifier down, only the part of speech', () => {
+    // "usually kana" on one sense and not the next is a real difference between
+    // them, so it is printed wherever it belongs.
+    const noun = { category: 'partOfSpeech', code: 'n', label: 'noun' };
+    const uk = { category: 'misc', code: 'uk', label: 'usually written using kana alone' };
+    const mixed: ShirabeWord = {
+      ...WORD,
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: [
+            { definitions: [{ lang: 'en', text: 'one' }], tags: [noun, uk] },
+            { definitions: [{ lang: 'en', text: 'two' }], tags: [noun, uk] },
+          ],
+        },
+      ],
+    };
+
+    const senses = cardSenses(mixed, preference('en'));
+    expect(senses.map((sense) => sense.partsOfSpeech.length)).toEqual([1, 0]);
+    expect(senses.map((sense) => sense.tags.map((chip) => chip.label))).toEqual([['Usually kana'], ['Usually kana']]);
+  });
+
   it('keeps a sense the reader language cannot cover, in the other language', () => {
     const senses = cardSenses(WORD, preference('en', 'show', 'hidden'));
 
