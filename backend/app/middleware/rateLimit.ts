@@ -1,19 +1,64 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import { RateLimitExceededError } from '@app/errors';
 import { isTrustedInternalCaller } from '@lib/internalProxy';
+import { getMeter } from '@config/telemetry';
 
 const WINDOW_MS = config.RATE_LIMIT_WINDOW_MS;
 const DEFAULT_MAX = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
 const AUTH_MAX = config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP;
 
-// express-rate-limit's default keyGenerator already keys on `req.ip`, which
-// respects Express's `trust proxy` setting (configured to 1 hop in
-// application.ts) and normalizes IPv6. We rely on it rather than rolling our
-// own key function.
-//
+// IPv6 is grouped by /56 rather than by address: a single subscriber is
+// routinely handed a whole /64, so keying on the full address lets one client
+// rotate through addresses it already owns.
+const IPV6_SUBNET = 56;
+
+/**
+ * Who to count this request against.
+ *
+ * NOT `req.ip`, which is what this used to use and which is wrong here. Express
+ * resolves `req.ip` from `trust proxy` (1 hop, set in application.ts) by
+ * walking X-Forwarded-For from the right, and there are *two* proxies in front
+ * of us: Cloudflare, then kamal-proxy. The header that reaches this process
+ * therefore reads `<visitor>, <cloudflare edge>` and `req.ip` lands on the
+ * Cloudflare edge address, not the visitor.
+ *
+ * That made the limit meaningless in both directions, measured against
+ * production: twelve requests from one machine landed in four different buckets
+ * (each answering `remaining=299`) because consecutive requests exit different
+ * edge servers -- so an abusive client is never counted twice -- while
+ * unrelated visitors sharing an edge were counted against each other.
+ *
+ * `CF-Connecting-IP` is a single unambiguous value that Cloudflare sets and
+ * overwrites on every proxied request. Counting the XFF hops instead would work
+ * today and is what the previous comment assumed; it is not used because the
+ * chain length is not actually constant -- kamal-proxy's own logs show both one
+ * and two entries for the same visitor -- so a fixed hop count would silently
+ * pick the wrong element for some requests.
+ *
+ * The fallback keeps internal callers working: container-to-container traffic
+ * carries no Cloudflare header, and `req.ip` is correct for it.
+ *
+ * Trust boundary: this is only as good as the guarantee that traffic arrives
+ * through Cloudflare, which is a firewall question. See the Cloudflare section
+ * of DEPLOYMENT.md. Until the origin is locked, someone who has learned the
+ * origin address can set this header themselves -- exactly as they could
+ * already forge X-Forwarded-For, so it is not a regression.
+ */
+export function resolveClientIp(req: Request): string {
+  const cfConnectingIp = req.get('cf-connecting-ip')?.trim();
+  if (cfConnectingIp) return cfConnectingIp;
+  return req.ip ?? '';
+}
+
+function clientKey(req: Request): string {
+  // ipKeyGenerator applies the IPv6 grouping that the default key generator
+  // would have applied; a custom keyGenerator opts out of the `ipv6Subnet`
+  // option, so it has to be done here or IPv6 silently keys per address.
+  return ipKeyGenerator(resolveClientIp(req), IPV6_SUBNET);
+}
 // SCOPING: this limiter is for DIRECT browser-to-backend traffic only. Browser
 // traffic that reaches us through the frontend Nitro proxy is already rate
 // limited per real client IP there (frontend/server/utils/ipRateLimit.ts), and
@@ -30,16 +75,69 @@ const AUTH_MAX = config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP;
 // the same answer and the two must not drift.
 const shouldSkip = isTrustedInternalCaller;
 
+// Four series at most (two scopes x two sources), which is why `source` is a
+// class and not the address itself: the address is unbounded, and the question
+// this answers needs only the class.
+const rateLimitedCount = getMeter().createCounter('http.server.rate_limited', {
+  description: 'Requests rejected by the per-IP rate limiter, by caller class',
+  unit: '{request}',
+});
+
+/**
+ * Private-range, loopback and link-local addresses -- the container network and
+ * the host, never the public internet.
+ *
+ * A 429 against one of these means we are throttling ourselves. It is not a
+ * capacity signal, it is a configuration bug: some internal caller is failing
+ * the `isTrustedInternalCaller` check and competing with every other internal
+ * caller for one bucket. That is invisible in every other signal (the requests
+ * simply fail and get retried) until it becomes an outage under load, which is
+ * exactly how it was found. The alert built on this counter is
+ * NadeshikoBackendProdRateLimitingItself, in
+ * brigadasos-infra/machines/monitoring/victoria/config/vmalert-rules/.
+ *
+ * Matched by class rather than by a specific address on purpose: container IPs
+ * are assigned by Docker and are reshuffled by a host reboot, so a rule naming
+ * one of them silently stops matching the thing it was written for.
+ */
+export function isPrivateAddress(ip: string | undefined): boolean {
+  if (!ip) return false;
+  // Express reports IPv4-mapped IPv6 as `::ffff:172.18.0.9`.
+  const bare = ip.startsWith('::ffff:') ? ip.slice('::ffff:'.length) : ip;
+
+  if (bare === '::1' || bare.startsWith('127.')) return true;
+  if (bare.startsWith('10.') || bare.startsWith('192.168.')) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(bare)) return true;
+  // IPv6 unique-local (fc00::/7) and link-local (fe80::/10).
+  if (/^f[cd]/i.test(bare) || /^fe[89ab]/i.test(bare)) return true;
+
+  return false;
+}
+
 // Emit a 429 in the same problem-details envelope as the rest of the API (the
 // better-auth API-key limiter already surfaces RateLimitExceededError). Routing
 // through next() lets the central error handler attach the requestId/instance
 // and record the 4xx error metric.
 function buildHandler(scope: 'global' | 'auth', detail: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
+    // The same address the bucket was keyed on, not `req.ip` -- otherwise the
+    // log and the alert describe a different client than the one being counted.
+    const clientIp = resolveClientIp(req);
+    const source = isPrivateAddress(clientIp) ? 'internal' : 'external';
+
     logger.warn(
-      { ip: req.ip, path: req.originalUrl, scope, traffic: req.traffic, 'bot.family': req.botFamily },
+      {
+        ip: clientIp,
+        path: req.originalUrl,
+        scope,
+        source,
+        traffic: req.traffic,
+        'bot.family': req.botFamily,
+      },
       'Rate limit exceeded',
     );
+
+    rateLimitedCount.add(1, { scope, source });
 
     // express-rate-limit augments the request with timing info for this hit.
     const resetTime = (req as Request & { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime;
@@ -55,7 +153,7 @@ function buildHandler(scope: 'global' | 'auth', detail: string): RequestHandler 
 export const globalRateLimit = rateLimit({
   windowMs: WINDOW_MS,
   limit: DEFAULT_MAX,
-  ipv6Subnet: 56,
+  keyGenerator: clientKey,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   skip: shouldSkip,
@@ -65,7 +163,7 @@ export const globalRateLimit = rateLimit({
 export const authRateLimit = rateLimit({
   windowMs: WINDOW_MS,
   limit: AUTH_MAX,
-  ipv6Subnet: 56,
+  keyGenerator: clientKey,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   skip: shouldSkip,
