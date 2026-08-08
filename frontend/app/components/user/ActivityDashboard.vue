@@ -27,28 +27,33 @@ const { data: initialData } = await useAsyncData(
   'settings-activity-initial',
   async () => {
     const since7d = sinceForRange('7d');
-    const [statsRes, activityRes, prefsRes, heatmapRes] = await Promise.all([
+    const [statsRes, activityRes, heatmapRes] = await Promise.all([
       sdk.getUserActivityStats(since7d ? { since: since7d } : {}).catch(reportInitialFailure('stats')),
       sdk.listUserActivity({ take: ACTIVITY_PAGE_SIZE }).catch(reportInitialFailure('activity')),
-      sdk.getUserPreferences().catch(reportInitialFailure('preferences')),
       sdk.getUserActivityHeatmap({ days: HEATMAP_DAYS }).catch(reportInitialFailure('heatmap')),
     ]);
 
-    const prefsData = prefsRes as Record<string, any> | null;
+    // Preferences are already in the store -- the SSR identity bootstrap loads
+    // them alongside the session, and this page is only reachable signed in. The
+    // fourth request here re-fetched what hydration had just delivered. An
+    // absent value reads as enabled, which is the same default the failed fetch
+    // used to produce.
+    const prefs = userStore().preferences as Record<string, any> | undefined;
 
     return {
       stats: statsRes as ActivityStats | null,
       activities: (activityRes?.activities ?? []) as ActivityItem[],
       hasMore: activityRes?.pagination?.hasMore ?? false,
       cursor: activityRes?.pagination?.cursor ?? null,
-      trackingEnabled: prefsData?.searchHistory?.enabled !== false,
+      trackingEnabled: prefs?.searchHistory?.enabled !== false,
       heatmapRaw: (heatmapRes?.activityByDay ?? {}) as HeatmapRawData,
     };
   },
   {
-    // Session-scoped: an SSR call would carry the shared API key instead of the
-    // user's session, so it can only return the wrong data.
-    server: false,
+    // Server-rendered. These routes are off the public allowlist, so the SDK
+    // sends the reader's session cookie rather than the service key -- which is
+    // what this was `server: false` to avoid. The `/user/**` route guard runs
+    // before setup, so it only ever executes for someone signed in.
     default: () => ({
       stats: null as ActivityStats | null,
       activities: [] as ActivityItem[],
@@ -82,8 +87,8 @@ const heatmapRaw = ref<HeatmapRawData>(initialData.value.heatmapRaw);
 const selectedDay = ref<string | null>(null);
 const activityTypeFilter = ref<string | null>(null);
 
-// With `server: false` the fetch is deferred to the client during hydration, so
-// the data can land after the local copies above were seeded.
+// The SSR pass seeds the refs above directly now; this still fires for the
+// explicit refreshes (`refetchActivity`, range changes) that replace `initialData`.
 watch(initialData, (data) => {
   stats.value = data.stats;
   activities.value = data.activities;
@@ -160,6 +165,11 @@ const toggleTracking = async () => {
   try {
     await sdk.updateUserPreferences({ searchHistory: { enabled: newValue } });
     trackingEnabled.value = newValue;
+    // Write through to the store, which is now what the initial load reads. The
+    // same pattern the other preference surfaces use (see `useHiddenMedia`):
+    // without it, leaving this page and coming back would show the old value.
+    const user = userStore();
+    user.preferences = { ...(user.preferences ?? {}), searchHistory: { enabled: newValue } };
     const posthog = usePostHog();
     posthog?.capture('activity_tracking_toggled', { enabled: newValue });
   } catch (error) {
