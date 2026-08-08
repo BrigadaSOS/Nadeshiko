@@ -12,7 +12,25 @@ export interface RetryOptions {
   timeout?: number;
 }
 
-const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+/**
+ * Statuses worth trying again. Every one of these means "this attempt failed,
+ * the next might not".
+ *
+ * 429 is deliberately NOT here, and it used to be. A rate limit is not a
+ * transient failure, it is the server saying stop: retrying it is the one
+ * response guaranteed to make the condition worse. That is not theoretical.
+ * On 2026-08-09 an SSR path lost its rate-limit exemption, and because a 429
+ * was retried twice, each render turned into three requests against a bucket
+ * that was already full -- roughly two thousand visitor requests became 31,422
+ * internal ones, and the site went down. The limiter worked; the client's
+ * reaction to it is what collapsed.
+ *
+ * Callers get the 429 response back and can decide. A caller that wants to wait
+ * has `Retry-After` on the response and knows its own context -- whether it is
+ * a background job that can sleep, or a server-side render holding a worker.
+ * This layer does not know that and so must not choose for them.
+ */
+const RETRYABLE_STATUS = new Set([408, 500, 502, 503, 504]);
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -76,9 +94,15 @@ export function withRetry(
         return response;
       }
 
+      // `Retry-After` is clamped to the caller's own ceiling. It is a value the
+      // server chooses, and an unclamped one lets the server park this client
+      // for as long as it likes -- our own backend sends the whole remaining
+      // window, up to 60s, which is how a single throttled call could hold a
+      // server-side render hostage for a minute. `maxDelayMs` is the caller
+      // saying how long they are willing to wait; a header does not outrank it.
       const retryAfter = response.headers.get('Retry-After');
       const waitMs = retryAfter
-        ? parseRetryAfter(retryAfter)
+        ? Math.min(parseRetryAfter(retryAfter), maxDelayMs)
         : backoffDelay(attempt, initialDelayMs, maxDelayMs);
 
       await sleep(waitMs);

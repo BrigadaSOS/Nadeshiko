@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3';
-import { getRequestHeader, createError, setResponseHeader } from 'h3';
+import { createError, setResponseHeader } from 'h3';
+import { getClientIp } from './clientIp';
 
 type Bucket = { count: number; windowStart: number };
 
@@ -26,11 +27,10 @@ function getOrCreate(key: string, windowMs: number, now: number): Bucket {
 }
 
 function clientKey(event: H3Event): string {
-  // Mirror h3's getRequestIP({ xForwardedFor: true }) behaviour without
-  // depending on event.context (Cloudflare always sets X-Forwarded-For).
-  const xForwardedFor = getRequestHeader(event, 'x-forwarded-for')?.split(',').shift()?.trim();
-  if (xForwardedFor) return xForwardedFor;
-  return event.node?.req?.socket?.remoteAddress ?? 'unknown';
+  // Deliberately not the leftmost X-Forwarded-For entry, which a client can set
+  // for itself -- rotating it used to mint a fresh bucket per request and made
+  // this limiter a no-op for anyone who bothered. See getClientIp.
+  return getClientIp(event);
 }
 
 function safeSetHeader(event: H3Event, name: string, value: string): void {

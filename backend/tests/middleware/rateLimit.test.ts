@@ -3,7 +3,7 @@ import { type Server } from 'node:http';
 import { type Application } from 'express';
 import { request } from '../helpers/http';
 import type { Response as SupertestResponse } from 'supertest';
-import { authRateLimit } from '@app/middleware/rateLimit';
+import { authRateLimit, isPrivateAddress } from '@app/middleware/rateLimit';
 import { setCachedApiKey } from '@app/middleware/authCacheStore';
 import { buildApplication } from '@config/application';
 import { config } from '@config/config';
@@ -139,6 +139,56 @@ describe('rateLimit', () => {
     });
   }, 15_000);
 
+  it('counts one visitor as one bucket even when Cloudflare routes them via different edges', async () => {
+    // The production bug this replaced. `trust proxy: 1` resolved req.ip to the
+    // rightmost X-Forwarded-For entry, which is the Cloudflare edge and not the
+    // visitor. Twelve requests from one machine landed in four buckets, each
+    // reporting remaining=299, so an abusive client was never counted twice.
+    // Here the visitor is constant and the edge rotates on every request.
+    await withServer(async (server) => {
+      const statuses: number[] = [];
+      for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 2; i++) {
+        const r = await request(server)
+          .get('/ping')
+          .set('CF-Connecting-IP', '203.0.113.7')
+          .set('X-Forwarded-For', `203.0.113.7, 172.68.${i % 200}.9`);
+        statuses.push(r.status);
+      }
+      expect(statuses).toContain(429);
+    });
+  }, 20_000);
+
+  it('does not collapse different visitors sharing one Cloudflare edge', async () => {
+    // The mirror failure of the same bug: unrelated people behind one edge were
+    // counted against each other. Same edge, different visitors, no throttling.
+    await withServer(async (server) => {
+      const statuses: number[] = [];
+      for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 2; i++) {
+        const r = await request(server)
+          .get('/ping')
+          .set('CF-Connecting-IP', `198.51.100.${i % 250}`)
+          .set('X-Forwarded-For', '198.51.100.1, 172.68.23.139');
+        statuses.push(r.status);
+      }
+      expect(statuses.every((s) => s === 200)).toBe(true);
+    });
+  }, 20_000);
+
+  it('does NOT exempt traffic that sends no internal-proxy secret at all', async () => {
+    // The state this was actually found in: the SSR SDK reached the backend
+    // with a service API key but no secret, so every render competed for one
+    // bucket keyed on the frontend container's address. "Wrong secret" was
+    // already covered; "no secret" is the case that shipped.
+    await withServer(async (server) => {
+      const statuses: number[] = [];
+      for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 2; i++) {
+        const r = await request(server).get('/ping').set('X-Forwarded-For', '172.18.0.9');
+        statuses.push(r.status);
+      }
+      expect(statuses).toContain(429);
+    });
+  }, 15_000);
+
   it('auth route is separately (more tightly) rate-limited', async () => {
     await withServer(async (server) => {
       const statuses: number[] = [];
@@ -234,4 +284,30 @@ describe('rateLimit skip for SERVICE keys', () => {
       expect(statuses).toContain(429);
     });
   }, 15_000);
+});
+
+describe('isPrivateAddress', () => {
+  // The NadeshikoBackendProdRateLimitingItself alert fires on the `source`
+  // label this produces, so a wrong answer here is a silently missing alert
+  // rather than a visible failure.
+  it('recognises the container network, loopback and the RFC1918 ranges', () => {
+    for (const ip of ['172.18.0.4', '172.18.0.9', '10.0.0.1', '192.168.1.5', '127.0.0.1', '::1']) {
+      expect(isPrivateAddress(ip)).toBe(true);
+    }
+  });
+
+  it('unwraps IPv4-mapped IPv6, which is how Express reports these', () => {
+    // `::ffff:172.18.0.9` is the same address as `172.18.0.9`; missing this
+    // would classify every internal 429 as external and mute the alert.
+    expect(isPrivateAddress('::ffff:172.18.0.9')).toBe(true);
+    expect(isPrivateAddress('::ffff:8.8.8.8')).toBe(false);
+  });
+
+  it('does not treat public addresses as internal', () => {
+    // 172.32/172.15 sit just outside 172.16/12 and are the boundary the
+    // regex exists to get right.
+    for (const ip of ['8.8.8.8', '203.0.113.7', '172.32.0.1', '172.15.0.1', undefined]) {
+      expect(isPrivateAddress(ip)).toBe(false);
+    }
+  });
 });

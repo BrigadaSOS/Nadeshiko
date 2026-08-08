@@ -77,11 +77,26 @@ async function startRuntime(): Promise<void> {
     logger.info(`Current environment: [${environment}]`);
 
     // Without the shared secret the per-IP limiter cannot tell frontend traffic
-    // apart from the public internet, so every SSR render and proxied call
-    // competes for one bucket keyed on the frontend's IP.
+    // apart from the public internet. Internal callers reach us through
+    // kamal-proxy and carry no X-Forwarded-For of their own, so `req.ip` falls
+    // back to the proxy's address and every SSR render, proxied call and bot
+    // request competes for ONE bucket -- a site-wide ceiling in the low
+    // hundreds per minute, whatever the traffic actually is.
+    //
+    // This refuses to boot rather than warning, which it used to do. A warning
+    // is the wrong shape for this failure: nothing downstream degrades
+    // visibly, the site simply acquires an invisible capacity cliff that only
+    // shows up as an outage under load, months after the deploy that caused
+    // it. The frontend has always refused to start without its half of the
+    // pair (frontend/server/plugins/01-env-check.ts); this is the other half.
+    //
+    // Safe to fail hard: Kamal health-checks the new container before shifting
+    // traffic, so a missing secret fails the deploy instead of the site.
     if (!config.INTERNAL_PROXY_SECRET && config.ENVIRONMENT !== 'local') {
-      logger.warn(
-        'INTERNAL_PROXY_SECRET is not set: requests proxied by the frontend are rate limited as a single client IP',
+      throw new Error(
+        'INTERNAL_PROXY_SECRET is not set: the per-IP rate limiter cannot recognise our own frontend, ' +
+          'so all internal traffic would share a single bucket. Set it to the same value as the ' +
+          "frontend's NUXT_INTERNAL_PROXY_SECRET.",
       );
     }
 
