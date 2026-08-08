@@ -11,10 +11,30 @@ const { mediaName } = useMediaName();
 
 const id = computed(() => String(route.params.id));
 
+/**
+ * The segment itself, shared across visitors while rendering on the server.
+ *
+ * This page is the most expensive one the site serves and its data is identical
+ * for everyone, so server-side renders go through a short cache that also
+ * collapses simultaneous renders of the same permalink into one backend call --
+ * the shape that took production down on 2026-08-09. The client keeps calling
+ * the SDK directly: a browser has its own HTTP cache, and this store is
+ * per-server-process.
+ *
+ * Dynamically imported so the server-only util never reaches the client bundle,
+ * the same way `plugins/identity-auth.ts` reaches for its server helpers.
+ */
+const loadSegment = async (publicId: string, sdk: ReturnType<typeof useNadeshikoSdk>) => {
+  if (!import.meta.server) return sdk.getSegment(publicId);
+
+  const { cachedSegment } = await import('~~/server/utils/segmentCache');
+  return cachedSegment(publicId, () => sdk.getSegment(publicId));
+};
+
 const fetchSentenceData = async () => {
   const sdk = useNadeshikoSdk();
 
-  const segment = await sdk.getSegment(id.value).catch((error: unknown) => {
+  const segment = await loadSegment(id.value, sdk).catch((error: unknown) => {
     // A deleted or mistyped permalink is a genuine 404; anything else is our own
     // failure and must not be dressed up as "this sentence does not exist".
     if (error instanceof NadeshikoError && error.status === 404) return null;
