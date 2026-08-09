@@ -355,6 +355,17 @@ export default defineNuxtConfig({
     // everyone. `swr` keeps serving the stale copy while it refreshes, so a
     // reader never waits on a revalidation.
     '/api/shirabe/**': { swr: 60 * 60 * 24, headers: { 'Cache-Control': 'public, max-age=86400' } },
+    // Locale messages from nuxt-i18n's built-in `/_i18n/:hash/:locale/messages.json`
+    // route: identical for every reader and only change when a new build is
+    // rolled out (the `:hash` segment of the URL is the build id). Without this
+    // rule every browser fetches the JSON through Nitro on first paint, which
+    // takes the SSR process through JSON.parse + JSON.stringify on a hot path.
+    // On 2026-08-09 JST a traffic spike drove that endpoint to ~167k requests
+    // in three hours and pushed the SSR past its 512 MiB default `--max-old-space-size`
+    // (see issue #484). Cached at the origin like `/api/shirabe/**` above: one
+    // copy per build, served stale-while-revalidate so a reader never waits on
+    // a revalidation.
+    '/_i18n/**': { swr: 60 * 60 * 24, headers: { 'Cache-Control': 'public, max-age=86400' } },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {

@@ -78,6 +78,14 @@ COPY frontend/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENV HOST=0.0.0.0
 ENV PORT=3000
+# Default Node `--max-old-space-size` is 512 MiB on a 64-bit build, which the
+# Nitro SSR under sustained traffic (a JST-morning spike to ~28 req/s on
+# `/_i18n/.../messages.json` alone, see issue #484) walks past -- mark-compact
+# fails with "Ineffective mark-compacts near heap limit Allocation failed" and
+# the container crash-loops. 1536 MiB is the next multiple-of-512 above the
+# 600+ MiB working-set we saw on a healthy incarnation of the container, with
+# headroom for the OpenTelemetry batch processor and Pino buffer under load.
+ENV NODE_OPTIONS=--max-old-space-size=1536
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \

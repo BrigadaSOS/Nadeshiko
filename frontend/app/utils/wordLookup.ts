@@ -31,8 +31,36 @@ function cacheKey(wid: string, locale: string): string {
 
 /** The answers we already have. Separate from `inFlight` because a caller needs
  *  to distinguish "answered, and it was nothing" (null) from "never asked"
- *  (undefined), which a promise map cannot express. */
+ *  (undefined), which a promise map cannot express.
+ *
+ *  Bounded by `MAX_RESOLVED_ENTRIES`: the map is module-scoped (so it survives
+ *  across page renders on the SSR process) and would otherwise grow without
+ *  limit -- every distinct `wid:locale` a reader asks about adds a key, and
+ *  once asked it never falls out. The server route sets a day-long
+ *  `cache-control` so a re-ask after eviction still hits the HTTP cache
+ *  rather than Shirabe, which is what `peekWord`'s `undefined`-vs-`null`
+ *  contract already assumes. The eviction policy is insertion order: when the
+ *  cap is reached we drop the oldest entry, matching the LRU approximation
+ *  that `peekWord` + `fetchWord` already approximate by treating the cache
+ *  as "recently used".
+ */
+const MAX_RESOLVED_ENTRIES = 4096;
 const resolved = new Map<string, ShirabeWord | null>();
+
+function rememberResolved(key: string, value: ShirabeWord | null): void {
+  // `Map` keeps insertion order on iteration, so `delete + set` moves the key
+  // to the most-recent position without us tracking access timestamps. This
+  // matches the comment above: the cache is "asked recently", not "touched
+  // recently" -- a reader who has not asked a word for a while is exactly
+  // whose entry we want to evict.
+  if (resolved.has(key)) resolved.delete(key);
+  resolved.set(key, value);
+  while (resolved.size > MAX_RESOLVED_ENTRIES) {
+    const oldest = resolved.keys().next().value;
+    if (oldest === undefined) break;
+    resolved.delete(oldest);
+  }
+}
 
 /** The answer if it is already here, so a card can open filled in rather than
  *  flashing a loading state for a word the page has seen. `undefined` means it
@@ -67,11 +95,13 @@ export function fetchWord(wid: string, locale: string): Promise<ShirabeWord | nu
     timeout: 8000,
   })
     .then((word) => {
-      resolved.set(key, word);
+      rememberResolved(key, word);
       return word;
     })
     .catch(() => {
-      resolved.set(key, null);
+      // `null` (asked, no entry) goes through the same bounded store as a hit:
+      // the comment on `rememberResolved` covers why we want to remember it.
+      rememberResolved(key, null);
       return null;
     })
     .finally(() => {
