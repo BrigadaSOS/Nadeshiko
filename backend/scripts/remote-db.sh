@@ -63,13 +63,16 @@ case "$CMD" in
   *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex or reindex-media (got '$CMD')" >&2; exit 1 ;;
 esac
 
-# A reindex rebuilds the whole search index. On production that is a destructive
-# operation with its own runbook (scripts/migrate-elasticsearch-production.sh),
-# so it is not offered here at all rather than guarded by a flag.
-if [[ "$ENV" == "prod" && ( "$CMD" == "reindex" || "$CMD" == "reindex-media" ) ]]; then
-  echo "error: '$CMD' is not available for prod here -- see scripts/migrate-elasticsearch-production.sh" >&2
-  exit 1
-fi
+# A reindex rebuilds the whole search index from PostgreSQL, which is
+# authoritative -- and since the ES8 rollback stack was retired, it is also the
+# recovery path for a lost or corrupted index. It is zero-downtime (new
+# versioned index, alias swap at the end), so it is offered for production
+# behind the same flag as any other write rather than withheld.
+#
+# Note that staging and production share one Elasticsearch server. The indices
+# are separate (`nadedb_dev` / `nadedb_prod`) and bin/es.ts scopes itself to its
+# own alias, but the blast radius of a mistyped environment is now a different
+# environment's index rather than a different machine.
 
 # parse-corpus writes `tokens` on every row, which is additive: nothing reads the
 # column until the release that drops `pos_analysis`. It is still an hour of
