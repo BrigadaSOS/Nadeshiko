@@ -15,6 +15,22 @@ servers:
       # see brigadasos-infra/hetzner/setup-coredumps.sh. Without that script
       # this flag is inert rather than wrong.
       ulimit: core=-1
+      # Overrides the single-entry `add-host` in deploy.yml, which Kamal replaces
+      # rather than merges, so `host.docker.internal` has to be repeated here.
+      #
+      # Resolving Shirabe's own hostname to inari's Tailscale address sends a word
+      # lookup straight over the tailnet instead of out to Cloudflare and back for
+      # two boxes in the same city (~175ms against ~33ms of real work). The name is
+      # genuine, so SNI, Host and the certificate still line up and it arrives
+      # through Shirabe's normal proxy rather than a second door. Proven on staging,
+      # which runs on this same host.
+      #
+      # This is why NUXT_SHIRABE_API_BASE below is www.shirabe.org and not
+      # shirabe.org: that name now points at the tailnet from inside this
+      # container, so it could not fall back to anything.
+      add-host:
+        - host.docker.internal:host-gateway
+        - shirabe.org:100.73.93.89
 
 # Diagnostic reports written by the Node flags in NODE_OPTIONS below. A bind
 # mount and not a named volume on purpose: the whole value is being able to read

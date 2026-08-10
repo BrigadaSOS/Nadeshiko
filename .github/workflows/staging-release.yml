@@ -108,15 +108,19 @@ jobs:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
 
+      # Checks the PRODUCTION container: staging shares it and keeps only its own
+      # index (`nadedb_dev`). Still worth running before a staging deploy -- a
+      # client-9 backend pointed at an absent or wrong-version server fails in
+      # ways that read as application bugs.
       - name: Verify Elasticsearch 9 prerequisite
         run: |
           set -euo pipefail
-          health=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'")
+          health=$(ssh nadeshiko "docker exec nadeshiko-backend-prod-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'")
           grep -q '"timed_out":false' <<<"$health"
           grep -Eq '"status":"(yellow|green)"' <<<"$health"
-          version=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
+          version=$(ssh nadeshiko 'docker exec nadeshiko-backend-prod-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
           grep -q 'Version: 9.4.1' <<<"$version"
-          plugins=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
+          plugins=$(ssh nadeshiko 'docker exec nadeshiko-backend-prod-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
           grep -qx analysis-icu <<<"$plugins"
           grep -qx analysis-sudachi <<<"$plugins"
 
