@@ -25,7 +25,7 @@ usage() {
 Usage: scripts/remote-db.sh <env> <command> [${PROD_FLAG}]
 
   env:      staging (aliases: stg, dev) | prod
-  command:  status | prepare | migrate | reindex | reindex-media <publicId>
+  command:  status | prepare | migrate | parse-corpus | reindex | reindex-media <publicId>
 
 For prepare/migrate against prod, ${PROD_FLAG} is required as a safety check.
 status is read-only and never requires the flag.
@@ -59,8 +59,8 @@ case "$ENV" in
 esac
 
 case "$CMD" in
-  status|prepare|migrate|reindex|reindex-media) ;;
-  *) echo "error: command must be status, prepare, migrate, reindex or reindex-media (got '$CMD')" >&2; exit 1 ;;
+  status|prepare|migrate|parse-corpus|reindex|reindex-media) ;;
+  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex or reindex-media (got '$CMD')" >&2; exit 1 ;;
 esac
 
 # A reindex rebuilds the whole search index. On production that is a destructive
@@ -71,6 +71,9 @@ if [[ "$ENV" == "prod" && ( "$CMD" == "reindex" || "$CMD" == "reindex-media" ) ]
   exit 1
 fi
 
+# parse-corpus writes `tokens` on every row, which is additive: nothing reads the
+# column until the release that drops `pos_analysis`. It is still an hour of
+# writes against production, so it asks for the same flag as a migration.
 if [[ "$ENV" == "prod" && "$CMD" != "status" && "$FLAG" != "$PROD_FLAG" ]]; then
   echo "error: '$CMD' against prod requires $PROD_FLAG" >&2
   exit 1
@@ -139,6 +142,12 @@ run_with_env() {
 }
 
 case "$CMD" in
+  parse-corpus)
+    # Runs from THIS checkout, not the deployed image: production's image predates
+    # the script entirely, and staging's container is wired to the staging
+    # database. The env below is the only thing that points it at prod.
+    run_with_env node --import tsx scripts/parse-corpus-with-shirabe.ts "${@:4}"
+    ;;
   reindex)
     # Zero downtime: builds a new versioned index and swaps the alias, so the
     # old one keeps answering until the new one is complete.
