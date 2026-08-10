@@ -3,6 +3,15 @@ set -euo pipefail
 
 # Two paths, selected by what production is actually running:
 #
+# NO `sudo`. Kamal connects as the `docker` user (config/deploy.yml), which is
+# in the `docker` group and needs no elevation to reach the socket -- and is NOT
+# in `sudo`, so every `sudo -n` here failed with "a password is required". This
+# script had never run, so nothing caught it: the v2.3.0 release was the first
+# attempt and it died on its first remote command. The staging canary script
+# alongside it uses no sudo and has always worked. Everything below touches
+# docker or files under a directory this same user creates, so none of it needs
+# root.
+#
 #   already on 9.4.1  -> verify the accessory, plain `kamal deploy`, exit.
 #   still on 8.19.15  -> one-time write-frozen migration onto a fresh v9 volume,
 #                        then deploy. See backend/docs/elasticsearch-9-migration.md.
@@ -47,19 +56,19 @@ verify_running_application() {
     while IFS= read -r container; do
       found=true
       case \"\$container\" in nadeshiko-backend-prod-web-*) ;; *) exit 1 ;; esac
-      actual_image_id=\$(sudo -n docker inspect \"\$container\" --format '{{.Image}}')
+      actual_image_id=\$(docker inspect \"\$container\" --format '{{.Image}}')
       test \"\$actual_image_id\" = '$expected_image_id'
-      actual_version=\$(sudo -n docker inspect \"\$container\" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^KAMAL_VERSION=' | cut -d= -f2-)
+      actual_version=\$(docker inspect \"\$container\" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^KAMAL_VERSION=' | cut -d= -f2-)
       test \"\$actual_version\" = '$expected_version'
-    done < <(sudo -n docker ps --format '{{.Names}}' --filter label=service=nadeshiko-backend-prod --filter label=destination=prod --filter label=role=web)
+    done < <(docker ps --format '{{.Names}}' --filter label=service=nadeshiko-backend-prod --filter label=destination=prod --filter label=role=web)
     test \"\$found\" = true
-    test \"\$(sudo -n docker inspect kamal-proxy --format '{{.State.Running}}')\" = true
+    test \"\$(docker inspect kamal-proxy --format '{{.State.Running}}')\" = true
   "
 }
 
 release_lock() {
   if [ "$locked" = true ]; then
-    ssh "$remote" "sudo -n rmdir '$remote_lock'" >/dev/null 2>&1 || true
+    ssh "$remote" "rmdir '$remote_lock'" >/dev/null 2>&1 || true
     locked=false
   fi
 }
@@ -67,18 +76,18 @@ release_lock() {
 restore_frozen_es8_stack() {
   ssh "$remote" "
     set -euo pipefail
-    if sudo -n docker inspect '$rollback_es' >/dev/null 2>&1; then
-      sudo -n docker rm --force '$es' >/dev/null 2>&1 || true
-      sudo -n docker rename '$rollback_es' '$es'
+    if docker inspect '$rollback_es' >/dev/null 2>&1; then
+      docker rm --force '$es' >/dev/null 2>&1 || true
+      docker rename '$rollback_es' '$es'
     fi
-    sudo -n docker start '$es' >/dev/null
+    docker start '$es' >/dev/null
     while IFS= read -r container; do
       case \"\$container\" in
-        nadeshiko-backend-prod-web-*) sudo -n docker start \"\$container\" >/dev/null ;;
+        nadeshiko-backend-prod-web-*) docker start \"\$container\" >/dev/null ;;
         *) echo \"Unexpected retained application container: \$container\" >&2; exit 1 ;;
       esac
     done < '$remote_stage/app-containers'
-    sudo -n docker start kamal-proxy >/dev/null
+    docker start kamal-proxy >/dev/null
   "
 }
 
@@ -99,7 +108,7 @@ cleanup() {
   fi
 
   if [ -n "$remote_stage" ]; then
-    ssh "$remote" "sudo -n rm -rf '$remote_stage'" >/dev/null 2>&1 || true
+    ssh "$remote" "rm -rf '$remote_stage'" >/dev/null 2>&1 || true
   fi
   release_lock
   exit "$rc"
@@ -107,7 +116,7 @@ cleanup() {
 trap cleanup EXIT
 
 read_health() {
-  ssh "$remote" "sudo -n docker exec '$es' bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'"
+  ssh "$remote" "docker exec '$es' bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'"
 }
 
 wait_for_healthy_cluster() {
@@ -118,7 +127,7 @@ wait_for_healthy_cluster() {
       return 0
     fi
     if [ "$attempt" -eq 90 ]; then
-      ssh "$remote" "sudo -n docker logs --tail 200 '$es'"
+      ssh "$remote" "docker logs --tail 200 '$es'"
       return 1
     fi
     sleep 2
@@ -128,24 +137,24 @@ wait_for_healthy_cluster() {
 verify_es9() {
   local version plugins actual_image
   wait_for_healthy_cluster
-  version=$(ssh "$remote" "sudo -n docker exec '$es' /usr/share/elasticsearch/bin/elasticsearch --version")
+  version=$(ssh "$remote" "docker exec '$es' /usr/share/elasticsearch/bin/elasticsearch --version")
   grep -q "Version: ${expected_version}" <<<"$version"
-  plugins=$(ssh "$remote" "sudo -n docker exec '$es' /usr/share/elasticsearch/bin/elasticsearch-plugin list")
+  plugins=$(ssh "$remote" "docker exec '$es' /usr/share/elasticsearch/bin/elasticsearch-plugin list")
   grep -qx analysis-icu <<<"$plugins"
   grep -qx analysis-sudachi <<<"$plugins"
-  actual_image=$(ssh "$remote" "sudo -n docker inspect '$es' --format '{{.Config.Image}}'")
+  actual_image=$(ssh "$remote" "docker inspect '$es' --format '{{.Config.Image}}'")
   test "$actual_image" = "$elasticsearch_image"
 }
 
 current_version=''
-if ssh "$remote" "sudo -n docker inspect '$es' >/dev/null 2>&1"; then
-  current_version=$(ssh "$remote" "sudo -n docker exec '$es' /usr/share/elasticsearch/bin/elasticsearch --version" || true)
+if ssh "$remote" "docker inspect '$es' >/dev/null 2>&1"; then
+  current_version=$(ssh "$remote" "docker exec '$es' /usr/share/elasticsearch/bin/elasticsearch --version" || true)
 fi
 
 printf '%s' "${GITHUB_TOKEN:?GITHUB_TOKEN is required}" | \
-  ssh "$remote" "sudo -n docker login ghcr.io --username '${GITHUB_ACTOR:?GITHUB_ACTOR is required}' --password-stdin >/dev/null"
-ssh "$remote" "sudo -n docker pull '$backend_image' >/dev/null"
-expected_backend_id=$(ssh "$remote" "sudo -n docker image inspect '$backend_image' --format '{{.Id}}'")
+  ssh "$remote" "docker login ghcr.io --username '${GITHUB_ACTOR:?GITHUB_ACTOR is required}' --password-stdin >/dev/null"
+ssh "$remote" "docker pull '$backend_image' >/dev/null"
+expected_backend_id=$(ssh "$remote" "docker image inspect '$backend_image' --format '{{.Id}}'")
 [[ "$expected_backend_id" =~ ^sha256:[0-9a-f]{64}$ ]]
 
 # Future releases only verify the already-migrated accessory and deploy normally.
@@ -163,61 +172,61 @@ if ! grep -q 'Version: 8.19.15' <<<"$current_version"; then
   echo 'See backend/docs/elasticsearch-9-migration.md for the bridge image tags.' >&2
   exit 1
 fi
-ssh "$remote" "sudo -n mkdir '$remote_lock'"
+ssh "$remote" "mkdir '$remote_lock'"
 locked=true
-ssh "$remote" "! sudo -n docker inspect '$rollback_es' >/dev/null 2>&1"
-ssh "$remote" "! sudo -n docker volume inspect nadeshiko-elasticsearch-v9-data >/dev/null 2>&1"
-old_mounts=$(ssh "$remote" "sudo -n docker inspect '$es' --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}'")
+ssh "$remote" "! docker inspect '$rollback_es' >/dev/null 2>&1"
+ssh "$remote" "! docker volume inspect nadeshiko-elasticsearch-v9-data >/dev/null 2>&1"
+old_mounts=$(ssh "$remote" "docker inspect '$es' --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}'")
 grep -qx 'nadeshiko-elasticsearch-data /usr/share/elasticsearch/data' <<<"$old_mounts"
 
-old_web=$(ssh "$remote" "sudo -n docker ps --format '{{.Names}}' --filter name=nadeshiko-backend-prod-web | head -n1")
+old_web=$(ssh "$remote" "docker ps --format '{{.Names}}' --filter name=nadeshiko-backend-prod-web | head -n1")
 case "$old_web" in
   nadeshiko-backend-prod-web-*) ;;
   *) echo 'Unable to identify the running production web container.' >&2; exit 1 ;;
 esac
-previous_version=$(ssh "$remote" "sudo -n docker inspect '$old_web' --format '{{index .Config.Labels \"version\"}}'")
+previous_version=$(ssh "$remote" "docker inspect '$old_web' --format '{{index .Config.Labels \"version\"}}'")
 if [ -z "$previous_version" ]; then
   previous_version=${old_web#nadeshiko-backend-prod-web-}
 fi
 test -n "$previous_version"
-previous_image_id=$(ssh "$remote" "sudo -n docker inspect '$old_web' --format '{{.Image}}'")
+previous_image_id=$(ssh "$remote" "docker inspect '$old_web' --format '{{.Image}}'")
 [[ "$previous_image_id" =~ ^sha256:[0-9a-f]{64}$ ]]
-network=$(ssh "$remote" "sudo -n docker inspect '$old_web' --format '{{range \$name, \$_ := .NetworkSettings.Networks}}{{println \$name}}{{end}}' | head -n1")
+network=$(ssh "$remote" "docker inspect '$old_web' --format '{{range \$name, \$_ := .NetworkSettings.Networks}}{{println \$name}}{{end}}' | head -n1")
 test -n "$network"
-ssh "$remote" "test \"\$(sudo -n docker inspect kamal-proxy --format '{{.State.Running}}')\" = true"
+ssh "$remote" "test \"\$(docker inspect kamal-proxy --format '{{.State.Running}}')\" = true"
 
-remote_stage=$(ssh "$remote" "sudo -n mktemp -d /var/tmp/nadeshiko-es9-migration.XXXXXX")
+remote_stage=$(ssh "$remote" "mktemp -d /var/tmp/nadeshiko-es9-migration.XXXXXX")
 ssh "$remote" "
   set -euo pipefail
-  sudo -n sh -c \"docker ps --format '{{.Names}}' --filter name=nadeshiko-backend-prod-web > '$remote_stage/app-containers'\"
+  sh -c \"docker ps --format '{{.Names}}' --filter name=nadeshiko-backend-prod-web > '$remote_stage/app-containers'\"
   test -s '$remote_stage/app-containers'
   while IFS= read -r container; do
     case \"\$container\" in nadeshiko-backend-prod-web-*) ;; *) exit 1 ;; esac
   done < '$remote_stage/app-containers'
-  sudo -n sh -c \"docker inspect '$old_web' --format '{{range .Config.Env}}{{println .}}{{end}}' > '$remote_stage/app.env'\"
-  sudo -n chmod 600 '$remote_stage/app.env'
+  sh -c \"docker inspect '$old_web' --format '{{range .Config.Env}}{{println .}}{{end}}' > '$remote_stage/app.env'\"
+  chmod 600 '$remote_stage/app.env'
 "
-ssh "$remote" "sudo -n tee '$remote_stage/admin.env' >/dev/null && sudo -n chmod 600 '$remote_stage/admin.env'" <"$admin_env"
+ssh "$remote" "tee '$remote_stage/admin.env' >/dev/null && chmod 600 '$remote_stage/admin.env'" <"$admin_env"
 
 # Hard maintenance window: stop ingress first, then every process that can mutate
 # PostgreSQL/Elasticsearch. The old containers remain intact for rollback.
 ssh "$remote" "
   set -euo pipefail
-  sudo -n docker stop kamal-proxy >/dev/null
-  while IFS= read -r container; do sudo -n docker stop \"\$container\" >/dev/null; done < '$remote_stage/app-containers'
+  docker stop kamal-proxy >/dev/null
+  while IFS= read -r container; do docker stop \"\$container\" >/dev/null; done < '$remote_stage/app-containers'
 "
 frozen=true
 
-ssh "$remote" "sudo -n docker stop '$es' >/dev/null; sudo -n docker rename '$es' '$rollback_es'"
+ssh "$remote" "docker stop '$es' >/dev/null; docker rename '$es' '$rollback_es'"
 ELASTICSEARCH_IMAGE="$elasticsearch_image" kamal accessory boot elasticsearch -d prod
 verify_es9
 
-ssh "$remote" "sudo -n docker run --rm --network '$network' --env-file '$remote_stage/app.env' --env-file '$remote_stage/admin.env' '$backend_image' node --import tsx bin/db.ts prepare-es"
-ssh "$remote" "sudo -n docker run --rm --network '$network' --env-file '$remote_stage/app.env' --env-file '$remote_stage/admin.env' '$backend_image' node --import tsx bin/es.ts reindex --allow-prod-destructive"
-status=$(ssh "$remote" "sudo -n docker run --rm --network '$network' --env-file '$remote_stage/app.env' --env-file '$remote_stage/admin.env' '$backend_image' node --import tsx bin/es.ts status" 2>&1)
+ssh "$remote" "docker run --rm --network '$network' --env-file '$remote_stage/app.env' --env-file '$remote_stage/admin.env' '$backend_image' node --import tsx bin/db.ts prepare-es"
+ssh "$remote" "docker run --rm --network '$network' --env-file '$remote_stage/app.env' --env-file '$remote_stage/admin.env' '$backend_image' node --import tsx bin/es.ts reindex --allow-prod-destructive"
+status=$(ssh "$remote" "docker run --rm --network '$network' --env-file '$remote_stage/app.env' --env-file '$remote_stage/admin.env' '$backend_image' node --import tsx bin/es.ts status" 2>&1)
 grep -q 'Elasticsearch index is in sync with database segment count' <<<"$status"
 
-analyze=$(ssh "$remote" "sudo -n docker exec '$es' bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" --header \"Content-Type: application/json\" --data-binary '\''{\"analyzer\":\"ja_baseform_search_analyzer\",\"text\":\"食べました\"}'\'' http://localhost:9200/nadedb_prod/_analyze'")
+analyze=$(ssh "$remote" "docker exec '$es' bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" --header \"Content-Type: application/json\" --data-binary '\''{\"analyzer\":\"ja_baseform_search_analyzer\",\"text\":\"食べました\"}'\'' http://localhost:9200/nadedb_prod/_analyze'")
 grep -q '"token":"食べる"' <<<"$analyze"
 
 # Only expose the new application after the authoritative rebuild and all gates pass.
@@ -227,7 +236,7 @@ verify_running_application "$release_version" "$expected_backend_id"
 deployment_attempted=false
 frozen=false
 
-ssh "$remote" "sudo -n rm -rf '$remote_stage'"
+ssh "$remote" "rm -rf '$remote_stage'"
 remote_stage=''
 release_lock
 trap - EXIT
