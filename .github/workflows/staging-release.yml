@@ -16,12 +16,6 @@ on:
         required: false
         default: 'false'
         type: boolean
-      bootstrap_elasticsearch_canary:
-        description: 'Boot and populate the isolated Elasticsearch staging canary'
-        required: false
-        default: 'false'
-        type: boolean
-
 permissions:
   contents: read
   packages: write
@@ -47,12 +41,6 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
-            elasticsearch:
-              - 'backend/docker/Dockerfile.elasticsearch'
-              - 'backend/config/elasticsearch.ts'
-              - 'backend/config/elasticsearch-client.ts'
-              - 'backend/config/deploy.staging.yml'
-              - 'backend/scripts/bootstrap-elasticsearch-staging-canary.sh'
             frontend:
               - 'frontend/**'
             openapi:
@@ -63,42 +51,18 @@ jobs:
 
   # An Elasticsearch-gated push skips deploy-backend, which on its own reads as a
   # green run. Fail the workflow instead so the skipped deploy is not missed.
-  elasticsearch-gate:
-    needs: [changes, bootstrap-elasticsearch-canary]
-    if: >-
-      always() &&
-      needs.changes.outputs.elasticsearch == 'true' &&
-      needs.bootstrap-elasticsearch-canary.result != 'success'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Report the gated backend deploy
-        run: |
-          set -euo pipefail
-          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
-          ## Backend deploy blocked by an Elasticsearch change
-
-          This push touched Elasticsearch-gated files, so the backend was not
-          deployed to staging: the isolated Elasticsearch canary has to be booted
-          and verified first.
-
-          Re-run this workflow from the Actions tab with
-          `bootstrap_elasticsearch_canary = true`.
-          SUMMARY
-          exit 1
 
   deploy-backend:
-    needs: [changes, checks, bootstrap-elasticsearch-canary]
+    needs: [changes, checks]
     if: >-
       always() &&
       needs.checks.result == 'success' &&
-      (needs.changes.outputs.backend == 'true' || inputs.force_backend == true || inputs.bootstrap_elasticsearch_canary == true) &&
-      (needs.changes.outputs.elasticsearch != 'true' || needs.bootstrap-elasticsearch-canary.result == 'success') &&
-      (inputs.bootstrap_elasticsearch_canary != true || needs.bootstrap-elasticsearch-canary.result == 'success')
+      (needs.changes.outputs.backend == 'true' || inputs.force_backend == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Serialized against every other backend/Elasticsearch mutation on the host
-    # (staging canary boot, production release + ES migration write freeze).
+    # Serialized against every other backend mutation on the host. Staging and
+    # production now share one Elasticsearch server, so a staging deploy and a
+    # production release must not reindex across each other.
     concurrency:
       group: nadeshiko-host-deploy
       cancel-in-progress: false
@@ -163,153 +127,6 @@ jobs:
           set -euo pipefail
           cd backend
           kamal deploy -d staging --skip-push
-
-      - name: Populate and verify Elasticsearch canary
-        if: inputs.bootstrap_elasticsearch_canary == true
-        run: |
-          set -euo pipefail
-          admin_user=$(aws ssm get-parameter --name "/nadeshiko/staging/ELASTICSEARCH_ADMIN_USER" --with-decryption --query 'Parameter.Value' --output text)
-          admin_password=$(aws ssm get-parameter --name "/nadeshiko/staging/ELASTICSEARCH_ADMIN_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
-          echo "::add-mask::${admin_user}"
-          echo "::add-mask::${admin_password}"
-
-          stage=$(mktemp -d)
-          trap 'rm -rf "$stage"' EXIT
-          umask 077
-          printf 'ELASTICSEARCH_ADMIN_USER=%s\nELASTICSEARCH_ADMIN_PASSWORD=%s\n' \
-            "$admin_user" "$admin_password" >"$stage/admin.env"
-          cp backend/scripts/bootstrap-elasticsearch-staging-canary.sh "$stage/run.sh"
-
-          tar -C "$stage" -cf - . | ssh nadeshiko '
-            set -euo pipefail
-            stage=$(mktemp -d)
-            trap '\''rm -rf "$stage"'\'' EXIT
-            tar -C "$stage" -xf -
-            bash "$stage/run.sh" "$stage/admin.env"
-          '
-
-  bootstrap-elasticsearch-canary:
-    if: inputs.bootstrap_elasticsearch_canary == true
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    # Same group as the backend deploys: this boots/replaces the staging
-    # Elasticsearch accessory container. deploy-backend `needs` this job, so the
-    # two never contend for the group within a single run.
-    concurrency:
-      group: nadeshiko-host-deploy
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
-          aws-region: eu-north-1
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Tailscale, SSH and Kamal
-        uses: ./.github/actions/kamal-deploy-setup
-        with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-
-      - name: Boot isolated Elasticsearch canary
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          component='ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116'
-          source_sha=$(git log --first-parent -1 --format=%H -- backend/docker/Dockerfile.elasticsearch)
-          commit_tag="${component}-${source_sha}"
-          docker pull "$component"
-          docker pull "$commit_tag"
-          component_digest=$(docker image inspect "$component" --format '{{index .RepoDigests 0}}')
-          expected=$(docker image inspect "$commit_tag" --format '{{index .RepoDigests 0}}')
-          test -n "$expected"
-          test "$component_digest" = "$expected"
-
-          if ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch >/dev/null 2>&1'; then
-            actual=$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
-            if [ "$actual" != "$expected" ]; then
-              ssh nadeshiko 'docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
-              cd backend
-              ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
-            elif ! ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{range .Config.Env}}{{println .}}{{end}}" | grep -q "^ELASTIC_PASSWORD="'; then
-              # Recreate only the container so the official entrypoint and
-              # bootstrap environment apply; preserve the named data volume.
-              ssh nadeshiko 'docker rm --force nadeshiko-backend-stg-elasticsearch >/dev/null'
-              cd backend
-              ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
-            elif [ "$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.State.Running}}"')" != true ]; then
-              ssh nadeshiko 'docker start nadeshiko-backend-stg-elasticsearch >/dev/null'
-            fi
-          else
-            cd backend
-            ELASTICSEARCH_IMAGE="$expected" kamal accessory boot elasticsearch -d staging
-          fi
-
-          actual=$(ssh nadeshiko 'docker inspect nadeshiko-backend-stg-elasticsearch --format "{{.Config.Image}}"')
-          test "$actual" = "$expected"
-
-          # Wait until the HTTP security layer is ready. A secured node answers
-          # unauthenticated requests with 401; 200 also supports security-off
-          # diagnostics without weakening the authenticated health gate below.
-          for attempt in $(seq 1 90); do
-            http_status=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --silent --output /dev/null --write-out \"%{http_code}\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
-            if [ "$http_status" = 401 ] || [ "$http_status" = 200 ]; then
-              break
-            fi
-            if [ "$attempt" -eq 90 ]; then
-              ssh nadeshiko 'docker logs --tail 200 nadeshiko-backend-stg-elasticsearch'
-              exit 1
-            fi
-            sleep 2
-          done
-
-          # Only a 401 means the stored credentials disagree with the configured
-          # ones. Any other unhealthy response (503, connection refused, a red
-          # cluster) must surface below rather than trigger a password reset.
-          auth_status=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --silent --output /dev/null --write-out \"%{http_code}\" --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
-          if [ "$auth_status" = 401 ]; then
-            # Volumes initialized before ELASTIC_PASSWORD reached the official
-            # entrypoint have an unknown generated password. Reconcile only the
-            # built-in elastic user through Elasticsearch's supported tool;
-            # never delete the persistent volume to repair credentials.
-            ssh nadeshiko 'bash -s' <<'REMOTE'
-          set -euo pipefail
-          docker exec nadeshiko-backend-stg-elasticsearch bash -ceu '
-            test -n "$ELASTICSEARCH_ADMIN_PASSWORD"
-            printf "%s\n%s\n" "$ELASTICSEARCH_ADMIN_PASSWORD" "$ELASTICSEARCH_ADMIN_PASSWORD" |
-              ./bin/elasticsearch-reset-password --username elastic --interactive --batch >/dev/null
-          '
-          REMOTE
-          fi
-
-          for attempt in $(seq 1 90); do
-            health=$(ssh nadeshiko "docker exec nadeshiko-backend-stg-elasticsearch bash -c 'curl --fail --silent --user \"elastic:\$ELASTICSEARCH_ADMIN_PASSWORD\" http://localhost:9200/_cluster/health'" 2>/dev/null || true)
-            if grep -q '"timed_out":false' <<<"$health" && grep -Eq '"status":"(yellow|green)"' <<<"$health"; then
-              break
-            fi
-            if [ "$attempt" -eq 90 ]; then
-              ssh nadeshiko 'docker logs --tail 200 nadeshiko-backend-stg-elasticsearch'
-              exit 1
-            fi
-            sleep 2
-          done
-          version=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch --version')
-          grep -q 'Version: 9.4.1' <<<"$version"
-          plugins=$(ssh nadeshiko 'docker exec nadeshiko-backend-stg-elasticsearch /usr/share/elasticsearch/bin/elasticsearch-plugin list')
-          grep -qx analysis-icu <<<"$plugins"
-          grep -qx analysis-sudachi <<<"$plugins"
 
 
   deploy-frontend:
@@ -477,11 +294,9 @@ jobs:
             -f 'client_payload[release_channel]=internal' \
             -f "client_payload[backend_sha]=${GITHUB_SHA}"
 
-  # Includes elasticsearch-gate deliberately: that job fails on purpose when a
-  # merge skips the backend deploy, and being told about it is the entire point.
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, elasticsearch-gate, bootstrap-elasticsearch-canary, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
+    needs: [checks, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit

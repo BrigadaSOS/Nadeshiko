@@ -133,19 +133,9 @@ accessories:
         xpack.security.http.ssl.enabled: "false"
         http.host: "0.0.0.0"
     volumes:
-      # ES9 is rebuilt from PostgreSQL on a fresh volume. The ES8 volume is
-      # retained untouched through the rollback observation window.
-      #
-      # Overridable, and it has to be. The 8.17.10 -> 8.19.15 bridge that
-      # `scripts/migrate-elasticsearch-production.sh` demands before it will run
-      # is an operator step with no automation, and it must boot the bridge image
-      # against the EXISTING v8 volume. With this hardcoded to v9, the obvious
-      # `ELASTICSEARCH_IMAGE=<bridge> kamal accessory reboot elasticsearch`
-      # would instead start the bridge on an empty volume AND create
-      # nadeshiko-elasticsearch-v9-data — which the migration script requires to
-      # be absent, so it would then refuse to run until the volume was deleted
-      # by hand. The default stays v9, so the script's own `kamal accessory boot`
-      # (line 212) is unaffected.
+      # Overridable so a specific image digest can be pinned for a boot -- which
+      # is how the blue-green migration attached the rebuilt v9 image. The
+      # default is the volume production runs on.
       - <%= ENV.fetch("ELASTICSEARCH_VOLUME", "nadeshiko-elasticsearch-v9-data") %>:/usr/share/elasticsearch/data
     cmd: >
       bash -c '
@@ -160,8 +150,14 @@ accessories:
         # The loopback publish Postgres always had and this never did, which is
         # the whole difference between an exporter that survived the tailnet IP
         # change and one that did not. The Alloy Elasticsearch exporter dials
-        # http://127.0.0.1:9200 (brigadasos-infra machines/nadeshiko/alloy),
-        # deliberately, so that it stops depending on an address that moves.
+        # http://127.0.0.1:9200 deliberately, so that it stops depending on an
+        # address that moves.
+        #
+        # That exporter lives in brigadasos-infra at
+        # ansible/roles/host_alloy/files/config-nadeshiko.alloy. Alloy runs there
+        # as a host service rather than a container -- a containerised collector
+        # cannot report on Docker failing -- so it dials this loopback directly
+        # from the host, which is exactly what publishing it here provides.
         - "127.0.0.1:9200:9200"
       ulimit:
         - nofile=65536:65536
