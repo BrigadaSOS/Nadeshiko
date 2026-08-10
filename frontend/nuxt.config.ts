@@ -17,6 +17,14 @@ const isLocal = env.NUXT_PUBLIC_ENVIRONMENT === 'local';
 const SITE_URL = isDev ? 'https://stg.nadeshiko.co' : 'https://nadeshiko.co';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
+
+// Shirabe serves the headword pronunciation clips the word card plays. The URL
+// arrives inside the lookup response (`word.pitch[].audioUrl`), so it is not
+// something this app constructs and cannot be routed through our own CDN
+// without proxying every clip. Media only -- nothing else is loaded from there,
+// and a CSP entry that covers more than it needs is one nobody can safely
+// narrow later.
+const SHIRABE_CDN_ORIGIN = 'https://cdn.shirabe.org';
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
 // Where browsers post CSP violations. Sent through our own PostHog proxy rather
@@ -212,7 +220,7 @@ export default defineNuxtConfig({
               'http://localhost:*',
             ],
             'worker-src': ["'self'", 'blob:'],
-            'media-src': ["'self'", 'blob:', CDN_ORIGIN],
+            'media-src': ["'self'", 'blob:', CDN_ORIGIN, SHIRABE_CDN_ORIGIN],
             'object-src': ["'none'"],
             'frame-src': [
               "'self'",
