@@ -133,7 +133,16 @@ echo "  elasticsearch: http://$REMOTE_HOST:9200 (index: $ES_INDEX)"
 echo
 
 run_with_env() {
+  # SHIRABE_API_BASE is pinned, not inherited. `backend/.env` sets it to
+  # `https://shirabe.localhost` for local development, and that value reaches a
+  # script run from this checkout -- so a production corpus parse would have
+  # asked a DEVELOPER'S LAPTOP to tokenize 1.3M rows and written the answers to
+  # the production database. A self-signed certificate was the only thing that
+  # stopped it, which is luck rather than a safeguard.
+  #
+  # There is one Shirabe and it is the public one; staging calls it too.
   POSTGRES_HOST="$REMOTE_HOST" \
+  SHIRABE_API_BASE="https://shirabe.org" \
   POSTGRES_PORT=5432 \
   ELASTICSEARCH_HOST="http://$REMOTE_HOST:9200" \
   ELASTICSEARCH_INDEX="$ES_INDEX" \
