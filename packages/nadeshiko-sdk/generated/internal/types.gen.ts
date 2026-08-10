@@ -224,11 +224,6 @@ export type Token = {
      */
     kind?: 'word' | 'compound' | 'inflected' | 'counter' | 'function' | 'expression' | 'symbol';
     /**
-     * Where this word reads about on Shirabe (`/v1/words/{wid}`). Absent for names, numbers, punctuation and anything with no dictionary entry, which means show the word without linking it.
-     *
-     */
-    wid?: string;
-    /**
      * Ruby, aligned to this surface: 食べました is 食(た) + べました, over the kanji and not the okurigana. Absent when there is none to show.
      *
      */
