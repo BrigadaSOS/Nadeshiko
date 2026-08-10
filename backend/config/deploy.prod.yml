@@ -28,6 +28,11 @@ env:
     - BETTER_AUTH_SECRET
     - INTERNAL_PROXY_SECRET
 
+    # Parsing. `parseSegments` is the only caller and it throws without a key, so
+    # an unset one does not break boot -- it breaks the next episode ingest, and
+    # the corpus backfill that has to run before the pos_analysis drop lands.
+    - SHIRABE_API_KEY
+
     - EMAIL_API_NADEDB
     - USERNAME_API_NADEDB
     - UUID_NAMESPACE
