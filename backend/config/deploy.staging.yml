@@ -63,7 +63,15 @@ env:
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432
 
-    ELASTICSEARCH_HOST: "http://nadeshiko-backend-stg-elasticsearch:9200"
+    # Staging shares PRODUCTION's Elasticsearch server, keeping its own index
+    # (`nadedb_dev`). Two servers on one 7.7 GB host cost ~1 GB of RAM to serve
+    # two indices, on a box that was already ~2 GB into swap.
+    #
+    # The trade, stated plainly: a destructive command typed against staging now
+    # reaches the production Elasticsearch. Index names keep the data apart and
+    # `bin/es.ts` scopes itself to its own alias, but the isolation is real and
+    # it is gone. Accepted for the memory.
+    ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
     ELASTICSEARCH_INDEX: nadedb_dev
 
     R2_BASE_URL: https://cdn.nadeshiko.co
@@ -71,33 +79,4 @@ env:
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
-
-accessories:
-  elasticsearch:
-    image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
-    host: nadeshiko
-    env:
-      secret:
-        - ELASTICSEARCH_ADMIN_PASSWORD
-        - ELASTIC_PASSWORD
-      clear:
-        discovery.type: single-node
-        ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-        xpack.security.enabled: "true"
-        xpack.security.http.ssl.enabled: "false"
-        http.host: "0.0.0.0"
-    volumes:
-      - nadeshiko-elasticsearch-stg-v9-data:/usr/share/elasticsearch/data
-    options:
-      # Isolated staging canary; sized for functional validation, not production load.
-      memory: 2g
-      memory-swap: 2.5g
-      ulimit:
-        - nofile=65536:65536
-        - memlock=-1:-1
-      # Accessories get no logging defaults from Kamal.
-      log-driver: json-file
-      log-opt:
-        - max-size=20m
-        - max-file=5
 

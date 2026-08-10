@@ -187,9 +187,16 @@ which is the only place accessories accept it.
 
 ## Elasticsearch
 
-Background and the reasoning behind the current version pinning live in
-[`backend/docs/elasticsearch-9-migration.md`](backend/docs/elasticsearch-9-migration.md).
-The short version: the server is pinned to 9.4.1 because `analysis-sudachi`
+Production and staging share ONE Elasticsearch server
+(`nadeshiko-backend-prod-elasticsearch`) with an index each -- `nadedb_prod` and
+`nadedb_dev`. Two servers on a 7.7 GB host cost ~1 GB of RAM to serve two
+indices, on a box already in swap. The isolation this gives up is real: a
+destructive command aimed at staging reaches the production server, and only the
+index names keep the data apart.
+
+How production got from 8.19.15 to 9.4.1, with the site serving throughout, is in
+[`backend/docs/elasticsearch-9-blue-green.md`](backend/docs/elasticsearch-9-blue-green.md).
+The server is pinned to 9.4.1 because `analysis-sudachi`
 publishes exact-version builds only up to that release, and Elasticsearch
 plugins must match the server version exactly.
 
@@ -202,29 +209,6 @@ local data volume. See
 Deployed environments are unaffected: every deploy pulls an immutable published
 tag.
 
-### The staging canary gate
-
-A merge that touches Elasticsearch paths does **not** deploy the backend on its
-own. `staging-release.yml` has an `elasticsearch` path filter covering
-`backend/docker/Dockerfile.elasticsearch`, `backend/config/elasticsearch.ts`,
-`backend/config/elasticsearch-client.ts`, `backend/config/deploy.staging.yml`
-and `backend/scripts/bootstrap-elasticsearch-staging-canary.sh`. When any of
-those change, `deploy-backend` only runs if the `bootstrap-elasticsearch-canary`
-job succeeded — and that job only runs on an explicit dispatch. The point is to
-never ship a client-9 backend at a staging server that is absent or still on 8.
-
-So after publishing a new Elasticsearch image, or after changing any of those
-paths, dispatch `[Stg] Release` from the Actions tab with
-`bootstrap_elasticsearch_canary = true`. The canary job proves the semantic
-component tag and the Dockerfile-commit tag resolve to the same registry digest,
-recreates only the isolated staging Elasticsearch container on its fresh v9
-volume, verifies 9.4.1 plus the ICU and Sudachi plugins, then lets the backend
-deploy, reindex `nadedb_dev` from Postgres, check DB/ES count parity and
-Japanese analysis, and run the staging E2E gate.
-
-If you merge one of those paths without dispatching the canary, the staging
-backend simply does not deploy. That is the gate working as designed, not a
-broken build.
 
 ### Recovering Elasticsearch
 
@@ -255,25 +239,16 @@ the API stays up and serving non-search traffic for the whole rebuild.
 ### Removing the ES8 rollback stack
 
 The 8 → 9 migration renames the old Elasticsearch container to
-`nadeshiko-backend-prod-elasticsearch-es8-rollback` and leaves its
-`nadeshiko-elasticsearch-data` volume untouched, so the way back is a rename
-rather than a rebuild. Both are meant to be removed once the observation window
-closes — ES9 serving, E2E green, search telemetry reviewed.
+the ES8 container and volume were retained through the observation window and
+have since been removed, so recovery from a lost index is a reindex from
+PostgreSQL (`remote-db.sh <env> reindex`). That is not a loss: the index is
+derived data and PostgreSQL is authoritative.
 
-```bash
-backend/scripts/cleanup-es8-rollback.sh --dry-run   # report only
-backend/scripts/cleanup-es8-rollback.sh             # prompts for confirmation
-```
-
-The script refuses to run unless production Elasticsearch is actually on 9.4.1
-and healthy, so it cannot be used to delete the fallback while the migration is
-incomplete. What you give up by running it is the fast path back to ES8; the
-index itself is derived data and is always rebuildable from Postgres.
-
-Afterwards, the 8 → 9 branch of `scripts/migrate-elasticsearch-production.sh`
-is dead and should be deleted along with its rollback plumbing. Until then it is
-live code: as of writing, the migration has never run, because it landed on
-`main` after the newest release tag and only a `v*` tag invokes it.
+`scripts/migrate-elasticsearch-production.sh` is gone with them. It could never
+have run -- all 44 of its remote commands used `sudo -n`, and Kamal connects as
+the `docker` user, which is in the `docker` group and NOT in `sudo`. Only a `v*`
+tag invoked it, so nothing exercised it until v2.3.0, which failed on its first
+remote command. Production releases are now a plain `kamal deploy`.
 
 ## Postgres backups and restore
 

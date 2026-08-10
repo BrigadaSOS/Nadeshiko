@@ -119,45 +119,26 @@ jobs:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
 
-      - name: Migrate Elasticsearch and deploy backend to prod
+      - name: Deploy backend to prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          component='ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116'
-          source_sha=$(git log --first-parent -1 --format=%H -- backend/docker/Dockerfile.elasticsearch)
-          commit_tag="${component}-${source_sha}"
-          docker pull "$component"
-          docker pull "$commit_tag"
-          component_digest=$(docker image inspect "$component" --format '{{index .RepoDigests 0}}')
-          elasticsearch_image=$(docker image inspect "$commit_tag" --format '{{index .RepoDigests 0}}')
-          test -n "$elasticsearch_image"
-          test "$component_digest" = "$elasticsearch_image"
-
-          backend_tag="ghcr.io/brigadasos/nadeshiko-backend-prod:${GITHUB_SHA}"
-          docker pull "$backend_tag"
-          backend_image=$(docker image inspect "$backend_tag" --format '{{index .RepoDigests 0}}')
-          test -n "$backend_image"
-
-          admin_user=$(aws ssm get-parameter --name "/nadeshiko/prod/ELASTICSEARCH_ADMIN_USER" --with-decryption --query 'Parameter.Value' --output text)
-          admin_password=$(aws ssm get-parameter --name "/nadeshiko/prod/ELASTICSEARCH_ADMIN_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
-          test -n "$admin_user"
-          test -n "$admin_password"
-          if [[ "$admin_user" == *$'\n'* || "$admin_user" == *$'\r'* || "$admin_password" == *$'\n'* || "$admin_password" == *$'\r'* ]]; then
-            echo 'Elasticsearch administrative values must not contain CR/LF characters.' >&2
-            exit 1
-          fi
-          echo "::add-mask::${admin_user}"
-          echo "::add-mask::${admin_password}"
-          admin_env=$(mktemp)
-          trap 'rm -f "$admin_env"' EXIT
-          umask 077
-          printf 'ELASTICSEARCH_ADMIN_USER=%s\nELASTICSEARCH_ADMIN_PASSWORD=%s\n' \
-            "$admin_user" "$admin_password" >"$admin_env"
+          # Production has been on Elasticsearch 9.4.1 since v2.3.0, migrated
+          # blue-green with the site serving throughout -- see
+          # backend/docs/elasticsearch-9-blue-green.md. So this is a plain
+          # deploy, and `scripts/migrate-elasticsearch-production.sh` is gone.
+          #
+          # That script was never able to run: every one of its 44 remote
+          # commands used `sudo -n`, and Kamal connects as the `docker` user,
+          # which is in the `docker` group and NOT in `sudo`. Only a `v*` tag
+          # invoked it, so nothing exercised it until v2.3.0 -- which died on its
+          # first remote command. Keeping a rewritten version around would mean
+          # keeping an 8-to-9 migration path for a migration that has happened.
 
           cd backend
-          bash scripts/migrate-elasticsearch-production.sh "$elasticsearch_image" "$backend_image" "$GITHUB_SHA" "$admin_env"
+          VERSION="$GITHUB_SHA" kamal deploy -d prod --skip-push
 
   release-frontend:
     needs: release-backend
