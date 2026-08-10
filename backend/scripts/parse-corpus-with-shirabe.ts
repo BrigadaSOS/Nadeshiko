@@ -17,6 +17,7 @@
  *   node --import tsx scripts/parse-corpus-with-shirabe.ts --dry-run --limit 200
  *   node --import tsx scripts/parse-corpus-with-shirabe.ts
  *   node --import tsx scripts/parse-corpus-with-shirabe.ts --after 483000     # resume
+ *   node --import tsx scripts/parse-corpus-with-shirabe.ts --media <publicId>  # one media
  *
  * Run this, THEN reindex Elasticsearch. In that order every row already has
  * its tokens by the time anything reads them (SegmentIndexer.extractSlimTokens
@@ -25,10 +26,29 @@
  *
  * Resumable by primary key: it prints the last id it wrote on every progress
  * line, and `--after <id>` picks up from one. No state file to go stale.
+ *
+ * WORD IDS ARE NOT WRITTEN HERE, AND THAT IS THE DESIGN. Shirabe resolves a
+ * token to a dictionary entry only when a parse asks for `include=wordIds`,
+ * because resolution costs 2.6x the parse itself. Its spec is explicit that "a
+ * corpus pass that stores the tokens and not the ids pays neither", so this pass
+ * does not ask.
+ *
+ * The id is deliberately not a thing to keep: it is derived from dictionary
+ * content, so it moves whenever a headword, a commonness flag or a resolution
+ * rule moves, and a corpus holding one has to be re-exported every time the
+ * resolver improves. A reader tapping a word gets a better answer than any
+ * stored slug -- `GET /api/v1/words/{lemma}?surface=&reading=&pos=` is always
+ * current, resolves the inflection (食べました reaches 食べる, which no slug can
+ * spell) and picks the right homograph (開く answers あく or ひらく by reading).
+ *
+ * So tokens written by this script carry no `wid`, older rows do, and both are
+ * correct. If you ever do need ids in bulk -- an export, an Anki deck -- the
+ * batch form is `POST /api/v1/words/resolve`, and `resolvedWith` reports the
+ * rules generation to store beside anything you keep.
  */
 
 import { AppDataSource } from '@config/database';
-import { Segment } from '@app/models';
+import { Media, Segment } from '@app/models';
 import { parseSegments } from '@app/services/shirabe/parseSegments';
 
 const PAGE = 500; // rows per database round trip; parseSegments batches its own HTTP
@@ -38,10 +58,22 @@ interface Options {
   dryRun: boolean;
   after: number;
   limit: number | null;
+  // Scopes the run to one media. Added for the wakati-space repair
+  // (strip-wakati-spaces.ts), which leaves one media's segments with no tokens
+  // and needs exactly those reparsed -- a corpus-wide re-run would work but
+  // costs a Shirabe pass over every segment we already have an answer for.
+  media: string | null;
 }
 
-async function run({ dryRun, after, limit }: Options): Promise<void> {
+async function run({ dryRun, after, limit, media }: Options): Promise<void> {
   const repository = AppDataSource.getRepository(Segment);
+
+  let mediaId: number | null = null;
+  if (media !== null) {
+    const row = await AppDataSource.getRepository(Media).findOne({ where: { publicId: media }, select: ['id'] });
+    if (!row) throw new Error(`no media with publicId ${media}`);
+    mediaId = row.id;
+  }
   const startedAt = Date.now();
   let cursor = after;
   let parsed = 0;
@@ -58,6 +90,7 @@ async function run({ dryRun, after, limit }: Options): Promise<void> {
       .createQueryBuilder('segment')
       .select(['segment.id', 'segment.uuid', 'segment.contentJa'])
       .where('segment.id > :cursor', { cursor })
+      .andWhere(mediaId === null ? '1 = 1' : 'segment.mediaId = :mediaId', { mediaId })
       .orderBy('segment.id', 'ASC')
       .limit(take)
       .getMany();
@@ -106,11 +139,16 @@ async function main(): Promise<void> {
     const index = args.indexOf(flag);
     return index === -1 ? null : Number(args[index + 1]);
   };
+  const stringFlag = (flag: string) => {
+    const index = args.indexOf(flag);
+    return index === -1 ? null : (args[index + 1] ?? null);
+  };
 
   const options: Options = {
     dryRun: args.includes('--dry-run'),
     after: numericFlag('--after') ?? 0,
     limit: numericFlag('--limit'),
+    media: stringFlag('--media'),
   };
 
   await AppDataSource.initialize();
