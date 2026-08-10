@@ -71,7 +71,7 @@
     "@opentelemetry/resources": "^2.10.0",
     "@opentelemetry/sdk-metrics": "^2.10.0",
     "@opentelemetry/sdk-node": "^0.221.0",
-    "better-auth": "^1.6.25",
+    "better-auth": "^1.6.26",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
