@@ -20,12 +20,16 @@ servers:
       # host port cannot be held by two containers at once, so it broke Kamal's
       # zero-downtime deploy on the very next Shirabe release.
       #
-      # This is also why the fallback below is www.shirabe.org and not
-      # shirabe.org -- that name now points at the tailnet from inside this
-      # container, so it could not fall back to anything.
+      # It is `www` that gets mapped and NOT the apex, which is the reverse of how
+      # this was first written. The apex has to stay public because it is the
+      # fallback; www is the one that can leave the public internet, because
+      # Cloudflare 301s www to the apex and a bearer token does not survive a
+      # cross-origin redirect (see NUXT_SHIRABE_API_BASE below). Measured
+      # 2026-08-11: the ORIGIN serves both names 200, so the redirect is
+      # Cloudflare's alone and skipping Cloudflare skips it.
       add-host:
         - host.docker.internal:host-gateway
-        - shirabe.org:100.73.93.89
+        - www.shirabe.org:100.73.93.89
 
 builder:
   args:
@@ -64,24 +68,33 @@ env:
     NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
     # The word card itself, which is still being built. Staging is where it is
     # being built, so it is on here and set nowhere in deploy.prod.yml -- unset
-    # means off, which is the whole point of the default. Delete this line (and
-    # the flag) once the card ships, rather than adding the opposite line to
-    # prod: a flag that has to be turned OFF somewhere is one that ships by
-    # accident from the next environment nobody remembered to edit.
+    # means off, which is the whole point of the default. Prod is otherwise fully
+    # wired now (its own key, its own hosts), so turning it on there is adding this
+    # one line and nothing else. Delete this line and the flag once the card ships,
+    # rather than adding the opposite line to prod: a flag that has to be turned OFF
+    # somewhere is one that ships by accident from the next environment nobody
+    # remembered to edit.
     NUXT_PUBLIC_SHIRABE_WORD_CARD: "true"
     # The fast path and the fallback are the same service under two of its own
     # hostnames, which is what lets one skip Cloudflare while the other keeps
     # working if the tailnet does not.
     #
-    # shirabe.org is mapped to inari's Tailscale IP by add-host above, so this
+    # www.shirabe.org is mapped to inari's Tailscale IP by add-host above, so this
     # goes over the tailnet with a genuine hostname and certificate. Prod Shirabe
     # deliberately: staging has no Shirabe of its own, and the public URL reached
     # the same service anyway.
-    NUXT_SHIRABE_API_DIRECT: https://shirabe.org
-    # www resolves normally through Cloudflare, so this is the path that still
-    # answers when the tailnet is down. Both names are served by the same
-    # kamal-proxy and covered by the same certificate.
-    NUXT_SHIRABE_API_BASE: https://www.shirabe.org
+    NUXT_SHIRABE_API_DIRECT: https://www.shirabe.org
+    # The APEX is the fallback, and it must not be www. Cloudflare 301s www to the
+    # apex, and a 301 is cross-origin, so undici (Nitro's fetch) strips the
+    # Authorization header when it follows -- the request arrives unauthenticated
+    # and Shirabe answers 401 "API key required". Measured in node 2026-08-11:
+    #
+    #   https://www.shirabe.org/api/v1/words/... -> 401, redirected=true
+    #   https://shirabe.org/api/v1/words/...     -> 200
+    #
+    # This is a FIX, not a copy: staging ran a www fallback that could never have
+    # answered, and nothing noticed because the tailnet almost never fails.
+    NUXT_SHIRABE_API_BASE: https://shirabe.org
     NODE_ENV: production
     NUXT_BACKEND_INTERNAL_URL: https://api-stg.nadeshiko.co
     PORT: 3000
