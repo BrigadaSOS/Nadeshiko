@@ -1,5 +1,5 @@
 import { test, expect } from '../auth';
-import { getE2EBaseUrl } from '../env';
+import { e2eBypassHeaders, getE2EBaseUrl } from '../env';
 import { CollectionsPage } from '../pages/CollectionsPage';
 
 test.describe('Collections', () => {
@@ -103,7 +103,15 @@ test.describe('Collections', () => {
 
     // `storageState: undefined` is the point of the test: no session cookie, and
     // no cookies of any kind.
-    const anonymous = await browser.newContext({ baseURL: getE2EBaseUrl(), storageState: undefined });
+    // Built by hand, so it does not inherit the config's `use` block: the bypass
+    // headers have to be passed explicitly or this request is throttled like any
+    // other anonymous one, and a 429 here reads as "not redirected" -- which is
+    // exactly how this assertion started failing for the wrong reason.
+    const anonymous = await browser.newContext({
+      baseURL: getE2EBaseUrl(),
+      storageState: undefined,
+      extraHTTPHeaders: e2eBypassHeaders(),
+    });
     try {
       const asStranger = await anonymous.request.get(url, { maxRedirects: 0 });
 

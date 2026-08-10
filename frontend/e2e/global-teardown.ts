@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
-import { getE2EBaseUrl } from './env';
+import { e2eBypassHeaders, getE2EBaseUrl } from './env';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
 
@@ -21,7 +21,7 @@ export default async function globalTeardown() {
   if (!E2E_USER_PASSWORD) return;
 
   const browser = await chromium.launch();
-  const context = await browser.newContext({ baseURL: BASE_URL });
+  const context = await browser.newContext({ baseURL: BASE_URL, extraHTTPHeaders: e2eBypassHeaders() });
   const request = context.request;
 
   try {

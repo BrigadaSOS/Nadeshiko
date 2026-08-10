@@ -2,7 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { defineConfig, devices } from '@playwright/test';
-import { getE2EBaseUrl } from './env';
+import { e2eBypassHeaders, getE2EBaseUrl } from './env';
 import { E2E_AUTH_STATE_PATH } from './auth-state';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
@@ -26,6 +26,10 @@ export default defineConfig({
     baseURL: BASE_URL,
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
+    // See `e2eBypassHeaders`. Applies to every context the projects create; a
+    // context built by hand inside a test (the anonymous one in
+    // collections.spec.ts) has to pass them itself.
+    extraHTTPHeaders: e2eBypassHeaders(),
   },
 
   projects: [

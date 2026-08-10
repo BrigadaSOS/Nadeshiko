@@ -398,6 +398,23 @@ jobs:
           echo "::add-mask::${E2E_USER_PASSWORD}"
           echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
+          # Lets the suite past the per-IP HTML limiter. The whole run comes from
+          # one runner address against a limiter that allows 60 renders a minute,
+          # and ~140 tests do not fit -- so it 429d at whatever assertion was next
+          # and the run reported a different unrelated failure each time. It was
+          # masking the anonymous-access check in collections.spec.ts, which
+          # expects a 302 and was being handed a 429.
+          #
+          # Optional on purpose: if the parameter is absent the suite still runs,
+          # throttled, rather than the job failing on a missing secret.
+          E2E_RATE_LIMIT_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/staging/RATE_LIMIT_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          if [ -n "${E2E_RATE_LIMIT_BYPASS_SECRET}" ]; then
+            echo "::add-mask::${E2E_RATE_LIMIT_BYPASS_SECRET}"
+            echo "E2E_RATE_LIMIT_BYPASS_SECRET=${E2E_RATE_LIMIT_BYPASS_SECRET}" >> "$GITHUB_ENV"
+          else
+            echo "note: no RATE_LIMIT_BYPASS_SECRET in SSM; the suite will run throttled"
+          fi
+
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
