@@ -20,6 +20,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Needed by the tag step below: `git log -- <path>` finds nothing in a
+          # shallow clone, which would silently produce an empty SHA suffix.
+          fetch-depth: 0
+
+      - name: Resolve the image tag from the Dockerfile's own commit
+        id: tag
+        run: |
+          set -euo pipefail
+          # NOT github.sha. This workflow also triggers on changes to ITSELF, so
+          # a commit that edits only this file used to publish
+          # `<version>-<that commit>` while the Dockerfile's last-touching commit
+          # kept a different SHA -- and release.yml computes the tag it pulls
+          # from the DOCKERFILE's commit. The two drifted, and the production
+          # release failed on `manifest unknown` for a tag nothing had built.
+          #
+          # Deriving it the same way release.yml does makes them agree by
+          # construction, whatever triggered the build.
+          source_sha=$(git log -1 --format=%H -- backend/docker/Dockerfile.elasticsearch)
+          test -n "$source_sha"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "tagging with $source_sha"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -38,6 +60,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/brigadasos/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}
-            ghcr.io/brigadasos/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}-${{ github.sha }}
+            ghcr.io/brigadasos/nadeshiko-elasticsearch:${{ env.ELASTICSEARCH_IMAGE_TAG }}-${{ steps.tag.outputs.source_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
