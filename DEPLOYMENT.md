@@ -384,23 +384,28 @@ backup is a hypothesis.
 This runbook has **not** been rehearsed end to end against a real dump.
 Rehearsing it (into a scratch database, not prod) is tracked as follow-up work.
 
-## Deploy annotations
+## Deploy annotations (removed)
 
-Each service's `.kamal/hooks/post-deploy` calls
-`scripts/grafana-annotate-deploy.sh`, which posts a Grafana annotation tagged
-`deploy` and `<service>` so deploys line up against metrics. It needs
-`GRAFANA_ANNOTATION_TOKEN`, read from the **shared** SSM path
-`/nadeshiko/shared/GRAFANA_ANNOTATION_TOKEN`. The script itself is
-best-effort: a missing token or a failed curl logs a warning and exits 0.
+Each service's `.kamal/hooks/post-deploy` used to call
+`scripts/grafana-annotate-deploy.sh`, posting a Grafana annotation so deploys
+lined up against metrics. Hooks, script and secret lines are all gone.
 
-Only production defines this secret. Staging deploys skip annotation (the
-hook's missing-token warning). If staging annotations are ever wanted, add
-`GRAFANA_ANNOTATION_TOKEN=$(.kamal/ssm-secret shared GRAFANA_ANNOTATION_TOKEN)`
-back to the staging secrets files — and note `.kamal/ssm-secret` exits
-non-zero on a denied read, so the staging OIDC role
-`github-actions-nadeshiko-staging` must first get `ssm:GetParameter` (plus
-`kms:Decrypt`) on that shared parameter, or every staging deploy fails at
-secret resolution.
+It was removed because it broke production deploys. The token lived at
+`/nadeshiko/shared/GRAFANA_ANNOTATION_TOKEN`; that parameter no longer exists in
+any region, and `.kamal/ssm-secret` exits non-zero on a missing read, which under
+`set -euo pipefail` aborts the entire secrets file. All three services --
+backend, frontend and discord -- would have failed at secret resolution before
+loading a single real credential. Nothing caught it because the reference
+predates the currently deployed build and production has not been released
+since.
+
+The failure mode was written down right here, in the paragraph this one
+replaces, as a warning about adding the secret to staging. It was accurate; it
+just described the wrong environment in the end.
+
+To bring annotations back: restore the token in SSM, re-add the secret line to
+each service, and reinstate the hook -- but make the read non-fatal, because a
+dashboard decoration must never be able to fail a deploy.
 
 ## Alerting and dashboards
 
