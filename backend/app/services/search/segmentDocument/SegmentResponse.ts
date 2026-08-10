@@ -146,13 +146,12 @@ export class SegmentResponse {
       return null;
     }
 
+    // p1/p2/p4/cf used to be filled in here, nullable, because the published
+    // schema required them even when Sudachi had nothing to put in the slot.
+    // The fields are gone from the schema, so there is nothing to pad.
     return tokens.map((token) => ({
       ...token,
       kind: SegmentResponse.toTokenKind(token.kind),
-      p1: token.p1 ?? null,
-      p2: token.p2 ?? null,
-      p4: token.p4 ?? null,
-      cf: token.cf ?? null,
     }));
   }
 

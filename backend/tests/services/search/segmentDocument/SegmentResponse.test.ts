@@ -106,7 +106,7 @@ describe('SegmentResponse', () => {
       const { segments } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
 
       expect(segments).toHaveLength(1);
-      expect(segments[0].textJa.tokens).toEqual([{ ...tokens[0], p1: null, p2: null, p4: null, cf: null }]);
+      expect(segments[0].textJa.tokens).toEqual([{ ...tokens[0] }]);
     });
 
     it('omits tokens from textJa when not present in source', () => {
@@ -130,10 +130,7 @@ describe('SegmentResponse', () => {
 
       expect(segments).toHaveLength(1);
       expect(segments[0].textJa.highlight).toBe('<em>食べ</em><span class="highlight-tail">ました</span>');
-      expect(segments[0].textJa.tokens).toEqual([
-        { ...tokens[0], p1: null, p2: null, p4: null, cf: null },
-        { ...tokens[1], p1: null, p2: null, p4: null, cf: null },
-      ]);
+      expect(segments[0].textJa.tokens).toEqual([{ ...tokens[0] }, { ...tokens[1] }]);
     });
 
     it('returns unenhanced highlight when tokens are absent', () => {

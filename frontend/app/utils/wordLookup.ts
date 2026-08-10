@@ -1,4 +1,9 @@
 import type { ShirabeWord } from '~/utils/wordCard';
+// Defined beside the tokens that produce it: assembling one by hand is exactly
+// the mistake the named type exists to prevent.
+import type { WordRef } from '~/utils/tokenEnrichment';
+
+export type { WordRef };
 
 /**
  * One shared cache of Shirabe word lookups for the whole page.
@@ -55,8 +60,8 @@ const inFlight = new Map<string, Promise<WordLookup>>();
  * the edge, Shirabe's) carry a variant per language, which is what shared caches
  * are for.
  */
-function cacheKey(wid: string, locale: string): string {
-  return `${wid}:${locale}`;
+function cacheKey(ref: WordRef, locale: string): string {
+  return `${ref.lemma}\u0000${ref.surface}\u0000${ref.reading}\u0000${ref.pos}:${locale}`;
 }
 
 /** The answers we already have. Separate from `inFlight` because a caller needs
@@ -105,8 +110,8 @@ function remember(key: string, answer: WordLookup): WordLookup {
 /** The answer if it is already here, so a card can open filled in rather than
  *  flashing a loading state for a word the page has seen. `undefined` means it
  *  has not been asked. */
-export function peekWord(wid: string, locale: string): WordLookup | undefined {
-  return recall(cacheKey(wid, locale));
+export function peekWord(ref: WordRef, locale: string): WordLookup | undefined {
+  return recall(cacheKey(ref, locale));
 }
 
 /**
@@ -117,8 +122,8 @@ export function peekWord(wid: string, locale: string): WordLookup | undefined {
  * handle them anyway -- rejecting would mean each one repeating the same catch
  * to arrive at the same two cases.
  */
-export function fetchWord(wid: string, locale: string): Promise<WordLookup> {
-  const key = cacheKey(wid, locale);
+export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
+  const key = cacheKey(ref, locale);
 
   const answered = recall(key);
   if (answered) return Promise.resolve(answered);
@@ -126,8 +131,8 @@ export function fetchWord(wid: string, locale: string): Promise<WordLookup> {
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const request = $fetch<ShirabeWord>(`/api/shirabe/words/${encodeURIComponent(wid)}`, {
-    query: { locale },
+  const request = $fetch<ShirabeWord>(`/api/shirabe/words/${encodeURIComponent(ref.lemma)}`, {
+    query: { locale, surface: ref.surface, reading: ref.reading, pos: ref.pos },
     // The server route already bounds its own calls (1.5s direct, 5s public), so
     // anything past this is not the dictionary being slow -- it is a request
     // that is never coming back, and without a bound the card waits on it
@@ -173,3 +178,8 @@ export function fetchWord(wid: string, locale: string): Promise<WordLookup> {
   inFlight.set(key, request);
   return request;
 }
+
+// `cacheKey` decides which two questions are the same question, and getting that
+// wrong is silent in both directions: too loose and two homographs share one
+// answer, too tight and every card refetches a word the page already has.
+export const __testing = { cacheKey };
