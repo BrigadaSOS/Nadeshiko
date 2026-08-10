@@ -4,10 +4,16 @@ import { logger } from '~~/server/utils/logger';
 /**
  * Definitions for one word, from Shirabe.
  *
- * The `wid` comes off a token: Shirabe parsed the corpus and stamped each word
- * with the id its own entry lives at, so there is no slug to reconstruct and no
- * homograph to guess at. A token with no `wid` has no entry, and the caller
- * should not reach this route at all.
+ * Addressed by LEMMA plus the shape the word took in its sentence, never by a
+ * stored id. Shirabe resolves the entry per request, so the answer is always
+ * current: nothing here goes stale when JMdict re-imports or a resolution rule
+ * improves, and nothing has to be re-exported when it does.
+ *
+ * Every token can reach this route, which is the other half of the change. The
+ * old id only ever reached content words -- Shirabe pools the words a reader
+ * studies, and particles are grammar -- so grammar needed a separate path with
+ * its own rules about which of surface or lemma to send. Resolving from the
+ * lemma plus `surface`/`reading`/`pos` is one rule that answers both.
  *
  * It is a server route and not a browser fetch because of the key. Shirabe
  * authenticates with a service key that is ours, not the visitor's, and a key
@@ -66,11 +72,29 @@ function recordDirectSuccess(): void {
 }
 
 export default defineEventHandler(async (event) => {
-  const wid = getRouterParam(event, 'wid');
-  if (!wid) throw createError({ statusCode: 400, statusMessage: 'wid is required' });
+  // The LEMMA addresses the word here, not a stored id. Shirabe resolves the
+  // entry from the lemma plus the shape it took in this sentence, and that pair
+  // reaches two answers no stored slug can give: an inflected surface finds its
+  // dictionary form (食べました resolves to 食べる) and a homograph is settled by
+  // reading (開く answers あく or ひらく). The id it resolves to comes back on the
+  // response, which is where a link should take it from -- an id is derived from
+  // dictionary content, so it moves whenever that content or a resolution rule
+  // does, and a stored one goes quietly wrong instead of loudly missing.
+  const lemma = getRouterParam(event, 'lemma');
+  if (!lemma) throw createError({ statusCode: 400, statusMessage: 'lemma is required' });
 
-  const requested = String(getQuery(event).locale ?? '');
+  const query = getQuery(event);
+  const requested = String(query.locale ?? '');
   const locale = LABEL_LOCALES.has(requested) ? requested : 'en';
+
+  // Optional, and each one only narrows: Shirabe answers the bare lemma without
+  // them, which is what a token carrying no reading or POS needs. Empty strings
+  // are dropped rather than sent, so a blank never reads as "no reading".
+  const resolveFrom: Record<string, string> = {};
+  for (const key of ['surface', 'reading', 'pos'] as const) {
+    const value = String(query[key] ?? '').trim();
+    if (value) resolveFrom[key] = value;
+  }
 
   const config = useRuntimeConfig();
   const base = String(config.shirabeApiBase || 'https://shirabe.org').replace(/\/$/, '');
@@ -97,7 +121,7 @@ export default defineEventHandler(async (event) => {
   // as "this word has no entry", which is a real and common case, so the word
   // card rendered empty for EVERY word and looked like thin dictionary coverage.
   // Nothing alerted, because an empty card is not an error.
-  const path = `/api/v1/words/${encodeURIComponent(wid)}`;
+  const path = `/api/v1/words/${encodeURIComponent(lemma)}`;
 
   // Note for anyone tempted to send `Host: shirabe.org` on the direct call so
   // Rails' host authorization accepts it: it does not work. Node's fetch treats
@@ -112,7 +136,7 @@ export default defineEventHandler(async (event) => {
       // makes them exist: `include=examples` is opt-in, it costs 2 to 3x the
       // latency on a common word, and with it absent `cardExamples` finds
       // nothing and the block does not render. Put 'examples' back to restore.
-      query: { locale },
+      query: { locale, ...resolveFrom },
       timeout,
     });
 
@@ -144,7 +168,7 @@ export default defineEventHandler(async (event) => {
 
         const cooldown = recordDirectFailure(now);
         logger.warn(
-          { err: directError, wid, cooldownMs: cooldown, failures: breaker.consecutiveFailures },
+          { err: directError, lemma, cooldownMs: cooldown, failures: breaker.consecutiveFailures },
           'Shirabe direct lookup failed, parking the tailnet path and using the public host',
         );
         word = await call(base, 5000);
@@ -180,7 +204,7 @@ export default defineEventHandler(async (event) => {
     const contentType = response?.headers?.get?.('content-type') ?? '';
     if (status === 404 && contentType.includes('html')) {
       logger.error(
-        { wid, url: `${base}${path}` },
+        { lemma, url: `${base}${path}` },
         'Shirabe returned an HTML 404 -- the API path is wrong, not the word missing',
       );
       throw createError({ statusCode: 502, statusMessage: 'Dictionary lookup failed' });
@@ -191,7 +215,7 @@ export default defineEventHandler(async (event) => {
     // so plainly rather than as a failure, so the popup shows the word unlinked.
     if (status === 404) throw createError({ statusCode: 404, statusMessage: 'No entry for this word' });
 
-    logger.warn({ wid, status, err: error }, 'Shirabe word lookup failed');
+    logger.warn({ lemma, status, err: error }, 'Shirabe word lookup failed');
     throw createError({ statusCode: 502, statusMessage: 'Dictionary lookup failed' });
   }
 });

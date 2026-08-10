@@ -435,10 +435,17 @@ export function pitchMorae(reading: string, downstep: number): PitchMora[] {
 
 const SHIRABE_SITE = 'https://shirabe.org';
 
-/** The word's own page on Shirabe. `wid` is the slug Shirabe stamped the token
- *  with, so there is nothing to reconstruct and no homograph to guess at. */
-export function shirabeWordUrl(wid: string, locale: GlossLanguage): string {
-  return `${SHIRABE_SITE}/${locale}/word/${encodeURIComponent(wid)}`;
+/**
+ * The word's own page on Shirabe.
+ *
+ * `id` is the one the LOOKUP RESPONSE came back with, never one off a stored
+ * token. The id is derived from dictionary content, so it moves when a headword,
+ * a commonness flag or a resolution rule moves -- linking with what was just
+ * resolved keeps the link right, while linking with something stored months ago
+ * lands on the wrong entry without ever looking broken.
+ */
+export function shirabeWordUrl(id: string, locale: GlossLanguage): string {
+  return `${SHIRABE_SITE}/${locale}/word/${encodeURIComponent(id)}`;
 }
 
 export function shirabeKanjiUrl(character: string, locale: GlossLanguage): string {

@@ -19,20 +19,16 @@ export interface SlimToken {
   r: string;
   b: number;
   e: number;
+  /** Raw UniDic primary tag (動詞). What the dictionary lookup resolves against;
+   *  `posLabel` is the printable one. The four finer UniDic slots that used to
+   *  sit here (p1/p2/p4/cf, named after array indices, with no p3) are gone --
+   *  nothing read them, and `posLabel` says what they were kept to say. */
   p: string;
-  p1?: string;
-  p2?: string;
-  p4?: string;
-  cf?: string;
   /** word | compound | inflected | counter | function | expression | symbol. */
   kind?: string;
   /** The part of speech as a reader would say it ("Verb", "Noun"), where `p` carries the
    *  raw UniDic tag. Absent when the parser offers no label. */
   posLabel?: string;
-  /** Where this word reads about: GET /v1/words/{wid} on Shirabe. Absent for
-   *  names, numbers, punctuation and anything the dictionary has no entry for,
-   *  which means "show it, do not link it". */
-  wid?: string;
   /** The finer morphemes inside a grouped token, each positioned like its
    *  parent. Elasticsearch highlights against its OWN analyzer, so a match can
    *  land inside one of our tokens: these are the boundaries that let a partial

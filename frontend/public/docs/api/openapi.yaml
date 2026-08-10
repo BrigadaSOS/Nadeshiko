@@ -1450,11 +1450,6 @@ components:
             - expression
             - symbol
           example: inflected
-        wid:
-          type: string
-          description: |
-            Where this word reads about on Shirabe (`/v1/words/{wid}`). Absent for names, numbers, punctuation and anything with no dictionary entry, which means show the word without linking it.
-          example: 開く-ひらく-1202650
         f:
           type: array
           description: |
