@@ -36,9 +36,16 @@ export class DeveloperPage {
   }
 
   async goto() {
-    const apiKeysLoaded = this.waitForApiResponse('/v1/auth/api-key/list', 'GET');
+    // No network wait here, deliberately. This page renders its key list on the
+    // SERVER -- `/v1/auth/api-key/list` is off the public allowlist, so the SSR
+    // client sends the reader's session cookie and the keys that come back are
+    // theirs. Waiting for a browser-side GET meant waiting for a request that
+    // no longer happens on first load, and the test timed out after 15s while
+    // the page beside it was rendering perfectly.
+    //
+    // The mutation helpers below still wait on their POSTs, which DO happen in
+    // the browser. `expectLoaded()` is what asserts the page arrived.
     await this.page.goto('/user/developer');
-    await apiKeysLoaded;
   }
 
   async expectLoaded() {
