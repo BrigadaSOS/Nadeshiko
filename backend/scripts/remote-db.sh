@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run a db command (status / prepare / migrate) against the dev or prod
-# environment by connecting directly to the remote Postgres + Elasticsearch
-# over Tailscale, using admin credentials sourced from .kamal/secrets.<env>.
+# Run a db or search command against staging or production by connecting
+# directly to the remote Postgres + Elasticsearch over Tailscale, using admin
+# credentials sourced from .kamal/secrets.<env>.
 #
 # Replaces the old toolbox accessory: no admin credentials live on the server,
 # no separate image to build/push, no always-running container.
+#
+# ONE NAME FOR THE ENVIRONMENT, because it has three. Kamal calls it `staging`
+# (.kamal/secrets.staging, config/deploy.staging.yml), the database is
+# `nadeshiko-dev` and the search index is `nadedb_dev`. This script used to take
+# only `dev` and then look for `.kamal/secrets.dev`, which has never existed --
+# so `remote-db.sh dev status` failed on a missing file and nobody could tell
+# whether that meant the environment was down. `staging`, `stg` and `dev` are all
+# accepted now and mapped to the right three names.
 
 REMOTE_NODE="nadeshiko"
 REMOTE_HOST=""
@@ -16,15 +24,17 @@ usage() {
   cat <<EOF
 Usage: scripts/remote-db.sh <env> <command> [${PROD_FLAG}]
 
-  env:      dev | prod
-  command:  status | prepare | migrate
+  env:      staging (aliases: stg, dev) | prod
+  command:  status | prepare | migrate | reindex | reindex-media <publicId>
 
 For prepare/migrate against prod, ${PROD_FLAG} is required as a safety check.
 status is read-only and never requires the flag.
 
 Examples:
-  scripts/remote-db.sh dev status
-  scripts/remote-db.sh dev prepare
+  scripts/remote-db.sh staging status
+  scripts/remote-db.sh staging migrate
+  scripts/remote-db.sh staging reindex
+  scripts/remote-db.sh staging reindex-media BKncctxoiaJH
   scripts/remote-db.sh prod status
   scripts/remote-db.sh prod prepare ${PROD_FLAG}
 EOF
@@ -39,15 +49,27 @@ if [[ -z "$ENV" || -z "$CMD" ]]; then
   exit 1
 fi
 
+# SECRETS_ENV names the .kamal/secrets file; DATA_ENV names the database and the
+# search index. They differ for staging and that is not going to be fixed by
+# renaming a live database, so it is mapped here instead of remembered.
 case "$ENV" in
-  dev|prod) ;;
-  *) echo "error: env must be 'dev' or 'prod' (got '$ENV')" >&2; exit 1 ;;
+  staging|stg|dev) SECRETS_ENV="staging"; DATA_ENV="dev" ;;
+  prod)            SECRETS_ENV="prod";    DATA_ENV="prod" ;;
+  *) echo "error: env must be 'staging' (or 'stg'/'dev') or 'prod' (got '$ENV')" >&2; exit 1 ;;
 esac
 
 case "$CMD" in
-  status|prepare|migrate) ;;
-  *) echo "error: command must be 'status', 'prepare' or 'migrate' (got '$CMD')" >&2; exit 1 ;;
+  status|prepare|migrate|reindex|reindex-media) ;;
+  *) echo "error: command must be status, prepare, migrate, reindex or reindex-media (got '$CMD')" >&2; exit 1 ;;
 esac
+
+# A reindex rebuilds the whole search index. On production that is a destructive
+# operation with its own runbook (scripts/migrate-elasticsearch-production.sh),
+# so it is not offered here at all rather than guarded by a flag.
+if [[ "$ENV" == "prod" && ( "$CMD" == "reindex" || "$CMD" == "reindex-media" ) ]]; then
+  echo "error: '$CMD' is not available for prod here -- see scripts/migrate-elasticsearch-production.sh" >&2
+  exit 1
+fi
 
 if [[ "$ENV" == "prod" && "$CMD" != "status" && "$FLAG" != "$PROD_FLAG" ]]; then
   echo "error: '$CMD' against prod requires $PROD_FLAG" >&2
@@ -55,7 +77,7 @@ if [[ "$ENV" == "prod" && "$CMD" != "status" && "$FLAG" != "$PROD_FLAG" ]]; then
 fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SECRETS_FILE="$REPO_ROOT/.kamal/secrets.$ENV"
+SECRETS_FILE="$REPO_ROOT/.kamal/secrets.$SECRETS_ENV"
 
 if [[ ! -f "$SECRETS_FILE" ]]; then
   echo "error: $SECRETS_FILE not found" >&2
@@ -94,22 +116,41 @@ if [[ "$ENV" == "prod" ]]; then
 else
   APP_ENV="development"
 fi
-ES_INDEX="nadedb_$ENV"
+ES_INDEX="nadedb_$DATA_ENV"
 
-echo "→ Loading secrets from .kamal/secrets.$ENV (fetched from AWS SSM)..."
+echo "→ Loading secrets from .kamal/secrets.$SECRETS_ENV (fetched from AWS SSM)..."
 set -a
 # shellcheck disable=SC1090
 source "$SECRETS_FILE"
 set +a
 
-echo "→ Running 'db:$CMD' against $ENV"
+echo "→ Running '$CMD' against $ENV"
 echo "  postgres:      $REMOTE_HOST:5432/${POSTGRES_DB:-?} (app user: ${POSTGRES_USER:-?})"
 echo "  elasticsearch: http://$REMOTE_HOST:9200 (index: $ES_INDEX)"
 echo
 
-POSTGRES_HOST="$REMOTE_HOST" \
-POSTGRES_PORT=5432 \
-ELASTICSEARCH_HOST="http://$REMOTE_HOST:9200" \
-ELASTICSEARCH_INDEX="$ES_INDEX" \
-ENVIRONMENT="$APP_ENV" \
-npm run "db:$CMD"
+run_with_env() {
+  POSTGRES_HOST="$REMOTE_HOST" \
+  POSTGRES_PORT=5432 \
+  ELASTICSEARCH_HOST="http://$REMOTE_HOST:9200" \
+  ELASTICSEARCH_INDEX="$ES_INDEX" \
+  ENVIRONMENT="$APP_ENV" \
+  "$@"
+}
+
+case "$CMD" in
+  reindex)
+    # Zero downtime: builds a new versioned index and swaps the alias, so the
+    # old one keeps answering until the new one is complete.
+    run_with_env node --import tsx bin/es.ts reindex
+    ;;
+  reindex-media)
+    [[ -n "$FLAG" ]] || { echo "error: reindex-media needs a media publicId" >&2; exit 1; }
+    # In place, into the live index, for a few thousand documents rather than
+    # 1.3M -- what a data repair on one media needs.
+    run_with_env node --import tsx scripts/reindex-media.ts --media "$FLAG"
+    ;;
+  *)
+    run_with_env npm run "db:$CMD"
+    ;;
+esac
