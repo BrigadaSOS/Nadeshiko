@@ -89,7 +89,15 @@ export default defineEventHandler(async (event) => {
   const direct = String(config.shirabeApiDirect || '')
     .trim()
     .replace(/\/$/, '');
-  const path = `/v1/words/${encodeURIComponent(wid)}`;
+  // `/api/v1`, not `/v1`. Shirabe mounts its JSON API under `scope "/api/v1"`
+  // (config/routes.rb), and this was missing the prefix -- so every lookup hit
+  // Rails' catch-all and came back 404.
+  //
+  // That failed convincingly rather than loudly: the handler below reads a 404
+  // as "this word has no entry", which is a real and common case, so the word
+  // card rendered empty for EVERY word and looked like thin dictionary coverage.
+  // Nothing alerted, because an empty card is not an error.
+  const path = `/api/v1/words/${encodeURIComponent(wid)}`;
 
   // Note for anyone tempted to send `Host: shirabe.org` on the direct call so
   // Rails' host authorization accepts it: it does not work. Node's fetch treats
@@ -155,7 +163,28 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'cache-control', `public, max-age=${CACHE_SECONDS}`);
     return word;
   } catch (error: unknown) {
-    const status = (error as { response?: { status?: number } })?.response?.status;
+    const response = (error as { response?: { status?: number; headers?: { get?: (k: string) => string | null } } })
+      ?.response;
+    const status = response?.status;
+
+    // A 404 means one of two very different things, and the status code alone
+    // cannot tell them apart:
+    //
+    //   Shirabe's API answering about the WORD  -> JSON, and an ordinary result
+    //   Rails' catch-all answering about the URL -> an HTML error page
+    //
+    // Reading the second as the first is exactly how a wrong API path hid for
+    // as long as it did: every card rendered empty and every response said "no
+    // entry", which is indistinguishable from a corpus full of proper nouns.
+    // Content type is what separates them, so trust it rather than the status.
+    const contentType = response?.headers?.get?.('content-type') ?? '';
+    if (status === 404 && contentType.includes('html')) {
+      logger.error(
+        { wid, url: `${base}${path}` },
+        'Shirabe returned an HTML 404 -- the API path is wrong, not the word missing',
+      );
+      throw createError({ statusCode: 502, statusMessage: 'Dictionary lookup failed' });
+    }
 
     // 404 is an ordinary answer here: a word can be parsed out of a subtitle and
     // still have no entry (a name, a coinage, a typo the corpus preserved). Say
