@@ -100,8 +100,22 @@ let pendingLookup: string | null = null;
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
 
-/** Worth asking the dictionary about, even with no id of its own. */
-function lookupableWithoutId(token: EnrichedToken): boolean {
+/**
+ * Worth asking the dictionary about.
+ *
+ * One rule for every token, which it did not used to be. A stored `wid` only
+ * ever reached content words -- Shirabe pools the words a reader studies, and
+ * particles are grammar -- so grammar needed a second path, and that path had to
+ * send the SURFACE rather than the lemma, because なら reduces to the copula だ
+ * and looking that up answers "to be" to a reader who pointed at "if".
+ *
+ * Resolving from the lemma plus the shape it took here settles both: Shirabe
+ * picks the entry, so `なら` finds なら and 食べました finds 食べる, and neither
+ * caller has to know which kind of word it is holding. What is left out is only
+ * what could not have an entry -- punctuation, whitespace, bare digits -- where
+ * a request would spend a round trip to be told 404.
+ */
+function isAskable(token: EnrichedToken): boolean {
   return !NOT_A_WORD.has(token.kind ?? '') && HAS_JAPANESE.test(token.d ?? '');
 }
 
@@ -115,37 +129,24 @@ async function loadWord(token: EnrichedToken): Promise<void> {
     return;
   }
 
-  // `wid` only reaches content words: Shirabe's parse pool is the words a reader
-  // studies, and particles are grammar. But の, は and が are the commonest things
-  // on screen and JMdict defines all of them, so a reader hovering one should not
-  // meet a blank card. Falling back to the dictionary form covers them.
-  //
-  // Only for something that could plausibly BE a word: punctuation, whitespace
-  // and digits would just spend a request on a 404. And it is the fallback rather
-  // than the rule because `wid` already picked the right homograph, which a bare
-  // dictionary form cannot (開く answers あく, not ひらく).
-  // The SURFACE, not the dictionary form, and that is the whole point. This
-  // fallback only ever runs for a token Shirabe did not pool, and it does not
-  // pool grammar: particles and auxiliaries. Those are exactly the words whose
-  // surface IS their dictionary entry (は, が, なら), while their lemma is often
-  // something else entirely: なら reduces to the copula だ, and looking that up
-  // answers "to be" to a reader who pointed at "if". A content word never
-  // reaches here, because it already carried a `wid`.
-  const lookup = token.wid ?? (lookupableWithoutId(token) ? token.s : null);
-  if (!lookup) {
+  if (!isAskable(token)) {
     word.value = null;
     wordState.value = 'idle';
     return;
   }
 
-  const wid = lookup;
+  const ref = token.lookupRef;
+  // Staleness below is judged on this string, so it has to be the same identity
+  // the cache uses: two tokens for the same word in the same shape are
+  // interchangeable, two spellings of it are not.
+  const asked = `${ref.lemma}|${ref.surface}|${ref.reading}|${ref.pos}`;
   const locale = glossLanguages.value.labels;
 
   // Already answered, from this card or any other on the page: paint it now.
   // Synchronously, with no intermediate 'loading', so a word the reader has
   // seen before (or that hovering prefetched a moment ago) opens filled in
   // rather than flashing "Looking up…" for a frame first.
-  const cached = peekWord(wid, locale);
+  const cached = peekWord(ref, locale);
   if (cached !== undefined) {
     applyLookup(cached);
     return;
@@ -153,9 +154,9 @@ async function loadWord(token: EnrichedToken): Promise<void> {
 
   word.value = null;
   wordState.value = 'loading';
-  pendingLookup = wid;
+  pendingLookup = asked;
 
-  const found = await fetchWord(wid, locale);
+  const found = await fetchWord(ref, locale);
 
   // Staleness is judged on the WORD being looked up, not on the token object
   // that asked for it.
@@ -169,10 +170,8 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // because the guard that would have cleared it compared the same way.
   //
   // A word is a string and two tokens for the same word are interchangeable
-  // here, so this holds however often the list re-renders. Note `wid` is never
-  // null by this point -- it is the id or the surface fallback -- so the earlier
-  // problem of `undefined` ids matching each other cannot come back.
-  if (pendingLookup !== wid) return;
+  // here, so this holds however often the list re-renders.
+  if (pendingLookup !== asked) return;
   pendingLookup = null;
 
   applyLookup(found);
@@ -262,11 +261,11 @@ const onTokenHover = (token: EnrichedToken) => {
   if (prefetchTimer !== null) clearTimeout(prefetchTimer);
   prefetchTimer = setTimeout(() => {
     prefetchTimer = null;
-    const lookup = token.wid ?? (lookupableWithoutId(token) ? token.s : null);
-    if (!lookup) return;
+    if (!isAskable(token)) return;
+    const ref = token.lookupRef;
     const locale = glossLanguages.value.labels;
-    if (peekWord(lookup, locale) !== undefined) return;
-    void fetchWord(lookup, locale);
+    if (peekWord(ref, locale) !== undefined) return;
+    void fetchWord(ref, locale);
   }, PREFETCH_DELAY);
 };
 
@@ -282,7 +281,7 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) =
   // been clickable in production for a long time, and taking that away to hide
   // an unfinished feature would be its own regression.
   if (!wordCardEnabled) {
-    emit('token-click', token.searchText);
+    emit('token-click', token.dictForm);
     return;
   }
 
@@ -409,8 +408,7 @@ const rootRef = ref<HTMLElement | null>(null);
 // want: with the card switched off there is no dialog to open, so a token must
 // not announce itself as a control that opens one. It goes back to being text --
 // still clickable, as it has always been, but not focusable and not `aria-expanded`.
-const isLookupable = (token: EnrichedToken): boolean =>
-  wordCardEnabled && (Boolean(token.wid) || lookupableWithoutId(token));
+const isLookupable = (token: EnrichedToken): boolean => wordCardEnabled && isAskable(token);
 
 // `b` is the token's byte offset in the sentence: unique within it, stable
 // across the re-renders that rebuild the token objects, and already the v-for
@@ -492,7 +490,7 @@ const inPreferredScript = (reading: string): string => {
 };
 
 const headReading = computed(() => {
-  const reading = word.value?.reading || hoveredToken.value?.reading || '';
+  const reading = word.value?.reading || hoveredToken.value?.readingHiragana || '';
   // For この the reading IS この, so a second copy of it adds nothing.
   if (!reading || reading === headword.value) return '';
   return inPreferredScript(reading);
@@ -681,7 +679,7 @@ const dictionaryLinks = computed(() => {
         label: preset.label,
         // Shirabe's id for this word is the slug of its own page, so hand it over
         // once the card has it: it names the homograph the surface cannot.
-        href: preset.buildUrl(token.dictForm, token.reading ?? '', word.value?.id),
+        href: preset.buildUrl(token.dictForm, token.readingHiragana, word.value?.id, glossLanguages.value.labels),
       }))
   );
 });
@@ -753,7 +751,7 @@ const dictionaryLinks = computed(() => {
               class="token-tooltip__word"
               :class="{ 'token-tooltip__word--action': hoveredToken }"
               lang="ja"
-              @click="hoveredToken && searchExampleToken(hoveredToken.searchText)"
+              @click="hoveredToken && searchExampleToken(hoveredToken.dictForm)"
             >
               <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
               <template v-else>{{ headword }}</template>
@@ -880,7 +878,7 @@ const dictionaryLinks = computed(() => {
             <button
               type="button"
               class="token-tooltip__action"
-              @click="searchExampleToken(hoveredToken.searchText)"
+              @click="searchExampleToken(hoveredToken.dictForm)"
             >{{ $t('tokenTooltip.moreSentences') }}</button>
           </div>
 

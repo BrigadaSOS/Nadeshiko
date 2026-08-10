@@ -5,15 +5,8 @@ export interface SlimToken {
   b: number;
   e: number;
   p: string;
-  p1?: string;
-  p2?: string;
-  p4?: string;
-  cf?: string;
   /** word | compound | inflected | counter | function | expression | symbol. */
   kind?: string;
-  /** Where this word reads about on Shirabe: GET /v1/words/{wid}. Absent for
-   *  names, numbers, punctuation and anything with no dictionary entry. */
-  wid?: string;
   /** Ruby, already aligned to this surface. Absent when there is none to show,
    *  which is the ordinary case for an all-kana word. */
   f?: Array<{ t: string; r?: string }>;
@@ -31,14 +24,42 @@ export interface SlimToken {
   parts?: Array<{ s: string; b: number; e: number }>;
 }
 
+/**
+ * How a token addresses its dictionary entry.
+ *
+ * Built here, once, so no caller assembles it by hand out of single-letter
+ * fields -- which is where it used to go wrong. `reading` is KATAKANA and `pos`
+ * is the RAW UniDic tag, because that is what Shirabe resolves against; the
+ * display forms of both are different values living on the same object, and
+ * sending those instead returns 200 for the wrong word rather than failing.
+ */
+export interface WordRef {
+  /** Dictionary form. */
+  lemma: string;
+  /** How it was written here. */
+  surface: string;
+  /** Katakana, as the analyzer read THIS surface. Not `readingHiragana`. */
+  reading: string;
+  /** Raw UniDic tag (動詞). Not `posDisplay`. */
+  pos: string;
+}
+
 export interface EnrichedToken extends SlimToken {
   matchType: 'match' | 'partial' | 'none';
-  searchText: string;
   displaySurface: string;
   dictForm: string;
-  reading: string;
-  /** The part of speech to print, as Shirabe worded it. */
-  pos: string;
+  /**
+   * Hiragana, for showing to a reader and for the external dictionary links.
+   *
+   * NAMED FOR ITS SCRIPT on purpose. This used to be `reading`, one letter from
+   * the `r` it is derived from and a different script -- so the two sat on the
+   * same object looking interchangeable, and a lookup handed the hiragana one
+   * resolves a homograph by a reading Shirabe does not key on. `lookupRef`
+   * carries the katakana; this is only ever for display.
+   */
+  readingHiragana: string;
+  /** Everything the dictionary lookup asks by, assembled once. */
+  lookupRef: WordRef;
   /** The inflection chain to print, already ordered and localized. Empty when
    *  the token is not an inflected word. */
   inflectionLabels: string[];
@@ -324,17 +345,16 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
             start: Math.max(0, r.start - token.b),
             end: Math.min(token.e - token.b, r.end - token.b),
           })),
-      searchText: token.d,
       displaySurface: token.s,
       dictForm: token.d,
-      reading: katakanaToHiragana(token.r),
+      readingHiragana: katakanaToHiragana(token.r),
+      lookupRef: { lemma: token.d, surface: token.s, reading: token.r, pos: token.p },
       furigana: furiganaOf(token),
-      // Both come off the token. There used to be four tables here mapping
-      // UniDic to English, and they were wrong in both directions: they had no
-      // entry for a category Shirabe emits (連語, 形状詞), and `cf` named the slot
-      // a stem sits in (連用形) rather than what the whole form does, so a polite
-      // past read as "continuative".
-      pos: token.posLabel ?? token.p,
+      // No `pos` alias here any more. It was `posLabel ?? p` -- a printable label
+      // falling back to a raw UniDic tag -- sitting one letter from `p` on the
+      // same object while meaning something else, and nothing ever read it.
+      // `posLabel` is already on the token for display; `lookupRef.pos` carries
+      // the raw tag for resolution.
       inflectionLabels: token.inflection?.labels ?? [],
     };
   });

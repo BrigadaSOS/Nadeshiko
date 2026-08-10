@@ -2941,10 +2941,6 @@ components:
         - b
         - e
         - p
-        - p1
-        - p2
-        - p4
-        - cf
       properties:
         s:
           type: string
@@ -2970,30 +2966,6 @@ components:
           type: string
           description: Primary part-of-speech tag
           example: 動詞
-        p1:
-          type: string
-          nullable: true
-          minLength: 1
-          description: POS subtype 1 (UniDic pos[1])
-          example: 固有名詞
-        p2:
-          type: string
-          nullable: true
-          minLength: 1
-          description: POS subtype 2 (UniDic pos[2])
-          example: 人名
-        p4:
-          type: string
-          nullable: true
-          minLength: 1
-          description: Conjugation type (UniDic pos[4])
-          example: 五段-カ行
-        cf:
-          type: string
-          nullable: true
-          minLength: 1
-          description: Conjugation form (UniDic pos[5])
-          example: 連用形-一般
         posLabel:
           type: string
           description: The part of speech in words, so a client needs no UniDic table.
@@ -3011,11 +2983,6 @@ components:
             - expression
             - symbol
           example: inflected
-        wid:
-          type: string
-          description: |
-            Where this word reads about on Shirabe (`/v1/words/{wid}`). Absent for names, numbers, punctuation and anything with no dictionary entry, which means show the word without linking it.
-          example: 開く-ひらく-1202650
         f:
           type: array
           description: |

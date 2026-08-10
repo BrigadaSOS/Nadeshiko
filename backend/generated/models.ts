@@ -737,7 +737,6 @@ export type t_StatsOverview = {
 
 export type t_Token = {
   b: number;
-  cf: string | null;
   d: string;
   e: number;
   f?: {
@@ -750,9 +749,6 @@ export type t_Token = {
   };
   kind?: 'word' | 'compound' | 'inflected' | 'counter' | 'function' | 'expression' | 'symbol';
   p: string;
-  p1: string | null;
-  p2: string | null;
-  p4: string | null;
   parts?: {
     b: number;
     e: number;
@@ -761,7 +757,6 @@ export type t_Token = {
   posLabel?: string;
   r: string;
   s: string;
-  wid?: string;
 };
 
 export type t_UpdateCollectionSegmentRequest = {

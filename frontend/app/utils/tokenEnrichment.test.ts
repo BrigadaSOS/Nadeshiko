@@ -21,10 +21,7 @@ const INFLECTED: SlimToken = {
   b: 0,
   e: 3,
   p: '動詞',
-  p4: '下一段-カ行',
-  cf: '連用形-一般',
   kind: 'inflected',
-  wid: '焼ける-やける',
   posLabel: 'Verb',
   inflection: { labels: ['past'], base: '焼ける' },
   f: [{ t: '焼', r: 'や' }, { t: 'けた' }],
@@ -41,10 +38,9 @@ const FRYPAN: SlimToken = {
   e: 8,
   p: '名詞',
   posLabel: 'Noun',
-  p1: '普通名詞',
   kind: 'word',
 };
-const NI: SlimToken = { s: 'に', d: 'に', r: 'ニ', b: 8, e: 9, p: '助詞', p1: '格助詞', kind: 'function' };
+const NI: SlimToken = { s: 'に', d: 'に', r: 'ニ', b: 8, e: 9, p: '助詞', kind: 'function' };
 const YAKETA: SlimToken[] = [INFLECTED, FRYPAN, NI];
 
 describe('enrichTokens', () => {
@@ -57,8 +53,32 @@ describe('enrichTokens', () => {
 
     expect(yaketa?.displaySurface).toBe('焼けた');
     expect(yaketa?.dictForm).toBe('焼ける');
-    expect(yaketa?.searchText).toBe('焼ける');
-    expect(yaketa?.reading).toBe('やけた');
+    expect(yaketa?.readingHiragana).toBe('やけた');
+  });
+
+  // The reason the display reading is named for its script. `readingHiragana` is
+  // for the reader; the lookup carries the katakana the analyzer produced, and
+  // handing the wrong one to Shirabe resolves a homograph by a reading it does
+  // not key on -- which answers 200 for a different word rather than failing.
+  it('keeps the display reading and the lookup reading apart', () => {
+    const [yaketa] = enrichTokens(YAKETA);
+
+    expect(yaketa?.readingHiragana).toBe('やけた');
+    expect(yaketa?.lookupRef.reading).toBe('ヤケタ');
+  });
+
+  // Assembled once, here, so no caller builds one out of single-letter fields.
+  // `pos` is the RAW tag, not the printable label beside it on the same token.
+  it('assembles everything the dictionary lookup asks by', () => {
+    const [yaketa] = enrichTokens(YAKETA);
+
+    expect(yaketa?.lookupRef).toEqual({
+      lemma: '焼ける',
+      surface: '焼けた',
+      reading: 'ヤケタ',
+      pos: '動詞',
+    });
+    expect(yaketa?.posLabel).toBe('Verb');
   });
 
   // Printed as Shirabe worded it. There used to be four tables here mapping
@@ -66,16 +86,8 @@ describe('enrichTokens', () => {
   it('prints the part of speech the token carries', () => {
     const [yaketa, frypan] = enrichTokens(YAKETA);
 
-    expect(yaketa?.pos).toBe('Verb');
-    expect(frypan?.pos).toBe('Noun');
-  });
-
-  it('falls back to the raw category rather than printing nothing', () => {
-    const [expression] = enrichTokens([
-      { s: 'について', d: 'について', r: 'ニツイテ', b: 0, e: 4, p: '連語', kind: 'expression' },
-    ]);
-
-    expect(expression?.pos).toBe('連語');
+    expect(yaketa?.posLabel).toBe('Verb');
+    expect(frypan?.posLabel).toBe('Noun');
   });
 
   // The chain, not one name: calling 食べさせられた a past tense would be true of

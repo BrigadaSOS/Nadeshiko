@@ -14,8 +14,9 @@ import type { SlimToken } from '@app/models/Segment';
  *
  * What Shirabe returns is its own shape, built for a reader: a `tokens` array
  * per input with positions and grouping, plus a deduplicated `vocabulary` pool
- * that each token points into by index. What we store is the ten short fields
- * our OpenAPI publishes. `toSlimToken` is that translation.
+ * carrying dictionary identity. We read the tokens and ignore the pool: what we
+ * store is the sentence and its morphology, never a dictionary address. See
+ * `parseChunk` for why. `toSlimToken` is that translation.
  */
 
 const PARSE_BATCH = 200; // measured sweet spot: throughput falls off past this
@@ -49,7 +50,6 @@ interface ShirabeToken {
   posFull?: string[];
   posLabel?: string;
   kind?: string;
-  vocabIndex?: number;
   furigana?: Array<{ text: string; ruby?: string }>;
   inflection?: { labels: string[]; base: string };
   components?: Array<{ surface: string; offset: number; length: number }>;
@@ -57,20 +57,9 @@ interface ShirabeToken {
 
 interface ShirabeParseResponse {
   tokens: ShirabeToken[][];
-  vocabulary: Array<{ lemma: string; reading?: string; id?: string }>;
 }
 
-/**
- * "*" is Sudachi for "this slot does not apply" and 一般 is the slot declining to
- * say anything more specific. Neither is a value, and our own schema types these
- * four as nullable with `minLength: 1`, so passing either through would break it.
- */
-function meaningful(value: string | undefined): string | undefined {
-  if (!value || value === '*' || value === '一般') return undefined;
-  return value;
-}
-
-function toSlimToken(token: ShirabeToken, wid: string | undefined): SlimToken {
+function toSlimToken(token: ShirabeToken): SlimToken {
   const pos = token.posFull ?? [];
   const slim: SlimToken = {
     s: token.surface,
@@ -83,18 +72,8 @@ function toSlimToken(token: ShirabeToken, wid: string | undefined): SlimToken {
     p: pos[0] ?? '',
   };
 
-  const p1 = meaningful(pos[1]);
-  const p2 = meaningful(pos[2]);
-  const p4 = meaningful(pos[4]);
-  const cf = meaningful(pos[5]);
-  if (p1) slim.p1 = p1;
-  if (p2) slim.p2 = p2;
-  if (p4) slim.p4 = p4;
-  if (cf) slim.cf = cf;
-
   if (token.kind) slim.kind = token.kind;
   if (token.posLabel) slim.posLabel = token.posLabel;
-  if (wid) slim.wid = wid;
   if (token.furigana?.length) slim.f = token.furigana.map((seg) => ({ t: seg.text, r: seg.ruby }));
   if (token.inflection) slim.inflection = token.inflection;
 
@@ -150,7 +129,11 @@ export async function parseSegments(texts: string[]): Promise<SlimToken[][]> {
 
 /** One request to Shirabe, mapped into our token shape. */
 async function parseChunk(chunk: string[]): Promise<SlimToken[][]> {
-  const response = await fetch(`${config.SHIRABE_API_BASE.replace(/\/$/, '')}/v1/parse`, {
+  // `/api/v1`, not `/v1`. Shirabe is a Rails app and mounts its API under /api;
+  // `/v1/parse` reaches the HTML 404 page, so the failure arrives as a 404 with
+  // a body full of markup rather than as anything resembling a routing error.
+  // The frontend's word lookup had the same path wrong for the same reason.
+  const response = await fetch(`${config.SHIRABE_API_BASE.replace(/\/$/, '')}/api/v1/parse`, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${config.SHIRABE_API_KEY}`,
@@ -167,16 +150,14 @@ async function parseChunk(chunk: string[]): Promise<SlimToken[][]> {
   }
 
   const parsed = (await response.json()) as ShirabeParseResponse;
-  return parsed.tokens.map((tokens) =>
-    tokens.map((token) =>
-      toSlimToken(
-        token,
-        // The word id lives on the pool rather than the token, because it is
-        // a property of the word and a sentence can say it twice.
-        token.vocabIndex === undefined ? undefined : parsed.vocabulary[token.vocabIndex]?.id,
-      ),
-    ),
-  );
+  // No word id is read off the pool, and none is asked for. Shirabe resolves ids
+  // only for `include=wordIds` because it costs 2.6x the parse, and the id is
+  // derived from dictionary content -- it moves when a headword, a commonness
+  // flag or a resolution rule moves. It is what a client LINKS with, not what a
+  // corpus STORES. A reader tapping a word resolves it live from the lemma,
+  // surface, reading and POS below, which also reaches what no stored slug can:
+  // 食べました resolves to 食べる, and 開く answers あく or ひらく by reading.
+  return parsed.tokens.map((tokens) => tokens.map((token) => toSlimToken(token)));
 }
 
 export const __testing = { toSlimToken, PARSE_BATCH, PARSE_CONCURRENCY };
