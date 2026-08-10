@@ -87,6 +87,22 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
+      // The theme class lives on <html>, not on a wrapper inside the app.
+      //
+      // Tailwind is `darkMode: ['class']`, so every `dark:` utility needs a
+      // `.dark` ANCESTOR. Modals and the word card `<Teleport to="body">`, which
+      // lands them as siblings of the layout -- so while the class sat on the
+      // layout div they were outside it, every `dark:` variant on their panels
+      // was inert, and a panel written as `bg-white dark:bg-modal-background`
+      // rendered white. `.dark` is also where `--modal-background` and friends
+      // are defined, so an unprefixed `bg-modal-background` resolved to nothing
+      // at all. On <html> nothing can be teleported out from under it.
+      //
+      // Set here rather than in app.vue's `useHead` so it is server-rendered
+      // with the document and there is no light flash before hydration. The
+      // site is dark-only anyway: `body` is a hardcoded #1d1d1d in
+      // assets/css/tailwind.css and `color-scheme` is `dark` below.
+      htmlAttrs: { class: 'dark' },
       meta: [
         {
           name: 'description',
