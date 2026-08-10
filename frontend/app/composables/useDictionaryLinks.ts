@@ -1,4 +1,5 @@
 import { DICT_LINKS_COOKIE } from '#shared/utils/preferenceCookies';
+import { shirabeWordUrl, type GlossLanguage } from '~/utils/wordCard';
 
 export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
 
@@ -11,7 +12,13 @@ export type DictionaryPreset = {
    * homograph, but it is an id Shirabe issued: no other dictionary can be
    * handed it, so every other preset builds its url from `word`.
    */
-  buildUrl: (word: string, reading: string, slug?: string) => string;
+  /**
+   * `locale` is the reader's gloss language, and only shirabe.org takes it: its
+   * pages live under `/en/` and `/es/`, and a url without one answers 302 to
+   * `/en/` whatever the reader is reading in. Every other dictionary here is
+   * single-language or does its own negotiation, so they ignore it.
+   */
+  buildUrl: (word: string, reading: string, slug: string | undefined, locale: GlossLanguage) => string;
   defaultEnabled: boolean;
   /**
    * Always on, and not offered as a toggle. shirabe.org is the dictionary the
@@ -21,7 +28,7 @@ export type DictionaryPreset = {
   required?: boolean;
 };
 
-const DICTIONARY_PRESETS: DictionaryPreset[] = [
+export const DICTIONARY_PRESETS: DictionaryPreset[] = [
   {
     id: 'jisho',
     label: 'Jisho',
@@ -41,7 +48,10 @@ const DICTIONARY_PRESETS: DictionaryPreset[] = [
     // installed fails silently, and the card is already on the web.
     id: 'shirabe',
     label: 'shirabe.org',
-    buildUrl: (word, _reading, slug) => `https://shirabe.org/word/${encodeURIComponent(slug ?? word)}`,
+    // Through `shirabeWordUrl` rather than spelled out again here. There were two
+    // builders for this one destination and they disagreed: this one omitted the
+    // locale, so a Spanish reader was redirected to the English page.
+    buildUrl: (word, _reading, slug, locale) => shirabeWordUrl(slug ?? word, locale),
     defaultEnabled: true,
     required: true,
   },
