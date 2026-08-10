@@ -1,12 +1,12 @@
 import { test, expect } from '../fixtures';
-import { getE2EBaseUrl } from '../env';
+import { e2eBypassHeaders, getE2EBaseUrl } from '../env';
 
 test.describe('Sentence page', () => {
   let sentenceUuid: string;
 
   test.beforeAll(async ({ browser }) => {
     const baseUrl = getE2EBaseUrl();
-    const context = await browser.newContext();
+    const context = await browser.newContext({ extraHTTPHeaders: e2eBypassHeaders() });
     const page = await context.newPage();
     await page.goto(`${baseUrl}/search/彼女`);
     await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});

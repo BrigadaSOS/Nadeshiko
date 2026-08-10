@@ -48,6 +48,10 @@ env:
     - NUXT_NADESHIKO_API_KEY
     - NUXT_INTERNAL_PROXY_SECRET
     - NUXT_SHIRABE_API_KEY
+    # Staging only, and deliberately absent from deploy.prod.yml: it lets the
+    # end-to-end suite past the per-IP HTML limiter, which a single CI runner
+    # cannot otherwise stay inside. On production the limiter has no bypass.
+    - NUXT_RATE_LIMIT_BYPASS_SECRET
 
   clear:
     NUXT_PUBLIC_ENVIRONMENT: development
