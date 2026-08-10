@@ -45,6 +45,21 @@ const envSchema = z.object({
   // rate limiter can recognise (and exempt) traffic coming through this proxy.
   // Must match the backend's INTERNAL_PROXY_SECRET.
   NUXT_INTERNAL_PROXY_SECRET: z.string().trim().default(''),
+  /**
+   * Lets a caller presenting this secret past the per-IP HTML limiter.
+   *
+   * It exists for the end-to-end suite, which runs ~140 tests from ONE GitHub
+   * runner IP against a limiter that allows 60 renders a minute. The suite does
+   * not fail cleanly when it runs out of budget -- it 429s at whatever assertion
+   * happens to be next, so the run reads as an unrelated flake somewhere new
+   * each time. It masked the anonymous-access check in collections.spec.ts,
+   * which asserts a 302 and was quietly being handed a 429 instead: a security
+   * regression test that could no longer fail for the right reason.
+   *
+   * Empty by default, so the bypass does not exist unless somebody deliberately
+   * sets it on an environment. Not set in production.
+   */
+  NUXT_RATE_LIMIT_BYPASS_SECRET: z.string().trim().default(''),
   NUXT_BACKEND_HOST_HEADER: optionalString,
   NUXT_MEDIA_FILES_PATH: optionalString,
   NUXT_RATE_LIMIT_V1_AUTH_MAX: z.coerce.number().int().positive().default(30),
