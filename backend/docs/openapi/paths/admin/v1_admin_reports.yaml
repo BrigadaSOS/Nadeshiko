@@ -9,6 +9,7 @@ get:
     Supports filtering by source (USER/AUTO) to separate user reports from auto-check findings.
 
   security:
+    - ApiKey: [READ_MEDIA]
     - SessionCookie: [ADMIN]
   parameters:
     - name: cursor
