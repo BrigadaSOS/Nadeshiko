@@ -69,6 +69,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          # This job checks out into head/ and base/, so the workspace root holds
+          # no package-lock.json and setup-node's npm cache fails the whole job
+          # with "Dependencies lock file is not found". Every other job in this
+          # file checks out to the root, which is why only this one breaks -- and
+          # it only runs when a PR touches the spec, so it stayed hidden until
+          # one did.
+          cache-dependency-path: head/package-lock.json
 
       # Installed once in the head checkout; the base checkout only needs its
       # spec bundled, which the head's redocly can do.
