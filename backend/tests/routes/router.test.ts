@@ -75,8 +75,9 @@ const SESSION_ONLY_ROUTES: RouteEntry[] = [
 ];
 
 const ADMIN_SESSION_ROUTES: RouteEntry[] = [
-  { method: 'get', path: '/v1/admin/reports' },
-  { method: 'patch', path: '/v1/admin/reports/1' },
+  // The report queue read and the single-report update moved to
+  // API_KEY_OR_SESSION_ROUTES: the moderation agent works that queue with a
+  // service key. batch, bulk and delete stay here deliberately.
   { method: 'patch', path: '/v1/admin/reports/batch' },
   { method: 'put', path: '/v1/admin/announcement' },
   { method: 'get', path: '/v1/admin/users-with-providers' },
@@ -117,6 +118,8 @@ const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: str
   { method: 'post', path: '/v1/media/segments/V1StGXR8_Z5d/revisions/1/restore', permission: 'UPDATE_MEDIA' },
   { method: 'post', path: '/v1/media/V1StGXR8_Z5d/episodes/1/segments/moderate', permission: 'UPDATE_MEDIA' },
   { method: 'get', path: '/v1/admin/agent-activity', permission: 'READ_MEDIA', adminSession: true },
+  { method: 'get', path: '/v1/admin/reports', permission: 'READ_MEDIA', adminSession: true },
+  { method: 'patch', path: '/v1/admin/reports/1', permission: 'UPDATE_MEDIA', adminSession: true },
   { method: 'patch', path: '/v1/media/V1StGXR8_Z5d', permission: 'UPDATE_MEDIA' },
   { method: 'get', path: '/v1/user/me', permission: 'READ_PROFILE' },
   { method: 'get', path: '/v1/user/excluded-media', permission: 'READ_PROFILE' },
