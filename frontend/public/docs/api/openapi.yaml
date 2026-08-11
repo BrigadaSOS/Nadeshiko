@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.3.1
+  version: 2.3.2
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -1255,7 +1255,12 @@ components:
                 Exclude segments from these media (with optional episode filter).
                 A `mediaPublicId` that matches no media is ignored, since excluding a media that
                 does not exist excludes nothing.
-              maxItems: 100
+
+                The ceiling is far above `include`'s because the two grow differently: `include`
+                is a caller narrowing a request by hand, while `exclude` carries the reader's
+                whole hidden-media list, which grows with use. At 100 a reader who had hidden
+                more than that got a `400` on every search they made.
+              maxItems: 1000
               items:
                 $ref: '#/components/schemas/MediaFilterItem'
         category:
