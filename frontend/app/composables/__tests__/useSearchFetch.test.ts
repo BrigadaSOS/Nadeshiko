@@ -99,6 +99,41 @@ describe('search filters', () => {
   });
 });
 
+/**
+ * A reader who hides a lot of shows is the case that broke: the whole hidden list rides in
+ * `filters.media.exclude` on every search, and once it passed the API's ceiling each search
+ * came back `400 Validation Failed` while the same search worked logged out.
+ *
+ * The list must go out whole. Truncating it to fit a ceiling would be worse than the error
+ * it avoids -- the reader would silently start seeing shows they had hidden, with nothing
+ * to indicate why. If the ceiling is ever a problem again the exclusion has to move server
+ * side, not lose entries here.
+ */
+describe('search filters with a large hidden-media list', () => {
+  const hiddenMedia = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({ mediaPublicId: `media${String(i).padStart(7, '0')}` }));
+
+  it('forwards a large hidden list whole rather than truncating it', () => {
+    const hidden = hiddenMedia(500);
+
+    const sentences = buildSentenceFilters(scope({ hiddenMediaExclude: hidden }));
+    const stats = buildStatsFilters(scope({ hiddenMediaExclude: hidden }));
+
+    expect(sentences.media?.exclude).toEqual(hidden);
+    expect(stats.media?.exclude).toEqual(hidden);
+  });
+
+  it('keeps every entry when the reader also has media explicitly requested', () => {
+    const hidden = hiddenMedia(500);
+    // `?media=` suppresses the exclusion on the result list, but the tab counts still
+    // carry it -- so the large list has to survive that path too.
+    const stats = buildStatsFilters(scope({ hiddenMediaExclude: hidden, mediaPublicId: 'media0000042' }));
+
+    expect(stats.media?.exclude).toHaveLength(500);
+    expect(stats.media?.exclude?.at(-1)).toEqual({ mediaPublicId: 'media0000499' });
+  });
+});
+
 describe('fetchSentences', () => {
   it('reports the superseded request as stale and lets the newer one win', async () => {
     const slow = deferred<unknown>();

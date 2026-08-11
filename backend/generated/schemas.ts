@@ -575,7 +575,7 @@ export const s_SearchFilters = z.object({
   media: z
     .object({
       include: z.array(s_MediaFilterItem).max(100).optional(),
-      exclude: z.array(s_MediaFilterItem).max(100).optional(),
+      exclude: z.array(s_MediaFilterItem).max(1000).optional(),
     })
     .optional(),
   category: z.array(s_Category).optional().default(['ANIME', 'JDRAMA', 'YOUTUBE']),
