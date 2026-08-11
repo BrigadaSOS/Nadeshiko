@@ -86,6 +86,11 @@ export type SearchFilters = {
          * A `mediaPublicId` that matches no media is ignored, since excluding a media that
          * does not exist excludes nothing.
          *
+         * The ceiling is far above `include`'s because the two grow differently: `include`
+         * is a caller narrowing a request by hand, while `exclude` carries the reader's
+         * whole hidden-media list, which grows with use. At 100 a reader who had hidden
+         * more than that got a `400` on every search they made.
+         *
          */
         exclude?: Array<MediaFilterItem>;
     };
@@ -198,22 +203,6 @@ export type Token = {
      * Primary part-of-speech tag
      */
     p: string;
-    /**
-     * POS subtype 1 (UniDic pos[1])
-     */
-    p1: string;
-    /**
-     * POS subtype 2 (UniDic pos[2])
-     */
-    p2: string;
-    /**
-     * Conjugation type (UniDic pos[4])
-     */
-    p4: string;
-    /**
-     * Conjugation form (UniDic pos[5])
-     */
-    cf: string;
     /**
      * The part of speech in words, so a client needs no UniDic table.
      */
