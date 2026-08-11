@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { Media } from '@app/models';
 import { normalizeLanguageFilter, resolveMediaFilterIds } from '@app/controllers/searchFilters';
+import { s_SearchFilters } from 'generated/schemas';
 import type { t_SearchFilters } from 'generated/models';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
@@ -133,5 +134,45 @@ describe('resolveMediaFilterIds', () => {
 
     expect(filters.media?.include).toEqual([{ mediaPublicId: 'pub-seven' }]);
     expect(resolved).not.toBe(filters);
+  });
+});
+
+/**
+ * `exclude` carries the reader's whole hidden-media list, so its ceiling is a limit on how
+ * much a person may hide before search stops answering them. At 100 it was reachable: a
+ * handful of readers crossed it and every search they made came back `400 Validation Failed`
+ * while the same search worked logged out. `include` is a caller narrowing a request by hand
+ * and does not grow on its own, which is why the two ceilings differ.
+ */
+describe('SearchFilters media ceilings', () => {
+  // `mediaPublicId` is a fixed 12-character id, so the fixtures have to be well-formed
+  // or the parse fails on the item shape and never reaches the ceiling being tested.
+  const items = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({ mediaPublicId: `media${String(i).padStart(7, '0')}` }));
+
+  it('accepts a hidden-media list far past the old 100 limit', () => {
+    expect(s_SearchFilters.safeParse({ media: { exclude: items(500) } }).success).toBe(true);
+  });
+
+  it('accepts an exclude list at the ceiling and rejects one past it', () => {
+    expect(s_SearchFilters.safeParse({ media: { exclude: items(1000) } }).success).toBe(true);
+    expect(s_SearchFilters.safeParse({ media: { exclude: items(1001) } }).success).toBe(false);
+  });
+
+  it('holds include to its own, smaller ceiling', () => {
+    expect(s_SearchFilters.safeParse({ media: { include: items(100) } }).success).toBe(true);
+    expect(s_SearchFilters.safeParse({ media: { include: items(101) } }).success).toBe(false);
+  });
+
+  it('resolves a large hidden-media list without dropping entries it can resolve', async () => {
+    const hidden = items(400);
+    // Every other one is a media that no longer exists -- an unhidden-by-deletion show is
+    // ordinary for a list built up over months, and those are dropped rather than rejected.
+    mockMediaInfoMap(hidden.filter((_, i) => i % 2 === 0).map((item, i) => [i + 1, { publicId: item.mediaPublicId }]));
+
+    const resolved = await resolveMediaFilterIds({ media: { exclude: hidden } } as t_SearchFilters);
+
+    expect(resolved?.media?.exclude).toHaveLength(200);
+    expect(resolved?.media?.exclude?.[0]).toEqual({ mediaPublicId: 'media0000000', mediaId: 1 } as never);
   });
 });

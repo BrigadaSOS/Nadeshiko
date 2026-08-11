@@ -45,7 +45,7 @@ info:
 
     To request a quota increase, reach out via the [contact
     page](https://nadeshiko.co/about).
-  version: 2.3.0
+  version: 2.3.1
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -5197,7 +5197,19 @@ components:
                 excluding a media that
 
                 does not exist excludes nothing.
-              maxItems: 100
+
+
+                The ceiling is far above `include`'s because the two grow
+                differently: `include`
+
+                is a caller narrowing a request by hand, while `exclude` carries
+                the reader's
+
+                whole hidden-media list, which grows with use. At 100 a reader
+                who had hidden
+
+                more than that got a `400` on every search they made.
+              maxItems: 1000
               items:
                 $ref: "#/components/schemas/MediaFilterItem"
         category:
@@ -5335,10 +5347,6 @@ components:
         - b
         - e
         - p
-        - p1
-        - p2
-        - p4
-        - cf
       properties:
         s:
           type: string
@@ -5364,30 +5372,6 @@ components:
           type: string
           description: Primary part-of-speech tag
           example: 動詞
-        p1:
-          type: string
-          nullable: true
-          minLength: 1
-          description: POS subtype 1 (UniDic pos[1])
-          example: 固有名詞
-        p2:
-          type: string
-          nullable: true
-          minLength: 1
-          description: POS subtype 2 (UniDic pos[2])
-          example: 人名
-        p4:
-          type: string
-          nullable: true
-          minLength: 1
-          description: Conjugation type (UniDic pos[4])
-          example: 五段-カ行
-        cf:
-          type: string
-          nullable: true
-          minLength: 1
-          description: Conjugation form (UniDic pos[5])
-          example: 連用形-一般
         posLabel:
           type: string
           description: The part of speech in words, so a client needs no UniDic table.
