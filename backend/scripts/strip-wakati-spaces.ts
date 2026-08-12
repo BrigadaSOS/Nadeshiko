@@ -78,7 +78,11 @@ export function stripHalfWidthSpaces(content: string): string {
 async function run({ mediaPublicId, dryRun }: Options): Promise<void> {
   const media = await AppDataSource.getRepository(Media).findOne({
     where: { publicId: mediaPublicId },
-    select: ['id', 'publicId', 'nameRomaji'],
+    select: {
+      id: true,
+      publicId: true,
+      nameRomaji: true,
+    },
   });
   if (!media) throw new Error(`no media with publicId ${mediaPublicId}`);
 

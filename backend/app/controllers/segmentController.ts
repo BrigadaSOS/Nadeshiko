@@ -65,7 +65,12 @@ export const listSegments: ListSegments = async ({ params, query }, respond) => 
 };
 
 export const createSegment: CreateSegment = async ({ params, body }, respond) => {
-  const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId }, relations: ['externalIds'] });
+  const media = await Media.findOneOrFail({
+    where: { publicId: params.mediaPublicId },
+    relations: {
+      externalIds: true,
+    },
+  });
   const externalVideoId = await getEpisodeExternalVideoId(media.id, params.episodeNumber);
 
   const segment = Segment.create(
@@ -85,7 +90,12 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
 };
 
 export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body }, respond) => {
-  const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId }, relations: ['externalIds'] });
+  const media = await Media.findOneOrFail({
+    where: { publicId: params.mediaPublicId },
+    relations: {
+      externalIds: true,
+    },
+  });
 
   const primaryExternalId = getPrimaryExternalId(media);
   const externalVideoId = await getEpisodeExternalVideoId(media.id, params.episodeNumber);
@@ -166,7 +176,9 @@ export const listSegmentRevisions: ListSegmentRevisions = async ({ params }, res
 
   const revisions = await SegmentRevision.find({
     where: { segmentId: segment.id },
-    relations: ['user'],
+    relations: {
+      user: true,
+    },
     order: { revisionNumber: 'DESC' },
   });
 
@@ -191,7 +203,12 @@ export const restoreSegmentRevision: RestoreSegmentRevision = async ({ params },
 };
 
 export const moderateEpisodeSegments: ModerateEpisodeSegments = async ({ params, body }, respond, req) => {
-  const media = await Media.findOne({ where: { publicId: params.mediaPublicId }, select: ['id'] });
+  const media = await Media.findOne({
+    where: { publicId: params.mediaPublicId },
+    select: {
+      id: true,
+    },
+  });
   if (!media) {
     throw new NotFoundError(`Media with publicId ${params.mediaPublicId} not found`);
   }
@@ -235,7 +252,12 @@ async function findSegmentByUuidOrPublicId(
   if (!segment) {
     throw new NotFoundError('Segment not found');
   }
-  const media = await Media.findOneOrFail({ where: { id: segment.mediaId }, select: ['publicId'] });
+  const media = await Media.findOneOrFail({
+    where: { id: segment.mediaId },
+    select: {
+      publicId: true,
+    },
+  });
   return { segment, mediaPublicId: media.publicId };
 }
 
@@ -257,7 +279,9 @@ function getPrimaryExternalId(media: Media): string {
 async function getEpisodeExternalVideoId(mediaId: number, episodeNumber: number): Promise<string | null> {
   const episode = await Episode.findOne({
     where: { mediaId, episodeNumber },
-    select: ['externalVideoId'],
+    select: {
+      externalVideoId: true,
+    },
   });
   return episode?.externalVideoId ?? null;
 }

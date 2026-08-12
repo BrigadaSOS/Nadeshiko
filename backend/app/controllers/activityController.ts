@@ -42,7 +42,12 @@ export const getUserActivityStats: GetUserActivityStats = async ({ query }, resp
   const stats = await UserActivity.getStatsForUser(user.id, since);
   const mediaRows = await Media.find({
     where: stats.topMedia.map((item) => ({ publicId: item.mediaPublicId })),
-    select: ['publicId', 'nameEn', 'nameRomaji', 'nameJa'],
+    select: {
+      publicId: true,
+      nameEn: true,
+      nameRomaji: true,
+      nameJa: true,
+    },
   });
   const mediaByPublicId = new Map(mediaRows.map((media) => [media.publicId, media]));
 

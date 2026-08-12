@@ -197,10 +197,20 @@ export function toAdminReportFilters(query: ListAdminReportsQueryOutput): AdminR
 }
 
 export async function resolveReportPublicIdsForOne(report: Report): Promise<ReportPublicIds> {
-  const media = await Media.findOne({ where: { id: report.targetMediaId }, select: ['publicId'] });
+  const media = await Media.findOne({
+    where: { id: report.targetMediaId },
+    select: {
+      publicId: true,
+    },
+  });
   let segmentPublicId: string | null = null;
   if (report.targetSegmentId) {
-    const segment = await Segment.findOne({ where: { id: report.targetSegmentId }, select: ['publicId'] });
+    const segment = await Segment.findOne({
+      where: { id: report.targetSegmentId },
+      select: {
+        publicId: true,
+      },
+    });
     segmentPublicId = segment?.publicId ?? null;
   }
   return { mediaPublicId: media?.publicId ?? '', segmentPublicId };
@@ -211,8 +221,25 @@ export async function resolveReportPublicIds(reports: Report[]): Promise<ReportP
   const segmentIds = [...new Set(reports.map((r) => r.targetSegmentId).filter((id): id is number => id != null))];
 
   const [mediaEntries, segmentEntries] = await Promise.all([
-    mediaIds.length > 0 ? Media.find({ where: { id: In(mediaIds) }, select: ['id', 'publicId', 'nameRomaji'] }) : [],
-    segmentIds.length > 0 ? Segment.find({ where: { id: In(segmentIds) }, select: ['id', 'publicId'] }) : [],
+    mediaIds.length > 0
+      ? Media.find({
+          where: { id: In(mediaIds) },
+          select: {
+            id: true,
+            publicId: true,
+            nameRomaji: true,
+          },
+        })
+      : [],
+    segmentIds.length > 0
+      ? Segment.find({
+          where: { id: In(segmentIds) },
+          select: {
+            id: true,
+            publicId: true,
+          },
+        })
+      : [],
   ]);
 
   return {

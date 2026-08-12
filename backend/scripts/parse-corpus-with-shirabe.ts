@@ -70,7 +70,12 @@ async function run({ dryRun, after, limit, media }: Options): Promise<void> {
 
   let mediaId: number | null = null;
   if (media !== null) {
-    const row = await AppDataSource.getRepository(Media).findOne({ where: { publicId: media }, select: ['id'] });
+    const row = await AppDataSource.getRepository(Media).findOne({
+      where: { publicId: media },
+      select: {
+        id: true,
+      },
+    });
     if (!row) throw new Error(`no media with publicId ${media}`);
     mediaId = row.id;
   }
