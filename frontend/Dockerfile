@@ -78,6 +78,22 @@ COPY frontend/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENV HOST=0.0.0.0
 ENV PORT=3000
+
+# HEAP CAP, SET EXPLICITLY BECAUSE THE DEFAULT IS DERIVED AND THIS SERVICE HAS
+# ALREADY DIED OF IT ONCE (#484: `FATAL ERROR: JavaScript heap out of memory`
+# during a JST-morning spike). Node sizes the old space from the memory it can
+# see, so the cap silently tracks whatever the container is given that week --
+# fine until the container limit moves and nobody re-derives the heap.
+#
+# 1024 MiB inside the 1.5g cap set in `config/deploy.prod.yml`, NOT the 1536 an
+# earlier draft proposed: 1536 would let the JS heap alone claim the entire
+# container, leaving nothing for the things that are not the heap -- native
+# allocations, the OTel batch processor, Pino's buffers, sharp -- and the kernel
+# would kill the container instead of V8 running a GC. The ~500 MiB of headroom
+# is the point. Measured working set was 600-900 MiB peaking at 906.
+#
+# Raise BOTH numbers together, or neither.
+ENV NODE_OPTIONS=--max-old-space-size=1024
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
