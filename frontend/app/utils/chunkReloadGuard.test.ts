@@ -3,8 +3,40 @@ import {
   CHUNK_RELOAD_MAX_ATTEMPTS,
   CHUNK_RELOAD_WINDOW_MS,
   decideChunkReload,
+  isChunkLoadError,
   parseChunkReloadGuard,
 } from '~/utils/chunkReloadGuard';
+
+describe('isChunkLoadError', () => {
+  // The three real messages, because the engines do not agree on any substring
+  // longer than "module" and matching that alone would be far too loose.
+  it.each([
+    ['Chromium', 'Failed to fetch dynamically imported module: https://nadeshiko.co/_nuxt/DlAUqK2U.js'],
+    ['Firefox', 'error loading dynamically imported module: https://nadeshiko.co/_nuxt/DlAUqK2U.js'],
+    ['Safari', 'Importing a module script failed.'],
+  ])('recognises the %s wording', (_engine, message) => {
+    expect(isChunkLoadError(new TypeError(message))).toBe(true);
+  });
+
+  it('reads a rejection that is a bare string rather than an Error', () => {
+    expect(isChunkLoadError('Failed to fetch dynamically imported module: /_nuxt/x.js')).toBe(true);
+  });
+
+  // The reason this predicate is narrow: everything below is also a TypeError,
+  // and reloading the tab on any of them would throw away the reader's page for
+  // a failure a reload cannot fix.
+  it.each([
+    ['a plain network failure', new TypeError('Failed to fetch')],
+    ['an unrelated dereference', new TypeError("Cannot read properties of undefined (reading 'result')")],
+    ['an aborted request', new DOMException('The operation was aborted.', 'AbortError')],
+  ])('does not claim %s', (_label, error) => {
+    expect(isChunkLoadError(error)).toBe(false);
+  });
+
+  it.each([[null], [undefined], [{}]])('survives %s without throwing', (value) => {
+    expect(isChunkLoadError(value)).toBe(false);
+  });
+});
 
 describe('parseChunkReloadGuard', () => {
   it('treats a missing entry as no attempts yet', () => {
