@@ -272,6 +272,23 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       },
       expiresIn: 30 * 24 * 60 * 60,
       updateAge: 7 * 24 * 60 * 60,
+      // OFF DELIBERATELY, and it has to be off for the account page to work.
+      //
+      // better-auth's `freshSessionMiddleware` 403s (SESSION_NOT_FRESH) once a
+      // session is older than `freshAge`, which defaults to 24h. Sessions here
+      // live 30 days, so with the default every reader who logged in yesterday
+      // got a 403 -- and the only endpoint we expose that uses that middleware
+      // is `/list-sessions`, the one behind "active sessions" in settings. The
+      // panel was therefore broken for essentially everyone except people who
+      // had just signed in.
+      //
+      // The other consumer of the middleware is `/unlink-account`, which is in
+      // DISABLED_PATHS above, so this setting reaches exactly one route. There
+      // is nothing to protect there either: listing your own sessions is a read
+      // of your own data, not a sensitive mutation. The operations freshness is
+      // meant to gate (delete-user, change-email) do not use this middleware --
+      // check that again before raising this above 0.
+      freshAge: 0,
       storeSessionInDatabase: true,
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
