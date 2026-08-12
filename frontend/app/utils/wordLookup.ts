@@ -182,4 +182,7 @@ export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
 // `cacheKey` decides which two questions are the same question, and getting that
 // wrong is silent in both directions: too loose and two homographs share one
 // answer, too tight and every card refetches a word the page already has.
-export const __testing = { cacheKey };
+// `CACHE_LIMIT` is here so the eviction test can fill the map exactly to its
+// edge rather than hardcoding 600 in two places and silently testing nothing
+// the day the bound changes.
+export const __testing = { cacheKey, CACHE_LIMIT };
