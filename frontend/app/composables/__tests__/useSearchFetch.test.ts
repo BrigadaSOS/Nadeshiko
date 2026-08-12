@@ -247,9 +247,32 @@ describe('fetchSentences', () => {
     const fetcher = createSearchFetcher(fakeSdk);
     expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
   });
+
+  // A corpus search is the path an anonymous visitor takes, so it is the one that
+  // actually meets Cloudflare challenges and expired sessions. It used to call
+  // every empty response an error, unlike the collection path right above.
+  it('distinguishes a forbidden corpus search from a failed one', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 403 }) });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'forbidden' });
+
+    sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 401 }) });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'forbidden' });
+  });
 });
 
 describe('fetchStats', () => {
+  it('distinguishes a forbidden corpus stats fetch from a failed one', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 403 }) });
+    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'forbidden' });
+
+    sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 500 }) });
+    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error' });
+  });
+
   it('runs on its own sequence, independent of the result list', async () => {
     const slowStats = deferred<unknown>();
     sdkMocks.getSearchStats.mockReturnValueOnce(slowStats.promise);

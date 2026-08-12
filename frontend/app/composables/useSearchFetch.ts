@@ -155,6 +155,35 @@ export const buildStatsFilters = (scope: SearchScope): SearchFilters =>
 const isForbidden = (response: Response | undefined): boolean => response?.status === 401 || response?.status === 403;
 
 /**
+ * A response that came back without a body. 401/403 is the server telling the
+ * caller "not yours" -- expected, and reporting it only buys noise: Cloudflare
+ * challenges and expired sessions both land here, from clients we cannot fix.
+ *
+ * Everything else is reported HERE rather than by the caller, because this is
+ * the last place holding the status code. The page used to synthesize its own
+ * `new Error("... returned \"error\"")` from the bare outcome instead, which
+ * fingerprinted separately, carried no stack, and double-counted every failure
+ * the catch below had already reported with a real one.
+ */
+const emptyResponseOutcome = (
+  scope: 'collection' | 'corpus' | 'segment',
+  kind: 'sentences' | 'stats',
+  response: Response | undefined,
+): { status: 'forbidden' } | { status: 'error' } => {
+  if (isForbidden(response)) {
+    return { status: 'forbidden' };
+  }
+  // The status code stays OUT of the message and in the properties: it is the one
+  // part that varies, and interpolating it would fingerprint 500 apart from 503
+  // and scatter one fault across an issue per status code.
+  reportError(`search:${kind}-fetch-failed`, new Error(`search ${kind} fetch returned an empty response`), {
+    'search.scope': scope,
+    'http.status_code': String(response?.status ?? 0),
+  });
+  return { status: 'error' };
+};
+
+/**
  * The two search fetches (result list and tab statistics) shared by the search
  * page's SSR priming and the client-side container, each guarded by its own
  * sequencer so a route change can cancel the request it replaces.
@@ -182,7 +211,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         if (stale()) return { status: 'stale' };
         const segment = segmentResult.data;
         if (!segment) {
-          return { status: 'error' };
+          return emptyResponseOutcome('segment', 'sentences', segmentResult.response);
         }
 
         const mediaResult = await getMedia({
@@ -214,7 +243,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         });
         if (stale()) return { status: 'stale' };
         if (!result.data) {
-          return { status: isForbidden(result.response) ? 'forbidden' : 'error' };
+          return emptyResponseOutcome('collection', 'sentences', result.response);
         }
         return { status: 'ok', data: resolveSearchResponse(result.data) };
       }
@@ -232,7 +261,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
       });
       if (stale()) return { status: 'stale' };
       if (!result.data) {
-        return { status: 'error' };
+        return emptyResponseOutcome('corpus', 'sentences', result.response);
       }
       return { status: 'ok', data: resolveSearchResponse(result.data) };
     } catch (error) {
@@ -257,7 +286,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         });
         if (stale()) return { status: 'stale' };
         if (!result.data) {
-          return { status: isForbidden(result.response) ? 'forbidden' : 'error' };
+          return emptyResponseOutcome('collection', 'stats', result.response);
         }
         return { status: 'ok', data: resolveStatsResponse(result.data) };
       }
@@ -272,7 +301,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
       });
       if (stale()) return { status: 'stale' };
       if (!result.data) {
-        return { status: 'error' };
+        return emptyResponseOutcome('corpus', 'stats', result.response);
       }
       return { status: 'ok', data: resolveStatsResponse(result.data) };
     } catch (error) {

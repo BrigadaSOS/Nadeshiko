@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { SearchScope } from '~/composables/useSearchFetch';
 import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
-import { reportError } from '~/utils/reportError';
 import { splitLocalePrefix } from '~/utils/routes';
 
 const { t } = useI18n();
@@ -60,11 +59,9 @@ const fetchStatsData = async () => {
   if (outcome.status === 'ok') {
     return outcome.data;
   }
-  if (outcome.status !== 'stale') {
-    reportError('search:stats-fetch-failed', new Error(`search stats fetch returned "${outcome.status}"`), {
-      'search.outcome': outcome.status,
-    });
-  }
+  // Failures are reported inside `fetchStats`, which still has the response and
+  // can tell a 403 apart from a real error. Re-reporting the bare outcome here
+  // only produced a stackless duplicate of something already captured.
   return null;
 };
 
