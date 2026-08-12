@@ -28,19 +28,11 @@ export type DictionaryPreset = {
   required?: boolean;
 };
 
+// Order here is the order readers see, both in settings and in the link row on
+// the card. shirabe.org leads: it is the one preset that is always on, and the
+// dictionary the card is built from, so it is the odd one out at any other
+// position -- a permanently-enabled entry sitting third reads like an accident.
 export const DICTIONARY_PRESETS: DictionaryPreset[] = [
-  {
-    id: 'jisho',
-    label: 'Jisho',
-    buildUrl: (word) => `https://jisho.org/search/${encodeURIComponent(word)}`,
-    defaultEnabled: false,
-  },
-  {
-    id: 'jpdb',
-    label: 'JPDB',
-    buildUrl: (word) => `https://jpdb.io/search?q=${encodeURIComponent(word)}`,
-    defaultEnabled: false,
-  },
   {
     // The dictionary behind the hover card itself, so it is where a reader who
     // wants more than the card holds lands by default. A web page rather than
@@ -54,6 +46,18 @@ export const DICTIONARY_PRESETS: DictionaryPreset[] = [
     buildUrl: (word, _reading, slug, locale) => shirabeWordUrl(slug ?? word, locale),
     defaultEnabled: true,
     required: true,
+  },
+  {
+    id: 'jisho',
+    label: 'Jisho',
+    buildUrl: (word) => `https://jisho.org/search/${encodeURIComponent(word)}`,
+    defaultEnabled: false,
+  },
+  {
+    id: 'jpdb',
+    label: 'JPDB',
+    buildUrl: (word) => `https://jpdb.io/search?q=${encodeURIComponent(word)}`,
+    defaultEnabled: false,
   },
   {
     id: 'weblio',

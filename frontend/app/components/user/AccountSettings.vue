@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
+import { NadeshikoError, type UserPreferences } from '@brigadasos/nadeshiko-sdk';
 
 import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
@@ -83,7 +83,18 @@ const mediaNameExample = computed(() => {
   return mediaNameExamples[lang] ?? mediaNameExamples.ENGLISH;
 });
 
-// Content rating preview segment
+// Content rating preview segment.
+//
+// A hand-picked segment, so it can be retired from the catalogue without anyone
+// touching this file -- and it was: `skU_sjEmsvrE` started 404ing some time
+// before 2026-08-11 and took the preview card with it. Silently, because the
+// card is behind `v-if="previewSegment"`. What was NOT silent was the report
+// below, which fired on every settings visit and became the top unexplained
+// issue in error tracking (`NadeshikoError: Segment not found`).
+//
+// So a 404 here is an expected end-of-life for a curated id, not an incident:
+// it is left unreported and the card just does not render. Anything else (5xx,
+// network, a malformed body) is still a real failure and still reported.
 const PREVIEW_SEGMENT_UUID = 'skU_sjEmsvrE';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
   sdk
@@ -92,7 +103,10 @@ const { data: previewData } = await useLazyAsyncData('content-rating-preview', (
     // Decorative preview for the content-rating setting: the panel renders fine
     // without it, so a failure must not interrupt the settings page.
     .catch((error: unknown) => {
-      reportError('account:content-rating-preview-failed', error);
+      const retired = error instanceof NadeshikoError && error.status === 404;
+      if (!retired) {
+        reportError('account:content-rating-preview-failed', error);
+      }
       return null;
     }),
 );
