@@ -135,6 +135,14 @@ const submitCreate = async () => {
   }
 };
 
+// Collections get Japanese names, so Enter here may be confirming an IME
+// conversion rather than submitting -- see #399. Renaming is the one that
+// really bites: `renameValue` still holds the old name at that point, so the
+// confirming press would rename the collection to what it was already called
+// and close the modal over the reader's typing.
+const renameEnterSubmit = useEnterSubmit(submitRename);
+const createEnterSubmit = useEnterSubmit(submitCreate);
+
 // Toggle visibility
 const visibilityTarget = ref<Collection | null>(null);
 const isTogglingVisibility = ref(false);
@@ -353,7 +361,7 @@ const submitDelete = async () => {
           type="text"
           maxlength="100"
           class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
-          @keydown.enter="submitRename"
+          v-on="renameEnterSubmit"
         />
       </div>
       <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
@@ -400,7 +408,7 @@ const submitDelete = async () => {
           maxlength="100"
           :placeholder="t('accountSettings.collections.namePlaceholder')"
           class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
-          @keydown.enter="submitCreate"
+          v-on="createEnterSubmit"
         />
       </div>
       <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">

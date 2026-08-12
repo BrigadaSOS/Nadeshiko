@@ -41,6 +41,12 @@ const allVisibleSelected = computed(() => {
 const startEditNotes = (reportId: number, adminNotes: string | null | undefined) => {
   props.editingNotes[reportId] = adminNotes || '';
 };
+
+// Notes quote the sentence being reported, so they are often Japanese and Enter
+// may be confirming an IME conversion rather than saving -- see #399. One row
+// per open draft, so the listeners are built per id; the guard itself is keyed
+// by element and survives that.
+const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-notes', reportId));
 </script>
 
 <template>
@@ -151,7 +157,7 @@ const startEditNotes = (reportId: number, adminNotes: string | null | undefined)
                 <input
                   v-model="editingNotes[report.id]"
                   class="w-full rounded border border-neutral-600 bg-neutral-800 text-white px-2 py-1 text-xs"
-                  @keyup.enter="emit('save-notes', report.id)"
+                  v-on="notesEnterSubmit(report.id)"
                   @keyup.escape="delete editingNotes[report.id]"
                 />
                 <button class="text-xs text-blue-400 hover:text-blue-300 mt-1" @click="emit('save-notes', report.id)">{{ t('reports.admin.save') }}</button>

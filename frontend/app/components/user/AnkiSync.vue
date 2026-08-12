@@ -131,6 +131,10 @@ const confirmNameModal = async () => {
   }
 };
 
+// Profile names are routinely Japanese, so Enter may be confirming an IME
+// conversion rather than submitting -- see #399.
+const nameModalEnterSubmit = useEnterSubmit(confirmNameModal);
+
 const deleteCurrentProfile = async () => {
   const active = store.activeProfile;
   if (!active) return;
@@ -521,7 +525,7 @@ watch(ankiconnectAddress, (newValue) => {
         type="text"
         :placeholder="$t('accountSettings.anki.profileNamePlaceholder')"
         class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-input-focus-ring focus:border-input-focus-ring"
-        @keydown.enter="confirmNameModal"
+        v-on="nameModalEnterSubmit"
       />
       <div class="flex justify-end gap-2 mt-4">
         <button
