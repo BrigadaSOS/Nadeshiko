@@ -43,7 +43,13 @@ export const listAgentActivity: ListAgentActivity = async ({ query }, respond) =
   // the page.
   const mediaIds = [...new Set(revisions.map((r) => r.segment.mediaId))];
   const media = mediaIds.length
-    ? await Media.find({ where: mediaIds.map((id) => ({ id })), select: ['id', 'publicId'] })
+    ? await Media.find({
+        where: mediaIds.map((id) => ({ id })),
+        select: {
+          id: true,
+          publicId: true,
+        },
+      })
     : [];
   const mediaPublicIdById = new Map(media.map((m) => [m.id, m.publicId]));
 

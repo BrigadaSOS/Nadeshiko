@@ -154,7 +154,10 @@ export class Media extends BaseEntity {
 
     Media.inFlightInfoMap = Cache.getOrCompute(MEDIA_INFO_CACHE, 'all', MEDIA_INFO_TTL_MS, async () => {
       const allMedia = await Media.find({
-        relations: ['episodes', 'externalIds'],
+        relations: {
+          episodes: true,
+          externalIds: true,
+        },
         order: { createdAt: 'DESC' },
       });
 

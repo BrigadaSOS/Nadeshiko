@@ -31,7 +31,11 @@ import { SegmentIndexer } from '@app/services/search/segmentDocument/SegmentInde
 async function run(mediaPublicId: string): Promise<void> {
   const media = await AppDataSource.getRepository(Media).findOne({
     where: { publicId: mediaPublicId },
-    select: ['id', 'publicId', 'nameRomaji'],
+    select: {
+      id: true,
+      publicId: true,
+      nameRomaji: true,
+    },
   });
   if (!media) throw new Error(`no media with publicId ${mediaPublicId}`);
 
