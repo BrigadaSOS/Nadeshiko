@@ -2,6 +2,7 @@ import {
   CHUNK_RELOAD_STORAGE_KEY,
   CHUNK_RELOAD_WINDOW_MS,
   decideChunkReload,
+  isChunkLoadError,
   parseChunkReloadGuard,
 } from '~/utils/chunkReloadGuard';
 import { reportError } from '~/utils/reportError';
@@ -48,13 +49,13 @@ export default defineNuxtPlugin({
       pendingPath = null;
     });
 
-    nuxtApp.hook('app:chunkError', ({ error }) => {
+    const recover = (error: unknown, source: string) => {
       const target = pendingPath ?? `${window.location.pathname}${window.location.search}`;
 
       // A reload cannot fetch the missing chunk while the client is offline, and
       // would drop whatever unsaved state the page holds for nothing.
       if (navigator.onLine === false) {
-        reportError('app:chunk-error-offline', error, { 'chunk.target': target });
+        reportError('app:chunk-error-offline', error, { 'chunk.target': target, 'chunk.source': source });
         return;
       }
 
@@ -65,6 +66,7 @@ export default defineNuxtPlugin({
         // let the error reach the user instead of cycling the tab.
         reportError('app:chunk-error-unrecoverable', error, {
           'chunk.target': target,
+          'chunk.source': source,
           'chunk.attempts': String(guard.attempts),
         });
         return;
@@ -76,6 +78,28 @@ export default defineNuxtPlugin({
       // above; `persistState` is deliberately off, because the state was produced
       // by the build we are reloading away from.
       reloadNuxtApp({ path: target, force: true, ttl: CHUNK_RELOAD_WINDOW_MS });
+    };
+
+    nuxtApp.hook('app:chunkError', ({ error }) => recover(error, 'hook'));
+
+    // THE HOOK ABOVE DOES NOT SEE EVERY ORPHANED CHUNK, which is why this second
+    // entry point exists. Nuxt raises `app:chunkError` from Vite's
+    // `vite:preloadError`, and Vite only emits that for imports it wrapped in its
+    // preload helper. A layout is loaded by a plain `() => import(...)` out of
+    // `virtual:nuxt:/app/.nuxt/layouts.mjs`, so a 404 on a layout chunk rejects
+    // with nothing listening and the reader stays on a half-rendered page.
+    //
+    // That gap WAS this error in production: every occurrence arrived through the
+    // global handler and none through the hook. Reusing the same budget matters --
+    // both paths can fire for one broken build, and they must share one allowance
+    // rather than get two each.
+    window.addEventListener('unhandledrejection', (event) => {
+      if (!isChunkLoadError(event.reason)) return;
+
+      // Claimed, so the global error reporter does not also file it as an
+      // unexplained TypeError while the tab is already reloading.
+      event.preventDefault();
+      recover(event.reason, 'unhandledrejection');
     });
   },
 });
