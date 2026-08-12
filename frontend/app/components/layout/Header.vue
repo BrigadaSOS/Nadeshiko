@@ -44,6 +44,9 @@ async function submitSidebarSearch() {
   await navigateTo(localePath(`/search/${encodeURIComponent(term)}`));
 }
 
+// Enter submits, except when it is confirming an IME conversion -- see #399.
+const sidebarEnterSubmit = useEnterSubmit(submitSidebarSearch);
+
 // Links inside the drawer navigate away; close it so it isn't left open behind
 // the new page.
 const route = useRoute();
@@ -198,7 +201,7 @@ watch(() => route.fullPath, closeNavSidebar);
         <div class="flex flex-col h-[calc(100%-57px)]">
             <div class="px-4 py-3 border-b dark:border-neutral-700">
                 <div class="relative">
-                    <input v-model="sidebarSearch" @keydown.enter="submitSidebarSearch"
+                    <input v-model="sidebarSearch" v-on="sidebarEnterSubmit"
                         class="w-full pl-9 pr-3 py-2 bg-neutral-700/50 text-white text-sm rounded-lg border border-white/10 placeholder-neutral-400 focus:outline-none focus:border-input-focus-ring"
                         :placeholder="$t('common.searchAnything')" />
                     <UiBaseIcon :path="mdiMagnify" :size="16"

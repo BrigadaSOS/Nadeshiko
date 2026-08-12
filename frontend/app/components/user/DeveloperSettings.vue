@@ -167,6 +167,11 @@ const confirmCreateApiKey = async () => {
   }
 };
 
+// Key labels are free text and readers do name them in Japanese, so Enter may
+// be confirming an IME conversion rather than submitting -- see #399.
+const createKeyEnterSubmit = useEnterSubmit(confirmCreateApiKey);
+const renameKeyEnterSubmit = useEnterSubmit(confirmRenameApiKey);
+
 const deactivateApiKey = async (item: ApiKeyListItem) => {
   try {
     isLoading.value = true;
@@ -478,7 +483,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                 type="text"
                                 class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:bg-modal-input dark:border-white/5 dark:text-white"
                                 :placeholder="$t('accountSettings.developer.createApiKeyModal.namePlaceholder')"
-                                @keydown.enter="confirmCreateApiKey"
+                                v-on="createKeyEnterSubmit"
                             />
                         </div>
                     </div>
@@ -533,7 +538,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                 type="text"
                                 class="w-full px-3 py-2 border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:bg-modal-input dark:border-white/5 dark:text-white"
                                 :placeholder="$t('accountSettings.developer.renameApiKeyModal.namePlaceholder')"
-                                @keydown.enter="confirmRenameApiKey"
+                                v-on="renameKeyEnterSubmit"
                             />
                         </div>
                     </div>
