@@ -108,31 +108,40 @@ jobs:
           "$REDOCLY" bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
           "$REDOCLY" bundle main -o docs/generated/openapi.yaml --remove-unused-components
 
+      # `review: false` on every oasdiff step below. It is a v0.1 addition that
+      # DEFAULTS TO TRUE, so taking the upgrade without it silently turns these
+      # three steps into PR commenters -- the job would start posting reviews it
+      # has never posted before. The step summary and the job status are how this
+      # repo surfaces spec changes; keep it that way, and drop these lines only
+      # deliberately.
       - name: Check public API breaking changes
-        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.3
+        uses: oasdiff/oasdiff-action/breaking@v0.1.12
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
           fail-on: ERR
+          review: false
 
       # Warn-only: the internal spec is consumed by first-party clients (frontend,
       # discord, SDKs) that ship alongside the backend, so breaking it is allowed
       # but should be visible in review.
       - name: Check internal API breaking changes
         continue-on-error: true
-        uses: oasdiff/oasdiff-action/breaking@v0.0.40-beta.3
+        uses: oasdiff/oasdiff-action/breaking@v0.1.12
         with:
           base: base/backend/docs/generated/openapi.yaml
           revision: head/backend/docs/generated/openapi.yaml
           fail-on: ERR
+          review: false
 
       - name: Generate public API changelog
-        uses: oasdiff/oasdiff-action/changelog@v0.0.40-beta.3
+        uses: oasdiff/oasdiff-action/changelog@v0.1.12
         with:
           base: base/backend/docs/generated/openapi-public.yaml
           revision: head/backend/docs/generated/openapi-public.yaml
           format: markdown
           output-to-file: head/backend/docs/generated/openapi-changelog.md
+          review: false
 
       - name: Publish OpenAPI changelog summary
         run: cat head/backend/docs/generated/openapi-changelog.md >> "$GITHUB_STEP_SUMMARY"
