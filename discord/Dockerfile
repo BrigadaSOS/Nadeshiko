@@ -25,11 +25,21 @@ COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
 # stage that exports nothing but the compiled binding.
 FROM manifests AS native
 RUN npm ci --workspace discord --include-workspace-root
+# ASK NODE WHERE THE PACKAGE IS rather than assuming `discord/node_modules`.
+# npm hoists to the root whenever nothing conflicts, so the directory this used
+# to hardcode exists only while some other workspace disagrees about the version.
+# On 2026-08-12 frontend's `db0` and discord landed on the same better-sqlite3,
+# npm deduplicated them to /build/node_modules, and the `cd` below failed --
+# breaking every discord deploy, on a bump that had nothing to do with the bot.
 # `--force_build=1` is what makes binding.gyp compile, instead of stamping a
 # placeholder next to the prebuild it would otherwise expect to be used.
-RUN cd discord/node_modules/better-sqlite3 \
-  && /build/discord/node_modules/.bin/node-gyp rebuild --release --force_build=1 \
-  && test -f build/Release/better_sqlite3.node
+RUN BS3="$(node -p "require('path').dirname(require.resolve('better-sqlite3/package.json', { paths: ['/build/discord'] }))")" \
+  && NODE_GYP="$(node -p "require.resolve('node-gyp/bin/node-gyp.js', { paths: ['/build/discord'] })")" \
+  && cd "$BS3" \
+  && node "$NODE_GYP" rebuild --release --force_build=1 \
+  && test -f build/Release/better_sqlite3.node \
+  && mkdir -p /native \
+  && cp build/Release/better_sqlite3.node /native/
 
 FROM manifests AS build
 # A second, separate install: `npm prune --omit=dev` leaves parts of the dev tree
@@ -37,10 +47,18 @@ FROM manifests AS build
 RUN npm ci --workspace discord --include-workspace-root --omit=dev
 # Drop the unusable prebuilds so better-sqlite3's v13 loader falls back to
 # build/Release/better_sqlite3.node, then graft on the binding compiled above.
-RUN rm -rf discord/node_modules/better-sqlite3/prebuilds
-COPY --from=native \
-  /build/discord/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
-  discord/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+#
+# Staged through /native because `COPY --from` takes a literal path and cannot
+# ask node anything; the shell steps either side are what tolerate the package
+# being hoisted. The `rm -rf` was already placement-proof by accident -- it
+# silently succeeded on a path that no longer existed, which is exactly why the
+# failure surfaced one step later in the `native` stage instead of here.
+COPY --from=native /native/better_sqlite3.node /native/better_sqlite3.node
+RUN BS3="$(node -p "require('path').dirname(require.resolve('better-sqlite3/package.json', { paths: ['/build/discord'] }))")" \
+  && rm -rf "$BS3/prebuilds" \
+  && mkdir -p "$BS3/build/Release" \
+  && cp /native/better_sqlite3.node "$BS3/build/Release/better_sqlite3.node" \
+  && rm -rf /native
 
 COPY discord discord
 COPY packages/nadeshiko-sdk packages/nadeshiko-sdk
