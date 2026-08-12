@@ -17,7 +17,7 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "^0.99.0",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.4",
+    "vitest": "^4.1.10",
     "yaml": "^2.8.2"
   },
   "description": "Typed Nadeshiko API client used by the frontend and the Discord bot."

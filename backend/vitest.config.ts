@@ -28,8 +28,14 @@ export default defineConfig({
     // The suite shares one local Postgres and one Elasticsearch index, and
     // files truncate each other's fixtures. A single fork running files one at
     // a time is a correctness requirement, not a tidiness preference.
+    //
+    // `maxWorkers: 1` is vitest 4's spelling of what was
+    // `poolOptions: { forks: { singleFork: true } }`. That key was removed in v4
+    // and is now a type error rather than a silent no-op -- worth knowing,
+    // because a config that merely stopped being READ would have left the suite
+    // sharing a database across parallel forks and failing at random.
     pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
+    maxWorkers: 1,
     fileParallelism: false,
     // No `bail`. The old bunfig set `bail = 1` to keep a broken shared fixture
     // from producing hundreds of derived failures, but stopping at the first
