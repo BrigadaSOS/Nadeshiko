@@ -186,13 +186,21 @@ export const ankiStore = defineStore('anki', {
         return await response.json();
       } catch (error) {
         reportError('anki:connect-request-failed', error, { 'anki.action': action });
+        // AnkiConnect is unreachable (Anki closed, add-on disabled, CORS refused).
+        // Returning null explicitly -- every caller must treat this as "no answer"
+        // rather than dereferencing `.result` off undefined.
+        return null;
       }
     },
 
     async loadAnkiData() {
       if (!import.meta.client) return;
       try {
-        await this.requestPermission();
+        const permission = await this.requestPermission();
+        if (permission === null) {
+          throw new Error('AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?');
+        }
+
         const decks = await this.getAllDeckNames();
         const models = await this.getAllModels();
 
@@ -217,26 +225,26 @@ export const ankiStore = defineStore('anki', {
     },
 
     async requestPermission(): Promise<string | null> {
-      const response = (await this.executeAction('requestPermission')) as PermissionResponse;
+      const response = (await this.executeAction('requestPermission')) as PermissionResponse | null;
       return response?.result?.permission ?? null;
     },
 
     async getAllDeckNames(): Promise<string[]> {
-      const response = (await this.executeAction('deckNames')) as DeckNamesResponse;
-      return response.result;
+      const response = (await this.executeAction('deckNames')) as DeckNamesResponse | null;
+      return response?.result ?? [];
     },
 
     async getAllModels(): Promise<string[]> {
-      const response = (await this.executeAction('modelNames')) as ModelNamesResponse;
-      return response.result;
+      const response = (await this.executeAction('modelNames')) as ModelNamesResponse | null;
+      return response?.result ?? [];
     },
 
     async getAllModelFieldNames(modelName: string): Promise<string[]> {
       const response = (await this.executeAction('modelFieldNames', {
         modelName: modelName,
-      })) as ModelFieldNamesResponse;
+      })) as ModelFieldNamesResponse | null;
 
-      return response.result;
+      return response?.result ?? [];
     },
 
     async getNotesWithCurrentKey(query: string, n: number = 5): Promise<Array<{ noteId: number; value: string }>> {
@@ -245,17 +253,17 @@ export const ankiStore = defineStore('anki', {
       try {
         const currentKey = this.activeProfile?.key ?? '';
 
-        const response = (await this.executeAction('findNotes', { query: query })) as FindNotesResponse;
+        const response = (await this.executeAction('findNotes', { query: query })) as FindNotesResponse | null;
 
-        if (response.result && response.result.length === 0) {
+        if (!response?.result?.length) {
           return [];
         }
 
         const notesRes = (await this.executeAction('notesInfo', {
           notes: response.result.slice(0, n),
-        })) as NotesInfoResponse;
+        })) as NotesInfoResponse | null;
 
-        const notesInfo = notesRes.result.map((note) => {
+        const notesInfo = (notesRes?.result ?? []).map((note) => {
           if (!note.fields[currentKey]) {
             return { noteId: note.noteId, value: 'None' };
           }
@@ -358,15 +366,17 @@ export const ankiStore = defineStore('anki', {
           queryParts.push('added:2 is:new');
           queryString = queryParts.join(' ');
 
-          const response = (await this.executeAction('findNotes', { query: queryString })) as FindNotesResponse;
-          const noteIDs = response.result;
+          const response = (await this.executeAction('findNotes', { query: queryString })) as FindNotesResponse | null;
+          const noteIDs = response?.result ?? [];
 
           const latestCard = noteIDs.reduce((a: number, b: number) => Math.max(a, b), -1);
 
           if (!latestCard || latestCard === -1) {
             const globalQuery = `"note:${profile.model}" added:2 is:new`;
-            const globalResponse = (await this.executeAction('findNotes', { query: globalQuery })) as FindNotesResponse;
-            if (globalResponse.result && globalResponse.result.length > 0) {
+            const globalResponse = (await this.executeAction('findNotes', {
+              query: globalQuery,
+            })) as FindNotesResponse | null;
+            if (globalResponse?.result && globalResponse.result.length > 0) {
               useToastError($i18n.t('anki.toast.cardFoundInOtherDeck', { deck: profile.deck }));
             } else {
               useToastError($i18n.t('anki.toast.noCardToExport'));
@@ -377,7 +387,10 @@ export const ankiStore = defineStore('anki', {
           cardID = latestCard;
         }
 
-        const infoResponse = await this.executeAction('notesInfo', { notes: [cardID] });
+        const infoResponse = (await this.executeAction('notesInfo', { notes: [cardID] })) as NotesInfoResponse | null;
+        if (!infoResponse?.result) {
+          throw new Error('AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?');
+        }
         const infoCard = infoResponse.result;
 
         const needsImage = profile.fields.some((f) => f.value?.includes('{image}'));
@@ -545,8 +558,8 @@ export const ankiStore = defineStore('anki', {
     },
 
     async guiBrowse(query: string): Promise<number[]> {
-      const response = (await this.executeAction('guiBrowse', { query: query })) as GuiBrowseResponse;
-      return response.result;
+      const response = (await this.executeAction('guiBrowse', { query: query })) as GuiBrowseResponse | null;
+      return response?.result ?? [];
     },
 
     async migrateFromLocalStorage() {
