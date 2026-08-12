@@ -174,7 +174,13 @@ export const bulkDeleteAdminReports: BulkDeleteAdminReports = async ({ body }, r
 async function resolveReportTarget(
   target: CreateReportRequestOutput['target'],
 ): Promise<{ segmentId: number | null; mediaId: number }> {
-  const media = await Media.findOne({ where: { publicId: target.mediaPublicId }, select: ['id', 'publicId'] });
+  const media = await Media.findOne({
+    where: { publicId: target.mediaPublicId },
+    select: {
+      id: true,
+      publicId: true,
+    },
+  });
   if (!media) {
     throw new NotFoundError(`Media with publicId ${target.mediaPublicId} not found`);
   }

@@ -161,7 +161,12 @@ export const addSegmentToCollection: AddSegmentToCollection = async ({ params, b
 export const updateCollectionSegment: UpdateCollectionSegment = async ({ params, body }, respond, req) => {
   const collection = await loadOwnedCollection(req, params.collectionPublicId);
 
-  const segment = await Segment.findOneOrFail({ where: { publicId: params.segmentPublicId }, select: ['id'] });
+  const segment = await Segment.findOneOrFail({
+    where: { publicId: params.segmentPublicId },
+    select: {
+      id: true,
+    },
+  });
 
   const item = await CollectionSegment.findOneOrFail({
     where: { collectionId: collection.id, segmentId: segment.id },
@@ -177,7 +182,12 @@ export const updateCollectionSegment: UpdateCollectionSegment = async ({ params,
 export const removeSegmentFromCollection: RemoveSegmentFromCollection = async ({ params }, respond, req) => {
   const collection = await loadOwnedCollection(req, params.collectionPublicId);
 
-  const segment = await Segment.findOneOrFail({ where: { publicId: params.segmentPublicId }, select: ['id'] });
+  const segment = await Segment.findOneOrFail({
+    where: { publicId: params.segmentPublicId },
+    select: {
+      id: true,
+    },
+  });
 
   await CollectionSegment.deleteOrFail({
     where: { collectionId: collection.id, segmentId: segment.id },
