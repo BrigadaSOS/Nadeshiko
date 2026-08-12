@@ -8,8 +8,55 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
 
+    # GROUPED, because ungrouped this entry produced one PR per package and then
+    # silently stopped. On 2026-08-12 there were exactly 10 npm PRs open against
+    # a limit of 10 -- the cap was reached, so packages past the tenth were not
+    # being offered at all and the queue looked shorter than it was.
+    #
+    # Patch and minor updates carry the churn and almost none of the risk, so
+    # they land as one PR per week per area and are reviewed as a batch. Majors
+    # stay individual: those need reading a changelog, and grouping them would
+    # bury a breaking change behind nine harmless ones.
+    groups:
+      backend-minor:
+        applies-to: version-updates
+        patterns: ['*']
+        exclude-patterns:
+          # The vendored SDK is a workspace package. Its published version on npm
+          # is a MIRROR and currently trails the local one (2.3.1 vs 2.3.2), so an
+          # "update" here is a downgrade onto a stale copy. It is regenerated from
+          # the OpenAPI spec, never bumped.
+          - '@brigadasos/nadeshiko-sdk'
+        update-types: ['minor', 'patch']
+
+    ignore:
+      # Same reason as the exclude above, enforced for security updates too: this
+      # package is never resolved from the registry.
+      - dependency-name: '@brigadasos/nadeshiko-sdk'
+
+      # These four publish a `latest` dist-tag that is OLDER than what is
+      # installed, so Dependabot reads them as upgrades and proposes a rollback.
+      # Verified 2026-08-12; drop an entry once its registry `latest` passes the
+      # installed version again.
+      #   nuxt              4.5.2      -> latest 4.4.5
+      #   node-gyp          13.0.1     -> latest 12.4.0
+      #   @types/pino       7.0.5      -> latest 7.0.4
+      #   vue-toastification 2.0.0-rc.5 -> latest 1.7.14 (running a prerelease)
+      - dependency-name: 'nuxt'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'node-gyp'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/pino'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vue-toastification'
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      actions-minor:
+        applies-to: version-updates
+        patterns: ['*']
+        update-types: ['minor', 'patch']
