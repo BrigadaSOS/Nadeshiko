@@ -17,6 +17,27 @@ COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
 # db/, lib/ or generated/ imports a devDependency; the bin/ scripts that do
 # (generateBrunoCollection, generateErrorProfiles, ...) are code generators that
 # only ever run in dev and CI, never in a deployed container.
+# A TOOLCHAIN, FOR A MODULE THIS SERVICE DOES NOT USE. `npm ci` reconciles the
+# whole workspace set (see above), so `better-sqlite3` -- discord's driver, and an
+# optional peer of typeorm and better-auth -- is installed here even though the
+# API only ever talks to Postgres. It publishes no prebuilt binaries at all, so
+# npm runs `node-gyp rebuild`, and node:24-slim has no Python: the build dies on
+# a driver nothing imports.
+#
+# This surfaced on 2026-08-12 after an unrelated version bump moved which copy
+# won hoisting -- from `discord/node_modules`, which this image never installs,
+# to the root, which it does. Nothing about the API changed. That it worked
+# before was luck about placement, not a property anyone had chosen.
+#
+# `--omit=optional` does NOT fix it: the copy that gets built is discord's, and
+# there it is a plain dependency. Removing discord's manifest is not an option
+# either -- `npm ci` needs every workspace manifest present to match the lockfile.
+# So: give the build stage a compiler. It is discarded before the release stage,
+# so the shipped image is unchanged.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN npm ci --workspace backend --include-workspace-root --omit=dev
 
 COPY backend backend

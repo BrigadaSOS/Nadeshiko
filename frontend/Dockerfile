@@ -89,8 +89,14 @@ ENV PORT=3000
 # earlier draft proposed: 1536 would let the JS heap alone claim the entire
 # container, leaving nothing for the things that are not the heap -- native
 # allocations, the OTel batch processor, Pino's buffers, sharp -- and the kernel
-# would kill the container instead of V8 running a GC. The ~500 MiB of headroom
-# is the point. Measured working set was 600-900 MiB peaking at 906.
+# would kill the container instead of V8 running a GC.
+#
+# The flag caps the OLD SPACE, not the heap: V8 reports a 1216 MiB
+# `heap_size_limit` for this value once the young generation is added, measured
+# in this image. So the real headroom against the 1536 MiB container is ~320
+# MiB, not the ~500 the arithmetic suggests. Still comfortably above the
+# measured working set of 600-900 MiB peaking at 906, but check the reported
+# limit rather than the flag if these numbers ever move.
 #
 # Raise BOTH numbers together, or neither.
 ENV NODE_OPTIONS=--max-old-space-size=1024
