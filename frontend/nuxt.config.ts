@@ -363,6 +363,35 @@ export default defineNuxtConfig({
     // Locale detection + redirect from / is handled in server/middleware/00-locale-router.ts
     // so it can run at the HTTP layer with proper Cache-Control on each branch.
     detectBrowserLanguage: false,
+    // Make the module's own `/_i18n/:hash/:locale/messages.json` route cacheable. Every
+    // browser asks for it, and until these two knobs were set it answered with
+    // `Cache-Control: max-age=-1` -- so nothing ever cached it and every navigation
+    // asked again. That is what put it at 75% of all SSR requests during the #484
+    // window, 275k hits in three hours.
+    //
+    // Worth being precise about what it is NOT, because #484 guessed wrong and the
+    // guess is plausible: this route does not serve our messages. They come from
+    // i18n.config.ts, which is bundled into the app, so the server route has no file
+    // loaders to read and answers `{"en":{}}` -- nine bytes, verified against prod. The
+    // cost was never bytes or JSON work, only the round trip, and the round trip is
+    // what a cacheable answer removes.
+    //
+    // `cacheLifetime` is the gate, and its default is the trap: the module reads it as
+    // -1, caching off, unless some locale declares a `file:` -- and ours are inline.
+    // `httpCacheDuration` is what the handler then writes into Cache-Control, and its
+    // own default is 10 SECONDS, short enough to be worth almost nothing on its own.
+    //
+    // A day is safe because the `:hash` segment is a content hash per locale, so these
+    // URLs are immutable and a deploy is the only invalidation event -- the same reason
+    // /api/shirabe/** below gets 86400.
+    //
+    // Both live under `experimental`, so this is the one part of the config a minor
+    // @nuxtjs/i18n bump can rename out from under us (pinned ^10.6.0). If the messages
+    // route ever shows up hot in the SSR logs again, check these names first.
+    experimental: {
+      cacheLifetime: 60 * 60 * 24,
+      httpCacheDuration: 60 * 60 * 24,
+    },
   },
   compatibilityDate: '2024-07-28',
   build: {
