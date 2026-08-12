@@ -4,10 +4,21 @@ image: brigadasos/nadeshiko-frontend-prod
 servers:
   web:
     options:
-      # Memory limit: 1GB RAM + 256MB swap
-      # Nuxt SSR workers=3, each ~200-300MB
-      memory: 1g
-      memory-swap: 1.25g
+      # Memory limit: 1.5GB RAM + 256MB swap.
+      #
+      # Was 1g, on the arithmetic that three Nitro workers want 200-300MB each. They
+      # want more than that now: measured 2026-08-12, the container's working set ran
+      # 600-900MB for a day straight and peaked at 906MB. That is 84% of a 1g cap --
+      # under NadeshikoContainerMemoryNearLimit's 90%, so the alert would have stayed
+      # quiet right up until V8 started failing mark-compacts, which is how #484 went.
+      # At 1.5g the same peak is 60% and the alert is an early warning again.
+      #
+      # Note that the ceiling here is the real one: Node sizes its default heap from
+      # the cgroup limit, so raising --max-old-space-size without raising this would
+      # only trade V8's FATAL ERROR (which writes a report, see NODE_OPTIONS below)
+      # for a silent kernel kill.
+      memory: 1.5g
+      memory-swap: 1.75g
       # Docker hands the container a core-dump limit of 0, so a segfaulting
       # worker dies leaving nothing but a one-line kernel trap. Raising it is
       # only half the job: the kernel writes the dump through the *host's*
