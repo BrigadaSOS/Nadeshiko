@@ -67,7 +67,20 @@ export default defineEventHandler((event) => {
   // `private, no-store` from the locale router and must stay that way.
   if (getResponseHeader(event, 'Cache-Control')) return;
 
-  setResponseHeader(event, 'Cache-Control', 'private');
+  // `no-cache` means "store it, but revalidate before reuse" -- NOT "do not
+  // store". It is what the paragraph above already claims happens ("the browser
+  // revalidates"), and bare `private` did not deliver it: with no `max-age` and
+  // no `Expires`, a response is heuristically cacheable, so the browser is free
+  // to reuse this HTML without asking. That is the stale shell that leaves a
+  // reader asking for `/_nuxt/<hash>.js` files the live build no longer has, and
+  // it also defeats the recovery in `app/plugins/chunkReload.client.ts`: the
+  // reload is served the same cached HTML and fails the same way, twice, until
+  // the attempt budget runs out.
+  //
+  // Still no `max-age`, so the reasoning above about `nd-ssr-identity-check` is
+  // untouched -- this only forces the revalidation that was already assumed.
+  // A 304 costs a round trip and no body.
+  setResponseHeader(event, 'Cache-Control', 'private, no-cache');
 
   // Both tests have to pass: the right kind of visitor asking for the right kind
   // of page. `htmlPathIsShareable` keeps the account and collection screens out
