@@ -45,7 +45,7 @@
     "@posthog/nuxt": "^1.7.81",
     "@vue/devtools-api": "^8.1.5",
     "gray-matter": "^4.0.3",
-    "marked": "^18.0.7",
+    "marked": "^18.0.9",
     "nuxt-security": "^2.6.0",
     "pinia": "^4.0.2",
     "pinia-plugin-persistedstate": "^4.7.1",
