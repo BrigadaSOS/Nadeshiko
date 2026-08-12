@@ -18,7 +18,11 @@ updates:
     # stay individual: those need reading a changelog, and grouping them would
     # bury a breaking change behind nine harmless ones.
     groups:
-      backend-minor:
+      # `npm-minor`, not `backend-minor`: one Dependabot entry covers every
+      # workspace here (they share the root lock), so `patterns: ['*']` sweeps up
+      # frontend, discord and seed-worker too. The first grouped run proved it by
+      # opening a pure-frontend batch titled "the backend-minor group".
+      npm-minor:
         applies-to: version-updates
         patterns: ['*']
         exclude-patterns:
