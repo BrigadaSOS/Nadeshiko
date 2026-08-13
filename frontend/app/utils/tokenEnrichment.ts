@@ -22,6 +22,15 @@ export interface SlimToken {
   /** The finer morphemes inside a grouped token. Elasticsearch highlights
    *  against its own analyzer, so a match can land inside one of ours. */
   parts?: Array<{ s: string; b: number; e: number }>;
+  /**
+   * Which sentence of an expanded segment this token came from. Absent on an
+   * ordinary result -- only `buildExpandedTexts` sets it, and only on a merge.
+   *
+   * This is where an expansion marks the halves it pulled in. It cannot be done
+   * in the text the way the translations do it, because these tokens address
+   * that text by offset: see `concatJapanese`.
+   */
+  origin?: 'before' | 'current' | 'after';
 }
 
 /**
@@ -104,7 +113,18 @@ export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): stri
       result += content.slice(pos, token.b);
     }
     for (const seg of furiganaOf(token)) {
-      result += seg.reading ? ` ${seg.text}[${seg.reading}]` : seg.text;
+      // The leading space is a DELIMITER -- it marks where the previous word's
+      // kana ended -- so it is only wanted where there is not one already: at
+      // the start of the field, or after whitespace the content itself carries.
+      // Anki renders a doubled one literally.
+      //
+      // This used to be a `replace(/^ /, '')` at the end, which is the same rule
+      // applied to the start of the string alone. That was enough while a
+      // sentence was one segment, because an interior gap before a kanji word is
+      // rare. An expanded sentence meets one at every join -- the segments are
+      // merged with a space, and the next word begins right after it.
+      const separator = seg.reading && result !== '' && !/\s$/.test(result) ? ' ' : '';
+      result += seg.reading ? `${separator}${seg.text}[${seg.reading}]` : seg.text;
     }
     pos = token.e;
   }
@@ -113,8 +133,7 @@ export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): stri
     result += content.slice(pos);
   }
 
-  // No separator space needed when the sentence opens with a furigana word.
-  return result.replace(/^ /, '');
+  return result;
 }
 
 function katakanaToHiragana(str: string): string {

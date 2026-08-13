@@ -128,6 +128,19 @@ describe('furigana', () => {
   it('writes Anki notation from the aligned ruby', () => {
     expect(tokensToAnkiFurigana('焼けたフライパンに', YAKETA)).toBe('焼[や]けたフライパンに');
   });
+
+  it('does not double the separator space after a gap in the content', () => {
+    // The separator marks where the previous word's kana ended, so a space the
+    // content already carries does the job on its own. Anki renders a doubled
+    // one literally. Expanded sentences hit this at every join: the merged
+    // segments are separated by a space, and the next word starts right after.
+    const acrossAGap: SlimToken[] = [
+      { s: 'あ', d: 'あ', r: 'ア', b: 0, e: 1, p: '感動詞' },
+      { s: '本', d: '本', r: 'ホン', b: 2, e: 3, p: '名詞', f: [{ t: '本', r: 'ほん' }] },
+    ];
+
+    expect(tokensToAnkiFurigana('あ 本', acrossAGap)).toBe('あ 本[ほん]');
+  });
 });
 
 describe('highlight matching', () => {

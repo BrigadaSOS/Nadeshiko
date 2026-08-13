@@ -57,6 +57,83 @@ export function pickNeighbours(
  */
 type TextFieldBase = { content: string; highlight?: string };
 
+/** Which of the merged sentences a token came from. */
+export type TokenOrigin = 'before' | 'current' | 'after';
+
+/** What separates two merged sentences -- in the text and in the offsets alike. */
+const JOIN = ' ';
+
+type JaField = Segment['textJa'];
+type JaToken = JaField['tokens'][number] & { origin?: TokenOrigin };
+
+/** One sentence going into the Japanese merge, with the side it came from. */
+type JaPiece = { field: JaField; origin: TokenOrigin };
+
+/**
+ * Move a segment's tokens onto the merged sentence's coordinates.
+ *
+ * `b`/`e` are offsets into the sentence the token came from, so a neighbour's
+ * tokens address the wrong characters the moment another sentence is put in
+ * front of them. That is what this module used to give up on, dropping the
+ * tokens outright and taking furigana, the word cards, the keyboard walk and the
+ * Anki furigana export down with them. Shifting each token by everything that
+ * now precedes its segment is all they actually needed.
+ *
+ * `parts` carries the same kind of offset one level down -- the finer morphemes
+ * inside a grouped token, used to highlight a match that lands inside one of our
+ * tokens -- so it moves by the same amount. Nothing reads it today; leaving it
+ * behind on the old coordinates would be a trap for whoever first does.
+ */
+function shiftTokens(tokens: readonly JaToken[], offset: number, origin: TokenOrigin): JaToken[] {
+  return tokens.map((token) => ({
+    ...token,
+    origin,
+    b: token.b + offset,
+    e: token.e + offset,
+    ...(token.parts ? { parts: token.parts.map((part) => ({ ...part, b: part.b + offset, e: part.e + offset })) } : {}),
+  }));
+}
+
+/**
+ * Merge the Japanese text, keeping its tokens rebased onto the joined sentence.
+ *
+ * Unlike the translations below, this must NOT wrap the pulled-in neighbours in
+ * markup. The tokens address `content` by character offset and
+ * `tokensToAnkiFurigana` slices that very string, so a `<span>` inside it would
+ * both shift every offset past it and end up spliced into the reader's Anki
+ * field. `enrichTokens` has the same problem from the other side: it measures
+ * its highlight ranges by counting characters and skips only `<em>`, so any
+ * other tag in `highlight` slides the match underline off the words it belongs
+ * to. So provenance moves out of the string and onto `origin`, and the renderer
+ * tints the halves a token at a time.
+ *
+ * Returns null when any piece has no tokens -- the caller's cue to fall back to
+ * the plain string merge. A segment with no POS analysis still has to expand,
+ * and there the wrapper is the only way left to mark what was pulled in.
+ */
+function concatJapanese(current: JaField, pieces: JaPiece[]): JaField | null {
+  if (pieces.some((piece) => !piece.field.tokens || piece.field.tokens.length === 0)) return null;
+
+  const contents: string[] = [];
+  const highlights: string[] = [];
+  const tokens: JaToken[] = [];
+  let offset = 0;
+
+  for (const { field, origin } of pieces) {
+    const content = field.content || '';
+    contents.push(content);
+    // Highlight and content are merged in lockstep so that stripping the `<em>`
+    // marks out of the one still yields the other. That equivalence is what lets
+    // the token offsets -- which are content offsets -- be compared against
+    // ranges measured on the highlight.
+    highlights.push(field.highlight || content);
+    tokens.push(...shiftTokens(field.tokens as JaToken[], offset, origin));
+    offset += content.length + JOIN.length;
+  }
+
+  return { ...current, content: contents.join(JOIN), highlight: highlights.join(JOIN), tokens };
+}
+
 /**
  * Join one language's text across the segments being merged, marking the pulled-in
  * neighbours so the reader can see which half was theirs.
@@ -82,10 +159,13 @@ function concatLangField<T extends TextFieldBase>(current: T, before: T | undefi
     ]),
   };
 
-  // Concatenated text has no token mapping: the tokens describe offsets into the
-  // original sentence, so keeping them would furigana-annotate the wrong words.
-  // The SDK types `tokens` as always present, but every reader of it guards on
-  // emptiness first, which is the contract this relies on.
+  // Reached for Japanese only when `concatJapanese` declined -- a segment
+  // somewhere in the merge has no tokens at all. The ones that DO exist cannot
+  // come along: they describe offsets into their own sentence, and the wrappers
+  // above have just moved every character past the first one, so keeping them
+  // would furigana-annotate the wrong words. The SDK types `tokens` as always
+  // present, but every reader of it guards on emptiness first, which is the
+  // contract this relies on.
   if ('tokens' in merged) {
     (merged as { tokens: unknown }).tokens = null;
   }
@@ -93,14 +173,29 @@ function concatLangField<T extends TextFieldBase>(current: T, before: T | undefi
   return merged;
 }
 
-/** Build the merged text for all three languages at once. */
+/**
+ * Build the merged text for all three languages at once.
+ *
+ * Japanese takes the token-preserving path when every sentence in the merge has
+ * an analysis, and the plain string merge otherwise. The translations only ever
+ * take the string merge: they have no tokens, so the wrapper is how their
+ * pulled-in halves are marked.
+ */
 export function buildExpandedTexts(
   segment: Segment,
   before: SearchResult | null,
   after: SearchResult | null,
 ): ExpandedTexts {
+  const pieces: JaPiece[] = [
+    ...(before ? [{ field: before.segment.textJa, origin: 'before' as const }] : []),
+    { field: segment.textJa, origin: 'current' as const },
+    ...(after ? [{ field: after.segment.textJa, origin: 'after' as const }] : []),
+  ];
+
   return {
-    textJa: concatLangField(segment.textJa, before?.segment.textJa, after?.segment.textJa),
+    textJa:
+      concatJapanese(segment.textJa, pieces) ??
+      concatLangField(segment.textJa, before?.segment.textJa, after?.segment.textJa),
     textEn: concatLangField(segment.textEn, before?.segment.textEn, after?.segment.textEn),
     textEs: concatLangField(segment.textEs, before?.segment.textEs, after?.segment.textEs),
   };

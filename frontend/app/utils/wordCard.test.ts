@@ -324,8 +324,34 @@ describe('pitchMorae', () => {
 describe('shirabe links', () => {
   it('links a word and a kanji into the reader own locale, so no redirect runs', () => {
     expect(shirabeWordUrl('焼ける-やける', 'es')).toBe(
-      'https://shirabe.org/es/word/%E7%84%BC%E3%81%91%E3%82%8B-%E3%82%84%E3%81%91%E3%82%8B',
+      'https://shirabe.org/es/word/%E7%84%BC%E3%81%91%E3%82%8B-%E3%82%84%E3%81%91%E3%82%8B?utm_source=nadeshiko&utm_medium=referral&utm_content=word-card',
     );
-    expect(shirabeKanjiUrl('焼', 'en')).toBe('https://shirabe.org/en/kanji/%E7%84%BC');
+    expect(shirabeKanjiUrl('焼', 'en')).toBe(
+      'https://shirabe.org/en/kanji/%E7%84%BC?utm_source=nadeshiko&utm_medium=referral&utm_content=kanji-chip',
+    );
+  });
+
+  it('attributes the visit to Nadeshiko, naming the link that was taken', () => {
+    // These links are `rel="noopener noreferrer"`, so Shirabe gets no `Referer`
+    // at all -- without the parameters its PostHog files every one of these as
+    // direct traffic. `utm_*` because stock posthog-js reads exactly these names.
+    const word = new URL(shirabeWordUrl('焼ける-やける', 'es')).searchParams;
+    expect(Object.fromEntries(word)).toEqual({
+      utm_source: 'nadeshiko',
+      utm_medium: 'referral',
+      utm_content: 'word-card',
+    });
+
+    // The two surfaces are told apart, so it stays visible which half of the
+    // card sends readers on.
+    expect(new URL(shirabeKanjiUrl('焼', 'en')).searchParams.get('utm_content')).toBe('kanji-chip');
+  });
+
+  it('keeps the word id readable on the other side', () => {
+    // The id is a path segment and the parameters are a query, so appending one
+    // must not disturb the other.
+    expect(new URL(shirabeWordUrl('焼ける-やける', 'es')).pathname).toBe(
+      '/es/word/%E7%84%BC%E3%81%91%E3%82%8B-%E3%82%84%E3%81%91%E3%82%8B',
+    );
   });
 });
