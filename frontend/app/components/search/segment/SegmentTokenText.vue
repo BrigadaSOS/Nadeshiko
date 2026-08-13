@@ -685,6 +685,12 @@ const dictionaryLinks = computed(() => {
         :class="[
           POS_CLASS[token.p] ?? '',
           {
+            // Pulled in by an expansion, from the sentence before or after this
+            // one. The tint says which half of what is on screen the reader
+            // actually searched for -- the job the cyan wrapper span does for the
+            // translations, done per token here because the offsets these carry
+            // have to keep addressing plain text. See `concatJapanese`.
+            'token--context': token.origin === 'before' || token.origin === 'after',
             'token--match': token.matchType === 'match',
             // A match that covers only part of this token: Elasticsearch found
             // it with its own analyzer, which cuts words where we do not.
@@ -891,6 +897,19 @@ const dictionaryLinks = computed(() => {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
+
+/* The sentences an expansion pulled in, so the reader can still see which line
+   was the hit. Same colour the translations get from their `text-cyan-200`
+   wrapper (Tailwind's cyan-200), because it is the same distinction.
+
+   Declared before `.token--match` on purpose: the two are equally specific, so
+   source order decides, and a match has to win. It only comes up in the segment
+   the reader searched for -- a context request carries no query, so neighbours
+   have nothing highlighted -- but "the word you searched for" is the louder
+   thing to say when it does. */
+.token--context {
+  color: #a5f3fc;
+}
 
 .token--match {
   color: #df848d;

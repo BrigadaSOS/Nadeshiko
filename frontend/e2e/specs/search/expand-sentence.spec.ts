@@ -95,6 +95,7 @@ test.describe('Expand sentence', () => {
   test('expanding a second time replaces the first expansion', async () => {
     const card = search.segmentCards.first();
     const jaText = card.getByTestId('segment-japanese-text');
+    const original = (await jaText.innerText()).trim();
 
     await expand(card, 'Expand (right)');
     const afterRight = await jaText.innerText();
@@ -105,8 +106,16 @@ test.describe('Expand sentence', () => {
     await expand(card, 'Expand (left)');
 
     await expect.poll(async () => await jaText.innerText(), { timeout: 10_000 }).not.toBe(afterRight);
-    // The right-hand expansion was reverted, not stacked on top of.
-    await expect(jaText.locator('span.text-cyan-200')).toHaveCount(1);
+    // The right-hand expansion was reverted, not stacked on top of: the sentence
+    // the reader actually searched for is still the tail of what is on screen.
+    //
+    // Asserted on the text rather than on a count of pulled-in spans, which is
+    // what this did while the Japanese half was merged as markup. It is tokens
+    // now -- one per word rather than one per neighbour -- so a count no longer
+    // says anything about how many sentences were merged.
+    await expect
+      .poll(async () => (await jaText.innerText()).trim().endsWith(original), { timeout: 10_000 })
+      .toBe(true);
   });
 
   test('playing a segment before expanding it still yields expanded audio', async ({ page }) => {

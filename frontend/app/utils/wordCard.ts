@@ -319,6 +319,40 @@ export function pitchMorae(reading: string, downstep: number): PitchMora[] {
 const SHIRABE_SITE = 'https://shirabe.org';
 
 /**
+ * Which link on the card a reader took to Shirabe. Rides out as `utm_content`,
+ * so the two can be told apart on the other side: a reader who opens the kanji
+ * chips is doing something different from one who wants the full entry, and
+ * lumping them together hides which half of the card is doing the work.
+ */
+export type ShirabeLinkSurface = 'word-card' | 'kanji-chip';
+
+/**
+ * Mark a Shirabe link as ours, so its own PostHog can attribute the visit.
+ *
+ * Not redundant with the referrer: every one of these links is rendered
+ * `rel="noopener noreferrer"`, which strips the `Referer` header outright, so
+ * without this Shirabe records the whole of Nadeshiko's outbound traffic as
+ * direct. `noreferrer` is not worth dropping to fix that -- these are
+ * third-party destinations reached from a page that knows what the reader
+ * searched for, and the query string is in the URL.
+ *
+ * `utm_*` rather than a parameter of our own because Shirabe runs stock
+ * posthog-js, which reads these five names and no others: they land on the event
+ * AND on the person as `$initial_utm_source`, so a reader who arrives once from
+ * here stays attributed. Nothing has to be built on the Shirabe side.
+ */
+function withAttribution(url: string, surface: ShirabeLinkSurface): string {
+  const params = new URLSearchParams({
+    utm_source: 'nadeshiko',
+    // The visit is an onward click from a link on someone else's site, which is
+    // what `referral` means in the convention posthog-js follows.
+    utm_medium: 'referral',
+    utm_content: surface,
+  });
+  return `${url}?${params}`;
+}
+
+/**
  * The word's own page on Shirabe.
  *
  * `id` is the one the LOOKUP RESPONSE came back with, never one off a stored
@@ -328,9 +362,9 @@ const SHIRABE_SITE = 'https://shirabe.org';
  * lands on the wrong entry without ever looking broken.
  */
 export function shirabeWordUrl(id: string, locale: GlossLanguage): string {
-  return `${SHIRABE_SITE}/${locale}/word/${encodeURIComponent(id)}`;
+  return withAttribution(`${SHIRABE_SITE}/${locale}/word/${encodeURIComponent(id)}`, 'word-card');
 }
 
 export function shirabeKanjiUrl(character: string, locale: GlossLanguage): string {
-  return `${SHIRABE_SITE}/${locale}/kanji/${encodeURIComponent(character)}`;
+  return withAttribution(`${SHIRABE_SITE}/${locale}/kanji/${encodeURIComponent(character)}`, 'kanji-chip');
 }
