@@ -1,7 +1,30 @@
 import type { GetUserPreferences, UpdateUserPreferences } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { User, type UserPreferences } from '@app/models/User';
+import { ALL_CATEGORIES } from '@app/models/Media';
+import { ValidationFailedError } from '@app/errors';
 import { deepMerge } from '@lib/utils/deepMerge';
+
+/**
+ * Hiding every category is refused rather than stored.
+ *
+ * `filters.category` reads an empty term list as "no filter" (see
+ * `filterRegistry.ts`), so a client that hid the last visible category would send
+ * an empty list and get the *whole* corpus back -- the exact opposite of what the
+ * reader asked for. Checked against `ALL_CATEGORIES` rather than a hardcoded
+ * ceiling so adding a category widens the rule on its own.
+ */
+function assertNotEveryCategoryHidden(preferences: UserPreferences): void {
+  const hidden = preferences.hiddenCategories;
+  if (!hidden) return;
+
+  const distinct = new Set(hidden.filter((category) => ALL_CATEGORIES.includes(category)));
+  if (distinct.size >= ALL_CATEGORIES.length) {
+    throw new ValidationFailedError({
+      hiddenCategories: 'At least one category must stay visible.',
+    });
+  }
+}
 
 export const getUserPreferences: GetUserPreferences = async (_params, respond, req) => {
   const user = assertUser(req);
@@ -13,7 +36,9 @@ export const updateUserPreferences: UpdateUserPreferences = async ({ body }, res
   const user = assertUser(req);
 
   const updated = await mutateUserPreferences(user.id, (current) => {
-    return deepMerge(current as Record<string, unknown>, body as Record<string, unknown>) as UserPreferences;
+    const merged = deepMerge(current as Record<string, unknown>, body as Record<string, unknown>) as UserPreferences;
+    assertNotEveryCategoryHidden(merged);
+    return merged;
   });
   user.preferences = updated;
 
