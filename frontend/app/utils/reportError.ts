@@ -53,6 +53,18 @@ export function reportError(
   // such capture was silently swallowed and PostHog only ever saw what its own
   // handlers caught. The singleton needs no Nuxt context.
   if (!options.faroOnly && posthog.__loaded) {
-    posthog.captureException(normalized, { error_source: name, ...attributes });
+    posthog.captureException(normalized, {
+      error_source: name,
+      // Without this, PostHog derives its own fingerprint from the exception type
+      // and stack -- and these reports are mostly async rejections whose stacks
+      // are empty or identically minified, so unrelated faults COLLIDE. A real
+      // one: `segment:audio-concatenation-failed` (a bare `TypeError: Failed to
+      // fetch`) landed on the same fingerprint as the stale-chunk import errors,
+      // leaving one issue that was two bugs and whose status and last-seen
+      // described neither. `name` is already the stable identifier for the
+      // failing operation, so it is what should decide grouping.
+      $exception_fingerprint: name,
+      ...attributes,
+    });
   }
 }
