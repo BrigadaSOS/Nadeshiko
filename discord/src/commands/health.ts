@@ -26,10 +26,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const wsPing = interaction.client.ws.ping;
 
   try {
+    // `attribution: false` because these are the bot's own probes, not links
+    // anyone clicked. Tagged as user traffic they would land in PostHog as
+    // Discord-referred pageviews once per /health, inventing exactly the
+    // click-through the UTM scheme exists to measure honestly.
     const [api, homepage, searchPage] = await Promise.all([
       checkEndpoint(`${BOT_CONFIG.apiBaseUrl}/up`),
-      checkEndpoint(homeUrl()),
-      checkEndpoint(searchUrl()),
+      checkEndpoint(homeUrl({ attribution: false })),
+      checkEndpoint(searchUrl({}, { attribution: false })),
     ]);
 
     const allUp = api.ok && homepage.ok && searchPage.ok;
