@@ -276,8 +276,34 @@ export default defineNuxtConfig({
       serverConfig: {
         enableExceptionAutocapture: false,
       },
+      /**
+       * OFF, AND IT CANNOT BE TURNED BACK ON AS-IS. Enabling this took
+       * production down on 2026-08-13: 37 of 41 scripts blocked in the browser,
+       * the page served from SSR and never hydrated, every click inert. Rolled
+       * back after ~13 minutes.
+       *
+       * The upload works by running `posthog-cli sourcemap inject`, which
+       * REWRITES every built JS file in `.output/public` to carry a chunk id
+       * ("injecting selection: [.output/public]", "found 76 pairs"). It runs at
+       * `nitro:build:public-assets`. nuxt-security computes the Subresource
+       * Integrity digests at `nitro:build:before`, which fires EARLIER -- so
+       * every digest in the HTML describes the file as it was before injection,
+       * and the browser refuses to execute all of them.
+       *
+       * `@posthog/nuxt` offers no way to upload without injecting: `enabled` is
+       * the only switch, and it governs both. So this stays off until the
+       * ordering is fixed upstream (nuxt-security hashing after all asset
+       * mutation), or until SRI is deliberately given up -- which is a security
+       * decision, not a build one.
+       *
+       * Note the module is gated on `isProd`, so no amount of staging testing
+       * can exercise this path. `scripts/verify-sri.mjs` is the guard that can:
+       * it runs inside the image build and fails it if any asset stops matching
+       * its digest, in any environment. Re-enabling this without fixing the
+       * ordering now breaks the BUILD instead of production.
+       */
       sourcemaps: {
-        enabled: Boolean(process.env.POSTHOG_CLI_API_KEY),
+        enabled: false,
         projectId: '372788',
         // `?? ''` because the module types this as a required string and
         // `process.env` is not: the key is a Docker build arg, absent from every
