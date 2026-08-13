@@ -233,6 +233,7 @@ jobs:
             service=nadeshiko-frontend-prod
           build-args: |
             NUXT_PUBLIC_ENVIRONMENT=production
+            POSTHOG_CLI_API_KEY=${{ secrets.POSTHOG_CLI_API_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

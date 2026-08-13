@@ -8,3 +8,4 @@
 .claude/
 .codex
 node_modules/
+.env
