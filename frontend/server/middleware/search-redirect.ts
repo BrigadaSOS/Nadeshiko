@@ -1,4 +1,10 @@
-import { buildSentencePath, buildWordSearchPath, splitLocalePrefix, withLocalePrefix } from '~/utils/routes';
+import {
+  buildSentencePath,
+  buildWordSearchPath,
+  isJunkSearchQuery,
+  splitLocalePrefix,
+  withLocalePrefix,
+} from '~/utils/routes';
 
 /**
  * Backward-compatibility redirects (301 Permanent).
@@ -14,6 +20,11 @@ import { buildSentencePath, buildWordSearchPath, splitLocalePrefix, withLocalePr
  *
  * These redirects MUST stay in place permanently so that bookmarks,
  * external links, and Google's cached URLs continue to work.
+ *
+ * It also collapses junk queries -- see `isJunkSearchQuery`:
+ *   /search/<undecodable|path-shaped|over-long>  →  /search
+ * That one is not backward compatibility. It is here rather than in the page
+ * because only the HTTP layer still sees the path the visitor actually sent.
  */
 export default defineEventHandler((event) => {
   const url = getRequestURL(event);
@@ -98,6 +109,21 @@ export default defineEventHandler((event) => {
       `${withLocalePrefix(localePrefix, buildWordSearchPath(query))}${remaining ? `?${remaining}` : ''}`,
       301,
     );
+  }
+
+  // Junk `/search/:query` segments -> `/search`. Deliberately last: every branch
+  // above owns a specific legacy path, and `/search/sentence` in particular has
+  // to be read as a route before this reads it as a query.
+  //
+  // `url.pathname` is the raw request path here, which is the whole reason this
+  // check belongs in middleware -- by the time a page component sees the param
+  // the router has already re-encoded it, and the length test would be measuring
+  // the wrong string.
+  if (localizedPath.startsWith('/search/')) {
+    const rawQuery = localizedPath.slice('/search/'.length);
+    if (rawQuery && isJunkSearchQuery(rawQuery)) {
+      return sendRedirect(event, withLocalePrefix(localePrefix, '/search'), 301);
+    }
   }
 
   if (normalizedLegacyParams) {
