@@ -624,11 +624,25 @@ Mechanics, and the two constraints that decide them:
 
 It runs as the last step of `release-frontend`, after `kamal deploy` (purging
 first would let the edge refill from the old container mid-swap) and before
-`e2e`, so the prod E2E run tests a purged edge. It needs two repository secrets:
-`CLOUDFLARE_ZONE_ID`, and a `CLOUDFLARE_API_TOKEN` carrying **Zone → Cache
-Purge** on `nadeshiko.co`. Cloudflare answers `200` with `"success": false` when
-the token lacks that permission, so the step checks the body rather than the
-exit code.
+`e2e`, so the prod E2E run tests a purged edge. Cloudflare answers `200` with
+`"success": false` when the token lacks the permission, so the step checks the
+body rather than the exit code.
+
+It needs two repository secrets, both already set:
+
+| Secret | Value |
+| --- | --- |
+| `CLOUDFLARE_ZONE_ID` | the `nadeshiko.co` zone id |
+| `CLOUDFLARE_PURGE_TOKEN` | an API token whose only policy is **Cache Purge** on that one zone |
+
+**Not** `CLOUDFLARE_API_TOKEN`. That name is already an organization secret used
+by `refresh-seed-dump.yml` for R2, and a repository secret of the same name
+would shadow it for this repo and break that workflow. The purge token is also
+deliberately separate rather than reusing the broad Terraform token from
+`/brigadasos-infra/terraform/cloudflare_api_token` in SSM: anything readable by
+Actions is readable by anyone who can land a workflow, so it holds the narrowest
+permission that does the job. It was minted from the Terraform token via the
+Cloudflare API and can be re-minted the same way.
 
 ## Manual / emergency deploys
 
