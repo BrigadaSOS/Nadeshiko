@@ -34,6 +34,12 @@ const { englishMode, spanishMode } = useTranslationVisibility();
 type Props = {
   content: SearchResult;
   hideContextButton?: boolean;
+  /**
+   * True while any card's expansion is being built. The composable drops expand
+   * clicks that land during one, so the controls have to say so -- unbound, a
+   * click during the (multi-second) audio build looked like a dead button.
+   */
+  isExpanding?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -339,14 +345,17 @@ const sharedMediaName = computed(() =>
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.more')">
-        <SearchDropdownItem v-if="content.blobAudioUrl" :text="$t('segment.revert')" :iconPath="mdiClose"
-          @click="revertConcat" />
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.expandLeft')" :iconPath="mdiTransferLeft"
-          @click="concatSentence('backward')" />
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.expandBoth')" :iconPath="mdiArrowExpandHorizontal"
-          @click="concatSentence('both')" />
-        <SearchDropdownItem :text="$t('searchpage.main.buttons.expandRight')" :iconPath="mdiTransferRight"
-          @click="concatSentence('forward')" />
+        <SearchDropdownItem v-if="content.blobAudioUrl" :is-disabled="isExpanding" :text="$t('segment.revert')"
+          :iconPath="mdiClose" @click="revertConcat" />
+        <SearchDropdownItem :is-disabled="isExpanding"
+          :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandLeft')"
+          :iconPath="mdiTransferLeft" @click="concatSentence('backward')" />
+        <SearchDropdownItem :is-disabled="isExpanding"
+          :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandBoth')"
+          :iconPath="mdiArrowExpandHorizontal" @click="concatSentence('both')" />
+        <SearchDropdownItem :is-disabled="isExpanding"
+          :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandRight')"
+          :iconPath="mdiTransferRight" @click="concatSentence('forward')" />
         <div :class="{ 'hidden min-[1250px]:block': !user.isLoggedIn }">
           <div
             class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">

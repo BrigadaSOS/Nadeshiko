@@ -4,6 +4,11 @@ import { buildSentencePath } from '~/utils/routes';
 type ConcatenatedAudio = {
   blob: Blob;
   blob_url: string;
+  /**
+   * True when at least one object only arrived after the cache-bypassing retry
+   * below -- i.e. this reader's cache was poisoned and self-healed.
+   */
+  cacheBypassed: boolean;
 };
 
 /**
@@ -110,6 +115,57 @@ export async function describeAudioFetchFailure(error: unknown): Promise<Record<
   return attributes;
 }
 
+/**
+ * Fetch one audio object for concatenation, retrying past a poisoned cache entry.
+ *
+ * The player builds its elements with `new Audio(url)`, and a media element's
+ * request is not a CORS request. Chromium stores that response under the same
+ * cache key this CORS-mode `fetch` uses and then refuses to hand it back, so
+ * expanding a segment the reader had already PLAYED rejected with a bare
+ * `TypeError: Failed to fetch`, while the very same segment expanded fine when it
+ * had not been played yet. That order-dependence is issue #194's "sometimes it
+ * works", and it is why expanded audio silently fell back to the original clip in
+ * both the player and the Anki export.
+ *
+ * The fix belongs on THIS side rather than on the media element. Setting
+ * `crossOrigin` there would stop the poisoning at the source, but it would make
+ * playing anything at all contingent on the CDN's CORS policy -- see the note in
+ * `stores/player.ts`. `cache: 'reload'` skips the cache for this request alone,
+ * costs one re-download of a ~17KB clip when the entry turns out to be poisoned,
+ * and cannot take playback down with it.
+ *
+ * Widening the bucket's CORS policy does NOT remove the need for this, which is
+ * worth stating because it looks like it should: the poisoning is about the
+ * media element's request not being a CORS request, not about which origins the
+ * response allows. Re-tested in a browser after the policy was widened to `*` on
+ * 2026-08-13 -- the failure reproduced unchanged.
+ */
+export async function fetchAudioSegment(url: string): Promise<{ response: Response; cacheBypassed: boolean }> {
+  let firstFailure: unknown;
+  try {
+    const response = await fetch(url);
+    if (response.ok) return { response, cacheBypassed: false };
+    // A status is a real answer from the CDN; retrying past the cache cannot
+    // change it, so it is reported as-is.
+    throw new AudioFetchError(url, 'http', response.status);
+  } catch (cause) {
+    if (cause instanceof AudioFetchError) throw cause;
+    firstFailure = cause;
+  }
+
+  try {
+    const response = await fetch(url, { cache: 'reload' });
+    if (!response.ok) throw new AudioFetchError(url, 'http', response.status);
+    return { response, cacheBypassed: true };
+  } catch (retryCause) {
+    if (retryCause instanceof AudioFetchError) throw retryCause;
+    // The ORIGINAL rejection is the cause worth keeping: the retry failing the
+    // same way says nothing new, and `describeAudioFetchFailure` diagnoses the
+    // url either way.
+    throw new AudioFetchError(url, 'opaque', undefined, { cause: firstFailure });
+  }
+}
+
 let audioContext: AudioContext | null;
 export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAudio> {
   // https://ccrma.stanford.edu/courses/422-winter-2014/projects/WaveFormat/
@@ -187,31 +243,20 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   // unowned, so a CDN blip that fails several segments at once surfaces the rest as
   // unhandled rejections — reported as a bare uncaught `Failed to fetch` even though
   // every caller wraps this in try/catch. `allSettled` keeps every rejection owned.
-  const settled = await Promise.allSettled(
-    urls.map(async (url) => {
-      let res: Response;
-      try {
-        res = await fetch(url);
-      } catch (cause) {
-        // `fetch` rejects without saying why, so the url is attached here while
-        // we still have it; `describeAudioFetchFailure` works out the rest.
-        throw new AudioFetchError(url, 'opaque', undefined, { cause });
-      }
-      if (!res.ok) throw new AudioFetchError(url, 'http', res.status);
-      return res;
-    }),
-  );
+  const settled = await Promise.allSettled(urls.map(fetchAudioSegment));
 
   const failed = settled.find((result): result is PromiseRejectedResult => result.status === 'rejected');
   if (failed) {
     throw failed.reason instanceof Error ? failed.reason : new Error(String(failed.reason));
   }
 
-  const audioRes = settled.filter(
-    (result): result is PromiseFulfilledResult<Response> => result.status === 'fulfilled',
+  const fetched = settled.filter(
+    (result): result is PromiseFulfilledResult<{ response: Response; cacheBypassed: boolean }> =>
+      result.status === 'fulfilled',
   );
-  for (const res of audioRes) {
-    audioBuffers.push(await audioContext.decodeAudioData(await res.value.arrayBuffer()));
+  const cacheBypassed = fetched.some((result) => result.value.cacheBypassed);
+  for (const result of fetched) {
+    audioBuffers.push(await audioContext.decodeAudioData(await result.value.response.arrayBuffer()));
   }
 
   // Should always be 2, but just in case
@@ -252,6 +297,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   return {
     blob: blob,
     blob_url: blobUrl,
+    cacheBypassed,
   };
 }
 
@@ -269,7 +315,12 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
     return;
   }
 
+  // Same cache hazard as `fetchAudioSegment`: downloading a clip the reader had
+  // just played reused the media element's non-CORS cache entry and rejected as a
+  // bare `Failed to fetch`, so the download button looked broken for exactly the
+  // segments they were most likely to want.
   fetch(url)
+    .catch(() => fetch(url, { cache: 'reload' }))
     .then((response) => {
       if (!response.ok) throw new Error(`Download failed with status ${response.status}`);
       return response.blob();

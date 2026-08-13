@@ -796,7 +796,12 @@
     "contentRatingDescription": {
       "SENSITIVE": "Contenido Sensible (Cuestionable)"
     },
-    "revert": "Revertir"
+    "revert": "Revertir",
+    "expandNoPrevious": "No hay ninguna frase anterior en este episodio.",
+    "expandNoNext": "No hay ninguna frase posterior en este episodio.",
+    "expandFailed": "No se pudo expandir esta frase. Inténtalo de nuevo.",
+    "expandAudioFailed": "Se expandió el texto, pero no se pudo generar el audio: la reproducción y la exportación a Anki usarán el audio original.",
+    "expanding": "Expandiendo…"
   },
   "tokenTooltip": {
     "lookupIn": "Buscar en",
