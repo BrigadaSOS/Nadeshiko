@@ -601,11 +601,21 @@ done
 
 ### Purging HTML on deploy
 
-**Status: required, and wired into `release.yml`.** This section used to say it
-was not applicable, on the grounds that no HTML was edge-cached. That stopped
+**Status: required, and wired into both deploy paths.** This section used to say
+it was not applicable, on the grounds that no HTML was edge-cached. That stopped
 being true on 2026-08-13, when `cache_anonymous_sentence_html` and
 `cache_anonymous_search_html` went into `cloudflare-cache.tf` and the shared TTL
 for those paths was raised to an hour.
+
+| Deploy path | Purged by |
+| --- | --- |
+| Tagged release (`release.yml`) | the `Purge Cloudflare cache` step in `release-frontend` |
+| `kamal deploy -d prod` by hand | `frontend/.kamal/hooks/post-deploy` |
+
+The hook was added on 2026-08-13 because only the first of those was covered.
+A manual prod deploy reported complete success and left the edge serving HTML
+that named `/_nuxt/*` digests the new container did not have — the failure this
+whole section exists to prevent, on the one path nobody had wired up.
 
 Why it is not optional. Fingerprinted assets are safe to cache and are not the
 problem: `/_nuxt/BRrCu_qM.js` is content-addressed, `immutable`, cached a year,
@@ -626,18 +636,27 @@ Mechanics, and the two constraints that decide them:
   purge by prefix, hostname or tag is Enterprise-only. Dropping `/v1/media/*`
   and the fingerprinted assets along with the HTML is harmless — they are
   immutable and refill from origin.
-- **Prod only, because prod and staging share this zone.** The step lives in
-  `release.yml`, which is tag-triggered. The same call in `staging-release.yml`
-  would throw away production's entire edge cache on every push to main. Do not
-  copy it there.
+- **Prod only, because prod and staging share this zone.** Purging after a
+  staging deploy would throw away production's entire edge cache. In CI that
+  means the step lives in `release.yml` and not `staging-release.yml` — do not
+  copy it there. In the hook it means the `KAMAL_DESTINATION != prod` guard,
+  which is the single most important line in that file.
 
-It runs as the last step of `release-frontend`, after `kamal deploy` (purging
-first would let the edge refill from the old container mid-swap) and before
-`e2e`, so the prod E2E run tests a purged edge. Cloudflare answers `200` with
-`"success": false` when the token lacks the permission, so the step checks the
-body rather than the exit code.
+In CI it runs as the last step of `release-frontend`, after `kamal deploy`
+(purging first would let the edge refill from the old container mid-swap) and
+before `e2e`, so the prod E2E run tests a purged edge. Cloudflare answers `200`
+with `"success": false` when the token lacks the permission, so both the step and
+the hook check the body rather than the exit code.
 
-It needs two repository secrets, both already set:
+The hook stands down when `GITHUB_ACTIONS` is set, so a tagged release purges
+once rather than twice and does not gain a new way to fail. It also fires on
+`rollback`, which changes which digests are live just as much as a deploy does.
+Its token is read through `.kamal/ssm-secret` from
+`/nadeshiko/prod/CLOUDFLARE_PURGE_TOKEN` — a separate, Cache-Purge-only token
+from the CI one, minted the same way. Note that **writing** that parameter needs
+the `nadeshiko-admin` profile; `nadeshiko-prod` can read SSM but not write it.
+
+CI needs two repository secrets, both already set:
 
 | Secret | Value |
 | --- | --- |
@@ -669,6 +688,20 @@ kamal deploy -d staging   # or -d prod
 ```
 
 Prefer the workflows; reach for a manual deploy only when CI is unavailable.
+
+Two things a manual deploy does differently, both worth knowing before you rely
+on one:
+
+- **The edge cache purge is handled** by `frontend/.kamal/hooks/post-deploy`
+  (see [Purging HTML on deploy](#purging-html-on-deploy)). It was not, before
+  2026-08-13.
+- **Nothing records what shipped.** There is no tag, no GitHub Release and no
+  version bump, so `release:check-version`, the `v*` tags and
+  `OTEL_SERVICE_VERSION` all keep describing the last tagged release while prod
+  runs something newer. Commit and push first so the image is at least tagged
+  with a revision that exists on `main` — Kamal otherwise stamps the image
+  `<sha>_uncommitted_<digest>`, which nobody can trace back. Reconcile with a
+  bump-and-tag release when convenient.
 
 After a **frontend prod** deploy, check
 [Cloudflare edge configuration](#cloudflare-edge-configuration) — it lists zone

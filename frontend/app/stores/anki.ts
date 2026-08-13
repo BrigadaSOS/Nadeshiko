@@ -352,8 +352,31 @@ export const ankiStore = defineStore('anki', {
         return firstNonBlank(media.nameEn, media.nameRomaji, media.nameJa) ?? '';
       };
 
+      // Resolved before the first `await`, and shared with every failure branch
+      // below so they all carry the same dimensions as the success event.
+      const posthog = usePostHog();
+      const exportMethod = id ? 'search_by_id' : 'last_card';
+
+      // Every abandoned export reports why. The early returns below are ordinary
+      // outcomes rather than throws, so they reached neither error tracking nor
+      // `anki_export_failed`, and the most common one by far -- no freshly added
+      // card waiting in Anki -- was invisible. `completed + failed` therefore fell
+      // well short of the attempts, and the failure rate read as ~0.5% against
+      // 8.7k exports, which is not a plausible number for a feature that needs a
+      // desktop app running with AnkiConnect and a card already added.
+      const trackExportFailed = (reason: string, extra: Record<string, unknown> = {}) => {
+        posthog?.capture('anki_export_failed', {
+          reason,
+          media_name: mediaName(sentence.media),
+          media_id: sentence.media.publicId,
+          export_method: exportMethod,
+          ...extra,
+        });
+      };
+
       const profile = this.activeProfile;
       if (!profile) {
+        trackExportFailed('no_profile');
         useToastError($i18n.t('anki.toast.noSettings'));
         return;
       }
@@ -382,8 +405,10 @@ export const ankiStore = defineStore('anki', {
               query: globalQuery,
             })) as FindNotesResponse | null;
             if (globalResponse?.result && globalResponse.result.length > 0) {
+              trackExportFailed('card_in_other_deck');
               useToastError($i18n.t('anki.toast.cardFoundInOtherDeck', { deck: profile.deck }));
             } else {
+              trackExportFailed('no_card_found');
               useToastError($i18n.t('anki.toast.noCardToExport'));
             }
             return;
@@ -513,6 +538,7 @@ export const ankiStore = defineStore('anki', {
 
         const noteInfo = infoCard[0];
         if (!noteInfo) {
+          trackExportFailed('no_note_info');
           useToastError($i18n.t('anki.toast.cardAddError', { error: 'No note info found' }));
           return;
         }
@@ -544,18 +570,16 @@ export const ankiStore = defineStore('anki', {
             .catch((error: unknown) => reportError('anki:track-export-activity-failed', error));
         }
 
-        const posthog = usePostHog();
         posthog?.capture('anki_export_completed', {
           media_name: mediaName(sentence.media),
           media_id: sentence.media.publicId,
-          export_method: id ? 'search_by_id' : 'last_card',
+          export_method: exportMethod,
         });
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
         reportError('anki:export-failed', error, { 'segment.publicId': sentence.segment.publicId });
-        const posthog = usePostHog();
-        posthog?.capture('anki_export_failed', {
+        trackExportFailed('error', {
           error_message: error instanceof Error ? error.message : String(error),
         });
         useToastError($i18n.t('anki.toast.cardAddError', { error: error }));
