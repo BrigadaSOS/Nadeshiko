@@ -31,6 +31,19 @@ servers:
         - host.docker.internal:host-gateway
         - www.shirabe.org:100.73.93.89
 
+# The previous builds' `/_nuxt/*` files, kept on the host so they outlive the
+# container that produced them and a deploy does not 404 the page a reader
+# already has open. See frontend/server/utils/assetArchive.ts.
+#
+# Staging gets it too, and not only for parity: staging deploys on every push to
+# main, so it is where a regression in this would show up first and where the
+# E2E suite can catch it. The directory has to exist and be writable by uid 1000
+# (`node`, which docker-entrypoint.sh drops to) before the first deploy:
+#   ssh nadeshiko "sudo mkdir -p /var/lib/nadeshiko/frontend-stg/asset-archive \
+#     && sudo chown 1000:1000 /var/lib/nadeshiko/frontend-stg/asset-archive"
+volumes:
+  - "/var/lib/nadeshiko/frontend-stg/asset-archive:/app/asset-archive"
+
 builder:
   args:
     NUXT_PUBLIC_ENVIRONMENT: development
@@ -90,6 +103,14 @@ env:
     NUXT_BACKEND_INTERNAL_URL: https://api-stg.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
+
+    # Container side of the asset-archive mount above; the two move together.
+    NUXT_ASSET_ARCHIVE_DIR: /app/asset-archive
+    # A WEEK, against production's thirty days, because staging deploys on every
+    # push to main -- 188 commits in the 30 days to 2026-08-13, fifteen times
+    # production's release rate -- and nobody leaves a staging tab open for a
+    # fortnight. The window only has to outlive a review session.
+    NUXT_ASSET_ARCHIVE_DAYS: "7"
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-stg

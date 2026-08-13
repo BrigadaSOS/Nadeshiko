@@ -48,6 +48,24 @@ const envSchema = z.object({
   NUXT_RATE_LIMIT_BYPASS_SECRET: z.string().trim().default(''),
   NUXT_BACKEND_HOST_HEADER: optionalString,
   NUXT_MEDIA_FILES_PATH: optionalString,
+  /**
+   * Where superseded builds' `/_nuxt/*` files are kept so a deploy does not
+   * break the pages readers already have open. See server/utils/assetArchive.ts.
+   *
+   * A path OUTSIDE the image, or this does nothing: the point is to outlive the
+   * container. In production it is the volume mounted in config/deploy.prod.yml.
+   * Empty -- the default, and what dev and CI get -- turns the archive off
+   * entirely rather than degrading it.
+   */
+  NUXT_ASSET_ARCHIVE_DIR: z.string().trim().default(''),
+  /**
+   * How long a superseded build's assets stay servable, in days.
+   *
+   * Per environment because the deploy rates are not comparable: production
+   * releases 5-12 times a month, staging on every push to main. See
+   * ASSET_ARCHIVE_RETENTION_DAYS for the reasoning behind the default.
+   */
+  NUXT_ASSET_ARCHIVE_DAYS: z.coerce.number().int().positive().default(30),
   NUXT_RATE_LIMIT_V1_AUTH_MAX: z.coerce.number().int().positive().default(30),
   NUXT_RATE_LIMIT_V1_API_MAX: z.coerce.number().int().positive().default(120),
   NUXT_RATE_LIMIT_HTML_MAX: z.coerce.number().int().positive().default(60),
