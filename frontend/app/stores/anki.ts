@@ -1,3 +1,5 @@
+import { firstNonBlank } from '~/utils/strings';
+
 // Types
 interface AnkiNote {
   cards: number[];
@@ -341,10 +343,13 @@ export const ankiStore = defineStore('anki', {
           : locale === 'ja'
             ? 'JAPANESE'
             : 'ENGLISH';
+      // Falls through all three names in every branch, matching `useMediaName`:
+      // media without a title in the preferred language would otherwise put an
+      // empty name on the Anki card and store an empty one on the activity.
       const mediaName = (media: { nameEn: string; nameJa: string; nameRomaji: string }) => {
-        if (mediaLang === 'JAPANESE') return media.nameJa || media.nameEn;
-        if (mediaLang === 'ROMAJI') return media.nameRomaji || media.nameEn;
-        return media.nameEn;
+        if (mediaLang === 'JAPANESE') return firstNonBlank(media.nameJa, media.nameEn, media.nameRomaji) ?? '';
+        if (mediaLang === 'ROMAJI') return firstNonBlank(media.nameRomaji, media.nameEn, media.nameJa) ?? '';
+        return firstNonBlank(media.nameEn, media.nameRomaji, media.nameJa) ?? '';
       };
 
       const profile = this.activeProfile;

@@ -31,6 +31,21 @@ describe('activity.mapper', () => {
     });
   });
 
+  // Rows written before the write path normalized them still hold `''`, and the
+  // response schema requires `minLength: 1` -- one of them used to fail validation
+  // for the entire page rather than for its own row.
+  it('reads blank metadata as absent rather than as an empty value', () => {
+    const dto = toUserActivityDTO(
+      buildActivity({ mediaName: '', searchQuery: '   ', japaneseText: '', segmentId: '' }) as any,
+    );
+
+    expect(dto.mediaName).toBeNull();
+    expect(dto.searchQuery).toBeNull();
+    expect(dto.japaneseText).toBeNull();
+    expect(dto.segmentPublicId).toBeNull();
+    expect(dto.mediaPublicId).toBe('media-pub-42');
+  });
+
   it('maps a list of activities', () => {
     const list = toUserActivityListDTO([
       buildActivity({ id: 1 }),

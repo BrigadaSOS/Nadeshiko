@@ -25,6 +25,7 @@ import { ankiStore } from '@/stores/anki';
 import { userStore } from '@/stores/auth';
 import type { CollectionOption } from '~/composables/useCollectionOptions';
 import type { SearchResult } from '~/types/search';
+import { firstNonBlank } from '~/utils/strings';
 import { tokensToAnkiFurigana, type SlimToken } from '~/utils/tokenEnrichment';
 import { useToastError, useToastSuccess } from '~/utils/toast';
 
@@ -144,6 +145,15 @@ const copyFurigana = () => {
   if (!tokens) return;
   copyToClipboard(tokensToAnkiFurigana(props.content.segment.textJa.content, tokens));
 };
+
+/**
+ * Romaji first, as the share event has always used, but falling through the other
+ * names: media with no romaji title used to share an empty name, which the
+ * activity API stored and then choked on when reading the timeline back.
+ */
+const sharedMediaName = computed(() =>
+  firstNonBlank(props.content.media.nameRomaji, props.content.media.nameEn, props.content.media.nameJa),
+);
 </script>
 <template>
   <SearchDropdownContainer data-testid="save-dropdown" :class="['mr-2 my-1 text-xs', { 'hidden min-[1250px]:inline-flex': !user.isLoggedIn }]" dropdownId="nd-dropdown-with-header">
@@ -315,7 +325,7 @@ const copyFurigana = () => {
     data-testid="share-button"
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
-    @click="getSharingURL({ segmentPublicId: content.segment.publicId, mediaPublicId: content.media.publicId, mediaName: content.media.nameRomaji, japaneseText: content.segment.textJa.content })"
+    @click="getSharingURL({ segmentPublicId: content.segment.publicId, mediaPublicId: content.media.publicId, mediaName: sharedMediaName, japaneseText: content.segment.textJa.content })"
   >
     <UiBaseIcon :path="mdiShareVariantOutline" />
   </UiButtonPrimaryAction>
