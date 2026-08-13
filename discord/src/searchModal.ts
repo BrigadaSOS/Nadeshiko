@@ -17,9 +17,7 @@ import { buildSegmentMessage, getMediaName, type DisplayOptions } from './embeds
 import { buildSearchSelectComponents, loadVideoFiles } from './segmentReply';
 import { findMediaByPublicId } from './mediaCache';
 import { BOT_CONFIG } from './config';
-import { createLogger } from './logger';
-
-const log = createLogger('searchModal');
+import { traceModal } from './instrumentation';
 
 export const advancedSearchButton = new ButtonBuilder()
   .setCustomId('advanced_search')
@@ -592,31 +590,41 @@ export function setupModalListener(
   extraButtons?: ButtonBuilder[],
   filterState?: FilterMediaState,
 ) {
+  // The two disqualifiers stay OUTSIDE the traced wrapper on purpose. This is a
+  // client-wide `interactionCreate` listener, so it sees every modal submitted
+  // anywhere by anyone; tracing before the user check would attribute other
+  // people's interactions to this collector's owner and emit a span per modal
+  // per listener, of which there is one alive per active search.
   const handler = async (i: { isModalSubmit(): boolean } & ModalSubmitInteraction) => {
     if (!i.isModalSubmit()) return;
     if (i.user.id !== userId) return;
 
-    try {
-      if (i.customId === 'advanced_search_modal') {
-        if (filterState) {
-          filterState.allMedia = [];
-          filterState.filteredMedia = [];
-          filterState.nameFilter = '';
-          filterState.cachedSearchStats = null;
+    await traceModal('search', async (submission) => {
+      try {
+        if (submission.customId === 'advanced_search_modal') {
+          if (filterState) {
+            filterState.allMedia = [];
+            filterState.filteredMedia = [];
+            filterState.nameFilter = '';
+            filterState.cachedSearchStats = null;
+          }
+          await handleModalSubmit(submission, state, display, linkUrl, extraButtons);
         }
-        await handleModalSubmit(i, state, display, linkUrl, extraButtons);
-      }
 
-      if (i.customId === 'filter_media_search_modal' && filterState) {
-        await i.deferUpdate();
-        const name = i.fields.getTextInputValue('filter_media_name').trim();
-        applyNameFilter(filterState, name);
-        await renderFilterMediaPage(i, state, filterState);
+        if (submission.customId === 'filter_media_search_modal' && filterState) {
+          await submission.deferUpdate();
+          const name = submission.fields.getTextInputValue('filter_media_name').trim();
+          applyNameFilter(filterState, name);
+          await renderFilterMediaPage(submission, state, filterState);
+        }
+      } catch (error) {
+        // Reply first, then rethrow. traceModal records and logs the failure
+        // but has no idea what reply this surface owes the user, and a modal
+        // that silently does nothing is the worst of the available outcomes.
+        await submission.followUp({ content: 'Something went wrong.', ephemeral: true }).catch(() => {});
+        throw error;
       }
-    } catch (error) {
-      log.error({ err: error }, 'Modal handler failed');
-      await i.followUp({ content: 'Something went wrong.', ephemeral: true });
-    }
+    })(i);
   };
 
   client.on('interactionCreate', handler as any);

@@ -11,7 +11,7 @@ import {
 } from '../segmentReply';
 import { searchUrl } from '../links';
 import { createLogger } from '../logger';
-import { getActiveTraceId } from '../instrumentation';
+import { getActiveTraceId, traceComponent } from '../instrumentation';
 import { getGuildSettings } from '../settings';
 import { executeSearch } from './search';
 
@@ -74,34 +74,37 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const collector = reply.createMessageComponentCollector({ time: 600_000 });
 
-    collector.on('collect', async (i) => {
-      if (i.isStringSelectMenu() && i.customId === 'context_select') {
-        await handleContextSelect(i, display, contextState);
-        return;
-      }
+    collector.on(
+      'collect',
+      traceComponent('sentence', async (i) => {
+        if (i.isStringSelectMenu() && i.customId === 'context_select') {
+          await handleContextSelect(i, display, contextState);
+          return;
+        }
 
-      if (!i.isButton()) return;
+        if (!i.isButton()) return;
 
-      if (i.customId === 'context') {
-        await handleContextButton(i, segment, resolvedMedia, display, contextState, extraButtons);
-        return;
-      }
+        if (i.customId === 'context') {
+          await handleContextButton(i, segment, resolvedMedia, display, contextState, extraButtons);
+          return;
+        }
 
-      if (i.customId === 'back_to_original') {
-        await handleBackToOriginal(i, display, contextState, linkUrl, extraButtons);
-        return;
-      }
+        if (i.customId === 'back_to_original') {
+          await handleBackToOriginal(i, display, contextState, linkUrl, extraButtons);
+          return;
+        }
 
-      if ((i.customId === 'search_in_media' || i.customId === 'search_in_episode') && resolvedMedia) {
-        collector.stop('search_transition');
-        await executeSearch(i, {
-          mediaPublicId: resolvedMedia.publicId,
-          episodes: i.customId === 'search_in_episode' ? [segment.episode] : undefined,
-          display,
-        });
-        return;
-      }
-    });
+        if ((i.customId === 'search_in_media' || i.customId === 'search_in_episode') && resolvedMedia) {
+          collector.stop('search_transition');
+          await executeSearch(i, {
+            mediaPublicId: resolvedMedia.publicId,
+            episodes: i.customId === 'search_in_episode' ? [segment.episode] : undefined,
+            display,
+          });
+          return;
+        }
+      }),
+    );
 
     collector.on('end', async (_, reason) => {
       if (reason === 'search_transition') return;

@@ -124,6 +124,28 @@ The Discord bot deploys to **prod** on any push to `main` that touches
 `discord/**`. It is not part of the staging environment and is not gated behind
 a `vX.Y.Z` tag.
 
+### One prerequisite that fails the deploy hard, not softly
+
+Arrived with the telemetry rewrite on 2026-08-14. It does not degrade — it takes
+the whole deploy down — so do it before the first push that carries that change.
+
+**`DISCORD_ANALYTICS_SALT` must exist in SSM.** `.kamal/secrets.prod` now
+resolves it, and `.kamal/ssm-secret` exits non-zero on a missing or blank
+parameter under `set -euo pipefail`, which aborts the deploy at secret
+resolution before anything is built. This is the same failure mode that
+`GRAFANA_ANNOTATION_TOKEN` caused from the `shared` tier; see the comment in
+`discord/.kamal/ssm-secret`.
+
+```bash
+aws ssm put-parameter --profile nadeshiko-prod --region eu-north-1 \
+  --name /nadeshiko/prod/DISCORD_ANALYTICS_SALT --type SecureString \
+  --value "$(openssl rand -hex 32)"
+```
+
+It salts the hash of every Discord user and guild ID before it reaches PostHog.
+**Treat it as permanent**: rotating it re-identifies every user as brand new and
+severs the continuity of every historical usage metric.
+
 ## What happens on a backend deploy (migrations)
 
 The backend applies pending database migrations automatically on boot in the
