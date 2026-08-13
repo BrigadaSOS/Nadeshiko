@@ -415,7 +415,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const clientInstance = createApiClient(createConfig<ClientOptions>({
     baseUrl,
-    headers: { 'User-Agent': 'nadeshiko-sdk-ts/2.3.3', ...config.headers },
+    headers: { 'User-Agent': 'nadeshiko-sdk-ts/2.3.4', ...config.headers },
     fetch: withRetry(globalThis.fetch, config.retryOptions) as typeof fetch,
     auth: (auth: Auth) => {
       if (auth.in === 'cookie') {
