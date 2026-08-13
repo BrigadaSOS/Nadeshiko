@@ -121,7 +121,6 @@ const contentRatingDescription = () => {
 
 const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
 
-const { tooltipReadingMode, setTooltipReadingMode } = useTooltipReadingVisibility();
 const { presets: dictionaryPresets, isDictionaryEnabled, setDictionaryEnabled } = useDictionaryLinks();
 
 type NsfwMode = NonNullable<NonNullable<UserPreferences['contentRatingPreferences']>['nsfw']>;
@@ -469,23 +468,6 @@ const logoutCurrentUser = async () => {
           <option value="ROMAJI">{{ $t('accountSettings.account.mediaNameLanguageOptions.ROMAJI') }}</option>
         </select>
       </div>
-      <div class="flex justify-between items-center mt-4">
-        <div>
-          <p class="text-white">{{ $t('accountSettings.account.tokenPopupReading') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.tokenPopupReadingDescription') }}</p>
-        </div>
-        <select
-          :value="tooltipReadingMode"
-          @change="setTooltipReadingMode(($event.target as HTMLSelectElement).value as any)"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
-        >
-          <option value="hiragana">{{ $t('accountSettings.account.tooltipReadingOptions.hiragana') }}</option>
-          <option value="katakana">{{ $t('accountSettings.account.tooltipReadingOptions.katakana') }}</option>
-          <option value="romaji">{{ $t('accountSettings.account.tooltipReadingOptions.romaji') }}</option>
-          <option value="hidden">{{ $t('accountSettings.account.tooltipReadingOptions.hidden') }}</option>
-        </select>
-      </div>
-
       <div class="mt-4">
         <p class="text-white">{{ $t('accountSettings.account.dictionaryLinks') }}</p>
         <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.dictionaryLinksDescription') }}</p>
