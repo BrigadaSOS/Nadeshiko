@@ -570,14 +570,6 @@
         "JAPANESE": "日本語",
         "ROMAJI": "ローマ字"
       },
-      "tokenPopupReading": "トークンポップアップの読み",
-      "tokenPopupReadingDescription": "日本語テキストにカーソルを合わせたとき、ポップアップ内で読みをどう表示するかを設定します。",
-      "tooltipReadingOptions": {
-        "hiragana": "ひらがな (ねがう)",
-        "katakana": "カタカナ (ネガウ)",
-        "romaji": "ローマ字 (negau)",
-        "hidden": "非表示"
-      },
       "dictionaryLinks": "辞書連携",
       "dictionaryLinksDescription": "トークンのポップアップに表示する辞書リンクを選択します。",
       "deleteAccount": "アカウント削除（取り消し不可）",

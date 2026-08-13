@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import type { Token } from '@brigadasos/nadeshiko-sdk';
-import {
-  enrichTokens,
-  hiraganaToKatakana,
-  hiraganaToRomaji,
-  type SlimToken,
-  type EnrichedToken,
-} from '~/utils/tokenEnrichment';
+import { enrichTokens, type SlimToken, type EnrichedToken } from '~/utils/tokenEnrichment';
 import { placeCard } from '~/utils/cardPlacement';
 import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
@@ -492,7 +486,6 @@ const POS_CLASS: Record<string, string> = {
 // Spanish glosses on, "常用" over "Frecuente" would be the odd one out.
 const COMMON_LABEL: Record<GlossLanguage, string> = { en: 'Common', es: 'Frecuente' };
 
-const { tooltipReadingMode } = useTooltipReadingVisibility();
 const { furiganaMode } = useHiraganaVisibility();
 const { presets, isDictionaryEnabled } = useDictionaryLinks();
 
@@ -501,48 +494,12 @@ const { presets, isDictionaryEnabled } = useDictionaryLinks();
 // senses is 焼ける, and printing it over the inflected reading would be a lie.
 const headword = computed(() => word.value?.headword ?? hoveredToken.value?.dictForm ?? '');
 
-// Hiragana written the way the reader asked to see it. Everything on this card
-// that spells a reading out goes through here, so the head and the pitch row
-// cannot end up in two different scripts.
-const inPreferredScript = (reading: string): string => {
-  switch (tooltipReadingMode.value) {
-    case 'katakana':
-      return hiraganaToKatakana(reading);
-    case 'romaji':
-      return hiraganaToRomaji(reading);
-    case 'hidden':
-      return '';
-    default:
-      return reading;
-  }
-};
-
 const headReading = computed(() => {
   const reading = word.value?.reading || hoveredToken.value?.readingHiragana || '';
   // For この the reading IS この, so a second copy of it adds nothing.
-  if (!reading || reading === headword.value) return '';
-  return inPreferredScript(reading);
+  if (reading === headword.value) return '';
+  return reading;
 });
-
-/**
- * The headword said out loud.
- *
- * Shirabe pre-generates a clip of each reading spoken at each of its pitch
- * accents and serves them off its public CDN, so this is a URL that arrives on
- * the word response -- there is nothing to request, nothing to authorize, and no
- * work for our own API to do.
- *
- * Each pattern carries its own, so the buttons sit on the pitch row one per
- * accent (see `pitchPatterns`) and a click plays the accent drawn beside it.
- * This one is the fallback for the case where there is no row to hang them on:
- * a reader with readings hidden gets no diagrams, and a word they cannot hear at
- * all would be a worse trade than they asked for. The first pattern with a clip,
- * not the first pattern: coverage is per (reading, accent) and lights up batch
- * by batch, so a word can have two patterns with a recording of only the second.
- * A word with none simply has no button, which is the honest answer -- a dead
- * speaker icon invites a click that does nothing.
- */
-const headAudioUrl = computed(() => (word.value?.pitch ?? []).find((pattern) => pattern.audioUrl)?.audioUrl ?? '');
 
 /** The clip playing right now, by URL, so that only the button that started it
  *  lights up. A word read two ways has a button per accent, and a plain boolean
@@ -651,23 +608,26 @@ const badges = computed(() => {
   return items;
 });
 
-// 4. Pitch accent. Two patterns at most: a word read four ways is rare enough
-// that it must not push the senses out of a hover card.
-// Hidden readings take the pitch row with them: it spells the reading out one
-// mora at a time, so leaving it up would print in full what the head was just
-// asked to withhold. The morae are split from hiragana and only then written in
-// the reader's script, because splitting romaji into morae is not a thing you
-// can do afterwards.
+/**
+ * 4. Pitch accent. Two patterns at most: a word read four ways is rare enough
+ * that it must not push the senses out of a hover card.
+ *
+ * Each pattern carries its own clip, which Shirabe pre-generates per (reading,
+ * accent) and serves off its public CDN -- there is nothing to request, nothing
+ * to authorize, and no work for our own API to do. The clip is per pattern and
+ * not per word on purpose: a word read two ways is two recordings, and one
+ * button in front of both would play whichever happened to exist while pointing
+ * at an accent it might not be. Coverage lights up batch by batch, so a pattern
+ * with no recording simply has no button -- a dead speaker icon invites a click
+ * that does nothing.
+ */
 const pitchPatterns = computed(() => {
   const reading = word.value?.reading;
-  if (!reading || tooltipReadingMode.value === 'hidden') return [];
+  if (!reading) return [];
   return (word.value?.pitch ?? []).slice(0, 2).map((pattern) => ({
     downstep: pattern.downstep,
-    // Its OWN clip, not the word's: a word read two ways is two recordings, and
-    // one button in front of both would play whichever happened to exist while
-    // pointing at an accent it might not be.
     audioUrl: pattern.audioUrl ?? '',
-    morae: pitchMorae(reading, pattern.downstep).map((mora) => ({ ...mora, text: inPreferredScript(mora.text) })),
+    morae: pitchMorae(reading, pattern.downstep),
   }));
 });
 
@@ -804,10 +764,8 @@ const dictionaryLinks = computed(() => {
             <!-- The play buttons sit on the pitch row because both are about how
                  the word SOUNDS, and one leads each pattern because each pattern
                  is a different recording: a word read two ways gets a button per
-                 accent, in front of the diagram that names the accent it plays.
-                 The row still renders with no patterns at all -- see the lone
-                 button below it, for readers who have hidden their readings. -->
-            <div v-if="pitchPatterns.length > 0 || headAudioUrl" class="token-tooltip__pitch">
+                 accent, in front of the diagram that names the accent it plays. -->
+            <div v-if="pitchPatterns.length > 0" class="token-tooltip__pitch">
               <span v-for="(pattern, pi) in pitchPatterns" :key="pi" class="token-tooltip__pitch-pattern">
                 <button
                   v-if="pattern.audioUrl"
@@ -832,26 +790,6 @@ const dictionaryLinks = computed(() => {
                 >{{ mora.text }}</span>
                 <span class="token-tooltip__downstep">[{{ pattern.downstep }}]</span>
               </span>
-              <!-- Nothing to hang a per-accent button on: a reader with readings
-                   hidden gets no diagrams, and hearing the word is the one part
-                   of this row that does not print the reading at them. So the
-                   old single button stands in, on the first accent that has a
-                   clip. -->
-              <button
-                v-if="pitchPatterns.length === 0 && headAudioUrl"
-                type="button"
-                class="token-tooltip__audio"
-                :class="{ 'is-playing': playingUrl === headAudioUrl }"
-                :aria-label="$t('tokenTooltip.playAudio')"
-                :title="$t('tokenTooltip.playAudio')"
-                @click="playHeadword(headAudioUrl)"
-              >
-                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M8.5 2.75 4.9 5.75H2.4v4.5h2.5l3.6 3z" fill="currentColor" stroke="none" />
-                  <path d="M11 6a3 3 0 0 1 0 4" />
-                  <path d="M13 4a6 6 0 0 1 0 8" />
-                </svg>
-              </button>
             </div>
 
             <ol v-if="senses.length > 0" class="token-tooltip__senses">
