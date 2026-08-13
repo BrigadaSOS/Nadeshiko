@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SearchScope } from '~/composables/useSearchFetch';
 import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
-import { splitLocalePrefix } from '~/utils/routes';
+import { decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -28,7 +28,7 @@ const episodeNumberParam = computed(() => {
 
 const searchQuery = computed(() => {
   if (route.params.query) {
-    return decodeURIComponent(String(route.params.query));
+    return decodeSearchQuery(String(route.params.query));
   }
   return String(route.query.query || '');
 });
