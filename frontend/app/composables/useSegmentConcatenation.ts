@@ -1,4 +1,5 @@
 import type { SearchResult, Segment } from '~/types/search';
+import { describeAudioFetchFailure } from '~/utils/media';
 import { reportError } from '~/utils/reportError';
 import { resolveContextResponse } from '~/utils/resolvers';
 
@@ -79,6 +80,30 @@ function concatLangField<T extends TextFieldBase>(
     highlight: concatTextField(curHighlight, adjHighlight, direction),
     tokens: null,
   } as T;
+}
+
+/**
+ * Report a failed expansion audio build with everything known about the fetch.
+ *
+ * All three expansion branches report identically and the diagnosis is async, so
+ * it lives here rather than three times over. Without the extra attributes these
+ * reports are a bare `Failed to fetch` -- see `describeAudioFetchFailure`.
+ */
+async function reportConcatenationFailure(
+  audioErr: unknown,
+  direction: 'forward' | 'backward' | 'both',
+  result: SearchResult,
+): Promise<void> {
+  // Never rejects. This is called un-awaited, so a rejection would arrive as an
+  // unhandled rejection and be captured as its own bogus exception on top of the
+  // one being reported.
+  const diagnosis = await describeAudioFetchFailure(audioErr).catch(() => ({}));
+
+  reportError('segment:audio-concatenation-failed', audioErr, {
+    direction,
+    'segment.publicId': result.segment.publicId,
+    ...diagnosis,
+  });
 }
 
 export function useSegmentConcatenation() {
@@ -175,7 +200,11 @@ export function useSegmentConcatenation() {
             result.blobAudioUrl = concatenatedAudio.blob_url;
             result.blobAudio = concatenatedAudio.blob;
           } catch (audioErr) {
-            reportError('segment:audio-concatenation-failed', audioErr, { direction });
+            // Deliberately un-awaited: the diagnosis re-requests the failed url
+            // and can wait seconds, while `isConcatenating` is cleared in the
+            // `finally` below -- awaiting would leave the reader's expand
+            // controls disabled long after the failure they can already see.
+            void reportConcatenationFailure(audioErr, direction, result);
           }
         } else if (direction === 'backward') {
           if (!previousSegment) return;
@@ -194,7 +223,11 @@ export function useSegmentConcatenation() {
             result.blobAudioUrl = concatenatedAudio.blob_url;
             result.blobAudio = concatenatedAudio.blob;
           } catch (audioErr) {
-            reportError('segment:audio-concatenation-failed', audioErr, { direction });
+            // Deliberately un-awaited: the diagnosis re-requests the failed url
+            // and can wait seconds, while `isConcatenating` is cleared in the
+            // `finally` below -- awaiting would leave the reader's expand
+            // controls disabled long after the failure they can already see.
+            void reportConcatenationFailure(audioErr, direction, result);
           }
         } else if (direction === 'both') {
           if (!previousSegment || !nextSegment) return;
@@ -229,7 +262,11 @@ export function useSegmentConcatenation() {
             result.blobAudioUrl = concatenatedAudio.blob_url;
             result.blobAudio = concatenatedAudio.blob;
           } catch (audioErr) {
-            reportError('segment:audio-concatenation-failed', audioErr, { direction });
+            // Deliberately un-awaited: the diagnosis re-requests the failed url
+            // and can wait seconds, while `isConcatenating` is cleared in the
+            // `finally` below -- awaiting would leave the reader's expand
+            // controls disabled long after the failure they can already see.
+            void reportConcatenationFailure(audioErr, direction, result);
           }
         }
       }
