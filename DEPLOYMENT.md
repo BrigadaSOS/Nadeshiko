@@ -494,8 +494,17 @@ deploy and is recreated by nobody. Treat it as part of the release checklist.
 
 ### The bare-path locale redirect
 
-**Status: written down, NOT YET APPLIED.** Apply on the first prod deploy that
-ships the origin change described below.
+**Status: APPLIED 2026-08-13**, and managed as code — the rules live in
+`brigadasos-infra/terraform/cloudflare-redirects.tf` with the matching `import`
+block in `imports.tf`, not in the dashboard. Verified with the commands at the
+end of this section: `/` answers `302` to `/en`, `/es` or `/ja` from the cookie
+alone and carries no `x-request-id`, so it is the edge answering, not the origin.
+
+Two things that bit on the way in, both preserved in comments there: the
+resource must be `name = "default"` (any other name forces *replacement* of the
+entry-point ruleset, which would drop the `www` → apex 301 with it), and the
+`import` block must be uncommented in the same change, or the apply fails with
+`exceeded maximum number of zone rulesets for phase`.
 
 `/` is the first request of every cold visit and it carries no content. Answered
 at the origin it is a full round trip to Helsinki for a zero-byte 302: measured
