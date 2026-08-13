@@ -132,10 +132,11 @@ export default defineEventHandler(async (event) => {
   const call = (origin: string, timeout: number): Promise<unknown> =>
     $fetch(`${origin}${path}`, {
       headers: { authorization: `Bearer ${apiKey}` },
-      // Examples are off for now (owner, 2026-08-06). Asking for them is what
-      // makes them exist: `include=examples` is opt-in, it costs 2 to 3x the
-      // latency on a common word, and with it absent `cardExamples` finds
-      // nothing and the block does not render. Put 'examples' back to restore.
+      // No `include=examples`, and this is a decision rather than an omission:
+      // Nadeshiko's own corpus is the example sentences, and it is the whole
+      // point of the site. A dictionary's handful would sit under the card
+      // competing with the thing "More sentences" leads to, for 2 to 3x the
+      // latency on a common word.
       query: { locale, ...resolveFrom },
       timeout,
     });
