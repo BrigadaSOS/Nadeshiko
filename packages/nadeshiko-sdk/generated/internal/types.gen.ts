@@ -1857,6 +1857,15 @@ export type UserPreferences = {
         serverAddress: string;
     }>;
     /**
+     * Whole media categories hidden from search results by the user.
+     *
+     * An empty array means nothing is hidden. Hiding *every* category is rejected with
+     * `400`: `filters.category` reads an empty list as "no filter", so hiding the last
+     * one would silently show everything back instead of nothing.
+     *
+     */
+    hiddenCategories?: Array<Category>;
+    /**
      * Media hidden from search results by the user
      */
     hiddenMedia?: Array<{
