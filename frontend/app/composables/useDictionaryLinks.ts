@@ -1,7 +1,7 @@
 import { DICT_LINKS_COOKIE } from '#shared/utils/preferenceCookies';
 import { shirabeWordUrl, type GlossLanguage } from '~/utils/wordCard';
 
-export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto';
+export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto' | 'jiten';
 
 export type DictionaryPreset = {
   id: DictionaryId;
@@ -69,6 +69,16 @@ export const DICTIONARY_PRESETS: DictionaryPreset[] = [
     id: 'takoboto',
     label: 'Takoboto',
     buildUrl: (word) => `https://takoboto.jp/?q=${encodeURIComponent(word)}`,
+    defaultEnabled: false,
+  },
+  {
+    // A parser rather than a word page: jiten.moe indexes media and has no
+    // per-entry url to link at, so the word goes through `/parse` as the text to
+    // analyse. That is the destination the site actually offers, and for a
+    // single word it lands on that word.
+    id: 'jiten',
+    label: 'Jiten',
+    buildUrl: (word) => `https://jiten.moe/parse?text=${encodeURIComponent(word)}`,
     defaultEnabled: false,
   },
 ];
