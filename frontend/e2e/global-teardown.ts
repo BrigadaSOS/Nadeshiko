@@ -59,9 +59,9 @@ export default async function globalTeardown() {
       }
     }
 
-    // Clear hidden media
+    // Clear hidden media and hidden categories
     await request.put('/v1/user/preferences', {
-      data: { hiddenMedia: [] },
+      data: { hiddenMedia: [], hiddenCategories: [] },
     }).catch(() => {});
 
     // Clear activity history

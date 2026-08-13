@@ -134,6 +134,7 @@ export default defineNuxtPlugin({
             media_name_language: store.preferences?.mediaNameLanguage,
             has_anki_configured: (store.preferences?.ankiProfiles?.length ?? 0) > 0,
             hidden_media_count: store.preferences?.hiddenMedia?.length ?? 0,
+            hidden_categories: store.preferences?.hiddenCategories ?? [],
           },
         });
       };
