@@ -26,6 +26,45 @@ function persistGuard(value: string): void {
   }
 }
 
+/** How long to wait for a fresh copy of the page before reloading regardless. */
+const DOCUMENT_REFRESH_TIMEOUT_MS = 3_000;
+
+/**
+ * Replaces this page's entry in the browser's own HTTP cache before reloading
+ * onto it.
+ *
+ * WITHOUT THIS THE RELOAD CAN BE A NO-OP, which is how a recovery that runs
+ * correctly still ends at `app:chunk-error-unrecoverable`. `reloadNuxtApp` ends
+ * in `window.location.href = path` for any target that is not exactly the
+ * current pathname -- a plain navigation, and a plain navigation is served from
+ * the HTTP cache. Nadeshiko's edge-cached HTML reaches readers with
+ * `Cache-Control: private, max-age=3600` (Cloudflare raising the origin's
+ * `no-cache` to the zone's browser minimum), so the reload is handed back the
+ * very document whose chunks just 404ed, byte for byte, and fails the same way
+ * until the budget runs out.
+ *
+ * `cache: 'reload'` is the one fetch mode that both ignores the stored entry AND
+ * writes what comes back over it, which is what makes the navigation that
+ * follows see the new build. Failure is not worth handling: if this cannot
+ * reach the network the reload is no worse off than it would have been, so
+ * every outcome leads to the same next line.
+ */
+async function refreshCachedDocument(target: string): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DOCUMENT_REFRESH_TIMEOUT_MS);
+
+  try {
+    // `same-origin` credentials rather than the default `omit` of a bare fetch:
+    // the entry this is meant to overwrite was stored by a cookie-bearing
+    // navigation, and a credential-less request is a different cache key.
+    await fetch(target, { cache: 'reload', credentials: 'same-origin', signal: controller.signal });
+  } catch {
+    // Offline, aborted, or refused. Reload anyway -- see above.
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Recovers clients left on a stale build after a deploy.
  *
@@ -59,9 +98,14 @@ export default defineNuxtPlugin({
         return;
       }
 
-      const { reload, guard } = decideChunkReload(parseChunkReloadGuard(readStoredGuard()), Date.now());
+      const { action, guard } = decideChunkReload(parseChunkReloadGuard(readStoredGuard()), Date.now());
 
-      if (!reload) {
+      // Another chunk from this same page load already triggered the reload that
+      // is about to replace this document. Nothing to do and nothing to report:
+      // a broken page orphans several chunks at once and they all land here.
+      if (action === 'pending') return;
+
+      if (action === 'exhausted') {
         // Past the attempt budget the reload is not fixing anything, so stop and
         // let the error reach the user instead of cycling the tab.
         reportError('app:chunk-error-unrecoverable', error, {
@@ -72,12 +116,17 @@ export default defineNuxtPlugin({
         return;
       }
 
+      // Persisted BEFORE the await below, so the rest of this burst -- which is
+      // already queued and will run before any of it resolves -- reads the spent
+      // attempt and takes the `pending` branch above.
       persistGuard(JSON.stringify(guard));
 
-      // `force` bypasses Nuxt's per-path guard in favour of the cross-path budget
-      // above; `persistState` is deliberately off, because the state was produced
-      // by the build we are reloading away from.
-      reloadNuxtApp({ path: target, force: true, ttl: CHUNK_RELOAD_WINDOW_MS });
+      void refreshCachedDocument(target).then(() => {
+        // `force` bypasses Nuxt's per-path guard in favour of the cross-path budget
+        // above; `persistState` is deliberately off, because the state was produced
+        // by the build we are reloading away from.
+        reloadNuxtApp({ path: target, force: true, ttl: CHUNK_RELOAD_WINDOW_MS });
+      });
     };
 
     nuxtApp.hook('app:chunkError', ({ error }) => recover(error, 'hook'));
