@@ -10,6 +10,7 @@ const { mediaName } = useMediaName();
 const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const { hiddenMediaExcludeFilter } = useHiddenMedia();
+const { hiddenCategories } = useHiddenCategories();
 
 const mediaQueryParam = computed(() =>
   getStringQueryValue((route.query.media ?? route.query.mediaId) as string | string[] | undefined),
@@ -47,6 +48,7 @@ const searchScope = computed<SearchScope>(() => ({
   contentRating: contentRating.value,
   languages: includedLanguages.value,
   hiddenMediaExclude: hiddenMediaExcludeFilter.value,
+  hiddenCategories: hiddenCategories.value,
 }));
 
 const fetchSentenceData = async () => {
