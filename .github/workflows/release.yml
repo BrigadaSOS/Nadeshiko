@@ -17,8 +17,48 @@ jobs:
   checks:
     uses: ./.github/workflows/checks.yml
 
+  # Gates the deploys rather than living beside them. The purge at the end of
+  # `release-frontend` is not optional (see it for why), and a missing or
+  # wrong-scoped token discovered there would strand prod on a new build behind
+  # an hour of stale HTML -- or, if it only gated the frontend, leave the backend
+  # deployed and the frontend not. Failing before anything ships costs a re-run.
+  #
+  # This proves the token is live and can see the zone. It cannot prove the Cache
+  # Purge permission without purging, so if the purge ever fails on a token that
+  # passed here, widen the token rather than this check.
+  verify-purge-credentials:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify Cloudflare purge credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ZONE_ID:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set," \
+                 "with Zone -> Cache Purge on nadeshiko.co. See DEPLOYMENT.md," \
+                 "'Purging HTML on deploy'."
+            exit 1
+          fi
+
+          zone=$(curl -sS \
+            "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+
+          if [ "$(echo "$zone" | jq -r '.success')" != "true" ]; then
+            echo "::error::Cloudflare rejected the token or the zone id. Nothing" \
+                 "has been deployed."
+            echo "$zone" | jq -r '.errors // .' >&2
+            exit 1
+          fi
+
+          echo "Cloudflare credentials OK for zone $(echo "$zone" | jq -r '.result.name')."
+
   release-backend:
-    needs: checks
+    needs: [checks, verify-purge-credentials]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Runs the Elasticsearch migration write freeze, so it must not overlap the
@@ -152,6 +192,7 @@ jobs:
         with:
           fetch-depth: 0
 
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -209,6 +250,61 @@ jobs:
           set -euo pipefail
           cd frontend
           kamal deploy -d prod --skip-push
+
+      # Anonymous sentence and search HTML is edge-cached for an hour
+      # (`cloudflare-cache.tf` in brigadasos-infra, `edge_ttl: respect_origin`,
+      # against `CDN-Cache-Control: public, max-age=3600` from
+      # `frontend/server/utils/sharedCdnTtl.ts`). That HTML is NOT fingerprinted
+      # and it names the digests of the build that rendered it, so across a
+      # deploy it points at `/_nuxt/*.js` the new container no longer has.
+      #
+      # The reader's browser then throws `Failed to fetch dynamically imported
+      # module` -- and `app/plugins/chunkReload.client.ts` CANNOT recover it,
+      # because the reload it triggers re-requests the page and the edge hands
+      # back the same stale HTML. It burns its two attempts and gives up. So
+      # this purge is what makes that recovery path work at all.
+      #
+      # Purge-everything rather than by URL: sentence and search URLs are
+      # unbounded, and purge by prefix/hostname/tag is Enterprise-only. It also
+      # drops `/v1/media/*` and the fingerprinted assets, which is harmless --
+      # they are immutable and simply refill from origin.
+      #
+      # SAFE ONLY BECAUSE THIS WORKFLOW IS TAG-TRIGGERED. Prod and staging share
+      # one zone, so the same call from `staging-release.yml` (which runs on
+      # every push to main) would throw away production's edge cache. Do not
+      # copy this step there.
+      #
+      # After the deploy on purpose: purging first would just let the edge refill
+      # from the old container while kamal is still swapping.
+      - name: Purge the Cloudflare edge cache
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ZONE_ID:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set." \
+                 "The token needs the Zone -> Cache Purge permission on nadeshiko.co."
+            exit 1
+          fi
+
+          response=$(curl -sS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+
+          # Cloudflare answers 200 with `"success": false` for a token that lacks
+          # the purge permission, so the exit code alone proves nothing.
+          if [ "$(echo "$response" | jq -r '.success')" != "true" ]; then
+            echo "::error::Edge cache purge failed. Prod is deployed but the edge" \
+                 "may serve stale HTML for up to an hour -- purge by hand."
+            echo "$response" | jq -r '.errors // .' >&2
+            exit 1
+          fi
+
+          echo "Edge cache purged."
 
   e2e:
     needs: release-frontend
@@ -332,7 +428,16 @@ jobs:
   # A failed production release is the one thing nobody should have to notice by
   # checking the Actions tab. No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, release-backend, release-frontend, e2e, dispatch-sdk-ts, dispatch-sdk-python]
+    needs:
+      [
+        checks,
+        verify-purge-credentials,
+        release-backend,
+        release-frontend,
+        e2e,
+        dispatch-sdk-ts,
+        dispatch-sdk-python,
+      ]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit
