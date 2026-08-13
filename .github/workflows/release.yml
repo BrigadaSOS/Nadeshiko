@@ -266,12 +266,27 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
+      # SMOKE SUBSET, not the whole suite, and the reason is production's HTML
+      # rate limiter: 20 renders per minute per IP, with no bypass by design
+      # (see frontend/config/deploy.staging.yml, where the staging-only bypass
+      # secret says so). One CI runner is one IP, so 152 tests cannot fit --
+      # measured against prod, request 23 in a minute returns 429.
+      #
+      # It did not fail honestly either. The suite 429d at whatever assertion
+      # came next, so every run blamed a different innocent test and prod E2E
+      # had been red since 2026-08-10 without ever pointing at the cause.
+      #
+      # Staging runs all 152 against the same commit with the bypass, so this is
+      # not lost coverage -- it is the same coverage, once. What runs here is
+      # what can only break in production: real database, real Elasticsearch,
+      # real R2/CDN media, real Cloudflare. See e2e/playwright.config.ts.
+      - name: Run E2E smoke tests
         run: |
           cd frontend
           npx playwright test --config=e2e/playwright.config.ts
         env:
           E2E_BASE_URL: https://nadeshiko.co
+          E2E_SMOKE: '1'
 
       - name: Upload test report
         uses: actions/upload-artifact@v7
