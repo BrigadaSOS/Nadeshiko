@@ -10,7 +10,6 @@ import {
 import { placeCard } from '~/utils/cardPlacement';
 import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
-  cardExamples,
   cardSenses,
   glossPreference,
   kanjiIn,
@@ -19,6 +18,11 @@ import {
   type GlossLanguage,
 } from '~/utils/wordCard';
 import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
+// The singleton, not `usePostHog()`. That composable resolves through
+// `useNuxtApp()`, which throws when it is reached from a detached async
+// continuation -- and the outcome below is reported after `await fetchWord`,
+// which is exactly one. Same reasoning, and the same import, as `reportError`.
+import posthog from 'posthog-js';
 
 type Props = {
   tokens: Token[];
@@ -143,6 +147,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   const cached = peekWord(ref, locale);
   if (cached !== undefined) {
     applyLookup(cached);
+    reportCardOutcome(token, cached, true);
     return;
   }
 
@@ -169,6 +174,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   pendingLookup = null;
 
   applyLookup(found);
+  reportCardOutcome(token, found, false);
   // Deliberately no re-placement here. The card has just grown from one line to
   // its full height, but where it goes was settled against its maximum size when
   // it opened, so it grows into room already reserved for it.
@@ -180,6 +186,52 @@ async function loadWord(token: EnrichedToken): Promise<void> {
 function applyLookup(answer: WordLookup): void {
   word.value = answer.word;
   wordState.value = !answer.word && answer.reason === 'missing' ? 'missing' : 'idle';
+}
+
+/**
+ * What the card ended up telling the reader, once per open.
+ *
+ * Read off what RENDERED, not off what the fetch returned, and the difference is
+ * the whole point. An entry can come back perfectly well and still leave a
+ * headword over blank space: `cardSenses` drops every sense with no gloss in a
+ * language the reader reads, so a Spanish-only reader meeting an English-only
+ * entry gets nothing under the word. A fetch-level metric scores that as
+ * success.
+ *
+ * That gap is not hypothetical. It is the exact shape of the wrong-API-path bug
+ * (`server/api/shirabe/words/[lemma].get.ts`), which rendered every card empty
+ * and survived as long as it did because -- in the words of the comment left
+ * there -- nothing alerted, since an empty card is not an error. `no_senses` is
+ * the bucket that makes it loud.
+ *
+ * Called only where a lookup actually happened. A token nobody can ask about
+ * (punctuation, bare digits) and a build with no Shirabe key configured both
+ * return before this, because neither is the dictionary answering and counting
+ * them would move rates that are supposed to be about the dictionary.
+ */
+function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: boolean): void {
+  if (!posthog.__loaded) return;
+
+  const ref = token.lookupRef;
+  posthog.capture('word_card_opened', {
+    outcome: answer.word ? (senses.value.length > 0 ? 'shown' : 'no_senses') : answer.reason,
+    // The work queue for dictionary coverage lives in this field: the words that
+    // come back 'missing' most often, weighted by how often they turn up.
+    lemma: ref.lemma,
+    // Whether a miss is a proper noun (expected, uninteresting) or a verb the
+    // dictionary should have had.
+    pos: ref.pos || null,
+    // The language the DEFINITIONS were wanted in, which is what decides whether
+    // an entry renders at all. `labels` is only the language of the chips, and
+    // reading the rates by it would attribute an empty card to the wrong
+    // preference.
+    gloss_locale: glossLanguages.value.order[0] ?? null,
+    label_locale: glossLanguages.value.labels,
+    // A reader re-opening a word the page already answered is not the dictionary
+    // answering again. Left unmarked it flatters every rate here, because the
+    // cache only ever holds the answers that succeeded.
+    from_cache: fromCache,
+  });
 }
 
 /**
@@ -283,9 +335,6 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) =
   }
   hoveredToken.value = token;
   hoveredElement = event.currentTarget as HTMLElement;
-  // A revealed spoiler belongs to the sentence it was revealed on, and the card
-  // for the next word is a different set of sentences under the same row keys.
-  revealedTranslations.clear();
   stopHeadword();
   // Placed before the lookup rather than after it: `loadWord` paints a cached
   // answer synchronously, and the card should already know where it lives by
@@ -622,9 +671,8 @@ const pitchPatterns = computed(() => {
   }));
 });
 
-// 5, 6, 7. Senses, the kanji the headword is written with, and examples.
+// 5 and 6. The senses, and the kanji the headword is written with.
 const senses = computed(() => cardSenses(word.value, glossLanguages.value));
-const examples = computed(() => cardExamples(word.value, glossLanguages.value));
 const kanjiChips = computed(() =>
   kanjiIn(headword.value).map((character) => ({
     character,
@@ -632,26 +680,14 @@ const kanjiChips = computed(() =>
   })),
 );
 
-// A translation covered by a spoiler, keyed by the row it sits in. The examples
-// belong to whichever word is hovered, so the key is only good for as long as
-// the card is: `onTokenEnter` empties it.
-const revealedTranslations = reactive(new Set<string>());
-const translationKey = (index: number, lang: string) => `${index}-${lang}`;
-const isTranslationRevealed = (index: number, lang: string) => revealedTranslations.has(translationKey(index, lang));
-
-const toggleTranslationReveal = (index: number, lang: string) => {
-  const key = translationKey(index, lang);
-  if (revealedTranslations.has(key)) revealedTranslations.delete(key);
-  else revealedTranslations.add(key);
-};
-
-// Clicking a word in an example searches Nadeshiko for it, not Shirabe: the
-// reader asking about 注意 in an example sentence wants to hear it said, which
-// is what this site is for. The dictionary is a click away on the headword.
-// Same emit the tokens in the sentence itself use, so it is the router that
-// navigates and the page never reloads. The card came off a sentence that is
-// about to be replaced, so it closes on the way out.
-const searchExampleToken = (query: string) => {
+// Searching Nadeshiko for a word, which is what both the headword and "More
+// sentences" do: a reader asking about 注意 wants to hear it said, and that is
+// what this site is for. The dictionaries are a click away in the chips at the
+// foot, and they leave the site -- so the two kinds of destination never share
+// an appearance. Same emit the tokens in the sentence itself use, so it is the
+// router that navigates and the page never reloads. The card came off a
+// sentence that is about to be replaced, so it closes on the way out.
+const searchForWord = (query: string) => {
   closeTooltip();
   emit('token-click', query);
 };
@@ -745,7 +781,7 @@ const dictionaryLinks = computed(() => {
               class="token-tooltip__word"
               :class="{ 'token-tooltip__word--action': hoveredToken }"
               lang="ja"
-              @click="hoveredToken && searchExampleToken(hoveredToken.dictForm)"
+              @click="hoveredToken && searchForWord(hoveredToken.dictForm)"
             >
               <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
               <template v-else>{{ headword }}</template>
@@ -860,33 +896,6 @@ const dictionaryLinks = computed(() => {
               >{{ chip.character }}</a>
             </div>
 
-            <div v-if="examples.length > 0" class="token-tooltip__examples">
-              <div v-for="(example, ei) in examples" :key="ei" class="token-tooltip__example">
-                <span lang="ja" class="token-tooltip__example-jp"><template v-if="example.tokens.length > 0"><template v-for="(token, ti) in example.tokens" :key="ti"><span v-if="token.query" class="token-tooltip__example-token" :class="{ 'is-matched': token.matched }" @click="searchExampleToken(token.query)">{{ token.text }}</span><span v-else :class="{ 'is-matched': token.matched }">{{ token.text }}</span></template></template><template v-else>{{ example.japanese }}</template></span>
-                <ul v-if="example.translations.length > 0" class="m-0 mt-1 w-full list-none space-y-1 p-0 text-gray-400">
-                  <li v-for="row in example.translations" :key="row.lang" class="flex items-center gap-2 text-xs transition-opacity duration-200">
-                    <span
-                      class="token-tooltip__lang"
-                      :class="row.mode === 'spoiler' ? 'is-spoiler' : ''"
-                    >{{ row.label }}</span>
-                    <div class="min-w-0 flex-1">
-                      <span
-                        class="group/translation"
-                        :class="row.mode === 'spoiler' && !isTranslationRevealed(ei, row.lang) ? 'cursor-pointer' : ''"
-                        @click="row.mode === 'spoiler' && toggleTranslationReveal(ei, row.lang)"
-                      >
-                        <span
-                          class="inline rounded-sm px-1 py-1 leading-snug transition-colors duration-200"
-                          :class="row.mode === 'spoiler' && !isTranslationRevealed(ei, row.lang)
-                            ? 'bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
-                            : 'bg-transparent text-gray-400'"
-                        >{{ row.text }}</span>
-                      </span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
           </div>
 
           <!-- Its own row, not gated on the dictionary list: it is not a
@@ -898,7 +907,7 @@ const dictionaryLinks = computed(() => {
             <button
               type="button"
               class="token-tooltip__action"
-              @click="searchExampleToken(hoveredToken.dictForm)"
+              @click="searchForWord(hoveredToken.dictForm)"
             >{{ $t('tokenTooltip.moreSentences') }}</button>
           </div>
 
@@ -1033,8 +1042,11 @@ const dictionaryLinks = computed(() => {
   padding: 0 14px;
 }
 
+/* The word is what the card is about, so it is the one thing sized to be read
+   at a glance rather than to fit. `ruby rt` is 0.55em, so the furigana grows
+   with it and the head keeps its proportions. */
 .token-tooltip__word {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 600;
   line-height: 1.25;
   color: white;
@@ -1333,42 +1345,6 @@ a.token-tooltip__word:hover {
 
 .token-tooltip__gloss-row + .token-tooltip__gloss-row {
   margin-top: 2px;
-}
-
-.token-tooltip__examples {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid var(--tt-line);
-}
-
-.token-tooltip__example {
-  margin: 6px 0;
-}
-
-.token-tooltip__example-jp {
-  display: block;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--tt-ink);
-}
-
-/* A content word in an example: clicking it searches Nadeshiko for that word.
-   Punctuation and grammar render bare, so nothing invites a click that would
-   answer nothing. */
-.token-tooltip__example-token {
-  cursor: pointer;
-  border-radius: 2px;
-  transition: background-color 0.15s ease;
-}
-
-.token-tooltip__example-token:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-/* The word the card is about, wherever it sits in the sentence. */
-.token-tooltip__example-jp .is-matched {
-  color: var(--tt-accent);
-  font-weight: 600;
 }
 
 /* A link, not a button: it navigates, and dressing it as a control put a filled
