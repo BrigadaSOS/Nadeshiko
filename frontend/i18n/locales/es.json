@@ -570,14 +570,6 @@
         "JAPANESE": "Japonés",
         "ROMAJI": "Romaji"
       },
-      "tokenPopupReading": "Lectura del popup de tokens",
-      "tokenPopupReadingDescription": "Cómo se muestran las lecturas en el popup al pasar el cursor sobre texto japonés.",
-      "tooltipReadingOptions": {
-        "hiragana": "Hiragana (ねがう)",
-        "katakana": "Katakana (ネガウ)",
-        "romaji": "Romaji (negau)",
-        "hidden": "Oculto"
-      },
       "dictionaryLinks": "Integraciones de diccionario",
       "dictionaryLinksDescription": "Elige qué diccionarios aparecen como enlaces rápidos en el popup de tokens.",
       "deleteAccount": "Eliminar cuenta (Acción irreversible)",
