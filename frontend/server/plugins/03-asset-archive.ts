@@ -31,7 +31,7 @@
  */
 
 import { constants, createReadStream } from 'node:fs';
-import { copyFile, readdir, stat, utimes, unlink } from 'node:fs/promises';
+import { copyFile, readFile, readdir, stat, utimes, unlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
   archivableAssetName,
@@ -214,16 +214,18 @@ async function publish(
 ): Promise<void> {
   const now = Date.now();
   let copied = 0;
+  let replaced = 0;
 
   for (const name of liveAssets) {
     // Sourcemaps are 85% of a build's bytes and nothing can request them. See
     // `isArchivableAsset`.
     if (!isArchivableAsset(name)) continue;
 
+    const source = join(sourceDir, name);
     const destination = join(archiveDir, name);
 
     try {
-      await copyFile(join(sourceDir, name), destination, constants.COPYFILE_EXCL);
+      await copyFile(source, destination, constants.COPYFILE_EXCL);
       copied++;
       // A fresh copy already carries the current time, and skipping the extra
       // syscall here is the only reason this branch is separate from the touch.
@@ -235,19 +237,47 @@ async function publish(
       }
     }
 
-    // Already present, from a previous deploy that shipped this same chunk.
-    // Re-stamping it is what keeps a long-lived chunk out of the prune below.
+    // Already present -- and NOT trusted on the strength of its name alone.
+    //
+    // The whole design rests on a content hash naming exactly one byte sequence,
+    // and on 2026-08-13 that turned out to be violable: flipping
+    // `sourcemap.client` between `true` and `'hidden'` changes every chunk's
+    // bytes while changing no chunk's name, because Vite hashes before appending
+    // the `sourceMappingURL` comment. Any build-level setting that rewrites
+    // output after hashing can do the same.
+    //
+    // Left unchecked this archive would turn that from a transient problem into
+    // a permanent one. The edge and the browser eventually expire or get purged;
+    // an archived file is served by the ORIGIN for the whole retention window,
+    // so the first version of a name would outlive the build that corrected it
+    // and keep failing SRI against every later page that references it.
+    //
+    // So compare, and let the running build win. Cheap at this size: the archive
+    // is ~1.9MB across ~83 files with the sourcemaps excluded.
     try {
+      const [live, archived] = await Promise.all([readFile(source), readFile(destination)]);
+
+      if (!live.equals(archived)) {
+        // Not `COPYFILE_EXCL`: replacing it is the point. `copyFile` is
+        // atomic enough here -- a concurrent worker writes identical bytes.
+        await copyFile(source, destination);
+        replaced++;
+        logger.warn({ name }, 'asset archive: replaced an archived asset whose bytes no longer match the build');
+        continue;
+      }
+
+      // Same bytes. Re-stamping is what keeps a long-lived chunk out of the
+      // prune below.
       const stamp = new Date(now);
       await utimes(destination, stamp, stamp);
     } catch (error) {
-      logger.warn({ err: error, name }, 'asset archive: could not restamp a live asset');
+      logger.warn({ err: error, name }, 'asset archive: could not verify an archived asset');
     }
   }
 
   const pruned = await prune(archiveDir, liveAssets, now, retentionMs);
 
-  logger.info({ copied, pruned, retentionMs }, 'asset archive: publish complete');
+  logger.info({ copied, replaced, pruned, retentionMs }, 'asset archive: publish complete');
 }
 
 async function prune(
