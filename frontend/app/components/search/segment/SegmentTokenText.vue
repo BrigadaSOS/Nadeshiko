@@ -28,30 +28,24 @@ type Props = {
 const props = defineProps<Props>();
 const { locale } = useI18n();
 
-// Two separate switches, and the difference matters.
+// Whether the card, once open, can carry real definitions. Not a rollout switch
+// -- the card itself ships to everyone now -- but a capability one: it is
+// derived from whether a Shirabe key is configured at all, and with none there
+// is nothing to ask. It only suppresses the REQUEST, so an unconfigured
+// environment still opens a card on the headword and inflection the token
+// already knows.
 //
-// `wordCardEnabled` is whether the card exists for the reader at all. It is off
-// in production while the card is unfinished, and with it off a token behaves
-// exactly as it did before any of this: plain text that searches this site when
-// clicked. Nothing below opens, focuses, prefetches or renders.
-//
-// `lookupsEnabled` is the older and narrower one: whether the card, once open,
-// can carry real definitions. It only ever suppressed the request, so an
-// unconfigured key still left a card opening on the headword and inflection --
-// the half-built state the flag above is there to keep off production.
-// Read strictly, because these two do not arrive the way the schema in
-// config/env.ts left them. That schema runs at `nuxt build`; a NUXT_PUBLIC_*
-// variable set on the deployed container overrides the baked value afterwards,
-// through Nuxt rather than through zod. Nuxt parses what it finds, so "false",
-// "0" and "" all land falsy -- but an unrecognised value lands as the STRING it
-// was, and `Boolean('yes')` is true. Requiring exactly `true` means a
-// misspelled flag reads as off, which is the direction a gate on unfinished work
-// has to fail in.
+// Read strictly, because it does not arrive the way the schema in config/env.ts
+// left it. That schema runs at `nuxt build`; a NUXT_PUBLIC_* variable set on the
+// deployed container overrides the baked value afterwards, through Nuxt rather
+// than through zod. Nuxt parses what it finds, so "false", "0" and "" all land
+// falsy -- but an unrecognised value lands as the STRING it was, and
+// `Boolean('yes')` is true. Requiring exactly `true` means a misspelled flag
+// reads as off, which is the direction a doomed-request gate has to fail in.
 const isOn = (value: unknown): boolean => value === true || value === 'true';
 
 const config = useRuntimeConfig().public;
-const wordCardEnabled = isOn(config.shirabeWordCard);
-const lookupsEnabled = wordCardEnabled && isOn(config.shirabeLookups);
+const lookupsEnabled = isOn(config.shirabeLookups);
 const emit = defineEmits<{
   'token-click': [dictionaryForm: string];
 }>();
@@ -218,12 +212,10 @@ function placeTooltip(): void {
 // Re-place an open card when the viewport is resized. One listener serves every
 // sentence on the page, and it fires only on a WIDTH change -- see
 // `onViewportWidthChange` for why a height-only change must not reach here.
-if (wordCardEnabled) {
-  onViewportWidthChange(() => {
-    if (!hoveredToken.value) return;
-    placeTooltip();
-  });
-}
+onViewportWidthChange(() => {
+  if (!hoveredToken.value) return;
+  placeTooltip();
+});
 
 /**
  * Open the card for a token.
@@ -276,21 +268,12 @@ const onTokenHoverEnd = () => {
 };
 
 const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) => {
-  // Card switched off: a click on a word does what it did before the card
-  // existed -- searches this site for that word. Not "nothing": the tokens have
-  // been clickable in production for a long time, and taking that away to hide
-  // an unfinished feature would be its own regression.
-  if (!wordCardEnabled) {
-    emit('token-click', token.dictForm);
-    return;
-  }
-
-  // Was a `.stop` on the template binding, moved here so it applies only when
-  // there is a card to protect. A modifier cannot be conditional, so with the
-  // card off it would still swallow the click -- and that is not nothing: the
-  // search dropdowns close on a document click, so a `.stop` serving a feature
-  // nobody can reach would leave one open. Mouse only, which is all the modifier
-  // ever covered; the keyboard path reaches here from `onTokenKeydown`.
+  // Was a `.stop` on the template binding, moved here because a modifier cannot
+  // be conditional and this must not swallow a click the card is not going to
+  // use: the search dropdowns close on a document click, so stopping one on
+  // behalf of a card that never opens would leave one hanging. Mouse only, which
+  // is all the modifier ever covered; the keyboard path reaches here from
+  // `onTokenKeydown`.
   if (event instanceof MouseEvent) event.stopPropagation();
 
   // Re-clicking the open token closes it, so a click is its own undo.
@@ -367,11 +350,7 @@ const onDocumentKeydown = (event: KeyboardEvent) => {
 // only in one dimension -- and it is not registered here, because one listener
 // serves the whole page rather than one per sentence.
 //
-// Both of these are dismissals for a card that cannot open when the flag is off,
-// and this component is mounted once per sentence -- a page of results would put
-// hundreds of document-level listeners up to serve a feature nobody can reach.
 onMounted(() => {
-  if (!wordCardEnabled) return;
   document.addEventListener('pointerdown', onDocumentPointerDown);
   document.addEventListener('keydown', onDocumentKeydown);
 });
@@ -405,10 +384,10 @@ onBeforeUnmount(() => {
 const rootRef = ref<HTMLElement | null>(null);
 
 // Both the roving tab stop and the button role hang off this, which is what we
-// want: with the card switched off there is no dialog to open, so a token must
-// not announce itself as a control that opens one. It goes back to being text --
-// still clickable, as it has always been, but not focusable and not `aria-expanded`.
-const isLookupable = (token: EnrichedToken): boolean => wordCardEnabled && isAskable(token);
+// want: punctuation and grammar open no dialog, so they must not announce
+// themselves as controls that do. They stay text -- still clickable, as they
+// have always been, but not focusable and not `aria-expanded`.
+const isLookupable = (token: EnrichedToken): boolean => isAskable(token);
 
 // `b` is the token's byte offset in the sentence: unique within it, stable
 // across the re-renders that rebuild the token objects, and already the v-for
@@ -504,15 +483,22 @@ const headReading = computed(() => {
  * the word response -- there is nothing to request, nothing to authorize, and no
  * work for our own API to do.
  *
- * The first pattern with a clip, not the first pattern: coverage is per
- * (reading, accent) and lights up batch by batch, so a word can have two
- * patterns with a recording of only the second. A word with none simply has no
- * button, which is the honest answer -- a dead speaker icon invites a click that
- * does nothing.
+ * Each pattern carries its own, so the buttons sit on the pitch row one per
+ * accent (see `pitchPatterns`) and a click plays the accent drawn beside it.
+ * This one is the fallback for the case where there is no row to hang them on:
+ * a reader with readings hidden gets no diagrams, and a word they cannot hear at
+ * all would be a worse trade than they asked for. The first pattern with a clip,
+ * not the first pattern: coverage is per (reading, accent) and lights up batch
+ * by batch, so a word can have two patterns with a recording of only the second.
+ * A word with none simply has no button, which is the honest answer -- a dead
+ * speaker icon invites a click that does nothing.
  */
 const headAudioUrl = computed(() => (word.value?.pitch ?? []).find((pattern) => pattern.audioUrl)?.audioUrl ?? '');
 
-const audioPlaying = ref(false);
+/** The clip playing right now, by URL, so that only the button that started it
+ *  lights up. A word read two ways has a button per accent, and a plain boolean
+ *  lit both of them over a recording of one. */
+const playingUrl = ref('');
 let headAudio: HTMLAudioElement | null = null;
 
 /** Stop whatever is playing and forget it was. The clip belongs to the word on
@@ -521,11 +507,10 @@ let headAudio: HTMLAudioElement | null = null;
  *  one. */
 const stopHeadword = () => {
   headAudio?.pause();
-  audioPlaying.value = false;
+  playingUrl.value = '';
 };
 
-const playHeadword = () => {
-  const src = headAudioUrl.value;
+const playHeadword = (src: string) => {
   if (!src) return;
 
   // One element, reused across every word on the page: clips are under a second
@@ -535,20 +520,22 @@ const playHeadword = () => {
   if (!headAudio) {
     headAudio = new Audio();
     headAudio.addEventListener('ended', () => {
-      audioPlaying.value = false;
+      playingUrl.value = '';
     });
     headAudio.addEventListener('error', () => {
-      audioPlaying.value = false;
+      playingUrl.value = '';
     });
   }
 
   if (headAudio.src !== src) headAudio.src = src;
   headAudio.currentTime = 0;
-  audioPlaying.value = true;
+  playingUrl.value = src;
   // A clip the CDN has lost, or a browser that declines to play, must not leave
-  // the button stuck mid-play.
+  // the button stuck mid-play. Only if this clip is still the one playing,
+  // though: switching accents mid-clip rejects the FIRST play() with an abort,
+  // and clearing on that would darken the button of the clip that just started.
   headAudio.play().catch(() => {
-    audioPlaying.value = false;
+    if (playingUrl.value === src) playingUrl.value = '';
   });
 };
 
@@ -627,6 +614,10 @@ const pitchPatterns = computed(() => {
   if (!reading || tooltipReadingMode.value === 'hidden') return [];
   return (word.value?.pitch ?? []).slice(0, 2).map((pattern) => ({
     downstep: pattern.downstep,
+    // Its OWN clip, not the word's: a word read two ways is two recordings, and
+    // one button in front of both would play whichever happened to exist while
+    // pointing at an accent it might not be.
+    audioUrl: pattern.audioUrl ?? '',
     morae: pitchMorae(reading, pattern.downstep).map((mora) => ({ ...mora, text: inPreferredScript(mora.text) })),
   }));
 });
@@ -702,6 +693,10 @@ const dictionaryLinks = computed(() => {
             // A match that covers only part of this token: Elasticsearch found
             // it with its own analyzer, which cuts words where we do not.
             'token--compound': token.matchType === 'partial',
+            // The word the open card is about. Same condition as `aria-expanded`
+            // below, which is the point: the two say the same thing to two
+            // different readers.
+            'token--open': hoveredToken?.b === token.b,
           },
         ]"
         :data-token="token.b"
@@ -718,11 +713,10 @@ const dictionaryLinks = computed(() => {
       ><template v-if="furiganaMode !== 'hidden'"><template v-for="(seg, si) in token.furigana" :key="si"><ruby v-if="seg.reading" :class="{ 'furigana--spoiler': furiganaMode === 'spoiler' }">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template><template v-else>{{ token.displaySurface }}</template></span>
     </template>
 
-    <!-- The whole card, behind the flag. `hoveredToken` is already unreachable
-         with the card off, so this is belt and braces -- but it is the one line
-         that makes "production renders none of this" true by inspection, rather
-         than true only if every handler above got its guard right. -->
-    <Teleport v-if="wordCardEnabled" to="body">
+    <!-- Teleported to the body so the card escapes the sentence's stacking and
+         overflow: it is positioned against the viewport, and a parent that
+         clipped it would cut it off at the edge of the row it opened from. -->
+    <Teleport to="body">
       <Transition name="tooltip">
         <!-- A dialog, but deliberately not a modal one: the page behind it stays
              readable and usable, which is the point of a word card. `tabindex`
@@ -757,21 +751,6 @@ const dictionaryLinks = computed(() => {
               <template v-else>{{ headword }}</template>
             </component>
             <span v-if="headReading && headFurigana.length === 0" class="token-tooltip__reading">{{ headReading }}</span>
-            <button
-              v-if="headAudioUrl"
-              type="button"
-              class="token-tooltip__audio"
-              :class="{ 'is-playing': audioPlaying }"
-              :aria-label="$t('tokenTooltip.playAudio')"
-              :title="$t('tokenTooltip.playAudio')"
-              @click="playHeadword"
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M8.5 2.75 4.9 5.75H2.4v4.5h2.5l3.6 3z" fill="currentColor" stroke="none" />
-                <path d="M11 6a3 3 0 0 1 0 4" />
-                <path d="M13 4a6 6 0 0 1 0 8" />
-              </svg>
-            </button>
           </div>
 
           <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
@@ -786,8 +765,29 @@ const dictionaryLinks = computed(() => {
                definition had landed. It changes once per card, so polite
                announcement is not chatty. -->
           <div class="token-tooltip__body" aria-live="polite">
-            <div v-if="pitchPatterns.length > 0" class="token-tooltip__pitch">
+            <!-- The play buttons sit on the pitch row because both are about how
+                 the word SOUNDS, and one leads each pattern because each pattern
+                 is a different recording: a word read two ways gets a button per
+                 accent, in front of the diagram that names the accent it plays.
+                 The row still renders with no patterns at all -- see the lone
+                 button below it, for readers who have hidden their readings. -->
+            <div v-if="pitchPatterns.length > 0 || headAudioUrl" class="token-tooltip__pitch">
               <span v-for="(pattern, pi) in pitchPatterns" :key="pi" class="token-tooltip__pitch-pattern">
+                <button
+                  v-if="pattern.audioUrl"
+                  type="button"
+                  class="token-tooltip__audio"
+                  :class="{ 'is-playing': playingUrl === pattern.audioUrl }"
+                  :aria-label="$t('tokenTooltip.playAudio')"
+                  :title="$t('tokenTooltip.playAudio')"
+                  @click="playHeadword(pattern.audioUrl)"
+                >
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8.5 2.75 4.9 5.75H2.4v4.5h2.5l3.6 3z" fill="currentColor" stroke="none" />
+                    <path d="M11 6a3 3 0 0 1 0 4" />
+                    <path d="M13 4a6 6 0 0 1 0 8" />
+                  </svg>
+                </button>
                 <span
                   v-for="(mora, mi) in pattern.morae"
                   :key="mi"
@@ -796,6 +796,26 @@ const dictionaryLinks = computed(() => {
                 >{{ mora.text }}</span>
                 <span class="token-tooltip__downstep">[{{ pattern.downstep }}]</span>
               </span>
+              <!-- Nothing to hang a per-accent button on: a reader with readings
+                   hidden gets no diagrams, and hearing the word is the one part
+                   of this row that does not print the reading at them. So the
+                   old single button stands in, on the first accent that has a
+                   clip. -->
+              <button
+                v-if="pitchPatterns.length === 0 && headAudioUrl"
+                type="button"
+                class="token-tooltip__audio"
+                :class="{ 'is-playing': playingUrl === headAudioUrl }"
+                :aria-label="$t('tokenTooltip.playAudio')"
+                :title="$t('tokenTooltip.playAudio')"
+                @click="playHeadword(headAudioUrl)"
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M8.5 2.75 4.9 5.75H2.4v4.5h2.5l3.6 3z" fill="currentColor" stroke="none" />
+                  <path d="M11 6a3 3 0 0 1 0 4" />
+                  <path d="M13 4a6 6 0 0 1 0 8" />
+                </svg>
+              </button>
             </div>
 
             <ol v-if="senses.length > 0" class="token-tooltip__senses">
@@ -939,6 +959,23 @@ const dictionaryLinks = computed(() => {
   text-underline-offset: 3px;
 }
 
+/* The word the open card is about. The hover tint cannot say this on its own: a
+   reader who has moved the pointer off the word to read the card loses every
+   trace of which word they opened, and in a sentence where several look alike
+   that is a real question. Accent rather than a brighter neutral, so the
+   highlight and the card it opened read as one thing.
+
+   `.token.token--open` rather than `.token--open`, to match the specificity of
+   `.token:hover` above and win on source order -- otherwise pointing at the open
+   word would replace the accent with the ordinary hover grey. */
+.token.token--open {
+  background-color: rgba(223, 132, 141, 0.28);
+}
+
+.token.token--open:hover {
+  background-color: rgba(223, 132, 141, 0.38);
+}
+
 /* The word card: head, inflection and badges pinned, the reading matter
    scrolling under them, dictionary links pinned at the foot. */
 .token-tooltip {
@@ -997,7 +1034,7 @@ const dictionaryLinks = computed(() => {
 }
 
 .token-tooltip__word {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   line-height: 1.25;
   color: white;
@@ -1019,9 +1056,10 @@ a.token-tooltip__word:hover {
   color: var(--tt-accent);
 }
 
-/* Quiet next to the headword until pointed at, and accented while a clip runs
-   so a second click reads as "again" rather than "did that do anything". Sized
-   to a comfortable tap target rather than to the 14px glyph inside it. */
+/* Quiet beside the pitch until pointed at, and accented while a clip runs so a
+   second click reads as "again" rather than "did that do anything". Sized to a
+   comfortable tap target rather than to the 14px glyph inside it, which is why
+   it centres against a row of morae rather than sitting on their baseline. */
 .token-tooltip__audio {
   flex: 0 0 auto;
   align-self: center;
@@ -1102,6 +1140,7 @@ a.token-tooltip__word:hover {
 .token-tooltip__pitch {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px 12px;
   margin-top: 8px;
 }
@@ -1109,6 +1148,14 @@ a.token-tooltip__word:hover {
 .token-tooltip__pitch-pattern {
   display: inline-flex;
   align-items: baseline;
+}
+
+/* Spaced off its own diagram, but by less than the 12px between two patterns:
+   the button has to read as belonging to the accent on its right rather than
+   floating between two of them. The margin goes here rather than a `gap` on the
+   pattern, because the morae are a continuous overline and must stay touching. */
+.token-tooltip__pitch-pattern .token-tooltip__audio {
+  margin-right: 6px;
 }
 
 .token-tooltip__mora {
