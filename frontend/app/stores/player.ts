@@ -8,6 +8,19 @@ function isYoutube(result: SearchResult | null): boolean {
 }
 
 /**
+ * The audio a result should play right now: its expansion blob when one has been
+ * built, the original object otherwise.
+ *
+ * Read on every play rather than once per track. Expanding a segment swaps the
+ * blob in (and reverting swaps it back out) long after the element was built, and
+ * a paused player resuming its old element is how "the audio doesn't get replaced"
+ * survived even when the expansion itself had worked.
+ */
+export function resolveAudioSource(result: SearchResult): string {
+  return result.blobAudioUrl ?? result.segment.urls.audioUrl;
+}
+
+/**
  * Identifies the most recent playback intent. `HTMLAudioElement.play()` settles
  * asynchronously, so a promise from a track the user already skipped past would
  * otherwise flip `isPlaying` and fire analytics for whatever is playing *now* —
@@ -25,6 +38,8 @@ interface PlayerState {
   isPlaying: boolean;
   showPlayer: boolean;
   currentAudio: HTMLAudioElement | null;
+  /** The url `currentAudio` was built from, so a stale element can be spotted. */
+  currentSource: string | null;
   autoplay: boolean;
   repeat: boolean;
   isImmersive: boolean;
@@ -37,6 +52,7 @@ export const usePlayerStore = defineStore('player', {
     isPlaying: false,
     showPlayer: false,
     currentAudio: null,
+    currentSource: null,
     autoplay: false,
     repeat: false,
     isImmersive: false,
@@ -51,6 +67,17 @@ export const usePlayerStore = defineStore('player', {
         }
       }
       return null;
+    },
+
+    /**
+     * Whether the built element no longer matches what the current result should
+     * play. Resuming it would replay the pre-expansion clip -- the reader expands
+     * a segment, presses play, and hears the sentence they already had.
+     */
+    isCurrentAudioStale(): boolean {
+      const result = this.currentResult;
+      if (!result || !this.currentAudio) return false;
+      return this.currentSource !== resolveAudioSource(result);
     },
   },
 
@@ -149,6 +176,7 @@ export const usePlayerStore = defineStore('player', {
      * them for the download/revert actions.
      */
     releaseAudio() {
+      this.currentSource = null;
       const audio = this.currentAudio;
       if (!audio) return;
       audio.pause();
@@ -156,6 +184,21 @@ export const usePlayerStore = defineStore('player', {
       audio.src = '';
       audio.load();
       this.currentAudio = null;
+    },
+
+    /**
+     * Release the element if it is playing `source`, so the caller can revoke it.
+     *
+     * `useSegmentConcatenation` revokes an expansion's blob URL when the reader
+     * reverts or expands again. Revoking one the player still holds leaves the
+     * element pointed at an address that no longer resolves, which fails the next
+     * seek or replay with no error the reader can act on.
+     */
+    releaseIfSource(source: string) {
+      if (this.currentSource !== source) return;
+      playbackToken++;
+      this.releaseAudio();
+      this.isPlaying = false;
     },
 
     playCurrent() {
@@ -179,11 +222,26 @@ export const usePlayerStore = defineStore('player', {
       }
 
       yt.stop();
-      const audioUrl = result.blobAudioUrl ?? result.segment.urls.audioUrl;
+      const audioUrl = resolveAudioSource(result);
       // markRaw: the media element is a DOM handle, not state to make reactive or
       // serialize into the SSR payload.
       const audio = markRaw(new Audio(audioUrl));
       this.currentAudio = audio;
+      // Remembered so a later play can tell this element apart from what the
+      // result should be playing by then -- see `isCurrentAudioStale`.
+      this.currentSource = audioUrl;
+      // NOT `crossOrigin = 'anonymous'`, tempting as it looks. It would make this
+      // a CORS request whose cached response `concatenateAudios` could reuse,
+      // removing the re-download `fetchAudioSegment` costs -- and since the CDN
+      // now answers `Access-Control-Allow-Origin: *` (brigadasos-infra,
+      // cloudflare-r2.tf, 2026-08-13) it would no longer break non-production
+      // origins the way it once would have.
+      //
+      // It stays off anyway, because of what it couples together: with it set,
+      // whether ANY audio plays at all depends on that policy staying permissive,
+      // and a future "let's tighten CORS" would take playback down site-wide
+      // rather than degrade one feature. The retry costs ~17KB on an expansion
+      // that follows a play, and fails in a way that is confined to expansion.
 
       this.startAudio(audio, true);
 
@@ -200,7 +258,7 @@ export const usePlayerStore = defineStore('player', {
           this.playCurrent();
         }
         this.isPlaying = true;
-      } else if (this.currentAudio) {
+      } else if (this.currentAudio && !this.isCurrentAudioStale) {
         this.startAudio(this.currentAudio, false);
         this.isPlaying = true;
       } else {
@@ -277,10 +335,12 @@ export const usePlayerStore = defineStore('player', {
         playbackToken++;
         useYoutubeSegmentPlayer().restart();
         this.isPlaying = true;
-      } else if (this.currentAudio) {
+      } else if (this.currentAudio && !this.isCurrentAudioStale) {
         this.currentAudio.currentTime = 0;
         this.startAudio(this.currentAudio, false);
         this.isPlaying = true;
+      } else if (this.currentResult) {
+        this.playCurrent();
       } else {
         return;
       }

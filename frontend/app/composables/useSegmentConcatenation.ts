@@ -1,97 +1,49 @@
+import { usePlayerStore } from '~/stores/player';
 import type { SearchResult, Segment } from '~/types/search';
 import { describeAudioFetchFailure } from '~/utils/media';
 import { reportError } from '~/utils/reportError';
 import { resolveContextResponse } from '~/utils/resolvers';
-
-interface IOriginalContent {
-  textJa: Segment['textJa'];
-  textEn: Segment['textEn'];
-  textEs: Segment['textEs'];
-}
+import {
+  buildExpandedTexts,
+  orderAudioUrls,
+  pickNeighbours,
+  type ExpandDirection,
+  type ExpandedTexts,
+} from '~/utils/segmentConcatenation';
+import { useToastError, useToastInfo } from '~/utils/toast';
 
 interface IConcatenation {
   result: SearchResult | null;
-  originalContent: IOriginalContent | null;
+  originalContent: ExpandedTexts | null;
 }
 
-type TextFieldBase = { content: string; highlight?: string; tokens?: unknown };
+/** How an expansion attempt ended, as reported to product analytics. */
+type ExpandOutcome =
+  | 'expanded'
+  /** The episode has no segment on the side(s) asked for. */
+  | 'boundary'
+  /** The context response did not contain the segment being expanded. */
+  | 'unplaceable'
+  /** The context request itself failed. */
+  | 'context-failed';
 
-/**
- * Concatenate a single text field (content or highlight) between current and adjacent segments.
- * Wraps the adjacent segment's text in a cyan span.
- */
-function concatTextField(
-  current: string,
-  adjacent: string,
-  direction: 'forward' | 'backward' | 'both',
-  adjacentBefore?: string,
-): string {
-  const wrap = (text: string) => `<span class="text-cyan-200">${text}</span>`;
-
-  if (direction === 'forward') {
-    return `${current} ${wrap(adjacent)}`;
-  }
-  if (direction === 'backward') {
-    return `${wrap(adjacent)} ${current}`;
-  }
-  // both
-  return `${wrap(adjacentBefore ?? '')} ${current} ${wrap(adjacent)}`;
-}
-
-/**
- * Build a concatenated text field object for a given language.
- */
-function concatLangField<T extends TextFieldBase>(
-  currentField: T,
-  adjacentField: T | undefined,
-  direction: 'forward' | 'backward',
-): T;
-function concatLangField<T extends TextFieldBase>(
-  currentField: T,
-  adjacentField: T | undefined,
-  direction: 'both',
-  beforeField: T | undefined,
-): T;
-function concatLangField<T extends TextFieldBase>(
-  currentField: T,
-  adjacentField: T | undefined,
-  direction: 'forward' | 'backward' | 'both',
-  beforeField?: T | undefined,
-): T {
-  const curContent = currentField.content || '';
-  const curHighlight = currentField.highlight || curContent;
-  const adjContent = adjacentField?.content || '';
-  const adjHighlight = adjacentField?.highlight || adjContent;
-
-  if (direction === 'both') {
-    const befContent = beforeField?.content || '';
-    const befHighlight = beforeField?.highlight || befContent;
-    return {
-      ...currentField,
-      content: concatTextField(curContent, adjContent, 'both', befContent),
-      highlight: concatTextField(curHighlight, adjHighlight, 'both', befHighlight),
-      tokens: null,
-    } as T;
-  }
-
-  return {
-    ...currentField,
-    content: concatTextField(curContent, adjContent, direction),
-    highlight: concatTextField(curHighlight, adjHighlight, direction),
-    tokens: null,
-  } as T;
-}
+/** Whether the expansion's audio could be built alongside its text. */
+type ExpandAudioOutcome =
+  | 'built'
+  | 'failed'
+  /** Built, but the expansion it belonged to was dropped before it landed. */
+  | 'abandoned';
 
 /**
  * Report a failed expansion audio build with everything known about the fetch.
  *
- * All three expansion branches report identically and the diagnosis is async, so
- * it lives here rather than three times over. Without the extra attributes these
- * reports are a bare `Failed to fetch` -- see `describeAudioFetchFailure`.
+ * The diagnosis is async, so it lives here rather than inline. Without the extra
+ * attributes these reports are a bare `Failed to fetch` -- see
+ * `describeAudioFetchFailure`.
  */
 async function reportConcatenationFailure(
   audioErr: unknown,
-  direction: 'forward' | 'backward' | 'both',
+  direction: ExpandDirection,
   result: SearchResult,
 ): Promise<void> {
   // Never rejects. This is called un-awaited, so a rejection would arrive as an
@@ -108,6 +60,12 @@ async function reportConcatenationFailure(
 
 export function useSegmentConcatenation() {
   const { contentRating } = useContentRating();
+  const player = usePlayerStore();
+  const { t } = useI18n();
+  // Resolved at setup: in production `usePostHog()` goes through `useNuxtApp()`,
+  // which throws once the call stack has passed through an `await`.
+  const posthog = usePostHog();
+
   const activeConcatenation = shallowRef<IConcatenation>({
     result: null,
     originalContent: null,
@@ -117,14 +75,44 @@ export function useSegmentConcatenation() {
    * True while an expansion is in flight. Callers bind their expand controls to
    * it; a second expansion started mid-flight would revert the first one while
    * its audio was still being built, stranding the WAV blob URL.
+   *
+   * Binding it is not optional. While this went unbound, the guard below dropped
+   * every click landing during the (multi-second) audio build with no feedback at
+   * all -- the reader clicked "expand both" right after "expand right" and
+   * nothing whatsoever happened.
    */
   const isConcatenating = ref(false);
+
+  /**
+   * Set once the owning component is gone. An expansion started just before that
+   * still has a fetch and a decode to finish, and it must not attach a blob to a
+   * card nothing renders any more -- there would be no revert left to release it.
+   */
+  let disposed = false;
+
+  const track = (
+    result: SearchResult,
+    direction: ExpandDirection,
+    outcome: ExpandOutcome,
+    extra: Record<string, unknown> = {},
+  ) => {
+    posthog?.capture('segment_expand_completed', {
+      direction,
+      outcome,
+      media_id: result.media.publicId,
+      segment_id: result.segment.publicId,
+      ...extra,
+    });
+  };
 
   const revertActiveConcatenation = () => {
     const { result, originalContent } = activeConcatenation.value;
     if (!result || !originalContent) return;
 
     if (result.blobAudioUrl) {
+      // Order matters: the player has to let go of the url before it stops
+      // resolving, or its element is left pointing at a dead address.
+      player.releaseIfSource(result.blobAudioUrl);
       window.URL.revokeObjectURL(result.blobAudioUrl);
     }
 
@@ -148,25 +136,63 @@ export function useSegmentConcatenation() {
     return activeConcatenation.value.result === result;
   };
 
-  const loadNextSegment = async (
+  const snapshot = (segment: Segment): ExpandedTexts => ({
+    textJa: { ...segment.textJa },
+    textEn: { ...segment.textEn },
+    textEs: { ...segment.textEs },
+  });
+
+  /**
+   * Build and attach the expansion's audio.
+   *
+   * Deliberately separate from the text swap and awaited after it: the text is
+   * the part that can be produced synchronously, and holding it back until three
+   * audio objects have been fetched and decoded would make every expansion feel
+   * broken for the second or two that takes.
+   */
+  const attachExpandedAudio = async (
     result: SearchResult,
-    direction: 'forward' | 'backward' | 'both',
-    isLoading: boolean,
-  ) => {
+    direction: ExpandDirection,
+    audioUrls: string[],
+  ): Promise<{ outcome: ExpandAudioOutcome; cacheBypassed: boolean }> => {
+    try {
+      const concatenatedAudio = await concatenateAudios(audioUrls);
+
+      // The expansion this audio belongs to may have been dropped while it was
+      // being built -- the reader navigated away (`onScopeDispose`) or the card
+      // left the result list. Attaching now would put expanded audio on a card
+      // showing unexpanded text, and nothing would ever revoke the blob.
+      if (disposed || activeConcatenation.value.result !== result) {
+        window.URL.revokeObjectURL(concatenatedAudio.blob_url);
+        return { outcome: 'abandoned', cacheBypassed: concatenatedAudio.cacheBypassed };
+      }
+
+      result.blobAudioUrl = concatenatedAudio.blob_url;
+      result.blobAudio = concatenatedAudio.blob;
+      return { outcome: 'built', cacheBypassed: concatenatedAudio.cacheBypassed };
+    } catch (audioErr) {
+      // Deliberately un-awaited: the diagnosis re-requests the failed url and can
+      // wait seconds, while `isConcatenating` is cleared by the caller --
+      // awaiting would leave the reader's expand controls disabled long after the
+      // failure they can already see.
+      void reportConcatenationFailure(audioErr, direction, result);
+      // Said out loud rather than left to be discovered: the text on screen has
+      // grown, but playback and the Anki export are about to fall back to the
+      // original clip, and silently shipping a card with the wrong audio on it is
+      // worse than the expansion having failed outright.
+      useToastError(t('segment.expandAudioFailed'));
+      return { outcome: 'failed', cacheBypassed: false };
+    }
+  };
+
+  const loadNextSegment = async (result: SearchResult, direction: ExpandDirection, isLoading: boolean) => {
     if (isLoading || isConcatenating.value) return;
 
-    revertActiveConcatenation();
-
     isConcatenating.value = true;
-
-    const audioUrls: string[] = [result.segment.urls.audioUrl];
-    // Snapshot before any branch mutates `result.segment`; which branch (if any)
-    // ends up owning it is decided after the neighbour guards below.
-    const originalContent: IOriginalContent = {
-      textJa: { ...result.segment.textJa },
-      textEn: { ...result.segment.textEn },
-      textEs: { ...result.segment.textEs },
-    };
+    // Whether this call got as far as replacing the card's text, and so owns the
+    // revert on the way out. Nothing before that point may revert: the expansion
+    // the reader is already looking at is not this call's to throw away.
+    let swapped = false;
 
     try {
       const sdk = useNadeshikoSdk();
@@ -175,110 +201,72 @@ export function useSegmentConcatenation() {
         take: 1,
         contentRating: contentRating.value,
       });
+      // The reader left while the context was in flight; expanding a card that is
+      // no longer rendered would only strand its blob.
+      if (disposed) return;
+
       const response = raw ? resolveContextResponse(raw) : null;
+      const segments = response?.segments ?? [];
 
-      if (response && response.segments.length > 0) {
-        const currentIdx = response.segments.findIndex((s) => s.segment.publicId === result.segment.publicId);
-        if (currentIdx === -1) return;
-        const previousSegment = response.segments[currentIdx - 1];
-        const nextSegment = response.segments[currentIdx + 1];
+      const neighbours = segments.length > 0 ? pickNeighbours(segments, result.segment.publicId, direction) : null;
 
-        if (direction === 'forward') {
-          if (!nextSegment) return;
-
-          activeConcatenation.value = { result, originalContent };
-          result.segment = {
-            ...result.segment,
-            textJa: concatLangField(result.segment.textJa, nextSegment.segment.textJa, 'forward'),
-            textEn: concatLangField(result.segment.textEn, nextSegment.segment.textEn, 'forward'),
-            textEs: concatLangField(result.segment.textEs, nextSegment.segment.textEs, 'forward'),
-          };
-
-          audioUrls.push(nextSegment.segment.urls.audioUrl);
-          try {
-            const concatenatedAudio = await concatenateAudios(audioUrls);
-            result.blobAudioUrl = concatenatedAudio.blob_url;
-            result.blobAudio = concatenatedAudio.blob;
-          } catch (audioErr) {
-            // Deliberately un-awaited: the diagnosis re-requests the failed url
-            // and can wait seconds, while `isConcatenating` is cleared in the
-            // `finally` below -- awaiting would leave the reader's expand
-            // controls disabled long after the failure they can already see.
-            void reportConcatenationFailure(audioErr, direction, result);
-          }
-        } else if (direction === 'backward') {
-          if (!previousSegment) return;
-
-          activeConcatenation.value = { result, originalContent };
-          result.segment = {
-            ...result.segment,
-            textJa: concatLangField(result.segment.textJa, previousSegment.segment.textJa, 'backward'),
-            textEn: concatLangField(result.segment.textEn, previousSegment.segment.textEn, 'backward'),
-            textEs: concatLangField(result.segment.textEs, previousSegment.segment.textEs, 'backward'),
-          };
-
-          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
-          try {
-            const concatenatedAudio = await concatenateAudios(audioUrls);
-            result.blobAudioUrl = concatenatedAudio.blob_url;
-            result.blobAudio = concatenatedAudio.blob;
-          } catch (audioErr) {
-            // Deliberately un-awaited: the diagnosis re-requests the failed url
-            // and can wait seconds, while `isConcatenating` is cleared in the
-            // `finally` below -- awaiting would leave the reader's expand
-            // controls disabled long after the failure they can already see.
-            void reportConcatenationFailure(audioErr, direction, result);
-          }
-        } else if (direction === 'both') {
-          if (!previousSegment || !nextSegment) return;
-
-          activeConcatenation.value = { result, originalContent };
-          result.segment = {
-            ...result.segment,
-            textJa: concatLangField(
-              result.segment.textJa,
-              nextSegment.segment.textJa,
-              'both',
-              previousSegment.segment.textJa,
-            ),
-            textEn: concatLangField(
-              result.segment.textEn,
-              nextSegment.segment.textEn,
-              'both',
-              previousSegment.segment.textEn,
-            ),
-            textEs: concatLangField(
-              result.segment.textEs,
-              nextSegment.segment.textEs,
-              'both',
-              previousSegment.segment.textEs,
-            ),
-          };
-
-          audioUrls.unshift(previousSegment.segment.urls.audioUrl);
-          audioUrls.push(nextSegment.segment.urls.audioUrl);
-          try {
-            const concatenatedAudio = await concatenateAudios(audioUrls);
-            result.blobAudioUrl = concatenatedAudio.blob_url;
-            result.blobAudio = concatenatedAudio.blob;
-          } catch (audioErr) {
-            // Deliberately un-awaited: the diagnosis re-requests the failed url
-            // and can wait seconds, while `isConcatenating` is cleared in the
-            // `finally` below -- awaiting would leave the reader's expand
-            // controls disabled long after the failure they can already see.
-            void reportConcatenationFailure(audioErr, direction, result);
-          }
-        }
+      if (!neighbours) {
+        track(result, direction, 'unplaceable');
+        useToastError(t('segment.expandFailed'));
+        return;
       }
+
+      const { before, after, missing } = neighbours;
+
+      // Nothing on either side asked for: the segment opens or closes the
+      // episode. Previously a bare `return`, which is exactly what made the menu
+      // item look dead.
+      if (!before && !after) {
+        track(result, direction, 'boundary', { sides_missing: missing });
+        useToastInfo(t(missing.includes('before') ? 'segment.expandNoPrevious' : 'segment.expandNoNext'));
+        return;
+      }
+
+      // One side of an "expand both" missing is not a failure: the other side
+      // still expands, and the reader is told which half they got.
+      if (missing.length > 0) {
+        useToastInfo(t(missing.includes('before') ? 'segment.expandNoPrevious' : 'segment.expandNoNext'));
+      }
+
+      // Everything that could have made this a no-op is behind us, so the
+      // previous expansion can finally be undone. Doing it up front instead --
+      // as this used to -- meant an "expand left" that turned out to be at the
+      // start of an episode silently threw away the expansion already on screen.
+      revertActiveConcatenation();
+
+      // Snapshotted after the revert, so it is the original text and not
+      // whatever the last expansion left behind.
+      const originalContent = snapshot(result.segment);
+      activeConcatenation.value = { result, originalContent };
+      result.segment = { ...result.segment, ...buildExpandedTexts(result.segment, before, after) };
+      swapped = true;
+
+      // `urls` is untouched by the text swap above, so the segment's own object
+      // is still the right one to order the neighbours around.
+      const audio = await attachExpandedAudio(result, direction, orderAudioUrls(result.segment, before, after));
+
+      track(result, direction, 'expanded', {
+        audio: audio.outcome,
+        audio_cache_bypassed: audio.cacheBypassed,
+        sides_missing: missing,
+        segments_merged: 1 + (before ? 1 : 0) + (after ? 1 : 0),
+      });
     } catch (error) {
       reportError('segment:expansion-failed', error, {
         'segment.publicId': result.segment.publicId,
         direction,
       });
-      // Reverting rather than blanking: if the failure landed after a branch had
-      // already swapped in the concatenated text, blanking would leave the card
-      // expanded with no way back and its blob URL unreachable.
-      revertActiveConcatenation();
+      track(result, direction, 'context-failed');
+      useToastError(t('segment.expandFailed'));
+      // Only what this call put on screen. Reverting rather than blanking: a
+      // failure landing after the swap would otherwise leave the card expanded
+      // with no way back and its blob URL unreachable.
+      if (swapped) revertActiveConcatenation();
     } finally {
       isConcatenating.value = false;
     }
@@ -286,7 +274,10 @@ export function useSegmentConcatenation() {
 
   // Without this the WAV blob URL of whatever was expanded outlives the
   // component and stays allocated for the rest of the tab's life.
-  onScopeDispose(revertActiveConcatenation);
+  onScopeDispose(() => {
+    disposed = true;
+    revertActiveConcatenation();
+  });
 
   return { revertActiveConcatenation, isConcatenated, concatenatedResult, isConcatenating, loadNextSegment };
 }
