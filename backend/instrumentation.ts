@@ -5,9 +5,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { OTLPMetricExporter, AggregationTemporalityPreference } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { AggregationType, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExpressInstrumentation, ExpressLayerType } from '@opentelemetry/instrumentation-express';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
@@ -40,17 +39,73 @@ if (endpoint) {
       }),
       exportIntervalMillis: 15000,
     }),
+    // The pg instrumentation's connection-pool metrics are unusable, and they
+    // collide by name with the honest ones `config/database.ts` publishes.
+    //
+    // Its `updateCounter` (instrumentation-pg utils.js) keeps ONE shared
+    // `_connectionsCounter` baseline for the whole process but emits each delta
+    // under the pool's own `db.client.connection.pool_name`. We run three pools
+    // -- TypeORM, better-auth, and pg-boss (built from a connectionString, so
+    // its host/port/database are undefined and it reports as
+    // `unknown_host:unknown_port/unknown_database`). Every callback therefore
+    // diffs against whichever pool happened to run last, and the two names
+    // ping-pong the same baseline: the series come out as exact mirror images,
+    // +N on one and -N on the other. Exported as DELTA above and accumulated on
+    // ingest, that drifts without bound -- it read 528 "pending requests" and
+    // 866,939 "idle connections" against a pool whose max is 15, and it paged
+    // us at 06:14 JST on 2026-08-13 while the real queue depth was 0.
+    //
+    // Dropping them costs no real coverage (the numbers were never true) and
+    // leaves the observable gauges in `config/database.ts` as the only
+    // publisher of these names.
+    //
+    // `db.client.operation.duration` goes too, for a different reason: it
+    // measures the same thing as `db.postgresql.operation.duration` from
+    // InstrumentedTypeOrmLogger, and measures it worse. It derives the
+    // operation name by slicing raw SQL, which splits one operation across
+    // several series -- prod carried `SELECT` and `SELECT\n`, `WITH` and
+    // `WITH\n`, `BEGIN;\n` -- while the TypeORM logger normalises the verb and
+    // also attributes `db.collection.name` and counts errors, which the pg
+    // instrumentation does not. Neither metric backs any dashboard or alert
+    // today, so this is a straight removal of the weaker duplicate.
+    //
+    // The trade-off, stated: the TypeORM logger only sees TypeORM's pool, so
+    // better-auth and pg-boss queries lose METRIC coverage here. They keep
+    // their spans -- views apply to metrics only, and `pg.query:*` is
+    // untouched, which is the part of the pg instrumentation worth having.
+    views: [
+      {
+        meterName: '@opentelemetry/instrumentation-pg',
+        instrumentName: 'db.client.connection.*',
+        aggregation: { type: AggregationType.DROP },
+      },
+      {
+        meterName: '@opentelemetry/instrumentation-pg',
+        instrumentName: 'db.client.operation.duration',
+        aggregation: { type: AggregationType.DROP },
+      },
+    ],
     instrumentations: [
       new HttpInstrumentation({
         ignoreIncomingRequestHook: (req) => isIgnoredIncoming(req.url || ''),
       }),
-      new ExpressInstrumentation({
-        // Drop middleware and inner handler spans -- they create one span per
-        // middleware per request (80k+ series for "middleware - jsonParser"
-        // alone) without adding debug value beyond the outer HTTP server span.
-        // Also fixes the doubled-route span_name bug caused by nested handlers.
-        ignoreLayersType: [ExpressLayerType.MIDDLEWARE, ExpressLayerType.REQUEST_HANDLER],
-      }),
+      // NO ExpressInstrumentation. It cannot work here and removing it stops the
+      // file from implying otherwise.
+      //
+      // `package.json` sets `"type": "module"`, so `import express from
+      // 'express'` resolves through the ESM path, while the instrumentation
+      // monkey-patches via require-in-the-middle. Verified on the host
+      // 2026-08-13: under `"type": "module"` `Router.prototype.route.__wrapped`
+      // is false, under CJS it is true, and adding
+      // `@opentelemetry/instrumentation/hook.mjs` to the run command does not
+      // change it in either load order. It produced no spans at all -- prod
+      // span names were `pg.query:*`, `GET` and `POST`, with nothing from
+      // express -- so the `ignoreLayersType` tuning it used to carry was
+      // describing a config that had no effect.
+      //
+      // `http.route` is published directly instead, in config/routes.ts. pg is
+      // unaffected: it patches through inner CommonJS requires and IS wrapped
+      // under ESM.
       new PgInstrumentation({
         enhancedDatabaseReporting: true,
         requestHook: (span, queryInfo) => {
