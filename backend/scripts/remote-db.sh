@@ -26,6 +26,7 @@ Usage: scripts/remote-db.sh <env> <command> [${PROD_FLAG}]
 
   env:      staging (aliases: stg, dev) | prod
   command:  status | prepare | migrate | parse-corpus | reindex | reindex-media <publicId>
+            | audit-wakati
 
 For prepare/migrate against prod, ${PROD_FLAG} is required as a safety check.
 status is read-only and never requires the flag.
@@ -36,6 +37,7 @@ Examples:
   scripts/remote-db.sh staging reindex
   scripts/remote-db.sh staging reindex-media BKncctxoiaJH
   scripts/remote-db.sh prod status
+  scripts/remote-db.sh prod audit-wakati
   scripts/remote-db.sh prod prepare ${PROD_FLAG}
 EOF
 }
@@ -59,8 +61,8 @@ case "$ENV" in
 esac
 
 case "$CMD" in
-  status|prepare|migrate|parse-corpus|reindex|reindex-media) ;;
-  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex or reindex-media (got '$CMD')" >&2; exit 1 ;;
+  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati) ;;
+  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media or audit-wakati (got '$CMD')" >&2; exit 1 ;;
 esac
 
 # A reindex rebuilds the whole search index from PostgreSQL, which is
@@ -77,7 +79,10 @@ esac
 # parse-corpus writes `tokens` on every row, which is additive: nothing reads the
 # column until the release that drops `pos_analysis`. It is still an hour of
 # writes against production, so it asks for the same flag as a migration.
-if [[ "$ENV" == "prod" && "$CMD" != "status" && "$FLAG" != "$PROD_FLAG" ]]; then
+# audit-wakati only reads, so it is exempt alongside status. The point of it is
+# to be run against production casually and often -- gating it behind the
+# write flag would be the surest way to have nobody ever run it.
+if [[ "$ENV" == "prod" && "$CMD" != "status" && "$CMD" != "audit-wakati" && "$FLAG" != "$PROD_FLAG" ]]; then
   echo "error: '$CMD' against prod requires $PROD_FLAG" >&2
   exit 1
 fi
@@ -164,6 +169,11 @@ case "$CMD" in
     # Zero downtime: builds a new versioned index and swaps the alias, so the
     # old one keeps answering until the new one is complete.
     run_with_env node --import tsx bin/es.ts reindex
+    ;;
+  audit-wakati)
+    # Read-only: ranks every media by how morpheme-segmented its subtitles look,
+    # using the same metric the ingest guard turns batches away on.
+    run_with_env node --import tsx scripts/audit-wakati.ts "${@:3}"
     ;;
   reindex-media)
     [[ -n "$FLAG" ]] || { echo "error: reindex-media needs a media publicId" >&2; exit 1; }

@@ -39,6 +39,7 @@ import { logger } from '@config/log';
 import { assertUser } from '@app/middleware/authentication';
 import { InvalidRequestError, NotFoundError } from '@app/errors';
 import { surroundingSegments } from '@app/services/search/segmentDocument/SegmentContext';
+import { assessWakati, describeWakati } from '@app/services/corpus/wakatiDetection';
 
 export const listSegments: ListSegments = async ({ params, query }, respond) => {
   const media = await Media.findOneOrFail({ where: { publicId: params.mediaPublicId } });
@@ -96,6 +97,18 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
       externalIds: true,
     },
   });
+
+  // A batch is one episode, which is the smallest population the wakati signal
+  // exists over -- see wakatiDetection. Checked here and not in createSegment
+  // because a single line carries no signal to check.
+  const wakati = assessWakati(body.segments.map((segmentBody) => segmentBody.textJa?.content ?? ''));
+  if (wakati.isWakati) {
+    logger.warn(
+      { mediaPublicId: media.publicId, episode: params.episodeNumber, ...wakati },
+      'Rejected a wakati-segmented segment batch',
+    );
+    throw new InvalidRequestError(describeWakati(wakati));
+  }
 
   const primaryExternalId = getPrimaryExternalId(media);
   const externalVideoId = await getEpisodeExternalVideoId(media.id, params.episodeNumber);
