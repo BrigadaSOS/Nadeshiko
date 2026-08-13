@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { User } from '@app/models/User';
+import { CategoryType } from '@app/models/Media';
 
 setupTestSuite();
 
@@ -88,6 +89,41 @@ describe('PATCH /v1/user/preferences', () => {
 
     const saved = await User.findOneByOrFail({ id: kevin.id });
     expect(saved.preferences.hiddenMedia).toEqual([{ mediaPublicId: 'concurrent1' }]);
+  });
+
+  it('stores hidden categories as long as one stays visible', async () => {
+    fixtures.users.kevin.preferences = {};
+    await fixtures.users.kevin.save();
+    signInAs(app, fixtures.users.kevin);
+
+    const res = await request(app)
+      .patch('/v1/user/preferences')
+      .send({ hiddenCategories: ['JDRAMA', 'YOUTUBE'] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.hiddenCategories).toEqual(['JDRAMA', 'YOUTUBE']);
+
+    const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
+    expect(saved.preferences.hiddenCategories).toEqual(['JDRAMA', 'YOUTUBE']);
+  });
+
+  /**
+   * `filters.category` reads an empty term list as "no filter", so storing an
+   * all-hidden list would show the reader the entire corpus rather than nothing.
+   */
+  it('refuses to hide every category', async () => {
+    fixtures.users.kevin.preferences = { hiddenCategories: [CategoryType.YOUTUBE] };
+    await fixtures.users.kevin.save();
+    signInAs(app, fixtures.users.kevin);
+
+    const res = await request(app)
+      .patch('/v1/user/preferences')
+      .send({ hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE'] });
+
+    expect(res.status).toBe(400);
+
+    const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
+    expect(saved.preferences.hiddenCategories).toEqual(['YOUTUBE']);
   });
 
   it('replaces arrays instead of deep-merging them', async () => {
