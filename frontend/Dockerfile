@@ -56,6 +56,23 @@ ARG POSTHOG_CLI_API_KEY
 ENV POSTHOG_CLI_API_KEY=${POSTHOG_CLI_API_KEY}
 RUN npm run build --workspace frontend
 
+# THE LAST THING THAT TOUCHES .output MUST STILL AGREE WITH ITS HASHES.
+#
+# nuxt-security stamps a Subresource Integrity digest for every built asset into
+# the HTML, and any build step that rewrites a file afterwards makes the browser
+# refuse to execute it. That is not theoretical: enabling PostHog's sourcemap
+# upload did exactly this on 2026-08-13 and served an inert production site --
+# it injects chunk ids into `.output/public` after the digests are computed.
+#
+# The deploy could not catch it. The image built, the container was healthy,
+# `/up` answered, and the HTML and the assets were both from the same build; they
+# simply disagreed about the bytes. Staging could not catch it either, because
+# the module is gated on `isProd`.
+#
+# So the check lives here, where it sees the real output of every build in every
+# environment, and fails the IMAGE rather than the site.
+RUN cd frontend && npm run verify:sri
+
 # Nitro bundles the app's own dependencies into .output, but the OpenTelemetry
 # SDK is loaded through --import before the bundle and so has to ship separately.
 FROM node:24-slim AS otel-deps
