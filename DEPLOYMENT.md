@@ -599,6 +599,76 @@ done
 # origin answered
 ```
 
+### Surviving a deploy with a page already open
+
+**A deploy should be invisible to people mid-visit.** For a while it was not, and
+`Failed to fetch dynamically imported module` in PostHog is what that looked like.
+
+The cause is one fact about how the app ships. A rendered page names the
+content-hashed `/_nuxt/*` chunks of the build that rendered it, and the container
+holds exactly one build. The moment a new one is live, every page in existence
+that predates it — a tab left open, HTML held at the edge, HTML in a reader's own
+disk cache — asks for files the origin no longer has.
+
+Four things address that, and only the first one actually removes the problem:
+
+| Layer | What it does | Where |
+| --- | --- | --- |
+| **Asset archive** | keeps the previous builds' `/_nuxt/*` files servable, so the old page's requests still succeed | `frontend/server/plugins/03-asset-archive.ts` |
+| Edge purge | stops the edge handing out HTML that names a build that is gone | `.kamal/hooks/post-deploy`, `release.yml` |
+| `browser_ttl = respect_origin` | stops the reader's own cache pinning that HTML for an hour | `cloudflare-cache.tf` |
+| Client reload | last resort, gets a reader onto the new build | `app/plugins/chunkReload.client.ts` |
+
+The bottom three are races and only help the *next* navigation. The archive is
+not a race: the reader's page keeps working because the file it asks for is still
+there. Everything below it is what catches the cases the archive cannot — a
+reader whose page is older than the retention window, or a build that changed
+more than its chunks.
+
+**The archive is a host volume, and it is the part that can be misconfigured
+silently.** `/var/lib/nadeshiko/frontend-{prod,stg}/asset-archive`, mounted at
+`/app/asset-archive` and named by `NUXT_ASSET_ARCHIVE_DIR`. It must exist and be
+owned by uid 1000 before the first deploy — the startup pass deliberately refuses
+to create it, because a container-local directory would work perfectly until the
+container is replaced, which is the only moment any of this matters. Check it
+took:
+
+```bash
+# on deploy: the two lines that say it is on
+kamal app logs -d prod | grep 'asset archive'
+#   asset archive: serving superseded builds   liveAssets=156 retentionDays=30
+#   asset archive: publish complete            copied=12 pruned=0
+
+# from outside: an old chunk still answers, and says where it came from
+curl -sI https://nadeshiko.co/_nuxt/<a-chunk-from-the-previous-build>.js \
+  | grep -iE '^HTTP|x-nd-asset'
+#   HTTP/2 200
+#   x-nd-asset: archive
+```
+
+**Retention is 30 days on prod, 7 on staging** (`NUXT_ASSET_ARCHIVE_DAYS`),
+counted from the last build that still contained the file. The split is the
+deploy rate: prod releases 5–12 times a month, staging on every push to main —
+188 commits in the 30 days to 2026-08-13 — and nobody keeps a staging tab open
+for a fortnight. The startup pass restamps every file the running build still
+uses, so a chunk that survives unchanged for months is never pruned out from
+under a live page.
+
+**Sourcemaps are not archived**, which is what keeps the volume small. A build is
+12.5MB, of which 10.6MB is `.map`; the archive holds the remaining 1.9MB of code
+and styles. Nothing is lost, because `sourcemap: { client: 'hidden' }` emits maps
+with no `sourceMappingURL` in the chunks — no browser has ever requested one, and
+an old page cannot start. The maps that matter are uploaded to PostHog at build
+time by `@posthog/nuxt` and are keyed by chunk id, not fetched from here. So the
+worst case is bounded by deploy rate rather than by build size: ~23MB on prod,
+~50MB on staging, against ~150MB and ~2.3GB if maps were kept.
+
+`/_nuxt/builds/latest.json` is deliberately **not** covered: it is Nuxt's record
+of which build is current, and serving a superseded copy of the file whose job is
+to announce that the build changed is the one thing this must never do. It is
+also the reason `/_nuxt/builds/**` carries `no-cache` in `routeRules` rather than
+the year the surrounding `/_nuxt/**` rule gives everything else.
+
 ### Purging HTML on deploy
 
 **Status: required, and wired into both deploy paths.** This section used to say
@@ -629,6 +699,11 @@ Worse, the client-side recovery in `app/plugins/chunkReload.client.ts` cannot
 save them without this purge: the reload it triggers re-requests the page, the
 edge serves the same stale HTML, and it burns both its attempts and reports
 `app:chunk-error-unrecoverable`. The purge is what makes that path work.
+
+The edge is only half of where that stale HTML lives, though — see the section
+above. Until 2026-08-13 the reader's own browser was told to hold it for an hour
+too, which no purge can reach, and the asset archive is what stops any of this
+from reaching a reader in the first place.
 
 Mechanics, and the two constraints that decide them:
 
