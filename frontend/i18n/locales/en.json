@@ -796,7 +796,12 @@
     "contentRatingDescription": {
       "SENSITIVE": "Sensitive Content (Questionable)"
     },
-    "revert": "Revert"
+    "revert": "Revert",
+    "expandNoPrevious": "No earlier sentence in this episode.",
+    "expandNoNext": "No later sentence in this episode.",
+    "expandFailed": "Couldn't expand this sentence. Please try again.",
+    "expandAudioFailed": "Expanded the text, but the audio could not be built — playback and Anki export will use the original clip.",
+    "expanding": "Expanding…"
   },
   "tokenTooltip": {
     "lookupIn": "Look up in",

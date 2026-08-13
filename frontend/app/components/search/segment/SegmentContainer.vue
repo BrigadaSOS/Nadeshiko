@@ -256,7 +256,7 @@ const onEditSuccess = (updated: SearchResult) => {
   }
 };
 
-const { revertActiveConcatenation, concatenatedResult, loadNextSegment } = useSegmentConcatenation();
+const { revertActiveConcatenation, concatenatedResult, isConcatenating, loadNextSegment } = useSegmentConcatenation();
 
 // An expanded card that a new search scrolls off the list can no longer be
 // reverted from the UI, so its concatenated audio blob would never be released.
@@ -527,7 +527,7 @@ watch(playingVideoId, (id) => {
             <!-- Fourth Row -->
             <!-- Buttons  -->
             <div class="pt-2 pb-2">
-              <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" @open-context-modal="openModal"
+              <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" :is-expanding="isConcatenating" @open-context-modal="openModal"
                 @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
             </div>
             <!-- End Buttons  -->

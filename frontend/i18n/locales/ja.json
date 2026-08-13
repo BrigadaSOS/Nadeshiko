@@ -796,7 +796,12 @@
     "contentRatingDescription": {
       "SENSITIVE": "センシティブコンテンツ（きわどい）"
     },
-    "revert": "元に戻す"
+    "revert": "元に戻す",
+    "expandNoPrevious": "このエピソードにはこれより前の文がありません。",
+    "expandNoNext": "このエピソードにはこれより後の文がありません。",
+    "expandFailed": "文を展開できませんでした。もう一度お試しください。",
+    "expandAudioFailed": "テキストは展開しましたが、音声を生成できませんでした。再生と Anki への書き出しには元の音声が使われます。",
+    "expanding": "展開中…"
   },
   "tokenTooltip": {
     "lookupIn": "辞書で調べる",
