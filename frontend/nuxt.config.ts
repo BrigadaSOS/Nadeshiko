@@ -147,6 +147,11 @@ export default defineNuxtConfig({
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
     mediaFilesPath: env.NUXT_MEDIA_FILES_PATH,
+    // Keeps the previous builds' chunks servable, so a deploy does not 404 the
+    // page a reader already has open. Read at startup by
+    // server/plugins/03-asset-archive.ts; unset means the archive stays off.
+    assetArchiveDir: env.NUXT_ASSET_ARCHIVE_DIR,
+    assetArchiveDays: env.NUXT_ASSET_ARCHIVE_DAYS,
     // Read by the middleware that emits `Reporting-Endpoints`, so the endpoint
     // is declared next to the `report-to` directive that names it. Absent outside
     // production, which the middleware already treats as "emit no header".
@@ -270,6 +275,11 @@ export default defineNuxtConfig({
       },
       serverConfig: {
         enableExceptionAutocapture: false,
+      },
+      sourcemaps: {
+        enabled: Boolean(process.env.POSTHOG_CLI_API_KEY),
+        projectId: '372788',
+        personalApiKey: process.env.POSTHOG_CLI_API_KEY,
       },
     },
   }),
@@ -453,6 +463,27 @@ export default defineNuxtConfig({
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
+    // EXCEPT the app manifest, which is not fingerprinted and is the one file
+    // under `/_nuxt/` that must never be stale: `builds/latest.json` is how the
+    // client notices a deploy happened at all. The rule above was matching it
+    // and promising a year, so a reader's browser answered that check from cache
+    // and the client concluded the build had never changed. Nitro's own default
+    // for this path is `maxAge: 1` -- the rule above was overriding it.
+    //
+    // `builds/meta/<build-id>.json` is addressed by build id, so it genuinely is
+    // immutable and keeps the long TTL. Declared before the broader rule for
+    // readability only; Nitro merges matching rules by specificity, not by
+    // order.
+    '/_nuxt/builds/meta/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    '/_nuxt/builds/**': {
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+    },
     // Public static assets — long cache, versioned by filename if needed
     '/assets/**': {
       headers: {
@@ -505,7 +536,7 @@ export default defineNuxtConfig({
       },
     },
   },
-  sourcemap: { client: true },
+  sourcemap: { client: 'hidden' },
 
   nitro: {
     preset: 'node-server',
@@ -519,6 +550,9 @@ export default defineNuxtConfig({
       },
     ],
     rollupConfig: {
+      output: {
+        sourcemapExcludeSources: false,
+      },
       onwarn(warning, defaultHandler) {
         if (warning.code === 'THIS_IS_UNDEFINED' || warning.code === 'CIRCULAR_DEPENDENCY') return;
         defaultHandler(warning);

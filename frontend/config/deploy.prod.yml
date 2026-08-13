@@ -52,13 +52,23 @@ servers:
 # a crash-looping container is exactly when `docker volume inspect` is the least
 # convenient way in.
 #
-# The directory has to exist and be writable by uid 1000 (`node`, which
+# The second mount is the asset archive: the previous builds' `/_nuxt/*` files,
+# kept on the host so they outlive the container that produced them. It is what
+# makes a deploy invisible to a reader who already has a page open -- their tab
+# names the chunks of the build it was rendered by, and without this those 404
+# the moment the new container is live. See frontend/server/utils/assetArchive.ts
+# and DEPLOYMENT.md, "Surviving a deploy with a page already open".
+#
+# Both directories have to exist and be writable by uid 1000 (`node`, which
 # docker-entrypoint.sh drops to) before the first deploy, or Node silently
 # writes nothing:
 #   ssh nadeshiko "sudo mkdir -p /var/lib/nadeshiko/frontend-prod/diagnostics \
-#     && sudo chown 1000:1000 /var/lib/nadeshiko/frontend-prod/diagnostics"
+#     /var/lib/nadeshiko/frontend-prod/asset-archive \
+#     && sudo chown 1000:1000 /var/lib/nadeshiko/frontend-prod/diagnostics \
+#     /var/lib/nadeshiko/frontend-prod/asset-archive"
 volumes:
   - "/var/lib/nadeshiko/frontend-prod/diagnostics:/app/diagnostics"
+  - "/var/lib/nadeshiko/frontend-prod/asset-archive:/app/asset-archive"
 
 builder:
   args:
@@ -123,6 +133,14 @@ env:
     NUXT_BACKEND_INTERNAL_URL: https://api.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
+
+    # The container side of the asset-archive mount above. Empty or unset turns
+    # the archive off, so this and the volume have to move together -- a path
+    # here with no mount behind it would write the previous builds into the
+    # container's own filesystem, where they die with it. The startup plugin
+    # refuses to create the directory for exactly that reason and logs
+    # `asset archive: directory unavailable` instead.
+    NUXT_ASSET_ARCHIVE_DIR: /app/asset-archive
 
     NITRO_PRESET: node_cluster
     NITRO_CLUSTER_WORKERS: 3
