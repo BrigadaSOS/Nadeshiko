@@ -199,6 +199,111 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
   });
 });
 
+describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments/batch', () => {
+  /** Real One Punch Man lines, as they arrived before the repair. */
+  const WAKATI = [
+    '残念 だ が 俺 は 命 を かけ てる わけ じゃ ない',
+    'この 速さ に つい て こ れる か ?',
+    'お前 見 て みろ よ',
+    '頼ん で おい た 調査 の ほう は どうなってる ?',
+    'ふんっ 深海 王 め 逃げ られ た か',
+    'いっぺん 退治 さ れ て 頭 でも 冷や せよ',
+    'そこ で 待ってろ え ?',
+    '少し は 骨 が あり そう だ な',
+    'だが 仕事 は しばらく おあずけ だ ー',
+    '災害 レベル の 設定 を 急げ !',
+  ];
+
+  const batchOf = (lines: string[]) =>
+    lines.map((content, index) => ({
+      position: index + 1,
+      startTimeMs: index * 1000,
+      endTimeMs: index * 1000 + 900,
+      textJa: { content },
+      textEn: { content: 'en' },
+      textEs: { content: 'es' },
+      storage: 'R2' as const,
+      hashedId: `wakati-${index}`,
+    }));
+
+  async function seedIngestTarget() {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    await MediaExternalId.save({ mediaId: media.id, source: ExternalSourceType.ANILIST, externalId: '99997' });
+    return { media, episode: fixtures.episodes.pilot };
+  }
+
+  it('rejects a morpheme-segmented batch instead of storing it', async () => {
+    const { media, episode } = await seedIngestTarget();
+    // Enough spaced lines to clear MIN_SPACED_LINES, which is the whole reason
+    // this check lives on the batch route and not on the single-segment one.
+    const segments = batchOf([...WAKATI, ...WAKATI, ...WAKATI]);
+
+    await assertDifference(
+      () => Segment.count(),
+      0,
+      async () => {
+        const res = await request(app)
+          .post(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/batch`)
+          .send({ segments });
+
+        expect(res.status).toBe(400);
+        expect(res.body).toMatchObject({ code: 'INVALID_REQUEST' });
+        expect(res.body.detail).toMatch(/morpheme-segmented \(wakati-gaki\)/);
+      },
+    );
+  });
+
+  /** Real lines from clean media, including the dash-dialogue shapes that sit
+   *  closest to the threshold from above. */
+  const CLEAN = [
+    'いや 顔 見たら また むかつくかもね',
+    'ちゃんと わかってくれたかな',
+    'いいだろう とりあえず遊んでやる',
+    'その上 封印の書も手の内にあるとなると',
+    'どっちが上か 試してやるぜ!',
+    'じゃあの わしは また 情報収集に行くからの 。',
+    '相変わらず 分かりにくいしゃべりしやがって。この虫オタク!',
+    'サスケは絶対 俺が連れて帰る!　一生の約束だってばよ!',
+    'まあ そっちは もう少し　太らせてからでもいいだろう。',
+    '机で じっとなんか してられっかよ 。なぁ 赤丸',
+  ];
+
+  it('accepts a normally spaced batch', async () => {
+    const { media, episode } = await seedIngestTarget();
+    const segments = batchOf([...CLEAN, ...CLEAN, ...CLEAN]);
+
+    await assertDifference(
+      () => Segment.count(),
+      +30,
+      async () => {
+        const res = await request(app)
+          .post(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/batch`)
+          .send({ segments });
+
+        expect(res.status).toBe(201);
+        expect(res.body).toMatchObject({ created: 30 });
+      },
+    );
+  });
+
+  it('accepts a batch too small for the signal to mean anything', async () => {
+    const { media, episode } = await seedIngestTarget();
+
+    await assertDifference(
+      () => Segment.count(),
+      +5,
+      async () => {
+        const res = await request(app)
+          .post(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/batch`)
+          .send({ segments: batchOf(WAKATI.slice(0, 5)) });
+
+        expect(res.status).toBe(201);
+      },
+    );
+  });
+});
+
 describe('GET /v1/media/segments/:segmentPublicId', () => {
   it('returns a segment by publicId', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
