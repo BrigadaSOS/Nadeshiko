@@ -49,6 +49,11 @@ ARG NUXT_PUBLIC_ENVIRONMENT
 ARG NITRO_PRESET=node-server
 ENV NUXT_PUBLIC_ENVIRONMENT=${NUXT_PUBLIC_ENVIRONMENT}
 ENV NITRO_PRESET=${NITRO_PRESET}
+# PostHog source map upload: POSTHOG_CLI_API_KEY must be passed as a build arg
+# so @posthog/nuxt can inject and upload source maps during the build.
+# POSTHOG_CLI_PROJECT_ID and POSTHOG_CLI_HOST are baked into nuxt.config.ts.
+ARG POSTHOG_CLI_API_KEY
+ENV POSTHOG_CLI_API_KEY=${POSTHOG_CLI_API_KEY}
 RUN npm run build --workspace frontend
 
 # Nitro bundles the app's own dependencies into .output, but the OpenTelemetry
