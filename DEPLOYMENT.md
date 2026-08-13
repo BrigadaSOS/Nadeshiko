@@ -590,16 +590,45 @@ done
 # origin answered
 ```
 
-### Not applicable yet: purging HTML on deploy
+### Purging HTML on deploy
 
-Shirabe runs a post-deploy Cloudflare purge because edge-cached HTML goes on
-referencing asset digests a new deploy has replaced. Nadeshiko edge-caches no
-HTML today (`/en` answers `cf-cache-status: DYNAMIC` with no `Cache-Control`;
-see the caching note in `frontend/nuxt.config.ts` `routeRules`), so there is
-nothing stale to purge. **If HTML caching is ever turned on, a purge hook stops
-being optional.** Note also that prod and staging share this zone, and
-purge-by-hostname is an Enterprise feature — a purge from staging would throw
-away production's entire edge cache.
+**Status: required, and wired into `release.yml`.** This section used to say it
+was not applicable, on the grounds that no HTML was edge-cached. That stopped
+being true on 2026-08-13, when `cache_anonymous_sentence_html` and
+`cache_anonymous_search_html` went into `cloudflare-cache.tf` and the shared TTL
+for those paths was raised to an hour.
+
+Why it is not optional. Fingerprinted assets are safe to cache and are not the
+problem: `/_nuxt/BRrCu_qM.js` is content-addressed, `immutable`, cached a year,
+and a new build simply produces new filenames, so old and new coexist. **HTML is
+the opposite.** `/en/search/猫` is a stable URL whose body names the digests of
+the build that rendered it. Edge-cached for an hour, it outlives the deploy and
+points at `/_nuxt/*.js` the new container does not have, and the reader gets
+`Failed to fetch dynamically imported module`.
+
+Worse, the client-side recovery in `app/plugins/chunkReload.client.ts` cannot
+save them without this purge: the reload it triggers re-requests the page, the
+edge serves the same stale HTML, and it burns both its attempts and reports
+`app:chunk-error-unrecoverable`. The purge is what makes that path work.
+
+Mechanics, and the two constraints that decide them:
+
+- **Purge everything, not by URL.** Sentence and search URLs are unbounded, and
+  purge by prefix, hostname or tag is Enterprise-only. Dropping `/v1/media/*`
+  and the fingerprinted assets along with the HTML is harmless — they are
+  immutable and refill from origin.
+- **Prod only, because prod and staging share this zone.** The step lives in
+  `release.yml`, which is tag-triggered. The same call in `staging-release.yml`
+  would throw away production's entire edge cache on every push to main. Do not
+  copy it there.
+
+It runs as the last step of `release-frontend`, after `kamal deploy` (purging
+first would let the edge refill from the old container mid-swap) and before
+`e2e`, so the prod E2E run tests a purged edge. It needs two repository secrets:
+`CLOUDFLARE_ZONE_ID`, and a `CLOUDFLARE_API_TOKEN` carrying **Zone → Cache
+Purge** on `nadeshiko.co`. Cloudflare answers `200` with `"success": false` when
+the token lacks that permission, so the step checks the body rather than the
+exit code.
 
 ## Manual / emergency deploys
 
