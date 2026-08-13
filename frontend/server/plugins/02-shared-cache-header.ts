@@ -20,14 +20,11 @@
  * ever needs edge caching it should say so itself.
  */
 
-/**
- * How long a CDN may hold a shared copy. Short on purpose while this is new:
- * every shared-tier page is a search result or a corpus page, so the cost of
- * staleness is a recently imported segment not showing for a few minutes, and
- * the cost of a mistake is serving it to everyone. Raise it once the hit rate
- * and the Cloudflare rule are both proven.
- */
-const SHARED_CDN_MAX_AGE = 300;
+// How long a CDN may hold a shared copy, chosen per path. The reasoning, and
+// why it is not one constant, lives with the function in
+// `server/utils/sharedCdnTtl.ts` -- kept out of here so it can be tested
+// without Nitro's auto-imports.
+import { sharedCdnMaxAge } from '~~/server/utils/sharedCdnTtl';
 
 export default defineNitroPlugin((nitroApp) => {
   // `render:response`, not `beforeResponse`. The latter is h3's, and a rendered
@@ -42,7 +39,7 @@ export default defineNitroPlugin((nitroApp) => {
 
     response.headers = {
       ...response.headers,
-      'CDN-Cache-Control': `public, max-age=${SHARED_CDN_MAX_AGE}`,
+      'CDN-Cache-Control': `public, max-age=${sharedCdnMaxAge(getRequestURL(event).pathname)}`,
     };
   });
 });
