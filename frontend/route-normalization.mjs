@@ -2,6 +2,16 @@ const ID_PATTERN = /^[0-9]+$|^[0-9a-f]{8,}$/i;
 const NANOID_PATTERN = /^[A-Za-z0-9_-]{8,}$/;
 const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 
+// Keep in sync with the `locales` codes in nuxt.config.ts. Locale-prefixed
+// paths are the bulk of real page traffic (`/ja/sentence/<id>`), and every one
+// of them used to miss STATIC_PAGES and the anchored ROUTE_PATTERNS below and
+// fall through to `/__other` -- 98% of frontend requests landed in that one
+// bucket, which is why the APM endpoint list had nothing to show.
+// Exported only so server/utils/routeNormalization.test.ts can assert it still
+// matches nuxt.config.ts -- a locale added there and forgotten here would send
+// that locale's entire traffic back into `/__other`, silently.
+export const LOCALES = new Set(['en', 'es', 'ja']);
+
 const STATIC_PAGES = new Set([
   '/', '/blog', '/media', '/stats', '/stats/words',
   '/about', '/privacy', '/terms-and-conditions', '/dmca',
@@ -24,13 +34,33 @@ function isIdSegment(seg) {
   const bare = seg.replace(/\.[^.]+$/, '');
   if (ID_PATTERN.test(bare)) return true;
   if (COMPOSITE_ID_PATTERN.test(bare)) return true;
-  if (bare.length >= 8 && NANOID_PATTERN.test(bare) && /[a-z]/.test(bare) && /[A-Z]/.test(bare))
+  // Public ids are nanoid-shaped. Requiring BOTH cases (the old rule) only
+  // caught the ones that happened to be mixed: `gFH5xlsT--zr` templated, but
+  // `-OFOANT699SJ` and `-hiojjfbx73y` leaked through as raw label values, one
+  // new series per segment id. A digit is the more reliable signal -- real path
+  // words ("collections", "covered-words", "magic-link") have none, while a
+  // 12-char nanoid almost always does -- so accept a digit OR mixed case.
+  if (
+    bare.length >= 8 &&
+    NANOID_PATTERN.test(bare) &&
+    (/[0-9]/.test(bare) || (/[a-z]/.test(bare) && /[A-Z]/.test(bare)))
+  )
     return true;
   return false;
 }
 
 export function normalizeRoute(url) {
   const path = url.split('?')[0];
+
+  // Peel a locale prefix and re-apply it as `/:locale`, so `/ja/sentence/x` and
+  // `/es/sentence/y` collapse onto one `/:locale/sentence/:id` series instead
+  // of both disappearing into `/__other`.
+  const [, head, ...rest] = path.split('/');
+  if (LOCALES.has(head)) {
+    const inner = normalizeRoute(rest.length ? `/${rest.join('/')}` : '/');
+    if (inner === '/__other') return '/__other';
+    return inner === '/' ? '/:locale' : `/:locale${inner}`;
+  }
 
   if (STATIC_PAGES.has(path)) return path;
 
