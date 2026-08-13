@@ -28,7 +28,7 @@ export type VisitorCacheTier = 'shared' | 'browser' | 'personal';
 
 /**
  * The preference cookies whose presence forks the render, as a plain array so
- * the check below stays a cheap loop over four names.
+ * the check below stays a cheap loop over three names.
  */
 const PREFERENCE_COOKIES: readonly string[] = RENDER_FORKING_PREFERENCE_COOKIES;
 
