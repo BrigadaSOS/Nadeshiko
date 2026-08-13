@@ -163,6 +163,25 @@ export const usePlayerStore = defineStore('player', {
         .catch((error) => {
           if (token !== playbackToken) return;
           this.isPlaying = false;
+
+          // `AbortError` is the reader, not a fault. The spec raises it when the
+          // user agent abandons the fetch "at the user's request" -- navigating
+          // away, closing the tab, stopping playback mid-load -- so there is
+          // nothing to fix and nobody to tell.
+          //
+          // Filtered here rather than tolerated in PostHog, because an issue
+          // nobody acts on is worse than no issue: its status and last-seen stop
+          // describing anything, and the `NotSupportedError` cases underneath --
+          // a clip that genuinely will not play, which IS worth knowing about --
+          // get read as more of the same. The same confusion `$exception_fingerprint`
+          // was added to `reportError` to end.
+          //
+          // Note this is not the teardown case: `releaseIfSource`, `hidePlayer`
+          // and every `playCurrent` branch bump `playbackToken` before releasing,
+          // so a play() we cancelled ourselves is already discarded by the guard
+          // above and never reaches here.
+          if (error instanceof DOMException && error.name === 'AbortError') return;
+
           reportError('player:audio-play-failed', error, {
             'segment.publicId': this.currentResult?.segment.publicId ?? '',
           });
