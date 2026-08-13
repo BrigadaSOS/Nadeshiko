@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { LOCALES, normalizeRoute } from '~~/route-normalization.mjs';
@@ -65,5 +65,53 @@ describe('normalizeRoute', () => {
     expect(normalizeRoute('/de/sentence/xyz12345')).toBe('/__other');
     expect(normalizeRoute('/en/de/sentence/xyz12345')).toBe('/__other');
     expect(normalizeRoute('/totally/bogus')).toBe('/__other');
+  });
+
+  it('keeps the signed-in area out of the bucket, locale prefix and all', () => {
+    expect(normalizeRoute('/user')).toBe('/user');
+    expect(normalizeRoute('/en/user/activity')).toBe('/:locale/user/activity');
+    expect(normalizeRoute('/ja/user/collections')).toBe('/:locale/user/collections');
+    expect(normalizeRoute('/es/user/admin/reports')).toBe('/:locale/user/admin/reports');
+
+    // `/user` and `/settings` are `[...slug]` catch-alls, so an unlisted page
+    // under them is served, not 404ed. It should cost one shared series.
+    expect(normalizeRoute('/en/user/not-a-real-page')).toBe('/:locale/user/:slug');
+    expect(normalizeRoute('/settings/anything/at/all')).toBe('/settings/:slug');
+  });
+});
+
+/**
+ * STATIC_PAGES is a hand-copied duplicate of the static routes in app/pages,
+ * for the same reason LOCALES is one: this module is loaded before Nuxt exists
+ * and cannot ask the router what it serves. That makes it the same silent
+ * failure -- a page added under app/pages and forgotten here does not throw, it
+ * just lands in `/__other`, which is the bug that hid the whole signed-in area
+ * until an endpoint list with one row in it gave the game away.
+ */
+function staticRoutesFromPages(): string[] {
+  const pagesDir = fileURLToPath(new URL('../../app/pages', import.meta.url));
+
+  return (
+    readdirSync(pagesDir, { recursive: true, encoding: 'utf8' })
+      .filter((entry) => entry.endsWith('.vue'))
+      .map((entry) => `/${entry.replace(/\.vue$/, '').replace(/\/?index$/, '')}`)
+      // Dynamic segments are ROUTE_PATTERNS' job, asserted separately above.
+      .filter((route) => !route.includes('['))
+      .map((route) => (route === '/' ? route : route.replace(/\/$/, '')))
+  );
+}
+
+describe('normalizeRoute page coverage', () => {
+  it('templates every static page in app/pages as itself', () => {
+    const routes = staticRoutesFromPages();
+
+    // Guards the extraction: an empty list would make the loop below vacuous.
+    expect(routes.length).toBeGreaterThan(5);
+    expect(routes).toContain('/');
+    expect(routes).toContain('/user/activity');
+
+    for (const route of routes) {
+      expect(normalizeRoute(route), `${route} is served by app/pages but not templated`).toBe(route);
+    }
   });
 });

@@ -26,7 +26,13 @@ const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 if (endpoint) {
   const resource = resourceFromAttributes({
     'service.name': process.env.OTEL_SERVICE_NAME || 'nadeshiko-backend',
-    'service.version': process.env.npm_package_version || '0.0.0',
+    // npm sets npm_package_version only for processes it launches, and the
+    // container's CMD is a bare `node`, so in production this read every
+    // deployed build as `0.0.0` -- telemetry could not say which one was live,
+    // which is the question you ask first when a metric changes shape.
+    // OTEL_SERVICE_VERSION comes from package.json via config/deploy.prod.yml;
+    // npm_package_version stays as the fallback for `npm run` locally.
+    'service.version': process.env.OTEL_SERVICE_VERSION || process.env.npm_package_version || '0.0.0',
     'deployment.environment': process.env.ENVIRONMENT || 'production',
   });
 
