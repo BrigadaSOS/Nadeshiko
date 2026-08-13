@@ -9,20 +9,38 @@ export function getE2EBaseUrl(fallback?: string): string {
 }
 
 /**
- * Header that lets this suite past the per-IP HTML rate limiter.
+ * Headers that let this suite past the two things that would otherwise stop it.
+ * TWO SECRETS, TWO LAYERS, and they are not interchangeable:
  *
- * The whole run comes from one address -- a single GitHub runner -- against a
- * limiter that allows 60 renders a minute, and ~140 tests do not fit in that.
- * Running out did not fail honestly: the next request 429d wherever it landed,
- * so the run reported an unrelated failure in a different place each time. It
- * spent a while masking the anonymous-access check in collections.spec.ts, which
- * asserts a 302 and was being handed a 429 -- a security regression test that
- * could no longer fail for the right reason.
+ *   x-rate-limit-bypass  the ORIGIN's per-IP HTML rate limiter, in
+ *                        frontend/server/utils/ipRateLimit.ts.
+ *   x-nadeshiko-ci       CLOUDFLARE, before the request reaches the origin at
+ *                        all. Read by the `skip_ci_e2e` rule in
+ *                        brigadasos-infra/terraform/cloudflare-security.tf.
  *
- * Empty unless the environment sets it, and it is not set in production, so a
- * suite pointed at prod is throttled exactly like anybody else.
+ * A request can be allowed by one and stopped by the other, which is why both
+ * are sent rather than one being folded into the other.
+ *
+ * WHY THE CLOUDFLARE ONE EXISTS. On 2026-08-13 a WAF rule started issuing a
+ * managed challenge on /:locale/sentence/ to fight a corpus scraper. Playwright
+ * cannot pass a managed challenge, so sentence.spec.ts and the uuid redirect
+ * tests began failing against prod -- a green build turning red for a reason
+ * that has nothing to do with the application. The bypass rule was written for
+ * exactly this and had never been switched on, because the secret it keys on
+ * was empty.
+ *
+ * Each is empty unless the environment sets it. An unset x-rate-limit-bypass
+ * means a suite pointed at prod is throttled like anybody else; an unset
+ * x-nadeshiko-ci means it is challenged like anybody else.
  */
 export function e2eBypassHeaders(): Record<string, string> {
-  const secret = process.env.E2E_RATE_LIMIT_BYPASS_SECRET;
-  return secret ? { 'x-rate-limit-bypass': secret } : {};
+  const headers: Record<string, string> = {};
+
+  const rateLimitSecret = process.env.E2E_RATE_LIMIT_BYPASS_SECRET;
+  if (rateLimitSecret) headers['x-rate-limit-bypass'] = rateLimitSecret;
+
+  const wafSecret = process.env.E2E_CI_BYPASS_SECRET;
+  if (wafSecret) headers['x-nadeshiko-ci'] = wafSecret;
+
+  return headers;
 }

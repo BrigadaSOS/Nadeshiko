@@ -229,6 +229,28 @@ jobs:
           echo "::add-mask::${E2E_USER_PASSWORD}"
           echo "E2E_USER_PASSWORD=${E2E_USER_PASSWORD}" >> "$GITHUB_ENV"
 
+          # Sent as X-Nadeshiko-CI so Cloudflare's `skip_ci_e2e` rule skips the
+          # remaining custom rules for this run. Needed since 2026-08-13, when a
+          # managed challenge went on /:locale/sentence/ to fight a corpus
+          # scraper: Playwright cannot solve one, so sentence.spec.ts and the
+          # uuid redirect tests started failing against prod for a reason that
+          # had nothing to do with the application.
+          #
+          # This is NOT the same secret as RATE_LIMIT_BYPASS_SECRET on staging.
+          # That one is the origin's per-IP limiter; this one is Cloudflare,
+          # before the request reaches the origin at all.
+          #
+          # Optional on purpose, matching the staging step: if the parameter is
+          # absent the suite still runs and is challenged, rather than the job
+          # failing on a missing secret and hiding why.
+          E2E_CI_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/prod/CI_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          if [ -n "${E2E_CI_BYPASS_SECRET}" ]; then
+            echo "::add-mask::${E2E_CI_BYPASS_SECRET}"
+            echo "E2E_CI_BYPASS_SECRET=${E2E_CI_BYPASS_SECRET}" >> "$GITHUB_ENV"
+          else
+            echo "note: no CI_BYPASS_SECRET in SSM; sentence-page tests will be challenged"
+          fi
+
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
