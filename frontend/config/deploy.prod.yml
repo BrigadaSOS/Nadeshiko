@@ -98,17 +98,6 @@ env:
     # the flag exists to prevent.
     NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
     #
-    # NUXT_PUBLIC_SHIRABE_WORD_CARD is deliberately ABSENT, so the card is still off
-    # for readers. Everything underneath it is wired and proven -- the key resolves,
-    # both hosts answer 200 -- and this one line is all that is left to turn it on:
-    #
-    #   NUXT_PUBLIC_SHIRABE_WORD_CARD: "true"
-    #
-    # Absent rather than `"false"` on purpose. Unset already means off (the default in
-    # config/env.ts), and a flag written as false somewhere is one that ships by
-    # accident from the next environment nobody remembered to edit. Nothing above
-    # renders while this is missing: `lookupsEnabled` is ANDed with the card, so the
-    # lookups flag and the key sit inert rather than firing per-hover requests.
     # The fast path and the fallback are the same service under two of its own
     # hostnames, which is what lets one skip Cloudflare while the other keeps working
     # if the tailnet does not. The lookup route falls back per request and parks the
