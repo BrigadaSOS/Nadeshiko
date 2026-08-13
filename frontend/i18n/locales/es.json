@@ -109,6 +109,9 @@
     "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulario"
   },
+  "hiddenCategories": {
+    "updateError": "No se pudieron actualizar tus categorías ocultas. Inténtalo de nuevo."
+  },
   "hiddenMedia": {
     "updateError": "No se pudo actualizar tu lista de medios ocultos. Inténtalo de nuevo."
   },
@@ -626,6 +629,16 @@
           "revokeOthers": "No se pudieron revocar las otras sesiones. Inicia sesión otra vez e inténtalo de nuevo.",
           "revokeAll": "No se pudieron revocar todas las sesiones. Inicia sesión otra vez e inténtalo de nuevo."
         }
+      },
+      "hiddenCategories": "Ocultar categorías",
+      "hiddenCategoriesDescription": "Desactiva una categoría para quitarla por completo de la búsqueda. Sus medios dejan de aparecer en los resultados, en las pestañas de categoría y en los recuentos.",
+      "hiddenCategoriesLastVisible": "Al menos una categoría debe permanecer visible.",
+      "hiddenCategoryShown": "Visible",
+      "hiddenCategoryHidden": "Oculta",
+      "hiddenCategoryDescriptions": {
+        "anime": "Series y películas de anime.",
+        "liveaction": "Dramas japoneses, series y películas de imagen real.",
+        "youtube": "Vídeos de YouTube."
       },
       "hiddenMedia": "Medios ocultos",
       "hiddenMediaDescription": "Medios ocultos de los resultados de búsqueda. También puedes ocultar medios desde el menú en cualquier resultado.",
