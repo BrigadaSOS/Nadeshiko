@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHUNK_RELOAD_BURST_MS,
   CHUNK_RELOAD_MAX_ATTEMPTS,
   CHUNK_RELOAD_WINDOW_MS,
   decideChunkReload,
@@ -40,64 +41,126 @@ describe('isChunkLoadError', () => {
 
 describe('parseChunkReloadGuard', () => {
   it('treats a missing entry as no attempts yet', () => {
-    expect(parseChunkReloadGuard(null)).toEqual({ attempts: 0, windowStartedAt: 0 });
+    expect(parseChunkReloadGuard(null)).toEqual({ attempts: 0, windowStartedAt: 0, lastAttemptAt: 0 });
   });
 
   it.each(['not json', '"a string"', 'null', '{"attempts":"two","windowStartedAt":1}'])(
     'falls back to an empty guard for %s',
     (raw) => {
-      expect(parseChunkReloadGuard(raw)).toEqual({ attempts: 0, windowStartedAt: 0 });
+      expect(parseChunkReloadGuard(raw)).toEqual({ attempts: 0, windowStartedAt: 0, lastAttemptAt: 0 });
     },
   );
 
   it('round-trips a persisted guard', () => {
-    const guard = { attempts: 1, windowStartedAt: 1_000 };
+    const guard = { attempts: 1, windowStartedAt: 1_000, lastAttemptAt: 1_500 };
     expect(parseChunkReloadGuard(JSON.stringify(guard))).toEqual(guard);
+  });
+
+  // Written by the build before the burst window existed, and read by the tab
+  // that survives the deploy introducing it -- which, given what this file
+  // recovers from, is not a hypothetical reader.
+  it('reads a guard written before lastAttemptAt existed', () => {
+    expect(parseChunkReloadGuard('{"attempts":1,"windowStartedAt":5000}')).toEqual({
+      attempts: 1,
+      windowStartedAt: 5_000,
+      lastAttemptAt: 5_000,
+    });
   });
 });
 
 describe('decideChunkReload', () => {
   it('reloads on a first error and opens the window', () => {
-    expect(decideChunkReload({ attempts: 0, windowStartedAt: 0 }, 5_000)).toEqual({
-      reload: true,
-      guard: { attempts: 1, windowStartedAt: 5_000 },
+    expect(decideChunkReload({ attempts: 0, windowStartedAt: 0, lastAttemptAt: 0 }, 5_000)).toEqual({
+      action: 'reload',
+      guard: { attempts: 1, windowStartedAt: 5_000, lastAttemptAt: 5_000 },
     });
   });
 
   it('keeps the original window anchor while spending the budget', () => {
-    expect(decideChunkReload({ attempts: 1, windowStartedAt: 5_000 }, 6_000)).toEqual({
-      reload: true,
-      guard: { attempts: 2, windowStartedAt: 5_000 },
+    const now = 5_000 + CHUNK_RELOAD_BURST_MS;
+
+    expect(decideChunkReload({ attempts: 1, windowStartedAt: 5_000, lastAttemptAt: 5_000 }, now)).toEqual({
+      action: 'reload',
+      guard: { attempts: 2, windowStartedAt: 5_000, lastAttemptAt: now },
     });
   });
 
   it('stops reloading once the budget is spent', () => {
-    const guard = { attempts: CHUNK_RELOAD_MAX_ATTEMPTS, windowStartedAt: 5_000 };
-    expect(decideChunkReload(guard, 6_000)).toEqual({ reload: false, guard });
+    const guard = { attempts: CHUNK_RELOAD_MAX_ATTEMPTS, windowStartedAt: 5_000, lastAttemptAt: 5_000 };
+    const now = 5_000 + CHUNK_RELOAD_BURST_MS;
+
+    expect(decideChunkReload(guard, now)).toEqual({ action: 'exhausted', guard });
+  });
+
+  it('allows a fresh attempt once the window has fully elapsed', () => {
+    const guard = { attempts: CHUNK_RELOAD_MAX_ATTEMPTS, windowStartedAt: 5_000, lastAttemptAt: 5_000 };
+    const now = 5_000 + CHUNK_RELOAD_WINDOW_MS;
+
+    expect(decideChunkReload(guard, now)).toEqual({
+      action: 'reload',
+      guard: { attempts: 1, windowStartedAt: now, lastAttemptAt: now },
+    });
+  });
+
+  /**
+   * One broken page load, three chunks, all rejecting within a frame -- the exact
+   * timings taken from the production issue this window was added for. Charged
+   * individually they spend the whole budget in 105ms and file the third as
+   * unrecoverable before the reload the first one asked for has happened.
+   */
+  describe('a burst of rejections from one page load', () => {
+    const burst = [0, 3, 105];
+
+    it('spends one attempt and reports nothing', () => {
+      let guard = { attempts: 0, windowStartedAt: 0, lastAttemptAt: 0 };
+      const actions = burst.map((offset) => {
+        const decision = decideChunkReload(guard, 1_000 + offset);
+        guard = decision.guard;
+        return decision.action;
+      });
+
+      expect(actions).toEqual(['reload', 'pending', 'pending']);
+      expect(guard.attempts).toBe(1);
+    });
+
+    it('leaves the second attempt for the reload that follows', () => {
+      // The reloaded document fails too, well after the burst window. That is a
+      // real second failure and earns the second attempt.
+      const spent = { attempts: 1, windowStartedAt: 1_000, lastAttemptAt: 1_105 };
+
+      expect(decideChunkReload(spent, 4_000).action).toBe('reload');
+    });
+
+    /**
+     * The tail of a burst that spent the LAST attempt must not report either:
+     * the reload it is trailing has not had its chance yet. Checked separately
+     * because it is the one case where the burst window has to win over an
+     * exhausted budget.
+     */
+    it('stays quiet when the burst that spent the final attempt is still arriving', () => {
+      const spent = {
+        attempts: CHUNK_RELOAD_MAX_ATTEMPTS,
+        windowStartedAt: 1_000,
+        lastAttemptAt: 4_000,
+      };
+
+      expect(decideChunkReload(spent, 4_050).action).toBe('pending');
+      expect(decideChunkReload(spent, 4_000 + CHUNK_RELOAD_BURST_MS).action).toBe('exhausted');
+    });
   });
 
   it('cannot be kept alive by errors that keep arriving inside the window', () => {
     // The anchor never moves, so a client failing continuously exhausts the budget
     // instead of pushing the deadline out and reloading forever.
-    let guard = { attempts: 0, windowStartedAt: 0 };
+    let guard = { attempts: 0, windowStartedAt: 0, lastAttemptAt: 0 };
     let reloads = 0;
 
-    for (let now = 1_000; now < 1_000 + CHUNK_RELOAD_WINDOW_MS; now += 1_000) {
+    for (let now = 1_000; now < 1_000 + CHUNK_RELOAD_WINDOW_MS; now += CHUNK_RELOAD_BURST_MS * 2) {
       const decision = decideChunkReload(guard, now);
       guard = decision.guard;
-      if (decision.reload) reloads++;
+      if (decision.action === 'reload') reloads++;
     }
 
     expect(reloads).toBe(CHUNK_RELOAD_MAX_ATTEMPTS);
-  });
-
-  it('allows a fresh attempt once the window has fully elapsed', () => {
-    const guard = { attempts: CHUNK_RELOAD_MAX_ATTEMPTS, windowStartedAt: 5_000 };
-    const now = 5_000 + CHUNK_RELOAD_WINDOW_MS;
-
-    expect(decideChunkReload(guard, now)).toEqual({
-      reload: true,
-      guard: { attempts: 1, windowStartedAt: now },
-    });
   });
 });
