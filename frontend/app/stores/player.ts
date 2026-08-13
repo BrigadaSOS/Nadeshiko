@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import type { SearchResult } from '~/types/search';
 import { reportError } from '~/utils/reportError';
+import { firstNonBlank } from '~/utils/strings';
 
 function isYoutube(result: SearchResult | null): boolean {
   return !!result && result.media.category === 'YOUTUBE' && !!result.segment.externalVideoId;
@@ -101,7 +102,15 @@ export const usePlayerStore = defineStore('player', {
             activityType: 'SEGMENT_PLAY',
             segmentPublicId: this.currentResult?.segment.publicId,
             mediaPublicId: this.currentResult?.media.publicId,
-            mediaName: this.currentResult?.media.nameRomaji,
+            // Not `media.nameRomaji` on its own: rows without a romaji title sent
+            // `''`, which the API stored and later refused to serialize back.
+            // Locale-independent order -- a store action has no `useI18n` context,
+            // and this name is stored metadata rather than something rendered now.
+            mediaName: firstNonBlank(
+              this.currentResult?.media.nameRomaji,
+              this.currentResult?.media.nameEn,
+              this.currentResult?.media.nameJa,
+            ),
             japaneseText: this.currentResult?.segment.textJa.content,
           })
           // Fire-and-forget telemetry: never let it interrupt or warn about audio

@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import type { User } from './User';
 import { BaseEntity } from './base.entity';
+import { blankToNull } from '@lib/utils/blank';
 
 export enum ActivityType {
   SEARCH = 'SEARCH',
@@ -67,14 +68,18 @@ export class UserActivity extends BaseEntity {
       return;
     }
 
+    // `blankToNull`, not `?? null`: clients that have no name for the media send
+    // `''` rather than omitting the field, and `??` only catches the omission.
+    // The stored `''` then fails the response schema's `minLength: 1` and 500s
+    // every read of the timeline it lands in -- so it is refused at the door.
     await UserActivity.save({
       userId: user.id,
       activityType,
-      segmentId: data.segmentId ?? null,
-      mediaPublicId: data.mediaPublicId ?? null,
-      searchQuery: data.searchQuery ?? null,
-      mediaName: data.mediaName ?? null,
-      japaneseText: data.japaneseText ?? null,
+      segmentId: blankToNull(data.segmentId),
+      mediaPublicId: blankToNull(data.mediaPublicId),
+      searchQuery: blankToNull(data.searchQuery),
+      mediaName: blankToNull(data.mediaName),
+      japaneseText: blankToNull(data.japaneseText),
     });
   }
 

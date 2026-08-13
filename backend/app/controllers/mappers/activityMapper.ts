@@ -1,14 +1,23 @@
 import type { t_UserActivity, t_UserActivityStats } from 'generated/models';
 import type { Media, UserActivity } from '@app/models';
+import { blankToNull } from '@lib/utils/blank';
 
+/**
+ * `blankToNull` rather than `?? null` on every optional field: rows written before
+ * the write path normalized them still hold `''`, and the response schema requires
+ * `minLength: 1`. An empty column is a row that reads slightly worse; an empty
+ * column that reaches the validator is a 500 for the entire page, and for the data
+ * export that shares this mapper. Reading defensively keeps one stale row from
+ * taking down a whole timeline even after the backfill has run.
+ */
 export const toUserActivityDTO = (activity: UserActivity): t_UserActivity => ({
   id: activity.id,
   activityType: activity.activityType,
-  segmentPublicId: activity.segmentId ?? null,
-  mediaPublicId: activity.mediaPublicId ?? null,
-  searchQuery: activity.searchQuery ?? null,
-  mediaName: activity.mediaName ?? null,
-  japaneseText: activity.japaneseText ?? null,
+  segmentPublicId: blankToNull(activity.segmentId),
+  mediaPublicId: blankToNull(activity.mediaPublicId),
+  searchQuery: blankToNull(activity.searchQuery),
+  mediaName: blankToNull(activity.mediaName),
+  japaneseText: blankToNull(activity.japaneseText),
   createdAt: activity.createdAt.toISOString(),
 });
 
