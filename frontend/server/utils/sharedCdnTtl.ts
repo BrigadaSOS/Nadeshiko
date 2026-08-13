@@ -28,10 +28,38 @@ export const SHARED_CDN_MAX_AGE_SENTENCE = 60 * 60;
 export const SHARED_CDN_MAX_AGE_SEARCH = 60 * 60;
 
 /**
+ * The ceiling everywhere except production.
+ *
+ * Staging's whole job is to answer "is what we just deployed correct?", and an
+ * hour of shared HTML answers it about the build before. The E2E suite runs
+ * minutes after the frontend deploy, against `/en/search/*` -- the longest TTL
+ * on the list -- so it was reading the previous release's HTML, which names the
+ * previous release's content-hashed chunks. That is a false failure when the fix
+ * landed and, worse, a false pass when it did not.
+ *
+ * Not zero, and not "skip the header outside production". The gating around this
+ * value is the part that has actually gone wrong before -- a 500 handed to the
+ * edge and served to everyone for the TTL -- and an environment that never emits
+ * the header never exercises it. Ten seconds keeps the whole path live
+ * (anonymous-only, 200-only, header written after the render) while being gone
+ * by the time anything looks.
+ */
+export const SHARED_CDN_MAX_AGE_NON_PROD = 10;
+
+/**
  * Locale prefix is stripped exactly the way `isPrivatePath` does it, and for
  * the same reason: segment-aware, so `/entries/...` is not read as `/en`.
+ *
+ * `environment` is passed in rather than read from the runtime config here, to
+ * keep this module importable (and testable) outside a Nitro runtime -- the same
+ * reason it lives beside the plugin instead of inside it.
  */
-export function sharedCdnMaxAge(path: string): number {
+export function sharedCdnMaxAge(path: string, environment?: string): number {
+  const ttl = ttlForPath(path);
+  return environment === 'production' ? ttl : Math.min(ttl, SHARED_CDN_MAX_AGE_NON_PROD);
+}
+
+function ttlForPath(path: string): number {
   const withoutLocale = path.replace(/^\/(en|es|ja)(?=\/|$)/, '') || '/';
 
   if (withoutLocale.startsWith('/sentence/')) return SHARED_CDN_MAX_AGE_SENTENCE;
