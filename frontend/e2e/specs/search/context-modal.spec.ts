@@ -46,6 +46,47 @@ test.describe('Context modal', () => {
     await expect(title).not.toBeEmpty();
   });
 
+  test('context modal names the media in the title and on each card', async ({ page }) => {
+    const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
+    await contextButton.click();
+
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
+    await expect(modal.getByTestId('segment-card').first()).toBeVisible({ timeout: 10_000 });
+
+    // Regression: the request omitted `include: ['media']`, so the API dropped
+    // the `includes.media` block and every media name resolved to empty.
+    await expect(modal.getByTestId('context-modal-title')).not.toHaveText(/-\s*$/);
+    await expect(modal.getByTestId('segment-media-name').first()).not.toBeEmpty();
+  });
+
+  test('context modal scrolls the starting segment into view', async ({ page }) => {
+    const targetCard = search.segmentCards.first();
+    const targetId = await targetCard.getAttribute('id');
+    expect(targetId).toBeTruthy();
+
+    await targetCard.getByRole('button', { name: 'Context' }).click();
+
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
+    await expect(modal.getByTestId('segment-card').first()).toBeVisible({ timeout: 10_000 });
+
+    // Regression: the modal teleports to <body>, so `getElementById` matched the
+    // page's copy of this same card and the modal never scrolled off the top.
+    const centeredOffset = await modal.evaluate((el, id) => {
+      const scroller = el.querySelector('.overflow-y-auto');
+      const card = scroller?.querySelector(`[id="${CSS.escape(id as string)}"]`);
+      if (!scroller || !card) return null;
+      const c = card.getBoundingClientRect();
+      const s = scroller.getBoundingClientRect();
+      return Math.abs(c.top + c.height / 2 - (s.top + s.height / 2));
+    }, targetId);
+
+    expect(centeredOffset).not.toBeNull();
+    // Roughly centred in the modal body rather than left at the top.
+    expect(centeredOffset as number).toBeLessThan(150);
+  });
+
   test('context modal can be closed', async ({ page }) => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();
