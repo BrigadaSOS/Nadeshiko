@@ -10,6 +10,18 @@ export const CATEGORY_API_MAPPING: Record<string, Category> = {
   youtube: 'YOUTUBE',
 } as const;
 
+/** URL slugs in the order the category tabs render them. */
+export const CATEGORY_SLUGS: readonly string[] = Object.keys(CATEGORY_API_MAPPING);
+
+/** Every category the corpus has, in tab order. */
+export const ALL_CATEGORIES: readonly Category[] = Object.values(CATEGORY_API_MAPPING);
+
+export const CATEGORY_SLUG_BY_API: Record<Category, string> = Object.fromEntries(
+  Object.entries(CATEGORY_API_MAPPING).map(([slug, category]) => [category, slug]),
+) as Record<Category, string>;
+
+export const isCategory = (value: unknown): value is Category => ALL_CATEGORIES.includes(value as Category);
+
 /**
  * Discounts hidden media the stats payload still carries from the server's
  * category buckets.

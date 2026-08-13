@@ -13,6 +13,7 @@ import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedC
 
 const { mediaName } = useMediaName();
 const { hiddenMediaIds, hiddenMediaExcludeFilter, isMediaHidden } = useHiddenMedia();
+const { hiddenCategories, isCategoryHidden } = useHiddenCategories();
 
 const props = defineProps<{
   initialSentenceData?: SearchResponse | null;
@@ -55,6 +56,7 @@ const uuid = ref<string | null>(null);
 const episode = ref<number | null>(null);
 
 const categoryApiMapping = CATEGORY_API_MAPPING;
+const selectedApiCategory = computed(() => categoryApiMapping[category.value] ?? null);
 const showHiddenMediaOverride = ref(false);
 
 const isViewingHiddenMedia = computed(
@@ -77,8 +79,18 @@ const searchData = computed(() => {
   const hiddenMediaInPayload = hidden.size > 0 ? allMedia.filter((m) => hidden.has(m.mediaPublicId)) : [];
 
   const serverCategories = statsPayload?.categories || ([] as ResolvedCategoryCount[]);
-  const categories =
+  const discounted =
     hiddenMediaInPayload.length > 0 ? discountHiddenMedia(serverCategories, hiddenMediaInPayload) : serverCategories;
+
+  // The category aggregation is deliberately not scoped to the request's category
+  // filter (see `discountHiddenMedia`), so a hidden category still comes back with
+  // a bucket and would keep its tab -- and its count in "All". The one the reader
+  // is currently looking at is kept: `?category=` overrides the hidden list, and a
+  // selected tab that renders nowhere is worse than a tab they chose to open.
+  const categories =
+    hiddenCategories.value.length > 0
+      ? discounted.filter((entry) => !isCategoryHidden(entry.category) || entry.category === selectedApiCategory.value)
+      : discounted;
 
   return {
     results: sentencePayload?.results || [],
@@ -163,6 +175,7 @@ const searchScope = computed<SearchScope>(() => ({
   contentRating: contentRating.value,
   languages: includedLanguages.value,
   hiddenMediaExclude: hiddenMediaExcludeFilter.value,
+  hiddenCategories: hiddenCategories.value,
 }));
 
 const loadStats = async () => {

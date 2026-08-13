@@ -5,6 +5,7 @@ import {
   getSegment,
   search,
   searchCollectionSegments,
+  type Category,
   type ContentRating,
   type NadeshikoClient,
   type SearchFilters,
@@ -12,7 +13,7 @@ import {
 } from '@brigadasos/nadeshiko-sdk';
 // Relative rather than `~/`: this module is unit-tested outside Nuxt. `vitest.config.ts`
 // now maps `~` too, so this is belt-and-braces rather than a hard requirement.
-import { CATEGORY_API_MAPPING } from '../utils/categories';
+import { ALL_CATEGORIES, CATEGORY_API_MAPPING } from '../utils/categories';
 import { reportError } from '../utils/reportError';
 import { resolveSearchResponse, resolveStatsResponse } from '../utils/resolvers';
 import type { MediaFilterItem, SearchResponse, SearchStatsResponse } from '~/types/search';
@@ -39,6 +40,8 @@ export type SearchScope = {
   contentRating: ContentRating[];
   languages: SearchFilters['languages'];
   hiddenMediaExclude: MediaFilterItem[];
+  /** Categories the reader hid wholesale; narrows the request to the rest. */
+  hiddenCategories: Category[];
 };
 
 /**
@@ -113,7 +116,16 @@ const buildFilters = (
 
   const category = CATEGORY_API_MAPPING[scope.category];
   if (category) {
+    // A category picked in the URL wins over the hidden list, the same way an
+    // explicit `?media=` beats hidden media: asking for a hidden category shows it.
     filters.category = [category];
+  } else {
+    const visible = ALL_CATEGORIES.filter((item) => !scope.hiddenCategories.includes(item));
+    // An empty list would read as "no filter" server-side and hand back the whole
+    // corpus, so the all-hidden state is refused where it is set, not patched here.
+    if (visible.length > 0 && visible.length < ALL_CATEGORIES.length) {
+      filters.category = visible;
+    }
   }
 
   const include = mediaInclude(scope, options.withSelectedMedia);

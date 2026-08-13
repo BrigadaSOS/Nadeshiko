@@ -36,6 +36,7 @@ const scope = (overrides: Partial<SearchScope> = {}): SearchScope => ({
   contentRating: ['SAFE'],
   languages: undefined,
   hiddenMediaExclude: [],
+  hiddenCategories: [],
   ...overrides,
 });
 
@@ -96,6 +97,37 @@ describe('search filters', () => {
   it('restricts the result list to the requested media and episode', () => {
     const filters = buildSentenceFilters(scope({ mediaPublicId: 'media-1', episode: 3 }));
     expect(filters.media?.include).toEqual([{ mediaPublicId: 'media-1', episodes: [3] }]);
+  });
+});
+
+describe('search filters with hidden categories', () => {
+  it('narrows an unfiltered search to the categories left visible', () => {
+    const filters = buildSentenceFilters(scope({ hiddenCategories: ['JDRAMA'] }));
+    expect(filters.category).toEqual(['ANIME', 'YOUTUBE']);
+  });
+
+  it('applies the same narrowing to the tab counts', () => {
+    const filters = buildStatsFilters(scope({ hiddenCategories: ['JDRAMA', 'YOUTUBE'] }));
+    expect(filters.category).toEqual(['ANIME']);
+  });
+
+  it('lets an explicitly requested category through even when it is hidden', () => {
+    const filters = buildSentenceFilters(scope({ category: 'youtube', hiddenCategories: ['YOUTUBE'] }));
+    expect(filters.category).toEqual(['YOUTUBE']);
+  });
+
+  it('leaves the filter off entirely when nothing is hidden', () => {
+    expect(buildSentenceFilters(scope()).category).toBeUndefined();
+  });
+
+  /**
+   * An empty `filters.category` is read server-side as "no filter", so sending one
+   * for a reader who hid every category would hand back the whole corpus instead of
+   * nothing. The API refuses to store that state; this is the belt to its braces.
+   */
+  it('omits the filter rather than sending an empty list when every category is hidden', () => {
+    const filters = buildSentenceFilters(scope({ hiddenCategories: ['ANIME', 'JDRAMA', 'YOUTUBE'] }));
+    expect(filters.category).toBeUndefined();
   });
 });
 
