@@ -9,6 +9,7 @@
     "dev": "nuxt dev | pino-pretty",
     "lint": "biome check .",
     "typecheck": "vue-tsc --noEmit",
+    "verify:sri": "node scripts/verify-sri.mjs",
     "i18n:check": "node --import tsx scripts/checkLocaleParity.ts",
     "lint:fix": "biome check . --write",
     "preview": "nuxt preview",
