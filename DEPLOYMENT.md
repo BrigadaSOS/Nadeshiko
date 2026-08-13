@@ -656,12 +656,51 @@ under a live page.
 
 **Sourcemaps are not archived**, which is what keeps the volume small. A build is
 12.5MB, of which 10.6MB is `.map`; the archive holds the remaining 1.9MB of code
-and styles. Nothing is lost, because `sourcemap: { client: 'hidden' }` emits maps
-with no `sourceMappingURL` in the chunks — no browser has ever requested one, and
-an old page cannot start. The maps that matter are uploaded to PostHog at build
-time by `@posthog/nuxt` and are keyed by chunk id, not fetched from here. So the
-worst case is bounded by deploy rate rather than by build size: ~23MB on prod,
-~50MB on staging, against ~150MB and ~2.3GB if maps were kept.
+and styles. Nothing is lost that a reader could ask for: a stale page references
+chunks, never maps, and the maps that matter for stack traces are uploaded to
+PostHog at build time by `@posthog/nuxt`, keyed by chunk id rather than fetched
+from here. So the worst case is bounded by deploy rate rather than by build size:
+~23MB on prod, ~50MB on staging, against ~150MB and ~2.3GB if maps were kept.
+
+### The invariant everything here depends on
+
+**A content-hashed filename must identify exactly one byte sequence, forever.**
+`immutable, max-age=31536000`, Subresource Integrity, and the asset archive all
+assume it. It is not a law — it held until 2026-08-13, when it did not.
+
+`sourcemap: { client: 'hidden' }` broke it. All `'hidden'` does is drop the
+`//# sourceMappingURL=` comment from each chunk, but **Vite computes the chunk
+hash before appending that comment**, so the setting rewrote the bytes of every
+chunk while leaving every filename identical:
+
+```
+0KcF1APn.js   sourcemap: true      360 bytes   sha384-of369LbkPkc…
+0KcF1APn.js   sourcemap: 'hidden'  323 bytes   sha384-AsFW6+qt…
+```
+
+What that costs, in the order you discover it:
+
+- **Staging breaks and stays broken.** The edge holds the old bytes as
+  `immutable`; the new HTML carries the new build's `integrity`; every script is
+  blocked, nothing hydrates, and the E2E suite fails on clicks that do nothing.
+  Purging by URL fixes it, but not instantly across every PoP.
+- **Prod would break for returning visitors, unpurgeably.** Nine of the forty
+  chunks on `/en` collided by name. A deploy purge clears Cloudflare and reaches
+  no browser cache, so anyone who visited in the past year pairs new HTML with
+  their own cached old bytes and gets a blank page. This was caught before
+  release; it is the reason `sourcemap.client` is pinned to `true` in
+  `nuxt.config.ts` with a comment saying so.
+
+Two guards exist now. The archive compares bytes rather than trusting a
+name — it logs `asset archive: replaced an archived asset whose bytes no longer
+match the build` and takes the running build's copy, so a violation can no
+longer be pinned at the ORIGIN for the whole retention window. And builds are
+reproducible, verified by building the same source twice and comparing all 83
+files, so nothing produces fresh bytes on its own.
+
+Neither guard makes the change safe. **If you ever need a build setting that
+rewrites output after hashing, it has to ride a release where every chunk name
+changes anyway** — otherwise it is this outage, deferred.
 
 `/_nuxt/builds/latest.json` is deliberately **not** covered: it is Nuxt's record
 of which build is current, and serving a superseded copy of the file whose job is
