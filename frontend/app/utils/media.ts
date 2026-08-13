@@ -405,7 +405,12 @@ export async function getSharingURL(params: {
         })
         .catch(() => {});
     }
-  } catch (_error) {
+  } catch (error) {
+    // Same rejections as `copyToClipboard` above -- denied permission, non-secure
+    // origin -- but this branch was dropping them on the floor, so a share that
+    // never made it to the clipboard was absent from error tracking as well as
+    // from `segment_shared`, which only fires on the success path.
+    handleApiError('media:share-url-copy-failed', error, { toastKey: false });
     const message = $i18n.t('searchpage.main.labels.errorcopiedsharingurl');
     useToastError(message);
   }
