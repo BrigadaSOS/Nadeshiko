@@ -543,7 +543,39 @@ export default defineNuxtConfig({
       },
     },
   },
-  sourcemap: { client: 'hidden' },
+  /**
+   * `true`, NOT `'hidden'`, and the difference is a site-wide outage.
+   *
+   * `'hidden'` emits the same maps and merely drops the `//# sourceMappingURL=`
+   * comment from each chunk -- which sounds free, and is not, because VITE'S
+   * CHUNK HASH IS COMPUTED BEFORE THAT COMMENT IS APPENDED. Flipping this
+   * setting therefore changes the BYTES of every chunk while leaving every
+   * FILENAME identical. Measured on `0KcF1APn.js`, 2026-08-13:
+   *
+   *   sourcemap: true      360 bytes  sha384-of369LbkPkc...
+   *   sourcemap: 'hidden'  323 bytes  sha384-AsFW6+qt...
+   *
+   * The 37 bytes are the comment. Both builds call the file `0KcF1APn.js`.
+   *
+   * That breaks the one guarantee everything here rests on: that a content-hashed
+   * name identifies exactly one byte sequence forever. `/_nuxt/*` is served
+   * `immutable, max-age=31536000`, so a returning reader's browser reuses its
+   * cached copy WITHOUT revalidating, while the new HTML carries the new build's
+   * `integrity` attribute -- and nuxt-security's SRI then blocks every script on
+   * the page. Not a degraded page: a blank one, for anyone who visited before.
+   * Nine of the forty chunks on prod's `/en` collided this way.
+   *
+   * It is also unpurgeable. The deploy purge clears Cloudflare; nothing clears a
+   * reader's own disk cache. Staging demonstrated the whole failure on
+   * 2026-08-13 -- every chunk blocked, no hydration, the E2E suite timing out on
+   * clicks that did nothing.
+   *
+   * So this stays `true` unless a build ships where every chunk name changes
+   * anyway. The maps are emitted either way and `@posthog/nuxt` uploads them
+   * either way; all `'hidden'` bought was not advertising a URL that is public
+   * regardless.
+   */
+  sourcemap: { client: true },
 
   nitro: {
     preset: 'node-server',
