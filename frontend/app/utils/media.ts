@@ -6,6 +6,110 @@ type ConcatenatedAudio = {
   blob_url: string;
 };
 
+/**
+ * How far an audio segment request got.
+ *
+ * `http` means the server answered and we rejected the status. `opaque` means
+ * `fetch` itself rejected, and that is the case worth separating: a CORS
+ * rejection, a DNS failure, an offline tab and an extension-blocked request are
+ * ONE indistinguishable `TypeError: Failed to fetch` to page script, with no
+ * status, no headers and no URL on the error.
+ */
+export type AudioFetchFailureKind = 'http' | 'opaque';
+
+/**
+ * A failed audio segment request that still knows WHICH url failed.
+ *
+ * `concatenateAudios` used to rethrow the raw rejection, so every report of a
+ * failed expansion reached error tracking as a bare `Failed to fetch` naming
+ * neither the object nor the CDN. That is the whole reason issue #194
+ * ("Expand context doesn't work") survived months of investigation: the reports
+ * carried nothing to act on.
+ */
+export class AudioFetchError extends Error {
+  readonly url: string;
+  readonly kind: AudioFetchFailureKind;
+  readonly status?: number;
+
+  constructor(url: string, kind: AudioFetchFailureKind, status?: number, options?: ErrorOptions) {
+    // The url stays OUT of the message and in a property: it is the part that
+    // varies, and interpolating it would fingerprint every object separately and
+    // scatter one fault across an issue per segment.
+    super(
+      kind === 'http'
+        ? `Audio segment request failed with status ${status}`
+        : 'Audio segment request failed before a response arrived',
+      options,
+    );
+    this.name = 'AudioFetchError';
+    this.url = url;
+    this.kind = kind;
+    this.status = status;
+  }
+}
+
+/** How long the follow-up probe below may take before we stop waiting on it. */
+const AUDIO_PROBE_TIMEOUT_MS = 3_000;
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return 'unparseable';
+  }
+}
+
+/**
+ * Attributes describing an audio fetch failure, for `reportError`.
+ *
+ * For an `opaque` failure this re-requests the same url with `mode: 'no-cors'`,
+ * which is the only way page script can tell the possibilities apart: that
+ * request skips the CORS check entirely, so it resolves whenever the object is
+ * actually reachable. Resolving therefore means the object was there and the
+ * ORIGINAL request was refused over CORS -- missing or mismatched headers on the
+ * CDN response, which is exactly the question left open on issue #194. Rejecting
+ * means the host could not be reached at all.
+ *
+ * The probe is deliberately only on the already-failed path, and its own failure
+ * is never allowed to mask the original error.
+ */
+export async function describeAudioFetchFailure(error: unknown): Promise<Record<string, string>> {
+  if (!(error instanceof AudioFetchError)) return {};
+
+  const attributes: Record<string, string> = {
+    'audio.url': error.url,
+    'audio.host': hostOf(error.url),
+    'audio.failure': error.kind,
+  };
+
+  if (error.status !== undefined) {
+    attributes['http.status_code'] = String(error.status);
+  }
+
+  if (error.kind !== 'opaque') return attributes;
+
+  // Checked before the probe: an offline tab explains the rejection on its own,
+  // and probing would just fail a second time and report the wrong cause.
+  if (navigator.onLine === false) {
+    attributes['audio.opaque_cause'] = 'offline';
+    return attributes;
+  }
+
+  const signal =
+    typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+      ? AbortSignal.timeout(AUDIO_PROBE_TIMEOUT_MS)
+      : undefined;
+
+  try {
+    await fetch(error.url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal });
+    attributes['audio.opaque_cause'] = 'cors';
+  } catch {
+    attributes['audio.opaque_cause'] = signal?.aborted ? 'probe-timeout' : 'unreachable';
+  }
+
+  return attributes;
+}
+
 let audioContext: AudioContext | null;
 export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAudio> {
   // https://ccrma.stanford.edu/courses/422-winter-2014/projects/WaveFormat/
@@ -85,8 +189,15 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
   // every caller wraps this in try/catch. `allSettled` keeps every rejection owned.
   const settled = await Promise.allSettled(
     urls.map(async (url) => {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Audio segment request failed with status ${res.status}`);
+      let res: Response;
+      try {
+        res = await fetch(url);
+      } catch (cause) {
+        // `fetch` rejects without saying why, so the url is attached here while
+        // we still have it; `describeAudioFetchFailure` works out the rest.
+        throw new AudioFetchError(url, 'opaque', undefined, { cause });
+      }
+      if (!res.ok) throw new AudioFetchError(url, 'http', res.status);
       return res;
     }),
   );
