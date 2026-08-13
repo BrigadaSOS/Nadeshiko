@@ -847,7 +847,7 @@ export const getCollectionStats = <ThrowOnError extends boolean = false>(options
  *
  */
 export const listAdminReports = <ThrowOnError extends boolean = false>(options?: Options<ListAdminReportsData, ThrowOnError>): RequestResult<ListAdminReportsResponses, ListAdminReportsErrors, ThrowOnError> => (options?.client ?? client).get<ListAdminReportsResponses, ListAdminReportsErrors, ThrowOnError>({
-    security: [{
+    security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
             name: 'nadeshiko.session_token',
             type: 'apiKey'
@@ -941,7 +941,7 @@ export const deleteAdminReport = <ThrowOnError extends boolean = false>(options:
  *
  */
 export const updateAdminReport = <ThrowOnError extends boolean = false>(options: Options<UpdateAdminReportData, ThrowOnError>): RequestResult<UpdateAdminReportResponses, UpdateAdminReportErrors, ThrowOnError> => (options.client ?? client).patch<UpdateAdminReportResponses, UpdateAdminReportErrors, ThrowOnError>({
-    security: [{
+    security: [{ scheme: 'bearer', type: 'http' }, {
             in: 'cookie',
             name: 'nadeshiko.session_token',
             type: 'apiKey'

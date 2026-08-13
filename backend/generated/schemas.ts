@@ -357,41 +357,6 @@ export const s_UserMe = z.object({
   }),
 });
 
-export const s_UserPreferences = z.object({
-  mediaNameLanguage: z.enum(['ENGLISH', 'JAPANESE', 'ROMAJI']).optional(),
-  contentRatingPreferences: z.object({ nsfw: z.enum(['SHOW', 'BLUR', 'HIDE']).optional() }).optional(),
-  translationVisibilityPreferences: z
-    .object({
-      EN: z.enum(['show', 'spoiler', 'hidden']).optional(),
-      ES: z.enum(['show', 'spoiler', 'hidden']).optional(),
-    })
-    .optional(),
-  searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
-  ankiProfiles: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        deck: z.string().nullable().optional(),
-        model: z.string().nullable().optional(),
-        fields: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
-        key: z.string().nullable().optional(),
-        serverAddress: z.string(),
-      }),
-    )
-    .optional(),
-  hiddenMedia: z
-    .array(
-      z.object({
-        mediaPublicId: z.string(),
-        nameEn: z.string().optional(),
-        nameJa: z.string().optional(),
-        nameRomaji: z.string().optional(),
-      }),
-    )
-    .optional(),
-});
-
 export const s_WordCoverageTier = z.object({
   tier: z.coerce.number().min(1),
   covered: z.coerce.number().min(0),
@@ -698,6 +663,42 @@ export const s_UserActivity = z.object({
   mediaName: z.string().min(1).nullable(),
   japaneseText: z.string().min(1).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
+});
+
+export const s_UserPreferences = z.object({
+  mediaNameLanguage: z.enum(['ENGLISH', 'JAPANESE', 'ROMAJI']).optional(),
+  contentRatingPreferences: z.object({ nsfw: z.enum(['SHOW', 'BLUR', 'HIDE']).optional() }).optional(),
+  translationVisibilityPreferences: z
+    .object({
+      EN: z.enum(['show', 'spoiler', 'hidden']).optional(),
+      ES: z.enum(['show', 'spoiler', 'hidden']).optional(),
+    })
+    .optional(),
+  searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
+  ankiProfiles: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        deck: z.string().nullable().optional(),
+        model: z.string().nullable().optional(),
+        fields: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
+        key: z.string().nullable().optional(),
+        serverAddress: z.string(),
+      }),
+    )
+    .optional(),
+  hiddenCategories: z.array(s_Category).optional(),
+  hiddenMedia: z
+    .array(
+      z.object({
+        mediaPublicId: z.string(),
+        nameEn: z.string().optional(),
+        nameJa: z.string().optional(),
+        nameRomaji: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export const s_UserReportTarget = z.discriminatedUnion('type', [s_ReportTargetMedia, s_ReportTargetSegmentInput]);
