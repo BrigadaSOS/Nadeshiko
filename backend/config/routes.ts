@@ -266,9 +266,105 @@ const UserRoutes = createUserRouter({
 
 const router = express.Router();
 
-for (const { method, path, middleware } of routeAuth) {
-  router[method as 'get' | 'post' | 'patch' | 'put' | 'delete'](path, middleware);
+/**
+ * Publish the route TEMPLATE (`/v1/media/segments/:segmentPublicId`) as
+ * `http.route`, rather than letting the URL stand in for it.
+ *
+ * This is not belt-and-braces over the OTel express instrumentation -- it is
+ * the only thing setting `http.route` on these routes. `package.json` declares
+ * `"type": "module"`, so `import express from 'express'` resolves through the
+ * ESM path, and @opentelemetry/instrumentation-express monkey-patches via
+ * require-in-the-middle: verified on the host 2026-08-13, under `"type":
+ * "module"` `express.Router.prototype.route.__wrapped` is false, and under CJS
+ * it is true. Adding `@opentelemetry/instrumentation/hook.mjs` to the run
+ * command does not fix it, in either load order. So the instrumentation is
+ * silently a no-op here and 99.99% of requests reached the metrics with no
+ * `http.route` at all, which left the APM "Endpoints" panel (it filters
+ * `http_route!=""`) rendering next to nothing.
+ *
+ * pg is unaffected -- it patches through inner CommonJS requires and IS
+ * wrapped under ESM -- so DB spans and metrics were never part of this.
+ */
+const setRouteTemplate =
+  (path: string): RequestHandler =>
+  (_req, _res, next) => {
+    const rpcMetadata = getRPCMetadata(otelContext.active());
+    if (rpcMetadata?.type === RPCType.HTTP) {
+      rpcMetadata.route = path;
+    }
+    next();
+  };
+
+/**
+ * The auth surface needs the same treatment, but it cannot name its route
+ * statically: better-auth is mounted behind `app.all('/v1/auth/*splat')`, one
+ * Express route standing in for every endpoint it serves.
+ *
+ * This used to publish `req.path` verbatim, which made `http.route` unbounded
+ * on an UNAUTHENTICATED surface -- every distinct path under `/v1/auth` became
+ * a permanent new metric series, so anything walking `/v1/auth/<random>` could
+ * inflate cardinality at will. `authRateLimit` above caps the rate per IP, not
+ * the number of distinct values that accumulate. The hazard was already
+ * visible in miniature in production: `/v1/auth/callback/google` carried the
+ * provider as a raw label value.
+ *
+ * So resolve against a known set instead and collapse the rest. An auth route
+ * missing from this list costs VISIBILITY (it reports as `/v1/auth/*`), never
+ * cardinality, which is why this does not need the kind of drift guard
+ * `route-normalization.mjs` has -- failing closed is already the safe
+ * direction. Sourced from the paths in docs/generated/openapi-sdk.yaml; extend
+ * alongside EXPOSED_ROUTES in bin/generateAuthSpec.ts.
+ */
+const AUTH_ROUTES: ReadonlySet<string> = new Set([
+  '/v1/auth',
+  '/v1/auth/admin/ban-user',
+  '/v1/auth/admin/impersonate-user',
+  '/v1/auth/admin/stop-impersonating',
+  '/v1/auth/admin/unban-user',
+  '/v1/auth/api-key/create',
+  '/v1/auth/api-key/list',
+  '/v1/auth/api-key/update',
+  '/v1/auth/change-email',
+  '/v1/auth/delete-user',
+  '/v1/auth/get-session',
+  '/v1/auth/list-sessions',
+  '/v1/auth/magic-link/verify',
+  '/v1/auth/revoke-other-sessions',
+  '/v1/auth/revoke-session',
+  '/v1/auth/revoke-sessions',
+  '/v1/auth/sign-in/magic-link',
+  '/v1/auth/sign-in/social',
+  '/v1/auth/sign-out',
+]);
+
+// Routes with a variable segment, templated rather than listed.
+const AUTH_ROUTE_PATTERNS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/^\/v1\/auth\/callback\/[^/]+$/, '/v1/auth/callback/:provider'],
+];
+
+export function authRouteLabel(path: string): string {
+  if (AUTH_ROUTES.has(path)) return path;
+  for (const [pattern, template] of AUTH_ROUTE_PATTERNS) {
+    if (pattern.test(path)) return template;
+  }
+  return '/v1/auth/*';
 }
+
+const setAuthRoute: RequestHandler = (req, _res, next) => {
+  const rpcMetadata = getRPCMetadata(otelContext.active());
+  if (rpcMetadata?.type === RPCType.HTTP) {
+    rpcMetadata.route = authRouteLabel(req.path.split('?')[0] ?? req.path);
+  }
+  next();
+};
+
+for (const { method, path, middleware } of routeAuth) {
+  router[method as 'get' | 'post' | 'patch' | 'put' | 'delete'](path, setRouteTemplate(path), middleware);
+}
+
+// The one route in the spec with no security requirement, so it has no
+// routeAuth entry to hang the template off. Label it directly.
+router.get('/v1/admin/announcement', setRouteTemplate('/v1/admin/announcement'));
 
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);
@@ -287,18 +383,12 @@ export function mountRoutes(app: Application): Application {
   app.all(
     '/v1/auth/magic-link/verify',
     noCache,
+    setRouteTemplate('/v1/auth/magic-link/verify'),
     magicLinkBanRedirect,
     invalidateAuthCachesAfterMutation,
     toNodeHandler(auth),
   );
-  const setAuthRoute: RequestHandler = (req, _res, next) => {
-    const rpcMetadata = getRPCMetadata(otelContext.active());
-    if (rpcMetadata?.type === RPCType.HTTP) {
-      rpcMetadata.route = req.path.split('?')[0];
-    }
-    next();
-  };
-  app.all('/v1/auth', noCache, setAuthRoute, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
+  app.all('/v1/auth', noCache, setRouteTemplate('/v1/auth'), invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.all('/v1/auth/*splat', noCache, setAuthRoute, invalidateAuthCachesAfterMutation, toNodeHandler(auth));
   app.use('/', router);
   return app;
