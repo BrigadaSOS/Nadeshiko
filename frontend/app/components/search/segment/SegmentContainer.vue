@@ -66,11 +66,17 @@ if (props.highlightedPosition != null) {
   );
 }
 
+// Cards use the segment's publicId as their DOM id, and the context modal
+// renders a second copy of cards already on the page behind it. `getElementById`
+// would return whichever comes first in the document — the page's copy — so card
+// lookups stay scoped to this container's own cards.
+const findCard = (publicId: string): HTMLElement | null =>
+  containerRef.value?.querySelector<HTMLElement>(`[id="${CSS.escape(publicId)}"]`) ?? null;
+
 const scrollFocusedIntoView = () => {
   const result = resultList.value[focusedIndex.value ?? -1];
   if (result) {
-    const el = document.getElementById(result.segment.publicId);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    findCard(result.segment.publicId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 };
 
@@ -303,7 +309,7 @@ const onImageClick = (result: SearchResult) => {
 watch(playingVideoId, (id) => {
   if (!id || !import.meta.client) return;
   nextTick(() => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    findCard(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 });
 </script>

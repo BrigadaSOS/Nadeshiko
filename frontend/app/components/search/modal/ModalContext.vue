@@ -34,6 +34,9 @@ const getContextSentence = async () => {
       segmentPublicId: sentence.segment.publicId,
       take: 15,
       contentRating: contentRating.value,
+      // Without this the API omits the `includes.media` block, every card
+      // resolves to an empty media, and the header reads "Context - ".
+      include: ['media'],
     });
     const response = resolveContextResponse(data);
     contextData.value = { results: response.segments };
@@ -65,9 +68,15 @@ watch(
   },
 );
 
+// The segment that opened the modal is also on the page behind it, and both
+// cards carry the segment's publicId as their DOM id. The modal teleports to
+// the end of <body>, so `getElementById` returns the page's copy and scrolls
+// the background instead of the modal. Scope the lookup to the modal body.
+const scrollBody = ref<HTMLElement | null>(null);
+
 const scrollToElement = (id: string) => {
   nextTick(() => {
-    const el = document.getElementById(id);
+    const el = scrollBody.value?.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`);
     if (el) {
       el.scrollIntoView({ behavior: 'instant', block: 'center' });
     }
@@ -96,7 +105,7 @@ const scrollToElement = (id: string) => {
         </svg>
       </button>
     </div>
-    <div class="flex-grow overflow-y-auto p-6 scrollbar-dark">
+    <div ref="scrollBody" class="flex-grow overflow-y-auto p-6 scrollbar-dark">
       <template v-if="contextData">
         <SearchSegmentContainer :searchData="contextData" :isLoading="isLoading"
           :highlightedPosition="highlightedPosition" :hideContextButton="true" class="w-full h-full" />
