@@ -110,10 +110,10 @@ What the prod workflow does, in order:
 6. Dispatches the **stable** Python SDK release -> public PyPI version.
 7. Creates a GitHub Release with the public OpenAPI spec attached.
 
-> **Pending one-time step, not automated:** the root-path locale redirect is
-> meant to be answered by Cloudflare, and the zone is not configured for it yet.
-> The app change that makes it possible is already merged, so the rules can go on
-> the first prod deploy that carries it. See
+> **Not part of this workflow:** the root-path locale redirect is answered by
+> Cloudflare, applied 2026-08-13 and managed as code in
+> `brigadasos-infra/terraform/cloudflare-redirects.tf`. No deploy touches it, and
+> no deploy is needed to change it. See
 > [Cloudflare edge configuration](#cloudflare-edge-configuration).
 
 ## Discord bot
