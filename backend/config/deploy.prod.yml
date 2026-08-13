@@ -75,6 +75,14 @@ env:
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http
+    # `service.version` read 0.0.0 on every deployed build, because
+    # instrumentation.ts took it from npm_package_version and the container's
+    # CMD is a bare `node`, which npm never sets it for. Read package.json here
+    # instead -- kamal runs from `backend/`, so this is the same file the image
+    # was built from. String scan rather than JSON.parse: the ERB binding is
+    # Kamal's, and a missing constant here would abort the deploy at config
+    # load. Kamal renders this at deploy time, so it cannot drift from the tag.
+    OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
 accessories:
   postgres:

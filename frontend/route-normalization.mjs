@@ -16,6 +16,15 @@ const STATIC_PAGES = new Set([
   '/', '/blog', '/media', '/stats', '/stats/words',
   '/about', '/privacy', '/terms-and-conditions', '/dmca',
   '/search', '/api/v1/docs',
+  // The signed-in area. Peeling the locale prefix rescued the public pages but
+  // left every one of these in `/__other`, because none of them matched a
+  // STATIC_PAGES entry or an anchored pattern -- the authenticated surface, the
+  // one worth having latency on, was the last thing still invisible.
+  '/user', '/user/activity', '/user/collections', '/user/developer',
+  '/user/hide-media', '/user/settings', '/user/sync',
+  '/user/admin', '/user/admin/agent-activity', '/user/admin/announcement',
+  '/user/admin/reports', '/user/admin/users',
+  '/settings',
 ]);
 
 const ROUTE_PATTERNS = [
@@ -25,6 +34,12 @@ const ROUTE_PATTERNS = [
   [/^\/search\/[^/]+$/, '/search/:query'],
   [/^\/blog\/[^/]+$/, '/blog/:slug'],
   [/^\/admin\//, '/admin/:slug'],
+  // `/user` and `/settings` are `[...slug]` catch-alls, so an unlisted page
+  // under them is routed rather than 404. STATIC_PAGES is checked first and
+  // keeps the known ones exact; these bound what an unlisted one can cost to a
+  // single series each, the same trade the `/admin/` entry above makes.
+  [/^\/user\//, '/user/:slug'],
+  [/^\/settings\//, '/settings/:slug'],
 ];
 
 const IGNORED_PREFIXES = ['/_nuxt/', '/_i18n/', '/__nuxt'];

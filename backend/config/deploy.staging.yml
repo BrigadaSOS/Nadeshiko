@@ -79,4 +79,8 @@ env:
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
+    # See the note in deploy.prod.yml -- staging reported 0.0.0 for the same
+    # reason, and a staging build you cannot identify is the one you are most
+    # likely to be comparing against.
+    OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
