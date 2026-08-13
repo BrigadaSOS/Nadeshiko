@@ -32,13 +32,13 @@ jobs:
     steps:
       - name: Verify Cloudflare purge credentials
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
 
-          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ZONE_ID:-}" ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set," \
+          if [ -z "${CLOUDFLARE_PURGE_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ZONE_ID:-}" ]; then
+            echo "::error::CLOUDFLARE_PURGE_TOKEN and CLOUDFLARE_ZONE_ID must be set," \
                  "with Zone -> Cache Purge on nadeshiko.co. See DEPLOYMENT.md," \
                  "'Purging HTML on deploy'."
             exit 1
@@ -46,7 +46,7 @@ jobs:
 
           zone=$(curl -sS \
             "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")
+            -H "Authorization: Bearer ${CLOUDFLARE_PURGE_TOKEN}")
 
           if [ "$(echo "$zone" | jq -r '.success')" != "true" ]; then
             echo "::error::Cloudflare rejected the token or the zone id. Nothing" \
@@ -192,7 +192,6 @@ jobs:
         with:
           fetch-depth: 0
 
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -278,20 +277,20 @@ jobs:
       # from the old container while kamal is still swapping.
       - name: Purge the Cloudflare edge cache
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
         run: |
           set -euo pipefail
 
-          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ZONE_ID:-}" ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set." \
+          if [ -z "${CLOUDFLARE_PURGE_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ZONE_ID:-}" ]; then
+            echo "::error::CLOUDFLARE_PURGE_TOKEN and CLOUDFLARE_ZONE_ID must be set." \
                  "The token needs the Zone -> Cache Purge permission on nadeshiko.co."
             exit 1
           fi
 
           response=$(curl -sS -X POST \
             "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Authorization: Bearer ${CLOUDFLARE_PURGE_TOKEN}" \
             -H "Content-Type: application/json" \
             --data '{"purge_everything":true}')
 
