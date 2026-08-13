@@ -37,9 +37,13 @@ export default defineNitroPlugin((nitroApp) => {
     if (!event.context.ndShareable) return;
     if (response.statusCode !== undefined && response.statusCode !== 200) return;
 
+    // The environment decides the ceiling, not whether the header goes out: see
+    // `SHARED_CDN_MAX_AGE_NON_PROD` for why staging still emits one.
+    const environment = useRuntimeConfig(event).public.environment;
+
     response.headers = {
       ...response.headers,
-      'CDN-Cache-Control': `public, max-age=${sharedCdnMaxAge(getRequestURL(event).pathname)}`,
+      'CDN-Cache-Control': `public, max-age=${sharedCdnMaxAge(getRequestURL(event).pathname, environment)}`,
     };
   });
 });
