@@ -236,25 +236,54 @@ jobs:
             echo "note: no RATE_LIMIT_BYPASS_SECRET in SSM; the suite will run throttled"
           fi
 
+      # ONE setup-node, not two. There were two, and the second -- pinning
+      # node-version to a literal '22' with no `cache` -- silently won, so the
+      # suite ran on whatever '22' resolved to rather than on NODE_VERSION, and
+      # the npm cache configured by the first was set up for a Node that was then
+      # replaced. Deleting the second is what makes the pin above true.
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
 
-      - name: Install dependencies and Playwright
-        run: |
-          cd frontend
-          npm ci
-          npx playwright install --with-deps chromium
+      # Split out from the install, and cached, because it was the larger half of
+      # a 59s step and none of it changes between runs: Chromium is ~130MB
+      # downloaded fresh every time for a browser pinned by the lockfile. Keyed on
+      # the version Playwright itself reports, so a dependency bump invalidates it
+      # automatically and a stale browser can never be paired with a new client.
+      - name: Resolve the Playwright version
+        id: playwright
+        run: echo "version=$(npx playwright --version | sed 's/Version //')" >> "$GITHUB_OUTPUT"
+        working-directory: frontend
+
+      - name: Cache the Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install the Playwright browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      # The cache holds the browser, not the apt packages it links against, and
+      # those live outside any path a cache can carry. Cheap on a hit -- the
+      # runner image already ships most of them -- but not free, and skipping it
+      # would fail at launch rather than at install.
+      - name: Install the Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: frontend
 
       - name: Run E2E tests
-        run: |
-          cd frontend
-          npx playwright test --config=e2e/playwright.config.ts
+        run: npx playwright test --config=e2e/playwright.config.ts
+        working-directory: frontend
         env:
           E2E_BASE_URL: https://stg.nadeshiko.co
 
