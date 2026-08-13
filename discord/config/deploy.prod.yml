@@ -16,9 +16,27 @@ env:
   secret:
     - DISCORD_BOT_TOKEN
     - DISCORD_API_KEY_MASTER
+    # Salts the hash of every Discord user and guild ID before it reaches
+    # PostHog. A secret because that is the whole point: an unsalted hash of a
+    # snowflake is a lookup, not a pseudonym. Rotating it re-identifies
+    # everybody as a brand-new person, so treat it as permanent -- if it ever
+    # leaks, rotating costs the historical continuity of every user metric.
+    - DISCORD_ANALYTICS_SALT
   clear:
     NADESHIKO_API_URL: "https://api.nadeshiko.co"
     NADESHIKO_FRONTEND_URL: "https://nadeshiko.co"
     NODE_ENV: "production"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: "nadeshiko-discord-prod"
+    # The same project the frontend reports to, deliberately: the whole point
+    # of the bot's analytics is joining "searched in Discord" to "arrived on
+    # nadeshiko.co", and that join cannot happen across two projects. Bot
+    # events are all prefixed `bot_`, so they never mix into web analytics,
+    # which keys off $pageview.
+    #
+    # Not the t.nadeshiko.co proxy the frontend uses. That reverse proxy exists
+    # to get past browser content blockers; this is a server process on our own
+    # host with nothing to get past, so it goes direct and skips a hop that
+    # could only add a way to fail.
+    POSTHOG_PROJECT_API_KEY: "phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD"
+    POSTHOG_HOST: "https://us.i.posthog.com"

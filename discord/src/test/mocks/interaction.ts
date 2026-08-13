@@ -110,6 +110,12 @@ export function createMockChatInputCommand(
     deferred: false,
     commandName: opts.commandName,
 
+    // executeSearch serves both slash commands and buttons and asks which it
+    // is, so the discriminator a real ChatInputCommandInteraction carries has
+    // to be here too -- without it the call throws and every flow test reports
+    // the generic "Something went wrong." instead of the real failure.
+    isButton: () => false,
+
     options: {
       getString(name: string) {
         const val = optionValues[name];

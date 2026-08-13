@@ -7,13 +7,11 @@ import {
   ButtonBuilder,
   ButtonStyle,
   type ChatInputCommandInteraction,
-  type StringSelectMenuInteraction,
-  type ButtonInteraction,
 } from 'discord.js';
 import { getGuildSettings, setGuildSetting, resetGuildSettings, type Language, type GuildSettings } from '../settings';
 import { BOT_CONFIG } from '../config';
 import { createLogger } from '../logger';
-import { getActiveTraceId } from '../instrumentation';
+import { getActiveTraceId, traceComponent } from '../instrumentation';
 
 const log = createLogger('cmd:settings');
 
@@ -43,40 +41,36 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const collector = reply.createMessageComponentCollector({ time: 600_000 });
 
-    collector.on('collect', async (i: StringSelectMenuInteraction | ButtonInteraction) => {
-      if (i.isStringSelectMenu() && i.customId === 'settings_pick') {
-        const selected = i.values[0];
+    collector.on(
+      'collect',
+      traceComponent('settings', async (i) => {
+        if (i.isStringSelectMenu() && i.customId === 'settings_pick') {
+          const selected = i.values[0];
 
-        if (selected === 'language') {
-          await i.update(buildLanguagePicker(getGuildSettings(guildId)));
-          return;
+          if (selected === 'language') {
+            await i.update(buildLanguagePicker(getGuildSettings(guildId)));
+            return;
+          }
+
+          if (selected === 'reset') {
+            resetGuildSettings(guildId);
+            await i.update(buildSettingsView(getGuildSettings(guildId)));
+            return;
+          }
         }
 
-        if (selected === 'autoembed') {
-          const current = getGuildSettings(guildId);
-          setGuildSetting(guildId, 'autoEmbed', !current.autoEmbed);
+        if (i.isStringSelectMenu() && i.customId === 'settings_language') {
+          const value = i.values[0] as Language;
+          setGuildSetting(guildId, 'language', value);
           await i.update(buildSettingsView(getGuildSettings(guildId)));
           return;
         }
 
-        if (selected === 'reset') {
-          resetGuildSettings(guildId);
+        if (i.isButton() && i.customId === 'settings_back') {
           await i.update(buildSettingsView(getGuildSettings(guildId)));
-          return;
         }
-      }
-
-      if (i.isStringSelectMenu() && i.customId === 'settings_language') {
-        const value = i.values[0] as Language;
-        setGuildSetting(guildId, 'language', value);
-        await i.update(buildSettingsView(getGuildSettings(guildId)));
-        return;
-      }
-
-      if (i.isButton() && i.customId === 'settings_back') {
-        await i.update(buildSettingsView(getGuildSettings(guildId)));
-      }
-    });
+      }),
+    );
   } catch (error) {
     const traceId = getActiveTraceId();
     log.error({ err: error, traceId }, 'Settings command failed');
@@ -94,10 +88,7 @@ function buildSettingsView(settings: GuildSettings) {
   const embed = new EmbedBuilder()
     .setColor(BOT_CONFIG.embedColor)
     .setTitle('Nadeshiko Settings')
-    .addFields(
-      { name: 'Translation language', value: languageLabel(settings), inline: true },
-      { name: 'Auto-embed links', value: settings.autoEmbed ? 'On' : 'Off', inline: true },
-    )
+    .addFields({ name: 'Translation language', value: languageLabel(settings), inline: true })
     .setFooter({ text: 'Select an option below to change a setting' });
 
   const selectMenu = new StringSelectMenuBuilder()
@@ -105,14 +96,6 @@ function buildSettingsView(settings: GuildSettings) {
     .setPlaceholder('Change a setting...')
     .addOptions(
       { label: 'Language', description: `Currently: ${languageLabel(settings)}`, value: 'language', emoji: '🌐' },
-      {
-        label: `Auto-embed: ${settings.autoEmbed ? 'On' : 'Off'}`,
-        description: settings.autoEmbed
-          ? 'Click to stop replying to nadeshiko.co links'
-          : 'Click to auto-reply when someone shares a nadeshiko.co link',
-        value: 'autoembed',
-        emoji: '🔗',
-      },
       { label: 'Reset to defaults', description: 'Reset all settings to default values', value: 'reset', emoji: '🔄' },
     );
 

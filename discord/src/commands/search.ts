@@ -39,7 +39,8 @@ import {
 import { BOT_CONFIG } from '../config';
 import { searchUrl } from '../links';
 import { createLogger } from '../logger';
-import { getActiveTraceId } from '../instrumentation';
+import { getActiveTraceId, traceComponent } from '../instrumentation';
+import { recordSearch } from '../analytics';
 import { getGuildSettings, type Language } from '../settings';
 
 const log = createLogger('cmd:search');
@@ -128,6 +129,21 @@ export async function executeSearch(
       });
     }
 
+    // Before the empty-result branch, so a search that found nothing is still a
+    // search. "Nobody uses the bot" and "everybody uses it and gets nothing
+    // back" look identical in a plain command count and want opposite fixes.
+    recordSearch({
+      actor: { userId: interaction.user.id, guildId: interaction.guildId },
+      mode: isRandomMode ? 'random' : 'query',
+      resultCount: result.segments.length,
+      // The length, never the query itself -- see the note in analytics.ts.
+      queryLength: searchQuery.length,
+      exact,
+      category,
+      mediaFiltered: Boolean(mediaPublicId),
+      source: interaction.isButton() ? 'component' : 'command',
+    });
+
     if (result.segments.length === 0) {
       if (isRandomMode) {
         await interaction.editReply({ content: 'No results found.' });
@@ -208,206 +224,213 @@ export async function executeSearch(
 
     const collector = reply.createMessageComponentCollector({ time: 600_000 });
 
-    collector.on('collect', async (i) => {
-      if (i.isStringSelectMenu() && i.customId === 'context_select') {
-        await handleContextSelect(i, display, contextState);
-        return;
-      }
-
-      if (i.isStringSelectMenu() && i.customId === 'filter_media_select') {
-        await i.deferUpdate();
-        handleFilterMediaSelect(i, searchState, filterState);
-        filterState.allMedia = [];
-        filterState.filteredMedia = [];
-        filterState.nameFilter = '';
-
-        if (isRandomMode && !searchState.results) {
-          const newResult = await fetchRandom(searchState.mediaPublicId);
-          if (newResult.segments.length === 0) {
-            await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.` });
-            return;
-          }
-          currentSegment = newResult.segments[0];
-          currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
-          contextState.viewingContext = false;
-          await updateSegmentReply(
-            i,
-            currentSegment,
-            currentMedia,
-            display,
-            buildSearchUrl(),
-            actionButtons,
-            buildStatsPrefix(),
-          );
-        } else {
-          const newQuery = searchState.lastQuery;
-          const newResult = await search(newQuery, {
-            take: BOT_CONFIG.maxSearchResults,
-            mediaPublicId: searchState.mediaPublicId,
-            ...searchState.lastSearchOptions,
-          });
-          if (newResult.segments.length === 0) {
-            await i.followUp({ content: `No results found in **${searchState.mediaName}**.` });
-            return;
-          }
-          resetPages(searchState, newResult);
-          syncCurrentSegment();
-          contextState.viewingContext = false;
-          await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
+    // Wrapped at the collector, not per branch: the twenty-odd `i.customId`
+    // checks below are all one call site from telemetry's point of view, and
+    // the custom ID names the span, so a button added later is instrumented
+    // without anyone remembering to do it.
+    collector.on(
+      'collect',
+      traceComponent('search', async (i) => {
+        if (i.isStringSelectMenu() && i.customId === 'context_select') {
+          await handleContextSelect(i, display, contextState);
+          return;
         }
-        return;
-      }
 
-      if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
-        await i.deferUpdate();
-        const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
-        if (idx === -1) return;
-        searchState.currentIndex = idx;
-        syncCurrentSegment();
-        contextState.viewingContext = false;
-        await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
-        return;
-      }
-
-      if (!i.isButton()) return;
-
-      const paginationHandler: Record<string, () => boolean | Promise<boolean>> = {
-        next_page: () => goToNextPage(searchState),
-        prev_page: () => goToPrevPage(searchState),
-        first_page: () => goToFirstPage(searchState),
-        skip_back: () => goToSkipBack(searchState),
-        skip_forward: () => goToSkipForward(searchState),
-      };
-
-      if (i.customId in paginationHandler && searchState.results) {
-        await i.deferUpdate();
-        const ok = await paginationHandler[i.customId]();
-        if (!ok) return;
-        syncCurrentSegment();
-        contextState.viewingContext = false;
-        await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
-        return;
-      }
-
-      if (i.customId === 'random_result') {
-        await i.deferUpdate();
-        if (searchState.results) {
-          const segments = searchState.results.segments;
-          if (segments.length <= 1) {
-            const ok = await goToNextPage(searchState);
-            if (!ok) return;
-          }
-          const candidates = searchState.results.segments
-            .map((_, idx) => idx)
-            .filter((idx) => idx !== searchState.currentIndex);
-          if (candidates.length === 0) return;
-          searchState.currentIndex = candidates[Math.floor(Math.random() * candidates.length)];
-          syncCurrentSegment();
-          contextState.viewingContext = false;
-          await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
-        } else {
-          const newResult = await fetchRandom(searchState.mediaPublicId);
-          if (newResult.segments.length === 0) return;
-          currentSegment = newResult.segments[0];
-          currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
-          contextState.viewingContext = false;
-          await updateSegmentReply(
-            i,
-            currentSegment,
-            currentMedia,
-            display,
-            buildSearchUrl(),
-            actionButtons,
-            buildStatsPrefix(),
-          );
-        }
-        return;
-      }
-
-      if (i.customId === 'context') {
-        await handleContextButton(i, currentSegment, currentMedia, display, contextState, actionButtons);
-        return;
-      }
-
-      if (i.customId === 'back_to_original') {
-        if (searchState.results) {
+        if (i.isStringSelectMenu() && i.customId === 'filter_media_select') {
           await i.deferUpdate();
+          handleFilterMediaSelect(i, searchState, filterState);
+          filterState.allMedia = [];
+          filterState.filteredMedia = [];
+          filterState.nameFilter = '';
+
+          if (isRandomMode && !searchState.results) {
+            const newResult = await fetchRandom(searchState.mediaPublicId);
+            if (newResult.segments.length === 0) {
+              await i.followUp({ content: `No sentences found in **${searchState.mediaName}**.` });
+              return;
+            }
+            currentSegment = newResult.segments[0];
+            currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
+            contextState.viewingContext = false;
+            await updateSegmentReply(
+              i,
+              currentSegment,
+              currentMedia,
+              display,
+              buildSearchUrl(),
+              actionButtons,
+              buildStatsPrefix(),
+            );
+          } else {
+            const newQuery = searchState.lastQuery;
+            const newResult = await search(newQuery, {
+              take: BOT_CONFIG.maxSearchResults,
+              mediaPublicId: searchState.mediaPublicId,
+              ...searchState.lastSearchOptions,
+            });
+            if (newResult.segments.length === 0) {
+              await i.followUp({ content: `No results found in **${searchState.mediaName}**.` });
+              return;
+            }
+            resetPages(searchState, newResult);
+            syncCurrentSegment();
+            contextState.viewingContext = false;
+            await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
+          }
+          return;
+        }
+
+        if (i.isStringSelectMenu() && i.customId === 'search_select' && searchState.results) {
+          await i.deferUpdate();
+          const idx = searchState.results.segments.findIndex((s) => s.publicId === i.values[0]);
+          if (idx === -1) return;
+          searchState.currentIndex = idx;
+          syncCurrentSegment();
           contextState.viewingContext = false;
           await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
-        } else {
-          await handleBackToOriginal(i, display, contextState, buildSearchUrl(), actionButtons, buildStatsPrefix());
+          return;
         }
-        return;
-      }
 
-      if (i.customId === 'advanced_search') {
-        const title = isRandomMode ? 'Search sentences' : 'Refine search';
-        const opts = searchState.lastSearchOptions;
-        const defaults = {
-          query: searchState.lastQuery || undefined,
-          episodes: opts.episodes?.join(', '),
-          sort: opts.sort,
+        if (!i.isButton()) return;
+
+        const paginationHandler: Record<string, () => boolean | Promise<boolean>> = {
+          next_page: () => goToNextPage(searchState),
+          prev_page: () => goToPrevPage(searchState),
+          first_page: () => goToFirstPage(searchState),
+          skip_back: () => goToSkipBack(searchState),
+          skip_forward: () => goToSkipForward(searchState),
         };
-        await showSearchModal(i, title, defaults);
-        return;
-      }
 
-      if (i.customId === 'filter_media') {
-        await showFilterMediaSelect(i, searchState, filterState);
-        return;
-      }
-
-      if (i.customId === 'cancel_filter_media') {
-        await i.deferUpdate();
-        if (searchState.results) {
+        if (i.customId in paginationHandler && searchState.results) {
+          await i.deferUpdate();
+          const ok = await paginationHandler[i.customId]();
+          if (!ok) return;
+          syncCurrentSegment();
+          contextState.viewingContext = false;
           await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
-        } else {
-          await updateSegmentReply(
-            i,
-            currentSegment,
-            currentMedia,
-            display,
-            buildSearchUrl(),
-            actionButtons,
-            buildStatsPrefix(),
-          );
+          return;
         }
-        return;
-      }
 
-      if (i.customId === 'filter_media_first') {
-        await i.deferUpdate();
-        filterState.mediaPage = 0;
-        await renderFilterMediaPage(i, searchState, filterState);
-        return;
-      }
+        if (i.customId === 'random_result') {
+          await i.deferUpdate();
+          if (searchState.results) {
+            const segments = searchState.results.segments;
+            if (segments.length <= 1) {
+              const ok = await goToNextPage(searchState);
+              if (!ok) return;
+            }
+            const candidates = searchState.results.segments
+              .map((_, idx) => idx)
+              .filter((idx) => idx !== searchState.currentIndex);
+            if (candidates.length === 0) return;
+            searchState.currentIndex = candidates[Math.floor(Math.random() * candidates.length)];
+            syncCurrentSegment();
+            contextState.viewingContext = false;
+            await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
+          } else {
+            const newResult = await fetchRandom(searchState.mediaPublicId);
+            if (newResult.segments.length === 0) return;
+            currentSegment = newResult.segments[0];
+            currentMedia = newResult.includes.media[currentSegment.mediaPublicId];
+            contextState.viewingContext = false;
+            await updateSegmentReply(
+              i,
+              currentSegment,
+              currentMedia,
+              display,
+              buildSearchUrl(),
+              actionButtons,
+              buildStatsPrefix(),
+            );
+          }
+          return;
+        }
 
-      if (i.customId === 'filter_media_prev') {
-        await i.deferUpdate();
-        filterState.mediaPage = Math.max(0, filterState.mediaPage - 1);
-        await renderFilterMediaPage(i, searchState, filterState);
-        return;
-      }
+        if (i.customId === 'context') {
+          await handleContextButton(i, currentSegment, currentMedia, display, contextState, actionButtons);
+          return;
+        }
 
-      if (i.customId === 'filter_media_next') {
-        await i.deferUpdate();
-        filterState.mediaPage++;
-        await renderFilterMediaPage(i, searchState, filterState);
-        return;
-      }
+        if (i.customId === 'back_to_original') {
+          if (searchState.results) {
+            await i.deferUpdate();
+            contextState.viewingContext = false;
+            await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
+          } else {
+            await handleBackToOriginal(i, display, contextState, buildSearchUrl(), actionButtons, buildStatsPrefix());
+          }
+          return;
+        }
 
-      if (i.customId === 'filter_media_last') {
-        await i.deferUpdate();
-        const totalPages = Math.ceil(filterState.filteredMedia.length / MEDIA_PER_PAGE);
-        filterState.mediaPage = Math.max(0, totalPages - 1);
-        await renderFilterMediaPage(i, searchState, filterState);
-        return;
-      }
+        if (i.customId === 'advanced_search') {
+          const title = isRandomMode ? 'Search sentences' : 'Refine search';
+          const opts = searchState.lastSearchOptions;
+          const defaults = {
+            query: searchState.lastQuery || undefined,
+            episodes: opts.episodes?.join(', '),
+            sort: opts.sort,
+          };
+          await showSearchModal(i, title, defaults);
+          return;
+        }
 
-      if (i.customId === 'filter_media_search') {
-        await showFilterMediaSearchModal(i);
-      }
-    });
+        if (i.customId === 'filter_media') {
+          await showFilterMediaSelect(i, searchState, filterState);
+          return;
+        }
+
+        if (i.customId === 'cancel_filter_media') {
+          await i.deferUpdate();
+          if (searchState.results) {
+            await renderSearchResult(i, searchState, display, buildSearchUrl(), actionButtons);
+          } else {
+            await updateSegmentReply(
+              i,
+              currentSegment,
+              currentMedia,
+              display,
+              buildSearchUrl(),
+              actionButtons,
+              buildStatsPrefix(),
+            );
+          }
+          return;
+        }
+
+        if (i.customId === 'filter_media_first') {
+          await i.deferUpdate();
+          filterState.mediaPage = 0;
+          await renderFilterMediaPage(i, searchState, filterState);
+          return;
+        }
+
+        if (i.customId === 'filter_media_prev') {
+          await i.deferUpdate();
+          filterState.mediaPage = Math.max(0, filterState.mediaPage - 1);
+          await renderFilterMediaPage(i, searchState, filterState);
+          return;
+        }
+
+        if (i.customId === 'filter_media_next') {
+          await i.deferUpdate();
+          filterState.mediaPage++;
+          await renderFilterMediaPage(i, searchState, filterState);
+          return;
+        }
+
+        if (i.customId === 'filter_media_last') {
+          await i.deferUpdate();
+          const totalPages = Math.ceil(filterState.filteredMedia.length / MEDIA_PER_PAGE);
+          filterState.mediaPage = Math.max(0, totalPages - 1);
+          await renderFilterMediaPage(i, searchState, filterState);
+          return;
+        }
+
+        if (i.customId === 'filter_media_search') {
+          await showFilterMediaSearchModal(i);
+        }
+      }),
+    );
 
     collector.on('end', async () => {
       cleanupModal();

@@ -45,7 +45,7 @@ vi.mock('../../api', async (importOriginal) => ({
 
 vi.mock('../../settings', () => ({
   initSettings: () => {},
-  getGuildSettings: () => ({ language: 'both', autoEmbed: true }),
+  getGuildSettings: () => ({ language: 'both' }),
   setGuildSetting: () => {},
   resetGuildSettings: () => {},
 }));
@@ -68,8 +68,14 @@ vi.mock('../../config', () => ({
   validateConfig: () => {},
 }));
 
+// traceComponent and traceModal are pass-throughs rather than no-ops: the flow
+// tests drive real button presses through the collector handlers these now
+// wrap, so a mock that dropped the handler would silently test nothing.
 vi.mock('../../instrumentation', () => ({
   traceCommand: async (_name: string, _interaction: unknown, fn: () => Promise<void>) => fn(),
+  traceOperation: async (_kind: string, _name: string, _actor: unknown, fn: () => Promise<void>) => fn(),
+  traceComponent: (_surface: string, handler: (i: unknown) => Promise<void>) => handler,
+  traceModal: (_surface: string, handler: (i: unknown) => Promise<void>) => handler,
   getActiveTraceId: () => undefined,
 }));
 
@@ -79,6 +85,7 @@ vi.mock('../../telemetry', () => ({
   getMeter: () => ({
     createHistogram: () => ({ record: () => {} }),
     createCounter: () => ({ add: () => {} }),
+    createObservableGauge: () => ({ addCallback: () => {} }),
   }),
   getTracer: () => ({
     startActiveSpan: (_n: string, _o: unknown, fn: Function) =>
