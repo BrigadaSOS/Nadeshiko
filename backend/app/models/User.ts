@@ -1,6 +1,7 @@
 import { Entity, PrimaryColumn, Column, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import type { AccountQuotaUsage } from './AccountQuotaUsage';
+import type { CategoryType } from './Media';
 
 export enum UserRoleType {
   ADMIN = 'ADMIN',
@@ -30,6 +31,7 @@ export interface UserPreferences {
   searchHistory?: { enabled: boolean };
   ankiProfiles?: AnkiProfile[];
   hiddenMedia?: HiddenMediaItem[];
+  hiddenCategories?: CategoryType[];
 }
 
 @Entity('User')

@@ -61,6 +61,16 @@ properties:
           nullable: true
         serverAddress:
           type: string
+  hiddenCategories:
+    type: array
+    description: |
+      Whole media categories hidden from search results by the user.
+
+      An empty array means nothing is hidden. Hiding *every* category is rejected with
+      `400`: `filters.category` reads an empty list as "no filter", so hiding the last
+      one would silently show everything back instead of nothing.
+    items:
+      $ref: "./Category.yaml"
   hiddenMedia:
     type: array
     description: Media hidden from search results by the user

@@ -856,6 +856,7 @@ export type t_UserPreferences = {
   contentRatingPreferences?: {
     nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
+  hiddenCategories?: t_Category[];
   hiddenMedia?: {
     mediaPublicId: string;
     nameEn?: string;
