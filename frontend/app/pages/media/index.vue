@@ -29,6 +29,7 @@ const localePath = useLocalePath();
 const { scrollToTop } = useQuerySync();
 const { mediaName, language } = useMediaName();
 const { hiddenMediaIds } = useHiddenMedia();
+const { isCategoryHidden, hasHiddenCategories } = useHiddenCategories();
 const user = userStore();
 
 const mediaToEdit = ref<Media | null>(null);
@@ -160,12 +161,20 @@ const showHidden = ref(false);
 
 const filteredMedia = computed(() => {
   if (showHidden.value) return media.value;
+
   const hidden = new Set(hiddenMediaIds.value);
-  if (hidden.size === 0) return media.value;
-  return media.value.filter((m) => !hidden.has(m.publicId));
+  // Picking a category from the dropdown is an explicit request for it, so it
+  // survives being hidden -- the same override `?category=` gets on search.
+  const dropsCategories = hasHiddenCategories.value && !filterCategory.value;
+  if (hidden.size === 0 && !dropsCategories) return media.value;
+
+  return media.value.filter(
+    (m) => !hidden.has(m.publicId) && !(dropsCategories && m.category && isCategoryHidden(m.category)),
+  );
 });
 
 const hasHiddenMedia = computed(() => hiddenMediaIds.value.length > 0);
+const hasHiddenContent = computed(() => hasHiddenMedia.value || hasHiddenCategories.value);
 
 const loading = computed(() => pending.value);
 const query = ref(searchQuery.value);
@@ -300,9 +309,9 @@ watch([searchQuery, filterCategory], () => {
                 @click="handleFilterChange('YOUTUBE')"
                 :selected="filterCategory === 'YOUTUBE'"
               />
-              <div v-if="hasHiddenMedia" class="my-1 border-t border-white/10"></div>
+              <div v-if="hasHiddenContent" class="my-1 border-t border-white/10"></div>
               <SearchDropdownItem
-                v-if="hasHiddenMedia"
+                v-if="hasHiddenContent"
                 :text="showHidden ? $t('mediaBrowse.hideHiddenMedia') : $t('mediaBrowse.showHiddenMedia')"
                 :iconPath="mdiEyeOff"
                 @click="showHidden = !showHidden"

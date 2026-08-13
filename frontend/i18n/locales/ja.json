@@ -109,6 +109,9 @@
     "youtubeButton": "YouTube",
     "vocabularyButton": "語彙"
   },
+  "hiddenCategories": {
+    "updateError": "非表示カテゴリを更新できませんでした。もう一度お試しください。"
+  },
   "hiddenMedia": {
     "updateError": "非表示メディアを更新できませんでした。もう一度お試しください。"
   },
@@ -626,6 +629,16 @@
           "revokeOthers": "他のセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。",
           "revokeAll": "すべてのセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。"
         }
+      },
+      "hiddenCategories": "カテゴリを非表示",
+      "hiddenCategoriesDescription": "カテゴリをオフにすると、検索から完全に除外されます。その作品は検索結果・カテゴリタブ・件数のいずれにも表示されなくなります。",
+      "hiddenCategoriesLastVisible": "少なくとも1つのカテゴリは表示したままにする必要があります。",
+      "hiddenCategoryShown": "表示中",
+      "hiddenCategoryHidden": "非表示",
+      "hiddenCategoryDescriptions": {
+        "anime": "アニメのシリーズと映画。",
+        "liveaction": "日本のドラマ、実写のシリーズと映画。",
+        "youtube": "YouTube の動画。"
       },
       "hiddenMedia": "非表示メディア",
       "hiddenMediaDescription": "検索結果から非表示にしたメディア。検索結果のメニューからも非表示にできます。",

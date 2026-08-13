@@ -109,6 +109,9 @@
     "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulary"
   },
+  "hiddenCategories": {
+    "updateError": "Couldn't update your hidden categories. Please try again."
+  },
   "hiddenMedia": {
     "updateError": "Couldn't update your hidden media. Please try again."
   },
@@ -626,6 +629,16 @@
           "revokeOthers": "Unable to revoke other sessions. Please sign in again and retry.",
           "revokeAll": "Unable to revoke all sessions. Please sign in again and retry."
         }
+      },
+      "hiddenCategories": "Hide Categories",
+      "hiddenCategoriesDescription": "Turn a category off to drop it from search entirely. Its media stop appearing in results, in the category tabs, and in the result counts.",
+      "hiddenCategoriesLastVisible": "At least one category has to stay visible.",
+      "hiddenCategoryShown": "Shown",
+      "hiddenCategoryHidden": "Hidden",
+      "hiddenCategoryDescriptions": {
+        "anime": "Anime series and movies.",
+        "liveaction": "Japanese drama, live action series and movies.",
+        "youtube": "YouTube videos."
       },
       "hiddenMedia": "Hide Media",
       "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
