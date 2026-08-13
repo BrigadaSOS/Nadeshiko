@@ -10,8 +10,8 @@ import { tagLabel, tagLanguage, type TagLanguage } from '~/utils/wordTagLabels';
  * in. That is testable on its own, and it is the part that goes quietly wrong.
  */
 
-/** A piece of text Shirabe tagged with the language it is written in. Both a
- *  definition and an example-sentence translation arrive in this shape. */
+/** A piece of text Shirabe tagged with the language it is written in, which is
+ *  the shape every definition arrives in. */
 export interface ShirabeText {
   lang: string;
   text: string;
@@ -34,27 +34,6 @@ export interface ShirabeEntry {
   senses?: ShirabeSense[];
 }
 
-/** One word of an example sentence, as Shirabe parsed it. */
-export interface ShirabeExampleToken {
-  surface: string;
-  /** The dictionary form. What a search should go looking for, because 注意された
-   *  turns up far less of the corpus than する does. */
-  lemma?: string;
-  /** False for punctuation and grammar, which nobody looks up. */
-  content: boolean;
-  /** The word the card is about, wherever it turns up in this sentence,
-   *  compounds included. */
-  matched: boolean;
-}
-
-export interface ShirabeExample {
-  japanese: string;
-  translations?: ShirabeText[];
-  /** Absent on an answer cached before Shirabe started tokenizing examples, and
-   *  then `japanese` is all there is to print. */
-  tokens?: ShirabeExampleToken[];
-}
-
 export interface ShirabePitch {
   downstep: number;
   pattern?: string;
@@ -66,8 +45,11 @@ export interface ShirabePitch {
 }
 
 /** Only what the card renders. `GET /v1/words/{id}` carries a good deal more
- *  (forms, siblings, cross references, loanword sources); reading a narrow shape
- *  here keeps the tooltip from quietly depending on the rest of it. */
+ *  (forms, siblings, cross references, loanword sources, example sentences);
+ *  reading a narrow shape here keeps the tooltip from quietly depending on the
+ *  rest of it. Examples are deliberately not among them -- Nadeshiko's own
+ *  corpus is what this site is for, and "More sentences" below the card goes
+ *  there rather than to a dictionary's handful. */
 export interface ShirabeWord {
   id: string;
   headword: string;
@@ -79,7 +61,6 @@ export interface ShirabeWord {
   /** Ruby for the headword, aligned by Shirabe against the dictionary. */
   furigana?: Array<{ text: string; ruby?: string }>;
   entries?: ShirabeEntry[];
-  examples?: ShirabeExample[];
 }
 
 /**
@@ -102,11 +83,6 @@ export interface GlossPreference {
    *  (`?locale=`). Never empty: a card whose labels are in nobody's language
    *  helps nobody, so this falls back to the reader's own. */
   labels: GlossLanguage;
-  /** How each language is shown, straight off the reader's preference. A
-   *  definition only cares whether a language is on the list at all, but an
-   *  example translation renders as its own row and has to know whether that
-   *  row is plain or a spoiler. */
-  modes: Record<GlossLanguage, TranslationVisibilityMode>;
   /** The language the part-of-speech and misc chips are written in: the
    *  INTERFACE language, not the gloss one. A chip is a label the product puts
    *  on a word, the way "More sentences" below it is, and it is the one thing on
@@ -137,7 +113,7 @@ export function glossPreference(
   // and the one every entry is most likely to have.
   const home: GlossLanguage = uiLocale === 'es' ? 'es' : 'en';
   const order = homeFirst(home).filter((lang) => modes[lang] !== 'hidden');
-  return { order, labels: order[0] ?? home, modes, tags: tagLanguage(uiLocale) };
+  return { order, labels: order[0] ?? home, tags: tagLanguage(uiLocale) };
 }
 
 function homeFirst(home: GlossLanguage): GlossLanguage[] {
@@ -304,99 +280,6 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
   }
 
   return cards;
-}
-
-export interface CardExampleToken {
-  text: string;
-  /** What clicking this word searches Nadeshiko for: the dictionary form when
-   *  Shirabe knew one, else the surface. Null for punctuation and grammar,
-   *  which print as plain text because a search for 、 answers nothing. */
-  query: string | null;
-  matched: boolean;
-}
-
-/** An example sentence split into the words a reader can click. Empty for a
- *  sentence Shirabe sent no tokens for, and then it prints as it came. */
-export function exampleTokens(example: ShirabeExample): CardExampleToken[] {
-  return (example.tokens ?? []).map((token) => ({
-    text: token.surface,
-    query: token.content ? token.lemma || token.surface : null,
-    matched: token.matched,
-  }));
-}
-
-/** A translation of an example, as one of the badged rows the segment card
- *  prints its own translations in. */
-export interface CardTranslationRow {
-  lang: GlossLanguage;
-  /** The badge to the left of the text, worded as the segment rows word it. */
-  label: string;
-  /** 'spoiler' is covered until the reader asks for it. 'hidden' never reaches
-   *  here: a hidden language has no row. */
-  mode: 'show' | 'spoiler';
-  text: string;
-}
-
-const TRANSLATION_LABEL: Record<GlossLanguage, string> = { en: 'EN', es: 'ES' };
-
-/**
- * One row per language this sentence is translated into and the reader has not
- * hidden, their own language first.
- *
- * No fallback here, unlike a definition. A sense with no gloss the reader can
- * read is a hole in the card, so it borrows the language they turned off; a
- * sentence is already printed in Japanese above the row, and the reader who hid
- * English asked not to be shown English. The segment translations under the
- * card obey the preference exactly, and a card that argued with them would only
- * look broken.
- */
-export function translationRows(
-  translations: ShirabeText[] | undefined,
-  preference: GlossPreference,
-): CardTranslationRow[] {
-  const rows: CardTranslationRow[] = [];
-
-  for (const lang of preference.order) {
-    const text = (translations ?? []).find((translation) => translation.lang?.toLowerCase() === lang)?.text;
-    if (!text) continue;
-    rows.push({
-      lang,
-      label: TRANSLATION_LABEL[lang],
-      mode: preference.modes[lang] === 'spoiler' ? 'spoiler' : 'show',
-      text,
-    });
-  }
-
-  return rows;
-}
-
-export interface CardExample {
-  japanese: string;
-  tokens: CardExampleToken[];
-  translations: CardTranslationRow[];
-}
-
-const EXAMPLE_LIMIT = 2;
-
-/** A couple of example sentences, each split into clickable words and translated
- *  into the languages the reader reads. Translated ones go first: an
- *  untranslated sentence is still worth showing, but not at the cost of one we
- *  can translate. */
-export function cardExamples(
-  word: ShirabeWord | null,
-  preference: GlossPreference,
-  limit = EXAMPLE_LIMIT,
-): CardExample[] {
-  const examples = (word?.examples ?? []).map((example) => ({
-    japanese: example.japanese,
-    tokens: exampleTokens(example),
-    translations: translationRows(example.translations, preference),
-  }));
-
-  return [
-    ...examples.filter((example) => example.translations.length > 0),
-    ...examples.filter((example) => example.translations.length === 0),
-  ].slice(0, limit);
 }
 
 /** Each distinct kanji in a headword, in the order it is written. */

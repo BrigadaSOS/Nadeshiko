@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  cardExamples,
   cardSenses,
-  exampleTokens,
   glossPreference,
   kanjiIn,
   pitchMorae,
   selectDefinitions,
   shirabeKanjiUrl,
   shirabeWordUrl,
-  translationRows,
   type GlossPreference,
   type ShirabeWord,
 } from './wordCard';
@@ -61,10 +58,6 @@ describe('glossPreference', () => {
     // Reading the site in English with English definitions off: the labels
     // follow the definitions, so the card does not read in two languages.
     expect(preference('en', 'hidden', 'show').labels).toBe('es');
-  });
-
-  it('carries the modes, because a shown row and a spoiler row are not the same row', () => {
-    expect(preference('en', 'spoiler', 'hidden').modes).toEqual({ en: 'spoiler', es: 'hidden' });
   });
 
   it('keeps a label language even when the reader has hidden everything', () => {
@@ -143,34 +136,6 @@ const WORD: ShirabeWord = {
         // Spanish-only sense: invisible to a reader who hid Spanish, and the
         // fallback is what keeps it from vanishing instead.
         { position: 2, definitions: [{ lang: 'es', text: 'broncearse' }], tags: [] },
-      ],
-    },
-  ],
-  examples: [
-    {
-      japanese: '肉が焼けた。',
-      translations: [{ lang: 'en', text: 'The meat is done.' }],
-      tokens: [
-        { surface: '肉', lemma: '肉', content: true, matched: false },
-        { surface: 'が', lemma: 'が', content: true, matched: false },
-        { surface: '焼けた', lemma: '焼ける', content: true, matched: true },
-        { surface: '。', lemma: '。', content: false, matched: false },
-      ],
-    },
-    // Sent before Shirabe tokenized its examples: still worth printing, just not
-    // clickable.
-    { japanese: '家が焼けた。', translations: [] },
-    {
-      japanese: 'パンが焼ける。',
-      translations: [
-        { lang: 'es', text: 'El pan se hornea.' },
-        { lang: 'en', text: 'The bread bakes.' },
-      ],
-      tokens: [
-        { surface: 'パン', lemma: 'パン', content: true, matched: false },
-        { surface: 'が', lemma: 'が', content: true, matched: false },
-        { surface: '焼ける', lemma: '焼ける', content: true, matched: true },
-        { surface: '。', lemma: '。', content: false, matched: false },
       ],
     },
   ],
@@ -320,117 +285,6 @@ describe('cardSenses', () => {
 
   it('answers a word that never loaded with nothing', () => {
     expect(cardSenses(null, preference('en'))).toEqual([]);
-  });
-});
-
-describe('exampleTokens', () => {
-  const SENTENCE = (WORD.examples ?? [])[0] ?? { japanese: '' };
-
-  it('makes a content word searchable by its dictionary form', () => {
-    // 焼けた finds one sentence; 焼ける finds the corpus.
-    expect(exampleTokens(SENTENCE)).toEqual([
-      { text: '肉', query: '肉', matched: false },
-      { text: 'が', query: 'が', matched: false },
-      { text: '焼けた', query: '焼ける', matched: true },
-      { text: '。', query: null, matched: false },
-    ]);
-  });
-
-  it('searches the surface when Shirabe knew no dictionary form', () => {
-    const tokens = exampleTokens({
-      japanese: 'ゲームばかり',
-      tokens: [{ surface: 'ゲーム', content: true, matched: false }],
-    });
-
-    expect(tokens).toEqual([{ text: 'ゲーム', query: 'ゲーム', matched: false }]);
-  });
-
-  it('marks the word the card is about, compound or not', () => {
-    const tokens = exampleTokens({
-      japanese: '兄ちゃん',
-      tokens: [{ surface: '兄ちゃん', lemma: '兄ちゃん', content: true, matched: true }],
-    });
-
-    expect(tokens.map((token) => token.matched)).toEqual([true]);
-  });
-
-  it('leaves a sentence Shirabe sent no tokens for to print as it came', () => {
-    expect(exampleTokens({ japanese: '家が焼けた。' })).toEqual([]);
-  });
-});
-
-describe('translationRows', () => {
-  const TRANSLATIONS = [
-    { lang: 'en', text: 'The bread bakes.' },
-    { lang: 'es', text: 'El pan se hornea.' },
-  ];
-
-  it('puts the reader own language first, badged like the segment rows', () => {
-    expect(translationRows(TRANSLATIONS, preference('es'))).toEqual([
-      { lang: 'es', label: 'ES', mode: 'show', text: 'El pan se hornea.' },
-      { lang: 'en', label: 'EN', mode: 'show', text: 'The bread bakes.' },
-    ]);
-    expect(translationRows(TRANSLATIONS, preference('en')).map((row) => row.lang)).toEqual(['en', 'es']);
-  });
-
-  it('gives a hidden language no row at all', () => {
-    expect(translationRows(TRANSLATIONS, preference('en', 'hidden', 'show')).map((row) => row.label)).toEqual(['ES']);
-    expect(translationRows(TRANSLATIONS, preference('en', 'hidden', 'hidden'))).toEqual([]);
-  });
-
-  // Unlike a definition, which borrows the language the reader turned off rather
-  // than leave the card empty. A sentence is already there in Japanese, so
-  // hiding English here means what it says.
-  it('never falls back to a language the reader hid', () => {
-    const english = [{ lang: 'en', text: 'The bread bakes.' }];
-
-    expect(translationRows(english, preference('es', 'hidden', 'show'))).toEqual([]);
-  });
-
-  it('carries the spoiler mode through, so the row can cover itself', () => {
-    expect(translationRows(TRANSLATIONS, preference('en', 'spoiler', 'show')).map((row) => row.mode)).toEqual([
-      'spoiler',
-      'show',
-    ]);
-  });
-
-  it('renders no row for a language this sentence was never translated into', () => {
-    expect(
-      translationRows([{ lang: 'en', text: 'The meat is done.' }], preference('en')).map((row) => row.lang),
-    ).toEqual(['en']);
-    expect(translationRows(undefined, preference('en'))).toEqual([]);
-    expect(translationRows([{ lang: 'fr', text: 'Le pain cuit.' }], preference('en'))).toEqual([]);
-  });
-});
-
-describe('cardExamples', () => {
-  it('translates an example into every language the reader reads, and prefers the translated ones', () => {
-    const [first, second] = cardExamples(WORD, preference('es'));
-
-    expect(first?.japanese).toBe('肉が焼けた。');
-    expect(first?.translations).toEqual([{ lang: 'en', label: 'EN', mode: 'show', text: 'The meat is done.' }]);
-    expect(second?.translations.map((row) => row.text)).toEqual(['El pan se hornea.', 'The bread bakes.']);
-  });
-
-  it('splits each sentence into words a click can search', () => {
-    const [first] = cardExamples(WORD, preference('en'));
-
-    expect(first?.tokens.map((token) => token.query)).toEqual(['肉', 'が', '焼ける', null]);
-  });
-
-  it('still shows an untranslated sentence when there is room', () => {
-    expect(cardExamples(WORD, preference('en'), 3)[2]).toEqual({
-      japanese: '家が焼けた。',
-      tokens: [],
-      translations: [],
-    });
-  });
-
-  it('shows the sentences a reader who hid every language can still read', () => {
-    const examples = cardExamples(WORD, preference('es', 'hidden', 'hidden'));
-
-    expect(examples.map((example) => example.japanese)).toEqual(['肉が焼けた。', '家が焼けた。']);
-    expect(examples.every((example) => example.translations.length === 0)).toBe(true);
   });
 });
 
