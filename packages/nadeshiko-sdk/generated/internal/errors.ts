@@ -14,6 +14,26 @@ export interface NadeshikoProblemDetails {
   status: number;
   /** Per-field validation messages, present when `code` is `'VALIDATION_FAILED'` */
   errors?: Record<string, string>;
+  /**
+   * Endpoint the failing request was sent to, minus its query string. An RFC 7807
+   * extension member, set by the SDK rather than the API, so that a caught error
+   * says which call produced it without the caller having to thread that through.
+   */
+  requestUrl?: string;
+}
+
+/**
+ * Whether a response body is one of our Problem Details documents.
+ *
+ * Both fields are required deliberately. Matching on `code` alone also matched
+ * better-auth's `{ code, message }` errors, and because those carry no `status`,
+ * `title` or `detail`, every field on the resulting error came out undefined --
+ * the origin of the `API error undefined` issues in error tracking.
+ */
+export function isProblemDetails(value: unknown): value is NadeshikoProblemDetails {
+  if (typeof value !== 'object' || value === null) return false;
+  const body = value as Record<string, unknown>;
+  return typeof body.code === 'string' && typeof body.status === 'number';
 }
 
 /**
@@ -47,9 +67,18 @@ export class NadeshikoError extends Error {
   readonly traceId?: string;
   /** Per-field validation messages, present when `code === 'VALIDATION_FAILED'` */
   readonly errors?: Record<string, string>;
+  /** Endpoint this error came from, minus its query string. */
+  readonly requestUrl?: string;
 
   constructor(body: NadeshikoProblemDetails) {
-    super(body.detail || body.title || `API error ${body.status}`);
+    // `status` is never interpolated unguarded: a body that reached here without
+    // one used to render as the message `API error undefined`, which named
+    // neither the failure nor the endpoint.
+    super(
+      body.detail
+      || body.title
+      || (typeof body.status === 'number' ? `API error ${body.status}` : 'API error with no status'),
+    );
     this.name = 'NadeshikoError';
     this.code = body.code;
     this.title = body.title;
@@ -58,5 +87,6 @@ export class NadeshikoError extends Error {
     this.status = body.status;
     this.traceId = body.instance;
     this.errors = body.errors;
+    this.requestUrl = body.requestUrl;
   }
 }

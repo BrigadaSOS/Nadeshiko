@@ -80,6 +80,30 @@ beforeAll(async () => {
       return jsonResponse(res, { publicId: id, nameEn: 'Test Media', episodeCount: 12, segmentCount: 100 });
     }
 
+    // Error fixtures, ahead of the generic segment route below because that one
+    // matches any id and would answer 200 for these.
+    //
+    // A body that is not JSON at all, so nothing can be read off it.
+    if (url.pathname === '/v1/media/segments/plaintext-error' && req.method === 'GET') {
+      res.writeHead(503, { 'Content-Type': 'text/plain' });
+      return res.end('upstream unavailable');
+    }
+
+    // A real problem document, for the branch that must keep working unchanged.
+    if (url.pathname === '/v1/media/segments/problem-doc' && req.method === 'GET') {
+      return jsonResponse(
+        res,
+        {
+          code: 'SEGMENT_NOT_FOUND',
+          title: 'Not Found',
+          detail: 'Segment not found',
+          status: 404,
+          instance: 'trace-abc',
+        },
+        404,
+      );
+    }
+
     // Segment by UUID (GET path + query)
     if (url.pathname.match(/^\/v1\/media\/segments\/[\w-]+$/) && req.method === 'GET') {
       const uuid = url.pathname.split('/').pop();
@@ -103,6 +127,13 @@ beforeAll(async () => {
         episodeNumber: Number(parts[5]),
         titleEn: 'Test Episode',
       });
+    }
+
+    // better-auth answers in its OWN shape, not RFC 7807: a string `code` and a
+    // `message`, with no `status`, `title` or `detail`. This is the response that
+    // used to surface as `NadeshikoError: API error undefined`.
+    if (url.pathname === '/v1/auth/list-sessions' && req.method === 'GET') {
+      return jsonResponse(res, { code: 'SESSION_NOT_FRESH', message: 'Session is not fresh' }, 403);
     }
 
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -306,5 +337,66 @@ describe('error handling', () => {
 
     expect(err.code).toBe('UNKNOWN_ERROR');
     expect(err.status).toBe(502);
+  });
+
+  // The message must never render a missing field as the literal "undefined":
+  // `API error undefined` was a real production issue that named neither the
+  // failure nor the endpoint, so it could not be acted on.
+  test('a body with no status never produces "API error undefined"', () => {
+    const err = new NadeshikoError({ code: 'UNKNOWN_ERROR' as any } as any);
+
+    expect(err.message).toBe('API error with no status');
+    expect(err.message).not.toContain('undefined');
+  });
+
+  test('a non-RFC7807 body keeps its own code and message', async () => {
+    const client = makeClient();
+
+    // better-auth's `{ code, message }` shape. It has a string `code`, which is
+    // what the old guard matched on before checking for a numeric `status`.
+    const err = await client.listUserSessions().catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(NadeshikoError);
+    expect((err as NadeshikoError).message).toBe('Session is not fresh');
+    expect((err as NadeshikoError).code).toBe('SESSION_NOT_FRESH');
+    expect((err as NadeshikoError).status).toBe(403);
+    expect((err as NadeshikoError).requestUrl).toContain('/v1/auth/list-sessions');
+  });
+
+  test('a non-JSON body still carries the transport status', async () => {
+    const client = makeClient();
+    const err = await client
+      .getSegment({ segmentPublicId: 'plaintext-error' })
+      .catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(NadeshikoError);
+    expect((err as NadeshikoError).status).toBe(503);
+    expect((err as NadeshikoError).code).toBe('UNKNOWN_ERROR');
+    expect((err as NadeshikoError).message).not.toContain('undefined');
+  });
+
+  test('a real problem document is still used verbatim, plus the request URL', async () => {
+    const client = makeClient();
+    const err = await client
+      .getSegment({ segmentPublicId: 'problem-doc' })
+      .catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(NadeshikoError);
+    expect((err as NadeshikoError).message).toBe('Segment not found');
+    expect((err as NadeshikoError).code).toBe('SEGMENT_NOT_FOUND');
+    expect((err as NadeshikoError).status).toBe(404);
+    expect((err as NadeshikoError).traceId).toBe('trace-abc');
+    expect((err as NadeshikoError).requestUrl).toContain('/v1/media/segments/problem-doc');
+  });
+
+  // The query string is dropped so that search terms do not reach error tracking
+  // and one fault does not fingerprint into an issue per distinct URL.
+  test('requestUrl excludes the query string', async () => {
+    const client = makeClient();
+    const err = await client
+      .getSegment({ segmentPublicId: 'problem-doc', include: ['media'] } as any)
+      .catch((e: unknown) => e);
+
+    expect((err as NadeshikoError).requestUrl).not.toContain('?');
   });
 });
