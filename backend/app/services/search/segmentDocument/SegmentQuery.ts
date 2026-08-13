@@ -73,6 +73,16 @@
  * - Phrase search: "exact phrase"
  * - Wildcards: "te*t" (no leading wildcards)
  * - Grouping: "(cat OR dog) AND bird"
+ *
+ * EXCLUSION (`-term`) IS HOISTED ABOVE THE dis_max
+ * -----------------------------------------------------------------------------
+ * Negation is a global constraint, but a `dis_max` is a disjunction: letting each
+ * language clause compile its own MUST_NOT lets one clause re-admit a document
+ * another correctly dropped (see ./queryNegation for the worked example). So
+ * leading-`-` terms are split off in buildSearchMust and applied once, as a
+ * sibling `bool.must_not` in the same `must` array — which also keeps them out of
+ * the filter-derived `must_not`, whose length signals hidden-media exclusion.
+ * Queries using explicit boolean syntax keep the old per-clause behaviour.
  * =============================================================================
  */
 
@@ -81,6 +91,7 @@ import { excludedSearchLanguages, type SearchLanguage } from '@lib/searchLanguag
 import type { SearchRequestOutput, SearchFiltersOutput } from 'generated/outputTypes';
 import type { ResolvedSearchFilters } from '@app/controllers/searchFilters';
 import { buildCommonFilters, expandContentRatingTerms } from './filterRegistry';
+import { splitNegatedTerms } from './queryNegation';
 
 enum InputScript {
   KANJI = 'kanji',
@@ -127,15 +138,22 @@ export class SegmentQuery {
         must.push({ match_all: {} });
       }
     } else if (searchTerm) {
-      must.push(
-        SegmentQuery.buildTextSearch(
-          searchTerm,
-          Boolean(request.query?.exactMatch),
-          hasLengthConstraints,
-          parserMode,
-          excludeLanguages,
-        ),
-      );
+      const exactMatch = Boolean(request.query?.exactMatch);
+      const { positive, negatives } = splitNegatedTerms(searchTerm, exactMatch);
+
+      // Exclusions go in first: buildSortAndRandomScore's caller pops the *last*
+      // `must` entry to wrap it in a random_score, and that has to be the text query.
+      if (negatives.length > 0) {
+        must.push({
+          bool: {
+            must_not: negatives.map((term) =>
+              SegmentQuery.buildMultiLanguage(term, false, parserMode, excludeLanguages),
+            ),
+          },
+        });
+      }
+
+      must.push(SegmentQuery.buildTextSearch(positive, exactMatch, hasLengthConstraints, parserMode, excludeLanguages));
     }
 
     return { must, isMatchAll, hasQuery };

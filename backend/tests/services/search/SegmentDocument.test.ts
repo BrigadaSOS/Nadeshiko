@@ -95,6 +95,40 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(result.segments[0].textEn?.content).toBe('Hello world');
     });
 
+    // Issue #304: the `-` exclusion operator was applied inside the dis_max, so each
+    // language clause negated against its own tokenization. The kana field reads
+    // ズレて as [ズレ, テ] but ずれてる as [ズレ, テル], so the てる conjugations
+    // escaped the negation and came back through the kana clause.
+    // The てる pair is what actually regressed: the kana clause re-admitted them.
+    // The plain ずれて/ズレて forms were already excluded before the fix, and are
+    // kept here so the exclusion stays script-agnostic.
+    it('exclusion operator removes every conjugation and script of the excluded term', async () => {
+      await seedSegmentsIntoEs({}, [{ contentJa: '少しズレがある' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: '時計がずれてる' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: '時計がズレてる' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: 'ズレて困った' }]);
+      await seedSegmentsIntoEs({}, [{ contentJa: '時計がずれて困る' }]);
+
+      const result = await SegmentDocument.search({
+        query: { search: '"ズレ" -ズレて', exactMatch: false },
+        take: 25,
+      });
+
+      expect(result.segments.map((segment) => segment.textJa.content)).toEqual(['少しズレがある']);
+    });
+
+    it('treats a hyphen inside a word as text, not as an exclusion', async () => {
+      await seedSegmentsIntoEs({}, [{ contentJa: 'テスト', contentEn: 'a well-known result' }]);
+
+      const result = await SegmentDocument.search({
+        query: { search: 'well-known', exactMatch: false },
+        take: 25,
+      });
+
+      expect(result.segments).toHaveLength(1);
+      expect(result.segments[0].textEn?.content).toBe('a well-known result');
+    });
+
     it('filters by category', async () => {
       await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [{ contentJa: 'アニメセグメント' }]);
       await seedSegmentsIntoEs({ category: CategoryType.JDRAMA }, [{ contentJa: 'ドラマセグメント' }]);
@@ -212,6 +246,22 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(jdramaCategory).toBeDefined();
       expect(jdramaCategory?.count).toBe(1);
       expect(jdramaCategory?.realCount).toBe(jdramaCategory?.count);
+    });
+
+    // The reported counts came from a separate aggregation query, so an exclusion the
+    // hit list honoured could still be missing from the number above it. Both paths go
+    // through buildSearchMust; this pins that down.
+    it('applies the exclusion operator to the aggregated counts too', async () => {
+      await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [
+        { contentJa: '少しズレがある', position: 1 },
+        { contentJa: '時計がずれてる', position: 2 },
+      ]);
+
+      const result = await SegmentDocument.searchStats({
+        query: { search: '"ズレ" -ズレて', exactMatch: false },
+      });
+
+      expect(result.categories.find((c) => c.category === 'ANIME')?.count).toBe(1);
     });
 
     it('returns realCount while excluding hidden media from visible counts', async () => {
