@@ -51,6 +51,7 @@
     "pinia": "^4.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",
     "pino": "^10.3.1",
+    "posthog-node": "^5.49.0",
     "shiki": "^4.4.3",
     "vue-toastification": "^2.0.0-rc.5",
     "zod": "^4.4.3"
