@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+#
+# Purge the edge HTML cache after a PRODUCTION frontend deploy.
+#
+# WHY THIS EXISTS. Search and sentence HTML has been edge-cached for an hour
+# since 2026-08-13 (cache_anonymous_search_html / cache_anonymous_sentence_html
+# in brigadasos-infra/terraform/cloudflare-cache.tf). That HTML names the
+# `/_nuxt/*` digests of the build that rendered it, so after a deploy the edge
+# keeps handing readers a page pointing at chunks the new container does not
+# have, and they get `Failed to fetch dynamically imported module`. The
+# client-side recovery in app/plugins/chunkReload.client.ts cannot save them
+# either: its reload re-requests the page, the edge serves the same stale HTML,
+# and it burns both attempts and reports `app:chunk-error-unrecoverable`.
+#
+# `release.yml` has done this since the caching went in, so a tagged release was
+# always covered. A `kamal deploy -d prod` from a laptop was NOT, and that is the
+# hole this closes -- the deploy looked entirely successful while readers kept
+# being served a build that no longer existed.
+#
+# See DEPLOYMENT.md, "Purging HTML on deploy".
+
+set -euo pipefail
+
+# nadeshiko.co. Not a secret -- it is a plain default in
+# brigadasos-infra/terraform/variables.tf too -- and hardcoding it means a typo
+# cannot silently purge somebody else's zone.
+ZONE_ID="dba6f7bd12bc97763ede3f35ef8af46d"
+
+# PROD ONLY, and this guard is the important line in the file. Staging and
+# production share one Cloudflare zone, so running this after a staging deploy
+# would throw away production's entire edge cache. It is the same reason
+# DEPLOYMENT.md says not to copy the purge step into staging-release.yml.
+if [[ "${KAMAL_DESTINATION:-}" != "prod" ]]; then
+  exit 0
+fi
+
+# Only for commands that actually swap the running container. `kamal app exec`,
+# `kamal audit` and friends run hooks too, and purging on those would drop the
+# cache for no reason. Rollback is included deliberately: it changes which
+# digests are live just as much as a deploy does.
+case "${KAMAL_COMMAND:-}" in
+  deploy | redeploy | rollback) ;;
+  *) exit 0 ;;
+esac
+
+# In CI the purge is release.yml's job, using the narrow CLOUDFLARE_PURGE_TOKEN
+# repository secret. Letting this run there as well would purge twice per
+# release and make the SSM read a new way for a tagged release to fail.
+if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  echo "post-deploy: in CI, leaving the cache purge to release.yml"
+  exit 0
+fi
+
+echo "post-deploy: purging the nadeshiko.co edge cache after $KAMAL_COMMAND"
+
+# Same helper and same SSM tier as every other secret this app reads, so there is
+# one story for where credentials come from. The token is Cache-Purge-only on
+# this one zone; it can read nothing and change nothing else.
+token="$(.kamal/ssm-secret prod CLOUDFLARE_PURGE_TOKEN)"
+
+# Purge everything rather than by URL: sentence and search URLs are unbounded,
+# and purge by prefix, hostname or tag is Enterprise-only. Taking the
+# fingerprinted assets down with the HTML is harmless -- they are immutable and
+# refill from origin on the next request.
+response="$(curl -sS -X POST \
+  "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+  -H "Authorization: Bearer ${token}" \
+  -H "Content-Type: application/json" \
+  --data '{"purge_everything":true}')"
+
+# The BODY decides, not the exit code. Cloudflare answers HTTP 200 with
+# `"success": false` when the token lacks the permission, so trusting curl's
+# status here would report a purge that never happened.
+if ! printf '%s' "$response" | grep -q '"success":[[:space:]]*true'; then
+  echo "post-deploy: cache purge FAILED -- readers may be served stale HTML" >&2
+  echo "$response" >&2
+  exit 1
+fi
+
+echo "post-deploy: edge cache purged"
