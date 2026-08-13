@@ -347,20 +347,43 @@ jobs:
             echo "note: no CI_BYPASS_SECRET in SSM; sentence-page tests will be challenged"
           fi
 
+      # ONE setup-node, not two -- see the note on the same block in
+      # staging-release.yml. The second one pinned a literal '22' with no cache
+      # and silently won over NODE_VERSION.
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
 
-      - name: Install dependencies and Playwright
-        run: |
-          cd frontend
-          npm ci
-          npx playwright install --with-deps chromium
+      # Cached for the reason spelled out in staging-release.yml: Chromium is
+      # ~130MB, pinned by the lockfile, and was downloaded fresh on every run.
+      # Keyed on the version Playwright reports, so a bump invalidates it by
+      # itself.
+      - name: Resolve the Playwright version
+        id: playwright
+        run: echo "version=$(npx playwright --version | sed 's/Version //')" >> "$GITHUB_OUTPUT"
+        working-directory: frontend
+
+      - name: Cache the Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install the Playwright browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Install the Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: frontend
 
       # SMOKE SUBSET, not the whole suite, and the reason is production's HTML
       # rate limiter: 20 renders per minute per IP, with no bypass by design
