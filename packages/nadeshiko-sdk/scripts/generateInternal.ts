@@ -568,7 +568,7 @@ import type { ClientOptions } from './types.gen';
 import type * as Types from './types.gen';
 import { ${sdkImports}, type Options } from './sdk.gen';
 import { withRetry, type RetryOptions } from './retry';
-import { NadeshikoError, type NadeshikoProblemDetails } from './errors';
+import { NadeshikoError, isProblemDetails, type NadeshikoErrorCode } from './errors';
 ${paginateImport}
 type ApiKeyProvider = string | (() => string | undefined | Promise<string | undefined>);
 
@@ -644,19 +644,39 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     },
   }));
 
-  clientInstance.interceptors.error.use((error) => {
-    if (error && typeof error === 'object' && 'code' in error && typeof (error as any).code === 'string') {
-      return new NadeshikoError(error as NadeshikoProblemDetails);
+  clientInstance.interceptors.error.use((error, response, request) => {
+    // The query string is dropped: it carries the caller's search terms, and
+    // keeping it would also scatter one fault across an issue per distinct URL.
+    const requestUrl = request ? request.url.split('?')[0] : undefined;
+
+    if (isProblemDetails(error)) {
+      return new NadeshikoError({ requestUrl, ...error });
     }
-    if (error && typeof error === 'object' && 'status' in error && typeof (error as any).status === 'number') {
-      return new NadeshikoError({
-        code: 'UNKNOWN_ERROR' as any,
-        title: 'Unexpected error',
-        detail: (error as any).message ?? (error as any).statusText ?? \`HTTP \${(error as any).status}\`,
-        status: (error as any).status,
-      });
-    }
-    return error;
+
+    // NOT one of our problem documents. Everything below exists because the old
+    // version of this branch dropped what the transport still knew and produced
+    // \`NadeshikoError: API error undefined\` -- a message naming neither the
+    // failure nor the endpoint, which is unactionable in error tracking.
+    const body = (typeof error === 'object' && error !== null ? error : {}) as Record<string, unknown>;
+
+    // \`response\` is undefined when the request never got one at all (network
+    // drop, CORS, abort). That absence is itself the signal, so it is recorded
+    // as status 0 rather than guessed at.
+    const status = typeof body.status === 'number' ? body.status : (response?.status ?? 0);
+
+    // better-auth answers with \`{ code, message }\`, which is the shape that used
+    // to fall through here; \`message\` is checked so those read as themselves.
+    const detail = [body.detail, body.message, body.error, response?.statusText].find(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
+
+    return new NadeshikoError({
+      code: typeof body.code === 'string' ? (body.code as NadeshikoErrorCode) : 'UNKNOWN_ERROR',
+      title: 'Unexpected error',
+      detail: detail ?? (status > 0 ? \`HTTP \${status}\` : 'Request failed before a response arrived'),
+      status,
+      requestUrl,
+    });
   });
 ${functionDefsBlock}
   return {
@@ -695,6 +715,26 @@ export interface NadeshikoProblemDetails {
   status: number;
   /** Per-field validation messages, present when \`code\` is \`'VALIDATION_FAILED'\` */
   errors?: Record<string, string>;
+  /**
+   * Endpoint the failing request was sent to, minus its query string. An RFC 7807
+   * extension member, set by the SDK rather than the API, so that a caught error
+   * says which call produced it without the caller having to thread that through.
+   */
+  requestUrl?: string;
+}
+
+/**
+ * Whether a response body is one of our Problem Details documents.
+ *
+ * Both fields are required deliberately. Matching on \`code\` alone also matched
+ * better-auth's \`{ code, message }\` errors, and because those carry no \`status\`,
+ * \`title\` or \`detail\`, every field on the resulting error came out undefined --
+ * the origin of the \`API error undefined\` issues in error tracking.
+ */
+export function isProblemDetails(value: unknown): value is NadeshikoProblemDetails {
+  if (typeof value !== 'object' || value === null) return false;
+  const body = value as Record<string, unknown>;
+  return typeof body.code === 'string' && typeof body.status === 'number';
 }
 
 /**
@@ -728,9 +768,18 @@ export class NadeshikoError extends Error {
   readonly traceId?: string;
   /** Per-field validation messages, present when \`code === 'VALIDATION_FAILED'\` */
   readonly errors?: Record<string, string>;
+  /** Endpoint this error came from, minus its query string. */
+  readonly requestUrl?: string;
 
   constructor(body: NadeshikoProblemDetails) {
-    super(body.detail || body.title || \`API error \${body.status}\`);
+    // \`status\` is never interpolated unguarded: a body that reached here without
+    // one used to render as the message \`API error undefined\`, which named
+    // neither the failure nor the endpoint.
+    super(
+      body.detail
+      || body.title
+      || (typeof body.status === 'number' ? \`API error \${body.status}\` : 'API error with no status'),
+    );
     this.name = 'NadeshikoError';
     this.code = body.code;
     this.title = body.title;
@@ -739,6 +788,7 @@ export class NadeshikoError extends Error {
     this.status = body.status;
     this.traceId = body.instance;
     this.errors = body.errors;
+    this.requestUrl = body.requestUrl;
   }
 }
 `;

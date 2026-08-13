@@ -6,7 +6,7 @@ import type { ClientOptions } from './types.gen';
 import type * as Types from './types.gen';
 import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
 import { withRetry, type RetryOptions } from './retry';
-import { NadeshikoError, type NadeshikoProblemDetails } from './errors';
+import { NadeshikoError, isProblemDetails, type NadeshikoErrorCode } from './errors';
 import { flatPaginate } from './paginate';
 
 type ApiKeyProvider = string | (() => string | undefined | Promise<string | undefined>);
@@ -425,19 +425,39 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     },
   }));
 
-  clientInstance.interceptors.error.use((error) => {
-    if (error && typeof error === 'object' && 'code' in error && typeof (error as any).code === 'string') {
-      return new NadeshikoError(error as NadeshikoProblemDetails);
+  clientInstance.interceptors.error.use((error, response, request) => {
+    // The query string is dropped: it carries the caller's search terms, and
+    // keeping it would also scatter one fault across an issue per distinct URL.
+    const requestUrl = request ? request.url.split('?')[0] : undefined;
+
+    if (isProblemDetails(error)) {
+      return new NadeshikoError({ requestUrl, ...error });
     }
-    if (error && typeof error === 'object' && 'status' in error && typeof (error as any).status === 'number') {
-      return new NadeshikoError({
-        code: 'UNKNOWN_ERROR' as any,
-        title: 'Unexpected error',
-        detail: (error as any).message ?? (error as any).statusText ?? `HTTP ${(error as any).status}`,
-        status: (error as any).status,
-      });
-    }
-    return error;
+
+    // NOT one of our problem documents. Everything below exists because the old
+    // version of this branch dropped what the transport still knew and produced
+    // `NadeshikoError: API error undefined` -- a message naming neither the
+    // failure nor the endpoint, which is unactionable in error tracking.
+    const body = (typeof error === 'object' && error !== null ? error : {}) as Record<string, unknown>;
+
+    // `response` is undefined when the request never got one at all (network
+    // drop, CORS, abort). That absence is itself the signal, so it is recorded
+    // as status 0 rather than guessed at.
+    const status = typeof body.status === 'number' ? body.status : (response?.status ?? 0);
+
+    // better-auth answers with `{ code, message }`, which is the shape that used
+    // to fall through here; `message` is checked so those read as themselves.
+    const detail = [body.detail, body.message, body.error, response?.statusText].find(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
+
+    return new NadeshikoError({
+      code: typeof body.code === 'string' ? (body.code as NadeshikoErrorCode) : 'UNKNOWN_ERROR',
+      title: 'Unexpected error',
+      detail: detail ?? (status > 0 ? `HTTP ${status}` : 'Request failed before a response arrived'),
+      status,
+      requestUrl,
+    });
   });
 
   const _search = (params?: any) => {
