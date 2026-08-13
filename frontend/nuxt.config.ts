@@ -279,7 +279,14 @@ export default defineNuxtConfig({
       sourcemaps: {
         enabled: Boolean(process.env.POSTHOG_CLI_API_KEY),
         projectId: '372788',
-        personalApiKey: process.env.POSTHOG_CLI_API_KEY,
+        // `?? ''` because the module types this as a required string and
+        // `process.env` is not: the key is a Docker build arg, absent from every
+        // context that only typechecks. It typechecks WITHOUT this on a machine
+        // that has `frontend/.env`, which is what let it reach CI -- Nuxt narrows
+        // `process.env` from the keys it finds there, so the local build and the
+        // runner disagree about the type of the same expression. Never used
+        // empty: `enabled` above is false in exactly the case this covers.
+        personalApiKey: process.env.POSTHOG_CLI_API_KEY ?? '',
       },
     },
   }),
