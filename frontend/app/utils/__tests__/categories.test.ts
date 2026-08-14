@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { discountHiddenMedia } from '../categories';
+import { discountHiddenMedia, resolveDefaultCategorySlug } from '../categories';
 import type { ResolvedCategoryCount, ResolvedMediaStats } from '~/types/search';
 
 const bucket = (
@@ -72,5 +72,31 @@ describe('discountHiddenMedia', () => {
     const result = discountHiddenMedia([bucket('ANIME', 80, 200)], [mediaStat('a', 'ANIME', 30)]);
 
     expect(result[0]?.realCount).toBe(200);
+  });
+});
+
+describe('resolveDefaultCategorySlug', () => {
+  it('maps a stored category to the slug the search URL uses', () => {
+    expect(resolveDefaultCategorySlug('ANIME')).toBe('anime');
+    expect(resolveDefaultCategorySlug('JDRAMA')).toBe('liveaction');
+    expect(resolveDefaultCategorySlug('YOUTUBE')).toBe('youtube');
+  });
+
+  it('treats an unset or `ALL` preference as the whole corpus', () => {
+    expect(resolveDefaultCategorySlug(undefined)).toBe('all');
+    expect(resolveDefaultCategorySlug('ALL')).toBe('all');
+  });
+
+  it('falls back to all when the chosen category is hidden wholesale', () => {
+    expect(resolveDefaultCategorySlug('JDRAMA', ['JDRAMA'])).toBe('all');
+  });
+
+  it('still applies a choice that is not the hidden one', () => {
+    expect(resolveDefaultCategorySlug('ANIME', ['JDRAMA', 'YOUTUBE'])).toBe('anime');
+  });
+
+  it('ignores a stored value that is not a category at all', () => {
+    expect(resolveDefaultCategorySlug('MANGA')).toBe('all');
+    expect(resolveDefaultCategorySlug(null)).toBe('all');
   });
 });

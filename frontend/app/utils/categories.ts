@@ -23,6 +23,27 @@ export const CATEGORY_SLUG_BY_API: Record<Category, string> = Object.fromEntries
 export const isCategory = (value: unknown): value is Category => ALL_CATEGORIES.includes(value as Category);
 
 /**
+ * The reader's default category as a URL slug, ready to stand in for a missing
+ * `?category=`.
+ *
+ * Anything that is not a category -- unset, the stored `ALL`, a value from a
+ * category that no longer exists -- means the whole corpus. So does a category
+ * the reader has since hidden wholesale: opening on a tab whose results were
+ * deliberately dropped would show them an empty search they never asked for.
+ */
+export const resolveDefaultCategorySlug = (stored: unknown, hiddenCategories: readonly Category[] = []): string => {
+  if (!isCategory(stored) || hiddenCategories.includes(stored)) return 'all';
+  return CATEGORY_SLUG_BY_API[stored];
+};
+
+/** Tab labels, shared by the search tabs and every settings screen that names a category. */
+export const CATEGORY_LABEL_KEYS: Record<Category, string> = {
+  ANIME: 'searchContainer.categoryAnime',
+  JDRAMA: 'searchContainer.categoryLiveaction',
+  YOUTUBE: 'searchContainer.categoryYoutube',
+};
+
+/**
  * Discounts hidden media the stats payload still carries from the server's
  * category buckets.
  *
