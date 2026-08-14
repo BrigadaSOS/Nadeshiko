@@ -5,7 +5,7 @@ import {
   mdiAccount,
   mdiSync,
   mdiCodeTags,
-  mdiEyeOffOutline,
+  mdiMovieOpenOutline,
   mdiHistory,
   mdiFormatListBulletedSquare,
   mdiAccountGroupOutline,
@@ -27,7 +27,10 @@ const tabsGeneral = computed(() => [
   { name: t('accountSettings.tabs.sync'), icon: mdiSync, route: '/user/sync' },
   { name: t('accountSettings.tabs.collections'), icon: mdiFormatListBulletedSquare, route: '/user/collections' },
   { name: t('accountSettings.tabs.activity'), icon: mdiHistory, route: '/user/activity' },
-  { name: t('accountSettings.tabs.hideMedia'), icon: mdiEyeOffOutline, route: '/user/hide-media' },
+  // Starring and hiding share one tab: both decide which titles the search
+  // media filter shows and in what order, so they are one setting with two
+  // signs rather than two places to look. See `pages/user/media.vue`.
+  { name: t('accountSettings.tabs.media'), icon: mdiMovieOpenOutline, route: '/user/media' },
 ]);
 
 const tabsAdvanced = computed(() => [
@@ -99,7 +102,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
 </script>
 
 <template>
-  <div class="w-11/12 mx-auto my-2 text-white min-h-screen">
+  <div class="nd-page px-4 md:px-0 my-2 text-white min-h-screen">
       <div class="flex flex-col md:flex-row">
         <div class="hidden mx-auto md:block md:w-1/4 xl:w-3/12 md:min-w-[220px]">
           <nav :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">

@@ -18,6 +18,44 @@ test.describe('Hidden Media', () => {
     await hiddenMedia.expectLoaded();
   });
 
+  /**
+   * Both settings moved into one `/user/media` tab. The old paths were linked
+   * from the account menu long enough to be bookmarked, so they have to land on
+   * the page that now holds their controls -- not on the `/user/**` catch-all,
+   * which would drop them at the general settings tab instead.
+   */
+  test.describe('legacy tab URLs', () => {
+    test('/user/hide-media lands on the combined media tab, hiding intact', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto('/user/hide-media');
+      await expect(authenticatedPage).toHaveURL(/\/user\/media$/);
+      // Both settings now live in the one Manage Media card this URL lands on.
+      await expect(authenticatedPage.getByTestId('media-lookup-search-input')).toBeVisible({ timeout: 10_000 });
+      await expect(authenticatedPage.getByRole('heading', { name: 'Manage Media' }).first()).toBeVisible();
+    });
+
+    test('/user/favorites lands on the same tab, favoriting intact', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto('/user/favorites');
+      await expect(authenticatedPage).toHaveURL(/\/user\/media$/);
+      await expect(authenticatedPage.getByTestId('media-lookup-search-input')).toBeVisible({ timeout: 10_000 });
+      await expect(authenticatedPage.getByRole('heading', { name: 'Manage Media' }).first()).toBeVisible();
+    });
+
+    test('both settings share one search box', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto('/user/media');
+      const search = authenticatedPage.getByTestId('media-lookup-search-input');
+      // Visible before counted: the card is server-rendered, so a bare count can
+      // run against the pre-hydration DOM and read the box before Vue attaches.
+      await expect(search).toBeVisible({ timeout: 15_000 });
+      await expect(search).toHaveCount(1);
+      // A lookup row offers both answers, so neither setting needs its own search.
+      await search.fill('Death');
+      const row = authenticatedPage.getByTestId('media-lookup-result').first();
+      await expect(row).toBeVisible({ timeout: 10_000 });
+      await expect(row.getByTestId('media-lookup-favorite')).toBeVisible();
+      await expect(row.getByTestId('media-lookup-hide')).toBeVisible();
+    });
+  });
+
   test('searches for media and displays results', async ({ authenticatedPage }) => {
     const hiddenMedia = new HiddenMediaPage(authenticatedPage);
     await hiddenMedia.goto();
@@ -38,7 +76,9 @@ test.describe('Hidden Media', () => {
     await expect(searchRow).toBeVisible();
     await hiddenMedia.hideMedia(searchRow);
 
-    // Verify it appears in the hidden list
+    // Verify it appears in the hidden list. The one list shows catalogue results
+    // while the box has text; emptying it brings back the titles already marked.
+    await hiddenMedia.clearSearch();
     await expect(hiddenMedia.hiddenItemByName('Death Note')).toBeVisible({ timeout: 10_000 });
 
     // Unhide from the list
