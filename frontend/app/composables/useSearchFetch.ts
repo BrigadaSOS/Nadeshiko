@@ -33,6 +33,12 @@ export type SearchScope = {
   episode: number | null;
   /** Raw `?sort=` value; unset and `RELEVANCE` both mean "no explicit sort". */
   sort: string | null;
+  /**
+   * `?seed=`, which only `sort=random` carries. Sent as given so the shuffle is
+   * reproducible: the same URL is the same order for whoever opens it, and
+   * reshuffling means writing a new seed rather than asking again with the old one.
+   */
+  randomSeed: number | null;
   /** `?uuid=` permalink: resolves that one segment and ignores every other filter. */
   segmentPublicId: string | null;
   collectionId: string | null;
@@ -83,10 +89,16 @@ export function createRequestSequencer() {
   };
 }
 
-const buildSort = (raw: string | null): SearchSort | undefined => {
+const buildSort = (raw: string | null, randomSeed: number | null): SearchSort | undefined => {
   const mode = raw ? raw.toUpperCase() : null;
   if (!mode || mode === 'RELEVANCE') {
     return undefined;
+  }
+  // Without a seed the backend falls back to one derived from the calendar day,
+  // so every request that day comes back in the same order -- which is a fine
+  // default for a shared `?sort=random` link, and useless for reshuffling.
+  if (mode === 'RANDOM' && randomSeed !== null) {
+    return { mode, seed: randomSeed };
   }
   return { mode: mode as NonNullable<SearchSort['mode']> };
 };
@@ -265,7 +277,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         body: {
           query: scope.query ? { search: scope.query } : undefined,
           take: SEARCH_PAGE_SIZE,
-          sort: buildSort(scope.sort),
+          sort: buildSort(scope.sort, scope.randomSeed),
           cursor: options.cursor ?? undefined,
           filters: buildSentenceFilters(scope),
           include: ['media'],
