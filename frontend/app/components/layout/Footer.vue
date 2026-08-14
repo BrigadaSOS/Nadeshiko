@@ -5,10 +5,19 @@ const localePath = useLocalePath();
 
 <template>
   <footer class="bg-white dark:bg-footer-background yomitan-ignore">
-    <div class="max-w-[70%] px-6 py-4 md:py-6 mx-auto">
+    <div class="nd-page px-6 py-4 md:py-6">
       <div class="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+        <!-- The whole line is the link, not just the version: the name, the
+             version and the years read as one label, and half of it being a
+             target made the other half look inert. -->
         <p class="text-sm text-gray-500 dark:text-gray-300 whitespace-nowrap">
-          Nadeshiko {{ $t('home.version', { version: config.public.appVersion }) }} | 2024 - {{ getCurrentYear() }}
+          <NuxtLink
+            :to="localePath('/changelog')"
+            class="transition-colors duration-300 hover:text-red-500 dark:hover:text-red-400"
+            :title="$t('navbar.buttons.changelog')"
+          >
+            Nadeshiko {{ $t('home.version', { version: config.public.appVersion }) }} | 2024 - {{ getCurrentYear() }}
+          </NuxtLink>
         </p>
 
         <div class="flex flex-wrap justify-center -mx-4">
