@@ -1,3 +1,11 @@
+/**
+ * biome-ignore-all lint/complexity/noImportantStyles: the motion tiers at the
+ * foot of this file exist to override the ~300 Tailwind transition utilities
+ * scattered through the components. Specificity cannot reach an inline utility
+ * on an arbitrary element, so `!important` is the mechanism here rather than a
+ * shortcut around one.
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,6 +19,37 @@
  * is easier to read alongside the markup.
  */
 @layer components {
+  /*
+   * The page content column. Every top-level page runs its width through one of
+   * these two classes, so the header, the footer and the page bodies stay
+   * aligned with each other.
+   *
+   * Two knobs, and the column takes whichever is smaller:
+   *   --page-width      a percentage, so there is always a gutter
+   *   --page-max-width  an absolute ceiling, so the column stops growing on
+   *                     very wide displays instead of running the full width
+   *
+   * Horizontal padding deliberately stays on the pages rather than living
+   * here: several of them pad inner sections instead of the column itself,
+   * and below `md` the column is full-bleed by design.
+   */
+  .nd-page,
+  .nd-page-prose {
+    @apply w-full mx-auto;
+  }
+
+  @screen md {
+    .nd-page {
+      max-width: min(var(--page-width), var(--page-max-width));
+    }
+
+    /* The same column, narrowed for long-form prose (blog posts), where a
+       shorter line length is what makes it readable. */
+    .nd-page-prose {
+      max-width: min(var(--page-width-prose), var(--page-max-width));
+    }
+  }
+
   /* Text/number/password inputs on dark surfaces. */
   .nd-input {
     @apply w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm;
@@ -81,9 +120,7 @@
 /* Modal transitions (see components/common/BaseModal.vue). The backdrop fades
    while the panel animates in; `nd-drawer` slides the panel from the end edge. */
 .nd-modal-enter-active,
-.nd-modal-leave-active,
-.nd-drawer-enter-active,
-.nd-drawer-leave-active {
+.nd-modal-leave-active {
   transition: opacity 200ms ease-out;
 }
 
@@ -95,9 +132,7 @@
 }
 
 .nd-modal-enter-from,
-.nd-modal-leave-to,
-.nd-drawer-enter-from,
-.nd-drawer-leave-to {
+.nd-modal-leave-to {
   opacity: 0;
 }
 
@@ -107,14 +142,56 @@
   transform: scale(0.97);
 }
 
-.nd-drawer-enter-active .nd-modal-panel,
-.nd-drawer-leave-active .nd-modal-panel {
-  transition: transform 300ms ease-out;
+/* Off-canvas sheet, ported from shirabe. The slide rides the panel itself
+   (the node Vue shows and hides) and the scrim is a sibling that only fades:
+   a shared overlay used to fade the sheet with it, which read as a ghost
+   sliding in. Expo on the travel -- nearly all of it up front, then a long
+   settle -- and a shorter fade so the shading is already there when the
+   panel lands. */
+.nd-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(23 23 23 / 0.4);
 }
 
-.nd-drawer-enter-from .nd-modal-panel,
-.nd-drawer-leave-to .nd-modal-panel {
+.nd-drawer-backdrop-enter-active,
+.nd-drawer-backdrop-leave-active {
+  transition: opacity 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.nd-drawer-backdrop-enter-from,
+.nd-drawer-backdrop-leave-to {
+  opacity: 0;
+}
+
+.nd-drawer-backdrop-leave-active,
+.nd-drawer-leave-active {
+  pointer-events: none;
+}
+
+.nd-drawer-panel {
+  position: fixed;
+  top: 0;
+  inset-inline-end: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  overscroll-behavior: contain;
+}
+
+.nd-drawer-enter-active,
+.nd-drawer-leave-active {
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nd-drawer-enter-from,
+.nd-drawer-leave-to {
   transform: translateX(100%);
+}
+
+[dir="rtl"] .nd-drawer-enter-from,
+[dir="rtl"] .nd-drawer-leave-to {
+  transform: translateX(-100%);
 }
 
 /* Dropdown menu transition (see components/search/dropdown/DropdownContainer.vue). */
@@ -131,19 +208,99 @@
   transform: translateY(-4px);
 }
 
+/* The sidebar filter drilling from the title list into one title's episodes and
+   back (see FilterContent.vue). The short slide is what tells the reader the
+   panel moved a level rather than just redrawing. */
+.nd-drilldown-enter-active,
+.nd-drilldown-leave-active {
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.nd-drilldown-enter-from {
+  opacity: 0;
+  transform: translateX(8px);
+}
+
+.nd-drilldown-leave-to {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+/*
+ * MOTION TIERS, keyed off `<html data-motion>`: `system`, `reduced`, `none`.
+ * Ported from shirabe. See `useMotionPreference`, which owns the value, and
+ * `motionLevel()` for the JS half.
+ *
+ * Global rather than per-component on purpose. The app has ~300 Tailwind
+ * transition utilities across 51 files and only four of them ever opted into
+ * `motion-reduce:`; a setting honoured by annotating every call site is a
+ * setting that is wrong the first time someone adds a hover. These blocks
+ * cover everything that is already written and everything that will be.
+ *
+ * Two settings get conflated and should not be. `prefers-reduced-motion` is an
+ * accessibility request about vestibular comfort, and the reader who sets it
+ * wants the strict tier -- which is why `system` plus an OS asking for less
+ * resolves to the same rules as `none`. A reader whose machine merely struggles
+ * has no OS setting that says so and does not need every fade gone: `reduced`
+ * is theirs, and can only be reached by choosing it.
+ *
+ * 0.01ms, never 0: the drill-down hands focus over on `transitionend`
+ * (FilterContent.vue) and a true zero skips that event in some engines.
+ */
+
+/* Tier: none. `:not([data-motion="reduced"])` is what lets an explicit,
+   informed choice of the middle tier survive an OS asking for less. */
 @media (prefers-reduced-motion: reduce) {
-  .nd-modal-enter-active,
-  .nd-modal-leave-active,
-  .nd-drawer-enter-active,
-  .nd-drawer-leave-active,
-  .nd-modal-enter-active .nd-modal-panel,
-  .nd-modal-leave-active .nd-modal-panel,
-  .nd-drawer-enter-active .nd-modal-panel,
-  .nd-drawer-leave-active .nd-modal-panel,
-  .nd-dropdown-enter-active,
-  .nd-dropdown-leave-active {
-    transition-duration: 1ms;
+  :root:not([data-motion="reduced"]) *,
+  :root:not([data-motion="reduced"]) *::before,
+  :root:not([data-motion="reduced"]) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* The same tier, asked for rather than inherited. */
+:root[data-motion="none"] *,
+:root[data-motion="none"] *::before,
+:root[data-motion="none"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* A spinner keeps spinning at every tier: it is not decoration, it is the only
+   thing saying the request is still in flight, and a frozen one reads as a hung
+   page. `animate-pulse` gets no such reprieve -- a skeleton that has stopped
+   still says "loading" by being a skeleton. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="reduced"]) .animate-spin {
+    animation: spin 1s linear infinite !important;
+  }
+}
+
+:root[data-motion="none"] .animate-spin {
+  animation: spin 1s linear infinite !important;
+}
+
+/* Tier: reduced. One declaration carries most of it. Allow-listing the
+   transition properties drops everything that moves, reflows or re-blurs a
+   layer, while leaving the colour and opacity fades alone -- they cost almost
+   nothing and are most of what makes the interface feel alive. */
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  transition-property: opacity, color, background-color, border-color, fill, stroke, box-shadow !important;
+  scroll-behavior: auto !important;
+}
+
+/* Loops repaint forever, so they go even though one-shot entrances stay. */
+:root[data-motion="reduced"] .animate-pulse {
+  animation: none !important;
 }
 
 .nd-sidebar-link {
@@ -190,6 +347,17 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
+
+    /* Width of the page content column -- see `.nd-page`. */
+    --page-width: 90%;
+    --page-width-prose: 70%;
+    --page-max-width: 1800px;
+
+    /* Height of the sticky search results bar (category tabs + the EN/ES/
+       furigana controls). The title sidebar parks itself directly below it,
+       so the two read this one value instead of drifting apart.
+       Measured 69px with the bar's `pb-3` and tab items at `py-3`. */
+    --search-controls-height: 4.3125rem;
   }
 
   .dark {
@@ -235,6 +403,20 @@
   .dark .scrollbar-dark::-webkit-scrollbar-thumb {
     background-color: #555;
     border-radius: 4px;
+  }
+
+  /*
+   * At scroll 0 a trackpad swipe still rubber-bands the document, pulling the
+   * header down and flashing whatever sits behind <html> -- usually the UA
+   * white, since the dark fill lives on the layout, not on the root. Kill the
+   * bounce on the viewport so the top of the page is a hard stop.
+   */
+  html {
+    overscroll-behavior-y: none;
+  }
+
+  html.dark {
+    background-color: #1d1d1d;
   }
 
   body {

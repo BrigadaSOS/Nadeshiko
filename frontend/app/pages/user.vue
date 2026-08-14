@@ -104,7 +104,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
 <template>
   <div class="nd-page px-4 md:px-0 my-2 text-white min-h-screen">
       <div class="flex flex-col md:flex-row">
-        <div class="hidden mx-auto md:block md:w-1/4 xl:w-3/12 md:min-w-[220px]">
+        <div class="hidden md:block md:w-56 md:shrink-0">
           <nav :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
             <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.generalTitle") }}</h3>
             <div class="border-b border-white/10" />

@@ -15,6 +15,14 @@ export default defineSitemapEventHandler(async (event) => {
     if (!media.slug) continue;
     urls.push({
       loc: localizeSitemapPath(buildMediaPath(media.slug), locale),
+      // The record's real modification time, and omitted rather than invented
+      // when the row has never been updated. `lastmod` is the one hint here that
+      // search engines still act on, and an inaccurate one -- a build timestamp,
+      // say -- gets it discounted for the whole site, so a missing value is
+      // strictly better than a plausible guess.
+      //
+      // `changefreq` stays only because it costs nothing; Google ignores it.
+      ...(media.updatedAt ? { lastmod: media.updatedAt } : {}),
       changefreq: 'weekly',
     });
   }

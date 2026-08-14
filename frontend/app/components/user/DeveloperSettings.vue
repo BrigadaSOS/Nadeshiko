@@ -508,15 +508,11 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {{ $t('accountSettings.developer.createApiKeyModal.scopesLabel') }}
                             </label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                                {{ $t('accountSettings.developer.createApiKeyModal.scopesHelp') }}
-                            </p>
-
                             <div class="flex flex-col gap-2">
                                 <label
                                     v-for="preset in (['readOnly', 'fullAccount', 'custom'] as const)"
                                     :key="preset"
-                                    class="flex items-start gap-2 cursor-pointer rounded-lg border p-3 border-gray-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                    class="flex items-center gap-2 cursor-pointer rounded-lg border p-3 border-gray-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                                     :class="{ 'border-button-accent-main dark:border-button-accent-main': modalScopePreset === preset }"
                                 >
                                     <input
@@ -524,15 +520,10 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                         type="radio"
                                         :value="preset"
                                         :data-testid="`create-apikey-preset-${preset}`"
-                                        class="mt-1 shrink-0"
+                                        class="shrink-0"
                                     />
-                                    <span class="flex flex-col">
-                                        <span class="text-sm font-medium text-gray-800 dark:text-gray-200">
-                                            {{ $t(`accountSettings.developer.createApiKeyModal.presets.${preset}.label`) }}
-                                        </span>
-                                        <span class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $t(`accountSettings.developer.createApiKeyModal.presets.${preset}.description`) }}
-                                        </span>
+                                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                        {{ $t(`accountSettings.developer.createApiKeyModal.presets.${preset}.label`) }}
                                     </span>
                                 </label>
                             </div>

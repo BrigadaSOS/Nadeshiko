@@ -27,6 +27,7 @@ const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, cur
   storeToRefs(playerStore);
 
 const { isAnyModalOpen } = useModalState();
+const { scrollBehavior } = useMotionPreference();
 
 const progress = ref(0);
 const animationFrameId = ref<number | null>(null);
@@ -114,7 +115,7 @@ const scrollMainView = async () => {
   const now = Date.now();
   const timeSinceLastScroll = now - lastScrollTime;
   lastScrollTime = now;
-  const behavior = timeSinceLastScroll < 300 ? 'instant' : 'smooth';
+  const behavior = timeSinceLastScroll < 300 ? 'instant' : scrollBehavior();
 
   const result = currentResult.value;
   if (!result) return;

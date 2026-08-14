@@ -54,7 +54,8 @@ tags:
 
   - name: User
     description: |
-      User endpoints for profile data, excluded media, and activity history.
+      User endpoints for profile data, excluded and starred media, and activity
+      history.
 
   - name: Activity
     description: |
@@ -135,10 +136,20 @@ paths:
   # User endpoints
   "/v1/user/me":
     $ref: "./paths/user/v1_user_me.yaml"
+  "/v1/user/api-keys":
+    $ref: "./paths/user/v1_user_api_keys.yaml"
   "/v1/user/excluded-media":
     $ref: "./paths/user/v1_user_excluded_media.yaml"
   "/v1/user/excluded-media/{mediaPublicId}":
     $ref: "./paths/user/v1_user_excluded_media_mediaPublicId.yaml"
+  "/v1/user/favorite-media":
+    $ref: "./paths/user/v1_user_favorite_media.yaml"
+  "/v1/user/favorite-media/{mediaPublicId}":
+    $ref: "./paths/user/v1_user_favorite_media_mediaPublicId.yaml"
+  "/v1/user/familiar-media":
+    $ref: "./paths/user/v1_user_familiar_media.yaml"
+  "/v1/user/familiar-media/{mediaPublicId}":
+    $ref: "./paths/user/v1_user_familiar_media_mediaPublicId.yaml"
   "/v1/user/reports":
     $ref: "./paths/user/v1_user_reports.yaml"
   "/v1/user/preferences":

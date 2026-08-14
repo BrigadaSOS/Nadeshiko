@@ -9,8 +9,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { listOperations, loadBundledSpec, resolveRef, type OpenApiSpec } from './lib/spec';
+import { resolveGeneratedDir } from './lib/generatedReady';
 
-const OUTPUT_FILE = path.join(import.meta.dirname, '../generated/errorProfiles.ts');
+const GENERATED_DIR = resolveGeneratedDir();
+const OUTPUT_FILE = path.join(GENERATED_DIR, 'errorProfiles.ts');
 
 interface ResponseObject {
   content?: {

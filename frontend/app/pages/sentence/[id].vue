@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { NadeshikoError } from '@brigadasos/nadeshiko-sdk';
 import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
+import { mediaBrowsePath } from '~/utils/routes';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import { reportError } from '~/utils/reportError';
 import type { SearchStatsResponse } from '~/types/search';
 
 const { t } = useI18n();
 const route = useRoute();
+const localePath = useLocalePath();
 const { mediaName } = useMediaName();
 
 const id = computed(() => String(route.params.id));
@@ -101,7 +103,12 @@ const metaTags = computed(() => {
   const result = initialSentenceData.value?.results?.[0];
 
   if (result) {
-    const sentenceTags = buildSentenceMetaTags(result, mediaName, (n) => t('seo.sentence.episode', { n }));
+    const sentenceTags = buildSentenceMetaTags(
+      result,
+      mediaName,
+      (n) => t('seo.sentence.episode', { n }),
+      (sentence, media) => t('seo.sentence.pageTitle', { sentence, media }),
+    );
     tags.title = sentenceTags.title;
     tags.meta = sentenceTags.meta;
   }
@@ -110,6 +117,76 @@ const metaTags = computed(() => {
 });
 
 useHead(metaTags);
+
+/**
+ * A sentence permalink is a page whose entire subject is one short video clip,
+ * and it said so nowhere in its structured data. `VideoObject` is what makes it
+ * eligible for Google's video results -- the surface these pages could plausibly
+ * win, since they cannot out-rank a dictionary on the word itself.
+ *
+ * `uploadDate` is Google's one required property that this data does not
+ * literally have: a segment carries no timestamp of its own. The media's first
+ * airing date is the honest stand-in -- it IS when the footage was published --
+ * and when a title has none the property is dropped rather than invented. The
+ * markup stays valid either way; without it the page is simply not a rich-result
+ * candidate, which is better than claiming a date that is not real.
+ */
+const videoSchema = computed(() => {
+  const result = initialSentenceData.value?.results?.[0];
+  if (!result?.segment.urls.videoUrl) return null;
+
+  const { segment, media } = result;
+  const durationSeconds = Math.max(0, (segment.endTimeMs - segment.startTimeMs) / 1000);
+
+  return defineVideo({
+    name: `${mediaName(media)} - ${t('seo.sentence.episode', { n: segment.episode })}`,
+    description: segment.textJa.content,
+    thumbnailUrl: segment.urls.imageUrl,
+    contentUrl: segment.urls.videoUrl,
+    // ISO 8601. Clips run a few seconds, so sub-second precision is most of the
+    // value -- `PT3S` for a 3.4s clip is a 12% lie about a very short thing.
+    duration: `PT${durationSeconds.toFixed(1)}S`,
+    inLanguage: 'ja',
+    ...(media.startDate ? { uploadDate: media.startDate } : {}),
+  });
+});
+
+// A `computed`, not a plain arrow: the composable reaches for its reactive path
+// only via `isRef`, and a bare function would be handed straight to unhead as
+// the node list.
+const breadcrumbItems = computed(() => {
+  const items = [{ name: t('navbar.buttons.home'), item: localePath('/') }];
+  const result = initialSentenceData.value?.results?.[0];
+
+  if (result) {
+    items.push({ name: t('seo.media.title'), item: localePath('/media') });
+    items.push({
+      name: mediaName(result.media),
+      item: localePath(mediaBrowsePath(result.media)),
+    });
+  }
+
+  return items;
+});
+
+/**
+ * The visible (screen-reader) heading, which is the page's subject rather than
+ * its `<title>`: the brand suffix belongs in the tab and the SERP, not in the
+ * document outline.
+ */
+const headline = computed(() => {
+  const result = initialSentenceData.value?.results?.[0];
+  if (!result) return t('seo.sentence.title');
+  return `「${result.segment.textJa.content}」 - ${mediaName(result.media)}`;
+});
+
+const schemaOrgNodes = computed(() => [
+  defineWebPage({ '@type': 'ItemPage' }),
+  defineBreadcrumb({ itemListElement: breadcrumbItems.value }),
+  ...(videoSchema.value ? [videoSchema.value] : []),
+]);
+
+useSchemaOrg(schemaOrgNodes);
 
 if (import.meta.client) {
   const result = initialSentenceData.value?.results?.[0];
@@ -125,9 +202,9 @@ if (import.meta.client) {
 <template>
     <div class="mx-auto">
             <div class="relative text-white">
-                <div class="pt-2">
-                    <div class="md:max-w-[90%] mx-auto">
-                        <h1 class="sr-only">{{ metaTags.title }}</h1>
+                <div class="pt-3">
+                    <div class="nd-page">
+                        <h1 class="sr-only">{{ headline }}</h1>
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>

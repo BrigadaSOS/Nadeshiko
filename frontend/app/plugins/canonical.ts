@@ -1,4 +1,4 @@
-import { SUPPORTED_LOCALES } from '~/utils/i18n';
+import { INDEXED_LOCALES } from '~/utils/i18n';
 import { buildSentencePath, canonicalPath, splitLocalePrefix, withLocalePrefix } from '~/utils/routes';
 
 const CANONICAL_REWRITES: Record<string, (query: Record<string, string>) => string> = {
@@ -7,7 +7,12 @@ const CANONICAL_REWRITES: Record<string, (query: Record<string, string>) => stri
 
 const CANONICAL_PARAMS: Record<string, string[]> = {
   '/search': ['media', 'episode', 'category'],
-  '/media': ['query', 'category'],
+  // Both `/media` (the catalogue, filtered by `?query=`) and `/media/<slug>` (one
+  // title, optionally narrowed to an episode) match this prefix. `episode` is
+  // canonical because a single episode of a title is its own list of sentences,
+  // not a view of the whole; `sort` deliberately is not -- it reorders the same
+  // set and would multiply every title into as many URLs as there are orders.
+  '/media': ['query', 'category', 'episode'],
 };
 
 /**
@@ -87,7 +92,10 @@ export default defineNuxtPlugin(() => {
 function alternates(siteUrl: string, localePrefix: string, localizedPath: string, suffix: string) {
   if (!localePrefix) return [];
 
-  const links = SUPPORTED_LOCALES.map((locale) => ({
+  // INDEXED_LOCALES, not SUPPORTED_LOCALES: `ja` renders but is `robots: false`
+  // everywhere, and an hreflang set that points at noindexed URLs is a set that
+  // contradicts itself. See the comment on INDEXED_LOCALES.
+  const links = INDEXED_LOCALES.map((locale) => ({
     id: `i18n-alt-${locale}`,
     rel: 'alternate' as const,
     hreflang: locale,

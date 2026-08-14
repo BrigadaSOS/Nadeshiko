@@ -47,6 +47,45 @@ export async function resolveMediaFilterIds<TFilters extends t_SearchFilters>(
   } as ResolvedSearchFilters<TFilters>;
 }
 
+/**
+ * The internal ids behind `preferMedia`, or an empty set when the request has no
+ * business reordering anything.
+ *
+ * Two reasons it can come back empty, and they are different in kind. The caller
+ * may simply not have sent any titles -- the signed-out case, and the signed-in
+ * reader who has favourited nothing. Or the caller asked for an explicit sort:
+ * `TIME_ASC` means "in episode order", and quietly lifting the reader's own shows
+ * within each tie would answer a question nobody asked. Only `RELEVANCE` leaves
+ * ties genuinely arbitrary, so only `RELEVANCE` is ours to break.
+ *
+ * Unknown identifiers are dropped rather than reported. An unresolvable entry
+ * here costs the caller nothing -- the title merely fails to be preferred -- and
+ * the list is assembled from a reader's saved preferences, which can name a title
+ * that has since been removed from the corpus.
+ */
+export async function resolvePreferredMediaIds(
+  sort: { mode?: string } | undefined,
+  preferMedia: string[] | undefined,
+): Promise<ReadonlySet<number>> {
+  if (!preferMedia || preferMedia.length === 0) return EMPTY_PREFERRED_MEDIA;
+
+  const mode = sort?.mode?.toUpperCase();
+  if (mode && mode !== 'RELEVANCE') return EMPTY_PREFERRED_MEDIA;
+
+  const mediaInfo = await Media.getMediaInfoMap();
+  const identifiers = buildMediaIdentifierIndex(mediaInfo.results);
+
+  const resolved = new Set<number>();
+  for (const publicId of preferMedia) {
+    const mediaId = identifiers.get(publicId);
+    if (mediaId !== undefined) resolved.add(mediaId);
+  }
+
+  return resolved;
+}
+
+const EMPTY_PREFERRED_MEDIA: ReadonlySet<number> = new Set<number>();
+
 /** The internal id resolved from the public identifier; not part of the wire shape. */
 export type ResolvedMediaFilterItem = t_MediaFilterItem & { mediaId: number };
 

@@ -48,6 +48,15 @@ export type SearchScope = {
   hiddenMediaExclude: MediaFilterItem[];
   /** Categories the reader hid wholesale; narrows the request to the rest. */
   hiddenCategories: Category[];
+  /**
+   * The reader's own titles, sent so the backend can break ties in their favour.
+   *
+   * Optional because most callers have no use for it: a collection listing and a
+   * single-title browse are already narrowed to one set of titles, so preferring
+   * some of them within a tie would reorder a page against a choice the reader
+   * made explicitly.
+   */
+  preferMedia?: string[];
 };
 
 /**
@@ -101,6 +110,28 @@ const buildSort = (raw: string | null, randomSeed: number | null): SearchSort | 
     return { mode, seed: randomSeed };
   }
   return { mode: mode as NonNullable<SearchSort['mode']> };
+};
+
+/**
+ * The schema's `maxItems` for `preferMedia`. Clamped here rather than trusted
+ * from the caller: going over is a 400 on the search itself, which would trade a
+ * cosmetic reordering for no results at all.
+ */
+const MAX_PREFERRED_MEDIA = 120;
+
+/**
+ * `preferMedia`, but only under the default order.
+ *
+ * Every other mode sorts on a key the reader named -- episode order, length, a
+ * seeded shuffle -- and ties there are not ours to break. The backend enforces
+ * the same rule; this half keeps a list of up to 120 identifiers off the wire on
+ * requests that would discard it anyway.
+ */
+const preferMediaBody = (scope: SearchScope, sort: SearchSort | undefined): { preferMedia?: string[] } => {
+  if (sort !== undefined) return {};
+  if (!scope.preferMedia?.length) return {};
+
+  return { preferMedia: scope.preferMedia.slice(0, MAX_PREFERRED_MEDIA) };
 };
 
 const mediaInclude = (scope: SearchScope, withSelectedMedia: boolean): MediaFilterItem[] => {
@@ -272,15 +303,17 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         return { status: 'ok', data: resolveSearchResponse(result.data) };
       }
 
+      const sort = buildSort(scope.sort, scope.randomSeed);
       const result = await search({
         ...requestOptions(generation),
         body: {
           query: scope.query ? { search: scope.query } : undefined,
           take: SEARCH_PAGE_SIZE,
-          sort: buildSort(scope.sort, scope.randomSeed),
+          sort,
           cursor: options.cursor ?? undefined,
           filters: buildSentenceFilters(scope),
           include: ['media'],
+          ...preferMediaBody(scope, sort),
         },
       });
       if (stale()) return { status: 'stale' };

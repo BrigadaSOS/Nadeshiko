@@ -27,11 +27,29 @@ interface HiddenMediaItem {
   nameRomaji?: string;
 }
 
+interface FavoriteMediaItem {
+  mediaPublicId: string;
+  nameEn?: string;
+  nameJa?: string;
+  nameRomaji?: string;
+  /** Set by the server, unlike `HiddenMediaItem`'s client-invented `hiddenAt`. */
+  favoritedAt: string;
+}
+
 export interface UserPreferences {
   searchHistory?: { enabled: boolean };
+  /**
+   * Governs the monthly per-title tally behind familiar-media sorting. Separate
+   * from `searchHistory` on purpose: that one governs the activity log, this one
+   * an aggregate count, and a reader may want one without the other.
+   */
+  familiarMedia?: { enabled: boolean };
   ankiProfiles?: AnkiProfile[];
   hiddenMedia?: HiddenMediaItem[];
+  favoriteMedia?: FavoriteMediaItem[];
   hiddenCategories?: CategoryType[];
+  /** `ALL` (and unset) means every visible category; see `UserPreferences.yaml`. */
+  defaultSearchCategory?: CategoryType | 'ALL';
 }
 
 @Entity('User')

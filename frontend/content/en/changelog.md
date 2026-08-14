@@ -1,5 +1,5 @@
 ---
-title: "Changelog | Nadeshiko"
+title: "Changelog"
 description: "What shipped in each version of Nadeshiko, newest first."
 ---
 
@@ -17,6 +17,7 @@ We only list what you can see. Work behind a lab or a feature flag stays off thi
 - **Search**: a search you ran inside one show is kept as its own entry, labelled with the title, and re-running it takes you back into that show instead of searching everything.
 - **Search**: star the titles you care about and they sort to the top of the media filter on every search, from the star on the filter row itself or from the new Media tab in settings. Up to 100 of them.
 - **Search**: the shows you actually study sort up the media filter too, worked out from the cards you export, the clips you play and the lines you share, counted per title per month.
+- **Search**: when two results are as good a match as each other, the one from a show you starred or already study comes first. Only between equally-matched results, and only while you are signed in and have not picked an order of your own — nothing is pushed onto a page it would not have reached, so the corpus never looks smaller than it is.
 - **Search**: a line above the results says how many hits your own hidden titles and hidden categories kept out of them, names those titles if you ask, and offers to show them for this search or to go change the list.
 - **Search**: titles and episodes are one filter panel now. Picking a title drills into its episodes, and the header of that level is the way back out.
 - **Search**: a title you have picked gets its own tab beside All, and All stays on screen showing what your word found across everything, so a show with no hits for it no longer looks like the search itself finding nothing.
@@ -25,7 +26,7 @@ We only list what you can see. Work behind a lab or a feature flag stays off thi
 - **Settings**: choose the category searches open on, so a reader who only watches anime lands on the Anime tab without clicking it. A link that names a category still wins, and a category you have hidden falls back to All.
 - **Settings**: an Animations setting, with "Match my device", "Reduced", which keeps colour and fade effects but drops anything that slides or resizes, and "None". It works signed out and applies from the first frame of the page.
 - **Settings**: favouriting and hiding titles are one Media tab now, one card with one search box over it, rather than two pages and three stacked panels. The old Hide Media page sends you there.
-- **Activity**: "Remember which shows I study" is its own switch beside search history, with everything it has tallied listed in full and its own Forget button, so you can keep one without the other.
+- **Activity**: "Remember which shows I study" is its own switch beside search history, with everything it has tallied listed in full and its own Forget button, so you can keep one without the other. Each title in that list can be forgotten on its own, for the show the tally read wrong.
 - **API**: a key is created with the permissions you pick: read-only, full account access, or a list you choose yourself. Read-only is the default, where a key used to get everything the account can do.
 - **API**: a third-party app can call the search and media endpoints straight from a browser with a key you created, and can read the rate-limit headers so it slows down before it is throttled. The terms now set out what such an app has to do.
 - **Home**: the Discord bot is on the front page, with a link to add it to your server.

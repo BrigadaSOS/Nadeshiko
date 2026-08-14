@@ -13,6 +13,7 @@ export type AdminUserWithProvidersOutput = z.output<typeof schemas.s_AdminUserWi
 export type AffectedCountResponseOutput = z.output<typeof schemas.s_AffectedCountResponse>;
 export type AgentActivityResponseOutput = z.output<typeof schemas.s_AgentActivityResponse>;
 export type AnnouncementOutput = z.output<typeof schemas.s_Announcement>;
+export type ApiKeyScopeOutput = z.output<typeof schemas.s_ApiKeyScope>;
 export type CategoryOutput = z.output<typeof schemas.s_Category>;
 export type CollectionVisibilityOutput = z.output<typeof schemas.s_CollectionVisibility>;
 export type ContentRatingOutput = z.output<typeof schemas.s_ContentRating>;
@@ -104,7 +105,9 @@ export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListRes
 export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCollection>;
 export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
+export type CreateUserApiKeyRequestBodyOutput = z.output<typeof schemas.s_CreateUserApiKeyRequestBody>;
 export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
+export type AddFavoriteMediaRequestBodyOutput = z.output<typeof schemas.s_AddFavoriteMediaRequestBody>;
 
 // ============================================
 // Inline query schemas and their output types

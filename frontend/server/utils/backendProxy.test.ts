@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { shouldInjectApiKey, stampPreferencesVersion, writesPreferences } from './backendProxy';
+import {
+  shouldInjectApiKey,
+  stampPreferencesVersion,
+  stripCrossOriginHeaders,
+  writesPreferences,
+} from './backendProxy';
 
 describe('shouldInjectApiKey', () => {
   it('signs the public corpus reads an anonymous visitor needs', () => {
@@ -147,5 +152,65 @@ describe('stampPreferencesVersion', () => {
     // The cache holds an entry for 30s; a shorter stamp would hand the reader
     // back the very entry it was minted to skip.
     expect(maxAge).toBeGreaterThanOrEqual(30);
+  });
+});
+
+/**
+ * The proxy must never hand back the backend's CORS headers.
+ *
+ * The backend opens the public corpus to `*` for third-party clients calling
+ * `api.nadeshiko.co` with their own key. This path is the site's own
+ * same-origin `/v1`, and it injects the MASTER key on those same routes — so
+ * forwarding the headers published a keyless copy of the API to every website:
+ * measured at `200` with real data, `access-control-allow-origin: *`, and no
+ * credentials of any kind required.
+ */
+describe('stripCrossOriginHeaders', () => {
+  function resEvent(headers: Record<string, unknown>) {
+    return {
+      node: {
+        res: {
+          getHeader: (n: string) => headers[n],
+          setHeader: (n: string, v: unknown) => {
+            headers[n] = v;
+          },
+          removeHeader: (n: string) => {
+            delete headers[n];
+          },
+        },
+      },
+      _headers: headers,
+    } as never;
+  }
+
+  it('removes every CORS header the backend set', () => {
+    const headers: Record<string, unknown> = {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'GET,POST,OPTIONS',
+      'access-control-allow-headers': 'Authorization,Content-Type',
+      'access-control-allow-credentials': 'true',
+      'access-control-expose-headers': 'RateLimit',
+      'access-control-max-age': '86400',
+    };
+    const event = resEvent(headers);
+    stripCrossOriginHeaders(event);
+    expect(Object.keys(headers)).toEqual([]);
+  });
+
+  it('leaves everything else alone', () => {
+    const headers: Record<string, unknown> = {
+      'access-control-allow-origin': '*',
+      'content-type': 'application/json',
+      'set-cookie': 'nd-prefs-version=1; Path=/',
+      ratelimit: 'limit=300, remaining=299, reset=60',
+    };
+    stripCrossOriginHeaders(resEvent(headers));
+    expect(Object.keys(headers).sort()).toEqual(['content-type', 'ratelimit', 'set-cookie']);
+  });
+
+  it('is a no-op when the backend sent none', () => {
+    const headers: Record<string, unknown> = { 'content-type': 'application/json' };
+    stripCrossOriginHeaders(resEvent(headers));
+    expect(headers).toEqual({ 'content-type': 'application/json' });
   });
 });

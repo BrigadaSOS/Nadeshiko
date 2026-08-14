@@ -55,7 +55,7 @@ watch(() => route.fullPath, closeNavSidebar);
 <template>
     <header
         class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white py-3 lg:py-2 dark:bg-header-background yomitan-ignore">
-        <nav class="px-4 md:px-0 md:max-w-[90%] w-full mx-auto md:flex md:items-center md:justify-between text-xs">
+        <nav class="nd-page px-4 md:px-0 md:flex md:items-center md:justify-between text-xs">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
                     <NuxtLink :to="localePath('/')"
@@ -177,7 +177,7 @@ watch(() => route.fullPath, closeNavSidebar);
         :open="isNavSidebarOpen"
         transition="nd-drawer"
         z-index-class="z-[80]"
-        overlay-class="justify-end bg-neutral-900/40 md:hidden"
+        overlay-class="md:hidden"
         panel-class="h-full max-w-xs w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700"
         :label="$t('common.navigationMenu')"
         @close="closeNavSidebar"

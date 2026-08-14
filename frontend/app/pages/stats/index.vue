@@ -2,6 +2,7 @@
 import { userStore } from '~/stores/auth';
 import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
+import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 
 const { t } = useI18n();
 const { formatNumber, formatPercent, formatDate } = useFormat();
@@ -12,7 +13,7 @@ useSeoMeta({
   description: () => t('seo.stats.description'),
   ogTitle: () => t('seo.stats.title'),
   ogDescription: () => t('seo.stats.description'),
-  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
+  ogImage: `${useRequestURL().origin}${DEFAULT_OG_IMAGE_PATH}`,
   twitterCard: 'summary_large_image',
   twitterTitle: () => t('seo.stats.title'),
   twitterDescription: () => t('seo.stats.description'),
@@ -94,7 +95,7 @@ const translationLanguages = computed(() => {
 </script>
 
 <template>
-  <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6 text-white">
+  <div class="nd-page px-4 md:px-0 py-6 text-white">
     <div class="mb-3">
       <h1 class="text-[2.5rem] font-extrabold mb-2 pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">{{ $t('statsPage.title') }}</h1>
       <p class="text-white/50 max-w-xl">

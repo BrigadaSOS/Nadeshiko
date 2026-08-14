@@ -6,8 +6,11 @@ import {
   buildDefaultMetaTags,
   buildOgImageTags,
   buildSentenceMetaTags,
+  pageTitle,
   socialTitle,
 } from '~/utils/metaTags';
+import type { Media } from '@brigadasos/nadeshiko-sdk';
+import { reportError } from '~/utils/reportError';
 import { buildMediaPath, decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
 
 const { t } = useI18n();
@@ -52,6 +55,38 @@ const randomSeedParam = computed(() => {
 
 const { fetchSentences, fetchStats } = useSearchFetch();
 
+const { favoriteMediaIds } = useFavoriteMedia();
+const { entries: familiarMedia, load: loadFamiliarMedia } = useFamiliarMedia();
+
+/**
+ * The reader's own titles, for the tie-break the backend applies under the
+ * default order: among segments Elasticsearch ranked equally, theirs first.
+ *
+ * Both halves of "their titles" -- the ones they starred, and the ones the
+ * activity tally infers they already know -- because the filter sidebar already
+ * treats the two the same way, and a reader who has to star a show they watch
+ * every week to get it treated as theirs has been asked to state something the
+ * app worked out on its own.
+ *
+ * Signed-out is empty rather than falling back to anything local. Nothing here
+ * is worth guessing at from a device: the whole list describes a person, and the
+ * page renders the same for everyone who has not said who they are.
+ *
+ * One honest gap: on a cold server render the tally is still in flight beside
+ * this search rather than ahead of it, so that first page is tie-broken on
+ * favourites alone. Making the search wait would put a round trip in front of
+ * every signed-in render to reorder rows within a tie, which is the wrong trade
+ * -- and by the reader's next search the ranking is in `useState` and both
+ * halves are sent.
+ */
+const preferMedia = computed<string[]>(() => {
+  if (!userStore().isLoggedIn) return [];
+
+  const ids = new Set(favoriteMediaIds.value);
+  for (const entry of familiarMedia.value) ids.add(entry.media.publicId);
+  return [...ids];
+});
+
 const searchScope = computed<SearchScope>(() => ({
   query: searchQuery.value,
   // Mirrors `implicitCategorySlug` in `SearchContainer`: no `?category=` means the
@@ -74,6 +109,7 @@ const searchScope = computed<SearchScope>(() => ({
   languages: includedLanguages.value,
   hiddenMediaExclude: hiddenMediaExcludeFilter.value,
   hiddenCategories: hiddenCategories.value,
+  preferMedia: preferMedia.value,
 }));
 
 const fetchSentenceData = async () => {
@@ -116,7 +152,7 @@ const statsCacheKey = computed(() => {
   return `search-stats-${params || 'default'}`;
 });
 
-const { load: loadFamiliarMedia } = useFamiliarMedia();
+const sdk = useNadeshikoSdk();
 
 /**
  * User-scoped, unlike the two keys above, because the ranking is about months of
@@ -126,7 +162,7 @@ const { load: loadFamiliarMedia } = useFamiliarMedia();
  */
 const familiarMediaCacheKey = computed(() => `familiar-media-${userStore().userEmail ?? 'anonymous'}`);
 
-const [{ data: initialSentenceData }, { data: initialStatsData }] = await Promise.all([
+const [{ data: initialSentenceData }, { data: initialStatsData }, , { data: scopedMedia }] = await Promise.all([
   useAsyncData(sentenceCacheKey.value, () => fetchSentenceData(), {
     server: true,
     lazy: false,
@@ -145,6 +181,21 @@ const [{ data: initialSentenceData }, { data: initialStatsData }] = await Promis
     lazy: false,
     watch: [],
   }),
+  // The title card for a search narrowed to one show. Watched: `?media=` is
+  // not part of the page key, so picking a different title in the sidebar
+  // must replace the card without remounting the page.
+  useAsyncData(
+    () => `search-scoped-media-${mediaQueryParam.value ?? 'none'}`,
+    async () => {
+      const id = mediaQueryParam.value;
+      if (!id) return null;
+      return sdk.getMedia(id).catch((error: unknown) => {
+        reportError('search:scoped-media-fetch-failed', error, { 'media.publicId': id });
+        return null;
+      });
+    },
+    { server: true, lazy: false, watch: [mediaQueryParam], default: () => null as Media | null },
+  ),
 ]);
 
 /**
@@ -174,6 +225,31 @@ if (browsedMediaSlug.value) {
   });
 }
 
+/**
+ * The kanji relatives linked at the foot of a word page.
+ *
+ * Fetched with the page rather than by the component, so the links are in the
+ * server-rendered HTML -- these exist to give ~19.8k otherwise-orphan word pages
+ * something linking to them, and a link a crawler never receives does nothing.
+ *
+ * Word pages only: a title browse has the catalogue linking it onward, and a
+ * bare `/search` has nothing to be related to. The route answers from an
+ * in-memory index and is `swr`-cached for a day, so this is not a backend hop.
+ */
+const { data: relatedWordsData } = await useAsyncData(
+  () => `related-words-${searchQuery.value || 'none'}`,
+  () => {
+    if (!searchQuery.value || mediaQueryParam.value) return Promise.resolve({ words: [] });
+    return $fetch<{ words: { word: string; matchCount: number }[] }>('/api/words/related', {
+      query: { word: searchQuery.value },
+      // A missing related-words list is not worth an error page.
+    }).catch(() => ({ words: [] }));
+  },
+  { default: () => ({ words: [] }), watch: [] },
+);
+
+const relatedWords = computed(() => relatedWordsData.value?.words ?? []);
+
 const requestOrigin = useRequestURL().origin;
 const isJapaneseSearchRoute = computed(() => splitLocalePrefix(route.path).localePrefix === '/ja');
 
@@ -191,7 +267,12 @@ const metaTags = computed(() => {
   const q = searchQuery.value;
 
   if (route.query.uuid && result) {
-    const sentenceTags = buildSentenceMetaTags(result, mediaName, (n) => t('seo.sentence.episode', { n }));
+    const sentenceTags = buildSentenceMetaTags(
+      result,
+      mediaName,
+      (n) => t('seo.sentence.episode', { n }),
+      (sentence, media) => t('seo.sentence.pageTitle', { sentence, media }),
+    );
     tags.title = sentenceTags.title;
     tags.meta = sentenceTags.meta;
   } else if (q) {
@@ -229,7 +310,10 @@ const metaTags = computed(() => {
     }
 
     const social = socialTitle(title);
-    tags.title = title;
+    // The `<title>` was the bare word -- `食べる` and nothing else -- on ~19.8k
+    // indexed pages. The share card stays short; see `pageTitle` for why these
+    // are no longer the same string.
+    tags.title = pageTitle(t('seo.search.wordTitle', { query: q }));
     tags.meta = [
       { name: 'description', content: description },
       { property: 'og:title', content: social },
@@ -276,7 +360,7 @@ const metaTags = computed(() => {
     const ogImage = bannerUrl || `${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`;
 
     const social = socialTitle(title);
-    tags.title = title;
+    tags.title = pageTitle(t('seo.media.pageTitle', { media: title }));
     tags.meta = [
       { name: 'description', content: description },
       { property: 'og:title', content: social },
@@ -341,13 +425,22 @@ useSchemaOrg(schemaOrgNodes);
 <template>
     <div class="mx-auto">
             <div class="relative text-white">
-                <div class="pt-2">
+                <div class="pt-3">
                     <div class="nd-page">
-                        <h1 v-if="searchQuery" class="sr-only">{{ metaTags.title }}</h1>
+                        <h1 v-if="searchQuery" class="sr-only">{{ searchQuery }}</h1>
+                        <!-- `scopedMedia` can still hold the previous title for a
+                             tick after `?media=` is cleared -- useAsyncData keeps
+                             the old payload until the `none` key resolves. The
+                             query is what the reader asked for. -->
+                        <MediaHeader v-if="scopedMedia && mediaQueryParam" :media="scopedMedia" heading="h2" />
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>
                         <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
+                        <!-- Word pages only: a title browse has the catalogue to
+                             link it onward, and a bare `/search` has nothing to
+                             be related to. -->
+                        <SearchRelatedWords :words="relatedWords" />
                     </div>
                 </div>
             </div>

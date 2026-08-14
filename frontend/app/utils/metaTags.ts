@@ -10,35 +10,40 @@ type MetaTags = { title: string; meta: MetaTag[] };
 
 const TITLE_SUFFIX = ' | Nadeshiko';
 
-const withBrand = (headline: string) => `${headline}${TITLE_SUFFIX}`;
-
 /**
  * The name on a share card. Deliberately just the subject plus the brand: a
  * social preview already carries a description underneath, so a long headline
  * only gets truncated by the platform.
+ *
+ * The brand IS appended here, unlike in `pageTitle` below: `og:title` is set
+ * explicitly by each page and is not run through the site-wide `titleTemplate`
+ * that decorates `<title>`.
  */
 export function socialTitle(title: string): string {
-  return withBrand(title);
+  return `${title}${TITLE_SUFFIX}`;
 }
 
 /**
- * The `<title>`, which is a different job from the share card and now says so.
+ * The `<title>` headline, WITHOUT the brand.
  *
- * These used to be the same string, so a word page's `<title>` was the bare word
- * -- `食べる`, and nothing else. That is the headline for ~19.8k of the site's
- * indexed pages and it carried no brand, no language, and none of the words
- * anyone actually types alongside a term they are looking up. The share card had
- * the brand; the search result did not.
+ * `@nuxtjs/seo` installs a site-wide `titleTemplate` built from `site.name`, so
+ * every page title already comes out as `<headline> | Nadeshiko` -- verified on
+ * production, where the code sets a bare `だ` and the document renders
+ * `だ | Nadeshiko`. (`pages/index.vue` overrides that template with `'%s'`,
+ * which is why the home page alone has no suffix.) Appending the brand here too
+ * would render it twice.
  *
- * The headline comes from a translated string per page type (`seo.*.pageTitle`),
- * so what each one adds is editable per locale, and the brand is appended here
- * rather than baked into thirty translations.
+ * What this fixes is the rest of the headline: a word page's title was the bare
+ * word and nothing else, across ~19.8k indexed pages, carrying none of the words
+ * anyone types alongside a term they are looking up. The headline text comes
+ * from a translated string per page type (`seo.*.pageTitle`) so each locale can
+ * phrase its own.
  *
  * Kept short on purpose: search engines truncate around 60 characters, and the
- * subject has to survive that, so the suffix is the part that gets dropped.
+ * template's suffix eats into that.
  */
 export function pageTitle(headline: string): string {
-  return withBrand(headline);
+  return headline;
 }
 
 /**

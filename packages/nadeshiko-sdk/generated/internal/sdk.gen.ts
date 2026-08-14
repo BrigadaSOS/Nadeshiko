@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddExcludedMediaData, AddExcludedMediaErrors, AddExcludedMediaResponses, AddSegmentToCollectionData, AddSegmentToCollectionErrors, AddSegmentToCollectionResponses, AuthAdminStopImpersonatingData, AuthAdminStopImpersonatingErrors, AuthAdminStopImpersonatingResponses, AuthApiKeyCreateData, AuthApiKeyCreateErrors, AuthApiKeyCreateResponses, AuthApiKeyListData, AuthApiKeyListErrors, AuthApiKeyListResponses, AuthApiKeyUpdateData, AuthApiKeyUpdateErrors, AuthApiKeyUpdateResponses, AuthRevokeOtherSessionsData, AuthRevokeOtherSessionsErrors, AuthRevokeOtherSessionsResponses, AuthRevokeSessionData, AuthRevokeSessionErrors, AuthRevokeSessionResponses, AuthRevokeSessionsData, AuthRevokeSessionsErrors, AuthRevokeSessionsResponses, BanUserData, BanUserErrors, BanUserResponses, BatchUpdateAdminReportsData, BatchUpdateAdminReportsErrors, BatchUpdateAdminReportsResponses, BulkDeleteAdminReportsData, BulkDeleteAdminReportsErrors, BulkDeleteAdminReportsResponses, BulkUpdateAdminReportsData, BulkUpdateAdminReportsErrors, BulkUpdateAdminReportsResponses, ChangeEmailData, ChangeEmailErrors, ChangeEmailResponses, CreateCollectionData, CreateCollectionErrors, CreateCollectionResponses, CreateEpisodeData, CreateEpisodeErrors, CreateEpisodeResponses, CreateMediaData, CreateMediaErrors, CreateMediaResponses, CreateSegmentData, CreateSegmentErrors, CreateSegmentResponses, CreateSegmentsBatchData, CreateSegmentsBatchErrors, CreateSegmentsBatchResponses, CreateUserReportData, CreateUserReportErrors, CreateUserReportResponses, DeleteAdminReportData, DeleteAdminReportErrors, DeleteAdminReportResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DeleteUserActivityByDateData, DeleteUserActivityByDateErrors, DeleteUserActivityByDateResponses, DeleteUserActivityByIdData, DeleteUserActivityByIdErrors, DeleteUserActivityByIdResponses, DeleteUserActivityData, DeleteUserActivityErrors, DeleteUserActivityResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, ExportUserDataData, ExportUserDataErrors, ExportUserDataResponses, GetAdminUsersWithProvidersData, GetAdminUsersWithProvidersErrors, GetAdminUsersWithProvidersResponses, GetAnnouncementData, GetAnnouncementErrors, GetAnnouncementResponses, GetCollectionData, GetCollectionErrors, GetCollectionResponses, GetCollectionStatsData, GetCollectionStatsErrors, GetCollectionStatsResponses, GetCoveredWordsData, GetCoveredWordsErrors, GetCoveredWordsResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetMeData, GetMediaData, GetMediaErrors, GetMediaResponses, GetMeErrors, GetMeResponses, GetSearchStatsData, GetSearchStatsErrors, GetSearchStatsResponses, GetSegmentContextData, GetSegmentContextErrors, GetSegmentContextResponses, GetSegmentData, GetSegmentErrors, GetSegmentResponses, GetSessionData, GetSessionErrors, GetSessionPostData, GetSessionPostErrors, GetSessionPostResponses, GetSessionResponses, GetStatsOverviewData, GetStatsOverviewErrors, GetStatsOverviewResponses, GetUserActivityHeatmapData, GetUserActivityHeatmapErrors, GetUserActivityHeatmapResponses, GetUserActivityStatsData, GetUserActivityStatsErrors, GetUserActivityStatsResponses, GetUserPreferencesData, GetUserPreferencesErrors, GetUserPreferencesResponses, ImpersonateUserData, ImpersonateUserErrors, ImpersonateUserResponses, ListAdminReportsData, ListAdminReportsErrors, ListAdminReportsResponses, ListAgentActivityData, ListAgentActivityErrors, ListAgentActivityResponses, ListCollectionsData, ListCollectionsErrors, ListCollectionsResponses, ListEpisodesData, ListEpisodesErrors, ListEpisodesResponses, ListExcludedMediaData, ListExcludedMediaErrors, ListExcludedMediaResponses, ListMediaData, ListMediaErrors, ListMediaResponses, ListSegmentRevisionsData, ListSegmentRevisionsErrors, ListSegmentRevisionsResponses, ListSegmentsData, ListSegmentsErrors, ListSegmentsResponses, ListUserActivityData, ListUserActivityErrors, ListUserActivityResponses, ListUserSessionsData, ListUserSessionsErrors, ListUserSessionsResponses, ModerateEpisodeSegmentsData, ModerateEpisodeSegmentsErrors, ModerateEpisodeSegmentsResponses, RemoveExcludedMediaData, RemoveExcludedMediaErrors, RemoveExcludedMediaResponses, RemoveSegmentFromCollectionData, RemoveSegmentFromCollectionErrors, RemoveSegmentFromCollectionResponses, RestoreSegmentRevisionData, RestoreSegmentRevisionErrors, RestoreSegmentRevisionResponses, SearchCollectionSegmentsData, SearchCollectionSegmentsErrors, SearchCollectionSegmentsResponses, SearchData, SearchErrors, SearchMediaData, SearchMediaErrors, SearchMediaResponses, SearchResponses, SearchWordsData, SearchWordsErrors, SearchWordsResponses, SignInWithMagicLinkData, SignInWithMagicLinkErrors, SignInWithMagicLinkResponses, SignOutData, SignOutErrors, SignOutResponses, SocialSignInData, SocialSignInErrors, SocialSignInResponses, TrackUserActivityData, TrackUserActivityErrors, TrackUserActivityResponses, TriggerCoveredWordsUpdateData, TriggerCoveredWordsUpdateErrors, TriggerCoveredWordsUpdateResponses, UnbanUserData, UnbanUserErrors, UnbanUserResponses, UpdateAdminReportData, UpdateAdminReportErrors, UpdateAdminReportResponses, UpdateAnnouncementData, UpdateAnnouncementErrors, UpdateAnnouncementResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UpdateCollectionSegmentData, UpdateCollectionSegmentErrors, UpdateCollectionSegmentResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateMediaData, UpdateMediaErrors, UpdateMediaResponses, UpdateSegmentData, UpdateSegmentErrors, UpdateSegmentResponses, UpdateUserPreferencesData, UpdateUserPreferencesErrors, UpdateUserPreferencesResponses } from './types.gen';
+import type { AddExcludedMediaData, AddExcludedMediaErrors, AddExcludedMediaResponses, AddFavoriteMediaData, AddFavoriteMediaErrors, AddFavoriteMediaResponses, AddSegmentToCollectionData, AddSegmentToCollectionErrors, AddSegmentToCollectionResponses, AuthAdminStopImpersonatingData, AuthAdminStopImpersonatingErrors, AuthAdminStopImpersonatingResponses, AuthApiKeyCreateData, AuthApiKeyCreateErrors, AuthApiKeyCreateResponses, AuthApiKeyListData, AuthApiKeyListErrors, AuthApiKeyListResponses, AuthApiKeyUpdateData, AuthApiKeyUpdateErrors, AuthApiKeyUpdateResponses, AuthRevokeOtherSessionsData, AuthRevokeOtherSessionsErrors, AuthRevokeOtherSessionsResponses, AuthRevokeSessionData, AuthRevokeSessionErrors, AuthRevokeSessionResponses, AuthRevokeSessionsData, AuthRevokeSessionsErrors, AuthRevokeSessionsResponses, BanUserData, BanUserErrors, BanUserResponses, BatchUpdateAdminReportsData, BatchUpdateAdminReportsErrors, BatchUpdateAdminReportsResponses, BulkDeleteAdminReportsData, BulkDeleteAdminReportsErrors, BulkDeleteAdminReportsResponses, BulkUpdateAdminReportsData, BulkUpdateAdminReportsErrors, BulkUpdateAdminReportsResponses, ChangeEmailData, ChangeEmailErrors, ChangeEmailResponses, ClearFamiliarMediaData, ClearFamiliarMediaErrors, ClearFamiliarMediaResponses, CreateCollectionData, CreateCollectionErrors, CreateCollectionResponses, CreateEpisodeData, CreateEpisodeErrors, CreateEpisodeResponses, CreateMediaData, CreateMediaErrors, CreateMediaResponses, CreateSegmentData, CreateSegmentErrors, CreateSegmentResponses, CreateSegmentsBatchData, CreateSegmentsBatchErrors, CreateSegmentsBatchResponses, CreateUserApiKeyData, CreateUserApiKeyErrors, CreateUserApiKeyResponses, CreateUserReportData, CreateUserReportErrors, CreateUserReportResponses, DeleteAdminReportData, DeleteAdminReportErrors, DeleteAdminReportResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DeleteUserActivityByDateData, DeleteUserActivityByDateErrors, DeleteUserActivityByDateResponses, DeleteUserActivityByIdData, DeleteUserActivityByIdErrors, DeleteUserActivityByIdResponses, DeleteUserActivityData, DeleteUserActivityErrors, DeleteUserActivityResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, ExportUserDataData, ExportUserDataErrors, ExportUserDataResponses, ForgetFamiliarMediaData, ForgetFamiliarMediaErrors, ForgetFamiliarMediaResponses, GetAdminUsersWithProvidersData, GetAdminUsersWithProvidersErrors, GetAdminUsersWithProvidersResponses, GetAnnouncementData, GetAnnouncementErrors, GetAnnouncementResponses, GetCollectionData, GetCollectionErrors, GetCollectionResponses, GetCollectionStatsData, GetCollectionStatsErrors, GetCollectionStatsResponses, GetCoveredWordsData, GetCoveredWordsErrors, GetCoveredWordsResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetMeData, GetMediaData, GetMediaErrors, GetMediaResponses, GetMeErrors, GetMeResponses, GetSearchStatsData, GetSearchStatsErrors, GetSearchStatsResponses, GetSegmentContextData, GetSegmentContextErrors, GetSegmentContextResponses, GetSegmentData, GetSegmentErrors, GetSegmentResponses, GetSessionData, GetSessionErrors, GetSessionPostData, GetSessionPostErrors, GetSessionPostResponses, GetSessionResponses, GetStatsOverviewData, GetStatsOverviewErrors, GetStatsOverviewResponses, GetUserActivityHeatmapData, GetUserActivityHeatmapErrors, GetUserActivityHeatmapResponses, GetUserActivityStatsData, GetUserActivityStatsErrors, GetUserActivityStatsResponses, GetUserPreferencesData, GetUserPreferencesErrors, GetUserPreferencesResponses, ImpersonateUserData, ImpersonateUserErrors, ImpersonateUserResponses, ListAdminReportsData, ListAdminReportsErrors, ListAdminReportsResponses, ListAgentActivityData, ListAgentActivityErrors, ListAgentActivityResponses, ListCollectionsData, ListCollectionsErrors, ListCollectionsResponses, ListEpisodesData, ListEpisodesErrors, ListEpisodesResponses, ListExcludedMediaData, ListExcludedMediaErrors, ListExcludedMediaResponses, ListFamiliarMediaData, ListFamiliarMediaErrors, ListFamiliarMediaResponses, ListFavoriteMediaData, ListFavoriteMediaErrors, ListFavoriteMediaResponses, ListMediaData, ListMediaErrors, ListMediaResponses, ListSegmentRevisionsData, ListSegmentRevisionsErrors, ListSegmentRevisionsResponses, ListSegmentsData, ListSegmentsErrors, ListSegmentsResponses, ListUserActivityData, ListUserActivityErrors, ListUserActivityResponses, ListUserSessionsData, ListUserSessionsErrors, ListUserSessionsResponses, ModerateEpisodeSegmentsData, ModerateEpisodeSegmentsErrors, ModerateEpisodeSegmentsResponses, RemoveExcludedMediaData, RemoveExcludedMediaErrors, RemoveExcludedMediaResponses, RemoveFavoriteMediaData, RemoveFavoriteMediaErrors, RemoveFavoriteMediaResponses, RemoveSegmentFromCollectionData, RemoveSegmentFromCollectionErrors, RemoveSegmentFromCollectionResponses, RestoreSegmentRevisionData, RestoreSegmentRevisionErrors, RestoreSegmentRevisionResponses, SearchCollectionSegmentsData, SearchCollectionSegmentsErrors, SearchCollectionSegmentsResponses, SearchData, SearchErrors, SearchMediaData, SearchMediaErrors, SearchMediaResponses, SearchResponses, SearchWordsData, SearchWordsErrors, SearchWordsResponses, SignInWithMagicLinkData, SignInWithMagicLinkErrors, SignInWithMagicLinkResponses, SignOutData, SignOutErrors, SignOutResponses, SocialSignInData, SocialSignInErrors, SocialSignInResponses, TrackUserActivityData, TrackUserActivityErrors, TrackUserActivityResponses, TriggerCoveredWordsUpdateData, TriggerCoveredWordsUpdateErrors, TriggerCoveredWordsUpdateResponses, UnbanUserData, UnbanUserErrors, UnbanUserResponses, UpdateAdminReportData, UpdateAdminReportErrors, UpdateAdminReportResponses, UpdateAnnouncementData, UpdateAnnouncementErrors, UpdateAnnouncementResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UpdateCollectionSegmentData, UpdateCollectionSegmentErrors, UpdateCollectionSegmentResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateMediaData, UpdateMediaErrors, UpdateMediaResponses, UpdateSegmentData, UpdateSegmentErrors, UpdateSegmentResponses, UpdateUserPreferencesData, UpdateUserPreferencesErrors, UpdateUserPreferencesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -462,6 +462,41 @@ export const getMe = <ThrowOnError extends boolean = false>(options?: Options<Ge
 });
 
 /**
+ * Create an API key with chosen scopes
+ *
+ * Creates an API key for the signed-in reader, carrying exactly the scopes
+ * asked for.
+ *
+ * Use this rather than the better-auth `/v1/auth/api-key/create` endpoint
+ * whenever the key is going anywhere but your own code. That endpoint cannot
+ * take a scope list — the underlying plugin treats `permissions` as a
+ * server-only field and rejects any request that carries one — so keys made
+ * through it get the read-only default instead.
+ *
+ * **Scopes are the whole of a key's authority.** Nothing re-checks the owner's
+ * role when the key is used, so a key with `WRITE_PROFILE` can rewrite that
+ * account's profile from anywhere it ends up. Grant the narrowest set the
+ * consumer needs: a third-party search or dictionary tool wants
+ * `["READ_MEDIA"]` and nothing else.
+ *
+ * Session-authenticated only. A key cannot be used to mint another key.
+ *
+ */
+export const createUserApiKey = <ThrowOnError extends boolean = false>(options: Options<CreateUserApiKeyData, ThrowOnError>): RequestResult<CreateUserApiKeyResponses, CreateUserApiKeyErrors, ThrowOnError> => (options.client ?? client).post<CreateUserApiKeyResponses, CreateUserApiKeyErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/api-keys',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List excluded media
  *
  * Returns the list of media entries the authenticated user has excluded from search results.
@@ -500,6 +535,117 @@ export const addExcludedMedia = <ThrowOnError extends boolean = false>(options: 
 export const removeExcludedMedia = <ThrowOnError extends boolean = false>(options: Options<RemoveExcludedMediaData, ThrowOnError>): RequestResult<RemoveExcludedMediaResponses, RemoveExcludedMediaErrors, ThrowOnError> => (options.client ?? client).delete<RemoveExcludedMediaResponses, RemoveExcludedMediaErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/v1/user/excluded-media/{mediaPublicId}',
+    ...options
+});
+
+/**
+ * List starred media
+ *
+ * Returns the media the authenticated reader has starred, newest first.
+ *
+ */
+export const listFavoriteMedia = <ThrowOnError extends boolean = false>(options?: Options<ListFavoriteMediaData, ThrowOnError>): RequestResult<ListFavoriteMediaResponses, ListFavoriteMediaErrors, ThrowOnError> => (options?.client ?? client).get<ListFavoriteMediaResponses, ListFavoriteMediaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/v1/user/favorite-media',
+    ...options
+});
+
+/**
+ * Star media
+ *
+ * Stars a media title for the authenticated reader. Starred titles sort to the
+ * top of the search media filter.
+ *
+ * Refused with `400` past 100 entries: the whole preferences column is
+ * rewritten on every change, so the list is deliberately bounded.
+ *
+ */
+export const addFavoriteMedia = <ThrowOnError extends boolean = false>(options: Options<AddFavoriteMediaData, ThrowOnError>): RequestResult<AddFavoriteMediaResponses, AddFavoriteMediaErrors, ThrowOnError> => (options.client ?? client).post<AddFavoriteMediaResponses, AddFavoriteMediaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/v1/user/favorite-media',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Unstar media
+ *
+ * Removes a media title from the authenticated reader's starred list. The title
+ * keeps appearing in the search media filter; it simply stops sorting first.
+ *
+ */
+export const removeFavoriteMedia = <ThrowOnError extends boolean = false>(options: Options<RemoveFavoriteMediaData, ThrowOnError>): RequestResult<RemoveFavoriteMediaResponses, RemoveFavoriteMediaErrors, ThrowOnError> => (options.client ?? client).delete<RemoveFavoriteMediaResponses, RemoveFavoriteMediaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/v1/user/favorite-media/{mediaPublicId}',
+    ...options
+});
+
+/**
+ * Forget which titles the reader studies
+ *
+ * Deletes the authenticated reader's whole media tally.
+ *
+ * Separate from clearing activity history on purpose: the two are stored apart
+ * and consented to apart, so neither clear touches the other's rows.
+ *
+ */
+export const clearFamiliarMedia = <ThrowOnError extends boolean = false>(options?: Options<ClearFamiliarMediaData, ThrowOnError>): RequestResult<ClearFamiliarMediaResponses, ClearFamiliarMediaErrors, ThrowOnError> => (options?.client ?? client).delete<ClearFamiliarMediaResponses, ClearFamiliarMediaErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/familiar-media',
+    ...options
+});
+
+/**
+ * List the titles the reader studies most
+ *
+ * Returns the titles the authenticated reader engages with most, highest score
+ * first, for sorting the search media filter and for showing the reader what
+ * the tally holds.
+ *
+ * Scored from a monthly per-title tally of Anki exports, plays and shares --
+ * NOT from the activity log, which `searchHistory` governs and a nightly job
+ * prunes at 90 days. Anki exports weigh heaviest (deliberate mining); plays are
+ * scaled logarithmically so one long autoplay session cannot outrank a month of
+ * study. Empty when the reader has `familiarMedia.enabled` off.
+ *
+ */
+export const listFamiliarMedia = <ThrowOnError extends boolean = false>(options?: Options<ListFamiliarMediaData, ThrowOnError>): RequestResult<ListFamiliarMediaResponses, ListFamiliarMediaErrors, ThrowOnError> => (options?.client ?? client).get<ListFamiliarMediaResponses, ListFamiliarMediaErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/v1/user/familiar-media',
+    ...options
+});
+
+/**
+ * Forget one title from the reader's tally
+ *
+ * Deletes the authenticated reader's tally for a single title, across every
+ * month it was counted in.
+ *
+ * The whole-tally clear is the blunt instrument; this is the one a reader
+ * reaches for when a single show is wrong -- a title they watched once for
+ * somebody else, or one the tally over-read. Forgetting a title does not stop
+ * it being counted again: the next export or share against it starts a fresh
+ * tally, which is the honest behaviour for a running count rather than a
+ * blocklist.
+ *
+ * Separate from the activity history, like the whole-tally clear: the two are
+ * stored apart and consented to apart, so neither touches the other's rows.
+ *
+ */
+export const forgetFamiliarMedia = <ThrowOnError extends boolean = false>(options: Options<ForgetFamiliarMediaData, ThrowOnError>): RequestResult<ForgetFamiliarMediaResponses, ForgetFamiliarMediaErrors, ThrowOnError> => (options.client ?? client).delete<ForgetFamiliarMediaResponses, ForgetFamiliarMediaErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/familiar-media/{mediaPublicId}',
     ...options
 });
 

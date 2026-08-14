@@ -90,6 +90,16 @@ properties:
     minLength: 1
     description: End date of the media (last airing/release)
     example: "2011-04-02"
+  updatedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: |
+      When this entry was last modified. Distinct from the airing dates above,
+      which describe the work; this describes the record, and is what the sitemap
+      publishes as `lastmod` so crawlers can tell a changed title from an
+      untouched one. Null for a row never updated since the column was added.
+    example: "2026-08-14T09:12:44.000Z"
   category:
     $ref: "./Category.yaml"
   segmentCount:

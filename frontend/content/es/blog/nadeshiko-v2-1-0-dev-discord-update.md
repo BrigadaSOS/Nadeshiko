@@ -1,5 +1,5 @@
 ---
-title: "Nadeshiko v2.1.0 - La actualización para devs (+ ¡nueva integración del bot de Discord!)"
+title: "v2.1.0 - La actualización para devs (+ ¡nueva integración del bot de Discord!)"
 description: "SDKs oficiales, bot de Discord público, y promesa de estabilidad en la API."
 date: 2026-04-20T00:00:00Z
 image: /images/blog/v2-1-0-activity.webp
