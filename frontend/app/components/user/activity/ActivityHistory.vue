@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { buildSentencePath, buildWordSearchPath } from '~/utils/routes';
+import { buildSentencePath, buildScopedSearchPath } from '~/utils/routes';
 import { type ActivityItem, activityTypeClass, activityTypeLabel, formatDayLabel } from './activityHelpers';
 
 const props = defineProps<{
@@ -45,7 +45,11 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
       prev &&
       prev.activityType === item.activityType &&
       prev.segmentPublicId === item.segmentPublicId &&
-      prev.searchQuery === item.searchQuery
+      prev.searchQuery === item.searchQuery &&
+      // The title a search was run inside is part of which search it was, so
+      // the same query across everything and inside one show stay two rows here
+      // as well as in the bar's recents menu.
+      prev.mediaPublicId === item.mediaPublicId
     ) {
       prev.count++;
       prev.ids.push(item.id);
@@ -132,22 +136,30 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
                 <span v-if="activity.count > 1" class="opacity-70">&times;{{ activity.count }}</span>
               </span>
             </td>
-            <td class="py-2.5 pr-4 truncate">
+            <td class="py-2.5 pr-4">
               <a
                 v-if="activity.searchQuery"
-                :href="localePath(buildWordSearchPath(activity.searchQuery))"
-                class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
+                :href="localePath(buildScopedSearchPath(activity.searchQuery, activity.mediaPublicId))"
+                class="inline-flex max-w-full min-w-0 items-center gap-2"
               >
-                {{ activity.searchQuery }}
+                <span class="truncate text-gray-200 hover:text-white hover:underline">{{ activity.searchQuery }}</span>
+                <span
+                  v-if="activity.mediaPublicId"
+                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-neutral-600 bg-white/10 px-2.5 py-0.5 text-xs font-medium text-neutral-400"
+                >
+                  {{ activity.mediaName || t('accountSettings.activity.history.inOneTitle') }}
+                </span>
               </a>
               <a
                 v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE' || activity.activityType === 'ANKI_EXPORT') && activity.segmentPublicId && (activity.mediaName || activity.japaneseText)"
                 :href="localePath(buildSentencePath(activity.segmentPublicId))"
-                class="text-gray-200 hover:text-white hover:underline truncate inline-block max-w-full"
+                class="inline-flex max-w-full min-w-0 items-center gap-2"
               >
-                <span v-if="activity.mediaName" class="text-gray-400">{{ activity.mediaName }}</span>
-                <span v-if="activity.mediaName && activity.japaneseText" class="text-gray-600 mx-1">—</span>
-                <span v-if="activity.japaneseText">{{ stripTags(activity.japaneseText) }}</span>
+                <span
+                  v-if="activity.mediaName"
+                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-neutral-600 bg-white/10 px-2.5 py-0.5 text-xs font-medium text-neutral-400"
+                >{{ activity.mediaName }}</span>
+                <span v-if="activity.japaneseText" class="truncate text-gray-200 hover:text-white hover:underline">{{ stripTags(activity.japaneseText) }}</span>
               </a>
               <span v-else class="text-gray-500">{{ t('accountSettings.activity.history.noDetails') }}</span>
             </td>

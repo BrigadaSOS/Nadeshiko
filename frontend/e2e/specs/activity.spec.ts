@@ -39,6 +39,34 @@ test.describe('Activity', () => {
     await expect(activity.sharesCount).toBeVisible();
   });
 
+  /**
+   * The initial load has to succeed ON THE SERVER, not merely end up on screen.
+   *
+   * Its handler pulls the stats, the history, the heatmap and the studied-titles
+   * ranking together, so anything throwing inside it takes all four down at
+   * once: `useAsyncData` writes a `NuxtError` into the payload where their data
+   * belonged, and the page falls back to re-fetching every one of them from the
+   * browser. It still *looks* right, which is why this reads the server's own
+   * HTML rather than the rendered page.
+   *
+   * Honest about its reach: this asserts the invariant (the pass ran and
+   * answered), not a specific bug. The failure that prompted it -- a Pinia
+   * instance missing inside the handler -- was seen once on a live render and
+   * has not reproduced on demand, so this has never been observed going red.
+   * It is cheap, and it is the assertion that would catch the shape of it.
+   */
+  test('renders its initial load on the server, without falling back to the client', async ({
+    authenticatedPage,
+  }) => {
+    const html = await (await authenticatedPage.request.get('/en/user/activity')).text();
+
+    expect(html, 'the initial-load payload key should be present').toContain('settings-activity-initial');
+    expect(html, 'a handler that threw leaves a NuxtError in the payload').not.toContain('NuxtError');
+    expect(html, 'reaching for a store inside the handler breaks it on the server').not.toContain('getActivePinia');
+    // Set only on the path where the server pass actually answered.
+    expect(html, 'the server pass must have answered, not merely run').toContain('fetchedOnServer');
+  });
+
   test('audio play action appears in activity history', async ({ authenticatedPage }) => {
     // Navigate to search and find results
     await authenticatedPage.goto('/search');
