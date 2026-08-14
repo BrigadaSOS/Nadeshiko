@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { handleApiError } from '~/utils/apiError';
+import { useToastSuccess } from '~/utils/toast';
 import {
   ACTIVITY_PAGE_SIZE,
   type ActivityItem,
@@ -23,6 +24,11 @@ function reportInitialFailure(slice: string) {
   };
 }
 
+// Declared above the initial load because that load now fetches the ranking too:
+// it is rendered on this page alone, and fetching it from `onMounted` meant the
+// transparency list arrived empty and then filled in a moment after hydration.
+const { entries: familiarEntries, load: loadFamiliarMedia, clear: clearFamiliar } = useFamiliarMedia();
+
 const { data: initialData } = await useAsyncData(
   'settings-activity-initial',
   async () => {
@@ -31,6 +37,9 @@ const { data: initialData } = await useAsyncData(
       sdk.getUserActivityStats(since7d ? { since: since7d } : {}).catch(reportInitialFailure('stats')),
       sdk.listUserActivity({ take: ACTIVITY_PAGE_SIZE }).catch(reportInitialFailure('activity')),
       sdk.getUserActivityHeatmap({ days: HEATMAP_DAYS }).catch(reportInitialFailure('heatmap')),
+      // Stored in `useState` by the composable, which rides the payload on its
+      // own; nothing of it needs to be returned from here.
+      loadFamiliarMedia(),
     ]);
 
     // Preferences are already in the store -- the SSR identity bootstrap loads
@@ -41,6 +50,12 @@ const { data: initialData } = await useAsyncData(
     const prefs = userStore().preferences as Record<string, any> | undefined;
 
     return {
+      // Whether the server pass came back with answers, not merely whether it
+      // ran. `reportInitialFailure` turns a failed slice into `null`, and a
+      // render that could not authenticate turns every slice into one -- so this
+      // is false exactly when the page would otherwise be left empty. The
+      // `onMounted` at the foot of this file is what reads it.
+      fetchedOnServer: statsRes !== null && activityRes !== null,
       stats: statsRes as ActivityStats | null,
       activities: (activityRes?.activities ?? []) as ActivityItem[],
       hasMore: activityRes?.pagination?.hasMore ?? false,
@@ -55,6 +70,7 @@ const { data: initialData } = await useAsyncData(
     // what this was `server: false` to avoid. The `/user/**` route guard runs
     // before setup, so it only ever executes for someone signed in.
     default: () => ({
+      fetchedOnServer: false,
       stats: null as ActivityStats | null,
       activities: [] as ActivityItem[],
       hasMore: false,
@@ -81,6 +97,10 @@ seedActivityPagination(initialData.value);
 const trackingEnabled = ref(initialData.value.trackingEnabled);
 const togglingTracking = ref(false);
 const clearingHistory = ref(false);
+
+const familiarEnabled = ref(userStore().preferences?.familiarMedia?.enabled !== false);
+const togglingFamiliar = ref(false);
+const clearingFamiliar = ref(false);
 const heatmapLoading = ref(false);
 const heatmapFilter = ref<string | null>(null);
 const heatmapRaw = ref<HeatmapRawData>(initialData.value.heatmapRaw);
@@ -104,6 +124,7 @@ const fetchTrackingState = async () => {
   });
   const prefs = data as Record<string, any> | null;
   trackingEnabled.value = prefs?.searchHistory?.enabled !== false;
+  familiarEnabled.value = prefs?.familiarMedia?.enabled !== false;
 };
 
 const fetchStats = async () => {
@@ -172,10 +193,53 @@ const toggleTracking = async () => {
     user.preferences = { ...(user.preferences ?? {}), searchHistory: { enabled: newValue } };
     const posthog = usePostHog();
     posthog?.capture('activity_tracking_toggled', { enabled: newValue });
+    // Confirmed like every other saved preference: the switch moving is the only
+    // other sign, and it moves the same way whether or not the write landed.
+    useToastSuccess(
+      t(newValue ? 'accountSettings.activity.trackingOnToast' : 'accountSettings.activity.trackingOffToast'),
+    );
   } catch (error) {
     handleApiError('activity.toggleTracking', error);
   } finally {
     togglingTracking.value = false;
+  }
+};
+
+const toggleFamiliarMedia = async () => {
+  if (togglingFamiliar.value) return;
+  togglingFamiliar.value = true;
+  const newValue = !familiarEnabled.value;
+  try {
+    await sdk.updateUserPreferences({ familiarMedia: { enabled: newValue } });
+    familiarEnabled.value = newValue;
+    const user = userStore();
+    user.preferences = { ...(user.preferences ?? {}), familiarMedia: { enabled: newValue } };
+    useToastSuccess(
+      t(newValue ? 'accountSettings.activity.familiarOnToast' : 'accountSettings.activity.familiarOffToast'),
+    );
+  } catch (error) {
+    handleApiError('activity.toggleFamiliarMedia', error);
+  } finally {
+    togglingFamiliar.value = false;
+  }
+};
+
+const clearFamiliarMedia = async () => {
+  if (clearingFamiliar.value) return;
+  if (!confirm(t('accountSettings.activity.confirmClearFamiliar'))) return;
+  clearingFamiliar.value = true;
+  try {
+    // Only the tally. Activity history is a separate store with a separate
+    // button, and neither clear reaches into the other.
+    const forgotten = await clearFamiliar();
+    // `null` is the failure, which has already raised its own toast; 0 is a
+    // successful clear of a tally that was already empty, and still worth
+    // confirming -- the list looked the same before and after either way.
+    if (forgotten !== null) {
+      useToastSuccess(t('accountSettings.activity.clearFamiliarToast', { count: forgotten }));
+    }
+  } finally {
+    clearingFamiliar.value = false;
   }
 };
 
@@ -191,6 +255,7 @@ const clearHistory = async () => {
     heatmapRaw.value = {};
     await fetchStats();
     await loadHeatmap();
+    useToastSuccess(t('accountSettings.activity.clearHistoryToast'));
   } catch (error) {
     handleApiError('activity.clearHistory', error);
   } finally {
@@ -254,8 +319,28 @@ watch(activityTypeFilter, () => {
   refetchActivity();
 });
 
+/**
+ * The recovery path, and only that.
+ *
+ * This ran unconditionally, from when the initial load above was `server: false`
+ * and the client was the only thing that ever fetched. Once that load moved to
+ * the server it became a straight duplicate whenever the server pass worked: the
+ * same three requests with the same arguments -- `statsRange` is still `7d` and
+ * no day or type filter is set this early -- fired again the moment hydration
+ * finished, onto a page that already had every one of their answers.
+ * Preferences were the worst of the three, since the SSR identity bootstrap puts
+ * them in the store and the load above reads them from there rather than asking.
+ *
+ * Gated on the server pass having *answered*, not merely run, because the two
+ * come apart: a render that cannot authenticate for these owner-scoped routes
+ * still completes, with every slice nulled by `reportInitialFailure`. That is
+ * the case this duplicate was quietly covering, and it is the one case where
+ * asking again from the browser is the difference between a populated page and
+ * an empty one.
+ */
 onMounted(async () => {
-  await Promise.all([fetchTrackingState(), fetchStats(), refetchActivity()]);
+  if (initialData.value.fetchedOnServer) return;
+  await Promise.all([fetchTrackingState(), fetchStats(), refetchActivity(), loadFamiliarMedia()]);
 });
 </script>
 
@@ -289,7 +374,13 @@ onMounted(async () => {
     :tracking-enabled="trackingEnabled"
     :toggling="togglingTracking"
     :clearing="clearingHistory"
+    :familiar-enabled="familiarEnabled"
+    :toggling-familiar="togglingFamiliar"
+    :clearing-familiar="clearingFamiliar"
+    :familiar-entries="familiarEntries"
     @toggle-tracking="toggleTracking"
     @clear-history="clearHistory"
+    @toggle-familiar="toggleFamiliarMedia"
+    @clear-familiar="clearFamiliarMedia"
   />
 </template>

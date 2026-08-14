@@ -22,3 +22,10 @@ properties:
     type: string
   searchQuery:
     type: string
+  autoplay:
+    type: boolean
+    description: |
+      Whether this `SEGMENT_PLAY` was started by autoplay rather than by the
+      reader. Recorded as activity either way; excluded from the familiar-media
+      tally, where a playlist running on its own is not evidence of studying.
+
