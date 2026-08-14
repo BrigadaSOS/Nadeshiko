@@ -105,8 +105,27 @@ jobs:
             echo "Invalid semver tag: ${RELEASE_TAG}"
             exit 1
           fi
+          # A release tag has to sit on a commit someone reviewed, not on an
+          # arbitrary SHA. `main` is staging, so anything tagged there has run
+          # the staging deploy and E2E. `production` is the hotfix lane: it
+          # branches off the last prod tag precisely so a fix can ship without
+          # dragging main's unreleased work with it, which means a hotfix commit
+          # is NOT an ancestor of main at tag time -- it only merges back after.
+          # Accepting just main would make that lane untaggable.
+          #
+          # Checked out at fetch-depth 0, so both remote-tracking refs are
+          # already here; the fetch just guards against a stale one. `production`
+          # is fetched separately and allowed to fail, so a repo that has not
+          # cut the branch yet still releases off main.
           git fetch origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          git fetch origin production || true
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+            && ! { git rev-parse --verify -q origin/production >/dev/null \
+                   && git merge-base --is-ancestor "$GITHUB_SHA" origin/production; }; then
+            echo "::error::${RELEASE_TAG} is not on main or production. Tag a" \
+                 "commit that is on one of them; see DEPLOYMENT.md."
+            exit 1
+          fi
           npm run release:check-version "${VERSION}"
 
       - name: Generate OpenAPI specs
