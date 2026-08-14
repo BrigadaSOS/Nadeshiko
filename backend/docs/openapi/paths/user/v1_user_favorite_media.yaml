@@ -1,0 +1,76 @@
+get:
+  tags:
+    - User
+  operationId: listFavoriteMedia
+  summary: List starred media
+  description: |
+    Returns the media the authenticated reader has starred, newest first.
+
+  security:
+    - ApiKey: [READ_PROFILE]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - favoriteMedia
+            properties:
+              favoriteMedia:
+                type: array
+                items:
+                  $ref: "../../components/schemas/MediaSummary.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  tags:
+    - User
+  operationId: addFavoriteMedia
+  summary: Star media
+  description: |
+    Stars a media title for the authenticated reader. Starred titles sort to the
+    top of the search media filter.
+
+    Refused with `400` past 100 entries: the whole preferences column is
+    rewritten on every change, so the list is deliberately bounded.
+
+  security:
+    - ApiKey: [WRITE_PROFILE]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - mediaPublicId
+          properties:
+            mediaPublicId:
+              type: string
+              pattern: '^[A-Za-z0-9_-]{12}$'
+              description: Public ID of the media to star
+              example: V1StGXR8_Z5d
+  responses:
+    "204":
+      description: No Content
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

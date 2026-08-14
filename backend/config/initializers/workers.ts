@@ -1,5 +1,6 @@
 import { PgBoss } from 'pg-boss';
 import { registerActivityRetentionWorker } from '@app/workers/activityRetentionWorker';
+import { registerAffinityRetentionWorker } from '@app/workers/affinityRetentionWorker';
 import { registerEmailWorkers } from '@app/workers/emailWorker';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { setBossInstance } from '@app/workers/pgBossClient';
@@ -7,6 +8,7 @@ import { registerQueueMetrics } from '@app/workers/workerInstrumentation';
 import {
   ALL_QUEUES,
   ACTIVITY_RETENTION_QUEUE,
+  AFFINITY_RETENTION_QUEUE,
   EMAIL_SEND_QUEUE,
   ES_SYNC_CREATE_QUEUE,
   ES_SYNC_DELETE_QUEUE,
@@ -82,6 +84,16 @@ export const workersInitializer: RuntimeInitializer = {
           retentionSeconds: 86400,
         },
       },
+      {
+        name: AFFINITY_RETENTION_QUEUE,
+        options: {
+          retryLimit: 3,
+          retryDelay: 60000,
+          retryBackoff: true,
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
+      },
     ];
 
     for (const queue of queues) {
@@ -89,6 +101,9 @@ export const workersInitializer: RuntimeInitializer = {
     }
 
     await boss.schedule(ACTIVITY_RETENTION_QUEUE, '0 3 * * *', {});
+    // An hour after the activity sweep, so the two nightly deletes do not
+    // contend for the same window.
+    await boss.schedule(AFFINITY_RETENTION_QUEUE, '0 4 * * *', {});
     logger.info('PgBoss initialized, queues created, cron scheduled');
 
     setBossInstance(boss);
@@ -97,6 +112,7 @@ export const workersInitializer: RuntimeInitializer = {
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);
     await registerActivityRetentionWorker(boss);
+    await registerAffinityRetentionWorker(boss);
   },
   shutdown: async () => {
     if (boss) {
