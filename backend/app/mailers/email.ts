@@ -3,6 +3,7 @@ import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import { buildWelcomeEmail, buildVerifyNewEmailEmail, buildMagicLinkEmail } from './emailTemplates';
+import { createLetterOpenerTransport, getPreviewUrl, LETTER_OPENER_DIR } from './letterOpener';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
@@ -19,18 +20,12 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
   const environment = getAppEnvironment(config.ENVIRONMENT);
 
   if (environment === APP_ENVIRONMENT.LOCAL) {
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
+    transporter = nodemailer.createTransport(createLetterOpenerTransport());
 
-    logger.info('Email transport configured with Ethereal. Preview URLs will be logged.');
+    logger.info(
+      { outputDir: LETTER_OPENER_DIR },
+      'Email transport configured with letter-opener. Emails open in your browser.',
+    );
     return transporter;
   }
 
@@ -86,15 +81,15 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
       html: options.html,
     });
 
-    const previewUrl = nodemailer.getTestMessageUrl(info);
+    const previewUrl = getPreviewUrl(info);
     if (previewUrl) {
       logger.info(
         {
           to: options.to,
           subject: options.subject,
-          previewUrl: previewUrl.toString(),
+          previewUrl,
         },
-        'Email sent (preview URL available)',
+        'Email opened in your browser',
       );
       return;
     }
@@ -140,8 +135,8 @@ export async function sendVerifyNewEmail(email: string, verificationUrl: string)
 export type TestEmailTemplate = 'welcome' | 'verify-new-email' | 'magic-link';
 
 /**
- * Sends a test email synchronously (bypassing the queue) and returns the Ethereal preview URL.
- * Intended for local development only.
+ * Sends a test email synchronously (bypassing the queue) and returns the preview
+ * URL of the file letter-opener wrote. Intended for local development only.
  */
 export async function sendTestEmail(template: TestEmailTemplate, to: string): Promise<{ previewUrl: string | null }> {
   const username = 'TestUser';
@@ -168,12 +163,12 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     html,
   });
 
-  const previewUrl = nodemailer.getTestMessageUrl(info);
+  const previewUrl = getPreviewUrl(info);
   if (previewUrl) {
-    logger.info({ to, subject, previewUrl: previewUrl.toString() }, 'Test email sent (preview URL available)');
+    logger.info({ to, subject, previewUrl }, 'Test email opened in your browser');
   } else {
     logger.info({ to, subject }, 'Test email sent via SES');
   }
 
-  return { previewUrl: previewUrl ? previewUrl.toString() : null };
+  return { previewUrl };
 }
