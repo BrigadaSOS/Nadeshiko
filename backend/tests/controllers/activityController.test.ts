@@ -18,6 +18,10 @@ let core: CoreFixtures;
 let fixtures: LoadedFixtures;
 const SEGMENT_PLAY_PUBLIC_ID = 'SegPlay00001';
 const SHARE_PUBLIC_ID = 'ShareSeg0012';
+// A second title for the tally tests. Synthetic on purpose: `UserMediaAffinity`
+// keys media by public id with no foreign key to `Media`, and these assertions
+// read the model directly, so no catalogue row has to exist for it.
+const SECOND_MEDIA = 'FamiliarTst1';
 const userActivityListResponseSchema = z.object({
   activities: z.array(schemas.s_UserActivity),
   pagination: schemas.s_CursorPagination,
@@ -517,6 +521,43 @@ describe('familiar media', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.familiarMedia).toEqual([]);
+  });
+
+  it('forgets one title and leaves the rest of the tally standing', async () => {
+    const other = fixtures.media.testShow.publicId;
+    await UserMediaAffinity.incrementForUser(fixtures.users.kevin.id, other, ActivityType.ANKI_EXPORT);
+    await UserMediaAffinity.incrementForUser(fixtures.users.kevin.id, SECOND_MEDIA, ActivityType.ANKI_EXPORT);
+
+    const before = await UserMediaAffinity.getFamiliarForUser(fixtures.users.kevin.id);
+    expect(before.map((e) => e.mediaPublicId).sort()).toEqual([other, SECOND_MEDIA].sort());
+
+    const res = await request(app).delete(`/v1/user/familiar-media/${other}`);
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBeGreaterThan(0);
+
+    const after = await UserMediaAffinity.getFamiliarForUser(fixtures.users.kevin.id);
+    expect(after.map((e) => e.mediaPublicId)).toEqual([SECOND_MEDIA]);
+  });
+
+  it('answers 200 with count 0 for a title that was never tallied', async () => {
+    // The caller is a reader pressing a button beside a list; "nothing to
+    // forget" is the same outcome to them as "forgotten".
+    const res = await request(app).delete(`/v1/user/familiar-media/${SECOND_MEDIA}`);
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(0);
+  });
+
+  it("cannot reach another reader's tally", async () => {
+    const other = fixtures.media.testShow.publicId;
+    await UserMediaAffinity.incrementForUser(core.users.regular.id, other, ActivityType.ANKI_EXPORT);
+
+    const res = await request(app).delete(`/v1/user/familiar-media/${other}`);
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(0);
+
+    // The other reader's row is untouched: the id in the path only ever scopes to the caller.
+    const theirs = await UserMediaAffinity.getFamiliarForUser(core.users.regular.id);
+    expect(theirs.map((e) => e.mediaPublicId)).toContain(other);
   });
 
   it('clears the tally without touching activity history, and vice versa', async () => {

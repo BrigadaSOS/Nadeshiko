@@ -181,11 +181,50 @@ const backdropTestId = computed(() => {
   const id = attrs['data-testid'];
   return typeof id === 'string' && id ? `${id}-backdrop` : undefined;
 });
+
+/** Off-canvas sheets (nav + filters). They cannot share the centred-modal
+ *  overlay: that node both fades and wraps the panel, so the sheet ghosts in
+ *  instead of sliding as a solid surface. Shirabe keeps the slide on the
+ *  same element that is shown and hides, and fades a sibling scrim. */
+const isDrawer = computed(() => props.transition === 'nd-drawer');
 </script>
 
 <template>
   <Teleport v-if="isRendered" to="body">
-    <Transition :name="transition" @after-leave="onAfterLeave">
+    <!-- `appear` is load-bearing. The teleport is mounted only while a close
+         animation still needs it, so every open is this Transition's first
+         paint. Without appear, Vue skips enter and the panel pops in. -->
+    <template v-if="isDrawer">
+      <div class="contents" :class="overlayClass">
+        <Transition name="nd-drawer-backdrop" appear>
+          <div
+            v-if="open"
+            :data-testid="backdropTestId"
+            class="nd-drawer-backdrop"
+            :class="zIndexClass"
+            @click="onBackdropClick"
+          />
+        </Transition>
+        <Transition name="nd-drawer" appear @after-leave="onAfterLeave">
+          <div
+            v-if="open"
+            ref="dialogRef"
+            v-bind="$attrs"
+            class="nd-modal-panel nd-drawer-panel"
+            :class="[zIndexClass, panelClass]"
+            :style="panelStyle"
+            role="dialog"
+            aria-modal="true"
+            :aria-label="label"
+            :aria-labelledby="labelledby"
+            tabindex="-1"
+          >
+            <slot />
+          </div>
+        </Transition>
+      </div>
+    </template>
+    <Transition v-else :name="transition" appear @after-leave="onAfterLeave">
       <div
         v-if="open"
         :data-testid="backdropTestId"

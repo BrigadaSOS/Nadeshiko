@@ -1,0 +1,46 @@
+delete:
+  tags:
+    - User
+  x-internal: true
+  operationId: forgetFamiliarMedia
+  summary: Forget one title from the reader's tally
+  description: |
+    Deletes the authenticated reader's tally for a single title, across every
+    month it was counted in.
+
+    The whole-tally clear is the blunt instrument; this is the one a reader
+    reaches for when a single show is wrong -- a title they watched once for
+    somebody else, or one the tally over-read. Forgetting a title does not stop
+    it being counted again: the next export or share against it starts a fresh
+    tally, which is the honest behaviour for a running count rather than a
+    blocklist.
+
+    Separate from the activity history, like the whole-tally clear: the two are
+    stored apart and consented to apart, so neither touches the other's rows.
+
+  security:
+    - SessionCookie: []
+  parameters:
+    - name: mediaPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Public ID of the title to forget
+      example: V1StGXR8_Z5d
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/AffectedCountResponse.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

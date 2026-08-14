@@ -39,7 +39,7 @@ let generatedDir: string;
 function runScript(): { status: number; output: string } {
   try {
     const stdout = execFileSync('node', ['--import', 'tsx', SCRIPT], {
-      env: { ...process.env, OUTPUT_TYPES_GENERATED_DIR: generatedDir },
+      env: { ...process.env, GENERATED_DIR: generatedDir },
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });

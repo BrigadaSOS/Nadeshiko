@@ -95,9 +95,24 @@ accessories:
     # what the Alloy exporter actually dials. Keep both.
     port: "100.114.126.96:5432:5432"
     options:
-      # Memory limit: 1GB (current ~310MB, 3x headroom)
-      # Postgres persists data to disk, safe to OOM-kill and restart
-      memory: 1g
+      # Memory limit: 1.5GB. Postgres persists to disk, so it is safe to
+      # OOM-kill and restart -- but a restart drops every pooled connection, so
+      # cheap is not the same as free.
+      #
+      # RAISED FROM 1g 2026-08-14, on the shape of the usage rather than its
+      # average. Steady state is ~200MB and the old comment's "3x headroom" was
+      # true of that number; what it missed is that this container is spiky.
+      # Measured over 24h: baseline ~200MB, an hourly-averaged excursion to
+      # 703MB, and a 1-minute peak of 975MB -- 95% of the old 1g cap. It spent
+      # 2 minutes above 90%, which is why NadeshikoContainerMemoryNearLimit
+      # (90%, for 15m) never said a word about it.
+      #
+      # Nothing was killed, and most of that peak is reclaimable page cache over
+      # the data files rather than anonymous memory. The cap goes up anyway: a
+      # transient that reaches 95% only has to be slightly larger to be a kill,
+      # and the checkpoint/backup shape that produces it is not something we
+      # control from here.
+      memory: 1.5g
       publish:
         # Loopback as well as the tailnet address above. This is the only reason
         # the Alloy Postgres exporter kept working through the IP change, and it

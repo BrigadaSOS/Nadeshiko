@@ -73,17 +73,18 @@ export function proxyToBackend(event: H3Event): Promise<any> {
     // `setCookie` folds the new cookie in beside whatever is already there.
     // Being here also means the status is known, so only a write that actually
     // took invalidates anything.
-    onResponse: stampsPreferences
-      ? (proxyEvent, response) => {
-          if (response.status < 200 || response.status >= 300) return;
-          // Two halves of one invalidation. The stamp reaches every worker but
-          // only this browser; the drop reaches every browser but only this
-          // worker. Neither covers the other's case, and together they leave
-          // only a caller on a fresh cookie jar hitting a *different* worker.
-          stampPreferencesVersion(proxyEvent, requestUrl.protocol === 'https:');
-          dropSessionEntries(proxyEvent);
-        }
-      : undefined,
+    onResponse: (proxyEvent, response) => {
+      stripCrossOriginHeaders(proxyEvent);
+
+      if (!stampsPreferences) return;
+      if (response.status < 200 || response.status >= 300) return;
+      // Two halves of one invalidation. The stamp reaches every worker but
+      // only this browser; the drop reaches every browser but only this
+      // worker. Neither covers the other's case, and together they leave
+      // only a caller on a fresh cookie jar hitting a *different* worker.
+      stampPreferencesVersion(proxyEvent, requestUrl.protocol === 'https:');
+      dropSessionEntries(proxyEvent);
+    },
   });
 }
 
@@ -99,4 +100,36 @@ export function stampPreferencesVersion(event: H3Event, secure: boolean): void {
     sameSite: 'lax',
     secure,
   });
+}
+
+/**
+ * Drops the backend's CORS headers from anything this proxy returns.
+ *
+ * The backend opens the public corpus routes to `*` on purpose, for third-party
+ * clients calling `api.nadeshiko.co` with a key of their own. THIS path is not
+ * that: it is the site's own same-origin `/v1`, and it injects the MASTER key on
+ * exactly the routes the backend marks public (see `shouldInjectApiKey`).
+ *
+ * Forwarding the headers therefore handed every website on the internet a
+ * keyless copy of the API: `fetch('https://nadeshiko.co/v1/search')` from any
+ * page answered 200 with real data, signed by the service account, attributed to
+ * our quota rather than the caller's, and bypassing the bring-your-own-key
+ * scheme entirely. Measured before this existed -- 200, `access-control-allow-
+ * origin: *`, no credentials of any kind required.
+ *
+ * Same-origin callers -- the only ones this proxy is for -- need none of these
+ * headers, so removing them costs the site nothing and puts the browser back in
+ * front of the door.
+ */
+export function stripCrossOriginHeaders(event: H3Event): void {
+  for (const header of [
+    'access-control-allow-origin',
+    'access-control-allow-methods',
+    'access-control-allow-headers',
+    'access-control-allow-credentials',
+    'access-control-expose-headers',
+    'access-control-max-age',
+  ]) {
+    event.node.res.removeHeader(header);
+  }
 }

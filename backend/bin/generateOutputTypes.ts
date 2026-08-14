@@ -11,10 +11,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveGeneratedDir } from './lib/generatedReady';
 
-// Overridable so the test suite can point the script at a fixture tree instead
-// of the real generated output.
-const GENERATED_DIR = process.env.OUTPUT_TYPES_GENERATED_DIR ?? path.join(import.meta.dirname, '../generated');
+// Overridable so generate:api can write into a staging directory, and so the
+// test suite can point the script at a fixture tree instead of the real output.
+const GENERATED_DIR = resolveGeneratedDir();
 const SCHEMAS_FILE = path.join(GENERATED_DIR, 'schemas.ts');
 const OUTPUT_TYPES_FILE = path.join(GENERATED_DIR, 'outputTypes.ts');
 const ROUTES_DIR = path.join(GENERATED_DIR, 'routes');

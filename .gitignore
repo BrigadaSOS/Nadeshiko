@@ -1,4 +1,6 @@
 /media/
+/backend/generated.next/
+/backend/generated/.ready
 /backend/docs/generated/index.html
 /frontend/public/docs/api/
 /frontend/public/docs/api-internal/

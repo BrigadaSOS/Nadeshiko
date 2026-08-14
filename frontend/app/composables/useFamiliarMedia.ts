@@ -95,6 +95,28 @@ export function useFamiliarMedia() {
   };
 
   /**
+   * Forgets one title, leaving the rest of the tally standing.
+   *
+   * The whole-tally clear is the blunt instrument; this is for a single show the
+   * tally read wrong. The row leaves the list as soon as the server answers
+   * rather than after a refetch -- re-reading the whole ranking to drop one row
+   * would make this feel slower than the clear beside it.
+   *
+   * Forgetting does not blocklist: the next export or share against that title
+   * starts a fresh tally, which is the honest behaviour for a running count.
+   */
+  const forget = async (mediaPublicId: string): Promise<boolean> => {
+    try {
+      await sdk.forgetFamiliarMedia({ mediaPublicId });
+      entries.value = entries.value.filter((entry) => entry.media.publicId !== mediaPublicId);
+      return true;
+    } catch (error) {
+      handleApiError('familiar-media:forget-failed', error, { toastKey: 'familiarMedia.forgetError' });
+      return false;
+    }
+  };
+
+  /**
    * The number forgotten, or `null` when the clear failed -- which a count of 0
    * cannot say on its own, since clearing an empty tally succeeds and forgets
    * nothing. Callers that confirm the action need the two kept apart.
@@ -110,5 +132,5 @@ export function useFamiliarMedia() {
     }
   };
 
-  return { entries, inferredRank, load, clear };
+  return { entries, inferredRank, load, forget, clear };
 }

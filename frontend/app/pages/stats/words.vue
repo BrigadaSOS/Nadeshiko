@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CoveredWord, GetCoveredWordsResponse } from '@brigadasos/nadeshiko-sdk';
+import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 import { buildWordSearchPath } from '~/utils/routes';
 import { reportError } from '~/utils/reportError';
 
@@ -40,7 +41,7 @@ useSeoMeta({
   description: () => t('seo.statsWords.description', { tier: tierLabel(activeTier.value) }),
   ogTitle: () => t('seo.statsWords.title', { tier: tierLabel(activeTier.value) }),
   ogDescription: () => t('seo.statsWords.description', { tier: tierLabel(activeTier.value) }),
-  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
+  ogImage: `${useRequestURL().origin}${DEFAULT_OG_IMAGE_PATH}`,
   twitterCard: 'summary_large_image',
   twitterTitle: () => t('seo.statsWords.title', { tier: tierLabel(activeTier.value) }),
   twitterDescription: () => t('seo.statsWords.description', { tier: tierLabel(activeTier.value) }),
@@ -164,7 +165,7 @@ const onSentinelVisible = () => {
 </script>
 
 <template>
-  <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6 text-white">
+  <div class="nd-page px-4 md:px-0 py-6 text-white">
     <div class="mb-6">
       <NuxtLink :to="localePath('/stats')" class="text-white/40 hover:text-white/60 text-sm transition-colors">
         &larr; {{ $t('statsWordsPage.back') }}

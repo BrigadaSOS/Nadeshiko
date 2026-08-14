@@ -320,7 +320,7 @@ const showBatchModal = ref(false);
   <div class="yomitan-ignore">
     <div
       ref="searchBarRef"
-      class="relative flex space-x-3 rounded-lg py-1 shadow-gray-100 dark:border-neutral-500"
+      class="relative flex space-x-3 rounded-lg shadow-gray-100 dark:border-neutral-500"
     >
       <div class="relative flex-[1_0_0%]">
         <label for="sentence-search-input" class="block text-sm text-gray-700 font-medium dark:text-white"><span

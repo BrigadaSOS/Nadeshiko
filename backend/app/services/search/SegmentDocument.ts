@@ -72,8 +72,9 @@ export class SegmentDocument {
   static async search(
     request: SearchRequestInput,
     parserMode: QueryParserMode = 'strict',
+    preferredMediaIds?: ReadonlySet<number>,
   ): Promise<SearchResponseOutput> {
-    return SegmentDocument.executeSearch(request, parserMode);
+    return SegmentDocument.executeSearch(request, parserMode, [], preferredMediaIds);
   }
 
   static async searchInIds(
@@ -101,6 +102,7 @@ export class SegmentDocument {
     request: SearchRequestInput,
     parserMode: QueryParserMode,
     extraFilters: estypes.QueryDslQueryContainer[] = [],
+    preferredMediaIds?: ReadonlySet<number>,
   ): Promise<SearchResponseOutput> {
     const filters = resolveSearchFilters(request.filters);
 
@@ -160,9 +162,9 @@ export class SegmentDocument {
     return withSafeQueryFallback(
       async () => {
         const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
-        return SegmentResponse.buildSearch(esResult, mediaResult);
+        return SegmentResponse.buildSearch(esResult, mediaResult, preferredMediaIds);
       },
-      () => SegmentDocument.executeSearch(request, 'safe', extraFilters),
+      () => SegmentDocument.executeSearch(request, 'safe', extraFilters, preferredMediaIds),
       {
         parserMode,
         hasQuery,

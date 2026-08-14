@@ -20,5 +20,5 @@
     "scripts/**/*.ts",
     "generated/**/*.ts"
   ],
-  "exclude": ["tests", "docs", "prod", "node_modules", "client"]
+  "exclude": ["tests", "docs", "prod", "node_modules", "client", "generated.next"]
 }

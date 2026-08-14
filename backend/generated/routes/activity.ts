@@ -25,6 +25,7 @@ import type {
   t_GetUserActivityStatsQuerySchema,
   t_HeatmapDayCounts,
   t_ListUserActivityQuerySchema,
+  t_MediaSummary,
   t_UserActivity,
   t_UserActivityStats,
 } from '../models.ts';
@@ -37,9 +38,34 @@ import {
   s_Error429,
   s_Error500,
   s_HeatmapDayCounts,
+  s_MediaSummary,
   s_UserActivity,
   s_UserActivityStats,
 } from '../schemas.ts';
+
+export type ListFamiliarMediaResponder = {
+  with200(): ExpressRuntimeResponse<{
+    familiarMedia: {
+      ankiCount: number;
+      media: t_MediaSummary;
+      playCount: number;
+      score: number;
+      shareCount: number;
+    }[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListFamiliarMedia = (
+  params: Params<void, void, void, void>,
+  respond: ListFamiliarMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type ListUserActivityResponder = {
   with200(): ExpressRuntimeResponse<{
@@ -95,6 +121,7 @@ export type GetUserActivityStats = (
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type ActivityImplementation = {
+  listFamiliarMedia: ListFamiliarMedia;
   listUserActivity: ListUserActivity;
   getUserActivityHeatmap: GetUserActivityHeatmap;
   getUserActivityStats: GetUserActivityStats;
@@ -109,6 +136,78 @@ export function createActivityRouter(
   if (options.middleware?.length) {
     router.use(...options.middleware);
   }
+
+  const listFamiliarMediaResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '200',
+        z.object({
+          familiarMedia: z.array(
+            z.object({
+              media: s_MediaSummary,
+              score: z.coerce.number(),
+              ankiCount: z.coerce.number(),
+              playCount: z.coerce.number(),
+              shareCount: z.coerce.number(),
+            }),
+          ),
+        }),
+      ],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listFamiliarMedia
+  router.get(`/v1/user/familiar-media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            familiarMedia: {
+              ankiCount: number;
+              media: t_MediaSummary;
+              playCount: number;
+              score: number;
+              shareCount: number;
+            }[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .listFamiliarMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listFamiliarMediaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
 
   const listUserActivityQuerySchema = z.object({
     cursor: z.string().optional(),

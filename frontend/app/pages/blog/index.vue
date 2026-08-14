@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { handleApiError } from '~/utils/apiError';
+import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 
 const { locale, t } = useI18n();
 const route = useRoute();
@@ -42,7 +43,7 @@ useSeoMeta({
   ogTitle: () => t('seo.blog.title'),
   description: () => t('seo.blog.description'),
   ogDescription: () => t('seo.blog.description'),
-  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
+  ogImage: `${useRequestURL().origin}${DEFAULT_OG_IMAGE_PATH}`,
   twitterCard: 'summary_large_image',
   twitterTitle: () => t('seo.blog.title'),
   twitterDescription: () => t('seo.blog.description'),
@@ -54,7 +55,7 @@ useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 <template>
   <div class="min-h-screen">
       <!-- Content -->
-      <div class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
+      <div class="nd-page px-4 md:px-0 py-6">
         <div class="content-markdown">
           <h1>{{ t('blog.title') }}</h1>
 

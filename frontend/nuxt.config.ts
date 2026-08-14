@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
+import { INDEXED_LOCALES as APP_INDEXED_LOCALES } from './app/utils/i18n';
 import { PRIVATE_PATH_SEGMENTS } from './shared/utils/privatePaths';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
@@ -46,6 +47,7 @@ const SITEMAP_STATIC_PATHS = [
   '/dmca',
   '/media',
   '/blog',
+  '/changelog',
   '/stats',
   '/stats/words',
 ];
@@ -53,8 +55,11 @@ const SITEMAP_STATIC_URLS_EN = ['/en', ...SITEMAP_STATIC_PATHS.map((path) => `/e
 const SITEMAP_STATIC_URLS_ES = ['/es', ...SITEMAP_STATIC_PATHS.map((path) => `/es${path}`)];
 
 // The locales robots is given rules for. `ja` is disallowed wholesale below, so
-// only the two indexed locales need per-path entries.
-const INDEXED_LOCALES = ['en', 'es'] as const;
+// only the two indexed locales need per-path entries. Imported rather than
+// restated: `plugins/canonical.ts` needs the same list to decide which hreflang
+// alternates it may advertise, and the two disagreeing is how `/ja` ended up
+// named as an indexable alternate of pages that are `robots: false`.
+const INDEXED_LOCALES = APP_INDEXED_LOCALES;
 
 // Both spellings of every private area, in both indexed locales, from the one
 // list in shared/utils/privatePaths.ts. This used to be twenty hand-written
@@ -110,8 +115,13 @@ export default defineNuxtConfig({
             'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
         },
         { property: 'og:type', content: 'website' },
-        { property: 'og:image:width', content: '1200' },
-        { property: 'og:image:height', content: '630' },
+        // No `og:image:width`/`:height` here, deliberately. They lived here as
+        // 1200x630 -- the default card's size -- and every page that overrode
+        // `og:image` with a real asset inherited them: clip stills (960x540) and
+        // media banners (1200x391-400) were both advertised at a size they have
+        // never been, and crawlers lay the card out from the declaration. The
+        // pair now travels WITH the image it describes, via `buildOgImageTags`
+        // in app/utils/metaTags.ts. Anything set globally here cannot.
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'color-scheme', content: 'dark' },
       ],
@@ -473,6 +483,18 @@ export default defineNuxtConfig({
     // error. Safe to share because `/` deliberately skips the hidden-media
     // filter -- the grid is the same list for everyone, signed in or not.
     '/api/home/recent-media': { swr: 300 },
+    // Slug -> media, behind every `/media/<slug>` render. Identical for every
+    // visitor and changes only when a title is edited or imported. The catalogue
+    // index this sits on is cached in-process as well (see
+    // `server/utils/mediaSlugIndex.ts`); this tier is what keeps a crawler
+    // walking 317 title pages from re-entering the handler for each one.
+    '/api/media/by-slug/**': { swr: 3600 },
+    // The related-word links under a word page. Identical for every reader and
+    // derived from the frequency list, which moves only on a corpus reimport --
+    // so a long window, and one that matters: the index behind it is built by
+    // paginating the top 5k words, and this tier is what keeps a crawler walking
+    // ~19.8k word pages from reaching that build more than once.
+    '/api/words/related': { swr: 86400 },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {

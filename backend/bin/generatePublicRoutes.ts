@@ -21,13 +21,14 @@
  * `shared/utils/traffic.ts` are parallel copies.
  */
 import { mkdirSync, writeFileSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve, dirname, join } from 'path';
 import { pathToFileURL } from 'url';
 import { ApiPermission } from '@app/models/ApiPermission';
 import { listOperations, loadBundledSpec, type SecurityRequirement } from './lib/spec';
+import { resolveGeneratedDir } from './lib/generatedReady';
 
 const FRONTEND_OUTPUT_FILE = resolve(import.meta.dirname, '../../frontend/server/utils/generated/publicApiRoutes.ts');
-const BACKEND_OUTPUT_FILE = resolve(import.meta.dirname, '../generated/publicApiRoutes.ts');
+const BACKEND_OUTPUT_FILE = join(resolveGeneratedDir(), 'publicApiRoutes.ts');
 
 /**
  * Scopes that read the shared corpus and nothing account-specific. Everything

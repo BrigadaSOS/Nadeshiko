@@ -333,3 +333,61 @@ describe('fetchStats', () => {
     expect(await first).toEqual({ status: 'stale' });
   });
 });
+
+/**
+ * What reaches the wire, for the tie-break the backend applies under the default
+ * order. The backend ignores the list under every other sort, so the assertions
+ * about omission are about not sending 120 identifiers to be thrown away rather
+ * than about correctness of the result.
+ */
+describe('fetchSentences preferMedia', () => {
+  const okOnce = () => sdkMocks.search.mockResolvedValueOnce({ data: searchPayload('s1'), response: new Response() });
+  const bodyOf = () => sdkMocks.search.mock.calls[0]![0].body;
+
+  it('sends the reader’s titles when no explicit sort was asked for', async () => {
+    okOnce();
+
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ preferMedia: ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'] }));
+
+    expect(bodyOf().preferMedia).toEqual(['aaaaaaaaaaaa', 'bbbbbbbbbbbb']);
+  });
+
+  it('sends it for an explicit RELEVANCE too, which means the same order', async () => {
+    okOnce();
+
+    await createSearchFetcher(fakeSdk).fetchSentences(
+      scope({ sort: 'relevance', preferMedia: ['aaaaaaaaaaaa'] }),
+    );
+
+    expect(bodyOf().preferMedia).toEqual(['aaaaaaaaaaaa']);
+  });
+
+  it('omits it under a sort the reader named', async () => {
+    for (const sort of ['time_asc', 'time_desc', 'asc', 'desc', 'random']) {
+      sdkMocks.search.mockReset();
+      okOnce();
+
+      await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort, preferMedia: ['aaaaaaaaaaaa'] }));
+
+      expect(bodyOf()).not.toHaveProperty('preferMedia');
+    }
+  });
+
+  it('omits it entirely when there is nothing to prefer, rather than sending an empty list', async () => {
+    okOnce();
+
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ preferMedia: [] }));
+
+    expect(bodyOf()).not.toHaveProperty('preferMedia');
+  });
+
+  it('clamps to the schema’s maximum, since going over is a 400 on the search itself', async () => {
+    okOnce();
+    const many = Array.from({ length: 200 }, (_, i) => `media${String(i).padStart(7, '0')}`);
+
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ preferMedia: many }));
+
+    expect(bodyOf().preferMedia).toHaveLength(120);
+    expect(bodyOf().preferMedia[0]).toBe(many[0]);
+  });
+});

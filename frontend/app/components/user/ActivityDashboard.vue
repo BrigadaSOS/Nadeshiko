@@ -27,7 +27,12 @@ function reportInitialFailure(slice: string) {
 // Declared above the initial load because that load now fetches the ranking too:
 // it is rendered on this page alone, and fetching it from `onMounted` meant the
 // transparency list arrived empty and then filled in a moment after hydration.
-const { entries: familiarEntries, load: loadFamiliarMedia, clear: clearFamiliar } = useFamiliarMedia();
+const {
+  entries: familiarEntries,
+  load: loadFamiliarMedia,
+  forget: forgetFamiliar,
+  clear: clearFamiliar,
+} = useFamiliarMedia();
 
 const { data: initialData } = await useAsyncData(
   'settings-activity-initial',
@@ -224,6 +229,15 @@ const toggleFamiliarMedia = async () => {
   }
 };
 
+/**
+ * Forgets one title. No confirm: it removes one row from a running count that
+ * rebuilds itself the next time the reader touches that show, which is not the
+ * same weight of action as the whole-tally clear below.
+ */
+const forgetFamiliarTitle = async (mediaPublicId: string) => {
+  await forgetFamiliar(mediaPublicId);
+};
+
 const clearFamiliarMedia = async () => {
   if (clearingFamiliar.value) return;
   if (!confirm(t('accountSettings.activity.confirmClearFamiliar'))) return;
@@ -382,5 +396,6 @@ onMounted(async () => {
     @clear-history="clearHistory"
     @toggle-familiar="toggleFamiliarMedia"
     @clear-familiar="clearFamiliarMedia"
+    @forget-familiar="forgetFamiliarTitle"
   />
 </template>

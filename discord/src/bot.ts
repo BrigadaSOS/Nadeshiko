@@ -1,5 +1,5 @@
 import { shutdownTelemetry } from './telemetry';
-import { Client, GatewayIntentBits, REST, Routes, Collection, Events } from 'discord.js';
+import { Client, GatewayIntentBits, PermissionFlagsBits, REST, Routes, Collection, Events } from 'discord.js';
 import { BOT_CONFIG, getApplicationId, validateConfig } from './config';
 import { createLogger } from './logger';
 import {
@@ -28,6 +28,21 @@ const log = createLogger('bot');
  * the OTLP one behind it, and nothing beyond that.
  */
 const FATAL_REPORT_TIMEOUT_MS = 8000;
+
+/**
+ * Everything the bot says goes out over an interaction token, which is exempt
+ * from the channel permission checks a message-sending bot would need. So it
+ * asks for neither View Channel nor Send Messages, and on the Guilds intent
+ * alone (below) it could not read message history even if it were granted.
+ * What is left is the three the bot genuinely spends: the commands themselves,
+ * the custom emoji on its buttons -- the one permission Discord does enforce on
+ * interaction responses -- and the clip uploads.
+ */
+const INVITE_PERMISSIONS = (
+  PermissionFlagsBits.UseApplicationCommands |
+  PermissionFlagsBits.UseExternalEmojis |
+  PermissionFlagsBits.AttachFiles
+).toString();
 
 const commands = new Collection<string, Command>();
 for (const cmd of allCommands) {
@@ -86,7 +101,7 @@ async function main() {
     log.info({ tag: readyClient.user.tag, guilds: readyClient.guilds.cache.size }, 'Bot online');
     log.info(
       {
-        url: `https://discord.com/oauth2/authorize?client_id=${readyClient.user.id}&permissions=2147483648&scope=bot%20applications.commands`,
+        url: `https://discord.com/oauth2/authorize?client_id=${readyClient.user.id}&permissions=${INVITE_PERMISSIONS}&scope=bot%20applications.commands`,
       },
       'Invite URL',
     );

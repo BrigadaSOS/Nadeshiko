@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
-import { buildMediaSearchPath } from '~/utils/routes';
+import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
+import { mediaBrowsePath } from '~/utils/routes';
 
 const { t } = useI18n();
 const { url: siteUrl } = useSiteConfig();
@@ -10,7 +11,7 @@ useSeoMeta({
   description: () => t('seo.home.description'),
   ogTitle: () => t('seo.home.title'),
   ogDescription: () => t('seo.home.description'),
-  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
+  ogImage: `${useRequestURL().origin}${DEFAULT_OG_IMAGE_PATH}`,
   twitterCard: 'summary_large_image',
   twitterTitle: () => t('seo.home.title'),
   twitterDescription: () => t('seo.home.description'),
@@ -52,8 +53,8 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
 <template>
     <div class="mx-auto">
             <div class="relative text-white">
-                <div class="pt-2">
-                    <div class="px-4 md:px-0 md:max-w-[90%] mx-auto">
+                <div class="pt-3">
+                    <div class="nd-page px-4 md:px-0">
                         <LayoutSystemAnnouncementBanner />
                         <SearchBaseInputSegment />
                         <div class="py-2 xl:py-4">
@@ -149,10 +150,35 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                         </div>
                                     </div>
 
+                                    <div class="mb-5 flex text-sm font-medium">
+                                        <div class="mr-4">
+                                            <span class="inline-flex justify-center items-center w-12 md:w-12 h-12 md:h-12">
+                                                <svg class="inline-block" width="30" height="30"
+                                                    viewBox="0 0 127.14 96.36" fill="currentColor" aria-hidden="true">
+                                                    <path
+                                                        d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" />
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="">
+                                            <p class="mb-2">{{ $t('home.keyFeatures.feature5.title') }}</p>
+                                            <span class="font-normal dark:text-white/60">{{
+                                                $t('home.keyFeatures.feature5.description') }} <a
+                                                    href="https://discord.com/oauth2/authorize?client_id=1064964424684806184"
+                                                    target="_blank" rel="noopener noreferrer"
+                                                    class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors">{{
+                                                        $t('home.keyFeatures.feature5.linkText') }}</a></span>
+                                        </div>
+                                    </div>
+
                                     <div class="mb-5 border-b border-white/10" />
 
-                                    <div data-testid="stats-section" class="flex gap-4 text-center">
-                                        <div class="md:w-1/3 sm:w-1/3 w-full">
+                                    <!-- Wraps: the cards are `w-full` below `sm` and thirds above it,
+                                         which only stacks if the row is allowed to break. Without it
+                                         three full-width cards stayed on one line and ran off the
+                                         side of a 320px screen. -->
+                                    <div data-testid="stats-section" class="flex flex-wrap gap-4 text-center">
+                                        <div class="w-full sm:w-auto sm:flex-1">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
                                                     +{{ Math.ceil((media?.stats?.totalSegments || 0) / 100) * 100 }}
@@ -162,7 +188,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="md:w-1/3 sm:w-1/3 w-full">
+                                        <div class="w-full sm:w-auto sm:flex-1">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
                                                     {{ media?.stats?.totalEpisodes || 0 }}
@@ -172,7 +198,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                 </p>
                                             </div>
                                         </div>
-                                        <div class="md:w-1/3 sm:w-1/3 w-full">
+                                        <div class="w-full sm:w-auto sm:flex-1">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">{{
                                                     media?.stats?.totalMedia || 0 }}</h2>
@@ -275,7 +301,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                                     <NuxtLink
                                                         v-for="(media_info, index) in filteredRecentMedia"
                                                         :key="media_info.publicId"
-                                                        :to="localePath(buildMediaSearchPath(media_info.publicId))"
+                                                        :to="localePath(mediaBrowsePath(media_info))"
                                                         data-testid="media-card"
                                                         class="w-full relative">
                                                         <div class="w-full">
@@ -311,7 +337,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                         </div>
                     </div>
                 </div>
-                <div class="pb-8 px-4 md:px-0 md:max-w-[90%] mx-auto">
+                <div class="pb-8 nd-page px-4 md:px-0">
                     <div class="rounded-lg p-6 dark:text-white/80 dark:bg-card-background relative">
                         <section class="py-2">
                             <div class="flex mb-2 flex-col md:flex-row justify-top">

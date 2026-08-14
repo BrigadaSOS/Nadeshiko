@@ -186,6 +186,34 @@ internal consumers until the same change is made in the SDK repo, so anything
 that must reach npm users needs applying in both places. Consolidating the two
 copies is a known follow-up.
 
+## Changelog
+
+`/changelog` is a page readers visit, not a commit log. It lives in
+`frontend/content/en/changelog.md` and is linked from the version in the footer.
+
+Write the entry as part of the change that ships it, under `## Unreleased`, not
+at release time from the git history. The hard part of an entry is naming what a
+person actually saw, and that is exactly what evaporates: three weeks later a
+commit reads "apply exclusions globally" and nobody can recover from it that a
+`-word` search was still returning lines that matched the translation. Cutting a
+release is then a rename: `## Unreleased` becomes `## x.y.z (YYYY-MM-DD)`.
+
+The shape is one sentence, place first and in bold, taken from the site's own
+vocabulary (Search, Sentence, Media, Anki, Account, Settings, Discord bot, API):
+
+```markdown
+### Fixes
+
+- **Search**: a word you exclude with a leading dash is now excluded from every
+  language a sentence is matched in.
+```
+
+Fixes go under `### Fixes`, new things under `### Highlights`. What does not go
+on the page: anything still behind a lab or a flag, work with no surface a reader
+could have noticed (refactors, CI, dependency bumps), and vague filler like
+"various improvements". If it cannot be named, leave it out and the page stays
+short, which is fine.
+
 ## Reporting issues
 
 Open an issue on [GitHub](https://github.com/BrigadaSOS/Nadeshiko/issues). For questions, feature ideas, or general discussion, join the [Nadeshiko Discord](https://discord.gg/c6yGwbXruq).

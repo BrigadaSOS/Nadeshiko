@@ -24,6 +24,7 @@ export { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason } fr
 
 // Activity tracking
 export { UserActivity, ActivityType } from './UserActivity';
+export { UserMediaAffinity } from './UserMediaAffinity';
 
 // Announcements
 export { Announcement } from './Announcement';

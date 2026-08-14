@@ -45,7 +45,7 @@ info:
 
     To request a quota increase, reach out via the [contact
     page](https://nadeshiko.co/about).
-  version: 2.3.4
+  version: 2.4.0
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -72,7 +72,8 @@ tags:
       Collection endpoints for managing saved segment collections.
   - name: User
     description: |
-      User endpoints for profile data, excluded media, and activity history.
+      User endpoints for profile data, excluded and starred media, and activity
+      history.
   - name: Activity
     description: >
       Activity endpoints for tracking and querying the authenticated user's
@@ -1435,6 +1436,120 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /v1/user/api-keys:
+    post:
+      tags:
+        - User
+      operationId: createUserApiKey
+      summary: Create an API key with chosen scopes
+      description: >
+        Creates an API key for the signed-in reader, carrying exactly the scopes
+
+        asked for.
+
+
+        Use this rather than the better-auth `/v1/auth/api-key/create` endpoint
+
+        whenever the key is going anywhere but your own code. That endpoint
+        cannot
+
+        take a scope list — the underlying plugin treats `permissions` as a
+
+        server-only field and rejects any request that carries one — so keys
+        made
+
+        through it get the read-only default instead.
+
+
+        **Scopes are the whole of a key's authority.** Nothing re-checks the
+        owner's
+
+        role when the key is used, so a key with `WRITE_PROFILE` can rewrite
+        that
+
+        account's profile from anywhere it ends up. Grant the narrowest set the
+
+        consumer needs: a third-party search or dictionary tool wants
+
+        `["READ_MEDIA"]` and nothing else.
+
+
+        Session-authenticated only. A key cannot be used to mint another key.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - scopes
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: Label shown in the reader's key list. Not secret.
+                  example: Entei (read-only)
+                scopes:
+                  type: array
+                  minItems: 1
+                  maxItems: 12
+                  description: >
+                    Capabilities to grant. Must be non-empty and free of
+                    duplicates.
+                  items:
+                    $ref: "#/components/schemas/ApiKeyScope"
+                  example:
+                    - READ_MEDIA
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - key
+                  - scopes
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                    description: Identifier for the key, for renaming or revoking it later
+                  name:
+                    type: string
+                    description: The label supplied at creation
+                  key:
+                    type: string
+                    description: >
+                      The secret, returned **only here and never again**. It is
+
+                      stored hashed, so a reader who loses it must create
+                      another.
+                    example: nade_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                  scopes:
+                    type: array
+                    description: The scopes actually granted
+                    items:
+                      $ref: "#/components/schemas/ApiKeyScope"
+                  createdAt:
+                    type: string
+                    format: date-time
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /v1/user/excluded-media:
     get:
       tags:
@@ -1539,6 +1654,286 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/favorite-media:
+    get:
+      tags:
+        - User
+      operationId: listFavoriteMedia
+      summary: List starred media
+      description: |
+        Returns the media the authenticated reader has starred, newest first.
+      security:
+        - ApiKey:
+            - READ_PROFILE
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - favoriteMedia
+                properties:
+                  favoriteMedia:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MediaSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - User
+      operationId: addFavoriteMedia
+      summary: Star media
+      description: >
+        Stars a media title for the authenticated reader. Starred titles sort to
+        the
+
+        top of the search media filter.
+
+
+        Refused with `400` past 100 entries: the whole preferences column is
+
+        rewritten on every change, so the list is deliberately bounded.
+      security:
+        - ApiKey:
+            - WRITE_PROFILE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaPublicId
+              properties:
+                mediaPublicId:
+                  type: string
+                  pattern: ^[A-Za-z0-9_-]{12}$
+                  description: Public ID of the media to star
+                  example: V1StGXR8_Z5d
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/favorite-media/{mediaPublicId}:
+    delete:
+      tags:
+        - User
+      operationId: removeFavoriteMedia
+      summary: Unstar media
+      description: >
+        Removes a media title from the authenticated reader's starred list. The
+        title
+
+        keeps appearing in the search media filter; it simply stops sorting
+        first.
+      security:
+        - ApiKey:
+            - WRITE_PROFILE
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          description: Public ID of the media to unstar
+          example: V1StGXR8_Z5d
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/familiar-media:
+    get:
+      tags:
+        - Activity
+      operationId: listFamiliarMedia
+      summary: List the titles the reader studies most
+      description: >
+        Returns the titles the authenticated reader engages with most, highest
+        score
+
+        first, for sorting the search media filter and for showing the reader
+        what
+
+        the tally holds.
+
+
+        Scored from a monthly per-title tally of Anki exports, plays and shares
+        --
+
+        NOT from the activity log, which `searchHistory` governs and a nightly
+        job
+
+        prunes at 90 days. Anki exports weigh heaviest (deliberate mining);
+        plays are
+
+        scaled logarithmically so one long autoplay session cannot outrank a
+        month of
+
+        study. Empty when the reader has `familiarMedia.enabled` off.
+      security:
+        - ApiKey:
+            - READ_ACTIVITY
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - familiarMedia
+                properties:
+                  familiarMedia:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - media
+                        - score
+                        - ankiCount
+                        - playCount
+                        - shareCount
+                      properties:
+                        media:
+                          $ref: "#/components/schemas/MediaSummary"
+                        score:
+                          type: number
+                          description: Weighted engagement score; ordering key, not a display value.
+                        ankiCount:
+                          type: integer
+                        playCount:
+                          type: integer
+                        shareCount:
+                          type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: clearFamiliarMedia
+      summary: Forget which titles the reader studies
+      description: >
+        Deletes the authenticated reader's whole media tally.
+
+
+        Separate from clearing activity history on purpose: the two are stored
+        apart
+
+        and consented to apart, so neither clear touches the other's rows.
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AffectedCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/familiar-media/{mediaPublicId}:
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: forgetFamiliarMedia
+      summary: Forget one title from the reader's tally
+      description: >
+        Deletes the authenticated reader's tally for a single title, across
+        every
+
+        month it was counted in.
+
+
+        The whole-tally clear is the blunt instrument; this is the one a reader
+
+        reaches for when a single show is wrong -- a title they watched once for
+
+        somebody else, or one the tally over-read. Forgetting a title does not
+        stop
+
+        it being counted again: the next export or share against it starts a
+        fresh
+
+        tally, which is the honest behaviour for a running count rather than a
+
+        blocklist.
+
+
+        Separate from the activity history, like the whole-tally clear: the two
+        are
+
+        stored apart and consented to apart, so neither touches the other's
+        rows.
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          description: Public ID of the title to forget
+          example: V1StGXR8_Z5d
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AffectedCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -5333,6 +5728,45 @@ components:
           example: eyJraW...N119
         sort:
           $ref: "#/components/schemas/SearchSort"
+        preferMedia:
+          type: array
+          description: >
+            Public IDs of titles the caller wants first, used **only** to break
+            ties.
+
+
+            Segments Elasticsearch ranked equally are reordered so the ones from
+            these
+
+            titles come first; nothing crosses a rank boundary. Which segments
+            land on
+
+            a page, how many there are and the cursor that walks to the next one
+            are
+
+            all exactly what they would have been without this field — only the
+            order
+
+            within an already-tied run changes.
+
+
+            Sent by the web client for a signed-in reader, from the titles they
+            have
+
+            favourited and the ones their activity says they know. Ignored
+            unless
+
+            `sort.mode` is `RELEVANCE`, since every other mode sorts on a key
+            the
+
+            caller asked for by name. Unknown IDs are ignored rather than
+            rejected.
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          maxItems: 120
+          example:
+            - V1StGXR8_Z5d
         filters:
           $ref: "#/components/schemas/SearchFilters"
         include:
@@ -5761,6 +6195,22 @@ components:
           minLength: 1
           description: End date of the media (last airing/release)
           example: 2011-04-02
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            When this entry was last modified. Distinct from the airing dates
+            above,
+
+            which describe the work; this describes the record, and is what the
+            sitemap
+
+            publishes as `lastmod` so crawlers can tell a changed title from an
+
+            untouched one. Null for a row never updated since the column was
+            added.
+          example: 2026-08-14T09:12:44.000Z
         category:
           $ref: "#/components/schemas/Category"
         segmentCount:
@@ -7529,6 +7979,37 @@ components:
               format: date-time
               description: End of the current month (UTC).
               example: 2026-02-28T23:59:59.999Z
+    ApiKeyScope:
+      type: string
+      description: >
+        A capability an API key may carry. A key-authenticated request is
+        checked
+
+        against this list and nothing else, so a key's scopes are the whole of
+        what it
+
+        can do — a reader's role is not consulted again at request time.
+
+
+        The corpus-write scopes (`ADD_MEDIA`, `UPDATE_MEDIA`, `REMOVE_MEDIA`)
+        may only
+
+        be granted by an admin; asking for one without the role is refused with
+        `403`.
+      enum:
+        - ADD_MEDIA
+        - READ_MEDIA
+        - UPDATE_MEDIA
+        - REMOVE_MEDIA
+        - READ_PROFILE
+        - WRITE_PROFILE
+        - READ_ACTIVITY
+        - WRITE_ACTIVITY
+        - READ_COLLECTIONS
+        - CREATE_COLLECTIONS
+        - UPDATE_COLLECTIONS
+        - DELETE_COLLECTIONS
+      example: READ_MEDIA
     ReportTargetMedia:
       type: object
       required:
@@ -7853,6 +8334,37 @@ components:
                 nullable: true
               serverAddress:
                 type: string
+        defaultSearchCategory:
+          type: string
+          enum:
+            - ALL
+            - ANIME
+            - JDRAMA
+            - YOUTUBE
+          description: >
+            Category tab a search opens on when the URL names none. `ALL` -- the
+            value
+
+            assumed when unset -- searches every category the user still has
+            visible.
+
+
+            Spelled out as its own enum rather than a nullable `Category` so
+            that
+
+            "search everything" is a value the client can send, not a field it
+            has to
+
+            clear. It mirrors `Category` plus `ALL`.
+
+
+            A value the user has since hidden (see `hiddenCategories`) is
+            ignored and
+
+            the search falls back to `ALL`. It is stored rather than rejected,
+            so
+
+            unhiding the category brings the choice back.
         hiddenCategories:
           type: array
           description: >
@@ -7885,6 +8397,82 @@ components:
                 type: string
               nameRomaji:
                 type: string
+        favoriteMedia:
+          type: array
+          description: >
+            Media the reader has starred. Starred titles sort to the top of the
+            search
+
+            media filter; they change the ORDER of that list, never its
+            contents, so a
+
+            starred title the current query does not match simply is not there.
+
+
+            Capped at 100 entries, refused with `400` beyond that. The cap is
+            not
+
+            cosmetic: the whole preferences column is rewritten on every change
+            (see
+
+            `mutateUserPreferences`), so an unbounded list would make every
+            unrelated
+
+            preference write more expensive for the rest of the account's life.
+
+
+            `favoritedAt` is declared here and written by the server, unlike
+
+            `hiddenMedia`'s `hiddenAt` -- which the client invents and this
+            schema has
+
+            never described.
+          items:
+            type: object
+            required:
+              - mediaPublicId
+              - favoritedAt
+            properties:
+              mediaPublicId:
+                type: string
+                description: Public ID of the starred media
+              nameEn:
+                type: string
+              nameJa:
+                type: string
+              nameRomaji:
+                type: string
+              favoritedAt:
+                type: string
+                format: date-time
+                description: When the reader starred it, set by the server.
+        familiarMedia:
+          type: object
+          description: >
+            Whether to keep a monthly tally of which titles the reader studies,
+            used to
+
+            sort those titles up the search media filter.
+
+
+            Deliberately NOT `searchHistory`: that preference governs the
+            activity log
+
+            (queries, timestamps, per-row deletion), this one governs an
+            aggregate
+
+            count per title per month. A reader can reasonably want the tally
+            without
+
+            the diary, so the two are stored apart, cleared apart, and expire
+            apart.
+
+            Existing readers who had `searchHistory` off were seeded to `false`
+            here.
+          properties:
+            enabled:
+              type: boolean
+              description: Whether familiar-media tallying is enabled (default true)
     ActivityType:
       type: string
       enum:
@@ -7960,6 +8548,17 @@ components:
           type: string
         searchQuery:
           type: string
+        autoplay:
+          type: boolean
+          description: >
+            Whether this `SEGMENT_PLAY` was started by autoplay rather than by
+            the
+
+            reader. Recorded as activity either way; excluded from the
+            familiar-media
+
+            tally, where a playlist running on its own is not evidence of
+            studying.
     HeatmapDayCounts:
       type: object
       description: Activity counts for a single day, broken down by type. Only types
@@ -8100,6 +8699,7 @@ components:
         - activity
         - collections
         - reports
+        - mediaAffinity
         - truncated
       properties:
         truncated:
@@ -8111,15 +8711,17 @@ components:
             body, so each section has a ceiling: 50000 activity entries, 5000
             reports, 1000
 
-            collections, and 50000 collection segment references in total. A
-            `true` here means more
+            collections, 50000 collection segment references in total, and 50000
+            media affinity
 
-            data exists than the response carries.
+            rows. A `true` here means more data exists than the response
+            carries.
           required:
             - activity
             - collections
             - collectionSegments
             - reports
+            - mediaAffinity
           properties:
             activity:
               type: boolean
@@ -8128,6 +8730,8 @@ components:
             collectionSegments:
               type: boolean
             reports:
+              type: boolean
+            mediaAffinity:
               type: boolean
         profile:
           type: object
@@ -8160,6 +8764,36 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Report"
+        mediaAffinity:
+          type: array
+          description: >
+            The monthly per-title tally behind familiar-media sorting. Stored
+            apart
+
+            from `activity` and governed by its own preference, so it is
+            exported as
+
+            its own section rather than folded into the activity log.
+          items:
+            type: object
+            required:
+              - mediaPublicId
+              - periodYyyymm
+              - ankiCount
+              - playCount
+              - shareCount
+            properties:
+              mediaPublicId:
+                type: string
+              periodYyyymm:
+                type: integer
+                description: Year and month of the tally, as YYYYMM in UTC.
+              ankiCount:
+                type: integer
+              playCount:
+                type: integer
+              shareCount:
+                type: integer
     CollectionListResponse:
       type: object
       description: Paginated collection list response

@@ -61,6 +61,20 @@ properties:
           nullable: true
         serverAddress:
           type: string
+  defaultSearchCategory:
+    type: string
+    enum: [ALL, ANIME, JDRAMA, YOUTUBE]
+    description: |
+      Category tab a search opens on when the URL names none. `ALL` -- the value
+      assumed when unset -- searches every category the user still has visible.
+
+      Spelled out as its own enum rather than a nullable `Category` so that
+      "search everything" is a value the client can send, not a field it has to
+      clear. It mirrors `Category` plus `ALL`.
+
+      A value the user has since hidden (see `hiddenCategories`) is ignored and
+      the search falls back to `ALL`. It is stored rather than rejected, so
+      unhiding the category brings the choice back.
   hiddenCategories:
     type: array
     description: |
@@ -87,3 +101,50 @@ properties:
           type: string
         nameRomaji:
           type: string
+  favoriteMedia:
+    type: array
+    description: |
+      Media the reader has starred. Starred titles sort to the top of the search
+      media filter; they change the ORDER of that list, never its contents, so a
+      starred title the current query does not match simply is not there.
+
+      Capped at 100 entries, refused with `400` beyond that. The cap is not
+      cosmetic: the whole preferences column is rewritten on every change (see
+      `mutateUserPreferences`), so an unbounded list would make every unrelated
+      preference write more expensive for the rest of the account's life.
+
+      `favoritedAt` is declared here and written by the server, unlike
+      `hiddenMedia`'s `hiddenAt` -- which the client invents and this schema has
+      never described.
+    items:
+      type: object
+      required: [mediaPublicId, favoritedAt]
+      properties:
+        mediaPublicId:
+          type: string
+          description: Public ID of the starred media
+        nameEn:
+          type: string
+        nameJa:
+          type: string
+        nameRomaji:
+          type: string
+        favoritedAt:
+          type: string
+          format: date-time
+          description: When the reader starred it, set by the server.
+  familiarMedia:
+    type: object
+    description: |
+      Whether to keep a monthly tally of which titles the reader studies, used to
+      sort those titles up the search media filter.
+
+      Deliberately NOT `searchHistory`: that preference governs the activity log
+      (queries, timestamps, per-row deletion), this one governs an aggregate
+      count per title per month. A reader can reasonably want the tally without
+      the diary, so the two are stored apart, cleared apart, and expire apart.
+      Existing readers who had `searchHistory` off were seeded to `false` here.
+    properties:
+      enabled:
+        type: boolean
+        description: Whether familiar-media tallying is enabled (default true)
