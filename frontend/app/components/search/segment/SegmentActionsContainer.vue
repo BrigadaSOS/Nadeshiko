@@ -40,6 +40,17 @@ type Props = {
    * click during the (multi-second) audio build looked like a dead button.
    */
   isExpanding?: boolean;
+  /**
+   * Whether THIS card is the one currently expanded, and so the one Revert
+   * would undo.
+   *
+   * Gated on the expansion rather than on `blobAudioUrl`, which is what this
+   * used to read. The two come apart in exactly the case that needs Revert
+   * most: when the audio cannot be built the text is still swapped in and the
+   * reader is told so -- and with the old gate that toast arrived on a card
+   * with no way back to the sentence they searched for.
+   */
+  isExpanded?: boolean;
 };
 
 const props = defineProps<Props>();
@@ -345,7 +356,7 @@ const sharedMediaName = computed(() =>
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.more')">
-        <SearchDropdownItem v-if="content.blobAudioUrl" :is-disabled="isExpanding" :text="$t('segment.revert')"
+        <SearchDropdownItem v-if="isExpanded" :is-disabled="isExpanding" :text="$t('segment.revert')"
           :iconPath="mdiClose" @click="revertConcat" />
         <SearchDropdownItem :is-disabled="isExpanding"
           :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandLeft')"
