@@ -22,6 +22,24 @@ test.describe('Developer API Keys', () => {
     await expect(developer.apiKeyRowByName(keyName)).toBeVisible({ timeout: 10_000 });
   });
 
+  // The whole chain, because the scopes are the point: the modal's default has
+  // to survive the request, the server's ceiling check and the stored key, and
+  // the only place all four are visible at once is the permissions column.
+  test('creates a read-only key by default', async ({ authenticatedPage }) => {
+    const developer = new DeveloperPage(authenticatedPage);
+    await developer.goto();
+    await developer.expectLoaded();
+
+    const keyName = `e2e-scopes-${Date.now()}`;
+    await developer.createApiKey(keyName);
+
+    const row = developer.apiKeyRowByName(keyName);
+    await expect(row).toBeVisible({ timeout: 10_000 });
+    await expect(row).toContainText('READ_MEDIA');
+    await expect(row).not.toContainText('WRITE_PROFILE');
+    await expect(row).not.toContainText('DELETE_COLLECTIONS');
+  });
+
   test('renames an API key', async ({ authenticatedPage }) => {
     const developer = new DeveloperPage(authenticatedPage);
     await developer.goto();

@@ -141,7 +141,43 @@ export function extractBearerToken(authorization: string | undefined | null): st
   return token.length > 0 ? token : null;
 }
 
-const DEFAULT_USER_API_PERMISSIONS = [
+/**
+ * What a key gets when its creator did not choose: the corpus read, and nothing
+ * else.
+ *
+ * A key is a bearer credential that leaves the browser it was created in, and
+ * the common destination is now a third-party tool the reader pasted it into.
+ * The default therefore answers "what does a key need to be useful to a
+ * stranger's app?", not "what is this account allowed to do" -- and the answer
+ * is one scope. Reading the owner's own profile, activity or collections is
+ * already more than a search integration needs, so it is not given away to
+ * someone who never said which of those they wanted.
+ *
+ * ROLE PLAYS NO PART HERE, deliberately. It used to, so that an admin's
+ * unscoped key could not carry the corpus writes their role allows. That
+ * distinction now lives in `resolveGrantableApiPermissions` below, which is
+ * where it belongs: the ceiling is a question about the OWNER, the default is a
+ * question about the KEY. Branching on role in both places meant two answers to
+ * maintain and only one of them enforced anything.
+ *
+ * Existing keys are untouched: better-auth stores the permission list on the
+ * key row at creation, so this changes what NEW unscoped keys get and nothing
+ * that is already in someone's hands.
+ */
+const DEFAULT_API_PERMISSIONS = [ApiPermission.READ_MEDIA];
+
+/**
+ * The most a user may put on a key, which is a different question from what
+ * they get by default and must not be conflated with it.
+ *
+ * `enforceApiKeyScope` is the ONLY gate on a key-authenticated request --
+ * `enforceSessionAdmin` passes straight through for API-key auth -- so this
+ * ceiling is what stands between a normal account and the corpus-write scopes.
+ * It is enforced server-side in `createUserApiKey`; better-auth's own create
+ * endpoint refuses a client-supplied permission list outright, so there is no
+ * second door into it.
+ */
+const USER_GRANTABLE_API_PERMISSIONS = [
   ApiPermission.READ_MEDIA,
   ApiPermission.READ_PROFILE,
   ApiPermission.WRITE_PROFILE,
@@ -153,36 +189,32 @@ const DEFAULT_USER_API_PERMISSIONS = [
   ApiPermission.DELETE_COLLECTIONS,
 ];
 
-/**
- * An admin's key can rewrite the shared media corpus, so being an admin is a
- * reason to grant less by default rather than more: a key created without an
- * explicit scope list can only read. Corpus writes have to be asked for.
- */
-const DEFAULT_ADMIN_API_PERMISSIONS = [
-  ApiPermission.READ_MEDIA,
-  ApiPermission.READ_PROFILE,
-  ApiPermission.READ_ACTIVITY,
-  ApiPermission.READ_COLLECTIONS,
+/** An admin may additionally grant the corpus writes their role already allows. */
+const ADMIN_GRANTABLE_API_PERMISSIONS = [
+  ...USER_GRANTABLE_API_PERMISSIONS,
+  ApiPermission.ADD_MEDIA,
+  ApiPermission.UPDATE_MEDIA,
+  ApiPermission.REMOVE_MEDIA,
 ];
 
-export async function resolveDefaultApiPermissions(
-  userId: string,
-  findUserById: FindUserById = defaultFindUserById,
-): Promise<Record<string, ApiPermission[]>> {
-  const numericUserId = Number(userId);
-
-  if (!Number.isInteger(numericUserId) || numericUserId <= 0) {
-    return {
-      [BETTER_AUTH_API_PERMISSION_RESOURCE]: DEFAULT_USER_API_PERMISSIONS,
-    };
-  }
-
-  const user = await findUserById(numericUserId);
-  const isAdmin = user?.role === UserRoleType.ADMIN;
-
+/**
+ * Takes no arguments on purpose: the answer no longer depends on who is asking,
+ * and a signature that still accepted a user id would invite someone to make it
+ * depend on that again. It also drops a database read from every key creation.
+ */
+export function resolveDefaultApiPermissions(): Record<string, ApiPermission[]> {
   return {
-    [BETTER_AUTH_API_PERMISSION_RESOURCE]: isAdmin ? DEFAULT_ADMIN_API_PERMISSIONS : DEFAULT_USER_API_PERMISSIONS,
+    [BETTER_AUTH_API_PERMISSION_RESOURCE]: DEFAULT_API_PERMISSIONS,
   };
+}
+
+/** Every scope this user is allowed to put on a key, by role. */
+export async function resolveGrantableApiPermissions(
+  userId: number,
+  findUserById: FindUserById = defaultFindUserById,
+): Promise<ApiPermission[]> {
+  const user = await findUserById(userId);
+  return user?.role === UserRoleType.ADMIN ? ADMIN_GRANTABLE_API_PERMISSIONS : USER_GRANTABLE_API_PERMISSIONS;
 }
 
 export async function enrichSessionUser(user: BetterAuthSessionUser, findUserById: FindUserById = defaultFindUserById) {
@@ -361,7 +393,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
         },
         customAPIKeyGetter: (ctx) => extractBearerToken(ctx.headers?.get('authorization')),
         permissions: {
-          defaultPermissions: (userId) => resolveDefaultApiPermissions(userId, findUserById),
+          defaultPermissions: () => resolveDefaultApiPermissions(),
         },
       }),
       customSession(async ({ user, session }) => {

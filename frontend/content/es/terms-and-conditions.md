@@ -5,7 +5,7 @@ description: "Lee los términos y condiciones del servicio de Nadeshiko."
 
 # Términos y Condiciones
 
-**Última actualización: 19 de enero de 2026**
+**Última actualización: 14 de agosto de 2026**
 
 Por favor, lea estos términos y condiciones detenidamente antes de usar la aplicación Nadeshiko.
 
@@ -26,6 +26,19 @@ Si se le proporciona acceso a la API, usted acepta utilizarla de acuerdo con est
 - **Actividades Prohibidas**: No debe usar la API para participar en actividades que violen estos términos o cualquier ley o regulación aplicable. Las actividades prohibidas incluyen, entre otras, scraping de datos, acceso no autorizado a datos y cualquier forma de abuso o mal uso de la API.
 - **Uso de Datos**: Cualquier dato al que acceda a través de la API es solo para su uso personal o educativo. No debe compartir, vender o distribuir los datos a terceros sin el permiso explícito de Nadeshiko.
 - **Modificaciones**: Nadeshiko se reserva el derecho de modificar, suspender o descontinuar la API en cualquier momento, con o sin previo aviso. Nadeshiko no será responsable ante usted ni ante terceros por cualquier modificación, suspensión o interrupción de la API.
+
+## Integraciones de Terceros
+
+Una aplicación de terceros puede leer contenido de Nadeshiko en nombre de un lector, siempre que cada lector aporte su propia clave de API y la aplicación cumpla todas las condiciones siguientes. Cumplirlas **constituye** el permiso explícito que exige la condición de Uso de Datos anterior; una integración que las cumpla no necesita solicitarlo por separado.
+
+- **La clave propia del lector**: la aplicación debe usar una clave que el propio lector haya creado y pueda revocar en cualquier momento. No debe incluir una clave compartida, agrupar a varios lectores en una misma clave, ni enviar las claves de los lectores a sus propios servidores.
+- **Alcance de solo lectura**: pida a los lectores una clave limitada al permiso `READ_MEDIA`. Una integración no debe requerir permisos de escritura sobre el perfil, la actividad o las colecciones del lector para funcionar.
+- **Peticiones directas**: las peticiones deben ir desde el cliente del propio lector hasta Nadeshiko. La aplicación no debe actuar como proxy, conservar las respuestas más allá de la sesión del lector, replicar o indexar el corpus, redistribuirlo, ni usarlo para entrenar modelos.
+- **Cuotas**: se aplican la cuota y los límites de uso del propio lector. Gestione las respuestas `429` y no eluda los límites.
+- **Clasificación de contenido**: cada segmento incluye un `contentRating`. Filtrar o presentar las clasificaciones de forma adecuada para su público es responsabilidad de la aplicación: una petición que no envíe filtro de clasificación recibe todas las clasificaciones, incluida `EXPLICIT`.
+- **Atribución**: indique a Nadeshiko como fuente del contenido y enlace a estos términos y a nuestra [Política DMCA](/dmca).
+
+Podemos retirar este permiso a cualquier aplicación en cualquier momento. Las secciones de Terminación y Descargo de Responsabilidad siguientes se aplican a las aplicaciones igual que a los lectores.
 
 ## Terminación
 Podemos terminar o suspender su cuenta o dirección IP de forma inmediata, sin previo aviso o responsabilidad, por cualquier motivo, incluyendo, sin limitación, el incumplimiento de los términos.

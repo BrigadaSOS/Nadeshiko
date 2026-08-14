@@ -2,8 +2,8 @@
 import { mdiPlus, mdiCheckBold, mdiPencilOutline, mdiContentCopy } from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
 
-import type { ApiKeyListItem } from '@/stores/api';
-import { normalizeApiKey } from '@/stores/api';
+import type { ApiKeyListItem, ApiKeyScope } from '@/stores/api';
+import { normalizeApiKey, API_KEY_SCOPES, READ_ONLY_API_KEY_SCOPES, FULL_ACCOUNT_API_KEY_SCOPES } from '@/stores/api';
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
@@ -27,6 +27,21 @@ async function copyApiKey() {
 
 // Create modal state
 const modalKeyName = ref('');
+
+type ScopePreset = 'readOnly' | 'fullAccount' | 'custom';
+const modalScopePreset = ref<ScopePreset>('readOnly');
+const modalCustomScopes = ref<ApiKeyScope[]>([...READ_ONLY_API_KEY_SCOPES]);
+
+// Read-only is the default because it is the right answer for the case that
+// actually sends people here -- pasting a key into a third-party learning tool
+// -- and because the cost of the two mistakes is not symmetric: too few scopes
+// is a second visit to this page, too many is a credential in someone else's
+// code that can rewrite this account.
+const selectedScopes = computed<ApiKeyScope[]>(() => {
+  if (modalScopePreset.value === 'readOnly') return [...READ_ONLY_API_KEY_SCOPES];
+  if (modalScopePreset.value === 'fullAccount') return [...FULL_ACCOUNT_API_KEY_SCOPES];
+  return modalCustomScopes.value;
+});
 
 // Rename modal state
 const renameKeyId = ref<string | null>(null);
@@ -108,6 +123,8 @@ const showRenameModal = ref(false);
 
 const openCreateModal = () => {
   modalKeyName.value = '';
+  modalScopePreset.value = 'readOnly';
+  modalCustomScopes.value = [...READ_ONLY_API_KEY_SCOPES];
   showCreateModal.value = true;
 };
 
@@ -146,7 +163,7 @@ const confirmRenameApiKey = async () => {
 };
 
 const confirmCreateApiKey = async () => {
-  if (!modalKeyName.value) {
+  if (!modalKeyName.value || selectedScopes.value.length === 0) {
     return;
   }
 
@@ -154,7 +171,7 @@ const confirmCreateApiKey = async () => {
   generatedApiKey.value = null;
 
   try {
-    const response = await api_store.createApiKeyGeneral(modalKeyName.value);
+    const response = await api_store.createApiKeyGeneral(modalKeyName.value, selectedScopes.value);
     if (!response?.key) {
       useToastError(t('accountSettings.developer.createKeyError'));
       return;
@@ -486,6 +503,59 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                 v-on="createKeyEnterSubmit"
                             />
                         </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {{ $t('accountSettings.developer.createApiKeyModal.scopesLabel') }}
+                            </label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                {{ $t('accountSettings.developer.createApiKeyModal.scopesHelp') }}
+                            </p>
+
+                            <div class="flex flex-col gap-2">
+                                <label
+                                    v-for="preset in (['readOnly', 'fullAccount', 'custom'] as const)"
+                                    :key="preset"
+                                    class="flex items-start gap-2 cursor-pointer rounded-lg border p-3 border-gray-300 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                    :class="{ 'border-button-accent-main dark:border-button-accent-main': modalScopePreset === preset }"
+                                >
+                                    <input
+                                        v-model="modalScopePreset"
+                                        type="radio"
+                                        :value="preset"
+                                        :data-testid="`create-apikey-preset-${preset}`"
+                                        class="mt-1 shrink-0"
+                                    />
+                                    <span class="flex flex-col">
+                                        <span class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                            {{ $t(`accountSettings.developer.createApiKeyModal.presets.${preset}.label`) }}
+                                        </span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                                            {{ $t(`accountSettings.developer.createApiKeyModal.presets.${preset}.description`) }}
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div v-if="modalScopePreset === 'custom'" class="mt-3 flex flex-col gap-1.5 pl-1">
+                                <label
+                                    v-for="scope in API_KEY_SCOPES"
+                                    :key="scope"
+                                    class="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300"
+                                >
+                                    <input
+                                        v-model="modalCustomScopes"
+                                        type="checkbox"
+                                        :value="scope"
+                                        :data-testid="`create-apikey-scope-${scope}`"
+                                    />
+                                    <code class="font-mono text-xs">{{ scope }}</code>
+                                </label>
+                                <p v-if="modalCustomScopes.length === 0" class="text-xs text-red-400 mt-1">
+                                    {{ $t('accountSettings.developer.createApiKeyModal.scopesRequired') }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div
@@ -495,7 +565,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                         type="button"
                         data-testid="create-apikey-submit"
                         class="px-4 py-2 text-sm font-medium text-white bg-button-accent-main rounded-lg hover:bg-button-accent-hover focus:outline-none focus:ring-2 focus:ring-input-focus-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                        :disabled="!modalKeyName || isLoading"
+                        :disabled="!modalKeyName || selectedScopes.length === 0 || isLoading"
                         @click="confirmCreateApiKey"
                     >
                         {{ $t('accountSettings.developer.createApiKeyModal.create') }}
