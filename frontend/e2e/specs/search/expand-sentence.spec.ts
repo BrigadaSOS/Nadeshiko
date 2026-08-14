@@ -7,6 +7,8 @@ type AudioProbe = Array<{ kind: 'construct' | 'play'; src: string }>;
 declare global {
   interface Window {
     __audioProbe?: AudioProbe;
+    /** How many concatenated clips have been built this page load. */
+    __expandedAudioBuilt?: number;
   }
 }
 
@@ -20,6 +22,17 @@ declare global {
 async function installAudioProbe(page: import('@playwright/test').Page) {
   await page.addInitScript(() => {
     window.__audioProbe = [];
+    window.__expandedAudioBuilt = 0;
+    // The concatenated clip exists as a blob URL and nothing else: it is never
+    // in the DOM, never in the network log (it is built from two downloads that
+    // already finished), and the only moment it becomes observable is when the
+    // player is handed it. Counting the object URLs the app mints is what lets a
+    // test wait for "the expanded audio is ready" instead of guessing.
+    const createObjectURL = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = (obj: Blob | MediaSource) => {
+      window.__expandedAudioBuilt = (window.__expandedAudioBuilt ?? 0) + 1;
+      return createObjectURL(obj);
+    };
     const Native = window.Audio;
     const Wrapped = function (this: unknown, src?: string) {
       const element = new Native(src);
@@ -118,6 +131,32 @@ test.describe('Expand sentence', () => {
       .toBe(true);
   });
 
+  test('an expansion whose audio fails can still be reverted', async ({ page }) => {
+    // The pair that comes apart: the text swap lands first and the audio is
+    // attached a second or two later, so an audio failure leaves a card that is
+    // expanded and has no clip. Revert used to be gated on the clip -- meaning
+    // the one case that most needs a way back was the one case that had none,
+    // and the toast told the reader about it while offering nothing to do.
+    await page.route(/\.(mp3|opus|m4a|wav)(\?|$)/, (route) =>
+      route.request().resourceType() === 'fetch' ? route.abort() : route.continue(),
+    );
+
+    const card = search.segmentCards.first();
+    const jaText = card.getByTestId('segment-japanese-text');
+    const original = (await jaText.innerText()).trim();
+
+    await expand(card, 'Expand (right)');
+    await expect.poll(async () => (await jaText.innerText()).trim() !== original, { timeout: 10_000 }).toBe(true);
+
+    const menu = await openMenu(card);
+    const revert = menu.locator('button', { hasText: 'Revert' }).first();
+    await expect(revert).toBeVisible({ timeout: 10_000 });
+    await revert.click();
+
+    // And it really goes back, rather than merely offering to.
+    await expect.poll(async () => (await jaText.innerText()).trim(), { timeout: 10_000 }).toBe(original);
+  });
+
   test('playing a segment before expanding it still yields expanded audio', async ({ page }) => {
     // The regression: a media element's request is not a CORS request, so playing
     // first left a cache entry the concatenation fetch could not reuse. The
@@ -149,12 +188,21 @@ test.describe('Expand sentence', () => {
 
     await expand(card, 'Expand (right)');
 
-    // Give the concatenation time to fetch and decode both objects.
+    // Wait for the audio to actually exist.
+    //
+    // This polled `dropdown-toggle.isEnabled()` and waited for nothing at all:
+    // `isExpanding` disables the menu's ITEMS, never the toggle, so the poll was
+    // true on its first tick. The test then played about a second before the
+    // fetch-and-decode finished and got the original clip -- the very thing it
+    // exists to catch -- roughly one run in two. It was not a flake in the
+    // feature; it was a test racing it and blaming it on retry.
+    //
+    // The text swap deliberately lands before the audio (see
+    // `attachExpandedAudio`), so nothing in the rendered card marks the audio as
+    // ready. The blob is the signal.
     await expect
-      .poll(async () => await card.getByTestId('more-dropdown').getByTestId('dropdown-toggle').isEnabled(), {
-        timeout: 20_000,
-      })
-      .toBe(true);
+      .poll(async () => await page.evaluate(() => window.__expandedAudioBuilt ?? 0), { timeout: 25_000 })
+      .toBeGreaterThan(0);
 
     await card.getByTestId('audio-play-button').click();
 

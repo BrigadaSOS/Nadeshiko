@@ -12,6 +12,8 @@ import {
   type GlossLanguage,
 } from '~/utils/wordCard';
 import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
+import { mdiStarCheckOutline, mdiStarPlusOutline } from '@mdi/js';
+import type { SearchResult } from '~/types/search';
 // The singleton, not `usePostHog()`. That composable resolves through
 // `useNuxtApp()`, which throws when it is reached from a detached async
 // continuation -- and the outcome below is reported after `await fetchWord`,
@@ -21,6 +23,14 @@ import posthog from 'posthog-js';
 type Props = {
   tokens: Token[];
   highlight?: string;
+  /**
+   * The segment these tokens came from, which the card mines into Anki.
+   *
+   * Optional because the sentence renders perfectly well without it and this
+   * component has no other use for it -- a caller that only wants words to be
+   * clickable owes nothing. The Anki controls simply do not appear.
+   */
+  result?: SearchResult;
 };
 
 const props = defineProps<Props>();
@@ -88,6 +98,29 @@ const wordState = ref<'idle' | 'loading' | 'missing'>('idle');
 // reader has moved off can be told apart from the one they are looking at.
 // Deliberately not the token object: those are rebuilt by a computed.
 let pendingLookup: string | null = null;
+
+/**
+ * The Anki half of the card, which is the other question a reader has about a
+ * word they just looked up: is it already in my collection, and can this
+ * sentence go on it.
+ *
+ * It answers against AnkiConnect on the reader's own machine and shows nothing
+ * at all without a configured profile -- so for everyone else the card is
+ * exactly what it was. See `useWordMining` for why none of it is cached.
+ */
+
+/** What the card mines, and what it asks Anki about: the dictionary form rather
+ *  than the surface, because that is what a mine puts in the expression field --
+ *  食べる, whatever the sentence inflected it to. Read off the TOKEN rather than
+ *  off `headword`, so the probe can start the moment the card opens instead of
+ *  waiting for a dictionary lookup it does not depend on -- and so that closing
+ *  the card empties it, which is what cancels a probe still in flight. */
+const miningWord = computed(() => hoveredToken.value?.dictForm ?? '');
+
+const { minedNoteId, mining, canMine, probeMined, clearMined, openMinedNote, mineSentence } = useWordMining(
+  () => props.result,
+  () => miningWord.value,
+);
 
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
@@ -336,6 +369,11 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) =
   // is in it.
   placeTooltip();
   void loadWord(token);
+  // Alongside the dictionary lookup rather than after it: the two answer
+  // different services (ours, and Anki on this machine) and neither waits on the
+  // other, so a card whose definition is still in flight can already say the
+  // word is mined.
+  void probeMined();
 
   // Only a keyboard opener gets its focus moved. Doing it for a mouse click
   // would paint a focus ring on a card nobody navigated to, and take focus off
@@ -369,6 +407,7 @@ const closeTooltip = () => {
   word.value = null;
   wordState.value = 'idle';
   pendingLookup = null;
+  clearMined();
 };
 
 // With the card opened by click it no longer closes when the pointer leaves, so
@@ -652,6 +691,25 @@ const searchForWord = (query: string) => {
   emit('token-click', query);
 };
 
+/**
+ * Open the note this word is already on, in Anki.
+ *
+ * Deliberately does NOT close the card. The reader is being sent to another
+ * application and will come back to the same sentence -- most often to press the
+ * button beside this one and put it on the note they have just looked at -- so
+ * dismissing the card would make them find the word again to do it.
+ */
+const viewMinedNote = () => {
+  if (posthog.__loaded) {
+    posthog.capture('anki_note_viewed_from_card', { lemma: miningWord.value });
+  }
+  void openMinedNote();
+};
+
+const mineThisSentence = () => {
+  void mineSentence();
+};
+
 const dictionaryLinks = computed(() => {
   const token = hoveredToken.value;
   if (!token) return [];
@@ -753,6 +811,42 @@ const dictionaryLinks = computed(() => {
               <template v-else>{{ headword }}</template>
             </component>
             <span v-if="headReading && headFurigana.length === 0" class="token-tooltip__reading">{{ headReading }}</span>
+
+            <!-- Anki, in the corner. Inside the head's flex row and pushed over
+                 rather than absolutely positioned, so a long headword can never
+                 run underneath the buttons. Nothing renders here without a
+                 configured profile, which needs an account -- so this is the one
+                 part of the card a signed-out reader never sees.
+
+                 `result` gates it too: the mine sends this SENTENCE, and a
+                 caller that did not hand one over has nothing to send. -->
+            <span v-if="canMine && result" class="token-tooltip__tools">
+              <!-- Only when the collection says so. An always-present control
+                   that is sometimes a no-op would be the easier thing to build
+                   and would throw away the answer: the star's absence is what
+                   tells the reader this word is new to them. -->
+              <button
+                v-if="minedNoteId !== null"
+                type="button"
+                class="token-tooltip__tool is-mined"
+                :aria-label="$t('tokenTooltip.openInAnki')"
+                :title="$t('tokenTooltip.openInAnki')"
+                @click="viewMinedNote"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiStarCheckOutline" fill="currentColor" /></svg>
+              </button>
+              <button
+                type="button"
+                class="token-tooltip__tool"
+                :disabled="mining"
+                :aria-label="minedNoteId !== null ? $t('tokenTooltip.mineToNote') : $t('tokenTooltip.mineToLastCard')"
+                :title="minedNoteId !== null ? $t('tokenTooltip.mineToNote') : $t('tokenTooltip.mineToLastCard')"
+                @click="mineThisSentence"
+              >
+                <span v-if="mining" class="token-tooltip__spinner" />
+                <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiStarPlusOutline" fill="currentColor" /></svg>
+              </button>
+            </span>
           </div>
 
           <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
@@ -1008,6 +1102,10 @@ const dictionaryLinks = computed(() => {
   line-height: 1.25;
   color: white;
   text-decoration: none;
+  /* Shrinkable, so the Anki buttons that share this row keep their place: a
+     flex item's default `min-width: auto` refuses to go below its content, and
+     a long headword would push them off the edge of a 340px card. */
+  min-width: 0;
 }
 
 a.token-tooltip__word {
@@ -1022,6 +1120,63 @@ a.token-tooltip__word:hover {
 
 .token-tooltip__reading {
   font-size: 13px;
+  color: var(--tt-accent);
+}
+
+/* The Anki corner. `flex: 0 0 auto` against a headword that may shrink, so a
+   long word wraps rather than pushing the buttons off the card -- they are the
+   fixed thing here and the word is the elastic one, which is the opposite of
+   how the head reads. `flex-start` because the head aligns on the baseline of a
+   32px word, and centring against that would drop the buttons halfway down the
+   card. */
+.token-tooltip__tools {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  margin-left: auto;
+}
+
+/* The same quiet circle as the pronunciation button below, because they are the
+   same kind of thing: a small action hanging off the word rather than part of
+   what the card says about it. */
+.token-tooltip__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--tt-ink-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.token-tooltip__tool:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--tt-ink);
+}
+
+.token-tooltip__tool:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Lit, not merely present. This one is a statement about the reader's own
+   collection -- they have this word -- and it has to be readable as one at a
+   glance from across the card, which a grey icon among grey icons is not. */
+.token-tooltip__tool.is-mined {
+  background: rgba(223, 132, 141, 0.18);
+  color: var(--tt-accent);
+}
+
+.token-tooltip__tool.is-mined:hover:not(:disabled) {
+  background: rgba(223, 132, 141, 0.3);
   color: var(--tt-accent);
 }
 

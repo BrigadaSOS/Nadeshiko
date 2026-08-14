@@ -35,8 +35,13 @@ test.describe('Segment card', () => {
     const timeLink = mediaInfo.getByTestId('segment-time-link');
 
     await expect(links).toHaveCount(3);
-    await expect(links.first()).toHaveAttribute('href', /\/search\?media=/);
-    await expect(links.nth(1)).toHaveAttribute('href', /\/search\?media=/);
+    // `/search/彼女?media=` and NOT `/search?media=`: the word stays in the path
+    // it was searched on. This assertion used to read `/\/search\?media=/`,
+    // which is why the search-dropping regression shipped green -- it did not
+    // merely miss the bug, it pinned it in place.
+    const filterHref = new RegExp(`/search/${encodeURIComponent('彼女')}\\?media=`);
+    await expect(links.first()).toHaveAttribute('href', filterHref);
+    await expect(links.nth(1)).toHaveAttribute('href', filterHref);
     await expect(timeLink).toHaveAttribute('href', /\/sentence\//);
   });
 
