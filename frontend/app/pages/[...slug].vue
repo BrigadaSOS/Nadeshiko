@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
 
 interface MarkdownPagePayload {
@@ -29,6 +30,9 @@ const slug = computed(() => {
 });
 
 const isBlogPost = computed(() => slug.value.startsWith('blog/'));
+// The changelog stacks ~30 version headings on one page, so it runs them at a
+// smaller size than a prose page that has three of them.
+const isChangelog = computed(() => slug.value === 'changelog');
 
 const { data, error } = await useAsyncData(
   () => `content-${locale.value}-${route.path}`,
@@ -134,7 +138,7 @@ useHead(() => ({
     { name: 'description', content: description.value },
     { property: 'og:title', content: title.value },
     { property: 'og:description', content: description.value },
-    { property: 'og:image', content: `${requestOrigin}/logo-og-5bc76788.png` },
+    { property: 'og:image', content: `${requestOrigin}${DEFAULT_OG_IMAGE_PATH}` },
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: title.value },
     { name: 'twitter:description', content: description.value },
@@ -144,8 +148,11 @@ useHead(() => ({
 
 <template>
   <div class="min-h-screen">
-      <div v-if="data" class="mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
-        <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost }">
+      <!-- Blog posts get the narrow reading column; the standalone pages
+           (about, privacy, terms, dmca) run at the same width as the rest of
+           the site so they do not read as a different template. -->
+      <div v-if="data" class="px-4 md:px-0 py-6" :class="isBlogPost ? 'nd-page-prose' : 'nd-page'">
+        <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost, 'is-changelog': isChangelog }">
           <template v-if="isBlogPost">
             <h1 class="blog-title" :lang="contentLang">{{ title }}</h1>
             <time v-if="contentDate" class="blog-date" :datetime="contentDate">
@@ -319,6 +326,36 @@ useHead(() => ({
   .content-markdown :deep(h2) {
     font-size: 2.25rem;
   }
+}
+
+/* Changelog: a version heading per release, so they run smaller than the two or
+   three headings a prose page has. */
+.content-markdown.is-changelog :deep(h2) {
+  font-size: 1.375rem;
+  margin-top: 2.75rem;
+  margin-bottom: 1rem;
+  text-underline-offset: 0.35rem;
+  text-decoration-thickness: 3px;
+}
+
+@media (min-width: 768px) {
+  .content-markdown.is-changelog :deep(h2) {
+    font-size: 1.5rem;
+  }
+}
+
+.content-markdown.is-changelog :deep(h3) {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 1.5rem;
+  margin-bottom: 0.625rem;
+}
+
+.content-markdown.is-changelog :deep(p em:only-child) {
+  color: #9ca3af;
+  font-size: 1rem;
 }
 
 .content-markdown :deep(h3) {
