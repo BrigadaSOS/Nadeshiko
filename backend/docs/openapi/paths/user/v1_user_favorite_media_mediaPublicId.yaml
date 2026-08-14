@@ -1,0 +1,33 @@
+delete:
+  tags:
+    - User
+  operationId: removeFavoriteMedia
+  summary: Unstar media
+  description: |
+    Removes a media title from the authenticated reader's starred list. The title
+    keeps appearing in the search media filter; it simply stops sorting first.
+
+  security:
+    - ApiKey: [WRITE_PROFILE]
+  parameters:
+    - name: mediaPublicId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9_-]{12}$'
+      description: Public ID of the media to unstar
+      example: V1StGXR8_Z5d
+  responses:
+    "204":
+      description: No Content
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

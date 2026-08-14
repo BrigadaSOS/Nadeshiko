@@ -1,0 +1,83 @@
+get:
+  tags:
+    - Activity
+  operationId: listFamiliarMedia
+  summary: List the titles the reader studies most
+  description: |
+    Returns the titles the authenticated reader engages with most, highest score
+    first, for sorting the search media filter and for showing the reader what
+    the tally holds.
+
+    Scored from a monthly per-title tally of Anki exports, plays and shares --
+    NOT from the activity log, which `searchHistory` governs and a nightly job
+    prunes at 90 days. Anki exports weigh heaviest (deliberate mining); plays are
+    scaled logarithmically so one long autoplay session cannot outrank a month of
+    study. Empty when the reader has `familiarMedia.enabled` off.
+
+  security:
+    - ApiKey: [READ_ACTIVITY]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - familiarMedia
+            properties:
+              familiarMedia:
+                type: array
+                items:
+                  type: object
+                  required: [media, score, ankiCount, playCount, shareCount]
+                  properties:
+                    media:
+                      $ref: "../../components/schemas/MediaSummary.yaml"
+                    score:
+                      type: number
+                      description: Weighted engagement score; ordering key, not a display value.
+                    ankiCount:
+                      type: integer
+                    playCount:
+                      type: integer
+                    shareCount:
+                      type: integer
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - User
+  x-internal: true
+  operationId: clearFamiliarMedia
+  summary: Forget which titles the reader studies
+  description: |
+    Deletes the authenticated reader's whole media tally.
+
+    Separate from clearing activity history on purpose: the two are stored apart
+    and consented to apart, so neither clear touches the other's rows.
+
+  security:
+    - SessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/AffectedCountResponse.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
