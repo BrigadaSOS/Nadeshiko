@@ -6,6 +6,7 @@ required:
   - activity
   - collections
   - reports
+  - mediaAffinity
   - truncated
 properties:
   truncated:
@@ -13,13 +14,14 @@ properties:
     description: |
       Which sections were cut short. The export is assembled and returned as a single JSON
       body, so each section has a ceiling: 50000 activity entries, 5000 reports, 1000
-      collections, and 50000 collection segment references in total. A `true` here means more
-      data exists than the response carries.
+      collections, 50000 collection segment references in total, and 50000 media affinity
+      rows. A `true` here means more data exists than the response carries.
     required:
       - activity
       - collections
       - collectionSegments
       - reports
+      - mediaAffinity
     properties:
       activity:
         type: boolean
@@ -28,6 +30,8 @@ properties:
       collectionSegments:
         type: boolean
       reports:
+        type: boolean
+      mediaAffinity:
         type: boolean
   profile:
     type: object
@@ -60,3 +64,24 @@ properties:
     type: array
     items:
       $ref: "./Report.yaml"
+  mediaAffinity:
+    type: array
+    description: |
+      The monthly per-title tally behind familiar-media sorting. Stored apart
+      from `activity` and governed by its own preference, so it is exported as
+      its own section rather than folded into the activity log.
+    items:
+      type: object
+      required: [mediaPublicId, periodYyyymm, ankiCount, playCount, shareCount]
+      properties:
+        mediaPublicId:
+          type: string
+        periodYyyymm:
+          type: integer
+          description: Year and month of the tally, as YYYYMM in UTC.
+        ankiCount:
+          type: integer
+        playCount:
+          type: integer
+        shareCount:
+          type: integer
