@@ -38,8 +38,9 @@ export function useHiddenCategories() {
   const canToggleCategory = (category: Category): boolean =>
     isCategoryHidden(category) || visibleCategories.value.length > 1;
 
-  const toggleCategory = async (category: Category) => {
-    if (!user.isLoggedIn || !canToggleCategory(category)) return;
+  /** Returns whether the change reached the server; see `useHiddenMedia`. */
+  const toggleCategory = async (category: Category): Promise<boolean> => {
+    if (!user.isLoggedIn || !canToggleCategory(category)) return false;
 
     const isUnhiding = isCategoryHidden(category);
     const next = isUnhiding
@@ -67,11 +68,13 @@ export function useHiddenCategories() {
         toastKey: 'hiddenCategories.updateError',
         context: { category, action: isUnhiding ? 'unhide' : 'hide' },
       });
-      return;
+      return false;
     }
 
     const forceSearchCounter = useState('force-search-counter', () => 0);
     forceSearchCounter.value++;
+
+    return true;
   };
 
   return {
