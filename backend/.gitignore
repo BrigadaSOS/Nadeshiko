@@ -6,6 +6,8 @@ prod
 logs
 .codex
 *.log
+# Emails letter-opener writes (and opens) instead of delivering, in local dev
+tmp
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
