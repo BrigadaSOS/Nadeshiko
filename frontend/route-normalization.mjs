@@ -21,7 +21,10 @@ const STATIC_PAGES = new Set([
   // STATIC_PAGES entry or an anchored pattern -- the authenticated surface, the
   // one worth having latency on, was the last thing still invisible.
   '/user', '/user/activity', '/user/collections', '/user/developer',
-  '/user/hide-media', '/user/settings', '/user/sync',
+  // `/user/media` is the combined starred + hidden tab. The two paths beside it
+  // are the tabs it replaced and now 301 to it; they keep their own series so a
+  // still-linked bookmark stays visible rather than folding into `/user/:slug`.
+  '/user/media', '/user/favorites', '/user/hide-media', '/user/settings', '/user/sync',
   '/user/admin', '/user/admin/agent-activity', '/user/admin/announcement',
   '/user/admin/reports', '/user/admin/users',
   '/settings',

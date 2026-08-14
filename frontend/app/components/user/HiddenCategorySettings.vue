@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import type { Category } from '@brigadasos/nadeshiko-sdk';
-import { ALL_CATEGORIES, CATEGORY_SLUG_BY_API } from '~/utils/categories';
+import { ALL_CATEGORIES, CATEGORY_LABEL_KEYS, CATEGORY_SLUG_BY_API } from '~/utils/categories';
+import { useToastSuccess } from '~/utils/toast';
 
 const { t } = useI18n();
 const { isCategoryHidden, canToggleCategory, toggleCategory } = useHiddenCategories();
 const posthog = usePostHog();
-
-const CATEGORY_LABEL_KEYS: Record<Category, string> = {
-  ANIME: 'searchContainer.categoryAnime',
-  JDRAMA: 'searchContainer.categoryLiveaction',
-  YOUTUBE: 'searchContainer.categoryYoutube',
-};
 
 const categories = ALL_CATEGORIES;
 
@@ -19,13 +14,23 @@ const categoryLabel = (category: Category): string => t(CATEGORY_LABEL_KEYS[cate
 const categoryDescription = (category: Category): string =>
   t(`accountSettings.account.hiddenCategoryDescriptions.${CATEGORY_SLUG_BY_API[category]}`);
 
+// Confirmed by name for the same reason as the title rows, and only once the
+// toggle reports the change stored -- a refused or rolled-back toggle leaves the
+// switch where it was and has already said why.
 const onToggle = async (category: Category) => {
   const wasHidden = isCategoryHidden(category);
-  await toggleCategory(category);
+  const saved = await toggleCategory(category);
+  if (!saved) return;
+
   posthog?.capture('category_visibility_changed', {
     action: wasHidden ? 'unhidden' : 'hidden',
     category,
   });
+  useToastSuccess(
+    t(wasHidden ? 'accountSettings.account.categoryShownToast' : 'accountSettings.account.categoryHiddenToast', {
+      name: categoryLabel(category),
+    }),
+  );
 };
 </script>
 
