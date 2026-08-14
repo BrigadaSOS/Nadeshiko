@@ -164,7 +164,18 @@ export const ankiStore = defineStore('anki', {
       }
     },
 
-    async executeAction(action: string, params = {}) {
+    /**
+     * One AnkiConnect call.
+     *
+     * `silent` suppresses the error report, and exists for the calls the reader
+     * did not ask for. Everything here used to be one of those the reader DID
+     * ask for -- an export, a settings probe -- so an unreachable Anki was worth
+     * filing. The word card breaks that: it asks whether a word is already mined
+     * every time one opens, and Anki being closed is the ordinary state for most
+     * readers, so reporting it would file an exception per word looked up and
+     * say nothing that a rate of successful exports does not already say.
+     */
+    async executeAction(action: string, params = {}, options: { silent?: boolean } = {}) {
       if (!import.meta.client) return null;
       const serverAddress = this.activeProfile?.serverAddress ?? DEFAULT_SERVER_ADDRESS;
       try {
@@ -187,7 +198,7 @@ export const ankiStore = defineStore('anki', {
 
         return await response.json();
       } catch (error) {
-        reportError('anki:connect-request-failed', error, { 'anki.action': action });
+        if (!options.silent) reportError('anki:connect-request-failed', error, { 'anki.action': action });
         // AnkiConnect is unreachable (Anki closed, add-on disabled, CORS refused).
         // Returning null explicitly -- every caller must treat this as "no answer"
         // rather than dereferencing `.result` off undefined.
@@ -328,11 +339,22 @@ export const ankiStore = defineStore('anki', {
       }
     },
 
-    async addSentenceToAnki(sentence: SearchResult, id?: number) {
-      await this.addResultToAnki(sentence, id);
+    async addSentenceToAnki(sentence: SearchResult, id?: number, method?: string) {
+      await this.addResultToAnki(sentence, id, method);
     },
 
-    async addResultToAnki(sentence: SearchResult, id?: number) {
+    /**
+     * `method` names the surface the export came from, for telemetry only.
+     *
+     * It was derived from whether a note id was passed, which was the same
+     * question while there were exactly two ways in -- the dropdown's "last
+     * added card" and its note picker. The word card is a third, and it uses
+     * BOTH paths depending on whether the word was already mined, so a derived
+     * value would scatter its exports across the other two and leave no way to
+     * tell whether the button is used at all. Callers that do not care keep the
+     * old derivation.
+     */
+    async addResultToAnki(sentence: SearchResult, id?: number, method?: string) {
       if (!import.meta.client) return;
       const { $i18n } = useNuxtApp();
       const locale = $i18n.locale.value;
@@ -355,7 +377,7 @@ export const ankiStore = defineStore('anki', {
       // Resolved before the first `await`, and shared with every failure branch
       // below so they all carry the same dimensions as the success event.
       const posthog = usePostHog();
-      const exportMethod = id ? 'search_by_id' : 'last_card';
+      const exportMethod = method ?? (id ? 'search_by_id' : 'last_card');
 
       // Every abandoned export reports why. The early returns below are ordinary
       // outcomes rather than throws, so they reached neither error tracking nor
