@@ -6,14 +6,18 @@ import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
-import { CATEGORY_API_MAPPING, discountHiddenMedia } from '~/utils/categories';
+import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
+import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
 import { splitLocalePrefix } from '~/utils/routes';
 import type { SearchScope } from '~/composables/useSearchFetch';
+import type { Category } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
 const { mediaName } = useMediaName();
 const { hiddenMediaIds, hiddenMediaExcludeFilter, isMediaHidden } = useHiddenMedia();
 const { hiddenCategories, isCategoryHidden } = useHiddenCategories();
+const { defaultCategorySlug } = useDefaultSearchCategory();
+const searchRecents = useSearchRecents();
 
 const props = defineProps<{
   initialSentenceData?: SearchResponse | null;
@@ -21,6 +25,13 @@ const props = defineProps<{
   listMediaIds?: number[] | null;
   collectionId?: string | null;
   collectionName?: string | null;
+  /**
+   * The title being browsed, when the ROUTE names it rather than the query
+   * string -- i.e. on `/media/<slug>`, where the scope is in the path and there
+   * is no `?media=` to read. Everywhere else this is absent and the media scope
+   * comes off the URL as before.
+   */
+  mediaPublicId?: string | null;
 }>();
 
 const { t } = useI18n();
@@ -32,6 +43,7 @@ const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const route = useRoute();
 const { setQuery } = useQuerySync();
+const { selectMedia } = useMediaScope();
 const playerStore = usePlayerStore();
 
 const isSentencePath = (path: string) => splitLocalePrefix(path).localizedPath.startsWith('/sentence/');
@@ -52,6 +64,7 @@ const category = ref('all');
 const cursor = ref<string | null>(null);
 const media = ref<string | null>(null);
 const sort = ref<string | null>(null);
+const randomSeed = ref<number | null>(null);
 const uuid = ref<string | null>(null);
 const episode = ref<number | null>(null);
 
@@ -69,10 +82,90 @@ const showAnywayAndRefresh = () => {
   loadSentences({ append: false });
 };
 
+/**
+ * Lifts the reader's hidden-media and hidden-category lists for this search.
+ *
+ * A view, not a preference: it lasts until the query changes, the same way
+ * `showHiddenMediaOverride` does for a title opened directly. Unhiding for good
+ * is what the notice's link to the media settings is for.
+ */
+const revealHidden = ref(false);
+
+const setRevealHidden = (next: boolean) => {
+  posthog?.capture('hidden_results_toggled', {
+    action: next ? 'revealed' : 'restored',
+    // While revealed nothing is being kept out, so the live count is 0 and it is
+    // the count that was on offer -- the size of what they chose to look at --
+    // that the restore event has to carry.
+    hidden_count: next ? hiddenResultCount.value : lastOfferedHiddenCount.value,
+    query: query.value,
+    category: category.value,
+  });
+
+  revealHidden.value = next;
+  loadStats();
+  loadSentences({ append: false });
+};
+
+/**
+ * The titles behind the count, for the notice's popover: what the reader hides
+ * that this query actually matched.
+ *
+ * Fetched only when they ask, and only once per search -- the list's own stats
+ * come back with the hidden media already excluded, so naming them takes a
+ * second request with the filters lifted, which is not worth spending on a
+ * popover nobody opened.
+ */
+const hiddenBreakdown = ref<HiddenBreakdownRow[] | null>(null);
+const hiddenBreakdownLoading = ref(false);
+const hiddenBreakdownError = ref(false);
+
+// Its own fetcher instance. `fetchStats` supersedes whatever the previous call
+// left in flight, so sharing the list's would have the two mark each other stale.
+const { fetchStats: fetchUnfilteredStats } = useSearchFetch();
+
+const loadHiddenBreakdown = async () => {
+  posthog?.capture('hidden_results_breakdown_opened', {
+    hidden_count: hiddenResultCount.value,
+    query: query.value,
+    category: category.value,
+  });
+
+  if (hiddenBreakdown.value || hiddenBreakdownLoading.value) return;
+
+  hiddenBreakdownLoading.value = true;
+  hiddenBreakdownError.value = false;
+
+  const outcome = await fetchUnfilteredStats({
+    ...searchScope.value,
+    hiddenMediaExclude: [],
+    hiddenCategories: [],
+  });
+
+  hiddenBreakdownLoading.value = false;
+
+  if (outcome.status === 'stale') return;
+  if (outcome.status !== 'ok') {
+    hiddenBreakdownError.value = true;
+    return;
+  }
+
+  // Built from the payload that came back with the filters lifted, which is the
+  // only one carrying the hidden titles by name.
+  hiddenBreakdown.value = buildHiddenBreakdown(
+    {
+      ...hiddenResultsScope.value,
+      categories: outcome.data.categories ?? [],
+      media: outcome.data.media ?? [],
+    },
+    { category: (entry) => t(CATEGORY_LABEL_KEYS[entry]), media: mediaName },
+  );
+};
+
 const searchData = computed(() => {
   const sentencePayload = sentenceData.value;
   const statsPayload = statsData.value;
-  const hidden = new Set(hiddenMediaIds.value);
+  const hidden = new Set(revealHidden.value ? [] : hiddenMediaIds.value);
 
   const allMedia = statsPayload?.media || ([] as ResolvedMediaStats[]);
   const filteredMedia = hidden.size > 0 ? allMedia.filter((m) => !hidden.has(m.mediaPublicId)) : allMedia;
@@ -88,7 +181,7 @@ const searchData = computed(() => {
   // is currently looking at is kept: `?category=` overrides the hidden list, and a
   // selected tab that renders nowhere is worse than a tab they chose to open.
   const categories =
-    hiddenCategories.value.length > 0
+    hiddenCategories.value.length > 0 && !revealHidden.value
       ? discounted.filter((entry) => !isCategoryHidden(entry.category) || entry.category === selectedApiCategory.value)
       : discounted;
 
@@ -100,6 +193,84 @@ const searchData = computed(() => {
     media: filteredMedia,
   };
 });
+
+/**
+ * What the reader's own lists are keeping out of the results below, for the
+ * notice that offers to lift them. The derivation, and the three cases it has to
+ * keep apart, live in `~/utils/hiddenResults` where they are unit tested.
+ */
+const hiddenResultsScope = computed(() => ({
+  categories: statsData.value?.categories ?? [],
+  media: statsData.value?.media ?? [],
+  hiddenMediaIds: hiddenMediaIds.value,
+  hiddenCategories: hiddenCategories.value,
+  selectedCategory: selectedApiCategory.value,
+  hasMediaFilter: !!media.value,
+}));
+
+// Nothing is being kept out while the reader is looking past their filters, so
+// the count is 0 by definition rather than by derivation.
+const hiddenResultCount = computed(() => (revealHidden.value ? 0 : countHiddenResults(hiddenResultsScope.value)));
+
+/**
+ * A search that came back with nothing, for a reader who hides something.
+ *
+ * The server drops a category bucket once its last hit is excluded, so where the
+ * partial case above has `realCount` to subtract from, this one has no payload
+ * left to count at all -- the notice says "may be" and offers the same way out,
+ * which is the part that matters when the page is otherwise blank. A query that
+ * genuinely found nothing lands here too; that is why it does not claim a number.
+ */
+const hiddenMayExplainEmpty = computed(
+  () =>
+    !media.value &&
+    !revealHidden.value &&
+    !isLoading.value &&
+    !statsError.value &&
+    searchData.value.categories.length === 0 &&
+    (hiddenMediaIds.value.length > 0 || hiddenCategories.value.length > 0),
+);
+
+/** Whether the notice is offering to lift the filters, rather than reporting they are lifted. */
+const hiddenNoticeOffered = computed(() => hiddenResultCount.value > 0 || hiddenMayExplainEmpty.value);
+
+/** The count the notice last offered, for the events fired once it reads 0. */
+const lastOfferedHiddenCount = ref(0);
+
+/** The search this impression was last recorded for. */
+const lastNoticeImpression = ref<string | null>(null);
+
+/**
+ * Impressions as well as clicks: how often the notice is acted on means nothing
+ * without how often it was there to act on.
+ *
+ * Recorded once per search rather than once per appearance: the notice goes away
+ * while the reader looks past their filters and comes back when they restore
+ * them, and counting that as a second offer would understate every rate measured
+ * against it.
+ *
+ * The separator is a NUL as an escape, never as a raw byte, for the reason
+ * `trackSearch` gives below -- written literally it makes this file binary to
+ * `grep -r`, `rg` and `file`, which then skip it silently.
+ */
+watch(
+  () => (hiddenNoticeOffered.value ? `${query.value}\u0000${category.value}` : null),
+  (key) => {
+    if (!key || !import.meta.client) return;
+    lastOfferedHiddenCount.value = hiddenResultCount.value;
+    if (key === lastNoticeImpression.value) return;
+    lastNoticeImpression.value = key;
+
+    posthog?.capture('hidden_results_notice_shown', {
+      hidden_count: hiddenResultCount.value,
+      // The blank-page case, where the count is unknowable and the notice is the
+      // only thing explaining an empty search.
+      empty_results: hiddenMayExplainEmpty.value,
+      query: query.value,
+      category: category.value,
+    });
+  },
+);
 
 const animeTabName = computed(() => {
   if (props.collectionId) {
@@ -140,15 +311,56 @@ const getSearchQuery = (r: RouteLocationNormalized): string => {
   return typeof r.query?.query === 'string' ? r.query.query : '';
 };
 
+/**
+ * What an absent `?category=` means here: the reader's default category, which
+ * is `all` unless they picked one in settings.
+ *
+ * Three things are opened as themselves and so never take the default, because
+ * it would quietly slice something that was asked for whole -- and, for a title
+ * outside the default category, slice it down to nothing:
+ *
+ *   - a collection,
+ *   - a permalinked sentence,
+ *   - a title picked with `?media=`, the same way an explicit `?media=` already
+ *     beats the reader's hidden-media list.
+ */
+const implicitCategorySlug = (r: RouteLocationNormalized): string => {
+  const hasMediaFilter = getStringQueryValue(r.query?.media ?? r.query?.mediaId) !== null;
+  return props.collectionId || hasMediaFilter || isSentencePath(r.path) ? 'all' : defaultCategorySlug.value;
+};
+
+/**
+ * An explicit `?category=` is a choice and is honoured as given -- including
+ * `all`, which is what the All tab writes once a non-`all` default exists, since
+ * clearing the parameter would just hand the tab back to that default.
+ */
+const resolveCategorySlug = (r: RouteLocationNormalized): string => {
+  const categoryParam = getStringQueryValue(r.query?.category);
+  if (categoryParam === null) {
+    return implicitCategorySlug(r);
+  }
+  return CATEGORY_SLUGS.includes(categoryParam) ? categoryParam : 'all';
+};
+
 const applyRouteQuery = (r: RouteLocationNormalized) => {
   query.value = getSearchQuery(r);
   const queryParams = r.query || {};
-  const categoryParam = getStringQueryValue(queryParams.category);
-  category.value =
-    categoryParam === 'anime' || categoryParam === 'liveaction' || categoryParam === 'youtube' ? categoryParam : 'all';
-  media.value = getStringQueryValue(queryParams.media ?? queryParams.mediaId);
+  category.value = resolveCategorySlug(r);
+  // The prop wins where it is set: on `/media/<slug>` the title is the route, so
+  // it must survive every query patch the filters make. A `?media=` on such a URL
+  // would be a second, contradicting answer to which title this is -- the path is
+  // the one that is canonical and indexed.
+  media.value = props.mediaPublicId ?? getStringQueryValue(queryParams.media ?? queryParams.mediaId);
   sort.value = getStringQueryValue(queryParams.sort);
   uuid.value = getStringQueryValue(queryParams.uuid);
+
+  // Only ever written alongside `sort=random`, and dropped with it. A negative
+  // or non-numeric one is treated as absent rather than passed on: the API takes
+  // non-negative integers, and a hand-edited URL should fall back to the
+  // backend's own seed instead of failing the request.
+  const seedParam = getStringQueryValue(queryParams.seed);
+  const parsedSeed = seedParam === null ? Number.NaN : Number(seedParam);
+  randomSeed.value = Number.isInteger(parsedSeed) && parsedSeed >= 0 ? parsedSeed : null;
 
   const episodeParam = getStringQueryValue(queryParams.episode ?? queryParams.episodeId);
   if (episodeParam === null) {
@@ -169,14 +381,23 @@ const searchScope = computed<SearchScope>(() => ({
   mediaPublicId: media.value,
   episode: episode.value,
   sort: sort.value,
+  randomSeed: randomSeed.value,
   segmentPublicId: uuid.value,
   collectionId: props.collectionId ?? null,
   listMediaIds: props.listMediaIds ?? null,
   contentRating: contentRating.value,
   languages: includedLanguages.value,
-  hiddenMediaExclude: hiddenMediaExcludeFilter.value,
-  hiddenCategories: hiddenCategories.value,
+  // Both lists come off the request while the reader is looking past them, so
+  // the counts and the sidebar describe the list they are actually reading.
+  hiddenMediaExclude: revealHidden.value ? [] : hiddenMediaExcludeFilter.value,
+  hiddenCategories: revealHidden.value ? [] : hiddenCategories.value,
 }));
+
+// The breakdown describes one search; the next one has to ask again.
+watch(searchScope, () => {
+  hiddenBreakdown.value = null;
+  hiddenBreakdownError.value = false;
+});
 
 const loadStats = async () => {
   const outcome = await fetchStats(searchScope.value);
@@ -213,16 +434,26 @@ const resetSentencePagination = () => {
 };
 
 const trackSearch = (response: SearchResponse) => {
-  if (!import.meta.client || !query.value || query.value === lastTrackedQuery.value) {
+  // Keyed by the title as well as the query: 食べる across everything and 食べる
+  // inside one show are two searches, and switching between them by clicking a
+  // media tab has to record the second one.
+  // The separator is a NUL as an escape, never as a raw byte: written literally it
+  // makes this file binary to `grep -r`, `rg` and `file`, which then skip it
+  // silently -- the whole component drops out of every repo-wide search.
+  const trackedKey = `${query.value}\u0000${media.value ?? ''}`;
+  if (!import.meta.client || !query.value || trackedKey === lastTrackedQuery.value) {
     return;
   }
-  lastTrackedQuery.value = query.value;
+  lastTrackedQuery.value = trackedKey;
 
   let mediaId: string | null = null;
   let mediaNameValue: string | null = null;
   if (media.value) {
     mediaId = String(media.value);
-    const mediaSource = response?.results?.[0]?.media ?? null;
+    // The stats payload first: it names the title even when the search inside it
+    // came back empty, which is exactly when the results have nothing to name.
+    const mediaSource =
+      searchData.value.media.find((item) => item.mediaPublicId === mediaId) ?? response?.results?.[0]?.media ?? null;
     if (mediaSource) {
       mediaNameValue = mediaName(mediaSource);
     }
@@ -239,6 +470,15 @@ const trackSearch = (response: SearchResponse) => {
     results_count: resultsCount,
   };
 
+  // Recording happens here, on arrival at results, rather than on submit: most
+  // searches are never typed into the bar -- a clicked token, a media tab, a
+  // link from a dictionary extension and a pasted URL all end up here, and
+  // arriving is the one event they share.
+  searchRecents.remember(
+    query.value,
+    mediaId ? { publicId: mediaId, ...(mediaNameValue ? { name: mediaNameValue } : {}) } : undefined,
+  );
+
   posthog?.capture('sentence_searched', searchEventProps);
   if (resultsCount === 0) {
     posthog?.capture('search_results_empty', searchEventProps);
@@ -247,7 +487,16 @@ const trackSearch = (response: SearchResponse) => {
     // Fire-and-forget telemetry: never let it interrupt or warn about a search that
     // already rendered its results.
     sdk
-      .trackUserActivity({ activityType: 'SEARCH', searchQuery: query.value })
+      .trackUserActivity({
+        activityType: 'SEARCH',
+        searchQuery: query.value,
+        // The scope, so the account's copy of a search knows what the device's
+        // copy knows. `UserActivity` has carried both columns all along -- a
+        // SEARCH row simply never sent them, which is why the history could not
+        // tell a search inside a title from the same search across everything.
+        ...(mediaId ? { mediaPublicId: mediaId } : {}),
+        ...(mediaNameValue ? { mediaName: mediaNameValue } : {}),
+      })
       .catch((error: unknown) => reportError('search:track-activity-failed', error));
   }
 };
@@ -380,24 +629,46 @@ const getCategoryTotalCount = (categoryKey: string): number => {
   return item ? item.realCount : 0;
 };
 
+/**
+ * Hits for the query across everything, ignoring any media filter. The category
+ * stats are not scoped to `?media=`, so this stays available to label the All
+ * tab while a title is selected -- which is the point: a title with no hits for
+ * the query still has to show that the query itself found something.
+ */
+const unfilteredResultCount = computed(() =>
+  (searchData.value?.categories || []).reduce((total, item) => total + item.count, 0),
+);
+
+/**
+ * Label for the selected-title tab. A title whose hits for this query are zero
+ * is absent from the stats payload, so its name cannot be resolved -- hence the
+ * fallback, rather than `animeTabName`'s, which is "All" and would leave two
+ * tabs sharing one name.
+ */
+const selectedMediaTabName = computed(() => {
+  const stat = (searchData.value?.media || []).find((item) => item.mediaPublicId === media.value);
+  const source = stat || searchData.value?.results?.[0]?.media || null;
+  const name = source ? mediaName(source) : t('searchContainer.selectedMediaFallback');
+  return episode.value !== null ? `${name}, ${t('searchpage.main.labels.episode')} ${episode.value}` : name;
+});
+
+/** Leaves the title behind, and the episode under it. */
+const clearMediaFilter = () => {
+  // Goes through `selectMedia` so a title in the path (`/media/<slug>`) is
+  // actually left -- patching `?media=` there would change nothing.
+  selectMedia(null);
+};
+
 const categoryFilter = (categoryKey: string) => {
   posthog?.capture('search_filter_changed', {
     category: categoryKey,
     query: query.value,
   });
 
-  setQuery({ category: categoryKey === 'all' ? null : categoryKey });
-};
-
-const selectedMediaStat = computed(() => {
-  if (!media.value || !searchData.value?.media) return null;
-  return searchData.value.media.find((stat) => stat.mediaPublicId === media.value) ?? null;
-});
-
-const isSelectedMediaMovie = computed(() => selectedMediaStat.value?.airingFormat === 'MOVIE');
-
-const getEpisodeHitsData = () => {
-  return selectedMediaStat.value?.episodeHits || [];
+  // Dropping the parameter is how "All" is normally spelled, but with a default
+  // category set that reads as "use the default" -- so All has to be written out.
+  const clearsToAll = categoryKey === 'all' && implicitCategorySlug(route) === 'all';
+  setQuery({ category: clearsToAll ? null : categoryKey });
 };
 
 const handleRemoveFromCollection = async (segmentPublicId: string) => {
@@ -425,10 +696,6 @@ const handleRemoveFromCollection = async (segmentPublicId: string) => {
   }
 };
 
-const handleRandomLogic = () => {
-  loadSentences({ append: false });
-};
-
 if (props.initialSentenceData) {
   cursor.value = props.initialSentenceData.pagination?.cursor || null;
   const initialResults = props.initialSentenceData.results || [];
@@ -442,9 +709,49 @@ if (props.initialSentenceData) {
   }
 }
 
+/**
+ * The title sidebar fills from its current top to the bottom of the viewport.
+ *
+ * A CSS `max-h: 100vh - tabs` is the stuck size, so at the top of the page the
+ * panel hangs past the fold (and the page can still be scrolled to chase it),
+ * and a short title list shrinks and leaves a hole above the bottom of the
+ * side. Measuring the remaining viewport on scroll/resize covers both: at rest
+ * the panel stops at the fold, and once it sticks it still runs to the bottom.
+ */
+const sidebarRef = ref<HTMLElement | null>(null);
+const sidebarHeight = ref<string | undefined>(undefined);
+
+const syncSidebarHeight = () => {
+  const el = sidebarRef.value;
+  if (!el || el.offsetParent === null) return;
+  const top = el.getBoundingClientRect().top;
+  const stickyTop = Number.parseFloat(getComputedStyle(el).top) || 0;
+  // The column end is pushing the panel off: keep the stuck height so we do
+  // not grow it as it leaves.
+  if (top + 1 < stickyTop) return;
+  sidebarHeight.value = `${Math.max(0, window.innerHeight - top)}px`;
+};
+
+useEventListener(window, 'scroll', syncSidebarHeight, { passive: true });
+useEventListener(window, 'resize', syncSidebarHeight);
+watch(
+  () => searchData.value?.media?.length,
+  () => nextTick(syncSidebarHeight),
+);
+
 onMounted(async () => {
+  syncSidebarHeight();
   if (props.initialSentenceData == null) {
     await loadSentences({ append: false });
+  } else if (!props.collectionId && !uuid.value) {
+    // The server already answered this search, so `loadSentences` -- where a
+    // search is normally recorded -- never runs, and the arrival went down
+    // unrecorded: a link from a dictionary extension, a shared URL, a reload of
+    // a results page. That is most of the ways a search reaches this page, and
+    // it was silently missing from the account's activity too. Same guards as
+    // the fetch path, and `trackSearch` still refuses a blank query and a
+    // repeat of the one it last recorded.
+    trackSearch(props.initialSentenceData);
   }
 
   if (props.initialStatsData == null) {
@@ -459,13 +766,55 @@ watch(forceSearchCounter, () => {
   loadSentences({ append: false });
 });
 
-onBeforeRouteUpdate(async (to, from) => {
-  const toQuery = getSearchQuery(to);
-  const fromQuery = getSearchQuery(from);
-  const statsScopeChanged = toQuery !== fromQuery || to.query.category !== from.query.category;
+// The preference can land after this component has already picked a tab: an SSR
+// pass that could not reach the backend leaves the session to the client, and
+// until it answers the reader looks logged out and gets `all`.
+watch(defaultCategorySlug, () => {
+  if (getStringQueryValue(route.query.category) !== null) return;
 
+  const resolved = implicitCategorySlug(route);
+  if (resolved === category.value) return;
+
+  category.value = resolved;
+  loadStats();
+  loadSentences({ append: false });
+});
+
+/**
+ * Client-side route changes that this component has to answer itself.
+ *
+ * Not all of them, and the split is not a preference -- it is which navigations
+ * remount the page underneath us. Nuxt builds its page key by interpolating the
+ * matched route's `:params` (`generateRouteKey`), so `/search/:query` is part of
+ * the key and the query string is not:
+ *
+ *   /search/彼女 -> /search/猫        key changes -> the page remounts, and the
+ *                                    incoming copy fetches the new search from
+ *                                    its own `useAsyncData`
+ *   /search/彼女 -> ?category=anime   key is identical -> nothing remounts, and
+ *                                    this guard is the only thing that fetches
+ *
+ * Answering the first kind here as well ran every search twice: two identical
+ * `/v1/search` calls and two identical `/v1/search/stats` calls per token click,
+ * ~190ms apart. The first pair also won the race and rendered, so its results
+ * were torn down and rebuilt from the second pair's byte-identical payload --
+ * and because this guard awaited that wasted fetch before letting the
+ * navigation finish, it cost the URL, the search bar and the results another
+ * ~190ms each on top.
+ */
+onBeforeRouteUpdate(async (to, from) => {
   applyRouteQuery(to);
   showHiddenMediaOverride.value = false;
+  revealHidden.value = false;
+
+  // Compared as the page key is: the `:query` param alone. `getSearchQuery` also
+  // reads `?query=`, which reaches this component without remounting it and so
+  // still has to be fetched below.
+  if (String(to.params.query ?? '') !== String(from.params.query ?? '')) {
+    return;
+  }
+
+  const statsScopeChanged = getSearchQuery(to) !== getSearchQuery(from) || to.query.category !== from.query.category;
 
   if (statsScopeChanged) {
     loadStats();
@@ -476,7 +825,7 @@ onBeforeRouteUpdate(async (to, from) => {
 </script>
 
 <template>
-    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :media="media" :isMovieMedia="isSelectedMediaMovie" />
+    <SearchSegmentSidebar :searchData="searchData" :categorySelected="category" :activeMediaId="media" :filterable="!isSingleSentenceView" />
     <div v-if="isViewingHiddenMedia" class="flex-1 mx-auto">
         <section class="w-full py-10 px-4">
             <div class="flex flex-col items-center max-w-lg mx-auto text-center">
@@ -540,8 +889,10 @@ onBeforeRouteUpdate(async (to, from) => {
         </section>
     </div>
     <div v-else class="flex-1 mx-auto">
-        <!-- Tabs -->
-        <div class="pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0">
+        <!-- Tabs. Sticky so the category tabs and the EN/ES/furigana controls
+             stay reachable while reading results: they sit where the search bar
+             leaves off, and the title sidebar starts below them. -->
+        <div class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0">
             <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21] px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
@@ -556,16 +907,26 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
-                            <CommonTabsItem category="all" :categoryName="animeTabName" :count="getCategoryCount('all')" :totalCount="getCategoryTotalCount('all')"
-                                :isActive="category === 'all' || !!media" @click="categoryFilter('all')" />
+                            <!-- With a title selected, All stays on screen as the way back to
+                                 the whole result set, and keeps showing what the query found
+                                 across everything -- a title with no hits for it is not the
+                                 same as the search finding nothing. -->
+                            <CommonTabsItem data-testid="search-category-tab-all" category="all"
+                                :categoryName="media ? t('searchContainer.categoryAll') : animeTabName"
+                                :count="media ? unfilteredResultCount : getCategoryCount('all')"
+                                :totalCount="getCategoryTotalCount('all')"
+                                :isActive="!media && category === 'all'"
+                                @click="media ? clearMediaFilter() : categoryFilter('all')" />
+                            <CommonTabsItem v-if="media" data-testid="search-category-tab-media" category="media"
+                                :categoryName="selectedMediaTabName" :count="getCategoryCount('all')" :isActive="true" />
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'ANIME')"
-                                category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :totalCount="getCategoryTotalCount('anime')" :isActive="category === 'anime'"
+                                data-testid="search-category-tab-anime" category="anime" :categoryName="t('searchContainer.categoryAnime')" :count="getCategoryCount('anime')" :totalCount="getCategoryTotalCount('anime')" :isActive="category === 'anime'"
                                 @click="categoryFilter('anime')" />
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'JDRAMA')"
-                                category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :totalCount="getCategoryTotalCount('liveaction')" :isActive="category === 'liveaction'"
+                                data-testid="search-category-tab-liveaction" category="liveaction" :categoryName="t('searchContainer.categoryLiveaction')" :count="getCategoryCount('liveaction')" :totalCount="getCategoryTotalCount('liveaction')" :isActive="category === 'liveaction'"
                                 @click="categoryFilter('liveaction')" />
                             <CommonTabsItem v-if="!media && !isSingleSegmentView && searchData?.categories?.find((item) => item.category === 'YOUTUBE')"
-                                category="youtube" :categoryName="t('searchContainer.categoryYoutube')" :count="getCategoryCount('youtube')" :totalCount="getCategoryTotalCount('youtube')" :isActive="category === 'youtube'"
+                                data-testid="search-category-tab-youtube" category="youtube" :categoryName="t('searchContainer.categoryYoutube')" :count="getCategoryCount('youtube')" :totalCount="getCategoryTotalCount('youtube')" :isActive="category === 'youtube'"
                                 @click="categoryFilter('youtube')" />
                         </CommonTabsHeader>
                     </CommonTabsContainer>
@@ -575,7 +936,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
         </div>
-        <div v-else-if="statsError" class="pb-3 yomitan-ignore" data-testid="search-stats-error">
+        <div v-else-if="statsError" class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" data-testid="search-stats-error">
             <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
                 <p class="text-sm text-red-400">{{ $t('searchContainer.errorMessage1') }}</p>
                 <button
@@ -599,7 +960,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 </CommonTabsHeader>
             </CommonTabsContainer>
         </div>
-        <div v-else class="pb-3 yomitan-ignore">
+        <div v-else class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore">
             <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
@@ -620,6 +981,21 @@ onBeforeRouteUpdate(async (to, from) => {
         <div class="flex mx-auto w-full">
             <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
+                <!-- Above the results rather than in the sticky header: the header's
+                     height is a fixed `--search-controls-height` that the sidebar
+                     offsets itself by, and this line is a notice to read once, not a
+                     control to keep reachable. -->
+                <SearchHiddenResultsNotice
+                    v-if="hiddenNoticeOffered || revealHidden"
+                    :count="hiddenResultCount"
+                    :revealed="revealHidden"
+                    :breakdown="hiddenBreakdown"
+                    :breakdownLoading="hiddenBreakdownLoading"
+                    :breakdownError="hiddenBreakdownError"
+                    @reveal="setRevealHidden(true)"
+                    @restore="setRevealHidden(false)"
+                    @breakdown="loadHiddenBreakdown()"
+                    @manage="posthog?.capture('hidden_results_manage_clicked', { hidden_count: hiddenResultCount, query })" />
                 <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" :collectionId="collectionId" @remove-from-collection="handleRemoveFromCollection" />
                 <CommonInfiniteScrollObserver @intersect="loadSentences({ append: true })" v-if="hasMoreResults && !isLoading" />
                 <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8 yomitan-ignore">
@@ -636,15 +1012,18 @@ onBeforeRouteUpdate(async (to, from) => {
             </div>
             <!-- Filters -->
             <div v-if="!isSingleSentenceView && (searchData?.media?.length > 0 || isLoading)" class="2xl:min-w-[20rem] 2xl:max-w-[20rem] 3xl:min-w-[20rem] 3xl:max-w-[22rem] yomitan-ignore">
-                <div v-if="searchData?.media?.length > 0" class="p-2 mx-auto hidden 2xl:grid 2xl:sticky 2xl:top-2 2xl:h-[calc(100vh-1rem)]"
-                    :class="media && !isSelectedMediaMovie ? '2xl:grid-rows-[auto_minmax(0,1fr)_auto]' : '2xl:grid-rows-[auto_minmax(0,1fr)]'">
-                    <SearchSegmentFilterSortContent @randomSortSelected="handleRandomLogic()" />
-                    <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" />
-                    <SearchSegmentFilterEpisodeFilter
-                        v-if="media && !isSelectedMediaMovie"
-                        :episodeHits="getEpisodeHitsData()"
-                        :selectedMediaId="media"
-                    />
+                <!-- Fills the remaining viewport (see `syncSidebarHeight`). The
+                     stuck `top` is the tab bar; the height is the rest of the side. -->
+                <div
+                  v-if="searchData?.media?.length > 0"
+                  ref="sidebarRef"
+                  class="px-2 gap-2 mx-auto hidden 2xl:grid 2xl:grid-rows-[auto_minmax(0,1fr)] 2xl:sticky 2xl:top-[var(--search-controls-height)] 2xl:h-[calc(100dvh-var(--search-controls-height))] 2xl:overflow-hidden"
+                  :style="sidebarHeight ? { height: sidebarHeight } : undefined"
+                >
+                    <SearchSegmentFilterSortContent />
+                    <!-- Titles and episodes are one panel: the filter drills from a
+                         title into its episodes rather than stacking two lists. -->
+                    <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" :activeMediaId="media" />
                 </div>
                 <div v-else-if="isLoading && !searchData?.results?.length || !searchData">
                     <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">

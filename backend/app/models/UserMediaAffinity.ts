@@ -169,4 +169,19 @@ export class UserMediaAffinity extends BaseEntity {
     const result = await UserMediaAffinity.delete({ userId });
     return result.affected || 0;
   }
+
+  /**
+   * Forgets one title, across every month it was counted in.
+   *
+   * Deletes rather than zeroes: a zeroed row would keep the title in the table
+   * scoring 0, which reads the same to `getFamiliarForUser` (it is under
+   * `MIN_SCORE`) but slowly fills the table with tombstones for every title a
+   * reader ever dismissed. Nothing here blocks the title -- the next export or
+   * share against it starts a fresh tally, which is the honest behaviour for a
+   * running count rather than a blocklist.
+   */
+  static async forgetForUser(userId: number, mediaPublicId: string): Promise<number> {
+    const result = await UserMediaAffinity.delete({ userId, mediaPublicId });
+    return result.affected || 0;
+  }
 }

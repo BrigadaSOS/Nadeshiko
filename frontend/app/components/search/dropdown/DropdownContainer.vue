@@ -1,9 +1,29 @@
 <template>
     <div ref="rootRef" data-testid="dropdown" class="relative inline-flex">
         <slot :is-open="isOpen" :toggle="toggle" :close="close" :dropdown-id="resolvedDropdownId"></slot>
+        <!--
+            `v-if`, NOT `v-show`, and on the busiest page that difference is most
+            of the document.
+
+            `useDropdownState` holds a single `openDropdownId`, so at most ONE
+            dropdown on the page is ever open -- but under `v-show` every other
+            menu is still built, styled and kept in the DOM, merely hidden. A word
+            page renders four of these per sentence card across thirty cards: 123
+            menus, ~28 elements each, 3,476 elements. That was 46% of the entire
+            served document existing for UI nobody had opened, and it is paid on
+            every style recalculation and every interaction, not just on load.
+
+            `<Transition>` is built to pair with `v-if`, so the open and close
+            animations are unchanged; the cost moves to mounting ~28 elements on
+            click, which is imperceptible. Nothing depends on the menu existing
+            while closed: no `aria-controls` points at it (`aria-labelledby` runs
+            the other way, from menu to toggle), the slot contents are
+            presentational, and the e2e specs that click items inside a menu open
+            the toggle first.
+        -->
         <Transition name="nd-dropdown">
             <div
-                v-show="isOpen"
+                v-if="isOpen"
                 data-testid="dropdown-menu"
                 :class="dropdownContainerClass"
                 :aria-labelledby="resolvedDropdownId"

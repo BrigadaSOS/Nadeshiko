@@ -46,6 +46,7 @@ export const routeAuth: RouteAuth[] = [
   { method: 'delete', path: '/v1/user/favorite-media/:mediaPublicId', middleware: requireAuth(enforceApiKeyScope(ApiPermission.WRITE_PROFILE)) },
   { method: 'get', path: '/v1/user/familiar-media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_ACTIVITY)) },
   { method: 'delete', path: '/v1/user/familiar-media', middleware: requireSession() },
+  { method: 'delete', path: '/v1/user/familiar-media/:mediaPublicId', middleware: requireSession() },
   { method: 'post', path: '/v1/user/reports', middleware: requireSession() },
   { method: 'get', path: '/v1/user/preferences', middleware: requireSession() },
   { method: 'patch', path: '/v1/user/preferences', middleware: requireSession() },

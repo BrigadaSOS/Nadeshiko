@@ -1,5 +1,5 @@
 ---
-title: "Un nuevo hogar para Nadeshiko 2.0"
+title: "Un nuevo hogar para v2.0"
 description: "Un nuevo servidor, una plataforma reconstruida, y las funciones que hacen de esta nuestra mayor actualización."
 date: 2026-03-16T00:00:00Z
 image: /images/blog/orange-pi.jpg

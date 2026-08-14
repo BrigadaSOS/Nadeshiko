@@ -98,7 +98,6 @@ onUnmounted(() => {
     :open="isFilterDrawerOpen"
     transition="nd-drawer"
     z-index-class="z-[80]"
-    overlay-class="justify-end bg-neutral-900/40"
     panel-class="h-full max-w-sm w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 flex flex-col overflow-hidden"
     labelledby="nd-offcanvas-right-label"
     @close="isFilterDrawerOpen = false"

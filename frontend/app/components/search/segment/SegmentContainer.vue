@@ -5,7 +5,13 @@ import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import type { SearchResult, SearchResponse } from '~/types/search';
 import type { UserReportTarget } from '@brigadasos/nadeshiko-sdk';
-import { buildMediaSearchPath, buildSentencePath } from '~/utils/routes';
+import {
+  buildMediaSearchPath,
+  buildSentencePath,
+  decodeSearchQuery,
+  mediaBrowsePath,
+  searchScopeQuery,
+} from '~/utils/routes';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -14,6 +20,8 @@ type Props = {
   collectionId?: string | null;
   hideContextButton?: boolean;
 };
+
+const { scrollBehavior } = useMotionPreference();
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
@@ -41,6 +49,11 @@ const playerStore = usePlayerStore();
 const { isPlaying, currentResult } = storeToRefs(playerStore);
 const user = userStore();
 const { mediaName } = useMediaName();
+// Only to mark them. A hidden title reaches this list one of two ways -- the
+// reader lifted their filters from the notice above it, or opened the title
+// directly and chose "Show anyway" -- and in both cases the row is indis-
+// tinguishable from the rest, which makes the filters look like they lapsed.
+const { isMediaHidden } = useHiddenMedia();
 const { shouldBlur, isRestricted } = useContentRating();
 const { englishMode, spanishMode } = useTranslationVisibility();
 
@@ -76,7 +89,7 @@ const findCard = (publicId: string): HTMLElement | null =>
 const scrollFocusedIntoView = () => {
   const result = resultList.value[focusedIndex.value ?? -1];
   if (result) {
-    findCard(result.segment.publicId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    findCard(result.segment.publicId)?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
   }
 };
 
@@ -99,7 +112,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     event.preventDefault();
     const input = document.getElementById('sentence-search-input');
     if (input) {
-      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
       input.focus();
     }
     return;
@@ -256,7 +269,8 @@ const onEditSuccess = (updated: SearchResult) => {
   }
 };
 
-const { revertActiveConcatenation, concatenatedResult, isConcatenating, loadNextSegment } = useSegmentConcatenation();
+const { revertActiveConcatenation, concatenatedResult, isConcatenated, isConcatenating, loadNextSegment } =
+  useSegmentConcatenation();
 
 // An expanded card that a new search scrolls off the list can no longer be
 // reverted from the UI, so its concatenated audio blob would never be released.
@@ -269,13 +283,39 @@ watch(resultList, (list) => {
 // Filter navigation method
 const localePath = useLocalePath();
 const router = useRouter();
+const route = useRoute();
 
+/**
+ * A word picked out of a sentence, searched for. Keeps the scope the reader is
+ * already in -- see `searchScopeQuery`; typing the same word in the box has
+ * always kept it, and the two have to agree.
+ */
 const handleTokenSearch = (dictionaryForm: string) => {
-  router.push({ path: localePath(`/search/${encodeURIComponent(dictionaryForm)}`) });
+  router.push({
+    path: localePath(`/search/${encodeURIComponent(dictionaryForm)}`),
+    query: searchScopeQuery(route.query),
+  });
 };
 
-const mediaFilterLink = (mediaId: string, episodeNumber?: number) =>
-  localePath(buildMediaSearchPath(mediaId, episodeNumber));
+/**
+ * The search the card was found by, when there is one. Only `/search/:query`
+ * has the param -- the same card on `/sentence/:id` or inside a collection has
+ * no query behind it, so those keep linking to the plain media browse.
+ */
+const currentSearchQuery = computed(() => (route.params.query ? decodeSearchQuery(String(route.params.query)) : null));
+
+// Carries the query along, the way the sidebar's media filter always has:
+// narrowing to a title from a result list is a narrower search, not a new one.
+//
+// With no query behind the card there is nothing to narrow, so the link is a
+// plain browse and belongs on the title's own `/media/<slug>` URL rather than on
+// the filter form that now 301s to it.
+const mediaFilterLink = (media: SearchResult['media'], episodeNumber?: number) =>
+  localePath(
+    currentSearchQuery.value
+      ? buildMediaSearchPath(media.publicId, episodeNumber, currentSearchQuery.value)
+      : mediaBrowsePath(media, episodeNumber),
+  );
 const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(segmentPublicId));
 
 // Youtube videos logic
@@ -309,7 +349,7 @@ const onImageClick = (result: SearchResult) => {
 watch(playingVideoId, (id) => {
   if (!id || !import.meta.client) return;
   nextTick(() => {
-    findCard(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    findCard(id)?.scrollIntoView({ behavior: scrollBehavior(), block: 'nearest' });
   });
 });
 </script>
@@ -443,6 +483,7 @@ watch(playingVideoId, (id) => {
                   v-if="(result.segment.textJa as any).tokens"
                   :tokens="(result.segment.textJa as any).tokens"
                   :highlight="result.segment.textJa.highlight"
+                  :result="result"
                   class="leading-snug"
                   @token-click="handleTokenSearch"
                 />
@@ -527,7 +568,7 @@ watch(playingVideoId, (id) => {
             <!-- Fourth Row -->
             <!-- Buttons  -->
             <div class="pt-2 pb-2">
-              <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" :is-expanding="isConcatenating" @open-context-modal="openModal"
+              <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" :is-expanding="isConcatenating" :is-expanded="isConcatenated(result)" @open-context-modal="openModal"
                 @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
             </div>
             <!-- End Buttons  -->
@@ -538,11 +579,19 @@ watch(playingVideoId, (id) => {
               <p data-testid="segment-media-info" class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
                 <NuxtLink
                   data-testid="segment-media-name"
-                  :to="mediaFilterLink(result.media.publicId)"
+                  :to="mediaFilterLink(result.media)"
                   class="select-text hover:text-white hover:underline transition-colors cursor-pointer"
                   lang="ja">
                   {{ mediaName(result.media) }}
                 </NuxtLink>
+                <span
+                  v-if="isMediaHidden(result.media.publicId)"
+                  data-testid="segment-hidden-badge"
+                  :title="$t('searchpage.main.labels.hiddenMediaBadgeTitle')"
+                  class="ml-2 inline-flex items-center gap-1 align-middle rounded px-1.5 py-0.5 bg-white/5 text-white/40 text-xs font-medium">
+                  <UiBaseIcon :path="mdiEyeOff" size="12" />
+                  {{ $t('searchpage.main.labels.hiddenMediaBadge') }}
+                </span>
                 <!-- YouTube channels have no episode number; link out to the
                      source video at the segment's timestamp instead. -->
                 <template v-if="result.media.category === 'YOUTUBE'">
@@ -561,13 +610,14 @@ watch(playingVideoId, (id) => {
                   &bull;
                   <NuxtLink
                     v-if="result.media.airingFormat === 'MOVIE'"
-                    :to="mediaFilterLink(result.media.publicId)"
+                    :to="mediaFilterLink(result.media)"
                     class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
                     {{ $t('searchpage.main.labels.movie') }}
                   </NuxtLink>
                   <NuxtLink
                     v-else
-                    :to="mediaFilterLink(result.media.publicId, result.segment.episode)"
+                    data-testid="segment-episode-link"
+                    :to="mediaFilterLink(result.media, result.segment.episode)"
                     class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
                     {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
                   </NuxtLink>

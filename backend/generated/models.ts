@@ -72,6 +72,20 @@ export type t_Announcement = {
   type: 'INFO' | 'WARNING' | 'MAINTENANCE';
 };
 
+export type t_ApiKeyScope =
+  | 'ADD_MEDIA'
+  | 'READ_MEDIA'
+  | 'UPDATE_MEDIA'
+  | 'REMOVE_MEDIA'
+  | 'READ_PROFILE'
+  | 'WRITE_PROFILE'
+  | 'READ_ACTIVITY'
+  | 'WRITE_ACTIVITY'
+  | 'READ_COLLECTIONS'
+  | 'CREATE_COLLECTIONS'
+  | 'UPDATE_COLLECTIONS'
+  | 'DELETE_COLLECTIONS';
+
 export type t_BatchUpdateReportsRequest = {
   adminNotes?: string;
   ids: number[];
@@ -343,6 +357,7 @@ export type t_Media = {
   slug: string;
   startDate: string;
   studio: string | null;
+  updatedAt?: string | null;
 };
 
 export type t_MediaAutocompleteResponse = {
@@ -574,6 +589,7 @@ export type t_SearchRequest = {
   cursor?: string;
   filters?: t_SearchFilters;
   include?: t_IncludeExpansion[];
+  preferMedia?: string[];
   query?: t_SearchQuery;
   sort?: t_SearchSort;
   take?: number;
@@ -781,6 +797,7 @@ export type t_UserActivity = {
 
 export type t_UserActivityRequest = {
   activityType: 'SEARCH' | 'SEGMENT_PLAY' | 'SHARE' | 'ANKI_EXPORT';
+  autoplay?: boolean;
   japaneseText?: string;
   mediaName?: string;
   mediaPublicId?: string;
@@ -808,6 +825,13 @@ export type t_UserExportCollection = t_Collection & {
 export type t_UserExportResponse = {
   activity: t_UserActivity[];
   collections: t_UserExportCollection[];
+  mediaAffinity: {
+    ankiCount: number;
+    mediaPublicId: string;
+    periodYyyymm: number;
+    playCount: number;
+    shareCount: number;
+  }[];
   preferences: t_UserPreferences;
   profile: {
     createdAt: string;
@@ -820,6 +844,7 @@ export type t_UserExportResponse = {
     activity: boolean;
     collectionSegments: boolean;
     collections: boolean;
+    mediaAffinity: boolean;
     reports: boolean;
   };
 };
@@ -856,6 +881,17 @@ export type t_UserPreferences = {
   contentRatingPreferences?: {
     nsfw?: 'SHOW' | 'BLUR' | 'HIDE';
   };
+  defaultSearchCategory?: 'ALL' | 'ANIME' | 'JDRAMA' | 'YOUTUBE';
+  familiarMedia?: {
+    enabled?: boolean;
+  };
+  favoriteMedia?: {
+    favoritedAt: string;
+    mediaPublicId: string;
+    nameEn?: string;
+    nameJa?: string;
+    nameRomaji?: string;
+  }[];
   hiddenCategories?: t_Category[];
   hiddenMedia?: {
     mediaPublicId: string;
@@ -899,6 +935,10 @@ export type t_AddExcludedMediaRequestBody = {
   mediaPublicId: string;
 };
 
+export type t_AddFavoriteMediaRequestBody = {
+  mediaPublicId: string;
+};
+
 export type t_AddSegmentToCollectionParamSchema = {
   collectionPublicId: string;
 };
@@ -915,6 +955,11 @@ export type t_CreateSegmentParamSchema = {
 export type t_CreateSegmentsBatchParamSchema = {
   episodeNumber: number;
   mediaPublicId: string;
+};
+
+export type t_CreateUserApiKeyRequestBody = {
+  name: string;
+  scopes: t_ApiKeyScope[];
 };
 
 export type t_DeleteAdminReportParamSchema = {
@@ -944,6 +989,10 @@ export type t_DeleteUserActivityByDateParamSchema = {
 
 export type t_DeleteUserActivityByIdParamSchema = {
   activityId: number;
+};
+
+export type t_ForgetFamiliarMediaParamSchema = {
+  mediaPublicId: string;
 };
 
 export type t_GetAdminUsersWithProvidersQuerySchema = {
@@ -1066,6 +1115,10 @@ export type t_ModerateEpisodeSegmentsParamSchema = {
 };
 
 export type t_RemoveExcludedMediaParamSchema = {
+  mediaPublicId: string;
+};
+
+export type t_RemoveFavoriteMediaParamSchema = {
   mediaPublicId: string;
 };
 

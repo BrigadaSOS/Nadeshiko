@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { Media } from '@app/models';
-import { normalizeLanguageFilter, resolveMediaFilterIds } from '@app/controllers/searchFilters';
+import { normalizeLanguageFilter, resolveMediaFilterIds, resolvePreferredMediaIds } from '@app/controllers/searchFilters';
 import { s_SearchFilters } from 'generated/schemas';
 import type { t_SearchFilters } from 'generated/models';
 
@@ -174,5 +174,52 @@ describe('SearchFilters media ceilings', () => {
 
     expect(resolved?.media?.exclude).toHaveLength(200);
     expect(resolved?.media?.exclude?.[0]).toEqual({ mediaPublicId: 'media0000000', mediaId: 1 } as never);
+  });
+});
+
+/**
+ * Which requests are allowed to reorder their own ties, and which titles count.
+ *
+ * The mode check is the half that is easy to leave out: `preferMedia` is sent by
+ * the web client on every search, including the ones where the reader has picked
+ * an explicit order, and honouring it there would quietly answer a different
+ * question than "by episode" or "at random".
+ */
+describe('resolvePreferredMediaIds', () => {
+  it('resolves public ids to internal media ids', async () => {
+    mockMediaInfoMap([
+      [7, { publicId: 'aaaaaaaaaaaa' }],
+      [9, { publicId: 'bbbbbbbbbbbb' }],
+    ]);
+
+    const ids = await resolvePreferredMediaIds(undefined, ['aaaaaaaaaaaa', 'bbbbbbbbbbbb']);
+
+    expect([...ids].sort()).toEqual([7, 9]);
+  });
+
+  it('drops ids naming a title that is no longer in the corpus', async () => {
+    // A favourite outlives the media it points at, and the reader cannot be
+    // expected to prune it. The title simply fails to be preferred.
+    mockMediaInfoMap([[7, { publicId: 'aaaaaaaaaaaa' }]]);
+
+    const ids = await resolvePreferredMediaIds({ mode: 'RELEVANCE' }, ['aaaaaaaaaaaa', 'zzzzzzzzzzzz']);
+
+    expect([...ids]).toEqual([7]);
+  });
+
+  it('ignores the list under any sort the caller asked for by name', async () => {
+    mockMediaInfoMap([[7, { publicId: 'aaaaaaaaaaaa' }]]);
+
+    for (const mode of ['TIME_ASC', 'TIME_DESC', 'ASC', 'DESC', 'RANDOM']) {
+      expect(await resolvePreferredMediaIds({ mode }, ['aaaaaaaaaaaa'])).toEqual(new Set());
+    }
+  });
+
+  it('is empty when nothing was sent, without going to the media map', async () => {
+    const mediaInfo = vi.spyOn(Media, 'getMediaInfoMap');
+
+    expect(await resolvePreferredMediaIds({ mode: 'RELEVANCE' }, undefined)).toEqual(new Set());
+    expect(await resolvePreferredMediaIds({ mode: 'RELEVANCE' }, [])).toEqual(new Set());
+    expect(mediaInfo).not.toHaveBeenCalled();
   });
 });

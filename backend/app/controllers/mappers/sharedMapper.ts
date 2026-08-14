@@ -57,4 +57,9 @@ export const toMediaBaseDTO = (media: Media): t_Media => ({
   studio: media.studio ?? null,
   seasonName: media.seasonName as t_Media['seasonName'],
   seasonYear: media.seasonYear,
+  // The record's own modification time, not the work's airing dates. The sitemap
+  // publishes it as `lastmod`, which is the one sitemap hint search engines still
+  // act on -- and the reason it has to be the real value or absent, never a
+  // build timestamp.
+  updatedAt: media.updatedAt ? media.updatedAt.toISOString() : null,
 });

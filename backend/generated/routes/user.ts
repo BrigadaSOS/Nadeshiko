@@ -17,8 +17,11 @@ import { type NextFunction, type Request, type RequestHandler, type Response, Ro
 import { z } from 'zod/v4';
 import type {
   t_AddExcludedMediaRequestBody,
+  t_AddFavoriteMediaRequestBody,
   t_AffectedCountResponse,
+  t_ApiKeyScope,
   t_CreateReportRequest,
+  t_CreateUserApiKeyRequestBody,
   t_DeleteUserActivityByDateParamSchema,
   t_DeleteUserActivityByIdParamSchema,
   t_DeleteUserActivityQuerySchema,
@@ -28,20 +31,25 @@ import type {
   t_Error404,
   t_Error429,
   t_Error500,
+  t_ForgetFamiliarMediaParamSchema,
   t_MediaSummary,
   t_RemoveExcludedMediaParamSchema,
+  t_RemoveFavoriteMediaParamSchema,
   t_Report,
   t_UserActivityRequest,
   t_UserExportResponse,
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
-import type { AddExcludedMediaRequestBodyOutput, CreateReportRequestOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_AddExcludedMediaRequestBody,
+  s_AddFavoriteMediaRequestBody,
   s_AffectedCountResponse,
+  s_ApiKeyScope,
   s_CreateReportRequest,
+  s_CreateUserApiKeyRequestBody,
   s_Error400,
   s_Error401,
   s_Error403,
@@ -67,6 +75,29 @@ export type GetMeResponder = {
 export type GetMe = (
   params: Params<void, void, void, void>,
   respond: GetMeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type CreateUserApiKeyResponder = {
+  with201(): ExpressRuntimeResponse<{
+    createdAt: string;
+    id: string;
+    key: string;
+    name: string;
+    scopes: t_ApiKeyScope[];
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CreateUserApiKey = (
+  params: Params<void, void, CreateUserApiKeyRequestBodyOutput, void>,
+  respond: CreateUserApiKeyResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -120,6 +151,91 @@ export type RemoveExcludedMediaResponder = {
 export type RemoveExcludedMedia = (
   params: Params<t_RemoveExcludedMediaParamSchema, void, void, void>,
   respond: RemoveExcludedMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ListFavoriteMediaResponder = {
+  with200(): ExpressRuntimeResponse<{
+    favoriteMedia: t_MediaSummary[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListFavoriteMedia = (
+  params: Params<void, void, void, void>,
+  respond: ListFavoriteMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type AddFavoriteMediaResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type AddFavoriteMedia = (
+  params: Params<void, void, AddFavoriteMediaRequestBodyOutput, void>,
+  respond: AddFavoriteMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type RemoveFavoriteMediaResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type RemoveFavoriteMedia = (
+  params: Params<t_RemoveFavoriteMediaParamSchema, void, void, void>,
+  respond: RemoveFavoriteMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ClearFamiliarMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ClearFamiliarMedia = (
+  params: Params<void, void, void, void>,
+  respond: ClearFamiliarMediaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ForgetFamiliarMediaResponder = {
+  with200(): ExpressRuntimeResponse<t_AffectedCountResponse>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ForgetFamiliarMedia = (
+  params: Params<t_ForgetFamiliarMediaParamSchema, void, void, void>,
+  respond: ForgetFamiliarMediaResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -259,9 +375,15 @@ export type ExportUserData = (
 
 export type UserImplementation = {
   getMe: GetMe;
+  createUserApiKey: CreateUserApiKey;
   listExcludedMedia: ListExcludedMedia;
   addExcludedMedia: AddExcludedMedia;
   removeExcludedMedia: RemoveExcludedMedia;
+  listFavoriteMedia: ListFavoriteMedia;
+  addFavoriteMedia: AddFavoriteMedia;
+  removeFavoriteMedia: RemoveFavoriteMedia;
+  clearFamiliarMedia: ClearFamiliarMedia;
+  forgetFamiliarMedia: ForgetFamiliarMedia;
   createUserReport: CreateUserReport;
   getUserPreferences: GetUserPreferences;
   updateUserPreferences: UpdateUserPreferences;
@@ -328,6 +450,76 @@ export function createUserRouter(
         .getMe(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, getMeResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const createUserApiKeyResponseBodyValidator = responseValidationFactory(
+    [
+      [
+        '201',
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          key: z.string(),
+          scopes: z.array(s_ApiKeyScope),
+          createdAt: z.iso.datetime({ offset: true }),
+        }),
+      ],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // createUserApiKey
+  router.post(`/v1/user/api-keys`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(s_CreateUserApiKeyRequestBody, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with201() {
+          return new ExpressRuntimeResponse<{
+            createdAt: string;
+            id: string;
+            key: string;
+            name: string;
+            scopes: t_ApiKeyScope[];
+          }>(201);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .createUserApiKey(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, createUserApiKeyResponseBodyValidator));
     } catch (error) {
       next(error);
     }
@@ -499,6 +691,283 @@ export function createUserRouter(
         .removeExcludedMedia(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, removeExcludedMediaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listFavoriteMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ favoriteMedia: z.array(s_MediaSummary) })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listFavoriteMedia
+  router.get(`/v1/user/favorite-media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            favoriteMedia: t_MediaSummary[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .listFavoriteMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listFavoriteMediaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const addFavoriteMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // addFavoriteMedia
+  router.post(`/v1/user/favorite-media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(s_AddFavoriteMediaRequestBody, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .addFavoriteMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, addFavoriteMediaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const removeFavoriteMediaParamSchema = z.object({
+    mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  });
+
+  const removeFavoriteMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // removeFavoriteMedia
+  router.delete(`/v1/user/favorite-media/:mediaPublicId`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(removeFavoriteMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .removeFavoriteMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, removeFavoriteMediaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const clearFamiliarMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_AffectedCountResponse],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // clearFamiliarMedia
+  router.delete(`/v1/user/familiar-media`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .clearFamiliarMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, clearFamiliarMediaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const forgetFamiliarMediaParamSchema = z.object({
+    mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+  });
+
+  const forgetFamiliarMediaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_AffectedCountResponse],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // forgetFamiliarMedia
+  router.delete(`/v1/user/familiar-media/:mediaPublicId`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(forgetFamiliarMediaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_AffectedCountResponse>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .forgetFamiliarMedia(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, forgetFamiliarMediaResponseBodyValidator));
     } catch (error) {
       next(error);
     }

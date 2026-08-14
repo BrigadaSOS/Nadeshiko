@@ -1,5 +1,5 @@
 ---
-title: "Nadeshikoについて"
+title: "About"
 description: "Nadeshikoについて、制作チームとコントリビューターをご紹介します。"
 ---
 

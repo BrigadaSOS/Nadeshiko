@@ -2,8 +2,11 @@ import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
 // Open-ness is asserted on the MENU being visible, not on a class on the
-// wrapper. DropdownContainer.vue drives the menu with `v-show="isOpen"`, so
-// visibility is the actual contract; the wrapper never gains a state class.
+// wrapper. DropdownContainer.vue drives the menu with `v-if="isOpen"`, so a
+// closed menu is not in the document at all and visibility is the actual
+// contract; the wrapper never gains a state class. `toBeHidden()` remains the
+// right assertion for closing -- it passes for a detached element as readily as
+// a hidden one.
 // These tests used to expect `nd-dropdown-open`, which came from the plugin the
 // container replaced ("Mirrors the old plugin", DropdownContainer.vue) and has
 // not existed in the app since — it appeared nowhere outside this file, so the
@@ -17,6 +20,29 @@ test.describe('Dropdown menus', () => {
     search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
+  });
+
+  /**
+   * The reason `v-if` replaced `v-show`, asserted rather than remembered.
+   *
+   * Every card carries four of these, so a results page held ~123 fully-rendered
+   * menus for UI nobody had opened -- 3,476 elements, 46% of the served
+   * document, paid on every style recalculation and every interaction. Only one
+   * dropdown can be open at a time, so the closed ones were pure weight.
+   *
+   * A regression here is invisible: the page looks and behaves identically and
+   * every other test in this file still passes, because `toBeVisible()` and
+   * `toBeHidden()` cannot tell "hidden" from "absent". The count is the only
+   * signal there is.
+   */
+  test('closed dropdown menus are not rendered at all', async ({ page }) => {
+    await expect(search.segmentCards.first()).toBeVisible();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(0);
+
+    // ...and exactly one exists once something is opened.
+    const dropdown = search.segmentCards.first().getByTestId('copy-dropdown');
+    await dropdown.getByTestId('dropdown-toggle').click();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
   });
 
   test('Save dropdown opens and shows items', async () => {

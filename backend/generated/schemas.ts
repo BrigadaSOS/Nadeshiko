@@ -57,6 +57,21 @@ export const s_Announcement = z.object({
   active: PermissiveBoolean,
 });
 
+export const s_ApiKeyScope = z.enum([
+  'ADD_MEDIA',
+  'READ_MEDIA',
+  'UPDATE_MEDIA',
+  'REMOVE_MEDIA',
+  'READ_PROFILE',
+  'WRITE_PROFILE',
+  'READ_ACTIVITY',
+  'WRITE_ACTIVITY',
+  'READ_COLLECTIONS',
+  'CREATE_COLLECTIONS',
+  'UPDATE_COLLECTIONS',
+  'DELETE_COLLECTIONS',
+]);
+
 export const s_Category = z.enum(['ANIME', 'JDRAMA', 'YOUTUBE']);
 
 export const s_CollectionVisibility = z.enum(['PUBLIC', 'PRIVATE']);
@@ -332,6 +347,7 @@ export const s_UserActivityRequest = z.object({
   mediaName: z.string().optional(),
   japaneseText: z.string().optional(),
   searchQuery: z.string().optional(),
+  autoplay: PermissiveBoolean.optional(),
 });
 
 export const s_UserActivityStats = z.object({
@@ -463,6 +479,7 @@ export const s_Media = z.object({
   bannerUrl: z.string().min(1),
   startDate: z.iso.date().min(1),
   endDate: z.iso.date().min(1).nullable(),
+  updatedAt: z.iso.datetime({ offset: true }).nullable().optional(),
   category: s_Category,
   segmentCount: z.coerce.number().min(0),
   episodeCount: z.coerce.number().min(0),
@@ -688,6 +705,7 @@ export const s_UserPreferences = z.object({
       }),
     )
     .optional(),
+  defaultSearchCategory: z.enum(['ALL', 'ANIME', 'JDRAMA', 'YOUTUBE']).optional(),
   hiddenCategories: z.array(s_Category).optional(),
   hiddenMedia: z
     .array(
@@ -699,6 +717,18 @@ export const s_UserPreferences = z.object({
       }),
     )
     .optional(),
+  favoriteMedia: z
+    .array(
+      z.object({
+        mediaPublicId: z.string(),
+        nameEn: z.string().optional(),
+        nameJa: z.string().optional(),
+        nameRomaji: z.string().optional(),
+        favoritedAt: z.iso.datetime({ offset: true }),
+      }),
+    )
+    .optional(),
+  familiarMedia: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
 });
 
 export const s_UserReportTarget = z.discriminatedUnion('type', [s_ReportTargetMedia, s_ReportTargetSegmentInput]);
@@ -792,6 +822,10 @@ export const s_SearchRequest = z.object({
   take: z.coerce.number().min(1).max(50).optional().default(10),
   cursor: z.string().max(500).optional(),
   sort: s_SearchSort.optional(),
+  preferMedia: z
+    .array(z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')))
+    .max(100)
+    .optional(),
   filters: s_SearchFilters.optional(),
   include: z.array(s_IncludeExpansion).optional().default([]),
 });
@@ -843,6 +877,7 @@ export const s_UserExportResponse = z.object({
     collections: PermissiveBoolean,
     collectionSegments: PermissiveBoolean,
     reports: PermissiveBoolean,
+    mediaAffinity: PermissiveBoolean,
   }),
   profile: z.object({
     id: z.coerce.number(),
@@ -854,8 +889,26 @@ export const s_UserExportResponse = z.object({
   activity: z.array(s_UserActivity),
   collections: z.array(s_UserExportCollection),
   reports: z.array(s_Report),
+  mediaAffinity: z.array(
+    z.object({
+      mediaPublicId: z.string(),
+      periodYyyymm: z.coerce.number(),
+      ankiCount: z.coerce.number(),
+      playCount: z.coerce.number(),
+      shareCount: z.coerce.number(),
+    }),
+  ),
+});
+
+export const s_CreateUserApiKeyRequestBody = z.object({
+  name: z.string().min(1).max(100),
+  scopes: z.array(s_ApiKeyScope).min(1).max(12),
 });
 
 export const s_AddExcludedMediaRequestBody = z.object({
+  mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+});
+
+export const s_AddFavoriteMediaRequestBody = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
 });

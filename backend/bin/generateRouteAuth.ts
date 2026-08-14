@@ -15,12 +15,13 @@
  *   no security                                    → throws, unless the operationId is in INTENTIONALLY_PUBLIC_OPERATIONS
  */
 import { writeFileSync } from 'fs';
-import { resolve, join } from 'path';
+import { join } from 'path';
 import { pathToFileURL } from 'url';
 import { ApiPermission } from '@app/models/ApiPermission';
 import { listOperations, loadBundledSpec, type PathItem, type SecurityRequirement } from './lib/spec';
+import { resolveGeneratedDir } from './lib/generatedReady';
 
-const GENERATED_DIR = resolve(import.meta.dirname, '../generated');
+const GENERATED_DIR = resolveGeneratedDir();
 const OUTPUT_FILE = join(GENERATED_DIR, 'routeAuth.ts');
 
 /**

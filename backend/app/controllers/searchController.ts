@@ -1,12 +1,13 @@
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import type { Search, GetSearchStats, SearchWords } from 'generated/routes/search';
 import { toSearchResponseDTO } from './mappers/searchMapper';
-import { normalizeLanguageFilter, resolveMediaFilterIds } from './searchFilters';
+import { normalizeLanguageFilter, resolveMediaFilterIds, resolvePreferredMediaIds } from './searchFilters';
 
 export const search: Search = async ({ body }, respond) => {
   normalizeLanguageFilter(body.filters);
   const filters = await resolveMediaFilterIds(body.filters);
-  const searchResults = await SegmentDocument.search({ ...body, filters }, 'strict');
+  const preferredMediaIds = await resolvePreferredMediaIds(body.sort, body.preferMedia);
+  const searchResults = await SegmentDocument.search({ ...body, filters }, 'strict', preferredMediaIds);
   return respond.with200().body(toSearchResponseDTO(searchResults, body.include));
 };
 

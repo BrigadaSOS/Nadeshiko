@@ -15,6 +15,7 @@
       "terms": "利用規約",
       "settings": "設定",
       "blog": "ブログ",
+      "changelog": "更新履歴",
       "stats": "Stats",
       "media": "メディア",
       "collections": "コレクション",
@@ -36,6 +37,7 @@
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
+    "defaultPageTitle": "アニメの日本語文を検索",
     "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
   },
   "home": {
@@ -61,6 +63,11 @@
       "feature4": {
         "title": "多様で豊富なコンテンツ",
         "description": "さまざまなジャンル、メディア、声を楽しめます。"
+      },
+      "feature5": {
+        "title": "Discordとの直接連携",
+        "description": "公式ボットで、サーバーを離れずに100万件以上の同じ例文を検索できます。",
+        "linkText": "ボットをDiscordサーバーに追加しよう！"
       }
     },
     "support": {
@@ -114,6 +121,14 @@
   },
   "hiddenMedia": {
     "updateError": "非表示メディアを更新できませんでした。もう一度お試しください。"
+  },
+  "favoriteMedia": {
+    "updateError": "お気に入りメディアを更新できませんでした。もう一度お試しください。",
+    "capReached": "お気に入りは最大100件です。追加するには一つ解除してください。"
+  },
+  "familiarMedia": {
+    "clearError": "学習中の作品の記録を削除できませんでした。もう一度お試しください。",
+    "forgetError": "このタイトルを削除できませんでした。もう一度お試しください。"
   },
   "mediaBrowse": {
     "showHiddenMedia": "非表示の作品を表示",
@@ -254,7 +269,8 @@
     "deleteEpisodeError": "エピソードの削除に失敗しました"
   },
   "filterContent": {
-    "searchPlaceholder": "ここで検索"
+    "searchPlaceholder": "ここで検索",
+    "backToTitles": "タイトル一覧に戻る"
   },
   "episodeFilter": {
     "title": "エピソード",
@@ -264,7 +280,7 @@
   "segmentSidebar": {
     "loading": "読み込み中...",
     "filtersTitle": "フィルター",
-    "openActionsMenu": "操作メニューを開く",
+    "openFilters": "フィルターを開く",
     "close": "閉じる"
   },
   "searchpage": {
@@ -303,6 +319,8 @@
         "expandRight": "右に展開",
         "hideMedia": "非表示",
         "unhideMedia": "表示",
+        "favoriteMedia": "お気に入り",
+        "unfavoriteMedia": "お気に入り解除",
         "addToCollection": "コレクションに追加",
         "manageCollections": "コレクションを管理",
         "collectionsLoading": "コレクションを読み込み中...",
@@ -323,6 +341,8 @@
         "noresults": "結果が見つかりませんでした...",
         "episode": "エピソード",
         "movie": "映画",
+        "hiddenMediaBadge": "非表示",
+        "hiddenMediaBadgeTitle": "この作品は非表示リストに入っています",
         "searchmain": "タイトルを書いてください",
         "searchbar": "フィルター",
         "all": "すべて",
@@ -344,6 +364,9 @@
         "context": "文脈",
         "loadError": "前後の文脈を読み込めませんでした。"
       }
+    },
+    "relatedWords": {
+      "heading": "この漢字を含む単語"
     }
   },
   "activity": {
@@ -362,7 +385,7 @@
       "sync": "Anki同期",
       "collections": "コレクション",
       "activity": "アクティビティ",
-      "hideMedia": "非表示メディア",
+      "media": "メディア",
       "developer": "開発者",
       "users": "ユーザー",
       "reports": "レポート",
@@ -442,6 +465,13 @@
     },
     "activity": {
       "confirmClearHistory": "すべてのアクティビティ履歴を削除しますか？この操作は取り消せません。",
+      "trackingOnToast": "アクティビティ追跡をオンにしました",
+      "trackingOffToast": "アクティビティ追跡をオフにしました",
+      "familiarOnToast": "学習中の作品を記憶します",
+      "familiarOffToast": "学習中の作品を記憶しません",
+      "clearFamiliarToast": "カウントを削除しました（{count}作品）",
+      "clearHistoryToast": "アクティビティ履歴を削除しました",
+      "confirmClearFamiliar": "学習中の作品の記録を削除しますか？アクティビティ履歴には影響しません。",
       "confirmClearDay": "{day} のアクティビティをすべて削除しますか？この操作は取り消せません。",
       "ranges": {
         "all": "全期間"
@@ -488,6 +518,7 @@
         "empty": "まだアクティビティは記録されていません。",
         "emptyForDay": "この日に記録されたアクティビティはありません。",
         "emptyForType": "この種類のアクティビティは記録されていません。",
+        "inOneTitle": "特定の作品内",
         "noDetails": "-",
         "remove": "削除",
         "loadMore": "もっと見る",
@@ -500,11 +531,24 @@
       "privacy": {
         "title": "プライバシー",
         "trackingTitle": "アクティビティ追跡",
-        "trackingDescription": "検索、書き出し、視聴履歴を記録します。",
+        "trackingDescription": "検索、書き出し、視聴履歴を記録します。最近の検索は検索バーにも表示されます。",
         "clearHistoryTitle": "履歴を削除",
         "clearHistoryDescription": "アカウントのアクティビティデータをすべて完全に削除します。",
         "clearHistoryButton": "履歴を削除",
-        "clearing": "削除中..."
+        "clearing": "削除中...",
+        "familiarTitle": "学習中の作品を記憶する",
+        "familiarDescription": "作品ごとの月間カウントを保存します。学習中の作品が検索のメディアフィルター上部に表示されます。アクティビティ履歴とは別の設定です。",
+        "clearFamiliarTitle": "学習中の作品を忘れる",
+        "clearFamiliarDescription": "カウントを削除します。アクティビティ履歴は残ります。",
+        "clearFamiliarButton": "削除",
+        "familiarListTitle": "気に入っていそうな作品",
+        "familiarListEmpty": "まだ記録がありません。カードを書き出したりクリップを再生すると、ここに表示されます。",
+        "familiarCounts": "{cards}・{plays}・{shares}",
+        "forgetTitle": "削除",
+        "forgetTitleHint": "{title} を削除",
+        "familiarCards": "カード{count}枚",
+        "familiarPlays": "再生{count}回",
+        "familiarShares": "共有{count}回"
       }
     },
     "developer": {
@@ -541,6 +585,19 @@
         "title": "APIキー作成",
         "nameLabel": "名前",
         "namePlaceholder": "このAPIキーの名前を入力してください",
+        "scopesLabel": "権限",
+        "scopesRequired": "権限を一つ以上選択してください。",
+        "presets": {
+          "readOnly": {
+            "label": "読み取り専用（推奨）"
+          },
+          "fullAccount": {
+            "label": "アカウントへの完全なアクセス"
+          },
+          "custom": {
+            "label": "カスタム"
+          }
+        },
         "create": "作成"
       },
       "renameApiKeyModal": {
@@ -570,6 +627,19 @@
         "JAPANESE": "日本語",
         "ROMAJI": "ローマ字"
       },
+      "defaultSearchCategory": "デフォルトの検索カテゴリ",
+      "defaultSearchCategoryDescription": "検索はこのカテゴリで開きます。カテゴリを指定したリンクが優先されます。",
+      "motion": "アニメーション",
+      "motionOptions": {
+        "system": "端末の設定に従う",
+        "reduced": "控えめ",
+        "none": "なし"
+      },
+      "motionHint_system": "端末のアクセシビリティ設定（視差効果を減らす）に従います。",
+      "motionHint_reduced": "色やフェードの変化は残し、スライドやサイズ変更を伴う動きを止めます。",
+      "motionHint_none": "アニメーションを一切行いません。動作がまだ重い場合はこちらを選んでください。",
+      "defaultSearchCategoryHiddenOption": "{category}（非表示）",
+      "defaultSearchCategoryHiddenNotice": "{category} は「カテゴリを非表示」で非表示になっているため、再表示するまで検索は「すべて」で開きます。",
       "dictionaryLinks": "辞書連携",
       "dictionaryLinksDescription": "トークンのポップアップに表示する辞書リンクを選択します。",
       "deleteAccount": "アカウント削除（取り消し不可）",
@@ -634,16 +704,23 @@
       },
       "hiddenMedia": "非表示メディア",
       "hiddenMediaDescription": "検索結果から非表示にしたメディア。検索結果のメニューからも非表示にできます。",
-      "hiddenMediaSearchPlaceholder": "非表示にするメディアを検索...",
       "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。",
-      "hiddenMediaFallback": "メディア #{id}",
-      "hiddenMediaNoResults": "この検索に一致するメディアは見つかりませんでした。",
       "hiddenMediaListTitle": "非表示メディア一覧",
       "hiddenMediaCount": "{count} 件を非表示",
+      "mediaHiddenToast": "{name}を検索結果から非表示にしました",
+      "mediaUnhiddenToast": "{name}を検索結果に戻しました",
+      "mediaFavoritedToast": "{name}をお気に入りに追加しました",
+      "mediaUnfavoritedToast": "{name}をお気に入りから外しました",
+      "categoryHiddenToast": "{name}を検索結果から非表示にしました",
+      "categoryShownToast": "{name}を検索結果に戻しました",
       "hiddenMediaTable": {
         "media": "メディア",
         "otherNames": "別名"
       },
+      "favoriteMedia": "お気に入りメディア",
+      "favoriteMediaDescription": "検索時、お気に入りのタイトルがメディアフィルターの先頭に並びます。フィルターから直接お気に入りに追加することもできます。",
+      "favoriteMediaEmpty": "まだお気に入りはありません。メディアフィルターは五十音順のままです。",
+      "favoriteMediaCount": "{count}/{max} 件のお気に入り",
       "sessionDetails": {
         "unknownDevice": "不明な端末",
         "tablet": "タブレット",
@@ -652,7 +729,16 @@
         "unknownOs": "不明なOS",
         "unknownBrowser": "不明なブラウザ"
       },
-      "exportError": "データをエクスポートできませんでした。もう一度お試しください。"
+      "exportError": "データをエクスポートできませんでした。もう一度お試しください。",
+      "mediaLookup": "タイトルを探す",
+      "mediaLookupDescription": "カタログを検索して、お気に入りに追加するか非表示にします。お気に入りはメディアフィルターの先頭に並び、非表示は検索結果から除外されます。",
+      "mediaLookupPlaceholder": "タイトルを検索...",
+      "mediaLookupNoResults": "該当するメディアが見つかりません。",
+      "manageMedia": "コンテンツの管理",
+      "manageMediaDescription": "お気に入りに追加するとその作品が検索時のコンテンツフィルターの上部に表示され、非表示にすると検索結果から除外されます。カタログを検索して作品を探すか、下の一覧で設定済みの作品を変更できます。",
+      "manageMediaEmpty": "お気に入りまたは非表示に設定した作品はまだありません。上の検索から作品を探してください。",
+      "manageMediaTableActions": "操作",
+      "mediaFallback": "メディア #{id}"
     },
     "collections": {
       "title": "コレクション",
@@ -800,7 +886,10 @@
     "loading": "検索中…",
     "moreSentences": "他の例文",
     "playAudio": "発音を再生",
-    "noEntry": "この語の辞書項目は見つかりませんでした。"
+    "noEntry": "この語の辞書項目は見つかりませんでした。",
+    "openInAnki": "マイニング済み — Anki でノートを開く",
+    "mineToNote": "この文・音声・画像を Anki のノートに追加",
+    "mineToLastCard": "この文・音声・画像を最後に追加した Anki カードに追加"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -811,6 +900,7 @@
     "endOfResults": "最後まで到達しました！",
     "loadMore": "さらに文を読み込む",
     "categoryAll": "すべて",
+    "selectedMediaFallback": "選択したタイトル",
     "categoryAnime": "アニメ",
     "categoryLiveaction": "実写",
     "categoryYoutube": "YouTube",
@@ -819,9 +909,30 @@
     "hiddenMediaNotice": "この作品は非表示リストに含まれています",
     "hiddenMediaDescription": "この作品は検索結果から非表示にされています。一時的に表示することができます。",
     "hiddenMediaShowAnyway": "表示する",
+    "hiddenResultsMaybe": "{filters}により一部の結果が非表示になっている可能性があります",
+    "hiddenResults": "{filters}により{count}件の結果が非表示です",
+    "hiddenResultsFilters": "フィルター",
+    "hiddenResultsBreakdownTitle": "この検索で非表示になっているもの",
+    "hiddenResultsBreakdownLoading": "確認中...",
+    "hiddenResultsBreakdownEmpty": "非表示にしている作品はこの検索に含まれていません",
+    "hiddenResultsBreakdownError": "非表示の内容を読み込めませんでした",
+    "hiddenResultsShow": "表示",
+    "hiddenResultsRevealed": "非表示にしている作品を表示しています",
+    "hiddenResultsRestore": "再び非表示にする",
+    "hiddenResultsManage": "管理",
     "loading": "読み込み中...",
     "hiddenMediaImageAlt": "非表示コンテンツのイラスト",
     "noResultsImageAlt": "検索結果なしのイラスト"
+  },
+  "searchRecents": {
+    "title": "最近の検索",
+    "seeAll": "すべて表示",
+    "clear": "クリア",
+    "clearing": "クリア中...",
+    "loading": "読み込み中...",
+    "forget": "「{query}」を削除",
+    "inOneTitle": "特定の作品内",
+    "clearError": "最近の検索を削除できませんでした。もう一度お試しください。"
   },
   "reports": {
     "modalTitle": "問題を報告する",
@@ -982,7 +1093,8 @@
     },
     "media": {
       "title": "メディア一覧",
-      "description": "Nadeshikoで利用可能なアニメ、Jドラマ、オーディオブックを閲覧できます。日本語文を含む数千のタイトルを検索。"
+      "description": "Nadeshikoで利用可能なアニメ、Jドラマ、オーディオブックを閲覧できます。日本語文を含む数千のタイトルを検索。",
+      "pageTitle": "{media} の日本語例文"
     },
     "blog": {
       "title": "ブログ",
@@ -1000,12 +1112,14 @@
       "descriptionNoResults": "「{query}」でアニメや実写の日本語文100万件以上を検索。英語・スペイン語訳付き。",
       "mediaDescription": "{media}の日本語文{count}件。英語・スペイン語訳付き。",
       "mediaDescriptionEpisode": "{media}第{episode}話の日本語文{count}件。英語・スペイン語訳付き。",
-      "mediaDescriptionEpisodes": "{media}全{episodeCount}話の日本語文{count}件。英語・スペイン語訳付き。"
+      "mediaDescriptionEpisodes": "{media}全{episodeCount}話の日本語文{count}件。英語・スペイン語訳付き。",
+      "wordTitle": "{query} の例文"
     },
     "sentence": {
       "title": "文章",
       "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。",
-      "episode": "第{n}話"
+      "episode": "第{n}話",
+      "pageTitle": "「{sentence}」 — {media}"
     },
     "collection": {
       "description": "Nadeshikoの「{name}」コレクションを閲覧"

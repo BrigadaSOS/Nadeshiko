@@ -17,6 +17,29 @@ properties:
     example: eyJraW...N119
   sort:
     $ref: "../schemas/SearchSort.yaml"
+  preferMedia:
+    type: array
+    description: |
+      Public IDs of titles the caller wants first, used **only** to break ties.
+
+      Segments Elasticsearch ranked equally are reordered so the ones from these
+      titles come first; nothing crosses a rank boundary. Which segments land on
+      a page, how many there are and the cursor that walks to the next one are
+      all exactly what they would have been without this field — only the order
+      within an already-tied run changes.
+
+      Sent by the web client for a signed-in reader, from the titles they have
+      favourited and the ones their activity says they know. Ignored unless
+      `sort.mode` is `RELEVANCE`, since every other mode sorts on a key the
+      caller asked for by name. Unknown IDs are ignored rather than rejected.
+    items:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{12}$'
+    # The web client's two sources, added up: `MAX_FAVORITE_MEDIA` favourites
+    # (100) plus the `MAX_RESULTS` titles the activity tally ranks (20). A cap
+    # below their sum would reject the request of a reader who filled both.
+    maxItems: 120
+    example: ["V1StGXR8_Z5d"]
   filters:
     $ref: "../schemas/SearchFilters.yaml"
   include:

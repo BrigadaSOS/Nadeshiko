@@ -6,9 +6,11 @@ import {
   DEFAULT_OG_IMAGE_SIZE,
   buildDefaultMetaTags,
   buildOgImageTags,
+  pageTitle,
   socialTitle,
 } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
+import { splitLocalePrefix } from '~/utils/routes';
 
 /**
  * A title's own page.
@@ -29,13 +31,36 @@ const { t } = useI18n();
 const route = useRoute();
 const localePath = useLocalePath();
 const { mediaName } = useMediaName();
+const { isMediaPage } = useMediaScope();
 const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const { hiddenMediaExcludeFilter } = useHiddenMedia();
 const { hiddenCategories } = useHiddenCategories();
 const { fetchSentences, fetchStats } = useSearchFetch();
 
-const slug = computed(() => String(route.params.slug));
+// Follow the path only while it still names a title. Leaving for `/search`
+// clears `params.slug`; watching that would refetch `/api/media/by-slug/undefined`,
+// null out `media`, and fire the 404 watcher on a page that is merely the
+// outgoing Suspense fallback.
+const slug = ref(String(route.params.slug));
+watch(
+  () => route.params.slug,
+  (next) => {
+    if (typeof next === 'string' && next) slug.value = next;
+  },
+);
+
+// Nuxt keeps this page painted as the Suspense fallback until `/search` has
+// fetched. A route-based `v-if` does not help: the outgoing tree is not
+// re-rendered. Hide the title card before navigation continues so the banner
+// is already gone when the URL becomes `/search`.
+const showTitleCard = ref(true);
+onBeforeRouteLeave(async (to) => {
+  const { localizedPath } = splitLocalePrefix(to.path);
+  if (localizedPath.startsWith('/media/')) return;
+  showTitleCard.value = false;
+  await nextTick();
+});
 
 const episodeNumberParam = computed(() => {
   const raw = getStringQueryValue(route.query.episode as string | string[] | undefined);
@@ -71,6 +96,7 @@ if (!media.value) {
 // client-side hop to a missing title would otherwise keep this component alive
 // and render a blank body instead of the error page.
 watch([media, mediaError], ([entry, error]) => {
+  if (!isMediaPage.value) return;
   if (error) {
     showError(createError({ statusCode: 500, statusMessage: 'Failed to load media' }));
   } else if (!entry) {
@@ -79,6 +105,9 @@ watch([media, mediaError], ([entry, error]) => {
 });
 
 const mediaPublicId = computed(() => media.value?.publicId ?? null);
+
+/** The title's name on its own: the heading and the breadcrumb, not the `<title>`. */
+const headline = computed(() => (media.value ? mediaName(media.value) : t('seo.media.title')));
 
 const searchScope = computed<SearchScope>(() => ({
   query: '',
@@ -153,7 +182,7 @@ const metaTags = computed(() => {
   const ogImage = bannerUrl || `${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`;
 
   return {
-    title,
+    title: pageTitle(t('seo.media.pageTitle', { media: title })),
     meta: [
       { name: 'description', content: description },
       { property: 'og:title', content: social },
@@ -169,6 +198,45 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
+/**
+ * The work itself, alongside the page that lists its sentences.
+ *
+ * A `CollectionPage` says "this page is a list"; it says nothing about WHAT the
+ * list is about. `TVSeries`/`Movie` is what tells a search engine this URL is
+ * the page for a named work with a studio, a season and an air date -- the
+ * entity a reader is looking for when they search the title. Everything below
+ * comes from the payload the header already renders, so the markup and the page
+ * cannot disagree.
+ *
+ * `Movie` is chosen off `airingFormat`, the same field `MediaCountLabel` uses to
+ * decide whether to say "12 episodes" or "Movie". YouTube channels are neither,
+ * so they get no work node rather than a wrong one.
+ */
+const workSchema = computed(() => {
+  const entry = media.value;
+  if (!entry || entry.category === 'YOUTUBE') return null;
+
+  // `Record<string, unknown>`, the same shape `[...slug].vue` gives `defineArticle`
+  // and for the same reason: these builders are generic over the object handed to
+  // them and INTERSECT it with the schema type, so an inferred `genre: string[]`
+  // meets a declared `string | string[]` and collapses to `string & string[]` --
+  // a type nothing can satisfy. Widening here keeps the intersection harmless.
+  const shared: Record<string, unknown> = {
+    name: headline.value,
+    ...(entry.genres?.length ? { genre: entry.genres } : {}),
+    ...(entry.coverUrl ? { image: entry.coverUrl } : {}),
+    ...(entry.startDate ? { datePublished: entry.startDate } : {}),
+    inLanguage: 'ja',
+  };
+
+  if (entry.airingFormat === 'MOVIE') return defineMovie(shared);
+
+  return defineTVSeries({
+    ...shared,
+    ...(entry.episodeCount ? { numberOfEpisodes: entry.episodeCount } : {}),
+  });
+});
+
 useSchemaOrg(
   computed(() => [
     defineWebPage({ '@type': 'CollectionPage' }),
@@ -176,9 +244,10 @@ useSchemaOrg(
       itemListElement: [
         { name: t('navbar.buttons.home'), item: localePath('/') },
         { name: t('seo.media.title'), item: localePath('/media') },
-        { name: metaTags.value.title, item: route.path },
+        { name: headline.value, item: route.path },
       ],
     }),
+    ...(workSchema.value ? [workSchema.value] : []),
   ]),
 );
 </script>
@@ -186,9 +255,12 @@ useSchemaOrg(
 <template>
   <div class="mx-auto">
     <div class="relative text-white">
-      <div class="pt-2">
+      <div class="pt-3">
         <div class="nd-page">
-          <h1 class="sr-only">{{ metaTags.title }}</h1>
+          <!-- The heading is visible here, unlike on the search pages: this page
+               is about one named work, and the card is what says so. Dropped in
+               `onBeforeRouteLeave` rather than off the live route: see there. -->
+          <MediaHeader v-if="media && showTitleCard" :media="media" />
           <div class="px-4 md:px-0">
             <!-- Searching from a title page stays inside that title; the scope
                  lives in the path here, so the box has to be told what it is. -->

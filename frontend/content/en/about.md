@@ -1,5 +1,5 @@
 ---
-title: "About Nadeshiko"
+title: "About"
 description: "Learn about Nadeshiko, the team behind it, and the contributors who make it possible."
 ---
 

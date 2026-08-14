@@ -4,9 +4,23 @@ image: brigadasos/nadeshiko-backend-stg
 servers:
   web:
     options:
-      # Memory limit: 1.5GB RAM + 256MB swap for stg
-      memory: 1.5g
-      memory-swap: 1.75g
+      # Memory limit: 768MB RAM + 256MB swap for stg.
+      #
+      # CUT FROM 1.5g 2026-08-14. It was matching production's cap for a service
+      # that gets almost no traffic: measured over 24h, steady state ~206-290MB
+      # and a peak of 340MB across every deploy in the window -- 22% of the old
+      # cap. The remaining ~1.2GB was reserved against a load that does not
+      # arrive. 768m still leaves better than 2x headroom over the observed peak.
+      #
+      # WHY THE RESERVATION MATTERED EVEN THOUGH IT WAS NEVER USED. The caps on
+      # this host sum to more than the host has (7.75GB of RAM), which is fine
+      # while nothing peaks together and dangerous when it does -- and the case
+      # it produces is a HOST-wide OOM, where the kernel picks the victim by
+      # badness score and Postgres and Elasticsearch are the biggest targets.
+      # That is strictly worse than any staging container dying. Handing back
+      # 768MB of paper reservation buys real headroom against it.
+      memory: 768m
+      memory-swap: 1g
 
 proxy:
   ssl: true

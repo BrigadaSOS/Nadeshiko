@@ -16,10 +16,36 @@ const emit = defineEmits<{
   'clear-history': [];
   'toggle-familiar': [];
   'clear-familiar': [];
+  'forget-familiar': [mediaPublicId: string];
 }>();
 
 const { t } = useI18n();
 const { mediaName } = useMediaName();
+
+/**
+ * The row currently being forgotten, so only its own button goes quiet. A single
+ * `forgetting` boolean would disable the whole list on one click.
+ */
+const forgettingId = ref<string | null>(null);
+
+const onForget = (entry: FamiliarMediaEntry) => {
+  forgettingId.value = entry.media.publicId;
+  emit('forget-familiar', entry.media.publicId);
+};
+
+/**
+ * "6 cards · 40 plays · 2 shares", with each number pluralised on its own.
+ *
+ * Three counts cannot share one plural choice, which is why this is composed
+ * rather than a single interpolated string -- that read "1 cards" and "0 shares".
+ * The separator stays in the locale file so Japanese can use its own.
+ */
+const familiarCounts = (entry: FamiliarMediaEntry): string =>
+  t('accountSettings.activity.privacy.familiarCounts', {
+    cards: t('accountSettings.activity.privacy.familiarCards', entry.ankiCount),
+    plays: t('accountSettings.activity.privacy.familiarPlays', entry.playCount),
+    shares: t('accountSettings.activity.privacy.familiarShares', entry.shareCount),
+  });
 
 const displayMediaName = (entry: FamiliarMediaEntry): string =>
   mediaName({
@@ -130,13 +156,23 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
             class="flex items-center justify-between gap-4 text-sm"
           >
             <span lang="ja" class="text-gray-100 truncate">{{ displayMediaName(entry) }}</span>
-            <span class="text-gray-400 text-xs shrink-0">
-              {{ t('accountSettings.activity.privacy.familiarCounts', {
-                anki: entry.ankiCount,
-                plays: entry.playCount,
-                shares: entry.shareCount,
-              }) }}
+            <span class="ml-auto text-gray-400 text-xs shrink-0">
+              {{ familiarCounts(entry) }}
             </span>
+            <!-- Per title, beside the whole-tally Forget above: a reader who
+                 finds one wrong show in the list should not have to throw the
+                 rest away to be rid of it. -->
+            <button
+              type="button"
+              class="shrink-0 text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40"
+              :disabled="forgettingId === entry.media.publicId"
+              :title="t('accountSettings.activity.privacy.forgetTitleHint', { title: displayMediaName(entry) })"
+              :aria-label="t('accountSettings.activity.privacy.forgetTitleHint', { title: displayMediaName(entry) })"
+              :data-testid="`familiar-media-forget-${entry.media.publicId}`"
+              @click="onForget(entry)"
+            >
+              {{ t('accountSettings.activity.privacy.forgetTitle') }}
+            </button>
           </li>
         </ul>
         <p v-else class="mt-2 text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.familiarListEmpty') }}</p>

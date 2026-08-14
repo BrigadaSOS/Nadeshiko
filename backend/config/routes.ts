@@ -75,7 +75,17 @@ import {
   deleteUserActivityByDate,
   deleteUserActivityById,
 } from '@app/controllers/activityController';
-import { getMe, listExcludedMedia, addExcludedMedia, removeExcludedMedia } from '@app/controllers/userController';
+import {
+  getMe,
+  listExcludedMedia,
+  addExcludedMedia,
+  removeExcludedMedia,
+  listFavoriteMedia,
+  addFavoriteMedia,
+  removeFavoriteMedia,
+} from '@app/controllers/userController';
+import { createUserApiKey } from '@app/controllers/apiKeyController';
+import { listFamiliarMedia, clearFamiliarMedia, forgetFamiliarMedia } from '@app/controllers/familiarMediaController';
 import { exportUserData } from '@app/controllers/userExportController';
 import { getStatsOverview, getCoveredWords, triggerCoveredWordsUpdate } from '@app/controllers/statsController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
@@ -215,6 +225,7 @@ const ActivityRoutes = createActivityRouter({
   listUserActivity,
   getUserActivityHeatmap,
   getUserActivityStats,
+  listFamiliarMedia,
 });
 
 const CollectionsRoutes = createCollectionsRouter({
@@ -251,9 +262,15 @@ const StatsRoutes = createStatsRouter({
 
 const UserRoutes = createUserRouter({
   getMe,
+  createUserApiKey,
   listExcludedMedia,
   addExcludedMedia,
   removeExcludedMedia,
+  listFavoriteMedia,
+  addFavoriteMedia,
+  removeFavoriteMedia,
+  clearFamiliarMedia,
+  forgetFamiliarMedia,
   createUserReport,
   getUserPreferences,
   updateUserPreferences,
