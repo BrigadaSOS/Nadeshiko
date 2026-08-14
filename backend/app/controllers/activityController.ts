@@ -8,6 +8,7 @@ import type {
 import { assertUser } from '@app/middleware/authentication';
 import { Media } from '@app/models';
 import { ActivityType, UserActivity } from '@app/models/UserActivity';
+import { UserMediaAffinity } from '@app/models/UserMediaAffinity';
 import { toUserActivityListDTO, toTopMediaDTO } from '@app/controllers/mappers/activityMapper';
 import { NotFoundError } from '@app/errors';
 import { logger } from '@config/log';
@@ -77,6 +78,28 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
   }).catch((err: unknown) => {
     logger.warn({ err, userId: user.id, activityType: body.activityType }, 'Failed to track user activity');
   });
+
+  // The same event, counted for a different purpose, under a different consent.
+  // Beside `trackForUser` rather than inside it: that one stops at
+  // `searchHistory`, and the tally deliberately does not, so a reader who wants
+  // their shows remembered without a diary of their searches gets exactly that.
+  //
+  // SEARCH is excluded by name, not by trusting that search events carry no
+  // media id -- scoped searches have carried one before and may again.
+  const isAutoplayedSegment = body.activityType === 'SEGMENT_PLAY' && body.autoplay === true;
+  const shouldRecordAffinity =
+    user.preferences?.familiarMedia?.enabled !== false &&
+    body.activityType !== 'SEARCH' &&
+    !isAutoplayedSegment &&
+    !!body.mediaPublicId;
+
+  if (shouldRecordAffinity && body.mediaPublicId) {
+    UserMediaAffinity.incrementForUser(user.id, body.mediaPublicId, body.activityType as ActivityType).catch(
+      (err: unknown) => {
+        logger.warn({ err, userId: user.id, activityType: body.activityType }, 'Failed to record media affinity');
+      },
+    );
+  }
 
   return respond.with204().body(undefined);
 };
