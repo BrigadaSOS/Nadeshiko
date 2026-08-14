@@ -108,6 +108,36 @@ describe('PATCH /v1/user/preferences', () => {
   });
 
   /**
+   * The two settings live on different screens and the hidden list moves under
+   * the default, so a stored default that names a hidden category is a state the
+   * API has to hold. It is the search that falls back to every category, which
+   * keeps the choice for whenever the reader unhides it.
+   */
+  it('stores a default search category the reader has also hidden', async () => {
+    fixtures.users.kevin.preferences = { hiddenCategories: [CategoryType.JDRAMA] };
+    await fixtures.users.kevin.save();
+    signInAs(app, fixtures.users.kevin);
+
+    const res = await request(app).patch('/v1/user/preferences').send({ defaultSearchCategory: 'JDRAMA' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.defaultSearchCategory).toBe('JDRAMA');
+
+    const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
+    expect(saved.preferences.defaultSearchCategory).toBe('JDRAMA');
+  });
+
+  it('rejects a default search category outside the enum', async () => {
+    fixtures.users.kevin.preferences = {};
+    await fixtures.users.kevin.save();
+    signInAs(app, fixtures.users.kevin);
+
+    const res = await request(app).patch('/v1/user/preferences').send({ defaultSearchCategory: 'MANGA' });
+
+    expect(res.status).toBe(400);
+  });
+
+  /**
    * `filters.category` reads an empty term list as "no filter", so storing an
    * all-hidden list would show the reader the entire corpus rather than nothing.
    */
@@ -146,5 +176,33 @@ describe('PATCH /v1/user/preferences', () => {
     expect(res.body).toEqual({
       hiddenMedia: [{ mediaPublicId: 'new-media-99', nameEn: 'Only New' }],
     });
+  });
+
+  it('refuses to store more starred media than the cap allows', async () => {
+    // The dedicated endpoint is not the only door into this list: PATCH
+    // deep-merges whatever it is handed, so the cap has to be enforced here too
+    // or it is bypassable by the client that skips `POST /v1/user/favorite-media`.
+    const overCap = Array.from({ length: 101 }, (_, index) => ({
+      mediaPublicId: `filler${String(index).padStart(6, '0')}`,
+      favoritedAt: new Date().toISOString(),
+    }));
+
+    const res = await request(app).patch('/v1/user/preferences').send({ favoriteMedia: overCap });
+
+    expect(res.status).toBe(400);
+
+    const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
+    expect(saved.preferences.favoriteMedia ?? []).toHaveLength(0);
+  });
+
+  it('accepts a starred list exactly at the cap', async () => {
+    const atCap = Array.from({ length: 100 }, (_, index) => ({
+      mediaPublicId: `filler${String(index).padStart(6, '0')}`,
+      favoritedAt: new Date().toISOString(),
+    }));
+
+    const res = await request(app).patch('/v1/user/preferences').send({ favoriteMedia: atCap });
+
+    expect(res.status).toBe(200);
   });
 });

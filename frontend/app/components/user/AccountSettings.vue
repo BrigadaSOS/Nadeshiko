@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-import { NadeshikoError, type UserPreferences } from '@brigadasos/nadeshiko-sdk';
+import { NadeshikoError, type Category, type UserPreferences } from '@brigadasos/nadeshiko-sdk';
+
+import { ALL_CATEGORIES, CATEGORY_LABEL_KEYS } from '~/utils/categories';
+import { MOTION_LEVELS, type MotionLevel } from '~/composables/useMotionPreference';
 
 import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
@@ -120,6 +123,31 @@ const contentRatingDescription = () => {
 };
 
 const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
+
+const { preference: motionPreference, setPreference: setMotionPreference } = useMotionPreference();
+
+const { storedDefault: defaultSearchCategory, isDefaultCategoryHidden } = useDefaultSearchCategory();
+const { isCategoryHidden } = useHiddenCategories();
+
+const categoryLabel = (category: Category) => t(CATEGORY_LABEL_KEYS[category]);
+
+// A category hidden wholesale is still offered, and still stores: the two
+// settings live on different pages, and refusing the choice here would read as a
+// broken select rather than as a consequence of Hide Categories. It is labelled
+// as hidden, and picking one only means searches open on All until it is shown
+// again.
+const defaultCategoryOptionLabel = (category: Category) =>
+  isCategoryHidden(category)
+    ? t('accountSettings.account.defaultSearchCategoryHiddenOption', { category: categoryLabel(category) })
+    : categoryLabel(category);
+
+const hiddenDefaultCategoryNotice = computed(() => {
+  const stored = defaultSearchCategory.value;
+  if (stored === 'ALL' || !isDefaultCategoryHidden.value) return null;
+  return t('accountSettings.account.defaultSearchCategoryHiddenNotice', { category: categoryLabel(stored) });
+});
+
+const updateDefaultSearchCategory = (value: string) => updatePreference('defaultSearchCategory', value);
 
 const { presets: dictionaryPresets, isDictionaryEnabled, setDictionaryEnabled } = useDictionaryLinks();
 
@@ -468,6 +496,51 @@ const logoutCurrentUser = async () => {
           <option value="ROMAJI">{{ $t('accountSettings.account.mediaNameLanguageOptions.ROMAJI') }}</option>
         </select>
       </div>
+      <div class="mt-4">
+        <div class="flex justify-between items-center gap-4">
+          <div>
+            <p class="text-white">{{ $t('accountSettings.account.defaultSearchCategory') }}</p>
+            <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.defaultSearchCategoryDescription') }}</p>
+          </div>
+          <select
+            data-testid="default-search-category"
+            :value="defaultSearchCategory"
+            @change="updateDefaultSearchCategory(($event.target as HTMLSelectElement).value)"
+            :disabled="savingPreferences"
+            class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+          >
+            <option value="ALL">{{ $t('searchContainer.categoryAll') }}</option>
+            <option v-for="category in ALL_CATEGORIES" :key="category" :value="category">
+              {{ defaultCategoryOptionLabel(category) }}
+            </option>
+          </select>
+        </div>
+        <p v-if="hiddenDefaultCategoryNotice" class="text-amber-300/80 text-sm mt-2">{{ hiddenDefaultCategoryNotice }}</p>
+      </div>
+
+      <!-- Motion lives in a cookie rather than the stored preferences, so it
+           applies the moment it is picked and needs no round trip -- and so it
+           is already right in the server's first render. `savingPreferences`
+           therefore does not gate it. -->
+      <div class="mt-4">
+        <div class="flex justify-between items-center gap-4">
+          <div>
+            <p class="text-white">{{ $t('accountSettings.account.motion') }}</p>
+            <p class="text-gray-400 text-sm">{{ $t(`accountSettings.account.motionHint_${motionPreference}`) }}</p>
+          </div>
+          <select
+            data-testid="motion-preference"
+            :value="motionPreference"
+            @change="setMotionPreference(($event.target as HTMLSelectElement).value as MotionLevel)"
+            class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+          >
+            <option v-for="option in MOTION_LEVELS" :key="option" :value="option">
+              {{ $t(`accountSettings.account.motionOptions.${option}`) }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <div class="mt-4">
         <p class="text-white">{{ $t('accountSettings.account.dictionaryLinks') }}</p>
         <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.dictionaryLinksDescription') }}</p>

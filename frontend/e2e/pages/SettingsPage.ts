@@ -8,6 +8,7 @@ export class SettingsPage {
   readonly sessionsCard: Locator;
   readonly refreshSessionsButton: Locator;
   readonly logOutOtherDevicesButton: Locator;
+  readonly defaultSearchCategory: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -17,6 +18,7 @@ export class SettingsPage {
     this.sessionsCard = page.getByTestId('sessions-card');
     this.refreshSessionsButton = page.getByRole('button', { name: 'Refresh' });
     this.logOutOtherDevicesButton = page.getByRole('button', { name: 'Log Out Other Devices' });
+    this.defaultSearchCategory = page.getByTestId('default-search-category');
   }
 
   async goto() {
