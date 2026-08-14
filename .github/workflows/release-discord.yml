@@ -2,10 +2,8 @@ name: "[Prod] Release Discord"
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'discord/**'
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:

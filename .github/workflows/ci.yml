@@ -2,7 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    # `production` carries hotfixes straight to a prod tag without ever passing
+    # through main, so it needs the same gate main gets.
+    branches: [main, production]
 
 permissions:
   contents: read
