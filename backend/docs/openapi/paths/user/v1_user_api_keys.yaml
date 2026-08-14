@@ -1,0 +1,94 @@
+post:
+  tags:
+    - User
+  operationId: createUserApiKey
+  summary: Create an API key with chosen scopes
+  description: |
+    Creates an API key for the signed-in reader, carrying exactly the scopes
+    asked for.
+
+    Use this rather than the better-auth `/v1/auth/api-key/create` endpoint
+    whenever the key is going anywhere but your own code. That endpoint cannot
+    take a scope list — the underlying plugin treats `permissions` as a
+    server-only field and rejects any request that carries one — so keys made
+    through it get the read-only default instead.
+
+    **Scopes are the whole of a key's authority.** Nothing re-checks the owner's
+    role when the key is used, so a key with `WRITE_PROFILE` can rewrite that
+    account's profile from anywhere it ends up. Grant the narrowest set the
+    consumer needs: a third-party search or dictionary tool wants
+    `["READ_MEDIA"]` and nothing else.
+
+    Session-authenticated only. A key cannot be used to mint another key.
+
+  security:
+    - SessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - name
+            - scopes
+          properties:
+            name:
+              type: string
+              minLength: 1
+              maxLength: 100
+              description: Label shown in the reader's key list. Not secret.
+              example: "Entei (read-only)"
+            scopes:
+              type: array
+              minItems: 1
+              maxItems: 12
+              description: |
+                Capabilities to grant. Must be non-empty and free of duplicates.
+              items:
+                $ref: "../../components/schemas/ApiKeyScope.yaml"
+              example: ["READ_MEDIA"]
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - id
+              - name
+              - key
+              - scopes
+              - createdAt
+            properties:
+              id:
+                type: string
+                description: Identifier for the key, for renaming or revoking it later
+              name:
+                type: string
+                description: The label supplied at creation
+              key:
+                type: string
+                description: |
+                  The secret, returned **only here and never again**. It is
+                  stored hashed, so a reader who loses it must create another.
+                example: "nade_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              scopes:
+                type: array
+                description: The scopes actually granted
+                items:
+                  $ref: "../../components/schemas/ApiKeyScope.yaml"
+              createdAt:
+                type: string
+                format: date-time
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

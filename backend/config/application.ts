@@ -1,5 +1,6 @@
 import express, { type Application, type ErrorRequestHandler, type RequestHandler } from 'express';
 import helmet from 'helmet';
+import { corsPolicy } from '@app/middleware/cors';
 import { handleErrors } from '@app/middleware/errorHandler';
 import { NotFoundError } from '@app/errors';
 import { handleJsonParseErrors } from '@app/middleware/requestParsing';
@@ -66,6 +67,17 @@ function configureMiddleware(
   // worth splitting by reader/bot/monitor too, and everything downstream (the
   // access log, the error counters) reads the answer off the request.
   app.use(trafficClassification);
+
+  // BEFORE the rate limiter, deliberately. A preflight carries no data and the
+  // client did not choose to send it, but it is a whole request against the
+  // per-IP bucket -- and that bucket is shared by everyone behind one address,
+  // which for the mobile-carrier CGNAT much of this API's third-party traffic
+  // arrives through can be a lot of unrelated people. Charging them for the
+  // browser's own protocol overhead would make the limit fire on load that
+  // nobody generated. It costs the preflight its access-log line (httpLogger is
+  // further down), which is an acceptable trade for a request whose entire
+  // content is in the response headers.
+  app.use(corsPolicy);
 
   // Rate-limit unauthenticated traffic BEFORE parsing bodies so abusive bots
   // are rejected cheaply without burning CPU on JSON parse.

@@ -60,11 +60,21 @@ export class DeveloperPage {
     return this.apiKeyRows.filter({ hasText: name });
   }
 
-  async createApiKey(name: string) {
+  /**
+   * Creates a key, read-only unless told otherwise.
+   *
+   * The endpoint is `/v1/user/api-keys`, NOT better-auth's
+   * `/v1/auth/api-key/create` this used to wait on: better-auth refuses a
+   * client-supplied scope list, so choosing scopes needs a route of our own.
+   */
+  async createApiKey(name: string, preset: 'readOnly' | 'fullAccount' | 'custom' = 'readOnly') {
     await this.addApiKeyButton.click();
     await expect(this.createModalNameInput).toBeVisible({ timeout: 5_000 });
     await this.createModalNameInput.fill(name);
-    const keyCreated = this.waitForApiResponse('/v1/auth/api-key/create', 'POST');
+    if (preset !== 'readOnly') {
+      await this.page.getByTestId(`create-apikey-preset-${preset}`).check();
+    }
+    const keyCreated = this.waitForApiResponse('/v1/user/api-keys', 'POST');
     await this.createModalSubmit.click();
     await keyCreated;
     await expect(this.keyCreatedAlert).toBeVisible({ timeout: 10_000 });

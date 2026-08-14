@@ -10,6 +10,7 @@ import {
   extractBearerToken,
   getTrustedOrigins,
   resolveDefaultApiPermissions,
+  resolveGrantableApiPermissions,
   sendWelcomeEmailAfterUserCreate,
 } from '@config/auth';
 
@@ -59,62 +60,55 @@ describe('auth config helpers', () => {
 });
 
 describe('resolveDefaultApiPermissions', () => {
-  it('falls back to readonly permissions for invalid user ids', async () => {
-    const invalid = await resolveDefaultApiPermissions('not-a-number');
-    const zero = await resolveDefaultApiPermissions('0');
-
-    const defaultPerms = [
-      ApiPermission.READ_MEDIA,
-      ApiPermission.READ_PROFILE,
-      ApiPermission.WRITE_PROFILE,
-      ApiPermission.READ_ACTIVITY,
-      ApiPermission.WRITE_ACTIVITY,
-      ApiPermission.READ_COLLECTIONS,
-      ApiPermission.CREATE_COLLECTIONS,
-      ApiPermission.UPDATE_COLLECTIONS,
-      ApiPermission.DELETE_COLLECTIONS,
-    ];
-    expect(invalid).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultPerms });
-    expect(zero).toEqual({ [BETTER_AUTH_API_PERMISSION_RESOURCE]: defaultPerms });
+  // A key that nobody scoped is the one most likely to be pasted into someone
+  // else's app, so the default is the corpus read and nothing else -- not even
+  // the owner's own profile, which a search integration never needs.
+  it('grants only the corpus read', () => {
+    expect(resolveDefaultApiPermissions()).toEqual({
+      [BETTER_AUTH_API_PERMISSION_RESOURCE]: [ApiPermission.READ_MEDIA],
+    });
   });
 
-  it('returns read-only permissions for admin users', async () => {
-    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
-    const result = await resolveDefaultApiPermissions('42', findUserById as any);
-
-    expect(findUserById).toHaveBeenCalledWith(42);
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual([
-      ApiPermission.READ_MEDIA,
-      ApiPermission.READ_PROFILE,
-      ApiPermission.READ_ACTIVITY,
-      ApiPermission.READ_COLLECTIONS,
-    ]);
+  it('never hands an unscoped key a write scope', () => {
+    for (const scope of resolveDefaultApiPermissions()[BETTER_AUTH_API_PERMISSION_RESOURCE] ?? []) {
+      expect(scope.startsWith('READ_')).toBe(true);
+    }
   });
+});
 
-  it('never hands an admin key a corpus write scope by default', async () => {
-    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
-    const result = await resolveDefaultApiPermissions('42', findUserById as any);
-
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).not.toContain(ApiPermission.ADD_MEDIA);
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).not.toContain(ApiPermission.UPDATE_MEDIA);
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).not.toContain(ApiPermission.REMOVE_MEDIA);
-  });
-
-  it('returns readonly permissions for non-admin users', async () => {
+describe('resolveGrantableApiPermissions', () => {
+  it('lets a reader grant their own account scopes', async () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.USER }) as any);
-    const result = await resolveDefaultApiPermissions('42', findUserById as any);
+    const result = await resolveGrantableApiPermissions(42, findUserById as any);
 
-    expect(result[BETTER_AUTH_API_PERMISSION_RESOURCE]).toEqual([
-      ApiPermission.READ_MEDIA,
-      ApiPermission.READ_PROFILE,
-      ApiPermission.WRITE_PROFILE,
-      ApiPermission.READ_ACTIVITY,
-      ApiPermission.WRITE_ACTIVITY,
-      ApiPermission.READ_COLLECTIONS,
-      ApiPermission.CREATE_COLLECTIONS,
-      ApiPermission.UPDATE_COLLECTIONS,
-      ApiPermission.DELETE_COLLECTIONS,
-    ]);
+    expect(result).toContain(ApiPermission.WRITE_PROFILE);
+    expect(result).toContain(ApiPermission.DELETE_COLLECTIONS);
+  });
+
+  // `enforceApiKeyScope` is the only gate on a key-authenticated request, so a
+  // key issued with ADD_MEDIA can rewrite the shared corpus no matter who owns
+  // it. This ceiling is the sole thing preventing that.
+  it('refuses corpus writes to a non-admin', async () => {
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.USER }) as any);
+    const result = await resolveGrantableApiPermissions(42, findUserById as any);
+
+    expect(result).not.toContain(ApiPermission.ADD_MEDIA);
+    expect(result).not.toContain(ApiPermission.UPDATE_MEDIA);
+    expect(result).not.toContain(ApiPermission.REMOVE_MEDIA);
+  });
+
+  it('allows corpus writes to an admin', async () => {
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
+    const result = await resolveGrantableApiPermissions(42, findUserById as any);
+
+    expect(result).toContain(ApiPermission.ADD_MEDIA);
+  });
+
+  it('refuses corpus writes when the user cannot be found', async () => {
+    const findUserById = vi.fn(async () => null as any);
+    const result = await resolveGrantableApiPermissions(42, findUserById as any);
+
+    expect(result).not.toContain(ApiPermission.ADD_MEDIA);
   });
 });
 
