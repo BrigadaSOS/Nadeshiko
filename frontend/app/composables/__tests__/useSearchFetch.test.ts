@@ -30,6 +30,7 @@ const scope = (overrides: Partial<SearchScope> = {}): SearchScope => ({
   mediaPublicId: null,
   episode: null,
   sort: null,
+  randomSeed: null,
   segmentPublicId: null,
   collectionId: null,
   listMediaIds: null,
