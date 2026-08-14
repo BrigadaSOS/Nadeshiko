@@ -4,8 +4,9 @@ import { useTimeoutFn } from '@vueuse/core';
 import type { Category, Media } from '@brigadasos/nadeshiko-sdk';
 import { userStore } from '@/stores/auth';
 import { handleApiError } from '~/utils/apiError';
+import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
-import { buildMediaSearchPath } from '~/utils/routes';
+import { mediaBrowsePath } from '~/utils/routes';
 
 const { t } = useI18n();
 
@@ -14,18 +15,27 @@ useSeoMeta({
   ogTitle: () => t('seo.media.title'),
   description: () => t('seo.media.description'),
   ogDescription: () => t('seo.media.description'),
-  ogImage: `${useRequestURL().origin}/logo-og-5bc76788.png`,
+  ogImage: `${useRequestURL().origin}${DEFAULT_OG_IMAGE_PATH}`,
   twitterCard: 'summary_large_image',
   twitterTitle: () => t('seo.media.title'),
   twitterDescription: () => t('seo.media.description'),
 });
 
-useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
-
 const sdk = useNadeshikoSdk();
 const router = useRouter();
 const route = useRoute();
 const localePath = useLocalePath();
+
+useSchemaOrg([
+  defineWebPage({ '@type': 'CollectionPage' }),
+  defineBreadcrumb({
+    itemListElement: [
+      { name: t('navbar.buttons.home'), item: localePath('/') },
+      { name: t('seo.media.title'), item: localePath('/media') },
+    ],
+  }),
+]);
+
 const { scrollToTop } = useQuerySync();
 const { mediaName, language } = useMediaName();
 const { hiddenMediaIds } = useHiddenMedia();
@@ -268,7 +278,7 @@ watch([searchQuery, filterCategory], () => {
 </script>
 
 <template>
-  <div class="min-h-screen mx-auto px-4 md:px-0 md:max-w-[70%] py-6">
+  <div class="nd-page min-h-screen px-4 md:px-0 py-6">
       <div class="inline-flex justify-between items-center w-full mb-3">
         <h1 class="text-[2.5rem] font-extrabold dark:text-white pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">
           {{ $t('animeList.fullListTitle') }}
@@ -363,7 +373,7 @@ watch([searchQuery, filterCategory], () => {
           >
             <NuxtLink
               data-testid="media-card"
-              :to="localePath(buildMediaSearchPath(mediaInfo.publicId))"
+              :to="localePath(mediaBrowsePath(mediaInfo))"
               @click="trackMediaSelected(mediaInfo, 'grid')"
             >
               <MediaCover
@@ -379,7 +389,7 @@ watch([searchQuery, filterCategory], () => {
               <UiBaseIcon :path="mdiPencilOutline" w="w-4" h="h-4" size="16" />
             </button>
           </div>
-          <NuxtLink :to="localePath(buildMediaSearchPath(mediaInfo.publicId))" class="mt-2 text-center justify-center flex flex-col items-center">
+          <NuxtLink :to="localePath(mediaBrowsePath(mediaInfo))" class="mt-2 text-center justify-center flex flex-col items-center">
             <h3 lang="ja" data-testid="media-card-title" class="text-sm text-center font-semibold line-clamp-2 dark:text-gray-100">
               {{ mediaName(mediaInfo) }}
             </h3>
@@ -506,7 +516,7 @@ watch([searchQuery, filterCategory], () => {
                   </a>
 
                   <NuxtLink
-                    :to="localePath(buildMediaSearchPath(mediaInfo.publicId))"
+                    :to="localePath(mediaBrowsePath(mediaInfo))"
                     class="py-3.5 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm hover:bg-red-500/10 text-red-600 border-red-500/70 rounded-lg focus:border-input-focus-ring dark:border-red-400 dark:placeholder-gray-400 dark:text-red-400"
                     @click="trackMediaSelected(mediaInfo, 'list')"
                   >
