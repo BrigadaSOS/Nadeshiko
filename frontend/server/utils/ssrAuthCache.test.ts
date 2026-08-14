@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { hasSessionCookie, ssrAuthFetch, _resetForTests } from './ssrAuthCache';
+import { dropSessionEntries, hasSessionCookie, ssrAuthFetch, _resetForTests } from './ssrAuthCache';
 
 beforeEach(() => _resetForTests());
 
@@ -47,6 +47,82 @@ describe('ssrAuthFetch', () => {
     expect(r1).toEqual({ user: { id: 1, name: 'alice' } });
     expect(r2).toEqual({ user: { id: 1, name: 'alice' } });
     expect(fetcher).toHaveBeenCalledTimes(1); // coalesced!
+  });
+
+  /**
+   * The preferences stamp. A reader who changes a preference has to see it on
+   * the very next render, and deleting the entry could only ever have worked in
+   * the worker that served the write -- production forks three of them, each
+   * with its own copy of this map. The cookie rides the request instead, so
+   * every worker misses.
+   */
+  it('does NOT reuse the pre-change entry once a preferences stamp arrives', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1'), fetcher);
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version=1786690000000'), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('still caches across renders while the same stamp is in play', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    const cookie = 'nadeshiko.session_token=tok1; nd-prefs-version=1786690000000';
+    await ssrAuthFetch(fakeEvent(cookie), fetcher);
+    await ssrAuthFetch(fakeEvent(cookie), fetcher);
+    // One write must not turn the next minute of renders into uncached ones.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('separates two stamps, so a second change is not served the first result', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version=1786690000000'), fetcher);
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version=1786690009999'), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('forgets a session entirely when a write drops it, stamp or no stamp', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    const plain = fakeEvent('nadeshiko.session_token=tok1');
+    const stamped = fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version=1786690000000');
+    await ssrAuthFetch(plain, fetcher);
+    await ssrAuthFetch(stamped, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+
+    // The half that covers a caller with no stamp cookie to carry.
+    dropSessionEntries(plain);
+    await ssrAuthFetch(plain, fetcher);
+    await ssrAuthFetch(stamped, fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(4);
+  });
+
+  it('drops only the session it was asked about', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokA'), fetcher);
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokB'), fetcher);
+
+    dropSessionEntries(fakeEvent('nadeshiko.session_token=tokA'));
+
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokB'), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2); // B still cached
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokA'), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(3); // A had to be re-read
+  });
+
+  it('ignores a stamp that is not one this server could have minted', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1'), fetcher);
+    // The value picks which entry is read and arrives on a cookie, so anything
+    // but a `Date.now()` is ignored rather than allowed to mint its own key.
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version=../../etc'), fetcher);
+    await ssrAuthFetch(fakeEvent(`nadeshiko.session_token=tok1; nd-prefs-version=${'9'.repeat(400)}`), fetcher);
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version='), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps two readers apart even when they stamp the same millisecond', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokA; nd-prefs-version=1786690000000'), fetcher);
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokB; nd-prefs-version=1786690000000'), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   it('does NOT coalesce across different session tokens', async () => {

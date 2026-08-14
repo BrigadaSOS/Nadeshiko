@@ -8,8 +8,16 @@ import { E2E_AUTH_STATE_PATH } from './auth-state';
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
 
 const BASE_URL = getE2EBaseUrl();
+// Specs that need a signed-in session. The `authenticatedPage` fixture only
+// hands back the page -- the session comes from this project's `storageState` --
+// so a spec left off this list runs signed out and its `/v1/user/**` calls 401.
+// `favorite-media` was missing and failed in `beforeEach`, before it reached a
+// single assertion.
+// Each name is spelled out in full: the alternation is anchored by `\.spec\.ts$`,
+// so `activity` does NOT cover `activity-privacy.spec.ts`. A spec that looks
+// covered but is not runs signed out and dies in `beforeEach`.
 const AUTHENTICATED_TESTS =
-  /(activity|admin-reports|collections|developer-api-keys|header-navigation|hidden-media|user-settings)\.spec\.ts$/;
+  /(activity|activity-privacy|admin-reports|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
 
 /**
  * SMOKE MODE, set by the production release workflow. Staging keeps the whole

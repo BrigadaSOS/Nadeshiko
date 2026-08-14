@@ -1,8 +1,33 @@
 import type { H3Event } from 'h3';
-import { getProxyRequestHeaders, getRequestURL, proxyRequest } from 'h3';
+import { getProxyRequestHeaders, getRequestURL, proxyRequest, setCookie } from 'h3';
 import { buildInternalBackendHeaders, internalBackendUrl } from '~~/server/utils/internalBackend';
 import { publicApiRoutes } from '~~/server/utils/generated/publicApiRoutes';
+import { dropSessionEntries, PREFS_VERSION_COOKIE, PREFS_VERSION_MAX_AGE_S } from '~~/server/utils/ssrAuthCache';
 import { createPublicRouteMatcher } from '#shared/utils/backendSdk';
+
+/**
+ * Routes whose writes rewrite the user's preferences column.
+ *
+ * Favourites and hidden media are not their own tables -- they are fields in
+ * that one JSON column, which is also what the SSR identity cache stores
+ * alongside the session. So a write here invalidates a render's worth of cached
+ * identity, and nothing else does.
+ *
+ * Deliberately NOT the whole of `/v1/user/**`. `POST /v1/user/activity` fires on
+ * arrival at every single search, and treating that as a preferences write would
+ * bust the cache constantly -- which is the cost the cache exists to avoid.
+ */
+const PREFERENCE_WRITE_PATHS = [
+  /^\/v1\/user\/preferences\/?$/,
+  /^\/v1\/user\/excluded-media(?:\/|$)/,
+  /^\/v1\/user\/favorite-media(?:\/|$)/,
+];
+
+export function writesPreferences(method: string, pathname: string): boolean {
+  const verb = method.toUpperCase();
+  if (verb === 'GET' || verb === 'HEAD' || verb === 'OPTIONS') return false;
+  return PREFERENCE_WRITE_PATHS.some((route) => route.test(pathname));
+}
 
 function getTargetUrl(event: H3Event): string {
   const requestUrl = getRequestURL(event);
@@ -33,10 +58,45 @@ export function proxyToBackend(event: H3Event): Promise<any> {
     headers.authorization = `Bearer ${apiKey}`;
   }
 
+  const stampsPreferences = writesPreferences(method, requestUrl.pathname);
+
   return proxyRequest(event, getTargetUrl(event), {
     headers,
     fetchOptions: {
       redirect: 'manual',
     },
+    // Inside `onResponse`, not before the call, and the ordering is load-bearing
+    // twice over. `sendProxy` installs the backend's own `Set-Cookie` with
+    // `setHeader` -- a replace, not an append -- so a cookie written before this
+    // point is dropped the moment the backend sets one of its own. `onResponse`
+    // runs after that assignment and before the body is streamed, and h3's
+    // `setCookie` folds the new cookie in beside whatever is already there.
+    // Being here also means the status is known, so only a write that actually
+    // took invalidates anything.
+    onResponse: stampsPreferences
+      ? (proxyEvent, response) => {
+          if (response.status < 200 || response.status >= 300) return;
+          // Two halves of one invalidation. The stamp reaches every worker but
+          // only this browser; the drop reaches every browser but only this
+          // worker. Neither covers the other's case, and together they leave
+          // only a caller on a fresh cookie jar hitting a *different* worker.
+          stampPreferencesVersion(proxyEvent, requestUrl.protocol === 'https:');
+          dropSessionEntries(proxyEvent);
+        }
+      : undefined,
+  });
+}
+
+/**
+ * Marks this browser's requests as carrying preferences newer than anything the
+ * SSR identity cache holds. Exported for the test that guards the append.
+ */
+export function stampPreferencesVersion(event: H3Event, secure: boolean): void {
+  setCookie(event, PREFS_VERSION_COOKIE, String(Date.now()), {
+    path: '/',
+    maxAge: PREFS_VERSION_MAX_AGE_S,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure,
   });
 }
