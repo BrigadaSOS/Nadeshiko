@@ -12,44 +12,80 @@ import {
 const { t } = useI18n();
 const route = useRoute();
 const { setQuery } = useQuerySync();
-/** `?sort=` is always a single value; anything else is treated as unset. */
-const readSortFromRoute = () => (typeof route.query.sort === 'string' ? route.query.sort : undefined);
 
-const sortType = ref<string | undefined>(readSortFromRoute());
 const emit = defineEmits<{
-  randomSortSelected: [];
+  /** Any sort was picked, including the one already applied. */
+  sortSelected: [];
 }>();
 
-const previousSort = ref<string>(readSortFromRoute() ?? 'none');
+/**
+ * The sort in force, read from `?sort=` rather than latched at setup.
+ *
+ * A local ref went stale the moment the sort changed anywhere other than this
+ * button, and this button exists twice: the sticky sidebar and the mobile
+ * drawer are both mounted, so sorting from one left the other's label reading
+ * "Sort sentences" with no sort named. Worse, whichever copy remounted while
+ * the navigation was still in flight latched `undefined` and lost the label
+ * even for the sort it had just applied itself -- which is what made picking
+ * Random from the drawer look like nothing had happened. The URL is the one
+ * thing every copy agrees on, so read it every time.
+ *
+ * `?sort=` is always a single value; anything else is treated as unset.
+ */
+const currentSort = computed(() => (typeof route.query.sort === 'string' ? route.query.sort : 'none'));
 
-const sortContent = async (type: string) => {
-  if (type !== previousSort.value) {
-    sortType.value = type;
-    await setQuery({ sort: type === 'none' ? null : type });
-  } else if (type === 'random') {
-    // El sort no ha cambiado, pero es 'random', emitimos el evento
-    emit('randomSortSelected');
+/**
+ * A fresh shuffle for `sort=random`, written into the URL beside it.
+ *
+ * The seed has to travel in the URL rather than live in memory. Without one the
+ * backend derives its seed from the calendar day, so "random" was one fixed
+ * order for the whole day and re-picking it refetched a byte-identical page --
+ * asking again with the same seed is not asking for a different shuffle. In the
+ * URL it also means the order is reproducible: a shared link, a reload and the
+ * back button all show the same shuffle rather than silently re-rolling one.
+ *
+ * Drawn away from the current seed so a click always changes the URL; a repeat
+ * would navigate nowhere and look like nothing happened.
+ */
+const nextRandomSeed = (current: number | null): number => {
+  let seed = current;
+  while (seed === null || seed === current) {
+    seed = Math.floor(Math.random() * 2 ** 31);
   }
-  previousSort.value = type;
+  return seed;
 };
 
-watch(
-  () => route.query.sort,
-  (newSort) => {
-    previousSort.value = typeof newSort === 'string' ? newSort : 'none';
-  },
-  { immediate: true },
-);
+const sortContent = async (type: string) => {
+  emit('sortSelected');
+
+  if (type === 'random') {
+    const current = Number(route.query.seed);
+    await setQuery({
+      sort: 'random',
+      seed: String(nextRandomSeed(Number.isInteger(current) ? current : null)),
+    });
+    return;
+  }
+
+  // Every other sort is idempotent, so re-picking the one in force is a no-op.
+  // The seed goes with random: leaving it behind would put a parameter in the
+  // URL that nothing reads and that reappears if random is picked again.
+  if (type === currentSort.value) return;
+
+  await setQuery({ sort: type === 'none' ? null : type, seed: null });
+};
 </script>
 <template>
-    <SearchDropdownContainer class="gap-2 mb-4 text-xs w-full flex" dropdownId="nd-dropdown-with-header">
+    <!-- No margin of its own: the gap to the filter panel below is the sidebar's
+         `gap-2`. Top padding lives on the sticky offset, not on this button. -->
+    <SearchDropdownContainer class="gap-2 text-xs w-full flex" dropdownId="nd-dropdown-with-header">
         <template #default>
             <SearchDropdownMainButton class="w-full items-center text-center align-middle flex"
                 dropdownId="nd-dropdown-with-header">
                 <UiBaseIcon :path="mdiFilterOutline" />
                 {{ t('searchpage.main.buttons.sortmain') }}
-                <span v-if="sortType && sortType !== 'none'">
-                    ({{ t(`searchpage.main.buttons.sort${sortType}`) }})
+                <span v-if="currentSort !== 'none'" data-testid="sort-active-label">
+                    ({{ t(`searchpage.main.buttons.sort${currentSort}`) }})
                 </span>
             </SearchDropdownMainButton>
         </template>

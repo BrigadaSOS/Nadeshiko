@@ -9,18 +9,44 @@ const isFilterDrawerOpen = ref(false);
 
 const playerStore = usePlayerStore();
 const { showPlayer } = storeToRefs(playerStore);
-const props = defineProps<{
-  searchData?: SearchSidebarData | null;
-  categorySelected?: string | null;
-  media?: string | null;
-  isMovieMedia?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    searchData?: SearchSidebarData | null;
+    categorySelected?: string | null;
+    /** Passed straight through to the filter panel; see its own prop docs. */
+    activeMediaId?: string | null;
+    /**
+     * Whether this view has a list worth filtering. False on the single-sentence
+     * page, which shows one card the filters cannot narrow -- the `2xl:` sidebar
+     * has always been hidden there, and the drawer used to offer itself anyway:
+     * picking a title from it pushed `?media=` onto `/sentence/<id>`, a query
+     * that page ignores.
+     */
+    filterable?: boolean;
+  }>(),
+  { filterable: true },
+);
 
-const getEpisodeHitsData = () => {
-  if (!props.media || !props.searchData?.media) return [];
-  const selectedMedia = props.searchData.media.find((stat) => stat.mediaPublicId === props.media);
-  return selectedMedia?.episodeHits || [];
-};
+/**
+ * The drawer is offered only when there is a title list behind it.
+ *
+ * Keyed on the media stats rather than on the results, and the difference is
+ * the whole point: `results` is emptied at the start of every fetch, so gating
+ * on it made the button vanish and come back on each search, and left anyone
+ * who opened it mid-flight looking at a drawer with nothing in it. The stats
+ * survive the fetch and only empty when the query genuinely matched no titles
+ * -- which is exactly when there is nothing to filter and no button to offer.
+ *
+ * Only the drawer is gated. The scroll-to-top button beside it is about the
+ * page, not the results, and belongs on every view.
+ */
+const showFilterDrawer = computed(() => props.filterable && (props.searchData?.media?.length ?? 0) > 0);
+
+// A drawer left open when its own contents go away -- a new search that matched
+// no titles -- would otherwise spring back open the moment some arrived again.
+watch(showFilterDrawer, (available) => {
+  if (!available) isFilterDrawerOpen.value = false;
+});
 
 const handleScroll = () => {
   showScrollButton.value = window.scrollY > 400;
@@ -49,7 +75,9 @@ onUnmounted(() => {
         <UiBaseIcon :path="mdiArrowUp" w="5" h="5" size="20" fill="white" strokewidth="1" stroke="white" />
       </button>
     </Transition>
-    <button type="button" aria-haspopup="dialog" :aria-expanded="isFilterDrawerOpen" aria-controls="nd-offcanvas-right"
+    <button v-if="showFilterDrawer" type="button" aria-haspopup="dialog" :aria-expanded="isFilterDrawerOpen"
+      aria-controls="nd-offcanvas-right"
+      data-testid="filter-drawer-toggle"
       @click="isFilterDrawerOpen = !isFilterDrawerOpen"
       class="flex items-center justify-center outline-none 2xl:hidden text-white bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-header-background focus:ring-4 focus:outline-none">
       <svg aria-hidden="true" class="w-8 h-8 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -58,22 +86,24 @@ onUnmounted(() => {
           d="M3 7C3 6.44772 3.44772 6 4 6H20C20.5523 6 21 6.44772 21 7C21 7.55228 20.5523 8 20 8H4C3.44772 8 3 7.55228 3 7ZM6 12C6 11.4477 6.44772 11 7 11H17C17.5523 11 18 11.4477 18 12C18 12.5523 17.5523 13 17 13H7C6.44772 13 6 12.5523 6 12ZM9 17C9 16.4477 9.44772 16 10 16H14C14.5523 16 15 16.4477 15 17C15 17.5523 14.5523 18 14 18H10C9.44772 18 9 17.5523 9 17Z"
           fill="#ffffff" />
       </svg>
-      <span class="sr-only">{{ $t('segmentSidebar.openActionsMenu') }}</span>
+      <span class="sr-only">{{ $t('segmentSidebar.openFilters') }}</span>
     </button>
   </div>
 
   <!-- Sidebar -->
   <CommonBaseModal
+    v-if="showFilterDrawer"
     id="nd-offcanvas-right"
+    data-testid="filter-drawer"
     :open="isFilterDrawerOpen"
     transition="nd-drawer"
     z-index-class="z-[80]"
     overlay-class="justify-end bg-neutral-900/40"
-    panel-class="h-full max-w-xs w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 overflow-y-auto"
+    panel-class="h-full max-w-sm w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 flex flex-col overflow-hidden"
     labelledby="nd-offcanvas-right-label"
     @close="isFilterDrawerOpen = false"
   >
-  <div class="flex justify-between items-center py-3 px-4 border-b dark:border-neutral-700">
+  <div class="flex justify-between items-center py-3 px-4 border-b dark:border-neutral-700 shrink-0">
     <h3 id="nd-offcanvas-right-label" class="font-bold text-gray-800 dark:text-white">
       {{ $t('segmentSidebar.filtersTitle') }}
     </h3>
@@ -85,27 +115,25 @@ onUnmounted(() => {
       </svg>
     </button>
   </div>
-  <div>
-    <div v-if="(searchData?.results?.length ?? 0) > 0" class="p-2 mx-auto">
-        <SearchSegmentFilterSortContent />
-        <SearchSegmentFilterContent :searchData="searchData" :categorySelected="categorySelected" />
-        <SearchSegmentFilterEpisodeFilter
-            v-if="media && !isMovieMedia"
-            :episodeHits="getEpisodeHitsData()"
-            :selectedMediaId="media"
-        />
-      </div>
-      <div v-else>
-        <div class="mx-auto hidden lg:block max-w-xs">
-          <div role="status" class="hidden lg:flex flex-col py-6 animate-pulse">
-            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[460px] mb-2.5"></div>
-            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[330px] mb-2.5"></div>
-            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-            <div class="h-2 bg-gray-200 rounded-full dark:bg-neutral-700 max-w-[300px] mb-2.5"></div>
-            <span class="sr-only">{{ $t('segmentSidebar.loading') }}</span>
-          </div>
-        </div>
+  <!-- A flex column ending in the filter panel, so the drawer header stays put
+       and the row list is the only thing that scrolls. -->
+  <!-- No empty state and no skeleton: the drawer only exists when there are
+       titles in it, so both branches were unreachable. The skeleton that used to
+       sit here was `hidden lg:block` inside a drawer that only opens below
+       `2xl`, which left every phone with a blank panel instead. -->
+  <div class="flex-1 min-h-0 flex flex-col">
+    <div class="p-2 flex-1 min-h-0 flex flex-col gap-2">
+        <!-- Sorting reorders the list this drawer is sitting on top of, so it
+             closes for the same reason picking a title does. -->
+        <SearchSegmentFilterSortContent @sort-selected="isFilterDrawerOpen = false" />
+        <!-- Picking a title or an episode is the whole reason the drawer was
+             opened: close it so the reader lands back on the results it just
+             filtered, instead of on the panel that filtered them. -->
+        <SearchSegmentFilterContent
+          :searchData="searchData"
+          :categorySelected="categorySelected"
+          :activeMediaId="activeMediaId"
+          @applied="isFilterDrawerOpen = false" />
       </div>
   </div>
   </CommonBaseModal>

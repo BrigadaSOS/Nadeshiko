@@ -80,8 +80,33 @@ test.describe('Mobile viewport', () => {
     const searchInput = page.getByTestId('search-input');
     await searchInput.click();
     await searchInput.fill('学校');
-    await page.getByTestId('search-button').click();
+    // Enter, not the button: below `md` the search and simultaneous-search
+    // buttons are hidden so the input and its history get the whole bar, and
+    // the on-screen keyboard's Go key is what submits.
+    await searchInput.press('Enter');
 
     await expect(page).toHaveURL(/\/search\//, { timeout: 10_000 });
+  });
+
+  test('the search bar buttons give their width to the history on mobile', async ({ page }) => {
+    await page.addInitScript((payload) => {
+      window.localStorage.setItem('nd-search-recents', payload);
+    }, JSON.stringify({ entries: [{ query: '学校', searchedAt: '2026-08-14T09:00:00.000Z', ids: [] }], dismissed: {} }));
+    await page.goto('/');
+
+    const searchInput = page.getByTestId('search-input');
+    await expect(searchInput).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('search-button')).toBeHidden();
+
+    // The history is anchored to the input's column, so hiding the buttons is
+    // what lets it run the full width of the bar rather than stopping short of
+    // where they used to be.
+    await searchInput.click();
+    const recents = page.getByTestId('search-recents');
+    await expect(recents).toBeVisible({ timeout: 10_000 });
+
+    const bar = await searchInput.evaluate((el) => el.closest('.relative.flex')?.getBoundingClientRect().width ?? 0);
+    const menu = await recents.evaluate((el) => el.getBoundingClientRect().width);
+    expect(Math.abs(menu - bar)).toBeLessThan(2);
   });
 });
