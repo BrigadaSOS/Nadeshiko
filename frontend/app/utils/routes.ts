@@ -21,6 +21,21 @@ export function buildWordSearchPath(word: string): string {
 }
 
 /**
+ * Where a remembered search re-runs: the query, plus the title it was run inside
+ * when it had one -- 食べる everywhere and 食べる in Bocchi are two different
+ * searches and come back as two different rows.
+ *
+ * Rebuilt rather than copied from the URL it was recorded on, which is why no
+ * episode, sort or cursor rides along: the title is what the reader searched
+ * inside, while the third page of one of its episodes is where they happened to
+ * be standing when they got there.
+ */
+export function buildScopedSearchPath(word: string, mediaPublicId?: string | null): string {
+  const path = buildWordSearchPath(word);
+  return mediaPublicId ? `${path}?media=${encodeURIComponent(mediaPublicId)}` : path;
+}
+
+/**
  * The `/search/:query` segment as text, from the raw param.
  *
  * The router hands this param through RAW -- ask for `/search/%2541` and the
@@ -112,16 +127,107 @@ export function canonicalPath(path: string, queryParam: string | ReadonlyArray<s
   return withLocalePrefix(localePrefix, buildWordSearchPath(decodeSearchQuery(raw)));
 }
 
-export function buildMediaSearchPath(mediaPublicId: string, episode?: number | string | null): string {
+/**
+ * The media -- and optionally episode -- filter as a path.
+ *
+ * `searchQuery` is what keeps a filter click from throwing the search away. From
+ * `/search/食べる`, narrowing to a title has to land on `/search/食べる?media=…`;
+ * without the segment it lands on `/search?media=…`, which silently turns the
+ * reader's search into a browse of everything that title has. Callers with no
+ * search behind them -- the home grid, the media index -- omit it and get the
+ * browse path, which is the right destination there.
+ */
+export function buildMediaSearchPath(
+  mediaPublicId: string,
+  episode?: number | string | null,
+  searchQuery?: string | null,
+): string {
   const params = new URLSearchParams({ media: mediaPublicId });
   if (episode !== undefined && episode !== null && `${episode}` !== '') {
     params.set('episode', `${episode}`);
   }
-  return `/search?${params.toString()}`;
+  const base = searchQuery ? buildWordSearchPath(searchQuery) : '/search';
+  return `${base}?${params.toString()}`;
+}
+
+/**
+ * A title's own page, addressed the way a reader and a crawler can both read it.
+ *
+ * This is the canonical home of a media browse -- `/media/steins-gate` rather
+ * than `/search?media=V1StGXR8_Z5d`, which is what the 317 media URLs in the
+ * sitemap used to be. An opaque twelve-character id in a filter parameter tells a
+ * search engine nothing about the page and cannot be typed, guessed or read
+ * aloud; the slug is the same information in the part of the URL that ranks.
+ *
+ * `buildMediaSearchPath` above is still the right call when a SEARCH is being
+ * narrowed to a title, because that URL has to keep carrying the search term.
+ * The two are not interchangeable: this one browses a title, that one filters a
+ * query.
+ */
+export function buildMediaPath(slug: string, episode?: number | string | null): string {
+  const base = `/media/${encodeURIComponent(slug)}`;
+  if (episode === undefined || episode === null || `${episode}` === '') return base;
+  return `${base}?episode=${encodeURIComponent(`${episode}`)}`;
+}
+
+/**
+ * The link to a title from anywhere that is BROWSING rather than searching --
+ * the home grid, the catalogue, a breadcrumb.
+ *
+ * Always prefer this over calling either builder directly at a link site: it
+ * picks the readable URL when the payload carries a slug and falls back to the
+ * old filter URL when it does not, so a link never dead-ends on a title that
+ * predates slugs. Both destinations render the same page; only one is canonical,
+ * and the other 301s to it -- which is exactly the hop worth avoiding on an
+ * internal link.
+ */
+export function mediaBrowsePath(
+  media: { publicId: string; slug?: string | null },
+  episode?: number | string | null,
+): string {
+  return media.slug ? buildMediaPath(media.slug, episode) : buildMediaSearchPath(media.publicId, episode);
 }
 
 export function buildSentencePath(segmentPublicId: string): string {
   return `/sentence/${segmentPublicId}`;
+}
+
+/**
+ * The query keys that say WHERE a reader is searching, as opposed to what they
+ * searched for or how the page is drawn.
+ *
+ * `mediaId`/`episodeId` are the legacy spellings. The server middleware rewrites
+ * them to `media`/`episode` on a full page load, but a client-side URL can still
+ * be holding one, and a scope that survives a click only when the reader arrived
+ * by SSR is worse than one that never survives at all.
+ */
+export const SEARCH_SCOPE_PARAMS = ['media', 'mediaId', 'episode', 'episodeId', 'category', 'sort'] as const;
+
+/**
+ * The scope of the current search, ready to hand to the next one.
+ *
+ * Searching a new word from inside a title is still a search inside that title:
+ * the reader picked the show, and picking a word out of a sentence is not
+ * un-picking it. The search box has always worked this way -- typing a word
+ * keeps the filters -- so a word CLICKED out of a sentence that dropped them
+ * meant the same action did two different things depending on how it was
+ * started.
+ *
+ * An allowlist rather than "everything except the display toggles": what belongs
+ * in a scope is a short, known list, and a `?uuid=` or a future one-off param
+ * riding along by default is how a filter ends up somewhere nobody meant it to
+ * be.
+ */
+export function searchScopeQuery<T>(query: Record<string, T> | undefined | null): Record<string, T> {
+  if (!query) return {};
+  const scope: Record<string, T> = {};
+  for (const key of SEARCH_SCOPE_PARAMS) {
+    const value = query[key];
+    if (value !== undefined && value !== null && value !== '') {
+      scope[key] = value;
+    }
+  }
+  return scope;
 }
 
 /**

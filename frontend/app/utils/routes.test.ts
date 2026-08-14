@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { SUPPORTED_LOCALES } from './i18n';
 import {
   SEARCH_QUERY_MAX_LENGTH,
+  buildMediaPath,
+  buildMediaSearchPath,
   canonicalPath,
   decodeSearchQuery,
   isJunkSearchQuery,
+  mediaBrowsePath,
+  searchScopeQuery,
   splitLocalePrefix,
   withLocalePrefix,
 } from './routes';
@@ -85,6 +89,91 @@ describe('isJunkSearchQuery', () => {
   it('rejects a query the backend would reject anyway', () => {
     expect(isJunkSearchQuery('あ'.repeat(SEARCH_QUERY_MAX_LENGTH))).toBe(false);
     expect(isJunkSearchQuery('あ'.repeat(SEARCH_QUERY_MAX_LENGTH + 1))).toBe(true);
+  });
+});
+
+describe('buildMediaSearchPath', () => {
+  it('browses the title when no search is behind it', () => {
+    expect(buildMediaSearchPath('abc123')).toBe('/search?media=abc123');
+    expect(buildMediaSearchPath('abc123', 3)).toBe('/search?media=abc123&episode=3');
+  });
+
+  // The bug this exists for: from /search/食べる, filtering by title used to land
+  // on /search?media=…, throwing the reader's query away.
+  it('keeps the search when one is', () => {
+    expect(buildMediaSearchPath('abc123', null, '食べる')).toBe('/search/%E9%A3%9F%E3%81%B9%E3%82%8B?media=abc123');
+    expect(buildMediaSearchPath('abc123', 3, '食べる')).toBe(
+      '/search/%E9%A3%9F%E3%81%B9%E3%82%8B?media=abc123&episode=3',
+    );
+  });
+
+  // An empty query is no query: `/search/?media=` would render the same page
+  // through a second URL that the canonical does not point at.
+  it('treats an empty query as none', () => {
+    expect(buildMediaSearchPath('abc123', null, '')).toBe('/search?media=abc123');
+  });
+});
+
+describe('buildMediaPath', () => {
+  it('addresses a title by slug', () => {
+    expect(buildMediaPath('steins-gate')).toBe('/media/steins-gate');
+    expect(buildMediaPath('steins-gate', 3)).toBe('/media/steins-gate?episode=3');
+  });
+
+  // Slugs are generated from romaji names, so they are ASCII in practice -- but
+  // the path segment is still encoded, because a slug that ever picked up a
+  // stray character must not be able to break out of its own segment.
+  it('encodes the segment', () => {
+    expect(buildMediaPath('a/b')).toBe('/media/a%2Fb');
+  });
+
+  it('omits an empty episode rather than writing a bare parameter', () => {
+    expect(buildMediaPath('steins-gate', null)).toBe('/media/steins-gate');
+    expect(buildMediaPath('steins-gate', '')).toBe('/media/steins-gate');
+  });
+});
+
+describe('mediaBrowsePath', () => {
+  it('prefers the readable URL', () => {
+    expect(mediaBrowsePath({ publicId: 'abc123', slug: 'steins-gate' })).toBe('/media/steins-gate');
+    expect(mediaBrowsePath({ publicId: 'abc123', slug: 'steins-gate' }, 3)).toBe('/media/steins-gate?episode=3');
+  });
+
+  // A link must never dead-end because a payload predates slugs: the old filter
+  // URL still renders, and 301s to the canonical one.
+  it('falls back to the filter URL without a slug', () => {
+    expect(mediaBrowsePath({ publicId: 'abc123' })).toBe('/search?media=abc123');
+    expect(mediaBrowsePath({ publicId: 'abc123', slug: null }, 3)).toBe('/search?media=abc123&episode=3');
+  });
+});
+
+describe('searchScopeQuery', () => {
+  it('keeps where the reader is searching', () => {
+    expect(searchScopeQuery({ media: 'abc123', episode: '3', category: 'anime', sort: 'random' })).toEqual({
+      media: 'abc123',
+      episode: '3',
+      category: 'anime',
+      sort: 'random',
+    });
+  });
+
+  it('keeps the legacy spellings, which only SSR rewrites', () => {
+    expect(searchScopeQuery({ mediaId: 'abc123', episodeId: '3' })).toEqual({ mediaId: 'abc123', episodeId: '3' });
+  });
+
+  // The allowlist earning its keep: `?uuid=` pins the page to one sentence, and
+  // carrying it into the next search would pin that one too.
+  it('drops everything that is not scope', () => {
+    expect(searchScopeQuery({ media: 'abc123', uuid: 'seg1', hideLangs: 'en', query: '学校' })).toEqual({
+      media: 'abc123',
+    });
+  });
+
+  it('treats an absent scope as no scope', () => {
+    expect(searchScopeQuery({})).toEqual({});
+    expect(searchScopeQuery(undefined)).toEqual({});
+    // `?media=` with nothing after it is not a filter -- same rule as `getStringQueryValue`.
+    expect(searchScopeQuery({ media: '' })).toEqual({});
   });
 });
 

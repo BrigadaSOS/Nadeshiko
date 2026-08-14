@@ -7,20 +7,50 @@ export class SearchPage {
   readonly categoryTabs: Locator;
   readonly segmentCards: Locator;
   readonly segmentImages: Locator;
+  readonly episodeLinks: Locator;
   readonly endOfResults: Locator;
   readonly enToggle: Locator;
   readonly esToggle: Locator;
+  readonly recentsMenu: Locator;
+  readonly recentsItems: Locator;
+  readonly recentsClear: Locator;
+  readonly tokenCardSearch: Locator;
 
   constructor(page: Page) {
     this.page = page;
     this.searchInput = page.getByTestId('search-input');
+    this.recentsMenu = page.getByTestId('search-recents');
+    this.recentsItems = page.getByTestId('search-recents-item');
+    this.recentsClear = page.getByTestId('search-recents-clear');
+    // The headword at the top of an open word card, which is a button only when
+    // the card is about a token the dictionary answered for.
+    this.tokenCardSearch = page.locator('.token-tooltip__word--action');
     this.searchButton = page.getByTestId('search-button');
     this.categoryTabs = page.getByTestId('search-category-tabs');
     this.segmentCards = page.getByTestId('segment-card');
     this.segmentImages = page.getByTestId('segment-image');
+    // Only on cards with an episode behind them: a movie has none, and a
+    // YouTube clip links out to the video instead.
+    this.episodeLinks = page.getByTestId('segment-episode-link');
     this.endOfResults = page.getByText("You've reached the end", { exact: false });
     this.enToggle = page.getByRole('button', { name: 'EN', exact: true });
     this.esToggle = page.getByRole('button', { name: 'ES', exact: true });
+  }
+
+  /**
+   * The word the current URL is a search for, decoded, or null on a `/search`
+   * with no word in it.
+   *
+   * The query lives in the PATH and the filters live in the query string, so a
+   * filter that rebuilds the path instead of patching the query silently drops
+   * the search. That is a real regression -- `/search?media=X` is a valid page
+   * showing every sentence in a title -- and it is invisible to any assertion
+   * that only looks at `media=`, which is how it shipped.
+   */
+  searchedWord(): string | null {
+    const path = decodeURIComponent(new URL(this.page.url()).pathname);
+    const match = path.match(/\/search\/(.+)$/);
+    return match?.[1] ?? null;
   }
 
   async goto(query?: string) {
@@ -59,6 +89,31 @@ export class SearchPage {
     await expect(this.categoryTabs).toBeVisible({ timeout: 15_000 });
   }
 
+  /**
+   * Clicks into the box to drop the recents menu open. A click rather than
+   * `focus()`: the bar focuses itself on mount for desktop readers, and that
+   * focus deliberately does not open the menu.
+   */
+  async openRecents() {
+    await this.searchInput.click();
+    await expect(this.recentsMenu).toBeVisible({ timeout: 10_000 });
+  }
+
+  recentsItem(query: string) {
+    return this.recentsItems.filter({ hasText: query });
+  }
+
+  /**
+   * The row for a search run across everything, as opposed to the same word
+   * searched inside a title -- which is a separate row, by design.
+   *
+   * The distinction matters to any count: filtering rows by their text alone
+   * matches both, so `食べる` and `食べる in Bocchi` are two hits for one word.
+   */
+  unscopedRecentsItem(query: string) {
+    return this.recentsItem(query).filter({ hasNot: this.page.getByTestId('search-recents-media') });
+  }
+
   async expectNoResults() {
     await expect(this.page.getByText('No results', { exact: false }).or(this.endOfResults)).toBeVisible({
       timeout: 10_000,
@@ -78,5 +133,30 @@ export class SearchPage {
       .first()
       .getByTestId(`translation-row-${lang}`)
       .getByTestId('translation-content');
+  }
+
+  /**
+   * Opens the word card on the first token in the results that has one, and
+   * returns the headword it is about — which is what pressing the headword
+   * searches for, and so what the bar has to end up holding.
+   *
+   * Walked rather than aimed at the first token, because only a word the
+   * dictionary knows opens a card at all: particles and names in a given
+   * sentence are tokens with no entry behind them, and which ones those are
+   * depends on the sentence the search happens to return.
+   */
+  async openFirstTokenCard(): Promise<string> {
+    const tokens = this.page.locator('.token-text .token[role="button"]');
+    await expect(tokens.first()).toBeVisible({ timeout: 15_000 });
+
+    for (let i = 0; i < (await tokens.count()); i++) {
+      await tokens.nth(i).click();
+      if (await this.tokenCardSearch.isVisible({ timeout: 2_500 }).catch(() => false)) {
+        return (await this.tokenCardSearch.innerText()).trim();
+      }
+      await this.page.keyboard.press('Escape');
+    }
+
+    throw new Error('no token in the results opened a word card');
   }
 }
