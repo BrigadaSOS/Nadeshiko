@@ -1,0 +1,22 @@
+type: string
+description: |
+  A capability an API key may carry. A key-authenticated request is checked
+  against this list and nothing else, so a key's scopes are the whole of what it
+  can do — a reader's role is not consulted again at request time.
+
+  The corpus-write scopes (`ADD_MEDIA`, `UPDATE_MEDIA`, `REMOVE_MEDIA`) may only
+  be granted by an admin; asking for one without the role is refused with `403`.
+enum:
+  - ADD_MEDIA
+  - READ_MEDIA
+  - UPDATE_MEDIA
+  - REMOVE_MEDIA
+  - READ_PROFILE
+  - WRITE_PROFILE
+  - READ_ACTIVITY
+  - WRITE_ACTIVITY
+  - READ_COLLECTIONS
+  - CREATE_COLLECTIONS
+  - UPDATE_COLLECTIONS
+  - DELETE_COLLECTIONS
+example: "READ_MEDIA"

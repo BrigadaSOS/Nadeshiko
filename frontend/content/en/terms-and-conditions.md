@@ -5,7 +5,7 @@ description: "Read Nadeshiko's terms and conditions of service."
 
 # Terms and Conditions
 
-**Last updated: January 19, 2026**
+**Last updated: August 14, 2026**
 
 Please read these terms and conditions carefully before using the Nadeshiko application.
 
@@ -26,6 +26,19 @@ If you are provided with API access, you agree to use the API in accordance with
 - **Prohibited Activities**: You must not use the API to engage in any activity that violates these terms or any applicable laws or regulations. Prohibited activities include, but are not limited to, data scraping, unauthorized data access, and any form of abuse or misuse of the API.
 - **Data Use**: Any data accessed via the API is for your personal or educational use only. You must not share, sell, or distribute the data to third parties without explicit permission from Nadeshiko.
 - **Modifications**: Nadeshiko reserves the right to modify, suspend, or discontinue the API at any time, with or without notice. Nadeshiko will not be liable to you or any third party for any modification, suspension, or discontinuation of the API.
+
+## Third-Party Integrations
+
+A third-party application may read Nadeshiko content on a reader's behalf, provided every reader brings their own API key and the application meets all of the conditions below. Meeting them **is** the explicit permission that the Data Use condition above requires; an integration that satisfies them does not need to ask us separately.
+
+- **The reader's own key**: the application must use a key the reader created themselves and can revoke at any time. It must not ship a shared key, pool readers onto one key, or send reader keys to its own servers.
+- **Read-only scope**: ask readers for a key limited to the `READ_MEDIA` scope. An integration must not require scopes that write to a reader's profile, activity or collections in order to function.
+- **Direct requests**: requests must go from the reader's own client to Nadeshiko. The application must not proxy them, keep responses beyond the reader's session, mirror or index the corpus, republish it, or use it to train models.
+- **Quotas**: the reader's own quota and rate limits apply. Handle `429` responses and do not work around the limits.
+- **Content ratings**: every segment carries a `contentRating`. Filtering or presenting ratings appropriately for your audience is the application's responsibility — a request that sends no content-rating filter receives all ratings, including `EXPLICIT`.
+- **Attribution**: name Nadeshiko as the source of the content, and link to these terms and to our [DMCA Policy](/dmca).
+
+We may withdraw this permission from any application at any time. The Termination and Disclaimer sections below apply to applications as they do to readers.
 
 ## Termination
 We may terminate or suspend your account nor IP address immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the terms.
