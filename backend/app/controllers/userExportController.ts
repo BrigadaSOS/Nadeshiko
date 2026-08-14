@@ -2,7 +2,7 @@ import type { ExportUserData } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { User } from '@app/models/User';
 import { UserActivity } from '@app/models/UserActivity';
-import { Collection, CollectionSegment, Report } from '@app/models';
+import { Collection, CollectionSegment, Report, UserMediaAffinity } from '@app/models';
 import { toUserExportDTO } from './mappers/userExportMapper';
 import { resolveReportPublicIds } from './mappers/reportMapper';
 
@@ -19,6 +19,7 @@ const EXPORT_MAX_ACTIVITY = 50_000;
 const EXPORT_MAX_REPORTS = 5_000;
 const EXPORT_MAX_COLLECTIONS = 1_000;
 const EXPORT_MAX_COLLECTION_SEGMENTS = 50_000;
+const EXPORT_MAX_MEDIA_AFFINITY = 50_000;
 
 interface Paged<T> {
   items: T[];
@@ -28,23 +29,45 @@ interface Paged<T> {
 export const exportUserData: ExportUserData = async (_params, respond, req) => {
   const user = assertUser(req);
 
-  const [fullUser, activity, collections, reports] = await Promise.all([
+  const [fullUser, activity, collections, reports, mediaAffinity] = await Promise.all([
     User.findOneOrFail({ where: { id: user.id } }),
     loadUserActivityForExport(user.id),
     loadCollectionsForExport(user.id),
     loadUserReportsForExport(user.id),
+    loadMediaAffinityForExport(user.id),
   ]);
 
   const publicIdMaps = await resolveReportPublicIds(reports.items);
   return respond.with200().body(
-    toUserExportDTO(fullUser, activity.items, collections.items, reports.items, publicIdMaps, {
+    toUserExportDTO(fullUser, activity.items, collections.items, reports.items, publicIdMaps, mediaAffinity.items, {
       activity: activity.truncated,
       collections: collections.truncated,
       collectionSegments: collections.segmentsTruncated,
       reports: reports.truncated,
+      mediaAffinity: mediaAffinity.truncated,
     }),
   );
 };
+
+/**
+ * The tally is one row per title per month, so a reader who has touched a few
+ * hundred shows across the retention window is in the thousands -- small next to
+ * the activity log, but not the "couple of dozen" it looks like at a glance.
+ * Bounded like every other section so one account cannot make the export
+ * unserializable.
+ */
+async function loadMediaAffinityForExport(userId: number): Promise<Paged<UserMediaAffinity>> {
+  const rows = await UserMediaAffinity.find({
+    where: { userId },
+    order: { periodYyyymm: 'DESC', id: 'ASC' },
+    take: EXPORT_MAX_MEDIA_AFFINITY + 1,
+  });
+
+  return {
+    items: rows.slice(0, EXPORT_MAX_MEDIA_AFFINITY),
+    truncated: rows.length > EXPORT_MAX_MEDIA_AFFINITY,
+  };
+}
 
 async function loadUserActivityForExport(userId: number): Promise<Paged<UserActivity>> {
   const activity: UserActivity[] = [];

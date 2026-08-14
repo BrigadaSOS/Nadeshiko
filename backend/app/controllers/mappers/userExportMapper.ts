@@ -1,6 +1,7 @@
 import type { t_UserExportCollection, t_UserExportResponse } from 'generated/models';
 import type { User } from '@app/models/User';
 import type { UserActivity } from '@app/models/UserActivity';
+import type { UserMediaAffinity } from '@app/models/UserMediaAffinity';
 import type { Collection } from '@app/models';
 import type { Report } from '@app/models';
 import { toCollectionDTO } from './collectionMapper';
@@ -22,14 +23,23 @@ export const toUserExportDTO = (
   collections: Collection[],
   reports: Report[],
   publicIdMaps: ReportPublicIdMaps,
+  mediaAffinity: UserMediaAffinity[] = [],
   truncated: t_UserExportResponse['truncated'] = {
     activity: false,
     collections: false,
     collectionSegments: false,
     reports: false,
+    mediaAffinity: false,
   },
 ): t_UserExportResponse => ({
   truncated,
+  mediaAffinity: mediaAffinity.map((row) => ({
+    mediaPublicId: row.mediaPublicId,
+    periodYyyymm: row.periodYyyymm,
+    ankiCount: row.ankiCount,
+    playCount: row.playCount,
+    shareCount: row.shareCount,
+  })),
   profile: {
     id: user.id,
     username: user.username,

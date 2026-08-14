@@ -5,6 +5,8 @@ import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 
 import { UserActivity, ActivityType } from '@app/models/UserActivity';
+import { UserMediaAffinity } from '@app/models/UserMediaAffinity';
+import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 import { Collection, CollectionVisibility } from '@app/models/Collection';
 import { CollectionSegment } from '@app/models/CollectionSegment';
 import { Report, ReportSource, ReportTargetType, ReportReason } from '@app/models/Report';
@@ -77,7 +79,22 @@ describe('GET /v1/user/export', () => {
       collections: false,
       collectionSegments: false,
       reports: false,
+      mediaAffinity: false,
     });
+  });
+
+  it('includes the media affinity tally, which lives outside the activity log', async () => {
+    await UserMediaAffinity.save({
+      userId: fixtures.users.kevin.id,
+      mediaPublicId: 'ExportedMed1',
+      periodYyyymm: AccountQuotaUsage.getCurrentPeriodYyyymm(),
+      ankiCount: 3,
+    });
+
+    const res = await request(app).get('/v1/user/export');
+
+    expect(res.status).toBe(200);
+    expect(res.body.mediaAffinity).toEqual([expect.objectContaining({ mediaPublicId: 'ExportedMed1', ankiCount: 3 })]);
   });
 
   it('includes activity records for the user', async () => {
