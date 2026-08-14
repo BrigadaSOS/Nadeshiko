@@ -44,13 +44,18 @@ export function useHiddenMedia() {
     return items.value.some((item) => item.mediaPublicId === mediaPublicId);
   };
 
+  /**
+   * Returns whether the change reached the server, for callers that confirm it.
+   * The failure path rolls back and reports itself, so without this a caller
+   * cannot tell a saved change from one that was undone under it.
+   */
   const toggleHideMedia = async (media: {
     publicId: string;
     nameEn?: string;
     nameJa?: string;
     nameRomaji?: string;
-  }) => {
-    if (!user.isLoggedIn) return;
+  }): Promise<boolean> => {
+    if (!user.isLoggedIn) return false;
 
     const existing = items.value.findIndex((item) => item.mediaPublicId === media.publicId);
     const isUnhiding = existing >= 0;
@@ -73,6 +78,7 @@ export function useHiddenMedia() {
       hiddenMedia: nextItems,
     };
 
+    let saved = true;
     try {
       const sdk = useNadeshikoSdk();
       if (isUnhiding) {
@@ -91,10 +97,15 @@ export function useHiddenMedia() {
         toastKey: 'hiddenMedia.updateError',
         context: { 'media.publicId': media.publicId, action: isUnhiding ? 'unhide' : 'hide' },
       });
+      saved = false;
     }
 
+    // Bumped either way: a rollback changes the list the search is drawn from
+    // just as much as a successful toggle does.
     const forceSearchCounter = useState('force-search-counter', () => 0);
     forceSearchCounter.value++;
+
+    return saved;
   };
 
   return {
