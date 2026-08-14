@@ -26,6 +26,33 @@ function assertNotEveryCategoryHidden(preferences: UserPreferences): void {
   }
 }
 
+/**
+ * How many titles a reader may star.
+ *
+ * The whole preferences column is rewritten on every change (see
+ * `mutateUserPreferences`), so an unbounded list would tax every later write of
+ * any unrelated preference, forever. 100 is far past what the feature is for --
+ * sorting the handful of shows you know to the top of a filter.
+ */
+export const MAX_FAVORITE_MEDIA = 100;
+
+/**
+ * Checked here as well as in `addFavoriteMedia` because there are two doors into
+ * this list: the dedicated endpoint, and `PATCH /v1/user/preferences`, which
+ * deep-merges whatever it is handed. Guarding only the former leaves the cap
+ * trivially bypassable by the client that skips it.
+ */
+export function assertFavoriteMediaWithinCap(preferences: UserPreferences): void {
+  const favorites = preferences.favoriteMedia;
+  if (!favorites) return;
+
+  if (favorites.length > MAX_FAVORITE_MEDIA) {
+    throw new ValidationFailedError({
+      favoriteMedia: `At most ${MAX_FAVORITE_MEDIA} media can be starred.`,
+    });
+  }
+}
+
 export const getUserPreferences: GetUserPreferences = async (_params, respond, req) => {
   const user = assertUser(req);
 
@@ -38,6 +65,7 @@ export const updateUserPreferences: UpdateUserPreferences = async ({ body }, res
   const updated = await mutateUserPreferences(user.id, (current) => {
     const merged = deepMerge(current as Record<string, unknown>, body as Record<string, unknown>) as UserPreferences;
     assertNotEveryCategoryHidden(merged);
+    assertFavoriteMediaWithinCap(merged);
     return merged;
   });
   user.preferences = updated;
