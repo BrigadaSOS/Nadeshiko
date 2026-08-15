@@ -59,7 +59,7 @@ const reasonPillClasses = (reason: string) => {
   const base =
     'px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
   if (form.reason !== reason)
-    return `${base} border border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-300`;
+    return `${base} border border-hairline text-ink-muted hover:border-line-hover hover:text-ink`;
   return `${base} bg-button-accent-main text-white border border-transparent focus:ring-input-focus-ring`;
 };
 
@@ -131,7 +131,7 @@ const submitReport = async () => {
         </h3>
         <button
           type="button"
-          class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+          class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400"
           @click="closeModal"
         >
           <span class="sr-only">{{ t('modalSegmentEdit.close') }}</span>
@@ -175,7 +175,7 @@ const submitReport = async () => {
         </div>
 
         <!-- Segment metadata (read-only) -->
-        <div v-if="segment" class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 space-y-2 text-sm">
+        <div v-if="segment" class="rounded-lg bg-control border border-hairline p-3 space-y-2 text-sm">
           <!-- Media + cover -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.media') }}</span>
@@ -222,7 +222,7 @@ const submitReport = async () => {
             <span class="text-neutral-300 text-sm leading-relaxed">{{ segment.segment.textEn.content }}</span>
             <div v-if="segment.segment.textEn.isMachineTranslated" class="relative inline-flex group/mt-tooltip align-middle ml-1 flex-shrink-0 self-start mt-0.5">
               <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" />
-              <span class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible" role="tooltip">
+              <span class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-surface border border-hairline px-3 py-1.5 text-sm font-medium text-ink shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible" role="tooltip">
                 {{ t('searchpage.main.labels.mtTooltip') }}
                 <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
               </span>
@@ -234,7 +234,7 @@ const submitReport = async () => {
             <span class="text-neutral-300 text-sm leading-relaxed">{{ segment.segment.textEs.content }}</span>
             <div v-if="segment.segment.textEs.isMachineTranslated" class="relative inline-flex group/mt-tooltip align-middle ml-1 flex-shrink-0 self-start mt-0.5">
               <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4" h="h-4" size="19" />
-              <span class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible" role="tooltip">
+              <span class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-surface border border-hairline px-3 py-1.5 text-sm font-medium text-ink shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible" role="tooltip">
                 {{ t('searchpage.main.labels.mtTooltip') }}
                 <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
               </span>
@@ -243,7 +243,7 @@ const submitReport = async () => {
         </div>
 
         <!-- Media-only target (no segment) -->
-        <div v-else-if="target" class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 text-sm">
+        <div v-else-if="target" class="rounded-lg bg-control border border-hairline p-3 text-sm">
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('reports.targetLabel') }}</span>
             <span class="px-2 py-0.5 rounded text-xs font-medium bg-neutral-700 text-neutral-300">
@@ -290,7 +290,7 @@ const submitReport = async () => {
       <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
         <button
           type="button"
-          class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          class="py-2 px-3 text-sm font-medium rounded-lg border border-hairline text-ink-muted hover:bg-control-hover"
           @click="closeModal"
         >
           {{ t('reports.cancel') }}

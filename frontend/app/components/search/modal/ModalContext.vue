@@ -86,7 +86,7 @@ const scrollToElement = (id: string) => {
 
 <template>
   <CommonBaseModal data-testid="context-modal" :open="!!sentence" labelledby="nd-context-modal-title"
-    panel-class="w-full max-w-7xl mx-auto h-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
+    panel-class="w-full max-w-7xl mx-auto h-full flex flex-col bg-background border border-hairline rounded-xl shadow-sm"
     :panel-style="{ maxHeight: showPlayer ? '85vh' : '95vh', marginBottom: showPlayer ? '5rem' : '0' }"
     @close="emit('close')">
     <div class="nd-modal-header">
@@ -95,7 +95,7 @@ const scrollToElement = (id: string) => {
           contextData?.results?.[0]?.media ? mediaName(contextData.results[0].media) : '' }}
       </h3>
       <button type="button" data-testid="context-modal-close"
-        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+        class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400"
         @click="emit('close')">
         <span class="sr-only">{{ t('modalContext.closeSrOnly') }}</span>
         <svg class="w-3.5 h-3.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">

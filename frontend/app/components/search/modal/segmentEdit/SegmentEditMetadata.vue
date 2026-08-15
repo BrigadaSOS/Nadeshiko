@@ -17,7 +17,7 @@ const copySegmentId = () => copyToClipboard(props.segment.segment.publicId);
 </script>
 
 <template>
-  <div class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 space-y-2 text-sm">
+  <div class="rounded-lg bg-control border border-hairline p-3 space-y-2 text-sm">
     <!-- Media name + cover thumbnail -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.media') }}</span>
