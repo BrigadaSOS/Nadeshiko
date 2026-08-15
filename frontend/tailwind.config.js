@@ -18,6 +18,26 @@ export default {
       },
       colors: {
         background: 'var(--background)',
+        surface: {
+          DEFAULT: 'var(--surface)',
+          soft: 'var(--surface-soft)',
+          lift: 'var(--surface-lift)',
+        },
+        hairline: 'var(--line)',
+        ink: {
+          DEFAULT: 'var(--ink)',
+          muted: 'var(--ink-muted)',
+          faint: 'var(--ink-faint)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          soft: 'var(--accent-soft)',
+        },
+        control: {
+          DEFAULT: 'var(--control)',
+          hover: 'var(--control-hover)',
+        },
         header: {
           background: 'var(--header-background)',
         },
@@ -46,6 +66,11 @@ export default {
           input: 'var(--modal-input)',
           border: 'var(--modal-border)',
         },
+        // Legacy class names still used in a few older templates.
+        sgray: 'var(--control)',
+        sgray2: 'var(--control-hover)',
+        sgrayhover: 'var(--control-hover)',
+        sred: 'var(--accent)',
       },
     },
   },

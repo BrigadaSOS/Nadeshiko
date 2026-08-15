@@ -113,6 +113,8 @@
     "videos": "動画",
     "sentenceCountLabel": "文:",
     "anilistButton": "Anilist",
+    "tmdbButton": "TMDB",
+    "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
     "vocabularyButton": "語彙"
   },
@@ -149,14 +151,13 @@
       "keyColumn": "キー",
       "noCardsFound": "カードが見つかりません",
       "noCardsMessage": "別のクエリを試すか、まず文をマイニングしてください",
-      "validationSuccess": "検証成功",
-      "validationMessage": "キーフィールドが設定されています！",
       "validationError": "エラーが発生しました",
       "errorMessage": "キーフィールドが定義されていません",
       "errorTip": "Nadeshikoの設定でキーフィールドが定義されていることを確認してください"
     },
     "toast": {
       "noSettings": "設定が見つかりません。設定ページで拡張機能を設定してください。",
+      "keyFieldRequired": "エクスポートする前に、Ankiの設定でキーフィールドを設定してください。",
       "miningCard": "カードを処理中...",
       "noCardToExport": "エクスポート先のAnkiカードがありません。まずカードを追加してください。",
       "cardFoundInOtherDeck": "カードが見つかりましたが、デッキ「{deck}」にありません。YomitanとNadeshikoが同じデッキを使用しているか確認してください。",
@@ -273,8 +274,6 @@
     "backToTitles": "タイトル一覧に戻る"
   },
   "episodeFilter": {
-    "title": "エピソード",
-    "clear": "クリア",
     "noEpisodes": "エピソードが見つかりませんでした"
   },
   "segmentSidebar": {
@@ -286,6 +285,14 @@
   "searchpage": {
     "main": {
       "translationPreferences": {
+        "combinedMenuButton": "翻訳とふりがなの表示",
+        "englishMenu": "英語",
+        "spanishMenu": "スペイン語翻訳",
+        "furiganaMenu": "ふりがな（読み）",
+        "languageSettingsHint": "利用する翻訳言語はアカウント設定で選べます。",
+        "modeShown": "表示",
+        "modeSpoiler": "ホバーで表示",
+        "modeHidden": "非表示",
         "englishShown": "英語翻訳を表示しました",
         "englishSpoiler": "英語翻訳をスポイラーモードにしました",
         "englishHidden": "英語翻訳を非表示にしました",
@@ -308,9 +315,18 @@
         "info": "エピソード情報",
         "copyclipboard": "コピー",
         "jpsentence": "日本語の文",
+        "jpsentencehighlight": "日本語の文（単語を強調）",
         "jpsentencefurigana": "日本語の文（ふりがな付き）",
         "ensentence": "英語の文",
         "essentence": "スペイン語の文",
+        "word": "単語",
+        "wordreading": "単語の読み",
+        "wordfurigana": "単語（ふりがな付き）",
+        "definition": "語義",
+        "wordpitch": "アクセント",
+        "wordpitchnum": "アクセント位置（数字）",
+        "wordaudio": "単語の音声",
+        "wordinfo": "単語情報",
         "context": "文脈",
         "share": "共有",
         "more": "その他",
@@ -337,7 +353,6 @@
         "sortrandom": "ランダム"
       },
       "labels": {
-        "contentList": "コンテンツ",
         "noresults": "結果が見つかりませんでした...",
         "episode": "エピソード",
         "movie": "映画",
@@ -546,7 +561,7 @@
         "familiarCounts": "{cards}・{plays}・{shares}",
         "forgetTitle": "削除",
         "forgetTitleHint": "{title} を削除",
-        "familiarCards": "カード{count}枚",
+        "familiarCards": "Anki書き出し {count}件",
         "familiarPlays": "再生{count}回",
         "familiarShares": "共有{count}回"
       }
@@ -627,6 +642,14 @@
         "JAPANESE": "日本語",
         "ROMAJI": "ローマ字"
       },
+      "translationLanguages": "辞書の翻訳言語",
+      "translationLanguagesDescription": "辞書コンテンツに表示する翻訳言語を選びます。両方を選ぶと、表示順もここで決まります。",
+      "translationLanguageOptions": {
+        "EN": "英語のみ",
+        "ES": "スペイン語のみ",
+        "EN_ES": "英語、スペイン語の順",
+        "ES_EN": "スペイン語、英語の順"
+      },
       "defaultSearchCategory": "デフォルトの検索カテゴリ",
       "defaultSearchCategoryDescription": "検索はこのカテゴリで開きます。カテゴリを指定したリンクが優先されます。",
       "motion": "アニメーション",
@@ -661,7 +684,7 @@
       "contentRatingHint_hide": "検索結果に含まれません",
       "contentRatingPreview": "検索結果での表示プレビュー",
       "contentRatingPreviewAlt": "コンテンツ評価サンプルのプレビュー画像",
-      "contentRatingHiddenDesc": "非表示 — 検索結果に含まれません",
+      "contentRatingHiddenDesc": "非表示。検索結果に含まれません",
       "preferenceSaved": "設定を保存しました",
       "preferenceError": "設定の保存に失敗しました",
       "changeEmail": "変更",
@@ -810,8 +833,16 @@
       "selectModel": "モデルを選択",
       "keyFieldLabel": "キーフィールド",
       "selectKeyField": "デッキIDに対応するフィールドを選択",
+      "keyFieldRequiredTitle": "キーフィールドが必要です",
+      "keyFieldRequiredMessage": "Ankiへのエクスポートを有効にするには、下でキーフィールドを選択してください。",
       "fieldColumn": "フィールド",
       "contentColumn": "内容",
+      "sentenceGroup": "例文",
+      "sentenceImage": "例文の画像",
+      "sentenceAudio": "例文の音声",
+      "selectedWordGroup": "選択中の単語",
+      "cardStylingTitle": "カードのスタイル",
+      "cardStylingHelp": "単語のフィールドにはスタイルが埋め込まれているため、書き出した時点でここと同じ見た目になります。設定は不要です。見た目を変えたい場合のみ、Ankiのノートタイプの「カード…」→「スタイル」に貼り付けて自由に編集してください。",
       "noFieldsFound": "フィールドが見つかりません",
       "noFieldsMessage": "再度お試しいただくか、AnkiConnectの接続を確認してください",
       "serverAddressLabel": "AnkiConnectサーバーアドレス",
@@ -823,6 +854,7 @@
       "deleteProfile": "削除",
       "openBrowserOnExport": "カードをエクスポート時にAnkiブラウザを開く",
       "saving": "保存中...",
+      "saved": "保存しました",
       "modal": {
         "cancel": "キャンセル",
         "save": "保存"
@@ -887,8 +919,12 @@
     "moreSentences": "他の例文",
     "playAudio": "発音を再生",
     "noEntry": "この語の辞書項目は見つかりませんでした。",
-    "openInAnki": "マイニング済み — Anki でノートを開く",
-    "mineToNote": "この文・音声・画像を Anki のノートに追加",
+    "definitionsHidden": "語義は非表示です",
+    "showDefinitions": "表示",
+    "openInAnki": "Anki でノートを開く",
+    "mineContextOnly": "この文・音声・画像を追加（既存の語義はそのまま）",
+    "minedActions": "コレクションにあります",
+    "mineToNote": "ノート全体を置き換える（語義も含む）",
     "mineToLastCard": "この文・音声・画像を最後に追加した Anki カードに追加"
   },
   "searchContainer": {
