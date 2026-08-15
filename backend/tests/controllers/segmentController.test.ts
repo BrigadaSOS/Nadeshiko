@@ -322,6 +322,19 @@ describe('GET /v1/media/segments/:segmentPublicId', () => {
     });
   });
 
+  it('includes tokens so the sentence permalink can render the word card', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const tokens = [{ s: 'テスト', d: 'テスト', r: 'テスト', b: 0, e: 3, p: '名詞', kind: 'word' }];
+    const segment = await seedSegment(fixtures.media.testShow.id, fixtures.episodes.pilot.episodeNumber, {
+      tokens,
+    });
+
+    const res = await request(app).get(`/v1/media/segments/${segment.publicId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.textJa.tokens).toEqual(tokens);
+  });
+
   it('returns 404 when segment does not exist', async () => {
     const res = await request(app).get(`/v1/media/segments/${MISSING_SEGMENT_PUBLIC_ID}`);
     expect(res.status).toBe(404);

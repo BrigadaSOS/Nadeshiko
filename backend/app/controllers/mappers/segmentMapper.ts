@@ -4,6 +4,7 @@ import type { Segment } from '@app/models';
 import type { SegmentRevision } from '@app/models/SegmentRevision';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 import { getSegmentImageUrl, getSegmentAudioUrl, getSegmentVideoUrl } from '@lib/utils/storage';
+import { SegmentResponse } from '@app/services/search/segmentDocument/SegmentResponse';
 import { config } from '@config/config';
 import { v3 as uuidv3 } from 'uuid';
 import { nanoid } from 'nanoid';
@@ -25,7 +26,11 @@ export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segmen
     textJa: {
       content: segment.contentJa,
       highlight: null,
-      tokens: null,
+      // Same normalizer search uses: empty/missing stays null, and a kind the
+      // published schema does not name is dropped rather than invented. The
+      // sentence permalink reads this field; leaving it null made every shared
+      // link render as plain text with no word card.
+      tokens: SegmentResponse.normalizeTokens(segment.tokens ?? undefined),
     },
     textEn: {
       content: segment.contentEn,

@@ -1873,6 +1873,11 @@ export type UserPreferences = {
         EN?: 'show' | 'spoiler' | 'hidden';
         ES?: 'show' | 'spoiler' | 'hidden';
     };
+    /**
+     * Translation languages the reader wants in dictionary content, in display order. This is the global preference; translationVisibilityPreferences is a search-surface override for showing, spoiling, or hiding a language.
+     *
+     */
+    translationLanguages?: Array<'EN' | 'ES'>;
     searchHistory?: {
         /**
          * Whether activity tracking is enabled (default true)
@@ -1890,6 +1895,17 @@ export type UserPreferences = {
         }>;
         key?: string;
         serverAddress: string;
+        /**
+         * Whether exporting a card brings Anki's card browser to the front.
+         *
+         * Absent means true, which is what it did before the setting existed.
+         * Undeclared until now: the settings page has offered the switch all
+         * along, but a profile saved with it off came back from the server
+         * without the field at all, so turning it off appeared to save and then
+         * did nothing.
+         *
+         */
+        openBrowserOnExport?: boolean;
     }>;
     /**
      * Category tab a search opens on when the URL names none. `ALL` -- the value

@@ -876,6 +876,7 @@ export type t_UserPreferences = {
     key?: string | null;
     model?: string | null;
     name: string;
+    openBrowserOnExport?: boolean;
     serverAddress: string;
   }[];
   contentRatingPreferences?: {
@@ -903,6 +904,7 @@ export type t_UserPreferences = {
   searchHistory?: {
     enabled?: boolean;
   };
+  translationLanguages?: ('EN' | 'ES')[];
   translationVisibilityPreferences?: {
     EN?: 'show' | 'spoiler' | 'hidden';
     ES?: 'show' | 'spoiler' | 'hidden';

@@ -37,6 +37,8 @@ interface FavoriteMediaItem {
 }
 
 export interface UserPreferences {
+  /** Dictionary translation languages, in the order a reader wants to see them. */
+  translationLanguages?: Array<'EN' | 'ES'>;
   searchHistory?: { enabled: boolean };
   /**
    * Governs the monthly per-title tally behind familiar-media sorting. Separate
