@@ -87,9 +87,9 @@ const onToggleHidden = async (media: MarkedMedia) => {
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 mb-6 mx-auto rounded-lg shadow-md">
+  <div class="nd-settings-card">
     <div class="flex flex-wrap items-center gap-2 justify-between">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.account.manageMedia') }}</h3>
+      <h3 class="nd-settings-title">{{ t('accountSettings.account.manageMedia') }}</h3>
       <p class="text-sm text-gray-400">
         {{ t('accountSettings.account.favoriteMediaCount', { count: formatNumber(favoriteItems.length), max: formatNumber(MAX_FAVORITE_MEDIA) }) }}
         &middot;
@@ -97,8 +97,6 @@ const onToggleHidden = async (media: MarkedMedia) => {
       </p>
     </div>
     <p class="text-gray-400 text-sm mt-1">{{ t('accountSettings.account.manageMediaDescription') }}</p>
-
-    <div class="border-b pt-4 border-white/10" />
 
     <div class="relative mt-4">
       <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -109,7 +107,7 @@ const onToggleHidden = async (media: MarkedMedia) => {
         type="text"
         data-testid="media-lookup-search-input"
         :placeholder="t('accountSettings.account.mediaLookupPlaceholder')"
-        class="w-full pl-9 pr-10 py-2 bg-neutral-800 text-white border border-white/10 rounded-lg text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+        class="nd-input pl-9 pr-10"
       />
       <button
         v-if="query"

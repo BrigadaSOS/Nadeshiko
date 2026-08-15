@@ -31,7 +31,6 @@ const {
   entries: familiarEntries,
   load: loadFamiliarMedia,
   forget: forgetFamiliar,
-  clear: clearFamiliar,
 } = useFamiliarMedia();
 
 const { data: initialData } = await useAsyncData(
@@ -105,7 +104,6 @@ const clearingHistory = ref(false);
 
 const familiarEnabled = ref(userStore().preferences?.familiarMedia?.enabled !== false);
 const togglingFamiliar = ref(false);
-const clearingFamiliar = ref(false);
 const heatmapLoading = ref(false);
 const heatmapFilter = ref<string | null>(null);
 const heatmapRaw = ref<HeatmapRawData>(initialData.value.heatmapRaw);
@@ -236,25 +234,6 @@ const toggleFamiliarMedia = async () => {
  */
 const forgetFamiliarTitle = async (mediaPublicId: string) => {
   await forgetFamiliar(mediaPublicId);
-};
-
-const clearFamiliarMedia = async () => {
-  if (clearingFamiliar.value) return;
-  if (!confirm(t('accountSettings.activity.confirmClearFamiliar'))) return;
-  clearingFamiliar.value = true;
-  try {
-    // Only the tally. Activity history is a separate store with a separate
-    // button, and neither clear reaches into the other.
-    const forgotten = await clearFamiliar();
-    // `null` is the failure, which has already raised its own toast; 0 is a
-    // successful clear of a tally that was already empty, and still worth
-    // confirming -- the list looked the same before and after either way.
-    if (forgotten !== null) {
-      useToastSuccess(t('accountSettings.activity.clearFamiliarToast', { count: forgotten }));
-    }
-  } finally {
-    clearingFamiliar.value = false;
-  }
 };
 
 const clearHistory = async () => {
@@ -390,12 +369,10 @@ onMounted(async () => {
     :clearing="clearingHistory"
     :familiar-enabled="familiarEnabled"
     :toggling-familiar="togglingFamiliar"
-    :clearing-familiar="clearingFamiliar"
     :familiar-entries="familiarEntries"
     @toggle-tracking="toggleTracking"
     @clear-history="clearHistory"
     @toggle-familiar="toggleFamiliarMedia"
-    @clear-familiar="clearFamiliarMedia"
     @forget-familiar="forgetFamiliarTitle"
   />
 </template>

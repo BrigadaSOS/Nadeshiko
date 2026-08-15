@@ -15,10 +15,10 @@ const { formatNumber } = useFormat();
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md border border-white/10">
+  <div class="nd-settings-card">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.overview.title') }}</h3>
+        <h3 class="nd-settings-title">{{ t('accountSettings.activity.overview.title') }}</h3>
         <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.overview.description') }}</p>
       </div>
       <div class="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5">
