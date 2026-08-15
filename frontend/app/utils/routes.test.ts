@@ -7,6 +7,8 @@ import {
   canonicalPath,
   decodeSearchQuery,
   isJunkSearchQuery,
+  overEscapedSearchQuery,
+  queryAndHash,
   mediaBrowsePath,
   searchScopeQuery,
   splitLocalePrefix,
@@ -89,6 +91,110 @@ describe('isJunkSearchQuery', () => {
   it('rejects a query the backend would reject anyway', () => {
     expect(isJunkSearchQuery('あ'.repeat(SEARCH_QUERY_MAX_LENGTH))).toBe(false);
     expect(isJunkSearchQuery('あ'.repeat(SEARCH_QUERY_MAX_LENGTH + 1))).toBe(true);
+  });
+});
+
+describe('queryAndHash', () => {
+  it('carries a query across', () => {
+    expect(queryAndHash('/en/search/x?media=abc&episode=3')).toBe('?media=abc&episode=3');
+  });
+
+  it('carries a hash with no query', () => {
+    expect(queryAndHash('/en/media#top')).toBe('#top');
+  });
+
+  it('carries both, in order', () => {
+    expect(queryAndHash('/en/search/x?sort=new#results')).toBe('?sort=new#results');
+  });
+
+  it('is empty when there is neither', () => {
+    expect(queryAndHash('/en/search/x')).toBe('');
+  });
+
+  it('does not re-encode what it carries', () => {
+    // Rebuilding this from `route.query` would re-encode it, which is the exact
+    // family of bugs the switcher is being moved off the i18n module to avoid.
+    expect(queryAndHash('/en/search/x?q=%E6%95%B0%E5%8D%81')).toBe('?q=%E6%95%B0%E5%8D%81');
+  });
+});
+
+describe('locale switch path composition', () => {
+  // Mirrors `useLocaleSwitchPath`, which cannot run outside a Nuxt app.
+  const switchTo = (routePath: string, queryParam: string | undefined, fullPath: string, locale: string) => {
+    const path = canonicalPath(routePath, queryParam);
+    const { localizedPath } = splitLocalePrefix(path);
+    return `${withLocalePrefix(`/${locale}`, localizedPath)}${queryAndHash(fullPath)}`;
+  };
+
+  it('does not deepen the encoding of a search page', () => {
+    // The bug: `route.path` is a layer deeper than the requested URL, so the
+    // module's switcher advertised `%2525E8` from a page reached as `%25E8`.
+    expect(switchTo('/en/search/%2525E8', '%25E8', '/en/search/%2525E8', 'es')).toBe('/es/search/%25E8');
+  });
+
+  it('is a fixed point on an ordinary search', () => {
+    const raw = encodeURIComponent('数十');
+    expect(switchTo(`/en/search/${raw}`, raw, `/en/search/${raw}`, 'en')).toBe(`/en/search/${raw}`);
+  });
+
+  it('keeps the reader standing where they were', () => {
+    // The whole query, not the canonical subset: `sort` and `cursor` are dropped
+    // from a canonical URL on purpose, but a reader switching language mid-search
+    // must not be thrown back to the first page of a different ordering.
+    expect(switchTo('/en/search/x', 'x', '/en/search/x?media=abc&sort=new&cursor=99', 'ja')).toBe(
+      '/ja/search/x?media=abc&sort=new&cursor=99',
+    );
+  });
+
+  it('switches locale on an ordinary page', () => {
+    expect(switchTo('/en/media', undefined, '/en/media', 'es')).toBe('/es/media');
+  });
+});
+
+describe('overEscapedSearchQuery', () => {
+  it('leaves an ordinarily encoded query alone', () => {
+    expect(overEscapedSearchQuery('%E8%AD%B2')).toBeNull();
+    expect(overEscapedSearchQuery('%E6%95%B0%E5%8D%81')).toBeNull();
+    expect(overEscapedSearchQuery('hello')).toBeNull();
+  });
+
+  it('unwraps the exact shape production was serving', () => {
+    // Fetched live on 2026-08-16: this returned 200 and emitted three locale
+    // links one layer deeper, which is what kept the family breeding.
+    expect(overEscapedSearchQuery('%25E6%2595%25B0%25E5%258D%2581')).toBe('数十');
+  });
+
+  it('unwraps however many layers have accumulated', () => {
+    // The URL that surfaced the original bug had 68 wrapped around 譲渡.
+    let raw = encodeURIComponent('譲渡');
+    for (let i = 0; i < 20; i += 1) raw = encodeURIComponent(raw);
+
+    expect(overEscapedSearchQuery(raw)).toBe('譲渡');
+  });
+
+  it('does not mistake a literal percent for over-escaping', () => {
+    // `100%25` decodes to `100%`, and decoding that throws -- one round, so it
+    // is an ordinary search for "100%" and must be left alone.
+    expect(overEscapedSearchQuery('100%25')).toBeNull();
+    // `%25E6` decodes to `%E6`, an incomplete UTF-8 sequence that throws.
+    expect(overEscapedSearchQuery('%25E6')).toBeNull();
+  });
+
+  it('terminates on input designed to keep unwrapping', () => {
+    let raw = 'x';
+    for (let i = 0; i < 200; i += 1) raw = encodeURIComponent(raw);
+
+    expect(() => overEscapedSearchQuery(raw)).not.toThrow();
+  });
+
+  it('reports the fully decoded text even when it is junk, so one hop is enough', () => {
+    // A path-shaped query buried under layers: the middleware asks the junk
+    // predicate about THIS value rather than the raw segment, and sends it
+    // straight to /search instead of collapsing the escaping first and only
+    // discovering the `/` on the next request.
+    const buried = encodeURIComponent(encodeURIComponent(encodeURIComponent('/en/search/x')));
+
+    expect(overEscapedSearchQuery(buried)).toBe('/en/search/x');
   });
 });
 
