@@ -17,7 +17,7 @@ const statusLabel = (status: string) => t(`reports.statuses.${status}`);
 </script>
 
 <template>
-  <div class="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg border border-neutral-600 bg-neutral-800/80">
+  <div class="flex items-center gap-3 mb-3 px-4 py-2.5 rounded-lg border border-hairline bg-control">
     <span class="text-sm text-white font-medium">{{ t('reports.admin.selectedGroups', { count: formatNumber(count) }) }}</span>
     <div class="flex gap-1.5 ml-2">
       <button :disabled="isUpdating" class="px-2.5 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50 disabled:opacity-50" @click="emit('update', 'OPEN')">{{ statusLabel('OPEN') }}</button>
