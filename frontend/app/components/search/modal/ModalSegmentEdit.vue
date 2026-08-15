@@ -254,7 +254,7 @@ const submitEdit = async () => {
         <div class="flex items-center gap-1">
           <button
             type="button"
-            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400"
             :title="t('modalSegmentEdit.historyToggle')"
             @click="toggleHistory"
           >
@@ -265,7 +265,7 @@ const submitEdit = async () => {
           </button>
           <button
             type="button"
-            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400"
             @click="closeModal"
           >
             <span class="sr-only">{{ t('modalSegmentEdit.close') }}</span>
@@ -337,7 +337,7 @@ const submitEdit = async () => {
             </button>
             <button
               type="button"
-              class="py-1.5 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+              class="py-1.5 px-3 text-sm font-medium rounded-lg border border-hairline text-ink-muted hover:bg-control-hover"
               @click="showDeleteEpisodeConfirm = false"
             >
               {{ t('modalSegmentEdit.cancel') }}
@@ -349,7 +349,7 @@ const submitEdit = async () => {
         <div class="flex items-center gap-x-2 ml-auto">
           <button
             type="button"
-            class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+            class="py-2 px-3 text-sm font-medium rounded-lg border border-hairline text-ink-muted hover:bg-control-hover"
             @click="closeModal"
           >
             {{ t('modalSegmentEdit.cancel') }}

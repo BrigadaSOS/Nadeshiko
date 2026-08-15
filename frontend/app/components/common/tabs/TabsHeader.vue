@@ -1,7 +1,7 @@
 <template>
     <div id="tab-headers" class="w-full overflow-x-auto overflow-y-hidden scrollbar-hide">
       <ul class="tab-titles m-0 p-0 flex list-none flex-nowrap w-full"
-          :class="showBorder ? 'border-b-2 border-[#dddddd21]' : ''">
+          :class="showBorder ? 'border-b-2 border-b-line-subtle' : ''">
         <slot></slot>
       </ul>
     </div>

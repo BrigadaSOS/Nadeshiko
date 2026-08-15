@@ -19,6 +19,8 @@ const props = withDefaults(
     panelStyle?: StyleValue;
     /** Transition name; `nd-drawer` slides the panel in from the end edge. */
     transition?: string;
+    /** Animate the first render. Callers restoring an already-open panel can opt out. */
+    appear?: boolean;
     label?: string;
     labelledby?: string;
     closeOnBackdrop?: boolean;
@@ -30,6 +32,7 @@ const props = withDefaults(
     panelClass: '',
     panelStyle: undefined,
     transition: 'nd-modal',
+    appear: true,
     label: undefined,
     labelledby: undefined,
     closeOnBackdrop: true,
@@ -56,7 +59,7 @@ const FOCUSABLE_SELECTOR = [
 const modalId = useId();
 const dialogRef = ref<HTMLElement | null>(null);
 const { registerModal, unregisterModal, isTopModal } = useModalState();
-const { openDropdownId } = useDropdownState();
+const { openDropdownId, isTokenTooltipOpen, dismissAllOverlays } = useDropdownState();
 
 let previouslyFocused: HTMLElement | null = null;
 
@@ -78,8 +81,8 @@ const focusInitial = () => {
 const onKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     if (!props.closeOnEscape || !isTopModal(modalId)) return;
-    // An open dropdown is "inside" this modal — let Escape dismiss that first.
-    if (openDropdownId.value) return;
+    // A dropdown or word card is "inside" this modal — let Escape dismiss that first.
+    if (openDropdownId.value || isTokenTooltipOpen.value) return;
     event.preventDefault();
     event.stopPropagation();
     emit('close');
@@ -111,6 +114,11 @@ const onKeydown = (event: KeyboardEvent) => {
 
 const activate = async () => {
   previouslyFocused = (document.activeElement as HTMLElement | null) ?? null;
+  // A leftover menu or word card would sit above this dialog (the card is
+  // z-70, most modals are z-60) and keep taking clicks. Keyboard openers
+  // (`?`, A, C) never produce the outside click that would have dismissed
+  // them, so the modal has to do it.
+  dismissAllOverlays();
   registerModal(modalId);
   document.addEventListener('keydown', onKeydown, true);
   await nextTick();
@@ -196,7 +204,7 @@ const isDrawer = computed(() => props.transition === 'nd-drawer');
          paint. Without appear, Vue skips enter and the panel pops in. -->
     <template v-if="isDrawer">
       <div class="contents" :class="overlayClass">
-        <Transition name="nd-drawer-backdrop" appear>
+        <Transition name="nd-drawer-backdrop" :appear="appear">
           <div
             v-if="open"
             :data-testid="backdropTestId"
@@ -205,7 +213,7 @@ const isDrawer = computed(() => props.transition === 'nd-drawer');
             @click="onBackdropClick"
           />
         </Transition>
-        <Transition name="nd-drawer" appear @after-leave="onAfterLeave">
+        <Transition name="nd-drawer" :appear="appear" @after-leave="onAfterLeave">
           <div
             v-if="open"
             ref="dialogRef"
@@ -224,7 +232,7 @@ const isDrawer = computed(() => props.transition === 'nd-drawer');
         </Transition>
       </div>
     </template>
-    <Transition v-else :name="transition" appear @after-leave="onAfterLeave">
+    <Transition v-else :name="transition" :appear="appear" @after-leave="onAfterLeave">
       <div
         v-if="open"
         :data-testid="backdropTestId"

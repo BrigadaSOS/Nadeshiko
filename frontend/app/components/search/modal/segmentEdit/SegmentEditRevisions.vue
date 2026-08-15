@@ -33,7 +33,7 @@ const { formatRelativeTime } = useFormat();
         class="w-full text-left rounded-lg border p-2.5 text-sm transition-colors"
         :class="activeSnapshotNumber === null
           ? 'border-blue-500 bg-blue-900/20 text-blue-300'
-          : 'border-neutral-700 bg-neutral-800/50 text-neutral-400 hover:border-neutral-500'"
+          : 'border-hairline bg-control text-ink-muted hover:border-line-hover'"
         @click="emit('restore-current')"
       >
         <span class="font-medium">{{ t('modalSegmentEdit.current') }}</span>
@@ -47,7 +47,7 @@ const { formatRelativeTime } = useFormat();
         class="w-full text-left rounded-lg border p-2.5 text-sm transition-colors"
         :class="activeSnapshotNumber === rev.revisionNumber
           ? 'border-blue-500 bg-blue-900/20 text-blue-300'
-          : 'border-neutral-700 bg-neutral-800/50 text-neutral-400 hover:border-neutral-500'"
+          : 'border-hairline bg-control text-ink-muted hover:border-line-hover'"
         @click="emit('select-revision', rev)"
       >
         <div class="font-medium">{{ t('modalSegmentEdit.snapshot') }} {{ rev.revisionNumber }}</div>

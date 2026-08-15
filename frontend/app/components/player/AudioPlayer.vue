@@ -26,7 +26,6 @@ const { mediaName } = useMediaName();
 const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
   storeToRefs(playerStore);
 
-const { isAnyModalOpen } = useModalState();
 const { scrollBehavior } = useMotionPreference();
 
 const progress = ref(0);
@@ -71,14 +70,13 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       playerStore.toggleAutoplay();
       break;
     case 'Escape': {
-      if (isAnyModalOpen.value) break;
-      if (isImmersive.value) {
-        event.stopPropagation();
-        playerStore.toggleImmersive();
-      } else {
-        event.stopPropagation();
-        playerStore.hidePlayer();
-      }
+      // Before the modal: a player open over Context is a layer on top of
+      // the dialog, so the first Escape dismisses it and the next one
+      // closes the dialog. Immersive is a layer on the player.
+      event.preventDefault();
+      event.stopPropagation();
+      if (isImmersive.value) playerStore.toggleImmersive();
+      else playerStore.hidePlayer();
       break;
     }
   }
