@@ -23,8 +23,8 @@ defineProps<{
   showSeeAll?: boolean;
   /**
    * Whether the reader is actually here. The bar owns this and both halves wear
-   * it together -- the menu is the rest of that surface, so it cannot be lit
-   * while the bar is not. See the input's own accent class.
+   * the same open border -- the menu is the rest of that surface, so it cannot
+   * be lit while the bar is not. See the input's own accent class.
    */
   accented?: boolean;
 }>();
@@ -49,7 +49,7 @@ const localePath = useLocalePath();
     `-mt-px` puts the menu's background over the bar's bottom border instead of
     stacking two 1px lines into a 2px one, and it has no top border of its own:
     a line across the middle of what should read as one surface is the seam we
-    are hiding. The three sides it does draw take the bar's focused border, since
+    are hiding. The three sides it does draw take the bar's open border, since
     a grey half below a light half is that seam again. The top corners are square
     -- they round only while it is detached, in the enter/leave classes, so the
     fusing is animated rather than switched.
@@ -67,8 +67,8 @@ const localePath = useLocalePath();
     uniform `rgb(47,47,47)`.
   -->
   <div
-    class="absolute inset-x-0 top-full z-40 -mt-px overflow-hidden rounded-b-lg border border-t-0 border-gray-200 bg-white shadow-[0_20px_24px_-8px_rgba(0,0,0,0.45)] transition-colors duration-200 ease-out motion-reduce:transition-none dark:bg-input-background dark:shadow-[0_20px_24px_-8px_rgba(0,0,0,0.6)]"
-    :class="accented ? 'dark:border-input-focus-ring' : 'dark:border-neutral-600'"
+    class="absolute inset-x-0 top-full z-40 -mt-px overflow-hidden rounded-b-lg border border-t-0 bg-input-background shadow-[0_20px_24px_-8px_rgba(0,0,0,0.6)] transition-colors duration-200 ease-out motion-reduce:transition-none"
+    :class="accented ? 'border-open' : 'border-hairline'"
     data-testid="search-recents"
     @mousedown.prevent
   >
@@ -130,7 +130,7 @@ const localePath = useLocalePath();
         <span
           v-if="item.media"
           data-testid="search-recents-media"
-          class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:border-neutral-600 dark:bg-white/10 dark:text-neutral-400"
+          class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
         >
           {{ item.media.name || t('searchRecents.inOneTitle') }}
         </span>

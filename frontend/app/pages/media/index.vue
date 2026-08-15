@@ -91,6 +91,19 @@ const currentView = computed(() => normalizeView(route.query.view));
 const searchQuery = computed(() => normalizeQuery(route.query.query));
 const filterCategory = computed(() => normalizeCategory(route.query.category));
 
+const filterCategoryLabel = computed(() => {
+  switch (filterCategory.value) {
+    case 'ANIME':
+      return t('searchContainer.categoryAnime');
+    case 'JDRAMA':
+      return t('searchContainer.categoryLiveaction');
+    case 'YOUTUBE':
+      return t('searchContainer.categoryYoutube');
+    default:
+      return t('searchContainer.categoryAll');
+  }
+});
+
 type MediaBrowseParams = {
   view?: unknown;
   query?: unknown;
@@ -278,7 +291,7 @@ watch([searchQuery, filterCategory], () => {
 </script>
 
 <template>
-  <div class="nd-page min-h-screen px-4 md:px-0 py-6">
+  <div class="nd-page min-h-screen px-4 md:px-0 pb-6">
       <div class="inline-flex justify-between items-center w-full mb-3">
         <h1 class="text-[2.5rem] font-extrabold dark:text-white pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">
           {{ $t('animeList.fullListTitle') }}
@@ -287,14 +300,14 @@ watch([searchQuery, filterCategory], () => {
       <input
         v-model="query"
         data-testid="media-search-input"
-        class="block p-2.5 mb-4 w-full text-sm text-gray-900 rounded-lg border border-gray-300 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white"
+        class="nd-input mb-4 h-12 text-base"
         :placeholder="$t('searchpage.main.labels.searchmain')"
       />
       <div class="flex items-center mb-4">
         <SearchDropdownContainer class="" dropdownId="nd-dropdown-with-header">
           <template #default>
             <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
-              {{ $t('searchpage.main.labels.searchbar').replace('...', '') }}
+              {{ filterCategoryLabel }}
             </SearchDropdownMainButton>
           </template>
           <template #content>
@@ -319,7 +332,7 @@ watch([searchQuery, filterCategory], () => {
                 @click="handleFilterChange('YOUTUBE')"
                 :selected="filterCategory === 'YOUTUBE'"
               />
-              <div v-if="hasHiddenContent" class="my-1 border-t border-white/10"></div>
+              <div v-if="hasHiddenContent" class="nd-menu-divider"></div>
               <SearchDropdownItem
                 v-if="hasHiddenContent"
                 :text="showHidden ? $t('mediaBrowse.hideHiddenMedia') : $t('mediaBrowse.showHiddenMedia')"
@@ -429,7 +442,7 @@ watch([searchQuery, filterCategory], () => {
           class="w-full relative mb-4"
         >
           <div
-            class="relative flex flex-col z-20 items-center sm:items-stretch sm:flex-row rounded-lg dark:bg-card-background transition-all dark:border-white/10 border"
+            class="relative flex flex-col z-20 items-center sm:items-stretch sm:flex-row rounded-lg bg-card-background transition-all border border-hairline"
           >
             <div class="absolute inset-0">
               <img
@@ -497,12 +510,32 @@ watch([searchQuery, filterCategory], () => {
 
                   <a
                     v-if="mediaInfo.externalIds?.anilist"
-                    :href="`https://anilist.co/anime/${mediaInfo.externalIds.anilist}`"
+                    :href="anilistAnimeUrl(mediaInfo.externalIds.anilist)"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-input-focus-ring dark:border-white dark:placeholder-gray-400 dark:text-white"
                   >
                     <div>{{ $t('animeList.anilistButton') }}</div>
+                  </a>
+
+                  <a
+                    v-if="mediaInfo.externalIds?.tmdb"
+                    :href="tmdbUrl(mediaInfo.externalIds.tmdb, mediaInfo.airingFormat)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-input-focus-ring dark:border-white dark:placeholder-gray-400 dark:text-white"
+                  >
+                    <div>{{ $t('animeList.tmdbButton') }}</div>
+                  </a>
+
+                  <a
+                    v-if="mediaInfo.externalIds?.imdb"
+                    :href="imdbTitleUrl(mediaInfo.externalIds.imdb)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg focus:border-input-focus-ring dark:border-white dark:placeholder-gray-400 dark:text-white"
+                  >
+                    <div>{{ $t('animeList.imdbButton') }}</div>
                   </a>
 
                   <a

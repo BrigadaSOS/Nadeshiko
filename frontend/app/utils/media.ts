@@ -351,6 +351,51 @@ export function youtubeChannelUrl(channelId: string): string {
   return `https://www.youtube.com/channel/${channelId}`;
 }
 
+export function anilistAnimeUrl(anilistId: string): string {
+  return `https://anilist.co/anime/${anilistId}`;
+}
+
+export function imdbTitleUrl(imdbId: string): string {
+  return `https://www.imdb.com/title/${imdbId}`;
+}
+
+/**
+ * TMDB splits movies and series onto different paths. `MOVIE` is the only
+ * format that lives under `/movie/`; everything else we catalog (TV, OVA,
+ * ONA, specials, J-drama) is a series page.
+ */
+export function tmdbUrl(tmdbId: string, airingFormat: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE'): string {
+  return `https://www.themoviedb.org/${airingFormat === 'MOVIE' ? 'movie' : 'tv'}/${tmdbId}`;
+}
+
+type CatalogExternalIds = {
+  anilist?: string | null;
+  imdb?: string | null;
+  tmdb?: string | null;
+  youtube?: string | null;
+};
+
+/**
+ * Catalog pages that identify the same work, for schema.org `sameAs`.
+ *
+ * TMDB needs `airingFormat` so the path is `/movie/` or `/tv/` rather than a
+ * guess. Without it the id is skipped: a wrong URL is worse than no URL.
+ */
+export function mediaSameAsUrls(
+  media:
+    | { externalIds?: CatalogExternalIds | null; airingFormat?: 'TV' | 'MOVIE' | 'OVA' | 'ONA' | 'SPECIAL' | 'YOUTUBE' }
+    | null
+    | undefined,
+): string[] {
+  const ids = media?.externalIds;
+  const urls: string[] = [];
+  if (ids?.anilist) urls.push(anilistAnimeUrl(ids.anilist));
+  if (ids?.imdb) urls.push(imdbTitleUrl(ids.imdb));
+  if (ids?.tmdb && media?.airingFormat) urls.push(tmdbUrl(ids.tmdb, media.airingFormat));
+  if (ids?.youtube) urls.push(youtubeChannelUrl(ids.youtube));
+  return urls;
+}
+
 const stripHTMLTags = (html: string): string => {
   const div = document.createElement('div');
   div.innerHTML = html;

@@ -53,7 +53,6 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
 <template>
     <div class="mx-auto">
             <div class="relative text-white">
-                <div class="pt-3">
                     <div class="nd-page px-4 md:px-0">
                         <LayoutSystemAnnouncementBanner />
                         <SearchBaseInputSegment />
@@ -100,7 +99,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                         </ul>
                                     </div>
 
-                                    <div class="border-b pt-2 border-white/10" />
+                                    <div class="border-b pt-2 border-b-line-subtle" />
 
                                     <div class="my-4 flex text-sm font-medium">
                                         <div class="mr-4">
@@ -171,7 +170,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                         </div>
                                     </div>
 
-                                    <div class="mb-5 border-b border-white/10" />
+                                    <div class="mb-5 border-b border-b-line-subtle" />
 
                                     <!-- Wraps: the cards are `w-full` below `sm` and thirds above it,
                                          which only stacks if the row is allowed to break. Without it
@@ -208,7 +207,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="mt-5 border-b border-white/10" />
+                                    <div class="mt-5 border-b border-b-line-subtle" />
                                 </div>
 
                                 <div class="flex-grow xl:max-w-[60rem]">
@@ -336,7 +335,6 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                             </div>
                         </div>
                     </div>
-                </div>
                 <div class="pb-8 nd-page px-4 md:px-0">
                     <div class="rounded-lg p-6 dark:text-white/80 dark:bg-card-background relative">
                         <section class="py-2">

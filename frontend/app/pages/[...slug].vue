@@ -148,10 +148,7 @@ useHead(() => ({
 
 <template>
   <div class="min-h-screen">
-      <!-- Blog posts get the narrow reading column; the standalone pages
-           (about, privacy, terms, dmca) run at the same width as the rest of
-           the site so they do not read as a different template. -->
-      <div v-if="data" class="px-4 md:px-0 py-6" :class="isBlogPost ? 'nd-page-prose' : 'nd-page'">
+      <div v-if="data" class="nd-page px-4 md:px-0 pb-6">
         <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost, 'is-changelog': isChangelog }">
           <template v-if="isBlogPost">
             <h1 class="blog-title" :lang="contentLang">{{ title }}</h1>

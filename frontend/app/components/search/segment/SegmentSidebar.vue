@@ -3,9 +3,29 @@ import { mdiArrowUp } from '@mdi/js';
 import { usePlayerStore } from '~/stores/player';
 import { storeToRefs } from 'pinia';
 import type { SearchSidebarData } from '~/types/search';
+import { splitLocalePrefix } from '~/utils/routes';
 
 const showScrollButton = ref(false);
-const isFilterDrawerOpen = ref(false);
+// Survives the remount when a browsed title (`/media/<slug>`) goes back to
+// `/search`: that hop is the same list with a wider filter, and a drawer the
+// reader was working in has to still be there when they land. A local ref
+// reset on every page, so back looked like it had dismissed it.
+const isFilterDrawerOpen = useState('nd-search-filter-drawer-open', () => false);
+// Set immediately before a `/search` ↔ `/media/<slug>` remount. The drawer
+// stays visible across that hop, so animating its newly mounted shell would
+// make a continuous panel look as though it had just been opened again.
+const skipFilterDrawerEnter = useState('nd-search-filter-drawer-skip-enter', () => false);
+
+const isSearchFilterRoute = (path: string) => {
+  const { localizedPath } = splitLocalePrefix(path);
+  return localizedPath === '/search' || localizedPath.startsWith('/search/') || /^\/media\/[^/]+/.test(localizedPath);
+};
+
+// Drop the latch when leaving this list entirely, so a later visit to search
+// does not reopen a drawer that was last used on a different page.
+onBeforeRouteLeave((to) => {
+  if (!isSearchFilterRoute(to.path)) isFilterDrawerOpen.value = false;
+});
 
 const playerStore = usePlayerStore();
 const { showPlayer } = storeToRefs(playerStore);
@@ -48,16 +68,21 @@ watch(showFilterDrawer, (available) => {
   if (!available) isFilterDrawerOpen.value = false;
 });
 
+const { scrollBehavior } = useMotionPreference();
+
 const handleScroll = () => {
   showScrollButton.value = window.scrollY > 400;
 };
 
 const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo({ top: 0, behavior: scrollBehavior() });
 };
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
+  // `appear` is read only on the modal's first render. Clearing the hand-off
+  // flag now makes later genuine opens animate normally.
+  skipFilterDrawerEnter.value = false;
 });
 
 onUnmounted(() => {
@@ -67,10 +92,10 @@ onUnmounted(() => {
 <template>
 
 <div 
-    class="fixed right-6 z-50 group transition-all duration-300 ease-in-out"
+    class="fixed right-[calc(1.5rem+var(--scrollbar-gutter))] z-50 group transition-all duration-300 ease-in-out"
     :class="showPlayer ? 'bottom-40 md:bottom-24' : 'bottom-6'"
   >    <Transition>
-      <button type="button" v-if="showScrollButton" @click="scrollToTop"
+      <button type="button" v-if="showScrollButton" data-testid="scroll-to-top" @click="scrollToTop"
         class="flex items-center justify-center outline-none mb-2  bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-header-background focus:ring-4 focus:outline-none">
         <UiBaseIcon :path="mdiArrowUp" w="5" h="5" size="20" fill="white" strokewidth="1" stroke="white" />
       </button>
@@ -96,17 +121,18 @@ onUnmounted(() => {
     id="nd-offcanvas-right"
     data-testid="filter-drawer"
     :open="isFilterDrawerOpen"
+    :appear="!skipFilterDrawerEnter"
     transition="nd-drawer"
     z-index-class="z-[80]"
-    panel-class="h-full max-w-sm w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700 flex flex-col overflow-hidden"
+    panel-class="h-full max-w-sm w-full bg-surface border-s border-hairline flex flex-col overflow-hidden"
     labelledby="nd-offcanvas-right-label"
     @close="isFilterDrawerOpen = false"
   >
-  <div class="flex justify-between items-center py-3 px-4 border-b dark:border-neutral-700 shrink-0">
-    <h3 id="nd-offcanvas-right-label" class="font-bold text-gray-800 dark:text-white">
+  <div class="flex justify-between items-center py-3 px-4 border-b border-hairline shrink-0">
+    <h3 id="nd-offcanvas-right-label" class="font-bold text-ink">
       {{ $t('segmentSidebar.filtersTitle') }}
     </h3>
-    <button type="button" class="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-none focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-neutral-400 dark:focus:bg-neutral-600" @click="isFilterDrawerOpen = false">
+    <button type="button" class="size-8 inline-flex justify-center items-center rounded-full bg-surface-hover text-ink-muted hover:text-ink hover:bg-lift focus:outline-none" @click="isFilterDrawerOpen = false">
       <span class="sr-only">{{ $t('segmentSidebar.close') }}</span>
       <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 6 6 18"></path>
@@ -121,19 +147,22 @@ onUnmounted(() => {
        sit here was `hidden lg:block` inside a drawer that only opens below
        `2xl`, which left every phone with a blank panel instead. -->
   <div class="flex-1 min-h-0 flex flex-col">
-    <div class="p-2 flex-1 min-h-0 flex flex-col gap-2">
-        <!-- Sorting reorders the list this drawer is sitting on top of, so it
-             closes for the same reason picking a title does. -->
-        <SearchSegmentFilterSortContent @sort-selected="isFilterDrawerOpen = false" />
-        <!-- Picking a title or an episode is the whole reason the drawer was
-             opened: close it so the reader lands back on the results it just
-             filtered, instead of on the panel that filtered them. -->
+        <!-- Keep the drawer open while picking titles and episodes: it is a
+             drill-down control, and staying here lets the reader refine or
+             switch scope without reopening it. Sort still closes after a pick.
+             Flush: the drawer is already framed, so a padded inner card left a
+             gutter down both sides. -->
         <SearchSegmentFilterContent
+          flush
           :searchData="searchData"
           :categorySelected="categorySelected"
           :activeMediaId="activeMediaId"
-          @applied="isFilterDrawerOpen = false" />
-      </div>
+          @applied="isFilterDrawerOpen = false"
+          @preserving-drawer="skipFilterDrawerEnter = true">
+          <template #before>
+            <SearchSegmentFilterSortContent @sort-selected="isFilterDrawerOpen = false" />
+          </template>
+        </SearchSegmentFilterContent>
   </div>
   </CommonBaseModal>
 

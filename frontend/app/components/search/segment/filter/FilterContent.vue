@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { useTimeoutFn } from '@vueuse/core';
 import { mdiChevronLeft } from '@mdi/js';
-import { useI18n } from 'vue-i18n';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
 import { compareMediaRows } from '~/utils/mediaFilterSort';
 import type { ResolvedMediaStats, SearchSidebarData } from '~/types/search';
 
-/** One row of the media filter list; the leading "all" row carries a null id. */
+/** One title in the media filter list. */
 type MediaFilterRow = {
-  mediaPublicId: string | null;
-  /** Absent on the leading "all" row, and on any payload predating slug support. */
+  mediaPublicId: string;
+  /** Absent on any payload predating slug support. */
   slug?: string | null;
   displayName: string;
   displayNameLower: string;
@@ -19,10 +18,9 @@ type MediaFilterRow = {
   nameRomaji?: string;
 };
 
-const { t } = useI18n();
 const route = useRoute();
 const { setQuery } = useQuerySync();
-const { selectMedia } = useMediaScope();
+const { isMediaPage, selectMedia } = useMediaScope();
 const { mediaName: getMediaName } = useMediaName();
 // Only the ordering is needed here; the star itself owns toggling.
 const { favoriteMediaIds } = useFavoriteMedia();
@@ -30,6 +28,8 @@ const { inferredRank } = useFamiliarMedia();
 const props = defineProps<{
   searchData?: SearchSidebarData | null;
   categorySelected?: string | null;
+  /** Passed through to the panel chrome; see FilterPanelShell. */
+  flush?: boolean;
   /**
    * The title currently in scope, when the ROUTE names it rather than `?media=`
    * -- i.e. on `/media/<slug>`. Without it this panel reads the query string,
@@ -38,19 +38,15 @@ const props = defineProps<{
    */
   activeMediaId?: string | null;
 }>();
-// Raised when a row is picked to filter by, so the mobile drawer -- which
-// covers the very list the pick just changed -- can get out of the way. Backing
-// out of the episode level and Clear stay silent: those are the reader working
-// the panel, not asking to see results.
-const emit = defineEmits<{ applied: [] }>();
+// Raised only for an episode pick: that is the final narrowing action, so the
+// mobile drawer gets out of the way and reveals the results. Title picks stay
+// open to support browsing through a title's episodes.
+const emit = defineEmits<{ applied: []; preservingDrawer: [] }>();
 const mediaStatistics = ref<ResolvedMediaStats[]>([]);
 const querySearchMedia = ref('');
 const debouncedQuerySearchMedia = ref('');
 const categorySelected = ref<string>(props.categorySelected ?? 'all');
 const categoryApiMapping = CATEGORY_API_MAPPING;
-
-// Cache translated strings outside computed to avoid repeated lookups
-const allLabel = computed(() => t('searchpage.main.labels.all'));
 
 // Each keystroke restarts the timer, so the list only re-filters 300ms after
 // the reader stops typing. `useTimeoutFn` cancels it on unmount for us.
@@ -101,9 +97,6 @@ const normalizedStatistics = computed(() => {
 
 const filteredMedia = computed<MediaFilterRow[]>(() => {
   const selectedCategory = categoryApiMapping[categorySelected.value];
-  const totalCount = normalizedStatistics.value
-    .filter((item) => categorySelected.value === 'all' || item.category === selectedCategory)
-    .reduce((a, b) => a + (b.matchCount ?? 0), 0);
 
   const filteredItems = normalizedStatistics.value.filter((item) => {
     const categoryFilter = categorySelected.value === 'all' || item.category === selectedCategory;
@@ -114,25 +107,11 @@ const filteredMedia = computed<MediaFilterRow[]>(() => {
     return categoryFilter && (nameFilterEnglish || nameFilterJapanese || nameFilterRomaji);
   });
 
-  const allOption = {
-    mediaPublicId: null,
-    displayName: allLabel.value,
-    displayNameLower: allLabel.value.toLowerCase(),
-    matchCount: totalCount,
-  };
-
-  if (filteredItems.length === 0) {
-    return [allOption];
-  }
-
   // Starred first, then what the reader studies, then the rest alphabetically.
   // With neither -- a signed-out reader, or one who has starred nothing and has
   // no tally -- this is byte-for-byte the alphabetical order the filter has
   // always had.
-  const sortedItems = filteredItems.sort((a, b) => compareMediaRows(a, b, favoriteMediaIds.value, inferredRank.value));
-
-  // Prepended after the sort so "All" is index 0 whatever the tiers did.
-  return [allOption, ...sortedItems];
+  return filteredItems.sort((a, b) => compareMediaRows(a, b, favoriteMediaIds.value, inferredRank.value));
 });
 
 const selectedMediaId = computed(() => {
@@ -163,15 +142,28 @@ const episodesList = computed(() => {
     .sort((a, b) => a.episode - b.episode);
 });
 
-const filterAnime = (mediaPublicId: string | null, _animeName: string, slug?: string | null) => {
+const filterAnime = (mediaPublicId: string, _animeName: string, slug?: string | null) => {
+  // A second click on the title already in scope drops it, same as a second
+  // click on an episode. Movies never drill in, so this is how they leave.
+  if (mediaPublicId === selectedMediaId.value) {
+    selectMedia(null);
+    return;
+  }
+  // A bare search promotes a selected title into `/media/<slug>`. The drawer
+  // remains open across that page remount, so its replacement must not replay
+  // the enter animation.
+  if (!route.params.query && slug) emit('preservingDrawer');
   // Where this lands depends on whether a word is being searched -- see
   // `useMediaScope`, which also owns dropping the episode along with the title.
   selectMedia(mediaPublicId, slug);
-  emit('applied');
 };
 
 /** Back out of the episode level: drops the title and the episode under it. */
 const backToTitles = () => {
+  // The drawer remains open across this route change. Tell its new instance
+  // that it is being restored rather than newly opened, so it does not slide
+  // in a second time.
+  if (isMediaPage.value) emit('preservingDrawer');
   selectMedia(null);
 };
 
@@ -179,12 +171,6 @@ const toggleEpisode = (episode: number) => {
   const next = selectedEpisode.value === episode ? null : episode;
   setQuery({ episode: next === null ? null : String(next) }, { scroll: true });
   emit('applied');
-};
-
-// Only the title level offers Clear; the episode level clears by backing out,
-// or by clicking the selected episode again.
-const clearFilters = () => {
-  selectMedia(null);
 };
 
 /**
@@ -233,9 +219,11 @@ const applyPendingFocus = () => {
 <template>
     <SearchSegmentFilterPanelShell
         ref="panel"
-        :title="level === 'episodes' ? $t('episodeFilter.title') : $t('searchpage.main.labels.contentList')"
-        :action-label="level === 'titles' ? $t('episodeFilter.clear') : undefined"
-        @action="clearFilters">
+        :flush="flush">
+
+        <template v-if="$slots.before" #before>
+            <slot name="before" />
+        </template>
 
         <!-- Episode level: the header IS the way back, and doubles as the
              reminder of which title you drilled into. -->
@@ -245,7 +233,7 @@ const applyPendingFocus = () => {
                 :aria-label="$t('filterContent.backToTitles')"
                 :title="selectedStat?.displayName"
                 data-testid="media-filter-back"
-                class="group flex flex-1 min-w-0 items-center gap-1 text-left"
+                class="group flex flex-1 min-w-0 items-center gap-1 text-left outline-none"
                 @click="backToTitles">
                 <UiBaseIcon :path="mdiChevronLeft" size="18"
                     class="shrink-0 text-white/60 transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -254,24 +242,22 @@ const applyPendingFocus = () => {
                     {{ selectedStat?.matchCount }}
                 </span>
             </button>
-            <!-- Sibling of the back button, and nudged out of the header's own
-                 1rem of padding, so the star lands on the same column as the
-                 stars on the rows below -- which are inset by 0.5rem from their
-                 own border instead. `ml-4` is the row button's `px-4`: it puts
-                 the same gap in front of the count. -->
+            <!-- Keep the star's visible icon 1.25rem from both the count and
+                 the panel edge. Its own hit target supplies the final 0.25rem
+                 on each side. -->
             <SearchSegmentFilterFavoriteStar
                 v-if="selectedStat?.mediaPublicId"
                 :media="selectedStat"
-                class="ml-4 -mr-2" />
+                class="ml-4" />
         </template>
 
         <template v-if="level === 'titles'" #subheader>
-            <div class="flex flex-inline shrink-0">
+            <div class="relative">
                 <input type="search" v-model="querySearchMedia" id="default-search2" autocomplete="off"
-                    class="block w-full p-4 pl-4 text-xs xxl:text-sm xxm:text-xl text-gray-900 dark:bg-neutral-800  dark:placeholder-gray-400 dark:text-white/45 dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring"
-                    :placeholder="$t('filterContent.searchPlaceholder')" required />
-                <div class="absolute z-10 right-0 mr-2 mt-4 inline-flex items-center pr-3 pointer-events-none">
-                    <svg aria-hidden="true" class="w-5 h-5 text-white/60 dark:text-gray-400" fill="none"
+                    class="nd-input h-12 pr-10 text-sm xxl:text-base xxm:text-xl"
+                    :placeholder="$t('filterContent.searchPlaceholder')" />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg aria-hidden="true" class="w-4 h-4 text-ink-faint" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -294,27 +280,28 @@ const applyPendingFocus = () => {
                 <!-- An episode is not a thing you star, but the title above it is:
                      the empty star column keeps these counts under that one. -->
                 <template #trailing>
-                    <SearchSegmentFilterFavoriteStar :media="{ mediaPublicId: null }" class="mr-2" />
+                    <SearchSegmentFilterFavoriteStar :media="{ mediaPublicId: null }" class="mr-4" />
                 </template>
             </SearchSegmentFilterRow>
-            <div v-if="episodesList.length === 0" class="px-4 py-2 text-xs text-gray-400 dark:text-gray-500">
-                {{ $t('episodeFilter.noEpisodes') }}
+            <div v-if="episodesList.length === 0">
+                <div class="mx-5 border-t border-line-subtle" aria-hidden="true" />
+                <div class="px-5 py-2 text-xs text-gray-400 dark:text-gray-500">
+                    {{ $t('episodeFilter.noEpisodes') }}
+                </div>
             </div>
         </div>
 
         <div :key="level" v-else>
             <SearchSegmentFilterRow
                 v-for="item in filteredMedia"
-                :key="item.mediaPublicId || 'all'"
+                :key="item.mediaPublicId"
                 :row-id="item.mediaPublicId"
                 :label="item.displayName"
                 :count="item.matchCount"
-                :selected="(!item.mediaPublicId && selectedMediaId === null) || item.mediaPublicId === selectedMediaId"
+                :selected="item.mediaPublicId === selectedMediaId"
                 @select="filterAnime(item.mediaPublicId, item.displayName, item.slug)">
-                <!-- The "All" row gets no star at all, rather than a disabled one
-                     that explains nothing; the component holds its column open. -->
                 <template #trailing>
-                    <SearchSegmentFilterFavoriteStar :media="item" class="mr-2" />
+                    <SearchSegmentFilterFavoriteStar :media="item" class="mr-4" />
                 </template>
             </SearchSegmentFilterRow>
         </div>

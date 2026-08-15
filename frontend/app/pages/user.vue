@@ -102,41 +102,14 @@ watch(activeTabRoute, scrollActiveTabIntoView);
 </script>
 
 <template>
-  <div class="nd-page px-4 md:px-0 my-2 text-white min-h-screen">
-      <div class="flex flex-col md:flex-row">
+  <div class="nd-page px-4 md:px-0 pb-6 text-white min-h-screen">
+      <div class="flex flex-col md:flex-row md:gap-3">
         <div class="hidden md:block md:w-56 md:shrink-0">
-          <nav :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="flex flex-col dark:bg-card-background rounded-lg p-6 my-2 space-y-2">
-            <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.generalTitle") }}</h3>
-            <div class="border-b border-white/10" />
-            <NuxtLink
-              v-for="tab in tabsGeneral"
-              :key="tab.route"
-              :to="localePath(tab.route)"
-              :class="{ active: activeTabRoute === tab.route }"
-              class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left"
-            >
-              <UiBaseIcon :path="tab.icon" size="20" />
-              {{ tab.name }}
-            </NuxtLink>
-
-            <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.advancedTitle") }}</h3>
-            <div class="border-b border-white/10" />
-            <NuxtLink
-              v-for="tab in tabsAdvanced"
-              :key="tab.route"
-              :to="localePath(tab.route)"
-              :class="{ active: activeTabRoute === tab.route }"
-              class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left"
-            >
-              <UiBaseIcon :path="tab.icon" size="20" />
-              {{ tab.name }}
-            </NuxtLink>
-
-            <template v-if="store.isAdmin">
-              <h3 class="text-lg pt-2 text-white/90 tracking-wide font-semibold">{{ $t("accountSettings.menu.adminTitle") }}</h3>
-              <div class="border-b border-white/10" />
+          <nav :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="flex flex-col bg-card-background rounded-lg p-3">
+            <h3 class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">{{ $t("accountSettings.menu.generalTitle") }}</h3>
+            <div class="flex flex-col gap-1">
               <NuxtLink
-                v-for="tab in tabsAdmin"
+                v-for="tab in tabsGeneral"
                 :key="tab.route"
                 :to="localePath(tab.route)"
                 :class="{ active: activeTabRoute === tab.route }"
@@ -145,6 +118,36 @@ watch(activeTabRoute, scrollActiveTabIntoView);
                 <UiBaseIcon :path="tab.icon" size="20" />
                 {{ tab.name }}
               </NuxtLink>
+            </div>
+
+            <h3 class="px-2 pt-4 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">{{ $t("accountSettings.menu.advancedTitle") }}</h3>
+            <div class="flex flex-col gap-1">
+              <NuxtLink
+                v-for="tab in tabsAdvanced"
+                :key="tab.route"
+                :to="localePath(tab.route)"
+                :class="{ active: activeTabRoute === tab.route }"
+                class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left"
+              >
+                <UiBaseIcon :path="tab.icon" size="20" />
+                {{ tab.name }}
+              </NuxtLink>
+            </div>
+
+            <template v-if="store.isAdmin">
+              <h3 class="px-2 pt-4 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">{{ $t("accountSettings.menu.adminTitle") }}</h3>
+              <div class="flex flex-col gap-1">
+                <NuxtLink
+                  v-for="tab in tabsAdmin"
+                  :key="tab.route"
+                  :to="localePath(tab.route)"
+                  :class="{ active: activeTabRoute === tab.route }"
+                  class="rounded-lg tab-title-settings flex items-center align-middle gap-2 px-2 py-2 text-left"
+                >
+                  <UiBaseIcon :path="tab.icon" size="20" />
+                  {{ tab.name }}
+                </NuxtLink>
+              </div>
             </template>
           </nav>
         </div>
@@ -168,7 +171,7 @@ watch(activeTabRoute, scrollActiveTabIntoView);
           </nav>
         </div>
 
-        <div class="flex-grow md:pl-6 my-2 md:mx-auto min-w-0">
+        <div class="flex-grow min-w-0">
           <NuxtPage />
         </div>
       </div>
