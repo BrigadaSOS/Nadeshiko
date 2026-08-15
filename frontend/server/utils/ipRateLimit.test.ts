@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ipRateLimit, _resetForTests } from './ipRateLimit';
+import { ipRateLimit, perWorkerMax, _resetForTests } from './ipRateLimit';
 
 function fakeEvent(headers: Record<string, string | undefined>, ip = '1.2.3.4') {
   return {
@@ -93,5 +93,52 @@ describe('ipRateLimit', () => {
     expect(await ipRateLimit(ev, { windowMs: 50, max: 3 })).not.toBeNull();
     await new Promise((r) => setTimeout(r, 70));
     expect(await ipRateLimit(ev, { windowMs: 50, max: 3 })).toBeNull();
+  });
+});
+
+describe('perWorkerMax', () => {
+  it('is the whole limit outside cluster mode', () => {
+    // The deployed reality: `nuxt.config.ts` pins `preset: 'node-server'`, so
+    // `NITRO_CLUSTER_WORKERS` in the deploy file never forks anything and the
+    // single process owns the entire budget.
+    expect(perWorkerMax(60)).toBe(60);
+  });
+
+  it('ignores NITRO_CLUSTER_WORKERS when no worker was actually forked', () => {
+    // This is the whole point. Production carried `NITRO_CLUSTER_WORKERS=3` for
+    // months against one process, and the limits had been pre-divided by three
+    // to match -- so every limit enforced a third of its documented value.
+    // Trusting the variable is what made that possible; `cluster.isWorker` is
+    // not something a stale env var can fake.
+    const previous = process.env.NITRO_CLUSTER_WORKERS;
+    process.env.NITRO_CLUSTER_WORKERS = '3';
+    try {
+      expect(perWorkerMax(60)).toBe(60);
+    } finally {
+      if (previous === undefined) delete process.env.NITRO_CLUSTER_WORKERS;
+      else process.env.NITRO_CLUSTER_WORKERS = previous;
+    }
+  });
+
+  it('never rounds a limit down to nothing', () => {
+    // Rounding down would make the real ceiling quietly stricter than the number
+    // asked for, which is the failure this exists to stop repeating.
+    expect(perWorkerMax(1)).toBeGreaterThanOrEqual(1);
+    expect(perWorkerMax(2)).toBeGreaterThanOrEqual(1);
+  });
+
+  it('advertises the share it will actually enforce', async () => {
+    _resetForTests();
+    const ev = fakeEvent({});
+    const headers: Record<string, string> = {};
+    ev.node.res.setHeader = (name: string, value: string) => {
+      headers[name] = value;
+    };
+
+    await ipRateLimit(ev, { windowMs: 60_000, max: 60 });
+
+    // Promising the service-wide total would advertise headroom a client pinned
+    // to one worker never gets.
+    expect(headers['X-RateLimit-Limit']).toBe(String(perWorkerMax(60)));
   });
 });

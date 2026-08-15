@@ -142,21 +142,37 @@ env:
     # `asset archive: directory unavailable` instead.
     NUXT_ASSET_ARCHIVE_DIR: /app/asset-archive
 
+    # BOTH OF THESE ARE INERT, and are kept only so the next person does not
+    # re-add them believing they work. Nitro bakes its preset in at BUILD time;
+    # `nuxt.config.ts` sets `preset: 'node-server'` and the Dockerfile defaults
+    # `ARG NITRO_PRESET=node-server`, so a runtime variable cannot change it.
+    # Verified on 2026-08-16: `docker top` on the running container shows ONE
+    # process, and 26 sequential requests from one address tripped the limit at
+    # exactly 20 -- which three round-robined workers could not have done.
+    #
+    # Turning clustering on is a real decision, not a typo fix: three workers
+    # would triple SSR capacity, and would also give each worker its own copy of
+    # every in-process cache (segments, assets, the SSR session cache) as well as
+    # its own rate-limit buckets. Do it deliberately, at build time, or not at all.
     NITRO_PRESET: node_cluster
     NITRO_CLUSTER_WORKERS: 3
 
     # Per-IP rate limits, set here rather than left to the defaults in
     # config/env.ts because the default is not the number that gets enforced.
     #
-    # The buckets are an in-process Map (server/utils/ipRateLimit.ts) and there
-    # are NITRO_CLUSTER_WORKERS of them, each keeping its own count. A visitor
-    # is spread across workers, so the ceiling they actually meet is up to three
-    # times whatever is written here. These are therefore PER WORKER, set to one
-    # third of the intended limit:
+    # These are SERVICE-WIDE limits, in requests per minute per IP. They used to
+    # be pre-divided by three by hand, to share one limit across the three
+    # workers named above -- workers that were never actually started. The result
+    # was that every limit enforced a third of what this comment claimed, for
+    # months: HTML at 20/min against a documented 60.
     #
-    #   HTML     20 x 3 =  60/min
-    #   /v1/*    40 x 3 = 120/min   search, media, the browser-facing proxy.
-    #   /v1/auth 10 x 3 =  30/min   tighter: the credential-stuffing door.
+    #   HTML      60/min
+    #   /v1/*    120/min   search, media, the browser-facing proxy.
+    #   /v1/auth  30/min   tighter: the credential-stuffing door.
+    #
+    # The division now happens in `perWorkerMax` (server/utils/ipRateLimit.ts),
+    # against the worker count actually running, so these say what they mean and
+    # enabling clustering later cannot silently move them again.
     #
     # Chosen against measured traffic rather than picked, from kamal-proxy logs
     # over a normal 3.5h window (per client IP per minute, busiest first):
@@ -167,19 +183,13 @@ env:
     #   /v1/*    34/min  busiest real browser
     #
     # So 60/min leaves the heaviest genuine reader ~2x headroom while sitting
-    # well under the crawler, which is the gap these want to land in. Note this
-    # is a deliberate TIGHTENING: the old defaults worked out to 180/360/90
-    # effective, above even the bot, so nothing was ever going to trip them.
-    #
-    # If NITRO_CLUSTER_WORKERS changes, these have to change with it or the
-    # effective limit moves silently. A shared store would remove the coupling;
-    # until then the arithmetic lives here, next to the worker count.
+    # well under the crawler, which is the gap these want to land in.
     #
     # Staging is deliberately not given these: it runs a single process, so the
     # config/env.ts defaults are already its true limits.
-    NUXT_RATE_LIMIT_HTML_MAX: 20
-    NUXT_RATE_LIMIT_V1_API_MAX: 40
-    NUXT_RATE_LIMIT_V1_AUTH_MAX: 10
+    NUXT_RATE_LIMIT_HTML_MAX: 60
+    NUXT_RATE_LIMIT_V1_API_MAX: 120
+    NUXT_RATE_LIMIT_V1_AUTH_MAX: 30
 
     # Diagnostics for the recurring crash where a Nitro process dies on a
     # general protection fault at the same libc offset every time (+0x50f),
