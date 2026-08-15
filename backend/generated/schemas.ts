@@ -691,6 +691,12 @@ export const s_UserPreferences = z.object({
       ES: z.enum(['show', 'spoiler', 'hidden']).optional(),
     })
     .optional(),
+  translationLanguages: z
+    .array(z.enum(['EN', 'ES']))
+    .min(1)
+    .max(2)
+    .refine((array) => new Set([...array]).size === array.length, { message: 'Array must contain unique element(s)' })
+    .optional(),
   searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
   ankiProfiles: z
     .array(
@@ -702,6 +708,7 @@ export const s_UserPreferences = z.object({
         fields: z.array(z.object({ key: z.string(), value: z.string() })).optional(),
         key: z.string().nullable().optional(),
         serverAddress: z.string(),
+        openBrowserOnExport: PermissiveBoolean.optional(),
       }),
     )
     .optional(),
@@ -824,7 +831,7 @@ export const s_SearchRequest = z.object({
   sort: s_SearchSort.optional(),
   preferMedia: z
     .array(z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')))
-    .max(100)
+    .max(120)
     .optional(),
   filters: s_SearchFilters.optional(),
   include: z.array(s_IncludeExpansion).optional().default([]),

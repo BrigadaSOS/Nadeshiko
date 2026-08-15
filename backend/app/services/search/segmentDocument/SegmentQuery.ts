@@ -66,6 +66,18 @@
  *   - Picks best matching language, 10% contribution from others
  *   - Reduces cross-language noise (was 30% in previous implementation)
  *
+ * Per-title weighting (see applyMediaScoreWeights):
+ *   The whole assembled score is multiplied by a weight that depends on the title
+ *   a segment belongs to — below 1 for titles with an unhandled report (tiered by
+ *   how much of the title has been reported), above 1 for titles the reader stars
+ *   or already studies. Unlike the favourites tie-break in SegmentResponse, these
+ *   do cross rank boundaries and do change which segments land on a page. That is
+ *   the point for the penalty, and it is why the boost is kept small: a tie-break
+ *   would leave a reported title in its page-1 slot on essentially every text
+ *   query, while a large boost would make the corpus look like the reader's own
+ *   watchlist. The tie-break still runs, and still does the work for the orders
+ *   that ignore `_score`.
+ *
  * QUERY SYNTAX (supported via query_string)
  * -----------------------------------------------------------------------------
  * - AND, OR, NOT operators: "cat AND dog", "cat OR dog"
@@ -110,6 +122,21 @@ interface ScriptBoostConfig {
 }
 
 export type QueryParserMode = 'strict' | 'safe';
+
+/**
+ * Score multiplier for segments from a title the reader stars or already studies.
+ *
+ * Small on purpose. It is enough to win a near-tie and to lift a familiar title a
+ * few places, and not enough to displace a materially better match -- a reader
+ * with the full 120 preferred titles should still be shown the best sentence for
+ * their word when it comes from a show they have never watched. The corpus has to
+ * keep looking like the corpus.
+ *
+ * Multiplicative, which is what makes it compose with the report penalties rather
+ * than fight them: starring a reported title lands it at 0.35 x 1.15, softened
+ * but still demoted. A favourite cannot buy its way out of a report.
+ */
+export const PREFERRED_MEDIA_SCORE_WEIGHT = 1.15;
 
 export class SegmentQuery {
   static buildSearchMust(
@@ -157,6 +184,57 @@ export class SegmentQuery {
     }
 
     return { must, isMatchAll, hasQuery };
+  }
+
+  /**
+   * Scales scores by the title they came from: down for reported titles, up for
+   * the reader's own.
+   *
+   * Wraps the fully assembled query rather than joining the `functions` list of
+   * the length/random scorers inside it: those are built across several branches
+   * (match_all vs text, with and without length constraints, random sort), and a
+   * weight that has to be threaded through each one is a weight that will be
+   * missed by whichever branch is added next. One wrap at the outside applies to
+   * all of them, including the branch that has no function_score at all.
+   *
+   * Demoted titles are grouped by weight rather than given a function each, so
+   * the query carries one clause per distinct tier however many titles are
+   * reported. `score_mode: multiply` leaves any title matching no clause at
+   * exactly 1, so nothing else about the ranking moves.
+   *
+   * Only affects sorts that read `_score` — relevance and random. Ordering by
+   * time or by length ignores the score entirely, so both the penalty and the
+   * boost sit out there; those orders are explicit reader requests for a specific
+   * sequence, not a ranking we get to have an opinion about.
+   */
+  static applyMediaScoreWeights(
+    query: estypes.QueryDslQueryContainer,
+    weights: {
+      demoted?: ReadonlyMap<number, number>;
+      preferred?: ReadonlySet<number>;
+    },
+  ): estypes.QueryDslQueryContainer {
+    const functions: estypes.QueryDslFunctionScoreContainer[] = [];
+
+    // Bounded by the number of titles in the catalogue, so far below
+    // `index.max_terms_count` (65,536) that no chunking is needed.
+    for (const [weight, mediaIds] of groupMediaIdsByWeight(weights.demoted)) {
+      functions.push({ filter: { terms: { mediaId: mediaIds } }, weight });
+    }
+
+    if (weights.preferred?.size) {
+      functions.push({
+        filter: { terms: { mediaId: [...weights.preferred] } },
+        weight: PREFERRED_MEDIA_SCORE_WEIGHT,
+      });
+    }
+
+    if (functions.length === 0) return query;
+
+    // A preferred title that is also reported matches both clauses and gets the
+    // product -- softened, never rescued, since every demotion weight is below
+    // 1 by more than the boost is above it.
+    return { function_score: { query, functions, score_mode: 'multiply', boost_mode: 'multiply' } };
   }
 
   /** @see buildCommonFilters in ./filterRegistry -- kept here so call sites stay put. */
@@ -480,4 +558,26 @@ export class SegmentQuery {
       },
     };
   }
+}
+
+/**
+ * Titles bucketed by the weight they earned, harshest first.
+ *
+ * Grouping keeps the query one clause per distinct tier instead of one per title,
+ * and the sort makes the emitted clauses stable, so two searches with the same
+ * reported set produce byte-identical queries and stay comparable in a log.
+ */
+function groupMediaIdsByWeight(weights: ReadonlyMap<number, number> | undefined): Map<number, number[]> {
+  const byWeight = new Map<number, number[]>();
+  if (!weights?.size) return byWeight;
+
+  for (const [mediaId, weight] of weights) {
+    const bucket = byWeight.get(weight);
+    if (bucket) bucket.push(mediaId);
+    else byWeight.set(weight, [mediaId]);
+  }
+
+  for (const bucket of byWeight.values()) bucket.sort((a, b) => a - b);
+
+  return new Map([...byWeight].sort(([a], [b]) => a - b));
 }

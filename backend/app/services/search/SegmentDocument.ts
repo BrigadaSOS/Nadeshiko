@@ -11,6 +11,7 @@ import type {
   SearchStatsResponseOutput,
 } from 'generated/outputTypes';
 
+import { getUnhandledReports } from '@app/services/reports/reportedContent';
 import { SegmentQuery, type QueryParserMode } from './segmentDocument/SegmentQuery';
 import { SegmentResponse } from './segmentDocument/SegmentResponse';
 import { withSafeQueryFallback } from './segmentDocument/errors';
@@ -148,12 +149,25 @@ export class SegmentDocument {
       highlightFields.textEs = { matched_fields: ['textEs', 'textEs.exact'], type: 'fvh' };
     }
 
+    // Awaited before the search rather than alongside it because everything it
+    // carries goes into the query itself. Cached, so this is a map lookup on all
+    // but the first search of each five-minute window.
+    const reports = await getUnhandledReports();
+
+    // Appended here rather than inside buildCommonFilters because `must_not.length`
+    // is read elsewhere as "the reader has hidden media" (see wordsMatched), and a
+    // reported segment is not that.
+    const excludedByReport = reports.segmentIds.size > 0 ? [buildIdsFilter([...reports.segmentIds])] : [];
+
     const esResponse = client.search({
       size: request.take,
       sort,
       index: INDEX_NAME,
       highlight: { fields: highlightFields },
-      query: { bool: { filter: [...filter, ...extraFilters], must, must_not } },
+      query: SegmentQuery.applyMediaScoreWeights(
+        { bool: { filter: [...filter, ...extraFilters], must, must_not: [...must_not, ...excludedByReport] } },
+        { demoted: reports.mediaWeights, preferred: preferredMediaIds },
+      ),
       search_after: searchAfter,
     });
 
@@ -162,7 +176,7 @@ export class SegmentDocument {
     return withSafeQueryFallback(
       async () => {
         const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
-        return SegmentResponse.buildSearch(esResult, mediaResult, preferredMediaIds);
+        return SegmentResponse.buildSearch(esResult, mediaResult);
       },
       () => SegmentDocument.executeSearch(request, 'safe', extraFilters, preferredMediaIds),
       {
@@ -328,7 +342,12 @@ async function querySearchStatisticsWithMustQueries(
   const { filter: filterForMediaStatistics, must_not } = SegmentQuery.buildCommonFilters(request.filters);
   const { filter: filterForCategoryStats } = SegmentQuery.buildCommonFilters({
     ...request.filters,
+    // The category buckets power the All tab, which widens a title-scoped
+    // search back to the whole corpus. Keep exclusions (hidden titles) but
+    // lift an included title and category so its count is useful as that
+    // escape hatch, including when the selected title found zero matches.
     category: [],
+    media: request.filters.media?.exclude ? { exclude: request.filters.media.exclude } : undefined,
   });
 
   // `must_not` is only ever populated by `filters.media.exclude` (see SegmentQuery.buildCommonFilters).
