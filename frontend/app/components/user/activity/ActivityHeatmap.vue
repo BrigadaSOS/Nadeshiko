@@ -115,10 +115,10 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
+  <div class="nd-settings-card">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.heatmap.title') }}</h3>
+        <h3 class="nd-settings-title">{{ t('accountSettings.activity.heatmap.title') }}</h3>
         <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.heatmap.description', { days: HEATMAP_DAYS }) }}</p>
       </div>
     </div>

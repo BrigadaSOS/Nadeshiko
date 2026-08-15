@@ -46,27 +46,6 @@ watch(initialData, (data) => {
   collections.value = data ?? [];
 });
 
-// Actions dropdown
-const openMenuId = ref<string | null>(null);
-
-const toggleMenu = (id: string) => {
-  openMenuId.value = openMenuId.value === id ? null : id;
-};
-
-const closeMenu = () => {
-  openMenuId.value = null;
-};
-
-// Click outside to close menu
-const onClickOutside = (e: MouseEvent) => {
-  if (openMenuId.value !== null && !(e.target as HTMLElement).closest('.nd-collection-actions')) {
-    closeMenu();
-  }
-};
-
-onMounted(() => document.addEventListener('click', onClickOutside));
-onUnmounted(() => document.removeEventListener('click', onClickOutside));
-
 // Rename modal
 const renameTarget = ref<Collection | null>(null);
 const renameValue = ref('');
@@ -74,7 +53,6 @@ const isRenaming = ref(false);
 const renameInput = ref<HTMLInputElement | null>(null);
 
 const openRename = (collection: Collection) => {
-  closeMenu();
   renameTarget.value = collection;
   renameValue.value = collection.name;
   // BaseModal focuses `[data-autofocus]` on open; only the pre-selection of the
@@ -148,7 +126,6 @@ const visibilityTarget = ref<Collection | null>(null);
 const isTogglingVisibility = ref(false);
 
 const openToggleVisibility = (collection: Collection) => {
-  closeMenu();
   visibilityTarget.value = collection;
 };
 
@@ -184,7 +161,6 @@ const deleteTarget = ref<Collection | null>(null);
 const isDeleting = ref(false);
 
 const openDelete = (collection: Collection) => {
-  closeMenu();
   deleteTarget.value = collection;
 };
 
@@ -209,9 +185,9 @@ const submitDelete = async () => {
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 mb-6 mx-auto rounded-lg shadow-md">
+  <div class="nd-settings-card">
     <div class="flex flex-wrap items-center gap-2 justify-between">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.collections.title') }}</h3>
+      <h3 class="nd-settings-title">{{ t('accountSettings.collections.title') }}</h3>
       <div class="flex items-center gap-3">
         <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ t('accountSettings.collections.count', { count: formatNumber(collections.length) }) }}</p>
         <button
@@ -224,8 +200,6 @@ const submitDelete = async () => {
         </button>
       </div>
     </div>
-    <div class="border-b pt-4 border-white/10" />
-
     <div class="mt-4">
       <table v-if="collections.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
         <thead>
@@ -268,60 +242,43 @@ const submitDelete = async () => {
               {{ formatDate(collection.updatedAt) }}
             </td>
             <td class="py-3 text-sm text-right">
-              <div class="nd-collection-actions relative inline-block">
-                <button
-                  type="button"
-                  data-testid="collection-menu-toggle"
-                  class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
-                  @click="toggleMenu(collection.publicId)"
+              <SearchDropdownContainer
+                dropdown-id="nd-collection-actions"
+                teleport
+                teleport-align="end"
+                dropdown-container-class="z-[60] min-w-[10rem]"
+              >
+                <SearchDropdownMainButton
+                  :show-chevron="false"
+                  test-id="collection-menu-toggle"
+                  dropdown-button-class="p-1 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
                 >
                   <UiBaseIcon :path="mdiDotsVertical" size="18" />
-                </button>
-
-                <Transition
-                  enter-active-class="transition duration-100 ease-out"
-                  enter-from-class="opacity-0 scale-95"
-                  enter-to-class="opacity-100 scale-100"
-                  leave-active-class="transition duration-75 ease-in"
-                  leave-from-class="opacity-100 scale-100"
-                  leave-to-class="opacity-0 scale-95"
-                >
-                  <div
-                    v-if="openMenuId === collection.publicId"
-                    class="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-white/10 bg-neutral-800 shadow-xl py-1"
-                  >
-                    <button
-                      type="button"
-                      data-testid="collection-rename-action"
-                      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                      @click="openRename(collection)"
-                    >
-                      <UiBaseIcon :path="mdiPencilOutline" size="16" />
-                      {{ t('accountSettings.collections.rename') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                      @click="openToggleVisibility(collection)"
-                    >
-                      <UiBaseIcon :path="collection.visibility === 'PUBLIC' ? mdiEyeOffOutline : mdiEyeOutline" size="16" />
-                      {{ collection.visibility === 'PUBLIC'
-                        ? t('accountSettings.collections.makePrivate')
-                        : t('accountSettings.collections.makePublic') }}
-                    </button>
-                    <button
-                      v-if="collection.type !== 'ANKI_EXPORT'"
-                      type="button"
-                      data-testid="collection-delete-action"
-                      class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                      @click="openDelete(collection)"
-                    >
-                      <UiBaseIcon :path="mdiDeleteOutline" size="16" />
-                      {{ t('accountSettings.collections.delete') }}
-                    </button>
-                  </div>
-                </Transition>
-              </div>
+                </SearchDropdownMainButton>
+                <template #content>
+                  <SearchDropdownItem
+                    data-testid="collection-rename-action"
+                    :text="t('accountSettings.collections.rename')"
+                    :icon-path="mdiPencilOutline"
+                    @click="openRename(collection)"
+                  />
+                  <SearchDropdownItem
+                    :text="collection.visibility === 'PUBLIC'
+                      ? t('accountSettings.collections.makePrivate')
+                      : t('accountSettings.collections.makePublic')"
+                    :icon-path="collection.visibility === 'PUBLIC' ? mdiEyeOffOutline : mdiEyeOutline"
+                    @click="openToggleVisibility(collection)"
+                  />
+                  <SearchDropdownItem
+                    v-if="collection.type !== 'ANKI_EXPORT'"
+                    data-testid="collection-delete-action"
+                    danger
+                    :text="t('accountSettings.collections.delete')"
+                    :icon-path="mdiDeleteOutline"
+                    @click="openDelete(collection)"
+                  />
+                </template>
+              </SearchDropdownContainer>
             </td>
           </tr>
         </tbody>
@@ -331,7 +288,7 @@ const submitDelete = async () => {
         <p class="text-red-400">{{ t('accountSettings.collections.loadError') }}</p>
         <button
           type="button"
-          class="mt-2 py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+          class="nd-btn mt-2"
           @click="retryLoad"
         >
           {{ t('searchContainer.retryButton') }}
@@ -360,14 +317,14 @@ const submitDelete = async () => {
           data-autofocus
           type="text"
           maxlength="100"
-          class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
+          class="nd-input"
           v-on="renameEnterSubmit"
         />
       </div>
       <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
         <button
           type="button"
-          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          class="nd-btn"
           @click="renameTarget = null"
         >
           {{ t('accountSettings.collections.renameCancel') }}
@@ -407,14 +364,14 @@ const submitDelete = async () => {
           type="text"
           maxlength="100"
           :placeholder="t('accountSettings.collections.namePlaceholder')"
-          class="w-full rounded-lg border border-gray-300 bg-modal-input text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus-ring dark:border-white/5"
+          class="nd-input"
           v-on="createEnterSubmit"
         />
       </div>
       <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
         <button
           type="button"
-          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          class="nd-btn"
           @click="showCreateModal = false"
         >
           {{ t('accountSettings.collections.renameCancel') }}
@@ -455,7 +412,7 @@ const submitDelete = async () => {
       <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
         <button
           type="button"
-          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          class="nd-btn"
           @click="visibilityTarget = null"
         >
           {{ t('accountSettings.collections.renameCancel') }}
@@ -493,7 +450,7 @@ const submitDelete = async () => {
       <div class="flex justify-end gap-2 px-4 py-3 border-t border-modal-border">
         <button
           type="button"
-          class="py-2 px-3 text-sm rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+          class="nd-btn"
           @click="deleteTarget = null"
         >
           {{ t('accountSettings.collections.deleteCancel') }}

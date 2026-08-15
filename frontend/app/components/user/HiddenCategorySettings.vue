@@ -35,13 +35,11 @@ const onToggle = async (category: Category) => {
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 mb-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.account.hiddenCategories') }}</h3>
+  <div class="nd-settings-card">
+    <h3 class="nd-settings-title">{{ t('accountSettings.account.hiddenCategories') }}</h3>
     <p class="text-gray-400 text-sm mt-1">{{ t('accountSettings.account.hiddenCategoriesDescription') }}</p>
 
-    <div class="border-b pt-4 border-white/10" />
-
-    <ul class="mt-2 divide-y divide-white/10">
+    <ul class="mt-4 divide-y divide-white/10">
       <li
         v-for="category in categories"
         :key="category"
@@ -49,8 +47,8 @@ const onToggle = async (category: Category) => {
         data-testid="hidden-category-row"
       >
         <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-100">{{ categoryLabel(category) }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">{{ categoryDescription(category) }}</p>
+          <p class="text-white">{{ categoryLabel(category) }}</p>
+          <p class="text-gray-400 text-sm mt-0.5">{{ categoryDescription(category) }}</p>
         </div>
 
         <div class="flex items-center gap-3 shrink-0">

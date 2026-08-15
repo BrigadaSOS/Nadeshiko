@@ -5,6 +5,7 @@ import { NadeshikoError, type Category, type UserPreferences } from '@brigadasos
 
 import { ALL_CATEGORIES, CATEGORY_LABEL_KEYS } from '~/utils/categories';
 import { MOTION_LEVELS, type MotionLevel } from '~/composables/useMotionPreference';
+import { normalizeTranslationLanguages, type TranslationLanguage } from '~/composables/useTranslationLanguages';
 
 import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
@@ -13,7 +14,7 @@ import { handleApiError } from '~/utils/apiError';
 import { resolveContextResponse } from '~/utils/resolvers';
 import { reportError } from '~/utils/reportError';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { formatDate } = useFormat();
 
 const user_store = userStore();
@@ -123,6 +124,32 @@ const contentRatingDescription = () => {
 };
 
 const updateMediaNameLanguage = (value: string) => updatePreference('mediaNameLanguage', value);
+
+const translationLanguageSelection = computed(() =>
+  normalizeTranslationLanguages(user_store.preferences?.translationLanguages, locale.value).join(','),
+);
+
+const updateTranslationLanguages = async (value: string) => {
+  const languages = value
+    .split(',')
+    .filter((language): language is TranslationLanguage => language === 'EN' || language === 'ES');
+  if (languages.length === 0) return;
+
+  savingPreferences.value = true;
+  try {
+    await sdk.updateUserPreferences({ translationLanguages: languages });
+    user_store.preferences = { ...user_store.preferences, translationLanguages: languages };
+    posthog?.capture('setting_changed', { setting_name: 'translationLanguages', value: languages.join(',') });
+    useToastSuccess(t('accountSettings.account.preferenceSaved'));
+  } catch (error) {
+    handleApiError('account:translation-languages-update-failed', error, {
+      toastKey: 'accountSettings.account.preferenceError',
+      context: { 'preference.key': 'translationLanguages' },
+    });
+  } finally {
+    savingPreferences.value = false;
+  }
+};
 
 const { preference: motionPreference, setPreference: setMotionPreference } = useMotionPreference();
 
@@ -339,9 +366,9 @@ const logoutCurrentUser = async () => {
 
 <template>
   <!-- Card -->
-  <div class="dark:bg-card-background p-6  mx-auto rounded-lg shadow-md">
+  <div class="nd-settings-card">
     <div class="flex items-center justify-between gap-2">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.infoTitle') }}</h3>
+      <h3 class="nd-settings-title">{{ $t('accountSettings.account.infoTitle') }}</h3>
       <button
         class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
         :disabled="loggingOut"
@@ -350,7 +377,6 @@ const logoutCurrentUser = async () => {
         {{ loggingOut ? $t('accountSettings.account.loggingOut') : $t('accountSettings.account.logout') }}
       </button>
     </div>
-    <div class="border-b pt-4 border-white/10" />
     <div class="mt-4">
       <div class="flex justify-between items-center">
         <div>
@@ -370,12 +396,12 @@ const logoutCurrentUser = async () => {
                 v-model="newEmail"
                 type="email"
                 :placeholder="$t('accountSettings.account.changeEmailPlaceholder')"
-                class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring flex-1"
+                class="nd-select flex-1"
                 :disabled="changingEmail"
                 @keyup.enter="requestEmailChange"
               />
               <button
-                class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+                class="nd-btn"
                 :disabled="changingEmail || !newEmail.trim()"
                 @click="requestEmailChange"
               >
@@ -394,7 +420,7 @@ const logoutCurrentUser = async () => {
         </div>
         <button
           v-if="!editingEmail"
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded"
+          class="nd-btn"
           @click="editingEmail = true; newEmail = ''; changeEmailMessage = ''; changeEmailError = ''"
         >
           {{ $t('accountSettings.account.changeEmail') }}
@@ -404,19 +430,19 @@ const logoutCurrentUser = async () => {
   </div>
 
   <!-- Sessions Card -->
-  <div data-testid="sessions-card" class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
+  <div data-testid="sessions-card" class="nd-settings-card">
     <div class="flex flex-wrap items-center gap-2 justify-between">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.sessions.title') }}</h3>
+      <h3 class="nd-settings-title">{{ $t('accountSettings.account.sessions.title') }}</h3>
       <div class="flex flex-wrap gap-2">
         <button
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="nd-btn"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="refreshSessions()"
         >
           {{ $t('accountSettings.account.sessions.refresh') }}
         </button>
         <button
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="nd-btn"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeOtherUserSessions"
         >
@@ -431,8 +457,6 @@ const logoutCurrentUser = async () => {
         </button>
       </div>
     </div>
-
-    <div class="border-b pt-4 border-white/10" />
 
     <p v-if="sessionsError" class="mt-4 text-red-300">{{ sessionsError }}</p>
     <p v-if="sessionsLoading" data-testid="sessions-loading" class="mt-4 text-gray-300">{{ $t('accountSettings.account.sessions.loading') }}</p>
@@ -476,9 +500,8 @@ const logoutCurrentUser = async () => {
   </div>
 
   <!-- Preferences Card -->
-  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.preferencesTitle') }}</h3>
-    <div class="border-b pt-4 border-white/10" />
+  <div class="nd-settings-card">
+    <h3 class="nd-settings-title">{{ $t('accountSettings.account.preferencesTitle') }}</h3>
     <div class="mt-4">
       <div class="flex justify-between items-center">
         <div>
@@ -489,11 +512,29 @@ const logoutCurrentUser = async () => {
           :value="user_store.preferences?.mediaNameLanguage || 'ENGLISH'"
           @change="updateMediaNameLanguage(($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+          class="nd-select"
         >
           <option value="ENGLISH">{{ $t('accountSettings.account.mediaNameLanguageOptions.ENGLISH') }}</option>
           <option value="JAPANESE">{{ $t('accountSettings.account.mediaNameLanguageOptions.JAPANESE') }}</option>
           <option value="ROMAJI">{{ $t('accountSettings.account.mediaNameLanguageOptions.ROMAJI') }}</option>
+        </select>
+      </div>
+      <div class="mt-4 flex justify-between items-center gap-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.translationLanguages') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.translationLanguagesDescription') }}</p>
+        </div>
+        <select
+          data-testid="translation-languages"
+          :value="translationLanguageSelection"
+          :disabled="savingPreferences"
+          class="nd-select"
+          @change="updateTranslationLanguages(($event.target as HTMLSelectElement).value)"
+        >
+          <option value="EN">{{ $t('accountSettings.account.translationLanguageOptions.EN') }}</option>
+          <option value="ES">{{ $t('accountSettings.account.translationLanguageOptions.ES') }}</option>
+          <option value="EN,ES">{{ $t('accountSettings.account.translationLanguageOptions.EN_ES') }}</option>
+          <option value="ES,EN">{{ $t('accountSettings.account.translationLanguageOptions.ES_EN') }}</option>
         </select>
       </div>
       <div class="mt-4">
@@ -507,7 +548,7 @@ const logoutCurrentUser = async () => {
             :value="defaultSearchCategory"
             @change="updateDefaultSearchCategory(($event.target as HTMLSelectElement).value)"
             :disabled="savingPreferences"
-            class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+            class="nd-select"
           >
             <option value="ALL">{{ $t('searchContainer.categoryAll') }}</option>
             <option v-for="category in ALL_CATEGORIES" :key="category" :value="category">
@@ -532,7 +573,7 @@ const logoutCurrentUser = async () => {
             data-testid="motion-preference"
             :value="motionPreference"
             @change="setMotionPreference(($event.target as HTMLSelectElement).value as MotionLevel)"
-            class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+            class="nd-select"
           >
             <option v-for="option in MOTION_LEVELS" :key="option" :value="option">
               {{ $t(`accountSettings.account.motionOptions.${option}`) }}
@@ -548,8 +589,8 @@ const logoutCurrentUser = async () => {
           <label
             v-for="preset in dictionaryPresets"
             :key="preset.id"
-            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800 border border-white/10 text-sm text-white"
-            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-neutral-700'"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-control border border-hairline text-sm text-ink-faint"
+            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-control-hover hover:text-ink'"
           >
             <input
               type="checkbox"
@@ -575,7 +616,7 @@ const logoutCurrentUser = async () => {
           :value="user_store.preferences?.contentRatingPreferences?.nsfw || 'BLUR'"
           @change="updateContentRatingPreference(($event.target as HTMLSelectElement).value as NsfwMode)"
           :disabled="savingPreferences"
-          class="bg-neutral-800 text-white border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-input-focus-ring focus:border-input-focus-ring"
+          class="nd-select"
         >
           <option value="SHOW">{{ $t('accountSettings.account.contentRatingShow') }}</option>
           <option value="BLUR">{{ $t('accountSettings.account.contentRatingBlur') }}</option>
@@ -607,9 +648,8 @@ const logoutCurrentUser = async () => {
   </div>
 
   <!-- Card -->
-  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.account.additionalTitle') }}</h3>
-    <div class="border-b pt-4 border-white/10" />
+  <div class="nd-settings-card">
+    <h3 class="nd-settings-title">{{ $t('accountSettings.account.additionalTitle') }}</h3>
     <div class="mt-4 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -617,7 +657,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
         </div>
         <button
-          class="bg-button-primary-main hover:bg-button-primary-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="nd-btn"
           :disabled="exportingData"
           @click="exportData"
         >
