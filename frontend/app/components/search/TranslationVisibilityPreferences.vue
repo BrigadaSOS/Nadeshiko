@@ -1,93 +1,180 @@
 <script setup lang="ts">
-const { t } = useI18n();
-const { englishMode, spanishMode, cycleEnglishMode, cycleSpanishMode } = useTranslationVisibility();
-const { furiganaMode, cycleFuriganaMode } = useHiraganaVisibility();
+import { mdiCheck, mdiEye, mdiEyeClosed, mdiEyeOff } from '@mdi/js';
+import type { TranslationVisibilityMode } from '~/composables/useTranslationVisibility';
 
-type TranslationVisibilityMode = 'show' | 'spoiler' | 'hidden';
+const { t } = useI18n();
+const { englishMode, spanishMode, setEnglishMode, setSpanishMode } = useTranslationVisibility();
+const { languages: translationLanguages } = useTranslationLanguages();
+const { furiganaMode, setFuriganaMode } = useHiraganaVisibility();
 
 const liveMessage = ref('');
 
-const modeButtonClass = (mode: TranslationVisibilityMode) => {
+const MODE_ITEMS: ReadonlyArray<{
+  id: TranslationVisibilityMode;
+  icon: string;
+  labelKey: 'modeShown' | 'modeSpoiler' | 'modeHidden';
+}> = [
+  { id: 'show', icon: mdiEye, labelKey: 'modeShown' },
+  { id: 'spoiler', icon: mdiEyeClosed, labelKey: 'modeSpoiler' },
+  { id: 'hidden', icon: mdiEyeOff, labelKey: 'modeHidden' },
+];
+
+const modeTitle = (subject: 'english' | 'spanish' | 'furigana', mode: TranslationVisibilityMode) => {
   if (mode === 'show') {
-    return 'bg-neutral-800 text-neutral-500 border-neutral-700/50 hover:text-neutral-300 hover:bg-neutral-700/50';
+    return t(`searchpage.main.translationPreferences.${subject}Shown`);
   }
   if (mode === 'spoiler') {
-    return 'bg-amber-500/20 text-amber-200 border-amber-500/40 hover:bg-amber-500/30';
+    return t(`searchpage.main.translationPreferences.${subject}Spoiler`);
   }
-  return 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30';
+  return t(`searchpage.main.translationPreferences.${subject}Hidden`);
 };
 
-const modeTitle = (lang: 'english' | 'spanish', mode: TranslationVisibilityMode) => {
-  if (mode === 'show') {
-    return t(`searchpage.main.translationPreferences.${lang}Shown`);
-  }
-  if (mode === 'spoiler') {
-    return t(`searchpage.main.translationPreferences.${lang}Spoiler`);
-  }
-  return t(`searchpage.main.translationPreferences.${lang}Hidden`);
-};
+const languageModeTitle = (subject: 'english' | 'spanish', mode: TranslationVisibilityMode) =>
+  `${modeTitle(subject, mode)} ${t('searchpage.main.translationPreferences.languageSettingsHint')}`;
 
-const toggleEnglish = async () => {
-  await cycleEnglishMode();
+const localePath = useLocalePath();
+
+const selectEnglish = async (mode: TranslationVisibilityMode) => {
+  await setEnglishMode(mode);
   liveMessage.value = modeTitle('english', englishMode.value);
 };
 
-const toggleSpanish = async () => {
-  await cycleSpanishMode();
+const selectSpanish = async (mode: TranslationVisibilityMode) => {
+  await setSpanishMode(mode);
   liveMessage.value = modeTitle('spanish', spanishMode.value);
 };
 
-const furiganaTitle = computed(() => {
-  if (furiganaMode.value === 'show') {
-    return t('searchpage.main.translationPreferences.furiganaShown');
-  }
-  if (furiganaMode.value === 'spoiler') {
-    return t('searchpage.main.translationPreferences.furiganaSpoiler');
-  }
-  return t('searchpage.main.translationPreferences.furiganaHidden');
-});
-
-const toggleFurigana = () => {
-  cycleFuriganaMode();
-  liveMessage.value = furiganaTitle.value;
+const selectFurigana = (mode: TranslationVisibilityMode) => {
+  setFuriganaMode(mode);
+  liveMessage.value = modeTitle('furigana', furiganaMode.value);
 };
+
+const groups = computed(() =>
+  [
+    {
+      key: 'en' as const,
+      testId: 'visibility-en',
+      title: t('searchpage.main.translationPreferences.englishMenu'),
+      mode: englishMode.value,
+      select: selectEnglish,
+    },
+    {
+      key: 'es' as const,
+      testId: 'visibility-es',
+      title: t('searchpage.main.translationPreferences.spanishMenu'),
+      mode: spanishMode.value,
+      select: selectSpanish,
+    },
+    {
+      key: 'furigana' as const,
+      testId: 'visibility-furigana',
+      title: t('searchpage.main.translationPreferences.furiganaMenu'),
+      mode: furiganaMode.value,
+      select: selectFurigana,
+    },
+  ].filter(
+    (group) => group.key === 'furigana' || translationLanguages.value.includes(group.key.toUpperCase() as 'EN' | 'ES'),
+  ),
+);
 </script>
 
 <template>
-  <div class="flex items-center gap-3">
-    <button
-      type="button"
-      :aria-pressed="englishMode !== 'hidden'"
-      :title="modeTitle('english', englishMode)"
-      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus-ring"
-      :class="modeButtonClass(englishMode)"
-      @click="toggleEnglish"
+  <div>
+    <!-- One control on small screens: three chips in the tab row is what
+         crushed the title tab, and a second row of the same chips just looked
+         like leftover chrome. -->
+    <SearchDropdownContainer
+      class="md:hidden"
+      dropdown-id="nd-visibility-combined"
+      teleport
+      teleport-align="end"
+      dropdown-container-class="z-[60] w-[220px] min-w-56"
     >
-      EN
-    </button>
+      <template #default="{ toggle, isOpen }">
+        <button
+          type="button"
+          data-testid="visibility-menu"
+          :title="t('searchpage.main.translationPreferences.combinedMenuButton')"
+          :aria-label="t('searchpage.main.translationPreferences.combinedMenuButton')"
+          aria-haspopup="menu"
+          :aria-expanded="isOpen"
+          class="nd-btn size-8 p-0"
+          @click="toggle"
+        >
+          <UiBaseIcon :path="mdiEye" w="w-4" h="h-4" size="16" aria-hidden="true" />
+        </button>
+      </template>
 
-    <button
-      type="button"
-      :aria-pressed="spanishMode !== 'hidden'"
-      :title="modeTitle('spanish', spanishMode)"
-      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus-ring"
-      :class="modeButtonClass(spanishMode)"
-      @click="toggleSpanish"
-    >
-      ES
-    </button>
+      <template #content>
+        <div data-nd-keep-open>
+          <div v-for="group in groups" :key="group.key" class="pb-1">
+            <p class="nd-menu-header">{{ group.title }}</p>
+            <div role="group" :aria-label="group.title">
+              <button
+                v-for="item in MODE_ITEMS"
+                :key="item.id"
+                type="button"
+                role="menuitemradio"
+                :aria-checked="group.mode === item.id"
+                :data-testid="`${group.testId}-option-${item.id}`"
+                class="nd-menu-item"
+                :class="{ 'is-selected': group.mode === item.id }"
+                @click="group.select(item.id)"
+              >
+                <UiBaseIcon :path="item.icon" w="w-4" h="h-4" size="16" aria-hidden="true" />
+                <span class="flex-1 text-left">{{ t(`searchpage.main.translationPreferences.${item.labelKey}`) }}</span>
+                <UiBaseIcon
+                  v-if="group.mode === item.id"
+                  :path="mdiCheck"
+                  w="w-3.5"
+                  h="h-3.5"
+                  size="14"
+                  class="text-accent-soft"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+          </div>
+          <div class="nd-menu-divider" />
+          <NuxtLink :to="localePath('/user/settings')" class="nd-menu-item text-left text-xs text-gray-400">
+            {{ $t('searchpage.main.translationPreferences.languageSettingsHint') }}
+          </NuxtLink>
+        </div>
+      </template>
+    </SearchDropdownContainer>
 
-    <button
-      type="button"
-      :aria-pressed="furiganaMode !== 'hidden'"
-      :title="furiganaTitle"
-      class="rounded-md px-3 py-1 text-sm font-medium border active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus-ring"
-      :class="modeButtonClass(furiganaMode)"
-      @click="toggleFurigana"
-    >
-      ふ
-    </button>
+    <div class="hidden items-center gap-3 md:flex">
+      <SearchVisibilityModeMenu
+        v-if="translationLanguages.includes('EN')"
+        label="EN"
+        test-id="visibility-en"
+        :mode="englishMode"
+        :menu-title="t('searchpage.main.translationPreferences.englishMenu')"
+        :title="languageModeTitle('english', englishMode)"
+        show-language-settings-hint
+        @select="selectEnglish"
+      />
 
+      <SearchVisibilityModeMenu
+        v-if="translationLanguages.includes('ES')"
+        label="ES"
+        test-id="visibility-es"
+        :mode="spanishMode"
+        :menu-title="t('searchpage.main.translationPreferences.spanishMenu')"
+        :title="languageModeTitle('spanish', spanishMode)"
+        show-language-settings-hint
+        @select="selectSpanish"
+      />
+
+      <SearchVisibilityModeMenu
+        label="ふ"
+        test-id="visibility-furigana"
+        :mode="furiganaMode"
+        :menu-title="t('searchpage.main.translationPreferences.furiganaMenu')"
+        :title="modeTitle('furigana', furiganaMode)"
+        @select="selectFurigana"
+      />
+    </div>
 
     <p aria-live="polite" class="sr-only">
       {{ liveMessage }}

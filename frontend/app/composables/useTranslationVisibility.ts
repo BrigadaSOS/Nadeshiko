@@ -33,12 +33,6 @@ function modeOf(prefs: TranslationVisibilityPreferences, code: LanguageCode): Tr
   return prefs[code] ?? 'show';
 }
 
-function nextMode(current: TranslationVisibilityMode): TranslationVisibilityMode {
-  if (current === 'show') return 'spoiler';
-  if (current === 'spoiler') return 'hidden';
-  return 'show';
-}
-
 function normalizePreferences(raw: unknown): TranslationVisibilityPreferences {
   if (!raw || typeof raw !== 'object') return defaultPreferences();
   const source = raw as Record<string, unknown>;
@@ -75,6 +69,7 @@ function decodeCookie(value: string | null | undefined): TranslationVisibilityPr
 
 export function useTranslationVisibility() {
   const user = userStore();
+  const { languages: translationLanguages } = useTranslationLanguages();
 
   const {
     state: prefs,
@@ -122,6 +117,7 @@ export function useTranslationVisibility() {
 
   const updateModePreference = async (code: LanguageCode, mode: TranslationVisibilityMode) => {
     if (import.meta.server) return;
+    if (modeOf(prefs.value, code) === mode) return;
 
     const next: TranslationVisibilityPreferences = {
       ...prefs.value,
@@ -161,23 +157,22 @@ export function useTranslationVisibility() {
   const englishMode = computed(() => modeOf(prefs.value, 'EN'));
   const spanishMode = computed(() => modeOf(prefs.value, 'ES'));
   const includedLanguages = computed<LanguageCode[] | undefined>(() => {
-    const englishHidden = englishMode.value === 'hidden';
-    const spanishHidden = spanishMode.value === 'hidden';
-    if (!englishHidden && !spanishHidden) return undefined;
-    const included: LanguageCode[] = [];
-    if (!englishHidden) included.push('EN');
-    if (!spanishHidden) included.push('ES');
-    return included;
+    const included = translationLanguages.value.filter(
+      (language) => (language === 'EN' ? englishMode.value : spanishMode.value) !== 'hidden',
+    );
+    // The absent API filter means both languages. Keep that compact default,
+    // but always send a global one-language choice.
+    return included.length === 2 ? undefined : included;
   });
 
-  const cycleEnglishMode = () => updateModePreference('EN', nextMode(englishMode.value));
-  const cycleSpanishMode = () => updateModePreference('ES', nextMode(spanishMode.value));
+  const setEnglishMode = (mode: TranslationVisibilityMode) => updateModePreference('EN', mode);
+  const setSpanishMode = (mode: TranslationVisibilityMode) => updateModePreference('ES', mode);
 
   return {
     englishMode,
     spanishMode,
     includedLanguages,
-    cycleEnglishMode,
-    cycleSpanishMode,
+    setEnglishMode,
+    setSpanishMode,
   };
 }
