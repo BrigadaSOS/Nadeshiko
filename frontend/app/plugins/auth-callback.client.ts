@@ -1,3 +1,17 @@
+import { AUTH_CALLBACK_PARAM, authEventProperties, authIntentStorage, consumeAuthIntent } from '~/utils/authAnalytics';
+
+/**
+ * Reports an auth round trip that came back rejected, tagged with the same
+ * provider/source/gate the successful events carry so the two are comparable.
+ *
+ * The intent is consumed rather than left parked: this attempt is over, and
+ * leaving it behind would credit the gate to whatever login happens next.
+ */
+function reportFailedLogin(reason: string) {
+  const intent = consumeAuthIntent(authIntentStorage(), Date.now());
+  usePostHog()?.capture('login_failed', { ...authEventProperties(intent), reason });
+}
+
 export default defineNuxtPlugin({
   name: 'auth-callback',
   // `identity-auth` finishes the client-side session bootstrap that
@@ -9,12 +23,16 @@ export default defineNuxtPlugin({
     const store = userStore();
     const { $i18n } = useNuxtApp();
     const route = useRoute();
-    const posthog = usePostHog();
 
+    // `nd_auth` is put on the callback URL by the login flow itself. The
+    // `code`/`state`/`error` checks below it are kept for the error case, which
+    // better-auth does signal that way, and `magic_callback` for links already
+    // sitting in an inbox from before the marker existed.
+    const isMarkedCallback = route.query[AUTH_CALLBACK_PARAM] === '1';
     const isOAuthCallback = route.query.error || route.query.code || route.query.state;
     const isMagicLinkCallback = route.query.magic_callback === '1';
 
-    if (!isOAuthCallback && !isMagicLinkCallback) return;
+    if (!isMarkedCallback && !isOAuthCallback && !isMagicLinkCallback) return;
 
     // `route` is the live current route: once the query is stripped below there is
     // nothing left to branch on, so the outcome has to be read out first.
@@ -27,12 +45,15 @@ export default defineNuxtPlugin({
       const router = useRouter();
       await router.replace({ path: route.path, query: {} });
 
-      if (callbackError === 'banned') {
-        useToastError($i18n.t('modalauth.labels.banneduser'));
-        return;
-      }
       if (callbackError) {
-        useToastError($i18n.t('modalauth.labels.errorlogin400'));
+        // Without this, a provider that rejects everyone looks exactly like a
+        // provider nobody chooses -- both are simply an absence of signups. That
+        // is not hypothetical here: 264 people picked Google in 90 days and the
+        // data could not say what became of any of them.
+        reportFailedLogin(String(callbackError));
+        useToastError(
+          $i18n.t(callbackError === 'banned' ? 'modalauth.labels.banneduser' : 'modalauth.labels.errorlogin400'),
+        );
         return;
       }
 
@@ -41,12 +62,12 @@ export default defineNuxtPlugin({
       }
       if (store.isLoggedIn) {
         useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
-        if (store.userName) {
-          posthog?.identify(store.userName, { email: store.userEmail ?? undefined });
-        }
-        posthog?.capture('user_logged_in', {
-          provider: isMagicLinkCallback ? 'magic_link' : 'oauth',
-        });
+        // The identify, the signup-or-login decision and the provider that earned
+        // it all live in one place now. This call differs from the one
+        // `identity-auth` already made only in knowing the load was an auth
+        // landing, which is what lets a returning reader's login be counted; if
+        // that pass already reported the transition, this one is a no-op.
+        reconcileAnalyticsIdentity({ viaCallback: true });
       }
     });
   },

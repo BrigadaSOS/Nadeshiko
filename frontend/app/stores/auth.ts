@@ -2,6 +2,13 @@ import { useNuxtApp } from '#app';
 import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import { defineStore } from 'pinia';
 import { handleApiError } from '~/utils/apiError';
+import {
+  AUTH_CALLBACK_PARAM,
+  authIntentStorage,
+  readAuthIntent,
+  withAuthCallbackMarker,
+  withAuthIntentParams,
+} from '~/utils/authAnalytics';
 
 type UserRole = 'ADMIN' | 'MOD' | 'USER' | 'PATREON';
 
@@ -16,14 +23,24 @@ export type UserSession = {
 
 /** The shape of a better-auth session as both entry points receive it. */
 export interface SessionUser {
+  /**
+   * The account's primary key. Immutable and unique, unlike `name`, which is
+   * neither -- which is why this is what PostHog is keyed on.
+   */
+  id?: string | null;
   name?: string | null;
   email?: string | null;
   role?: string | null;
   createdAt?: string | null;
-  provider?: string | null;
 }
 
 export interface SessionInfo {
+  /**
+   * The session row's primary key -- not its token. Safe to keep in readable
+   * storage, and it changes only on a genuine new sign-in, which is what lets a
+   * login be counted exactly rather than guessed at.
+   */
+  id?: string | null;
   token?: string | null;
   impersonatedBy?: unknown;
 }
@@ -31,6 +48,11 @@ export interface SessionInfo {
 function defaultAuthState() {
   return {
     isLoggedIn: false,
+    userId: null as string | null,
+    /** Identifies the session itself; see `SessionInfo.id`. */
+    sessionId: null as string | null,
+    /** ISO timestamp the account was created, used to tell a signup from a login. */
+    userCreatedAt: null as string | null,
     userName: null as string | null,
     userEmail: null as string | null,
     currentSessionToken: null as string | null,
@@ -131,6 +153,9 @@ export const userStore = defineStore('user', {
       const impersonating = !!response?.session?.impersonatedBy;
       this.$patch({
         isLoggedIn: true,
+        userId: sessionUser?.id != null ? String(sessionUser.id) : null,
+        sessionId: response?.session?.id != null ? String(response.session.id) : null,
+        userCreatedAt: sessionUser?.createdAt ?? null,
         userName: sessionUser?.name ?? null,
         userEmail: sessionUser?.email ?? null,
         currentSessionToken: response?.session?.token ?? null,
@@ -147,9 +172,14 @@ export const userStore = defineStore('user', {
 
       try {
         const response = await useNadeshikoSdk().socialSignIn({
+          // Marked so the landing page can tell "just signed in" from "reloaded a
+          // page while signed in". better-auth returns the reader to this URL
+          // verbatim, with none of the `code`/`state` parameters the callback
+          // plugin used to look for -- which is why no OAuth login was ever
+          // recorded before this marker existed.
+          callbackURL: withAuthCallbackMarker(window.location.href),
+          errorCallbackURL: withAuthCallbackMarker(window.location.href),
           provider,
-          callbackURL: window.location.href,
-          errorCallbackURL: window.location.href,
         });
 
         // The spec declares no `error` field -- better-auth signals failure with a
@@ -184,7 +214,17 @@ export const userStore = defineStore('user', {
 
     async sendMagicLink(email: string): Promise<boolean> {
       try {
-        const callbackURL = '/?magic_callback=1';
+        // `magic_callback` is kept alongside the shared marker so links already
+        // sitting in an inbox still land on a page that knows what they are.
+        //
+        // The intent rides along in the link because this is the one flow that can
+        // finish on a different device: mailed to a phone, opened on a laptop whose
+        // storage has never seen the modal. The parked copy still wins on arrival
+        // when there is one -- these parameters are the fallback.
+        const callbackURL = withAuthIntentParams(
+          `/?magic_callback=1&${AUTH_CALLBACK_PARAM}=1`,
+          readAuthIntent(authIntentStorage(), Date.now()),
+        );
         await useNadeshikoSdk().signInWithMagicLink({ email, callbackURL });
         return true;
       } catch (error) {
@@ -242,6 +282,11 @@ export const userStore = defineStore('user', {
       if (import.meta.client) {
         const posthog = usePostHog();
         posthog?.capture('user_logged_out');
+        // Drops the identity so the next visitor on this browser is anonymous
+        // again. Deliberately does NOT clear `ANALYTICS_IDENTITY_KEY`: that record
+        // is what stops a sign-out and straight-back-in, inside the five minutes
+        // an account still counts as new, from reporting a second signup for an
+        // account that was only ever created once.
         posthog?.reset();
       }
 
@@ -258,21 +303,13 @@ export const userStore = defineStore('user', {
         // config/auth.ts enriches what the server actually returns (role, provider),
         // and the generator has no way to see that, so the enriched fields are read
         // through our own `SessionUser` -- which is the type that documents them.
-        const sessionUser = response?.user as SessionUser | undefined;
-        const wasLoggedIn = this.isLoggedIn;
-
+        // Signup and login are no longer reported from here. This branch only ran
+        // when the client had to re-ask for the session, and after an auth round
+        // trip the SSR pass has already resolved it from the cookie -- so the one
+        // moment it was meant to catch was the one moment it could not run, and
+        // `signup_completed` fired 3 times in 180 days. `identity-auth` now
+        // reconciles identity on every load instead, where the answer is known.
         if (!this.applySession(response)) return;
-
-        if (!wasLoggedIn && sessionUser?.createdAt) {
-          const createdAt = new Date(sessionUser.createdAt).getTime();
-          const now = Date.now();
-          if (now - createdAt < 300_000) {
-            const posthog = usePostHog();
-            posthog?.capture('signup_completed', {
-              provider: sessionUser?.provider ?? 'unknown',
-            });
-          }
-        }
 
         this.preferences = await useNadeshikoSdk()
           .getUserPreferences()
