@@ -21,7 +21,7 @@ const QUERY = '学校';
  */
 
 /**
- * Row 0 is "All", which is pinned above every tier and carries no star.
+ * Title rows only: the star is what a title has and an episode spacer does not.
  *
  * `:visible` because the panel exists twice -- the sticky sidebar and the
  * small-screen drawer -- and only one of them is on screen at a given width. A

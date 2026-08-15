@@ -87,7 +87,7 @@ export class DeveloperPage {
 
   async renameApiKey(row: Locator, newName: string) {
     await this.openOptionsMenu(row);
-    await row.locator('a', { hasText: 'Rename' }).dispatchEvent('click');
+    await this.page.getByTestId('dropdown-menu').getByRole('button', { name: 'Rename' }).dispatchEvent('click');
     await expect(this.renameModalNameInput).toBeVisible({ timeout: 5_000 });
     await this.renameModalNameInput.clear();
     await this.renameModalNameInput.fill(newName);
@@ -99,7 +99,7 @@ export class DeveloperPage {
   async deactivateApiKey(row: Locator) {
     await this.openOptionsMenu(row);
     const keyDeactivated = this.waitForApiResponse('/v1/auth/api-key/update', 'POST');
-    await row.locator('a', { hasText: 'Deactivate' }).dispatchEvent('click');
+    await this.page.getByTestId('dropdown-menu').getByRole('button', { name: 'Deactivate' }).dispatchEvent('click');
     await keyDeactivated;
     await expect(this.keyDeactivatedAlert).toBeVisible({ timeout: 10_000 });
   }

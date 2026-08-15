@@ -7,6 +7,7 @@ export class HeaderPage {
   readonly ankiLink: Locator;
   readonly collectionsLink: Locator;
   readonly activityLink: Locator;
+  readonly mediaLink: Locator;
   readonly loginButton: Locator;
 
   constructor(page: Page) {
@@ -16,6 +17,7 @@ export class HeaderPage {
     this.ankiLink = page.getByTestId('nav-anki');
     this.collectionsLink = page.getByTestId('nav-collections');
     this.activityLink = page.getByTestId('nav-activity');
+    this.mediaLink = page.getByTestId('nav-media');
     this.loginButton = page.getByTestId('nav-login');
   }
 
@@ -28,6 +30,7 @@ export class HeaderPage {
     await expect(this.ankiLink).toBeVisible();
     await expect(this.collectionsLink).toBeVisible();
     await expect(this.activityLink).toBeVisible();
+    await expect(this.mediaLink).toBeVisible();
     await expect(this.loginButton).not.toBeVisible();
   }
 
@@ -37,5 +40,6 @@ export class HeaderPage {
     await expect(this.ankiLink).not.toBeVisible();
     await expect(this.collectionsLink).not.toBeVisible();
     await expect(this.activityLink).not.toBeVisible();
+    await expect(this.mediaLink).not.toBeVisible();
   }
 }
