@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiCheckBold, mdiPlus } from '@mdi/js';
+import { mdiPlus } from '@mdi/js';
 import { useI18n } from 'vue-i18n';
 import type { SearchResult } from '~/types/search';
 const { t } = useI18n();
@@ -17,8 +17,7 @@ const notes = ref<Array<{ noteId: number; value: string }>>([]);
 const store = ankiStore();
 
 const isLoading = ref(false);
-const isConfigValid = ref(false);
-const isError = ref(false);
+const hasKeyField = computed(() => !!store.activeProfile?.key?.trim());
 
 watch(
   () => props.sentence,
@@ -35,21 +34,16 @@ watch(
   },
 );
 
-const validateAnkiConfig = () => {
-  if (store.activeProfile?.key) {
-    isConfigValid.value = true;
+watch(hasKeyField, (hasKeyField) => {
+  if (hasKeyField) {
+    void getNotesFromQuery();
   } else {
-    isConfigValid.value = false;
-    isError.value = true;
+    notes.value = [];
   }
-};
-
-onMounted(() => {
-  validateAnkiConfig();
 });
 
 const getNotesFromQuery = async () => {
-  if (!isConfigValid.value) return;
+  if (!hasKeyField.value) return;
 
   const currentKey = store.activeProfile?.key ?? '';
 
@@ -66,7 +60,7 @@ const handleInput = (event: Event) => {
 };
 
 const handleSelectNote = (noteId: number) => {
-  if (!props.sentence) {
+  if (!props.sentence || !hasKeyField.value) {
     return;
   }
   props.onClick(props.sentence, noteId);
@@ -87,7 +81,7 @@ const handleSelectNote = (noteId: number) => {
             {{ $t('anki.modal.title') }}
           </h3>
           <button type="button"
-            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 transition-all text-sm"
             @click="emit('close')">
             <span class="sr-only">{{ $t('modalAnkiNotes.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
@@ -133,19 +127,14 @@ const handleSelectNote = (noteId: number) => {
                         </p>
                       </div>
 
-                      <div v-if="isConfigValid" role="alert"
-                        class="rounded border-s-4 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
-                        <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
-                          <UiBaseIcon :path="mdiCheckBold" size="20" />
+                      <!-- Nothing is shown when the key field IS configured.
+                           A banner confirming that the settings are correct is
+                           read once and then becomes furniture at the top of a
+                           dialog the reader opened to do something else. Only
+                           the failure below is worth interrupting for, because
+                           only it needs an action. -->
 
-                          <strong class="block font-medium">{{ $t('anki.modal.validationSuccess') }}</strong>
-                        </div>
-                        <p class="mt-2 text-sm text-green-700 dark:text-green-200">
-                          {{ $t('anki.modal.validationMessage') }}
-                        </p>
-                      </div>
-
-                      <div v-if="isError" role="alert"
+                      <div v-if="!hasKeyField" role="alert"
                         class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/70">
                         <div class="flex items-center gap-2 text-red-800 dark:text-red-100">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
@@ -171,7 +160,8 @@ const handleSelectNote = (noteId: number) => {
                 <input :value="inputVal" @input="handleInput"
                   lang="ja"
                   autocomplete="off"
-                  class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
+                  class="nd-input text-xl disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="!hasKeyField"
                   :placeholder="$t('modalAnkiNotes.searchPlaceholder')"></input>
 
                 <div class="mt-6">
@@ -201,7 +191,7 @@ const handleSelectNote = (noteId: number) => {
                             {{ note.value }}
                           </td>
                           <td class="w-1/12">
-                            <UiButtonPrimaryAction @click="handleSelectNote(note.noteId)">
+                            <UiButtonPrimaryAction :disabled="!hasKeyField" @click="handleSelectNote(note.noteId)">
                               <UiBaseIcon :path="mdiPlus" />
                             </UiButtonPrimaryAction>
                           </td>
@@ -235,7 +225,7 @@ const handleSelectNote = (noteId: number) => {
         </div>
         <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
           <button type="button"
-            class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-input-focus-ring transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+            class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white"
             @click="emit('close')">
             {{ t("batchSearch.close") }}
           </button>

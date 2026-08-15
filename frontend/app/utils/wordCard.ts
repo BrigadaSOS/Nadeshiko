@@ -79,6 +79,10 @@ export interface GlossPreference {
   /** Definition languages the reader has not hidden, their own language first.
    *  Empty when they have hidden every one. */
   order: GlossLanguage[];
+  /** Globally enabled languages that a local search visibility choice hid.
+   *  They are a last-resort dictionary fallback; globally excluded languages
+   *  never return through this door. */
+  fallback: GlossLanguage[];
   /** The one language Shirabe resolves part-of-speech and misc labels into
    *  (`?locale=`). Never empty: a card whose labels are in nobody's language
    *  helps nobody, so this falls back to the reader's own. */
@@ -107,13 +111,22 @@ export interface GlossPreference {
 export function glossPreference(
   uiLocale: string,
   modes: Record<GlossLanguage, TranslationVisibilityMode>,
+  languageOrder: readonly GlossLanguage[] = homeFirst(uiLocale === 'es' ? 'es' : 'en'),
 ): GlossPreference {
   // Spanish for a Spanish reader; English for everyone else, including the
   // Japanese interface, because English is the language JMdict is written in
   // and the one every entry is most likely to have.
   const home: GlossLanguage = uiLocale === 'es' ? 'es' : 'en';
-  const order = homeFirst(home).filter((lang) => modes[lang] !== 'hidden');
-  return { order, labels: order[0] ?? home, tags: tagLanguage(uiLocale) };
+  // The saved global choice decides which dictionary languages matter and in
+  // what order. The search control can still hide one on that surface.
+  const enabled = languageOrder.filter((lang): lang is GlossLanguage => GLOSS_LANGUAGES.includes(lang));
+  const order = enabled.filter((lang) => modes[lang] !== 'hidden');
+  return {
+    order,
+    fallback: enabled.filter((lang) => !order.includes(lang)),
+    labels: order[0] ?? home,
+    tags: tagLanguage(uiLocale),
+  };
 }
 
 function homeFirst(home: GlossLanguage): GlossLanguage[] {
@@ -128,26 +141,20 @@ function homeFirst(home: GlossLanguage): GlossLanguage[] {
  * cached response serve a reader with both languages on and a reader with one
  * off, and it is why the request is only keyed by the label language.
  *
- * The fallback is the part that matters. A reader who reads only Spanish still
- * meets words JMdict has no Spanish gloss for, and an empty card teaches
- * nothing while an English gloss teaches the word: so a sense with nothing in
- * the wanted languages falls back to the one that was turned off.
+ * A search-local hide does not make a language globally irrelevant. A reader
+ * who reads only Spanish on that surface still meets words JMdict has no
+ * Spanish gloss for, so it may fall back to another globally enabled language.
  *
- * A reader who hid BOTH gets nothing, and that is not the same case. Nothing is
- * missing there: they asked for no translations, and the rest of the card (the
- * word, its reading, what the form is doing, its kanji) still answers. Falling
- * back would hand the strictest possible preference MORE text than hiding one
- * language does, and the segment translations beside it already render none.
+ * A globally excluded language is never used as a fallback: that choice means
+ * the reader does not care about it anywhere. When every globally enabled
+ * language is hidden, the card gets no definitions at all.
  */
 export function selectDefinitions(definitions: ShirabeText[] | undefined, preference: GlossPreference): ShirabeText[] {
   if (preference.order.length === 0) return [];
 
   const wanted = inLanguages(definitions, preference.order);
   if (wanted.length > 0) return wanted;
-  return inLanguages(
-    definitions,
-    homeFirst(preference.labels).filter((lang) => !preference.order.includes(lang)),
-  );
+  return inLanguages(definitions, preference.fallback);
 }
 
 /** Definitions in the given languages, that order, keeping each language's own
@@ -323,8 +330,12 @@ const SHIRABE_SITE = 'https://shirabe.org';
  * so the two can be told apart on the other side: a reader who opens the kanji
  * chips is doing something different from one who wants the full entry, and
  * lumping them together hides which half of the card is doing the work.
+ *
+ * `anki-definition` is the same destination as `word-card` -- the word's own
+ * page -- reached from a note rather than from the hover card, so it is a
+ * different surface even though the path is the same.
  */
-export type ShirabeLinkSurface = 'word-card' | 'kanji-chip';
+export type ShirabeLinkSurface = 'word-card' | 'kanji-chip' | 'anki-definition';
 
 /**
  * Mark a Shirabe link as ours, so its own PostHog can attribute the visit.
@@ -361,8 +372,12 @@ function withAttribution(url: string, surface: ShirabeLinkSurface): string {
  * resolved keeps the link right, while linking with something stored months ago
  * lands on the wrong entry without ever looking broken.
  */
-export function shirabeWordUrl(id: string, locale: GlossLanguage): string {
-  return withAttribution(`${SHIRABE_SITE}/${locale}/word/${encodeURIComponent(id)}`, 'word-card');
+export function shirabeWordUrl(
+  id: string,
+  locale: GlossLanguage,
+  surface: Extract<ShirabeLinkSurface, 'word-card' | 'anki-definition'> = 'word-card',
+): string {
+  return withAttribution(`${SHIRABE_SITE}/${locale}/word/${encodeURIComponent(id)}`, surface);
 }
 
 export function shirabeKanjiUrl(character: string, locale: GlossLanguage): string {

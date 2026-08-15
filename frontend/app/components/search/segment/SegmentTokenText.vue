@@ -10,15 +10,31 @@ import {
   pitchMorae,
   shirabeKanjiUrl,
   type GlossLanguage,
+  // The same three names that ride out to Shirabe as `utm_content`, reused here
+  // rather than restated: the click we record and the visit Shirabe records are
+  // then labelled identically, so the two sides reconcile per surface instead of
+  // only in total.
+  type ShirabeLinkSurface,
 } from '~/utils/wordCard';
+import type { DictionaryId } from '~/composables/useDictionaryLinks';
+import { minedWord } from '~/utils/ankiWord';
 import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
-import { mdiStarCheckOutline, mdiStarPlusOutline } from '@mdi/js';
+// Two different verbs, so two different shapes. These sit side by side at 16px,
+// where `mdiStarCheckOutline` and `mdiStarPlusOutline` -- the pair that was here
+// -- were one star with a smudge in the corner: the reader could not tell "show
+// me the card I already have" from "put this sentence on it" without reading
+// both tooltips.
+//
+// `mdiFileDocumentPlusOutline` is the same mark the segment menu's Anki entries
+// use for adding, so the two places that mine agree with each other.
+import { mdiFileDocumentCheckOutline, mdiFileDocumentPlusOutline, mdiImagePlusOutline, mdiOpenInNew } from '@mdi/js';
 import type { SearchResult } from '~/types/search';
 // The singleton, not `usePostHog()`. That composable resolves through
 // `useNuxtApp()`, which throws when it is reached from a detached async
 // continuation -- and the outcome below is reported after `await fetchWord`,
 // which is exactly one. Same reasoning, and the same import, as `reportError`.
 import posthog from 'posthog-js';
+import { NESTED_IN_TOKEN_TOOLTIP_KEY } from '~/composables/useDropdownState';
 
 type Props = {
   tokens: Token[];
@@ -35,6 +51,8 @@ type Props = {
 
 const props = defineProps<Props>();
 const { locale } = useI18n();
+const router = useRouter();
+const localePath = useLocalePath();
 
 // Whether the card, once open, can carry real definitions. Not a rollout switch
 // -- the card itself ships to everyone now -- but a capability one: it is
@@ -62,6 +80,9 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
   return enrichTokens(props.tokens as SlimToken[], props.highlight);
 });
 
+const { closeAllDropdowns, tokenTooltipEpoch, isTokenTooltipOpen } = useDropdownState();
+provide(NESTED_IN_TOKEN_TOOLTIP_KEY, true);
+
 const hoveredToken = ref<EnrichedToken | null>(null);
 const tooltipStyle = ref<Record<string, string>>({});
 const tooltipRef = ref<HTMLElement | null>(null);
@@ -80,7 +101,16 @@ const PREFETCH_DELAY = 140;
 // what a definition is worth showing in. Same preference the segment
 // translations obey, so a reader who turned English off gets no English here.
 const { englishMode, spanishMode } = useTranslationVisibility();
-const glossLanguages = computed(() => glossPreference(locale.value, { en: englishMode.value, es: spanishMode.value }));
+const { glossLanguages: globalGlossLanguages } = useTranslationLanguages();
+const revealDefinitions = ref(false);
+const definitionModes = computed(() => ({
+  en: revealDefinitions.value ? 'show' : englishMode.value,
+  es: revealDefinitions.value ? 'show' : spanishMode.value,
+}));
+const glossLanguages = computed(() => glossPreference(locale.value, definitionModes.value, globalGlossLanguages.value));
+const hiddenDefinitionLanguages = computed(() =>
+  globalGlossLanguages.value.filter((language) => definitionModes.value[language] === 'hidden'),
+);
 
 // Definitions come from Shirabe, which parsed these tokens and stamped each one
 // with the id of its own entry. Fetched through our server route so the service
@@ -117,10 +147,29 @@ let pendingLookup: string | null = null;
  *  the card empties it, which is what cancels a probe still in flight. */
 const miningWord = computed(() => hoveredToken.value?.dictForm ?? '');
 
-const { minedNoteId, mining, canMine, probeMined, clearMined, openMinedNote, mineSentence } = useWordMining(
-  () => props.result,
-  () => miningWord.value,
+/**
+ * The open card, rendered for a note: headword, reading, ruby, definitions,
+ * pitch and badges.
+ *
+ * Computed off the same refs the card itself renders from, so what lands on the
+ * note is what the reader was looking at when they pressed the button -- in
+ * their gloss languages, with the same senses and the same six-sense cap. It
+ * recomputes when the lookup lands, which is why `useWordMining` reads it
+ * through a getter rather than being handed a value when the card opened.
+ */
+const minedCard = computed(() =>
+  // The sentence goes in so the note can mark WHICH word was mined. Taken from
+  // the result rather than from the tokens, because the token offsets address
+  // exactly this string.
+  minedWord(word.value, hoveredToken.value, glossLanguages.value, props.result?.segment.textJa.content ?? ''),
 );
+
+const { minedNoteId, mining, canConfigureMine, canMine, probeMined, clearMined, openMinedNote, mineSentence } =
+  useWordMining(
+    () => props.result,
+    () => miningWord.value,
+    () => minedCard.value,
+  );
 
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
@@ -360,6 +409,12 @@ const onTokenEnter = (token: EnrichedToken, event: MouseEvent | KeyboardEvent) =
     closeTooltip();
     return;
   }
+  // Token clicks stop before they reach the document, so an open search
+  // dropdown would not see this as an outside click. Close it here instead,
+  // otherwise the word card and the Add/Copy/… menu sit on screen together.
+  closeAllDropdowns();
+  isTokenTooltipOpen.value = true;
+  revealDefinitions.value = false;
   hoveredToken.value = token;
   hoveredElement = event.currentTarget as HTMLElement;
   stopHeadword();
@@ -397,6 +452,7 @@ const closeTooltip = () => {
 
   hoveredToken.value = null;
   hoveredElement = null;
+  isTokenTooltipOpen.value = false;
   stopHeadword();
   if (returnTo?.isConnected) returnTo.focus();
   // Reset, so the next open never inherits this one's tail. A request abandoned
@@ -405,10 +461,18 @@ const closeTooltip = () => {
   // forever -- the card reopened stuck on "Looking up…" until something else
   // happened to reset it.
   word.value = null;
+  revealDefinitions.value = false;
   wordState.value = 'idle';
   pendingLookup = null;
   clearMined();
 };
+
+// A search menu (Add, Copy, visibility, recents, …) opened elsewhere. The Anki
+// menu inside this card opts out via `preserveTokenTooltip`, so it does not
+// bump the generation and does not land here.
+watch(tokenTooltipEpoch, () => {
+  if (hoveredToken.value) closeTooltip();
+});
 
 // With the card opened by click it no longer closes when the pointer leaves, so
 // it needs its own dismissals. A click anywhere outside it and Escape are the
@@ -672,6 +736,12 @@ const pitchPatterns = computed(() => {
 
 // 5 and 6. The senses, and the kanji the headword is written with.
 const senses = computed(() => cardSenses(word.value, glossLanguages.value));
+const definitionsAreHidden = computed(
+  () => word.value !== null && senses.value.length === 0 && hiddenDefinitionLanguages.value.length > 0,
+);
+const revealHiddenDefinitions = () => {
+  revealDefinitions.value = true;
+};
 const kanjiChips = computed(() =>
   kanjiIn(headword.value).map((character) => ({
     character,
@@ -710,6 +780,17 @@ const mineThisSentence = () => {
   void mineSentence();
 };
 
+/** The sentence, its audio and its still, without touching the word's own
+ *  fields -- for a card whose definition the reader wrote themselves. */
+const addContextOnly = () => {
+  void mineSentence({ wordFields: false });
+};
+
+const openAnkiSettings = () => {
+  closeTooltip();
+  void router.push(localePath('/user/sync'));
+};
+
 const dictionaryLinks = computed(() => {
   const token = hoveredToken.value;
   if (!token) return [];
@@ -728,6 +809,71 @@ const dictionaryLinks = computed(() => {
       }))
   );
 });
+
+/**
+ * What the card is showing RIGHT NOW, in the same buckets `word_card_opened`
+ * reports.
+ *
+ * Derived from rendered state rather than remembered from the fetch, which is
+ * the point: this is read at the moment a reader gives up on the card and
+ * leaves, so it has to say what was in front of them then. `revealDefinitions`
+ * can turn a `no_senses` card into a `shown` one without any fetch happening.
+ *
+ * 'loading' is a real bucket and not a gap in the others -- a reader who clicks
+ * out while the spinner is still up never saw a definition to be dissatisfied
+ * with, and folding those into `no_senses` would blame the dictionary for the
+ * lookup being slow.
+ */
+const cardOutcome = computed<'shown' | 'no_senses' | 'missing' | 'loading' | 'idle'>(() => {
+  if (wordState.value === 'loading') return 'loading';
+  if (wordState.value === 'missing') return 'missing';
+  if (word.value === null) return 'idle';
+  return senses.value.length > 0 ? 'shown' : 'no_senses';
+});
+
+/**
+ * A reader leaving the card for a dictionary, classified by which one.
+ *
+ * The question this exists to answer is not "how much traffic do we send
+ * Shirabe" -- it is "when the card had an answer, how often did the reader go
+ * looking for a second opinion anyway". That needs `outcome` on the click
+ * itself: a click on Jisho off a `missing` card is the card working as intended
+ * and handing the reader on, while the same click off a `shown` card is the
+ * definition not being good enough. Reading either one without the other tells
+ * you nothing, and joining back to `word_card_opened` in a funnel would drop
+ * every reader who opened the card more than once.
+ *
+ * `position` because the row is ordered and the first chip is clicked more for
+ * being first. Without it, Shirabe's share is unreadable -- it always leads.
+ *
+ * No `sendBeacon` dance: every one of these links is `target="_blank"`, so the
+ * page it fires from is still there when the request goes out.
+ */
+function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSurface, position: number): void {
+  if (!posthog.__loaded) return;
+
+  const ref = hoveredToken.value?.lookupRef;
+  posthog.capture('dictionary_link_clicked', {
+    dictionary,
+    surface,
+    // Whether the reader was leaving the dictionary the card is built from, or
+    // leaving it FOR something else. Derivable from `dictionary`, but only if
+    // you know which preset is `required`, and that has moved once already.
+    left_shirabe: dictionary !== 'shirabe',
+    outcome: cardOutcome.value,
+    position,
+    // How many other dictionaries this reader had switched on. A reader with
+    // five enabled leaves for one of them more often than a reader with none
+    // does, and that is a preference setting rather than a verdict on the card.
+    alternatives_enabled: dictionaryLinks.value.filter((link) => link.id !== 'shirabe').length,
+    lemma: ref?.lemma ?? null,
+    pos: ref?.pos || null,
+    // Same pair `word_card_opened` carries, so the two can be sliced together:
+    // an empty card is usually a gloss-language story, and so is leaving one.
+    gloss_locale: glossLanguages.value.order[0] ?? null,
+    label_locale: glossLanguages.value.labels,
+  });
+}
 </script>
 
 <template>
@@ -820,31 +966,80 @@ const dictionaryLinks = computed(() => {
 
                  `result` gates it too: the mine sends this SENTENCE, and a
                  caller that did not hand one over has nothing to send. -->
-            <span v-if="canMine && result" class="token-tooltip__tools">
-              <!-- Only when the collection says so. An always-present control
-                   that is sometimes a no-op would be the easier thing to build
-                   and would throw away the answer: the star's absence is what
-                   tells the reader this word is new to them. -->
-              <button
+            <span v-if="canConfigureMine && result" class="token-tooltip__tools">
+              <!--
+                One control, whose shape says which situation the reader is in.
+
+                A word that is new to them has exactly one thing to do, so it is
+                a button and clicking it does that thing. A word they already
+                have has two, and they are easy to confuse at 16px -- looking at
+                the card and adding this sentence to it are different verbs with
+                no obvious icons -- so those become a menu that names them in
+                words. Two bare icons side by side was the version that made
+                nobody sure which one they were about to press.
+              -->
+              <template v-if="canMine">
+              <SearchDropdownContainer
                 v-if="minedNoteId !== null"
-                type="button"
-                class="token-tooltip__tool is-mined"
-                :aria-label="$t('tokenTooltip.openInAnki')"
-                :title="$t('tokenTooltip.openInAnki')"
-                @click="viewMinedNote"
-              >
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiStarCheckOutline" fill="currentColor" /></svg>
-              </button>
+                dropdownId="nd-word-mine"
+                dropdown-container-class="absolute top-full right-0 z-50 w-64 mt-1.5">
+                <template #default="{ toggle, isOpen }">
+                  <button
+                    type="button"
+                    data-testid="word-mined-menu"
+                    class="token-tooltip__tool is-mined"
+                    :disabled="mining"
+                    :aria-expanded="isOpen"
+                    :aria-label="$t('tokenTooltip.minedActions')"
+                    :title="$t('tokenTooltip.minedActions')"
+                    @click="toggle()">
+                    <span v-if="mining" class="token-tooltip__spinner" />
+                    <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentCheckOutline" fill="currentColor" /></svg>
+                  </button>
+                </template>
+
+                <!-- No `close()` here: the container closes itself on any
+                     button clicked inside the menu. -->
+                <template #content>
+                  <SearchDropdownItem
+                    :text="$t('tokenTooltip.openInAnki')"
+                    :iconPath="mdiOpenInNew"
+                    @click="viewMinedNote" />
+                  <SearchDropdownItem
+                    :text="$t('tokenTooltip.mineContextOnly')"
+                    :iconPath="mdiImagePlusOutline"
+                    @click="addContextOnly" />
+                  <SearchDropdownItem
+                    :text="$t('tokenTooltip.mineToNote')"
+                    :iconPath="mdiFileDocumentPlusOutline"
+                    @click="mineThisSentence" />
+                </template>
+              </SearchDropdownContainer>
+
+              <!-- New to them: nothing to choose between, so clicking makes the card. -->
               <button
+                v-else
                 type="button"
+                data-testid="word-mine"
                 class="token-tooltip__tool"
                 :disabled="mining"
-                :aria-label="minedNoteId !== null ? $t('tokenTooltip.mineToNote') : $t('tokenTooltip.mineToLastCard')"
-                :title="minedNoteId !== null ? $t('tokenTooltip.mineToNote') : $t('tokenTooltip.mineToLastCard')"
-                @click="mineThisSentence"
-              >
+                :aria-label="$t('tokenTooltip.mineToLastCard')"
+                :title="$t('tokenTooltip.mineToLastCard')"
+                @click="mineThisSentence">
                 <span v-if="mining" class="token-tooltip__spinner" />
-                <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiStarPlusOutline" fill="currentColor" /></svg>
+                <svg v-else viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
+              </button>
+              </template>
+
+              <button
+                v-else
+                type="button"
+                class="token-tooltip__tool is-configuration-required"
+                aria-disabled="true"
+                :aria-label="$t('anki.configRequired')"
+                :title="$t('anki.configRequired')"
+                @click="openAnkiSettings">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               </button>
             </span>
           </div>
@@ -911,6 +1106,14 @@ const dictionaryLinks = computed(() => {
                 </span>
               </li>
             </ol>
+            <button
+              v-else-if="definitionsAreHidden"
+              type="button"
+              class="token-tooltip__pending token-tooltip__reveal"
+              @click="revealHiddenDefinitions"
+            >
+              {{ $t('tokenTooltip.definitionsHidden') }} — {{ $t('tokenTooltip.showDefinitions') }}
+            </button>
             <p v-else-if="wordState === 'loading'" class="token-tooltip__pending">
               <span class="token-tooltip__spinner" aria-hidden="true" />
               <span>{{ $t('tokenTooltip.loading') }}</span>
@@ -925,12 +1128,13 @@ const dictionaryLinks = computed(() => {
 
             <div v-if="kanjiChips.length > 0" class="token-tooltip__kanji">
               <a
-                v-for="chip in kanjiChips"
+                v-for="(chip, index) in kanjiChips"
                 :key="chip.character"
                 :href="chip.href"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="token-tooltip__kanji-link"
+                @click="reportDictionaryClick('shirabe', 'kanji-chip', index)"
               >{{ chip.character }}</a>
             </div>
 
@@ -952,12 +1156,13 @@ const dictionaryLinks = computed(() => {
           <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
             <span class="token-tooltip__links-label">{{ $t('tokenTooltip.lookupIn') }}</span>
             <a
-              v-for="link in dictionaryLinks"
+              v-for="(link, index) in dictionaryLinks"
               :key="link.id"
               :href="link.href"
               target="_blank"
               rel="noopener noreferrer"
               class="token-tooltip__link"
+              @click="reportDictionaryClick(link.id, 'word-card', index)"
             >{{ link.label }}</a>
           </div>
         </div>
@@ -986,8 +1191,8 @@ const dictionaryLinks = computed(() => {
    feature for a reader walking a sentence a word at a time. `focus-visible`
    rather than `focus` so a mouse click does not leave one behind. */
 .token:focus-visible {
-  outline: 2px solid #df848d;
-  outline-offset: 1px;
+  outline: 2px solid var(--input-focus-ring);
+  outline-offset: 2px;
   background-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -1006,13 +1211,13 @@ const dictionaryLinks = computed(() => {
 }
 
 .token--match {
-  color: #df848d;
+  color: var(--accent-soft);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .token--compound {
-  color: #df848d;
+  color: var(--accent-soft);
   opacity: 0.7;
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -1029,24 +1234,16 @@ const dictionaryLinks = computed(() => {
    `.token:hover` above and win on source order -- otherwise pointing at the open
    word would replace the accent with the ordinary hover grey. */
 .token.token--open {
-  background-color: rgba(223, 132, 141, 0.28);
+  background-color: color-mix(in srgb, var(--accent-soft) 28%, transparent);
 }
 
 .token.token--open:hover {
-  background-color: rgba(223, 132, 141, 0.38);
+  background-color: color-mix(in srgb, var(--accent-soft) 38%, transparent);
 }
 
 /* The word card: head, inflection and badges pinned, the reading matter
    scrolling under them, dictionary links pinned at the foot. */
 .token-tooltip {
-  --tt-surface: rgb(30 30 30);
-  --tt-surface-soft: rgb(24 24 24);
-  --tt-line: rgb(60 60 60);
-  --tt-ink: rgb(232 232 232);
-  --tt-ink-muted: rgb(168 168 168);
-  --tt-ink-faint: rgb(138 138 138);
-  --tt-accent: #df848d;
-
   /* absolute, not fixed: the card belongs to the page, so it scrolls away with
      the sentence rather than following the reader. Teleported to <body> so these
      coordinates are page coordinates whatever the segment sits inside. */
@@ -1063,13 +1260,16 @@ const dictionaryLinks = computed(() => {
   width: min(340px, calc(100vw - 24px));
   max-height: min(52vh, 420px);
   padding: 10px 0;
-  background: var(--tt-surface);
-  border: 1px solid var(--tt-line);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  z-index: 50;
+  /* Above `BaseModal`'s z-[60]. The card teleports to <body>, so a z-index
+     inside the modal's stacking context cannot save it: at 50 it opened
+     behind the context dialog and the word looked unclickable. */
+  z-index: 70;
   text-align: left;
   white-space: normal;
-  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-menu);
   overflow: hidden;
 }
 
@@ -1081,7 +1281,7 @@ const dictionaryLinks = computed(() => {
    Suppressing it would be the tidier-looking choice and the wrong one: the
    reader has just been moved somewhere, and this is what tells them where. */
 .token-tooltip:focus-visible {
-  outline: 2px solid var(--tt-accent);
+  outline: 2px solid var(--input-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1097,7 +1297,7 @@ const dictionaryLinks = computed(() => {
    at a glance rather than to fit. `ruby rt` is 0.55em, so the furigana grows
    with it and the head keeps its proportions. */
 .token-tooltip__word {
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 600;
   line-height: 1.25;
   color: white;
@@ -1113,14 +1313,14 @@ a.token-tooltip__word {
 }
 
 a.token-tooltip__word:hover {
-  color: var(--tt-accent);
+  color: var(--accent-soft);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .token-tooltip__reading {
   font-size: 13px;
-  color: var(--tt-accent);
+  color: var(--accent-soft);
 }
 
 /* The Anki corner. `flex: 0 0 auto` against a headword that may shrink, so a
@@ -1151,15 +1351,15 @@ a.token-tooltip__word:hover {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--tt-ink-muted);
+  background: var(--surface-lift);
+  color: var(--ink-muted);
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .token-tooltip__tool:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--tt-ink);
+  background: color-mix(in srgb, white 14%, transparent);
+  color: var(--ink);
 }
 
 .token-tooltip__tool:disabled {
@@ -1167,17 +1367,22 @@ a.token-tooltip__word:hover {
   opacity: 0.6;
 }
 
+.token-tooltip__tool.is-configuration-required {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
 /* Lit, not merely present. This one is a statement about the reader's own
    collection -- they have this word -- and it has to be readable as one at a
    glance from across the card, which a grey icon among grey icons is not. */
 .token-tooltip__tool.is-mined {
-  background: rgba(223, 132, 141, 0.18);
-  color: var(--tt-accent);
+  background: color-mix(in srgb, var(--accent-soft) 18%, transparent);
+  color: var(--accent-soft);
 }
 
 .token-tooltip__tool.is-mined:hover:not(:disabled) {
-  background: rgba(223, 132, 141, 0.3);
-  color: var(--tt-accent);
+  background: color-mix(in srgb, var(--accent-soft) 30%, transparent);
+  color: var(--accent-soft);
 }
 
 /* Quiet beside the pitch until pointed at, and accented while a clip runs so a
@@ -1195,19 +1400,19 @@ a.token-tooltip__word:hover {
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--tt-ink-muted);
+  background: var(--surface-lift);
+  color: var(--ink-muted);
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .token-tooltip__audio:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--tt-ink);
+  background: color-mix(in srgb, white 14%, transparent);
+  color: var(--ink);
 }
 
 .token-tooltip__audio.is-playing {
-  color: var(--tt-accent);
+  color: var(--accent-soft);
 }
 
 .token-tooltip__inflection {
@@ -1215,7 +1420,7 @@ a.token-tooltip__word:hover {
   margin: 4px 0 0;
   padding: 0 14px;
   font-size: 12px;
-  color: var(--tt-ink-faint);
+  color: var(--ink-faint);
 }
 
 .token-tooltip__badges {
@@ -1248,7 +1453,7 @@ a.token-tooltip__word:hover {
 
 .token-tooltip__badge.is-freq {
   background: rgb(48 48 48);
-  color: var(--tt-ink-muted);
+  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1257,6 +1462,25 @@ a.token-tooltip__word:hover {
   min-height: 0;
   overflow-y: auto;
   padding: 0 14px;
+  /* Thumb only. The default track is a filled gutter with a border, which
+     reads as a second column on this card. */
+  scrollbar-width: thin;
+  scrollbar-color: #555 transparent;
+}
+
+.token-tooltip__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.token-tooltip__body::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+
+.token-tooltip__body::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border: none;
+  border-radius: 4px;
 }
 
 /* One mora per cell, an overline over the high ones and a fall after the
@@ -1286,23 +1510,23 @@ a.token-tooltip__word:hover {
   padding: 1px 0;
   font-size: 13px;
   line-height: 1.4;
-  color: var(--tt-ink);
+  color: var(--ink);
   border-top: 2px solid transparent;
 }
 
 .token-tooltip__mora.is-high {
-  border-top-color: var(--tt-accent);
+  border-top-color: var(--accent-soft);
 }
 
 .token-tooltip__mora.is-drop {
-  border-right: 2px solid var(--tt-accent);
+  border-right: 2px solid var(--accent-soft);
 }
 
 .token-tooltip__downstep {
   margin-left: 6px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--tt-ink-faint);
+  color: var(--ink-faint);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1316,11 +1540,11 @@ a.token-tooltip__word:hover {
   margin: 5px 0;
   font-size: 13px;
   line-height: 1.45;
-  color: var(--tt-ink);
+  color: var(--ink);
 }
 
 .token-tooltip__sense::marker {
-  color: var(--tt-ink-faint);
+  color: var(--ink-faint);
 }
 
 /* Chips rather than a run-on line of prose. JMdict's own labels repeat
@@ -1346,11 +1570,11 @@ a.token-tooltip__word:hover {
   font-weight: 600;
   line-height: 16px;
   white-space: nowrap;
-  color: var(--tt-ink-faint);
+  color: var(--ink-faint);
 }
 
 .token-tooltip__chip--pos {
-  color: var(--tt-accent, #f472b6);
+  color: var(--accent-soft);
 }
 
 .token-tooltip__chip--field {
@@ -1364,7 +1588,23 @@ a.token-tooltip__word:hover {
 .token-tooltip__pending {
   margin: 8px 0 0;
   font-size: 13px;
-  color: var(--tt-ink-faint);
+  color: var(--ink-faint);
+}
+
+.token-tooltip__reveal {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.token-tooltip__reveal:hover,
+.token-tooltip__reveal:focus-visible {
+  color: var(--accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .token-tooltip__kanji {
@@ -1377,21 +1617,21 @@ a.token-tooltip__word:hover {
 .token-tooltip__kanji-link {
   min-width: 30px;
   padding: 3px 7px;
-  border: 1px solid var(--tt-line);
+  border: 1px solid var(--line);
   border-radius: 7px;
   font-size: 17px;
   line-height: 1.2;
   text-align: center;
-  color: var(--tt-ink);
+  color: var(--ink);
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .token-tooltip__kanji-link:hover {
-  background: rgba(223, 132, 141, 0.14);
-  border-color: var(--tt-accent);
-  color: var(--tt-accent);
+  background: color-mix(in srgb, var(--accent-soft) 14%, transparent);
+  border-color: var(--accent-soft);
+  color: var(--accent-soft);
 }
 
 /* Smaller than the segment's own EN/ES badges: this one sits inside a popup
@@ -1407,14 +1647,14 @@ a.token-tooltip__word:hover {
   margin: 0;
   padding: 4px 0;
   font-size: 12px;
-  color: rgb(150 150 150);
+  color: var(--ink-faint);
 }
 
 .token-tooltip__spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid rgb(90 90 90);
-  border-top-color: rgb(190 190 190);
+  border: 2px solid var(--line);
+  border-top-color: var(--ink-muted);
   border-radius: 50%;
   animation: token-tooltip-spin 0.7s linear infinite;
 }
@@ -1437,18 +1677,18 @@ a.token-tooltip__word:hover {
   justify-content: center;
   margin-right: 6px;
   padding: 1px 4px;
-  border: 1px solid var(--tt-line);
+  border: 1px solid var(--line);
   border-radius: 4px;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.03em;
   line-height: 1.4;
-  color: rgb(165 165 165);
+  color: var(--ink-muted);
   vertical-align: 1px;
 }
 
 .token-tooltip__lang.is-spoiler {
-  color: rgb(140 140 140);
+  color: var(--ink-faint);
 }
 
 .token-tooltip__gloss-row {
@@ -1473,7 +1713,7 @@ a.token-tooltip__word:hover {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--tt-accent, #f472b6);
+  color: var(--accent-soft);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1491,7 +1731,9 @@ a.token-tooltip__word:hover {
   border: 0;
   padding: 0;
   background: none;
-  font: inherit;
+  /* Do not use the `font` shorthand here: it resets the title size from
+     `.token-tooltip__word` along with the browser button's font family. */
+  font-family: inherit;
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -1499,7 +1741,7 @@ a.token-tooltip__word:hover {
 }
 
 .token-tooltip__word--action:hover {
-  color: var(--tt-accent, #f472b6);
+  color: var(--accent-soft);
 }
 
 .token-tooltip__links {
@@ -1510,30 +1752,30 @@ a.token-tooltip__word:hover {
   gap: 8px;
   margin-top: 10px;
   padding: 8px 14px 0;
-  border-top: 1px solid var(--tt-line);
+  border-top: 1px solid var(--line);
 }
 
 .token-tooltip__links-label {
   font-size: 11px;
-  color: var(--tt-ink-faint);
+  color: var(--ink-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .token-tooltip__link {
   font-size: 12px;
-  color: rgb(180 200 230);
+  color: var(--ink-muted);
   text-decoration: none;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-lift);
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .token-tooltip__link:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: white;
+  background: color-mix(in srgb, white 14%, transparent);
+  color: var(--ink);
 }
 
 .tooltip-enter-active {
