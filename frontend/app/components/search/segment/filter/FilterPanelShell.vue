@@ -1,24 +1,22 @@
 <script setup lang="ts">
 /**
- * The chrome shared by every sidebar filter panel: the bordered card, a centred
- * header with an optional trailing action, an optional fixed area under it (the
- * media search box), and the one scrolling region that holds the rows.
+ * The chrome shared by every sidebar filter panel: optional controls above
+ * the card (sort), the bordered card itself (title search and rows), an
+ * optional header (the episode back row), and the one scrolling region that
+ * holds the rows.
  *
- * The panel owns its height rather than capping it: it fills whatever the
- * sidebar grid or the mobile drawer gives it, and only the row list scrolls.
- * That single scroll region is the point -- a second one nested inside a
- * scrolling drawer is what made the mobile filters unreadable.
+ * Height is a cap, not a fill: a short list stays the height of its rows, and
+ * a long one shrinks to whatever the sidebar grid or the mobile drawer has left
+ * (`min-h-0`) so only the row list scrolls. Growing to fill was stretching an
+ * empty card down the side of a ten-title search.
  */
 withDefaults(
   defineProps<{
-    title: string;
-    /** Label for the trailing header action; omitted renders no button. */
-    actionLabel?: string;
+    /** Square, edge-to-edge — the mobile drawer, whose own chrome is already the frame. */
+    flush?: boolean;
   }>(),
-  { actionLabel: undefined },
+  { flush: false },
 );
-
-defineEmits<{ action: [] }>();
 
 /**
  * A scrolling list loses width to its scrollbar; the header sits outside it and
@@ -26,8 +24,7 @@ defineEmits<{ action: [] }>();
  * column the counts in the rows sit on. Measured rather than assumed: the gutter
  * is 0 on platforms with overlay scrollbars, 0 for a list short enough not to
  * scroll -- which is why it is not reserved up front, so a short list runs the
- * full width of the card -- and ~15px otherwise. The extra 1px in the header's
- * padding is the row border, which insets a row's contents but not the header's.
+ * full width of the card -- and ~15px otherwise.
  */
 const scrollRegion = ref<HTMLElement | null>(null);
 const scrollbarGutter = ref(0);
@@ -56,28 +53,33 @@ onUnmounted(() => observer?.disconnect());
 </script>
 
 <template>
-  <div class="relative mx-auto w-full flex flex-col flex-1 min-h-0">
+  <div class="relative w-full flex flex-col flex-1 min-h-0">
+    <!-- Sort is a separate action; the title search is part of the list card. -->
+    <div
+      v-if="$slots.before"
+      class="shrink-0 w-full mb-3 flex flex-col gap-3 text-sm"
+      :class="flush ? 'px-4 pt-3' : ''">
+      <slot name="before" />
+    </div>
     <ul
-      class="z-20 divide-y divide-white/5 dark:border-white/5 text-sm xxl:text-base xxm:text-2xl font-medium text-gray-900 rounded-lg overflow-hidden dark:bg-button-primary-main border dark:text-white flex flex-col flex-1 min-h-0">
+      class="z-20 text-sm xxl:text-base xxm:text-2xl font-medium overflow-hidden bg-button-primary-main text-ink flex flex-col flex-1 min-h-0"
+      :class="flush ? 'rounded-none border-0' : 'rounded-lg border border-hairline'">
+      <template v-if="$slots.subheader">
+        <div class="shrink-0 p-4">
+          <slot name="subheader" />
+        </div>
+        <div class="shrink-0 mx-5 border-t border-line-subtle" aria-hidden="true" />
+      </template>
+      <div v-if="$slots.header" class="shrink-0 mx-5 border-t border-line-subtle" aria-hidden="true" />
       <div
-        class="flex items-center w-full px-4 py-2 text-center rounded-t-lg rounded-l-lg shrink-0"
-        :style="{ paddingRight: `calc(1rem + ${scrollbarGutter}px + 1px)` }">
-        <!-- The header is a slot as well as a title so the episode level can put
-             its back row here and still line up with the titles level. -->
-        <slot name="header">
-          <span class="font-medium text-sm flex-1 text-center">{{ title }}</span>
-        </slot>
-        <button
-          v-if="actionLabel"
-          type="button"
-          @click="$emit('action')"
-          :style="{ right: `calc(1rem + ${scrollbarGutter}px + 1px)` }"
-          class="text-xs text-gray-400 hover:text-gray-200 dark:hover:text-white absolute right-4">
-          {{ actionLabel }}
-        </button>
+        v-if="$slots.header"
+        class="shrink-0 flex items-center w-full px-5 py-2.5 text-center bg-sgrayhover"
+        :style="{ paddingRight: `calc(1rem + ${scrollbarGutter}px)` }">
+        <slot name="header" />
       </div>
-
-      <slot name="subheader" />
+      <!-- The first list row deliberately has no top rule. The selected title
+           header supplies both boundaries, matching the list's inset rules. -->
+      <div v-if="$slots.header" class="shrink-0 mx-5 border-t border-line-subtle" aria-hidden="true" />
 
       <div ref="scrollRegion" class="overflow-y-auto overscroll-y-none flex-1 min-h-0">
         <slot />

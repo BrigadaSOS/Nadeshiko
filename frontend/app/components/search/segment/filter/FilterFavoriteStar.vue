@@ -24,11 +24,10 @@ const user = userStore();
 const { isFavorite, atCap, toggleFavorite } = useFavoriteMedia();
 
 /**
- * `mediaPublicId` is nullable because one row in the filter is not a title: the
- * "All" row carries no media, and it is the same `MediaFilterRow` type as the
- * rest. The rule that it gets no star lives here rather than in a `v-if` at each
- * call site -- a `v-for` alias does not narrow through a template `v-if` into a
- * prop type, so expressing it there type-checked nowhere and had to be repeated.
+ * `mediaPublicId` is nullable because the episode rows pass a spacer with no
+ * title -- they are not a thing you star, but the title above them is, and the
+ * empty column keeps those counts under that one. The rule that a missing id
+ * gets no star lives here rather than in a `v-if` at each call site.
  */
 const props = defineProps<{
   media: {
@@ -67,7 +66,7 @@ const onToggle = () => {
     :disabled="atCap && !starred"
     :title="atCap && !starred ? $t('favoriteMedia.capReached') : undefined"
     data-testid="media-filter-favorite"
-    class="shrink-0 p-1 rounded hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
+    class="shrink-0 p-1 rounded hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent outline-none"
     @click.stop="onToggle">
     <svg class="w-4 h-4" :class="starred ? 'text-yellow-400' : 'text-white/40'"
       :fill="starred ? 'currentColor' : 'none'" stroke="currentColor"

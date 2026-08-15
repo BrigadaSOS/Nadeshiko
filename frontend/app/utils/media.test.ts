@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AudioFetchError, describeAudioFetchFailure } from '~/utils/media';
+import {
+  anilistAnimeUrl,
+  AudioFetchError,
+  describeAudioFetchFailure,
+  imdbTitleUrl,
+  mediaSameAsUrls,
+  tmdbUrl,
+} from '~/utils/media';
 
 const AUDIO_URL = 'https://cdn.nadeshiko.co/media/abc/0001.mp3';
 
@@ -108,5 +115,53 @@ describe('describeAudioFetchFailure', () => {
     const attributes = await describeAudioFetchFailure(new AudioFetchError('not-a-url', 'opaque'));
 
     expect(attributes['audio.host']).toBe('unparseable');
+  });
+});
+
+describe('anilistAnimeUrl', () => {
+  it('points at the anime page for that id', () => {
+    expect(anilistAnimeUrl('100077')).toBe('https://anilist.co/anime/100077');
+  });
+});
+
+describe('tmdbUrl', () => {
+  it('uses /movie/ only for movies', () => {
+    expect(tmdbUrl('550', 'MOVIE')).toBe('https://www.themoviedb.org/movie/550');
+  });
+
+  it('uses /tv/ for every other format', () => {
+    expect(tmdbUrl('233452', 'TV')).toBe('https://www.themoviedb.org/tv/233452');
+    expect(tmdbUrl('1', 'OVA')).toBe('https://www.themoviedb.org/tv/1');
+  });
+});
+
+describe('imdbTitleUrl', () => {
+  it('points at the title page for that id', () => {
+    expect(imdbTitleUrl('tt8299938')).toBe('https://www.imdb.com/title/tt8299938');
+  });
+});
+
+describe('mediaSameAsUrls', () => {
+  it('includes every catalog we can spell a URL for', () => {
+    expect(
+      mediaSameAsUrls({
+        airingFormat: 'TV',
+        externalIds: { anilist: '100077', imdb: 'tt8299938', tmdb: '233452', youtube: 'UCabc' },
+      }),
+    ).toEqual([
+      'https://anilist.co/anime/100077',
+      'https://www.imdb.com/title/tt8299938',
+      'https://www.themoviedb.org/tv/233452',
+      'https://www.youtube.com/channel/UCabc',
+    ]);
+  });
+
+  it('skips TMDB when the format is unknown, rather than guessing the path', () => {
+    expect(mediaSameAsUrls({ externalIds: { tmdb: '233452' } })).toEqual([]);
+  });
+
+  it('skips missing and empty ids', () => {
+    expect(mediaSameAsUrls({ externalIds: { anilist: '', imdb: null, youtube: undefined } })).toEqual([]);
+    expect(mediaSameAsUrls(null)).toEqual([]);
   });
 });

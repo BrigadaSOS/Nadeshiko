@@ -45,7 +45,7 @@ const localePath = useLocalePath();
     <SearchDropdownContainer
       v-else
       dropdownId="nd-hidden-results"
-      dropdown-container-class="absolute top-full left-0 z-50 w-72 max-w-[calc(100vw-2rem)] text-left bg-white dark:bg-neutral-800 shadow-lg rounded-lg p-3 mt-1.5 border border-white/10">
+      dropdown-container-class="absolute top-full left-0 z-50 w-72 max-w-[calc(100vw-2rem)] p-3 mt-1.5">
       <template #default="{ toggle, isOpen }">
         <span class="inline-flex flex-wrap items-center gap-x-1">
           <i18n-t
@@ -69,24 +69,24 @@ const localePath = useLocalePath();
       </template>
 
       <template #content>
-        <p class="text-xs font-medium text-white/70 mb-2">{{ $t('searchContainer.hiddenResultsBreakdownTitle') }}</p>
+        <p class="text-xs font-medium text-ink mb-2">{{ $t('searchContainer.hiddenResultsBreakdownTitle') }}</p>
 
-        <p v-if="breakdownLoading" class="text-xs text-white/40">
+        <p v-if="breakdownLoading" class="text-xs text-ink-faint">
           {{ $t('searchContainer.hiddenResultsBreakdownLoading') }}
         </p>
         <p v-else-if="breakdownError" class="text-xs text-red-400">
           {{ $t('searchContainer.hiddenResultsBreakdownError') }}
         </p>
-        <p v-else-if="!breakdown?.length" class="text-xs text-white/40">
+        <p v-else-if="!breakdown?.length" class="text-xs text-ink-faint">
           {{ $t('searchContainer.hiddenResultsBreakdownEmpty') }}
         </p>
         <ul v-else data-testid="hidden-results-breakdown" class="max-h-64 overflow-auto -mx-1">
           <li
             v-for="row in breakdown"
             :key="row.name"
-            class="flex items-center gap-3 px-1 py-1.5 text-xs text-white/70">
+            class="flex items-center gap-3 px-1 py-1.5 text-xs text-ink-muted">
             <span class="flex-1 min-w-0 break-words">{{ row.name }}</span>
-            <span class="shrink-0 bg-neutral-700 text-white rounded-lg px-2 py-0.5">{{ row.count }}</span>
+            <span class="shrink-0 bg-control text-ink rounded-lg px-2 py-0.5">{{ row.count }}</span>
           </li>
         </ul>
       </template>

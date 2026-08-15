@@ -181,3 +181,45 @@ describe('ssrAuthFetch', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * The cache has to be ONE cache no matter how many times this module is
+ * instantiated, and in this app it is instantiated twice: `ssrAuthFetch` is
+ * called from `app/plugins/identity-auth.ts`, which Vite compiles into the SSR
+ * bundle, while `dropSessionEntries` is called from `server/utils/backendProxy.ts`,
+ * which Nitro compiles into its own. Two bundles, two copies of every
+ * module-level `const`.
+ *
+ * That is not a hypothetical. With a plain `const store = new Map()`, the proxy
+ * deleted entries out of a map nothing read, so a reader arriving without the
+ * `nd-prefs-version` stamp -- a second browser, a private window, a Playwright
+ * context built per test -- was served pre-change preferences for the rest of
+ * the TTL. Measured against the running stack, not deduced: hiding a title and
+ * re-rendering with only the session cookie still returned the title.
+ *
+ * `vi.resetModules()` plus a re-import is the closest a unit test gets to a
+ * second bundle -- it forces a genuinely separate module instance, which is the
+ * property under test.
+ */
+describe('one cache across module instances', () => {
+  it('lets a second instance of this module see and invalidate the first one’s entries', async () => {
+    const event = fakeEvent('nadeshiko.session_token=shared-tok');
+
+    const first = await import('./ssrAuthCache');
+    await first.ssrAuthFetch(event, async () => 'cached-by-first');
+
+    vi.resetModules();
+    const second = await import('./ssrAuthCache');
+    expect(second).not.toBe(first);
+
+    // Reads through: the entry the first instance wrote is served, not refetched.
+    const seen = await second.ssrAuthFetch(event, async () => 'fetched-again');
+    expect(seen).toBe('cached-by-first');
+
+    // And a drop from the second instance is visible to the first, which is the
+    // direction the proxy actually invalidates in.
+    second.dropSessionEntries(event);
+    const afterDrop = await first.ssrAuthFetch(event, async () => 'refetched');
+    expect(afterDrop).toBe('refetched');
+  });
+});

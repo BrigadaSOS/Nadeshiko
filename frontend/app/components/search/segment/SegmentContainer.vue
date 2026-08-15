@@ -42,7 +42,6 @@ const executeRemove = (publicId: string) => {
   confirmingRemoveId.value = null;
   emit('remove-from-collection', publicId);
 };
-const { locale } = useI18n();
 const resultList = computed(() => props.searchData?.results ?? []);
 
 const playerStore = usePlayerStore();
@@ -56,6 +55,7 @@ const { mediaName } = useMediaName();
 const { isMediaHidden } = useHiddenMedia();
 const { shouldBlur, isRestricted } = useContentRating();
 const { englishMode, spanishMode } = useTranslationVisibility();
+const { languages: translationLanguages } = useTranslationLanguages();
 
 const { isAnyModalOpen } = useModalState();
 
@@ -212,12 +212,10 @@ const segmentLanguageLabel: Record<OrderedSegmentLang, string> = {
   textEs: 'ES',
 };
 
-// Order segment according to website language
+// The account setting decides the normal display order. Search visibility still
+// decides which of those rows are rendered on this surface.
 const orderedSegmentLangs = computed<OrderedSegmentLang[]>(() => {
-  if (locale.value === 'en') {
-    return ['textEn', 'textEs'];
-  }
-  return ['textEs', 'textEn'];
+  return translationLanguages.value.map((language) => (language === 'EN' ? 'textEn' : 'textEs'));
 });
 
 const segmentLangRows = computed(() =>
@@ -391,16 +389,20 @@ watch(playingVideoId, (id) => {
       @close="reportTarget = null"
     />
 
+    <div class="flex flex-col gap-4">
     <div v-for="(result, index) in resultList" :key="result.segment.publicId"
       :id="result.segment.publicId"
       data-testid="segment-card"
       :data-focused="focusedIndex === index ? 'true' : 'false'"
-      class="items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2 relative yomitan-ignore"
+      class="items-stretch b-2 min-[650px]:rounded-lg group transition-all flex flex-col min-[650px]:flex-row relative yomitan-ignore"
       :class="{
-        'bg-neutral-800 hover:bg-neutral-800': currentResult && result.segment.publicId === currentResult.segment.publicId,
-        'bg-neutral-800/20': highlightedPosition != null && result.segment.position === highlightedPosition,
-        'bg-neutral-700/30 hover:bg-neutral-700/35': focusedIndex === index && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
-        'hover:bg-neutral-800/20': focusedIndex !== index && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
+        'nd-row-active': currentResult && result.segment.publicId === currentResult.segment.publicId,
+        'nd-row-highlight': highlightedPosition != null && result.segment.position === highlightedPosition
+          && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
+        'nd-row-focus': focusedIndex === index
+          && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
+        'nd-row-hover': focusedIndex !== index
+          && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
       }">
       <!-- Image -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] aspect-video min-[650px]:aspect-auto min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
@@ -468,7 +470,7 @@ watch(playingVideoId, (id) => {
           <div class="flex items-center justify-between py-1">
             <!-- Audio button (plays the inline YouTube embed for YouTube segments) -->
             <button data-testid="audio-play-button" @click="playerStore.setPlaylist(resultList, index)"
-              class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-white/10 dark:hover:bg-white/30 dark:text-neutral-400 dark:hover:text-neutral-300">
+              class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-hairline bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300">
               <UiBaseIcon v-if="!((isPlaying && currentResult && currentResult.segment.publicId === result.segment.publicId) || playingVideoId === result.segment.publicId)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
               <span v-else
@@ -497,7 +499,7 @@ watch(playingVideoId, (id) => {
                 class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-orange-700/50 bg-orange-100 px-2.5 py-1.5 font-semibold leading-none text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 whitespace-nowrap shrink-0 self-center yomitan-ignore">
                 <span class="text-[11px]">{{ $t('segment.nsfwTag') }}</span>
                 <span
-                  class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                  class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-surface border border-hairline px-3 py-1.5 text-sm font-medium text-ink shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
                   role="tooltip">
                   {{ $t('segment.contentRatingDescription.SENSITIVE') }}
                   <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
@@ -507,7 +509,7 @@ watch(playingVideoId, (id) => {
                 class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-red-700/50 bg-red-100 px-2.5 py-1.5 font-semibold leading-none text-red-800 dark:bg-red-900/40 dark:text-red-300 whitespace-nowrap shrink-0 self-center yomitan-ignore">
                 <span class="text-[11px]">{{ $t('segment.nsfwTag') }}</span>
                 <span
-                  class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
+                  class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-surface border border-hairline px-3 py-1.5 text-sm font-medium text-ink shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/nsfw:opacity-100 group-hover/nsfw:visible"
                   role="tooltip">
                   {{ $t('segment.contentRatingDescription.SENSITIVE') }}
                   <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
@@ -526,7 +528,7 @@ watch(playingVideoId, (id) => {
                 :key="row.lang">
                 <span
                   :data-testid="`translation-badge-${segmentLanguageLabel[row.lang]}`"
-                  class="inline-flex w-9 items-center justify-center rounded-md border border-neutral-600/80 bg-neutral-700/60 px-2.5 py-1.5 text-[11px] font-semibold leading-none tracking-wide transition-all duration-200"
+                  class="inline-flex w-9 items-center justify-center rounded-md border border-hairline bg-control px-2.5 py-1.5 text-[11px] font-semibold leading-none tracking-wide transition-all duration-200"
                   :class="row.isSpoiler ? 'text-neutral-300/80' : 'text-neutral-200'">
                   {{ segmentLanguageLabel[row.lang] }}
                 </span>
@@ -551,7 +553,7 @@ watch(playingVideoId, (id) => {
                     <UiBaseIcon display="inline-block" vertical-align="top" :path="mdiTranslate" fill="#DDDF" w="w-4"
                       h="h-4" size="19" />
                     <span
-                      class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-1.5 text-sm font-medium text-white shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible"
+                      class="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-surface border border-hairline px-3 py-1.5 text-sm font-medium text-ink shadow-lg opacity-0 invisible transition-opacity duration-150 z-20 group-hover/mt-tooltip:opacity-100 group-hover/mt-tooltip:visible"
                       role="tooltip">
                       {{ $t('searchpage.main.labels.mtTooltip') }}
                       <span class="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-800"></span>
@@ -635,6 +637,7 @@ watch(playingVideoId, (id) => {
         </div>
       </div>
       <!-- End Details -->
+    </div>
     </div>
 
     <div v-if="isLoading" class="text-center">

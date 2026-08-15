@@ -10,12 +10,6 @@ function isValidMode(value: unknown): value is FuriganaVisibilityMode {
   return value === 'show' || value === 'spoiler' || value === 'hidden';
 }
 
-function nextMode(current: FuriganaVisibilityMode): FuriganaVisibilityMode {
-  if (current === 'show') return 'spoiler';
-  if (current === 'spoiler') return 'hidden';
-  return 'show';
-}
-
 export function useHiraganaVisibility() {
   const { state: furiganaMode, set } = useCookiePreference<FuriganaVisibilityMode>(COOKIE_NAME, 'hiragana-visibility', {
     parse: (raw) => (isValidMode(raw) ? raw : 'show'),
@@ -23,9 +17,10 @@ export function useHiraganaVisibility() {
     serialize: (mode) => (mode === 'show' ? null : mode),
   });
 
-  const cycleFuriganaMode = () => {
-    set(nextMode(furiganaMode.value));
+  const setFuriganaMode = (mode: FuriganaVisibilityMode) => {
+    if (furiganaMode.value === mode) return;
+    set(mode);
   };
 
-  return { furiganaMode, cycleFuriganaMode };
+  return { furiganaMode, setFuriganaMode };
 }
