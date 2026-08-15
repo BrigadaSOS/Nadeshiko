@@ -28,7 +28,7 @@ const closeNavSidebar = () => {
 
 function openLoginModal() {
   closeNavSidebar();
-  showLoginModal();
+  showLoginModal('header');
 }
 
 async function logout() {
@@ -54,7 +54,7 @@ watch(() => route.fullPath, closeNavSidebar);
 </script>
 <template>
     <header
-        class="relative flex flex-wrap md:justify-start md:flex-nowrap w-full bg-white py-3 lg:py-2 dark:bg-header-background yomitan-ignore">
+        class="relative flex flex-wrap md:justify-start md:flex-nowrap w-[100vw] bg-white py-3 lg:py-2 dark:bg-header-background yomitan-ignore">
         <nav class="nd-page px-4 md:px-0 md:flex md:items-center md:justify-between text-xs">
             <div class="flex items-center justify-between">
                 <div class="flex mr-7">
@@ -132,10 +132,10 @@ watch(() => route.fullPath, closeNavSidebar);
                     </div>
                     <CommonLanguageSelector />
                     <SearchDropdownContainer data-testid="profile-dropdown" dropdownId="nd-dropdown-profile"
-                        dropdownContainerClass="absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+                        dropdownContainerClass="absolute top-full right-0 z-50 min-w-60 mt-1">
                         <template #default>
                             <SearchDropdownMainButton
-                                dropdownButtonClass="py-2 px-4 inline-flex w-full items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg border hover:bg-black/5 hover:border-white/70 transition-all text-gray-800 disabled:opacity-50 disabled:pointer-events-none dark:text-white"
+                                dropdownButtonClass="py-2 px-4 inline-flex w-full items-center gap-x-2 text-xs sm:text-xs font-semibold rounded-lg border hover:bg-black/5 hover:border-white/70 transition-all disabled:opacity-50 disabled:pointer-events-none text-white"
                                 dropdownId="nd-dropdown-profile">
                                 <UiBaseIcon :path="mdiAccountCircleOutline" />
                                 {{ $t("navbar.buttons.profile") }}
@@ -145,22 +145,25 @@ watch(() => route.fullPath, closeNavSidebar);
                             <SearchDropdownContent :header="$t('navbar.buttons.profile')">
                                 <ClientOnly>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/settings')" data-testid="nav-settings" :prefetch="false">
-                                        <SearchDropdownItem :text="$t('navbar.buttons.settings')" />
+                                        <SearchDropdownItem :text="$t('navbar.buttons.settings')" :icon-path="mdiCogOutline" />
                                     </NuxtLink>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/sync')" data-testid="nav-anki" :prefetch="false">
-                                        <SearchDropdownItem :text="$t('accountSettings.tabs.sync')" />
+                                        <SearchDropdownItem :text="$t('accountSettings.tabs.sync')" :icon-path="mdiSync" />
                                     </NuxtLink>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/collections')" data-testid="nav-collections" :prefetch="false">
-                                        <SearchDropdownItem :text="$t('navbar.buttons.collections')" />
+                                        <SearchDropdownItem :text="$t('navbar.buttons.collections')" :icon-path="mdiFormatListBulletedSquare" />
                                     </NuxtLink>
                                     <NuxtLink v-if="isAuth" :to="localePath('/user/activity')" data-testid="nav-activity" :prefetch="false">
-                                        <SearchDropdownItem :text="$t('navbar.buttons.activity')" />
+                                        <SearchDropdownItem :text="$t('navbar.buttons.activity')" :icon-path="mdiHistory" />
                                     </NuxtLink>
-                                    <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
-                                    <hr v-if="isAuth" class="my-1 border-neutral-700" />
-                                    <SearchDropdownItem v-if="isAuth" data-testid="nav-logout" @click="logout" :text="$t('navbar.buttons.logout')" />
+                                    <NuxtLink v-if="isAuth" :to="localePath('/user/media')" data-testid="nav-media" :prefetch="false">
+                                        <SearchDropdownItem :text="$t('accountSettings.tabs.media')" :icon-path="mdiMovieOpenOutline" />
+                                    </NuxtLink>
+                                    <SearchDropdownItem v-if="!isAuth || isAuth == null" data-testid="nav-login" :icon-path="mdiLogin" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
+                                    <div v-if="isAuth" class="nd-menu-divider" />
+                                    <SearchDropdownItem v-if="isAuth" data-testid="nav-logout" :icon-path="mdiLogout" @click="logout" :text="$t('navbar.buttons.logout')" />
                                     <template #fallback>
-                                        <SearchDropdownItem @click="openLoginModal" :text="$t('navbar.buttons.login')" />
+                                        <SearchDropdownItem :icon-path="mdiLogin" @click="openLoginModal" :text="$t('navbar.buttons.login')" />
                                     </template>
                                 </ClientOnly>
                             </SearchDropdownContent>
@@ -178,12 +181,12 @@ watch(() => route.fullPath, closeNavSidebar);
         transition="nd-drawer"
         z-index-class="z-[80]"
         overlay-class="md:hidden"
-        panel-class="h-full max-w-xs w-full bg-white border-s dark:bg-neutral-800 dark:border-neutral-700"
+        panel-class="h-full max-w-xs w-full bg-surface border-s border-hairline"
         :label="$t('common.navigationMenu')"
         @close="closeNavSidebar"
     >
 
-        <div class="flex items-center justify-between py-3 px-4 border-b dark:border-neutral-700">
+        <div class="flex justify-between items-center py-3 px-4 border-b border-hairline">
             <NuxtLink :to="localePath('/')" class="inline-flex items-center font-semibold text-gray-800 dark:text-white">
                 <img src="/logo-38d6e06a.webp" class="h-7 mr-2.5 rounded-semi" :alt="$t('common.logoAlt')" />
                 Nadeshiko
@@ -199,10 +202,10 @@ watch(() => route.fullPath, closeNavSidebar);
         </div>
 
         <div class="flex flex-col h-[calc(100%-57px)]">
-            <div class="px-4 py-3 border-b dark:border-neutral-700">
+            <div class="px-4 py-3 border-b border-hairline">
                 <div class="relative">
                     <input v-model="sidebarSearch" v-on="sidebarEnterSubmit"
-                        class="w-full pl-9 pr-3 py-2 bg-neutral-700/50 text-white text-sm rounded-lg border border-white/10 placeholder-neutral-400 focus:outline-none focus:border-input-focus-ring"
+                        class="nd-input pl-9"
                         :placeholder="$t('common.searchAnything')" />
                     <UiBaseIcon :path="mdiMagnify" :size="16"
                         class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
@@ -237,7 +240,7 @@ watch(() => route.fullPath, closeNavSidebar);
                 </NuxtLink>
             </div>
 
-            <div class="border-t dark:border-neutral-700 py-2">
+            <div class="border-t border-hairline py-2">
                 <ClientOnly>
                     <template v-if="isAuth">
                         <NuxtLink :to="localePath('/user/settings')"
@@ -259,6 +262,11 @@ watch(() => route.fullPath, closeNavSidebar);
                             class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
                             <UiBaseIcon :path="mdiHistory" :size="18" />
                             {{ $t('navbar.buttons.activity') }}
+                        </NuxtLink>
+                        <NuxtLink :to="localePath('/user/media')"
+                            class="nd-sidebar-link flex items-center gap-3 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                            <UiBaseIcon :path="mdiMovieOpenOutline" :size="18" />
+                            {{ $t('accountSettings.tabs.media') }}
                         </NuxtLink>
                     </template>
                     <button v-if="!isAuth" @click="openLoginModal"
@@ -282,7 +290,7 @@ watch(() => route.fullPath, closeNavSidebar);
                 </ClientOnly>
             </div>
 
-            <div class="mt-auto border-t dark:border-neutral-700 py-3 px-5">
+            <div class="mt-auto border-t border-hairline py-3 px-5">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <a href="https://discord.gg/c6yGwbXruq"

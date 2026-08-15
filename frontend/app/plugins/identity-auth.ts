@@ -124,21 +124,11 @@ export default defineNuxtPlugin({
     }
 
     if (import.meta.client) {
-      const identify = () => {
-        if (!store.isLoggedIn || !store.userName) return;
-        const posthog = usePostHog();
-        posthog?.identify(store.userName, { email: store.userEmail ?? undefined });
-        posthog?.capture('$set', {
-          $set: {
-            content_rating: store.preferences?.contentRatingPreferences,
-            media_name_language: store.preferences?.mediaNameLanguage,
-            has_anki_configured: (store.preferences?.ankiProfiles?.length ?? 0) > 0,
-            hidden_media_count: store.preferences?.hiddenMedia?.length ?? 0,
-            hidden_categories: store.preferences?.hiddenCategories ?? [],
-            default_search_category: store.preferences?.defaultSearchCategory ?? 'ALL',
-          },
-        });
-      };
+      // Not just an identify: this is also where a signup or a login is noticed,
+      // by comparing the account in session against the last one this browser
+      // reported. `auth-callback` calls it again on an auth landing to catch the
+      // case that comparison cannot see -- the same reader signing back in.
+      const identify = () => reconcileAnalyticsIdentity({ viaCallback: false });
 
       // A signed-in reader arrives already populated: Pinia restores its state
       // from the payload in its own plugin, which runs before this one. What is
