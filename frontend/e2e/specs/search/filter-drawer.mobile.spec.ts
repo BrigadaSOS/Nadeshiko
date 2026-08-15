@@ -12,9 +12,9 @@ const QUERY = '学校';
  * That covering is the whole subject here. Every assertion below checks the
  * drawer's own state as well as the filter's, because the regression these
  * tests exist for changed neither the URL nor the results: picking a title set
- * `?media=` correctly and the list underneath re-rendered correctly, and the
- * reader saw none of it, because the drawer stayed open on top. A filter that
- * cannot be seen has not been applied as far as the reader is concerned.
+ * `?media=` correctly and the list underneath re-rendered correctly. The
+ * drawer intentionally stays open now, so the assertions make sure the panel
+ * itself continues into the selected title's episode level.
  *
  * The desktop specs cannot catch it -- there is no drawer above `2xl` -- so
  * this file runs under the `mobile` project, which is what the `.mobile.spec.ts`
@@ -32,16 +32,15 @@ async function openDrawer(page: Page) {
 /**
  * The title rows, identified by the `data-row-id` the panel stamps on each one.
  *
- * That attribute carries the media's publicId, so it is exactly the rows that
- * filter to something: the "All" row pinned above them has no id, and matching
- * on the word "All" instead would also throw away any title that happens to
- * contain it.
+ * That attribute carries the media's publicId, so matching on it rather than
+ * the word "All" (which used to be a row) cannot throw away a title that
+ * happens to contain it.
  */
 function titleRows(page: Page) {
   return drawer(page).locator('[data-testid="media-filter-row"][data-row-id]');
 }
 
-/** The episode level has no "All", so every row there is an episode. */
+/** The episode level is only episodes; every row there is one. */
 function episodeRows(page: Page) {
   return drawer(page).getByTestId('media-filter-row');
 }
@@ -52,7 +51,7 @@ async function rowLabel(row: ReturnType<typeof titleRows>): Promise<string> {
 }
 
 test.describe('Media filter drawer (mobile)', () => {
-  test('picking a title closes the drawer onto the filtered results', async ({ page }) => {
+  test('picking a title keeps the drawer open on its episode level', async ({ page }) => {
     const search = new SearchPage(page);
     await search.goto(QUERY);
     await search.expectResultsVisible();
@@ -61,7 +60,7 @@ test.describe('Media filter drawer (mobile)', () => {
     const title = await rowLabel(titleRows(page).first());
     await titleRows(page).first().click();
 
-    await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
+    await expect(drawer(page)).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
 
     // The filter did land, and the word survived it: a drawer that closes onto
@@ -80,13 +79,12 @@ test.describe('Media filter drawer (mobile)', () => {
     // only a title with episodes behind it has one -- a movie stays on the list.
     await openDrawer(page);
     await titleRows(page).first().click();
-    await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
+    await expect(drawer(page)).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
     await search.expectResultsVisible();
 
-    // Reopening lands on the episode level, because `?media=` is what puts it
-    // there -- the level is read from the URL, never stored.
-    await openDrawer(page);
+    // The URL moves the existing open panel into the episode level; the level
+    // is read from the URL, never stored.
     const back = drawer(page).getByTestId('media-filter-back');
     if (!(await back.isVisible().catch(() => false))) {
       test.skip(true, `the first title matching ${QUERY} has no episode level`);
@@ -123,6 +121,37 @@ test.describe('Media filter drawer (mobile)', () => {
     await back.click();
     await expect(drawer(page)).toBeVisible();
     await expect(page).not.toHaveURL(/media=/, { timeout: 10_000 });
+    await expect(titleRows(page).first()).toBeVisible();
+  });
+
+  test('backing out of a browsed title keeps the drawer open', async ({ page }) => {
+    const search = new SearchPage(page);
+    // Bare `/search`, not a word: picking a title leaves this page for
+    // `/media/<slug>`, and back comes back by remounting `/search`. A
+    // drawer held in a local ref died on that remount, so going back to the
+    // all list looked like it had closed the filter.
+    await search.goto();
+    await search.expectResultsVisible();
+
+    await openDrawer(page);
+    await titleRows(page).first().click();
+    await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
+    await expect(page).toHaveURL(/\/media\//, { timeout: 10_000 });
+    await search.expectResultsVisible();
+    await expect(drawerToggle(page)).toBeVisible({ timeout: 10_000 });
+
+    await openDrawer(page);
+    const back = drawer(page).getByTestId('media-filter-back');
+    if (await back.isVisible().catch(() => false)) {
+      await back.click();
+    } else {
+      // A movie never drills in: a second click on the title already in scope
+      // drops it, the same way a second click on an episode does.
+      await titleRows(page).first().click();
+    }
+
+    await expect(drawer(page)).toBeVisible();
+    await expect(page).toHaveURL(/\/search\/?(?:\?|$)/, { timeout: 10_000 });
     await expect(titleRows(page).first()).toBeVisible();
   });
 

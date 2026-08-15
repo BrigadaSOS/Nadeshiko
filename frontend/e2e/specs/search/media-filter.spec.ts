@@ -2,6 +2,8 @@ import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
 const QUERY = '学校';
+const NO_MATCH_IN_MEDIA_QUERY = '網羅';
+const MEDIA_ID = 'o5TILLJ9oQi0';
 
 /**
  * Narrowing a search by title or episode, from inside a result card.
@@ -32,6 +34,60 @@ test.describe('Media filter', () => {
     // the one that was clicked, and the sentences are still about the word.
     await expect(search.segmentCards.first().getByTestId('segment-media-name')).toContainText(mediaName);
     await expect(search.segmentCards.first().getByTestId('segment-japanese-text')).toContainText(QUERY);
+  });
+
+  test('a scoped word search keeps an All tab that clears only the media filter', async ({ page }) => {
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    await search.segmentCards.first().getByTestId('segment-media-name').click();
+    await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
+    await search.expectCategoryTabsVisible();
+
+    const allTab = page.getByTestId('search-category-tab-all');
+    await expect(allTab).toBeVisible();
+    await expect(allTab).toContainText('All');
+    await allTab.click();
+
+    await expect(page).not.toHaveURL(/media=/, { timeout: 10_000 });
+    expect(search.searchedWord()).toBe(QUERY);
+    await expect(search.searchInput).toHaveValue(QUERY);
+    await search.expectResultsVisible();
+  });
+
+  test('an empty scoped word search still offers All', async ({ page }) => {
+    const search = new SearchPage(page);
+    await page.goto(`/search/${encodeURIComponent(NO_MATCH_IN_MEDIA_QUERY)}?media=${MEDIA_ID}`);
+    await search.expectHydrated();
+
+    const allTab = page.getByTestId('search-category-tab-all');
+    await expect(allTab).toBeVisible();
+    await expect(allTab).toContainText('All');
+    await allTab.click();
+
+    await expect(page).not.toHaveURL(/media=/, { timeout: 10_000 });
+    expect(search.searchedWord()).toBe(NO_MATCH_IN_MEDIA_QUERY);
+    await expect(allTab).toBeVisible();
+    await expect(allTab).toContainText('All');
+  });
+
+  test('an empty scoped word search names the selected title', async ({ page }) => {
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    const mediaName = (await search.segmentCards.first().getByTestId('segment-media-name').textContent())!.trim();
+    await search.segmentCards.first().getByTestId('segment-media-name').click();
+    await expect(page).toHaveURL(/media=/, { timeout: 10_000 });
+    const mediaId = new URL(page.url()).searchParams.get('media')!;
+
+    await page.goto(`/search/${encodeURIComponent(NO_MATCH_IN_MEDIA_QUERY)}?media=${mediaId}`);
+    await search.expectHydrated();
+
+    const selectedMediaTab = page.getByTestId('search-category-tab-media');
+    await expect(selectedMediaTab).toContainText(mediaName);
+    await expect(selectedMediaTab).not.toContainText('Selected title');
   });
 
   test('clicking an episode keeps the query and adds the episode', async ({ page }) => {

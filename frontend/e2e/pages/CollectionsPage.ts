@@ -53,7 +53,7 @@ export class CollectionsPage {
 
   async renameCollection(row: Locator, newName: string) {
     await this.openMenuFor(row);
-    await row.getByTestId('collection-rename-action').click();
+    await this.page.getByTestId('collection-rename-action').click();
     await expect(this.renameInput).toBeVisible({ timeout: 5_000 });
     await this.renameInput.clear();
     await this.renameInput.fill(newName);
@@ -63,7 +63,7 @@ export class CollectionsPage {
 
   async deleteCollection(row: Locator) {
     await this.openMenuFor(row);
-    await row.getByTestId('collection-delete-action').click();
+    await this.page.getByTestId('collection-delete-action').click();
     await expect(this.deleteSubmit).toBeVisible({ timeout: 5_000 });
     await this.deleteSubmit.click();
   }

@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -8,6 +9,50 @@ import { E2E_AUTH_STATE_PATH } from './auth-state';
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
 
 const BASE_URL = getE2EBaseUrl();
+
+/**
+ * Which Chromium to drive.
+ *
+ * CI keeps Google Chrome: the runner images ship it, and the release workflows
+ * only `playwright install chromium` for its system deps -- so the channel is
+ * what actually launches there, and pinning a real Chrome is the point (it is
+ * the browser the readers use, codecs and all).
+ *
+ * A developer machine need not have it. Any Chromium build does the job, so
+ * `E2E_BROWSER_PATH` takes an explicit binary, and failing that a Brave install
+ * is picked up where Chrome is absent -- otherwise the whole suite dies at
+ * launch with "Chromium distribution 'chrome' is not found", which says nothing
+ * about the tests. Bundled Chromium is the last resort: it is always installed,
+ * so this never leaves someone with no browser at all.
+ */
+const BRAVE_PATHS = [
+  '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+  '/usr/bin/brave-browser',
+  '/usr/bin/brave',
+  'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+];
+const CHROME_PATHS = [
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/usr/bin/google-chrome',
+  '/opt/google/chrome/chrome',
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+];
+
+function chromiumLauncher(): { channel?: string; executablePath?: string } {
+  const explicit = process.env.E2E_BROWSER_PATH;
+  if (explicit) return { executablePath: explicit };
+  if (CHROME_PATHS.some((path) => existsSync(path))) return { channel: 'chrome' };
+
+  const brave = BRAVE_PATHS.find((path) => existsSync(path));
+  if (brave) return { executablePath: brave };
+
+  // No channel and no path: Playwright's own Chromium, which `npx playwright
+  // install` has already put on any machine that can run this suite.
+  return {};
+}
+
+const CHROMIUM = chromiumLauncher();
+
 // Specs that need a signed-in session. The `authenticatedPage` fixture only
 // hands back the page -- the session comes from this project's `storageState` --
 // so a spec left off this list runs signed out and its `/v1/user/**` calls 401.
@@ -17,7 +62,7 @@ const BASE_URL = getE2EBaseUrl();
 // so `activity` does NOT cover `activity-privacy.spec.ts`. A spec that looks
 // covered but is not runs signed out and dies in `beforeEach`.
 const AUTHENTICATED_TESTS =
-  /(activity|activity-privacy|admin-reports|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
+  /(activity|activity-privacy|admin-reports|anki-deck-model|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
 
 /**
  * SMOKE MODE, set by the production release workflow. Staging keeps the whole
@@ -98,7 +143,7 @@ export default defineConfig({
       testMatch: SMOKE ? SMOKE_AUTHENTICATED : AUTHENTICATED_TESTS,
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
+        ...CHROMIUM,
         storageState: E2E_AUTH_STATE_PATH,
       },
     },
@@ -110,7 +155,7 @@ export default defineConfig({
       testIgnore: [/mobile\.spec\.ts$/, /auth\.setup\.ts$/, AUTHENTICATED_TESTS],
       use: {
         ...devices['Desktop Chrome'],
-        channel: 'chrome',
+        ...CHROMIUM,
       },
     },
     // Mobile is viewport behaviour, which cannot differ between staging and
@@ -123,7 +168,7 @@ export default defineConfig({
             testMatch: /mobile\.spec\.ts$/,
             use: {
               ...devices['Desktop Chrome'],
-              channel: 'chrome',
+              ...CHROMIUM,
               viewport: { width: 390, height: 844 },
               isMobile: true,
               hasTouch: true,

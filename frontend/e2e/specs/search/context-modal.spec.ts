@@ -87,6 +87,31 @@ test.describe('Context modal', () => {
     expect(centeredOffset as number).toBeLessThan(150);
   });
 
+  test('word card opens above the context modal', async ({ page }) => {
+    const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
+    await contextButton.click();
+
+    const modal = page.locator('[data-testid="context-modal"]:not(.hidden)');
+    await expect(modal).toHaveCount(1, { timeout: 10_000 });
+    await expect(modal.getByTestId('segment-card').first()).toBeVisible({ timeout: 10_000 });
+
+    // The card teleports to <body>. A z-index below the dialog left it opening
+    // behind the overlay, so a click on a word in this modal looked dead.
+    const tokens = modal.locator('.token-text .token[role="button"]');
+    await expect(tokens.first()).toBeVisible();
+    await tokens.first().click();
+
+    const card = page.locator('.token-tooltip');
+    await expect(card).toBeVisible({ timeout: 5_000 });
+
+    const onTop = await card.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + 12);
+      return !!hit && (hit === el || el.contains(hit));
+    });
+    expect(onTop).toBe(true);
+  });
+
   test('context modal can be closed', async ({ page }) => {
     const contextButton = search.segmentCards.first().getByRole('button', { name: 'Context' });
     await contextButton.click();

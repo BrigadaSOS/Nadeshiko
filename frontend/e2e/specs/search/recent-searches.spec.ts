@@ -197,6 +197,20 @@ test.describe('Recent searches', () => {
     await expect(search.recentsItem('猫')).toHaveCount(1);
   });
 
+  test('opening a result dropdown closes the recents menu', async ({ page }) => {
+    await seedRecents(page);
+    await search.goto('学校');
+    await search.expectResultsVisible();
+    await search.openRecents();
+    await expect(search.recentsMenu).toBeVisible();
+
+    const copy = search.segmentCards.first().getByTestId('copy-dropdown');
+    await copy.getByTestId('dropdown-toggle').click();
+
+    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+    await expect(search.recentsMenu).toBeHidden();
+  });
+
   test('clearing empties the list', async ({ page }) => {
     await seedRecents(page);
     await search.goto();

@@ -38,9 +38,15 @@ export class MediaPage {
     await expect(this.listItems.first()).toBeVisible({ timeout: 15_000 });
   }
 
+  /**
+   * A card now opens the title's own page at `/media/<slug>`, not the old
+   * `/search?media=<publicId>` browse -- that URL is a permanent redirect onto
+   * this one. The wait is on the destination rather than on the redirect, so a
+   * card that stopped linking anywhere still fails here.
+   */
   async clickFirstMedia() {
     await this.mediaCardContainers.first().getByTestId('media-card-title').click();
-    await this.page.waitForURL(/\/search\?media=/);
+    await this.page.waitForURL(/\/media\/[^/?]+$/);
   }
 
   async search(query: string) {

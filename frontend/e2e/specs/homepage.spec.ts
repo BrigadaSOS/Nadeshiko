@@ -31,12 +31,15 @@ test.describe('Homepage', () => {
     await expect(page).toHaveURL(/\/search\//);
   });
 
-  test('clicking a media card navigates to filtered search', async ({ page }) => {
+  test('clicking a media card opens that title’s own page', async ({ page }) => {
     const home = new HomePage(page);
     await home.goto();
     await home.expectRecentMediaVisible();
 
     await home.mediaCards.first().click();
-    await expect(page).toHaveURL(/\/search\?media=/);
+    // Slug, not `/search?media=<publicId>`: a title now has its own page, and the
+    // old browse URL is a permanent redirect onto it. Same change as the catalog
+    // card in media.spec.ts.
+    await expect(page).toHaveURL(/\/media\/[a-z0-9-]+$/);
   });
 });

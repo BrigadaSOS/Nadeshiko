@@ -11,13 +11,16 @@ test.describe('Media catalog', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('clicking a media card navigates to its search results', async ({ page }) => {
+  test('clicking a media card opens that title’s own page', async ({ page }) => {
     const media = new MediaPage(page);
     await media.goto();
     await media.expectLoaded();
     await media.clickFirstMedia();
 
-    await expect(page).toHaveURL(/\/search\?media=/);
+    // Slug, not public ID: the title page is the shareable, indexable URL, and
+    // `/search?media=<publicId>` now redirects here rather than rendering a
+    // browse of its own.
+    await expect(page).toHaveURL(/\/media\/[a-z0-9-]+$/);
   });
 
   test('each media card shows a title', async ({ page }) => {
@@ -59,6 +62,7 @@ test.describe('Media catalog', () => {
 
     const animeCount = await media.getMediaCount();
     expect(animeCount).toBeGreaterThan(0);
+    await expect(media.categoryDropdown).toContainText('Anime');
   });
 
   test('list view renders media items', async ({ page }) => {
