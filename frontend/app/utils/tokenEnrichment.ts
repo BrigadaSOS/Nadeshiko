@@ -98,6 +98,45 @@ export function furiganaOf(token: SlimToken): FuriganaSegment[] {
 }
 
 /**
+ * Append ruby segments to a field already under construction, in Anki's
+ * `漢字[かんじ]` notation.
+ *
+ * Takes what has been written so far rather than returning a piece to join,
+ * because the separator rule below is a question about the character before the
+ * segment, not about the segment itself -- so a caller assembling a sentence out
+ * of pieces could not apply it without reimplementing it.
+ */
+function appendAnkiFurigana(result: string, segments: FuriganaSegment[]): string {
+  for (const seg of segments) {
+    // The leading space is a DELIMITER -- it marks where the previous word's
+    // kana ended -- so it is only wanted where there is not one already: at
+    // the start of the field, or after whitespace the content itself carries.
+    // Anki renders a doubled one literally.
+    //
+    // This used to be a `replace(/^ /, '')` at the end, which is the same rule
+    // applied to the start of the string alone. That was enough while a
+    // sentence was one segment, because an interior gap before a kanji word is
+    // rare. An expanded sentence meets one at every join -- the segments are
+    // merged with a space, and the next word begins right after it.
+    const separator = seg.reading && result !== '' && !/\s$/.test(result) ? ' ' : '';
+    result += seg.reading ? `${separator}${seg.text}[${seg.reading}]` : seg.text;
+  }
+  return result;
+}
+
+/**
+ * One word on its own in Anki furigana notation, e.g. `手加減[てかげん]`.
+ *
+ * The standalone counterpart to `tokensToAnkiFurigana`, sharing its rule rather
+ * than restating it: a headword mined into its own field is the same notation
+ * with nothing before it, so the separator never fires and the difference is
+ * only that there is no surrounding sentence to slice gaps out of.
+ */
+export function furiganaNotation(segments: FuriganaSegment[]): string {
+  return appendAnkiFurigana('', segments);
+}
+
+/**
  * Render a tokenized sentence in Anki furigana notation, e.g.
  * `そっか　10 年[ねん] 前[まえ]の 初恋[はつこい]`. Each kanji run is followed by its
  * reading in brackets and prefixed with a separator space (the Anki convention
@@ -112,20 +151,7 @@ export function tokensToAnkiFurigana(content: string, tokens: SlimToken[]): stri
     if (token.b > pos) {
       result += content.slice(pos, token.b);
     }
-    for (const seg of furiganaOf(token)) {
-      // The leading space is a DELIMITER -- it marks where the previous word's
-      // kana ended -- so it is only wanted where there is not one already: at
-      // the start of the field, or after whitespace the content itself carries.
-      // Anki renders a doubled one literally.
-      //
-      // This used to be a `replace(/^ /, '')` at the end, which is the same rule
-      // applied to the start of the string alone. That was enough while a
-      // sentence was one segment, because an interior gap before a kanji word is
-      // rare. An expanded sentence meets one at every join -- the segments are
-      // merged with a space, and the next word begins right after it.
-      const separator = seg.reading && result !== '' && !/\s$/.test(result) ? ' ' : '';
-      result += seg.reading ? `${separator}${seg.text}[${seg.reading}]` : seg.text;
-    }
+    result = appendAnkiFurigana(result, furiganaOf(token));
     pos = token.e;
   }
 

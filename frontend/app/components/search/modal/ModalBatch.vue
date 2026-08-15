@@ -117,7 +117,7 @@ watch(inputText, (newValue) => {
             {{ showResults ? t("batchSearch.results.title") : t("batchSearch.title") }}
           </h3>
           <button type="button" @click="closeModal"
-            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800">
+            class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 transition-all text-sm">
             <span class="sr-only">{{ t('modalBatch.closeSrOnly') }}</span>
             <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none"
               xmlns="http://www.w3.org/2000/svg">
@@ -143,7 +143,7 @@ watch(inputText, (newValue) => {
                 </p>
 
                 <textarea v-model="inputText" autocomplete="off" rows="10"
-                  class="block p-2.5 w-full text-sm text-gray-900 rounded-lg border border-gray-300 focus:ring-white/50 focus:border-white/50 dark:bg-modal-input dark:border-white/5 dark:placeholder-gray-400 dark:text-white dark:focus:ring-white/10 dark:focus:border-white/10"
+                  class="nd-input"
                   :placeholder="t('modalBatch.examplePlaceholder')"></textarea>
 
               </div>
@@ -254,18 +254,18 @@ watch(inputText, (newValue) => {
         <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
           <template v-if="!showResults">
             <button type="button" @click="getWordMatch"
-              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-input-focus-ring transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800">
+              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white">
               {{ t("batchSearch.search") }}
             </button>
             <button type="button"
-              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-input-focus-ring transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800"
+              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white"
               @click="closeModal">
               {{ t("batchSearch.close") }}
             </button>
           </template>
           <template v-else>
             <button type="button" @click="goBackToInput"
-              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-input-focus-ring transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white dark:focus:ring-offset-gray-800">
+              class="h-14 lg:h-12 py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-sgray text-gray-700 shadow-sm align-middle hover:bg-sgrayhover transition-all text-sm dark:border-modal-border dark:text-white dark:hover:text-white">
               {{ t("batchSearch.results.return") }}
             </button>
           </template>
