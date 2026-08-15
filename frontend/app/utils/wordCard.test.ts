@@ -52,6 +52,15 @@ describe('glossPreference', () => {
     expect(preference('en', 'spoiler', 'spoiler').order).toEqual(['en', 'es']);
   });
 
+  it('uses the saved global order instead of the interface language', () => {
+    expect(glossPreference('en', { en: 'show', es: 'show' }, ['es', 'en']).order).toEqual(['es', 'en']);
+  });
+
+  it('does not fall back to a globally excluded language', () => {
+    const spanishOnly = glossPreference('en', { en: 'show', es: 'show' }, ['es']);
+    expect(texts(selectDefinitions(ENGLISH_ONLY, spanishOnly))).toEqual([]);
+  });
+
   it('resolves tag labels into the primary enabled language, not the interface one', () => {
     expect(preference('en').labels).toBe('en');
     expect(preference('es').labels).toBe('es');
@@ -353,5 +362,11 @@ describe('shirabe links', () => {
     expect(new URL(shirabeWordUrl('焼ける-やける', 'es')).pathname).toBe(
       '/es/word/%E7%84%BC%E3%81%91%E3%82%8B-%E3%82%84%E3%81%91%E3%82%8B',
     );
+  });
+
+  it('can name a different surface without changing the path', () => {
+    const url = new URL(shirabeWordUrl('焼ける-やける', 'en', 'anki-definition'));
+    expect(url.pathname).toBe('/en/word/%E7%84%BC%E3%81%91%E3%82%8B-%E3%82%84%E3%81%91%E3%82%8B');
+    expect(url.searchParams.get('utm_content')).toBe('anki-definition');
   });
 });

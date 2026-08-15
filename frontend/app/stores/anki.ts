@@ -73,11 +73,22 @@ interface NotesInfoResponse {
 }
 
 import type { SearchResult } from '~/types/search';
+import type { MinedWord } from '~/utils/ankiWord';
+import { deckNotesQuery, mostCommonModel } from '~/utils/ankiMining';
 import { defineStore } from 'pinia';
 import { userStore } from '@/stores/auth';
 import { handleApiError } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
 import { buildSentencePath } from '~/utils/routes';
+
+/**
+ * How many of a deck's newest notes are read to decide its usual note type.
+ *
+ * Large enough that a handful of strays cannot outvote the real answer, small
+ * enough that the `notesInfo` reply stays a reasonable size -- it carries every
+ * field of every note asked for, which on a mining deck means the full card HTML.
+ */
+const MODEL_SAMPLE_SIZE = 100;
 
 const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
 const DEFAULT_SERVER_ADDRESS = 'http://127.0.0.1:8765';
@@ -103,8 +114,10 @@ export const ankiStore = defineStore('anki', {
   getters: {
     profiles(): AnkiProfile[] {
       // Anki profiles are app-owned data kept inside user preferences. The generated schema
-      // describes a subset of what this store writes (`fields` optional there and required
-      // here, no `openBrowserOnExport`), so narrow to the local shape.
+      // still describes a subset of what this store writes (`fields` is optional there and
+      // required here), so narrow to the local shape. `openBrowserOnExport` used to be
+      // missing from it too, which meant the server dropped the field on every save and
+      // turning the setting off silently did nothing; it is declared now.
       return (userStore().preferences?.ankiProfiles ?? []) as AnkiProfile[];
     },
     activeProfile(): AnkiProfile | null {
@@ -291,6 +304,49 @@ export const ankiStore = defineStore('anki', {
       return [];
     },
 
+    /**
+     * The note type a deck is mostly made of, for prefilling the picker.
+     *
+     * A deck can hold notes of any number of types, so there is no such thing as
+     * "the deck's note type" -- but in practice a mining deck is one type with a
+     * handful of strays, and making the reader name it themselves is a step that
+     * only ever has one sensible answer. A suggestion, not a rule: the picker
+     * stays a picker.
+     *
+     * Sampled from the MOST RECENT notes rather than the whole deck, and both
+     * halves of that matter. Recent, because a deck that was reorganised months
+     * ago should be answered by what the reader adds now, not by whatever they
+     * imported in 2019. Sampled, because `notesInfo` returns every field of
+     * every note it is asked about -- on a 40k-note deck that is megabytes of
+     * card HTML crossing the wire to count a string.
+     *
+     * Returns null rather than throwing on any failure. This runs while the
+     * reader is picking a deck, and a suggestion that cannot be made is not an
+     * error worth interrupting them for -- they were going to choose anyway.
+     */
+    async mostCommonModelInDeck(deck: string): Promise<string | null> {
+      if (!import.meta.client || !deck) return null;
+
+      try {
+        const query = deckNotesQuery(deck);
+        if (!query) return null;
+
+        const found = (await this.executeAction('findNotes', { query })) as FindNotesResponse | null;
+
+        const ids = found?.result ?? [];
+        if (ids.length === 0) return null;
+
+        // `findNotes` returns ids in creation order, so the tail is the newest.
+        const sample = ids.slice(-MODEL_SAMPLE_SIZE);
+        const notesRes = (await this.executeAction('notesInfo', { notes: sample })) as NotesInfoResponse | null;
+
+        return mostCommonModel(notesRes?.result ?? []);
+      } catch (error) {
+        reportError('anki:deck-model-probe-failed', error, { 'anki.deck': deck });
+        return null;
+      }
+    },
+
     async getOrCreateAnkiExportsCollectionId(): Promise<string | null> {
       if (!import.meta.client) return null;
 
@@ -339,8 +395,18 @@ export const ankiStore = defineStore('anki', {
       }
     },
 
+    /** The sentence-level entry points, which have no selected word to send.
+     *  Kept positional so the two callers that predate `MinedWord` are untouched. */
     async addSentenceToAnki(sentence: SearchResult, id?: number, method?: string) {
-      await this.addResultToAnki(sentence, id, method);
+      // The menu normally prevents this, but keep the feature safe if a stale
+      // page or another caller reaches it after the key field was cleared.
+      // Without a key, a sentence-level export has no reliable card identity.
+      if (!this.activeProfile?.key?.trim()) {
+        const { $i18n } = useNuxtApp();
+        useToastError($i18n.t('anki.toast.keyFieldRequired'));
+        return;
+      }
+      await this.addResultToAnki(sentence, { noteId: id, method });
     },
 
     /**
@@ -353,8 +419,35 @@ export const ankiStore = defineStore('anki', {
      * value would scatter its exports across the other two and leave no way to
      * tell whether the button is used at all. Callers that do not care keep the
      * old derivation.
+     *
+     * `word` is the open card's own content, and only the word card has one: the
+     * sentence-level exports are reached from a dropdown that never asked which
+     * word the sentence is about. Its absence is not a failure -- see the
+     * `{word-*}` cases below for what a note gets in that case, which is
+     * deliberately nothing rather than blanks.
+     *
+     * `create` says the collection was ASKED about this word and answered no, so
+     * a new note is the right target. It is not "there was no note id": that is
+     * also true when the profile has no expression field to search on, and the
+     * question was never put. Creating on a guess would mean a duplicate note
+     * for every word a reader mines twice, so the caller has to have asked.
      */
-    async addResultToAnki(sentence: SearchResult, id?: number, method?: string) {
+    async addResultToAnki(
+      sentence: SearchResult,
+      options: { noteId?: number; method?: string; word?: MinedWord; create?: boolean; wordFields?: boolean } = {},
+    ) {
+      const { noteId: id, method, word: minedWord } = options;
+      /**
+       * Whether the word's own fields are part of this write.
+       *
+       * False is "enrich the card I already have with this sentence": the reader
+       * has a note whose definition they wrote, or Yomitan wrote, and they want
+       * Nadeshiko's example on it without their glossary being replaced. The
+       * marked sentence is deliberately NOT gated on this -- it is context about
+       * the sentence, not a fact about the word.
+       */
+      const withWordFields = options.wordFields !== false;
+      const creating = !id && options.create === true;
       if (!import.meta.client) return;
       const { $i18n } = useNuxtApp();
       const locale = $i18n.locale.value;
@@ -408,7 +501,7 @@ export const ankiStore = defineStore('anki', {
 
         let cardID = id;
 
-        if (!id) {
+        if (!id && !creating) {
           const queryParts = [];
           let queryString = '';
           queryParts.push(`"deck:${profile.deck}"`);
@@ -439,19 +532,37 @@ export const ankiStore = defineStore('anki', {
           cardID = latestCard;
         }
 
-        const infoResponse = (await this.executeAction('notesInfo', { notes: [cardID] })) as NotesInfoResponse | null;
-        if (!infoResponse?.result) {
-          throw new Error('AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?');
+        // Skipped when creating: there is no note to read yet, and the only thing
+        // this answer is used for is the id to write back to.
+        let infoCard: AnkiNote[] = [];
+        if (!creating) {
+          const infoResponse = (await this.executeAction('notesInfo', { notes: [cardID] })) as NotesInfoResponse | null;
+          if (!infoResponse?.result) {
+            throw new Error('AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?');
+          }
+          infoCard = infoResponse.result;
         }
-        const infoCard = infoResponse.result;
 
         const needsImage = profile.fields.some((f) => f.value?.includes('{image}'));
         const needsAudio = profile.fields.some((f) => f.value?.includes('{sentence-audio}'));
+        // Both halves have to be true: the reader mapped a field to it, AND this
+        // word has a recording. Coverage is per clip, so asking for one that was
+        // never generated would spend a round trip to be told nothing.
+        const needsWordAudio =
+          withWordFields && profile.fields.some((f) => f.value?.includes('{word-audio}')) && !!minedWord?.audioUrl;
 
         let imageResult: any = null;
         let audioResult: any = null;
+        let wordAudioResult: any = null;
 
         const mediaRequests: Promise<any>[] = [];
+
+        // A failed still or clip must not abort the rest of the note: the
+        // sentence text can still land, and a missing file is the same
+        // situation as a field the reader never mapped.
+        const ignoreMediaFailure = (error: unknown, kind: string) => {
+          reportError(`anki:store-${kind}-failed`, error, { 'segment.publicId': sentence.segment.publicId });
+        };
 
         if (needsImage) {
           const req = this.executeAction('storeMediaFile', {
@@ -460,7 +571,7 @@ export const ankiStore = defineStore('anki', {
           }).then((r) => {
             imageResult = r;
           });
-          mediaRequests.push(req);
+          mediaRequests.push(req.catch((error: unknown) => ignoreMediaFailure(error, 'image')));
         }
 
         if (needsAudio) {
@@ -479,9 +590,27 @@ export const ankiStore = defineStore('anki', {
             });
           }
           mediaRequests.push(
-            req.then((r) => {
-              audioResult = r;
-            }),
+            req
+              .then((r) => {
+                audioResult = r;
+              })
+              .catch((error: unknown) => ignoreMediaFailure(error, 'audio')),
+          );
+        }
+
+        if (needsWordAudio && minedWord?.audioUrl && minedWord.audioFilename) {
+          // By URL, like the still: the clip is on Shirabe's public CDN and
+          // AnkiConnect fetches it itself, so nothing has to come through the
+          // page and there is no CORS to satisfy.
+          mediaRequests.push(
+            this.executeAction('storeMediaFile', {
+              filename: minedWord.audioFilename,
+              url: minedWord.audioUrl,
+            })
+              .then((r) => {
+                wordAudioResult = r;
+              })
+              .catch((error: unknown) => ignoreMediaFailure(error, 'word-audio')),
           );
         }
 
@@ -491,17 +620,46 @@ export const ankiStore = defineStore('anki', {
           await this.guiBrowse('nid:1 nid:2');
         }
 
+        // `word` last, after every `word-*` it is a prefix of. The closing brace
+        // in the pattern below means backtracking would sort this out anyway --
+        // `word` cannot be followed by `}` in `{word-reading}` -- but relying on
+        // that puts the reader's reading field one regex tweak away from being
+        // filled with the headword, and the order costs nothing.
         const allowedFields = [
           'sentence-jp',
           'content_jp_highlight',
           'sentence-es',
           'sentence-en',
-          'image',
           'sentence-audio',
           'sentence-info',
+          'word-furigana',
+          'word-reading',
+          'word-audio',
+          'word-pitch-num',
+          'word-pitch',
+          'word-info',
+          'definition',
+          'image',
           'empty',
+          'word',
         ];
         const fieldsNew: Record<string, string> = {};
+
+        /**
+         * Write a word-level field, or leave it exactly as it was.
+         *
+         * The skip is the whole point. These fields are only ever filled from
+         * the word card, and the other two export paths -- the dropdown's "last
+         * added card" and the note picker -- are reached without a word having
+         * been selected at all. Writing a blank there would erase the definition
+         * Yomitan put on the note, which is the one thing this feature must not
+         * do to the readers who already have a working setup. Same discipline
+         * `{image}` and `{sentence-audio}` follow when their upload fails.
+         */
+        const setWordField = (key: string, template: string, placeholder: string, value: string | undefined) => {
+          if (!value) return;
+          fieldsNew[key] = template.replace(`{${placeholder}}`, value);
+        };
 
         profile.fields.forEach((field) => {
           if (field.value) {
@@ -521,18 +679,18 @@ export const ankiStore = defineStore('anki', {
                     `<div>${sentence.segment.textJa.content}</div>`,
                   );
                   break;
-                case 'sentence-es':
-                  fieldsNew[field.key] = field.value.replace(
-                    `{${key}}`,
-                    `<div>${sentence.segment.textEs.content ?? ''}</div>`,
-                  );
+                case 'sentence-es': {
+                  const text = sentence.segment.textEs.content;
+                  if (!text) break;
+                  fieldsNew[field.key] = field.value.replace(`{${key}}`, `<div>${text}</div>`);
                   break;
-                case 'sentence-en':
-                  fieldsNew[field.key] = field.value.replace(
-                    `{${key}}`,
-                    `<div>${sentence.segment.textEn.content ?? ''}</div>`,
-                  );
+                }
+                case 'sentence-en': {
+                  const text = sentence.segment.textEn.content;
+                  if (!text) break;
+                  fieldsNew[field.key] = field.value.replace(`{${key}}`, `<div>${text}</div>`);
                   break;
+                }
                 case 'image':
                   if (imageResult?.result) {
                     fieldsNew[field.key] = field.value.replace(`{${key}}`, `<img src="${imageResult.result}">`);
@@ -541,6 +699,46 @@ export const ankiStore = defineStore('anki', {
                 case 'sentence-audio':
                   if (audioResult?.result) {
                     fieldsNew[field.key] = field.value.replace(`{${key}}`, `[sound:${audioResult.result}]`);
+                  }
+                  break;
+                case 'word':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.word);
+                  break;
+                case 'word-reading':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.reading);
+                  break;
+                case 'word-furigana':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.furigana);
+                  break;
+                case 'definition':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.definition);
+                  break;
+                case 'word-pitch':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.pitch);
+                  break;
+                case 'word-pitch-num':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.pitchPositions);
+                  break;
+                case 'word-info':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.info);
+                  break;
+                /**
+                 * The sentence with the mined word marked.
+                 *
+                 * A placeholder that has been reserved in `allowedFields` since
+                 * before there was a word card to fill it: a field mapped to it
+                 * matched the regex, fell through the switch and was silently
+                 * left alone, so readers who found the name got nothing and no
+                 * error. It is a separate field from `{sentence-jp}` on purpose
+                 * -- the plain one keeps working exactly as it did, and nobody's
+                 * existing cards change shape because this arrived.
+                 */
+                case 'content_jp_highlight':
+                  setWordField(field.key, field.value, key, minedWord?.sentenceHighlight);
+                  break;
+                case 'word-audio':
+                  if (wordAudioResult?.result) {
+                    fieldsNew[field.key] = field.value.replace(`{${key}}`, `[sound:${wordAudioResult.result}]`);
                   }
                   break;
                 case 'sentence-info': {
@@ -558,22 +756,67 @@ export const ankiStore = defineStore('anki', {
           }
         });
 
-        const noteInfo = infoCard[0];
-        if (!noteInfo) {
-          trackExportFailed('no_note_info');
-          useToastError($i18n.t('anki.toast.cardAddError', { error: 'No note info found' }));
-          return;
+        let writtenNoteId: number;
+
+        if (creating) {
+          /**
+           * A word the reader has never mined gets a note of its own.
+           *
+           * Without this the only target was "the newest card added in the last
+           * two days", which assumes something else -- Yomitan -- made the note
+           * first. For a reader mining from Nadeshiko alone there is no such
+           * card, so the export stopped with "add a card first"; and where there
+           * WAS one it belonged to whatever word they last looked up elsewhere,
+           * so mining a new word wrote this sentence, and now this word, over an
+           * unrelated card.
+           *
+           * Only reached when the collection was actually asked and said no --
+           * see `create` on the options. A profile that cannot answer the
+           * question keeps the old fallback rather than guessing, because
+           * guessing wrong here means a duplicate note every time.
+           */
+          const added = (await this.executeAction('addNote', {
+            note: {
+              deckName: profile.deck,
+              modelName: profile.model,
+              fields: fieldsNew,
+              // Findable as a group later, and the thing that tells a reader
+              // months from now where a card came from.
+              tags: ['nadeshiko'],
+              // Anki's own duplicate check, as a backstop to the probe. The two
+              // can disagree -- the probe scopes to the profile's deck, Anki's
+              // scopes to the note type -- and when they do, refusing is the
+              // safe direction: a rejected create is a toast, a wrong one is a
+              // duplicate the reader has to find and merge by hand.
+              options: { allowDuplicate: false },
+            },
+          })) as { result?: number | null; error?: string | null } | null;
+
+          if (!added?.result) {
+            trackExportFailed('create_failed', { error_message: added?.error ?? 'addNote returned no id' });
+            useToastError($i18n.t('anki.toast.cardAddError', { error: added?.error ?? 'could not create the note' }));
+            return;
+          }
+          writtenNoteId = added.result;
+        } else {
+          const noteInfo = infoCard[0];
+          if (!noteInfo) {
+            trackExportFailed('no_note_info');
+            useToastError($i18n.t('anki.toast.cardAddError', { error: 'No note info found' }));
+            return;
+          }
+
+          await this.executeAction('updateNoteFields', {
+            note: {
+              fields: fieldsNew,
+              id: noteInfo.noteId,
+            },
+          });
+          writtenNoteId = noteInfo.noteId;
         }
 
-        await this.executeAction('updateNoteFields', {
-          note: {
-            fields: fieldsNew,
-            id: noteInfo.noteId,
-          },
-        });
-
         if (profile.openBrowserOnExport !== false) {
-          await this.guiBrowse(`nid:${noteInfo.noteId}`);
+          await this.guiBrowse(`nid:${writtenNoteId}`);
         }
         await this.addSegmentToAnkiExportsCollection(sentence);
 

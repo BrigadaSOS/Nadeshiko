@@ -1,7 +1,23 @@
 <script setup lang="ts">
-import { mdiCheckBold, mdiVideo, mdiImage, mdiVolumeHigh, mdiText, mdiPlus, mdiDelete, mdiPencil } from '@mdi/js';
+import {
+  mdiCheckBold,
+  mdiVideo,
+  mdiImage,
+  mdiVolumeHigh,
+  mdiText,
+  mdiPlus,
+  mdiDelete,
+  mdiPencil,
+  mdiBookOpenVariant,
+  mdiChartLine,
+  mdiNumeric,
+  mdiContentCopy,
+  mdiFormatColorHighlight,
+} from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
 import type { AnkiProfile } from '@/stores/anki';
+import { ANKI_CARD_CSS } from '~/utils/ankiWord';
+import { copyToClipboard } from '~/utils/media';
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
@@ -29,6 +45,7 @@ const nameModalMode = ref<'create' | 'rename'>('create');
 let suppressWatchers = false;
 
 const activeProfileId = computed(() => store.activeProfile?.id ?? null);
+const hasKeyField = computed(() => !!modelKey.value?.trim());
 
 const loadFromActiveProfile = () => {
   const profile = store.activeProfile;
@@ -47,13 +64,42 @@ let pendingSaveData: Partial<AnkiProfile> = {};
 // `useTimeoutFn` cancels the pending write on unmount, which is what we want
 // here: a save that lands after the user navigated away would write whatever
 // the form held mid-edit, with nothing left on screen to report a failure.
+/**
+ * "Saved", held on screen after the write rather than a toast.
+ *
+ * Everything on this page autosaves, so a toast per change would fire on every
+ * pause while typing a field template and on each of the eight controls around
+ * it -- an interruption for the one outcome the reader expected. Failure still
+ * toasts, which is the asymmetry worth keeping: silence when it worked, an
+ * interruption when it did not.
+ *
+ * The line it replaces said only "Saving...", and a save takes about a tenth of
+ * a second: it faded in and back out inside a blink, so the reader was told
+ * nothing either way. Lingering is the whole point -- the message has to outlast
+ * the event it is reporting to be read at all.
+ */
+const justSaved = ref(false);
+const { start: holdSavedMessage, stop: cancelSavedMessage } = useTimeoutFn(
+  () => {
+    justSaved.value = false;
+  },
+  2500,
+  { immediate: false },
+);
+
 const { start: scheduleSave } = useTimeoutFn(
   async () => {
     const toSave = { ...pendingSaveData };
     pendingSaveData = {};
     isSaving.value = true;
+    // Cleared up front so a second edit landing while "Saved" is still on screen
+    // reads as the new write in progress, not as the old one still being done.
+    cancelSavedMessage();
+    justSaved.value = false;
     try {
       await store.updateActiveProfile(toSave);
+      justSaved.value = true;
+      holdSavedMessage();
     } catch (error) {
       // Autosave: the user gets no other signal that their field mapping was lost.
       handleApiError('anki:profile-save-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
@@ -77,6 +123,9 @@ const setKeyValueField = (fieldName: string, value: string) => {
     field.value = value;
   }
 };
+
+const ankiCardCss = ANKI_CARD_CSS;
+const copyCardCss = () => copyToClipboard(ankiCardCss);
 
 const switchProfile = async (profileId: string) => {
   suppressWatchers = true;
@@ -214,8 +263,35 @@ watch(selectedModel, async (newValue, oldValue) => {
   }
 });
 
-watch(selectedDeck, (newValue) => {
+/**
+ * Picking a deck suggests the note type that deck is mostly made of.
+ *
+ * Only when nothing is selected yet, and that condition is the whole safety
+ * argument. Changing the note type reloads the field list from the new model,
+ * and any field whose name does not survive loses its mapping -- so a reader who
+ * has already wired up their fields and then changes deck must keep the model
+ * they chose. The suggestion is for the setup that has not happened yet, where
+ * the alternative is a second dropdown with exactly one sensible answer in it.
+ *
+ * `suppressWatchers` is checked here rather than relying on `debouncedSave`'s
+ * own guard, because this does more than save: without it, loading a profile
+ * that has a deck but no model would fire a probe at Anki and write a model the
+ * reader never picked.
+ */
+watch(selectedDeck, async (newValue) => {
   debouncedSave({ deck: newValue || undefined });
+
+  if (suppressWatchers || !newValue || selectedModel.value) return;
+
+  const suggested = await store.mostCommonModelInDeck(newValue);
+
+  // Re-checked after the await: the reader may have picked a model themselves
+  // while Anki was answering, or moved on to a different deck entirely, and
+  // either way the answer in hand is no longer about what is on screen.
+  if (!suggested || selectedModel.value || selectedDeck.value !== newValue) return;
+  if (!modelOptions.value.includes(suggested)) return;
+
+  selectedModel.value = suggested;
 });
 
 watch(modelKey, (newValue) => {
@@ -242,14 +318,12 @@ watch(ankiconnectAddress, (newValue) => {
 <template>
   <div class="anki">
     <!-- AnkiConnect Server Address + Sync Status -->
-    <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.syncStatus') }}</h3>
-        <div class="border-b pt-4 border-white/10" />
-
+    <div class="nd-settings-card">
+        <h3 class="nd-settings-title">{{ $t('accountSettings.anki.syncStatus') }}</h3>
         <div class="mt-4">
-          <label class="block text-sm mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
+          <label class="block mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
           <input v-model="ankiconnectAddress"
-            class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
+            class="nd-input resize-none">
           </input>
         </div>
 
@@ -286,7 +360,7 @@ watch(ankiconnectAddress, (newValue) => {
           </div>
 
           <div v-if="isSuccess" role="alert"
-            class="rounded border-s-4 border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
+            class="rounded-lg border border-green-500 bg-green-50 p-4 dark:border-green-600 dark:bg-green-900">
             <div class="flex items-center gap-2 text-green-800 dark:text-green-100">
               <UiBaseIcon :path="mdiCheckBold" size="20" />
               <strong class="block font-medium">{{ $t('accountSettings.anki.connectionSuccess') }}</strong>
@@ -326,13 +400,12 @@ watch(ankiconnectAddress, (newValue) => {
       </div>
 
     <!-- Profile Selector -->
-    <div v-if="store.profiles.length > 0" class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-      <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.profile') }}</h3>
-      <div class="border-b pt-4 border-white/10" />
+    <div v-if="store.profiles.length > 0" class="nd-settings-card">
+      <h3 class="nd-settings-title">{{ $t('accountSettings.anki.profile') }}</h3>
       <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <select
           :value="activeProfileId"
-          class="flex-grow w-full sm:w-auto resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring"
+          class="nd-input flex-grow sm:w-auto resize-none"
           @change="switchProfile(($event.target as HTMLSelectElement).value)"
         >
           <option v-for="profile in store.profiles" :key="profile.id" :value="profile.id">
@@ -341,7 +414,7 @@ watch(ankiconnectAddress, (newValue) => {
         </select>
         <div class="flex gap-2">
           <button
-            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            class="nd-btn"
             :disabled="isSaving"
             @click="openRenameModal"
           >
@@ -367,20 +440,39 @@ watch(ankiconnectAddress, (newValue) => {
           </button>
         </div>
       </div>
-      <p class="mt-2 text-sm text-gray-400 transition-opacity duration-200" :class="isSaving ? 'opacity-100' : 'opacity-0'">{{ $t('accountSettings.anki.saving') }}</p>
+      <!-- `aria-live="polite"`: the only confirmation a change was kept, and it
+           is a line of text that appears without focus moving to it. -->
+      <p
+        data-testid="anki-save-status"
+        aria-live="polite"
+        class="mt-2 text-sm transition-opacity duration-200"
+        :class="[isSaving || justSaved ? 'opacity-100' : 'opacity-0', justSaved && !isSaving ? 'text-green-400' : 'text-gray-400']">
+        {{ isSaving ? $t('accountSettings.anki.saving') : justSaved ? $t('accountSettings.anki.saved') : '' }}
+      </p>
     </div>
 
     <template v-if="store.activeProfile">
       <!-- Anki Config -->
-      <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md">
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ $t('accountSettings.anki.ankiConfig') }}</h3>
-        <div class="border-b pt-4 border-white/10" />
+      <div class="nd-settings-card">
+        <h3 class="nd-settings-title">{{ $t('accountSettings.anki.ankiConfig') }}</h3>
+        <div
+          v-if="!hasKeyField"
+          data-testid="anki-key-field-warning"
+          role="alert"
+          class="mt-4 rounded border-s-4 border-amber-500 bg-amber-50 p-4 dark:border-amber-400 dark:bg-amber-900/30">
+          <p class="font-medium text-amber-900 dark:text-amber-100">
+            {{ $t('accountSettings.anki.keyFieldRequiredTitle') }}
+          </p>
+          <p class="mt-1 text-sm text-amber-800 dark:text-amber-200">
+            {{ $t('accountSettings.anki.keyFieldRequiredMessage') }}
+          </p>
+        </div>
         <div class="mt-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
             <div class="flex-grow">
-              <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
-              <select v-model="selectedDeck"
-                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
+              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
+              <select v-model="selectedDeck" data-testid="anki-deck-select"
+                class="nd-input resize-none">
                 <option value="">{{ $t('accountSettings.anki.selectDeck') }}</option>
                 <option v-for="(option, index) in deckOptions" :key="index" :value="option">
                   {{ option }}
@@ -388,9 +480,9 @@ watch(ankiconnectAddress, (newValue) => {
               </select>
             </div>
             <div class="flex-grow">
-              <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
-              <select v-model="selectedModel"
-                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
+              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
+              <select v-model="selectedModel" data-testid="anki-model-select"
+                class="nd-input resize-none">
                 <option value="">{{ $t('accountSettings.anki.selectModel') }}</option>
                 <option v-for="(option, index) in modelOptions" :key="index" :value="option">
                   {{ option }}
@@ -403,9 +495,9 @@ watch(ankiconnectAddress, (newValue) => {
         <div class="mt-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
             <div class="flex-grow">
-              <label class="block text-lg mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
-              <select v-model="modelKey"
-                class="w-full resize-none p-3 text-sm text-gray-900 border-1 border-gray-300 rounded-lg dark:bg-input-background dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-input-focus-ring dark:focus:border-input-focus-ring">
+              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
+              <select v-model="modelKey" data-testid="anki-key-field-select"
+                class="nd-input resize-none">
                 <option :value="null">{{ $t('accountSettings.anki.selectKeyField') }}</option>
                 <option v-for="(option, index) in fieldOptions" :key="index" :value="option.key">
                   {{ option.key }}
@@ -430,7 +522,7 @@ watch(ankiconnectAddress, (newValue) => {
                   {{ item.key }}
                 </td>
                 <td class="whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
-                  <div class="border my-3 mx-2 rounded-lg dark:bg-input-background dark:border-white/20">
+                  <div class="border border-hairline my-3 mx-2 rounded-lg bg-input-background">
                     <div class="w-full flex justify-between items-center gap-x-1">
                       <div class="grow py-1 px-3">
                         <input v-model="item.value"
@@ -440,7 +532,7 @@ watch(ankiconnectAddress, (newValue) => {
                       <div class="flex flex-col divide-y text-left border-s border-s-neutral-600">
                         <div>
                           <SearchDropdownContainer dropdownId="nd-dropdown-with-header"
-                            dropdownContainerClass="absolute top-full end-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+                            dropdownContainerClass="absolute top-full end-0 z-50 min-w-60 mt-1">
                             <template #default>
                               <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
                                 <UiBaseIcon />
@@ -448,21 +540,53 @@ watch(ankiconnectAddress, (newValue) => {
                             </template>
                             <template #content>
                               <SearchDropdownContent>
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{image}')"
-                                  :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-audio}')"
-                                  :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-info}')"
-                                  :text="$t('searchpage.main.buttons.info')" :iconPath="mdiText" />
-                                <div
-                                  class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
+                                <div class="nd-menu-label">
+                                  {{ $t('accountSettings.anki.sentenceGroup') }}
                                 </div>
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-jp}')"
                                   :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
+                                <!-- The same sentence with the mined word marked.
+                                     Offered next to the plain one rather than
+                                     replacing it: a reader with cards already
+                                     built keeps the field they mapped. -->
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{content_jp_highlight}')"
+                                  :text="$t('searchpage.main.buttons.jpsentencehighlight')" :iconPath="mdiFormatColorHighlight" />
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-en}')"
                                   :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-es}')"
                                   :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{image}')"
+                                  :text="$t('accountSettings.anki.sentenceImage')" :iconPath="mdiImage" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-audio}')"
+                                  :text="$t('accountSettings.anki.sentenceAudio')" :iconPath="mdiVolumeHigh" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-info}')"
+                                  :text="$t('searchpage.main.buttons.info')" :iconPath="mdiText" />
+                                <!-- The selected word, which only the word card
+                                     can fill: these are mined by clicking a word
+                                     in a sentence, not by the Add to Anki
+                                     dropdown. A field mapped here is left
+                                     untouched by the other export paths. -->
+                                <div class="nd-menu-label">
+                                  {{ $t('accountSettings.anki.selectedWordGroup') }}
+                                </div>
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word}')"
+                                  :text="$t('searchpage.main.buttons.word')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-reading}')"
+                                  :text="$t('searchpage.main.buttons.wordreading')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-furigana}')"
+                                  :text="$t('searchpage.main.buttons.wordfurigana')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-audio}')"
+                                  :text="$t('searchpage.main.buttons.wordaudio')" :iconPath="mdiVolumeHigh" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-pitch}')"
+                                  :text="$t('searchpage.main.buttons.wordpitch')" :iconPath="mdiChartLine" />
+                                <!-- The number on its own, for a note type that
+                                     draws its own diagram from the position. -->
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-pitch-num}')"
+                                  :text="$t('searchpage.main.buttons.wordpitchnum')" :iconPath="mdiNumeric" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{definition}')"
+                                  :text="$t('searchpage.main.buttons.definition')" :iconPath="mdiBookOpenVariant" />
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-info}')"
+                                  :text="$t('searchpage.main.buttons.wordinfo')" :iconPath="mdiText" />
                               </SearchDropdownContent>
                             </template>
                           </SearchDropdownContainer>
@@ -504,6 +628,31 @@ watch(ankiconnectAddress, (newValue) => {
             </div>
           </section>
         </div>
+
+        <!-- The word fields land as classed markup and carry no styling of their
+             own, so that the reader owns how their card looks. Anki has nowhere
+             to put a stylesheet except the note type, and a `<style>` block
+             inside a field would be copied onto every note ever mined -- so the
+             sheet is offered here to paste once. -->
+        <details class="mt-6 border rounded-lg dark:border-modal-border">
+          <summary class="px-4 py-3 cursor-pointer text-white select-none">
+            {{ $t('accountSettings.anki.cardStylingTitle') }}
+          </summary>
+          <div class="px-4 pb-4">
+            <p class="mb-3 text-sm text-gray-400">{{ $t('accountSettings.anki.cardStylingHelp') }}</p>
+            <div class="relative">
+              <pre
+                class="max-h-64 overflow-auto rounded-lg bg-input-background p-3 text-xs text-gray-200 whitespace-pre"><code>{{ ankiCardCss }}</code></pre>
+              <button type="button" @click="copyCardCss"
+                class="absolute top-2 end-2 inline-flex items-center gap-x-1 rounded-md bg-neutral-700 px-2 py-1 text-xs text-white hover:bg-neutral-600">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                  <path :d="mdiContentCopy" fill="currentColor" />
+                </svg>
+                {{ $t('searchpage.main.buttons.copyclipboard') }}
+              </button>
+            </div>
+          </div>
+        </details>
       </div>
 
     </template>
@@ -512,7 +661,7 @@ watch(ankiconnectAddress, (newValue) => {
       :open="showNameModal"
       z-index-class="z-50"
       overlay-class="items-center justify-center bg-black/60"
-      panel-class="bg-neutral-800 rounded-lg p-6 w-full max-w-sm shadow-xl"
+      panel-class="bg-surface rounded-lg p-6 w-full max-w-sm shadow-xl"
       labelledby="nd-anki-profile-name-title"
       @close="showNameModal = false"
     >
@@ -524,12 +673,12 @@ watch(ankiconnectAddress, (newValue) => {
         data-autofocus
         type="text"
         :placeholder="$t('accountSettings.anki.profileNamePlaceholder')"
-        class="w-full p-3 text-sm rounded-lg bg-input-background border-gray-600 text-white border focus:ring-input-focus-ring focus:border-input-focus-ring"
+        class="nd-input"
         v-on="nameModalEnterSubmit"
       />
       <div class="flex justify-end gap-2 mt-4">
         <button
-          class="px-4 py-2 text-sm font-medium text-gray-300 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          class="nd-btn"
           @click="showNameModal = false"
         >
           {{ $t('accountSettings.anki.modal.cancel') }}

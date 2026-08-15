@@ -67,3 +67,45 @@ export function minedNoteQuery({ word, key, deck }: MinedQueryInput): string | n
   parts.push(`("${escapedField}:${escapedTerm}" OR "${escapedField}:${escapedTerm}[*")`);
   return parts.join(' ');
 }
+
+/**
+ * Every note in a deck, including its subdecks.
+ *
+ * Same quoting as `minedNoteQuery` above and for the same reason: the whole
+ * term is quoted and the deck name goes in as Anki gave it, because escaping
+ * would turn the `::` of a subdeck into a literal and match nothing. A reader
+ * who picks a parent deck means the tree under it.
+ */
+export function deckNotesQuery(deck: string): string | null {
+  const scope = deck.trim();
+  return scope ? `"deck:${scope}"` : null;
+}
+
+/**
+ * The note type most of these notes are, or null when they are of none.
+ *
+ * A deck has no single note type -- this is a vote, used to prefill a picker the
+ * reader can still change. Ties go to the type seen first, which on a sample
+ * taken from the end of the deck is the older of the two: a reader midway
+ * through switching note types has the newer one arriving in a run at the very
+ * end, and letting a 50/50 tip on that run would suggest a type they have used
+ * only a handful of times.
+ */
+export function mostCommonModel(notes: ReadonlyArray<{ modelName?: string | null }>): string | null {
+  const counts = new Map<string, number>();
+  for (const note of notes) {
+    const model = note?.modelName;
+    if (!model) continue;
+    counts.set(model, (counts.get(model) ?? 0) + 1);
+  }
+
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [model, count] of counts) {
+    if (count > bestCount) {
+      best = model;
+      bestCount = count;
+    }
+  }
+  return best;
+}
