@@ -20,7 +20,7 @@ const statusLabel = (status: string) => t(`reports.statuses.${status}`);
 
 <template>
   <div class="flex flex-wrap items-center gap-3 mb-4">
-    <div class="flex rounded-lg border border-neutral-600 overflow-hidden">
+    <div class="flex rounded-lg border border-hairline overflow-hidden">
       <button
         class="px-3 py-2 text-sm"
         :class="source === '' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
@@ -29,14 +29,14 @@ const statusLabel = (status: string) => t(`reports.statuses.${status}`);
         {{ t('reports.admin.filters.all') }}
       </button>
       <button
-        class="px-3 py-2 text-sm border-l border-neutral-600"
+        class="px-3 py-2 text-sm border-l border-hairline"
         :class="source === 'USER' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
         @click="emit('update:source', 'USER')"
       >
         {{ t('reports.admin.filters.user') }}
       </button>
       <button
-        class="px-3 py-2 text-sm border-l border-neutral-600"
+        class="px-3 py-2 text-sm border-l border-hairline"
         :class="source === 'AUTO' ? 'bg-neutral-600 text-white' : 'bg-neutral-800 text-gray-400 hover:text-white'"
         @click="emit('update:source', 'AUTO')"
       >
@@ -49,7 +49,7 @@ const statusLabel = (status: string) => t(`reports.statuses.${status}`);
         v-for="status in ALL_STATUSES"
         :key="status"
         class="px-2.5 py-1.5 text-xs font-medium rounded-md border transition-all duration-150 cursor-pointer"
-        :class="activeStatuses.has(status) ? statusClass(status) : 'border-neutral-700 text-neutral-600 bg-neutral-800/50'"
+        :class="activeStatuses.has(status) ? statusClass(status) : 'border-hairline text-ink-faint bg-control'"
         @click="emit('toggle-status', status)"
       >
         {{ statusLabel(status) }}
@@ -58,7 +58,7 @@ const statusLabel = (status: string) => t(`reports.statuses.${status}`);
 
     <button
       class="px-2.5 py-1.5 text-xs font-medium rounded-md border transition-all duration-150 cursor-pointer"
-      :class="orphaned ? 'bg-red-500/20 text-red-400 border-red-600' : 'border-neutral-700 text-neutral-600 bg-neutral-800/50'"
+      :class="orphaned ? 'bg-red-500/20 text-red-400 border-red-600' : 'border-hairline text-ink-faint bg-control'"
       data-testid="orphaned-filter"
       @click="emit('update:orphaned', !orphaned)"
     >

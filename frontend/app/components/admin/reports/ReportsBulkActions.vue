@@ -17,7 +17,7 @@ const { t } = useI18n();
   <div class="flex justify-end gap-2 mb-3">
     <button
       :disabled="isDismissing || !hasResults"
-      class="px-3 py-1.5 text-xs rounded-lg border border-neutral-600 text-neutral-400 hover:text-white hover:border-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed"
+      class="px-3 py-1.5 text-xs rounded-lg border border-hairline text-ink-muted hover:text-ink hover:border-line-hover disabled:opacity-40 disabled:cursor-not-allowed"
       @click="emit('dismiss-all')"
     >
       <span v-if="isDismissing" class="flex items-center gap-1.5">

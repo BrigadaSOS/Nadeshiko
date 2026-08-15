@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTimeoutFn } from '@vueuse/core';
+import { mdiDotsVertical } from '@mdi/js';
 import type { AdminUserWithProviders as AdminUser } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
 
@@ -13,8 +14,6 @@ const isLoading = ref(false);
 const searchQuery = ref('');
 const currentOffset = ref(0);
 const limit = 20;
-
-const openMenuId = ref<number | null>(null);
 
 const providerLabel = (provider: string) => {
   switch (provider) {
@@ -79,21 +78,11 @@ function goToNext() {
   fetchUsers();
 }
 
-function toggleMenu(userId: number) {
-  openMenuId.value = openMenuId.value === userId ? null : userId;
-}
-
-function closeMenu() {
-  openMenuId.value = null;
-}
-
 async function handleImpersonate(user: AdminUser) {
-  closeMenu();
   await store.impersonateUser(user.id);
 }
 
 async function handleBan(user: AdminUser) {
-  closeMenu();
   try {
     await useNadeshikoSdk().banUser({ userId: user.id, banReason: '' });
   } catch (error) {
@@ -108,7 +97,6 @@ async function handleBan(user: AdminUser) {
 }
 
 async function handleUnban(user: AdminUser) {
-  closeMenu();
   try {
     await useNadeshikoSdk().unbanUser({ userId: user.id });
   } catch (error) {
@@ -122,17 +110,8 @@ async function handleUnban(user: AdminUser) {
   await fetchUsers();
 }
 
-function onDocumentClick() {
-  closeMenu();
-}
-
 onMounted(() => {
   fetchUsers();
-  document.addEventListener('click', onDocumentClick);
-});
-
-onUnmounted(() => {
-  document.removeEventListener('click', onDocumentClick);
 });
 </script>
 
@@ -145,7 +124,7 @@ onUnmounted(() => {
         v-model="searchQuery"
         type="text"
         :placeholder="t('accountSettings.dashboard.searchPlaceholder')"
-        class="w-full max-w-sm px-3 py-2 text-sm rounded-lg bg-neutral-800 border border-neutral-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-input-focus-ring"
+        class="nd-input max-w-sm"
       />
       <span class="text-sm text-gray-400 whitespace-nowrap">{{ t('accountSettings.dashboard.count', { count: formatNumber(total) }) }}</span>
     </div>
@@ -159,10 +138,10 @@ onUnmounted(() => {
         {{ t('accountSettings.dashboard.empty') }}
       </div>
 
-      <div v-else class="rounded-lg border border-neutral-700 bg-neutral-800/50 overflow-x-auto">
+      <div v-else class="rounded-lg border border-hairline bg-control overflow-x-auto">
         <table class="w-full text-sm min-w-[800px]">
           <thead>
-            <tr class="border-b border-neutral-700 text-left text-gray-400">
+            <tr class="border-b border-hairline text-left text-ink-muted">
               <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.name') }}</th>
               <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.email') }}</th>
               <th class="px-4 py-3 font-medium">{{ t('accountSettings.dashboard.table.role') }}</th>
@@ -177,7 +156,7 @@ onUnmounted(() => {
             <tr
               v-for="user in users"
               :key="user.id"
-              class="border-b border-neutral-700/50 last:border-0"
+              class="border-b border-hairline last:border-0"
             >
               <td class="px-4 py-3 text-gray-200">{{ user.name || '—' }}</td>
               <td class="px-4 py-3 text-gray-300">{{ user.email }}</td>
@@ -185,7 +164,7 @@ onUnmounted(() => {
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   <template v-if="!user.providers || user.providers.length === 0">
-                    <span class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600">{{ t('accountSettings.dashboard.providers.email') }}</span>
+                    <span class="px-1.5 py-0.5 text-xs font-medium rounded bg-lift-strong text-ink-muted border border-hairline">{{ t('accountSettings.dashboard.providers.email') }}</span>
                   </template>
                   <template v-for="provider in user.providers" :key="provider">
                     <span
@@ -198,11 +177,11 @@ onUnmounted(() => {
                     >{{ providerLabel(provider) }}</span>
                     <span
                       v-else-if="provider === 'magic-link' || provider === 'credential'"
-                      class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600"
+                      class="px-1.5 py-0.5 text-xs font-medium rounded bg-lift-strong text-ink-muted border border-hairline"
                     >{{ providerLabel(provider) }}</span>
                     <span
                       v-else
-                      class="px-1.5 py-0.5 text-xs font-medium rounded bg-neutral-500/20 text-gray-400 border border-neutral-600"
+                      class="px-1.5 py-0.5 text-xs font-medium rounded bg-lift-strong text-ink-muted border border-hairline"
                     >{{ provider }}</span>
                   </template>
                 </div>
@@ -224,43 +203,37 @@ onUnmounted(() => {
                 </span>
               </td>
               <td class="px-4 py-3 relative">
-                <button
-                  class="p-1 rounded text-gray-400 hover:text-white hover:bg-neutral-700 transition-colors"
-                  @click.stop="toggleMenu(user.id)"
+                <SearchDropdownContainer
+                  dropdown-id="nd-user-actions"
+                  teleport
+                  teleport-align="end"
+                  dropdown-container-class="z-[60] min-w-[10rem]"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="5" r="1.5" />
-                    <circle cx="12" cy="12" r="1.5" />
-                    <circle cx="12" cy="19" r="1.5" />
-                  </svg>
-                </button>
-
-                <div
-                  v-if="openMenuId === user.id"
-                  class="absolute right-0 top-full mt-1 z-20 min-w-[140px] rounded-lg border border-neutral-700 bg-neutral-800 shadow-lg py-1"
-                  @click.stop
-                >
-                  <button
-                    class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 transition-colors"
-                    @click="handleImpersonate(user)"
+                  <SearchDropdownMainButton
+                    :show-chevron="false"
+                    test-id="user-menu-toggle"
+                    dropdown-button-class="p-1 rounded text-gray-400 hover:text-white hover:bg-neutral-700 transition-colors"
                   >
-                    {{ t('accountSettings.dashboard.actions.impersonate') }}
-                  </button>
-                  <button
-                    v-if="!user.banned"
-                    class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-neutral-700 transition-colors"
-                    @click="handleBan(user)"
-                  >
-                    {{ t('accountSettings.dashboard.actions.ban') }}
-                  </button>
-                  <button
-                    v-else
-                    class="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-neutral-700 transition-colors"
-                    @click="handleUnban(user)"
-                  >
-                    {{ t('accountSettings.dashboard.actions.unban') }}
-                  </button>
-                </div>
+                    <UiBaseIcon :path="mdiDotsVertical" w="w-4" h="h-4" size="16" />
+                  </SearchDropdownMainButton>
+                  <template #content>
+                    <SearchDropdownItem
+                      :text="t('accountSettings.dashboard.actions.impersonate')"
+                      @click="handleImpersonate(user)"
+                    />
+                    <SearchDropdownItem
+                      v-if="!user.banned"
+                      danger
+                      :text="t('accountSettings.dashboard.actions.ban')"
+                      @click="handleBan(user)"
+                    />
+                    <SearchDropdownItem
+                      v-else
+                      :text="t('accountSettings.dashboard.actions.unban')"
+                      @click="handleUnban(user)"
+                    />
+                  </template>
+                </SearchDropdownContainer>
               </td>
             </tr>
           </tbody>
