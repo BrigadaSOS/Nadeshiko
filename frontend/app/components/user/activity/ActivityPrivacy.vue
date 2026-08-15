@@ -7,7 +7,6 @@ defineProps<{
   clearing: boolean;
   familiarEnabled: boolean;
   togglingFamiliar: boolean;
-  clearingFamiliar: boolean;
   familiarEntries: FamiliarMediaEntry[];
 }>();
 
@@ -15,7 +14,6 @@ const emit = defineEmits<{
   'toggle-tracking': [];
   'clear-history': [];
   'toggle-familiar': [];
-  'clear-familiar': [];
   'forget-familiar': [mediaPublicId: string];
 }>();
 
@@ -34,7 +32,7 @@ const onForget = (entry: FamiliarMediaEntry) => {
 };
 
 /**
- * "6 cards · 40 plays · 2 shares", with each number pluralised on its own.
+ * "6 Anki exports · 40 plays · 2 shares", with each number pluralised on its own.
  *
  * Three counts cannot share one plural choice, which is why this is composed
  * rather than a single interpolated string -- that read "1 cards" and "0 shares".
@@ -56,8 +54,8 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.privacy.title') }}</h3>
+  <div class="nd-settings-card">
+    <h3 class="nd-settings-title">{{ t('accountSettings.activity.privacy.title') }}</h3>
 
     <div class="mt-4 space-y-4">
       <div class="flex items-center justify-between gap-4">
@@ -126,21 +124,6 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
               familiarEnabled ? 'translate-x-5' : 'translate-x-0',
             ]"
           />
-        </button>
-      </div>
-
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <p class="text-white font-medium">{{ t('accountSettings.activity.privacy.clearFamiliarTitle') }}</p>
-          <p class="text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.clearFamiliarDescription') }}</p>
-        </div>
-        <button
-          data-testid="familiar-media-clear"
-          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1.5 px-3 rounded disabled:opacity-50"
-          :disabled="clearingFamiliar"
-          @click="emit('clear-familiar')"
-        >
-          {{ clearingFamiliar ? t('accountSettings.activity.privacy.clearing') : t('accountSettings.activity.privacy.clearFamiliarButton') }}
         </button>
       </div>
 

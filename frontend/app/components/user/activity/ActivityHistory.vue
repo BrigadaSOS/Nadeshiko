@@ -24,6 +24,7 @@ const emit = defineEmits<{
 const { t, locale } = useI18n();
 const { formatDate } = useFormat();
 const localePath = useLocalePath();
+const router = useRouter();
 
 const stripTags = (text: string) => {
   let result = text;
@@ -36,6 +37,29 @@ const stripTags = (text: string) => {
 };
 
 type GroupedActivity = ActivityItem & { count: number; ids: number[] };
+
+const activityHref = (activity: ActivityItem) => {
+  if (activity.searchQuery) {
+    return localePath(buildScopedSearchPath(activity.searchQuery, activity.mediaPublicId));
+  }
+
+  if (
+    (activity.activityType === 'SEGMENT_PLAY' ||
+      activity.activityType === 'SHARE' ||
+      activity.activityType === 'ANKI_EXPORT') &&
+    activity.segmentPublicId &&
+    (activity.mediaName || activity.japaneseText)
+  ) {
+    return localePath(buildSentencePath(activity.segmentPublicId));
+  }
+
+  return null;
+};
+
+const openActivity = (activity: ActivityItem) => {
+  const href = activityHref(activity);
+  if (href) void router.push(href);
+};
 
 const groupedActivities = computed<GroupedActivity[]>(() => {
   const groups: GroupedActivity[] = [];
@@ -62,10 +86,10 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 my-6 mx-auto rounded-lg shadow-md border border-white/10">
+  <div class="nd-settings-card">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
-        <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.activity.history.title') }}</h3>
+        <h3 class="nd-settings-title">{{ t('accountSettings.activity.history.title') }}</h3>
         <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.history.description') }}</p>
       </div>
 
@@ -123,7 +147,15 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
           <tr
             v-for="activity in groupedActivities"
             :key="activity.id"
-            class="group"
+            :class="[
+              'group transition-colors',
+              activityHref(activity) && 'cursor-pointer hover:bg-white/5 focus-within:bg-white/5',
+            ]"
+            :role="activityHref(activity) ? 'link' : undefined"
+            :tabindex="activityHref(activity) ? 0 : undefined"
+            @click="openActivity(activity)"
+            @keydown.enter="openActivity(activity)"
+            @keydown.space.prevent="openActivity(activity)"
           >
             <td class="py-2.5 pr-4 whitespace-nowrap">
               <span
@@ -137,30 +169,28 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
               </span>
             </td>
             <td class="py-2.5 pr-4">
-              <a
+              <div
                 v-if="activity.searchQuery"
-                :href="localePath(buildScopedSearchPath(activity.searchQuery, activity.mediaPublicId))"
-                class="inline-flex max-w-full min-w-0 items-center gap-2"
+                class="flex min-w-0 items-center gap-2"
               >
-                <span class="truncate text-gray-200 hover:text-white hover:underline">{{ activity.searchQuery }}</span>
+                <span class="min-w-0 truncate text-gray-200 group-hover:text-white">{{ activity.searchQuery }}</span>
                 <span
                   v-if="activity.mediaPublicId"
-                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-neutral-600 bg-white/10 px-2.5 py-0.5 text-xs font-medium text-neutral-400"
+                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
                 >
                   {{ activity.mediaName || t('accountSettings.activity.history.inOneTitle') }}
                 </span>
-              </a>
-              <a
+              </div>
+              <div
                 v-else-if="(activity.activityType === 'SEGMENT_PLAY' || activity.activityType === 'SHARE' || activity.activityType === 'ANKI_EXPORT') && activity.segmentPublicId && (activity.mediaName || activity.japaneseText)"
-                :href="localePath(buildSentencePath(activity.segmentPublicId))"
-                class="inline-flex max-w-full min-w-0 items-center gap-2"
+                class="flex min-w-0 items-center gap-2"
               >
+                <span v-if="activity.japaneseText" class="min-w-0 truncate text-gray-200 group-hover:text-white">{{ stripTags(activity.japaneseText) }}</span>
                 <span
                   v-if="activity.mediaName"
-                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-neutral-600 bg-white/10 px-2.5 py-0.5 text-xs font-medium text-neutral-400"
+                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
                 >{{ activity.mediaName }}</span>
-                <span v-if="activity.japaneseText" class="truncate text-gray-200 hover:text-white hover:underline">{{ stripTags(activity.japaneseText) }}</span>
-              </a>
+              </div>
               <span v-else class="text-gray-500">{{ t('accountSettings.activity.history.noDetails') }}</span>
             </td>
             <td class="py-2.5 pr-4 text-right text-gray-400 text-xs whitespace-nowrap">
@@ -171,7 +201,8 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
                 class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
                 :title="t('accountSettings.activity.history.remove')"
                 :disabled="activity.ids.some(id => deletingIds.has(id))"
-                @click="emit('delete', activity.ids)"
+                @click.stop="emit('delete', activity.ids)"
+                @keydown.stop
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
