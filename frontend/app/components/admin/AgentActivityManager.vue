@@ -90,7 +90,7 @@ watch(windowDays, fetchActivity);
       <h1 class="text-2xl font-bold text-white">{{ t('agentActivity.title') }}</h1>
       <select
         v-model.number="windowDays"
-        class="rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm"
+        class="nd-select"
       >
         <option :value="1">{{ t('agentActivity.window.day') }}</option>
         <option :value="7">{{ t('agentActivity.window.week') }}</option>
@@ -100,7 +100,7 @@ watch(windowDays, fetchActivity);
 
     <p class="text-sm text-neutral-400 mb-4">{{ t('agentActivity.description') }}</p>
 
-    <div class="overflow-x-auto rounded-lg border border-neutral-700">
+    <div class="overflow-x-auto rounded-lg border border-hairline">
       <table class="w-full text-sm text-left text-gray-300">
         <thead class="text-xs uppercase bg-neutral-800 text-gray-400">
           <tr>
@@ -112,7 +112,7 @@ watch(windowDays, fetchActivity);
           </tr>
         </thead>
         <tbody>
-          <tr v-for="entry in entries" :key="entry.revisionId" class="border-b border-neutral-700 align-top">
+          <tr v-for="entry in entries" :key="entry.revisionId" class="border-b border-hairline align-top">
             <td class="px-3 py-3 text-xs whitespace-nowrap">
               <NuxtLink
                 :to="localePath(buildSentencePath(entry.segmentPublicId))"

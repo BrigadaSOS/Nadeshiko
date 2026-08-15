@@ -50,12 +50,12 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-lg border border-neutral-700">
+  <div class="overflow-x-auto rounded-lg border border-hairline">
     <table class="w-full text-sm text-left text-gray-300">
       <thead class="text-xs uppercase bg-neutral-800 text-gray-400">
         <tr>
           <th class="px-3 py-3 w-8">
-            <input type="checkbox" :checked="allVisibleSelected" class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer" @change="emit('toggle-select-all')" />
+            <input type="checkbox" :checked="allVisibleSelected" class="rounded border-hairline bg-control text-blue-500 cursor-pointer" @change="emit('toggle-select-all')" />
           </th>
           <th class="px-3 py-3 w-8" />
           <th class="px-3 py-3">{{ t('reports.table.type') }}</th>
@@ -70,12 +70,12 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
       <tbody>
         <template v-for="(group, idx) in groups" :key="idx">
           <tr
-            class="border-b border-neutral-700 hover:bg-neutral-800/50 cursor-pointer"
+            class="border-b border-hairline hover:bg-control cursor-pointer"
             data-testid="report-row"
             @click="emit('toggle-expand', idx)"
           >
             <td class="px-3 py-3 w-8" @click.stop>
-              <input type="checkbox" :checked="selectedIndices.has(idx)" class="rounded border-neutral-600 bg-neutral-800 text-blue-500 cursor-pointer" @change="emit('toggle-select', idx)" />
+              <input type="checkbox" :checked="selectedIndices.has(idx)" class="rounded border-hairline bg-control text-blue-500 cursor-pointer" @change="emit('toggle-select', idx)" />
             </td>
             <td class="px-3 py-3 w-8 text-neutral-500">
               <span class="inline-block transition-transform" :class="expandedGroups.has(idx) ? 'rotate-90' : ''">&#9654;</span>
@@ -156,7 +156,7 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
               <template v-if="editingNotes[report.id] !== undefined">
                 <input
                   v-model="editingNotes[report.id]"
-                  class="w-full rounded border border-neutral-600 bg-neutral-800 text-white px-2 py-1 text-xs"
+                  class="nd-input px-2 py-1 text-xs"
                   v-on="notesEnterSubmit(report.id)"
                   @keyup.escape="delete editingNotes[report.id]"
                 />

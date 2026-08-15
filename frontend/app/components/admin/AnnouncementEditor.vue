@@ -110,13 +110,11 @@ const previewTitle = computed(() => {
 </script>
 
 <template>
-  <div class="dark:bg-card-background p-6 mx-auto rounded-lg shadow-md">
-    <h3 class="text-lg text-white/90 tracking-wide font-semibold">{{ t('accountSettings.announcement.title') }}</h3>
+  <div class="nd-settings-card">
+    <h3 class="nd-settings-title">{{ t('accountSettings.announcement.title') }}</h3>
     <p class="text-gray-400 text-sm mt-1">
       {{ t('accountSettings.announcement.description') }}
     </p>
-    <div class="border-b pt-4 border-white/10" />
-
     <div class="mt-4 space-y-4">
       <div>
         <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.message') }}</label>
@@ -125,7 +123,7 @@ const previewTitle = computed(() => {
           maxlength="500"
           rows="3"
           :placeholder="t('accountSettings.announcement.placeholders.message')"
-          class="w-full rounded-lg bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-input-focus-ring resize-none"
+          class="nd-input resize-none"
         />
         <p class="text-xs text-gray-500 mt-1 text-right">{{ form.message?.length ?? 0 }}/500</p>
       </div>
@@ -140,7 +138,7 @@ const previewTitle = computed(() => {
               'px-3 py-1.5 text-sm rounded-lg border transition-colors',
               form.type === opt.value
                 ? 'border-red-400 text-white bg-neutral-700'
-                : 'border-neutral-700 text-gray-400 hover:text-white hover:border-neutral-600',
+                : 'border-hairline text-ink-muted hover:text-ink hover:border-line-hover',
             ]"
             @click="form.type = opt.value"
           >
@@ -184,8 +182,6 @@ const previewTitle = computed(() => {
         </div>
       </div>
     </div>
-
-    <div class="border-b pt-4 border-white/10" />
 
     <div class="mt-4 flex gap-3">
       <button
