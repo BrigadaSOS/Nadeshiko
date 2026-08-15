@@ -2,7 +2,11 @@
 import { handleApiError } from '~/utils/apiError';
 import {
   mdiFileDocumentPlusOutline,
-  mdiStarShootingOutline,
+  // The two Anki entries shared `mdiStarShootingOutline` and so asked the reader
+  // to tell two different targets apart by reading. Adding to a card keeps the
+  // file-plus the word card and this menu's own button already use; the
+  // magnifier is the card you go and find.
+  mdiCardSearchOutline,
   mdiTrayArrowDown,
   mdiVideo,
   mdiImage,
@@ -30,6 +34,16 @@ import { tokensToAnkiFurigana, type SlimToken } from '~/utils/tokenEnrichment';
 import { useToastError, useToastSuccess } from '~/utils/toast';
 
 const { englishMode, spanishMode } = useTranslationVisibility();
+const { languages: translationLanguages } = useTranslationLanguages();
+
+/**
+ * Every action on this menu that a signed-out reader cannot take used to render
+ * disabled with a "please log in" tooltip and no click handler -- a dead end at
+ * the exact moment the reader had shown what they wanted the account for. They
+ * now open the login modal, tagged with which one was pressed, which is what
+ * makes "what makes people create an account" answerable at all.
+ */
+const { openLoginModal } = useLoginModal();
 
 type Props = {
   content: SearchResult;
@@ -61,7 +75,14 @@ const posthog = usePostHog();
 const { t } = useI18n();
 const router = useRouter();
 const localePath = useLocalePath();
-const isAnkiConfigured = ref(false);
+// Both sentence-level exports depend on the key field: the picker searches it,
+// and without it a profile cannot identify the card it is meant to update.
+// Keep this derived from the active profile so changing Anki settings while a
+// results page is open immediately updates both menu items.
+const isAnkiConfigured = computed(() => {
+  const profile = anki.activeProfile;
+  return !!profile?.deck?.trim() && !!profile.model?.trim() && profile.fields.length > 0 && !!profile.key?.trim();
+});
 const addingCollectionId = ref<string | null>(null);
 const showCollectionPicker = ref(false);
 
@@ -78,10 +99,6 @@ const {
 } = useCollectionOptions();
 
 onMounted(() => {
-  const profile = anki.activeProfile;
-  isAnkiConfigured.value =
-    profile !== null && profile.deck !== null && profile.model !== null && profile.fields.length > 0;
-
   restoreLastCollection();
 });
 
@@ -116,6 +133,10 @@ const openContextModal = () => {
 
 const openAnkiModal = () => {
   emit('open-anki-modal');
+};
+
+const openAnkiSettings = () => {
+  void router.push(localePath('/user/sync'));
 };
 
 const addToCollection = async (collection: CollectionOption, isQuickAdd = false) => {
@@ -173,9 +194,9 @@ const sharedMediaName = computed(() =>
 );
 </script>
 <template>
-  <SearchDropdownContainer data-testid="save-dropdown" :class="['mr-2 my-1 text-xs', { 'hidden min-[1250px]:inline-flex': !user.isLoggedIn }]" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="save-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
     <template #default>
-      <SearchDropdownMainButton dropdownId="nd-dropdown-with-header" @click="loadCollections">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header" @click="loadCollections">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.add') }}</span>
       </SearchDropdownMainButton>
@@ -186,35 +207,35 @@ const sharedMediaName = computed(() =>
         <ClientOnly>
           <template v-if="user.isLoggedIn">
             <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
-              :iconPath="mdiStarShootingOutline"
+              :iconPath="mdiFileDocumentPlusOutline"
               :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
+              :on-disabled-click="!isAnkiConfigured ? openAnkiSettings : undefined"
               @click="anki.addSentenceToAnki(content)" />
 
             <!-- Anki by ID -->
             <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
-              @click="openAnkiModal()" :iconPath="mdiStarShootingOutline"
-              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined" />
+              @click="openAnkiModal()" :iconPath="mdiCardSearchOutline"
+              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
+              :on-disabled-click="!isAnkiConfigured ? openAnkiSettings : undefined" />
           </template>
           <template v-else>
-            <div class="hidden min-[1250px]:block">
-              <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
-                :iconPath="mdiStarShootingOutline" :tooltip="$t('reports.loginRequired')" />
-              <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
-                :iconPath="mdiStarShootingOutline" :tooltip="$t('reports.loginRequired')" />
-            </div>
+            <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
+              :iconPath="mdiFileDocumentPlusOutline" :tooltip="$t('reports.loginRequired')"
+              :on-disabled-click="() => openLoginModal('anki_add_last')" />
+            <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+              :iconPath="mdiCardSearchOutline" :tooltip="$t('reports.loginRequired')"
+              :on-disabled-click="() => openLoginModal('anki_add_search')" />
           </template>
           <template #fallback>
             <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
-              :iconPath="mdiStarShootingOutline" />
+              :iconPath="mdiFileDocumentPlusOutline" />
             <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
-              :iconPath="mdiStarShootingOutline" />
+              :iconPath="mdiCardSearchOutline" />
           </template>
         </ClientOnly>
 
         <template v-if="user.isLoggedIn">
-          <div
-            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-          </div>
+          <div class="nd-menu-divider" />
 
           <!-- Quick-add to last used collection -->
           <ClientOnly>
@@ -265,11 +286,10 @@ const sharedMediaName = computed(() =>
         </template>
         <template v-else>
           <div class="hidden min-[1250px]:block">
-            <div
-              class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-            </div>
+            <div class="nd-menu-divider" />
             <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.chooseCollection')"
-              :iconPath="mdiFormatListBulletedSquare" :tooltip="$t('reports.loginRequired')" />
+              :iconPath="mdiFormatListBulletedSquare" :tooltip="$t('reports.loginRequired')"
+              :on-disabled-click="() => openLoginModal('collection_choose')" />
           </div>
         </template>
       </SearchDropdownContent>
@@ -278,7 +298,7 @@ const sharedMediaName = computed(() =>
 
   <SearchDropdownContainer data-testid="download-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
     <template #default>
-      <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiTrayArrowDown" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.download') }}</span>
       </SearchDropdownMainButton>
@@ -304,7 +324,7 @@ const sharedMediaName = computed(() =>
 
   <SearchDropdownContainer data-testid="copy-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
     <template #default>
-      <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiContentCopy" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.copyclipboard') }}</span>
       </SearchDropdownMainButton>
@@ -317,28 +337,27 @@ const sharedMediaName = computed(() =>
           :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
         <SearchDropdownItem @click="copyToClipboard(content.segment.urls.audioUrl)"
           :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
-        <div
-          class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-        </div>
+        <div class="nd-menu-divider" />
         <SearchDropdownItem @click="copyToClipboard(content.segment.textJa.content)"
           :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
         <SearchDropdownItem v-if="jaTokens" @click="copyFurigana()"
           :text="$t('searchpage.main.buttons.jpsentencefurigana')" :iconPath="mdiText" />
-        <SearchDropdownItem v-if="englishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEn.content)"
+        <SearchDropdownItem v-if="translationLanguages.includes('EN') && englishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEn.content)"
           :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
-        <SearchDropdownItem v-if="spanishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEs.content)"
+        <SearchDropdownItem v-if="translationLanguages.includes('ES') && spanishMode !== 'hidden'" @click="copyToClipboard(content.segment.textEs.content)"
           :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>
 
-  <UiButtonPrimaryAction v-if="!hideContextButton" class="mr-2 text-xs py-2.5 px-3"
+  <UiButtonPrimaryAction v-if="!hideContextButton" segment-hover-border class="mr-2 text-xs py-2.5 px-3"
     @click="openContextModal">
     <UiBaseIcon :path="mdiPlusBoxOutline" />
     <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.context') }}</span>
   </UiButtonPrimaryAction>
 
   <UiButtonPrimaryAction
+    segment-hover-border
     data-testid="share-button"
     class="mr-2 text-xs py-2.5 px-3"
     :title="$t('searchpage.main.buttons.share')"
@@ -348,9 +367,9 @@ const sharedMediaName = computed(() =>
   </UiButtonPrimaryAction>
 
   <SearchDropdownContainer data-testid="more-dropdown" class="mr-2 my-1" dropdownId="nd-dropdown-with-header"
-    dropdownContainerClass="absolute top-full right-0 z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg">
+    dropdownContainerClass="absolute top-full right-0 z-50 min-w-60 mt-1">
     <template #default>
-      <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiDotsHorizontal" />
       </SearchDropdownMainButton>
     </template>
@@ -368,18 +387,15 @@ const sharedMediaName = computed(() =>
           :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandRight')"
           :iconPath="mdiTransferRight" @click="concatSentence('forward')" />
         <div :class="{ 'hidden min-[1250px]:block': !user.isLoggedIn }">
-          <div
-            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-          </div>
+          <div class="nd-menu-divider" />
           <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
             :isDisabled="!user.isLoggedIn"
             :tooltip="!user.isLoggedIn ? $t('reports.loginRequired') : undefined"
-            @click="user.isLoggedIn && emit('open-report-modal', content)" />
+            :on-disabled-click="!user.isLoggedIn ? () => openLoginModal('report_segment') : undefined"
+            @click="emit('open-report-modal', content)" />
         </div>
         <template v-if="user.isAdmin">
-          <div
-            class="py-3 flex items-center text-sm text-gray-800 before:flex-1 before:border-t before:border-gray-200 after:flex-1 after:border-t after:border-gray-200 dark:text-white dark:before:border-neutral-600 dark:after:border-neutral-600">
-          </div>
+          <div class="nd-menu-divider" />
           <SearchDropdownItem :text="$t('modalSegmentEdit.editButton')" :iconPath="mdiPencilOutline"
             @click="emit('open-edit-modal', content)" />
         </template>
