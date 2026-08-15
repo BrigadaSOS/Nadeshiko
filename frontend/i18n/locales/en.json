@@ -113,6 +113,8 @@
     "videos": "Videos",
     "sentenceCountLabel": "Sentence Count:",
     "anilistButton": "Anilist",
+    "tmdbButton": "TMDB",
+    "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulary"
   },
@@ -149,14 +151,13 @@
       "keyColumn": "Key",
       "noCardsFound": "No cards found",
       "noCardsMessage": "Try a different query or mine the sentence first",
-      "validationSuccess": "Validation successful",
-      "validationMessage": "Key field is configured!",
       "validationError": "Something went wrong",
       "errorMessage": "No key field has been defined",
       "errorTip": "Verify the key field is defined in Nadeshiko settings"
     },
     "toast": {
       "noSettings": "No settings found. Please go to settings page and configure the extension.",
+      "keyFieldRequired": "Set a Key Field in Anki Settings before exporting.",
       "miningCard": "Mining the card...",
       "noCardToExport": "No Anki card to export to. Please add a card first.",
       "cardFoundInOtherDeck": "Card found but not in deck \"{deck}\". Check that Yomitan and Nadeshiko are using the same deck.",
@@ -273,8 +274,6 @@
     "backToTitles": "Back to titles"
   },
   "episodeFilter": {
-    "title": "Episode",
-    "clear": "Clear",
     "noEpisodes": "No episodes found"
   },
   "segmentSidebar": {
@@ -286,6 +285,14 @@
   "searchpage": {
     "main": {
       "translationPreferences": {
+        "combinedMenuButton": "Translation and furigana display",
+        "englishMenu": "English",
+        "spanishMenu": "Spanish translations",
+        "furiganaMenu": "Furigana (Reading)",
+        "languageSettingsHint": "Choose which translation languages are available in Account Settings.",
+        "modeShown": "Shown",
+        "modeSpoiler": "On hover",
+        "modeHidden": "Hidden",
         "englishShown": "English translations shown",
         "englishSpoiler": "English translations in spoiler mode",
         "englishHidden": "English translations hidden",
@@ -308,9 +315,18 @@
         "info": "Episode Info",
         "copyclipboard": "Copy",
         "jpsentence": "Japanese sentence",
+        "jpsentencehighlight": "Japanese sentence (word marked)",
         "jpsentencefurigana": "Japanese sentence (with furigana)",
         "ensentence": "English sentence",
         "essentence": "Spanish sentence",
+        "word": "Word",
+        "wordreading": "Word reading",
+        "wordfurigana": "Word (with furigana)",
+        "definition": "Definition",
+        "wordpitch": "Pitch accent",
+        "wordpitchnum": "Pitch accent position",
+        "wordaudio": "Word audio",
+        "wordinfo": "Word info",
         "context": "Context",
         "share": "Share",
         "more": "More",
@@ -337,7 +353,6 @@
         "sortrandom": "Random"
       },
       "labels": {
-        "contentList": "Content",
         "noresults": "No results found...",
         "episode": "Episode",
         "movie": "Movie",
@@ -546,7 +561,7 @@
         "familiarCounts": "{cards} · {plays} · {shares}",
         "forgetTitle": "Forget",
         "forgetTitleHint": "Forget {title}",
-        "familiarCards": "{count} card | {count} cards",
+        "familiarCards": "{count} Anki export | {count} Anki exports",
         "familiarPlays": "{count} play | {count} plays",
         "familiarShares": "{count} share | {count} shares"
       }
@@ -627,6 +642,14 @@
         "JAPANESE": "Japanese",
         "ROMAJI": "Romaji"
       },
+      "translationLanguages": "Dictionary Languages",
+      "translationLanguagesDescription": "Choose the translation languages you want in dictionary content. When both are selected, this also sets their display order.",
+      "translationLanguageOptions": {
+        "EN": "English only",
+        "ES": "Spanish only",
+        "EN_ES": "English, then Spanish",
+        "ES_EN": "Spanish, then English"
+      },
       "defaultSearchCategory": "Default Search Category",
       "defaultSearchCategoryDescription": "Searches open on this category. A link that names a category still wins.",
       "motion": "Animations",
@@ -661,7 +684,7 @@
       "contentRatingHint_hide": "Results will not be included in search",
       "contentRatingPreview": "Preview of how flagged results will appear in search",
       "contentRatingPreviewAlt": "Preview image for content rating sample",
-      "contentRatingHiddenDesc": "Hidden — will not be included in search results",
+      "contentRatingHiddenDesc": "Hidden. Will not be included in search results",
       "preferenceSaved": "Preference saved",
       "preferenceError": "Failed to save preference",
       "changeEmail": "Change",
@@ -810,8 +833,16 @@
       "selectModel": "Select a model",
       "keyFieldLabel": "Key Field",
       "selectKeyField": "Select the field that corresponds to your deck ID",
+      "keyFieldRequiredTitle": "Key Field required",
+      "keyFieldRequiredMessage": "Select a Key Field below to enable Anki exports.",
       "fieldColumn": "Field",
       "contentColumn": "Content",
+      "sentenceGroup": "Sentence",
+      "sentenceImage": "Sentence image",
+      "sentenceAudio": "Sentence audio",
+      "selectedWordGroup": "Selected word",
+      "cardStylingTitle": "Card styling",
+      "cardStylingHelp": "The word fields already carry their own styling, so they look like they do here as soon as they land. This is only if you want a different look: paste it into your note type’s Styling section in Anki (Cards… → Styling) and edit it freely.",
       "noFieldsFound": "No fields found",
       "noFieldsMessage": "Please try again or check your AnkiConnect connection",
       "serverAddressLabel": "AnkiConnect server address",
@@ -823,6 +854,7 @@
       "profileNamePlaceholder": "Profile name",
       "deleteProfile": "Delete",
       "saving": "Saving...",
+      "saved": "Saved",
       "modal": {
         "cancel": "Cancel",
         "save": "Save"
@@ -878,7 +910,7 @@
     "expandNoPrevious": "No earlier sentence in this episode.",
     "expandNoNext": "No later sentence in this episode.",
     "expandFailed": "Couldn't expand this sentence. Please try again.",
-    "expandAudioFailed": "Expanded the text, but the audio could not be built — playback and Anki export will use the original clip.",
+    "expandAudioFailed": "Expanded the text, but the audio could not be built. Playback and Anki export will use the original clip.",
     "expanding": "Expanding…"
   },
   "tokenTooltip": {
@@ -887,8 +919,12 @@
     "moreSentences": "More sentences",
     "playAudio": "Play pronunciation",
     "noEntry": "No dictionary entry for this word.",
-    "openInAnki": "Already mined — open the note in Anki",
-    "mineToNote": "Add this sentence, audio and image to your Anki note",
+    "definitionsHidden": "Definitions hidden",
+    "showDefinitions": "Show",
+    "openInAnki": "Open the note in Anki",
+    "mineContextOnly": "Add this sentence, audio and image, keeping your definitions",
+    "minedActions": "In your collection",
+    "mineToNote": "Replace everything, including the definitions",
     "mineToLastCard": "Add this sentence, audio and image to your last added Anki card"
   },
   "searchContainer": {
