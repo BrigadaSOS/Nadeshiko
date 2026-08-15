@@ -113,6 +113,8 @@
     "videos": "Videos",
     "sentenceCountLabel": "Cantidad de Oraciones:",
     "anilistButton": "Anilist",
+    "tmdbButton": "TMDB",
+    "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
     "vocabularyButton": "Vocabulario"
   },
@@ -149,14 +151,13 @@
       "keyColumn": "Clave",
       "noCardsFound": "No se encontraron cartas",
       "noCardsMessage": "Prueba con otro query o mina la oración primero",
-      "validationSuccess": "Validación exitosa",
-      "validationMessage": "¡El keyfield está configurado!",
       "validationError": "Algo ha fallado",
       "errorMessage": "No se ha definido un keyfield",
       "errorTip": "Verifique que el keyfield esté definido en los ajustes de Nadeshiko"
     },
     "toast": {
       "noSettings": "No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.",
+      "keyFieldRequired": "Configura un campo clave en los ajustes de Anki antes de exportar.",
       "miningCard": "Minando la carta...",
       "noCardToExport": "No hay carta de Anki para exportar. Por favor, añada una carta primero.",
       "cardFoundInOtherDeck": "Se encontro la carta pero no en el mazo \"{deck}\". Verifica que Yomitan y Nadeshiko usen el mismo mazo.",
@@ -273,8 +274,6 @@
     "backToTitles": "Volver a los títulos"
   },
   "episodeFilter": {
-    "title": "Episodio",
-    "clear": "Limpiar",
     "noEpisodes": "No se encontraron episodios"
   },
   "segmentSidebar": {
@@ -286,6 +285,14 @@
   "searchpage": {
     "main": {
       "translationPreferences": {
+        "combinedMenuButton": "Visualización de traducciones y furigana",
+        "englishMenu": "Inglés",
+        "spanishMenu": "Traducciones en español",
+        "furiganaMenu": "Furigana (Lectura)",
+        "languageSettingsHint": "Elige los idiomas de traducción disponibles en los ajustes de tu cuenta.",
+        "modeShown": "Visible",
+        "modeSpoiler": "Al pasar el cursor",
+        "modeHidden": "Oculto",
         "englishShown": "Traducciones en inglés visibles",
         "englishSpoiler": "Traducciones en inglés en modo spoiler",
         "englishHidden": "Traducciones en inglés ocultas",
@@ -308,9 +315,18 @@
         "info": "Información del episodio",
         "copyclipboard": "Copiar",
         "jpsentence": "Oración en japonés",
+        "jpsentencehighlight": "Frase en japonés (palabra marcada)",
         "jpsentencefurigana": "Oración en japonés (con furigana)",
         "ensentence": "Oración en inglés",
         "essentence": "Oración en español",
+        "word": "Palabra",
+        "wordreading": "Lectura de la palabra",
+        "wordfurigana": "Palabra (con furigana)",
+        "definition": "Definición",
+        "wordpitch": "Acento tonal",
+        "wordpitchnum": "Posición del acento tonal",
+        "wordaudio": "Audio de la palabra",
+        "wordinfo": "Información de la palabra",
         "context": "Contexto",
         "share": "Compartir",
         "more": "Más",
@@ -337,7 +353,6 @@
         "sorttime_desc": "Inverso"
       },
       "labels": {
-        "contentList": "Contenido",
         "noresults": "No hay resultados...",
         "episode": "Episodio",
         "movie": "Película",
@@ -546,7 +561,7 @@
         "familiarCounts": "{cards} · {plays} · {shares}",
         "forgetTitle": "Olvidar",
         "forgetTitleHint": "Olvidar {title}",
-        "familiarCards": "{count} tarjeta | {count} tarjetas",
+        "familiarCards": "{count} tarjeta exportada a Anki | {count} tarjetas exportadas a Anki",
         "familiarPlays": "{count} reproducción | {count} reproducciones",
         "familiarShares": "{count} compartido | {count} compartidos"
       }
@@ -627,6 +642,14 @@
         "JAPANESE": "Japonés",
         "ROMAJI": "Romaji"
       },
+      "translationLanguages": "Idiomas del diccionario",
+      "translationLanguagesDescription": "Elige los idiomas de traducción que quieres en el contenido del diccionario. Cuando eliges ambos, también define el orden en pantalla.",
+      "translationLanguageOptions": {
+        "EN": "Solo inglés",
+        "ES": "Solo español",
+        "EN_ES": "Inglés, luego español",
+        "ES_EN": "Español, luego inglés"
+      },
       "defaultSearchCategory": "Categoría de búsqueda por defecto",
       "defaultSearchCategoryDescription": "Las búsquedas se abren en esta categoría. Un enlace que indique una categoría sigue teniendo prioridad.",
       "motion": "Animaciones",
@@ -661,7 +684,7 @@
       "contentRatingHint_hide": "Los resultados no se incluirán en la búsqueda",
       "contentRatingPreview": "Vista previa de cómo aparecerán los resultados marcados en la búsqueda",
       "contentRatingPreviewAlt": "Imagen de vista previa para la muestra de clasificación de contenido",
-      "contentRatingHiddenDesc": "Oculto — no se incluirá en los resultados de búsqueda",
+      "contentRatingHiddenDesc": "Oculto. No se incluirá en los resultados de búsqueda",
       "preferenceSaved": "Preferencia guardada",
       "preferenceError": "Error al guardar la preferencia",
       "changeEmail": "Cambiar",
@@ -810,8 +833,16 @@
       "selectModel": "Selecciona un modelo",
       "keyFieldLabel": "Campo clave",
       "selectKeyField": "Selecciona el campo que corresponde al ID de tu mazo",
+      "keyFieldRequiredTitle": "Se requiere un campo clave",
+      "keyFieldRequiredMessage": "Selecciona un campo clave abajo para habilitar las exportaciones a Anki.",
       "fieldColumn": "Campo",
       "contentColumn": "Contenido",
+      "sentenceGroup": "Frase",
+      "sentenceImage": "Imagen de la frase",
+      "sentenceAudio": "Audio de la frase",
+      "selectedWordGroup": "Palabra seleccionada",
+      "cardStylingTitle": "Estilo de la tarjeta",
+      "cardStylingHelp": "Los campos de la palabra ya incluyen sus propios estilos, así que se ven como aquí en cuanto llegan: no hay nada que configurar. Esto es solo si quieres otro aspecto: pégalo en la sección Estilo de tu tipo de nota en Anki (Tarjetas… → Estilo) y edítalo libremente.",
       "noFieldsFound": "No se han encontrado campos",
       "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
       "serverAddressLabel": "Dirección del servidor de AnkiConnect",
@@ -823,6 +854,7 @@
       "profileNamePlaceholder": "Nombre del perfil",
       "deleteProfile": "Eliminar",
       "saving": "Guardando...",
+      "saved": "Guardado",
       "modal": {
         "cancel": "Cancelar",
         "save": "Guardar"
@@ -887,8 +919,12 @@
     "moreSentences": "Más frases",
     "playAudio": "Reproducir pronunciación",
     "noEntry": "No hay ninguna entrada de diccionario para esta palabra.",
-    "openInAnki": "Ya está minada — abrir la nota en Anki",
-    "mineToNote": "Añadir esta frase, audio e imagen a tu nota de Anki",
+    "definitionsHidden": "Definiciones ocultas",
+    "showDefinitions": "Mostrar",
+    "openInAnki": "Abrir la nota en Anki",
+    "mineContextOnly": "Añadir esta frase, audio e imagen, conservando tus definiciones",
+    "minedActions": "En tu colección",
+    "mineToNote": "Reemplazar todo, incluidas las definiciones",
     "mineToLastCard": "Añadir esta frase, audio e imagen a la última tarjeta añadida en Anki"
   },
   "searchContainer": {

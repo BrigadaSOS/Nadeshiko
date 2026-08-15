@@ -40,6 +40,14 @@ RUN node scripts/install-linux-native-bindings.mjs
 # stale local copy on a developer's machine and nothing at all on a clean CI
 # builder. Redocly needs the backend's docs/ and its config, and it runs from
 # backend/ so the relative paths in redocly.yaml resolve.
+#
+# THE LOGO HAS TO TRAVEL WITH THE SPEC, which is why `docs:build` copies
+# backend/docs/logo.png rather than the frontend keeping its own. The spec asks
+# for it (`x-logo.url: ./logo.png` in backend/docs/openapi/openapi.yaml), so
+# Redoc requests /docs/api/logo.png on every docs pageview. It used to live in
+# frontend/public/docs/api/ -- committed, but inside the directory the
+# .dockerignore excludes for the reason above, so it never reached the image and
+# every visit 404ed (130 in the 7.5 days to 2026-08-16, prod and stg).
 COPY backend/package.json backend/
 COPY backend/redocly.yaml backend/
 COPY backend/docs backend/docs
