@@ -77,6 +77,14 @@ const envSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString,
   OTEL_SERVICE_NAME: optionalString,
 
+  // Server-side PostHog, which exists to count accounts that the browser never
+  // gets to report -- see app/services/analytics/posthog.ts. This is the project
+  // write key, not a personal API key: it can only submit events, which is why it
+  // is also the one the browser ships publicly. Unset disables capture entirely,
+  // so local and test runs need no credentials and send nothing.
+  POSTHOG_API_KEY: optionalString,
+  POSTHOG_HOST: z.string().url().default('https://us.i.posthog.com'),
+
   DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().nonnegative().default(200),
 
   // When enabled, pending TypeORM migrations run automatically on app boot

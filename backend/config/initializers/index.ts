@@ -1,4 +1,5 @@
 import { logger } from '@config/log';
+import { analyticsInitializer } from './analytics';
 import { authInitializer } from './auth';
 import { databaseInitializer } from './database';
 import { masterApiKeyInitializer } from './masterApiKey';
@@ -8,6 +9,10 @@ import { workersInitializer } from './workers';
 
 const initializers: RuntimeInitializer[] = [
   telemetryInitializer,
+  // Early, so that shutdown -- which runs this list in reverse -- flushes the
+  // analytics queue last, after everything that might still be capturing has
+  // stopped.
+  analyticsInitializer,
   authInitializer,
   databaseInitializer,
   masterApiKeyInitializer,

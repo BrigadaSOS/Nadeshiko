@@ -72,6 +72,18 @@ env:
 
     R2_BASE_URL: https://cdn.nadeshiko.co
 
+    # Counts accounts server-side, so a reader whose content blocker eats the
+    # browser's signup event is still counted. `clear` rather than `secret`
+    # deliberately: this is the PostHog project write key, it can only submit
+    # events, and the frontend already ships the same string in its bundle --
+    # putting it behind a secret would imply a confidentiality it does not have.
+    #
+    # Production only, for the same reason the frontend leaves the PostHog module
+    # out of every other environment: staging traffic must not land in the project
+    # that answers questions about real readers. Unset disables capture entirely.
+    POSTHOG_API_KEY: phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD
+    POSTHOG_HOST: https://us.i.posthog.com
+
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http
