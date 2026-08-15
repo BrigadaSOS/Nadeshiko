@@ -1,4 +1,5 @@
 import { ApiPermission, User, UserRoleType } from '@app/models';
+import { captureAccountCreated } from '@app/services/analytics/posthog';
 import { config, type AppConfig } from '@config/config';
 import { isProdEnvironment } from '@config/environment';
 import { getAppPostgresConfig } from '@config/postgresConfig';
@@ -99,6 +100,7 @@ interface BuildAuthOptionsDependencies {
   sendMagicLinkEmailFn?: typeof sendMagicLinkEmail;
   onWelcomeEmailError?: WelcomeEmailErrorLogger;
   ensureDefaultCollectionsFn?: typeof ensureDefaultCollections;
+  captureAccountCreatedFn?: typeof captureAccountCreatedAfterUserCreate;
 }
 
 export function getTrustedOrigins(allowedWebsiteUrls: string): string[] {
@@ -241,6 +243,40 @@ export async function sendWelcomeEmailAfterUserCreate(
   }
 }
 
+/**
+ * Reports the new account to PostHog.
+ *
+ * Deliberately fires from here rather than from the browser. The browser already
+ * reports `signup_completed`, and that event carries something this one never can
+ * -- which feature gate the visitor hit before they signed up -- but it is only
+ * as reliable as the reader's content blocker. This one fires once per row that
+ * reaches the database, so the two answer different questions: how many, and why.
+ *
+ * Guarded the same way the welcome email is. Analytics must never be the reason a
+ * sign-up fails.
+ */
+export function captureAccountCreatedAfterUserCreate(
+  user: BetterAuthCreatedUser,
+  captureFn: typeof captureAccountCreated = captureAccountCreated,
+) {
+  if (!user.id || !user.email || !user.name) {
+    return;
+  }
+
+  // `createdAt` reaches us through the hook's index signature, so it is `unknown`
+  // however true its shape is at runtime. Narrowed rather than asserted: if it is
+  // ever neither, the capture falls back to the current time instead of throwing
+  // inside a sign-up.
+  const createdAt = user.createdAt;
+
+  captureFn({
+    userId: String(user.id),
+    username: user.name,
+    email: user.email,
+    createdAt: createdAt instanceof Date || typeof createdAt === 'string' ? createdAt : undefined,
+  });
+}
+
 export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}): BetterAuthOptions {
   const configValues = dependencies.configValues || config;
   const databasePool = dependencies.databasePool || pool;
@@ -251,6 +287,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   const sendMagicLinkEmailFn = dependencies.sendMagicLinkEmailFn || sendMagicLinkEmail;
   const onWelcomeEmailError = dependencies.onWelcomeEmailError || defaultWelcomeEmailErrorLogger;
   const ensureDefaultCollectionsFn = dependencies.ensureDefaultCollectionsFn || ensureDefaultCollections;
+  const captureAccountCreatedFn = dependencies.captureAccountCreatedFn || captureAccountCreatedAfterUserCreate;
 
   const trustedOrigins = getTrustedOrigins(configValues.ALLOWED_WEBSITE_URLS);
   const socialProviders = buildSocialProviders(configValues);
@@ -450,6 +487,12 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
             };
           },
           after: async (user) => {
+            // First, and synchronous: it only enqueues, and putting it ahead of
+            // the awaits means a slow mailer or a database hiccup below cannot
+            // cost us the one record of this account that nothing in the browser
+            // can suppress.
+            captureAccountCreatedFn(user as BetterAuthCreatedUser);
+
             await sendWelcomeEmailAfterUserCreate(
               user as BetterAuthCreatedUser,
               sendWelcomeEmailFn,
