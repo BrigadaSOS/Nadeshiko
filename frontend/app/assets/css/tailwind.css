@@ -20,9 +20,9 @@
  */
 @layer components {
   /*
-   * The page content column. Every top-level page runs its width through one of
-   * these two classes, so the header, the footer and the page bodies stay
-   * aligned with each other.
+   * The page content column. Every top-level page runs its width through this
+   * class, so the header, the footer and the page bodies stay aligned with
+   * each other.
    *
    * Two knobs, and the column takes whichever is smaller:
    *   --page-width      a percentage, so there is always a gutter
@@ -32,9 +32,11 @@
    * Horizontal padding deliberately stays on the pages rather than living
    * here: several of them pad inner sections instead of the column itself,
    * and below `md` the column is full-bleed by design.
+   *
+   * The gap under the navbar lives on `<main>` (`pt-3` in the default
+   * layout), not on `.nd-page`, so every page shares it.
    */
-  .nd-page,
-  .nd-page-prose {
+  .nd-page {
     @apply w-full mx-auto;
   }
 
@@ -42,18 +44,118 @@
     .nd-page {
       max-width: min(var(--page-width), var(--page-max-width));
     }
-
-    /* The same column, narrowed for long-form prose (blog posts), where a
-       shorter line length is what makes it readable. */
-    .nd-page-prose {
-      max-width: min(var(--page-width-prose), var(--page-max-width));
-    }
   }
 
-  /* Text/number/password inputs on dark surfaces. */
+  /* Text/number/password inputs and compact selects on dark surfaces. */
+  .nd-input,
+  .nd-select {
+    @apply rounded-lg border px-3 py-2 text-sm;
+    appearance: none;
+    border-color: var(--line);
+    background-color: var(--input-background);
+    color: var(--ink);
+    transition: border-color 0.15s ease;
+  }
+
+  /* Outlined control: the search EN/ES/furigana chips, settings secondary
+     actions, and compact selects. A hairline on `--control` so the fill does
+     not vanish into a card, muted ink, and a lift on hover. */
+  .nd-btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium whitespace-nowrap;
+    background: var(--control);
+    color: var(--ink-faint);
+    border: 1px solid var(--line);
+    transition: color 0.15s ease, background-color 0.15s ease;
+  }
+  .nd-btn:hover:not(:disabled) {
+    background: var(--control-hover);
+    color: var(--ink);
+  }
+  .nd-btn:disabled {
+    @apply opacity-50 pointer-events-none;
+  }
+
+  /* `appearance: none` above drops the native arrow. Put a chevron back so
+     a compact select does not read as a static label. Scoped to <select>
+     so an input that happens to use `.nd-select` is left alone.
+     Same chrome as `.nd-btn` so a settings select matches the EN/ES chips. */
+  select.nd-input,
+  select.nd-select {
+    @apply text-base font-medium rounded-md whitespace-nowrap;
+    padding-inline-end: 2.25rem;
+    cursor: pointer;
+    background-color: var(--control);
+    color: var(--ink-faint);
+    border-color: var(--line);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a8a8a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  }
+  select.nd-input:hover:not(:disabled),
+  select.nd-select:hover:not(:disabled) {
+    background-color: var(--control-hover);
+    color: var(--ink);
+  }
+
+  [dir="rtl"] select.nd-input,
+  [dir="rtl"] select.nd-select {
+    background-position: left 0.75rem center;
+  }
+
   .nd-input {
-    @apply w-full rounded-lg border border-neutral-600 bg-neutral-800 text-white px-3 py-2 text-sm;
-    @apply focus:ring-2 focus:ring-input-focus-ring focus:border-transparent;
+    @apply w-full;
+  }
+
+  /* The field's own hairline, not the site-wide offset outline. `:focus-visible`
+     is more specific than `.outline-none`, so these have to win explicitly. */
+  .nd-input:focus,
+  .nd-input:focus-visible,
+  .nd-select:focus,
+  .nd-select:focus-visible {
+    outline: none;
+    outline-offset: 0;
+    border-color: var(--input-focus-ring);
+  }
+
+  /*
+   * Search-result row tints. Kept darker than `--surface` so the Add/Save
+   * chips still read as filled controls (they are `--surface` with no border).
+   */
+  .nd-row-hover:hover {
+    background: color-mix(in srgb, var(--ink) 5%, transparent);
+  }
+  .nd-row-highlight {
+    background: color-mix(in srgb, var(--accent-soft) 9%, transparent);
+  }
+  .nd-row-focus {
+    background: color-mix(in srgb, var(--accent-soft) 11%, transparent);
+  }
+  .nd-row-focus:hover {
+    background: color-mix(in srgb, var(--accent-soft) 14%, transparent);
+  }
+  .nd-row-active,
+  .nd-row-active:hover {
+    background: color-mix(in srgb, var(--accent-soft) 13%, transparent);
+  }
+
+  /* Account pages. Same well as a media/search card: 20px pad, 12px between
+     cards. `my-6` on each card used to stack into a 48px trough. */
+  .nd-settings-card {
+    @apply rounded-lg p-5 mb-3;
+    background: var(--card-background);
+  }
+
+  /* Card heading. Sidebar groups are the 12px uppercase labels; these name
+     the card itself, so they stay sentence case. Weight, not size or
+     tracking, is what sets them apart from the 16px body. */
+  .nd-settings-title {
+    @apply text-base font-semibold text-white;
+  }
+
+  .nd-input::placeholder {
+    color: var(--ink-faint);
   }
 
   /* The primary call-to-action button. */
@@ -69,17 +171,82 @@
 
   /* Title row of a modal, with its dividing rule. */
   .nd-modal-header {
-    @apply flex justify-between items-center py-3 px-4 border-b dark:border-modal-border;
+    @apply flex justify-between items-center py-3 px-4 border-b;
+    border-color: var(--line);
+  }
+
+  /*
+   * Floating menu chrome: the word card's surface, line, ink and shadow,
+   * named once so every dropdown draws the same panel. Placement (absolute,
+   * right-0, z-index, min-width) stays on the caller.
+   */
+  .nd-menu {
+    @apply rounded-xl p-1.5 text-left;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    box-shadow: var(--shadow-menu);
+  }
+
+  .nd-menu-header {
+    @apply px-3 pt-1.5 pb-1 text-[11px] font-medium;
+    color: var(--ink-faint);
+  }
+
+  .nd-menu-item {
+    @apply flex w-full items-center gap-x-3.5 rounded-lg px-3 py-2 text-left text-sm;
+    color: var(--ink-muted);
+    background: transparent;
+  }
+
+  .nd-menu-item:hover:not(:disabled),
+  .nd-menu-item:focus-visible {
+    background: var(--surface-lift);
+    color: var(--ink);
+    outline: none;
+  }
+
+  .nd-menu-item:disabled,
+  .nd-menu-item.is-disabled {
+    color: var(--ink-faint);
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .nd-menu-item.is-selected {
+    background: var(--surface-lift);
+    color: var(--ink);
+  }
+
+  .nd-menu-item.is-danger {
+    color: var(--danger);
+  }
+
+  .nd-menu-item.is-danger:hover:not(:disabled),
+  .nd-menu-item.is-danger:focus-visible {
+    background: var(--surface-lift);
+    color: var(--danger-hover);
+  }
+
+  .nd-menu-divider {
+    @apply my-1.5;
+    border-top: 1px solid var(--line);
+  }
+
+  .nd-menu-label {
+    @apply flex items-center gap-3 px-3 py-2 text-[11px] font-medium uppercase tracking-wide;
+    color: var(--ink-faint);
+  }
+
+  .nd-menu-label::before,
+  .nd-menu-label::after {
+    content: "";
+    flex: 1 1 0;
+    border-top: 1px solid var(--line);
   }
 }
 
 @layer utilities {
-  .bg-sgray {
-    background-color: #2c2c2c;
-  }
-  .bg-sgrayhover {
-    background-color: #333333;
-  }
   /*
    * Prevents Yomitan's text scanner (DOMTextScanner) from entering this element.
    *
@@ -108,12 +275,115 @@
     font-size: 0px;
   }
 
+  /* Theme color classes. Tailwind's generated utilities for these names
+     have been missing from the sheet (the same way `border-line` was), so
+     the values are spelled here and every surface reads the same tokens. */
+  .bg-input-background {
+    background-color: var(--input-background);
+  }
+  .bg-control {
+    background-color: var(--control);
+  }
+  .bg-control-hover {
+    background-color: var(--control-hover);
+  }
+  .hover\:bg-control-hover:hover {
+    background-color: var(--control-hover);
+  }
+  .bg-surface-hover {
+    background-color: var(--surface-hover);
+  }
+  .hover\:bg-surface-hover:hover {
+    background-color: var(--surface-hover);
+  }
+  .text-ink {
+    color: var(--ink);
+  }
+  .text-ink-muted {
+    color: var(--ink-muted);
+  }
+  .text-ink-faint {
+    color: var(--ink-faint);
+  }
+  .placeholder\:text-ink-faint::placeholder {
+    color: var(--ink-faint);
+  }
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .bg-surface-soft {
+    background-color: var(--surface-soft);
+  }
+  .border-hairline {
+    border-color: var(--line);
+  }
+  .border-t-hairline {
+    border-top-color: var(--line);
+  }
+  .border-b-hairline {
+    border-bottom-color: var(--line);
+  }
+  .border-s-hairline {
+    border-inline-start-color: var(--line);
+  }
+  .border-e-hairline {
+    border-inline-end-color: var(--line);
+  }
+  .\!border-hairline {
+    border-color: var(--line) !important;
+  }
+  .hover\:border-hairline:hover {
+    border-color: var(--line);
+  }
+  .group:hover .group-hover\:border-hairline {
+    border-color: var(--line);
+  }
+  /* Open/fused surfaces (search + recents). Spelled so it wins over
+     `border-hairline` on the same node; Tailwind never emitted
+     `border-input-focus-ring`. */
+  .border-open {
+    border-color: var(--line-hover);
+  }
+  .\!border-open {
+    border-color: var(--line-hover) !important;
+  }
+  .hover\:border-line-hover:hover {
+    border-color: var(--line-hover);
+  }
+  .border-line-subtle {
+    border-color: var(--line-subtle);
+  }
+  .border-b-line-subtle {
+    border-bottom-color: var(--line-subtle);
+  }
+  .border-t-line-subtle {
+    border-top-color: var(--line-subtle);
+  }
+  .divide-hairline > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--line);
+  }
+  .divide-line-subtle > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--line-subtle);
+  }
+  .bg-lift {
+    background-color: var(--surface-lift);
+  }
+  .hover\:bg-lift:hover {
+    background-color: var(--surface-lift);
+  }
+  .bg-lift-strong {
+    background-color: var(--lift-strong);
+  }
+  .hover\:bg-lift-strong:hover {
+    background-color: var(--lift-strong);
+  }
+
   .nd-accent-bg-faint {
-    background-color: color-mix(in srgb, var(--button-color-accent) 10%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
   }
 
   .nd-accent-bg-muted {
-    background-color: color-mix(in srgb, var(--button-color-accent) 50%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 50%, transparent);
   }
 }
 
@@ -308,9 +578,9 @@
 }
 
 .nd-sidebar-link.router-link-active {
-  border-left-color: var(--button-color-accent, #ef5552);
-  background-color: rgba(239, 85, 82, 0.08);
-  color: var(--button-color-accent, #ef5552);
+  border-left-color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
 }
 
 .fade-enter-active,
@@ -345,12 +615,58 @@
 }
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
+  /*
+   * The site is dark-only (`<html class="dark">`). Tokens live on both
+   * `:root` and `.dark` so a teleported panel and a `dark:` utility resolve
+   * the same names -- `.dark` is also where Tailwind looks for the class
+   * strategy, and `--modal-background` used to be defined only there.
+   *
+   * Two dark fills, one hover, one line. The search-bar grey (`--surface`)
+   * is the raised colour: cards, inputs, buttons and menus all use it.
+   * `--surface-hover` is the only lighter step. The bright `--accent` stays
+   * the brand red (header, CTAs); `--accent-soft` is the rose on dark.
+   */
+  :root,
+  .dark {
+    /* The modal scroll lock temporarily replaces this computed value with the
+       measured gutter, keeping fixed corner controls in place as it animates. */
+    --scrollbar-gutter: calc(100vw - 100%);
+    --background: #1d1d1d;
+    --surface: #252526;
+    --surface-hover: #2c2c2c;
+    --surface-soft: var(--background);
+    --surface-lift: rgb(255 255 255 / 0.06);
+    --lift-strong: rgb(255 255 255 / 0.1);
+    --ink: #e8e8e8;
+    --line: #3c3c3c;
+    --line-subtle: color-mix(in srgb, var(--ink) 12%, transparent);
+    --line-hover: color-mix(in srgb, var(--ink) 32%, transparent);
+    --ink-muted: #a8a8a8;
+    --ink-faint: #8a8a8a;
+    --accent: #ef5552;
+    --accent-hover: #c74f4d;
+    --accent-soft: #df848d;
+    --danger: #f87171;
+    --danger-hover: #fca5a5;
+    --control: var(--surface);
+    --control-hover: var(--surface-hover);
+    --shadow-menu: 0 12px 32px -8px rgb(0 0 0 / 0.5);
+
+    --header-background: var(--accent);
+    --footer-background: var(--background);
+    --button-color-primary: var(--surface);
+    --button-color-hover-primary: var(--surface-hover);
+    --button-color-accent: var(--accent);
+    --button-color-accent-hover: var(--accent-hover);
+    --card-background: var(--surface);
+    --input-background: var(--surface);
+    --input-focus-ring: color-mix(in srgb, var(--ink) 30%, transparent);
+    --modal-background: var(--surface);
+    --modal-border: var(--line);
+    --modal-input: var(--surface);
 
     /* Width of the page content column -- see `.nd-page`. */
     --page-width: 90%;
-    --page-width-prose: 70%;
     --page-max-width: 1800px;
 
     /* Height of the sticky search results bar (category tabs + the EN/ES/
@@ -360,22 +676,33 @@
     --search-controls-height: 4.3125rem;
   }
 
-  .dark {
-    --background: #1d1d1d;
-    --header-background: #ef5552;
-    --footer-background: #1f1f1f;
-    --button-color-primary: #2c2c2c;
-    --button-color-hover-primary: #333333;
-    --button-color-accent: #ef5552;
-    --button-color-accent-hover: #c74f4d;
-    --input-background: #2f2f2f;
-    --card-background: #252526;
+  /*
+   * One focus chrome for the whole site: the same quiet ink ring on
+   * buttons, inputs, and anything else that takes focus.
+   * `:focus` only kills the browser's bright-blue default; the ring is
+   * `:focus-visible` so a mouse click does not leave a leftover halo.
+   */
+  :focus {
+    outline: none;
+  }
 
-    --input-focus-ring: rgba(255, 255, 255, 0.5);
+  :focus-visible {
+    outline: 2px solid var(--input-focus-ring);
+    outline-offset: 2px;
+  }
 
-    --modal-background: #1b1b1b;
-    --modal-border: #2f2f2f;
-    --modal-input: #252526;
+  /* `.outline-none` is a class; `:focus-visible` is a pseudo. Without this the
+     utility loses and the offset ring still draws. */
+  .outline-none:focus,
+  .outline-none:focus-visible {
+    outline: none;
+  }
+
+  /* Dialogs are focused in script on open (`:focus`, not `:focus-visible`).
+     Don't ring the panel itself — inner controls keep the site-wide chrome. */
+  .nd-modal-panel:focus,
+  .nd-modal-panel:focus-visible {
+    outline: none;
   }
 
   .scrollbar-hide::-webkit-scrollbar {
@@ -416,7 +743,7 @@
   }
 
   html.dark {
-    background-color: #1d1d1d;
+    background-color: var(--background);
   }
 
   body {
@@ -424,6 +751,6 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #1d1d1d;
+    background-color: var(--background);
   }
 }

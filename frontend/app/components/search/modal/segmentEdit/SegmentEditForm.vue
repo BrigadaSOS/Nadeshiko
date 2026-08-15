@@ -50,7 +50,7 @@ const statusPillClasses = (value: string, active: boolean) => {
   const base =
     'px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
   if (!active)
-    return `${base} border border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-300`;
+    return `${base} border border-hairline text-ink-muted hover:border-line-hover hover:text-ink`;
   const colors: Record<string, string> = {
     green: 'bg-green-600/80 text-green-100 border border-green-500 focus:ring-green-500',
     blue: 'bg-blue-600/80 text-blue-100 border border-blue-500 focus:ring-blue-500',
@@ -250,7 +250,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         v-model="form.ratingAnalysisJson"
         rows="6"
         class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"
-        :class="jsonErrors.ratingAnalysis ? 'border-red-500' : 'border-neutral-600'"
+        :class="jsonErrors.ratingAnalysis ? 'border-red-500' : 'border-hairline'"
         @blur="validateField(form.ratingAnalysisJson, 'ratingAnalysis')"
       />
       <p v-if="jsonErrors.ratingAnalysis" class="text-xs text-red-400 mt-0.5">{{ jsonErrors.ratingAnalysis }}</p>

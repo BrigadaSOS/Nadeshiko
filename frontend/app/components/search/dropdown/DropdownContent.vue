@@ -1,21 +1,14 @@
 <template>
   <div>
-    <div class="py-3 px-5 -m-2 bg-gray-100 rounded-t-lg dark:bg-neutral-700">
-      <p class="text-sm text-gray-500 dark:text-neutral-400">{{ header }}</p>
-    </div>
-    <div class="mt-2 w-full py-2 first:pt-0 last:pb-0">
+    <p v-if="header" class="nd-menu-header">{{ header }}</p>
+    <div class="w-full">
       <slot></slot>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    header?: string;
-  }>(),
-  {
-    header: 'Options',
-  },
-);
+defineProps<{
+  header?: string;
+}>();
 </script>

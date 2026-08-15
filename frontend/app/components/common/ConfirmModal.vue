@@ -30,7 +30,7 @@ const resolvedConfirmLabel = computed(() => props.confirmLabel ?? t('common.conf
     :open="visible"
     z-index-class="z-50"
     overlay-class="items-center justify-center bg-black/60"
-    panel-class="bg-neutral-900 border border-neutral-700 rounded-xl p-6 w-full max-w-sm"
+    panel-class="bg-surface border border-hairline rounded-xl p-6 w-full max-w-sm"
     :label="title"
     @close="emit('cancel')"
   >
@@ -40,7 +40,7 @@ const resolvedConfirmLabel = computed(() => props.confirmLabel ?? t('common.conf
     </p>
     <div class="flex justify-end gap-2">
       <button
-        class="px-4 py-2 text-sm rounded-lg bg-neutral-700 text-white hover:bg-neutral-600"
+        class="px-4 py-2 text-sm rounded-lg bg-surface-hover text-ink hover:bg-lift-strong"
         @click="emit('cancel')"
       >
         {{ t('common.cancel') }}

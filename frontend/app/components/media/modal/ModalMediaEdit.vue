@@ -48,7 +48,7 @@ const pillClasses = (active: boolean) => {
   const base =
     'px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
   if (!active)
-    return `${base} border border-neutral-600 text-neutral-400 hover:border-neutral-400 hover:text-neutral-300`;
+    return `${base} border border-hairline text-ink-muted hover:border-line-hover hover:text-ink`;
   return `${base} bg-blue-600/80 text-blue-100 border border-blue-500 focus:ring-blue-500`;
 };
 
@@ -191,7 +191,7 @@ const submitDelete = async () => {
         </h3>
         <button
           type="button"
-          class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-gray-700 dark:focus:ring-offset-gray-800"
+          class="inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400"
           @click="closeModal"
         >
           <span class="sr-only">{{ t('modalMediaEdit.close') }}</span>
@@ -212,7 +212,7 @@ const submitDelete = async () => {
           {{ errorMessage }}
         </div>
 
-        <div v-if="media" class="rounded-lg bg-neutral-800/50 border border-neutral-700 p-3 text-sm">
+        <div v-if="media" class="rounded-lg bg-control border border-hairline p-3 text-sm">
           <div class="flex gap-3">
             <img
               v-if="media.coverUrl"
@@ -452,7 +452,7 @@ const submitDelete = async () => {
               </button>
               <button
                 type="button"
-                class="py-1.5 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+                class="py-1.5 px-3 text-sm font-medium rounded-lg border border-hairline text-ink-muted hover:bg-control-hover"
                 @click="showDeleteConfirm = false"
               >
                 {{ t('modalMediaEdit.confirmNo') }}
@@ -463,7 +463,7 @@ const submitDelete = async () => {
         <div class="flex items-center gap-x-2">
           <button
             type="button"
-            class="py-2 px-3 text-sm font-medium rounded-lg border border-neutral-600 text-gray-300 hover:bg-neutral-700"
+            class="py-2 px-3 text-sm font-medium rounded-lg border border-hairline text-ink-muted hover:bg-control-hover"
             @click="closeModal"
           >
             {{ t('modalMediaEdit.cancel') }}

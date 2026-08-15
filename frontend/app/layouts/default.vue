@@ -5,7 +5,8 @@
     <AuthModalLoginSignUp />
     <LayoutImpersonationBanner />
     <LayoutHeader />
-    <main class="flex-grow pb-20">
+    <!-- Shared gap under the navbar. Pages keep their own bottom padding. -->
+    <main class="flex-grow pt-3 pb-20">
       <slot />
     </main>
     <PlayerAudioPlayer />

@@ -21,33 +21,49 @@
             presentational, and the e2e specs that click items inside a menu open
             the toggle first.
         -->
-        <Transition name="nd-dropdown">
-            <div
-                v-if="isOpen"
-                data-testid="dropdown-menu"
-                :class="dropdownContainerClass"
-                :aria-labelledby="resolvedDropdownId"
-                @click="onMenuClick"
-            >
-                <slot name="content"></slot>
-            </div>
-        </Transition>
+        <Teleport to="body" :disabled="!teleport">
+            <Transition name="nd-dropdown">
+                <div
+                    v-if="isOpen"
+                    ref="menuRef"
+                    data-testid="dropdown-menu"
+                    :class="['nd-menu', dropdownContainerClass]"
+                    :style="resolvedMenuStyle"
+                    :aria-labelledby="resolvedDropdownId"
+                    @click="onMenuClick"
+                >
+                    <slot name="content"></slot>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, provide, useId } from 'vue';
-import { DROPDOWN_INJECTION_KEY, type DropdownContext } from '~/composables/useDropdownState';
+import { computed, inject, nextTick, provide, useId, type StyleValue } from 'vue';
+import {
+  DROPDOWN_INJECTION_KEY,
+  NESTED_IN_TOKEN_TOOLTIP_KEY,
+  type DropdownContext,
+} from '~/composables/useDropdownState';
+import { placeDropdownMenu, type DropdownAlign } from '~/utils/dropdownPlacement';
 
 const props = withDefaults(
   defineProps<{
     dropdownId?: string;
     dropdownContainerClass?: string;
+    /** Render the menu on `body` so sticky/overflow ancestors cannot clip it. */
+    teleport?: boolean;
+    /** Horizontal edge of the trigger the teleported menu lines up with. */
+    teleportAlign?: DropdownAlign;
+    menuStyle?: StyleValue;
   }>(),
   {
     dropdownId: 'nd-dropdown',
-    dropdownContainerClass:
-      'absolute top-full z-50 items-center text-center align-middle min-w-60 bg-white shadow-md p-2 mt-1 dark:bg-neutral-800 border-none rounded-lg',
+    dropdownContainerClass: 'absolute top-full z-50 min-w-60 mt-1',
+    teleport: false,
+    teleportAlign: 'start',
+    menuStyle: undefined,
   },
 );
 
@@ -57,14 +73,39 @@ const resolvedDropdownId = computed(
 );
 
 const rootRef = ref<HTMLElement | null>(null);
+const menuRef = ref<HTMLElement | null>(null);
 const { openDropdownId, openDropdown, closeDropdown } = useDropdownState();
+const nestedInTokenTooltip = inject(NESTED_IN_TOKEN_TOOLTIP_KEY, false);
 
 const isOpen = computed(() => openDropdownId.value === resolvedDropdownId.value);
 
+const placedStyle = ref<Record<string, string>>({});
+const resolvedMenuStyle = computed<StyleValue | undefined>(() => {
+  if (!props.teleport) return props.menuStyle;
+  return { ...placedStyle.value, ...(isRecord(props.menuStyle) ? props.menuStyle : {}) };
+});
+
+const isRecord = (value: StyleValue | undefined): value is Record<string, string> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const viewport = () => ({ width: window.innerWidth, height: window.innerHeight });
+
+const placeMenu = (menuSize: { width: number; height: number }) => {
+  const trigger = rootRef.value?.getBoundingClientRect();
+  if (!trigger) return;
+  const pos = placeDropdownMenu(trigger, menuSize, viewport(), props.teleportAlign);
+  placedStyle.value = { position: 'fixed', top: `${pos.top}px`, left: `${pos.left}px` };
+};
+
 const close = () => closeDropdown(resolvedDropdownId.value);
 const toggle = () => {
-  if (isOpen.value) close();
-  else openDropdown(resolvedDropdownId.value);
+  if (isOpen.value) {
+    close();
+    return;
+  }
+  // Pin before the menu mounts so a teleported panel does not flash at 0,0.
+  if (props.teleport) placeMenu({ width: 176, height: 0 });
+  openDropdown(resolvedDropdownId.value, { preserveTokenTooltip: nestedInTokenTooltip });
 };
 
 // Mirrors the old plugin: any link or button inside the menu dismisses it,
@@ -78,7 +119,7 @@ const onMenuClick = (event: MouseEvent) => {
 
 const onDocumentClick = (event: MouseEvent) => {
   const target = event.target as Node | null;
-  if (target && rootRef.value?.contains(target)) return;
+  if (target && (rootRef.value?.contains(target) || menuRef.value?.contains(target))) return;
   close();
 };
 
@@ -87,14 +128,25 @@ const onDocumentKeydown = (event: KeyboardEvent) => {
   close();
 };
 
-watch(isOpen, (open) => {
+const onWindowScroll = () => {
+  if (props.teleport) close();
+};
+
+watch(isOpen, async (open) => {
   if (!import.meta.client) return;
   if (open) {
     document.addEventListener('click', onDocumentClick);
     document.addEventListener('keydown', onDocumentKeydown);
+    if (props.teleport) {
+      window.addEventListener('scroll', onWindowScroll, true);
+      await nextTick();
+      const box = menuRef.value?.getBoundingClientRect();
+      if (box) placeMenu({ width: box.width, height: box.height });
+    }
   } else {
     document.removeEventListener('click', onDocumentClick);
     document.removeEventListener('keydown', onDocumentKeydown);
+    window.removeEventListener('scroll', onWindowScroll, true);
   }
 });
 
@@ -102,6 +154,7 @@ onBeforeUnmount(() => {
   if (!import.meta.client) return;
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onDocumentKeydown);
+  window.removeEventListener('scroll', onWindowScroll, true);
   close();
 });
 

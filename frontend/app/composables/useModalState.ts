@@ -9,6 +9,9 @@
  * The stack doubles as the scroll-lock counter: the body is locked while at
  * least one modal is registered, so nested modals can't unlock each other.
  */
+let savedBodyOverflow = '';
+let savedScrollbarGutter = '';
+
 export function useModalState() {
   const openModals = useState<string[]>('nd-open-modals', () => []);
 
@@ -18,12 +21,24 @@ export function useModalState() {
 
   const lockScroll = () => {
     if (!import.meta.client) return;
+    // Locking body removes a classic scrollbar. Keep its measured width in a
+    // CSS variable so fixed corner controls can retain their screen position
+    // for the full modal transition.
+    const scrollbarGutter = window.innerWidth - document.documentElement.clientWidth;
+    savedBodyOverflow = document.body.style.overflow;
+    savedScrollbarGutter = document.documentElement.style.getPropertyValue('--scrollbar-gutter');
+    document.documentElement.style.setProperty('--scrollbar-gutter', `${scrollbarGutter}px`);
     document.body.style.overflow = 'hidden';
   };
 
   const unlockScroll = () => {
     if (!import.meta.client) return;
-    document.body.style.overflow = '';
+    document.body.style.overflow = savedBodyOverflow;
+    if (savedScrollbarGutter) {
+      document.documentElement.style.setProperty('--scrollbar-gutter', savedScrollbarGutter);
+    } else {
+      document.documentElement.style.removeProperty('--scrollbar-gutter');
+    }
   };
 
   const registerModal = (id: string) => {

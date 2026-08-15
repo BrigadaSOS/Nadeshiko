@@ -64,29 +64,68 @@ const facts = computed(() =>
 );
 
 const genres = computed(() => props.media.genres ?? []);
+
+/**
+ * Outbound catalog links. Anime usually has AniList, J-drama TMDB, and a
+ * YouTube channel its channel id — the title card used to name the work and
+ * then leave the reader with no way onto any of them.
+ */
+const catalogLinks = computed(() => {
+  const ids = props.media.externalIds;
+  const links: {
+    href: string;
+    labelKey: 'animeList.anilistButton' | 'animeList.tmdbButton' | 'animeList.imdbButton' | 'animeList.youtubeButton';
+    testId: string;
+  }[] = [];
+  if (ids?.anilist) {
+    links.push({
+      href: anilistAnimeUrl(ids.anilist),
+      labelKey: 'animeList.anilistButton',
+      testId: 'media-anilist-link',
+    });
+  }
+  if (ids?.tmdb) {
+    links.push({
+      href: tmdbUrl(ids.tmdb, props.media.airingFormat),
+      labelKey: 'animeList.tmdbButton',
+      testId: 'media-tmdb-link',
+    });
+  }
+  if (ids?.imdb) {
+    links.push({
+      href: imdbTitleUrl(ids.imdb),
+      labelKey: 'animeList.imdbButton',
+      testId: 'media-imdb-link',
+    });
+  }
+  if (ids?.youtube) {
+    links.push({
+      href: youtubeChannelUrl(ids.youtube),
+      labelKey: 'animeList.youtubeButton',
+      testId: 'media-youtube-link',
+    });
+  }
+  return links;
+});
 </script>
 
 <template>
-  <header class="mb-3 overflow-hidden rounded-lg bg-[rgba(255,255,255,0.06)]">
-    <!-- Decorative: the title is spelled out in the heading directly below, so an
-         alt text here would only make a screen reader read the name twice. -->
-    <div v-if="media.bannerUrl" class="relative h-32 w-full sm:h-44">
-      <img :src="media.bannerUrl" alt="" class="h-full w-full object-cover" loading="eager" fetchpriority="high" />
-      <div class="absolute inset-0 bg-gradient-to-t from-[#1d1d1d] via-[#1d1d1d]/40 to-transparent"></div>
-    </div>
-
-    <div class="flex gap-4 p-4 sm:gap-6 sm:p-6" :class="media.bannerUrl ? '-mt-12 sm:-mt-16' : ''">
-      <div class="relative z-10 w-24 flex-none overflow-hidden rounded-lg shadow-lg sm:w-32">
-        <div class="aspect-[2/3]">
-          <MediaCover :media="media" :alt="title" />
-        </div>
+  <header data-testid="media-header" class="mb-3 rounded-lg bg-[rgba(255,255,255,0.06)]">
+    <div class="flex gap-3 p-3 sm:gap-5 sm:p-5">
+      <!--
+        Aspect lives on the same box that is `relative`, because MediaCover
+        fills its nearest positioned ancestor with `inset-0`. `self-start`
+        stops the flex row stretching that box to the text column's height.
+      -->
+      <div class="relative aspect-[2/3] w-24 shrink-0 self-start overflow-hidden rounded-lg sm:w-32">
+        <MediaCover :media="media" :alt="title" />
       </div>
 
-      <div class="relative z-10 flex min-w-0 flex-auto flex-col justify-end">
+      <div class="min-w-0 flex-1">
         <component
           :is="heading"
           lang="ja"
-          class="text-2xl font-extrabold leading-tight dark:text-white sm:text-3xl"
+          class="text-xl font-extrabold leading-tight dark:text-white sm:text-3xl"
         >{{ title }}</component>
 
         <p v-if="secondaryNames.length" class="mt-1 text-sm dark:text-gray-400">
@@ -96,25 +135,39 @@ const genres = computed(() => props.media.genres ?? []);
           </span>
         </p>
 
-        <p class="mt-3 text-sm font-medium dark:text-gray-200">
+        <p class="mt-2 text-sm font-medium dark:text-gray-200 sm:mt-3">
           {{ media.segmentCount.toLocaleString() }} {{ $t('animeList.sentenceCount') }}
           <span class="dark:text-gray-500"> · </span>
           <MediaCountLabel :media="media" />
         </p>
 
-        <dl v-if="facts.length" class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm dark:text-gray-400">
+        <dl v-if="facts.length" class="mt-2 hidden text-sm dark:text-gray-400 sm:flex sm:flex-wrap sm:gap-x-4">
           <div v-for="fact in facts" :key="fact.label" class="flex gap-1">
-            <dt class="dark:text-gray-500">{{ $t(fact.label) }}:</dt>
+            <dt class="shrink-0 dark:text-gray-500">{{ $t(fact.label) }}:</dt>
             <dd>{{ fact.value }}</dd>
           </div>
         </dl>
 
-        <ul v-if="genres.length" class="mt-3 flex flex-wrap gap-1.5">
+        <ul v-if="genres.length" class="mt-2 flex flex-wrap gap-1.5 sm:mt-3">
           <li
             v-for="genre in genres"
             :key="genre"
             class="rounded-full bg-[rgba(255,255,255,0.08)] px-2.5 py-0.5 text-xs dark:text-gray-300">
             {{ genre }}
+          </li>
+        </ul>
+
+        <ul v-if="catalogLinks.length" class="mt-2 flex flex-wrap gap-2 sm:mt-3">
+          <li v-for="link in catalogLinks" :key="link.href">
+            <a
+              :href="link.href"
+              :data-testid="link.testId"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center rounded-full border border-white/20 px-2.5 py-0.5 text-xs dark:text-gray-300 transition-colors hover:border-white/40 dark:hover:text-white"
+            >
+              {{ $t(link.labelKey) }}
+            </a>
           </li>
         </ul>
       </div>

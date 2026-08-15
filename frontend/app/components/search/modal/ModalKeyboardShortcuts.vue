@@ -38,11 +38,11 @@ defineExpose({ open });
     :open="showModal"
     z-index-class="z-[70]"
     overlay-class="items-center justify-center bg-black/50"
-    panel-class="bg-[#1b1b1b] border border-[#2f2f2f] rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto"
+    panel-class="bg-modal-background border border-hairline rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto"
     labelledby="nd-shortcuts-modal-title"
     @close="close"
   >
-        <div class="flex justify-between items-center py-3 px-5 border-b border-[#2f2f2f]">
+        <div class="flex justify-between items-center py-3 px-5 border-b border-hairline">
           <h3 id="nd-shortcuts-modal-title" class="font-bold text-white text-lg">{{ $t('shortcuts.title') }}</h3>
           <button
             type="button"
