@@ -85,6 +85,77 @@ export const SEARCH_QUERY_MAX_LENGTH = 500;
  * in a single hop, where a 200 -- even a correct, empty-results 200 -- keeps
  * every member of it alive and worth re-fetching.
  */
+/**
+ * Everything after the path in a full path -- the query string, the hash, or both.
+ *
+ * Taken verbatim rather than rebuilt from `route.query`, because rebuilding means
+ * re-encoding, and re-encoding is the whole family of bugs this file exists to
+ * keep out of hrefs. Nothing here needs to understand the query, only to carry it
+ * across unchanged.
+ */
+export function queryAndHash(fullPath: string): string {
+  const cut = fullPath.search(/[?#]/);
+  return cut === -1 ? '' : fullPath.slice(cut);
+}
+
+/**
+ * A bound on how many times `overEscapedSearchQuery` will unwrap.
+ *
+ * Only a ceiling on pathological input, not a judgement about how deep a real
+ * family goes: the one that surfaced this bug had 68 layers, and each hop is a
+ * fixed cost here rather than the SSR render it used to be.
+ */
+const MAX_SEARCH_DECODE_ROUNDS = 80;
+
+/**
+ * The text a multiply-escaped `/search/:query` segment was originally about, or
+ * `null` when the segment is encoded the ordinary once.
+ *
+ * WHY, given `canonicalPath` already exists. That function made the canonical a
+ * fixed point, which stopped the family GROWING through the canonical link --
+ * `%2525E8` now advertises itself rather than a deeper sibling. What it cannot
+ * do is make the family SHRINK: every generation already in an index stays alive,
+ * answering 200, each one a real SSR render. And growth did not actually stop,
+ * because the canonical is not the only link on the page -- the i18n module
+ * builds its hreflang and locale-switcher hrefs from the router's `route.path`,
+ * one layer deeper again. Fetching `/en/search/%25E6%2595%25B0%25E5%258D%2581`
+ * on production returns 200 and three `%2525…` links, one per locale.
+ *
+ * A 301 to the ordinary encoding does what a fixed point cannot: it collapses the
+ * whole family onto one URL in a single hop, and it does so before the render, so
+ * the deeper links are never emitted at all.
+ *
+ * Counting rounds is what separates over-escaped from ordinary. `数十` needs one
+ * decode; `%25E6%2595%25B0…` needs two. A second round that still yields
+ * something new is the signal, and it is a narrow one:
+ *
+ * - `100%25` decodes to `100%`, and decoding `100%` throws -- one round, ordinary.
+ * - `%25E6` decodes to `%E6`, an incomplete UTF-8 sequence that throws -- one
+ *   round, ordinary.
+ * - `%2541` decodes to `%41` decodes to `A` -- two rounds, so a reader searching
+ *   for the literal text `%41` is redirected to a search for `A`. That is the
+ *   one false positive this trades for, and against a corpus of Japanese
+ *   subtitles it is a fair trade.
+ */
+export function overEscapedSearchQuery(raw: string): string | null {
+  let value = raw;
+  let rounds = 0;
+
+  while (rounds < MAX_SEARCH_DECODE_ROUNDS) {
+    let next: string;
+    try {
+      next = decodeURIComponent(value);
+    } catch {
+      break;
+    }
+    if (next === value) break;
+    value = next;
+    rounds += 1;
+  }
+
+  return rounds >= 2 ? value : null;
+}
+
 export function isJunkSearchQuery(raw: string): boolean {
   let decoded: string;
   try {

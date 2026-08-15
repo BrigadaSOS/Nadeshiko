@@ -2,6 +2,7 @@ import {
   buildSentencePath,
   buildWordSearchPath,
   isJunkSearchQuery,
+  overEscapedSearchQuery,
   splitLocalePrefix,
   withLocalePrefix,
 } from '~/utils/routes';
@@ -25,6 +26,14 @@ import {
  *   /search/<undecodable|path-shaped|over-long>  →  /search
  * That one is not backward compatibility. It is here rather than in the page
  * because only the HTTP layer still sees the path the visitor actually sent.
+ *
+ * And it collapses multiply-escaped queries onto the ordinary encoding:
+ *   /search/%25E6%2595%25B0  →  /search/%E6%95%B0
+ * Same reasoning, one step further: the HTTP layer is the only place that can
+ * answer a 301, and a 301 is the only answer that makes an indexed family of
+ * these shrink. Rendering them -- even correctly -- is what kept 14k requests a
+ * day alive on production, because each render emitted a set of locale links one
+ * layer deeper again.
  */
 export default defineEventHandler((event) => {
   const url = getRequestURL(event);
@@ -121,6 +130,18 @@ export default defineEventHandler((event) => {
   // the wrong string.
   if (localizedPath.startsWith('/search/')) {
     const rawQuery = localizedPath.slice('/search/'.length);
+
+    // Multiply-escaped segments first, and they are judged on what they unwrap
+    // to rather than on how they arrived -- otherwise a path-shaped query buried
+    // under four layers reads as ordinary here and costs a second hop to
+    // collapse. See `overEscapedSearchQuery` for why a 301 and not a canonical.
+    const overEscaped = rawQuery ? overEscapedSearchQuery(rawQuery) : null;
+    if (overEscaped !== null) {
+      const target = isJunkSearchQuery(encodeURIComponent(overEscaped)) ? '/search' : buildWordSearchPath(overEscaped);
+      const remaining = url.searchParams.toString();
+      return sendRedirect(event, `${withLocalePrefix(localePrefix, target)}${remaining ? `?${remaining}` : ''}`, 301);
+    }
+
     if (rawQuery && isJunkSearchQuery(rawQuery)) {
       return sendRedirect(event, withLocalePrefix(localePrefix, '/search'), 301);
     }
