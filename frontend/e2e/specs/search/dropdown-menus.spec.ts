@@ -98,6 +98,81 @@ test.describe('Dropdown menus', () => {
     await expect(menu).toBeHidden();
   });
 
+  test('opening one dropdown closes another', async ({ page }) => {
+    const card = search.segmentCards.first();
+    const copy = card.getByTestId('copy-dropdown');
+    const download = card.getByTestId('download-dropdown');
+
+    await copy.getByTestId('dropdown-toggle').click();
+    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+
+    await download.getByTestId('dropdown-toggle').click();
+    await expect(download.getByTestId('dropdown-menu')).toBeVisible();
+    await expect(copy.getByTestId('dropdown-menu')).toBeHidden();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
+  });
+
+  test('opening a result dropdown closes the visibility menu', async ({ page }) => {
+    await search.enToggle.click();
+    await expect(search.visibilityOption('en', 'show')).toBeVisible();
+
+    const copy = search.segmentCards.first().getByTestId('copy-dropdown');
+    await copy.getByTestId('dropdown-toggle').click();
+
+    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+    await expect(search.visibilityOption('en', 'show')).toBeHidden();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
+  });
+
+  test('opening a result dropdown closes the word card', async ({ page }) => {
+    await search.openFirstTokenCard();
+    await expect(page.locator('.token-tooltip')).toBeVisible();
+
+    // Another card, so the word card (which hangs off the sentence) cannot
+    // sit on top of the button we are about to press.
+    const otherCard = search.segmentCards.nth(1);
+    await expect(otherCard).toBeVisible();
+    const copy = otherCard.getByTestId('copy-dropdown');
+    await copy.getByTestId('dropdown-toggle').click();
+
+    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+    await expect(page.locator('.token-tooltip')).toBeHidden();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
+  });
+
+  test('opening the shortcuts modal closes the word card', async ({ page }) => {
+    await search.openFirstTokenCard();
+    await expect(page.locator('.token-tooltip')).toBeVisible();
+
+    await page.keyboard.press('?');
+
+    await expect(page.getByTestId('shortcuts-modal')).toBeVisible();
+    await expect(page.locator('.token-tooltip')).toBeHidden();
+  });
+
+  test('opening the shortcuts modal closes an open result dropdown', async ({ page }) => {
+    const copy = search.segmentCards.first().getByTestId('copy-dropdown');
+    await copy.getByTestId('dropdown-toggle').click();
+    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+
+    await page.keyboard.press('?');
+
+    await expect(page.getByTestId('shortcuts-modal')).toBeVisible();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(0);
+  });
+
+  test('opening a word card closes an open result dropdown', async ({ page }) => {
+    const copy = search.segmentCards.first().getByTestId('copy-dropdown');
+    await copy.getByTestId('dropdown-toggle').click();
+    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+
+    await search.openFirstTokenCard();
+
+    await expect(page.locator('.token-tooltip')).toBeVisible();
+    await expect(copy.getByTestId('dropdown-menu')).toBeHidden();
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(0);
+  });
+
   test('clicking a dropdown item closes the dropdown', async ({ context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 

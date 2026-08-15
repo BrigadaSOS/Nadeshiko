@@ -53,6 +53,25 @@ test.describe('Collections', () => {
     await expect(collections.collectionRowByName(name)).not.toBeVisible({ timeout: 10_000 });
   });
 
+  test('opening the profile menu closes a collection row menu', async ({ authenticatedPage }) => {
+    const collections = new CollectionsPage(authenticatedPage);
+    await collections.goto();
+    await collections.expectLoaded();
+
+    const name = `e2e-menu-${Date.now()}`;
+    await collections.createCollection(name);
+
+    const row = collections.collectionRowByName(name);
+    await collections.openMenuFor(row);
+    await expect(authenticatedPage.getByTestId('collection-rename-action')).toBeVisible();
+
+    await authenticatedPage.getByTestId('profile-dropdown').getByTestId('dropdown-toggle').click();
+
+    await expect(authenticatedPage.getByTestId('profile-dropdown').getByTestId('dropdown-menu')).toBeVisible();
+    await expect(authenticatedPage.getByTestId('collection-rename-action')).toBeHidden();
+    await expect(authenticatedPage.getByTestId('dropdown-menu')).toHaveCount(1);
+  });
+
   test('create modal can be dismissed', async ({ authenticatedPage }) => {
     const collections = new CollectionsPage(authenticatedPage);
     await collections.goto();

@@ -11,6 +11,7 @@ export class SearchPage {
   readonly endOfResults: Locator;
   readonly enToggle: Locator;
   readonly esToggle: Locator;
+  readonly furiganaToggle: Locator;
   readonly recentsMenu: Locator;
   readonly recentsItems: Locator;
   readonly recentsClear: Locator;
@@ -33,8 +34,19 @@ export class SearchPage {
     // YouTube clip links out to the video instead.
     this.episodeLinks = page.getByTestId('segment-episode-link');
     this.endOfResults = page.getByText("You've reached the end", { exact: false });
-    this.enToggle = page.getByRole('button', { name: 'EN', exact: true });
-    this.esToggle = page.getByRole('button', { name: 'ES', exact: true });
+    this.enToggle = page.getByTestId('visibility-en');
+    this.esToggle = page.getByTestId('visibility-es');
+    this.furiganaToggle = page.getByTestId('visibility-furigana');
+  }
+
+  visibilityOption(lang: 'en' | 'es' | 'furigana', mode: 'show' | 'spoiler' | 'hidden') {
+    return this.page.getByTestId(`visibility-${lang}-option-${mode}`);
+  }
+
+  async setVisibility(lang: 'en' | 'es' | 'furigana', mode: 'show' | 'spoiler' | 'hidden') {
+    const toggle = this.page.getByTestId(`visibility-${lang}`);
+    await toggle.click();
+    await this.visibilityOption(lang, mode).click();
   }
 
   /**

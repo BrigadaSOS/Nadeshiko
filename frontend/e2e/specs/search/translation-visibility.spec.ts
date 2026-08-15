@@ -8,12 +8,12 @@ test.describe('Translation visibility', () => {
     search = new SearchPage(page);
     await search.goto('彼女');
     await search.expectResultsVisible();
-
   });
 
-  test('EN and ES toggle buttons are visible', async () => {
+  test('EN, ES and furigana buttons are visible', async () => {
     await expect(search.enToggle).toBeVisible();
     await expect(search.esToggle).toBeVisible();
+    await expect(search.furiganaToggle).toBeVisible();
   });
 
   test('translations are visible by default', async () => {
@@ -21,59 +21,62 @@ test.describe('Translation visibility', () => {
     await expect(search.translationBadges('ES')).toBeVisible();
   });
 
-  test('clicking EN once sets spoiler mode', async () => {
+  test('EN menu lists shown, on hover, and hidden', async ({ page }) => {
     await search.enToggle.click();
+    const menu = page.getByTestId('dropdown-menu');
+    await expect(menu).toBeVisible();
+    await expect(search.visibilityOption('en', 'show')).toBeVisible();
+    await expect(search.visibilityOption('en', 'spoiler')).toBeVisible();
+    await expect(search.visibilityOption('en', 'hidden')).toBeVisible();
+  });
+
+  test('picking On hover on EN sets spoiler mode', async () => {
+    await search.setVisibility('en', 'spoiler');
 
     const textSpan = search.translationText('EN');
     await expect(textSpan).toHaveClass(/text-transparent/);
   });
 
-  test('clicking EN twice hides translations entirely', async () => {
-    await search.enToggle.click();
-    await search.enToggle.click();
+  test('picking Hidden on EN hides translations entirely', async () => {
+    await search.setVisibility('en', 'hidden');
 
     await expect(search.translationBadges('EN')).not.toBeVisible();
   });
 
-  test('clicking EN three times returns to show mode', async () => {
-    await search.enToggle.click();
-    await search.enToggle.click();
-    await search.enToggle.click();
+  test('picking Shown on EN returns to show mode', async () => {
+    await search.setVisibility('en', 'hidden');
+    await search.setVisibility('en', 'show');
 
     await expect(search.translationBadges('EN')).toBeVisible();
     const textSpan = search.translationText('EN');
     await expect(textSpan).not.toHaveClass(/text-transparent/);
   });
 
-  test('clicking ES once sets spoiler mode', async () => {
-    await search.esToggle.click();
+  test('picking On hover on ES sets spoiler mode', async () => {
+    await search.setVisibility('es', 'spoiler');
 
     const textSpan = search.translationText('ES');
     await expect(textSpan).toHaveClass(/text-transparent/);
   });
 
-  test('clicking ES twice hides translations entirely', async () => {
-    await search.esToggle.click();
-    await search.esToggle.click();
+  test('picking Hidden on ES hides translations entirely', async () => {
+    await search.setVisibility('es', 'hidden');
 
     await expect(search.translationBadges('ES')).not.toBeVisible();
   });
 
-  test('EN and ES toggles are independent', async () => {
-    await search.enToggle.click();
-    await search.enToggle.click();
+  test('EN and ES menus are independent', async () => {
+    await search.setVisibility('en', 'hidden');
 
     await expect(search.translationBadges('EN')).not.toBeVisible();
     await expect(search.translationBadges('ES')).toBeVisible();
   });
 
   test('hidden mode persists after page reload', async ({ page }) => {
-    await search.enToggle.click();
-    await search.enToggle.click();
+    await search.setVisibility('en', 'hidden');
     await expect(search.translationBadges('EN')).not.toBeVisible();
 
-    await search.esToggle.click();
-    await search.esToggle.click();
+    await search.setVisibility('es', 'hidden');
     await expect(search.translationBadges('ES')).not.toBeVisible();
 
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -84,7 +87,7 @@ test.describe('Translation visibility', () => {
   });
 
   test('spoiler mode persists after page reload', async ({ page }) => {
-    await search.enToggle.click();
+    await search.setVisibility('en', 'spoiler');
     const textSpan = search.translationText('EN');
     await expect(textSpan).toHaveClass(/text-transparent/);
 

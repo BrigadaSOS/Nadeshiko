@@ -87,7 +87,6 @@ test.describe('Favorite Media', () => {
         timeout: 20_000,
       });
 
-      // Row 0 is the "All" row, which is pinned regardless of any ordering.
       const mediaRows = authenticatedPage.locator('[data-testid="media-filter-favorite"]');
       await expect(mediaRows.first()).toBeVisible({ timeout: 15_000 });
 
@@ -96,24 +95,6 @@ test.describe('Favorite Media', () => {
         .filter({ has: mediaRows.first() })
         .first();
       await expect(firstTitle).toContainText('Death Note');
-    });
-
-    test('the All row carries no star, while the title rows do', async ({ authenticatedPage }) => {
-      // The All row is not a title, so there is nothing to favorite on it and it
-      // gets no star rather than a disabled one that explains nothing. The rule
-      // lives inside the star component: `mediaPublicId` is nullable on a filter
-      // row, and a `v-for` alias does not narrow through a template `v-if` into a
-      // prop type, so a guard at the call site type-checked nowhere.
-      await authenticatedPage.goto('/search/'.concat(encodeURIComponent('私')));
-
-      const rows = authenticatedPage.locator('[data-testid="media-filter-row"]');
-      await expect(rows.first()).toBeVisible({ timeout: 15_000 });
-      await expect(rows.first().locator('[data-testid="media-filter-favorite"]')).toHaveCount(0);
-
-      // And not because stars are missing everywhere -- the titles below it have one.
-      await expect(authenticatedPage.locator('[data-testid="media-filter-favorite"]').first()).toBeVisible({
-        timeout: 15_000,
-      });
     });
 
     test('stars a title from the filter itself, and a fresh render agrees', async ({ authenticatedPage }) => {
