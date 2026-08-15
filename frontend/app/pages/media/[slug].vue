@@ -10,7 +10,7 @@ import {
   socialTitle,
 } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
-import { splitLocalePrefix } from '~/utils/routes';
+import { mediaSameAsUrls } from '~/utils/media';
 
 /**
  * A title's own page.
@@ -49,18 +49,6 @@ watch(
     if (typeof next === 'string' && next) slug.value = next;
   },
 );
-
-// Nuxt keeps this page painted as the Suspense fallback until `/search` has
-// fetched. A route-based `v-if` does not help: the outgoing tree is not
-// re-rendered. Hide the title card before navigation continues so the banner
-// is already gone when the URL becomes `/search`.
-const showTitleCard = ref(true);
-onBeforeRouteLeave(async (to) => {
-  const { localizedPath } = splitLocalePrefix(to.path);
-  if (localizedPath.startsWith('/media/')) return;
-  showTitleCard.value = false;
-  await nextTick();
-});
 
 const episodeNumberParam = computed(() => {
   const raw = getStringQueryValue(route.query.episode as string | string[] | undefined);
@@ -221,11 +209,13 @@ const workSchema = computed(() => {
   // them and INTERSECT it with the schema type, so an inferred `genre: string[]`
   // meets a declared `string | string[]` and collapses to `string & string[]` --
   // a type nothing can satisfy. Widening here keeps the intersection harmless.
+  const sameAs = mediaSameAsUrls(entry);
   const shared: Record<string, unknown> = {
     name: headline.value,
     ...(entry.genres?.length ? { genre: entry.genres } : {}),
     ...(entry.coverUrl ? { image: entry.coverUrl } : {}),
     ...(entry.startDate ? { datePublished: entry.startDate } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
     inLanguage: 'ja',
   };
 
@@ -255,12 +245,7 @@ useSchemaOrg(
 <template>
   <div class="mx-auto">
     <div class="relative text-white">
-      <div class="pt-3">
         <div class="nd-page">
-          <!-- The heading is visible here, unlike on the search pages: this page
-               is about one named work, and the card is what says so. Dropped in
-               `onBeforeRouteLeave` rather than off the live route: see there. -->
-          <MediaHeader v-if="media && showTitleCard" :media="media" />
           <div class="px-4 md:px-0">
             <!-- Searching from a title page stays inside that title; the scope
                  lives in the path here, so the box has to be told what it is. -->
@@ -269,9 +254,14 @@ useSchemaOrg(
           <SearchContainer
             :initial-sentence-data="initialSentenceData"
             :initial-stats-data="initialStatsData"
-            :media-public-id="mediaPublicId" />
+            :media-public-id="mediaPublicId">
+            <!-- Below the tabs, not above the search box: a hero above the
+                 tabs would make them jump when it left. -->
+            <template #below-tabs>
+              <MediaHeader v-if="media" :media="media" />
+            </template>
+          </SearchContainer>
         </div>
-      </div>
     </div>
   </div>
 </template>

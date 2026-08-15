@@ -29,15 +29,19 @@ defineEmits<{ select: [] }>();
 </script>
 
 <template>
-  <li data-testid="media-filter-row" :data-row-id="rowId ?? undefined">
+  <li data-testid="media-filter-row" :data-row-id="rowId ?? undefined" class="[&:first-child>[aria-hidden]]:hidden">
+    <!-- Inset to the row's `px-5`, so the rule starts and ends with the label
+         rather than running under the card's own border. Hidden on the first
+         row so the list does not open with a line under the card edge. -->
+    <div class="mx-5 border-t border-line-subtle" aria-hidden="true" />
     <div
       :class="{ 'bg-sgrayhover': selected }"
-      class="flex border duration-300 items-center w-full hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left dark:border-white/5">
+      class="flex duration-300 items-center w-full hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left">
       <button
         type="button"
         :title="title"
         @click="$emit('select')"
-        class="flex flex-1 min-w-0 items-center justify-between px-4 py-2 text-left">
+        class="flex flex-1 min-w-0 items-center justify-between pl-5 pr-4 py-2 text-left outline-none">
         <span class="flex-1 min-w-0 pr-2" :class="truncate ? 'truncate' : 'line-clamp-2 break-words'">
           {{ label }}
         </span>

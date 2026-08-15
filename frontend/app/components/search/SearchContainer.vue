@@ -25,6 +25,8 @@ const props = defineProps<{
   listMediaIds?: number[] | null;
   collectionId?: string | null;
   collectionName?: string | null;
+  /** Resolved title name for a `?media=` filter that has no matching rows. */
+  mediaDisplayName?: string | null;
   /**
    * The title being browsed, when the ROUTE names it rather than the query
    * string -- i.e. on `/media/<slug>`, where the scope is in the path and there
@@ -43,7 +45,6 @@ const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const route = useRoute();
 const { setQuery } = useQuerySync();
-const { selectMedia } = useMediaScope();
 const playerStore = usePlayerStore();
 
 const isSentencePath = (path: string) => splitLocalePrefix(path).localizedPath.startsWith('/sentence/');
@@ -70,6 +71,10 @@ const episode = ref<number | null>(null);
 
 const categoryApiMapping = CATEGORY_API_MAPPING;
 const selectedApiCategory = computed(() => categoryApiMapping[category.value] ?? null);
+// A title is a refinement of a word search, not its replacement. Keep an
+// explicit way back to the unscoped word results while a `?media=` filter is
+// present; a title browse without a word still has just the title tab.
+const hasSearchQuery = computed(() => Boolean(query.value));
 const showHiddenMediaOverride = ref(false);
 
 const isViewingHiddenMedia = computed(
@@ -123,6 +128,9 @@ const hiddenBreakdownError = ref(false);
 // Its own fetcher instance. `fetchStats` supersedes whatever the previous call
 // left in flight, so sharing the list's would have the two mark each other stale.
 const { fetchStats: fetchUnfilteredStats } = useSearchFetch();
+// The empty-result check can run while the reader opens the breakdown, so it
+// needs its own request generation too.
+const { fetchStats: fetchHiddenEmptyStats } = useSearchFetch();
 
 const loadHiddenBreakdown = async () => {
   posthog?.capture('hidden_results_breakdown_opened', {
@@ -217,19 +225,14 @@ const hiddenResultCount = computed(() => (revealHidden.value ? 0 : countHiddenRe
  *
  * The server drops a category bucket once its last hit is excluded, so where the
  * partial case above has `realCount` to subtract from, this one has no payload
- * left to count at all -- the notice says "may be" and offers the same way out,
- * which is the part that matters when the page is otherwise blank. A query that
- * genuinely found nothing lands here too; that is why it does not claim a number.
+ * left to count at all. `hiddenEmptyMatchCount` is filled by a second request
+ * with those filters lifted, so a genuinely empty query does not get a notice
+ * that promises results it cannot reveal.
  */
-const hiddenMayExplainEmpty = computed(
-  () =>
-    !media.value &&
-    !revealHidden.value &&
-    !isLoading.value &&
-    !statsError.value &&
-    searchData.value.categories.length === 0 &&
-    (hiddenMediaIds.value.length > 0 || hiddenCategories.value.length > 0),
-);
+/** Result count from a filters-lifted check for an otherwise empty search. */
+const hiddenEmptyMatchCount = ref<number | null>(null);
+
+const hiddenMayExplainEmpty = computed(() => hiddenEmptyMatchCount.value !== null && hiddenEmptyMatchCount.value > 0);
 
 /** Whether the notice is offering to lift the filters, rather than reporting they are lifted. */
 const hiddenNoticeOffered = computed(() => hiddenResultCount.value > 0 || hiddenMayExplainEmpty.value);
@@ -392,6 +395,46 @@ const searchScope = computed<SearchScope>(() => ({
   hiddenMediaExclude: revealHidden.value ? [] : hiddenMediaExcludeFilter.value,
   hiddenCategories: revealHidden.value ? [] : hiddenCategories.value,
 }));
+
+/**
+ * An empty visible payload cannot say whether a hidden title matched: its last
+ * bucket was removed from the response. Ask once with the reader's hidden
+ * filters lifted, then offer the notice only if that request actually found
+ * something. A genuine zero-result search stays quiet.
+ */
+const hiddenEmptyCheckKey = computed(() => {
+  const shouldCheck =
+    !media.value &&
+    !revealHidden.value &&
+    !isLoading.value &&
+    !statsError.value &&
+    searchData.value.categories.length === 0 &&
+    (hiddenMediaIds.value.length > 0 || hiddenCategories.value.length > 0);
+
+  if (!shouldCheck) return null;
+  return [query.value, category.value, hiddenMediaIds.value.join(','), hiddenCategories.value.join(',')].join('\u0000');
+});
+
+watch(
+  hiddenEmptyCheckKey,
+  async (key) => {
+    hiddenEmptyMatchCount.value = null;
+    // The server has no reader preferences during SSR. Deferring this second
+    // request to the client also prevents the rendered page from briefly
+    // claiming hidden results before it knows there are any.
+    if (!key || !import.meta.client) return;
+
+    const outcome = await fetchHiddenEmptyStats({
+      ...searchScope.value,
+      hiddenMediaExclude: [],
+      hiddenCategories: [],
+    });
+    if (key !== hiddenEmptyCheckKey.value || outcome.status !== 'ok') return;
+
+    hiddenEmptyMatchCount.value = outcome.data.categories.reduce((total, entry) => total + entry.count, 0);
+  },
+  { immediate: true },
+);
 
 // The breakdown describes one search; the next one has to ask again.
 watch(searchScope, () => {
@@ -629,12 +672,7 @@ const getCategoryTotalCount = (categoryKey: string): number => {
   return item ? item.realCount : 0;
 };
 
-/**
- * Hits for the query across everything, ignoring any media filter. The category
- * stats are not scoped to `?media=`, so this stays available to label the All
- * tab while a title is selected -- which is the point: a title with no hits for
- * the query still has to show that the query itself found something.
- */
+/** Hits for the query across every visible title, including a zero-hit selected one. */
 const unfilteredResultCount = computed(() =>
   (searchData.value?.categories || []).reduce((total, item) => total + item.count, 0),
 );
@@ -648,16 +686,9 @@ const unfilteredResultCount = computed(() =>
 const selectedMediaTabName = computed(() => {
   const stat = (searchData.value?.media || []).find((item) => item.mediaPublicId === media.value);
   const source = stat || searchData.value?.results?.[0]?.media || null;
-  const name = source ? mediaName(source) : t('searchContainer.selectedMediaFallback');
+  const name = source ? mediaName(source) : props.mediaDisplayName || t('searchContainer.selectedMediaFallback');
   return episode.value !== null ? `${name}, ${t('searchpage.main.labels.episode')} ${episode.value}` : name;
 });
-
-/** Leaves the title behind, and the episode under it. */
-const clearMediaFilter = () => {
-  // Goes through `selectMedia` so a title in the path (`/media/<slug>`) is
-  // actually left -- patching `?media=` there would change nothing.
-  selectMedia(null);
-};
 
 const categoryFilter = (categoryKey: string) => {
   posthog?.capture('search_filter_changed', {
@@ -669,6 +700,16 @@ const categoryFilter = (categoryKey: string) => {
   // category set that reads as "use the default" -- so All has to be written out.
   const clearsToAll = categoryKey === 'all' && implicitCategorySlug(route) === 'all';
   setQuery({ category: clearsToAll ? null : categoryKey });
+};
+
+/** Remove the title refinement without discarding the word in the route. */
+const clearMediaFilter = () => {
+  // With a non-All default, merely removing `?media=` would make the absent
+  // category parameter resolve to that default. The reader clicked All, so
+  // spell it explicitly in that one case.
+  const categoryParam =
+    category.value === 'all' && defaultCategorySlug.value !== 'all' ? 'all' : getStringQueryValue(route.query.category);
+  setQuery({ media: null, episode: null, category: categoryParam });
 };
 
 const handleRemoveFromCollection = async (segmentPublicId: string) => {
@@ -710,26 +751,26 @@ if (props.initialSentenceData) {
 }
 
 /**
- * The title sidebar fills from its current top to the bottom of the viewport.
+ * Cap the title sidebar at the remaining viewport, never stretch it to fill.
  *
- * A CSS `max-h: 100vh - tabs` is the stuck size, so at the top of the page the
- * panel hangs past the fold (and the page can still be scrolled to chase it),
- * and a short title list shrinks and leaves a hole above the bottom of the
- * side. Measuring the remaining viewport on scroll/resize covers both: at rest
- * the panel stops at the fold, and once it sticks it still runs to the bottom.
+ * A CSS `max-h: 100vh - tabs` is the stuck size, so at the top of the page a
+ * long list hangs past the fold (and the page can still be scrolled to chase
+ * it). Measuring the remaining viewport on scroll/resize stops it at the fold
+ * at rest, and at the bottom once it sticks. A short list stays the height of
+ * its rows -- a fixed height was stretching an empty card down the side.
  */
 const sidebarRef = ref<HTMLElement | null>(null);
-const sidebarHeight = ref<string | undefined>(undefined);
+const sidebarMaxHeight = ref<string | undefined>(undefined);
 
 const syncSidebarHeight = () => {
   const el = sidebarRef.value;
   if (!el || el.offsetParent === null) return;
   const top = el.getBoundingClientRect().top;
   const stickyTop = Number.parseFloat(getComputedStyle(el).top) || 0;
-  // The column end is pushing the panel off: keep the stuck height so we do
+  // The column end is pushing the panel off: keep the stuck cap so we do
   // not grow it as it leaves.
   if (top + 1 < stickyTop) return;
-  sidebarHeight.value = `${Math.max(0, window.innerHeight - top)}px`;
+  sidebarMaxHeight.value = `${Math.max(0, window.innerHeight - top)}px`;
 };
 
 useEventListener(window, 'scroll', syncSidebarHeight, { passive: true });
@@ -804,8 +845,11 @@ watch(defaultCategorySlug, () => {
  */
 onBeforeRouteUpdate(async (to, from) => {
   applyRouteQuery(to);
-  showHiddenMediaOverride.value = false;
-  revealHidden.value = false;
+  const searchQueryChanged = getSearchQuery(to) !== getSearchQuery(from);
+  if (searchQueryChanged) {
+    showHiddenMediaOverride.value = false;
+    revealHidden.value = false;
+  }
 
   // Compared as the page key is: the `:query` param alone. `getSearchQuery` also
   // reads `?query=`, which reaches this component without remounting it and so
@@ -814,7 +858,7 @@ onBeforeRouteUpdate(async (to, from) => {
     return;
   }
 
-  const statsScopeChanged = getSearchQuery(to) !== getSearchQuery(from) || to.query.category !== from.query.category;
+  const statsScopeChanged = searchQueryChanged || to.query.category !== from.query.category;
 
   if (statsScopeChanged) {
     loadStats();
@@ -843,7 +887,7 @@ onBeforeRouteUpdate(async (to, from) => {
     </div>
     <div v-else-if="initialError">
         <div class="pb-3">
-            <div class="flex items-center justify-end gap-3 border-b border-[#dddddd21] pb-3 px-4 md:px-0">
+            <div class="flex items-center justify-end gap-3 border-b border-b-line-subtle pb-3 px-4 md:px-0">
                 <div class="shrink-0">
                     <SearchResultControls />
                 </div>
@@ -892,12 +936,15 @@ onBeforeRouteUpdate(async (to, from) => {
         <!-- Tabs. Sticky so the category tabs and the EN/ES/furigana controls
              stay reachable while reading results: they sit where the search bar
              leaves off, and the title sidebar starts below them. -->
-        <div class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0">
-            <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-3 border-b border-[#dddddd21] px-4 md:px-0">
+        <!-- Keep All present for every word search, even one with no hits.
+             It must not disappear after widening an empty title-scoped search
+             to an equally empty search across everything. -->
+        <div class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0 || hasSearchQuery">
+            <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-2 border-b border-b-line-subtle px-4 md:gap-3 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
                     :to="localePath('/user/collections')"
-                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-white/10"
+                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-hairline"
                 >
                     <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
@@ -907,11 +954,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
-                            <!-- With a title selected, All stays on screen as the way back to
-                                 the whole result set, and keeps showing what the query found
-                                 across everything -- a title with no hits for it is not the
-                                 same as the search finding nothing. -->
-                            <CommonTabsItem data-testid="search-category-tab-all" category="all"
+                            <CommonTabsItem v-if="!media || hasSearchQuery" data-testid="search-category-tab-all" category="all"
                                 :categoryName="media ? t('searchContainer.categoryAll') : animeTabName"
                                 :count="media ? unfilteredResultCount : getCategoryCount('all')"
                                 :totalCount="getCategoryTotalCount('all')"
@@ -937,7 +980,7 @@ onBeforeRouteUpdate(async (to, from) => {
             </div>
         </div>
         <div v-else-if="statsError" class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" data-testid="search-stats-error">
-            <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
+            <div class="flex items-center gap-3 border-b border-b-line-subtle py-4 px-4 md:px-0">
                 <p class="text-sm text-red-400">{{ $t('searchContainer.errorMessage1') }}</p>
                 <button
                     type="button"
@@ -961,11 +1004,11 @@ onBeforeRouteUpdate(async (to, from) => {
             </CommonTabsContainer>
         </div>
         <div v-else class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore">
-            <div class="flex items-center gap-3 border-b border-[#dddddd21] py-4 px-4 md:px-0">
+            <div class="flex items-center gap-3 border-b border-b-line-subtle py-4 px-4 md:px-0">
                 <NuxtLink
                     v-if="collectionId"
                     :to="localePath('/user/collections')"
-                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-white/10"
+                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-hairline"
                 >
                     <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
@@ -977,6 +1020,12 @@ onBeforeRouteUpdate(async (to, from) => {
                     <SearchResultControls />
                 </div>
             </div>
+        </div>
+        <!-- Below the tabs so the title card can leave without the search bar
+             and tabs changing their place on the screen. Inset on small screens
+             to match the search box; the page column is full-bleed below `md`. -->
+        <div class="px-4 md:px-0">
+            <slot name="below-tabs" />
         </div>
         <div class="flex mx-auto w-full">
             <!-- Segment -->
@@ -1011,19 +1060,24 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
             <!-- Filters -->
-            <div v-if="!isSingleSentenceView && (searchData?.media?.length > 0 || isLoading)" class="2xl:min-w-[20rem] 2xl:max-w-[20rem] 3xl:min-w-[20rem] 3xl:max-w-[22rem] yomitan-ignore">
-                <!-- Fills the remaining viewport (see `syncSidebarHeight`). The
-                     stuck `top` is the tab bar; the height is the rest of the side. -->
+            <div v-if="!isSingleSentenceView && (searchData?.media?.length > 0 || isLoading)" class="2xl:ml-6 2xl:min-w-[20rem] 2xl:max-w-[20rem] 3xl:min-w-[20rem] 3xl:max-w-[22rem] yomitan-ignore">
+                <!-- A cap rather than a fixed height (see `syncSidebarHeight`):
+                     a short media list shrinks to its rows, and only a long one
+                     grows to the remaining viewport and scrolls inside. -->
                 <div
                   v-if="searchData?.media?.length > 0"
                   ref="sidebarRef"
-                  class="px-2 gap-2 mx-auto hidden 2xl:grid 2xl:grid-rows-[auto_minmax(0,1fr)] 2xl:sticky 2xl:top-[var(--search-controls-height)] 2xl:h-[calc(100dvh-var(--search-controls-height))] 2xl:overflow-hidden"
-                  :style="sidebarHeight ? { height: sidebarHeight } : undefined"
+                  class="w-full hidden 2xl:grid 2xl:grid-rows-[minmax(0,1fr)] 2xl:sticky 2xl:top-[var(--search-controls-height)] 2xl:max-h-[calc(100dvh-var(--search-controls-height))] 2xl:overflow-hidden"
+                  :style="sidebarMaxHeight ? { maxHeight: sidebarMaxHeight } : undefined"
                 >
-                    <SearchSegmentFilterSortContent />
                     <!-- Titles and episodes are one panel: the filter drills from a
-                         title into its episodes rather than stacking two lists. -->
-                    <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" :activeMediaId="media" />
+                         title into its episodes rather than stacking two lists.
+                         Sort sits above that card as its own button. -->
+                    <SearchSegmentFilterContent :searchData="searchData" :categorySelected="category" :activeMediaId="media">
+                      <template #before>
+                        <SearchSegmentFilterSortContent />
+                      </template>
+                    </SearchSegmentFilterContent>
                 </div>
                 <div v-else-if="isLoading && !searchData?.results?.length || !searchData">
                     <div class="pl-4 mx-auto hidden 2xl:block min-w-[340px]">

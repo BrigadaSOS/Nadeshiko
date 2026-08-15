@@ -106,16 +106,17 @@ useEventListener(window, 'blur', () => {
 });
 
 /**
- * The bar's half of the shared accent.
+ * The bar's half of the shared open border.
  *
  * Away, `!` is load-bearing: the input still matches `:focus`, and a plain
- * border utility loses to the `dark:focus:` one it has to override. Here, the
- * accent is held for as long as the menu is standing whether or not the field
- * itself still has focus, since the two are one card.
+ * border utility loses to `border-hairline` on the same node. Here, the
+ * lighter line is held for as long as the menu is standing whether or not the
+ * field itself still has focus, since the two are one card. This is the 1px
+ * border, not the offset focus ring.
  */
 const barAccentClass = computed(() => {
-  if (!isWindowFocused.value) return 'dark:!border-neutral-600';
-  return showRecents.value ? 'dark:border-input-focus-ring' : '';
+  if (!isWindowFocused.value) return '!border-hairline';
+  return showRecents.value ? '!border-open' : '';
 });
 
 /**
@@ -327,9 +328,9 @@ const showBatchModal = ref(false);
             class="sr-only">{{ $t('common.searchAnything') }}</span></label>
         <!--
           The bar gives up the two corners it shares with the menu while the menu
-          is standing, and holds its focused border colour there whether or not
+          is standing, and holds the lighter open border there whether or not
           the field still has focus -- both halves are one surface, so they wear
-          one accent. Morphed rather than switched: the fusing is the part that
+          one line. Morphed rather than switched: the fusing is the part that
           reads as one card unfurling instead of two stacked ones.
         -->
         <input ref="inputRef" id="sentence-search-input" data-testid="search-input" v-model="query" v-on="inputHandlers"
@@ -337,7 +338,7 @@ const showBatchModal = ref(false);
           :aria-activedescendant="activeIndex >= 0 ? recentOptionId(activeIndex) : undefined" autocomplete="off"
           @pointerdown="openRecents"
           :class="[showRecents ? 'rounded-b-none' : '', barAccentClass]"
-          class="dark:focus:ring-input-focus-ring border py-3 dark:focus:border-input-focus-ring h-full pl-4 pr-4 md:pr-32 block w-full border-transparent rounded-lg focus:outline-none dark:bg-input-background dark:border-neutral-600 dark:text-white/80 dark:placeholder-neutral-500 text-base transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
+          class="border py-3 h-full pl-4 pr-4 md:pr-32 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
           :placeholder="$t('common.searchAnything')" />
 
         <!--
@@ -360,7 +361,7 @@ const showBatchModal = ref(false);
           <span
             class="hidden md:inline-flex items-center whitespace-nowrap py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
             <kbd
-              class="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-white border border-gray-200 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
+              class="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 font-mono text-sm rounded-md bg-control border border-hairline text-ink">
               <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
@@ -369,7 +370,7 @@ const showBatchModal = ref(false);
             </kbd>
             +
             <kbd
-              class="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-white border border-gray-200 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
+              class="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 font-mono text-sm rounded-md bg-control border border-hairline text-ink">
               S
             </kbd>
           </span>
@@ -387,7 +388,7 @@ const showBatchModal = ref(false);
       <div class="hidden md:grid grid-cols-2 gap-2">
         <button
           data-testid="search-button"
-          class="col-span-1 py-4 px-4 dark:border-neutral-700 border inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
+          class="col-span-1 py-4 px-4 border border-hairline inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="submitFromSearchButton">
           <svg class="flex-shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -398,7 +399,7 @@ const showBatchModal = ref(false);
         </button>
 
         <button
-          class="col-span-1 py-4 px-4 dark:border-neutral-700 border inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
+          class="col-span-1 py-4 px-4 border border-hairline inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="showBatchModal = true">
           <UiBaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
         </button>

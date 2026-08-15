@@ -76,11 +76,14 @@ const sortContent = async (type: string) => {
 };
 </script>
 <template>
-    <!-- No margin of its own: the gap to the filter panel below is the sidebar's
-         `gap-2`. Top padding lives on the sticky offset, not on this button. -->
-    <SearchDropdownContainer class="gap-2 text-xs w-full flex" dropdownId="nd-dropdown-with-header">
+    <!-- Its own button above the title list, full width so the label stays
+         visible. `text-sm` is load-bearing on desktop: the sidebar column is
+         `yomitan-ignore` (font-size: 0) and this control no longer inherits
+         a size from the card. -->
+    <SearchDropdownContainer class="w-full flex" dropdownId="nd-dropdown-with-header">
         <template #default>
-            <SearchDropdownMainButton class="w-full items-center text-center align-middle flex"
+            <SearchDropdownMainButton
+                dropdown-button-class="w-full py-2.5 px-4 text-center flex justify-center items-center gap-x-2 text-sm font-semibold rounded-lg border border-hairline bg-button-primary-main text-ink hover:bg-surface-hover disabled:opacity-50 disabled:pointer-events-none outline-none"
                 dropdownId="nd-dropdown-with-header">
                 <UiBaseIcon :path="mdiFilterOutline" />
                 {{ t('searchpage.main.buttons.sortmain') }}

@@ -95,7 +95,7 @@ const translationLanguages = computed(() => {
 </script>
 
 <template>
-  <div class="nd-page px-4 md:px-0 py-6 text-white">
+  <div class="nd-page px-4 md:px-0 pb-6 text-white">
     <div class="mb-3">
       <h1 class="text-[2.5rem] font-extrabold mb-2 pl-4 leading-tight relative before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-button-accent-main before:rounded-sm">{{ $t('statsPage.title') }}</h1>
       <p class="text-white/50 max-w-xl">

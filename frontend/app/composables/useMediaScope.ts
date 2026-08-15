@@ -48,11 +48,12 @@ export function useMediaScope() {
         const query = { ...route.query };
         delete query.media;
         delete query.episode;
+        // Stay put. All is the same list with a wider filter. The path change
+        // would still reset scroll without `scrollToTop: false` on `/search`.
         void router.push({ path: localePath('/search'), query });
-        scrollToTop();
         return;
       }
-      setQuery({ media: null, episode: null }, { scroll: true });
+      setQuery({ media: null, episode: null });
       return;
     }
 

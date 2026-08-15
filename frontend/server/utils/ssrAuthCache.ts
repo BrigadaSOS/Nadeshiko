@@ -47,7 +47,35 @@ const PREFS_VERSION_RE = /^\d{1,13}$/;
 
 type Entry<T> = { kind: 'inflight'; promise: Promise<T> } | { kind: 'value'; value: T; expiresAt: number };
 
-const store = new Map<string, Entry<unknown>>();
+/**
+ * Held on `globalThis`, not in a module-level `const`, because this module is
+ * imported from both sides of a bundle boundary and a plain `const` is therefore
+ * TWO maps.
+ *
+ * `ssrAuthFetch` is called from `app/plugins/identity-auth.ts`, which is app
+ * code compiled into the Vue SSR bundle. `dropSessionEntries` is called from
+ * `server/utils/backendProxy.ts`, which is server code compiled into the Nitro
+ * bundle. Each build inlines its own copy of this module, so before this the
+ * proxy was deleting entries out of a map nothing ever read: a reader whose
+ * request carried no `nd-prefs-version` stamp -- a second browser, a private
+ * window, a Playwright context built per test -- kept being handed pre-change
+ * preferences for the rest of `TTL_MS`, which is precisely the case the drop
+ * exists to cover. The stamp hid it, because a cookie changes the key on
+ * whichever copy computes it.
+ *
+ * `Symbol.for` rather than a string property: it is keyed in the cross-realm
+ * registry, so both copies resolve the same symbol without a name that could
+ * collide with anything else parked on the global.
+ *
+ * This is per process, which is all it ever was -- production forks three
+ * workers and the stamp is still what crosses them.
+ */
+const STORE_KEY = Symbol.for('nadeshiko.ssrAuthCache.store');
+
+type GlobalWithStore = typeof globalThis & { [STORE_KEY]?: Map<string, Entry<unknown>> };
+
+const globalWithStore = globalThis as GlobalWithStore;
+const store: Map<string, Entry<unknown>> = (globalWithStore[STORE_KEY] ??= new Map<string, Entry<unknown>>());
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 32);

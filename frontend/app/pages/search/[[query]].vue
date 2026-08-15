@@ -13,6 +13,15 @@ import type { Media } from '@brigadasos/nadeshiko-sdk';
 import { reportError } from '~/utils/reportError';
 import { buildMediaPath, decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
 
+definePageMeta({
+  // All from `/media/<slug>` only changes the path because the title lives in
+  // it. Nuxt treats that as a new page and would jump to the top; the reader
+  // is still in the same list.
+  scrollToTop(_to, from) {
+    return !/\/media\/[^/]+\/?$/.test(from.path);
+  },
+});
+
 const { t } = useI18n();
 const route = useRoute();
 const localePath = useLocalePath();
@@ -425,24 +434,28 @@ useSchemaOrg(schemaOrgNodes);
 <template>
     <div class="mx-auto">
             <div class="relative text-white">
-                <div class="pt-3">
                     <div class="nd-page">
                         <h1 v-if="searchQuery" class="sr-only">{{ searchQuery }}</h1>
-                        <!-- `scopedMedia` can still hold the previous title for a
-                             tick after `?media=` is cleared -- useAsyncData keeps
-                             the old payload until the `none` key resolves. The
-                             query is what the reader asked for. -->
-                        <MediaHeader v-if="scopedMedia && mediaQueryParam" :media="scopedMedia" heading="h2" />
                         <div class="px-4 md:px-0">
                             <SearchBaseInputSegment />
                         </div>
-                        <SearchContainer :initial-sentence-data="initialSentenceData" :initial-stats-data="initialStatsData" />
+                        <SearchContainer
+                            :initial-sentence-data="initialSentenceData"
+                            :initial-stats-data="initialStatsData"
+                            :media-display-name="scopedMedia ? mediaName(scopedMedia) : null">
+                            <!-- Same slot as the title page, so leaving a
+                                 narrowed search does not move the tabs either.
+                                 `mediaQueryParam` is what the reader asked for;
+                                 `scopedMedia` can lag a tick behind. -->
+                            <template #below-tabs>
+                                <MediaHeader v-if="scopedMedia && mediaQueryParam" :media="scopedMedia" heading="h2" />
+                            </template>
+                        </SearchContainer>
                         <!-- Word pages only: a title browse has the catalogue to
                              link it onward, and a bare `/search` has nothing to
                              be related to. -->
                         <SearchRelatedWords :words="relatedWords" />
                     </div>
-                </div>
             </div>
         </div>
 </template>

@@ -154,7 +154,6 @@ if (import.meta.client) {
 <template>
   <div class="mx-auto">
       <div class="relative text-white">
-        <div class="pt-3">
           <div class="nd-page">
             <h1 class="sr-only">{{ metaTags.title }}</h1>
             <SearchBaseInputSegment />
@@ -165,7 +164,6 @@ if (import.meta.client) {
               :collection-name="collectionDetails?.name ?? undefined"
             />
           </div>
-        </div>
       </div>
     </div>
 </template>
