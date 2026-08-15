@@ -20,6 +20,12 @@ vi.mock('@config/log', () => {
   return { logger: mockLogger, createLogger: () => mockLogger, default: mockLogger };
 });
 
+// Search reads the unhandled-report sets to hide reported segments and demote
+// reported titles. That is a database read, and these cases run without one.
+vi.mock('@app/services/reports/reportedContent', () => ({
+  getUnhandledReports: async () => ({ segmentIds: new Set<number>(), mediaWeights: new Map<number, number>() }),
+}));
+
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>;
 
 const emptyMediaInfoMap = { results: new Map() } as unknown as MediaInfoMap;

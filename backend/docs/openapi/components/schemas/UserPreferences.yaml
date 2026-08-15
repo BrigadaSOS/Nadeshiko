@@ -24,6 +24,18 @@ properties:
       ES:
         type: string
         enum: [show, spoiler, hidden]
+  translationLanguages:
+    type: array
+    minItems: 1
+    maxItems: 2
+    uniqueItems: true
+    description: >
+      Translation languages the reader wants in dictionary content, in display
+      order. This is the global preference; translationVisibilityPreferences is
+      a search-surface override for showing, spoiling, or hiding a language.
+    items:
+      type: string
+      enum: [EN, ES]
   searchHistory:
     type: object
     properties:
@@ -61,6 +73,16 @@ properties:
           nullable: true
         serverAddress:
           type: string
+        openBrowserOnExport:
+          type: boolean
+          description: |
+            Whether exporting a card brings Anki's card browser to the front.
+
+            Absent means true, which is what it did before the setting existed.
+            Undeclared until now: the settings page has offered the switch all
+            along, but a profile saved with it off came back from the server
+            without the field at all, so turning it off appeared to save and then
+            did nothing.
   defaultSearchCategory:
     type: string
     enum: [ALL, ANIME, JDRAMA, YOUTUBE]

@@ -30,6 +30,7 @@ import {
   updateReportGroup,
   updateReportGroups,
 } from '@app/services/reports/reportQueries';
+import { invalidateUnhandledReports } from '@app/services/reports/reportedContent';
 
 export const createUserReport: CreateUserReport = async ({ body }, respond, req) => {
   const user = assertUser(req);
@@ -69,6 +70,12 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
     .values(attributes as QueryDeepPartialEntity<Report>)
     .orIgnore()
     .execute();
+
+  // Search hides reported segments and demotes reported titles, so the cached id
+  // sets are stale from here on. Dropped rather than updated: the same call has to
+  // serve the insert-was-ignored case, where nothing changed and a rebuild is the
+  // cheapest correct answer.
+  invalidateUnhandledReports();
 
   // Reads back whichever row is there now — the one just inserted, or the one that
   // was already reported — so repeat submissions are idempotent.
@@ -116,6 +123,8 @@ export const updateAdminReport: UpdateAdminReport = async ({ params, body }, res
     await updateReportGroup(r, { status: body.status }, Report.getRepository().manager);
   }
 
+  invalidateUnhandledReports();
+
   const ids = await resolveReportPublicIdsForOne(r);
   return respond.with200().body(toReportDTO(r, ids));
 };
@@ -129,6 +138,7 @@ export const batchUpdateAdminReports: BatchUpdateAdminReports = async ({ body },
   // Look up the selected reports to find their group keys, then update all siblings
   const reports = await Report.findBy({ id: In(ids) });
   const updated = await updateReportGroups(reports, patch);
+  invalidateUnhandledReports();
 
   return respond.with200().body({ count: updated });
 };
@@ -145,6 +155,7 @@ export const bulkUpdateAdminReports: BulkUpdateAdminReports = async ({ body }, r
   applyReportFilters(qb, '"Report"', parsed, 'bulk');
 
   const result = await qb.execute();
+  invalidateUnhandledReports();
 
   return respond.with200().body({ count: result.affected ?? 0 });
 };
@@ -156,6 +167,8 @@ export const deleteAdminReport: DeleteAdminReport = async ({ params }, respond) 
   }
 
   const deleted = await deleteReportGroup(report);
+  invalidateUnhandledReports();
+
   return respond.with200().body({ count: deleted });
 };
 
@@ -168,6 +181,8 @@ export const bulkDeleteAdminReports: BulkDeleteAdminReports = async ({ body }, r
   applyReportFilters(qb, '"Report"', parsed, 'bulk');
 
   const result = await qb.execute();
+  invalidateUnhandledReports();
+
   return respond.with200().body({ count: result.affected ?? 0 });
 };
 

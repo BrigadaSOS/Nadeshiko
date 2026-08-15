@@ -30,29 +30,16 @@ type TermsAggregation = { buckets?: TermsBucket[] };
 type TokenOutput = SegmentOutput['textJa']['tokens'];
 
 export class SegmentResponse {
-  static buildSearch(
-    esResponse: estypes.SearchResponse,
-    mediaInfoResponse: MediaInfoMap,
-    preferredMediaIds?: ReadonlySet<number>,
-  ): SearchResponseOutput {
-    const hits = esResponse.hits.hits as SegmentSearchHit[];
+  static buildSearch(esResponse: estypes.SearchResponse, mediaInfoResponse: MediaInfoMap): SearchResponseOutput {
+    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
 
-    // The cursor is read before the reorder below, and that ordering is the whole
-    // reason the reorder is safe. `search_after` resumes from the sort values of
-    // the last hit *Elasticsearch* returned; take them from the last hit the
-    // reader is shown instead and every tie moved to the top of a page becomes a
-    // row the next page repeats, while the one it displaced is skipped.
     let cursor: string | undefined;
+    const hits = esResponse.hits.hits as SegmentSearchHit[];
     const lastHit = hits[hits.length - 1];
     if (lastHit) {
       const sortValue = lastHit.sort;
       if (sortValue) cursor = encodeKeysetCursor(sortValue as estypes.FieldValue[]);
     }
-
-    if (preferredMediaIds?.size) {
-      esResponse.hits.hits = preferTiedMedia(hits, preferredMediaIds);
-    }
-    const { segments, mediaMap } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfoResponse);
 
     return {
       segments,
@@ -418,53 +405,3 @@ export class SegmentResponse {
   }
 }
 
-/**
- * Lifts the reader's own titles to the front of each run of equally-ranked hits,
- * leaving every other pair exactly where Elasticsearch put it.
- *
- * A tie-break, not a boost. Nothing here crosses a rank boundary, so the set of
- * segments on the page is untouched: a search that would not have surfaced a
- * favourite still does not surface it, and a reader who favourites everything
- * sees the same results in the same order as one who favourites nothing. The
- * only thing that moves is the order inside a run the ranking itself had no
- * opinion about.
- *
- * The grouping key is the first sort value rather than `_score`, because that is
- * the primary key whichever branch of the sort builder ran -- queryless browse
- * sorts on `characterCount` and leaves `_score` null, and grouping on null would
- * make one run of the whole page.
- */
-function preferTiedMedia(
-  hits: estypes.SearchHit<SegmentDocumentShape>[],
-  preferredMediaIds: ReadonlySet<number>,
-): estypes.SearchHit<SegmentDocumentShape>[] {
-  const isPreferred = (hit: estypes.SearchHit<SegmentDocumentShape>): boolean => {
-    const mediaId = hit._source?.mediaId;
-    return mediaId !== undefined && preferredMediaIds.has(mediaId);
-  };
-
-  // Compared as strings so a run is "same primary sort value" without caring
-  // whether that value arrived as a float, an int or a string from a keyword
-  // field. Computed once per hit rather than once per comparison.
-  const rank = hits.map((hit) => String(hit.sort?.[0] ?? ''));
-
-  const ordered: estypes.SearchHit<SegmentDocumentShape>[] = [];
-  for (let start = 0; start < hits.length; ) {
-    let end = start + 1;
-    while (end < hits.length && rank[end] === rank[start]) end += 1;
-
-    if (end - start > 1) {
-      const run = hits.slice(start, end);
-      const mine = run.filter(isPreferred);
-      // Both `filter` calls keep their input order, so a run that is all mine or
-      // none of mine comes out byte-identical to the one that went in.
-      ordered.push(...mine, ...run.filter((hit) => !isPreferred(hit)));
-    } else {
-      ordered.push(hits[start]!);
-    }
-
-    start = end;
-  }
-
-  return ordered;
-}

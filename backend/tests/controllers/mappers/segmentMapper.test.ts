@@ -37,6 +37,23 @@ function buildSegment(overrides: Record<string, unknown> = {}) {
 }
 
 describe('segment.mapper', () => {
+  it('maps stored tokens onto textJa so a permalink can open the word card', () => {
+    const tokens = [{ s: '食べ', d: '食べる', r: 'タベ', b: 0, e: 2, p: '動詞', kind: 'inflected' }];
+    const dto = toSegmentDTO(buildSegment({ tokens }) as any);
+    expect(dto.textJa.tokens).toEqual(tokens);
+  });
+
+  it('leaves tokens null when the segment has none yet', () => {
+    expect(toSegmentDTO(buildSegment({ tokens: null }) as any).textJa.tokens).toBeNull();
+    expect(toSegmentDTO(buildSegment({ tokens: [] }) as any).textJa.tokens).toBeNull();
+  });
+
+  it('drops a token kind the published schema does not name', () => {
+    const tokens = [{ s: '。', d: '。', r: '', b: 0, e: 1, p: '補助記号', kind: 'punctuation' }];
+    const dto = toSegmentDTO(buildSegment({ tokens }) as any);
+    expect(dto.textJa.tokens).toEqual([{ s: '。', d: '。', r: '', b: 0, e: 1, p: '補助記号', kind: undefined }]);
+  });
+
   it('maps segment urls when hashedId is present', () => {
     const dto = toSegmentDTO(buildSegment() as any);
     expect(dto.urls.imageUrl).toContain('/media/path/3/hash1.webp');

@@ -224,6 +224,24 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
   });
 
   describe('searchStats()', () => {
+    it('keeps category totals unscoped when media statistics are narrowed to one title', async () => {
+      const selected = await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [{ contentJa: '全体集計テスト' }]);
+      await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [{ contentJa: '全体集計テスト' }]);
+
+      const result = await SegmentDocument.searchStats({
+        query: { search: '全体集計', exactMatch: false },
+        filters: {
+          status: ['ACTIVE'],
+          category: ['ANIME'],
+          media: { include: [{ mediaPublicId: selected.media.publicId, mediaId: selected.media.id } as any] },
+        },
+      });
+
+      expect(result.media).toHaveLength(1);
+      expect(result.media[0]?.mediaPublicId).toBe(selected.media.publicId);
+      expect(result.categories.find((category) => category.category === 'ANIME')?.count).toBe(2);
+    });
+
     it('returns media and category aggregation stats', async () => {
       await seedSegmentsIntoEs({ category: CategoryType.ANIME }, [
         { contentJa: '統計テスト', position: 1 },
