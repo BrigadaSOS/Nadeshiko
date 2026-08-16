@@ -64,7 +64,7 @@ test.describe('Searching a word from a sentence', () => {
     // out at the source, for every caller rather than just this one.
     const headword = await search.openFirstTokenCard({ excluding: QUERY });
     await search.tokenCardSearch.click();
-    await page.waitForURL((url) => url.toString() !== scopedUrl, { timeout: 10_000 });
+    await page.waitForURL((url) => url.toString() !== scopedUrl, { timeout: 10_000, waitUntil: 'commit' });
     expect(search.searchedWord()).toBe(headword);
     const clickedUrl = new URL(page.url());
 
@@ -80,7 +80,7 @@ test.describe('Searching a word from a sentence', () => {
     await expect(search.searchInput).toHaveValue(headword);
     await search.searchButton.click();
     if (headword !== QUERY) {
-      await page.waitForURL((url) => url.toString() !== scopedUrl, { timeout: 10_000 });
+      await page.waitForURL((url) => url.toString() !== scopedUrl, { timeout: 10_000, waitUntil: 'commit' });
     }
     const typedUrl = new URL(page.url());
 
