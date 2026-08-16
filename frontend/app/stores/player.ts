@@ -21,6 +21,30 @@ export function resolveAudioSource(result: SearchResult): string {
 }
 
 /**
+ * Rejections of `HTMLAudioElement.play()` that describe the reader rather than a
+ * fault, and so are dropped instead of reported.
+ *
+ * - `AbortError`: the user agent abandoned the load "at the user's request" --
+ *   navigating away, closing the tab, stopping playback mid-load.
+ * - `NotAllowedError`: the autoplay policy. This play() was not close enough to
+ *   a gesture for the reader's settings; they press play again and it works.
+ *
+ * Filtered here rather than tolerated in PostHog, because an issue nobody acts
+ * on is worse than no issue: its status and last-seen stop describing anything,
+ * and the `NotSupportedError` cases underneath -- a clip that genuinely will not
+ * decode, which IS worth knowing about -- get read as more of the same. Between
+ * them these two were 234 of the 255 reports on this fingerprint over a week,
+ * out of 9 sessions; the 21 that matter came from 14. The same confusion
+ * `$exception_fingerprint` was added to `reportError` to end.
+ */
+export function isUnactionablePlaybackError(error: unknown): boolean {
+  // Matched on `name` against any Error rather than on `instanceof DOMException`:
+  // the name is the part the spec pins down, and narrowing to the class buys
+  // nothing here -- nothing else rejects a play() with either of these names.
+  return error instanceof Error && (error.name === 'AbortError' || error.name === 'NotAllowedError');
+}
+
+/**
  * Identifies the most recent playback intent. `HTMLAudioElement.play()` settles
  * asynchronously, so a promise from a track the user already skipped past would
  * otherwise flip `isPlaying` and fire analytics for whatever is playing *now* —
@@ -164,26 +188,19 @@ export const usePlayerStore = defineStore('player', {
           if (token !== playbackToken) return;
           this.isPlaying = false;
 
-          // `AbortError` is the reader, not a fault. The spec raises it when the
-          // user agent abandons the fetch "at the user's request" -- navigating
-          // away, closing the tab, stopping playback mid-load -- so there is
-          // nothing to fix and nobody to tell.
-          //
-          // Filtered here rather than tolerated in PostHog, because an issue
-          // nobody acts on is worse than no issue: its status and last-seen stop
-          // describing anything, and the `NotSupportedError` cases underneath --
-          // a clip that genuinely will not play, which IS worth knowing about --
-          // get read as more of the same. The same confusion `$exception_fingerprint`
-          // was added to `reportError` to end.
-          //
           // Note this is not the teardown case: `releaseIfSource`, `hidePlayer`
           // and every `playCurrent` branch bump `playbackToken` before releasing,
           // so a play() we cancelled ourselves is already discarded by the guard
           // above and never reaches here.
-          if (error instanceof DOMException && error.name === 'AbortError') return;
+          if (isUnactionablePlaybackError(error)) return;
 
+          // What survives is a clip that genuinely would not decode. The source
+          // goes on the report because the segment id alone does not say which
+          // url was tried: an expansion plays a blob built in the browser, and
+          // it fails for reasons a CDN object never would.
           reportError('player:audio-play-failed', error, {
             'segment.publicId': this.currentResult?.segment.publicId ?? '',
+            'audio.source': audio.src,
           });
         });
     },
