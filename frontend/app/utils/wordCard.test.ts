@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cardForms,
   cardHeadword,
   cardSenses,
+  pickerChips,
   glossPreference,
   kanjiIn,
   pitchMorae,
@@ -410,5 +412,88 @@ describe('cardHeadword', () => {
   // leave Anki being asked about the last word the reader looked at.
   it('is empty once the card is closed', () => {
     expect(cardHeadword(null, undefined)).toBe('');
+  });
+});
+
+/**
+ * The picker row. Its one genuinely dangerous property is the index: trimming
+ * the row makes the loop index and the position in the full list disagree, and
+ * the pick addresses the full list.
+ */
+describe('pickerChips', () => {
+  const list = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ id: `w${i}`, headword: `w${i}` }) as ShirabeWord);
+
+  it('draws everything when the list is short enough', () => {
+    expect(pickerChips(list(4), 0, false, 6).map((c) => c.index)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('trims a long row to the limit', () => {
+    expect(pickerChips(list(12), 0, false, 6)).toHaveLength(6);
+  });
+
+  // The bug this function exists to prevent: a chip's index must address the
+  // FULL list, not its position in the trimmed row.
+  it('carries the index from the full list, not from the row', () => {
+    const chips = pickerChips(list(12), 9, false, 6);
+    const picked = chips.find((c) => c.candidate.id === 'w9');
+
+    expect(picked?.index).toBe(9);
+  });
+
+  // Pick from the expanded row, collapse it, and the card must not be showing a
+  // word whose chip has gone.
+  it('keeps the picked candidate in a trimmed row', () => {
+    const chips = pickerChips(list(12), 9, false, 6);
+
+    expect(chips.some((c) => c.index === 9)).toBe(true);
+    expect(chips).toHaveLength(6);
+  });
+
+  it('shows the whole ranked list once expanded', () => {
+    expect(pickerChips(list(12), 0, true, 6)).toHaveLength(12);
+  });
+
+  // Nothing is filtered away, only held back: every candidate is still reachable.
+  it('never drops a candidate the expanded row would not show', () => {
+    const all = pickerChips(list(12), 0, true, 6).map((c) => c.index);
+
+    expect(all).toEqual([...Array(12).keys()]);
+  });
+});
+
+/**
+ * The forms row exists to connect the spelling a reader MET to the headword
+ * they are being shown. Its whole job is the spellings that are not already on
+ * the card.
+ */
+describe('cardForms', () => {
+  const word = (forms: Array<{ text: string; script?: string }>): ShirabeWord =>
+    ({ id: '開く', headword: '開く', reading: 'ひらく', forms }) as ShirabeWord;
+
+  it('answers the spellings the card is not already showing', () => {
+    expect(cardForms(word([{ text: '開く' }, { text: '空く' }, { text: 'ヒラく' }]))).toEqual(['空く', 'ヒラく']);
+  });
+
+  // Both are an inch above in the head; repeating them spends the row on
+  // something the reader can already see.
+  it('never repeats the headword or the reading', () => {
+    expect(cardForms(word([{ text: '開く' }, { text: 'ひらく' }]))).toEqual([]);
+  });
+
+  it('drops duplicates and blanks', () => {
+    expect(cardForms(word([{ text: '空く' }, { text: '空く' }, { text: '  ' }]))).toEqual(['空く']);
+  });
+
+  // A supporting row, not the point of the card: a word with a dozen rare
+  // spellings must not push the definitions off the bottom.
+  it('caps a long list', () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({ text: `form${i}` }));
+    expect(cardForms(word(many), 4)).toHaveLength(4);
+  });
+
+  it('answers nothing for a word with no forms, or no word at all', () => {
+    expect(cardForms(word([]))).toEqual([]);
+    expect(cardForms(null)).toEqual([]);
   });
 });

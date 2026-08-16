@@ -922,6 +922,8 @@
     "openInAnki": "Anki でノートを開く",
     "mineContextOnly": "この文・音声・画像を追加（既存の語義はそのまま）",
     "minedActions": "コレクションにあります",
+    "alsoWritten": "他の表記",
+    "nameEntry": "名前",
     "otherReadings": "どの語ですか？",
     "mineToNote": "ノート全体を置き換える（語義も含む）",
     "mineToLastCard": "この文・音声・画像を最後に追加した Anki カードに追加"
