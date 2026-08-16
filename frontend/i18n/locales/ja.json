@@ -916,6 +916,7 @@
     "loading": "検索中…",
     "moreSentences": "他の例文",
     "playAudio": "発音を再生",
+    "unavailable": "辞書を読み込めませんでした。少し経ってからもう一度お試しください。",
     "noEntry": "この語の辞書項目は見つかりませんでした。",
     "definitionsHidden": "語義は非表示です",
     "showDefinitions": "表示",

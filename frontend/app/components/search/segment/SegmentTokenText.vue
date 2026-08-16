@@ -6,6 +6,7 @@ import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
   cardForms,
   cardHeadword,
+  lookupState,
   cardSenses,
   pickerChips,
   glossPreference,
@@ -191,7 +192,7 @@ const headword = computed(() => cardHeadword(word.value, hoveredToken.value?.dic
 // a token that could not be a word) -- claiming no entry for a question nobody
 // put would be a lie, so those stay 'idle' and the card simply answers from the
 // token alone, which is what it did before any of this loaded.
-const wordState = ref<'idle' | 'loading' | 'missing'>('idle');
+const wordState = ref<'idle' | 'loading' | 'missing' | 'unavailable'>('idle');
 // The word this card is currently waiting on, so a late answer for a word the
 // reader has moved off can be told apart from the one they are looking at.
 // Deliberately not the token object: those are rebuilt by a computed.
@@ -347,7 +348,10 @@ function applyLookup(answer: WordLookup): void {
   candidates.value = answer.candidates;
   picked.value = 0;
   allCandidatesShown.value = false;
-  wordState.value = answer.candidates.length === 0 && answer.reason === 'missing' ? 'missing' : 'idle';
+  // 'shown' becomes 'idle' here: with candidates in hand the card has something
+  // to draw and needs no state of its own. The other two are things it says.
+  const state = lookupState(answer.candidates.length, answer.reason);
+  wordState.value = state === 'shown' ? 'idle' : state;
 }
 
 /**
@@ -1007,9 +1011,14 @@ const dictionaryLinks = computed(() => {
  * with, and folding those into `no_senses` would blame the dictionary for the
  * lookup being slow.
  */
-const cardOutcome = computed<'shown' | 'no_senses' | 'missing' | 'loading' | 'idle'>(() => {
+const cardOutcome = computed<'shown' | 'no_senses' | 'missing' | 'unavailable' | 'loading' | 'idle'>(() => {
   if (wordState.value === 'loading') return 'loading';
   if (wordState.value === 'missing') return 'missing';
+  // Reported apart from 'missing' on purpose: one is the dictionary's answer
+  // about the word and the other is our failure to ask, and folding them
+  // together would read as dictionary coverage collapsing whenever Shirabe has
+  // a bad five minutes.
+  if (wordState.value === 'unavailable') return 'unavailable';
   if (word.value === null) return 'idle';
   return senses.value.length > 0 ? 'shown' : 'no_senses';
 });
@@ -1357,6 +1366,12 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                  its kanji are all still up there, and the dictionary chips below
                  are exactly where to go next. -->
             <p v-else-if="wordState === 'missing'" class="token-tooltip__pending">{{ $t('tokenTooltip.noEntry') }}</p>
+            <!-- Shirabe would not answer. Said plainly, and deliberately NOT as
+                 "no entry": the word may well be in the dictionary, and blaming
+                 it for our failed request would be a lie the reader cannot
+                 check. The headword, reading and inflection above are all still
+                 true, and the dictionary chips below still work. -->
+            <p v-else-if="wordState === 'unavailable'" class="token-tooltip__pending">{{ $t('tokenTooltip.unavailable') }}</p>
 
             <!-- The other spellings. The reader may well have met one of these
                  rather than the headword above, and nothing else on the card
