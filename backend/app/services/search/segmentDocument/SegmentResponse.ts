@@ -404,4 +404,3 @@ export class SegmentResponse {
     return ALL_CATEGORIES.includes(value as CategoryType);
   }
 }
-

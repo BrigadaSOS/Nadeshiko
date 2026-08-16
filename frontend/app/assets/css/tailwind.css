@@ -65,7 +65,9 @@
     background: var(--control);
     color: var(--ink-faint);
     border: 1px solid var(--line);
-    transition: color 0.15s ease, background-color 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease;
   }
   .nd-btn:hover:not(:disabled) {
     background: var(--control-hover);
@@ -91,7 +93,10 @@
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1rem;
-    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+      color 0.15s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease;
   }
   select.nd-input:hover:not(:disabled),
   select.nd-select:hover:not(:disabled) {
