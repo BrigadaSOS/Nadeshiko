@@ -92,12 +92,17 @@ jobs:
       - name: Bundle base OpenAPI specs
         run: |
           set -euo pipefail
-          # @redocly/cli is a devDependency of the backend workspace and the
-          # lockfile installs it at backend/node_modules/@redocly/cli -- it does
-          # NOT hoist to the checkout root. The previous path here assumed it
-          # did, so this step died with exit 127 the moment it ran. It only runs
-          # when a PR touches the spec, so it stayed hidden.
-          REDOCLY="${GITHUB_WORKSPACE}/head/backend/node_modules/.bin/redocly"
+          # @redocly/cli is a devDependency of the backend workspace, and npm
+          # DOES hoist it to the checkout root -- `node_modules/.bin/redocly`,
+          # with the package at `node_modules/@redocly/cli`. Nothing is installed
+          # under `backend/node_modules` at all.
+          #
+          # This is the second wrong guess at this path. The previous comment
+          # asserted the opposite, confidently, and the step went on failing with
+          # exit 127 -- because the job only runs when a PR touches the spec, so
+          # nothing exercised the "fix". Verified against an actual install this
+          # time rather than reasoned about: `ls node_modules/.bin/redocly`.
+          REDOCLY="${GITHUB_WORKSPACE}/head/node_modules/.bin/redocly"
           cd "${GITHUB_WORKSPACE}/base/backend"
           "$REDOCLY" bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
           "$REDOCLY" bundle main -o docs/generated/openapi.yaml --remove-unused-components
@@ -105,7 +110,7 @@ jobs:
       - name: Bundle head OpenAPI specs
         run: |
           set -euo pipefail
-          REDOCLY="${GITHUB_WORKSPACE}/head/backend/node_modules/.bin/redocly"
+          REDOCLY="${GITHUB_WORKSPACE}/head/node_modules/.bin/redocly"
           cd "${GITHUB_WORKSPACE}/head/backend"
           "$REDOCLY" bundle public -o docs/generated/openapi-public.yaml --remove-unused-components
           "$REDOCLY" bundle main -o docs/generated/openapi.yaml --remove-unused-components

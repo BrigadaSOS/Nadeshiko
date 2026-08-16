@@ -27,11 +27,7 @@ function reportInitialFailure(slice: string) {
 // Declared above the initial load because that load now fetches the ranking too:
 // it is rendered on this page alone, and fetching it from `onMounted` meant the
 // transparency list arrived empty and then filled in a moment after hydration.
-const {
-  entries: familiarEntries,
-  load: loadFamiliarMedia,
-  forget: forgetFamiliar,
-} = useFamiliarMedia();
+const { entries: familiarEntries, load: loadFamiliarMedia, forget: forgetFamiliar } = useFamiliarMedia();
 
 const { data: initialData } = await useAsyncData(
   'settings-activity-initial',
