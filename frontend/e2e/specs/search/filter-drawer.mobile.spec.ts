@@ -147,8 +147,14 @@ test.describe('Media filter drawer (mobile)', () => {
 
     await openDrawer(page);
     await titleRows(page).first().click();
-    await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
     await expect(page).toHaveURL(/\/media\//, { timeout: 10_000 });
+    // The drawer SURVIVES the promotion to `/media/<slug>`, and that is the
+    // point of it rather than an accident: `filterAnime` emits `preservingDrawer`
+    // on exactly this transition so the replacement instance does not replay its
+    // enter animation ("The drawer remains open across that page remount",
+    // FilterContent.vue). This used to assert `toBeHidden`, which was true
+    // before that mechanism existed and has been backwards since.
+    await expect(drawer(page)).toBeVisible();
     await search.expectResultsVisible();
     await expect(drawerToggle(page)).toBeVisible({ timeout: 10_000 });
 
