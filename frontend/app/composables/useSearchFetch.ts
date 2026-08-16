@@ -210,6 +210,16 @@ export const buildStatsFilters = (scope: SearchScope): SearchFilters =>
 const isForbidden = (response: Response | undefined): boolean => response?.status === 401 || response?.status === 403;
 
 /**
+ * The request never got an answer at all: the connection dropped, the tab was
+ * navigating away, an extension blocked it, the edge is down.
+ *
+ * It surfaces here rather than in the `catch` below because the SDK client
+ * resolves transport failures instead of throwing, so `response` is absent (or,
+ * for an opaque one, status 0) and there is no status to report.
+ */
+const isTransportFailure = (response: Response | undefined): boolean => response === undefined || response.status === 0;
+
+/**
  * A response that came back without a body. 401/403 is the server telling the
  * caller "not yours" -- expected, and reporting it only buys noise: Cloudflare
  * challenges and expired sessions both land here, from clients we cannot fix.
@@ -228,13 +238,39 @@ const emptyResponseOutcome = (
   if (isForbidden(response)) {
     return { status: 'forbidden' };
   }
+
+  // 429 is the server asking for less. Answered by backing off, not by a fix
+  // here, and the server already counts its own throttling -- so this one is
+  // dropped outright rather than reported anywhere.
+  if (response?.status === 429) {
+    return { status: 'error' };
+  }
+
+  // A transport failure goes to Faro but NOT to PostHog error tracking. Two
+  // thirds of both search fingerprints were this, landing on the sentences and
+  // the stats fetch in the *same millisecond* -- one reader's network going
+  // away, filed as two faults of ours. As triaged issues they are unactionable
+  // noise, which is what buried the reports that are not.
+  //
+  // They are still worth counting, though, and dropping them entirely was the
+  // wrong trade: if the edge fails while the origin is healthy, server-side
+  // metrics look fine and this is the only place the outage is visible. Faro
+  // takes it as one more exception in a stream nobody triages, where a spike
+  // reads as a spike; PostHog keeps its issue list about things with a fix.
+  const transportFailure = isTransportFailure(response);
+
   // The status code stays OUT of the message and in the properties: it is the one
   // part that varies, and interpolating it would fingerprint 500 apart from 503
   // and scatter one fault across an issue per status code.
-  reportError(`search:${kind}-fetch-failed`, new Error(`search ${kind} fetch returned an empty response`), {
-    'search.scope': scope,
-    'http.status_code': String(response?.status ?? 0),
-  });
+  reportError(
+    `search:${kind}-fetch-failed`,
+    new Error(`search ${kind} fetch returned an empty response`),
+    {
+      'search.scope': scope,
+      'http.status_code': String(response?.status ?? 0),
+    },
+    { faroOnly: transportFailure },
+  );
   return { status: 'error' };
 };
 

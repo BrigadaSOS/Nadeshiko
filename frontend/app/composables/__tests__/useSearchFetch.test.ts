@@ -11,6 +11,9 @@ const sdkMocks = vi.hoisted(() => ({
 
 vi.mock('@brigadasos/nadeshiko-sdk', () => sdkMocks);
 
+const reportErrorMock = vi.hoisted(() => vi.fn());
+vi.mock('../../utils/reportError', () => ({ reportError: reportErrorMock }));
+
 import { deferred } from './deferred';
 import {
   COLLECTION_PAGE_SIZE,
@@ -51,6 +54,7 @@ beforeEach(() => {
   for (const mock of Object.values(sdkMocks)) {
     mock.mockReset();
   }
+  reportErrorMock.mockReset();
 });
 
 describe('createRequestSequencer', () => {
@@ -293,6 +297,60 @@ describe('fetchSentences', () => {
     sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 401 }) });
     expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'forbidden' });
   });
+
+  // A transport failure resolves with no `response` at all rather than throwing,
+  // so it lands on the same branch a 500 does. It stays out of PostHog's issue
+  // list -- nothing here is ours to fix -- but not out of Faro, which is the
+  // only place an edge outage would show while the origin looks healthy.
+  it('keeps a request that never got a response out of the issue list, not out of Faro', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.search.mockResolvedValueOnce({ error: {}, response: undefined });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:sentences-fetch-failed',
+      expect.any(Error),
+      expect.objectContaining({ 'http.status_code': '0' }),
+      { faroOnly: true },
+    );
+  });
+
+  it('drops a 429 outright, since the server already counts its own throttling', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 429 }) });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it('still reports a fault the server owns', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 502 }) });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:sentences-fetch-failed',
+      expect.any(Error),
+      expect.objectContaining({ 'http.status_code': '502' }),
+      { faroOnly: false },
+    );
+  });
+
+  // The one case the issue was opened for that IS a bug: a 200 whose body did
+  // not parse into anything. Silencing this alongside the transport failures
+  // would leave nothing watching it.
+  it('still reports a 200 that carried no body', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.search.mockResolvedValueOnce({ data: undefined, response: new Response(null, { status: 200 }) });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:sentences-fetch-failed',
+      expect.any(Error),
+      expect.objectContaining({ 'http.status_code': '200' }),
+      { faroOnly: false },
+    );
+  });
 });
 
 describe('fetchStats', () => {
@@ -304,6 +362,21 @@ describe('fetchStats', () => {
 
     sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 500 }) });
     expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error' });
+  });
+
+  // The stats fetch fires alongside the sentences one, so a reader whose network
+  // drops files two reports for one event. Same rule, applied on both paths.
+  it('applies the same Faro-only rule to a stats request that never got a response', async () => {
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: undefined });
+    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error' });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:stats-fetch-failed',
+      expect.any(Error),
+      expect.objectContaining({ 'http.status_code': '0' }),
+      { faroOnly: true },
+    );
   });
 
   it('runs on its own sequence, independent of the result list', async () => {
@@ -355,9 +428,7 @@ describe('fetchSentences preferMedia', () => {
   it('sends it for an explicit RELEVANCE too, which means the same order', async () => {
     okOnce();
 
-    await createSearchFetcher(fakeSdk).fetchSentences(
-      scope({ sort: 'relevance', preferMedia: ['aaaaaaaaaaaa'] }),
-    );
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: 'relevance', preferMedia: ['aaaaaaaaaaaa'] }));
 
     expect(bodyOf().preferMedia).toEqual(['aaaaaaaaaaaa']);
   });
