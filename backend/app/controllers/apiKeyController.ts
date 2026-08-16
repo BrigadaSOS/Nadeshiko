@@ -1,7 +1,7 @@
 import type { CreateUserApiKey } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { InsufficientPermissionsError, InternalServerError, InvalidRequestError } from '@app/errors';
-import { ApiPermission } from '@app/models';
+import { ApiPermission, Tier } from '@app/models';
 import { auth, BETTER_AUTH_API_PERMISSION_RESOURCE, resolveGrantableApiPermissions } from '@config/auth';
 
 /**
@@ -12,7 +12,13 @@ import { auth, BETTER_AUTH_API_PERMISSION_RESOURCE, resolveGrantableApiPermissio
  * guard below is what actually establishes the method exists.
  */
 type CreateApiKey = (args: {
-  body: { name: string; userId: string; permissions: Record<string, string[]> };
+  body: {
+    name: string;
+    userId: string;
+    permissions: Record<string, string[]>;
+    rateLimitMax?: number;
+    rateLimitTimeWindow?: number;
+  };
 }) => Promise<{ id: string; name: string | null; key: string; createdAt: string | Date } | null>;
 
 /**
@@ -63,11 +69,24 @@ export const createUserApiKey: CreateUserApiKey = async ({ body }, respond, req)
     throw new InternalServerError('API key creation is not configured.');
   }
 
+  // The burst allowance is stamped onto the key at creation, because that is
+  // where better-auth keeps it -- there is no per-request lookup to hang a tier
+  // on. A tier that leaves these null (all of them, today) means "inherit
+  // API_KEY_RATE_LIMIT_MAX", which is what every key issued before tiers used.
+  //
+  // Existing keys are deliberately NOT restamped when an account changes tier:
+  // rewriting the limits of a key a third-party integration is already running
+  // against, with nothing in any response to say why, is worse than the delay.
+  // A new key picks up the new tier.
+  const tier = user.tierId ? await Tier.findOne({ where: { id: user.tierId } }) : null;
+
   const created = await createApiKey({
     body: {
       name,
       userId: String(user.id),
       permissions: { [BETTER_AUTH_API_PERMISSION_RESOURCE]: requested },
+      ...(tier?.rateLimitMax != null ? { rateLimitMax: tier.rateLimitMax } : {}),
+      ...(tier?.rateLimitWindowMs != null ? { rateLimitTimeWindow: tier.rateLimitWindowMs } : {}),
     },
   });
 

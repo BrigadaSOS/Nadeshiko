@@ -569,6 +569,9 @@
     "developer": {
       "apiUsageTitle": "API使用量",
       "apiUsageRemaining": "残りリクエスト: {used} / {limit}",
+      "quotaResets": "{date} にリセットされます",
+      "quotaTier": "{tier} プラン",
+      "burstLimit": "これとは別に、各キーは1分あたり{max}リクエストまでです。",
       "usageLimitMessage": {
         "prefix": "API使用上限を増やしたい場合は、以下までご連絡ください"
       },
@@ -924,6 +927,7 @@
     "openInAnki": "Anki でノートを開く",
     "mineContextOnly": "この文・音声・画像を追加（既存の語義はそのまま）",
     "minedActions": "コレクションにあります",
+    "otherReadings": "どの語ですか？",
     "mineToNote": "ノート全体を置き換える（語義も含む）",
     "mineToLastCard": "この文・音声・画像を最後に追加した Anki カードに追加"
   },

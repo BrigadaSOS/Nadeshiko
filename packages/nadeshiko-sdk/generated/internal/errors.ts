@@ -20,7 +20,26 @@ export interface NadeshikoProblemDetails {
    * says which call produced it without the caller having to thread that through.
    */
   requestUrl?: string;
+  /**
+   * Which limit produced a 429, read from the `X-RateLimit-Reason` response
+   * header. Absent on every other status, and on 429s from a deployment older
+   * than the header.
+   */
+  rateLimitReason?: RateLimitReason;
+  /** `Retry-After`, in seconds, when the response carried one. */
+  retryAfterSeconds?: number;
+  /** `X-Monthly-Quota-Reset`: when the monthly allowance next refills. */
+  quotaResetsAt?: string;
 }
+
+/**
+ * Which limit rejected a request.
+ *
+ * All four answer 429 and they need opposite handling: the three bursts clear
+ * on their own within the window, and the month does not move until the 1st.
+ * Retrying a monthly cap spends a backoff budget against a wall.
+ */
+export type RateLimitReason = 'monthly_quota' | 'key_burst' | 'key_usage' | 'ip_burst';
 
 /**
  * Whether a response body is one of our Problem Details documents.
@@ -69,6 +88,10 @@ export class NadeshikoError extends Error {
   readonly errors?: Record<string, string>;
   /** Endpoint this error came from, minus its query string. */
   readonly requestUrl?: string;
+  /** Which limit produced a 429; see `RateLimitReason`. Absent otherwise. */
+  readonly rateLimitReason?: RateLimitReason;
+  /** `Retry-After` in seconds, when the response carried one. */
+  readonly retryAfterSeconds?: number;
 
   constructor(body: NadeshikoProblemDetails) {
     // `status` is never interpolated unguarded: a body that reached here without
@@ -88,5 +111,71 @@ export class NadeshikoError extends Error {
     this.traceId = body.instance;
     this.errors = body.errors;
     this.requestUrl = body.requestUrl;
+    this.rateLimitReason = body.rateLimitReason;
+    this.retryAfterSeconds = body.retryAfterSeconds;
   }
+}
+
+/**
+ * A 429 that waiting will clear: a per-key or per-IP burst, or a key's
+ * remaining-uses budget between refills.
+ *
+ * `retryAfterSeconds` is the server's own answer to "how long" when it sent
+ * one. Back off and retry.
+ */
+export class RateLimitExceededError extends NadeshikoError {
+  /** Always one of the burst reasons; never `'monthly_quota'`. */
+  declare readonly rateLimitReason: Exclude<RateLimitReason, 'monthly_quota'>;
+
+  constructor(body: NadeshikoProblemDetails) {
+    super(body);
+    this.name = 'RateLimitExceededError';
+  }
+}
+
+/**
+ * A 429 that waiting will NOT clear: the account has spent its monthly
+ * allowance, and nothing moves until the period rolls over.
+ *
+ * Stop rather than retry. `resetsAt` is when it is worth trying again; a
+ * higher allowance before then is a support conversation, not a backoff.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await client.search({ body: { query: { search: '猫' } } });
+ * } catch (err) {
+ *   if (err instanceof MonthlyQuotaExceededError) {
+ *     stopPolling(); // retrying cannot help before err.resetsAt
+ *   } else if (err instanceof RateLimitExceededError) {
+ *     await sleep((err.retryAfterSeconds ?? 60) * 1000);
+ *   }
+ * }
+ * ```
+ */
+export class MonthlyQuotaExceededError extends NadeshikoError {
+  declare readonly rateLimitReason: 'monthly_quota';
+  /** When the allowance refills, if the response said so. */
+  readonly resetsAt?: Date;
+
+  constructor(body: NadeshikoProblemDetails) {
+    super(body);
+    this.name = 'MonthlyQuotaExceededError';
+    this.resetsAt = body.quotaResetsAt ? new Date(body.quotaResetsAt) : undefined;
+  }
+}
+
+/**
+ * Builds the most specific error the response supports.
+ *
+ * Keyed on `X-RateLimit-Reason` rather than on the problem-details `code`,
+ * because `code` cannot make the distinction that matters: `QUOTA_EXCEEDED`
+ * covers both the account's month and a single key's refill budget, which are
+ * "stop" and "wait" respectively. A deployment that does not send the header
+ * yields the base `NadeshikoError`, exactly as before.
+ */
+export function buildNadeshikoError(body: NadeshikoProblemDetails): NadeshikoError {
+  if (body.rateLimitReason === 'monthly_quota') return new MonthlyQuotaExceededError(body);
+  if (body.rateLimitReason) return new RateLimitExceededError(body);
+  return new NadeshikoError(body);
 }

@@ -4,6 +4,7 @@ import { EntityNotFoundError, QueryFailedError, TypeORMError } from 'typeorm';
 import { trace } from '@opentelemetry/api';
 import { logger } from '@config/log';
 import { ApiError, ValidationFailedError, NotFoundError, InternalServerError, isApiError } from '@app/errors';
+import { RATE_LIMIT_REASON_HEADER, type RateLimitReason } from '@lib/rateLimitReason';
 import { recordError, recordClientError } from '@lib/errorFingerprint';
 import { trafficAttributesFor } from '@app/middleware/trafficClassification';
 import { routeErrorCodes } from 'generated/errorProfiles';
@@ -63,6 +64,15 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     // Attach requestId to the error for response
     if (!error.instance) {
       error.instance = requestId;
+    }
+
+    // Which of the four limits produced this 429. Set here rather than at each
+    // throw site because they do not all have the response to hand -- the
+    // API-key path runs inside a helper that only takes the request -- and the
+    // header has to read the same however the error was raised.
+    const reason = (error as { reason?: RateLimitReason }).reason;
+    if (reason) {
+      res.setHeader(RATE_LIMIT_REASON_HEADER, reason);
     }
 
     if (error.status >= 500) {

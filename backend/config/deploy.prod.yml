@@ -27,6 +27,7 @@ env:
     - API_KEY_MASTER
     - BETTER_AUTH_SECRET
     - INTERNAL_PROXY_SECRET
+    - LOG_USER_SALT
 
     # Parsing. `parseSegments` is the only caller and it throws without a key, so
     # an unset one does not break boot -- it breaks the next episode ingest, and

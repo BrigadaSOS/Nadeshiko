@@ -3032,6 +3032,123 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/tiers:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: listTiers
+      summary: List quota tiers
+      description: |
+        Returns every quota tier, in display order. The admin surface needs this to
+        offer a picker; without it a tier change is a slug typed from memory.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - tiers
+                properties:
+                  tiers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tier'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/admin/users/{userId}/quota:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: getAdminUserQuota
+      summary: Read an account's quota state
+      description: |
+        The tier, the override, the limit those resolve to, and how much of the
+        current period the account has used.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Account id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountQuotaState'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: updateAdminUserQuota
+      summary: Move an account to a tier, or give it an override
+      description: |
+        Replaces the hand-edit against production that raising a quota used to
+        require. Writes an audit log line naming the actor, the account, the before
+        and after values, and the reason given.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Account id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountQuotaRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountQuotaState'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     ApiKey:
@@ -5377,6 +5494,8 @@ components:
             - periodYyyymm
             - periodStart
             - periodEnd
+            - tier
+            - burst
           properties:
             used:
               type: integer
@@ -5408,6 +5527,42 @@ components:
               format: date-time
               description: End of the current month (UTC).
               example: '2026-02-28T23:59:59.999Z'
+            tier:
+              type: object
+              nullable: true
+              description: |
+                The quota tier this account sits on. Null when the account is on none,
+                or when an override is in force and the tier no longer describes the
+                limit.
+              required:
+                - id
+                - displayName
+              properties:
+                id:
+                  type: string
+                  example: plus
+                displayName:
+                  type: string
+                  example: Plus
+            burst:
+              type: object
+              description: |
+                The OTHER limit. Separate from the monthly allowance and enforced per
+                API key over a short window, so a caller can exhaust it with plenty of
+                month left -- which is why both are surfaced together, and why the two
+                429s carry an `X-RateLimit-Reason` telling them apart.
+              required:
+                - max
+                - windowMs
+              properties:
+                max:
+                  type: integer
+                  description: Requests allowed per key within `windowMs`.
+                  example: 150
+                windowMs:
+                  type: integer
+                  description: Length of the burst window, in milliseconds.
+                  example: 60000
     ApiKeyScope:
       type: string
       description: |
@@ -6557,6 +6712,115 @@ components:
           items:
             type: string
             example: google
+    Tier:
+      type: object
+      required:
+        - id
+        - displayName
+        - monthlyQuotaLimit
+        - sortOrder
+      properties:
+        id:
+          type: string
+          description: Stable slug referenced by an account's `tierId`
+          example: plus
+        displayName:
+          type: string
+          example: Plus
+        monthlyQuotaLimit:
+          type: integer
+          description: API calls allowed per calendar month on this tier
+          example: 25000
+        rateLimitMax:
+          type: integer
+          nullable: true
+          description: |
+            Per-key burst allowance stamped onto keys created while on this tier.
+            Null inherits the deployment-wide default.
+          example: null
+        rateLimitWindowMs:
+          type: integer
+          nullable: true
+          description: Window for `rateLimitMax`, in milliseconds. Null inherits the default.
+          example: null
+        sortOrder:
+          type: integer
+          description: Display order; the id is a slug, not a rank
+          example: 10
+    AccountQuotaState:
+      type: object
+      required:
+        - userId
+        - tierId
+        - quotaOverride
+        - monthlyQuotaLimit
+        - quotaSource
+        - quotaUsed
+        - periodYyyymm
+      properties:
+        userId:
+          type: integer
+          example: 328
+        tierId:
+          type: string
+          nullable: true
+          description: The tier this account sits on, or null if it has none
+          example: plus
+        quotaOverride:
+          type: integer
+          nullable: true
+          description: Per-account limit that wins over the tier when set
+          example: null
+        monthlyQuotaLimit:
+          type: integer
+          description: The limit actually in force, after applying the resolution order
+          example: 25000
+        quotaSource:
+          type: string
+          enum:
+            - override
+            - tier
+            - legacy_column
+            - default
+          description: |
+            Which step of the resolution order produced `monthlyQuotaLimit`.
+            `legacy_column` and `default` mean the tier did not resolve, and are worth
+            investigating rather than displaying.
+          example: tier
+        quotaUsed:
+          type: integer
+          description: Calls billed to this account in the current period
+          example: 4927
+        periodYyyymm:
+          type: integer
+          description: The billing period, as YYYYMM in UTC
+          example: 202608
+    UpdateAccountQuotaRequest:
+      type: object
+      description: |
+        At least one property must be present. Send `quotaOverride: null` to clear an
+        override and fall back to the tier.
+      minProperties: 1
+      properties:
+        tierId:
+          type: string
+          description: Slug of an existing tier
+          example: plus
+        quotaOverride:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: |
+            Per-account monthly limit, taking precedence over the tier. Null clears it.
+          example: 50000
+        reason:
+          type: string
+          maxLength: 500
+          description: |
+            Why the change is being made. Recorded on the audit log line so the number
+            is reviewable later; the old model's whole problem was that a raised limit
+            carried no record of the decision behind it.
+          example: 'Support ticket #412 - open-source dictionary integration'
   examples:
     ValidationFailed:
       summary: Validation Failed

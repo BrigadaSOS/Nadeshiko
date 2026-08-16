@@ -1,0 +1,34 @@
+type: object
+required:
+  - id
+  - displayName
+  - monthlyQuotaLimit
+  - sortOrder
+properties:
+  id:
+    type: string
+    description: Stable slug referenced by an account's `tierId`
+    example: plus
+  displayName:
+    type: string
+    example: Plus
+  monthlyQuotaLimit:
+    type: integer
+    description: API calls allowed per calendar month on this tier
+    example: 25000
+  rateLimitMax:
+    type: integer
+    nullable: true
+    description: |
+      Per-key burst allowance stamped onto keys created while on this tier.
+      Null inherits the deployment-wide default.
+    example: null
+  rateLimitWindowMs:
+    type: integer
+    nullable: true
+    description: Window for `rateLimitMax`, in milliseconds. Null inherits the default.
+    example: null
+  sortOrder:
+    type: integer
+    description: Display order; the id is a slug, not a rank
+    example: 10

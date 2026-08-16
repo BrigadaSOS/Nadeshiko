@@ -16,6 +16,7 @@ import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInva
 import { authRateLimit } from '@app/middleware/rateLimit';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
+import { listTiers, getAdminUserQuota, updateAdminUserQuota } from '@app/controllers/adminQuotaController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import { listAgentActivity } from '@app/controllers/agentActivityController';
 import {
@@ -252,6 +253,9 @@ const AdminRoutes = createAdminRouter({
   getAnnouncement,
   updateAnnouncement,
   getAdminUsersWithProviders,
+  listTiers,
+  getAdminUserQuota,
+  updateAdminUserQuota,
 });
 
 const StatsRoutes = createStatsRouter({

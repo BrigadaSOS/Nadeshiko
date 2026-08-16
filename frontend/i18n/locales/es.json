@@ -569,6 +569,9 @@
     "developer": {
       "apiUsageTitle": "Consumo API",
       "apiUsageRemaining": "Peticiones restantes: {used} / {limit}",
+      "quotaResets": "Se reinicia el {date}",
+      "quotaTier": "Plan {tier}",
+      "burstLimit": "Aparte, cada clave está limitada a {max} solicitudes por minuto.",
       "usageLimitMessage": {
         "prefix": "Si necesitas aumentar tu límite de uso de la API, contáctanos en"
       },
@@ -924,6 +927,7 @@
     "openInAnki": "Abrir la nota en Anki",
     "mineContextOnly": "Añadir esta frase, audio e imagen, conservando tus definiciones",
     "minedActions": "En tu colección",
+    "otherReadings": "¿Qué palabra es esta?",
     "mineToNote": "Reemplazar todo, incluidas las definiciones",
     "mineToLastCard": "Añadir esta frase, audio e imagen a la última tarjeta añadida en Anki"
   },

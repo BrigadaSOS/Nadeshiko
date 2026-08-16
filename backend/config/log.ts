@@ -6,6 +6,7 @@ import { basename } from 'path';
 import { createRequire } from 'module';
 import { trace, context } from '@opentelemetry/api';
 import { config } from '@config/config';
+import { hashUserId } from '@lib/userLogHash';
 
 const normalizedEnvironment = (config.ENVIRONMENT || '').trim().toLowerCase();
 const isDevelopment = normalizedEnvironment === 'local' || normalizedEnvironment === 'development';
@@ -264,6 +265,24 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       }
       if (rawReq.botFamily) {
         props['bot.family'] = rawReq.botFamily;
+      }
+      // Set by the auth middleware, which has run by the time this is evaluated
+      // (pino-http builds the props on response finish, not on the way in).
+      // Pseudonymous and salted -- see @lib/userLogHash for why it is not the
+      // id, the email, or nothing at all. Absent when LOG_USER_SALT is unset,
+      // and absent for anonymous traffic, which is most of it.
+      if (rawReq.user?.id) {
+        const userHash = hashUserId(rawReq.user.id);
+        if (userHash) {
+          props['user.hash'] = userHash;
+        }
+      }
+      // Which key was used, when one was. Already non-identifying (better-auth
+      // ids are random), and it is what separates "this account is busy" from
+      // "one of this account's four integrations is stuck in a retry loop" --
+      // the shape the quota complaint that prompted this turned out to have.
+      if (rawReq.auth?.apiKey?.id) {
+        props['apikey.id'] = rawReq.auth.apiKey.id;
       }
       return props;
     },
