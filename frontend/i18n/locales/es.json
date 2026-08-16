@@ -922,6 +922,8 @@
     "openInAnki": "Abrir la nota en Anki",
     "mineContextOnly": "Añadir esta frase, audio e imagen, conservando tus definiciones",
     "minedActions": "En tu colección",
+    "alsoWritten": "también se escribe",
+    "nameEntry": "nombre",
     "otherReadings": "¿Qué palabra es esta?",
     "mineToNote": "Reemplazar todo, incluidas las definiciones",
     "mineToLastCard": "Añadir esta frase, audio e imagen a la última tarjeta añadida en Anki"
