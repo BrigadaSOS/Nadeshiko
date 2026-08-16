@@ -167,7 +167,12 @@ describe('ssrAuthFetch', () => {
     vi.useFakeTimers();
     const fetcher = vi.fn().mockResolvedValue({ v: 1 });
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokT'), fetcher);
-    vi.advanceTimersByTime(31_000);
+    // Advance just past the 60s TTL: still cached at 59_999ms, re-fetched at
+    // 60_001ms. The exact boundary is what "the TTL" means -- so check both.
+    vi.advanceTimersByTime(59_999);
+    await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokT'), fetcher);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(2);
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokT'), fetcher);
     expect(fetcher).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
