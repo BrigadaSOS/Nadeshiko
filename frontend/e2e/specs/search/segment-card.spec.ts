@@ -16,10 +16,21 @@ test.describe('Segment card', () => {
     await expect(japaneseText).not.toBeEmpty();
   });
 
-  test('displays EN and ES translations', async ({ page }) => {
+  /**
+   * The interface language decides which translations are asked for, until a
+   * reader saves a global override -- `defaultTranslationLanguages`, whose own
+   * unit test spells out `'en' -> ['EN']`. This suite runs signed out in the
+   * English locale, so English is the whole of what a card should carry here.
+   *
+   * This used to assert EN *and* ES, from when search fetched both regardless.
+   * It is not asserting the absence of Spanish either: that would pin a product
+   * default into a test whose subject is the card. Covering the two-language
+   * rendering needs a reader who has chosen both, which is a signed-in spec and
+   * does not exist yet.
+   */
+  test('displays the translation for the interface language', async ({ page }) => {
     const card = search.segmentCards.first();
     await expect(card.getByTestId('translation-badge-EN')).toBeVisible();
-    await expect(card.getByTestId('translation-badge-ES')).toBeVisible();
   });
 
   test('displays media name and episode info', async ({ page }) => {

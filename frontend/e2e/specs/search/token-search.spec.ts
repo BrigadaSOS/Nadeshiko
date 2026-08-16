@@ -23,7 +23,7 @@ test.describe('Searching a word from a sentence', () => {
     const mediaId = new URL(page.url()).searchParams.get('media');
     await search.expectResultsVisible();
 
-    const headword = await search.openFirstTokenCard();
+    const headword = await search.openFirstTokenCard({ excluding: QUERY });
     await search.tokenCardSearch.click();
 
     await expect.poll(() => search.searchedWord(), { timeout: 10_000 }).toBe(headword);
@@ -40,7 +40,7 @@ test.describe('Searching a word from a sentence', () => {
     await search.goto(QUERY);
     await search.expectResultsVisible();
 
-    const headword = await search.openFirstTokenCard();
+    const headword = await search.openFirstTokenCard({ excluding: QUERY });
     await search.tokenCardSearch.click();
 
     await expect.poll(() => search.searchedWord(), { timeout: 10_000 }).toBe(headword);
@@ -60,8 +60,9 @@ test.describe('Searching a word from a sentence', () => {
     // Clicked first, so the word compared against is the one the card actually
     // searched for. Waiting on "the URL moved" rather than on the word itself:
     // a headword equal to the query the page is already on would satisfy that
-    // check before the click had gone anywhere.
-    const headword = await search.openFirstTokenCard();
+    // check before the click had gone anywhere -- which `excluding` now rules
+    // out at the source, for every caller rather than just this one.
+    const headword = await search.openFirstTokenCard({ excluding: QUERY });
     await search.tokenCardSearch.click();
     await page.waitForURL((url) => url.toString() !== scopedUrl, { timeout: 10_000 });
     expect(search.searchedWord()).toBe(headword);

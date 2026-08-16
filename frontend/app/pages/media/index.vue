@@ -306,7 +306,12 @@ watch([searchQuery, filterCategory], () => {
       <div class="flex items-center mb-4">
         <SearchDropdownContainer class="" dropdownId="nd-dropdown-with-header">
           <template #default>
-            <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
+            <!-- Named rather than left on the shared `dropdown-toggle` test id.
+                 The page object reached for `.first()` of that id, which is a
+                 position on the page and not this control: once the header
+                 gained its own dropdown, `.first()` started resolving to the
+                 language switcher and the category assertion read " English". -->
+            <SearchDropdownMainButton dropdownId="nd-dropdown-with-header" testId="media-category-dropdown">
               {{ filterCategoryLabel }}
             </SearchDropdownMainButton>
           </template>
