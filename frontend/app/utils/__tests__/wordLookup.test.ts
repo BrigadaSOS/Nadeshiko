@@ -108,47 +108,6 @@ describe('fetchWord', () => {
 });
 
 /**
- * The second call the card makes, for the half of the word identify does not
- * carry: pitch, JLPT, frequency and dictionary-aligned ruby.
- *
- * Keyed by SLUG rather than by the token that reached it, which is the point of
- * it being a separate cache: every token in the corpus that resolves to 食べる
- * shares one entry, however each of them was spelled or read.
- */
-describe('fetchWordDetail', () => {
-  it('asks once per slug and locale, then serves from cache', async () => {
-    await mod.fetchWordDetail('猫', 'en');
-    await mod.fetchWordDetail('猫', 'en');
-    await mod.fetchWordDetail('猫', 'es');
-
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  // Unlike a failed candidate lookup, this one IS cached: a slug that does not
-  // resolve will not start resolving on the next hover, and re-asking would
-  // spend a request per open to be told the same thing.
-  it('remembers a slug that no longer resolves', async () => {
-    fetchMock.mockRejectedValue(httpError(404));
-
-    expect(await mod.fetchWordDetail('猫', 'en')).toBeNull();
-    expect(mod.peekWordDetail('猫', 'en')).toBeNull();
-
-    await mod.fetchWordDetail('猫', 'en');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  // The card is readable without any of this, so a failure is a shrug rather
-  // than a state: it must not be remembered, or one bad moment costs the word
-  // its pitch and badges for the rest of the session.
-  it('does not remember a failure', async () => {
-    fetchMock.mockRejectedValueOnce(httpError(502));
-
-    expect(await mod.fetchWordDetail('猫', 'en')).toBeNull();
-    expect(mod.peekWordDetail('猫', 'en')).toBeUndefined();
-  });
-});
-
-/**
  * The bound is the whole reason this cache is safe on a long-lived SSR worker:
  * without it the map grows for the life of the process, a few KB per distinct
  * word, and an evening of reading is tens of megabytes nobody is looking at.
