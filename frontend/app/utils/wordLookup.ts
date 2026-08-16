@@ -1,4 +1,4 @@
-import type { ShirabeCandidate, ShirabeWord } from '~/utils/wordCard';
+import type { ShirabeCandidate } from '~/utils/wordCard';
 // Defined beside the tokens that produce it: assembling one by hand is exactly
 // the mistake the named type exists to prevent.
 import type { WordRef } from '~/utils/tokenEnrichment';
@@ -28,11 +28,11 @@ export type { WordRef };
  * `cache-control`, so a reload is still served from the HTTP cache rather than
  * from Shirabe.
  *
- * TWO caches, because there are two questions and they are keyed differently.
- * Which words a token could be is keyed by the token (a lemma read one way is a
- * different question from the same lemma read another); the detail of one of
- * those words is keyed by its SLUG, so every token in the corpus that resolves
- * to 食べる shares one entry.
+ * ONE cache, keyed by the token. There used to be a second, keyed by slug, for
+ * a follow-up call to `GET /api/v1/words/{id}` that fetched the pitch, badges
+ * and forms identify did not carry. Identify carries them now behind
+ * `include=`, so the second call, its cache, and the merge that spread one over
+ * the other are all gone.
  */
 
 /**
@@ -50,7 +50,6 @@ export type WordLookup =
   | { candidates: []; reason: 'missing' | 'failed' };
 
 const inFlight = new Map<string, Promise<WordLookup>>();
-const detailInFlight = new Map<string, Promise<ShirabeWord | null>>();
 
 /**
  * Keyed by label language as well as by the token, because Shirabe resolves tag
@@ -73,17 +72,10 @@ function cacheKey(ref: WordRef, locale: string): string {
   return `${ref.lemma}\u0000${ref.surface}\u0000${ref.reading}\u0000${ref.pos}:${locale}`;
 }
 
-/** The detail cache's key. A slug already names one word exactly, so unlike
- *  `cacheKey` there is no tuple to assemble -- only the label language. */
-function detailKey(id: string, locale: string): string {
-  return `${id}:${locale}`;
-}
-
 /** The answers we already have. Separate from `inFlight` because a caller needs
  *  to distinguish "answered, and it was nothing" from "never asked"
  *  (undefined), which a promise map cannot express. */
 const resolved = new Map<string, WordLookup>();
-const resolvedDetail = new Map<string, ShirabeWord | null>();
 
 /**
  * How many answers to keep.
@@ -128,12 +120,6 @@ function remember<T>(store: Map<string, T>, key: string, answer: T): T {
  *  has not been asked. */
 export function peekWord(ref: WordRef, locale: string): WordLookup | undefined {
   return recall(resolved, cacheKey(ref, locale));
-}
-
-/** The same, for the detail behind one candidate. `null` is a real answer here
- *  (the slug no longer resolves), `undefined` means nobody has asked. */
-export function peekWordDetail(id: string, locale: string): ShirabeWord | null | undefined {
-  return recall(resolvedDetail, detailKey(id, locale));
 }
 
 /**
@@ -213,54 +199,10 @@ export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
   return request;
 }
 
-/**
- * The full detail of one candidate: pitch, badges and dictionary-aligned ruby.
- *
- * Never rejects either, and for a smaller reason than above: the card is already
- * readable without any of this. A slug that no longer resolves, or a dictionary
- * that would not answer, leaves the reader with the headword, the reading and
- * the definitions the candidate already carried -- so `null` is a shrug rather
- * than a state anything has to render.
- *
- * `null` IS cached, unlike a failed candidate lookup. A slug that does not
- * resolve will not start resolving on the next hover, and re-asking would spend
- * a request per open to be told the same thing.
- */
-export function fetchWordDetail(id: string, locale: string): Promise<ShirabeWord | null> {
-  const key = detailKey(id, locale);
-
-  const answered = recall(resolvedDetail, key);
-  if (answered !== undefined) return Promise.resolve(answered);
-
-  const pending = detailInFlight.get(key);
-  if (pending) return pending;
-
-  const request = $fetch<ShirabeWord>(`/api/shirabe/words/detail/${encodeURIComponent(id)}`, {
-    query: { locale },
-    timeout: 8000,
-  })
-    .then((word) => remember(resolvedDetail, key, word))
-    .catch((error: unknown) => {
-      const failure = error as { response?: { status?: number }; statusCode?: number };
-      const status = failure?.response?.status ?? failure?.statusCode;
-
-      // Same split as above, for the same reason: a slug with no entry is an
-      // answer worth keeping, a trip that failed is not.
-      if (status === 404) return remember(resolvedDetail, key, null);
-      return null;
-    })
-    .finally(() => {
-      detailInFlight.delete(key);
-    });
-
-  detailInFlight.set(key, request);
-  return request;
-}
-
 // `cacheKey` decides which two questions are the same question, and getting that
 // wrong is silent in both directions: too loose and two homographs share one
 // answer, too tight and every card refetches a word the page already has.
 // `CACHE_LIMIT` is here so the eviction test can fill the map exactly to its
 // edge rather than hardcoding 600 in two places and silently testing nothing
 // the day the bound changes.
-export const __testing = { cacheKey, detailKey, CACHE_LIMIT };
+export const __testing = { cacheKey, CACHE_LIMIT };

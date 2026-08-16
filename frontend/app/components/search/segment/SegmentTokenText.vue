@@ -22,7 +22,8 @@ import {
 } from '~/utils/wordCard';
 import type { DictionaryId } from '~/composables/useDictionaryLinks';
 import { minedWord } from '~/utils/ankiWord';
-import { fetchWord, fetchWordDetail, peekWord, peekWordDetail, type WordLookup } from '~/utils/wordLookup';
+import { createSegmentTaps } from '~/utils/segmentTaps';
+import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
 // Two different verbs, so two different shapes. These sit side by side at 16px,
 // where `mdiStarCheckOutline` and `mdiStarPlusOutline` -- the pair that was here
 // -- were one star with a smudge in the corner: the reader could not tell "show
@@ -172,48 +173,17 @@ const hiddenCandidateCount = computed(() =>
 const isNameCandidate = (candidate: ShirabeCandidate): boolean => candidate.dictionary === 'jmnedict';
 
 /**
- * The rest of what Shirabe knows about the picked candidate.
+ * The word the card renders: whichever candidate the reader has picked.
  *
- * A second call, because identify carries what is needed to CHOOSE -- headword,
- * reading, commonness, definitions -- and not what is needed to finish the card:
- * `furigana`, `jlpt`, `frequency` and `pitch` are only on
- * `GET /api/v1/words/{id}`. It lands after the senses and fills in around them,
- * which is why nothing below waits on it.
+ * There used to be a second ref here holding a follow-up
+ * `GET /api/v1/words/{id}`, and a computed spreading it over the candidate,
+ * because identify carried enough to CHOOSE but not enough to finish the card.
+ * It carries both now (`include=pitch,frequency,furigana,jlpt,forms,notes`), so
+ * the second call, its cache, the spread and the id-guard that kept a late
+ * answer off the wrong word are all gone.
  */
-const detail = ref<ShirabeWord | null>(null);
+const word = computed<ShirabeWord | null>(() => candidates.value[picked.value] ?? null);
 
-/**
- * The word the card renders: the candidate, completed by its detail.
- *
- * Spread rather than kept apart so there is ONE card shape. `cardSenses`,
- * `minedWord`, `infoHtml` and every computed below take a `ShirabeWord` and
- * never learn which half of it arrived when. Detail wins on conflict because its
- * `entries` carry every language Shirabe has, where identify's are narrowed to
- * the languages our service key's dictionary stack resolves to.
- *
- * The `id` guard is what keeps a late detail off the wrong word: the reader can
- * pick a second candidate while the first one's detail is still in flight.
- */
-const word = computed<ShirabeWord | null>(() => {
-  const candidate = candidates.value[picked.value] ?? null;
-  if (!candidate) return null;
-  return detail.value && detail.value.id === candidate.id ? { ...candidate, ...detail.value } : candidate;
-});
-
-/**
- * The word the card is about, in one place.
- *
- * Everything that names the open word reads this: the head, what "More
- * sentences" searches for, and what Anki is asked about. It has to be ONE
- * expression, because the reader can change the answer -- picking 黄身 over きみ
- * moves it -- and a second copy of the fallback chain is a second thing to
- * remember when that happens.
- *
- * The token is the fallback rather than the source, so it still answers before
- * the lookup lands (and when there is no entry at all). That is what lets the
- * Anki probe start the moment the card opens instead of waiting on a dictionary
- * call it does not depend on, and what empties it when the card closes.
- */
 const headword = computed(() => cardHeadword(word.value, hoveredToken.value?.dictForm));
 
 // 'missing' is specifically "we asked and there is no entry", which the card
@@ -271,6 +241,11 @@ const { minedNoteId, mining, canConfigureMine, canMine, probeMined, clearMined, 
     () => miningWord.value,
     () => minedCard.value,
   );
+
+/** How many distinct words the reader has opened in THIS sentence, which is the
+ *  number that decides whether the lookup should batch. One per component
+ *  instance, and there is one instance per segment. */
+const segmentTaps = createSegmentTaps();
 
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
@@ -361,7 +336,6 @@ async function loadWord(token: EnrichedToken): Promise<void> {
 function clearLookup(): void {
   candidates.value = [];
   picked.value = 0;
-  detail.value = null;
   allCandidatesShown.value = false;
   wordState.value = 'idle';
 }
@@ -372,44 +346,8 @@ function clearLookup(): void {
 function applyLookup(answer: WordLookup): void {
   candidates.value = answer.candidates;
   picked.value = 0;
-  detail.value = null;
   allCandidatesShown.value = false;
   wordState.value = answer.candidates.length === 0 && answer.reason === 'missing' ? 'missing' : 'idle';
-
-  // The detail for whichever candidate leads. Started here rather than awaited,
-  // because everything it carries is an addition to a card that is already
-  // readable -- the senses are up, and pitch and badges appear under them a
-  // moment later rather than holding them back.
-  const leading = answer.candidates[0];
-  if (leading) void loadDetail(leading.id);
-}
-
-/**
- * Fill in the half of the card that identify does not carry.
- *
- * Guarded on the id rather than on a request generation, for the same reason
- * `loadWord` guards on the word rather than the token object: two asks for the
- * same slug are interchangeable, so this holds however often the reader moves
- * between candidates and back. A cached answer is applied synchronously, so
- * returning to a candidate already seen does not blank its pitch for a frame.
- */
-async function loadDetail(id: string): Promise<void> {
-  const locale = glossLanguages.value.labels;
-
-  const cached = peekWordDetail(id, locale);
-  if (cached !== undefined) {
-    detail.value = cached;
-    return;
-  }
-
-  const found = await fetchWordDetail(id, locale);
-
-  // The reader has moved to another candidate, another word, or closed the card.
-  // `word` reads `detail` only when the ids agree, so a stale one is inert
-  // anyway -- but dropping it here keeps the ref honest rather than relying on
-  // the computed to hide it.
-  if (candidates.value[picked.value]?.id !== id) return;
-  detail.value = found;
 }
 
 /**
@@ -459,6 +397,16 @@ function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: 
     // answering again. Left unmarked it flatters every rate here, because the
     // cache only ever holds the answers that succeeded.
     from_cache: fromCache,
+    // How many DISTINCT words the reader has opened in this sentence, this one
+    // included. The whole batching question is the share of opens where this is
+    // 2 or more: identify costs about the same for a sentence as for a word, so
+    // batching is free in latency and expensive in bytes, and only a reader who
+    // opens several words per sentence makes that trade worth taking.
+    taps_in_segment: segmentTaps.record(props.result?.segment.textJa.content ?? '', ref.lemma),
+    // The denominator. A sentence of four words that gets two taps is a very
+    // different result from a sentence of twenty that gets two, and only this
+    // separates them.
+    askable_tokens: enrichedTokens.value.filter(isAskable).length,
   });
 }
 
@@ -651,11 +599,6 @@ const pickCandidate = (index: number) => {
   }
 
   picked.value = index;
-  // The detail belongs to the candidate, not to the card, so it is refetched
-  // rather than carried over: pitch, JLPT and frequency are all properties of
-  // the word that was picked.
-  detail.value = null;
-  void loadDetail(chosen.id);
 
   // Ask Anki again, about the word the reader just chose. `useWordMining` reads
   // `currentWord` through a getter at call time rather than watching it, so

@@ -50,6 +50,12 @@ interface ShirabeCandidate {
   sourceId?: string;
   dictionary?: string;
   entries?: unknown[];
+  // Only with the `include` below, and the reason the card needs no second call.
+  pitch?: unknown[];
+  furigana?: unknown[];
+  forms?: unknown[];
+  frequency?: number | null;
+  jlpt?: string | null;
 }
 
 interface IdentifyResponse {
@@ -88,7 +94,12 @@ export default defineEventHandler(async (event) => {
       path: '/words/identify',
       method: 'POST',
       query: { locale },
-      body: { tokens: [token] },
+      // Everything the card draws, in one call. Without this a client renders
+      // the picked candidate from identify and then has to fetch
+      // `GET /api/v1/words/{id}` purely for the pitch diagram, the badges, the
+      // dictionary-aligned ruby and the forms row -- two round trips on one tap,
+      // and a card that visibly rebuilds itself when the second lands.
+      body: { tokens: [token], include: ['pitch', 'frequency', 'furigana', 'jlpt', 'forms', 'notes'] },
       subject: lemma,
     });
 
