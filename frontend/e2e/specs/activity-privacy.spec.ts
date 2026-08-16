@@ -204,10 +204,16 @@ test.describe('Activity privacy', () => {
     await activity.expectLoaded();
     await expect(page.getByTestId('familiar-media-list')).toBeVisible({ timeout: 10_000 });
 
+    // Per title, not the one bulk button this used to press. `ac04d42ed`
+    // replaced "Forget which shows I study" with a Forget on each row, and this
+    // test kept reaching for `familiar-media-clear`, which has not existed
+    // since. The tally here is one title, so forgetting it empties the list --
+    // which is what this test is named for either way.
+    //
     // The button confirms first, and an unhandled dialog auto-dismisses -- which
     // would leave this test asserting that nothing happened.
     page.once('dialog', (dialog) => dialog.accept());
-    await page.getByTestId('familiar-media-clear').click();
+    await page.getByTestId(`familiar-media-forget-${mediaPublicId}`).click();
 
     await expect(page.getByTestId('familiar-media-list')).toHaveCount(0, { timeout: 10_000 });
     expect(await familiarMediaIds(page)).not.toContain(mediaPublicId);

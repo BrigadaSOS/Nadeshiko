@@ -24,7 +24,19 @@ const QUERY = '学校';
 const drawer = (page: Page) => page.getByTestId('filter-drawer');
 const drawerToggle = (page: Page) => page.getByTestId('filter-drawer-toggle');
 
+/**
+ * Opens the drawer, or leaves it open if it already is.
+ *
+ * The guard is the whole point. Picking a title deliberately KEEPS the drawer
+ * open on its episode level -- there is a test for exactly that above -- so the
+ * callers that pick a title and then want the drawer again are already looking
+ * at it. Clicking the toggle in that state does not close-and-reopen: the open
+ * drawer's own scroll container sits over the button and swallows the click, so
+ * Playwright retried for the full minute and reported "subtree intercepts
+ * pointer events".
+ */
 async function openDrawer(page: Page) {
+  if (await drawer(page).isVisible().catch(() => false)) return;
   await drawerToggle(page).click();
   await expect(drawer(page)).toBeVisible({ timeout: 10_000 });
 }
