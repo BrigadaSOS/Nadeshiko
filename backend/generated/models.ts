@@ -2,6 +2,16 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export type t_AccountQuotaState = {
+  monthlyQuotaLimit: number;
+  periodYyyymm: number;
+  quotaOverride: number | null;
+  quotaSource: 'override' | 'tier' | 'legacy_column' | 'default';
+  quotaUsed: number;
+  tierId: string | null;
+  userId: number;
+};
+
 export type t_ActivityType = 'SEARCH' | 'ANKI_EXPORT' | 'SEGMENT_PLAY' | 'SHARE';
 
 export type t_AddSegmentToCollectionRequest = {
@@ -751,6 +761,15 @@ export type t_StatsOverview = {
   };
 };
 
+export type t_Tier = {
+  displayName: string;
+  id: string;
+  monthlyQuotaLimit: number;
+  rateLimitMax?: number | null;
+  rateLimitWindowMs?: number | null;
+  sortOrder: number;
+};
+
 export type t_Token = {
   b: number;
   d: string;
@@ -773,6 +792,12 @@ export type t_Token = {
   posLabel?: string;
   r: string;
   s: string;
+};
+
+export type t_UpdateAccountQuotaRequest = {
+  quotaOverride?: number | null;
+  reason?: string;
+  tierId?: string;
 };
 
 export type t_UpdateCollectionSegmentRequest = {
@@ -851,11 +876,19 @@ export type t_UserExportResponse = {
 
 export type t_UserMe = {
   quota: {
+    burst: {
+      max: number;
+      windowMs: number;
+    };
     limit: number;
     periodEnd: string;
     periodStart: string;
     periodYyyymm: number;
     remaining: number;
+    tier: {
+      displayName: string;
+      id: string;
+    } | null;
     used: number;
   };
   user: {
@@ -995,6 +1028,10 @@ export type t_DeleteUserActivityByIdParamSchema = {
 
 export type t_ForgetFamiliarMediaParamSchema = {
   mediaPublicId: string;
+};
+
+export type t_GetAdminUserQuotaParamSchema = {
+  userId: number;
 };
 
 export type t_GetAdminUsersWithProvidersQuerySchema = {
@@ -1140,6 +1177,10 @@ export type t_SearchCollectionSegmentsParamSchema = {
 
 export type t_UpdateAdminReportParamSchema = {
   reportId: number;
+};
+
+export type t_UpdateAdminUserQuotaParamSchema = {
+  userId: number;
 };
 
 export type t_UpdateCollectionParamSchema = {

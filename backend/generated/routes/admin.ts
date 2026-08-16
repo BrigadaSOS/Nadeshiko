@@ -16,6 +16,7 @@ import { parseRequestInput, responseValidationFactory } from '@nahkies/typescrip
 import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
 import { z } from 'zod/v4';
 import type {
+  t_AccountQuotaState,
   t_AdminReportListResponse,
   t_AdminUserWithProviders,
   t_AffectedCountResponse,
@@ -31,16 +32,21 @@ import type {
   t_Error404,
   t_Error429,
   t_Error500,
+  t_GetAdminUserQuotaParamSchema,
   t_GetAdminUsersWithProvidersQuerySchema,
   t_ListAdminReportsQuerySchema,
   t_ListAgentActivityQuerySchema,
   t_Report,
+  t_Tier,
+  t_UpdateAccountQuotaRequest,
   t_UpdateAdminReportParamSchema,
+  t_UpdateAdminUserQuotaParamSchema,
   t_UpdateReportRequest,
 } from '../models.ts';
-import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminReportsQueryOutput, ListAgentActivityQueryOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminReportsQueryOutput, ListAgentActivityQueryOutput, UpdateAccountQuotaRequestOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
   PermissiveBoolean,
+  s_AccountQuotaState,
   s_AdminReportListResponse,
   s_AdminUserWithProviders,
   s_AffectedCountResponse,
@@ -58,6 +64,8 @@ import {
   s_Report,
   s_ReportSource,
   s_ReportTargetType,
+  s_Tier,
+  s_UpdateAccountQuotaRequest,
   s_UpdateReportRequest,
 } from '../schemas.ts';
 
@@ -231,6 +239,59 @@ export type GetAdminUsersWithProviders = (
   next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type ListTiersResponder = {
+  with200(): ExpressRuntimeResponse<{
+    tiers: t_Tier[];
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListTiers = (
+  params: Params<void, void, void, void>,
+  respond: ListTiersResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetAdminUserQuotaResponder = {
+  with200(): ExpressRuntimeResponse<t_AccountQuotaState>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetAdminUserQuota = (
+  params: Params<t_GetAdminUserQuotaParamSchema, void, void, void>,
+  respond: GetAdminUserQuotaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateAdminUserQuotaResponder = {
+  with200(): ExpressRuntimeResponse<t_AccountQuotaState>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateAdminUserQuota = (
+  params: Params<t_UpdateAdminUserQuotaParamSchema, void, UpdateAccountQuotaRequestOutput, void>,
+  respond: UpdateAdminUserQuotaResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type AdminImplementation = {
   listAdminReports: ListAdminReports;
   batchUpdateAdminReports: BatchUpdateAdminReports;
@@ -242,6 +303,9 @@ export type AdminImplementation = {
   getAnnouncement: GetAnnouncement;
   updateAnnouncement: UpdateAnnouncement;
   getAdminUsersWithProviders: GetAdminUsersWithProviders;
+  listTiers: ListTiers;
+  getAdminUserQuota: GetAdminUserQuota;
+  updateAdminUserQuota: UpdateAdminUserQuota;
 };
 
 export function createAdminRouter(
@@ -818,6 +882,177 @@ export function createAdminRouter(
         .getAdminUsersWithProviders(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, getAdminUsersWithProvidersResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const listTiersResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ tiers: z.array(s_Tier) })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // listTiers
+  router.get(`/v1/admin/tiers`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            tiers: t_Tier[];
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .listTiers(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, listTiersResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getAdminUserQuotaParamSchema = z.object({ userId: z.coerce.number() });
+
+  const getAdminUserQuotaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_AccountQuotaState],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getAdminUserQuota
+  router.get(`/v1/admin/users/:userId/quota`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(getAdminUserQuotaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_AccountQuotaState>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .getAdminUserQuota(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getAdminUserQuotaResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const updateAdminUserQuotaParamSchema = z.object({ userId: z.coerce.number() });
+
+  const updateAdminUserQuotaResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', s_AccountQuotaState],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // updateAdminUserQuota
+  router.patch(`/v1/admin/users/:userId/quota`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: parseRequestInput(updateAdminUserQuotaParamSchema, req.params, RequestInputType.RouteParam),
+        query: undefined,
+        body: parseRequestInput(s_UpdateAccountQuotaRequest, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<t_AccountQuotaState>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .updateAdminUserQuota(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, updateAdminUserQuotaResponseBodyValidator));
     } catch (error) {
       next(error);
     }

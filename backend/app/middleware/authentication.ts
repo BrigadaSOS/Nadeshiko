@@ -122,9 +122,9 @@ type MappedApiKeyError =
   | RateLimitExceededError
   | QuotaExceededError;
 const BETTER_AUTH_API_KEY_ERROR_FACTORIES: Record<string, () => MappedApiKeyError> = {
-  RATE_LIMITED: () => new RateLimitExceededError('API key rate limit exceeded. Please try again later.'),
+  RATE_LIMITED: () => new RateLimitExceededError('API key rate limit exceeded. Please try again later.', 'key_burst'),
   USAGE_EXCEEDED: () =>
-    new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.'),
+    new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.', 'key_usage'),
   KEY_DISABLED: () => new AuthCredentialsExpiredError('API key is disabled or expired.'),
   KEY_EXPIRED: () => new AuthCredentialsExpiredError('API key is disabled or expired.'),
   INVALID_API_KEY: () => new AuthCredentialsInvalidError('Invalid API key.'),
@@ -183,9 +183,12 @@ function mapBetterAuthApiKeyError(error: unknown): MappedApiKeyError | null {
 
   if (statusCode === 429 || status === 'TOO_MANY_REQUESTS') {
     if (/usage exceeded/i.test(combinedMessage)) {
-      return new QuotaExceededError('API key usage limit exceeded. Please create a new key or wait for refill.');
+      return new QuotaExceededError(
+        'API key usage limit exceeded. Please create a new key or wait for refill.',
+        'key_usage',
+      );
     }
-    return new RateLimitExceededError('API key rate limit exceeded. Please try again later.');
+    return new RateLimitExceededError('API key rate limit exceeded. Please try again later.', 'key_burst');
   }
 
   if ((statusCode === 401 || status === 'UNAUTHORIZED') && /invalid api key/i.test(combinedMessage)) {

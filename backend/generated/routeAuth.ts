@@ -77,4 +77,7 @@ export const routeAuth: RouteAuth[] = [
   { method: 'get', path: '/v1/admin/agent-activity', middleware: requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
   { method: 'put', path: '/v1/admin/announcement', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/admin/users-with-providers', middleware: requireSession(enforceAdminAccess) },
+  { method: 'get', path: '/v1/admin/tiers', middleware: requireSession(enforceAdminAccess) },
+  { method: 'get', path: '/v1/admin/users/:userId/quota', middleware: requireSession(enforceAdminAccess) },
+  { method: 'patch', path: '/v1/admin/users/:userId/quota', middleware: requireSession(enforceAdminAccess) },
 ];

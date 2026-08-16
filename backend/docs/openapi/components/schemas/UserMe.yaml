@@ -34,6 +34,8 @@ properties:
       - periodYyyymm
       - periodStart
       - periodEnd
+      - tier
+      - burst
     properties:
       used:
         type: integer
@@ -65,3 +67,39 @@ properties:
         format: date-time
         description: End of the current month (UTC).
         example: "2026-02-28T23:59:59.999Z"
+      tier:
+        type: object
+        nullable: true
+        description: |
+          The quota tier this account sits on. Null when the account is on none,
+          or when an override is in force and the tier no longer describes the
+          limit.
+        required:
+          - id
+          - displayName
+        properties:
+          id:
+            type: string
+            example: plus
+          displayName:
+            type: string
+            example: Plus
+      burst:
+        type: object
+        description: |
+          The OTHER limit. Separate from the monthly allowance and enforced per
+          API key over a short window, so a caller can exhaust it with plenty of
+          month left -- which is why both are surfaced together, and why the two
+          429s carry an `X-RateLimit-Reason` telling them apart.
+        required:
+          - max
+          - windowMs
+        properties:
+          max:
+            type: integer
+            description: Requests allowed per key within `windowMs`.
+            example: 150
+          windowMs:
+            type: integer
+            description: Length of the burst window, in milliseconds.
+            example: 60000

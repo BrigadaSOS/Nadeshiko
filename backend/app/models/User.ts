@@ -1,5 +1,6 @@
-import { Entity, PrimaryColumn, Column, OneToMany, Index } from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from './base.entity';
+import { Tier } from './Tier';
 import type { AccountQuotaUsage } from './AccountQuotaUsage';
 import type { CategoryType } from './Media';
 
@@ -81,6 +82,28 @@ export class User extends BaseEntity {
   @Column({ name: 'role', type: 'enum', enum: UserRoleType, default: UserRoleType.USER })
   role!: UserRoleType;
 
+  /**
+   * The quota level this account sits on. Resolved through `resolveQuotaLimit`
+   * rather than read directly -- a null tier (or one pointing at a row that has
+   * since been deleted) has to fall back rather than fail a request.
+   */
+  @Column({ name: 'tier_id', type: 'text', nullable: true, default: 'free' })
+  tierId!: string | null;
+
+  /**
+   * Per-account escape hatch, above whatever the tier says. Set for the case a
+   * tier does not describe -- a one-off grant, a partner, an account being
+   * unblocked mid-month -- and left null otherwise.
+   */
+  @Column({ name: 'quota_override', type: 'int', nullable: true })
+  quotaOverride!: number | null;
+
+  /**
+   * @deprecated Read `resolveQuotaLimit(user)` instead, which applies the
+   * override-then-tier order. Kept as a column because 614 rows carry the value
+   * that was in force before tiers existed, and dropping it would rewrite their
+   * limits in a migration rather than on a decision.
+   */
   @Column({ name: 'monthly_quota_limit', type: 'int', default: 5000 })
   monthlyQuotaLimit!: number;
 
@@ -90,4 +113,8 @@ export class User extends BaseEntity {
   // Relations
   @OneToMany('AccountQuotaUsage', 'user')
   accountQuotaUsages?: AccountQuotaUsage[];
+
+  @ManyToOne(() => Tier, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'tier_id' })
+  tier?: Tier | null;
 }

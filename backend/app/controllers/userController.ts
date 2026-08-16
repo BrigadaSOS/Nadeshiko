@@ -8,7 +8,8 @@ import type {
   RemoveFavoriteMedia,
 } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
-import { AccountQuotaUsage, Media } from '@app/models';
+import { AccountQuotaUsage, Media, Tier, resolveQuotaLimit } from '@app/models';
+import { config } from '@config/config';
 import { NotFoundError } from '@app/errors';
 import { toMediaSummaryDTO } from './mappers/sharedMapper';
 import { toUserMeDTO } from './mappers/userMapper';
@@ -16,10 +17,26 @@ import { mutateUserPreferences, assertFavoriteMediaWithinCap } from './preferenc
 
 export const getMe: GetMe = async (_params, respond, req) => {
   const user = assertUser(req);
-  const quota = await AccountQuotaUsage.getForUser(user.id, user.monthlyQuotaLimit);
+  const tier = user.tierId ? await Tier.findOne({ where: { id: user.tierId } }) : null;
+  const resolved = resolveQuotaLimit({ ...user, tier });
+  const quota = await AccountQuotaUsage.getForUser(user.id, resolved.limit);
   const window = AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm);
 
-  return respond.with200().body(toUserMeDTO(user, quota, window));
+  // A tier is only named when it is what decided the number. Under an override
+  // the limit is this account's alone, and labelling it "Plus" while it shows
+  // something no Plus account gets would be the same unexplained number the
+  // tier system was built to remove.
+  const namedTier = resolved.source === 'tier' ? tier : null;
+
+  return respond.with200().body(
+    toUserMeDTO(user, quota, window, namedTier, {
+      // The tier's own burst allowance if it sets one, else the deployment
+      // default -- the same fallback `createUserApiKey` stamps onto new keys,
+      // so the page cannot promise a ceiling the keys were not issued with.
+      max: tier?.rateLimitMax ?? config.API_KEY_RATE_LIMIT_MAX,
+      windowMs: tier?.rateLimitWindowMs ?? config.API_KEY_RATE_LIMIT_WINDOW_MS,
+    }),
+  );
 };
 
 export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req) => {
