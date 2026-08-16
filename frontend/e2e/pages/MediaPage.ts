@@ -16,7 +16,7 @@ export class MediaPage {
     this.page = page;
     this.mediaCards = page.getByTestId('media-card');
     this.searchInput = page.getByTestId('media-search-input');
-    this.categoryDropdown = page.getByTestId('dropdown-toggle').first();
+    this.categoryDropdown = page.getByTestId('media-category-dropdown');
     this.gridViewButton = page.getByTestId('grid-view-button');
     this.listViewButton = page.getByTestId('list-view-button');
     this.listItems = page.getByTestId('media-list-item');
