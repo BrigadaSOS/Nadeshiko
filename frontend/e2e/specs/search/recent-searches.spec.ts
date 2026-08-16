@@ -92,7 +92,7 @@ test.describe('Recent searches', () => {
 
     await search.recentsMenu.getByTestId('search-recents-media').locator('..').click();
 
-    await page.waitForURL(new RegExp(`media=${mediaId}`), { timeout: 10_000 });
+    await page.waitForURL(new RegExp(`media=${mediaId}`), { timeout: 10_000, waitUntil: 'commit' });
     await expect(search.searchInput).toHaveValue('学校');
   });
 
@@ -111,7 +111,7 @@ test.describe('Recent searches', () => {
 
     // The seeded row carries no title, so re-running it must drop the `media`
     // filter the page was wearing rather than inherit it.
-    await page.waitForURL(/\/search\/%E7%8C%AB/, { timeout: 10_000 });
+    await page.waitForURL(/\/search\/%E7%8C%AB/, { timeout: 10_000, waitUntil: 'commit' });
     expect(new URL(page.url()).searchParams.get('media')).toBeNull();
   });
 
@@ -164,7 +164,7 @@ test.describe('Recent searches', () => {
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
 
-    await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1/, { timeout: 10_000 });
+    await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1/, { timeout: 10_000, waitUntil: 'commit' });
     await expect(search.searchInput).toHaveValue('学校');
   });
 
@@ -176,7 +176,7 @@ test.describe('Recent searches', () => {
 
     await search.recentsItem('学校').first().click();
 
-    await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1/, { timeout: 10_000 });
+    await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1/, { timeout: 10_000, waitUntil: 'commit' });
     await expect(search.searchInput).toHaveValue('学校');
   });
 

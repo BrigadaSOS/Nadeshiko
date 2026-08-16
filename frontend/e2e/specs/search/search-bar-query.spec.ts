@@ -27,7 +27,10 @@ test.describe('The search bar shows the search in the URL', () => {
     // the URL we are standing on, and the wait below is for the URL to change.
     const word = await search.openFirstTokenCard({ excluding: '彼女' });
     await search.tokenCardSearch.click();
-    await page.waitForURL((url) => !url.pathname.endsWith(encodeURIComponent('彼女')), { timeout: 15_000 });
+    await page.waitForURL((url) => !url.pathname.endsWith(encodeURIComponent('彼女')), {
+      timeout: 15_000,
+      waitUntil: 'commit',
+    });
 
     expect(await search.searchInput.inputValue()).toBe(word);
     expect(word).toBe(decodeURIComponent(new URL(page.url()).pathname.split('/search/')[1] ?? ''));
@@ -43,7 +46,7 @@ test.describe('The search bar shows the search in the URL', () => {
     await expect(search.searchInput).toHaveValue('猫');
 
     await page.goBack();
-    await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1$/, { timeout: 15_000 });
+    await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1$/, { timeout: 15_000, waitUntil: 'commit' });
     await expect(search.searchInput).toHaveValue('学校');
   });
 

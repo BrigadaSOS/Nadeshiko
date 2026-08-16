@@ -65,19 +65,46 @@ export class SearchPage {
     return match?.[1] ?? null;
   }
 
-  async goto(query?: string) {
+  /**
+   * `locale` prefixes the path, which the app routes on (`strategy: 'prefix'`).
+   *
+   * It is how a spec asks for a reader with two translation languages without
+   * signing in: the interface language picks the default set until a reader
+   * saves an override, and only `ja` defaults to both EN and ES — `en` gets
+   * English alone, `es` Spanish alone. See `defaultTranslationLanguages`.
+   */
+  async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' } = {}) {
+    const prefix = options.locale ? `/${options.locale}` : '';
     if (query) {
-      await this.page.goto(`/search/${encodeURIComponent(query)}`);
+      await this.page.goto(`${prefix}/search/${encodeURIComponent(query)}`);
     } else {
-      await this.page.goto('/search');
+      await this.page.goto(`${prefix}/search`);
     }
   }
 
+  /**
+   * Runs a search from the bar and waits for the URL to be the one asked for.
+   *
+   * Two things this used to get wrong, both of which showed up as a later step
+   * timing out somewhere unrelated:
+   *
+   * `/\/search\//` matched the URL the page was ALREADY on, so this could
+   * return before the navigation had happened at all — leaving the caller to
+   * act on the previous search, and any history assertion after it reading a
+   * stack that had not moved yet.
+   *
+   * `waitUntil: 'commit'` because the default is `'load'`: a results page whose
+   * first card is a YouTube segment embeds a `youtube-nocookie.com` iframe, and
+   * the page load state need never arrive. The URL is what this is waiting for.
+   */
   async search(query: string) {
     await this.searchInput.clear();
     await this.searchInput.fill(query);
     await this.searchButton.click();
-    await this.page.waitForURL(/\/search\//, { timeout: 10_000 });
+    await this.page.waitForURL((url) => url.pathname.endsWith(`/search/${encodeURIComponent(query)}`), {
+      timeout: 10_000,
+      waitUntil: 'commit',
+    });
   }
 
   /**
