@@ -49,6 +49,10 @@ interface ShirabeToken {
   reading?: string;
   posFull?: string[];
   posLabel?: string;
+  /** Shirabe's short part-of-speech tag (`verb`, `prt`, `exp`). Distinct from
+   *  `posFull[0]`, which is UniDic's own Japanese category, and from `posLabel`,
+   *  which is the printable wording. This is the one `words/identify` ranks by. */
+  pos?: string;
   kind?: string;
   furigana?: Array<{ text: string; ruby?: string }>;
   inflection?: { labels: string[]; base: string };
@@ -74,6 +78,12 @@ function toSlimToken(token: ShirabeToken): SlimToken {
 
   if (token.kind) slim.kind = token.kind;
   if (token.posLabel) slim.posLabel = token.posLabel;
+  // The tag `POST /api/v1/words/identify` ranks by, stored rather than derived.
+  // The frontend can map `p` onto it (`shortPos` in ~/utils/tokenEnrichment),
+  // but that map is a copy of Shirabe's table and a copy is a thing that drifts;
+  // this is the value itself. Optional on the token because the corpus predates
+  // it, so the derivation stays until a reparse has filled every row.
+  if (token.pos) slim.pt = token.pos;
   if (token.furigana?.length) slim.f = token.furigana.map((seg) => ({ t: seg.text, r: seg.ruby }));
   if (token.inflection) slim.inflection = token.inflection;
 
@@ -139,7 +149,16 @@ async function parseChunk(chunk: string[]): Promise<SlimToken[][]> {
       authorization: `Bearer ${config.SHIRABE_API_KEY}`,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({ texts: chunk }),
+    // `include` is not optional for us, whatever its name suggests. Shirabe moved
+    // `posFull` and `posLabel` behind it in 0.8.0 -- they were 27% of every parse
+    // response and almost nobody read them -- so without this `p`, `posLabel` and
+    // every field the indexer derives from them come back EMPTY. We are the
+    // consumer they were kept for.
+    //
+    // A parse run that forgets this does not fail. It writes tokens with no part
+    // of speech, which reads downstream as a corpus that lost its morphology on
+    // whatever date the run happened.
+    body: JSON.stringify({ texts: chunk, include: ['posFull', 'posLabel'] }),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 

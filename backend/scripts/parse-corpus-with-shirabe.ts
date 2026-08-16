@@ -27,24 +27,29 @@
  * Resumable by primary key: it prints the last id it wrote on every progress
  * line, and `--after <id>` picks up from one. No state file to go stale.
  *
- * WORD IDS ARE NOT WRITTEN HERE, AND THAT IS THE DESIGN. Shirabe resolves a
- * token to a dictionary entry only when a parse asks for `include=wordIds`,
- * because resolution costs 2.6x the parse itself. Its spec is explicit that "a
- * corpus pass that stores the tokens and not the ids pays neither", so this pass
- * does not ask.
+ * WORD IDS ARE NOT WRITTEN HERE, AND THAT IS THE DESIGN. An id is Shirabe's
+ * DECISION about which word a token is, derived from dictionary content, so it
+ * moves whenever a headword, a commonness flag or a resolution rule moves. A
+ * corpus holding a million of them holds a million rows that go stale together
+ * and has to be re-exported every time the resolver improves. What does not go
+ * stale is the parse.
  *
- * The id is deliberately not a thing to keep: it is derived from dictionary
- * content, so it moves whenever a headword, a commonness flag or a resolution
- * rule moves, and a corpus holding one has to be re-exported every time the
- * resolver improves. A reader tapping a word gets a better answer than any
- * stored slug -- `GET /api/v1/words/{lemma}?surface=&reading=&pos=` is always
- * current, resolves the inflection (食べました reaches 食べる, which no slug can
- * spell) and picks the right homograph (開く answers あく or ひらく by reading).
+ * So a reader tapping a word resolves it live, from the token this script wrote:
+ * `POST /api/v1/words/identify` takes `lemma`, `surface`, `reading` and `pos`
+ * and answers a ranked list of candidates WITH their definitions. That reaches
+ * what no stored slug can -- 食べました resolves to 食べる, which no slug spells,
+ * and 開いた answers ひらく or あく by how the sentence read it -- and it is
+ * always current.
  *
- * So tokens written by this script carry no `wid`, older rows do, and both are
- * correct. If you ever do need ids in bulk -- an export, an Anki deck -- the
- * batch form is `POST /api/v1/words/resolve`, and `resolvedWith` reports the
- * rules generation to store beside anything you keep.
+ * `pos` there is Shirabe's SHORT tag (`verb`, `prt`), which is why `pt` is
+ * stored alongside the UniDic `p`: see `toSlimToken`. Rows parsed before `pt`
+ * existed have only `p`, and the frontend derives from it (`shortPos` in
+ * ~/utils/tokenEnrichment) until a re-run of this script fills them in.
+ *
+ * (Superseded, in case you remember them: `include=wordIds`, `include=meanings`,
+ * `POST /api/v1/words/resolve`, `resolvedWith`, and the `?surface=` mode of
+ * `GET /api/v1/words/{id}` were all deleted in Shirabe 0.8.0. `GET
+ * /api/v1/words/{id}` itself is untouched and still opens a word by slug.)
  */
 
 import { AppDataSource } from '@config/database';

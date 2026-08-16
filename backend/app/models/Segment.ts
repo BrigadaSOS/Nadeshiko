@@ -29,6 +29,12 @@ export interface SlimToken {
   /** The part of speech as a reader would say it ("Verb", "Noun"), where `p` carries the
    *  raw UniDic tag. Absent when the parser offers no label. */
   posLabel?: string;
+  /** Shirabe's short part-of-speech tag (`verb`, `prt`, `exp`): a third reading
+   *  of the same fact, and the only one `POST /api/v1/words/identify` ranks by.
+   *  `p` is UniDic's Japanese category and `posLabel` is the printable wording;
+   *  neither is this vocabulary. Absent on everything parsed before it was
+   *  stored, which the frontend derives from `p` until a reparse fills it in. */
+  pt?: string;
   /** The finer morphemes inside a grouped token, each positioned like its
    *  parent. Elasticsearch highlights against its OWN analyzer, so a match can
    *  land inside one of our tokens: these are the boundaries that let a partial

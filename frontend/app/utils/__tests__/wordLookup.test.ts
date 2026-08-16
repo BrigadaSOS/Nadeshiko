@@ -13,14 +13,19 @@ let fetchMock: ReturnType<typeof vi.fn>;
 
 const ref = (lemma: string): WordRef => ({ lemma, surface: lemma, reading: lemma, pos: 'noun' }) as unknown as WordRef;
 
-const word = (lemma: string) => ({ id: lemma, lemma }) as unknown as Record<string, unknown>;
+/** One candidate, standing in for the ranked list `words/identify` answers with.
+ *  Keyed by the locale the request asked for, so a test can tell two locales'
+ *  answers apart without caring what a real candidate looks like. */
+const candidate = (locale: string) => ({ id: locale, headword: locale }) as unknown as Record<string, unknown>;
+
+const answer = (locale: string) => ({ candidates: [candidate(locale)] });
 
 /** ofetch reports the status in two places; the module reads both. */
 const httpError = (status: number) => Object.assign(new Error(`HTTP ${status}`), { statusCode: status });
 
 beforeEach(async () => {
   vi.resetModules();
-  fetchMock = vi.fn(async (_url: string, opts: { query: { locale: string } }) => word(opts.query.locale));
+  fetchMock = vi.fn(async (_url: string, opts: { query: { locale: string } }) => answer(opts.query.locale));
   vi.stubGlobal('$fetch', fetchMock);
   mod = await import('~/utils/wordLookup');
 });
@@ -37,7 +42,7 @@ describe('peekWord', () => {
 
   it('answers from cache once the word has been fetched', async () => {
     await mod.fetchWord(ref('猫'), 'en');
-    expect(mod.peekWord(ref('猫'), 'en')).toEqual({ word: word('en') });
+    expect(mod.peekWord(ref('猫'), 'en')).toEqual(answer('en'));
   });
 });
 
@@ -69,10 +74,24 @@ describe('fetchWord', () => {
   it('remembers a 404, because the word will still have no entry next time', async () => {
     fetchMock.mockRejectedValue(httpError(404));
 
-    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual({ word: null, reason: 'missing' });
+    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual({ candidates: [], reason: 'missing' });
     await mod.fetchWord(ref('猫'), 'en');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Identify answers 200 with `words: [null]` for a token that resolves to
+  // nothing, and the server route turns that into a 404 -- but a response that
+  // arrives with an empty list has to read the same way, or the card treats "no
+  // candidates" as a successful lookup and sits on a blank instead of saying
+  // there is no entry.
+  it('reads an empty candidate list as "no entry", not as a successful lookup', async () => {
+    fetchMock.mockResolvedValue({ candidates: [] });
+
+    // The reason matters as much as the emptiness: the card says "no dictionary
+    // entry" off it, and `word_card_opened` reports it as the outcome. Without
+    // one, both go blank on an answer the dictionary actually gave.
+    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual({ candidates: [], reason: 'missing' });
   });
 
   // The distinction that matters: caching a failure pins the word blank for the
@@ -80,11 +99,52 @@ describe('fetchWord', () => {
   it('does not remember a failure, so the next hover retries', async () => {
     fetchMock.mockRejectedValueOnce(httpError(502));
 
-    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual({ word: null, reason: 'failed' });
+    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual({ candidates: [], reason: 'failed' });
     expect(mod.peekWord(ref('猫'), 'en')).toBeUndefined();
 
-    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual({ word: word('en') });
+    expect(await mod.fetchWord(ref('猫'), 'en')).toEqual(answer('en'));
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * The second call the card makes, for the half of the word identify does not
+ * carry: pitch, JLPT, frequency and dictionary-aligned ruby.
+ *
+ * Keyed by SLUG rather than by the token that reached it, which is the point of
+ * it being a separate cache: every token in the corpus that resolves to 食べる
+ * shares one entry, however each of them was spelled or read.
+ */
+describe('fetchWordDetail', () => {
+  it('asks once per slug and locale, then serves from cache', async () => {
+    await mod.fetchWordDetail('猫', 'en');
+    await mod.fetchWordDetail('猫', 'en');
+    await mod.fetchWordDetail('猫', 'es');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  // Unlike a failed candidate lookup, this one IS cached: a slug that does not
+  // resolve will not start resolving on the next hover, and re-asking would
+  // spend a request per open to be told the same thing.
+  it('remembers a slug that no longer resolves', async () => {
+    fetchMock.mockRejectedValue(httpError(404));
+
+    expect(await mod.fetchWordDetail('猫', 'en')).toBeNull();
+    expect(mod.peekWordDetail('猫', 'en')).toBeNull();
+
+    await mod.fetchWordDetail('猫', 'en');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  // The card is readable without any of this, so a failure is a shrug rather
+  // than a state: it must not be remembered, or one bad moment costs the word
+  // its pitch and badges for the rest of the session.
+  it('does not remember a failure', async () => {
+    fetchMock.mockRejectedValueOnce(httpError(502));
+
+    expect(await mod.fetchWordDetail('猫', 'en')).toBeNull();
+    expect(mod.peekWordDetail('猫', 'en')).toBeUndefined();
   });
 });
 
