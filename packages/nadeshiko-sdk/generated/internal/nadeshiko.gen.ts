@@ -4,9 +4,9 @@ import { createClient as createApiClient, createConfig, type Client } from './cl
 import type { Auth } from './core/auth.gen';
 import type { ClientOptions } from './types.gen';
 import type * as Types from './types.gen';
-import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, createUserApiKey, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listFavoriteMedia, addFavoriteMedia, removeFavoriteMedia, listFamiliarMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, clearFamiliarMedia, forgetFamiliarMedia, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
+import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, createUserApiKey, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listFavoriteMedia, addFavoriteMedia, removeFavoriteMedia, listFamiliarMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, clearFamiliarMedia, forgetFamiliarMedia, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, listTiers, getAdminUserQuota, updateAdminUserQuota, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
 import { withRetry, type RetryOptions } from './retry';
-import { NadeshikoError, isProblemDetails, type NadeshikoErrorCode } from './errors';
+import { NadeshikoError, buildNadeshikoError, isProblemDetails, type NadeshikoErrorCode, type RateLimitReason } from './errors';
 import { flatPaginate } from './paginate';
 
 type ApiKeyProvider = string | (() => string | undefined | Promise<string | undefined>);
@@ -348,6 +348,20 @@ export type NadeshikoClient = {
       (params: NonNullable<Types.GetAdminUsersWithProvidersData['query']> & { throwOnError: false }): Promise<{ data: Types.GetAdminUsersWithProvidersResponse; response: Response; request: Request } | { error: Types.GetAdminUsersWithProvidersErrors; response: Response; request: Request }>;
       (params?: NonNullable<Types.GetAdminUsersWithProvidersData['query']>): Promise<Types.GetAdminUsersWithProvidersResponse>;
     };
+    listTiers: {
+      (params: { throwOnError: false }): Promise<{ data: Types.ListTiersResponse; response: Response; request: Request } | { error: Types.ListTiersErrors; response: Response; request: Request }>;
+      (): Promise<Types.ListTiersResponse>;
+    };
+    getAdminUserQuota: {
+      (id: number): Promise<Types.GetAdminUserQuotaResponse>;
+      (params: Types.GetAdminUserQuotaData['path'] & { throwOnError: false }): Promise<{ data: Types.GetAdminUserQuotaResponse; response: Response; request: Request } | { error: Types.GetAdminUserQuotaErrors; response: Response; request: Request }>;
+      (params: Types.GetAdminUserQuotaData['path']): Promise<Types.GetAdminUserQuotaResponse>;
+    };
+    updateAdminUserQuota: {
+      (id: number): Promise<Types.UpdateAdminUserQuotaResponse>;
+      (params: Types.UpdateAdminUserQuotaData['path'] & NonNullable<Types.UpdateAdminUserQuotaData['body']> & { throwOnError: false }): Promise<{ data: Types.UpdateAdminUserQuotaResponse; response: Response; request: Request } | { error: Types.UpdateAdminUserQuotaErrors; response: Response; request: Request }>;
+      (params: Types.UpdateAdminUserQuotaData['path'] & NonNullable<Types.UpdateAdminUserQuotaData['body']>): Promise<Types.UpdateAdminUserQuotaResponse>;
+    };
     getSession: {
       (params: { throwOnError: false }): Promise<{ data: Types.GetSessionResponse; response: Response; request: Request } | { error: Types.GetSessionErrors; response: Response; request: Request }>;
       (): Promise<Types.GetSessionResponse>;
@@ -460,8 +474,21 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     // keeping it would also scatter one fault across an issue per distinct URL.
     const requestUrl = request ? request.url.split('?')[0] : undefined;
 
+    // Which limit fired, and the two numbers that say what to do about it.
+    // They live in headers rather than the body because they also have to be
+    // readable on the responses that SUCCEED -- the account page renders its
+    // bar from the same fields -- and a header is the one place both cases
+    // share. Undefined on anything that is not a 429 from a current deployment.
+    const rateLimit = response
+      ? {
+          rateLimitReason: (response.headers.get('x-ratelimit-reason') as RateLimitReason | null) ?? undefined,
+          retryAfterSeconds: Number(response.headers.get('retry-after')) || undefined,
+          quotaResetsAt: response.headers.get('x-monthly-quota-reset') ?? undefined,
+        }
+      : {};
+
     if (isProblemDetails(error)) {
-      return new NadeshikoError({ requestUrl, ...error });
+      return buildNadeshikoError({ requestUrl, ...rateLimit, ...error });
     }
 
     // NOT one of our problem documents. Everything below exists because the old
@@ -481,12 +508,13 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
       (value): value is string => typeof value === 'string' && value.length > 0,
     );
 
-    return new NadeshikoError({
+    return buildNadeshikoError({
       code: typeof body.code === 'string' ? (body.code as NadeshikoErrorCode) : 'UNKNOWN_ERROR',
       title: 'Unexpected error',
       detail: detail ?? (status > 0 ? `HTTP ${status}` : 'Request failed before a response arrived'),
       status,
       requestUrl,
+      ...rateLimit,
     });
   });
 
@@ -1044,6 +1072,32 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
+  const _listTiers = (params?: any) => {
+    const tOE = params?.throwOnError;
+    const p = listTiers({ client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
+  const _getAdminUserQuota = (paramsOrId?: any) => {
+    if (typeof paramsOrId === 'number') {
+      return getAdminUserQuota({ throwOnError: true, path: { userId: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
+    }
+    const params = paramsOrId;
+    const { throwOnError: tOE, userId } = params ?? {};
+    const p = getAdminUserQuota({ path: { userId }, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
+  const _updateAdminUserQuota = (paramsOrId?: any) => {
+    if (typeof paramsOrId === 'number') {
+      return updateAdminUserQuota({ throwOnError: true, path: { userId: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
+    }
+    const params = paramsOrId;
+    const { throwOnError: tOE, userId, ...body } = params ?? {};
+    const p = updateAdminUserQuota({ path: { userId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
   const _getSession = (params?: any) => {
     const tOE = params?.throwOnError;
     const p = getSession({ client: clientInstance, throwOnError: tOE === false ? false : true } as any);
@@ -1222,6 +1276,9 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     getAnnouncement: _getAnnouncement,
     updateAnnouncement: _updateAnnouncement,
     getAdminUsersWithProviders: _getAdminUsersWithProviders,
+    listTiers: _listTiers,
+    getAdminUserQuota: _getAdminUserQuota,
+    updateAdminUserQuota: _updateAdminUserQuota,
     getSession: _getSession,
     getSessionPost: _getSessionPost,
     signOut: _signOut,

@@ -1,6 +1,7 @@
 import cors from 'cors';
 import type { Request, RequestHandler, Response, NextFunction } from 'express';
 import { isPublicApiRoute } from '@lib/publicRoutes';
+import { QUOTA_HEADERS } from '@lib/rateLimitReason';
 
 /**
  * Cross-origin access to the public corpus, for third-party clients that call
@@ -37,7 +38,11 @@ const corsHandler: RequestHandler = cors({
   // `RateLimit`/`RateLimit-Policy` are the draft-7 headers `globalRateLimit`
   // already emits on EVERY response, so a client that reads them can slow down
   // before it is throttled rather than after.
-  exposedHeaders: ['Retry-After', 'RateLimit', 'RateLimit-Policy'],
+  // `X-RateLimit-Reason` and the `X-Monthly-Quota-*` trio come from
+  // @lib/rateLimitReason: which limit rejected the call, and how much of the
+  // month is left. Without them a BYOK client sees an undifferentiated 429 and
+  // retries a monthly cap as if waiting would clear it.
+  exposedHeaders: ['Retry-After', 'RateLimit', 'RateLimit-Policy', ...QUOTA_HEADERS],
   // A day. Preflight is a full round trip to the origin that carries no data,
   // and these callers are often far from it; at this TTL a client pays it once
   // per endpoint per day instead of on every search.

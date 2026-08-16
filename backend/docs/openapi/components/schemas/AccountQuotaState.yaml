@@ -1,0 +1,43 @@
+type: object
+required:
+  - userId
+  - tierId
+  - quotaOverride
+  - monthlyQuotaLimit
+  - quotaSource
+  - quotaUsed
+  - periodYyyymm
+properties:
+  userId:
+    type: integer
+    example: 328
+  tierId:
+    type: string
+    nullable: true
+    description: The tier this account sits on, or null if it has none
+    example: plus
+  quotaOverride:
+    type: integer
+    nullable: true
+    description: Per-account limit that wins over the tier when set
+    example: null
+  monthlyQuotaLimit:
+    type: integer
+    description: The limit actually in force, after applying the resolution order
+    example: 25000
+  quotaSource:
+    type: string
+    enum: [override, tier, legacy_column, default]
+    description: |
+      Which step of the resolution order produced `monthlyQuotaLimit`.
+      `legacy_column` and `default` mean the tier did not resolve, and are worth
+      investigating rather than displaying.
+    example: tier
+  quotaUsed:
+    type: integer
+    description: Calls billed to this account in the current period
+    example: 4927
+  periodYyyymm:
+    type: integer
+    description: The billing period, as YYYYMM in UTC
+    example: 202608

@@ -120,3 +120,37 @@ Notes:
 - Use `origin/main` when you want pre-merge compatibility checks, and a release tag when you want a prod-facing changelog.
 - Pass `--visibility internal` if you want to diff the full internal contract instead.
 - Pass `--format json`, `--format yaml`, or another `oasdiff` format when you need machine-readable output.
+
+## Access log fields
+
+The HTTP access log carries `http.method`, `http.route`, `http.status_code`,
+`http.request_id`, `http.user_agent`, `http.client_ip`, `http.client_country`,
+`responseTime`, `traffic`, `trace_id` and `span_id` on every request, plus two
+fields that identify the caller when there is one.
+
+| Field | Present when | What it is |
+| --- | --- | --- |
+| `user.hash` | authenticated **and** `LOG_USER_SALT` is set | A salted SHA-256 of the account id, truncated to 16 hex chars. Stable per account for as long as the salt is, so log lines can be joined on it. |
+| `apikey.id` | the call used an API key | better-auth's key id. Already non-identifying, and it is what tells a busy account apart from one integration stuck in a retry loop. |
+
+Together these answer the question the request log could not before: *what has
+this account been calling this week, and on which routes*. It used to be
+answerable only from `AccountQuotaUsage`, which stores one integer a month and
+cannot say what the calls were.
+
+```
+nd-logs query 'http.route:"/v1/search" user.hash:"a1b2c3d4e5f60718"' start=… end=…
+```
+
+**Do not put an unhashed user id, an email, or a username on the request line.**
+An access log is a much wider dataset than the database — shipped off-box,
+retained on its own schedule, read by anyone debugging anything — and a hash of
+an email is not anonymous, because the input space is a mailing list. A join key
+is all the log needs; the identity behind it stays in Postgres.
+
+`LOG_USER_SALT` is a deployment secret. Left unset the field is simply absent,
+which is deliberate: an unsalted digest of a small consecutive integer is a
+lookup table anyone can build in a second, so the choice is a salted field or
+none. Rotating the salt invalidates every prior join — that is the intended
+lever for retiring the ability to ask about older lines, and it leaves those
+lines fine for aggregate questions.

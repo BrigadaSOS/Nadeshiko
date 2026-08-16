@@ -7,6 +7,7 @@ import * as schemas from './schemas';
 // ============================================
 // Output types for named schemas (post-parsing, defaults applied)
 // ============================================
+export type AccountQuotaStateOutput = z.output<typeof schemas.s_AccountQuotaState>;
 export type ActivityTypeOutput = z.output<typeof schemas.s_ActivityType>;
 export type AddSegmentToCollectionRequestOutput = z.output<typeof schemas.s_AddSegmentToCollectionRequest>;
 export type AdminUserWithProvidersOutput = z.output<typeof schemas.s_AdminUserWithProviders>;
@@ -51,7 +52,9 @@ export type SearchQueryOutput = z.output<typeof schemas.s_SearchQuery>;
 export type SearchSortOutput = z.output<typeof schemas.s_SearchSort>;
 export type SegmentRevisionOutput = z.output<typeof schemas.s_SegmentRevision>;
 export type SegmentStatusOutput = z.output<typeof schemas.s_SegmentStatus>;
+export type TierOutput = z.output<typeof schemas.s_Tier>;
 export type TokenOutput = z.output<typeof schemas.s_Token>;
+export type UpdateAccountQuotaRequestOutput = z.output<typeof schemas.s_UpdateAccountQuotaRequest>;
 export type UpdateCollectionSegmentRequestOutput = z.output<typeof schemas.s_UpdateCollectionSegmentRequest>;
 export type UserActivityRequestOutput = z.output<typeof schemas.s_UserActivityRequest>;
 export type UserActivityStatsOutput = z.output<typeof schemas.s_UserActivityStats>;
