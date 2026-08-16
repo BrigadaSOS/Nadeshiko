@@ -104,6 +104,22 @@ describe('toSlimToken', () => {
     expect(token.p).toBe('動詞');
   });
 
+  // Three readings of the part of speech, and only one of them is the vocabulary
+  // `POST /api/v1/words/identify` ranks by. `p` is UniDic's own category and
+  // `posLabel` is the printable wording; neither is a tag Shirabe will rank on,
+  // so dropping `pt` would leave every lookup resolving by spelling alone.
+  it('stores the short part-of-speech tag alongside the UniDic one', () => {
+    const token = toSlimToken({ ...INFLECTED, pos: 'verb' });
+
+    expect(token.pt).toBe('verb');
+    expect(token.p).toBe('動詞');
+    expect(token.posLabel).toBe('Verb');
+  });
+
+  it('leaves the short tag off a token that carries none', () => {
+    expect(toSlimToken(INFLECTED)).not.toHaveProperty('pt');
+  });
+
   // A symbol reads as itself and `r` is a required string, so the surface stands
   // in. A token with no ruby and no parts carries neither key.
   it('handles a bare symbol', () => {
@@ -132,6 +148,31 @@ describe('parseSegments batching', () => {
   /** A response whose single token's surface is the text that was sent. */
   const echoResponse = (texts: string[]) => ({
     tokens: texts.map((text) => [{ position: 0, length: text.length, surface: text, pos: 'noun' }]),
+  });
+
+  /**
+   * The morphology has to be asked for, and forgetting to is silent.
+   *
+   * Shirabe moved `posFull` and `posLabel` behind `include=` in 0.8.0 -- they
+   * were ~27% of every parse response and almost nobody read them. A run without
+   * this does not fail: it writes tokens with an empty `p` and no `posLabel`,
+   * which reads downstream as a corpus that lost its morphology on whatever date
+   * the run happened. Cheap to assert, and there is no other signal.
+   */
+  it('asks for the morphology it stores', async () => {
+    const bodies: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      const body = String((init as RequestInit).body);
+      bodies.push(body);
+      return new Response(JSON.stringify(echoResponse(JSON.parse(body).texts)), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    await parseSegments(['猫が好き']);
+
+    expect(JSON.parse(bodies[0] ?? '{}').include).toEqual(['posFull', 'posLabel']);
   });
 
   it('returns one entry per input, in input order, when later batches answer first', async () => {

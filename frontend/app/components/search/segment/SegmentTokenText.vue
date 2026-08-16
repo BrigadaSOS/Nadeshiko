@@ -4,6 +4,7 @@ import { enrichTokens, type SlimToken, type EnrichedToken } from '~/utils/tokenE
 import { placeCard } from '~/utils/cardPlacement';
 import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
+  cardHeadword,
   cardSenses,
   glossPreference,
   kanjiIn,
@@ -15,10 +16,11 @@ import {
   // then labelled identically, so the two sides reconcile per surface instead of
   // only in total.
   type ShirabeLinkSurface,
+  type ShirabeCandidate,
 } from '~/utils/wordCard';
 import type { DictionaryId } from '~/composables/useDictionaryLinks';
 import { minedWord } from '~/utils/ankiWord';
-import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
+import { fetchWord, fetchWordDetail, peekWord, peekWordDetail, type WordLookup } from '~/utils/wordLookup';
 // Two different verbs, so two different shapes. These sit side by side at 16px,
 // where `mdiStarCheckOutline` and `mdiStarPlusOutline` -- the pair that was here
 // -- were one star with a smudge in the corner: the reader could not tell "show
@@ -112,12 +114,67 @@ const hiddenDefinitionLanguages = computed(() =>
   globalGlossLanguages.value.filter((language) => definitionModes.value[language] === 'hidden'),
 );
 
-// Definitions come from Shirabe, which parsed these tokens and stamped each one
-// with the id of its own entry. Fetched through our server route so the service
-// key stays on the server, and cached in `~/utils/wordLookup` -- a module, so one
-// answer serves every segment on the page rather than every segment keeping its
-// own copy.
-const word = ref<ShirabeWord | null>(null);
+/**
+ * Which words this token could be, and which of them the card is showing.
+ *
+ * A LIST, not a word, and that is the change. Shirabe answers
+ * `POST /api/v1/words/identify` with every word a spelling can name, ranked --
+ * きみ is 君, 黄身 or 黍 -- because one answer is a claim it often cannot
+ * support. `candidates[0]` is its best reading of the sentence and where the
+ * card opens; `picked` is where the reader moved it.
+ *
+ * Fetched through our server route so the service key stays on the server, and
+ * cached in `~/utils/wordLookup` -- a module, so one answer serves every segment
+ * on the page rather than every segment keeping its own copy.
+ */
+const candidates = ref<ShirabeCandidate[]>([]);
+const picked = ref(0);
+
+/**
+ * The rest of what Shirabe knows about the picked candidate.
+ *
+ * A second call, because identify carries what is needed to CHOOSE -- headword,
+ * reading, commonness, definitions -- and not what is needed to finish the card:
+ * `furigana`, `jlpt`, `frequency` and `pitch` are only on
+ * `GET /api/v1/words/{id}`. It lands after the senses and fills in around them,
+ * which is why nothing below waits on it.
+ */
+const detail = ref<ShirabeWord | null>(null);
+
+/**
+ * The word the card renders: the candidate, completed by its detail.
+ *
+ * Spread rather than kept apart so there is ONE card shape. `cardSenses`,
+ * `minedWord`, `infoHtml` and every computed below take a `ShirabeWord` and
+ * never learn which half of it arrived when. Detail wins on conflict because its
+ * `entries` carry every language Shirabe has, where identify's are narrowed to
+ * the languages our service key's dictionary stack resolves to.
+ *
+ * The `id` guard is what keeps a late detail off the wrong word: the reader can
+ * pick a second candidate while the first one's detail is still in flight.
+ */
+const word = computed<ShirabeWord | null>(() => {
+  const candidate = candidates.value[picked.value] ?? null;
+  if (!candidate) return null;
+  return detail.value && detail.value.id === candidate.id ? { ...candidate, ...detail.value } : candidate;
+});
+
+/**
+ * The word the card is about, in one place.
+ *
+ * Everything that names the open word reads this: the head, what "More
+ * sentences" searches for, and what Anki is asked about. It has to be ONE
+ * expression, because the reader can change the answer -- picking 黄身 over きみ
+ * moves it -- and a second copy of the fallback chain is a second thing to
+ * remember when that happens.
+ *
+ * The token is the fallback rather than the source, so it still answers before
+ * the lookup lands (and when there is no entry at all). That is what lets the
+ * Anki probe start the moment the card opens instead of waiting on a dictionary
+ * call it does not depend on, and what empties it when the card closes.
+ */
+const headword = computed(() => cardHeadword(word.value, hoveredToken.value?.dictForm));
+
 // 'missing' is specifically "we asked and there is no entry", which the card
 // says out loud. It is not the same as "we never asked" (lookups unconfigured,
 // a token that could not be a word) -- claiming no entry for a question nobody
@@ -141,11 +198,14 @@ let pendingLookup: string | null = null;
 
 /** What the card mines, and what it asks Anki about: the dictionary form rather
  *  than the surface, because that is what a mine puts in the expression field --
- *  食べる, whatever the sentence inflected it to. Read off the TOKEN rather than
- *  off `headword`, so the probe can start the moment the card opens instead of
- *  waiting for a dictionary lookup it does not depend on -- and so that closing
- *  the card empties it, which is what cancels a probe still in flight. */
-const miningWord = computed(() => hoveredToken.value?.dictForm ?? '');
+ *  食べる, whatever the sentence inflected it to.
+ *
+ *  `headword`, so it follows the reader's pick. This read off the token alone,
+ *  which was right when a card was about one word and wrong the moment it could
+ *  be about several: the star said "you have this" about きみ while the button
+ *  beside it wrote 黄身. It still answers immediately and still empties on close,
+ *  because the token is `headword`'s own fallback. */
+const miningWord = computed(() => headword.value);
 
 /**
  * The open card, rendered for a note: headword, reading, ruby, definitions,
@@ -198,14 +258,12 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // the request out entirely beats firing one that 503s on every hover and
   // caching the failure, and the card still answers from the token alone.
   if (!lookupsEnabled) {
-    word.value = null;
-    wordState.value = 'idle';
+    clearLookup();
     return;
   }
 
   if (!isAskable(token)) {
-    word.value = null;
-    wordState.value = 'idle';
+    clearLookup();
     return;
   }
 
@@ -227,7 +285,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
     return;
   }
 
-  word.value = null;
+  clearLookup();
   wordState.value = 'loading';
   pendingLookup = asked;
 
@@ -256,12 +314,59 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // it opened, so it grows into room already reserved for it.
 }
 
+/** Empty the lookup, so nothing from the last word survives into the next one.
+ *  `picked` resets with the rest: a reader who chose 黄身 on one token must not
+ *  find the next one opening on its second candidate. */
+function clearLookup(): void {
+  candidates.value = [];
+  picked.value = 0;
+  detail.value = null;
+  wordState.value = 'idle';
+}
+
 /** Paint an answer, whichever of the three it is. Only a dictionary that
  *  answered "no such word" reaches 'missing' and is said out loud; a lookup that
  *  could not be made leaves the card quiet, on what the token itself knows. */
 function applyLookup(answer: WordLookup): void {
-  word.value = answer.word;
-  wordState.value = !answer.word && answer.reason === 'missing' ? 'missing' : 'idle';
+  candidates.value = answer.candidates;
+  picked.value = 0;
+  detail.value = null;
+  wordState.value = answer.candidates.length === 0 && answer.reason === 'missing' ? 'missing' : 'idle';
+
+  // The detail for whichever candidate leads. Started here rather than awaited,
+  // because everything it carries is an addition to a card that is already
+  // readable -- the senses are up, and pitch and badges appear under them a
+  // moment later rather than holding them back.
+  const leading = answer.candidates[0];
+  if (leading) void loadDetail(leading.id);
+}
+
+/**
+ * Fill in the half of the card that identify does not carry.
+ *
+ * Guarded on the id rather than on a request generation, for the same reason
+ * `loadWord` guards on the word rather than the token object: two asks for the
+ * same slug are interchangeable, so this holds however often the reader moves
+ * between candidates and back. A cached answer is applied synchronously, so
+ * returning to a candidate already seen does not blank its pitch for a frame.
+ */
+async function loadDetail(id: string): Promise<void> {
+  const locale = glossLanguages.value.labels;
+
+  const cached = peekWordDetail(id, locale);
+  if (cached !== undefined) {
+    detail.value = cached;
+    return;
+  }
+
+  const found = await fetchWordDetail(id, locale);
+
+  // The reader has moved to another candidate, another word, or closed the card.
+  // `word` reads `detail` only when the ids agree, so a stale one is inert
+  // anyway -- but dropping it here keeps the ref honest rather than relying on
+  // the computed to hide it.
+  if (candidates.value[picked.value]?.id !== id) return;
+  detail.value = found;
 }
 
 /**
@@ -290,7 +395,11 @@ function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: 
 
   const ref = token.lookupRef;
   posthog.capture('word_card_opened', {
-    outcome: answer.word ? (senses.value.length > 0 ? 'shown' : 'no_senses') : answer.reason,
+    outcome: answer.candidates.length > 0 ? (senses.value.length > 0 ? 'shown' : 'no_senses') : answer.reason,
+    // How much ambiguity the reader was handed. A card that led with the right
+    // word out of one is not the same result as a card that led with the right
+    // word out of five, and only this separates them.
+    candidate_count: answer.candidates.length,
     // The work queue for dictionary coverage lives in this field: the words that
     // come back 'missing' most often, weighted by how often they turn up.
     lemma: ref.lemma,
@@ -460,11 +569,92 @@ const closeTooltip = () => {
   // without touching `wordState`, which used to leave it reading 'loading'
   // forever -- the card reopened stuck on "Looking up…" until something else
   // happened to reset it.
-  word.value = null;
+  clearLookup();
   revealDefinitions.value = false;
-  wordState.value = 'idle';
   pendingLookup = null;
   clearMined();
+};
+
+/**
+ * The reader saying which word they actually meant.
+ *
+ * The pick is the whole reason the card offers a list. Shirabe ranks, never
+ * filters -- a token it read badly costs a word its place in the list, never its
+ * place in the dictionary -- so the reader is the one who settles it, and what
+ * they settle is what gets carded: `minedCard` reads through `word`, which reads
+ * through `picked`.
+ *
+ * Not remembered anywhere. Which word a token is depends on the dictionary and
+ * on rules Shirabe keeps improving, so storing a pick would materialise a
+ * decision that moves underneath it -- the same reasoning that took the id off
+ * the token in the first place.
+ */
+const pickCandidate = (index: number) => {
+  if (index === picked.value) return;
+  const chosen = candidates.value[index];
+  if (!chosen) return;
+
+  if (posthog.__loaded) {
+    posthog.capture('word_card_candidate_picked', {
+      // The rate of this against `candidates[0]` is the direct measure of how
+      // often Shirabe's leading answer was the right one, and it is the one
+      // signal their side cannot get from its own traffic.
+      lemma: hoveredToken.value?.lookupRef.lemma ?? null,
+      pos: hoveredToken.value?.lookupRef.pos || null,
+      from_index: picked.value,
+      to_index: index,
+      candidate_count: candidates.value.length,
+    });
+  }
+
+  picked.value = index;
+  // The detail belongs to the candidate, not to the card, so it is refetched
+  // rather than carried over: pitch, JLPT and frequency are all properties of
+  // the word that was picked.
+  detail.value = null;
+  void loadDetail(chosen.id);
+
+  // Ask Anki again, about the word the reader just chose. `useWordMining` reads
+  // `currentWord` through a getter at call time rather than watching it, so
+  // moving the pick does not re-probe on its own -- and a star left over from
+  // the previous candidate is a claim about the reader's collection that is
+  // simply untrue. Its own staleness guards drop whichever probe lands late.
+  void probeMined();
+};
+
+/**
+ * Walking the candidates from the keyboard.
+ *
+ * `tokenKeyAction` decides, which looks like reuse for its own sake and is not:
+ * it is written over an arbitrary list of numeric keys, and the candidate
+ * indices are one. It already settles the two things that go quietly wrong here
+ * -- both axes move (a wrapped row reads Down as "next" just as much as Right),
+ * and the ends hold rather than wrapping, so arrowing off the last candidate
+ * does not teleport the reader back to the first.
+ *
+ * Selection follows focus, which is the radiogroup convention and the right one
+ * here: each move re-renders the senses below, so a reader arrowing along the
+ * row is reading the definitions as they go rather than committing blind.
+ */
+const onCandidateKeydown = (index: number, event: KeyboardEvent) => {
+  const action = tokenKeyAction(
+    event.key,
+    candidates.value.map((_, position) => position),
+    index,
+  );
+  if (!action) return;
+
+  // 'hold' included: an arrow at the end of the row is still this widget's key,
+  // and letting it through would scroll the card out from under the reader.
+  event.preventDefault();
+  if (action.type === 'open') {
+    pickCandidate(index);
+  } else if (action.type === 'move') {
+    pickCandidate(action.to);
+    void nextTick(() => {
+      tooltipRef.value?.querySelector<HTMLElement>(`[data-candidate="${action.to}"]`)?.focus();
+    });
+  }
 };
 
 // A search menu (Add, Copy, visibility, recents, …) opened elsewhere. The Anki
@@ -592,11 +782,10 @@ const COMMON_LABEL: Record<GlossLanguage, string> = { en: 'Common', es: 'Frecuen
 const { furiganaMode } = useHiraganaVisibility();
 const { presets, isDictionaryEnabled } = useDictionaryLinks();
 
-// 1. Head. The headword is the dictionary form and the reading is the
-// dictionary's, not the surface's: 焼けた reads やけた, but the word above the
-// senses is 焼ける, and printing it over the inflected reading would be a lie.
-const headword = computed(() => word.value?.headword ?? hoveredToken.value?.dictForm ?? '');
-
+// 1. Head. The reading is the dictionary's, not the surface's: 焼けた reads
+// やけた, but the word above the senses is 焼ける, and printing it over the
+// inflected reading would be a lie. `headword` itself is declared up beside
+// `word`, because the mining probe needs it too.
 const headReading = computed(() => {
   const reading = word.value?.reading || hoveredToken.value?.readingHiragana || '';
   // For この the reading IS この, so a second copy of it adds nothing.
@@ -951,7 +1140,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
               class="token-tooltip__word"
               :class="{ 'token-tooltip__word--action': hoveredToken }"
               lang="ja"
-              @click="hoveredToken && searchForWord(hoveredToken.dictForm)"
+              @click="hoveredToken && searchForWord(headword)"
             >
               <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
               <template v-else>{{ headword }}</template>
@@ -1042,6 +1231,38 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               </button>
             </span>
+          </div>
+
+          <!-- Which word this is, when the spelling can name more than one.
+               Pinned above the scrolling body rather than in it: it is a
+               control, and a choice the reader cannot see without scrolling is
+               a choice they will not know they have.
+
+               A radiogroup because that is what it is -- one of several, exactly
+               one selected. Arrow keys move within it; the roving tabindex means
+               the group takes a single tab stop rather than one per candidate. -->
+          <div
+            v-if="candidates.length > 1"
+            class="token-tooltip__candidates"
+            role="radiogroup"
+            :aria-label="$t('tokenTooltip.otherReadings')"
+          >
+            <button
+              v-for="(candidate, index) in candidates"
+              :key="candidate.id"
+              type="button"
+              role="radio"
+              class="token-tooltip__candidate"
+              :class="{ 'is-picked': index === picked }"
+              :aria-checked="index === picked"
+              :tabindex="index === picked ? 0 : -1"
+              :data-candidate="index"
+              @click="pickCandidate(index)"
+              @keydown="onCandidateKeydown(index, $event)"
+            >
+              <span class="token-tooltip__candidate-word" lang="ja">{{ candidate.headword }}</span>
+              <span v-if="candidate.reading && candidate.reading !== candidate.headword" class="token-tooltip__candidate-reading" lang="ja">{{ candidate.reading }}</span>
+            </button>
           </div>
 
           <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
@@ -1149,7 +1370,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             <button
               type="button"
               class="token-tooltip__action"
-              @click="searchForWord(hoveredToken.dictForm)"
+              @click="searchForWord(headword)"
             >{{ $t('tokenTooltip.moreSentences') }}</button>
           </div>
 
@@ -1321,6 +1542,63 @@ a.token-tooltip__word:hover {
 .token-tooltip__reading {
   font-size: 13px;
   color: var(--accent-soft);
+}
+
+/* The candidate row. Pinned like the head above it -- `flex: 0 0 auto` so a long
+   list never eats the senses' share of a capped-height card -- and allowed to
+   wrap, because three or four candidates do not fit across 340px and a
+   horizontal scroller hides the ones a reader most needs to see. */
+.token-tooltip__candidates {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 14px 0;
+}
+
+/* Quiet until picked. The unpicked ones are alternatives rather than actions, so
+   they must not compete with the headword -- but they have to look pressable,
+   which a bare word does not. */
+.token-tooltip__candidate {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.token-tooltip__candidate:hover {
+  background: var(--surface-lift);
+  color: var(--ink);
+}
+
+/* The one the card is showing. Accent rather than a brighter neutral, matching
+   `.token--open` on the word in the sentence: the same relationship (this is the
+   thing you are looking at) said the same way. */
+.token-tooltip__candidate.is-picked {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--accent-soft) 22%, transparent);
+  color: var(--accent-soft);
+}
+
+.token-tooltip__candidate:focus-visible {
+  outline: 2px solid var(--input-focus-ring);
+  outline-offset: 2px;
+}
+
+.token-tooltip__candidate-word {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.token-tooltip__candidate-reading {
+  font-size: 11px;
+  opacity: 0.75;
 }
 
 /* The Anki corner. `flex: 0 0 auto` against a headword that may shrink, so a
