@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cardHeadword,
   cardSenses,
   glossPreference,
   kanjiIn,
@@ -368,5 +369,46 @@ describe('shirabe links', () => {
     const url = new URL(shirabeWordUrl('焼ける-やける', 'en', 'anki-definition'));
     expect(url.pathname).toBe('/en/word/%E7%84%BC%E3%81%91%E3%82%8B-%E3%82%84%E3%81%91%E3%82%8B');
     expect(url.searchParams.get('utm_content')).toBe('anki-definition');
+  });
+});
+
+/**
+ * The invariant the candidate picker broke on its first outing: the head, the
+ * corpus search and the Anki probe all have to name the SAME word, and the
+ * reader can move which word that is.
+ */
+describe('cardHeadword', () => {
+  const candidate = (headword: string) => ({ id: headword, headword }) as ShirabeWord;
+
+  it('names the word the reader picked, not the token they clicked', () => {
+    // きみ was the spelling in the sentence; 黄身 is what they chose it meant.
+    expect(cardHeadword(candidate('黄身'), 'きみ')).toBe('黄身');
+  });
+
+  // The bug this exists to prevent. Search and mine used to read the token
+  // directly, so picking moved the definitions and left them behind.
+  it('moves with the pick, so search and mine cannot drift from the head', () => {
+    const before = cardHeadword(candidate('君'), 'きみ');
+    const after = cardHeadword(candidate('黄身'), 'きみ');
+
+    expect(before).not.toBe(after);
+  });
+
+  // Answers before the lookup lands, which is what lets the Anki probe start
+  // the moment the card opens rather than waiting on a dictionary call.
+  it('falls back to the token while there is no word yet', () => {
+    expect(cardHeadword(null, '食べる')).toBe('食べる');
+  });
+
+  // A name, a coinage, a spelling the corpus preserved: no entry, but the
+  // reader is still looking at a word and can still mine it.
+  it('still names the word when the dictionary had no entry', () => {
+    expect(cardHeadword(null, 'ズガガガ')).toBe('ズガガガ');
+  });
+
+  // Empty is what closes the mining probe down; a card about nothing must not
+  // leave Anki being asked about the last word the reader looked at.
+  it('is empty once the card is closed', () => {
+    expect(cardHeadword(null, undefined)).toBe('');
   });
 });

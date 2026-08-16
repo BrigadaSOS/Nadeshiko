@@ -61,6 +61,53 @@ export interface ShirabeWord {
   /** Ruby for the headword, aligned by Shirabe against the dictionary. */
   furigana?: Array<{ text: string; ruby?: string }>;
   entries?: ShirabeEntry[];
+  /** The dictionary's own id for this word, and the dictionary it belongs to.
+   *  Only `POST /words/identify` carries the pair; the detail response does not,
+   *  which is why merging a candidate under a detail keeps it. Worth holding on
+   *  to: `id` is a handle derived from dictionary content and moves when a
+   *  headword or a resolution rule moves, while this pair survives a re-import. */
+  sourceId?: string;
+  dictionary?: string;
+}
+
+/**
+ * One word a token COULD be, as `POST /api/v1/words/identify` ranks them.
+ *
+ * A strict subset of `ShirabeWord`, and typed as one on purpose: a candidate
+ * carries `id`, `headword`, `reading`, `common` and its own single-entry
+ * definition, but none of `furigana`, `jlpt`, `frequency` or `pitch`. Those come
+ * from `GET /words/{id}` afterwards, and the card renders the two spread
+ * together -- so there is one card shape rather than two, and `cardSenses`,
+ * `minedWord` and `infoHtml` never learn which half they are looking at.
+ *
+ * The RESPONSE carries many of these; each one carries at most one entry. A
+ * candidate names a single dictionary record (`serialize_candidate` builds
+ * `entries` as a one-element array), and that array is empty when the record
+ * had no sense worth serializing -- so a candidate with no definitions at all is
+ * a real answer. `cardSenses` flat-maps over `entries`, so none and one both
+ * render without a special case.
+ */
+export type ShirabeCandidate = ShirabeWord;
+
+/**
+ * The word an open card is ABOUT.
+ *
+ * One expression, because three separate things name it and they must not
+ * disagree: the headword at the top, what "More sentences" searches the corpus
+ * for, and what Anki is asked about and mines into. They did disagree -- the
+ * card offered candidates and the reader could pick 黄身, but the search and the
+ * Anki probe both went on reading the token, so picking changed the definitions
+ * and nothing else. A card claiming "you already have this word" about one word
+ * while its button writes another is worse than not offering the choice.
+ *
+ * The token is the FALLBACK rather than the source, and that ordering is the
+ * whole of it. It answers before the lookup lands and when there is no entry at
+ * all, which is what lets the Anki probe start the moment the card opens instead
+ * of waiting on a dictionary call it does not depend on -- and what empties it
+ * when the card closes and there is neither.
+ */
+export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | undefined): string {
+  return word?.headword || tokenDictForm || '';
 }
 
 /**
