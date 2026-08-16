@@ -129,7 +129,6 @@
     "capReached": "お気に入りは最大100件です。追加するには一つ解除してください。"
   },
   "familiarMedia": {
-    "clearError": "学習中の作品の記録を削除できませんでした。もう一度お試しください。",
     "forgetError": "このタイトルを削除できませんでした。もう一度お試しください。"
   },
   "mediaBrowse": {
@@ -484,7 +483,6 @@
       "trackingOffToast": "アクティビティ追跡をオフにしました",
       "familiarOnToast": "学習中の作品を記憶します",
       "familiarOffToast": "学習中の作品を記憶しません",
-      "clearFamiliarToast": "カウントを削除しました（{count}作品）",
       "clearHistoryToast": "アクティビティ履歴を削除しました",
       "confirmClearFamiliar": "学習中の作品の記録を削除しますか？アクティビティ履歴には影響しません。",
       "confirmClearDay": "{day} のアクティビティをすべて削除しますか？この操作は取り消せません。",
@@ -553,9 +551,6 @@
         "clearing": "削除中...",
         "familiarTitle": "学習中の作品を記憶する",
         "familiarDescription": "作品ごとの月間カウントを保存します。学習中の作品が検索のメディアフィルター上部に表示されます。アクティビティ履歴とは別の設定です。",
-        "clearFamiliarTitle": "学習中の作品を忘れる",
-        "clearFamiliarDescription": "カウントを削除します。アクティビティ履歴は残ります。",
-        "clearFamiliarButton": "削除",
         "familiarListTitle": "気に入っていそうな作品",
         "familiarListEmpty": "まだ記録がありません。カードを書き出したりクリップを再生すると、ここに表示されます。",
         "familiarCounts": "{cards}・{plays}・{shares}",
