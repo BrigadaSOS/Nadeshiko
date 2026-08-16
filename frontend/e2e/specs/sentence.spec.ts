@@ -36,10 +36,14 @@ test.describe('Sentence page', () => {
     await expect(japaneseText).not.toBeEmpty();
   });
 
+  // English alone, because the interface language picks the translation set
+  // until a reader saves an override (`defaultTranslationLanguages`) and this
+  // suite runs signed out in `en`. The ES badge this used to assert belongs to
+  // a reader who has both, which `translation-visibility.spec.ts` covers by
+  // running in the `ja` locale.
   test('displays translations', async ({ page }) => {
     const card = await gotoSentencePage(page);
     await expect(card.getByTestId('translation-badge-EN')).toBeVisible();
-    await expect(card.getByTestId('translation-badge-ES')).toBeVisible();
   });
 
   test('displays media info', async ({ page }) => {
