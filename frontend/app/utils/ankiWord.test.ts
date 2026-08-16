@@ -81,6 +81,7 @@ describe('definitionHtml', () => {
         partsOfSpeech: [{ label: 'Noun', title: 'noun', category: 'partOfSpeech' }],
         tags: [],
         glosses: [{ lang: 'en', label: 'EN', text: 'allowance' }],
+        notes: [],
       },
     ]);
     // Asserted by structure rather than as one exact string: the inline styles
@@ -114,6 +115,7 @@ describe('definitionHtml', () => {
           },
           { lang: 'es', label: 'ES', text: 'mecánico de mantenimiento' },
         ],
+        notes: [],
       },
     ]);
 
@@ -137,6 +139,7 @@ describe('definitionHtml', () => {
           },
         ],
         glosses: [{ lang: 'en', label: 'EN', text: 'allowance' }],
+        notes: [],
       },
     ]);
     expect(html).toMatch(/<span class="nd-pos" style="[^"]*" title="noun">Noun<\/span>/);
@@ -155,6 +158,7 @@ describe('definitionHtml', () => {
         partsOfSpeech: [{ label: 'Noun', title: 'noun', category: 'partOfSpeech' }],
         tags: [{ label: 'Military', title: 'military', category: 'field' }],
         glosses: [{ lang: 'en', label: 'EN', text: 'ground crew' }],
+        notes: [],
       },
     ]);
 
@@ -169,6 +173,7 @@ describe('definitionHtml', () => {
         partsOfSpeech: [{ label: 'N', title: 'a & b', category: 'partOfSpeech' }],
         tags: [],
         glosses: [{ lang: 'en', label: 'EN', text: 'salt & pepper' }],
+        notes: [],
       },
     ]);
     expect(html).toContain('title="a &amp; b"');

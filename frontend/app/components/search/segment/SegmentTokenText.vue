@@ -4,8 +4,10 @@ import { enrichTokens, type SlimToken, type EnrichedToken } from '~/utils/tokenE
 import { placeCard } from '~/utils/cardPlacement';
 import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
+  cardForms,
   cardHeadword,
   cardSenses,
+  pickerChips,
   glossPreference,
   kanjiIn,
   pitchMorae,
@@ -129,6 +131,45 @@ const hiddenDefinitionLanguages = computed(() =>
  */
 const candidates = ref<ShirabeCandidate[]>([]);
 const picked = ref(0);
+
+/**
+ * How many candidates the picker shows before it asks.
+ *
+ * Not a cap on the ANSWER -- every candidate stays reachable, and Shirabe ranks
+ * rather than filters on purpose. It is a cap on the row, because a ranked list
+ * is not the same thing as a readable one: きみ answers twelve, and six of those
+ * are JMnedict entries that all gloss "Kimi". Twelve chips wrap into four lines
+ * on a 340px card and push the definitions -- the thing the reader opened this
+ * for -- off the bottom.
+ *
+ * Six, because that is where the ranking stops being a recommendation. Past the
+ * first few the order is dictionary bookkeeping rather than a reading of the
+ * sentence, and a reader who needs to go that far is looking for a specific word
+ * and will open the row to find it.
+ */
+const PICKER_VISIBLE = 6;
+
+const allCandidatesShown = ref(false);
+
+/** The chips to draw. The decision, and why the index travels with the
+ *  candidate, is `pickerChips`. */
+const visibleCandidates = computed(() =>
+  pickerChips(candidates.value, picked.value, allCandidatesShown.value, PICKER_VISIBLE),
+);
+
+const hiddenCandidateCount = computed(() =>
+  allCandidatesShown.value ? 0 : Math.max(0, candidates.value.length - PICKER_VISIBLE),
+);
+
+/**
+ * Whether a candidate is a NAME rather than a word.
+ *
+ * JMnedict is where the six Kimis come from, and without saying so the row reads
+ * as a dictionary that cannot make up its mind. Saying it turns the same six
+ * into one obvious group a reader skips in a glance -- they came here about a
+ * pronoun, not about somebody called Kimi.
+ */
+const isNameCandidate = (candidate: ShirabeCandidate): boolean => candidate.dictionary === 'jmnedict';
 
 /**
  * The rest of what Shirabe knows about the picked candidate.
@@ -321,6 +362,7 @@ function clearLookup(): void {
   candidates.value = [];
   picked.value = 0;
   detail.value = null;
+  allCandidatesShown.value = false;
   wordState.value = 'idle';
 }
 
@@ -331,6 +373,7 @@ function applyLookup(answer: WordLookup): void {
   candidates.value = answer.candidates;
   picked.value = 0;
   detail.value = null;
+  allCandidatesShown.value = false;
   wordState.value = answer.candidates.length === 0 && answer.reason === 'missing' ? 'missing' : 'idle';
 
   // The detail for whichever candidate leads. Started here rather than awaited,
@@ -920,11 +963,19 @@ const pitchPatterns = computed(() => {
     downstep: pattern.downstep,
     audioUrl: pattern.audioUrl ?? '',
     morae: pitchMorae(reading, pattern.downstep),
+    // The pattern's NAME (heiban, nakadaka), which the diagram alone does not
+    // say. Shirabe's own card prints it beside the number and it is the half a
+    // reader can carry away and use on the next word.
+    pattern: pattern.pattern ?? '',
   }));
 });
 
 // 5 and 6. The senses, and the kanji the headword is written with.
 const senses = computed(() => cardSenses(word.value, glossLanguages.value));
+
+/** The other spellings this word is written with. Only from the detail call:
+ *  identify carries them behind `include=forms`, which we do not send yet. */
+const forms = computed(() => cardForms(word.value));
 const definitionsAreHidden = computed(
   () => word.value !== null && senses.value.length === 0 && hiddenDefinitionLanguages.value.length > 0,
 );
@@ -1248,21 +1299,33 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             :aria-label="$t('tokenTooltip.otherReadings')"
           >
             <button
-              v-for="(candidate, index) in candidates"
-              :key="candidate.id"
+              v-for="chip in visibleCandidates"
+              :key="chip.candidate.id"
               type="button"
               role="radio"
               class="token-tooltip__candidate"
-              :class="{ 'is-picked': index === picked }"
-              :aria-checked="index === picked"
-              :tabindex="index === picked ? 0 : -1"
-              :data-candidate="index"
-              @click="pickCandidate(index)"
-              @keydown="onCandidateKeydown(index, $event)"
+              :class="{ 'is-picked': chip.index === picked, 'is-name': isNameCandidate(chip.candidate) }"
+              :aria-checked="chip.index === picked"
+              :tabindex="chip.index === picked ? 0 : -1"
+              :data-candidate="chip.index"
+              @click="pickCandidate(chip.index)"
+              @keydown="onCandidateKeydown(chip.index, $event)"
             >
-              <span class="token-tooltip__candidate-word" lang="ja">{{ candidate.headword }}</span>
-              <span v-if="candidate.reading && candidate.reading !== candidate.headword" class="token-tooltip__candidate-reading" lang="ja">{{ candidate.reading }}</span>
+              <span class="token-tooltip__candidate-word" lang="ja">{{ chip.candidate.headword }}</span>
+              <span v-if="chip.candidate.reading && chip.candidate.reading !== chip.candidate.headword" class="token-tooltip__candidate-reading" lang="ja">{{ chip.candidate.reading }}</span>
+              <!-- Says WHY six near-identical chips are here: they are people,
+                   not readings of the word the reader tapped. -->
+              <span v-if="isNameCandidate(chip.candidate)" class="token-tooltip__candidate-kind">{{ $t('tokenTooltip.nameEntry') }}</span>
             </button>
+
+            <!-- Not a cap on the answer, only on the row: everything stays one
+                 click away. See PICKER_VISIBLE. -->
+            <button
+              v-if="hiddenCandidateCount > 0"
+              type="button"
+              class="token-tooltip__candidate is-more"
+              @click="allCandidatesShown = true"
+            >+{{ hiddenCandidateCount }}</button>
           </div>
 
           <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
@@ -1305,6 +1368,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                   :class="{ 'is-high': mora.high, 'is-drop': mora.drop }"
                 >{{ mora.text }}</span>
                 <span class="token-tooltip__downstep">[{{ pattern.downstep }}]</span>
+                <span v-if="pattern.pattern" class="token-tooltip__pitch-name">{{ pattern.pattern }}</span>
               </span>
             </div>
 
@@ -1325,6 +1389,10 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 <span v-for="row in sense.glosses" :key="row.lang" class="token-tooltip__gloss-row">
                   <span class="token-tooltip__lang">{{ row.label }}</span>{{ row.text }}
                 </span>
+                <!-- On the sense it qualifies, never carried down to the next:
+                     "usu. in kana" on sense 3 and not on sense 4 is a real
+                     difference between those two senses. -->
+                <span v-for="(note, ni) in sense.notes" :key="`n-${ni}`" class="token-tooltip__note">{{ note }}</span>
               </li>
             </ol>
             <button
@@ -1346,6 +1414,14 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                  its kanji are all still up there, and the dictionary chips below
                  are exactly where to go next. -->
             <p v-else-if="wordState === 'missing'" class="token-tooltip__pending">{{ $t('tokenTooltip.noEntry') }}</p>
+
+            <!-- The other spellings. The reader may well have met one of these
+                 rather than the headword above, and nothing else on the card
+                 connects the two. -->
+            <div v-if="forms.length > 0" class="token-tooltip__forms">
+              <span class="token-tooltip__forms-label">{{ $t('tokenTooltip.alsoWritten') }}</span>
+              <span v-for="form in forms" :key="form" class="token-tooltip__form" lang="ja">{{ form }}</span>
+            </div>
 
             <div v-if="kanjiChips.length > 0" class="token-tooltip__kanji">
               <a
@@ -1599,6 +1675,66 @@ a.token-tooltip__word:hover {
 .token-tooltip__candidate-reading {
   font-size: 11px;
   opacity: 0.75;
+}
+
+/* A name, not a reading of the word that was tapped. Quiet, because it is a
+   reason to skip the chip rather than something to read. */
+/* The accent's name beside its number. Quiet: the diagram is the thing being
+   read, and this is the label a reader carries away from it. */
+.token-tooltip__pitch-name {
+  font-size: 10px;
+  color: var(--ink-muted);
+  margin-left: 2px;
+}
+
+/* A usage note, which is not a definition and must not read as one: indented
+   under the glosses it qualifies and set apart from them. */
+.token-tooltip__note {
+  display: block;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+/* The other spellings, on one wrapping row. */
+.token-tooltip__forms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0 14px;
+  margin-top: 8px;
+}
+
+.token-tooltip__forms-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+.token-tooltip__form {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.token-tooltip__candidate-kind {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+.token-tooltip__candidate.is-name:not(.is-picked) {
+  opacity: 0.72;
+}
+
+/* The rest of the ranked list, one click away. Styled as a chip because it sits
+   in the row and takes the same click, but with no headword to show. */
+.token-tooltip__candidate.is-more {
+  font-size: 12px;
+  color: var(--ink-muted);
 }
 
 /* The Anki corner. `flex: 0 0 auto` against a headword that may shrink, so a

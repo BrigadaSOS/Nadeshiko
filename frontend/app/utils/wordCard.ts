@@ -27,6 +27,11 @@ export interface ShirabeSense {
   position?: number;
   definitions?: ShirabeText[];
   tags?: ShirabeTag[];
+  /** Usage notes ("usu. in kana", "after the -te form of a verb"). The part of a
+   *  sense that changes how a word is USED rather than what it means, so a
+   *  definition read without it can be understood correctly and still used
+   *  wrongly. Absent when the sense has none. */
+  notes?: string[];
 }
 
 export interface ShirabeEntry {
@@ -60,6 +65,9 @@ export interface ShirabeWord {
   pitch?: ShirabePitch[];
   /** Ruby for the headword, aligned by Shirabe against the dictionary. */
   furigana?: Array<{ text: string; ruby?: string }>;
+  /** Every spelling the word is written with. What answers the reader who met
+   *  空く and is being shown 開く. */
+  forms?: Array<{ text: string; script?: string; common?: boolean }>;
   entries?: ShirabeEntry[];
   /** The dictionary's own id for this word, and the dictionary it belongs to.
    *  Only `POST /words/identify` carries the pair; the detail response does not,
@@ -108,6 +116,76 @@ export type ShirabeCandidate = ShirabeWord;
  */
 export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | undefined): string {
   return word?.headword || tokenDictForm || '';
+}
+
+/** One chip in the candidate picker, carrying the index it has in the FULL
+ *  ranked list rather than in the row it is drawn in. */
+export interface PickerChip {
+  candidate: ShirabeCandidate;
+  index: number;
+}
+
+/**
+ * Which candidates the picker draws.
+ *
+ * Not a cap on the ANSWER: every candidate stays reachable and Shirabe ranks
+ * rather than filters on purpose. It is a cap on the ROW, because a ranked list
+ * is not automatically a readable one -- きみ answers twelve, six of them
+ * JMnedict entries all glossing "Kimi", and twelve chips wrap into four lines on
+ * a 340px card and push the definitions off the bottom.
+ *
+ * The index travels WITH the candidate, which is the whole reason this is a
+ * function rather than a `slice` at the call site. Once the row is trimmed, its
+ * own loop index and the position in the full list stop agreeing, and the pick
+ * addresses the full list. Reading the loop index selects the wrong word the
+ * moment anything is held back -- silently, because both are small integers and
+ * one of them is usually right.
+ *
+ * A picked candidate is always in the row: pick from the expanded row, collapse
+ * it again, and the card must not be left showing a word whose chip has gone.
+ */
+export function pickerChips(
+  candidates: readonly ShirabeCandidate[],
+  picked: number,
+  expanded: boolean,
+  limit: number,
+): PickerChip[] {
+  const all = candidates.map((candidate, index) => ({ candidate, index }));
+  if (expanded || all.length <= limit) return all;
+
+  const head = all.slice(0, limit);
+  if (!head.some((chip) => chip.index === picked)) {
+    const chosen = all[picked];
+    if (chosen) head[head.length - 1] = chosen;
+  }
+  return head;
+}
+
+/**
+ * The other spellings worth showing, and never the one already on the card.
+ *
+ * A reader who met 空く and is being shown 開く needs the two connected, and the
+ * forms list is what does it. But it also carries the headword itself and the
+ * kana reading, both of which are already on the card an inch above -- printing
+ * them again spends the row on things the reader can see.
+ *
+ * Capped, because a word can carry a dozen rare spellings and this is a
+ * supporting row rather than the point of the card.
+ */
+export function cardForms(word: ShirabeWord | null, limit = 4): string[] {
+  const headword = word?.headword ?? '';
+  const reading = word?.reading ?? '';
+  const seen = new Set([headword, reading]);
+  const forms: string[] = [];
+
+  for (const form of word?.forms ?? []) {
+    const text = form.text?.trim();
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    forms.push(text);
+    if (forms.length === limit) break;
+  }
+  return forms;
 }
 
 /**
@@ -238,6 +316,8 @@ export interface CardSense {
   /** One row per language, badged. Joining the two into one line read as a
    *  single definition that happened to change language halfway through. */
   glosses: CardGlossRow[];
+  /** The sense's usage notes, verbatim. Empty when it has none. */
+  notes: string[];
 }
 
 const GLOSS_LABEL: Record<GlossLanguage, string> = { en: 'EN', es: 'ES' };
@@ -329,6 +409,10 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
       partsOfSpeech: repeated ? [] : partsOfSpeech,
       tags: cardTags(tags, preference.tags, (tag) => MISC_TAG_CATEGORIES.has(tag.category)),
       glosses,
+      // Not deduped against the sense above the way the part of speech is: a
+      // note qualifies the sense it sits on, and carrying one down would state
+      // something false about the next.
+      notes: (sense.notes ?? []).filter((note) => note.trim().length > 0),
     });
     if (cards.length === limit) break;
   }

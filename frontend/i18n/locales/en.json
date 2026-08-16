@@ -922,6 +922,8 @@
     "openInAnki": "Open the note in Anki",
     "mineContextOnly": "Add this sentence, audio and image, keeping your definitions",
     "minedActions": "In your collection",
+    "alsoWritten": "also written",
+    "nameEntry": "name",
     "otherReadings": "Which word is this?",
     "mineToNote": "Replace everything, including the definitions",
     "mineToLastCard": "Add this sentence, audio and image to your last added Anki card"
