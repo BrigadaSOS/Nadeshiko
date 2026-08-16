@@ -118,6 +118,29 @@ export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | u
   return word?.headword || tokenDictForm || '';
 }
 
+/**
+ * What the card should say about a lookup, given how it came back.
+ *
+ * Three answers, and the difference between the last two is the whole reason
+ * this is not a boolean. "There is no entry" is a fact about the WORD -- a name,
+ * a coinage, a spelling the corpus preserved -- and it is the end of the search,
+ * so the card says it. "We could not ask" is a fact about US, and printing it as
+ * the dictionary's verdict would be a lie about a word that may well be in
+ * there.
+ *
+ * What that reasoning did NOT justify is saying nothing at all, which is what
+ * happened: a dictionary that would not answer left the card showing a headword
+ * over blank space, indistinguishable from one still loading. Shirabe being down
+ * is not the reader's fault and not a mystery worth making them solve, so it now
+ * has its own state and its own words.
+ */
+export type LookupState = 'shown' | 'missing' | 'unavailable';
+
+export function lookupState(candidates: number, reason: 'missing' | 'failed' | undefined): LookupState {
+  if (candidates > 0) return 'shown';
+  return reason === 'failed' ? 'unavailable' : 'missing';
+}
+
 /** One chip in the candidate picker, carrying the index it has in the FULL
  *  ranked list rather than in the row it is drawn in. */
 export interface PickerChip {

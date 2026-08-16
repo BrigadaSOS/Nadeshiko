@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   cardForms,
   cardHeadword,
+  lookupState,
   cardSenses,
   pickerChips,
   glossPreference,
@@ -495,5 +496,42 @@ describe('cardForms', () => {
   it('answers nothing for a word with no forms, or no word at all', () => {
     expect(cardForms(word([]))).toEqual([]);
     expect(cardForms(null)).toEqual([]);
+  });
+});
+
+/**
+ * The distinction that decides what a reader is told when the dictionary is
+ * down. Getting it wrong is invisible in tests of the happy path and very
+ * visible to a reader: either the card blames the dictionary for our outage, or
+ * it says nothing and looks broken.
+ */
+describe('lookupState', () => {
+  it('shows the card when there are candidates', () => {
+    expect(lookupState(3, undefined)).toBe('shown');
+  });
+
+  // A fact about the WORD -- a name, a coinage, a spelling the corpus kept --
+  // and the end of the search, so the card says it out loud.
+  it('says no entry when the dictionary answered and had none', () => {
+    expect(lookupState(0, 'missing')).toBe('missing');
+  });
+
+  // A fact about US. Reporting it as "no entry" would be a lie about a word that
+  // may well be in the dictionary, and one the reader cannot check.
+  it('does not blame the word when the request failed', () => {
+    expect(lookupState(0, 'failed')).toBe('unavailable');
+  });
+
+  // The regression this exists to prevent: a failed lookup used to fall through
+  // to a state with no message, leaving a headword over blank space that reads
+  // as still loading.
+  it('never leaves a failure with nothing to say', () => {
+    expect(lookupState(0, 'failed')).not.toBe('shown');
+    expect(lookupState(0, 'failed')).toBeTruthy();
+  });
+
+  // Candidates win over any reason: an answer that arrived is an answer.
+  it('prefers what arrived over why it might not have', () => {
+    expect(lookupState(2, 'failed')).toBe('shown');
   });
 });
