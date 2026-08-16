@@ -4,7 +4,14 @@ import type { H3Event } from 'h3';
 
 const SESSION_COOKIE = 'nadeshiko.session_token';
 const SESSION_COOKIE_PREFIXES = ['', '__Secure-', '__Host-'] as const;
-const TTL_MS = 30_000;
+// 60s (was 30s): the backend's per-IP rate limiter on /v1/auth/* rejects the
+// frontend's own SSR `get-session` calls under sustained render load (every
+// render shares the proxy's source IP). Caching the answer for a minute turns
+// N concurrent renders of one reader's session into 1 backend round trip
+// instead of N, which keeps the request rate below the limiter's per-window
+// budget. The window matches what the session itself accepts; preference edits
+// happen client-side and re-render without touching the server.
+const TTL_MS = 60_000;
 const MAX_KEY_LEN = 128;
 
 /**
