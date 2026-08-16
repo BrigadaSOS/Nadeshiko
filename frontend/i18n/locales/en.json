@@ -129,7 +129,6 @@
     "capReached": "You've favorited the maximum of 100 titles. Unfavorite one to add another."
   },
   "familiarMedia": {
-    "clearError": "Couldn't clear your studied titles. Please try again.",
     "forgetError": "Couldn't forget that title. Please try again."
   },
   "mediaBrowse": {
@@ -484,7 +483,6 @@
       "trackingOffToast": "Activity tracking off",
       "familiarOnToast": "Now remembering which shows you study",
       "familiarOffToast": "No longer remembering which shows you study",
-      "clearFamiliarToast": "Study tally cleared | Study tally cleared, {count} title forgotten | Study tally cleared, {count} titles forgotten",
       "clearHistoryToast": "Activity history cleared",
       "confirmClearFamiliar": "Forget which shows you study? Your activity history is not affected.",
       "confirmClearDay": "Delete all activity for {day}? This cannot be undone.",
@@ -553,9 +551,6 @@
         "clearing": "Clearing...",
         "familiarTitle": "Remember which shows I study",
         "familiarDescription": "Keeps a monthly count per title so the titles you study sort to the top of the search media filter. Separate from your activity history.",
-        "clearFamiliarTitle": "Forget which shows I study",
-        "clearFamiliarDescription": "Deletes the tally. Your activity history is kept.",
-        "clearFamiliarButton": "Forget",
         "familiarListTitle": "Shows we think you like",
         "familiarListEmpty": "Nothing tallied yet. Export a card or play a clip and titles will show up here.",
         "familiarCounts": "{cards} · {plays} · {shares}",

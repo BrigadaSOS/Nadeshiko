@@ -116,21 +116,10 @@ export function useFamiliarMedia() {
     }
   };
 
-  /**
-   * The number forgotten, or `null` when the clear failed -- which a count of 0
-   * cannot say on its own, since clearing an empty tally succeeds and forgets
-   * nothing. Callers that confirm the action need the two kept apart.
-   */
-  const clear = async (): Promise<number | null> => {
-    try {
-      const data = await sdk.clearFamiliarMedia();
-      entries.value = [];
-      return data?.count ?? 0;
-    } catch (error) {
-      handleApiError('familiar-media:clear-failed', error, { toastKey: 'familiarMedia.clearError' });
-      return null;
-    }
-  };
-
-  return { entries, inferredRank, load, forget, clear };
+  // No bulk `clear` here. `ac04d42ed` replaced the one "Forget which shows I
+  // study" button with a Forget on each row, so nothing has called it since --
+  // it sat exported and unreachable, holding the last reference to a toast
+  // string. `DELETE /v1/user/familiar-media` is untouched and still the way to
+  // empty the tally in one call if a caller ever wants one again.
+  return { entries, inferredRank, load, forget };
 }

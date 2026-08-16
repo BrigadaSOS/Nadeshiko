@@ -129,7 +129,6 @@
     "capReached": "Has alcanzado el máximo de 100 títulos favoritos. Quita uno para añadir otro."
   },
   "familiarMedia": {
-    "clearError": "No se pudieron borrar tus títulos estudiados. Inténtalo de nuevo.",
     "forgetError": "No se pudo olvidar ese título. Inténtalo de nuevo."
   },
   "mediaBrowse": {
@@ -484,7 +483,6 @@
       "trackingOffToast": "Seguimiento de actividad desactivado",
       "familiarOnToast": "Ahora se recuerda qué series estudias",
       "familiarOffToast": "Ya no se recuerda qué series estudias",
-      "clearFamiliarToast": "Recuento borrado | Recuento borrado, {count} título olvidado | Recuento borrado, {count} títulos olvidados",
       "clearHistoryToast": "Historial de actividad borrado",
       "confirmClearFamiliar": "¿Olvidar qué series estudias? Tu historial de actividad no se verá afectado.",
       "confirmClearDay": "¿Eliminar toda la actividad de {day}? Esta acción no se puede deshacer.",
@@ -553,9 +551,6 @@
         "clearing": "Borrando...",
         "familiarTitle": "Recordar qué series estudio",
         "familiarDescription": "Guarda un recuento mensual por título para que los títulos que estudias aparezcan primero en el filtro de medios. Independiente de tu historial de actividad.",
-        "clearFamiliarTitle": "Olvidar qué series estudio",
-        "clearFamiliarDescription": "Borra el recuento. Tu historial de actividad se mantiene.",
-        "clearFamiliarButton": "Olvidar",
         "familiarListTitle": "Series que creemos que te gustan",
         "familiarListEmpty": "Todavía no hay recuento. Exporta una tarjeta o reproduce un clip y los títulos aparecerán aquí.",
         "familiarCounts": "{cards} · {plays} · {shares}",
