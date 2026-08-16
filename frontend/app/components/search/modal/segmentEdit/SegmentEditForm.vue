@@ -49,8 +49,7 @@ const charCountColor = (len: number) => {
 const statusPillClasses = (value: string, active: boolean) => {
   const base =
     'px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-neutral-900 cursor-pointer';
-  if (!active)
-    return `${base} border border-hairline text-ink-muted hover:border-line-hover hover:text-ink`;
+  if (!active) return `${base} border border-hairline text-ink-muted hover:border-line-hover hover:text-ink`;
   const colors: Record<string, string> = {
     green: 'bg-green-600/80 text-green-100 border border-green-500 focus:ring-green-500',
     blue: 'bg-blue-600/80 text-blue-100 border border-blue-500 focus:ring-blue-500',

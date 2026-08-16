@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { Media } from '@app/models';
-import { normalizeLanguageFilter, resolveMediaFilterIds, resolvePreferredMediaIds } from '@app/controllers/searchFilters';
+import {
+  normalizeLanguageFilter,
+  resolveMediaFilterIds,
+  resolvePreferredMediaIds,
+} from '@app/controllers/searchFilters';
 import { s_SearchFilters } from 'generated/schemas';
 import type { t_SearchFilters } from 'generated/models';
 

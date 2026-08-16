@@ -75,7 +75,14 @@ const STORE_KEY = Symbol.for('nadeshiko.ssrAuthCache.store');
 type GlobalWithStore = typeof globalThis & { [STORE_KEY]?: Map<string, Entry<unknown>> };
 
 const globalWithStore = globalThis as GlobalWithStore;
-const store: Map<string, Entry<unknown>> = (globalWithStore[STORE_KEY] ??= new Map<string, Entry<unknown>>());
+// Split off the `??=` rather than assigning inside the initializer: biome's
+// noAssignInExpressions is an error here, and the two-step form says the same
+// thing -- reuse the store this process already parked on the global, or park
+// one now.
+if (!globalWithStore[STORE_KEY]) {
+  globalWithStore[STORE_KEY] = new Map<string, Entry<unknown>>();
+}
+const store: Map<string, Entry<unknown>> = globalWithStore[STORE_KEY];
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 32);
