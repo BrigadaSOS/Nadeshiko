@@ -100,6 +100,9 @@ const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer
       quotaUsed: meRes?.quota?.used ?? 0,
       quotaLimit: meRes?.quota?.limit ?? 5000,
       quotaRemaining: meRes?.quota?.remaining ?? 0,
+      periodEnd: meRes?.quota?.periodEnd ?? null,
+      tier: meRes?.quota?.tier ?? null,
+      burst: meRes?.quota?.burst ?? null,
     },
   };
 });
@@ -108,7 +111,14 @@ const fieldOptions = computed(
   () =>
     apiData.value ?? {
       keys: [] as ApiKeyListItem[],
-      quota: { quotaUsed: 0, quotaLimit: 5000, quotaRemaining: 5000 },
+      quota: {
+        quotaUsed: 0,
+        quotaLimit: 5000,
+        quotaRemaining: 5000,
+        periodEnd: null,
+        tier: null,
+        burst: null,
+      },
     },
 );
 
@@ -116,6 +126,32 @@ const quotaPercentage = computed(() => {
   const used = fieldOptions.value.quota.quotaUsed;
   const limit = Math.max(1, fieldOptions.value.quota.quotaLimit);
   return (used / limit) * 100;
+});
+
+/**
+ * The burst allowance, phrased per minute.
+ *
+ * There is no counter to pair it with, and deliberately no bar: the window is
+ * 60 seconds, so any number this page rendered would describe a moment that had
+ * already passed by the time it painted. What a reader needs from this is the
+ * ceiling and the fact that it exists separately from the month -- because a
+ * 429 with plenty of month left is otherwise unexplainable, which is what sent
+ * the support thread behind this to us in the first place.
+ */
+const burstPerMinute = computed(() => {
+  const burst = fieldOptions.value.quota.burst;
+  if (!burst?.max || !burst.windowMs) return null;
+  return Math.round(burst.max * (60_000 / burst.windowMs));
+});
+
+// The day the month's allowance comes back. `periodEnd` is the last instant of
+// the period, so the refill is the day after it.
+const quotaResetsOn = computed(() => {
+  const periodEnd = fieldOptions.value.quota.periodEnd;
+  if (!periodEnd) return null;
+  const end = new Date(periodEnd);
+  if (Number.isNaN(end.getTime())) return null;
+  return formatDate(new Date(end.getTime() + 1));
 });
 
 const showCreateModal = ref(false);
@@ -228,6 +264,20 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
           used: fieldOptions.quota?.quotaUsed,
           limit: fieldOptions.quota?.quotaLimit
         }) }}</p>
+        <!--
+          The two limits, side by side. They are exhausted independently and
+          answer the same 429, so a page naming only the month leaves a reader
+          who is bursting with no way to read their own error.
+        -->
+        <p v-if="quotaResetsOn" class="mt-1 text-gray-400 text-sm">
+          {{ $t('accountSettings.developer.quotaResets', { date: quotaResetsOn }) }}
+          <span v-if="fieldOptions.quota?.tier">
+            &middot; {{ $t('accountSettings.developer.quotaTier', { tier: fieldOptions.quota.tier.displayName }) }}
+          </span>
+        </p>
+        <p v-if="burstPerMinute" class="mt-1 text-gray-400 text-sm">
+          {{ $t('accountSettings.developer.burstLimit', { max: burstPerMinute }) }}
+        </p>
         <p class="mt-2 text-gray-400 text-sm">
           {{ t('accountSettings.developer.usageLimitMessage.prefix') }}
           <a href="mailto:contact@nadeshiko.co" class="text-red-400 hover:underline">contact@nadeshiko.co</a>.

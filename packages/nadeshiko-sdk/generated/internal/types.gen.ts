@@ -1699,6 +1699,33 @@ export type UserMe = {
          * End of the current month (UTC).
          */
         periodEnd: string;
+        /**
+         * The quota tier this account sits on. Null when the account is on none,
+         * or when an override is in force and the tier no longer describes the
+         * limit.
+         *
+         */
+        tier: {
+            id: string;
+            displayName: string;
+        };
+        /**
+         * The OTHER limit. Separate from the monthly allowance and enforced per
+         * API key over a short window, so a caller can exhaust it with plenty of
+         * month left -- which is why both are surfaced together, and why the two
+         * 429s carry an `X-RateLimit-Reason` telling them apart.
+         *
+         */
+        burst: {
+            /**
+             * Requests allowed per key within `windowMs`.
+             */
+            max: number;
+            /**
+             * Length of the burst window, in milliseconds.
+             */
+            windowMs: number;
+        };
     };
 };
 
@@ -2429,6 +2456,87 @@ export type AdminUserWithProviders = {
      * Linked authentication providers (empty when the account has none).
      */
     providers: Array<string>;
+};
+
+export type Tier = {
+    /**
+     * Stable slug referenced by an account's `tierId`
+     */
+    id: string;
+    displayName: string;
+    /**
+     * API calls allowed per calendar month on this tier
+     */
+    monthlyQuotaLimit: number;
+    /**
+     * Per-key burst allowance stamped onto keys created while on this tier.
+     * Null inherits the deployment-wide default.
+     *
+     */
+    rateLimitMax?: number;
+    /**
+     * Window for `rateLimitMax`, in milliseconds. Null inherits the default.
+     */
+    rateLimitWindowMs?: number;
+    /**
+     * Display order; the id is a slug, not a rank
+     */
+    sortOrder: number;
+};
+
+export type AccountQuotaState = {
+    userId: number;
+    /**
+     * The tier this account sits on, or null if it has none
+     */
+    tierId: string;
+    /**
+     * Per-account limit that wins over the tier when set
+     */
+    quotaOverride: number;
+    /**
+     * The limit actually in force, after applying the resolution order
+     */
+    monthlyQuotaLimit: number;
+    /**
+     * Which step of the resolution order produced `monthlyQuotaLimit`.
+     * `legacy_column` and `default` mean the tier did not resolve, and are worth
+     * investigating rather than displaying.
+     *
+     */
+    quotaSource: 'override' | 'tier' | 'legacy_column' | 'default';
+    /**
+     * Calls billed to this account in the current period
+     */
+    quotaUsed: number;
+    /**
+     * The billing period, as YYYYMM in UTC
+     */
+    periodYyyymm: number;
+};
+
+/**
+ * At least one property must be present. Send `quotaOverride: null` to clear an
+ * override and fall back to the tier.
+ *
+ */
+export type UpdateAccountQuotaRequest = {
+    /**
+     * Slug of an existing tier
+     */
+    tierId?: string;
+    /**
+     * Per-account monthly limit, taking precedence over the tier. Null clears it.
+     *
+     */
+    quotaOverride?: number;
+    /**
+     * Why the change is being made. Recorded on the audit log line so the number
+     * is reviewable later; the old model's whole problem was that a raised limit
+     * carried no record of the decision behind it.
+     *
+     */
+    reason?: string;
 };
 
 export type AuthUser = {
@@ -5854,6 +5962,141 @@ export type GetAdminUsersWithProvidersResponses = {
 };
 
 export type GetAdminUsersWithProvidersResponse = GetAdminUsersWithProvidersResponses[keyof GetAdminUsersWithProvidersResponses];
+
+export type ListTiersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/admin/tiers';
+};
+
+export type ListTiersErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type ListTiersError = ListTiersErrors[keyof ListTiersErrors];
+
+export type ListTiersResponses = {
+    /**
+     * OK
+     */
+    200: {
+        tiers: Array<Tier>;
+    };
+};
+
+export type ListTiersResponse = ListTiersResponses[keyof ListTiersResponses];
+
+export type GetAdminUserQuotaData = {
+    body?: never;
+    path: {
+        /**
+         * Account id
+         */
+        userId: number;
+    };
+    query?: never;
+    url: '/v1/admin/users/{userId}/quota';
+};
+
+export type GetAdminUserQuotaErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Not Found
+     */
+    404: Error404;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type GetAdminUserQuotaError = GetAdminUserQuotaErrors[keyof GetAdminUserQuotaErrors];
+
+export type GetAdminUserQuotaResponses = {
+    /**
+     * OK
+     */
+    200: AccountQuotaState;
+};
+
+export type GetAdminUserQuotaResponse = GetAdminUserQuotaResponses[keyof GetAdminUserQuotaResponses];
+
+export type UpdateAdminUserQuotaData = {
+    body: UpdateAccountQuotaRequest;
+    path: {
+        /**
+         * Account id
+         */
+        userId: number;
+    };
+    query?: never;
+    url: '/v1/admin/users/{userId}/quota';
+};
+
+export type UpdateAdminUserQuotaErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Not Found
+     */
+    404: Error404;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type UpdateAdminUserQuotaError = UpdateAdminUserQuotaErrors[keyof UpdateAdminUserQuotaErrors];
+
+export type UpdateAdminUserQuotaResponses = {
+    /**
+     * OK
+     */
+    200: AccountQuotaState;
+};
+
+export type UpdateAdminUserQuotaResponse = UpdateAdminUserQuotaResponses[keyof UpdateAdminUserQuotaResponses];
 
 export type GetSessionData = {
     body?: never;

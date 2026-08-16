@@ -1,0 +1,80 @@
+get:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: getAdminUserQuota
+  summary: Read an account's quota state
+  description: |
+    The tier, the override, the limit those resolve to, and how much of the
+    current period the account has used.
+  security:
+    - SessionCookie: [ADMIN]
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Account id
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/AccountQuotaState.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+patch:
+  tags:
+    - Admin
+  x-internal: true
+  operationId: updateAdminUserQuota
+  summary: Move an account to a tier, or give it an override
+  description: |
+    Replaces the hand-edit against production that raising a quota used to
+    require. Writes an audit log line naming the actor, the account, the before
+    and after values, and the reason given.
+  security:
+    - SessionCookie: [ADMIN]
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Account id
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/UpdateAccountQuotaRequest.yaml"
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/AccountQuotaState.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

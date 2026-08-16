@@ -61,6 +61,17 @@ const envSchema = z.object({
   // limited, never silently bypassed).
   INTERNAL_PROXY_SECRET: optionalString,
 
+  // Salt for the pseudonymous `user.hash` field on the HTTP access log. Left
+  // unset, the field is simply absent -- an unsalted hash of an integer id is
+  // no protection at all (the id space is small enough to enumerate in a
+  // second), so the choice is a salted field or none, never a bare digest.
+  //
+  // Rotating this invalidates every prior join. That is the intended lever:
+  // the field exists to answer "what has this account been calling this week",
+  // and a rotation ends the ability to ask that of older lines while leaving
+  // them useful for the aggregate questions.
+  LOG_USER_SALT: optionalString,
+
   ID_OAUTH_GOOGLE: optionalString,
   SECRET_OAUTH_GOOGLE: optionalString,
   DISCORD_CLIENT_ID: optionalString,

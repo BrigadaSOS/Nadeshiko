@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
-import { rateLimitApiQuota } from '@app/middleware/apiLimiterQuota';
+import { rateLimitApiQuota, invalidateTierCache } from '@app/middleware/apiLimiterQuota';
 import { ApiKeyKind, ApiPermission, AuthType } from '@app/models/ApiPermission';
 import { QuotaExceededError } from '@app/errors';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
+import { Tier } from '@app/models';
 
 setupTestSuite();
 
@@ -26,12 +27,17 @@ function buildReq(overrides: Record<string, unknown> = {}) {
 
 function buildRes() {
   const listeners: Record<string, (...args: never) => unknown> = {};
+  const headers: Record<string, string> = {};
   return {
     statusCode: 200,
     on: vi.fn((event: string, cb: (...args: never) => unknown) => {
       listeners[event] = cb;
     }),
+    setHeader: vi.fn((name: string, value: string) => {
+      headers[name] = value;
+    }),
     _listeners: listeners,
+    _headers: headers,
   } as any;
 }
 
@@ -77,8 +83,11 @@ describe('rateLimitApiQuota', () => {
   });
 
   it('throws QuotaExceededError when quota is exhausted', async () => {
-    // Set the user's monthly quota limit to 0 so any usage exceeds it
-    fixtures.users.kevin.monthlyQuotaLimit = 0;
+    // An override of 0 so any usage exceeds it. This used to set
+    // `monthlyQuotaLimit`, which no longer decides anything for an account on a
+    // tier -- the tier wins, and the column is only the fallback for one that
+    // has none.
+    fixtures.users.kevin.quotaOverride = 0;
 
     const req = buildReq();
     const res = buildRes();
@@ -88,7 +97,66 @@ describe('rateLimitApiQuota', () => {
     expect(next).not.toHaveBeenCalled();
 
     // Restore
-    fixtures.users.kevin.monthlyQuotaLimit = 2500;
+    fixtures.users.kevin.quotaOverride = null;
+  });
+
+  it('names the monthly quota as the reason on the error it throws', async () => {
+    // The reason rides on the error rather than on the response, because the
+    // other caller that raises a 429 (the API-key path in authentication.ts)
+    // has no response to set a header on. The error handler is what turns this
+    // into `X-RateLimit-Reason`.
+    fixtures.users.kevin.quotaOverride = 0;
+
+    const req = buildReq();
+    const res = buildRes();
+
+    await expect(rateLimitApiQuota(req, res, vi.fn())).rejects.toMatchObject({ reason: 'monthly_quota' });
+
+    fixtures.users.kevin.quotaOverride = null;
+  });
+
+  it('announces the month on every authenticated response, not only the rejection', async () => {
+    // The account page renders its bar from these. Sending them on success is
+    // what saves it a second round trip to ask what the call it just made
+    // already knew.
+    const req = buildReq();
+    const res = buildRes();
+
+    await rateLimitApiQuota(req, res, vi.fn());
+
+    expect(res._headers['X-Monthly-Quota-Limit']).toBe(String(req.accountQuota.quotaLimit));
+    expect(res._headers['X-Monthly-Quota-Used']).toBe(String(req.accountQuota.quotaUsed));
+    // An ISO instant, so a client can render "resets on ..." in its own locale
+    // rather than parsing a period integer it has no calendar for.
+    expect(res._headers['X-Monthly-Quota-Reset']).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('bills against the tier when the account has no override', async () => {
+    // The point of the whole change: the limit comes from a row the account
+    // points at, not from a number typed onto the account.
+    const user = fixtures.users.kevin;
+    const previous = { tierId: user.tierId, override: user.quotaOverride, column: user.monthlyQuotaLimit };
+
+    await Tier.upsert({ id: 'test-plus', displayName: 'Test Plus', monthlyQuotaLimit: 31_337, sortOrder: 99 }, ['id']);
+    invalidateTierCache();
+    user.tierId = 'test-plus';
+    user.quotaOverride = null;
+    user.monthlyQuotaLimit = 5000;
+
+    const req = buildReq();
+    await rateLimitApiQuota(req, buildRes(), vi.fn());
+    expect(req.accountQuota.quotaLimit).toBe(31_337);
+
+    // An override is the escape hatch, and it wins.
+    user.quotaOverride = 42;
+    const overridden = buildReq();
+    await rateLimitApiQuota(overridden, buildRes(), vi.fn());
+    expect(overridden.accountQuota.quotaLimit).toBe(42);
+
+    user.tierId = previous.tierId;
+    user.quotaOverride = previous.override;
+    user.monthlyQuotaLimit = previous.column;
+    invalidateTierCache();
   });
 
   it('throws when req.user is missing', async () => {

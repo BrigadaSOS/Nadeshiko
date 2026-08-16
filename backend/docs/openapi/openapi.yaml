@@ -196,6 +196,10 @@ paths:
     $ref: "./paths/admin/v1_admin_announcement.yaml"
   "/v1/admin/users-with-providers":
     $ref: "./paths/admin/v1_admin_users_with_providers.yaml"
+  "/v1/admin/tiers":
+    $ref: "./paths/admin/v1_admin_tiers.yaml"
+  "/v1/admin/users/{userId}/quota":
+    $ref: "./paths/admin/v1_admin_users_id_quota.yaml"
 
 components:
   securitySchemes:

@@ -13,6 +13,16 @@ export const PermissiveBoolean = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+export const s_AccountQuotaState = z.object({
+  userId: z.coerce.number(),
+  tierId: z.string().nullable(),
+  quotaOverride: z.coerce.number().nullable(),
+  monthlyQuotaLimit: z.coerce.number(),
+  quotaSource: z.enum(['override', 'tier', 'legacy_column', 'default']),
+  quotaUsed: z.coerce.number(),
+  periodYyyymm: z.coerce.number(),
+});
+
 export const s_ActivityType = z.enum(['SEARCH', 'ANKI_EXPORT', 'SEGMENT_PLAY', 'SHARE']);
 
 export const s_AddSegmentToCollectionRequest = z.object({
@@ -324,6 +334,15 @@ export const s_SegmentRevision = z.object({
 
 export const s_SegmentStatus = z.enum(['ACTIVE', 'HIDDEN', 'DELETED']);
 
+export const s_Tier = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  monthlyQuotaLimit: z.coerce.number(),
+  rateLimitMax: z.coerce.number().nullable().optional(),
+  rateLimitWindowMs: z.coerce.number().nullable().optional(),
+  sortOrder: z.coerce.number(),
+});
+
 export const s_Token = z.object({
   s: z.string(),
   d: z.string(),
@@ -336,6 +355,12 @@ export const s_Token = z.object({
   f: z.array(z.object({ t: z.string(), r: z.string().optional() })).optional(),
   inflection: z.object({ labels: z.array(z.string()), base: z.string() }).optional(),
   parts: z.array(z.object({ s: z.string(), b: z.coerce.number(), e: z.coerce.number() })).optional(),
+});
+
+export const s_UpdateAccountQuotaRequest = z.object({
+  tierId: z.string().optional(),
+  quotaOverride: z.coerce.number().min(0).nullable().optional(),
+  reason: z.string().max(500).optional(),
 });
 
 export const s_UpdateCollectionSegmentRequest = z.object({ position: z.coerce.number().optional() });
@@ -370,6 +395,8 @@ export const s_UserMe = z.object({
     periodYyyymm: z.coerce.number().min(202001),
     periodStart: z.iso.datetime({ offset: true }),
     periodEnd: z.iso.datetime({ offset: true }),
+    tier: z.object({ id: z.string(), displayName: z.string() }).nullable(),
+    burst: z.object({ max: z.coerce.number(), windowMs: z.coerce.number() }),
   }),
 });
 

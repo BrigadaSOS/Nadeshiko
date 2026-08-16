@@ -1,0 +1,25 @@
+type: object
+description: |
+  At least one property must be present. Send `quotaOverride: null` to clear an
+  override and fall back to the tier.
+minProperties: 1
+properties:
+  tierId:
+    type: string
+    description: Slug of an existing tier
+    example: plus
+  quotaOverride:
+    type: integer
+    nullable: true
+    minimum: 0
+    description: |
+      Per-account monthly limit, taking precedence over the tier. Null clears it.
+    example: 50000
+  reason:
+    type: string
+    maxLength: 500
+    description: |
+      Why the change is being made. Recorded on the audit log line so the number
+      is reviewable later; the old model's whole problem was that a raised limit
+      carried no record of the decision behind it.
+    example: "Support ticket #412 - open-source dictionary integration"
