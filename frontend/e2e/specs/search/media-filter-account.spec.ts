@@ -39,16 +39,40 @@ async function rowLabel(row: Locator): Promise<string> {
   return ((await row.locator('button span').first().textContent()) ?? '').trim();
 }
 
-/** publicId for a title, matched on whichever name the row is showing. */
+/**
+ * publicId for a title, matched on whichever name the row is showing.
+ *
+ * Pages through `/v1/media` rather than reading one response. That endpoint
+ * defaults to 20 per page and caps at 40, so a single request only ever saw the
+ * front of the catalogue -- which worked until the corpus outgrew it, and then
+ * failed as `no media in /v1/media is named "..."` for a title plainly on
+ * screen. The label comes from the filter panel, so it is by definition a title
+ * the API knows; not finding it means we stopped looking too early.
+ */
 async function publicIdForLabel(page: Page, label: string): Promise<string> {
-  const response = await page.request.get('/v1/media');
-  expect(response.ok()).toBe(true);
-  const { media } = (await response.json()) as {
-    media: Array<{ publicId: string; nameEn?: string; nameJa?: string; nameRomaji?: string }>;
-  };
-  const match = media.find((item) => [item.nameEn, item.nameJa, item.nameRomaji].some((name) => name === label));
-  expect(match, `no media in /v1/media is named "${label}"`).toBeTruthy();
-  return match!.publicId;
+  type MediaRow = { publicId: string; nameEn?: string; nameJa?: string; nameRomaji?: string };
+  const matches = (item: MediaRow) => [item.nameEn, item.nameJa, item.nameRomaji].some((name) => name === label);
+
+  let cursor: string | null = null;
+  // Bounded so a pagination bug cannot turn this into an infinite loop; 40 pages
+  // of 40 is far more catalogue than this suite will ever face.
+  for (let page_ = 0; page_ < 40; page_++) {
+    const query = new URLSearchParams({ take: '40', ...(cursor ? { cursor } : {}) });
+    const response = await page.request.get(`/v1/media?${query}`);
+    expect(response.ok(), await response.text()).toBe(true);
+    const body = (await response.json()) as {
+      media: MediaRow[];
+      pagination?: { hasMore?: boolean; cursor?: string | null };
+    };
+
+    const match = body.media.find(matches);
+    if (match) return match.publicId;
+
+    if (!body.pagination?.hasMore || !body.pagination.cursor) break;
+    cursor = body.pagination.cursor;
+  }
+
+  throw new Error(`no media in /v1/media is named "${label}"`);
 }
 
 async function familiarMediaIds(page: Page): Promise<string[]> {
