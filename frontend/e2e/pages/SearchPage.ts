@@ -156,19 +156,46 @@ export class SearchPage {
    * dictionary knows opens a card at all: particles and names in a given
    * sentence are tokens with no entry behind them, and which ones those are
    * depends on the sentence the search happens to return.
+   *
+   * `excluding` skips a headword the caller cannot use — in practice the word
+   * the page is already searching for. Every result on `/search/彼女` contains
+   * 彼女, so it is routinely the first token with an entry, and searching it
+   * navigates to the URL the test is standing on. The callers that wait for the
+   * URL to *change* then wait forever, for a reason that has nothing to do with
+   * what they are testing.
    */
-  async openFirstTokenCard(): Promise<string> {
+  async openFirstTokenCard(options: { excluding?: string } = {}): Promise<string> {
     const tokens = this.page.locator('.token-text .token[role="button"]');
     await expect(tokens.first()).toBeVisible({ timeout: 15_000 });
 
     for (let i = 0; i < (await tokens.count()); i++) {
       await tokens.nth(i).click();
       if (await this.tokenCardSearch.isVisible({ timeout: 2_500 }).catch(() => false)) {
-        return (await this.tokenCardSearch.innerText()).trim();
+        const headword = await this.tokenCardHeadword();
+        if (headword !== options.excluding) return headword;
       }
       await this.page.keyboard.press('Escape');
     }
 
-    throw new Error('no token in the results opened a word card');
+    throw new Error('no token in the results opened a usable word card');
+  }
+
+  /**
+   * The headword as a word, with its reading stripped out.
+   *
+   * NOT `innerText()`. The card renders furigana as `<ruby>語<rt>ご</rt></ruby>`,
+   * and text extraction concatenates both halves — so the headword of 林間学校
+   * came back as "林間学校りんかんがっこう", which is not what pressing it
+   * searches for and matches nothing in the URL afterwards. `<rt>` holds the
+   * pronunciation guide by definition, so dropping it is what "the word" means
+   * whether or not a given entry happens to have furigana.
+   */
+  private async tokenCardHeadword(): Promise<string> {
+    const text = await this.tokenCardSearch.evaluate((element) => {
+      const clone = element.cloneNode(true) as HTMLElement;
+      for (const rt of clone.querySelectorAll('rt')) rt.remove();
+      return clone.textContent ?? '';
+    });
+    return text.trim();
   }
 }

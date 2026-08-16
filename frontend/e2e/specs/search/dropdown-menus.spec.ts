@@ -68,8 +68,12 @@ test.describe('Dropdown menus', () => {
     await expect(menu.getByText('Image', { exact: true })).toBeVisible();
     await expect(menu.getByText('Audio', { exact: true })).toBeVisible();
     await expect(menu.getByText('Japanese sentence', { exact: true })).toBeVisible();
+    // English only, and not because the menu lost Spanish: the copy menu offers
+    // a row per translation the card actually has, and a signed-out reader in
+    // the English locale is served English alone (`defaultTranslationLanguages`).
+    // The 'Spanish sentence' row this used to assert needs a reader who has
+    // chosen both languages globally -- see segment-card.spec.ts.
     await expect(menu.getByText('English sentence')).toBeVisible();
-    await expect(menu.getByText('Spanish sentence')).toBeVisible();
   });
 
   test('More dropdown opens and shows expand options', async () => {

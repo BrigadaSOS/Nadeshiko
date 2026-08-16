@@ -23,7 +23,9 @@ test.describe('The search bar shows the search in the URL', () => {
     await search.goto('彼女');
     await search.expectResultsVisible();
 
-    const word = await search.openFirstTokenCard();
+    // Excluding the word the page is already on: searching it would navigate to
+    // the URL we are standing on, and the wait below is for the URL to change.
+    const word = await search.openFirstTokenCard({ excluding: '彼女' });
     await search.tokenCardSearch.click();
     await page.waitForURL((url) => !url.pathname.endsWith(encodeURIComponent('彼女')), { timeout: 15_000 });
 
