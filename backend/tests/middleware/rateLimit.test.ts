@@ -189,35 +189,19 @@ describe('rateLimit', () => {
     });
   }, 15_000);
 
-  it('exempts /v1/auth/* traffic from private/loopback addresses (frontend SSR fallback)', async () => {
-    // Belt-and-braces for the /v1/auth/* limiter: the primary bypass is the
-    // shared-secret header checked by isInternalProxyRequest, but if a future
-    // deploy forgets the secret (or rotates it without restarting the proxy)
-    // we still want our own SSR container's traffic to not throttle itself.
-    // Matched by IP class so a docker-network IP rotation does not silently
-    // stop matching the thing the clause was written for.
-    await withServer(async (server) => {
-      const statuses: number[] = [];
-      for (let i = 0; i < config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP + 50; i++) {
-        const r = await request(server)
-          .get('/v1/auth/get-session')
-          // The frontend container's actual address on the production box,
-          // and IPv4 loopback -- both are private/loopback and both must skip.
-          .set('X-Forwarded-For', i % 2 === 0 ? '172.18.0.2' : '127.0.0.1');
-        statuses.push(r.status);
-      }
-      expect(statuses.every((s) => s === 200)).toBe(true);
-    });
-  }, 15_000);
-
-  it('does NOT exempt external /v1/auth/* traffic from the private-IP skip', async () => {
-    // The skip is gated on the source IP class, not the secret. An external
-    // visitor must still get throttled by the auth limiter, even though the
-    // global limiter would also have caught them.
+  // The reason /v1/auth/* is not exempted by source-IP class, written down as a
+  // test because the change that would break it reads like a safe one: the
+  // limiter's own key comes from `CF-Connecting-IP` when it is present, so any
+  // skip that reads the same address is a skip the caller can ask for. A
+  // claimed loopback address must buy exactly nothing on the endpoints that
+  // guard sign-in.
+  it('does not let a claimed private source address skip the auth limiter', async () => {
     await withServer(async (server) => {
       const statuses: number[] = [];
       for (let i = 0; i < config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP + 2; i++) {
-        const r = await request(server).get('/v1/auth/get-session').set('X-Forwarded-For', '8.8.8.8');
+        // One claimed address for the whole burst: two would halve the count
+        // per bucket and pass under the cap for the wrong reason.
+        const r = await request(server).get('/v1/auth/get-session').set('CF-Connecting-IP', '127.0.0.1');
         statuses.push(r.status);
       }
       expect(statuses).toContain(429);
@@ -225,11 +209,9 @@ describe('rateLimit', () => {
   }, 15_000);
 
   it('still applies the global limiter to private-IP traffic (runaway cron defence)', async () => {
-    // authRateLimitSkip widens the auth limiter's skip set, but the global
-    // limiter keeps its shouldSkip set -- a tight loop in a cron or worker on
-    // the same docker network must still get caught by SOMETHING, otherwise
-    // the auth-only widening would leave an obvious bypass open for any
-    // future endpoint we forget to mirror.
+    // A tight loop in a cron or worker on the same docker network has to get
+    // caught by SOMETHING: neither limiter skips on address class, so the only
+    // way past either is the shared secret.
     await withServer(async (server) => {
       const statuses: number[] = [];
       for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 2; i++) {

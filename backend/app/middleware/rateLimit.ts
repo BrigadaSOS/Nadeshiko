@@ -114,36 +114,14 @@ export function isPrivateAddress(ip: string | undefined): boolean {
   return false;
 }
 
-/**
- * Defence-in-depth skip for traffic from our own frontend Nitro container.
- *
- * The frontend already rate-limits `/v1/auth/*` per real visitor IP at the
- * Nitro layer (frontend/server/utils/ipRateLimit.ts, configurable via
- * NUXT_RATE_LIMIT_V1_AUTH_MAX), so backend-side auth-IP limiting is a
- * redundant second gate that collides with itself: every SSR render of a
- * logged-in reader asks the backend's `/v1/auth/get-session` from the same
- * source IP, and a sustained render burst hits the bucket long before any
- * real visitor would.
- *
- * The primary bypass is the `x-internal-proxy-auth` shared secret
- * (isInternalProxyRequest in @lib/internalProxy). This clause is a
- * belt-and-braces fallback for the case where the secret is missing,
- * rotated, or the request bypassed the helper that stamps the header. It
- * matches by IP class -- any RFC1918 / link-local / loopback address -- which
- * is exactly the same set the private-range comment above warns about as
- * "us, not the internet". If a request from one of those reaches
- * `authRateLimit`, the request originated on this host or its docker
- * network, which means it is ours to throttle ourselves into shape for.
- *
- * Restricted to `authRateLimit`: the global limiter stays in place even for
- * internal callers because they share the bucket with everyone else and an
- * internal caller that has gone wrong (a tight loop, a runaway cron) is
- * exactly what the global cap should still catch.
- */
-function authRateLimitSkip(req: Request): boolean {
-  if (shouldSkip(req)) return true;
-  return isPrivateAddress(resolveClientIp(req));
-}
+// NOT a private-IP fallback. Widening this skip to "any RFC1918 / loopback
+// source" was tried and reverted: the address it would have to read comes from
+// `resolveClientIp`, which prefers `CF-Connecting-IP` -- a header the client
+// sends. That turns a forged header from a way to spread yourself across
+// buckets (each still capped) into an off switch for the limiter that guards
+// sign-in, rotated through RFC1918 to stay under the global cap as well. The
+// shared secret is the bypass precisely because it is the one signal a client
+// cannot influence; see the module note in @lib/internalProxy.
 
 // Emit a 429 in the same problem-details envelope as the rest of the API (the
 // better-auth API-key limiter already surfaces RateLimitExceededError). Routing
@@ -197,7 +175,7 @@ export const authRateLimit = rateLimit({
   keyGenerator: clientKey,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  skip: authRateLimitSkip,
+  skip: shouldSkip,
   // Applies to /v1/auth/* (scoped where it is mounted in routes.ts).
   handler: buildHandler('auth', 'Too many auth requests from this IP. Please slow down.'),
 });
