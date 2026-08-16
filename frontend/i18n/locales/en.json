@@ -916,6 +916,7 @@
     "loading": "Looking up…",
     "moreSentences": "More sentences",
     "playAudio": "Play pronunciation",
+    "unavailable": "Definitions couldn't be loaded. Try again in a moment.",
     "noEntry": "No dictionary entry for this word.",
     "definitionsHidden": "Definitions hidden",
     "showDefinitions": "Show",
