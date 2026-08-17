@@ -1,4 +1,5 @@
 import { AUTH_CALLBACK_PARAM, authEventProperties, authIntentStorage, consumeAuthIntent } from '~/utils/authAnalytics';
+import { isAccountLinkCallback } from '~/utils/accountLinks';
 
 /**
  * Reports an auth round trip that came back rejected, tagged with the same
@@ -33,6 +34,11 @@ export default defineNuxtPlugin({
     const isMagicLinkCallback = route.query.magic_callback === '1';
 
     if (!isMarkedCallback && !isOAuthCallback && !isMagicLinkCallback) return;
+
+    // Linking a third-party account is the same OAuth shape and not a sign-in;
+    // the bare `code`/`state` test above cannot tell them apart. See
+    // `isAccountLinkCallback` for what claiming those pages did.
+    if (isAccountLinkCallback(route.path)) return;
 
     // `route` is the live current route: once the query is stripped below there is
     // nothing left to branch on, so the outcome has to be read out first.
