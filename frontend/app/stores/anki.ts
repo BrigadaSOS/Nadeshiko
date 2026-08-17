@@ -31,6 +31,21 @@ export interface AnkiProfile {
   key?: string;
   serverAddress: string;
   openBrowserOnExport?: boolean;
+  /**
+   * How many of the reader's dictionaries fill `{definition}` before the rest
+   * spill into `{definition-rest}`.
+   *
+   * Only ever more than one dictionary for a reader who linked a Shirabe
+   * account: a word card carries one entry per dictionary in their stack, and
+   * somebody with nine monolingual dictionaries does not want all fifty senses
+   * in one field. Which of them belong on the front of a card is a judgement
+   * only they can make, so it is a number here rather than a rule in the code.
+   *
+   * Undefined or zero means NO CUT -- everything lands in `{definition}`, which
+   * is what that field did before this existed. Nobody's note changes shape
+   * until they ask for it.
+   */
+  primaryDictionaries?: number;
 }
 
 interface PermissionResponse {
@@ -639,6 +654,7 @@ export const ankiStore = defineStore('anki', {
           'word-pitch',
           'word-info',
           'definition',
+          'definition-rest',
           'image',
           'empty',
           'word',
@@ -712,6 +728,20 @@ export const ankiStore = defineStore('anki', {
                   break;
                 case 'definition':
                   if (withWordFields) setWordField(field.key, field.value, key, minedWord?.definition);
+                  break;
+                /**
+                 * The dictionaries past the reader's primary ones, so a stack of
+                 * nine monolinguals can put the main definition on the front of
+                 * a card and the rest on the back.
+                 *
+                 * Empty unless they set a cut point AND their stack answered
+                 * with more dictionaries than it -- and empty means UNTOUCHED
+                 * here, like every other word field: a reader who turns the
+                 * split off must not have this field blanked on their next
+                 * export.
+                 */
+                case 'definition-rest':
+                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.definitionRest);
                   break;
                 case 'word-pitch':
                   if (withWordFields) setWordField(field.key, field.value, key, minedWord?.pitch);

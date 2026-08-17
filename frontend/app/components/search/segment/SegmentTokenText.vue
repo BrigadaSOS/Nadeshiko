@@ -7,6 +7,8 @@ import {
   cardForms,
   cardHeadword,
   lookupState,
+  candidatePartOfSpeech,
+  candidateName,
   candidateSummary,
   cardSenses,
   pickerChips,
@@ -108,7 +110,15 @@ const PREFETCH_DELAY = 140;
 // what a definition is worth showing in. Same preference the segment
 // translations obey, so a reader who turned English off gets no English here.
 const { englishMode, spanishMode } = useTranslationVisibility();
-const { glossLanguages: globalGlossLanguages } = useTranslationLanguages();
+// The DICTIONARY order, which a linked Shirabe account decides rather than the
+// account setting: see `dictionaryGlossLanguages`.
+const { dictionaryGlossLanguages: globalGlossLanguages } = useTranslationLanguages();
+
+// How large the definitions are printed, which the reader chooses in settings.
+// A CSS variable on the card root rather than a class per size: one declaration
+// reads it (`--definition-size`), and the sizes themselves live in one module
+// beside the control that offers them.
+const definitionFont = computed(() => definitionFontSize(userStore().preferences?.wordPopup?.definitionSize));
 const revealDefinitions = ref(false);
 const definitionModes = computed(() => ({
   en: revealDefinitions.value ? 'show' : englishMode.value,
@@ -141,17 +151,76 @@ const picked = ref(0);
  * One candidate is not a choice, and a row of one is a control that asks the
  * reader to consider something already settled.
  */
-const showCandidateRows = computed(() => wordState.value !== 'name' && candidates.value.length > 1);
+const showCandidateRows = computed(() => candidates.value.length > 1);
 
 /**
  * How many chips the glance shows before it stops.
  *
  * Four, not six. The row is no longer the only way to reach a candidate -- what
  * it does not fit opens as a list a click away -- so it can be sized for what is
- * READABLE at 340px rather than for what is reachable. Four chips hold one line
- * at the widths these words run to; six wrapped, and a wrapped glance is not one.
+ * READABLE at the card's width rather than for what is reachable. Four chips
+ * hold one line at the widths these words run to; six wrapped, and a wrapped
+ * glance is not one.
  */
 const PICKER_VISIBLE = 4;
+
+/**
+ * Whether a candidate is a person or a place rather than a word.
+ *
+ * Read off the flag Shirabe publishes, never off the dictionary slug: JMdict
+ * carries ~7,300 JMnedict rows under its own name, so a slug test keeps every
+ * one of them and never says so. あれ is the case that shows it -- 亜礼, 阿礼 and
+ * 安礼 all arrive under `jmdict`.
+ *
+ * Names are normally filtered out of an answer entirely (see
+ * `withoutNameEntries`), so this only has anything to mark in the one case where
+ * they survive: a token that resolves to nothing BUT names. Then the tag is what
+ * stops six unfamiliar spellings reading as six words the reader has never met.
+ */
+const isNameCandidate = (candidate: ShirabeCandidate): boolean => candidate.name === true;
+
+/**
+ * The one letter that tells two same-spelling candidates apart, with the whole
+ * word on hover.
+ *
+ * PRONOUN and INTERJECTION spelled out cost more row than the words they were
+ * disambiguating -- あれ PRONOUN / あれ INTERJECTION pushed 有れ and 我 to the
+ * edge, so a tiebreak between two chips was crowding out the other four. An
+ * initial is enough to tell them apart, which is the whole job; `title` carries
+ * the rest for anyone who wants it, the same way the sense chips do.
+ *
+ * A collision (two candidates whose labels share a letter) is not worth guarding
+ * against: if two spellings have the SAME part of speech then the full word
+ * would not separate them either, and the list below -- where every row carries
+ * its gloss -- is what answers that.
+ *
+ * Localized by construction: it is the first character of the label the card
+ * would print, so Spanish gets P/I too and Japanese gets 代/感.
+ */
+function posInitial(candidate: ShirabeCandidate): string {
+  return [...candidatePartOfSpeech(candidate, glossLanguages.value)][0] ?? '';
+}
+
+/**
+ * The spellings more than one candidate answers to.
+ *
+ * Only these get a part of speech on their chip. あれ is two words -- the
+ * pronoun and the interjection -- and without it the row shows あれ twice with
+ * nothing to choose by; every other chip is already distinct, and a label on all
+ * of them would be noise charged to the many for the sake of the few.
+ */
+const duplicateHeadwords = computed(() => {
+  const counts = new Map<string, number>();
+  // Counted over what is PRINTED (`candidateName`), not over the headword: two
+  // chips are indistinguishable to a reader when they carry the same label, and
+  // a word shown under its kanji is no longer a duplicate of the kana it shares
+  // a headword with.
+  for (const candidate of candidates.value) {
+    const name = candidateName(candidate);
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return new Set([...counts].filter(([, n]) => n > 1).map(([name]) => name));
+});
 
 /** The chips to draw. The decision, and why the index travels with the
  *  candidate, is `pickerChips`. */
@@ -228,7 +297,18 @@ const minedCard = computed(() =>
   // The sentence goes in so the note can mark WHICH word was mined. Taken from
   // the result rather than from the tokens, because the token offsets address
   // exactly this string.
-  minedWord(word.value, hoveredToken.value, glossLanguages.value, props.result?.segment.textJa.content ?? ''),
+  //
+  // The dictionary cut point comes off the active Anki profile: only a reader
+  // with a Shirabe stack ever has more than one dictionary on a card, and only
+  // they can say which of them belong on the front of it. Zero -- no profile, or
+  // a profile that never set it -- means no cut.
+  minedWord(
+    word.value,
+    hoveredToken.value,
+    glossLanguages.value,
+    props.result?.segment.textJa.content ?? '',
+    ankiStore().activeProfile?.primaryDictionaries ?? 0,
+  ),
 );
 
 const { minedNoteId, mining, canConfigureMine, canMine, probeMined, clearMined, openMinedNote, mineSentence } =
@@ -614,6 +694,23 @@ const pickCandidate = (index: number) => {
 };
 
 /**
+ * Picking from the LIST, which closes it.
+ *
+ * The list is a place to choose from, not a place to stay: the answer it was
+ * opened to settle is the card above, and leaving it open leaves the reader
+ * looking at the menu rather than the meal. Collapsing back to the chip row also
+ * keeps the picked word on screen, since `pickerChips` guarantees it a chip.
+ *
+ * Only on CLICK. Arrow keys go on calling `pickCandidate` directly, because
+ * closing the list under a keyboard reader would take away the thing their focus
+ * is in and end the walk after one step.
+ */
+function pickFromList(index: number): void {
+  pickCandidate(index);
+  othersOpen.value = false;
+}
+
+/**
  * Walking the candidates from the keyboard.
  *
  * `tokenKeyAction` decides, which looks like reuse for its own sake and is not:
@@ -924,6 +1021,21 @@ const senses = computed(() => cardSenses(word.value, glossLanguages.value));
 const sourceCount = computed(() => new Set(senses.value.map((sense) => sense.dictionary)).size);
 
 /**
+ * Whether to name the dictionary above its senses.
+ *
+ * More than one on the card, obviously. But also whenever the reader has LINKED
+ * an account, even for a single dictionary, and that second case is the useful
+ * one: their stack does not have every word in it, so a word none of their
+ * dictionaries carries falls back to the one that resolved it -- and unlabelled,
+ * that card is an English definition appearing among Japanese ones for no
+ * visible reason. Naming it answers the question before it is asked.
+ *
+ * A reader who linked nothing always reads one dictionary, so a label on every
+ * card would be noise charged to everybody for a case they cannot be in.
+ */
+const namesSources = computed(() => sourceCount.value > 1 || userStore().shirabeLinked);
+
+/**
  * The words this one is made of, when it is a merged expression.
  *
  * The row exists because a merge DELETES what it spans. 男を知っている is one
@@ -1174,7 +1286,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
           ref="tooltipRef"
           class="token-tooltip"
           :class="{ 'token-tooltip--below': tooltipBelow }"
-          :style="tooltipStyle"
+          :style="[tooltipStyle, { '--definition-size': definitionFont }]"
           role="dialog"
           aria-modal="false"
           :aria-label="headword"
@@ -1342,34 +1454,54 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             <p v-if="wordState === 'name'" class="token-tooltip__pending">{{ $t('tokenTooltip.isName') }}</p>
 
             <ol v-else-if="senses.length > 0" class="token-tooltip__senses">
-              <li v-for="(sense, si) in senses" :key="si" class="token-tooltip__sense">
-                <!-- Only when the card holds more than one dictionary, which is
-                     only ever true for a reader who linked a Shirabe account and
-                     configured a stack. Everyone else reads one dictionary and a
-                     label saying so on every sense would be noise. Printed at the
-                     point the source CHANGES, so a run of senses from the same
-                     dictionary is labelled once rather than six times. -->
-                <span v-if="sense.dictionary !== senses[si - 1]?.dictionary && sourceCount > 1" class="token-tooltip__source">{{ sense.dictionary }}</span>
-                <span v-if="sense.partsOfSpeech.length > 0 || sense.tags.length > 0" class="token-tooltip__chips"><span
-                  v-for="chip in sense.partsOfSpeech"
-                  :key="`p-${chip.label}`"
-                  class="token-tooltip__chip token-tooltip__chip--pos"
-                  :title="chip.title"
-                >{{ chip.label }}</span><span
-                  v-for="chip in sense.tags"
-                  :key="`t-${chip.label}`"
-                  class="token-tooltip__chip"
-                  :class="`token-tooltip__chip--${chip.category}`"
-                  :title="chip.title"
-                >{{ chip.label }}</span></span>
-                <span v-for="row in sense.glosses" :key="row.lang" class="token-tooltip__gloss-row">
-                  <span class="token-tooltip__lang">{{ row.label }}</span>{{ row.text }}
-                </span>
-                <!-- On the sense it qualifies, never carried down to the next:
-                     "usu. in kana" on sense 3 and not on sense 4 is a real
-                     difference between those two senses. -->
-                <span v-for="(note, ni) in sense.notes" :key="`n-${ni}`" class="token-tooltip__note">{{ note }}</span>
-              </li>
+              <template v-for="(sense, si) in senses" :key="si">
+                <!-- The dictionary named ONCE above the senses it wrote, on a row
+                     of its own, the way Shirabe's own word page does it. Inline
+                     on the first sense it read as something that sense was
+                     saying, and it pushed that sense's number out of line with
+                     the rest of the run.
+
+                     Only when the card mixes several, which is only ever true
+                     for a reader who linked a Shirabe account: repeating
+                     "JMdict" down a JMdict-only word is the noise this avoids. -->
+                <li
+                  v-if="namesSources && sense.dictionary !== senses[si - 1]?.dictionary"
+                  class="token-tooltip__source-row"
+                >
+                  <span class="token-tooltip__source">{{ sense.dictionary }}</span>
+                </li>
+                <li class="token-tooltip__sense" :class="`token-tooltip__sense--indent-${sense.indent}`">
+                  <!-- The number as a cell of the row rather than an `::marker`
+                       out in the list's own gutter: it sits inside the section,
+                       flush under the dictionary that owns it, and each
+                       dictionary counts from one. `items-baseline` because a
+                       definition carrying furigana opens a taller line box, and
+                       a number aligned to the top of it floats level with the
+                       ruby instead of with the word it numbers. -->
+                  <span class="token-tooltip__sense-number">{{ sense.number }}</span>
+                  <div class="token-tooltip__sense-body">
+                    <span v-if="sense.partsOfSpeech.length > 0 || sense.tags.length > 0" class="token-tooltip__chips"><span
+                      v-for="chip in sense.partsOfSpeech"
+                      :key="`p-${chip.label}`"
+                      class="token-tooltip__chip token-tooltip__chip--pos"
+                      :title="chip.title"
+                    >{{ chip.label }}</span><span
+                      v-for="chip in sense.tags"
+                      :key="`t-${chip.label}`"
+                      class="token-tooltip__chip"
+                      :class="`token-tooltip__chip--${chip.category}`"
+                      :title="chip.title"
+                    >{{ chip.label }}</span></span>
+                    <span v-for="row in sense.glosses" :key="row.lang" class="token-tooltip__gloss-row">
+                      <span v-if="row.label" class="token-tooltip__lang">{{ row.label }}</span>{{ row.text }}
+                    </span>
+                    <!-- On the sense it qualifies, never carried down to the next:
+                         "usu. in kana" on sense 3 and not on sense 4 is a real
+                         difference between those two senses. -->
+                    <span v-for="(note, ni) in sense.notes" :key="`n-${ni}`" class="token-tooltip__note">{{ note }}</span>
+                  </div>
+                </li>
+              </template>
             </ol>
             <button
               v-else-if="definitionsAreHidden"
@@ -1487,7 +1619,17 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                      repeating what the word above the card already says. It
                      stays in the list below, where there is room for it to do
                      the job it can still do: telling きみ's きび from the rest. -->
-                <span class="token-tooltip__candidate-word" lang="ja">{{ chip.candidate.headword }}</span>
+                <span class="token-tooltip__candidate-word" lang="ja">{{ candidateName(chip.candidate) }}</span>
+                <!-- Only where the spelling alone cannot choose: see
+                     `duplicateHeadwords`. -->
+                <span
+                  v-if="duplicateHeadwords.has(candidateName(chip.candidate))"
+                  class="token-tooltip__candidate-kind"
+                  :title="candidatePartOfSpeech(chip.candidate, glossLanguages)"
+                >{{ posInitial(chip.candidate) }}</span>
+                <!-- Says WHY an unfamiliar spelling is here: it is somebody's
+                     name, not a word the reader has never met. -->
+                <span v-if="isNameCandidate(chip.candidate)" class="token-tooltip__candidate-kind">{{ $t('tokenTooltip.nameEntry') }}</span>
               </button>
 
               <button
@@ -1511,11 +1653,12 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                   :aria-current="index === picked"
                   :tabindex="index === picked ? 0 : -1"
                   :data-candidate="index"
-                  @click="pickCandidate(index)"
+                  @click="pickFromList(index)"
                   @keydown="onCandidateKeydown(index, $event)"
                 >
-                  <span class="token-tooltip__candidate-word" lang="ja">{{ candidate.headword }}</span>
-                  <span v-if="candidate.reading && candidate.reading !== candidate.headword" class="token-tooltip__candidate-reading" lang="ja">{{ candidate.reading }}</span>
+                  <span class="token-tooltip__candidate-word" lang="ja">{{ candidateName(candidate) }}</span>
+                  <span v-if="candidate.reading && candidate.reading !== candidateName(candidate)" class="token-tooltip__candidate-reading" lang="ja">{{ candidate.reading }}</span>
+                  <span v-if="isNameCandidate(candidate)" class="token-tooltip__candidate-kind">{{ $t('tokenTooltip.nameEntry') }}</span>
                   <span class="token-tooltip__candidate-gloss">{{ candidateSummary(candidate, glossLanguages) }}</span>
                 </button>
               </div>
@@ -1633,7 +1776,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
      clamp it to the viewport in one pass, because the width it was clamping was
      not the final one. These four numbers are `BOX` in ~/utils/cardPlacement;
      keep them in step. */
-  width: min(340px, calc(100vw - 24px));
+  width: min(480px, calc(100vw - 24px));
   max-height: min(52vh, 420px);
   padding: 10px 0;
   background: var(--surface);
@@ -1680,7 +1823,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
   text-decoration: none;
   /* Shrinkable, so the Anki buttons that share this row keep their place: a
      flex item's default `min-width: auto` refuses to go below its content, and
-     a long headword would push them off the edge of a 340px card. */
+     a long headword would push them off the edge of the card. */
   min-width: 0;
 }
 
@@ -1701,8 +1844,8 @@ a.token-tooltip__word:hover {
 
 /* The candidate row. Pinned like the head above it -- `flex: 0 0 auto` so a long
    list never eats the senses' share of a capped-height card -- and allowed to
-   wrap, because three or four candidates do not fit across 340px and a
-   horizontal scroller hides the ones a reader most needs to see. */
+   wrap, because a long list does not fit across one line and a horizontal
+   scroller hides the ones a reader most needs to see. */
 /* The alternatives, pinned under the scrolling body rather than inside it:
    `flex: 0 0 auto` beside a body that is `0 1 auto`, so the body gives up room
    and this keeps its place whatever the definition's length.
@@ -1774,6 +1917,15 @@ a.token-tooltip__word:hover {
   border-color: transparent;
   color: var(--ink-faint);
   font-size: 11px;
+}
+
+/* The links row brings its own 10px above its rule, which is right when it
+   follows the body and wrong when it follows the pill row: there the reader sees
+   8px above the pills and 18px below them, and the row reads as belonging to the
+   dictionaries under it rather than sitting between the two. Its own padding is
+   symmetric; this is what makes the gap look it. */
+.token-tooltip__others + .token-tooltip__links {
+  margin-top: 0;
 }
 
 /* Back to the glance, at the end of the list it collapses. */
@@ -1864,6 +2016,16 @@ a.token-tooltip__word:hover {
 /* What the row is FOR. Takes the rest of the line and truncates rather than
    wrapping: two-line rows stop being a list you can run your eye down, and the
    full text is one click away by definition. */
+/* The part of speech, on a chip whose spelling is not enough to choose by.
+   Quiet: it is a tiebreak, not something to read. */
+.token-tooltip__candidate-kind {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
 .token-tooltip__candidate-gloss {
   flex: 1 1 auto;
   min-width: 0;
@@ -2174,21 +2336,69 @@ a.token-tooltip__word:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* No markers and no gutter: the numbers are cells of their own rows below, so
+   the list needs neither the indent nor the counter it used to draw.
+
+   The number column and its gap are variables because three rules depend on
+   them and they have to agree: the row's own grid, and the two indent steps,
+   which are exactly one column-plus-gap each so a sub-sense's number lands where
+   its parent's text starts. Spelling the arithmetic out three times is how a
+   sub-sense ends up hanging between its parent's number and its text. */
 .token-tooltip__senses {
+  --sense-number-column: 1rem;
+  --sense-number-gap: 4px;
   margin: 8px 0 0;
-  padding-left: 18px;
-  list-style: decimal;
+  padding-left: 0;
+  list-style: none;
 }
 
+/* Number and body, the same two-column row Shirabe's word page uses. Baseline
+   rather than top: a definition carrying furigana opens a taller line box, and a
+   number aligned to its top floats level with the ruby instead of with the word
+   it numbers. */
 .token-tooltip__sense {
+  display: grid;
+  grid-template-columns: var(--sense-number-column) 1fr;
+  align-items: baseline;
+  gap: var(--sense-number-gap);
   margin: 5px 0;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--definition-size);
+  line-height: 1.5;
   color: var(--ink);
 }
 
-.token-tooltip__sense::marker {
+.token-tooltip__sense-number {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
+}
+
+/* One step per tier the dictionary actually used, and the step is the number
+   column plus its gap -- so a sub-sense's number lands exactly where its
+   parent's TEXT starts. Any other value and it hangs between the two. Same
+   arithmetic as `SearchHelper::SENSE_INDENT`, in this card's units. */
+.token-tooltip__sense--indent-1 {
+  padding-left: calc(var(--sense-number-column) + var(--sense-number-gap));
+}
+
+.token-tooltip__sense--indent-2 {
+  padding-left: calc((var(--sense-number-column) + var(--sense-number-gap)) * 2);
+}
+
+/* `min-width: 0` so a long unbroken definition wraps inside its column instead
+   of widening the grid and pushing the number off the card. */
+.token-tooltip__sense-body {
+  min-width: 0;
+}
+
+/* The dictionary's own row, and the run of senses under it reads as one column:
+   no left indent, so its name sits flush above the numbers it owns. */
+.token-tooltip__source-row {
+  margin-top: 10px;
+}
+
+.token-tooltip__source-row:first-child {
+  margin-top: 0;
 }
 
 /* Chips rather than a run-on line of prose. JMdict's own labels repeat
@@ -2338,13 +2548,14 @@ a.token-tooltip__word:hover {
 /* Which dictionary the senses under it came from. Quieter than the language
    badge beside the glosses: it is an answer to "where is this from", asked
    rarely, and it must not compete with the definition it introduces. */
+/* Sized and cased for a NAME, which is what this now holds. It was 9px
+   uppercase with letter-spacing back when it printed a slug (`jmdict`); at that
+   size 精選版　日本国語大辞典 is a smudge, and uppercasing does nothing to
+   Japanese but does strand the styling on a rule that no longer applies. */
 .token-tooltip__source {
   display: block;
-  margin-bottom: 2px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
   color: var(--ink-faint);
 }
 

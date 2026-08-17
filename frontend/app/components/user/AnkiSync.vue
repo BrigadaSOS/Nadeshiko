@@ -38,6 +38,17 @@ const selectedModel = ref('');
 const modelKey = ref<string | null>(null);
 const ankiconnectAddress = ref('http://127.0.0.1:8765');
 const openBrowserOnExport = ref(true);
+
+/**
+ * How many of the reader's dictionaries fill `{definition}` before the rest
+ * spill into `{definition-rest}`.
+ *
+ * Zero is "no cut", and is the default: everything lands in `{definition}`,
+ * which is what that field did before the split existed. Only a reader who
+ * linked a Shirabe account ever has more than one dictionary on a card, so for
+ * everyone else this control changes nothing whatever they set it to.
+ */
+const primaryDictionaries = ref(0);
 const showNameModal = ref(false);
 const nameModalInput = ref('');
 const nameModalMode = ref<'create' | 'rename'>('create');
@@ -57,6 +68,7 @@ const loadFromActiveProfile = () => {
   modelKey.value = profile.key ?? null;
   ankiconnectAddress.value = profile.serverAddress ?? 'http://127.0.0.1:8765';
   openBrowserOnExport.value = profile.openBrowserOnExport !== false;
+  primaryDictionaries.value = profile.primaryDictionaries ?? 0;
 };
 
 let pendingSaveData: Partial<AnkiProfile> = {};
@@ -310,6 +322,15 @@ watch(openBrowserOnExport, (newValue) => {
   debouncedSave({ openBrowserOnExport: newValue });
 });
 
+watch(primaryDictionaries, (newValue) => {
+  // Clamped rather than validated: a number input can be typed into, and a
+  // negative or fractional cut point has no meaning. Zero stays reachable
+  // because it is the one that turns the split off.
+  const clamped = Math.max(0, Math.floor(Number(newValue) || 0));
+  if (clamped !== newValue) primaryDictionaries.value = clamped;
+  debouncedSave({ primaryDictionaries: clamped });
+});
+
 watch(ankiconnectAddress, (newValue) => {
   debouncedSave({ serverAddress: newValue });
   fetchAndLoad();
@@ -333,6 +354,25 @@ watch(ankiconnectAddress, (newValue) => {
             <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-button-accent-main transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
           </label>
           <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.openBrowserOnExport') }}</span>
+        </div>
+
+        <!-- Splitting the definition across two fields. Only ever more than one
+             dictionary for a reader who linked a Shirabe account, so this reads
+             as a no-op to everyone else -- which is why it says what it is for
+             rather than only what it does. -->
+        <div class="mt-4 flex items-start gap-3">
+          <input
+            v-model.number="primaryDictionaries"
+            type="number"
+            min="0"
+            step="1"
+            data-testid="anki-primary-dictionaries"
+            class="nd-input w-20 shrink-0"
+          />
+          <div>
+            <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.primaryDictionaries') }}</span>
+            <p class="text-gray-500 text-xs">{{ $t('accountSettings.anki.primaryDictionariesHint') }}</p>
+          </div>
         </div>
 
         <div class="mt-4">
@@ -585,6 +625,12 @@ watch(ankiconnectAddress, (newValue) => {
                                   :text="$t('searchpage.main.buttons.wordpitchnum')" :iconPath="mdiNumeric" />
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{definition}')"
                                   :text="$t('searchpage.main.buttons.definition')" :iconPath="mdiBookOpenVariant" />
+                                <!-- Only does anything for a reader whose stack
+                                     answers with more dictionaries than their cut
+                                     point, which is why the control that sets it
+                                     lives beside this list rather than inside it. -->
+                                <SearchDropdownItem @click="setKeyValueField(item.key, '{definition-rest}')"
+                                  :text="$t('searchpage.main.buttons.definitionRest')" :iconPath="mdiBookOpenVariant" />
                                 <SearchDropdownItem @click="setKeyValueField(item.key, '{word-info}')"
                                   :text="$t('searchpage.main.buttons.wordinfo')" :iconPath="mdiText" />
                               </SearchDropdownContent>
@@ -661,7 +707,7 @@ watch(ankiconnectAddress, (newValue) => {
       :open="showNameModal"
       z-index-class="z-50"
       overlay-class="items-center justify-center bg-black/60"
-      panel-class="bg-surface rounded-lg p-6 w-full max-w-sm shadow-xl"
+      panel-class="bg-background border border-hairline rounded-lg p-6 w-full max-w-sm shadow-xl"
       labelledby="nd-anki-profile-name-title"
       @close="showNameModal = false"
     >

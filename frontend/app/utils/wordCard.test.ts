@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  candidateName,
+  candidatePartOfSpeech,
   candidateSummary,
   pickerChips,
   cardForms,
@@ -571,7 +573,18 @@ describe('a card built from more than one dictionary', () => {
     const senses = cardSenses(STACKED, preference('en'));
 
     expect(senses.map((sense) => sense.glosses[0]?.text)).toEqual(['とじていたものをあける', 'to open']);
-    expect(senses[0]?.glosses[0]?.label).toBe('JA');
+    expect(senses[0]?.glosses[0]?.lang).toBe('ja');
+  });
+
+  // The language is data; the badge is presentation, and Japanese needs none of
+  // it. EN and ES are both Latin script and a reader with both on has to be told
+  // which one they are looking at; Japanese says so by being Japanese, and a JA
+  // down every row of a monolingual dictionary is a column of noise.
+  it('badges the languages that need one, and not Japanese', () => {
+    const senses = cardSenses(STACKED, preference('en'));
+
+    expect(senses[0]?.glosses[0]?.label).toBe('');
+    expect(senses[1]?.glosses[0]?.label).toBe('EN');
   });
 
   // Entries arrive in the key owner's stack order, and the card must not
@@ -665,5 +678,208 @@ describe('lookupState with names', () => {
   it('never reads an empty list as a name', () => {
     expect(lookupState(0, 'missing', true)).toBe('missing');
     expect(lookupState(0, 'failed', true)).toBe('unavailable');
+  });
+});
+
+/**
+ * Two candidates with the same spelling. あれ answers twice — the pronoun and
+ * the interjection — and a picker showing あれ twice asks a question it has not
+ * given the reader the means to answer.
+ */
+describe('candidatePartOfSpeech', () => {
+  const withPos = (code: string, label: string): ShirabeWord =>
+    ({
+      ...WORD,
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: [
+            {
+              position: 0,
+              definitions: [{ lang: 'en', text: 'that' }],
+              tags: [{ category: 'partOfSpeech', code, label }],
+            },
+          ],
+        },
+      ],
+    }) as ShirabeWord;
+
+  it('names what the spelling cannot', () => {
+    expect(candidatePartOfSpeech(withPos('pn', 'pronoun'), preference('en'))).toBe('Pronoun');
+    expect(candidatePartOfSpeech(withPos('int', 'interjection'), preference('en'))).toBe('Interjection');
+  });
+
+  // Same first sense the card prints, so the chip and the card cannot disagree
+  // about which word this is.
+  it('follows the interface language, like the chips on the card', () => {
+    expect(candidatePartOfSpeech(withPos('pn', 'pronoun'), preference('es'))).toBe('Pronombre');
+  });
+
+  it('is empty when the candidate has no part of speech to show', () => {
+    expect(candidatePartOfSpeech({ ...WORD, entries: [] } as ShirabeWord, preference('en'))).toBe('');
+    expect(candidatePartOfSpeech(null, preference('en'))).toBe('');
+  });
+});
+
+/**
+ * What the picker calls a candidate. The card's own headword is a different
+ * question -- see `candidateName` for why they are deliberately not the same
+ * expression.
+ */
+describe('candidateName', () => {
+  const word = (headword: string, matchedHeadword?: string) =>
+    ({ id: headword, headword, matchedHeadword }) as ShirabeWord;
+
+  // The case it exists for. 彼方 is "usually written in kana" so it leads with
+  // かなた, and it also reads あなた -- so a reader who tapped あなた was offered
+  // a chip reading かなた, with nothing connecting the two.
+  it('names a word by the spelling it shares with the reading that was matched', () => {
+    expect(candidateName(word('かなた', '彼方'))).toBe('彼方');
+  });
+
+  it('leaves every ordinary word under its own headword', () => {
+    expect(candidateName(word('猫'))).toBe('猫');
+  });
+});
+
+/**
+ * The bug a linked reader hit on every common word: their monolingual
+ * dictionaries were fetched, parsed, and then dropped before rendering.
+ *
+ * A stack leads with JMdict and the monolinguals sit under it -- which is what
+ * happens to anyone who adds one to a stack that already had JMdict. The sense
+ * cap was applied to the flattened list, so JMdict's first six filled it and the
+ * loop stopped before reaching the dictionaries the reader linked their account
+ * to see. Nothing errored; the definitions were simply never printed.
+ */
+describe('cardSenses across a reader stack', () => {
+  const stacked = (jmdictSenses: number) =>
+    ({
+      id: '猫-ねこ',
+      headword: '猫',
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: Array.from({ length: jmdictSenses }, (_, i) => ({
+            definitions: [{ lang: 'en', text: `sense ${i + 1}` }],
+            tags: [],
+          })),
+        },
+        { dictionary: 'yomitan-abc', senses: [{ definitions: [{ lang: 'ja', text: 'ネコ科の動物' }], tags: [] }] },
+      ],
+    }) as unknown as ShirabeWord;
+
+  it('reaches a monolingual dictionary under a JMdict entry longer than the cap', () => {
+    const senses = cardSenses(stacked(8), preference('en'));
+
+    expect(senses.map((sense) => sense.dictionary)).toContain('yomitan-abc');
+  });
+
+  // The cap still does its job -- one dictionary cannot fill the card -- it is
+  // just counted per dictionary rather than over the flattened list.
+  it('still caps how much of any one dictionary is printed', () => {
+    const senses = cardSenses(stacked(20), preference('en'));
+
+    expect(senses.filter((sense) => sense.dictionary === 'jmdict')).toHaveLength(6);
+  });
+});
+
+// Each dictionary numbers its own senses. A running count would label
+// 三省堂's first sense 34 on a card carrying nine dictionaries, which is a number
+// about our rendering rather than about the word.
+describe('sense numbering', () => {
+  it('restarts at the top of each dictionary', () => {
+    const word = {
+      id: '死ぬ',
+      headword: '死ぬ',
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: [
+            { definitions: [{ lang: 'en', text: 'to die' }], tags: [] },
+            { definitions: [{ lang: 'en', text: 'to cease' }], tags: [] },
+          ],
+        },
+        { dictionary: 'yomitan-abc', senses: [{ definitions: [{ lang: 'ja', text: '息が絶える' }], tags: [] }] },
+      ],
+    } as unknown as ShirabeWord;
+
+    expect(cardSenses(word, preference('en')).map((sense) => [sense.dictionary, sense.number])).toEqual([
+      ['jmdict', '①'],
+      ['jmdict', '②'],
+      ['yomitan-abc', '①'],
+    ]);
+  });
+
+  /**
+   * The tiers a dictionary actually used, which it does not state in the text.
+   *
+   * デジタル大辞泉 files 食べる as ① ② with ㋐ ㋑ UNDER ②. Rendered flat that is four
+   * equal senses, which the dictionary does not say -- so the glyph carries the
+   * tier and the row steps in under the sense it belongs to.
+   */
+  it('numbers and indents a sub-sense under its parent', () => {
+    const tiered = {
+      id: '食べる',
+      headword: '食べる',
+      entries: [
+        {
+          dictionary: 'デジタル大辞泉',
+          senses: [
+            { depth: 1, definitions: [{ lang: 'ja', text: '食物をかんで、のみこむ。' }], tags: [] },
+            { depth: 1, definitions: [{ lang: 'ja', text: '暮らしを立てる。' }], tags: [] },
+            { depth: 2, definitions: [{ lang: 'ja', text: '「食う」「飲む」の謙譲語。' }], tags: [] },
+            { depth: 2, definitions: [{ lang: 'ja', text: '「食う」「飲む」を、へりくだる。' }], tags: [] },
+          ],
+        },
+      ],
+    } as unknown as ShirabeWord;
+
+    expect(cardSenses(tiered, preference('en')).map((sense) => [sense.number, sense.indent])).toEqual([
+      ['①', 0],
+      ['②', 0],
+      ['㋐', 1],
+      ['㋑', 1],
+    ]);
+  });
+
+  // A pack that heads its senses with 一 二 三 uses all three tiers, so its
+  // senses step in under the group they belong to and the sub-senses again.
+  it('steps everything in under a dictionary that numbers groups', () => {
+    const grouped = {
+      id: 'これ',
+      headword: 'これ',
+      entries: [
+        {
+          dictionary: '精選版　日本国語大辞典',
+          senses: [
+            { depth: 0, definitions: [{ lang: 'ja', text: '代名詞。' }], tags: [] },
+            { depth: 1, definitions: [{ lang: 'ja', text: '話し手に近いもの。' }], tags: [] },
+            { depth: 0, definitions: [{ lang: 'ja', text: '感動詞。' }], tags: [] },
+            { depth: 1, definitions: [{ lang: 'ja', text: '呼びかけ。' }], tags: [] },
+          ],
+        },
+      ],
+    } as unknown as ShirabeWord;
+
+    expect(cardSenses(grouped, preference('en')).map((sense) => [sense.number, sense.indent])).toEqual([
+      ['1', 0],
+      ['①', 1],
+      ['2', 0],
+      // The second group restarts its senses, rather than running on to ②.
+      ['①', 1],
+    ]);
+  });
+
+  // An older Shirabe sends no `depth` at all, and a flat list of plain senses is
+  // what that has always meant.
+  it('reads a sense with no depth as an ordinary one', () => {
+    const flat = {
+      id: '猫',
+      headword: '猫',
+      entries: [{ dictionary: 'jmdict', senses: [{ definitions: [{ lang: 'en', text: 'cat' }], tags: [] }] }],
+    } as unknown as ShirabeWord;
+
+    expect(cardSenses(flat, preference('en')).map((sense) => [sense.number, sense.indent])).toEqual([['①', 0]]);
   });
 });
