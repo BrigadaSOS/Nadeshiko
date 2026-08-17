@@ -924,10 +924,12 @@
     "mineContextOnly": "Add this sentence, audio and image, keeping your definitions",
     "minedActions": "In your collection",
     "alsoWritten": "also written",
-    "nameEntry": "name",
-    "otherReadings": "Which word is this?",
     "mineToNote": "Replace everything, including the definitions",
-    "mineToLastCard": "Add this sentence, audio and image to your last added Anki card"
+    "mineToLastCard": "Add this sentence, audio and image to your last added Anki card",
+    "otherMatches": "{count} more",
+    "showLess": "Show fewer",
+    "isName": "This looks like a name.",
+    "parts": "Parts"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -1253,6 +1255,28 @@
       "report": "Report",
       "when": "When",
       "actions": "Actions"
+    }
+  },
+  "connections": {
+    "title": "Connections",
+    "shirabe": {
+      "name": "Shirabe",
+      "description": "Connect with your Shirabe account to keep using your dictionaries",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "linkedAs": "Linked as {name}",
+      "anonymous": "your Shirabe account",
+      "upgrade": "Update permissions",
+      "upgradeNeeded": "Linked as {name} — a new permission is needed for the latest features",
+      "confirmDisconnect": "Disconnect your Shirabe account? The key is revoked on Shirabe, and word cards go back to the default dictionaries."
+    },
+    "callback": {
+      "working": "Finishing the connection…",
+      "declined": "The connection was not approved, so nothing was linked.",
+      "failed": "That connection could not be completed.",
+      "back": "Back to settings",
+      "done": "Shirabe connected",
+      "goToSettings": "Go to settings"
     }
   }
 }

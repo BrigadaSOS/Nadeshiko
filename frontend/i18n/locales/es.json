@@ -924,10 +924,12 @@
     "mineContextOnly": "Añadir esta frase, audio e imagen, conservando tus definiciones",
     "minedActions": "En tu colección",
     "alsoWritten": "también se escribe",
-    "nameEntry": "nombre",
-    "otherReadings": "¿Qué palabra es esta?",
     "mineToNote": "Reemplazar todo, incluidas las definiciones",
-    "mineToLastCard": "Añadir esta frase, audio e imagen a la última tarjeta añadida en Anki"
+    "mineToLastCard": "Añadir esta frase, audio e imagen a la última tarjeta añadida en Anki",
+    "otherMatches": "{count} más",
+    "showLess": "Ver menos",
+    "isName": "Esto parece ser un nombre propio.",
+    "parts": "Partes"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -1253,6 +1255,28 @@
       "report": "Reporte",
       "when": "Cuándo",
       "actions": "Acciones"
+    }
+  },
+  "connections": {
+    "title": "Conexiones",
+    "shirabe": {
+      "name": "Shirabe",
+      "description": "Conecta tu cuenta de Shirabe para seguir usando tus diccionarios",
+      "connect": "Conectar",
+      "disconnect": "Desconectar",
+      "linkedAs": "Vinculada como {name}",
+      "anonymous": "tu cuenta de Shirabe",
+      "upgrade": "Actualizar permisos",
+      "upgradeNeeded": "Vinculada como {name} — hace falta un permiso nuevo para las últimas funciones",
+      "confirmDisconnect": "¿Desconectar tu cuenta de Shirabe? Se revocará la clave en Shirabe y las tarjetas de palabra volverán a los diccionarios por defecto."
+    },
+    "callback": {
+      "working": "Terminando la conexión…",
+      "declined": "No se aprobó la conexión, así que no se vinculó nada.",
+      "failed": "No se pudo completar la conexión.",
+      "back": "Volver a ajustes",
+      "done": "Shirabe conectado",
+      "goToSettings": "Ir a ajustes"
     }
   }
 }
