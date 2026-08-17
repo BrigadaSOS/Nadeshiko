@@ -7,6 +7,7 @@ import {
   cardForms,
   cardHeadword,
   lookupState,
+  candidateSummary,
   cardSenses,
   pickerChips,
   glossPreference,
@@ -135,43 +136,37 @@ const candidates = ref<ShirabeCandidate[]>([]);
 const picked = ref(0);
 
 /**
- * How many candidates the picker shows before it asks.
+ * Whether there is anything to offer at all.
  *
- * Not a cap on the ANSWER -- every candidate stays reachable, and Shirabe ranks
- * rather than filters on purpose. It is a cap on the row, because a ranked list
- * is not the same thing as a readable one: きみ answers twelve, and six of those
- * are JMnedict entries that all gloss "Kimi". Twelve chips wrap into four lines
- * on a 340px card and push the definitions -- the thing the reader opened this
- * for -- off the bottom.
- *
- * Six, because that is where the ranking stops being a recommendation. Past the
- * first few the order is dictionary bookkeeping rather than a reading of the
- * sentence, and a reader who needs to go that far is looking for a specific word
- * and will open the row to find it.
+ * One candidate is not a choice, and a row of one is a control that asks the
+ * reader to consider something already settled.
  */
-const PICKER_VISIBLE = 6;
+const showCandidateRows = computed(() => wordState.value !== 'name' && candidates.value.length > 1);
 
-const allCandidatesShown = ref(false);
+/**
+ * How many chips the glance shows before it stops.
+ *
+ * Four, not six. The row is no longer the only way to reach a candidate -- what
+ * it does not fit opens as a list a click away -- so it can be sized for what is
+ * READABLE at 340px rather than for what is reachable. Four chips hold one line
+ * at the widths these words run to; six wrapped, and a wrapped glance is not one.
+ */
+const PICKER_VISIBLE = 4;
 
 /** The chips to draw. The decision, and why the index travels with the
  *  candidate, is `pickerChips`. */
-const visibleCandidates = computed(() =>
-  pickerChips(candidates.value, picked.value, allCandidatesShown.value, PICKER_VISIBLE),
-);
+const visibleCandidates = computed(() => pickerChips(candidates.value, picked.value, false, PICKER_VISIBLE));
 
-const hiddenCandidateCount = computed(() =>
-  allCandidatesShown.value ? 0 : Math.max(0, candidates.value.length - PICKER_VISIBLE),
-);
+const hiddenCandidateCount = computed(() => Math.max(0, candidates.value.length - PICKER_VISIBLE));
 
 /**
- * Whether a candidate is a NAME rather than a word.
+ * Shut by default, and reset per card.
  *
- * JMnedict is where the six Kimis come from, and without saying so the row reads
- * as a dictionary that cannot make up its mind. Saying it turns the same six
- * into one obvious group a reader skips in a glance -- they came here about a
- * pronoun, not about somebody called Kimi.
+ * A reader who opened the list on ここ was asking about ここ. Carrying that open
+ * state to the next word they hover would answer a question they have not asked
+ * yet, on a card where the alternatives are usually noise.
  */
-const isNameCandidate = (candidate: ShirabeCandidate): boolean => candidate.dictionary === 'jmnedict';
+const othersOpen = ref(false);
 
 /**
  * The word the card renders: whichever candidate the reader has picked.
@@ -192,7 +187,7 @@ const headword = computed(() => cardHeadword(word.value, hoveredToken.value?.dic
 // a token that could not be a word) -- claiming no entry for a question nobody
 // put would be a lie, so those stay 'idle' and the card simply answers from the
 // token alone, which is what it did before any of this loaded.
-const wordState = ref<'idle' | 'loading' | 'missing' | 'unavailable'>('idle');
+const wordState = ref<'idle' | 'loading' | 'name' | 'missing' | 'unavailable'>('idle');
 // The word this card is currently waiting on, so a late answer for a word the
 // reader has moved off can be told apart from the one they are looking at.
 // Deliberately not the token object: those are rebuilt by a computed.
@@ -337,20 +332,20 @@ async function loadWord(token: EnrichedToken): Promise<void> {
 function clearLookup(): void {
   candidates.value = [];
   picked.value = 0;
-  allCandidatesShown.value = false;
+  othersOpen.value = false;
   wordState.value = 'idle';
 }
 
-/** Paint an answer, whichever of the three it is. Only a dictionary that
+/** Paint an answer, whichever of the four it is. Only a dictionary that
  *  answered "no such word" reaches 'missing' and is said out loud; a lookup that
  *  could not be made leaves the card quiet, on what the token itself knows. */
 function applyLookup(answer: WordLookup): void {
   candidates.value = answer.candidates;
   picked.value = 0;
-  allCandidatesShown.value = false;
+  othersOpen.value = false;
   // 'shown' becomes 'idle' here: with candidates in hand the card has something
-  // to draw and needs no state of its own. The other two are things it says.
-  const state = lookupState(answer.candidates.length, answer.reason);
+  // to draw and needs no state of its own. The other three are things it says.
+  const state = lookupState(answer.candidates.length, answer.reason, answer.nameOnly);
   wordState.value = state === 'shown' ? 'idle' : state;
 }
 
@@ -604,6 +599,12 @@ const pickCandidate = (index: number) => {
 
   picked.value = index;
 
+  // Deliberately does NOT scroll. The definition lives at the top of the card
+  // and the list at the bottom, so following the pick would take the reader off
+  // the list they are still choosing from -- and following it back on the next
+  // arrow key would fight them. The highlight moving IS the feedback that the
+  // pick landed; reading the result is one scroll they chose to make.
+
   // Ask Anki again, about the word the reader just chose. `useWordMining` reads
   // `currentWord` through a getter at call time rather than watching it, so
   // moving the pick does not re-probe on its own -- and a star left over from
@@ -618,13 +619,14 @@ const pickCandidate = (index: number) => {
  * `tokenKeyAction` decides, which looks like reuse for its own sake and is not:
  * it is written over an arbitrary list of numeric keys, and the candidate
  * indices are one. It already settles the two things that go quietly wrong here
- * -- both axes move (a wrapped row reads Down as "next" just as much as Right),
+ * -- both axes move (Down is the list's own direction now, and Right still reads
+ * as "next" to anyone who learned the row),
  * and the ends hold rather than wrapping, so arrowing off the last candidate
  * does not teleport the reader back to the first.
  *
- * Selection follows focus, which is the radiogroup convention and the right one
- * here: each move re-renders the senses below, so a reader arrowing along the
- * row is reading the definitions as they go rather than committing blind.
+ * Selection follows focus, which is the right call here whatever the widget is
+ * called: each move opens that row's entry, so a reader arrowing down the list
+ * is reading the definitions as they go rather than committing blind.
  */
 const onCandidateKeydown = (index: number, event: KeyboardEvent) => {
   const action = tokenKeyAction(
@@ -910,15 +912,58 @@ const pitchPatterns = computed(() => {
     downstep: pattern.downstep,
     audioUrl: pattern.audioUrl ?? '',
     morae: pitchMorae(reading, pattern.downstep),
-    // The pattern's NAME (heiban, nakadaka), which the diagram alone does not
-    // say. Shirabe's own card prints it beside the number and it is the half a
-    // reader can carry away and use on the next word.
-    pattern: pattern.pattern ?? '',
   }));
 });
 
 // 5 and 6. The senses, and the kanji the headword is written with.
 const senses = computed(() => cardSenses(word.value, glossLanguages.value));
+
+/** How many dictionaries this card is made of. One for every reader who has not
+ *  linked a Shirabe account, which is what decides whether the senses are worth
+ *  attributing at all. */
+const sourceCount = computed(() => new Set(senses.value.map((sense) => sense.dictionary)).size);
+
+/**
+ * The words this one is made of, when it is a merged expression.
+ *
+ * The row exists because a merge DELETES what it spans. 男を知っている is one
+ * chip covering 男 (rank 156) and 知る (69), and the expression is the only
+ * candidate the resolver returns -- so without this there is no way to reach
+ * either word: not by hovering, since the chip covers them, and not through the
+ * picker, since there is nothing else in it.
+ *
+ * Only the ones Shirabe could resolve to a word. A part with no id is a spelling
+ * we cannot open, and a chip that does nothing when clicked is worse than no
+ * chip.
+ */
+const wordParts = computed(() => (word.value?.parts ?? []).filter((part) => part.id));
+
+/**
+ * Open a part in the card that is showing its parent.
+ *
+ * The same lookup the card already makes for a hovered token, asked about a
+ * different word: the part becomes the card, with its own senses, pitch and
+ * picker. Nothing is pushed or navigated, so the reader is one hover away from
+ * the sentence they were reading.
+ */
+async function showPart(part: { lemma: string; text: string; reading?: string }): Promise<void> {
+  const ref = { lemma: part.lemma, surface: part.text, reading: part.reading ?? '', pos: '' };
+  const locale = glossLanguages.value.labels;
+
+  const cached = peekWord(ref, locale);
+  if (cached !== undefined) return applyLookup(cached);
+
+  clearLookup();
+  wordState.value = 'loading';
+  // Guarded like the hover path: a slow answer for a part the reader has since
+  // navigated away from must not paint over whatever they are looking at now.
+  const asked = `${ref.lemma}|${ref.surface}|${ref.reading}|${ref.pos}`;
+  pendingLookup = asked;
+  const found = await fetchWord(ref, locale);
+  if (pendingLookup !== asked) return;
+  pendingLookup = null;
+  applyLookup(found);
+}
 
 /** The other spellings this word is written with. Only from the detail call:
  *  identify carries them behind `include=forms`, which we do not send yet. */
@@ -1011,9 +1056,13 @@ const dictionaryLinks = computed(() => {
  * with, and folding those into `no_senses` would blame the dictionary for the
  * lookup being slow.
  */
-const cardOutcome = computed<'shown' | 'no_senses' | 'missing' | 'unavailable' | 'loading' | 'idle'>(() => {
+const cardOutcome = computed<'shown' | 'name' | 'no_senses' | 'missing' | 'unavailable' | 'loading' | 'idle'>(() => {
   if (wordState.value === 'loading') return 'loading';
   if (wordState.value === 'missing') return 'missing';
+  // Its own bucket, and worth one: a name is neither a definition shown nor a
+  // gap in the dictionary, and folding it into either would move a rate that is
+  // really a fact about the corpus. Subtitles are full of names.
+  if (wordState.value === 'name') return 'name';
   // Reported apart from 'missing' on purpose: one is the dictionary's answer
   // about the word and the other is our failure to ask, and folding them
   // together would read as dictionary coverage collapsing whenever Shirabe has
@@ -1236,62 +1285,18 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             </span>
           </div>
 
-          <!-- Which word this is, when the spelling can name more than one.
-               Pinned above the scrolling body rather than in it: it is a
-               control, and a choice the reader cannot see without scrolling is
-               a choice they will not know they have.
-
-               A radiogroup because that is what it is -- one of several, exactly
-               one selected. Arrow keys move within it; the roving tabindex means
-               the group takes a single tab stop rather than one per candidate. -->
-          <div
-            v-if="candidates.length > 1"
-            class="token-tooltip__candidates"
-            role="radiogroup"
-            :aria-label="$t('tokenTooltip.otherReadings')"
-          >
-            <button
-              v-for="chip in visibleCandidates"
-              :key="chip.candidate.id"
-              type="button"
-              role="radio"
-              class="token-tooltip__candidate"
-              :class="{ 'is-picked': chip.index === picked, 'is-name': isNameCandidate(chip.candidate) }"
-              :aria-checked="chip.index === picked"
-              :tabindex="chip.index === picked ? 0 : -1"
-              :data-candidate="chip.index"
-              @click="pickCandidate(chip.index)"
-              @keydown="onCandidateKeydown(chip.index, $event)"
-            >
-              <span class="token-tooltip__candidate-word" lang="ja">{{ chip.candidate.headword }}</span>
-              <span v-if="chip.candidate.reading && chip.candidate.reading !== chip.candidate.headword" class="token-tooltip__candidate-reading" lang="ja">{{ chip.candidate.reading }}</span>
-              <!-- Says WHY six near-identical chips are here: they are people,
-                   not readings of the word the reader tapped. -->
-              <span v-if="isNameCandidate(chip.candidate)" class="token-tooltip__candidate-kind">{{ $t('tokenTooltip.nameEntry') }}</span>
-            </button>
-
-            <!-- Not a cap on the answer, only on the row: everything stays one
-                 click away. See PICKER_VISIBLE. -->
-            <button
-              v-if="hiddenCandidateCount > 0"
-              type="button"
-              class="token-tooltip__candidate is-more"
-              @click="allCandidatesShown = true"
-            >+{{ hiddenCandidateCount }}</button>
-          </div>
-
-          <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
-
-          <div v-if="badges.length > 0" class="token-tooltip__badges">
-            <span v-for="badge in badges" :key="badge.id" class="token-tooltip__badge" :class="badge.kind">{{ badge.text }}</span>
-          </div>
-
           <!-- Live, because the interesting part of this card arrives after it
                opens. A reader who has been dropped into the dialog would
                otherwise sit on "Looking up…" in silence and never be told the
                definition had landed. It changes once per card, so polite
                announcement is not chatty. -->
           <div class="token-tooltip__body" aria-live="polite">
+            <p v-if="inflectionLine" class="token-tooltip__inflection">{{ inflectionLine }}</p>
+
+            <div v-if="badges.length > 0" class="token-tooltip__badges">
+              <span v-for="badge in badges" :key="badge.id" class="token-tooltip__badge" :class="badge.kind">{{ badge.text }}</span>
+            </div>
+
             <!-- The play buttons sit on the pitch row because both are about how
                  the word SOUNDS, and one leads each pattern because each pattern
                  is a different recording: a word read two ways gets a button per
@@ -1320,12 +1325,31 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                   :class="{ 'is-high': mora.high, 'is-drop': mora.drop }"
                 >{{ mora.text }}</span>
                 <span class="token-tooltip__downstep">[{{ pattern.downstep }}]</span>
-                <span v-if="pattern.pattern" class="token-tooltip__pitch-name">{{ pattern.pattern }}</span>
               </span>
             </div>
 
-            <ol v-if="senses.length > 0" class="token-tooltip__senses">
+            <!-- Before the senses, not after, because a name HAS a gloss: the
+                 JMnedict entry for 明日香 reads "Asuka", a romanisation of the
+                 word already at the top of the card. Rendering it as sense 1 is
+                 the noise this whole change removes, so the state answers first.
+                 
+                 Not "no entry" either: the dictionary HAS this, we dropped the
+                 name rows because a name competing with a word is noise. With no
+                 word to compete with, being a name IS the answer -- the question
+                 a reader has at 明日香 is "is this vocabulary or a person?", not
+                 "what does it mean". One line, not a picker: several people
+                 sharing a spelling are all the same answer. -->
+            <p v-if="wordState === 'name'" class="token-tooltip__pending">{{ $t('tokenTooltip.isName') }}</p>
+
+            <ol v-else-if="senses.length > 0" class="token-tooltip__senses">
               <li v-for="(sense, si) in senses" :key="si" class="token-tooltip__sense">
+                <!-- Only when the card holds more than one dictionary, which is
+                     only ever true for a reader who linked a Shirabe account and
+                     configured a stack. Everyone else reads one dictionary and a
+                     label saying so on every sense would be noise. Printed at the
+                     point the source CHANGES, so a run of senses from the same
+                     dictionary is labelled once rather than six times. -->
+                <span v-if="sense.dictionary !== senses[si - 1]?.dictionary && sourceCount > 1" class="token-tooltip__source">{{ sense.dictionary }}</span>
                 <span v-if="sense.partsOfSpeech.length > 0 || sense.tags.length > 0" class="token-tooltip__chips"><span
                   v-for="chip in sense.partsOfSpeech"
                   :key="`p-${chip.label}`"
@@ -1373,6 +1397,21 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                  true, and the dictionary chips below still work. -->
             <p v-else-if="wordState === 'unavailable'" class="token-tooltip__pending">{{ $t('tokenTooltip.unavailable') }}</p>
 
+            <!-- What this expression is made of. Above the forms row because it
+                 answers a bigger question: forms are other spellings of the SAME
+                 word, these are the different words the chip swallowed. -->
+            <div v-if="wordParts.length > 0" class="token-tooltip__parts">
+              <span class="token-tooltip__parts-label">{{ $t('tokenTooltip.parts') }}</span>
+              <button
+                v-for="part in wordParts"
+                :key="part.id"
+                type="button"
+                class="token-tooltip__part"
+                lang="ja"
+                @click="showPart(part)"
+              >{{ part.text }}</button>
+            </div>
+
             <!-- The other spellings. The reader may well have met one of these
                  rather than the headword above, and nothing else on the card
                  connects the two. -->
@@ -1406,6 +1445,88 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
               class="token-tooltip__action"
               @click="searchForWord(headword)"
             >{{ $t('tokenTooltip.moreSentences') }}</button>
+          </div>
+
+          <!-- The other words this spelling can name.
+               
+               Pinned under the scrolling body rather than inside it, the way the
+               chip row used to be pinned above it, and for the reason that put
+               the chips there: a choice the reader cannot see without scrolling
+               is a choice they will not know they have. This list sits at the END
+               of a card whose body is often taller than the card, so inside the
+               scroll it would be invisible exactly when a word has enough senses
+               to be worth doubting.
+
+               Two states, because the two questions are different sizes. "Is it
+               one of a couple of obvious others?" is a glance, and a row of
+               chips answers it without spending height. "Which of these nine is
+               it?" needs to know what each one MEANS, which a chip cannot say --
+               so the overflow opens a list where every row carries its gloss.
+               The row is not shown beside the list: they are the same candidates,
+               and printing both reads as two different sets. -->
+          <div v-if="showCandidateRows" class="token-tooltip__others">
+            <!-- Chips. `pickerChips` keeps the picked one in the row however far
+                 down the ranking it is, so collapsing the list never leaves the
+                 card showing a word with no chip. -->
+            <div v-if="!othersOpen" class="token-tooltip__others-row">
+              <button
+                v-for="chip in visibleCandidates"
+                :key="chip.candidate.id"
+                type="button"
+                class="token-tooltip__chip-candidate"
+                :class="{ 'is-picked': chip.index === picked }"
+                :aria-current="chip.index === picked"
+                :tabindex="chip.index === picked ? 0 : -1"
+                :data-candidate="chip.index"
+                @click="pickCandidate(chip.index)"
+                @keydown="onCandidateKeydown(chip.index, $event)"
+              >
+                <!-- Spelling only. Every candidate here is one the token could
+                     be read as, so the reading is the one thing they have in
+                     common -- printing it on each chip spends the row's width
+                     repeating what the word above the card already says. It
+                     stays in the list below, where there is room for it to do
+                     the job it can still do: telling きみ's きび from the rest. -->
+                <span class="token-tooltip__candidate-word" lang="ja">{{ chip.candidate.headword }}</span>
+              </button>
+
+              <button
+                v-if="hiddenCandidateCount > 0"
+                type="button"
+                class="token-tooltip__chip-candidate is-more"
+                :aria-expanded="false"
+                @click="othersOpen = true"
+              >{{ $t('tokenTooltip.otherMatches', { count: hiddenCandidateCount }) }}</button>
+            </div>
+
+            <!-- The list, where a row can say what its word means. -->
+            <template v-else>
+              <div class="token-tooltip__others-list">
+                <button
+                  v-for="(candidate, index) in candidates"
+                  :key="candidate.id"
+                  type="button"
+                  class="token-tooltip__candidate"
+                  :class="{ 'is-picked': index === picked }"
+                  :aria-current="index === picked"
+                  :tabindex="index === picked ? 0 : -1"
+                  :data-candidate="index"
+                  @click="pickCandidate(index)"
+                  @keydown="onCandidateKeydown(index, $event)"
+                >
+                  <span class="token-tooltip__candidate-word" lang="ja">{{ candidate.headword }}</span>
+                  <span v-if="candidate.reading && candidate.reading !== candidate.headword" class="token-tooltip__candidate-reading" lang="ja">{{ candidate.reading }}</span>
+                  <span class="token-tooltip__candidate-gloss">{{ candidateSummary(candidate, glossLanguages) }}</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                class="token-tooltip__others-less"
+                :aria-expanded="true"
+                @click="othersOpen = false"
+              >{{ $t('tokenTooltip.showLess') }}</button>
+            </template>
           </div>
 
           <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
@@ -1582,28 +1703,133 @@ a.token-tooltip__word:hover {
    list never eats the senses' share of a capped-height card -- and allowed to
    wrap, because three or four candidates do not fit across 340px and a
    horizontal scroller hides the ones a reader most needs to see. */
-.token-tooltip__candidates {
+/* The alternatives, pinned under the scrolling body rather than inside it:
+   `flex: 0 0 auto` beside a body that is `0 1 auto`, so the body gives up room
+   and this keeps its place whatever the definition's length.
+
+   Set apart by a rule, because it is about a DIFFERENT word than everything
+   above -- a reader who does not notice the boundary reads the first chip as
+   part of the entry. */
+.token-tooltip__others {
   flex: 0 0 auto;
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+/* The glance. One line, no wrap: a row that wraps has stopped being a glance,
+   which is what the four-chip cap is for. */
+.token-tooltip__others-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px 14px 0;
+  align-items: center;
+  gap: 3px;
+  /* Even above and below. The row sits between two rules, so an uneven pad reads
+     as the chips belonging to whichever side they are nearer. */
+  padding: 8px 14px;
+  overflow: hidden;
 }
 
 /* Quiet until picked. The unpicked ones are alternatives rather than actions, so
    they must not compete with the headword -- but they have to look pressable,
    which a bare word does not. */
-.token-tooltip__candidate {
+.token-tooltip__chip-candidate {
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
+  flex: 0 1 auto;
+  min-width: 0;
   padding: 2px 7px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: transparent;
   color: var(--ink-muted);
+  white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.token-tooltip__chip-candidate:hover {
+  background: var(--surface-lift);
+  color: var(--ink);
+}
+
+/* The one the card is showing. An outline rather than a fill: the chips sit
+   directly under the definition they belong to, and a filled chip down there
+   pulls harder than the word it is describing. The accent still matches
+   `.token--open` on the word in the sentence -- the same relationship said the
+   same way, just quieter. */
+.token-tooltip__chip-candidate.is-picked {
+  border-color: var(--accent-soft);
+  color: var(--accent-soft);
+}
+
+.token-tooltip__chip-candidate:focus-visible {
+  outline: 2px solid var(--input-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Not a word, so it does not wear a word's chip: no border, and it never gets
+   squeezed by the chips beside it. */
+.token-tooltip__chip-candidate.is-more {
+  flex: 0 0 auto;
+  border-color: transparent;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+/* Back to the glance, at the end of the list it collapses. */
+.token-tooltip__others-less {
+  width: 100%;
+  padding: 6px 14px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.token-tooltip__others-less:hover {
+  color: var(--ink);
+}
+
+.token-tooltip__others-list {
+  /* Its own scroll, because it is no longer inside the body's. A ceiling in `em`
+     rather than rows: it holds about five, which is enough to read as a list
+     that continues without the fold eating the definition it belongs to. The
+     card's own height is clamped by `placeCard`, so an unbounded list here would
+     be one the reader could not reach the bottom of. */
+  max-height: 11em;
+  overflow-y: auto;
+  /* Same reason as the body: this one sits at the very bottom of the card, so
+     it is the likeliest place to scroll past the end by accident. */
+  overscroll-behavior: contain;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #555 transparent;
+}
+
+/* A row, not a chip. Full width so the gloss has somewhere to go, and a rule
+   between rows rather than a border around each: a bordered stack of nine reads
+   as nine buttons, while a ruled one reads as a list -- which is what a reader
+   scans. */
+.token-tooltip__candidate {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 14px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-muted);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+/* The first row sits under the fold's own toggle, which is boundary enough. */
+.token-tooltip__candidate:first-child {
+  border-top: 0;
 }
 
 .token-tooltip__candidate:hover {
@@ -1611,13 +1837,13 @@ a.token-tooltip__word:hover {
   color: var(--ink);
 }
 
-/* The one the card is showing. Accent rather than a brighter neutral, matching
-   `.token--open` on the word in the sentence: the same relationship (this is the
-   thing you are looking at) said the same way. */
+/* The one already open above. It stays IN the list rather than being filtered
+   out of it, so picking moves a highlight instead of making the row under the
+   cursor vanish and the rest reshuffle beneath it. Accent matches `.token--open`
+   on the word in the sentence: the same relationship said the same way. */
 .token-tooltip__candidate.is-picked {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--accent-soft) 22%, transparent);
   color: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent-soft) 10%, transparent);
 }
 
 .token-tooltip__candidate:focus-visible {
@@ -1635,14 +1861,24 @@ a.token-tooltip__word:hover {
   opacity: 0.75;
 }
 
-/* A name, not a reading of the word that was tapped. Quiet, because it is a
-   reason to skip the chip rather than something to read. */
-/* The accent's name beside its number. Quiet: the diagram is the thing being
-   read, and this is the label a reader carries away from it. */
-.token-tooltip__pitch-name {
-  font-size: 10px;
-  color: var(--ink-muted);
-  margin-left: 2px;
+/* What the row is FOR. Takes the rest of the line and truncates rather than
+   wrapping: two-line rows stop being a list you can run your eye down, and the
+   full text is one click away by definition. */
+.token-tooltip__candidate-gloss {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* Not a row about a word, so it does not pretend to be one. */
+.token-tooltip__candidate.is-more {
+  justify-content: center;
+  font-size: 11px;
+  color: var(--ink-faint);
 }
 
 /* A usage note, which is not a definition and must not read as one: indented
@@ -1653,6 +1889,45 @@ a.token-tooltip__word:hover {
   font-style: italic;
   color: var(--ink-muted);
   margin-top: 2px;
+}
+
+/* What the expression is made of. Styled as the forms row is, because it is the
+   same kind of thing to the eye -- a label and a row of words -- and different
+   chrome for the two would suggest a difference that is not there. Pressable,
+   unlike a form: each one opens. */
+.token-tooltip__parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.token-tooltip__parts-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.token-tooltip__part {
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.token-tooltip__part:hover {
+  background: var(--surface-lift);
+}
+
+.token-tooltip__part:focus-visible {
+  outline: 2px solid var(--input-focus-ring);
+  outline-offset: 2px;
 }
 
 /* The other spellings, on one wrapping row. */
@@ -1675,17 +1950,6 @@ a.token-tooltip__word:hover {
 .token-tooltip__form {
   font-size: 13px;
   color: var(--ink);
-}
-
-.token-tooltip__candidate-kind {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.55;
-}
-
-.token-tooltip__candidate.is-name:not(.is-picked) {
-  opacity: 0.72;
 }
 
 /* The rest of the ranked list, one click away. Styled as a chip because it sits
@@ -1833,6 +2097,14 @@ a.token-tooltip__word:hover {
   flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Scrolling to the end of the card does not then start scrolling the page
+     behind it. Without this the reader reaches the last sense and the sentence
+     they were reading slides away underneath -- and on a card opened by HOVER,
+     the page moving is enough to take the word out from under the cursor and
+     dismiss the thing they were reading. `contain` rather than `none` so the
+     card still rubber-bands at its own ends, which is the feedback that says
+     "this is the end" rather than "this is stuck". */
+  overscroll-behavior: contain;
   padding: 0 14px;
   /* Thumb only. The default track is a filled gutter with a border, which
      reads as a second column on this card. */
@@ -2060,6 +2332,19 @@ a.token-tooltip__word:hover {
 }
 
 .token-tooltip__lang.is-spoiler {
+  color: var(--ink-faint);
+}
+
+/* Which dictionary the senses under it came from. Quieter than the language
+   badge beside the glosses: it is an answer to "where is this from", asked
+   rarely, and it must not compete with the definition it introduces. */
+.token-tooltip__source {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--ink-faint);
 }
 

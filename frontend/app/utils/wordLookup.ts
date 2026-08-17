@@ -46,8 +46,8 @@ export type { WordRef };
  * word that may well be in there.
  */
 export type WordLookup =
-  | { candidates: ShirabeCandidate[]; reason?: undefined }
-  | { candidates: []; reason: 'missing' | 'failed' };
+  | { candidates: ShirabeCandidate[]; nameOnly?: boolean; reason?: undefined }
+  | { candidates: []; nameOnly?: undefined; reason: 'missing' | 'failed' };
 
 const inFlight = new Map<string, Promise<WordLookup>>();
 
@@ -139,7 +139,7 @@ export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const request = $fetch<{ candidates: ShirabeCandidate[] }>(
+  const request = $fetch<{ candidates: ShirabeCandidate[]; nameOnly?: boolean }>(
     `/api/shirabe/words/candidates/${encodeURIComponent(ref.lemma)}`,
     {
       query: { locale, surface: ref.surface, reading: ref.reading, pos: ref.pos },
@@ -159,7 +159,7 @@ export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
       // that arrives empty reads as a successful lookup with no reason, and the
       // card reports an `undefined` outcome rather than "no entry".
       if (found.length === 0) return remember(resolved, key, { candidates: [], reason: 'missing' });
-      return remember(resolved, key, { candidates: found });
+      return remember(resolved, key, { candidates: found, nameOnly: answer?.nameOnly === true });
     })
     .catch((error: unknown): WordLookup => {
       // 404 is the server route saying Shirabe resolved this token to nothing.
