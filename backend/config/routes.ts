@@ -13,7 +13,7 @@ import { AppDataSource } from '@config/database';
 import { client as elasticsearchClient } from '@config/elasticsearch';
 import { routeAuth } from 'generated/routeAuth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
-import { authRateLimit } from '@app/middleware/rateLimit';
+import { authRateLimit, feedbackRateLimit } from '@app/middleware/rateLimit';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
 import { listTiers, getAdminUserQuota, updateAdminUserQuota } from '@app/controllers/adminQuotaController';
@@ -66,6 +66,7 @@ import {
   bulkUpdateAdminReports,
   bulkDeleteAdminReports,
 } from '@app/controllers/reportController';
+import { createFeedback, getFeedbackFormToken } from '@app/controllers/feedbackController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import {
   listUserActivity,
@@ -92,6 +93,7 @@ import {
   completeShirabeLink,
   unlinkShirabe,
   getShirabeCredential,
+  resyncShirabeStack,
 } from '@app/controllers/shirabeConnectionController';
 import { listFamiliarMedia, clearFamiliarMedia, forgetFamiliarMedia } from '@app/controllers/familiarMediaController';
 import { exportUserData } from '@app/controllers/userExportController';
@@ -102,6 +104,7 @@ import { createRouter as createCollectionsRouter } from 'generated/routes/collec
 import { createRouter as createAdminRouter } from 'generated/routes/admin';
 import { createRouter as createActivityRouter } from 'generated/routes/activity';
 import { createRouter as createUserRouter } from 'generated/routes/user';
+import { createRouter as createFeedbackRouter } from 'generated/routes/feedback';
 import { createRouter as createStatsRouter } from 'generated/routes/stats';
 
 export const noCache = (_req: Request, res: Response, next: NextFunction) => {
@@ -265,6 +268,11 @@ const AdminRoutes = createAdminRouter({
   updateAdminUserQuota,
 });
 
+const FeedbackRoutes = createFeedbackRouter({
+  createFeedback,
+  getFeedbackFormToken,
+});
+
 const StatsRoutes = createStatsRouter({
   getStatsOverview,
   getCoveredWords,
@@ -279,6 +287,7 @@ const UserRoutes = createUserRouter({
   completeShirabeLink,
   unlinkShirabe,
   getShirabeCredential,
+  resyncShirabeStack,
   listExcludedMedia,
   addExcludedMedia,
   removeExcludedMedia,
@@ -395,9 +404,16 @@ for (const { method, path, middleware } of routeAuth) {
   router[method as 'get' | 'post' | 'patch' | 'put' | 'delete'](path, setRouteTemplate(path), middleware);
 }
 
-// The one route in the spec with no security requirement, so it has no
-// routeAuth entry to hang the template off. Label it directly.
+// The routes with no security requirement, so they have no routeAuth entry to
+// hang the template off. Label them directly.
+//
+// Feedback also picks up its own limiter here rather than relying on the global
+// one: it is an unauthenticated write that sends mail, and this is the layer
+// direct callers to `api.nadeshiko.co` arrive at. Site traffic is limited a hop
+// earlier, at the Nitro proxy — see the note on `feedbackRateLimit`.
 router.get('/v1/admin/announcement', setRouteTemplate('/v1/admin/announcement'));
+router.post('/v1/feedback', setRouteTemplate('/v1/feedback'), feedbackRateLimit);
+router.get('/v1/feedback/token', setRouteTemplate('/v1/feedback/token'), feedbackRateLimit);
 
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);
@@ -406,6 +422,7 @@ router.use('/', ActivityRoutes);
 router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
+router.use('/', FeedbackRoutes);
 
 export function mountRoutes(app: Application): Application {
   app.get('/up', noCache, healthCheck);
@@ -427,4 +444,14 @@ export function mountRoutes(app: Application): Application {
   return app;
 }
 
-export { router, MediaRoutes, SearchRoutes, StatsRoutes, ActivityRoutes, CollectionsRoutes, AdminRoutes, UserRoutes };
+export {
+  router,
+  MediaRoutes,
+  SearchRoutes,
+  StatsRoutes,
+  ActivityRoutes,
+  CollectionsRoutes,
+  AdminRoutes,
+  UserRoutes,
+  FeedbackRoutes,
+};

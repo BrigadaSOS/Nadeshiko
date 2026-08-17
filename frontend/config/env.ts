@@ -22,6 +22,10 @@ const envSchema = z.object({
   // server/api/shirabe/words/[wid].get.ts) and never lands in runtimeConfig.public.
   NUXT_SHIRABE_API_KEY: z.string().trim().default(''),
   NUXT_SHIRABE_API_BASE: z.string().trim().default('https://shirabe.org'),
+  // Where a READER is sent to change their Shirabe settings, which is not the
+  // same address our server calls: that one may be a tailnet host nobody can
+  // browse to. Public, and no key is involved.
+  NUXT_PUBLIC_SHIRABE_SITE: z.string().trim().default('https://shirabe.org'),
   // Optional tailnet address for the same service. The public name resolves to
   // Cloudflare, so without this a lookup between two boxes in the same city
   // routes out to the edge and back. Tried first when set, with the public host
@@ -68,6 +72,12 @@ const envSchema = z.object({
   NUXT_ASSET_ARCHIVE_DAYS: z.coerce.number().int().positive().default(30),
   NUXT_RATE_LIMIT_V1_AUTH_MAX: z.coerce.number().int().positive().default(30),
   NUXT_RATE_LIMIT_V1_API_MAX: z.coerce.number().int().positive().default(120),
+  /**
+   * The feedback widget, which is the only unauthenticated WRITE the proxy
+   * forwards. Deliberately far below the general budget: sending feedback is not
+   * something a person does in a burst, and each submission costs an email.
+   */
+  NUXT_RATE_LIMIT_V1_FEEDBACK_MAX: z.coerce.number().int().positive().default(5),
   NUXT_RATE_LIMIT_HTML_MAX: z.coerce.number().int().positive().default(60),
 });
 

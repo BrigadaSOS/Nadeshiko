@@ -102,6 +102,18 @@ export const s_CoveredWordsUpdateResponse = z.object({
   percentage: z.coerce.number(),
 });
 
+export const s_CreateFeedbackRequest = z.object({
+  body: z.string().min(1).max(4000),
+  email: z.email().max(320).optional(),
+  formToken: z.string().max(512),
+  nickname: z.string().max(200).optional(),
+  pagePath: z.string().max(2000).optional(),
+  locale: z.string().max(16).optional(),
+  appVersion: z.string().max(32).optional(),
+  posthogSessionId: z.string().max(64).optional(),
+  posthogDistinctId: z.string().max(128).optional(),
+});
+
 export const s_CursorPagination = z.object({ hasMore: PermissiveBoolean, cursor: z.string().min(1).nullable() });
 
 export const s_Episode = z.object({
@@ -218,6 +230,10 @@ export const s_ExternalId = z.object({
   tmdb: z.string().min(1).nullable(),
   youtube: z.string().min(1).nullable(),
 });
+
+export const s_FeedbackFormToken = z.object({ token: z.string() });
+
+export const s_FeedbackReceipt = z.object({ received: PermissiveBoolean });
 
 export const s_HeatmapDayCounts = z.object({
   SEARCH: z.coerce.number().min(0).optional(),
@@ -342,6 +358,7 @@ export const s_ShirabeConnection = z.object({
   tokenPrefix: z.string(),
   scopes: z.array(z.string()),
   dictionaries: z.array(z.string()),
+  dictionaryNames: z.record(z.string(), z.string()).optional(),
   stackIsPrivate: PermissiveBoolean,
   syncedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
@@ -736,6 +753,7 @@ export const s_UserPreferences = z.object({
     .max(2)
     .refine((array) => new Set([...array]).size === array.length, { message: 'Array must contain unique element(s)' })
     .optional(),
+  wordPopup: z.object({ definitionSize: z.enum(['SMALL', 'MEDIUM', 'LARGE']).optional() }).optional(),
   searchHistory: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
   ankiProfiles: z
     .array(
@@ -952,6 +970,8 @@ export const s_CreateUserApiKeyRequestBody = z.object({
 });
 
 export const s_CompleteShirabeLinkRequestBody = z.object({ code: z.string(), state: z.string() });
+
+export const s_ResyncShirabeStackRequestBody = z.object({ stackFingerprint: z.string().max(64) });
 
 export const s_AddExcludedMediaRequestBody = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),

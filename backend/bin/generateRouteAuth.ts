@@ -55,8 +55,21 @@ const CORPUS_WRITE_PERMISSIONS = new Set<string>([
  *   getAnnouncement — GET /v1/admin/announcement. The site-wide banner renders
  *   for signed-out visitors too, so the read is public. The PUT that writes the
  *   announcement still carries `SessionCookie: [ADMIN]`.
+ *
+ *   createFeedback / getFeedbackFormToken — POST /v1/feedback and the token it
+ *   requires. Feedback is open to anonymous visitors on purpose: the person most
+ *   likely to hit a broken sign-up is the one who is not signed in, and a widget
+ *   that first demanded an account would never hear from them. These are the
+ *   only unauthenticated WRITES in the spec, so they do not lean on auth for
+ *   their bot resistance — see the honeypot, the issue-time token and the
+ *   per-IP limit in feedbackController. They read nothing back: the response is
+ *   a fixed acknowledgement either way.
  */
-export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>(['getAnnouncement']);
+export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
+  'getAnnouncement',
+  'createFeedback',
+  'getFeedbackFormToken',
+]);
 
 /**
  * A scheme key present with no scope list means the bundled spec is malformed.
