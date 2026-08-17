@@ -36,6 +36,22 @@ properties:
     items:
       type: string
       enum: [EN, ES]
+  wordPopup:
+    type: object
+    description: >
+      How the word card behaves when a reader taps a word in a sentence. A group
+      rather than a loose key so the settings that follow it have somewhere to
+      live.
+    properties:
+      definitionSize:
+        type: string
+        enum: [SMALL, MEDIUM, LARGE]
+        description: >
+          How large the definitions themselves are printed. The card holds a
+          reader's own monolingual dictionaries now, which is Japanese prose
+          rather than a three-word English gloss, and a size that suited "to
+          die; to pass away" is small for a paragraph of 大辞林. MEDIUM is the
+          default; SMALL is what the card printed before this existed.
   searchHistory:
     type: object
     properties:

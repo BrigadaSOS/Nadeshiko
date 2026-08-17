@@ -25,6 +25,10 @@ export interface ShirabeTag {
 
 export interface ShirabeSense {
   position?: number;
+  /** Which TIER the dictionary put this sense at: 0 a group, 1 a sense, 2 a
+   *  sub-sense of the one above. Absent from an older Shirabe, which reads as a
+   *  flat list of plain senses. See `numberSenses`. */
+  depth?: number;
   definitions?: ShirabeText[];
   tags?: ShirabeTag[];
   /** Usage notes ("usu. in kana", "after the -te form of a verb"). The part of a
@@ -36,6 +40,11 @@ export interface ShirabeSense {
 
 export interface ShirabeEntry {
   dictionary: string;
+  /** What that dictionary is CALLED. A slug is not a name: a reader's own
+   *  uploads are filed under a hash of their contents, so attributing a sense by
+   *  slug prints `yomitan-c89af12122021a8a` at the person who uploaded
+   *  三省堂国語辞典. Absent from an older Shirabe, so the slug stays the fallback. */
+  dictionaryName?: string;
   senses?: ShirabeSense[];
 }
 
@@ -75,7 +84,19 @@ export interface ShirabePitch {
 export interface ShirabeWord {
   id: string;
   headword: string;
+  /**
+   * What to CALL this word when its own headword is a kana form the reader never
+   * typed, and absent for almost everything. See `candidateName`.
+   *
+   * A label. `id` and `headword` are what the word IS; this is only ever
+   * rendered.
+   */
+  matchedHeadword?: string | null;
   parts?: ShirabePart[];
+  /** Shirabe's own answer to "is this a person rather than a word". Never derive
+   *  it from `dictionary`: JMdict carries ~7,300 JMnedict rows under its own
+   *  slug, so a slug test keeps every one of them silently. */
+  name?: boolean;
   reading?: string | null;
   common?: boolean;
   jlpt?: string | null;
@@ -134,6 +155,27 @@ export type ShirabeCandidate = ShirabeWord;
  */
 export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | undefined): string {
   return word?.headword || tokenDictForm || '';
+}
+
+/**
+ * What to print for a candidate in the PICKER.
+ *
+ * A word "usually written in kana" leads with its own kana, and a word can read
+ * more than one way: 彼方 is called かなた and also reads あなた. So a reader who
+ * tapped あなた was offered a chip reading かなた -- a word that looks nothing
+ * like what they pointed at, with nothing to say why it was in the list.
+ * `matchedHeadword` is Shirabe naming the spelling both readings share (彼方),
+ * which the client cannot work out for itself.
+ *
+ * Only the picker, and deliberately not `cardHeadword`. Two reasons, and the
+ * second is the harder one: `cardHeadword` also decides what "More sentences"
+ * searches for and what Anki is asked about and mines into, which are questions
+ * about the word's IDENTITY rather than its label -- and the card's ruby is
+ * aligned by Shirabe against `headword`, so a title of 彼方 over furigana
+ * computed for かなた would be misaligned on the one row that has to be right.
+ */
+export function candidateName(candidate: ShirabeCandidate): string {
+  return candidate.matchedHeadword || candidate.headword;
 }
 
 /**
@@ -374,7 +416,9 @@ function inLanguages(definitions: ShirabeText[] | undefined, langs: readonly Pri
 
 export interface CardGlossRow {
   lang: PrintLanguage;
-  /** EN / ES, the same badge the segment translations use. */
+  /** EN / ES, the same badge the segment translations use. EMPTY for Japanese,
+   *  which needs no badge to say what it is -- see `GLOSS_LABEL`. Callers must
+   *  render it conditionally rather than assuming a label is always there. */
   label: string;
   text: string;
 }
@@ -406,9 +450,26 @@ export interface CardSense {
    *  monolingual definition and a JMdict gloss sitting in one numbered list with
    *  nothing to tell them apart reads as one dictionary contradicting itself. */
   dictionary: string;
+  /** What to PRINT as this sense's number: `1`, `①` or `㋐` depending on its
+   *  tier, counted within its own dictionary. See `numberSenses`. */
+  number: string;
+  /** How far to step this sense in, in tiers: 0, 1 or 2. */
+  indent: number;
 }
 
-const GLOSS_LABEL: Record<PrintLanguage, string> = { en: 'EN', es: 'ES', ja: 'JA' };
+/**
+ * The badge in front of a definition, and Japanese deliberately has none.
+ *
+ * The badge answers "which language is this?", and it is worth a few pixels
+ * where the answer is not obvious from the text: EN and ES are both Latin script
+ * and a reader with both on needs to know which they are reading. Japanese
+ * announces itself. On a monolingual dictionary every row would carry the same
+ * JA down the whole card, saying what the writing already said.
+ *
+ * `lang` still says `ja` -- the badge is presentation and the language is data,
+ * and `CardGlossRow.lang` is what keys the rows.
+ */
+const GLOSS_LABEL: Record<PrintLanguage, string> = { en: 'EN', es: 'ES', ja: '' };
 
 /** Group a sense's definitions into one badged row per language, keeping the
  *  reader's language order and each language's own sense order within its row. */
@@ -446,6 +507,24 @@ function cardTags(tags: ShirabeTag[], lang: TagLanguage, keep: (tag: ShirabeTag)
   return chips;
 }
 
+/**
+ * How many senses to print FROM ONE DICTIONARY.
+ *
+ * Per dictionary, not per card, and the difference is the whole of a bug worth
+ * remembering. This was a cap on the flattened list back when a word had exactly
+ * one entry, and it stayed that way when a linked Shirabe account made a word
+ * carry one entry per dictionary in the reader's stack. JMdict leads most stacks
+ * and 猫 has more than six senses in it, so the cap was reached before the loop
+ * ever arrived at the monolingual dictionary underneath -- and the reader saw
+ * none of what they had linked their account for, on exactly the common words
+ * they would test it with. Nothing errored, because nothing was wrong: the
+ * definitions were fetched, parsed and then dropped on the floor.
+ *
+ * Six was always "how much of one dictionary is worth reading here", which is a
+ * statement about a card's height against a long sense list. That reason applies
+ * within a dictionary. It has nothing to say about a reader who deliberately put
+ * a second one in their stack.
+ */
 const SENSE_LIMIT = 6;
 
 /** Whether two senses carry the same part of speech, by the labels that would be
@@ -458,6 +537,11 @@ function samePartsOfSpeech(a: CardTag[], b: CardTag[]): boolean {
 /**
  * The numbered senses to print. A sense left with no gloss the reader can read
  * drops out rather than printing its labels over an empty line.
+ *
+ * Every dictionary in the reader's stack gets its own allowance (`SENSE_LIMIT`),
+ * so a long JMdict entry can no longer crowd out the monolingual dictionary a
+ * reader linked their account to see. The card body scrolls, and a reader who
+ * put two dictionaries in their stack asked for two dictionaries.
  *
  * A sense whose part of speech is the same as the sense above it prints no POS
  * chip at all. 顔 is a noun in all six of its senses, and repeating "Noun" six
@@ -479,7 +563,10 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
   // Entries arrive in the key owner's own dictionary order, so flattening keeps
   // it: a reader who put a monolingual dictionary above JMdict reads it first.
   const senses = (word?.entries ?? []).flatMap((entry) =>
-    (entry.senses ?? []).map((sense) => ({ sense, dictionary: entry.dictionary })),
+    // Named, not slugged: what goes on screen above a group of senses is the
+    // dictionary's name. The slug is the fallback for an older Shirabe, and is
+    // what the card showed before this.
+    (entry.senses ?? []).map((sense) => ({ sense, dictionary: entry.dictionaryName || entry.dictionary })),
   );
   const cards: CardSense[] = [];
   // The last POS actually printed, which is not the same as the previous card's
@@ -488,9 +575,21 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
   // first and third.
   let shown: CardTag[] = [];
 
+  // Counted per dictionary. `continue` rather than `break`, which is the fix:
+  // stopping at the first dictionary to fill its quota threw away every
+  // dictionary below it in the stack.
+  const printed = new Map<string, number>();
+  const kept: Array<{ sense: ShirabeSense; dictionary: string }> = [];
+
   for (const { sense, dictionary } of senses) {
     const glosses = glossRows(selectDefinitions(sense.definitions, preference));
     if (glosses.length === 0) continue;
+
+    const key = dictionary ?? '';
+    const used = printed.get(key) ?? 0;
+    if (used >= limit) continue;
+    printed.set(key, used + 1);
+    kept.push({ sense, dictionary: key });
 
     const tags = sense.tags ?? [];
     const partsOfSpeech = cardTags(tags, preference.tags, (tag) => tag.category === 'partOfSpeech');
@@ -506,11 +605,92 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
       // something false about the next.
       notes: (sense.notes ?? []).filter((note) => note.trim().length > 0),
       dictionary,
+      // Placeholders: the numbers depend on the whole run of senses a dictionary
+      // kept, which is not known until the loop has finished.
+      number: '',
+      indent: 0,
     });
-    if (cards.length === limit) break;
   }
 
-  return cards;
+  return numberSenses(cards, kept);
+}
+
+/** ①-⑳ ㉑-㉟ ㊱-㊿ is every circled numeral Unicode has, and ㋐-㋾ every circled
+ *  kana. A dictionary that runs past the end of either falls back to plain
+ *  digits rather than to a glyph nobody can read as "fifty-one". Mirrors
+ *  `SearchHelper::CIRCLED` on the Shirabe side. */
+const CIRCLED = [...range(0x2460, 0x2473), ...range(0x3251, 0x325f), ...range(0x32b1, 0x32bf)];
+const CIRCLED_KANA = range(0x32d0, 0x32fe);
+
+function range(from: number, to: number): string[] {
+  return Array.from({ length: to - from + 1 }, (_, i) => String.fromCodePoint(from + i));
+}
+
+/**
+ * The number to print against each sense, and how far to step it in.
+ *
+ * A dictionary numbers in TIERS, and it does not tell us in the text: デジタル大辞泉
+ * files 食べる as ① ② with ㋐ ㋑ underneath ②, and a flat 1 2 3 4 states that the
+ * word has four equal senses, which the dictionary does not say. Shirabe
+ * publishes the tier as `depth` because the glyph that carries it differs per
+ * pack and never reaches us.
+ *
+ * The glyph carries the tier, so a reader sees what a number MEANS without
+ * counting indents: a group is 1, a sense in it ①, a finer sub-sense ㋐. Counted
+ * per tier rather than read off the dictionary's own label, so the run stays
+ * continuous where the pack's numbering is not -- 精選版 restarts ① under every
+ * 一二三四 -- and per DICTIONARY, so each starts again from the top under its own
+ * name.
+ *
+ * The indent drops a level for a dictionary that never used groups, which is
+ * most of them: a pack numbering ①②③ flat should not sit indented under a tier
+ * that is not there. Same rule as `SearchHelper#sense_indent`.
+ */
+function numberSenses(cards: CardSense[], kept: Array<{ sense: ShirabeSense; dictionary: string }>): CardSense[] {
+  const tieredDictionaries = new Set(
+    kept.filter((entry) => depthOf(entry.sense) === 0).map((entry) => entry.dictionary),
+  );
+  const counts = new Map<string, [number, number, number]>();
+
+  return cards.map((card, index) => {
+    const source = kept[index];
+    const depth = depthOf(source?.sense);
+    const key = source?.dictionary ?? '';
+    const tally = counts.get(key) ?? [0, 0, 0];
+
+    // A group resets the senses under it; a sense resets its own sub-senses.
+    // Same three counters as `SearchHelper#number_tiers`.
+    if (depth === 0) {
+      tally[0] += 1;
+      tally[1] = 0;
+      tally[2] = 0;
+    } else if (depth === 1) {
+      tally[1] += 1;
+      tally[2] = 0;
+    } else {
+      tally[2] += 1;
+    }
+    counts.set(key, tally);
+
+    const ordinal = tally[depth];
+    const tiered = tieredDictionaries.has(key);
+    return {
+      ...card,
+      number: tierNumber(depth, ordinal),
+      indent: tiered ? depth : Math.max(depth - 1, 0),
+    };
+  });
+}
+
+function depthOf(sense: ShirabeSense | undefined): 0 | 1 | 2 {
+  const depth = sense?.depth;
+  return depth === 0 || depth === 2 ? depth : 1;
+}
+
+function tierNumber(depth: number, ordinal: number): string {
+  if (depth === 0) return String(ordinal);
+  if (depth === 1) return CIRCLED[ordinal - 1] ?? String(ordinal);
+  return CIRCLED_KANA[ordinal - 1] ?? String(ordinal);
 }
 
 /**
@@ -547,6 +727,24 @@ export function candidateSummary(
 /** Long enough for a short gloss whole ("individual; separate"), short enough
  *  that a row stays one line at the card's 340px. */
 const SUMMARY_LIMIT = 42;
+
+/**
+ * What tells two candidates with the SAME spelling apart.
+ *
+ * あれ answers twice: the pronoun (that) and the interjection (huh?). Both are
+ * real, both belong in the list, and in 「あれって？」 either could be what the
+ * reader met -- but two chips reading あれ offer no way to choose between them,
+ * which is the picker asking a question it has not given the reader the means to
+ * answer.
+ *
+ * The part of speech is the difference, and it is the shortest thing that is.
+ * Taken from the same first sense the card would print, so the chip and the card
+ * cannot disagree about which word this is.
+ */
+export function candidatePartOfSpeech(candidate: ShirabeCandidate | null, preference: GlossPreference): string {
+  const [first] = cardSenses(candidate, preference, 1);
+  return first?.partsOfSpeech[0]?.label ?? '';
+}
 
 /** Each distinct kanji in a headword, in the order it is written. */
 export function kanjiIn(headword: string): string[] {

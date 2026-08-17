@@ -68,8 +68,37 @@ const inFlight = new Map<string, Promise<WordLookup>>();
  * the edge, Shirabe's) carry a variant per language, which is what shared caches
  * are for.
  */
-function cacheKey(ref: WordRef, locale: string): string {
-  return `${ref.lemma}\u0000${ref.surface}\u0000${ref.reading}\u0000${ref.pos}:${locale}`;
+function cacheKey(ref: WordRef, locale: string, stack: string): string {
+  return `${ref.lemma}\u0000${ref.surface}\u0000${ref.reading}\u0000${ref.pos}:${locale}:${stack}`;
+}
+
+/**
+ * The reader's own dictionary stack, when they have linked a Shirabe account.
+ *
+ * Not an input to the lookup. The server route makes the call with their key and
+ * Shirabe resolves the stack from that, so this changes no answer -- it is a
+ * CACHE KEY, and the only one that can do the job. The response is
+ * `private, max-age=86400`, so without something in the URL that moves when the
+ * stack does, a reader who switches a dictionary off in Shirabe keeps being
+ * shown it on every word they have already hovered, until tomorrow.
+ *
+ * PUSHED here by the auth store rather than read from it, and the direction
+ * matters: this module is plain functions over a token, and importing a Pinia
+ * store to reach one string would drag the whole Nuxt runtime (`#app`) into
+ * every caller and every test of them. The store already knows the moment a
+ * session lands, which is the only moment this can change.
+ *
+ * Empty for an unlinked reader, which is nearly everybody, and their URLs are
+ * exactly what they always were.
+ */
+let readerStackFingerprint = '';
+
+export function setReaderStack(fingerprint: string | null | undefined): void {
+  readerStackFingerprint = fingerprint ?? '';
+}
+
+function readerStack(): string {
+  return readerStackFingerprint;
 }
 
 /** The answers we already have. Separate from `inFlight` because a caller needs
@@ -119,7 +148,7 @@ function remember<T>(store: Map<string, T>, key: string, answer: T): T {
  *  flashing a loading state for a word the page has seen. `undefined` means it
  *  has not been asked. */
 export function peekWord(ref: WordRef, locale: string): WordLookup | undefined {
-  return recall(resolved, cacheKey(ref, locale));
+  return recall(resolved, cacheKey(ref, locale, readerStack()));
 }
 
 /**
@@ -131,7 +160,8 @@ export function peekWord(ref: WordRef, locale: string): WordLookup | undefined {
  * to arrive at the same two cases.
  */
 export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
-  const key = cacheKey(ref, locale);
+  const stack = readerStack();
+  const key = cacheKey(ref, locale, stack);
 
   const answered = recall(resolved, key);
   if (answered) return Promise.resolve(answered);
@@ -139,10 +169,13 @@ export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const request = $fetch<{ candidates: ShirabeCandidate[]; nameOnly?: boolean }>(
+  const request = $fetch<{ candidates: ShirabeCandidate[]; nameOnly?: boolean; stackFingerprint?: string }>(
     `/api/shirabe/words/candidates/${encodeURIComponent(ref.lemma)}`,
     {
-      query: { locale, surface: ref.surface, reading: ref.reading, pos: ref.pos },
+      // `stack` is a cache key and nothing else: the route ignores it when
+      // calling Shirabe, which resolves the stack from the reader's own key.
+      // Sent only for a linked reader, so every other URL is unchanged.
+      query: { locale, surface: ref.surface, reading: ref.reading, pos: ref.pos, ...(stack ? { stack } : {}) },
       // The server route already bounds its own calls (1.5s direct, 5s public), so
       // anything past this is not the dictionary being slow -- it is a request
       // that is never coming back, and without a bound the card waits on it
@@ -152,14 +185,37 @@ export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
     },
   )
     .then((answer): WordLookup => {
+      // Shirabe named the stack it actually answered from, and it disagrees with
+      // the one this request was keyed under: the reader has reconfigured their
+      // dictionaries since this page loaded.
+      //
+      // Re-key here rather than waiting for the session to say so. The session is
+      // read once per page load (`plugins/identity-auth.ts`), so without this the
+      // reader would keep being served every word they had already hovered from a
+      // day-old copy until they reloaded -- on the very page where we found out.
+      // The server route has already told the backend, so the next load agrees;
+      // this is the same correction applied where the reader can see it.
+      //
+      // Everything in `resolved` was keyed under the old stack, so all of it is
+      // answers from dictionaries that may no longer be theirs. Dropped rather
+      // than left to age out: they are unreachable under the new key anyway, and
+      // holding a few hundred dead entries to prove it helps nobody.
+      let answerKey = key;
+      const observed = answer?.stackFingerprint;
+      if (observed && observed !== stack) {
+        setReaderStack(observed);
+        resolved.clear();
+        answerKey = cacheKey(ref, locale, observed);
+      }
+
       const found = answer?.candidates ?? [];
       // An empty list is the same answer as the 404 below, and has to carry the
       // same reason. The server route turns identify's `words: [null]` into a
       // 404, so this is the belt to that braces -- but without it a response
       // that arrives empty reads as a successful lookup with no reason, and the
       // card reports an `undefined` outcome rather than "no entry".
-      if (found.length === 0) return remember(resolved, key, { candidates: [], reason: 'missing' });
-      return remember(resolved, key, { candidates: found, nameOnly: answer?.nameOnly === true });
+      if (found.length === 0) return remember(resolved, answerKey, { candidates: [], reason: 'missing' });
+      return remember(resolved, answerKey, { candidates: found, nameOnly: answer?.nameOnly === true });
     })
     .catch((error: unknown): WordLookup => {
       // 404 is the server route saying Shirabe resolved this token to nothing.

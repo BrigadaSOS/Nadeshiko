@@ -83,6 +83,8 @@ describe('definitionHtml', () => {
         glosses: [{ lang: 'en', label: 'EN', text: 'allowance' }],
         notes: [],
         dictionary: 'jmdict',
+        number: '1',
+        indent: 0,
       },
     ]);
     // Asserted by structure rather than as one exact string: the inline styles
@@ -118,6 +120,8 @@ describe('definitionHtml', () => {
         ],
         notes: [],
         dictionary: 'jmdict',
+        number: '1',
+        indent: 0,
       },
     ]);
 
@@ -143,6 +147,8 @@ describe('definitionHtml', () => {
         glosses: [{ lang: 'en', label: 'EN', text: 'allowance' }],
         notes: [],
         dictionary: 'jmdict',
+        number: '1',
+        indent: 0,
       },
     ]);
     expect(html).toMatch(/<span class="nd-pos" style="[^"]*" title="noun">Noun<\/span>/);
@@ -163,6 +169,8 @@ describe('definitionHtml', () => {
         glosses: [{ lang: 'en', label: 'EN', text: 'ground crew' }],
         notes: [],
         dictionary: 'jmdict',
+        number: '1',
+        indent: 0,
       },
     ]);
 
@@ -179,6 +187,8 @@ describe('definitionHtml', () => {
         glosses: [{ lang: 'en', label: 'EN', text: 'salt & pepper' }],
         notes: [],
         dictionary: 'jmdict',
+        number: '1',
+        indent: 0,
       },
     ]);
     expect(html).toContain('title="a &amp; b"');
@@ -500,5 +510,129 @@ describe('pitchPositions', () => {
   it('is empty when the word has no accent recorded, so the field is left alone', () => {
     expect(minedWord(withPitch([]), token(), EN).pitchPositions).toBe('');
     expect(minedWord(withPitch(undefined), token(), EN).pitchPositions).toBe('');
+  });
+});
+
+/**
+ * Splitting a card's definitions across two Anki fields.
+ *
+ * A hover card can show nine monolingual dictionaries because the reader is
+ * looking at it now and can scroll. A note is read months later on a phone, and
+ * which dictionaries belong on the front of a card is a judgement only the
+ * reader can make -- hence a setting rather than a rule.
+ */
+describe('splitting definitions across fields', () => {
+  const stacked = {
+    id: '死ぬ',
+    headword: '死ぬ',
+    reading: 'しぬ',
+    entries: [
+      { dictionary: '三省堂国語辞典', senses: [{ definitions: [{ lang: 'ja', text: '息が絶える' }], tags: [] }] },
+      { dictionary: '大辞林', senses: [{ definitions: [{ lang: 'ja', text: '命がなくなる' }], tags: [] }] },
+      { dictionary: 'JMdict', senses: [{ definitions: [{ lang: 'en', text: 'to die' }], tags: [] }] },
+    ],
+  } as unknown as ShirabeWord;
+
+  it('keeps every dictionary in one field when no cut is set', () => {
+    const { definition, definitionRest } = minedWord(stacked, token({ dictForm: '死ぬ' }), EN, '', 0);
+
+    expect(definition).toContain('息が絶える');
+    expect(definition).toContain('to die');
+    expect(definitionRest).toBe('');
+  });
+
+  it('cuts after the reader chosen number of dictionaries', () => {
+    const { definition, definitionRest } = minedWord(stacked, token({ dictForm: '死ぬ' }), EN, '', 1);
+
+    expect(definition).toContain('息が絶える');
+    expect(definition).not.toContain('命がなくなる');
+    expect(definitionRest).toContain('命がなくなる');
+    expect(definitionRest).toContain('to die');
+  });
+
+  // Counted in DICTIONARIES, never in senses: splitting one dictionary across
+  // two card faces is not a division anybody means.
+  it('never splits a single dictionary across the two fields', () => {
+    const wordy = {
+      id: '死ぬ',
+      headword: '死ぬ',
+      entries: [
+        {
+          dictionary: '三省堂国語辞典',
+          senses: [
+            { definitions: [{ lang: 'ja', text: 'いち' }], tags: [] },
+            { definitions: [{ lang: 'ja', text: 'に' }], tags: [] },
+          ],
+        },
+        { dictionary: 'JMdict', senses: [{ definitions: [{ lang: 'en', text: 'to die' }], tags: [] }] },
+      ],
+    } as unknown as ShirabeWord;
+
+    const { definition, definitionRest } = minedWord(wordy, token({ dictForm: '死ぬ' }), EN, '', 1);
+
+    expect(definition).toContain('いち');
+    expect(definition).toContain('に');
+    expect(definitionRest).toContain('to die');
+    expect(definitionRest).not.toContain('いち');
+  });
+
+  // The reader who linked nothing, which is nearly everybody: one dictionary
+  // answers, so there is never anything to put in the second field.
+  it('leaves the second field empty for a single-dictionary card', () => {
+    const { definition, definitionRest } = minedWord(TEKAGEN, token(), EN, '', 1);
+
+    expect(definition).not.toBe('');
+    expect(definitionRest).toBe('');
+  });
+});
+
+/**
+ * A note is read months later with none of the context the card had, so it
+ * carries the same structure the card showed: which dictionary wrote a run of
+ * senses, and the tier the dictionary put each one at.
+ */
+describe('a note built from more than one dictionary', () => {
+  const stacked = {
+    id: '食べる',
+    headword: '食べる',
+    reading: 'たべる',
+    entries: [
+      {
+        dictionary: 'デジタル大辞泉',
+        senses: [
+          { depth: 1, definitions: [{ lang: 'ja', text: '食物をかんで、のみこむ。' }], tags: [] },
+          { depth: 2, definitions: [{ lang: 'ja', text: '「食う」の謙譲語。' }], tags: [] },
+        ],
+      },
+      {
+        dictionary: '大辞林 第三版',
+        senses: [{ depth: 1, definitions: [{ lang: 'ja', text: '口に入れる。' }], tags: [] }],
+      },
+    ],
+  } as unknown as ShirabeWord;
+
+  it('names each dictionary above its own senses', () => {
+    const { definition } = minedWord(stacked, token({ dictForm: '食べる' }), EN, '', 0);
+
+    expect(definition).toContain('デジタル大辞泉');
+    expect(definition).toContain('大辞林 第三版');
+    expect(definition.indexOf('デジタル大辞泉')).toBeLessThan(definition.indexOf('食物をかんで'));
+  });
+
+  it('carries the dictionary own tier rather than a running count', () => {
+    const { definition } = minedWord(stacked, token({ dictForm: '食べる' }), EN, '', 0);
+
+    expect(definition).toContain('①');
+    expect(definition).toContain('㋐');
+    // 大辞林's first sense is ① again, not ③: each dictionary numbers its own.
+    expect(definition.match(/①/g)).toHaveLength(2);
+  });
+
+  // The ordinary word, and nearly every reader: one dictionary answered, so
+  // naming it above its own senses would be noise.
+  it('names nothing when there is only one dictionary', () => {
+    const { definition } = minedWord(TEKAGEN, token(), EN, '', 0);
+
+    expect(definition).not.toContain('nd-dictionary');
   });
 });

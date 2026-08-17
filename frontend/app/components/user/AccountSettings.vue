@@ -11,6 +11,7 @@ import type { UserSession } from '@/stores/auth';
 import type { SearchResult } from '~/types/search';
 import { useToastSuccess } from '~/utils/toast';
 import { handleApiError } from '~/utils/apiError';
+import { DEFINITION_SIZES, definitionSize } from '~/utils/wordPopup';
 import { resolveContextResponse } from '~/utils/resolvers';
 // Explicit, because Nuxt's auto-import names a component after its directory:
 // this one is `UserConnectionsCard`, and `<ConnectionsCard />` would have
@@ -22,6 +23,36 @@ const { t, locale } = useI18n();
 const { formatDate } = useFormat();
 
 const user_store = userStore();
+
+// Whether this reader's definitions come from their own Shirabe stack, which is
+// what makes the dictionary half of the languages setting somebody else's
+// business. Read off the session, so it costs no extra request.
+const shirabeLinked = computed(() => (user_store.shirabeGlossLanguages ?? []).length > 0);
+
+/** How large the word card prints its definitions. See `~/utils/wordPopup`. */
+const definitionTextSize = computed(() => definitionSize(user_store.preferences?.wordPopup?.definitionSize));
+
+const updateDefinitionSize = async (value: string) => {
+  const size = definitionSize(value);
+
+  savingPreferences.value = true;
+  try {
+    await sdk.updateUserPreferences({ wordPopup: { definitionSize: size } });
+    user_store.preferences = {
+      ...user_store.preferences,
+      wordPopup: { ...user_store.preferences?.wordPopup, definitionSize: size },
+    };
+    posthog?.capture('setting_changed', { setting_name: 'wordPopup.definitionSize', value: size });
+    useToastSuccess(t('accountSettings.account.preferenceSaved'));
+  } catch (error) {
+    handleApiError('account:definition-size-update-failed', error, {
+      toastKey: 'accountSettings.account.preferenceError',
+      context: { 'preference.key': 'wordPopup.definitionSize' },
+    });
+  } finally {
+    savingPreferences.value = false;
+  }
+};
 const sdk = useNadeshikoSdk();
 
 const sessionsActionLoading = ref(false);
@@ -523,24 +554,6 @@ const logoutCurrentUser = async () => {
           <option value="ROMAJI">{{ $t('accountSettings.account.mediaNameLanguageOptions.ROMAJI') }}</option>
         </select>
       </div>
-      <div class="mt-4 flex justify-between items-center gap-4">
-        <div>
-          <p class="text-white">{{ $t('accountSettings.account.translationLanguages') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.translationLanguagesDescription') }}</p>
-        </div>
-        <select
-          data-testid="translation-languages"
-          :value="translationLanguageSelection"
-          :disabled="savingPreferences"
-          class="nd-select"
-          @change="updateTranslationLanguages(($event.target as HTMLSelectElement).value)"
-        >
-          <option value="EN">{{ $t('accountSettings.account.translationLanguageOptions.EN') }}</option>
-          <option value="ES">{{ $t('accountSettings.account.translationLanguageOptions.ES') }}</option>
-          <option value="EN,ES">{{ $t('accountSettings.account.translationLanguageOptions.EN_ES') }}</option>
-          <option value="ES,EN">{{ $t('accountSettings.account.translationLanguageOptions.ES_EN') }}</option>
-        </select>
-      </div>
       <div class="mt-4">
         <div class="flex justify-between items-center gap-4">
           <div>
@@ -586,31 +599,6 @@ const logoutCurrentUser = async () => {
         </div>
       </div>
 
-      <div class="mt-4">
-        <p class="text-white">{{ $t('accountSettings.account.dictionaryLinks') }}</p>
-        <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.dictionaryLinksDescription') }}</p>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <label
-            v-for="preset in dictionaryPresets"
-            :key="preset.id"
-            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-control border border-hairline text-sm text-ink-faint"
-            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-control-hover hover:text-ink'"
-          >
-            <input
-              type="checkbox"
-              :checked="isDictionaryEnabled(preset.id)"
-              :disabled="preset.required"
-              class="accent-button-primary-main"
-              @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)"
-            />
-            <!-- A required dictionary is a checked, disabled box and nothing
-                 else: the control already says it cannot be turned off, and the
-                 label spelled out in words what the disabled state shows. -->
-            <span>{{ preset.label }}</span>
-          </label>
-        </div>
-      </div>
-
       <div class="flex justify-between items-center mt-4">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.questionableContent') }}</p>
@@ -647,6 +635,80 @@ const logoutCurrentUser = async () => {
             <p class="text-gray-500 text-xs mt-1">{{ $t('accountSettings.account.contentRatingPreview') }}</p>
           </div>
         </div>
+      </div>
+
+      <!-- The two dictionary rows sit last, together, and directly above the
+           Shirabe card below: all three are about where a word's definitions
+           come from, and they were scattered through the list with unrelated
+           settings between them. -->
+      <div class="mt-4">
+        <p class="text-white">{{ $t('accountSettings.account.dictionaryLinks') }}</p>
+        <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.dictionaryLinksDescription') }}</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <label
+            v-for="preset in dictionaryPresets"
+            :key="preset.id"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-control border border-hairline text-sm text-ink-faint"
+            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-control-hover hover:text-ink'"
+          >
+            <input
+              type="checkbox"
+              :checked="isDictionaryEnabled(preset.id)"
+              :disabled="preset.required"
+              class="accent-button-primary-main"
+              @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)"
+            />
+            <!-- A required dictionary is a checked, disabled box and nothing
+                 else: the control already says it cannot be turned off, and the
+                 label spelled out in words what the disabled state shows. -->
+            <span>{{ preset.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- The word card's own settings, beside the two dictionary rows: all of
+           it is about what happens when a reader taps a word. -->
+      <div class="mt-4 flex justify-between items-center gap-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.definitionSize') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.definitionSizeDescription') }}</p>
+        </div>
+        <select
+          data-testid="definition-size"
+          :value="definitionTextSize"
+          :disabled="savingPreferences"
+          class="nd-select"
+          @change="updateDefinitionSize(($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="size in DEFINITION_SIZES" :key="size" :value="size">
+            {{ $t(`accountSettings.account.definitionSizeOptions.${size}`) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="mt-4 flex justify-between items-center gap-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.translationLanguages') }}</p>
+          <!-- The description changes when a Shirabe account is linked, because
+               half of what this control did moved over there. It is NOT disabled
+               with it: the same value still decides which subtitle translation
+               rows render under a sentence, which EN/ES toggles search offers,
+               and which translations the segment menu copies -- none of which
+               Shirabe has any opinion about. -->
+          <p class="text-gray-400 text-sm">{{ $t(shirabeLinked ? 'accountSettings.account.translationLanguagesLinkedDescription' : 'accountSettings.account.translationLanguagesDescription') }}</p>
+        </div>
+        <select
+          data-testid="translation-languages"
+          :value="translationLanguageSelection"
+          :disabled="savingPreferences"
+          class="nd-select"
+          @change="updateTranslationLanguages(($event.target as HTMLSelectElement).value)"
+        >
+          <option value="EN">{{ $t('accountSettings.account.translationLanguageOptions.EN') }}</option>
+          <option value="ES">{{ $t('accountSettings.account.translationLanguageOptions.ES') }}</option>
+          <option value="EN,ES">{{ $t('accountSettings.account.translationLanguageOptions.EN_ES') }}</option>
+          <option value="ES,EN">{{ $t('accountSettings.account.translationLanguageOptions.ES_EN') }}</option>
+        </select>
       </div>
     </div>
   </div>
