@@ -228,3 +228,57 @@ describe('one cache across module instances', () => {
     expect(afterDrop).toBe('refetched');
   });
 });
+
+/**
+ * Two callers, two shapes, one reader.
+ *
+ * This cache was keyed on the session cookie alone, so `identity-auth` (which
+ * stores a `{session, preferences}` bundle) and `shirabeReader` (which stores a
+ * raw get-session body) shared a slot. Whichever ran first won and the other
+ * read a shape it did not recognise -- and since the render always runs first,
+ * the word lookup always concluded the reader had linked nothing.
+ */
+describe('scopes', () => {
+  const SIGNED_IN = 'nadeshiko.session_token=tok1';
+
+  it('does not serve one caller the other caller answer', async () => {
+    const event = fakeEvent(SIGNED_IN);
+
+    const identity = await ssrAuthFetch(event as never, async () => ({ session: { user: { id: 1 } } }), 'identity');
+    const shirabe = await ssrAuthFetch(
+      event as never,
+      async () => ({ user: { shirabe: { linked: true } } }),
+      'shirabe',
+    );
+
+    expect(identity).toEqual({ session: { user: { id: 1 } } });
+    expect(shirabe).toEqual({ user: { shirabe: { linked: true } } });
+  });
+
+  it('still caches within a scope, which is what it is for', async () => {
+    const event = fakeEvent(SIGNED_IN);
+    const fetcher = vi.fn(async () => ({ user: { id: 1 } }));
+
+    await ssrAuthFetch(event as never, fetcher, 'shirabe');
+    await ssrAuthFetch(event as never, fetcher, 'shirabe');
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  // A preference change invalidates everything held about that reader, whatever
+  // question it was answering.
+  it('drops every scope for the session', async () => {
+    const event = fakeEvent(SIGNED_IN);
+    const identity = vi.fn(async () => ({ a: 1 }));
+    const shirabe = vi.fn(async () => ({ b: 2 }));
+    await ssrAuthFetch(event as never, identity, 'identity');
+    await ssrAuthFetch(event as never, shirabe, 'shirabe');
+
+    dropSessionEntries(event as never);
+
+    await ssrAuthFetch(event as never, identity, 'identity');
+    await ssrAuthFetch(event as never, shirabe, 'shirabe');
+    expect(identity).toHaveBeenCalledTimes(2);
+    expect(shirabe).toHaveBeenCalledTimes(2);
+  });
+});

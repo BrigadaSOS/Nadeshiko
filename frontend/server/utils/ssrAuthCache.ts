@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { getCookie } from 'h3';
 import type { H3Event } from 'h3';
 
-const SESSION_COOKIE = 'nadeshiko.session_token';
+export const SESSION_COOKIE = 'nadeshiko.session_token';
 const SESSION_COOKIE_PREFIXES = ['', '__Secure-', '__Host-'] as const;
 // 60s (was 30s): the backend's per-IP rate limiter on /v1/auth/* rejects the
 // frontend's own SSR `get-session` calls under sustained render load (every
@@ -104,7 +104,29 @@ function getSessionKey(event: H3Event): string | null {
   return null;
 }
 
-function cacheKey(event: H3Event): string {
+/**
+ * What a cached answer is FOR, as well as whose it is.
+ *
+ * The scope is not decoration. This cache is keyed on the session cookie, and
+ * for a long time on nothing else -- so two callers asking two different
+ * questions about the same reader shared one slot and read each other's
+ * answers. `identity-auth` stores `{session, preferences, reachedBackend}` and
+ * `shirabeReader` stores the raw `{user}` of a get-session; whichever ran first
+ * won, and the loser read a shape it did not recognise.
+ *
+ * It failed silently and completely: the SSR render always runs first, so every
+ * word lookup for the next minute found no `user.shirabe` in a preferences
+ * bundle, concluded the reader had linked nothing, and answered from the shared
+ * cache with the default dictionaries. Nothing threw, nothing logged, and a
+ * reader who had linked their account never once saw their own dictionaries.
+ *
+ * A caller that shares a scope must share a return type. Nothing enforces that
+ * beyond this comment, so a new caller wants a new scope unless it is genuinely
+ * asking the same question.
+ */
+export type SsrAuthScope = 'identity' | 'shirabe';
+
+function cacheKey(event: H3Event, scope: SsrAuthScope): string {
   // Session cookie, plus the preferences stamp when the reader has just changed
   // something. There used to be an anonymous fallback keyed on client IP, from
   // when this cache saw every render; `identity-auth` now returns before
@@ -114,7 +136,7 @@ function cacheKey(event: H3Event): string {
   const sk = getSessionKey(event) ?? 'anonymous';
   const version = getCookie(event, PREFS_VERSION_COOKIE);
   const stamp = version && PREFS_VERSION_RE.test(version) ? version : null;
-  return (stamp ? `${sk}#${stamp}` : sk).slice(0, MAX_KEY_LEN);
+  return `${scope}:${stamp ? `${sk}#${stamp}` : sk}`.slice(0, MAX_KEY_LEN);
 }
 
 /**
@@ -140,10 +162,16 @@ function gc(now: number): void {
   }
 }
 
-export async function ssrAuthFetch<T>(event: H3Event, fetcher: () => Promise<T>): Promise<T> {
+export async function ssrAuthFetch<T>(
+  event: H3Event,
+  fetcher: () => Promise<T>,
+  /** What this answer is for. Callers storing different shapes MUST pass
+   *  different scopes -- see `SsrAuthScope`. */
+  scope: SsrAuthScope = 'identity',
+): Promise<T> {
   const now = Date.now();
   gc(now);
-  const key = cacheKey(event);
+  const key = cacheKey(event, scope);
   const existing = store.get(key);
 
   if (existing?.kind === 'value' && existing.expiresAt > now) {
@@ -185,9 +213,11 @@ export function dropSessionEntries(event: H3Event): void {
   const sk = getSessionKey(event);
   if (!sk) return;
 
-  const prefix = `${sk}#`;
+  // Every scope, since they all describe the same reader and a preference change
+  // can move any of them.
   for (const key of store.keys()) {
-    if (key === sk || key.startsWith(prefix)) store.delete(key);
+    const withoutScope = key.slice(key.indexOf(':') + 1);
+    if (withoutScope === sk || withoutScope.startsWith(`${sk}#`)) store.delete(key);
   }
 }
 

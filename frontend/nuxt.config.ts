@@ -169,6 +169,12 @@ export default defineNuxtConfig({
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
+      // Where to SEND a reader who wants to change something on Shirabe, which
+      // is a different thing from `shirabeApiBase` above: that one is a service
+      // address our server calls (and may be a tailnet host nobody can browse
+      // to), while this is a URL that goes in front of a person. Public because
+      // the link is rendered in the browser; no key is involved.
+      shirabeSite: env.NUXT_PUBLIC_SHIRABE_SITE || 'https://shirabe.org',
       // Whether word lookups are configured at all. The KEY stays server-side;
       // this is only the boolean, so the browser can leave the feature alone
       // instead of firing a doomed request on every hover and cacheing the

@@ -13,10 +13,10 @@ import { decryptSecret, encryptSecret } from '@lib/secretBox';
  * is what lets Shirabe's consent screen name us rather than print a label we
  * sent about ourselves, and what pins the address a code may be redirected to.
  *
- * Scopes: READ_ACCOUNT and nothing else. That is all a dictionary stack needs.
- * The consent screen is the moment a reader decides, and a permission with no
- * feature behind it is the one that makes them say no -- so we do not ask for
- * the SRS scopes until something here writes to their study data.
+ * Scopes: READ_DICTIONARY and READ_ACCOUNT. The consent screen is the moment a
+ * reader decides, and a permission with no feature behind it is the one that
+ * makes them say no -- so we do not ask for the SRS scopes until something here
+ * writes to their study data.
  */
 
 const AUTHORIZE_PATH = '/oauth/authorize';
@@ -28,9 +28,23 @@ const ME_PATH = '/api/v1/me';
  *
  * Asked for at consent time AND compared against what a stored link actually
  * carries (`missingScopes`), which is what makes adding one a change here rather
- * than a migration. Today it is READ_ACCOUNT alone: enough to read the reader's
- * dictionary stack, and deliberately not the SRS scopes, since nothing here
- * touches their study data.
+ * than a migration.
+ *
+ * BOTH scopes are load-bearing, and it took a wrong version of this list to see
+ * why. `READ_ACCOUNT` reads the reader's dictionary stack off `GET /api/v1/me`.
+ * `READ_DICTIONARY` is what lets the key ASK: every endpoint on Shirabe's API
+ * defaults to requiring it (their `Api::BaseController.required_scope`), and
+ * `POST /api/v1/words/identify` does not override that. A link carrying
+ * READ_ACCOUNT alone therefore reads the stack it is never allowed to use.
+ *
+ * That failure is silent, which is the reason for this paragraph. `identify`
+ * answers 403, our lookup route treats 403 as "this reader's key was refused"
+ * and retries on the service key, and the reader gets the DEFAULT dictionaries
+ * with no error anywhere: linking succeeds, reports success, and changes
+ * nothing. Anything added here in future wants the same question asked of it,
+ * namely which call fails and how loudly, before it is assumed to be enough.
+ *
+ * Deliberately NOT the SRS scopes, since nothing here touches study data.
  *
  * Adding one is TWO changes, in two repos. This list widens, and the client is
  * re-registered on Shirabe with a matching ceiling:
@@ -42,7 +56,7 @@ const ME_PATH = '/api/v1/me';
  * up with a key that cannot do the thing. `completeLink` refuses that outcome
  * loudly rather than storing it; see `assertGranted`.
  */
-export const REQUIRED_SCOPES = ['READ_ACCOUNT'] as const;
+export const REQUIRED_SCOPES = ['READ_DICTIONARY', 'READ_ACCOUNT'] as const;
 
 /** How long a started link has to finish. Long enough to sign in over there
  *  (including a magic link in another tab), short enough that an abandoned one
@@ -153,6 +167,9 @@ interface MeResponse {
     dictionaries?: string[];
     stackFingerprint?: string;
     stackIsPrivate?: boolean;
+    /** Slug => display name, for the stack. Only Shirabe can name a reader's own
+     *  uploads, which are filed under content hashes. */
+    dictionaryNames?: Record<string, string>;
   };
 }
 
@@ -296,6 +313,7 @@ export function missingScopes(connection: ShirabeConnection): string[] {
 function applyProfile(connection: ShirabeConnection, profile: MeResponse): void {
   if (profile.key?.scopes) connection.scopes = profile.key.scopes;
   connection.stack = profile.preferences?.dictionaries ?? [];
+  connection.stackNames = profile.preferences?.dictionaryNames ?? {};
   connection.stackFingerprint = profile.preferences?.stackFingerprint ?? null;
   connection.stackIsPrivate = profile.preferences?.stackIsPrivate ?? false;
   connection.syncedAt = new Date();
@@ -309,29 +327,6 @@ export async function findConnection(userId: number): Promise<ShirabeConnection 
  *  the lookup path, and `unlink`, which hands it back to Shirabe to revoke. */
 export function readToken(connection: ShirabeConnection): string {
   return decryptSecret(connection.tokenCiphertext, connectionSecret());
-}
-
-/**
- * How long a copied stack is trusted before it is worth re-reading.
- *
- * A day, because the thing it tracks is somebody visiting their settings on
- * another site: rare, and never urgent. The refresh is triggered by the reader
- * opening their own connections page rather than by a lookup, so a stale stack
- * costs a word card nothing and the reader has an obvious way to force it.
- */
-const STACK_STALE_AFTER_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Re-read the stack from Shirabe, if it has been long enough to be worth a round
- * trip. Called when the reader looks at their own connection, which is both the
- * moment they might have just changed something and the only moment they are
- * waiting on this answer.
- */
-export async function refreshIfStale(connection: ShirabeConnection): Promise<ShirabeConnection> {
-  const syncedAt = connection.syncedAt?.getTime() ?? 0;
-  if (Date.now() - syncedAt < STACK_STALE_AFTER_MS) return connection;
-
-  return await refreshStack(connection);
 }
 
 /**
@@ -351,6 +346,57 @@ export async function refreshStack(connection: ShirabeConnection): Promise<Shira
   } catch (error) {
     logger.warn({ err: error, userId: connection.userId }, 'Could not refresh a Shirabe stack');
     return connection;
+  }
+}
+
+/**
+ * Reconcile the stored stack against a fingerprint a lookup just observed.
+ *
+ * Shirabe echoes the caller's current `stackFingerprint` on every `identify`, so
+ * a word lookup already carries the answer to "has this reader changed anything
+ * since we copied it?" -- for free, on a call that was happening anyway. This is
+ * what makes a stack change visible in one hover rather than in a day: the
+ * fingerprint is what the reader's cached lookups are keyed by, and this is what
+ * moves it.
+ *
+ * The two outcomes are deliberately different amounts of work:
+ *
+ *   drift     re-read the stack, which is a round trip and worth it: something
+ *             really did change and the settings page owes the reader the truth.
+ *   agreement stamp `syncedAt` and stop. Nothing changed, and we have just
+ *             confirmed it first-hand, so there is nothing to ask Shirabe.
+ *
+ * The lookup route only calls this on drift, deliberately: a word card is one
+ * HTTP request per word, so reporting agreement too would be a write per hover
+ * to record that nothing happened. The agreement branch is here for the race
+ * that produces -- two lookups noticing the same change at once, the second
+ * arriving after the first has already fixed it -- and it must stay cheap for
+ * exactly that reason.
+ *
+ * There is no timer behind this and deliberately so. A periodic sweep would ask
+ * Shirabe about every linked account forever, whether or not anybody was
+ * reading, to catch the one reader who changed their stack and then hovered only
+ * words their browser already held -- and that reader is fixed by the first
+ * uncached word they meet, or by opening their own connections page.
+ *
+ * Never throws. It is called without being awaited, from a request whose real
+ * job is already done.
+ */
+export async function resyncStack(userId: number, observed: string): Promise<void> {
+  try {
+    const connection = await findConnection(userId);
+    if (!connection || !observed) return;
+
+    if (connection.stackFingerprint === observed) {
+      connection.syncedAt = new Date();
+      await connection.save();
+      return;
+    }
+
+    logger.info({ userId }, 'A Shirabe stack changed; re-reading it');
+    await refreshStack(connection);
+  } catch (error) {
+    logger.warn({ err: error, userId }, 'Could not reconcile a Shirabe stack fingerprint');
   }
 }
 

@@ -240,11 +240,18 @@ export async function enrichSessionUser(user: BetterAuthSessionUser, findUserByI
  * (server/utils/ssrAuthCache.ts), so this costs one indexed lookup on a request
  * that was happening anyway, instead of a round trip per page.
  *
- * Just the boolean. An earlier version carried the stack's fingerprint too, so
- * readers configured identically could share a cached answer; that sharing was
- * dropped because it bought little and put one reader's dictionaries one mistake
- * away from another's. If it ever comes back, the fingerprint is still on the
- * row and still on Shirabe's `/api/v1/me`.
+ * The fingerprint rides along, and it is worth being precise about what for. An
+ * earlier version carried it so readers configured IDENTICALLY could share a
+ * cached answer, and that sharing was dropped: it bought little and put one
+ * reader's dictionaries one mistake away from another's. This is the other job
+ * the same value does, and the one that was lost with it -- a linked reader's
+ * lookups are cached in THEIR OWN browser for a day, and without something in
+ * the URL that moves when their stack does, switching a dictionary off in
+ * Shirabe leaves every word they have already hovered showing it until tomorrow.
+ *
+ * A cache key, never a sharing key. Nothing may be shared on the strength of it
+ * (the lookup route bypasses the shared cache for every linked reader), so the
+ * failure the sharing version risked cannot happen here.
  *
  * The KEY is deliberately not here. This is the half that is safe for a browser
  * to hold; the credential itself is only ever handed to our own server, through
@@ -254,12 +261,46 @@ export async function enrichSessionUser(user: BetterAuthSessionUser, findUserByI
  * being signed out is a far worse outcome than a word card falling back to the
  * default dictionaries, so anything that goes wrong here answers "not linked".
  */
+/**
+ * Which languages a linked reader reads definitions in, and in what order, taken
+ * from their Shirabe stack.
+ *
+ * A stack entry is `slug:language`, so a reader who put `jmdict:es` above
+ * `jmdict:en` has already said Spanish first -- over there, in the place that
+ * owns their dictionaries. Without this the word card asked the Nadeshiko
+ * setting instead, and the two answered differently for the same reader.
+ *
+ * Only the languages the card can print. A personal monolingual sits in the
+ * stack as `:ja`, which is not a gloss language choice and is shown regardless
+ * (`selectDefinitions`). An empty result means the stack said nothing useful, and
+ * the card falls back to the reader's own setting.
+ */
+function glossLanguagesFrom(stack: string[] | null | undefined): string[] {
+  const ordered = (stack ?? [])
+    .map((source) => source.slice(source.lastIndexOf(':') + 1).toLowerCase())
+    .filter((language) => language === 'en' || language === 'es');
+
+  return [...new Set(ordered)];
+}
+
 async function sessionShirabe(userId: number) {
   if (!Number.isInteger(userId) || userId <= 0) return null;
 
   try {
-    const linked = await ShirabeConnection.existsBy({ userId });
-    return linked ? { linked: true } : null;
+    // Two columns rather than an existence check, because the fingerprint is
+    // wanted on the same rows and a second query for it would be a round trip
+    // per render.
+    const connection = await ShirabeConnection.findOne({
+      where: { userId },
+      select: { id: true, stackFingerprint: true, stack: true },
+    });
+    if (!connection) return null;
+
+    return {
+      linked: true,
+      stackFingerprint: connection.stackFingerprint ?? null,
+      glossLanguages: glossLanguagesFrom(connection.stack),
+    };
   } catch (error) {
     logger.warn({ err: error, userId }, 'Could not read the Shirabe connection for a session');
     return null;

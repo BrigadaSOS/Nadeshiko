@@ -4,6 +4,7 @@ import type {
   CompleteShirabeLink,
   UnlinkShirabe,
   GetShirabeCredential,
+  ResyncShirabeStack,
 } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { AccessDeniedError, NotFoundError } from '@app/errors';
@@ -13,7 +14,8 @@ import {
   findConnection,
   missingScopes,
   readToken,
-  refreshIfStale,
+  refreshStack,
+  resyncStack,
   startLink,
   unlink,
 } from '@app/services/shirabe/connection';
@@ -36,12 +38,22 @@ import {
 export const getShirabeConnection: GetShirabeConnection = async (_params, respond, req) => {
   const user = assertUser(req);
   const connection = await findConnection(user.id);
-  // The one moment worth re-reading the stack: the reader is looking at it, may
-  // have just changed it over there, and is the only person waiting on it. The
-  // lookup path deliberately does not do this -- it would put a Shirabe round
-  // trip in front of a cache that exists to avoid one. `refreshIfStale` returns
-  // what we already hold if Shirabe cannot be reached.
-  const current = connection ? await refreshIfStale(connection) : null;
+  // ALWAYS re-read, with no staleness window in front of it.
+  //
+  // This is the page whose entire job is to show what Shirabe currently says, to
+  // a reader who is looking straight at it and may have changed it seconds ago
+  // in another tab. A window made that a lie: come back from Shirabe inside the
+  // interval and the page confidently printed the dictionaries you had just
+  // switched off. Being slightly cheaper is not worth a settings page that
+  // disagrees with the service it is describing.
+  //
+  // Affordable because of who is asking: one reader, one page view, one call.
+  // The lookup path deliberately does NOT do this -- it would put a Shirabe
+  // round trip in front of a cache that exists to avoid one, on every word.
+  //
+  // `refreshStack` returns what we already hold if Shirabe cannot be reached, so
+  // an outage over there shows a stale list rather than an error.
+  const current = connection ? await refreshStack(connection) : null;
 
   return respond.with200().body({ connection: current ? current.toJSON(missingScopes(current)) : null });
 };
@@ -94,4 +106,30 @@ export const getShirabeCredential: GetShirabeCredential = async (_params, respon
   if (!connection) throw new NotFoundError('No Shirabe account is linked');
 
   return respond.with200().body({ token: readToken(connection) });
+};
+
+/**
+ * "The stack these answers came out of is X" -- from our own lookup route,
+ * carrying what Shirabe just told it.
+ *
+ * Behind the same internal gate as the credential above, for a different reason.
+ * That one guards a secret; this one guards a FACT about our own state. A
+ * fingerprint a browser could post is a browser deciding when our copy of the
+ * reader's stack looks stale, which is a free Shirabe round trip per request for
+ * anyone who wants one.
+ *
+ * 204 whatever happened, including for a reader with no link at all. The caller
+ * is a lookup that has already answered; there is nothing it could do with a
+ * failure but log it twice.
+ */
+export const resyncShirabeStack: ResyncShirabeStack = async ({ body }, respond, req) => {
+  const user = assertUser(req);
+
+  if (!isInternalProxyRequest(req)) {
+    throw new AccessDeniedError('This route is only callable by the Nadeshiko frontend server');
+  }
+
+  await resyncStack(user.id, body.stackFingerprint);
+
+  return respond.with204();
 };

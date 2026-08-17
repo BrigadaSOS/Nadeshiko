@@ -26,7 +26,26 @@ vi.mock('@app/models/ShirabeConnection', () => ({
   },
 }));
 
-const { startLink, completeLink, missingScopes, REQUIRED_SCOPES } = await import('@app/services/shirabe/connection');
+const { startLink, completeLink, missingScopes, resyncStack, REQUIRED_SCOPES } = await import(
+  '@app/services/shirabe/connection'
+);
+
+/** A stored link, in the shape the service reads and writes it. */
+function storedConnection(overrides: Record<string, unknown> = {}) {
+  return {
+    userId: 42,
+    tokenCiphertext: encryptSecret('shr_reader_key', CONFIG.SHIRABE_CONNECTION_SECRET),
+    stack: ['jmdict:en'],
+    stackFingerprint: 'abc123',
+    syncedAt: new Date('2026-01-01T00:00:00Z'),
+    scopes: [...REQUIRED_SCOPES],
+    save() {
+      saved.push(this as Record<string, unknown>);
+      return Promise.resolve(this);
+    },
+    ...overrides,
+  };
+}
 
 /**
  * The link flow, and specifically the two things that are not about happy paths:
@@ -60,10 +79,17 @@ describe('shirabe connection', () => {
     // The scope we ask for is the scope the reader is asked to approve, so it is
     // worth pinning: nothing here writes to anyone's study data, and asking for
     // a permission with no feature behind it is what makes a person say no.
-    it('asks for READ_ACCOUNT and nothing else', () => {
+    //
+    // READ_DICTIONARY is not optional company for READ_ACCOUNT, which this used
+    // to assert it was. Every Shirabe API endpoint requires it by default and
+    // `POST /words/identify` does not opt out, so a link without it can read the
+    // reader's dictionary stack and never use it: `identify` 403s, our lookup
+    // route quietly answers on the service key, and the reader sees the default
+    // dictionaries with nothing reporting a problem.
+    it('asks for exactly the two scopes a dictionary stack needs', () => {
       const url = new URL(startLink(42).authorizeUrl);
 
-      expect(url.searchParams.get('scope')).toBe('READ_ACCOUNT');
+      expect(url.searchParams.get('scope')).toBe('READ_DICTIONARY READ_ACCOUNT');
     });
 
     // Nothing is stored anywhere, so two flows cannot collide and a flow started
@@ -232,9 +258,13 @@ describe('shirabe connection', () => {
         vi.fn(async (url: URL | string) => {
           if (String(url).includes('/me/key')) throw new Error('shirabe is down');
           if (String(url).includes('/oauth/token')) {
-            return Response.json({ apiKey: 'shr_the_key', scopes: ['READ_ACCOUNT'] });
+            return Response.json({ apiKey: 'shr_the_key', scopes: ['READ_DICTIONARY', 'READ_ACCOUNT'] });
           }
-          return Response.json({ user: { name: 'Lumi' }, key: { scopes: ['READ_ACCOUNT'] }, preferences: {} });
+          return Response.json({
+            user: { name: 'Lumi' },
+            key: { scopes: ['READ_DICTIONARY', 'READ_ACCOUNT'] },
+            preferences: {},
+          });
         }),
       );
       const { state } = startLink(42);
@@ -250,7 +280,7 @@ describe('shirabe connection', () => {
         'fetch',
         vi.fn(async (url: URL | string) =>
           String(url).includes('/oauth/token')
-            ? Response.json({ apiKey: 'shr_the_key', scopes: ['READ_ACCOUNT'] })
+            ? Response.json({ apiKey: 'shr_the_key', scopes: ['READ_DICTIONARY', 'READ_ACCOUNT'] })
             : new Response('nope', { status: 403 }),
         ),
       );
@@ -261,10 +291,19 @@ describe('shirabe connection', () => {
   });
 });
 
+/**
+ * Just the parts of a request the assertions read back. Narrower than
+ * `RequestInit`, and deliberately: `body` there is a `BodyInit` and `headers` a
+ * `HeadersInit`, neither of which can be indexed or parsed without a cast at
+ * every call site. Every request this double answers is made by `connection.ts`,
+ * which sends all three.
+ */
+type ShirabeRequest = { method: string; body: string; headers: Record<string, string> };
+
 /** Shirabe answering the calls a link makes: the token exchange, then /me, plus
  *  the revoke a relink fires at the key it is replacing. */
-function mockShirabe(granted: string[] = ['READ_ACCOUNT']) {
-  const fetchMock = vi.fn(async (url: URL | string) => {
+function mockShirabe(granted: string[] = ['READ_DICTIONARY', 'READ_ACCOUNT']) {
+  const fetchMock = vi.fn(async (url: URL | string, _init: ShirabeRequest) => {
     if (String(url).includes('/oauth/token')) {
       return Response.json({ apiKey: 'shr_the_key', scopes: granted });
     }
@@ -282,3 +321,59 @@ function mockShirabe(granted: string[] = ['READ_ACCOUNT']) {
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
+
+/**
+ * Reconciling the stored stack against what a lookup actually saw.
+ *
+ * This is what makes a dictionary the reader switched off in Shirabe stop being
+ * served to them: the fingerprint is what their cached word cards are keyed by,
+ * and this is the only thing that moves it between the periodic sweeps.
+ */
+describe('resyncStack', () => {
+  beforeEach(() => {
+    saved.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  it('re-reads the stack from Shirabe when the fingerprint has moved', async () => {
+    const connection = storedConnection();
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
+    const fetchMock = vi.fn(async () =>
+      Response.json({ preferences: { dictionaries: ['sanseido:ja'], stackFingerprint: 'def456' } }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await resyncStack(42, 'def456');
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(connection.stackFingerprint).toBe('def456');
+    expect(connection.stack).toEqual(['sanseido:ja']);
+  });
+
+  // The other half, and the one that keeps this affordable: a lookup that agrees
+  // with what we hold has just confirmed it first-hand, so there is nothing to
+  // ask Shirabe.
+  it('records the confirmation without a round trip when nothing changed', async () => {
+    const connection = storedConnection();
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await resyncStack(42, 'abc123');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(saved).toContain(connection);
+    expect(connection.syncedAt.getTime()).toBeGreaterThan(new Date('2026-01-01T00:00:00Z').getTime());
+  });
+
+  // It is called without being awaited, from a request that has already
+  // answered. There is nothing above it that could handle a throw.
+  it('does nothing, loudly or otherwise, for a reader with no link', async () => {
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(null as never);
+
+    await expect(resyncStack(42, 'abc123')).resolves.toBeUndefined();
+  });
+});
