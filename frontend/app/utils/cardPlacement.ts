@@ -25,7 +25,7 @@
  *  Duplicated from CSS on purpose: placement has to know how big the card CAN
  *  get before there is anything in it to measure. Keep the two in step. */
 export const BOX = {
-  width: 340,
+  width: 480,
   /** Total horizontal room the card gives up on a screen narrower than it. */
   gutter: 24,
   ceiling: 420,

@@ -162,3 +162,66 @@ describe('cache bound', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * A linked reader changing their dictionaries in Shirabe, mid-page.
+ *
+ * The session is read once per page load, so without this the reader would keep
+ * being served every word they had already hovered from a day-old copy until
+ * they reloaded -- on the very page where Shirabe told us it had changed.
+ */
+describe('a stack that changes under the reader', () => {
+  it('re-keys the cache when Shirabe reports a different stack', async () => {
+    mod.setReaderStack('old-stack');
+    fetchMock.mockResolvedValue({ ...answer('en'), stackFingerprint: 'new-stack' });
+
+    await mod.fetchWord(ref('猫'), 'en');
+
+    // The answer is filed under the stack it really came from, so the entry the
+    // reader gets next is the fresh one rather than the one they just replaced.
+    expect(mod.peekWord(ref('猫'), 'en')).toBeDefined();
+    expect(mod.__testing.cacheKey(ref('猫'), 'en', 'new-stack')).not.toBe(
+      mod.__testing.cacheKey(ref('猫'), 'en', 'old-stack'),
+    );
+  });
+
+  // Everything cached under the old stack came from dictionaries that may no
+  // longer be the reader's. None of it may survive the change.
+  it('drops the answers that came from the stack it replaced', async () => {
+    mod.setReaderStack('old-stack');
+    fetchMock.mockResolvedValue(answer('en'));
+    await mod.fetchWord(ref('犬'), 'en');
+    expect(mod.peekWord(ref('犬'), 'en')).toBeDefined();
+
+    fetchMock.mockResolvedValue({ ...answer('en'), stackFingerprint: 'new-stack' });
+    await mod.fetchWord(ref('猫'), 'en');
+
+    expect(mod.peekWord(ref('犬'), 'en')).toBeUndefined();
+  });
+
+  // The contract `plugins/shirabeStack.client.ts` exists to satisfy, pinned here
+  // because breaking it is silent in the worst way. Without the fingerprint the
+  // URL is byte-identical to an unlinked reader's, the response is
+  // `private, max-age=86400`, and the browser answers every word out of its own
+  // day-old cache: no request, no error, no log, and a reader who just changed
+  // their dictionaries still reading definitions from the ones they removed.
+  it('puts the stack the plugin hands it into the lookup URL', async () => {
+    mod.setReaderStack('abc123');
+
+    await mod.fetchWord(ref('猫'), 'en');
+
+    expect(fetchMock.mock.calls[0]?.[1]?.query).toMatchObject({ stack: 'abc123' });
+  });
+
+  // The unlinked reader, which is nearly all of the traffic: the route sends no
+  // fingerprint at all, and nothing about their URLs may change.
+  it('leaves an unlinked reader alone', async () => {
+    mod.setReaderStack(null);
+    fetchMock.mockResolvedValue(answer('en'));
+
+    await mod.fetchWord(ref('猫'), 'en');
+
+    expect(fetchMock.mock.calls[0]?.[1]?.query).not.toHaveProperty('stack');
+    expect(mod.peekWord(ref('猫'), 'en')).toBeDefined();
+  });
+});

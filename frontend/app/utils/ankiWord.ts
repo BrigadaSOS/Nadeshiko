@@ -59,8 +59,20 @@ const CLASS = 'nd';
  * function it does not know leaves the chip with no background at all.
  */
 const STYLE = {
-  senses: 'margin:6px 0 0;padding-left:18px;list-style:decimal;text-align:left;',
+  // `list-style:none` and no gutter: the number is printed into the row below,
+  // so it can carry the dictionary's own tier (① / ㋐) instead of a counter that
+  // only knows how to count.
+  senses: 'margin:6px 0 0;padding-left:0;list-style:none;text-align:left;',
   sense: 'margin:5px 0;line-height:1.45;',
+  // The number column. Inline because Anki strips stylesheets, and in `em` so it
+  // follows whatever font size the reader's note type sets. The sub-sense step
+  // is the same measure, applied per row in `definitionHtml`.
+  senseNumber: 'display:inline-block;min-width:1.4em;color:#9a9a9a;',
+  // The dictionary named once above the senses it wrote, the same way the card
+  // does it. Without this a note carrying a reader's whole stack is fifty senses
+  // in one list with nothing to say which dictionary wrote which -- and a note
+  // is read months later, with none of the context the card had.
+  dictionaryName: 'margin:8px 0 2px;font-size:11px;color:#9a9a9a;',
   // `display:block` is the single most load-bearing declaration here: without it
   // the EN and ES glosses run together on one line, which is the "ground
   // crewESmecánico" in the report.
@@ -189,6 +201,10 @@ export interface MinedWord {
   furigana: string;
   /** Numbered senses, or '' when the dictionary had nothing the reader reads. */
   definition: string;
+  /** The dictionaries after the reader's primary ones, for `{definition-rest}`.
+   *  Empty unless they have set a cut point AND their stack answered with more
+   *  dictionaries than it. See `splitSenses`. */
+  definitionRest: string;
   /** Mora diagram for the first accent pattern, or '' when there is none. */
   pitch: string;
   /**
@@ -227,6 +243,7 @@ const EMPTY: MinedWord = {
   reading: '',
   furigana: '',
   definition: '',
+  definitionRest: '',
   pitch: '',
   info: '',
   pitchPositions: '',
@@ -303,20 +320,84 @@ function chips(sense: CardSense): string {
  * reader's own `GlossPreference` is what makes a Spanish reader's card land in
  * Spanish without this function knowing that is what it did.
  */
+/**
+ * Splitting a card's senses across two Anki fields, at the reader's own cut
+ * point.
+ *
+ * A hover card can render nine monolingual dictionaries, labelled and in stack
+ * order, because the reader is looking at it now and can scroll. A note is read
+ * months later on a phone, and one field holding fifty senses from nine
+ * dictionaries is not a flashcard. But which dictionaries belong on the front of
+ * a card is a judgement only the reader can make -- some want one monolingual
+ * definition, some want a monolingual plus an English safety net -- so this is a
+ * setting rather than a rule.
+ *
+ * `primary` is the first `count` dictionaries in stack order and fills
+ * `{definition}`. `rest` is everything after them and fills `{definition-rest}`,
+ * so a reader can put their main dictionary on the front of the card and the
+ * others on the back.
+ *
+ * Counted in DICTIONARIES, not senses: cutting a dictionary in half would put
+ * sense 4 of 三省堂 on one card face and sense 5 on the other, which is not a
+ * division anybody means.
+ *
+ * `count` of zero, or anything below one, means "no cut": everything lands in
+ * `{definition}` and `rest` is empty. That is the default, and it is what
+ * `{definition}` did before this existed -- so nobody's existing note changes
+ * shape until they ask for it.
+ */
+export function splitSenses(
+  word: ShirabeWord,
+  preference: GlossPreference,
+  count: number,
+): { primary: CardSense[]; rest: CardSense[] } {
+  const senses = cardSenses(word, preference);
+  if (!Number.isFinite(count) || count < 1) return { primary: senses, rest: [] };
+
+  // Stack order is the order the senses already arrive in, so the first `count`
+  // DISTINCT dictionaries are simply the first ones seen.
+  const primaryDictionaries = new Set<string>();
+  for (const sense of senses) {
+    if (primaryDictionaries.size >= count && !primaryDictionaries.has(sense.dictionary)) break;
+    primaryDictionaries.add(sense.dictionary);
+  }
+
+  return {
+    primary: senses.filter((sense) => primaryDictionaries.has(sense.dictionary)),
+    rest: senses.filter((sense) => !primaryDictionaries.has(sense.dictionary)),
+  };
+}
+
 export function definitionHtml(senses: CardSense[]): string {
   if (senses.length === 0) return '';
 
-  const items = senses.map((sense) => {
+  // Named only when the note carries more than one, exactly as on the card:
+  // repeating one dictionary's name down its own senses is the noise this avoids.
+  const named = new Set(senses.map((sense) => sense.dictionary)).size > 1;
+
+  const items = senses.flatMap((sense, index) => {
     const label = chips(sense);
     const glosses = sense.glosses
-      .map(
-        (row) =>
-          `<span class="${CLASS}-gloss" style="${STYLE.gloss}">` +
-          `<span class="${CLASS}-gloss-lang" style="${STYLE.glossLang}">${escapeHtml(row.label)}</span>` +
-          `${escapeHtml(row.text)}</span>`,
-      )
+      .map((row) => {
+        // Japanese carries no badge (`GLOSS_LABEL`), and an empty one would be a
+        // stray box of padding down every row of a monolingual note.
+        const lang = row.label
+          ? `<span class="${CLASS}-gloss-lang" style="${STYLE.glossLang}">${escapeHtml(row.label)}</span>`
+          : '';
+        return `<span class="${CLASS}-gloss" style="${STYLE.gloss}">${lang}${escapeHtml(row.text)}</span>`;
+      })
       .join('');
-    return `<li class="${CLASS}-sense" style="${STYLE.sense}">${label}${glosses}</li>`;
+
+    const indent = sense.indent > 0 ? `padding-left:${1.4 * sense.indent}em;` : '';
+    const number = `<span class="${CLASS}-sense-number" style="${STYLE.senseNumber}">${escapeHtml(sense.number)}</span>`;
+    const row = `<li class="${CLASS}-sense" style="${STYLE.sense}${indent}">${number}${label}${glosses}</li>`;
+
+    const heading =
+      named && sense.dictionary !== senses[index - 1]?.dictionary
+        ? `<li class="${CLASS}-dictionary" style="${STYLE.dictionaryName}">${escapeHtml(sense.dictionary)}</li>`
+        : '';
+
+    return heading ? [heading, row] : [row];
   });
 
   return `<ol class="${CLASS}-senses" style="${STYLE.senses}">${items.join('')}</ol>`;
@@ -460,6 +541,10 @@ export function minedWord(
   token: EnrichedToken | null,
   preference: GlossPreference,
   sentenceText = '',
+  /** How many dictionaries fill `{definition}` before the rest spill into
+   *  `{definition-rest}`. Zero means no cut, which is the default and what this
+   *  field did before the split existed. See `splitSenses`. */
+  primaryDictionaries = 0,
 ): MinedWord {
   if (!word && !token) return EMPTY;
 
@@ -484,7 +569,9 @@ export function minedWord(
   // always has a way back to the word. Hung on only when there is a
   // definition: an empty string is what tells the store to leave the field
   // alone, and a lone link would count as content.
-  const senses = definitionHtml(cardSenses(word, preference));
+  const { primary, rest } = splitSenses(word, preference, primaryDictionaries);
+  const senses = definitionHtml(primary);
+  const restSenses = definitionHtml(rest);
 
   return {
     word: headword,
@@ -493,6 +580,9 @@ export function minedWord(
     reading: reading === headword ? '' : reading,
     furigana: furiganaNotation(headwordSegments(word)),
     definition: senses ? `${senses}${definitionSourceHtml(word, preference.labels)}` : '',
+    // No source link: it is the same word, and two links to it on one note is
+    // one more than anybody needs.
+    definitionRest: restSenses,
     // The reading the diagram is drawn over is the DICTIONARY's, not the token's:
     // morae are counted off it, and counting them off an inflected reading would
     // put the downstep in the wrong place.
