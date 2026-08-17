@@ -71,6 +71,20 @@ export interface ShirabeRequest {
   body?: unknown;
   /** For the log line when the direct path is parked. */
   subject: string;
+  /**
+   * Ask as a READER rather than as us.
+   *
+   * A reader who linked their Shirabe account has a key of their own, and
+   * Shirabe shapes a lookup by the dictionary stack of whoever's key made the
+   * call -- which is the entire point of linking. Omitted means the service key,
+   * which is every anonymous lookup and the fallback for every failed one.
+   *
+   * It rides through here rather than through a second HTTP client so both kinds
+   * of call share the tailnet fast path and, more importantly, the breaker
+   * below: two clients would each have to learn about an outage separately, and
+   * each would pay its own timeout finding out.
+   */
+  apiKey?: string;
 }
 
 /**
@@ -84,8 +98,12 @@ export interface ShirabeRequest {
 export async function callShirabe<T>(request: ShirabeRequest): Promise<T> {
   const config = useRuntimeConfig();
   const base = String(config.shirabeApiBase || 'https://shirabe.org').replace(/\/$/, '');
-  const apiKey = String(config.shirabeApiKey || '').trim();
-  if (!apiKey) throw createError({ statusCode: 503, statusMessage: 'Shirabe lookups are not configured' });
+  // A reader's own key when one was passed, ours otherwise. The service key is
+  // still required either way: it is what answers when a reader is not linked,
+  // and what the fallback in every caller lands on.
+  const serviceKey = String(config.shirabeApiKey || '').trim();
+  if (!serviceKey) throw createError({ statusCode: 503, statusMessage: 'Shirabe lookups are not configured' });
+  const apiKey = request.apiKey?.trim() || serviceKey;
 
   // Shirabe sits on another Hetzner box in the same city, and the public name
   // resolves to Cloudflare -- so left alone this call goes Helsinki → Cloudflare

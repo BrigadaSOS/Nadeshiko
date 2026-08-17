@@ -451,14 +451,19 @@ export default defineNuxtConfig({
     // `/` is the per-user locale router (server/middleware/00-locale-router.ts) and
     // must never be shared-cached.
     '/': { headers: { 'Cache-Control': 'private, no-store' } },
-    // Word definitions are identical for every reader and change only when a
-    // dictionary is reimported, so they are cached HERE, on the server, not just
-    // in each browser. That is the difference between Shirabe answering once per
-    // word per day and answering once per word per reader per day: a page of
-    // twenty segments holds a few hundred distinct words, and 兄 is 兄 for
-    // everyone. `swr` keeps serving the stale copy while it refreshes, so a
-    // reader never waits on a revalidation.
-    '/api/shirabe/**': { swr: 60 * 60 * 24, headers: { 'Cache-Control': 'public, max-age=86400' } },
+    // Word definitions are cached on the server, not just in each browser: that
+    // is the difference between Shirabe answering once per word per day and once
+    // per word per reader per day, and a page of twenty segments holds a few
+    // hundred distinct words.
+    //
+    // NOT a route rule any more, and the reason is worth knowing before adding
+    // one back. A rule keys on the path and applies to everyone, which was right
+    // while every reader got the same definitions. A reader who links their
+    // Shirabe account now gets theirs -- their dictionaries, in their order -- so
+    // a path-keyed entry would let the first such reader fill the shared copy of
+    // a word and serve it to everybody else. The handler caches itself instead
+    // and a linked reader skips the cache entirely: see
+    // server/api/shirabe/words/candidates/[lemma].get.ts.
     // Two more answers that are identical for every visitor, cached for the same
     // reason and on the same mechanism. Both used to be fetched straight from a
     // component, which meant a backend round trip per render of a page whose

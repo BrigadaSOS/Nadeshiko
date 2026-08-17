@@ -1,6 +1,8 @@
 import { createError, getQuery, getRouterParam, setResponseHeader } from 'h3';
 import { logger } from '~~/server/utils/logger';
 import { callShirabe, describeFailure } from '~~/server/utils/shirabeCall';
+import { readerHasOwnStack, readerToken } from '~~/server/utils/shirabeReader';
+import { withoutNameEntries } from '~~/server/utils/shirabeNames';
 
 /**
  * Which words a token could be, ranked, with their definitions.
@@ -39,6 +41,11 @@ const CACHE_SECONDS = 60 * 60 * 24;
 // cached copies of a word that is the same for everyone.
 const LABEL_LOCALES = new Set(['en', 'es']);
 
+/* Names are dropped before the answer leaves this route -- see
+ * `withoutNameEntries` for why, and why an all-names result reads as no entry.
+ * Here rather than in the card so the cached response carries no candidate
+ * anybody will render, and one place decides. */
+
 /** One candidate as Shirabe serves it. Narrowed to what the card reads. */
 interface ShirabeCandidate {
   id: string;
@@ -49,6 +56,12 @@ interface ShirabeCandidate {
    *  `dictionary` as the identity behind the derived `id` handle. */
   sourceId?: string;
   dictionary?: string;
+  /** Shirabe's own answer to "is this a person rather than a word", which a
+   *  client cannot derive: see `withoutNameEntries`. */
+  name?: boolean;
+  /** The words a multi-word expression is made of, each with an id that opens
+   *  it. Absent for an ordinary word and for grammar. */
+  parts?: unknown[];
   entries?: unknown[];
   // Only with the `include` below, and the reason the card needs no second call.
   pitch?: unknown[];
@@ -64,7 +77,7 @@ interface IdentifyResponse {
   words: Array<{ candidates: ShirabeCandidate[] } | null>;
 }
 
-export default defineEventHandler(async (event) => {
+const handler = defineEventHandler(async (event) => {
   const lemma = getRouterParam(event, 'lemma');
   if (!lemma) throw createError({ statusCode: 400, statusMessage: 'lemma is required' });
 
@@ -86,11 +99,18 @@ export default defineEventHandler(async (event) => {
     if (value) token[key] = value;
   }
 
-  try {
+  // The reader's own key, when they have linked a Shirabe account. This is the
+  // only thing that makes the answer theirs rather than everybody's, and it is
+  // fetched HERE rather than beside the cache key because it is only needed on a
+  // miss: a cached word costs no backend round trip at all.
+  const hasOwnStack = await readerHasOwnStack(event);
+  const apiKey = hasOwnStack ? ((await readerToken(event)) ?? undefined) : undefined;
+
+  const ask = (key?: string) =>
     // `locale` rides in the QUERY STRING, not the body. `WordIdentifyRequest` is
     // `additionalProperties: false` with `tokens` as its only property, so a
     // body `locale` is rejected as a 400 before the action runs.
-    const answer = await callShirabe<IdentifyResponse>({
+    callShirabe<IdentifyResponse>({
       path: '/words/identify',
       method: 'POST',
       query: { locale },
@@ -99,9 +119,35 @@ export default defineEventHandler(async (event) => {
       // `GET /api/v1/words/{id}` purely for the pitch diagram, the badges, the
       // dictionary-aligned ruby and the forms row -- two round trips on one tap,
       // and a card that visibly rebuilds itself when the second lands.
-      body: { tokens: [token], include: ['pitch', 'frequency', 'furigana', 'jlpt', 'forms', 'notes'] },
+      // `parts` is what a merged expression is made of. Without it 男を知っている
+      // is a dead end: the chip spans 男 and 知る, the expression is the only
+      // candidate, and neither word can be reached at all.
+      body: {
+        tokens: [token],
+        include: ['pitch', 'frequency', 'furigana', 'jlpt', 'forms', 'notes', 'parts'],
+      },
       subject: lemma,
+      apiKey: key,
     });
+
+  try {
+    let answer: IdentifyResponse;
+    try {
+      answer = await ask(apiKey);
+    } catch (readerError: unknown) {
+      // A reader's key can fail in ways ours cannot: revoked at the other end,
+      // or over its own per-minute budget, which is much smaller than a service
+      // identity's. Neither is a reason to show a broken card -- the default
+      // dictionaries are a worse answer than theirs and a far better one than
+      // none -- so retry as ourselves before giving up.
+      if (!apiKey) throw readerError;
+
+      const status = (readerError as { response?: { status?: number } })?.response?.status;
+      if (status !== 401 && status !== 403 && status !== 429) throw readerError;
+
+      logger.warn({ lemma, status }, 'A reader Shirabe key was refused; answering with the default dictionaries');
+      answer = await ask();
+    }
 
     // Identify answers 200 with `words: [null]` for a token that resolves to
     // nothing, so "no entry" now comes from the BODY rather than from a status.
@@ -109,13 +155,39 @@ export default defineEventHandler(async (event) => {
     // coinage, a typo the corpus preserved -- so say so plainly rather than as a
     // failure, and the popup shows the word unlinked.
     const found = answer?.words?.[0];
-    if (!found?.candidates?.length) throw createError({ statusCode: 404, statusMessage: 'No entry for this word' });
+    // Names are dropped while there is a real word to show, and ARE the answer
+    // when there is not.
+    //
+    // The two cases are different questions. ここ is a reading ten people happen
+    // to share, so their entries compete with the pronoun the reader actually
+    // met -- six rows all glossing "Koko", none of them what was asked. 明日香 is
+    // nobody's reading but its own: there is no word to compete with, and
+    // answering "no dictionary entry" would be false as well as useless. The
+    // reader's real question at a name is "is this vocabulary or a person?", and
+    // the useful answer is the second one.
+    //
+    // 一 is the case that shows why this is a rule and not a preference: it is
+    // both Hajime and "one". A word exists, so the names go, and a learner
+    // reading a subtitle gets "one".
+    const all = found?.candidates ?? [];
+    const words = withoutNameEntries(all);
+    const candidates = words.length > 0 ? words : all;
+    if (!candidates.length) throw createError({ statusCode: 404, statusMessage: 'No entry for this word' });
 
-    // A dictionary entry is the same for everyone and changes when a dictionary
-    // is reimported, so it caches hard. This is also what keeps a page of twenty
-    // segments from spending twenty round trips on the same word.
-    setResponseHeader(event, 'cache-control', `public, max-age=${CACHE_SECONDS}`);
-    return found;
+    // A dictionary entry changes when a dictionary is reimported, so it caches
+    // hard. `public` only while the answer is the one everybody gets: a reader
+    // asking with their own stack gets a card built from dictionaries that are
+    // theirs to have configured, and a shared cache anywhere between here and
+    // them would hand it to the next reader through the same hop.
+    setResponseHeader(
+      event,
+      'cache-control',
+      hasOwnStack ? `private, max-age=${CACHE_SECONDS}` : `public, max-age=${CACHE_SECONDS}`,
+    );
+    // Said by the route rather than re-derived downstream: the fallback for a
+    // Shirabe that does not send `name` is a slug test the client has no business
+    // repeating, and this is the one place that already knows the answer.
+    return { ...found, candidates, nameOnly: words.length === 0 };
   } catch (error: unknown) {
     // Our own 404 above, already shaped. Rethrow rather than running it back
     // through the upstream classification, which would read it as a failure.
@@ -134,4 +206,37 @@ export default defineEventHandler(async (event) => {
     logger.warn({ lemma, status, err: error }, 'Shirabe identify failed');
     throw createError({ statusCode: 502, statusMessage: 'Dictionary lookup failed' });
   }
+});
+
+/**
+ * Cached here rather than by a `routeRules` entry, because a rule cannot ask WHO
+ * is asking, and the answer is no longer the same for everyone.
+ *
+ * What is stored is only ever the SHARED answer: the definitions an unlinked
+ * reader gets, which is nearly all of the traffic and the whole reason a server
+ * cache is worth having. A page of twenty segments holds a few hundred distinct
+ * words and 兄 is 兄 for everyone, so the first reader to hover it spares the
+ * rest a call that day.
+ *
+ * A reader with a stack of their own bypasses it entirely. Their answers COULD
+ * be shared with readers configured identically -- an earlier version keyed the
+ * cache on a fingerprint of the stack to do exactly that -- but it bought very
+ * little: sharing only helps where two readers have the same stack, and a stack
+ * is the thing people configure differently. It cost an async cache key, a
+ * fingerprint plumbed through the session, and a standing risk that a mistake
+ * anywhere in it serves one reader's dictionaries to another. One call per word
+ * per linked reader per day, which their own browser cache flattens within a
+ * session, is the better trade.
+ *
+ * It also subsumes the case that has to be right rather than merely fast: a
+ * stack naming one of the reader's own uploads answers with content nobody else
+ * has.
+ *
+ * `swr` keeps serving the stale copy while it refreshes, so a reader never waits
+ * on a revalidation.
+ */
+export default defineCachedEventHandler(handler, {
+  swr: true,
+  maxAge: CACHE_SECONDS,
+  shouldBypassCache: readerHasOwnStack,
 });
