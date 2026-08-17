@@ -471,7 +471,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
         data-testid="create-apikey-modal"
         :open="showCreateModal"
         overlay-class="items-center justify-center bg-neutral-900/40"
-        panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full sm:max-w-lg m-3 sm:mx-auto"
+        panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-background border border-hairline shadow-sm rounded-xl w-full sm:max-w-lg m-3 sm:mx-auto"
         @close="closeCreateModal"
     >
                 <div
@@ -583,7 +583,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
         data-testid="rename-apikey-modal"
         :open="showRenameModal"
         overlay-class="items-center justify-center bg-neutral-900/40"
-        panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border w-full sm:max-w-lg m-3 sm:mx-auto"
+        panel-class="max-h-[calc(100%-3.5rem)] flex flex-col bg-background border border-hairline shadow-sm rounded-xl w-full sm:max-w-lg m-3 sm:mx-auto"
         @close="closeRenameModal"
     >
                 <div

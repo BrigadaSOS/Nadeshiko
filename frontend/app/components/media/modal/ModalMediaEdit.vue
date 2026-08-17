@@ -181,7 +181,7 @@ const submitDelete = async () => {
     data-testid="media-edit-modal"
     :open="!!media"
     labelledby="nd-media-edit-modal-title"
-    panel-class="w-full max-w-3xl mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border"
+    panel-class="w-full max-w-3xl mx-auto flex flex-col bg-background border border-hairline shadow-sm rounded-xl"
     @close="closeModal"
   >
       <div class="nd-modal-header">
