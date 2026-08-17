@@ -1,0 +1,35 @@
+post:
+  tags:
+    - Feedback
+  x-internal: true
+  operationId: createFeedback
+  summary: Send feedback
+  description: |
+    Records a free-text message about the product and notifies the team.
+
+    Open to anonymous visitors on purpose — the person best placed to report a
+    broken sign-up or a confusing empty state is the one who is not signed in.
+    A session, when there is one, attaches the account and overrides `email`.
+
+    Automated submissions are dropped silently rather than rejected: they get the
+    same `201` as everyone else, and nothing is stored.
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/requestBodies/CreateFeedbackRequest.yaml"
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/FeedbackReceipt.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

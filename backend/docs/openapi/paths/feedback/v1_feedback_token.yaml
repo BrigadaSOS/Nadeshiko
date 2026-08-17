@@ -1,0 +1,27 @@
+get:
+  tags:
+    - Feedback
+  x-internal: true
+  operationId: getFeedbackFormToken
+  summary: Issue a feedback form token
+  description: |
+    Called when the feedback panel opens. The token it returns carries the moment
+    it was issued, sealed so the client cannot edit it, and `POST /v1/feedback`
+    requires one: a submission that arrives faster than a person could have typed
+    it, or with no token at all, is treated as automated.
+
+    Deliberately a separate call rather than something embedded in the page: the
+    site's HTML is cached at the edge, so anything baked into it would be shared
+    by every visitor who got that copy and would be stale by an unbounded amount.
+  security: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/FeedbackFormToken.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

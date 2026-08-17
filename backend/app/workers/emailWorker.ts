@@ -19,10 +19,10 @@ export async function registerEmailWorkers(boss: PgBoss): Promise<void> {
 }
 
 async function handleEmailJob(job: Job<EmailJobData>): Promise<void> {
-  const { to, subject, html } = job.data;
+  const { to, subject, html, replyTo } = job.data;
 
   try {
-    await sendEmail({ to, subject, html });
+    await sendEmail({ to, subject, html, replyTo });
     logger.info({ to, subject }, 'Email sent');
   } catch (error) {
     logger.error({ err: error, to, subject }, 'Error processing email job');

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 const config = useRuntimeConfig();
 const localePath = useLocalePath();
+// A second door on desktop, where the floating button is the first: people look
+// for "contact us" in a footer. On a phone the navigation drawer carries it.
+const { openFeedback } = useFeedbackWidget();
 </script>
 
 <template>
@@ -55,6 +58,15 @@ const localePath = useLocalePath();
           >
             {{ $t('navbar.buttons.dmca') }}
           </NuxtLink>
+
+          <button
+            type="button"
+            data-testid="feedback-footer-link"
+            class="mx-4 text-sm text-gray-600 transition-colors duration-300 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400"
+            @click="openFeedback()"
+          >
+            {{ $t('feedback.open') }}
+          </button>
         </div>
 
         <div class="flex -mx-2">

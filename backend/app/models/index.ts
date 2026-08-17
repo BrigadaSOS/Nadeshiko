@@ -26,6 +26,9 @@ export { AuthType, ApiKeyKind, ApiPermission } from './ApiPermission';
 // Reports
 export { Report, ReportSource, ReportTargetType, ReportStatus, ReportReason } from './Report';
 
+// Feedback
+export { Feedback, FEEDBACK_MAX_BODY, FEEDBACK_MAX_URLS } from './Feedback';
+
 // Activity tracking
 export { UserActivity, ActivityType } from './UserActivity';
 export { UserMediaAffinity } from './UserMediaAffinity';

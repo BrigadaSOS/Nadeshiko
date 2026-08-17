@@ -21,6 +21,16 @@ export const v1ApiLimit: IpRateLimitOptions = {
   max: env.NUXT_RATE_LIMIT_V1_API_MAX,
 };
 
+export const v1FeedbackLimit: IpRateLimitOptions = {
+  route: 'v1.feedback',
+  windowMs: WINDOW_MS_DEFAULT,
+  // Its own bucket, not a share of the general one. `POST /v1/feedback` takes no
+  // credentials and queues an email, so it is the cheapest thing on the site to
+  // abuse and the most expensive to have abused. Nobody with something to say
+  // needs more than a handful of submissions a minute.
+  max: env.NUXT_RATE_LIMIT_V1_FEEDBACK_MAX,
+};
+
 /**
  * Throw 429 if the request exceeds the per-IP rate limit. Must be called
  * inside an `await`-able event handler.

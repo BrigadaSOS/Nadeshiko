@@ -1,0 +1,7 @@
+type: object
+required:
+  - token
+properties:
+  token:
+    type: string
+    description: Opaque, short-lived. Pass back as `formToken` when submitting.

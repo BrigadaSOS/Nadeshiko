@@ -169,6 +169,22 @@
     @apply hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none;
   }
 
+  /*
+   * A round button in the bottom-end dock: scroll-to-top, the filter drawer
+   * toggle, feedback. Named once so the column reads as one set of controls
+   * rather than three buttons that happen to be stacked. Placement belongs to
+   * the dock (`CommonFabDock`), never to the button.
+   */
+  .nd-fab {
+    @apply flex items-center justify-center size-14 rounded-full text-white;
+    background: var(--header-background);
+    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+    transition: background-color 0.15s ease;
+  }
+  .nd-fab:hover {
+    background: var(--accent-hover);
+  }
+
   /* Inline loading spinner sized to sit next to button text. */
   .nd-spinner {
     @apply animate-spin inline-block w-4 h-4 border-[2px] border-current border-t-transparent rounded-full mr-1;
@@ -628,6 +644,7 @@
    *
    * Two dark fills, one hover, one line. The search-bar grey (`--surface`)
    * is the raised colour: cards, inputs, buttons and menus all use it.
+   * Dialogs use `--background` so a panel matches the page behind it.
    * `--surface-hover` is the only lighter step. The bright `--accent` stays
    * the brand red (header, CTAs); `--accent-soft` is the rose on dark.
    */
@@ -666,7 +683,7 @@
     --card-background: var(--surface);
     --input-background: var(--surface);
     --input-focus-ring: color-mix(in srgb, var(--ink) 30%, transparent);
-    --modal-background: var(--surface);
+    --modal-background: var(--background);
     --modal-border: var(--line);
     --modal-input: var(--surface);
 
