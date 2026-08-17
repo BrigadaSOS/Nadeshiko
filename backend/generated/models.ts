@@ -193,6 +193,18 @@ export type t_CoveredWordsUpdateResponse = {
   wordsChecked: number;
 };
 
+export type t_CreateFeedbackRequest = {
+  appVersion?: string;
+  body: string;
+  email?: string;
+  formToken: string;
+  locale?: string;
+  nickname?: string;
+  pagePath?: string;
+  posthogDistinctId?: string;
+  posthogSessionId?: string;
+};
+
 export type t_CreateReportRequest = {
   description?: string;
   reason:
@@ -336,6 +348,14 @@ export type t_ExternalId = {
   tmdb: string | null;
   tvdb: string | null;
   youtube: string | null;
+};
+
+export type t_FeedbackFormToken = {
+  token: string;
+};
+
+export type t_FeedbackReceipt = {
+  received: boolean;
 };
 
 export type t_HeatmapDayCounts = {
@@ -746,6 +766,7 @@ export type t_SegmentUpdateRequest = {
 
 export type t_ShirabeConnection = {
   dictionaries: string[];
+  dictionaryNames?: Record<string, string>;
   linkedAt: string;
   missingScopes: string[];
   needsUpgrade: boolean;
@@ -953,6 +974,9 @@ export type t_UserPreferences = {
   translationVisibilityPreferences?: {
     EN?: 'show' | 'spoiler' | 'hidden';
     ES?: 'show' | 'spoiler' | 'hidden';
+  };
+  wordPopup?: {
+    definitionSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
   };
 };
 
@@ -1186,6 +1210,10 @@ export type t_RemoveSegmentFromCollectionParamSchema = {
 export type t_RestoreSegmentRevisionParamSchema = {
   revisionNumber: number;
   segmentPublicId: string;
+};
+
+export type t_ResyncShirabeStackRequestBody = {
+  stackFingerprint: string;
 };
 
 export type t_SearchCollectionSegmentsParamSchema = {

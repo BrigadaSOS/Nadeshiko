@@ -70,6 +70,11 @@ tags:
     description: |
       Administrative endpoints for system management and automated review.
 
+  - name: Feedback
+    x-internal: true
+    description: |
+      Free-text feedback from anyone using the site, signed in or not.
+
 x-tagGroups:
   - name: Core
     tags:
@@ -144,6 +149,8 @@ paths:
     $ref: "./paths/user/v1_user_connections_shirabe_callback.yaml"
   "/v1/user/connections/shirabe/credential":
     $ref: "./paths/user/v1_user_connections_shirabe_credential.yaml"
+  "/v1/user/connections/shirabe/resync":
+    $ref: "./paths/user/v1_user_connections_shirabe_resync.yaml"
   "/v1/user/excluded-media":
     $ref: "./paths/user/v1_user_excluded_media.yaml"
   "/v1/user/excluded-media/{mediaPublicId}":
@@ -172,6 +179,12 @@ paths:
     $ref: "./paths/user/v1_user_activity_id.yaml"
   "/v1/user/export":
     $ref: "./paths/user/v1_user_export.yaml"
+
+  # Feedback endpoints
+  "/v1/feedback":
+    $ref: "./paths/feedback/v1_feedback.yaml"
+  "/v1/feedback/token":
+    $ref: "./paths/feedback/v1_feedback_token.yaml"
 
   # Collection endpoints
   "/v1/collections":

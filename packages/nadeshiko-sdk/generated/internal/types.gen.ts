@@ -1740,6 +1740,57 @@ export type UserMe = {
  */
 export type ApiKeyScope = 'ADD_MEDIA' | 'READ_MEDIA' | 'UPDATE_MEDIA' | 'REMOVE_MEDIA' | 'READ_PROFILE' | 'WRITE_PROFILE' | 'READ_ACTIVITY' | 'WRITE_ACTIVITY' | 'READ_COLLECTIONS' | 'CREATE_COLLECTIONS' | 'UPDATE_COLLECTIONS' | 'DELETE_COLLECTIONS';
 
+/**
+ * A reader's linked Shirabe account, as the reader is shown it.
+ *
+ * Never carries the stored key: nothing here can be used to act on their Shirabe
+ * account. `tokenPrefix` is only the handful of characters Shirabe itself prints
+ * in its own access list, so somebody comparing the two lists can tell which row
+ * is this one.
+ *
+ */
+export type ShirabeConnection = {
+    /**
+     * True when the link works but is missing a permission a newer feature needs -- granted before that feature existed. A re-consent, not a repair: what the account was linked for keeps working the whole time, and only the newer feature is unavailable.
+     */
+    needsUpgrade: boolean;
+    /**
+     * The permissions a re-consent would add. Empty unless `needsUpgrade`.
+     */
+    missingScopes: Array<string>;
+    linkedAt: string;
+    /**
+     * Who they are on Shirabe, for the settings page to name the link.
+     */
+    shirabeName?: string;
+    /**
+     * The first characters of the key, to recognise it by. Not usable.
+     */
+    tokenPrefix: string;
+    /**
+     * What the reader granted. Today that is READ_ACCOUNT and nothing else.
+     */
+    scopes: Array<string>;
+    /**
+     * Their Shirabe dictionary stack: ordered `slug:lang` refs naming which dictionaries resolve, in which languages, in what order. This is what makes a word lookup here answer the way it does over there.
+     */
+    dictionaries: Array<string>;
+    /**
+     * What each dictionary above is CALLED, keyed by slug, as Shirabe names it. A reader's own uploads are filed under content hashes, so a client printing the stack without this prints a list of hashes. Empty for a link made before Shirabe published the names; fall back to the slug.
+     */
+    dictionaryNames?: {
+        [key: string]: string;
+    };
+    /**
+     * True when their stack names one of their own uploads, which makes its answers theirs alone and stops a lookup being cached for anyone else.
+     */
+    stackIsPrivate: boolean;
+    /**
+     * When the stack was last re-read from Shirabe.
+     */
+    syncedAt?: string;
+};
+
 export type ReportTargetMedia = {
     /**
      * Report target type
@@ -1905,6 +1956,17 @@ export type UserPreferences = {
      *
      */
     translationLanguages?: Array<'EN' | 'ES'>;
+    /**
+     * How the word card behaves when a reader taps a word in a sentence. A group rather than a loose key so the settings that follow it have somewhere to live.
+     *
+     */
+    wordPopup?: {
+        /**
+         * How large the definitions themselves are printed. The card holds a reader's own monolingual dictionaries now, which is Japanese prose rather than a three-word English gloss, and a size that suited "to die; to pass away" is small for a paragraph of 大辞林. MEDIUM is the default; SMALL is what the card printed before this existed.
+         *
+         */
+        definitionSize?: 'SMALL' | 'MEDIUM' | 'LARGE';
+    };
     searchHistory?: {
         /**
          * Whether activity tracking is enabled (default true)
@@ -2164,6 +2226,80 @@ export type UserExportResponse = {
         playCount: number;
         shareCount: number;
     }>;
+};
+
+export type CreateFeedbackRequest = {
+    /**
+     * The message. Free text — no category, no target.
+     */
+    body: string;
+    /**
+     * Optional reply address for anonymous senders. Ignored when the request
+     * carries a session: the account's own address is used instead, so a signed-in
+     * sender cannot attribute a message to somebody else's inbox.
+     *
+     */
+    email?: string;
+    /**
+     * Opaque token from `GET /v1/feedback/token`, issued when the panel opened.
+     * It carries the issue time, so a submission that arrives implausibly fast
+     * after the form appeared can be told from a person typing.
+     *
+     */
+    formToken: string;
+    /**
+     * Honeypot. Not rendered to people; anything in it marks the submission as
+     * automated. Present in the contract because it has to be accepted to be
+     * ignored.
+     *
+     */
+    nickname?: string;
+    /**
+     * Same-origin path (and query) the sender was on, e.g. `/search?q=彼女`.
+     * Anything that is not a rooted path is dropped rather than rejected.
+     *
+     */
+    pagePath?: string;
+    /**
+     * The locale the page rendered in, which is not the same question as
+     * `Accept-Language`: the site's locale comes from the URL prefix and a stored
+     * preference, so a reader on `/es/search` with an English browser is reading
+     * Spanish. Falls back to the request header when absent.
+     *
+     */
+    locale?: string;
+    /**
+     * The frontend build the sender was running. Client-supplied because it is the
+     * only side that knows: the browser can be holding a bundle several deploys
+     * old, and the API's own version says nothing about it.
+     *
+     */
+    appVersion?: string;
+    /**
+     * PostHog session id, so a report links to its session replay. Blank where posthog is not loaded.
+     */
+    posthogSessionId?: string;
+    /**
+     * PostHog person id.
+     */
+    posthogDistinctId?: string;
+};
+
+export type FeedbackReceipt = {
+    /**
+     * Always `true`. The response is deliberately uniform: a submission dropped
+     * as automated answers exactly like one that was stored, so a bot learns
+     * nothing from the reply about what tripped it.
+     *
+     */
+    received: boolean;
+};
+
+export type FeedbackFormToken = {
+    /**
+     * Opaque, short-lived. Pass back as `formToken` when submitting.
+     */
+    token: string;
 };
 
 /**
@@ -4110,6 +4246,260 @@ export type CreateUserApiKeyResponses = {
 
 export type CreateUserApiKeyResponse = CreateUserApiKeyResponses[keyof CreateUserApiKeyResponses];
 
+export type UnlinkShirabeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe';
+};
+
+export type UnlinkShirabeErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Not Found
+     */
+    404: Error404;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type UnlinkShirabeError = UnlinkShirabeErrors[keyof UnlinkShirabeErrors];
+
+export type UnlinkShirabeResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type UnlinkShirabeResponse = UnlinkShirabeResponses[keyof UnlinkShirabeResponses];
+
+export type GetShirabeConnectionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe';
+};
+
+export type GetShirabeConnectionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type GetShirabeConnectionError = GetShirabeConnectionErrors[keyof GetShirabeConnectionErrors];
+
+export type GetShirabeConnectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        connection: ShirabeConnection;
+    };
+};
+
+export type GetShirabeConnectionResponse = GetShirabeConnectionResponses[keyof GetShirabeConnectionResponses];
+
+export type StartShirabeLinkData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe';
+};
+
+export type StartShirabeLinkErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type StartShirabeLinkError = StartShirabeLinkErrors[keyof StartShirabeLinkErrors];
+
+export type StartShirabeLinkResponses = {
+    /**
+     * Created
+     */
+    201: {
+        /**
+         * Send the reader here. Shirabe asks them to approve, then redirects back.
+         */
+        authorizeUrl: string;
+        /**
+         * Opaque. Comes back on the redirect and must be handed to the callback unchanged.
+         */
+        state: string;
+    };
+};
+
+export type StartShirabeLinkResponse = StartShirabeLinkResponses[keyof StartShirabeLinkResponses];
+
+export type CompleteShirabeLinkData = {
+    body: {
+        /**
+         * The one-time authorization code from the redirect.
+         */
+        code: string;
+        /**
+         * The sealed state from the redirect, unchanged.
+         */
+        state: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe/callback';
+};
+
+export type CompleteShirabeLinkErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type CompleteShirabeLinkError = CompleteShirabeLinkErrors[keyof CompleteShirabeLinkErrors];
+
+export type CompleteShirabeLinkResponses = {
+    /**
+     * OK
+     */
+    200: {
+        connection: ShirabeConnection;
+    };
+};
+
+export type CompleteShirabeLinkResponse = CompleteShirabeLinkResponses[keyof CompleteShirabeLinkResponses];
+
+export type GetShirabeCredentialData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe/credential';
+};
+
+export type GetShirabeCredentialErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Not Found
+     */
+    404: Error404;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type GetShirabeCredentialError = GetShirabeCredentialErrors[keyof GetShirabeCredentialErrors];
+
+export type GetShirabeCredentialResponses = {
+    /**
+     * OK
+     */
+    200: {
+        /**
+         * The reader's Shirabe API key.
+         */
+        token: string;
+    };
+};
+
+export type GetShirabeCredentialResponse = GetShirabeCredentialResponses[keyof GetShirabeCredentialResponses];
+
+export type ResyncShirabeStackData = {
+    body: {
+        /**
+         * The fingerprint Shirabe returned on the lookup.
+         */
+        stackFingerprint: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe/resync';
+};
+
+export type ResyncShirabeStackErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type ResyncShirabeStackError = ResyncShirabeStackErrors[keyof ResyncShirabeStackErrors];
+
+export type ResyncShirabeStackResponses = {
+    /**
+     * Reconciled, or nothing to reconcile.
+     */
+    204: void;
+};
+
+export type ResyncShirabeStackResponse = ResyncShirabeStackResponses[keyof ResyncShirabeStackResponses];
+
 export type ListExcludedMediaData = {
     body?: never;
     path?: never;
@@ -4981,6 +5371,68 @@ export type ExportUserDataResponses = {
 };
 
 export type ExportUserDataResponse = ExportUserDataResponses[keyof ExportUserDataResponses];
+
+export type CreateFeedbackData = {
+    body: CreateFeedbackRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/feedback';
+};
+
+export type CreateFeedbackErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type CreateFeedbackError = CreateFeedbackErrors[keyof CreateFeedbackErrors];
+
+export type CreateFeedbackResponses = {
+    /**
+     * Created
+     */
+    201: FeedbackReceipt;
+};
+
+export type CreateFeedbackResponse = CreateFeedbackResponses[keyof CreateFeedbackResponses];
+
+export type GetFeedbackFormTokenData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/feedback/token';
+};
+
+export type GetFeedbackFormTokenErrors = {
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type GetFeedbackFormTokenError = GetFeedbackFormTokenErrors[keyof GetFeedbackFormTokenErrors];
+
+export type GetFeedbackFormTokenResponses = {
+    /**
+     * OK
+     */
+    200: FeedbackFormToken;
+};
+
+export type GetFeedbackFormTokenResponse = GetFeedbackFormTokenResponses[keyof GetFeedbackFormTokenResponses];
 
 export type ListCollectionsData = {
     body?: never;

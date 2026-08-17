@@ -60,6 +60,10 @@ tags:
     x-internal: true
     description: |
       Administrative endpoints for system management and automated review.
+  - name: Feedback
+    x-internal: true
+    description: |
+      Free-text feedback from anyone using the site, signed in or not.
 paths:
   /v1/search:
     post:
@@ -1614,6 +1618,51 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/resync:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: resyncShirabeStack
+      summary: Reconcile the stored Shirabe stack against a fingerprint a lookup saw
+      description: |
+        Shirabe echoes the calling key's current stack fingerprint on every word
+        lookup. Our frontend server hands it back here, so a reader who switches a
+        dictionary off over there stops being served their cached definitions for it.
+
+        Cheap by design. When the fingerprint matches what we hold, this only records
+        that the copy was confirmed; only a mismatch costs a round trip to Shirabe.
+
+        Refused unless the request came through our own Nitro proxy (the shared
+        internal secret), like the credential route beside it. Nothing here is a
+        reader-facing action: the browser never sees a fingerprint, and one supplied
+        by a client would be a client choosing when our copy looks stale.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stackFingerprint
+              properties:
+                stackFingerprint:
+                  type: string
+                  maxLength: 64
+                  description: The fingerprint Shirabe returned on the lookup.
+      responses:
+        '204':
+          description: Reconciled, or nothing to reconcile.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/user/excluded-media:
     get:
       tags:
@@ -2349,6 +2398,70 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/feedback:
+    post:
+      tags:
+        - Feedback
+      x-internal: true
+      operationId: createFeedback
+      summary: Send feedback
+      description: |
+        Records a free-text message about the product and notifies the team.
+
+        Open to anonymous visitors on purpose — the person best placed to report a
+        broken sign-up or a confusing empty state is the one who is not signed in.
+        A session, when there is one, attaches the account and overrides `email`.
+
+        Automated submissions are dropped silently rather than rejected: they get the
+        same `201` as everyone else, and nothing is stored.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeedbackRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/feedback/token:
+    get:
+      tags:
+        - Feedback
+      x-internal: true
+      operationId: getFeedbackFormToken
+      summary: Issue a feedback form token
+      description: |
+        Called when the feedback panel opens. The token it returns carries the moment
+        it was issued, sealed so the client cannot edit it, and `POST /v1/feedback`
+        requires one: a submission that arrives faster than a person could have typed
+        it, or with no token at all, is treated as automated.
+
+        Deliberately a separate call rather than something embedded in the page: the
+        site's HTML is cached at the edge, so anything baked into it would be shared
+        by every visitor who got that copy and would be stale by an unbounded amount.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackFormToken'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -5840,6 +5953,14 @@ components:
           example:
             - sanseido:ja
             - jmdict:en
+        dictionaryNames:
+          type: object
+          additionalProperties:
+            type: string
+          description: What each dictionary above is CALLED, keyed by slug, as Shirabe names it. A reader's own uploads are filed under content hashes, so a client printing the stack without this prints a list of hashes. Empty for a link made before Shirabe published the names; fall back to the slug.
+          example:
+            jmdict: JMdict
+            yomitan-c89af12122021a8a: 三省堂国語辞典
         stackIsPrivate:
           type: boolean
           description: True when their stack names one of their own uploads, which makes its answers theirs alone and stops a lookup being cached for anyone else.
@@ -6142,6 +6263,19 @@ components:
             enum:
               - EN
               - ES
+        wordPopup:
+          type: object
+          description: |
+            How the word card behaves when a reader taps a word in a sentence. A group rather than a loose key so the settings that follow it have somewhere to live.
+          properties:
+            definitionSize:
+              type: string
+              enum:
+                - SMALL
+                - MEDIUM
+                - LARGE
+              description: |
+                How large the definitions themselves are printed. The card holds a reader's own monolingual dictionaries now, which is Japanese prose rather than a three-word English gloss, and a size that suited "to die; to pass away" is small for a paragraph of 大辞林. MEDIUM is the default; SMALL is what the card printed before this existed.
         searchHistory:
           type: object
           properties:
@@ -6592,6 +6726,93 @@ components:
                 type: integer
               shareCount:
                 type: integer
+    CreateFeedbackRequest:
+      type: object
+      required:
+        - body
+        - formToken
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: The message. Free text — no category, no target.
+          example: The audio on the search page stops after the first segment on Firefox.
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: |
+            Optional reply address for anonymous senders. Ignored when the request
+            carries a session: the account's own address is used instead, so a signed-in
+            sender cannot attribute a message to somebody else's inbox.
+          example: you@example.com
+        formToken:
+          type: string
+          maxLength: 512
+          description: |
+            Opaque token from `GET /v1/feedback/token`, issued when the panel opened.
+            It carries the issue time, so a submission that arrives implausibly fast
+            after the form appeared can be told from a person typing.
+        nickname:
+          type: string
+          maxLength: 200
+          description: |
+            Honeypot. Not rendered to people; anything in it marks the submission as
+            automated. Present in the contract because it has to be accepted to be
+            ignored.
+        pagePath:
+          type: string
+          maxLength: 2000
+          description: |
+            Same-origin path (and query) the sender was on, e.g. `/search?q=彼女`.
+            Anything that is not a rooted path is dropped rather than rejected.
+          example: /search?q=彼女
+        locale:
+          type: string
+          maxLength: 16
+          description: |
+            The locale the page rendered in, which is not the same question as
+            `Accept-Language`: the site's locale comes from the URL prefix and a stored
+            preference, so a reader on `/es/search` with an English browser is reading
+            Spanish. Falls back to the request header when absent.
+          example: es
+        appVersion:
+          type: string
+          maxLength: 32
+          description: |
+            The frontend build the sender was running. Client-supplied because it is the
+            only side that knows: the browser can be holding a bundle several deploys
+            old, and the API's own version says nothing about it.
+          example: 2.4.0
+        posthogSessionId:
+          type: string
+          maxLength: 64
+          description: PostHog session id, so a report links to its session replay. Blank where posthog is not loaded.
+        posthogDistinctId:
+          type: string
+          maxLength: 128
+          description: PostHog person id.
+    FeedbackReceipt:
+      type: object
+      required:
+        - received
+      properties:
+        received:
+          type: boolean
+          description: |
+            Always `true`. The response is deliberately uniform: a submission dropped
+            as automated answers exactly like one that was stored, so a bot learns
+            nothing from the reply about what tripped it.
+          example: true
+    FeedbackFormToken:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Opaque, short-lived. Pass back as `formToken` when submitting.
     CollectionListResponse:
       type: object
       description: Paginated collection list response

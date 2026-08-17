@@ -37,13 +37,14 @@ import type {
   t_RemoveExcludedMediaParamSchema,
   t_RemoveFavoriteMediaParamSchema,
   t_Report,
+  t_ResyncShirabeStackRequestBody,
   t_ShirabeConnection,
   t_UserActivityRequest,
   t_UserExportResponse,
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
-import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, ResyncShirabeStackRequestBodyOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_AddExcludedMediaRequestBody,
@@ -61,6 +62,7 @@ import {
   s_Error500,
   s_MediaSummary,
   s_Report,
+  s_ResyncShirabeStackRequestBody,
   s_ShirabeConnection,
   s_UserActivityRequest,
   s_UserExportResponse,
@@ -191,6 +193,22 @@ export type GetShirabeCredentialResponder = {
 export type GetShirabeCredential = (
   params: Params<void, void, void, void>,
   respond: GetShirabeCredentialResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ResyncShirabeStackResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ResyncShirabeStack = (
+  params: Params<void, void, ResyncShirabeStackRequestBodyOutput, void>,
+  respond: ResyncShirabeStackResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -474,6 +492,7 @@ export type UserImplementation = {
   unlinkShirabe: UnlinkShirabe;
   completeShirabeLink: CompleteShirabeLink;
   getShirabeCredential: GetShirabeCredential;
+  resyncShirabeStack: ResyncShirabeStack;
   listExcludedMedia: ListExcludedMedia;
   addExcludedMedia: AddExcludedMedia;
   removeExcludedMedia: RemoveExcludedMedia;
@@ -882,6 +901,57 @@ export function createUserRouter(
         .getShirabeCredential(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, getShirabeCredentialResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const resyncShirabeStackResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // resyncShirabeStack
+  router.post(`/v1/user/connections/shirabe/resync`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(s_ResyncShirabeStackRequestBody, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .resyncShirabeStack(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, resyncShirabeStackResponseBodyValidator));
     } catch (error) {
       next(error);
     }
