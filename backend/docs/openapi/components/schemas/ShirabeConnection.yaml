@@ -1,0 +1,69 @@
+type: object
+description: |
+  A reader's linked Shirabe account, as the reader is shown it.
+
+  Never carries the stored key: nothing here can be used to act on their Shirabe
+  account. `tokenPrefix` is only the handful of characters Shirabe itself prints
+  in its own access list, so somebody comparing the two lists can tell which row
+  is this one.
+required:
+  - needsUpgrade
+  - missingScopes
+  - linkedAt
+  - tokenPrefix
+  - scopes
+  - dictionaries
+  - stackIsPrivate
+properties:
+  needsUpgrade:
+    type: boolean
+    description: >-
+      True when the link works but is missing a permission a newer feature needs
+      -- granted before that feature existed. A re-consent, not a repair: what
+      the account was linked for keeps working the whole time, and only the newer
+      feature is unavailable.
+    example: false
+  missingScopes:
+    type: array
+    description: The permissions a re-consent would add. Empty unless `needsUpgrade`.
+    items:
+      type: string
+    example: []
+  linkedAt:
+    type: string
+    format: date-time
+  shirabeName:
+    type: string
+    nullable: true
+    description: Who they are on Shirabe, for the settings page to name the link.
+    example: Lumi
+  tokenPrefix:
+    type: string
+    description: The first characters of the key, to recognise it by. Not usable.
+    example: shr_2f8Kq1zX
+  scopes:
+    type: array
+    description: What the reader granted. Today that is READ_ACCOUNT and nothing else.
+    items:
+      type: string
+    example: [READ_ACCOUNT]
+  dictionaries:
+    type: array
+    description: >-
+      Their Shirabe dictionary stack: ordered `slug:lang` refs naming which
+      dictionaries resolve, in which languages, in what order. This is what makes
+      a word lookup here answer the way it does over there.
+    items:
+      type: string
+    example: [sanseido:ja, jmdict:en]
+  stackIsPrivate:
+    type: boolean
+    description: >-
+      True when their stack names one of their own uploads, which makes its
+      answers theirs alone and stops a lookup being cached for anyone else.
+    example: false
+  syncedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the stack was last re-read from Shirabe.

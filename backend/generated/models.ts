@@ -744,6 +744,18 @@ export type t_SegmentUpdateRequest = {
   };
 };
 
+export type t_ShirabeConnection = {
+  dictionaries: string[];
+  linkedAt: string;
+  missingScopes: string[];
+  needsUpgrade: boolean;
+  scopes: string[];
+  shirabeName?: string | null;
+  stackIsPrivate: boolean;
+  syncedAt?: string | null;
+  tokenPrefix: string;
+};
+
 export type t_StatsOverview = {
   dialogueHours: number;
   lastUpdated: string | null;
@@ -976,6 +988,11 @@ export type t_AddFavoriteMediaRequestBody = {
 
 export type t_AddSegmentToCollectionParamSchema = {
   collectionPublicId: string;
+};
+
+export type t_CompleteShirabeLinkRequestBody = {
+  code: string;
+  state: string;
 };
 
 export type t_CreateEpisodeParamSchema = {

@@ -138,6 +138,12 @@ paths:
     $ref: "./paths/user/v1_user_me.yaml"
   "/v1/user/api-keys":
     $ref: "./paths/user/v1_user_api_keys.yaml"
+  "/v1/user/connections/shirabe":
+    $ref: "./paths/user/v1_user_connections_shirabe.yaml"
+  "/v1/user/connections/shirabe/callback":
+    $ref: "./paths/user/v1_user_connections_shirabe_callback.yaml"
+  "/v1/user/connections/shirabe/credential":
+    $ref: "./paths/user/v1_user_connections_shirabe_credential.yaml"
   "/v1/user/excluded-media":
     $ref: "./paths/user/v1_user_excluded_media.yaml"
   "/v1/user/excluded-media/{mediaPublicId}":

@@ -20,6 +20,7 @@ import type {
   t_AddFavoriteMediaRequestBody,
   t_AffectedCountResponse,
   t_ApiKeyScope,
+  t_CompleteShirabeLinkRequestBody,
   t_CreateReportRequest,
   t_CreateUserApiKeyRequestBody,
   t_DeleteUserActivityByDateParamSchema,
@@ -36,18 +37,20 @@ import type {
   t_RemoveExcludedMediaParamSchema,
   t_RemoveFavoriteMediaParamSchema,
   t_Report,
+  t_ShirabeConnection,
   t_UserActivityRequest,
   t_UserExportResponse,
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
-import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_AddExcludedMediaRequestBody,
   s_AddFavoriteMediaRequestBody,
   s_AffectedCountResponse,
   s_ApiKeyScope,
+  s_CompleteShirabeLinkRequestBody,
   s_CreateReportRequest,
   s_CreateUserApiKeyRequestBody,
   s_Error400,
@@ -58,6 +61,7 @@ import {
   s_Error500,
   s_MediaSummary,
   s_Report,
+  s_ShirabeConnection,
   s_UserActivityRequest,
   s_UserExportResponse,
   s_UserMe,
@@ -98,6 +102,95 @@ export type CreateUserApiKeyResponder = {
 export type CreateUserApiKey = (
   params: Params<void, void, CreateUserApiKeyRequestBodyOutput, void>,
   respond: CreateUserApiKeyResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetShirabeConnectionResponder = {
+  with200(): ExpressRuntimeResponse<{
+    connection: t_ShirabeConnection | null;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetShirabeConnection = (
+  params: Params<void, void, void, void>,
+  respond: GetShirabeConnectionResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type StartShirabeLinkResponder = {
+  with201(): ExpressRuntimeResponse<{
+    authorizeUrl: string;
+    state: string;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type StartShirabeLink = (
+  params: Params<void, void, void, void>,
+  respond: StartShirabeLinkResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UnlinkShirabeResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UnlinkShirabe = (
+  params: Params<void, void, void, void>,
+  respond: UnlinkShirabeResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type CompleteShirabeLinkResponder = {
+  with200(): ExpressRuntimeResponse<{
+    connection: t_ShirabeConnection;
+  }>;
+  with400(): ExpressRuntimeResponse<t_Error400>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CompleteShirabeLink = (
+  params: Params<void, void, CompleteShirabeLinkRequestBodyOutput, void>,
+  respond: CompleteShirabeLinkResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetShirabeCredentialResponder = {
+  with200(): ExpressRuntimeResponse<{
+    token: string;
+  }>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with404(): ExpressRuntimeResponse<t_Error404>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetShirabeCredential = (
+  params: Params<void, void, void, void>,
+  respond: GetShirabeCredentialResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -376,6 +469,11 @@ export type ExportUserData = (
 export type UserImplementation = {
   getMe: GetMe;
   createUserApiKey: CreateUserApiKey;
+  getShirabeConnection: GetShirabeConnection;
+  startShirabeLink: StartShirabeLink;
+  unlinkShirabe: UnlinkShirabe;
+  completeShirabeLink: CompleteShirabeLink;
+  getShirabeCredential: GetShirabeCredential;
   listExcludedMedia: ListExcludedMedia;
   addExcludedMedia: AddExcludedMedia;
   removeExcludedMedia: RemoveExcludedMedia;
@@ -520,6 +618,270 @@ export function createUserRouter(
         .createUserApiKey(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, createUserApiKeyResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getShirabeConnectionResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ connection: s_ShirabeConnection.nullable() })],
+      ['401', s_Error401],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getShirabeConnection
+  router.get(`/v1/user/connections/shirabe`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            connection: t_ShirabeConnection | null;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .getShirabeConnection(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getShirabeConnectionResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const startShirabeLinkResponseBodyValidator = responseValidationFactory(
+    [
+      ['201', z.object({ authorizeUrl: z.string(), state: z.string() })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // startShirabeLink
+  router.post(`/v1/user/connections/shirabe`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with201() {
+          return new ExpressRuntimeResponse<{
+            authorizeUrl: string;
+            state: string;
+          }>(201);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .startShirabeLink(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, startShirabeLinkResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const unlinkShirabeResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error401],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // unlinkShirabe
+  router.delete(`/v1/user/connections/shirabe`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .unlinkShirabe(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, unlinkShirabeResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const completeShirabeLinkResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ connection: s_ShirabeConnection })],
+      ['400', s_Error400],
+      ['401', s_Error401],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // completeShirabeLink
+  router.post(`/v1/user/connections/shirabe/callback`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(s_CompleteShirabeLinkRequestBody, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            connection: t_ShirabeConnection;
+          }>(200);
+        },
+        with400() {
+          return new ExpressRuntimeResponse<t_Error400>(400);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .completeShirabeLink(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, completeShirabeLinkResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const getShirabeCredentialResponseBodyValidator = responseValidationFactory(
+    [
+      ['200', z.object({ token: z.string() })],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['404', s_Error404],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // getShirabeCredential
+  router.get(`/v1/user/connections/shirabe/credential`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: undefined,
+        headers: undefined,
+      };
+
+      const responder = {
+        with200() {
+          return new ExpressRuntimeResponse<{
+            token: string;
+          }>(200);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with404() {
+          return new ExpressRuntimeResponse<t_Error404>(404);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .getShirabeCredential(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, getShirabeCredentialResponseBodyValidator));
     } catch (error) {
       next(error);
     }

@@ -1,4 +1,4 @@
-import { ApiPermission, User, UserRoleType } from '@app/models';
+import { ApiPermission, ShirabeConnection, User, UserRoleType } from '@app/models';
 import { captureAccountCreated } from '@app/services/analytics/posthog';
 import { config, type AppConfig } from '@config/config';
 import { isProdEnvironment } from '@config/environment';
@@ -224,7 +224,46 @@ export async function enrichSessionUser(user: BetterAuthSessionUser, findUserByI
   return {
     ...user,
     role: dbUser?.role ?? UserRoleType.USER,
+    shirabe: await sessionShirabe(Number(user.id)),
   };
+}
+
+/**
+ * The one thing the frontend needs to know about a linked Shirabe account on
+ * EVERY render: whether there is one.
+ *
+ * It rides the session rather than being fetched on its own because of where it
+ * is used. A linked reader's word lookups must not be answered from, or stored
+ * in, the cache other readers are served from, and that decision is made before
+ * the lookup happens -- so it is needed on every request. The session is already
+ * read once per render and cached for a minute by the frontend
+ * (server/utils/ssrAuthCache.ts), so this costs one indexed lookup on a request
+ * that was happening anyway, instead of a round trip per page.
+ *
+ * Just the boolean. An earlier version carried the stack's fingerprint too, so
+ * readers configured identically could share a cached answer; that sharing was
+ * dropped because it bought little and put one reader's dictionaries one mistake
+ * away from another's. If it ever comes back, the fingerprint is still on the
+ * row and still on Shirabe's `/api/v1/me`.
+ *
+ * The KEY is deliberately not here. This is the half that is safe for a browser
+ * to hold; the credential itself is only ever handed to our own server, through
+ * `getShirabeCredential`.
+ *
+ * Guarded, because a session read failing is the whole site failing. A reader
+ * being signed out is a far worse outcome than a word card falling back to the
+ * default dictionaries, so anything that goes wrong here answers "not linked".
+ */
+async function sessionShirabe(userId: number) {
+  if (!Number.isInteger(userId) || userId <= 0) return null;
+
+  try {
+    const linked = await ShirabeConnection.existsBy({ userId });
+    return linked ? { linked: true } : null;
+  } catch (error) {
+    logger.warn({ err: error, userId }, 'Could not read the Shirabe connection for a session');
+    return null;
+  }
 }
 
 export async function sendWelcomeEmailAfterUserCreate(
