@@ -39,6 +39,23 @@ export interface ShirabeEntry {
   senses?: ShirabeSense[];
 }
 
+/**
+ * One word a multi-word expression is made of.
+ *
+ * The card shows these because a merge DELETES what it spans: 男を知っている is
+ * one chip covering 男 and 知る, and the expression is the only candidate, so
+ * without a Parts row neither word can be reached -- not by hovering, not
+ * through the picker. Shirabe's own card has shown them for exactly this reason;
+ * `include=parts` is that row, published.
+ */
+export interface ShirabePart {
+  text: string;
+  lemma: string;
+  reading?: string;
+  /** Absent when the part resolves to no word: print it, do not link it. */
+  id?: string;
+}
+
 export interface ShirabePitch {
   downstep: number;
   pattern?: string;
@@ -58,6 +75,7 @@ export interface ShirabePitch {
 export interface ShirabeWord {
   id: string;
   headword: string;
+  parts?: ShirabePart[];
   reading?: string | null;
   common?: boolean;
   jlpt?: string | null;
@@ -134,10 +152,24 @@ export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | u
  * is not the reader's fault and not a mystery worth making them solve, so it now
  * has its own state and its own words.
  */
-export type LookupState = 'shown' | 'missing' | 'unavailable';
+/**
+ * 'name' is a fourth answer, and the one that used to be a lie.
+ *
+ * A token that resolves only to people -- 明日香, 田中, every character in the
+ * corpus -- was told "no dictionary entry", which is false: the dictionary has
+ * it, we dropped it. Names are dropped only while there is a real word to
+ * compete with (see `withoutNameEntries`), so a list that is ALL names is not a
+ * failed lookup. It is the answer to the question a reader actually has at a
+ * name, which is "is this vocabulary or a person?".
+ */
+export type LookupState = 'shown' | 'name' | 'missing' | 'unavailable';
 
-export function lookupState(candidates: number, reason: 'missing' | 'failed' | undefined): LookupState {
-  if (candidates > 0) return 'shown';
+export function lookupState(
+  candidates: number,
+  reason: 'missing' | 'failed' | undefined,
+  nameOnly = false,
+): LookupState {
+  if (candidates > 0) return nameOnly ? 'name' : 'shown';
   return reason === 'failed' ? 'unavailable' : 'missing';
 }
 
@@ -164,8 +196,12 @@ export interface PickerChip {
  * moment anything is held back -- silently, because both are small integers and
  * one of them is usually right.
  *
- * A picked candidate is always in the row: pick from the expanded row, collapse
- * it again, and the card must not be left showing a word whose chip has gone.
+ * A picked candidate is always in the row: pick from the full list, collapse it
+ * again, and the card must not be left showing a word whose chip has gone.
+ *
+ * `limit` is small here -- the row is a glance, not the answer. What it does not
+ * fit is one click away as a list that says what each word MEANS, which a chip
+ * never could: see `candidateSummary`.
  */
 export function pickerChips(
   candidates: readonly ShirabeCandidate[],
@@ -222,6 +258,19 @@ export function cardForms(word: ShirabeWord | null, limit = 4): string[] {
 export type GlossLanguage = 'en' | 'es';
 
 const GLOSS_LANGUAGES: readonly GlossLanguage[] = ['en', 'es'];
+
+/**
+ * What the card can PRINT, which is wider than what the reader has a preference
+ * about.
+ *
+ * `GlossLanguage` is the pair the translation-visibility setting is written in
+ * terms of, and it is about JMdict's translations. Japanese is not one of those:
+ * it arrives from a monolingual dictionary that only appears here because the
+ * reader put it in their own Shirabe stack, which is a stronger statement than
+ * any toggle on this site. So it can be printed without being something to hide
+ * or reorder.
+ */
+export type PrintLanguage = GlossLanguage | 'ja';
 
 export interface GlossPreference {
   /** Definition languages the reader has not hidden, their own language first.
@@ -298,22 +347,33 @@ function homeFirst(home: GlossLanguage): GlossLanguage[] {
  * language is hidden, the card gets no definitions at all.
  */
 export function selectDefinitions(definitions: ShirabeText[] | undefined, preference: GlossPreference): ShirabeText[] {
-  if (preference.order.length === 0) return [];
-
-  const wanted = inLanguages(definitions, preference.order);
+  const wanted = preference.order.length > 0 ? inLanguages(definitions, preference.order) : [];
   if (wanted.length > 0) return wanted;
-  return inLanguages(definitions, preference.fallback);
+
+  const fallback = preference.order.length > 0 ? inLanguages(definitions, preference.fallback) : [];
+  if (fallback.length > 0) return fallback;
+
+  // A sense with nothing in either preference language, which since readers can
+  // link a Shirabe account is no longer the same as a sense with nothing worth
+  // printing. A monolingual dictionary writes in Japanese, and a reader only
+  // ever meets one here by putting it in their own dictionary stack -- so it is
+  // shown because they asked for it, not governed by a visibility preference
+  // that was written when JMdict's translations were the only thing on the card.
+  //
+  // Still not "print whatever arrived": JMdict also ships French, German, Dutch
+  // and Russian, and none of those is a language anybody here chose.
+  return inLanguages(definitions, ['ja']);
 }
 
 /** Definitions in the given languages, that order, keeping each language's own
  *  order within itself. Anything in a language not asked for is left out. */
-function inLanguages(definitions: ShirabeText[] | undefined, langs: readonly GlossLanguage[]): ShirabeText[] {
+function inLanguages(definitions: ShirabeText[] | undefined, langs: readonly PrintLanguage[]): ShirabeText[] {
   const source = definitions ?? [];
   return langs.flatMap((lang) => source.filter((definition) => definition.lang?.toLowerCase() === lang));
 }
 
 export interface CardGlossRow {
-  lang: GlossLanguage;
+  lang: PrintLanguage;
   /** EN / ES, the same badge the segment translations use. */
   label: string;
   text: string;
@@ -341,17 +401,22 @@ export interface CardSense {
   glosses: CardGlossRow[];
   /** The sense's usage notes, verbatim. Empty when it has none. */
   notes: string[];
+  /** Which dictionary wrote this sense. Worth carrying since a reader who linked
+   *  their Shirabe account can have several on one card, in their own order: a
+   *  monolingual definition and a JMdict gloss sitting in one numbered list with
+   *  nothing to tell them apart reads as one dictionary contradicting itself. */
+  dictionary: string;
 }
 
-const GLOSS_LABEL: Record<GlossLanguage, string> = { en: 'EN', es: 'ES' };
+const GLOSS_LABEL: Record<PrintLanguage, string> = { en: 'EN', es: 'ES', ja: 'JA' };
 
 /** Group a sense's definitions into one badged row per language, keeping the
  *  reader's language order and each language's own sense order within its row. */
 function glossRows(definitions: ShirabeText[]): CardGlossRow[] {
   const rows: CardGlossRow[] = [];
   for (const definition of definitions) {
-    const lang = definition.lang?.toLowerCase() as GlossLanguage;
-    if (lang !== 'en' && lang !== 'es') continue;
+    const lang = definition.lang?.toLowerCase() as PrintLanguage;
+    if (lang !== 'en' && lang !== 'es' && lang !== 'ja') continue;
     const existing = rows.find((row) => row.lang === lang);
     if (existing) existing.text += `; ${definition.text}`;
     else rows.push({ lang, label: GLOSS_LABEL[lang], text: definition.text });
@@ -411,7 +476,11 @@ function samePartsOfSpeech(a: CardTag[], b: CardTag[]): boolean {
  * which point the two agree again.
  */
 export function cardSenses(word: ShirabeWord | null, preference: GlossPreference, limit = SENSE_LIMIT): CardSense[] {
-  const senses = (word?.entries ?? []).flatMap((entry) => entry.senses ?? []);
+  // Entries arrive in the key owner's own dictionary order, so flattening keeps
+  // it: a reader who put a monolingual dictionary above JMdict reads it first.
+  const senses = (word?.entries ?? []).flatMap((entry) =>
+    (entry.senses ?? []).map((sense) => ({ sense, dictionary: entry.dictionary })),
+  );
   const cards: CardSense[] = [];
   // The last POS actually printed, which is not the same as the previous card's
   // own: once a repeat is blanked, the next sense still has to be compared
@@ -419,7 +488,7 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
   // first and third.
   let shown: CardTag[] = [];
 
-  for (const sense of senses) {
+  for (const { sense, dictionary } of senses) {
     const glosses = glossRows(selectDefinitions(sense.definitions, preference));
     if (glosses.length === 0) continue;
 
@@ -436,12 +505,48 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
       // note qualifies the sense it sits on, and carrying one down would state
       // something false about the next.
       notes: (sense.notes ?? []).filter((note) => note.trim().length > 0),
+      dictionary,
     });
     if (cards.length === limit) break;
   }
 
   return cards;
 }
+
+/**
+ * One line saying what a candidate MEANS, for a row the reader has not opened.
+ *
+ * The thing the old chip row could not do. A chip read 個々 and nothing else, so
+ * choosing between nine of them was choosing blind: you opened one to find out,
+ * and opened another if it was wrong. A spelling is only a recognisable label to
+ * someone who already knows the word, which is precisely not the reader looking
+ * it up.
+ *
+ * Built by asking `cardSenses` for ONE sense rather than by reaching into the
+ * entry: the row then shows the same first definition the card will show when it
+ * is opened, in the same language, chosen by the same rules. A preview that
+ * disagrees with what it previews is worse than none.
+ */
+export function candidateSummary(
+  candidate: ShirabeCandidate | null,
+  preference: GlossPreference,
+  limit = SUMMARY_LIMIT,
+): string {
+  const [first] = cardSenses(candidate, preference, 1);
+  const text = first?.glosses[0]?.text ?? '';
+  if (text.length <= limit) return text;
+
+  // Cut on a word boundary where there is one within reach, so a truncated
+  // English gloss does not end mid-word; Japanese has none to find and falls
+  // through to the hard cut.
+  const cut = text.slice(0, limit);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > limit - 12 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+/** Long enough for a short gloss whole ("individual; separate"), short enough
+ *  that a row stays one line at the card's 340px. */
+const SUMMARY_LIMIT = 42;
 
 /** Each distinct kanji in a headword, in the order it is written. */
 export function kanjiIn(headword: string): string[] {
