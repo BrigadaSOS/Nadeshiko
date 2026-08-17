@@ -1,6 +1,7 @@
 import { useNuxtApp } from '#app';
 import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import { defineStore } from 'pinia';
+import { setReaderStack } from '~/utils/wordLookup';
 import { handleApiError } from '~/utils/apiError';
 import {
   AUTH_CALLBACK_PARAM,
@@ -32,6 +33,23 @@ export interface SessionUser {
   email?: string | null;
   role?: string | null;
   createdAt?: string | null;
+  /**
+   * The reader's linked Shirabe account, folded onto the session by the backend
+   * because the word card needs it on every render.
+   *
+   * `stackFingerprint` names the dictionary stack their lookups are answered
+   * from. It rides here so a lookup URL can carry it: a linked reader's word
+   * cards are cached in this browser for a day, and this is the only thing in
+   * the request that moves when they reconfigure their dictionaries in Shirabe.
+   */
+  shirabe?: {
+    linked?: boolean;
+    stackFingerprint?: string | null;
+    /** Which languages they read definitions in, and in what order, as their
+     *  Shirabe stack says (`jmdict:es` above `jmdict:en` means Spanish first).
+     *  Empty when the stack names no gloss language. */
+    glossLanguages?: string[] | null;
+  } | null;
 }
 
 export interface SessionInfo {
@@ -57,6 +75,16 @@ function defaultAuthState() {
     userEmail: null as string | null,
     currentSessionToken: null as string | null,
     userInfo: { role: 'USER' as UserRole },
+    /** Which Shirabe dictionary stack this reader's word lookups come from, or
+     *  null when they have not linked an account. See `SessionUser.shirabe`. */
+    shirabeStackFingerprint: null as string | null,
+    /** The gloss language order their Shirabe stack implies. Empty when they have
+     *  linked nothing, or when the stack names no gloss language at all. */
+    shirabeGlossLanguages: [] as string[],
+    /** Whether a Shirabe account is linked at all. Not the same question as the
+     *  two above: a reader can be linked and have neither a fingerprint copied
+     *  yet nor a gloss language in their stack. */
+    shirabeLinked: false,
     activeSessions: [] as UserSession[],
     preferences: {} as UserPreferences,
     isImpersonating: false,
@@ -132,6 +160,7 @@ export const userStore = defineStore('user', {
   actions: {
     resetAuthState() {
       this.$patch(defaultAuthState());
+      setReaderStack(null);
     },
 
     /**
@@ -160,9 +189,16 @@ export const userStore = defineStore('user', {
         userEmail: sessionUser?.email ?? null,
         currentSessionToken: response?.session?.token ?? null,
         userInfo: { role: (sessionUser?.role as UserRole) ?? 'USER' },
+        shirabeStackFingerprint: sessionUser?.shirabe?.stackFingerprint ?? null,
+        shirabeGlossLanguages: sessionUser?.shirabe?.glossLanguages ?? [],
+        shirabeLinked: sessionUser?.shirabe?.linked === true,
         isImpersonating: impersonating,
         impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
       });
+
+      // The word-lookup cache keys on this, and cannot reach in for it: see
+      // `setReaderStack`. Pushed from the one place that knows a session landed.
+      setReaderStack(sessionUser?.shirabe?.stackFingerprint);
 
       return true;
     },

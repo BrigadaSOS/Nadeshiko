@@ -1,7 +1,7 @@
 import { createError, getQuery, getRouterParam, setResponseHeader } from 'h3';
 import { logger } from '~~/server/utils/logger';
 import { callShirabe, describeFailure } from '~~/server/utils/shirabeCall';
-import { readerHasOwnStack, readerToken } from '~~/server/utils/shirabeReader';
+import { readerHasOwnStack, readerStack, readerToken, reportStackFingerprint } from '~~/server/utils/shirabeReader';
 import { withoutNameEntries } from '~~/server/utils/shirabeNames';
 
 /**
@@ -50,6 +50,10 @@ const LABEL_LOCALES = new Set(['en', 'es']);
 interface ShirabeCandidate {
   id: string;
   headword: string;
+  /** What to call this candidate when its headword is a kana form the reader
+   *  never typed (あなた finding 彼方, which is called かなた). A label; the card
+   *  keeps using `id` and `headword` for everything else. */
+  matchedHeadword?: string | null;
   reading?: string | null;
   common?: boolean;
   /** The dictionary's own id, stable across re-imports. Travels with
@@ -75,6 +79,10 @@ interface IdentifyResponse {
   /** Index-aligned with the tokens sent. `null` wherever nothing resolves, which
    *  is ordinary for names, numbers, coined words and most symbols. */
   words: Array<{ candidates: ShirabeCandidate[] } | null>;
+  /** Which dictionary stack the calling key's answers came out of. The same
+   *  digest `/api/v1/me` reports, echoed here so a client notices its cached
+   *  answers have gone stale without polling for it. */
+  stackFingerprint?: string | null;
 }
 
 const handler = defineEventHandler(async (event) => {
@@ -103,7 +111,8 @@ const handler = defineEventHandler(async (event) => {
   // only thing that makes the answer theirs rather than everybody's, and it is
   // fetched HERE rather than beside the cache key because it is only needed on a
   // miss: a cached word costs no backend round trip at all.
-  const hasOwnStack = await readerHasOwnStack(event);
+  const reader = await readerStack(event);
+  const hasOwnStack = reader.linked;
   const apiKey = hasOwnStack ? ((await readerToken(event)) ?? undefined) : undefined;
 
   const ask = (key?: string) =>
@@ -132,6 +141,10 @@ const handler = defineEventHandler(async (event) => {
 
   try {
     let answer: IdentifyResponse;
+    // Whether the answer below is really THEIRS. The fallback path drops to the
+    // service key, and reporting that stack as the reader's would tell the
+    // backend their dictionaries had changed to ours.
+    let answeredAsReader = Boolean(apiKey);
     try {
       answer = await ask(apiKey);
     } catch (readerError: unknown) {
@@ -146,7 +159,19 @@ const handler = defineEventHandler(async (event) => {
       if (status !== 401 && status !== 403 && status !== 429) throw readerError;
 
       logger.warn({ lemma, status }, 'A reader Shirabe key was refused; answering with the default dictionaries');
+      answeredAsReader = false;
       answer = await ask();
+    }
+
+    // Shirabe just said which stack it answered from, and the session says which
+    // one we think the reader has. A disagreement means they reconfigured their
+    // dictionaries over there since we last looked -- so hand it to the backend,
+    // which owns that copy, and do NOT wait for it. This request already holds
+    // the fresh answer; what the update buys is the reader's next request being
+    // cached under a key that has moved, so every word they already hovered
+    // stops being served from a day-old copy.
+    if (answeredAsReader && answer?.stackFingerprint && answer.stackFingerprint !== reader.fingerprint) {
+      void reportStackFingerprint(event, answer.stackFingerprint);
     }
 
     // Identify answers 200 with `words: [null]` for a token that resolves to
@@ -187,7 +212,18 @@ const handler = defineEventHandler(async (event) => {
     // Said by the route rather than re-derived downstream: the fallback for a
     // Shirabe that does not send `name` is a slug test the client has no business
     // repeating, and this is the one place that already knows the answer.
-    return { ...found, candidates, nameOnly: words.length === 0 };
+    //
+    // The fingerprint goes to the browser ONLY when the answer is really the
+    // reader's, and that gate is the whole safety of it. The client re-keys its
+    // cache on this value, so handing an unlinked reader the SERVICE key's
+    // fingerprint would put it in their lookup URLs -- and this response is the
+    // shared, cached one, so it would be the same string for everybody.
+    return {
+      ...found,
+      candidates,
+      nameOnly: words.length === 0,
+      ...(answeredAsReader && answer?.stackFingerprint ? { stackFingerprint: answer.stackFingerprint } : {}),
+    };
   } catch (error: unknown) {
     // Our own 404 above, already shaped. Rethrow rather than running it back
     // through the upstream classification, which would read it as a failure.

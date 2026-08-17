@@ -56,6 +56,15 @@ properties:
     items:
       type: string
     example: [sanseido:ja, jmdict:en]
+  dictionaryNames:
+    type: object
+    additionalProperties: { type: string }
+    description: >-
+      What each dictionary above is CALLED, keyed by slug, as Shirabe names it.
+      A reader's own uploads are filed under content hashes, so a client printing
+      the stack without this prints a list of hashes. Empty for a link made
+      before Shirabe published the names; fall back to the slug.
+    example: { jmdict: JMdict, "yomitan-c89af12122021a8a": 三省堂国語辞典 }
   stackIsPrivate:
     type: boolean
     description: >-

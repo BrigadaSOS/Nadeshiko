@@ -78,6 +78,18 @@ export class ShirabeConnection extends BaseEntity {
   @Column({ name: 'stack_is_private', type: 'boolean', default: false })
   stackIsPrivate!: boolean;
 
+  /**
+   * What each dictionary in the stack is CALLED, keyed by slug.
+   *
+   * Stored rather than derived because only Shirabe knows: a reader's own
+   * uploads are filed under content hashes (`yomitan-c89af12122021a8a`), so the
+   * settings page printing the stack back to them was printing a list of hashes.
+   * A static map on our side could never name those, and would go out of date
+   * for the ones it could.
+   */
+  @Column({ name: 'stack_names', type: 'jsonb', default: () => "'{}'::jsonb" })
+  stackNames!: Record<string, string>;
+
   /** When we last re-read the stack from Shirabe. */
   @Column({ name: 'synced_at', type: 'timestamptz', nullable: true })
   syncedAt?: Date | null;
@@ -106,6 +118,9 @@ export class ShirabeConnection extends BaseEntity {
       tokenPrefix: this.tokenPrefix,
       scopes: this.scopes,
       dictionaries: this.stack,
+      /** Slug => display name, for the stack above. Absent for a link made
+       *  before Shirabe published the names, so a client falls back to the slug. */
+      dictionaryNames: this.stackNames ?? {},
       stackIsPrivate: this.stackIsPrivate,
       syncedAt: this.syncedAt?.toISOString() ?? null,
     };
