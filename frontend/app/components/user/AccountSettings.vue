@@ -12,6 +12,10 @@ import type { SearchResult } from '~/types/search';
 import { useToastSuccess } from '~/utils/toast';
 import { handleApiError } from '~/utils/apiError';
 import { resolveContextResponse } from '~/utils/resolvers';
+// Explicit, because Nuxt's auto-import names a component after its directory:
+// this one is `UserConnectionsCard`, and `<ConnectionsCard />` would have
+// resolved to nothing and rendered nothing, silently.
+import ConnectionsCard from '~/components/user/ConnectionsCard.vue';
 import { reportError } from '~/utils/reportError';
 
 const { t, locale } = useI18n();
@@ -646,6 +650,10 @@ const logoutCurrentUser = async () => {
       </div>
     </div>
   </div>
+
+  <!-- Below preferences because that is what it is: which dictionaries the word
+       card answers from, decided on another site the reader has an account on. -->
+  <ConnectionsCard />
 
   <!-- Card -->
   <div class="nd-settings-card">
