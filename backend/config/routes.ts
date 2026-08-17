@@ -86,6 +86,13 @@ import {
   removeFavoriteMedia,
 } from '@app/controllers/userController';
 import { createUserApiKey } from '@app/controllers/apiKeyController';
+import {
+  getShirabeConnection,
+  startShirabeLink,
+  completeShirabeLink,
+  unlinkShirabe,
+  getShirabeCredential,
+} from '@app/controllers/shirabeConnectionController';
 import { listFamiliarMedia, clearFamiliarMedia, forgetFamiliarMedia } from '@app/controllers/familiarMediaController';
 import { exportUserData } from '@app/controllers/userExportController';
 import { getStatsOverview, getCoveredWords, triggerCoveredWordsUpdate } from '@app/controllers/statsController';
@@ -267,6 +274,11 @@ const StatsRoutes = createStatsRouter({
 const UserRoutes = createUserRouter({
   getMe,
   createUserApiKey,
+  getShirabeConnection,
+  startShirabeLink,
+  completeShirabeLink,
+  unlinkShirabe,
+  getShirabeCredential,
   listExcludedMedia,
   addExcludedMedia,
   removeExcludedMedia,

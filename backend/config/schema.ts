@@ -8,6 +8,7 @@ import { config } from '@config/config';
 import {
   User,
   AccountQuotaUsage,
+  ShirabeConnection,
   Tier,
   Media,
   MediaExternalId,
@@ -27,6 +28,7 @@ import { SegmentSubscriber } from '@app/subscribers';
 export const APP_ENTITIES = [
   User,
   AccountQuotaUsage,
+  ShirabeConnection,
   Tier,
   Media,
   MediaExternalId,

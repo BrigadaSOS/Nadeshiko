@@ -1415,6 +1415,205 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getShirabeConnection
+      summary: Read the linked Shirabe account
+      description: |
+        Whether the signed-in reader has linked a Shirabe account, and what it is
+        shaped like: who they are over there, which dictionaries their stack names,
+        and when we last re-read it.
+
+        Never returns the stored key. Nothing the browser is shown can be used to
+        act on their Shirabe account.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    nullable: true
+                    allOf:
+                      - $ref: '#/components/schemas/ShirabeConnection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: startShirabeLink
+      summary: Begin linking a Shirabe account
+      description: |
+        Starts an OAuth 2.0 authorization-code flow (PKCE) against Shirabe and
+        returns where to send the reader. Nothing is stored until they approve.
+
+        The `state` is the pending flow itself, sealed with a server-side key rather
+        than a handle into server memory: the request that starts the link and the
+        one that finishes it are minutes apart and nothing routes them to the same
+        process.
+      security:
+        - SessionCookie: []
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authorizeUrl
+                  - state
+                properties:
+                  authorizeUrl:
+                    type: string
+                    format: uri
+                    description: Send the reader here. Shirabe asks them to approve, then redirects back.
+                  state:
+                    type: string
+                    description: Opaque. Comes back on the redirect and must be handed to the callback unchanged.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: unlinkShirabe
+      summary: Unlink the Shirabe account
+      description: |
+        Forgets the stored key AND asks Shirabe to revoke it, so the reader is not
+        left with a live credential on their Shirabe access list that nothing here
+        can reach again.
+
+        The local link goes either way. If Shirabe cannot be reached, the reader
+        still gets what they asked for here and can revoke the key themselves at
+        `/account/settings#access`.
+      security:
+        - SessionCookie: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/callback:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: completeShirabeLink
+      summary: Finish linking a Shirabe account
+      description: |
+        Exchanges the one-time code Shirabe redirected back with for a scoped key,
+        reads the reader's dictionary stack, and stores the link.
+
+        The `state` must be the one this session started the flow with. It carries
+        the account it belongs to, and a mismatch is refused: otherwise somebody who
+        completed their own authorization at Shirabe could hand the callback URL to a
+        signed-in victim and attach their account to the victim's.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - state
+              properties:
+                code:
+                  type: string
+                  description: The one-time authorization code from the redirect.
+                state:
+                  type: string
+                  description: The sealed state from the redirect, unchanged.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    $ref: '#/components/schemas/ShirabeConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/credential:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getShirabeCredential
+      summary: The reader's Shirabe key, for our own server only
+      description: |
+        Hands the stored Shirabe key to our frontend server so a word lookup can be
+        made AS the reader, which is the entire point of linking an account.
+
+        Refused unless the request came through our own Nitro proxy (the shared
+        internal secret). A session alone is not enough, even the reader's own: a key
+        that reaches a browser is a key that has been given away, and this one is a
+        live credential on somebody else's service. The reader has no need for it
+        here — it is already listed, and revocable, on their Shirabe account.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                properties:
+                  token:
+                    type: string
+                    description: The reader's Shirabe API key.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/user/excluded-media:
     get:
       tags:
@@ -5586,6 +5785,70 @@ components:
         - UPDATE_COLLECTIONS
         - DELETE_COLLECTIONS
       example: READ_MEDIA
+    ShirabeConnection:
+      type: object
+      description: |
+        A reader's linked Shirabe account, as the reader is shown it.
+
+        Never carries the stored key: nothing here can be used to act on their Shirabe
+        account. `tokenPrefix` is only the handful of characters Shirabe itself prints
+        in its own access list, so somebody comparing the two lists can tell which row
+        is this one.
+      required:
+        - needsUpgrade
+        - missingScopes
+        - linkedAt
+        - tokenPrefix
+        - scopes
+        - dictionaries
+        - stackIsPrivate
+      properties:
+        needsUpgrade:
+          type: boolean
+          description: 'True when the link works but is missing a permission a newer feature needs -- granted before that feature existed. A re-consent, not a repair: what the account was linked for keeps working the whole time, and only the newer feature is unavailable.'
+          example: false
+        missingScopes:
+          type: array
+          description: The permissions a re-consent would add. Empty unless `needsUpgrade`.
+          items:
+            type: string
+          example: []
+        linkedAt:
+          type: string
+          format: date-time
+        shirabeName:
+          type: string
+          nullable: true
+          description: Who they are on Shirabe, for the settings page to name the link.
+          example: Lumi
+        tokenPrefix:
+          type: string
+          description: The first characters of the key, to recognise it by. Not usable.
+          example: shr_2f8Kq1zX
+        scopes:
+          type: array
+          description: What the reader granted. Today that is READ_ACCOUNT and nothing else.
+          items:
+            type: string
+          example:
+            - READ_ACCOUNT
+        dictionaries:
+          type: array
+          description: 'Their Shirabe dictionary stack: ordered `slug:lang` refs naming which dictionaries resolve, in which languages, in what order. This is what makes a word lookup here answer the way it does over there.'
+          items:
+            type: string
+          example:
+            - sanseido:ja
+            - jmdict:en
+        stackIsPrivate:
+          type: boolean
+          description: True when their stack names one of their own uploads, which makes its answers theirs alone and stops a lookup being cached for anyone else.
+          example: false
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the stack was last re-read from Shirabe.
     ReportTargetMedia:
       type: object
       required:

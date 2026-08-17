@@ -69,11 +69,22 @@ env:
 
     - SHIRABE_API_KEY
 
+    # Account linking (see deploy.prod.yml). Staging needs its OWN registration
+    # over on Shirabe -- the redirect URI is exact-matched, so production's does
+    # not cover stg.nadeshiko.co -- and its own secret, so a dump of one
+    # environment does not decrypt the other's stored keys.
+    - SHIRABE_CONNECTION_SECRET
+
   clear:
     ENVIRONMENT: development
     PORT: 80
     RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://stg.nadeshiko.co
+
+    # Its own client on Shirabe, not production's: the redirect is exact-matched,
+    # so one registration cannot cover two hostnames.
+    SHIRABE_OAUTH_CLIENT_ID: nadeshiko-staging
+    SHIRABE_OAUTH_REDIRECT_URI: https://stg.nadeshiko.co/link/shirabe/callback
 
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432
