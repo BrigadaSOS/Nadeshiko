@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  candidateSummary,
+  pickerChips,
   cardForms,
   cardHeadword,
   lookupState,
   cardSenses,
-  pickerChips,
   glossPreference,
   kanjiIn,
   pitchMorae,
@@ -422,8 +423,7 @@ describe('cardHeadword', () => {
  * the pick addresses the full list.
  */
 describe('pickerChips', () => {
-  const list = (n: number) =>
-    Array.from({ length: n }, (_, i) => ({ id: `w${i}`, headword: `w${i}` }) as ShirabeWord);
+  const list = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `w${i}`, headword: `w${i}` }) as ShirabeWord);
 
   it('draws everything when the list is short enough', () => {
     expect(pickerChips(list(4), 0, false, 6).map((c) => c.index)).toEqual([0, 1, 2, 3]);
@@ -533,5 +533,137 @@ describe('lookupState', () => {
   // Candidates win over any reason: an answer that arrived is an answer.
   it('prefers what arrived over why it might not have', () => {
     expect(lookupState(2, 'failed')).toBe('shown');
+  });
+});
+
+/**
+ * A reader who linked their Shirabe account and put a monolingual dictionary
+ * above JMdict. Everything below is about what changes on the card when the
+ * definitions stop coming from one dictionary in one of two languages.
+ */
+const STACKED: ShirabeWord = {
+  id: '開く',
+  headword: '開く',
+  reading: 'ひらく',
+  common: true,
+  jlpt: 'N4',
+  frequency: 900,
+  pitch: [{ downstep: 2 }],
+  entries: [
+    {
+      dictionary: 'sanseido',
+      senses: [{ position: 0, definitions: [{ lang: 'ja', text: 'とじていたものをあける' }], tags: [] }],
+    },
+    {
+      dictionary: 'jmdict',
+      senses: [{ position: 0, definitions: [{ lang: 'en', text: 'to open' }], tags: [] }],
+    },
+  ],
+};
+
+describe('a card built from more than one dictionary', () => {
+  // The reason this is not governed by the en/es visibility preference: a
+  // monolingual dictionary only reaches this card because the reader put it in
+  // their own Shirabe stack, which says more than any toggle here does. Before
+  // this, every one of its senses was dropped for having no gloss "the reader
+  // can read" and the card silently showed only JMdict.
+  it('prints Japanese definitions from a dictionary the reader chose', () => {
+    const senses = cardSenses(STACKED, preference('en'));
+
+    expect(senses.map((sense) => sense.glosses[0]?.text)).toEqual(['とじていたものをあける', 'to open']);
+    expect(senses[0]?.glosses[0]?.label).toBe('JA');
+  });
+
+  // Entries arrive in the key owner's stack order, and the card must not
+  // reorder them: putting a monolingual dictionary first is the whole reason
+  // somebody configures a stack.
+  it('keeps the reader dictionary order', () => {
+    expect(cardSenses(STACKED, preference('en')).map((sense) => sense.dictionary)).toEqual(['sanseido', 'jmdict']);
+  });
+
+  it('still prefers a real gloss language over Japanese when the entry has one', () => {
+    expect(texts(selectDefinitions([...BILINGUAL, { lang: 'ja', text: 'やける' }], preference('en')))).toEqual([
+      'to burn',
+      'to be roasted',
+      'quemarse',
+    ]);
+  });
+
+  // JMdict ships French, German, Dutch and Russian too, and none of those is a
+  // language anybody here chose. Widening to Japanese must not widen to those.
+  it('does not print a language nobody asked for', () => {
+    expect(selectDefinitions(WITH_FRENCH, preference('es', 'hidden', 'hidden'))).toEqual([]);
+  });
+});
+
+describe('candidateSummary', () => {
+  const summary = (word: ShirabeWord, pref = preference('en')) => candidateSummary(word, pref);
+
+  // The whole point of the row: a spelling is only a recognisable label to
+  // someone who already knows the word, which is not the reader looking it up.
+  it('says what the candidate means', () => {
+    expect(summary(WORD)).toBe('to burn; to be roasted');
+  });
+
+  // Same rules as the opened card, so the preview never disagrees with what it
+  // previews.
+  it('follows the reader gloss language', () => {
+    expect(summary(WORD, preference('es'))).toBe('quemarse');
+  });
+
+  it('reads a monolingual dictionary the reader put in their stack', () => {
+    expect(summary(STACKED)).toBe('とじていたものをあける');
+  });
+
+  it('is empty for a candidate with nothing renderable', () => {
+    expect(summary({ ...WORD, entries: [] })).toBe('');
+  });
+
+  it('truncates a long gloss on a word boundary', () => {
+    const wordy = {
+      ...WORD,
+      entries: [
+        {
+          dictionary: 'jmdict',
+          senses: [
+            {
+              position: 0,
+              definitions: [{ lang: 'en', text: 'these past ... (e.g. three years); these last several days' }],
+              tags: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    const text = summary(wordy);
+    expect(text.endsWith('…')).toBe(true);
+    expect(text.length).toBeLessThanOrEqual(43);
+    expect(text).not.toMatch(/\s…$/);
+  });
+});
+
+/**
+ * The fourth answer. A token that resolves only to people -- 明日香, 田中, every
+ * character in a subtitle corpus -- used to be told "no dictionary entry", which
+ * is false: the dictionary has it, the route dropped the name rows.
+ */
+describe('lookupState with names', () => {
+  it('is a name when the only candidates were names', () => {
+    expect(lookupState(3, undefined, true)).toBe('name');
+  });
+
+  // The case the rule turns on: names are dropped only while a real word is
+  // there to compete with, so a list that still has words is an ordinary answer.
+  it('is an ordinary answer when a real word survived', () => {
+    expect(lookupState(5, undefined, false)).toBe('shown');
+    expect(lookupState(5, undefined)).toBe('shown');
+  });
+
+  // An empty list is still empty however it got that way: `nameOnly` describes
+  // what the candidates ARE, and there are none.
+  it('never reads an empty list as a name', () => {
+    expect(lookupState(0, 'missing', true)).toBe('missing');
+    expect(lookupState(0, 'failed', true)).toBe('unavailable');
   });
 });

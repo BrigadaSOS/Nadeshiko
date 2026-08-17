@@ -18,7 +18,10 @@ const ref = (lemma: string): WordRef => ({ lemma, surface: lemma, reading: lemma
  *  answers apart without caring what a real candidate looks like. */
 const candidate = (locale: string) => ({ id: locale, headword: locale }) as unknown as Record<string, unknown>;
 
-const answer = (locale: string) => ({ candidates: [candidate(locale)] });
+/** `nameOnly` rides on every successful answer: it is what tells the card that a
+ *  list of candidates is a person rather than a word. False here, since these
+ *  fixtures are ordinary words. */
+const answer = (locale: string) => ({ candidates: [candidate(locale)], nameOnly: false });
 
 /** ofetch reports the status in two places; the module reads both. */
 const httpError = (status: number) => Object.assign(new Error(`HTTP ${status}`), { statusCode: status });
