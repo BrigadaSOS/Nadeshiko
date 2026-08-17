@@ -322,6 +322,7 @@
         "wordreading": "単語の読み",
         "wordfurigana": "単語（ふりがな付き）",
         "definition": "語義",
+        "definitionRest": "語義（残りの辞書）",
         "wordpitch": "アクセント",
         "wordpitchnum": "アクセント位置（数字）",
         "wordaudio": "単語の音声",
@@ -642,6 +643,14 @@
       },
       "translationLanguages": "辞書の翻訳言語",
       "translationLanguagesDescription": "辞書コンテンツに表示する翻訳言語を選びます。両方を選ぶと、表示順もここで決まります。",
+      "translationLanguagesLinkedDescription": "辞書の語義は Shirabe の設定に従います。ここでは字幕の翻訳と、その並び順を決めます。",
+      "definitionSize": "語義の文字サイズ",
+      "definitionSizeDescription": "単語ポップアップの語義を表示する文字の大きさ。",
+      "definitionSizeOptions": {
+        "SMALL": "小",
+        "MEDIUM": "中",
+        "LARGE": "大"
+      },
       "translationLanguageOptions": {
         "EN": "英語のみ",
         "ES": "スペイン語のみ",
@@ -851,6 +860,8 @@
       "profileNamePlaceholder": "プロフィール名",
       "deleteProfile": "削除",
       "openBrowserOnExport": "カードをエクスポート時にAnkiブラウザを開く",
+      "primaryDictionaries": "カードの表に載せる主な辞書の数",
+      "primaryDictionariesHint": "Shirabe の辞書のうち何冊を {definition} に入れるか。それ以降は {definition-rest} に入るので、裏面に回せます。0 ならすべての辞書が {definition} に入ります。",
       "saving": "保存中...",
       "saved": "保存しました",
       "modal": {
@@ -929,7 +940,8 @@
     "otherMatches": "他 {count} 件",
     "showLess": "折りたたむ",
     "isName": "これは固有名詞のようです。",
-    "parts": "構成"
+    "parts": "構成",
+    "nameEntry": "名前"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -1265,9 +1277,11 @@
       "connect": "連携する",
       "disconnect": "解除",
       "linkedAs": "{name} として連携中",
+      "dictionaries": "辞書",
+      "dictionariesHint": "Shirabe で変更する",
       "anonymous": "Shirabe アカウント",
       "upgrade": "権限を更新",
-      "upgradeNeeded": "{name} として連携中 — 新しい機能には追加の権限が必要です",
+      "upgradeNeeded": "{name} として連携中。新しい機能には追加の権限が必要です",
       "confirmDisconnect": "Shirabe との連携を解除しますか？Shirabe 側のキーは無効化され、単語カードは既定の辞書に戻ります。"
     },
     "callback": {
@@ -1278,5 +1292,24 @@
       "done": "Shirabe と連携しました",
       "goToSettings": "設定へ"
     }
+  },
+  "feedback": {
+    "open": "フィードバック",
+    "title": "フィードバックを送る",
+    "subtitle": "メッセージはこちらからお送りください。",
+    "bodyLabel": "メッセージ",
+    "bodyPlaceholder": "メッセージを入力…",
+    "emailLabel": "メールアドレス",
+    "emailOptional": "（任意）",
+    "emailPlaceholder": "you{'@'}example.com",
+    "emailHint": "返信をご希望の場合はご記入ください。",
+    "submit": "送信",
+    "submitting": "送信中…",
+    "close": "閉じる",
+    "successTitle": "ありがとうございます！",
+    "successBody": "メッセージを受け取りました。",
+    "error": "送信できませんでした。内容をご確認のうえ、もう一度お試しください。",
+    "errorRetry": "フォームの準備中に問題が発生しました。もう一度送信してください。",
+    "errorRateLimited": "短時間に多く送信されています。1分ほど待ってからお試しください。"
   }
 }

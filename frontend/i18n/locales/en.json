@@ -322,6 +322,7 @@
         "wordreading": "Word reading",
         "wordfurigana": "Word (with furigana)",
         "definition": "Definition",
+        "definitionRest": "Definition (remaining dictionaries)",
         "wordpitch": "Pitch accent",
         "wordpitchnum": "Pitch accent position",
         "wordaudio": "Word audio",
@@ -642,6 +643,14 @@
       },
       "translationLanguages": "Dictionary Languages",
       "translationLanguagesDescription": "Choose the translation languages you want in dictionary content. When both are selected, this also sets their display order.",
+      "translationLanguagesLinkedDescription": "Dictionary definitions now follow your Shirabe stack. This still sets the sentence translations you see, and their order.",
+      "definitionSize": "Definition text size",
+      "definitionSizeDescription": "How large the word popup prints its definitions.",
+      "definitionSizeOptions": {
+        "SMALL": "Small",
+        "MEDIUM": "Medium",
+        "LARGE": "Large"
+      },
       "translationLanguageOptions": {
         "EN": "English only",
         "ES": "Spanish only",
@@ -845,6 +854,8 @@
       "noFieldsMessage": "Please try again or check your AnkiConnect connection",
       "serverAddressLabel": "AnkiConnect server address",
       "openBrowserOnExport": "Open Anki browser when exporting a card",
+      "primaryDictionaries": "Main dictionaries on the front of a card",
+      "primaryDictionariesHint": "How many of your Shirabe dictionaries fill {definition}. Anything past them goes to {definition-rest}, so you can put the others on the back. 0 puts every dictionary in {definition}.",
       "profile": "Profile",
       "newProfile": "New",
       "defaultProfile": "Default",
@@ -929,7 +940,8 @@
     "otherMatches": "{count} more",
     "showLess": "Show fewer",
     "isName": "This looks like a name.",
-    "parts": "Parts"
+    "parts": "Parts",
+    "nameEntry": "Name"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -1265,9 +1277,11 @@
       "connect": "Connect",
       "disconnect": "Disconnect",
       "linkedAs": "Linked as {name}",
+      "dictionaries": "Dictionaries",
+      "dictionariesHint": "Go to Shirabe to change them",
       "anonymous": "your Shirabe account",
       "upgrade": "Update permissions",
-      "upgradeNeeded": "Linked as {name} — a new permission is needed for the latest features",
+      "upgradeNeeded": "Linked as {name}. A new permission is needed for the latest features",
       "confirmDisconnect": "Disconnect your Shirabe account? The key is revoked on Shirabe, and word cards go back to the default dictionaries."
     },
     "callback": {
@@ -1278,5 +1292,24 @@
       "done": "Shirabe connected",
       "goToSettings": "Go to settings"
     }
+  },
+  "feedback": {
+    "open": "Feedback",
+    "title": "Send feedback",
+    "subtitle": "Send us your message here.",
+    "bodyLabel": "Your message",
+    "bodyPlaceholder": "Your message…",
+    "emailLabel": "Email",
+    "emailOptional": "(optional)",
+    "emailPlaceholder": "you{'@'}example.com",
+    "emailHint": "Add it if you would like a reply.",
+    "submit": "Send",
+    "submitting": "Sending…",
+    "close": "Close",
+    "successTitle": "Thanks!",
+    "successBody": "We got your message.",
+    "error": "That did not go through. Check your message and try again.",
+    "errorRetry": "Something went wrong preparing the form. Try sending again.",
+    "errorRateLimited": "You have sent a lot just now. Give it a minute and try again."
   }
 }

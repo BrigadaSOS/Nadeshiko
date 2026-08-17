@@ -322,6 +322,7 @@
         "wordreading": "Lectura de la palabra",
         "wordfurigana": "Palabra (con furigana)",
         "definition": "Definición",
+        "definitionRest": "Definición (diccionarios restantes)",
         "wordpitch": "Acento tonal",
         "wordpitchnum": "Posición del acento tonal",
         "wordaudio": "Audio de la palabra",
@@ -642,6 +643,14 @@
       },
       "translationLanguages": "Idiomas del diccionario",
       "translationLanguagesDescription": "Elige los idiomas de traducción que quieres en el contenido del diccionario. Cuando eliges ambos, también define el orden en pantalla.",
+      "translationLanguagesLinkedDescription": "Las definiciones del diccionario ahora siguen tu configuración de Shirabe. Esto sigue definiendo las traducciones de las frases que ves, y su orden.",
+      "definitionSize": "Tamaño del texto de las definiciones",
+      "definitionSizeDescription": "Qué tamaño usa la ventana de palabras para las definiciones.",
+      "definitionSizeOptions": {
+        "SMALL": "Pequeño",
+        "MEDIUM": "Mediano",
+        "LARGE": "Grande"
+      },
       "translationLanguageOptions": {
         "EN": "Solo inglés",
         "ES": "Solo español",
@@ -845,6 +854,8 @@
       "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
       "serverAddressLabel": "Dirección del servidor de AnkiConnect",
       "openBrowserOnExport": "Abrir el navegador de Anki al exportar una carta",
+      "primaryDictionaries": "Diccionarios principales en el frente de la tarjeta",
+      "primaryDictionariesHint": "Cuántos de tus diccionarios de Shirabe llenan {definition}. Lo que quede va a {definition-rest}, para que puedas ponerlo en el reverso. 0 pone todos los diccionarios en {definition}.",
       "profile": "Perfil",
       "newProfile": "Nuevo",
       "defaultProfile": "Predeterminado",
@@ -929,7 +940,8 @@
     "otherMatches": "{count} más",
     "showLess": "Ver menos",
     "isName": "Esto parece ser un nombre propio.",
-    "parts": "Partes"
+    "parts": "Partes",
+    "nameEntry": "Nombre"
   },
   "searchContainer": {
     "errorTitle": "502",
@@ -1265,9 +1277,11 @@
       "connect": "Conectar",
       "disconnect": "Desconectar",
       "linkedAs": "Vinculada como {name}",
+      "dictionaries": "Diccionarios",
+      "dictionariesHint": "Ve a Shirabe para cambiarlos",
       "anonymous": "tu cuenta de Shirabe",
       "upgrade": "Actualizar permisos",
-      "upgradeNeeded": "Vinculada como {name} — hace falta un permiso nuevo para las últimas funciones",
+      "upgradeNeeded": "Vinculada como {name}. Hace falta un permiso nuevo para las últimas funciones",
       "confirmDisconnect": "¿Desconectar tu cuenta de Shirabe? Se revocará la clave en Shirabe y las tarjetas de palabra volverán a los diccionarios por defecto."
     },
     "callback": {
@@ -1278,5 +1292,24 @@
       "done": "Shirabe conectado",
       "goToSettings": "Ir a ajustes"
     }
+  },
+  "feedback": {
+    "open": "Comentarios",
+    "title": "Enviar comentarios",
+    "subtitle": "Envíanos tu mensaje aquí.",
+    "bodyLabel": "Tu mensaje",
+    "bodyPlaceholder": "Tu mensaje…",
+    "emailLabel": "Correo electrónico",
+    "emailOptional": "(opcional)",
+    "emailPlaceholder": "tu{'@'}ejemplo.com",
+    "emailHint": "Añádelo si quieres que te respondamos.",
+    "submit": "Enviar",
+    "submitting": "Enviando…",
+    "close": "Cerrar",
+    "successTitle": "¡Gracias!",
+    "successBody": "Hemos recibido tu mensaje.",
+    "error": "No se ha podido enviar. Revisa tu mensaje e inténtalo de nuevo.",
+    "errorRetry": "Ha habido un problema al preparar el formulario. Inténtalo de nuevo.",
+    "errorRateLimited": "Has enviado muchos mensajes seguidos. Espera un minuto e inténtalo de nuevo."
   }
 }

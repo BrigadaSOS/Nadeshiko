@@ -85,6 +85,10 @@ tags:
     x-internal: true
     description: |
       Administrative endpoints for system management and automated review.
+  - name: Feedback
+    x-internal: true
+    description: |
+      Free-text feedback from anyone using the site, signed in or not.
   - name: Auth
     x-internal: true
     description: Session and credential endpoints served by better-auth. Present so
@@ -1550,6 +1554,306 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /v1/user/connections/shirabe:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getShirabeConnection
+      summary: Read the linked Shirabe account
+      description: >
+        Whether the signed-in reader has linked a Shirabe account, and what it
+        is
+
+        shaped like: who they are over there, which dictionaries their stack
+        names,
+
+        and when we last re-read it.
+
+
+        Never returns the stored key. Nothing the browser is shown can be used
+        to
+
+        act on their Shirabe account.
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    nullable: true
+                    allOf:
+                      - $ref: "#/components/schemas/ShirabeConnection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: startShirabeLink
+      summary: Begin linking a Shirabe account
+      description: >
+        Starts an OAuth 2.0 authorization-code flow (PKCE) against Shirabe and
+
+        returns where to send the reader. Nothing is stored until they approve.
+
+
+        The `state` is the pending flow itself, sealed with a server-side key
+        rather
+
+        than a handle into server memory: the request that starts the link and
+        the
+
+        one that finishes it are minutes apart and nothing routes them to the
+        same
+
+        process.
+      security:
+        - SessionCookie: []
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authorizeUrl
+                  - state
+                properties:
+                  authorizeUrl:
+                    type: string
+                    format: uri
+                    description: Send the reader here. Shirabe asks them to approve, then redirects
+                      back.
+                  state:
+                    type: string
+                    description: Opaque. Comes back on the redirect and must be handed to the
+                      callback unchanged.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: unlinkShirabe
+      summary: Unlink the Shirabe account
+      description: >
+        Forgets the stored key AND asks Shirabe to revoke it, so the reader is
+        not
+
+        left with a live credential on their Shirabe access list that nothing
+        here
+
+        can reach again.
+
+
+        The local link goes either way. If Shirabe cannot be reached, the reader
+
+        still gets what they asked for here and can revoke the key themselves at
+
+        `/account/settings#access`.
+      security:
+        - SessionCookie: []
+      responses:
+        "204":
+          description: No Content
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/connections/shirabe/callback:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: completeShirabeLink
+      summary: Finish linking a Shirabe account
+      description: >
+        Exchanges the one-time code Shirabe redirected back with for a scoped
+        key,
+
+        reads the reader's dictionary stack, and stores the link.
+
+
+        The `state` must be the one this session started the flow with. It
+        carries
+
+        the account it belongs to, and a mismatch is refused: otherwise somebody
+        who
+
+        completed their own authorization at Shirabe could hand the callback URL
+        to a
+
+        signed-in victim and attach their account to the victim's.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - state
+              properties:
+                code:
+                  type: string
+                  description: The one-time authorization code from the redirect.
+                state:
+                  type: string
+                  description: The sealed state from the redirect, unchanged.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    $ref: "#/components/schemas/ShirabeConnection"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/connections/shirabe/credential:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getShirabeCredential
+      summary: The reader's Shirabe key, for our own server only
+      description: >
+        Hands the stored Shirabe key to our frontend server so a word lookup can
+        be
+
+        made AS the reader, which is the entire point of linking an account.
+
+
+        Refused unless the request came through our own Nitro proxy (the shared
+
+        internal secret). A session alone is not enough, even the reader's own:
+        a key
+
+        that reaches a browser is a key that has been given away, and this one
+        is a
+
+        live credential on somebody else's service. The reader has no need for
+        it
+
+        here — it is already listed, and revocable, on their Shirabe account.
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                properties:
+                  token:
+                    type: string
+                    description: The reader's Shirabe API key.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/user/connections/shirabe/resync:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: resyncShirabeStack
+      summary: Reconcile the stored Shirabe stack against a fingerprint a lookup saw
+      description: >
+        Shirabe echoes the calling key's current stack fingerprint on every word
+
+        lookup. Our frontend server hands it back here, so a reader who switches
+        a
+
+        dictionary off over there stops being served their cached definitions
+        for it.
+
+
+        Cheap by design. When the fingerprint matches what we hold, this only
+        records
+
+        that the copy was confirmed; only a mismatch costs a round trip to
+        Shirabe.
+
+
+        Refused unless the request came through our own Nitro proxy (the shared
+
+        internal secret), like the credential route beside it. Nothing here is a
+
+        reader-facing action: the browser never sees a fingerprint, and one
+        supplied
+
+        by a client would be a client choosing when our copy looks stale.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - stackFingerprint
+              properties:
+                stackFingerprint:
+                  type: string
+                  maxLength: 64
+                  description: The fingerprint Shirabe returned on the lookup.
+      responses:
+        "204":
+          description: Reconciled, or nothing to reconcile.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /v1/user/excluded-media:
     get:
       tags:
@@ -2340,6 +2644,91 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/feedback:
+    post:
+      tags:
+        - Feedback
+      x-internal: true
+      operationId: createFeedback
+      summary: Send feedback
+      description: >
+        Records a free-text message about the product and notifies the team.
+
+
+        Open to anonymous visitors on purpose — the person best placed to report
+        a
+
+        broken sign-up or a confusing empty state is the one who is not signed
+        in.
+
+        A session, when there is one, attaches the account and overrides
+        `email`.
+
+
+        Automated submissions are dropped silently rather than rejected: they
+        get the
+
+        same `201` as everyone else, and nothing is stored.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFeedbackRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/feedback/token:
+    get:
+      tags:
+        - Feedback
+      x-internal: true
+      operationId: getFeedbackFormToken
+      summary: Issue a feedback form token
+      description: >
+        Called when the feedback panel opens. The token it returns carries the
+        moment
+
+        it was issued, sealed so the client cannot edit it, and `POST
+        /v1/feedback`
+
+        requires one: a submission that arrives faster than a person could have
+        typed
+
+        it, or with no token at all, is treated as automated.
+
+
+        Deliberately a separate call rather than something embedded in the page:
+        the
+
+        site's HTML is cached at the edge, so anything baked into it would be
+        shared
+
+        by every visitor who got that copy and would be stale by an unbounded
+        amount.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackFormToken"
         "429":
           $ref: "#/components/responses/TooManyRequests"
         "500":
@@ -8180,6 +8569,96 @@ components:
         - UPDATE_COLLECTIONS
         - DELETE_COLLECTIONS
       example: READ_MEDIA
+    ShirabeConnection:
+      type: object
+      description: >
+        A reader's linked Shirabe account, as the reader is shown it.
+
+
+        Never carries the stored key: nothing here can be used to act on their
+        Shirabe
+
+        account. `tokenPrefix` is only the handful of characters Shirabe itself
+        prints
+
+        in its own access list, so somebody comparing the two lists can tell
+        which row
+
+        is this one.
+      required:
+        - needsUpgrade
+        - missingScopes
+        - linkedAt
+        - tokenPrefix
+        - scopes
+        - dictionaries
+        - stackIsPrivate
+      properties:
+        needsUpgrade:
+          type: boolean
+          description: "True when the link works but is missing a permission a newer
+            feature needs -- granted before that feature existed. A re-consent,
+            not a repair: what the account was linked for keeps working the
+            whole time, and only the newer feature is unavailable."
+          example: false
+        missingScopes:
+          type: array
+          description: The permissions a re-consent would add. Empty unless `needsUpgrade`.
+          items:
+            type: string
+          example: []
+        linkedAt:
+          type: string
+          format: date-time
+        shirabeName:
+          type: string
+          nullable: true
+          description: Who they are on Shirabe, for the settings page to name the link.
+          example: Lumi
+        tokenPrefix:
+          type: string
+          description: The first characters of the key, to recognise it by. Not usable.
+          example: shr_2f8Kq1zX
+        scopes:
+          type: array
+          description: What the reader granted. Today that is READ_ACCOUNT and nothing else.
+          items:
+            type: string
+          example:
+            - READ_ACCOUNT
+        dictionaries:
+          type: array
+          description: "Their Shirabe dictionary stack: ordered `slug:lang` refs naming
+            which dictionaries resolve, in which languages, in what order. This
+            is what makes a word lookup here answer the way it does over there."
+          items:
+            type: string
+          example:
+            - sanseido:ja
+            - jmdict:en
+        dictionaryNames:
+          type: object
+          additionalProperties:
+            type: string
+          description: What each dictionary above is CALLED, keyed by slug, as Shirabe
+            names it. A reader's own uploads are filed under content hashes, so
+            a client printing the stack without this prints a list of hashes.
+            Empty for a link made before Shirabe published the names; fall back
+            to the slug.
+          example:
+            jmdict: JMdict
+            yomitan-c89af12122021a8a: 三省堂国語辞典
+        stackIsPrivate:
+          type: boolean
+          description: True when their stack names one of their own uploads, which makes
+            its answers theirs alone and stops a lookup being cached for anyone
+            else.
+          example: false
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the stack was last re-read from Shirabe.
     ReportTargetMedia:
       type: object
       required:
@@ -8477,6 +8956,26 @@ components:
             enum:
               - EN
               - ES
+        wordPopup:
+          type: object
+          description: >
+            How the word card behaves when a reader taps a word in a sentence. A
+            group rather than a loose key so the settings that follow it have
+            somewhere to live.
+          properties:
+            definitionSize:
+              type: string
+              enum:
+                - SMALL
+                - MEDIUM
+                - LARGE
+              description: >
+                How large the definitions themselves are printed. The card holds
+                a reader's own monolingual dictionaries now, which is Japanese
+                prose rather than a three-word English gloss, and a size that
+                suited "to die; to pass away" is small for a paragraph of 大辞林.
+                MEDIUM is the default; SMALL is what the card printed before
+                this existed.
         searchHistory:
           type: object
           properties:
@@ -8999,6 +9498,119 @@ components:
                 type: integer
               shareCount:
                 type: integer
+    CreateFeedbackRequest:
+      type: object
+      required:
+        - body
+        - formToken
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: The message. Free text — no category, no target.
+          example: The audio on the search page stops after the first segment on Firefox.
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          description: >
+            Optional reply address for anonymous senders. Ignored when the
+            request
+
+            carries a session: the account's own address is used instead, so a
+            signed-in
+
+            sender cannot attribute a message to somebody else's inbox.
+          example: you@example.com
+        formToken:
+          type: string
+          maxLength: 512
+          description: >
+            Opaque token from `GET /v1/feedback/token`, issued when the panel
+            opened.
+
+            It carries the issue time, so a submission that arrives implausibly
+            fast
+
+            after the form appeared can be told from a person typing.
+        nickname:
+          type: string
+          maxLength: 200
+          description: >
+            Honeypot. Not rendered to people; anything in it marks the
+            submission as
+
+            automated. Present in the contract because it has to be accepted to
+            be
+
+            ignored.
+        pagePath:
+          type: string
+          maxLength: 2000
+          description: |
+            Same-origin path (and query) the sender was on, e.g. `/search?q=彼女`.
+            Anything that is not a rooted path is dropped rather than rejected.
+          example: /search?q=彼女
+        locale:
+          type: string
+          maxLength: 16
+          description: >
+            The locale the page rendered in, which is not the same question as
+
+            `Accept-Language`: the site's locale comes from the URL prefix and a
+            stored
+
+            preference, so a reader on `/es/search` with an English browser is
+            reading
+
+            Spanish. Falls back to the request header when absent.
+          example: es
+        appVersion:
+          type: string
+          maxLength: 32
+          description: >
+            The frontend build the sender was running. Client-supplied because
+            it is the
+
+            only side that knows: the browser can be holding a bundle several
+            deploys
+
+            old, and the API's own version says nothing about it.
+          example: 2.4.0
+        posthogSessionId:
+          type: string
+          maxLength: 64
+          description: PostHog session id, so a report links to its session replay. Blank
+            where posthog is not loaded.
+        posthogDistinctId:
+          type: string
+          maxLength: 128
+          description: PostHog person id.
+    FeedbackReceipt:
+      type: object
+      required:
+        - received
+      properties:
+        received:
+          type: boolean
+          description: >
+            Always `true`. The response is deliberately uniform: a submission
+            dropped
+
+            as automated answers exactly like one that was stored, so a bot
+            learns
+
+            nothing from the reply about what tripped it.
+          example: true
+    FeedbackFormToken:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Opaque, short-lived. Pass back as `formToken` when submitting.
     CollectionListResponse:
       type: object
       description: Paginated collection list response
