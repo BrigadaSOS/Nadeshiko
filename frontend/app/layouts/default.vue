@@ -5,11 +5,16 @@
     <AuthModalLoginSignUp />
     <LayoutImpersonationBanner />
     <LayoutHeader />
+    <!-- Ahead of the page, not after it: pages teleport their own floating
+         buttons into the dock, and the target has to be in the DOM by the time
+         they mount. -->
+    <CommonFabDock />
     <!-- Shared gap under the navbar. Pages keep their own bottom padding. -->
     <main class="flex-grow pt-3 pb-20">
       <slot />
     </main>
     <PlayerAudioPlayer />
+    <CommonFeedbackWidget />
     <LayoutFooter />
   </div>
 </template>

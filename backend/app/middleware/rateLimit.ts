@@ -9,6 +9,7 @@ import { getMeter } from '@config/telemetry';
 const WINDOW_MS = config.RATE_LIMIT_WINDOW_MS;
 const DEFAULT_MAX = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
 const AUTH_MAX = config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP;
+const FEEDBACK_MAX = config.RATE_LIMIT_FEEDBACK_MAX_REQUESTS_PER_IP;
 
 // IPv6 is grouped by /56 rather than by address: a single subscriber is
 // routinely handed a whole /64, so keying on the full address lets one client
@@ -75,7 +76,7 @@ function clientKey(req: Request): string {
 // the same answer and the two must not drift.
 const shouldSkip = isTrustedInternalCaller;
 
-// Four series at most (two scopes x two sources), which is why `source` is a
+// Six series at most (three scopes x two sources), which is why `source` is a
 // class and not the address itself: the address is unbounded, and the question
 // this answers needs only the class.
 const rateLimitedCount = getMeter().createCounter('http.server.rate_limited', {
@@ -127,7 +128,7 @@ export function isPrivateAddress(ip: string | undefined): boolean {
 // better-auth API-key limiter already surfaces RateLimitExceededError). Routing
 // through next() lets the central error handler attach the requestId/instance
 // and record the 4xx error metric.
-function buildHandler(scope: 'global' | 'auth', detail: string): RequestHandler {
+function buildHandler(scope: 'global' | 'auth' | 'feedback', detail: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     // The same address the bucket was keyed on, not `req.ip` -- otherwise the
     // log and the alert describe a different client than the one being counted.
@@ -181,6 +182,27 @@ export const authRateLimit = rateLimit({
 });
 
 /**
+ * The feedback widget, for callers reaching the API directly.
+ *
+ * Same `shouldSkip` as the others, and for the same reason: browser traffic
+ * arrives through the Nitro proxy, where it is already limited per real client
+ * IP (`v1FeedbackLimit` in frontend/server/utils/v1ProxyPolicy.ts). Counting it
+ * again here would collapse every visitor onto the proxy's single key. This
+ * instance is what covers the OTHER door -- `api.nadeshiko.co` is public and
+ * `POST /v1/feedback` needs no credentials, so without it the only ceiling on an
+ * unauthenticated write that sends mail would be the general per-IP budget.
+ */
+export const feedbackRateLimit = rateLimit({
+  windowMs: WINDOW_MS,
+  limit: FEEDBACK_MAX,
+  keyGenerator: clientKey,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: shouldSkip,
+  handler: buildHandler('feedback', 'Too many feedback submissions from this IP. Please slow down.'),
+});
+
+/**
  * Clears every limiter's hit counters.
  *
  * The limiters are module singletons backed by an in-memory store, so in a
@@ -192,7 +214,7 @@ export const authRateLimit = rateLimit({
 export function resetRateLimiters(): void {
   // `resetAll` is optional on the store rather than the handler, so it is not on
   // the handler's public type even though the default memory store implements it.
-  for (const limiter of [globalRateLimit, authRateLimit]) {
+  for (const limiter of [globalRateLimit, authRateLimit, feedbackRateLimit]) {
     (limiter as unknown as { resetAll?: () => void }).resetAll?.();
   }
 }

@@ -1,6 +1,6 @@
 import { sendTestEmail, type TestEmailTemplate } from '@app/mailers/email';
 
-const VALID_TEMPLATES: TestEmailTemplate[] = ['welcome', 'verify-new-email', 'magic-link'];
+const VALID_TEMPLATES: TestEmailTemplate[] = ['welcome', 'verify-new-email', 'magic-link', 'feedback'];
 
 const template = (process.argv[2] as TestEmailTemplate) || 'welcome';
 const to = process.argv[3] || 'test@example.com';

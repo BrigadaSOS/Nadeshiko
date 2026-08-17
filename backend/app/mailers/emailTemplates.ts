@@ -52,6 +52,43 @@ export async function buildVerifyNewEmailEmail(url: string): Promise<{ subject: 
   return { subject, html };
 }
 
+export interface FeedbackEmailInput {
+  /** Who it came from, already resolved to something readable. */
+  from: string;
+  message: string;
+  /** One `Key: value` per line. Rendered verbatim inside a `pre`. */
+  context: string;
+}
+
+/**
+ * The notification we send ourselves when someone uses the feedback widget.
+ *
+ * The subject leads with the sender and the opening words of the message, so a
+ * mailbox list is already triageable without opening anything. Truncated hard,
+ * because a subject line that runs on is worse than one that stops.
+ */
+export async function buildFeedbackEmail(input: FeedbackEmailInput): Promise<{ subject: string; html: string }> {
+  const subject = `\u{1F4AC} Feedback from ${input.from}: ${truncate(collapseWhitespace(input.message), 60)}`;
+  const html = await renderTemplate('feedback', {
+    from: input.from,
+    message: input.message,
+    context: input.context,
+    logoUrl: getLogoUrl(),
+    year: getCurrentYear(),
+  });
+
+  return { subject, html };
+}
+
+/** A newline in a subject line is a header-injection shape as well as an ugly one. */
+function collapseWhitespace(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
+}
+
 export async function renderTemplate(templateName: string, variables: Record<string, string>): Promise<string> {
   const templatePath = path.join(import.meta.dirname, 'templates', `${templateName}.html`);
 

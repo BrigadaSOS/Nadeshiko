@@ -2,7 +2,13 @@ import nodemailer from 'nodemailer';
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { config } from '@config/config';
 import { logger } from '@config/log';
-import { buildWelcomeEmail, buildVerifyNewEmailEmail, buildMagicLinkEmail } from './emailTemplates';
+import {
+  buildWelcomeEmail,
+  buildVerifyNewEmailEmail,
+  buildMagicLinkEmail,
+  buildFeedbackEmail,
+  type FeedbackEmailInput,
+} from './emailTemplates';
 import { createLetterOpenerTransport, getPreviewUrl, LETTER_OPENER_DIR } from './letterOpener';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
@@ -62,6 +68,15 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
+  /**
+   * Who a reply goes to, when that is not us.
+   *
+   * Only the feedback notification sets it: those land in the team inbox but are
+   * written by the person who sent them, so answering has to be a plain reply
+   * rather than a copy-paste of an address out of the body. Everything else we
+   * send is transactional and replying to it should reach nobody.
+   */
+  replyTo?: string;
 }
 
 /**
@@ -76,6 +91,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 
     const info = await transport.sendMail({
       from: `${fromName} <${fromEmail}>`,
+      replyTo: options.replyTo,
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -132,7 +148,45 @@ export async function sendVerifyNewEmail(email: string, verificationUrl: string)
   await sendEmail({ to: email, subject, html });
 }
 
-export type TestEmailTemplate = 'welcome' | 'verify-new-email' | 'magic-link';
+/**
+ * Notifies the team that someone sent feedback.
+ *
+ * WHERE THIS ACTUALLY LANDS: if `FEEDBACK_NOTIFICATION_TO` is an address at
+ * `nadeshiko.co`, the message comes straight back in through Cloudflare Email
+ * Routing, whose catch-all hands every message to a worker that forwards it to
+ * the maintainers AND posts the complete body into a Discord channel
+ * (brigadasos-infra/email-worker). That is useful — feedback shows up where
+ * people already are — but it means the body is chat-log material, not inbox
+ * material. `contextLines` in feedbackController is written for that audience.
+ *
+ * Queued rather than sent inline: the sender is waiting on the HTTP response and
+ * has no stake in whether SES was reachable, so a mail outage must not turn into
+ * a failed submission for a message we have already stored.
+ *
+ * No-ops when `FEEDBACK_NOTIFICATION_TO` is unset, which is the state local and
+ * test runs are in. Logged at info, not warn: it is a configuration choice, not
+ * a fault, and the row is in the table either way.
+ */
+export async function sendFeedbackEmail(
+  input: FeedbackEmailInput & { replyTo?: string; feedbackId: number },
+): Promise<void> {
+  const to = config.FEEDBACK_NOTIFICATION_TO;
+  if (!to) {
+    logger.info({ feedbackId: input.feedbackId }, 'FEEDBACK_NOTIFICATION_TO unset, skipping feedback notification');
+    return;
+  }
+
+  const { subject, html } = await buildFeedbackEmail(input);
+
+  await sendEmailJob(
+    { to, subject, html, replyTo: input.replyTo },
+    // One notification per row. A pg-boss retry that re-runs the enqueue must not
+    // put a second copy of the same message in the inbox.
+    `feedback-${input.feedbackId}`,
+  );
+}
+
+export type TestEmailTemplate = 'welcome' | 'verify-new-email' | 'magic-link' | 'feedback';
 
 /**
  * Sends a test email synchronously (bypassing the queue) and returns the preview
@@ -148,6 +202,20 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     ({ subject, html } = await buildWelcomeEmail(username));
   } else if (template === 'verify-new-email') {
     ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
+  } else if (template === 'feedback') {
+    ({ subject, html } = await buildFeedbackEmail({
+      from: 'reader@example.com',
+      message: 'The player stops after the first segment on Firefox.\n\nHappens every time on /search.',
+      context: [
+        'Feedback: #123',
+        'Account: anonymous',
+        'Page: /search?q=彼女',
+        'Locale: ja',
+        'Country: JP',
+        'Version: 2.4.0',
+        'User agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+      ].join('\n'),
+    }));
   } else {
     ({ subject, html } = await buildMagicLinkEmail(`${config.BASE_URL}/v1/auth/magic-link/verify?token=test-token`));
   }
