@@ -1,0 +1,111 @@
+get:
+  tags:
+    - User
+  x-internal: true
+  operationId: getShirabeConnection
+  summary: Read the linked Shirabe account
+  description: |
+    Whether the signed-in reader has linked a Shirabe account, and what it is
+    shaped like: who they are over there, which dictionaries their stack names,
+    and when we last re-read it.
+
+    Never returns the stored key. Nothing the browser is shown can be used to
+    act on their Shirabe account.
+
+  security:
+    - SessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - connection
+            properties:
+              connection:
+                nullable: true
+                allOf:
+                  - $ref: "../../components/schemas/ShirabeConnection.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+post:
+  tags:
+    - User
+  x-internal: true
+  operationId: startShirabeLink
+  summary: Begin linking a Shirabe account
+  description: |
+    Starts an OAuth 2.0 authorization-code flow (PKCE) against Shirabe and
+    returns where to send the reader. Nothing is stored until they approve.
+
+    The `state` is the pending flow itself, sealed with a server-side key rather
+    than a handle into server memory: the request that starts the link and the
+    one that finishes it are minutes apart and nothing routes them to the same
+    process.
+
+  security:
+    - SessionCookie: []
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - authorizeUrl
+              - state
+            properties:
+              authorizeUrl:
+                type: string
+                format: uri
+                description: Send the reader here. Shirabe asks them to approve, then redirects back.
+              state:
+                type: string
+                description: >-
+                  Opaque. Comes back on the redirect and must be handed to the
+                  callback unchanged.
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
+
+delete:
+  tags:
+    - User
+  x-internal: true
+  operationId: unlinkShirabe
+  summary: Unlink the Shirabe account
+  description: |
+    Forgets the stored key AND asks Shirabe to revoke it, so the reader is not
+    left with a live credential on their Shirabe access list that nothing here
+    can reach again.
+
+    The local link goes either way. If Shirabe cannot be reached, the reader
+    still gets what they asked for here and can revoke the key themselves at
+    `/account/settings#access`.
+
+  security:
+    - SessionCookie: []
+  responses:
+    "204":
+      description: No Content
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "404":
+      $ref: "../../components/responses/NotFound.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

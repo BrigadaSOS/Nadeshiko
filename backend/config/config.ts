@@ -46,6 +46,22 @@ const envSchema = z.object({
   // each word. The key is a quota-exempt service identity of ours.
   SHIRABE_API_BASE: z.string().url().default('https://shirabe.org'),
   SHIRABE_API_KEY: z.string().default(''),
+  // A reader can also link their OWN Shirabe account, which is what makes a word
+  // lookup answer from the dictionaries THEY configured rather than from the
+  // service identity's empty preferences. Three separate things:
+  //
+  //   CLIENT_ID / REDIRECT_URI  what Shirabe has us registered as. The redirect
+  //                             is exact-matched over there, so a value that does
+  //                             not match the registration fails at the consent
+  //                             screen rather than silently.
+  //   CONNECTION_SECRET         encrypts the stored per-reader keys at rest, and
+  //                             seals the OAuth `state`. Unset means the feature
+  //                             is off, which is the right default: the
+  //                             alternative is storing other people's
+  //                             credentials in the clear.
+  SHIRABE_OAUTH_CLIENT_ID: z.string().default('nadeshiko'),
+  SHIRABE_OAUTH_REDIRECT_URI: z.string().default(''),
+  SHIRABE_CONNECTION_SECRET: z.string().default(''),
 
   API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(150),

@@ -334,6 +334,18 @@ export const s_SegmentRevision = z.object({
 
 export const s_SegmentStatus = z.enum(['ACTIVE', 'HIDDEN', 'DELETED']);
 
+export const s_ShirabeConnection = z.object({
+  needsUpgrade: PermissiveBoolean,
+  missingScopes: z.array(z.string()),
+  linkedAt: z.iso.datetime({ offset: true }),
+  shirabeName: z.string().nullable().optional(),
+  tokenPrefix: z.string(),
+  scopes: z.array(z.string()),
+  dictionaries: z.array(z.string()),
+  stackIsPrivate: PermissiveBoolean,
+  syncedAt: z.iso.datetime({ offset: true }).nullable().optional(),
+});
+
 export const s_Tier = z.object({
   id: z.string(),
   displayName: z.string(),
@@ -938,6 +950,8 @@ export const s_CreateUserApiKeyRequestBody = z.object({
   name: z.string().min(1).max(100),
   scopes: z.array(s_ApiKeyScope).min(1).max(12),
 });
+
+export const s_CompleteShirabeLinkRequestBody = z.object({ code: z.string(), state: z.string() });
 
 export const s_AddExcludedMediaRequestBody = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),

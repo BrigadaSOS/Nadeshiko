@@ -5,6 +5,7 @@ export { BaseEntity } from './base.entity';
 export { User, UserRoleType } from './User';
 export type { UserPreferences } from './User';
 export { AccountQuotaUsage } from './AccountQuotaUsage';
+export { ShirabeConnection } from './ShirabeConnection';
 export { Tier } from './Tier';
 export { resolveQuotaLimit } from './quota';
 export type { QuotaSource, ResolvedQuota } from './quota';

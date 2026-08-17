@@ -34,6 +34,13 @@ env:
     # the corpus backfill that has to run before the pos_analysis drop lands.
     - SHIRABE_API_KEY
 
+    # Account linking. Encrypts the per-reader Shirabe keys at rest and seals the
+    # OAuth state. Unset means readers simply cannot link an account (the routes
+    # answer that it is not configured); it never breaks boot, and it must never
+    # be rotated without re-encrypting what is stored, or every linked account
+    # stops working at once.
+    - SHIRABE_CONNECTION_SECRET
+
     - EMAIL_API_NADEDB
     - USERNAME_API_NADEDB
     - UUID_NAMESPACE
@@ -64,6 +71,12 @@ env:
     PORT: 80
     RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://nadeshiko.co
+
+    # What Shirabe has us registered as. The redirect is exact-matched over
+    # there, so this string and the one in their `oauth_clients` row have to be
+    # character-for-character the same or the consent screen refuses the request.
+    SHIRABE_OAUTH_CLIENT_ID: nadeshiko
+    SHIRABE_OAUTH_REDIRECT_URI: https://nadeshiko.co/link/shirabe/callback
 
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432

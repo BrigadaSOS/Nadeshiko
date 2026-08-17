@@ -52,6 +52,7 @@ export type SearchQueryOutput = z.output<typeof schemas.s_SearchQuery>;
 export type SearchSortOutput = z.output<typeof schemas.s_SearchSort>;
 export type SegmentRevisionOutput = z.output<typeof schemas.s_SegmentRevision>;
 export type SegmentStatusOutput = z.output<typeof schemas.s_SegmentStatus>;
+export type ShirabeConnectionOutput = z.output<typeof schemas.s_ShirabeConnection>;
 export type TierOutput = z.output<typeof schemas.s_Tier>;
 export type TokenOutput = z.output<typeof schemas.s_Token>;
 export type UpdateAccountQuotaRequestOutput = z.output<typeof schemas.s_UpdateAccountQuotaRequest>;
@@ -109,6 +110,7 @@ export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCol
 export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
 export type CreateUserApiKeyRequestBodyOutput = z.output<typeof schemas.s_CreateUserApiKeyRequestBody>;
+export type CompleteShirabeLinkRequestBodyOutput = z.output<typeof schemas.s_CompleteShirabeLinkRequestBody>;
 export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
 export type AddFavoriteMediaRequestBodyOutput = z.output<typeof schemas.s_AddFavoriteMediaRequestBody>;
 

@@ -1,0 +1,53 @@
+post:
+  tags:
+    - User
+  x-internal: true
+  operationId: completeShirabeLink
+  summary: Finish linking a Shirabe account
+  description: |
+    Exchanges the one-time code Shirabe redirected back with for a scoped key,
+    reads the reader's dictionary stack, and stores the link.
+
+    The `state` must be the one this session started the flow with. It carries
+    the account it belongs to, and a mismatch is refused: otherwise somebody who
+    completed their own authorization at Shirabe could hand the callback URL to a
+    signed-in victim and attach their account to the victim's.
+
+  security:
+    - SessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - code
+            - state
+          properties:
+            code:
+              type: string
+              description: The one-time authorization code from the redirect.
+            state:
+              type: string
+              description: The sealed state from the redirect, unchanged.
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - connection
+            properties:
+              connection:
+                $ref: "../../components/schemas/ShirabeConnection.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
