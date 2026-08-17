@@ -1,0 +1,45 @@
+post:
+  tags:
+    - User
+  x-internal: true
+  operationId: resyncShirabeStack
+  summary: Reconcile the stored Shirabe stack against a fingerprint a lookup saw
+  description: |
+    Shirabe echoes the calling key's current stack fingerprint on every word
+    lookup. Our frontend server hands it back here, so a reader who switches a
+    dictionary off over there stops being served their cached definitions for it.
+
+    Cheap by design. When the fingerprint matches what we hold, this only records
+    that the copy was confirmed; only a mismatch costs a round trip to Shirabe.
+
+    Refused unless the request came through our own Nitro proxy (the shared
+    internal secret), like the credential route beside it. Nothing here is a
+    reader-facing action: the browser never sees a fingerprint, and one supplied
+    by a client would be a client choosing when our copy looks stale.
+
+  security:
+    - SessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - stackFingerprint
+          properties:
+            stackFingerprint:
+              type: string
+              maxLength: 64
+              description: The fingerprint Shirabe returned on the lookup.
+  responses:
+    "204":
+      description: Reconciled, or nothing to reconcile.
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
