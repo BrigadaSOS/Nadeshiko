@@ -110,7 +110,7 @@ watch(inputText, (newValue) => {
     :open="open"
     labelledby="nd-batch-modal-title"
     overlay-class="items-center justify-center bg-neutral-900/40"
-    panel-class="max-h-[calc(100%-3.5rem)] w-full flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border lg:max-w-3xl m-3 sm:mx-auto"
+    panel-class="max-h-[calc(100%-3.5rem)] w-full flex flex-col bg-background border border-hairline shadow-sm rounded-xl lg:max-w-3xl m-3 sm:mx-auto"
     @close="closeModal">
         <div class="nd-modal-header">
           <h3 id="nd-batch-modal-title" class="font-bold text-gray-800 dark:text-white">

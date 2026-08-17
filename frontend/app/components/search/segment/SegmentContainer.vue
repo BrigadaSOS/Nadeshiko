@@ -443,12 +443,12 @@ watch(playingVideoId, (id) => {
         <button
           v-if="confirmingRemoveId !== result.segment.publicId"
           @click.stop="confirmRemove(result.segment.publicId)"
-          class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-modal-background hover:bg-button-accent-main text-white/70 hover:text-white"
+          class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-surface hover:bg-button-accent-main text-white/70 hover:text-white"
           :title="$t('accountSettings.collections.removeFromCollection')"
         >
           <UiBaseIcon :path="mdiClose" w="w-5" h="h-5" size="20" />
         </button>
-        <div v-else class="flex items-center gap-2 bg-modal-background rounded-md px-3 py-2">
+        <div v-else class="flex items-center gap-2 bg-surface rounded-md px-3 py-2">
           <span class="text-sm text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
           <button
             @click.stop="executeRemove(result.segment.publicId)"
