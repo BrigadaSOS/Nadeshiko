@@ -1,0 +1,11 @@
+type: object
+required:
+  - received
+properties:
+  received:
+    type: boolean
+    description: |
+      Always `true`. The response is deliberately uniform: a submission dropped
+      as automated answers exactly like one that was stored, so a bot learns
+      nothing from the reply about what tripped it.
+    example: true

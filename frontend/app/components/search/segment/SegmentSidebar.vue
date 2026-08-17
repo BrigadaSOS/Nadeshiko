@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { mdiArrowUp } from '@mdi/js';
-import { usePlayerStore } from '~/stores/player';
-import { storeToRefs } from 'pinia';
 import type { SearchSidebarData } from '~/types/search';
 import { splitLocalePrefix } from '~/utils/routes';
 
@@ -27,8 +25,6 @@ onBeforeRouteLeave((to) => {
   if (!isSearchFilterRoute(to.path)) isFilterDrawerOpen.value = false;
 });
 
-const playerStore = usePlayerStore();
-const { showPlayer } = storeToRefs(playerStore);
 const props = withDefaults(
   defineProps<{
     searchData?: SearchSidebarData | null;
@@ -91,29 +87,33 @@ onUnmounted(() => {
 </script>
 <template>
 
-<div 
-    class="fixed right-[calc(1.5rem+var(--scrollbar-gutter))] z-50 group transition-all duration-300 ease-in-out"
-    :class="showPlayer ? 'bottom-40 md:bottom-24' : 'bottom-6'"
-  >    <Transition>
-      <button type="button" v-if="showScrollButton" data-testid="scroll-to-top" @click="scrollToTop"
-        class="flex items-center justify-center outline-none mb-2  bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-header-background focus:ring-4 focus:outline-none">
-        <UiBaseIcon :path="mdiArrowUp" w="5" h="5" size="20" fill="white" strokewidth="1" stroke="white" />
+<!-- Into the shared dock in the layout, so these stack above the feedback
+       button instead of sharing its corner. `ClientOnly` because the teleport
+       target is a plain element rendered by the layout, which SSR cannot fill;
+       both buttons are client-driven anyway. -->
+  <ClientOnly>
+    <Teleport to="#nd-fab-dock">
+      <Transition>
+        <button type="button" v-if="showScrollButton" data-testid="scroll-to-top" @click="scrollToTop"
+          class="nd-fab">
+          <UiBaseIcon :path="mdiArrowUp" w="5" h="5" size="20" fill="white" strokewidth="1" stroke="white" />
+        </button>
+      </Transition>
+      <button v-if="showFilterDrawer" type="button" aria-haspopup="dialog" :aria-expanded="isFilterDrawerOpen"
+        aria-controls="nd-offcanvas-right"
+        data-testid="filter-drawer-toggle"
+        @click="isFilterDrawerOpen = !isFilterDrawerOpen"
+        class="nd-fab 2xl:hidden">
+        <svg aria-hidden="true" class="w-8 h-8 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg">
+          <path xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd"
+            d="M3 7C3 6.44772 3.44772 6 4 6H20C20.5523 6 21 6.44772 21 7C21 7.55228 20.5523 8 20 8H4C3.44772 8 3 7.55228 3 7ZM6 12C6 11.4477 6.44772 11 7 11H17C17.5523 11 18 11.4477 18 12C18 12.5523 17.5523 13 17 13H7C6.44772 13 6 12.5523 6 12ZM9 17C9 16.4477 9.44772 16 10 16H14C14.5523 16 15 16.4477 15 17C15 17.5523 14.5523 18 14 18H10C9.44772 18 9 17.5523 9 17Z"
+            fill="#ffffff" />
+        </svg>
+        <span class="sr-only">{{ $t('segmentSidebar.openFilters') }}</span>
       </button>
-    </Transition>
-    <button v-if="showFilterDrawer" type="button" aria-haspopup="dialog" :aria-expanded="isFilterDrawerOpen"
-      aria-controls="nd-offcanvas-right"
-      data-testid="filter-drawer-toggle"
-      @click="isFilterDrawerOpen = !isFilterDrawerOpen"
-      class="flex items-center justify-center outline-none 2xl:hidden text-white bg-sgray rounded-full w-14 h-14 hover:bg-sgrayhover dark:bg-header-background focus:ring-4 focus:outline-none">
-      <svg aria-hidden="true" class="w-8 h-8 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg">
-        <path xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd"
-          d="M3 7C3 6.44772 3.44772 6 4 6H20C20.5523 6 21 6.44772 21 7C21 7.55228 20.5523 8 20 8H4C3.44772 8 3 7.55228 3 7ZM6 12C6 11.4477 6.44772 11 7 11H17C17.5523 11 18 11.4477 18 12C18 12.5523 17.5523 13 17 13H7C6.44772 13 6 12.5523 6 12ZM9 17C9 16.4477 9.44772 16 10 16H14C14.5523 16 15 16.4477 15 17C15 17.5523 14.5523 18 14 18H10C9.44772 18 9 17.5523 9 17Z"
-          fill="#ffffff" />
-      </svg>
-      <span class="sr-only">{{ $t('segmentSidebar.openFilters') }}</span>
-    </button>
-  </div>
+    </Teleport>
+  </ClientOnly>
 
   <!-- Sidebar -->
   <CommonBaseModal

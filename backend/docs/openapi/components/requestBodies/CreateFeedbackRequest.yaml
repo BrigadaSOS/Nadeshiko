@@ -1,0 +1,66 @@
+type: object
+required:
+  - body
+  - formToken
+properties:
+  body:
+    type: string
+    minLength: 1
+    maxLength: 4000
+    description: The message. Free text — no category, no target.
+    example: "The audio on the search page stops after the first segment on Firefox."
+  email:
+    type: string
+    format: email
+    maxLength: 320
+    description: |
+      Optional reply address for anonymous senders. Ignored when the request
+      carries a session: the account's own address is used instead, so a signed-in
+      sender cannot attribute a message to somebody else's inbox.
+    example: "you@example.com"
+  formToken:
+    type: string
+    maxLength: 512
+    description: |
+      Opaque token from `GET /v1/feedback/token`, issued when the panel opened.
+      It carries the issue time, so a submission that arrives implausibly fast
+      after the form appeared can be told from a person typing.
+  nickname:
+    type: string
+    maxLength: 200
+    description: |
+      Honeypot. Not rendered to people; anything in it marks the submission as
+      automated. Present in the contract because it has to be accepted to be
+      ignored.
+  pagePath:
+    type: string
+    maxLength: 2000
+    description: |
+      Same-origin path (and query) the sender was on, e.g. `/search?q=彼女`.
+      Anything that is not a rooted path is dropped rather than rejected.
+    example: "/search?q=彼女"
+  locale:
+    type: string
+    maxLength: 16
+    description: |
+      The locale the page rendered in, which is not the same question as
+      `Accept-Language`: the site's locale comes from the URL prefix and a stored
+      preference, so a reader on `/es/search` with an English browser is reading
+      Spanish. Falls back to the request header when absent.
+    example: "es"
+  appVersion:
+    type: string
+    maxLength: 32
+    description: |
+      The frontend build the sender was running. Client-supplied because it is the
+      only side that knows: the browser can be holding a bundle several deploys
+      old, and the API's own version says nothing about it.
+    example: "2.4.0"
+  posthogSessionId:
+    type: string
+    maxLength: 64
+    description: PostHog session id, so a report links to its session replay. Blank where posthog is not loaded.
+  posthogDistinctId:
+    type: string
+    maxLength: 128
+    description: PostHog person id.

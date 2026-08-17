@@ -13,6 +13,7 @@ import {
   mdiHistory,
   mdiLogin,
   mdiLogout,
+  mdiMessageTextOutline,
 } from '@mdi/js';
 
 const store = userStore();
@@ -20,11 +21,19 @@ const isAuth = computed(() => store.isLoggedIn);
 const localePath = useLocalePath();
 
 const { openLoginModal: showLoginModal } = useLoginModal();
+const { openFeedback } = useFeedbackWidget();
 const isNavSidebarOpen = ref(false);
 
 const closeNavSidebar = () => {
   isNavSidebarOpen.value = false;
 };
+
+// The drawer only closes itself on a route change, and this opens a panel
+// rather than navigating. Left alone it would stay open behind the panel.
+function openFeedbackPanel() {
+  closeNavSidebar();
+  openFeedback();
+}
 
 function openLoginModal() {
   closeNavSidebar();
@@ -238,6 +247,14 @@ watch(() => route.fullPath, closeNavSidebar);
                     <UiBaseIcon :path="mdiApi" :size="18" />
                     {{ $t("navbar.buttons.api") }}
                 </NuxtLink>
+                <!-- The floating button is hidden below `sm`, so on a phone this
+                     is the way into the feedback panel. -->
+                <button type="button" data-testid="feedback-nav-link" aria-haspopup="dialog"
+                    @click="openFeedbackPanel"
+                    class="nd-sidebar-link flex items-center gap-3 px-5 py-3 w-full text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-neutral-300 dark:hover:bg-neutral-700">
+                    <UiBaseIcon :path="mdiMessageTextOutline" :size="18" />
+                    {{ $t("feedback.open") }}
+                </button>
             </div>
 
             <div class="border-t border-hairline py-2">

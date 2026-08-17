@@ -69,6 +69,10 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   RATE_LIMIT_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(300),
   RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(60),
+  // Feedback is unauthenticated and sends mail, so it gets its own much smaller
+  // budget than the general one. Nobody has more than a handful of things to say
+  // in a minute, and anyone who does can say them in one message.
+  RATE_LIMIT_FEEDBACK_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(5),
 
   // Shared secret proving a request came through our own frontend Nitro proxy
   // (which already rate-limits per real client IP). When set, the per-IP
@@ -100,6 +104,12 @@ const envSchema = z.object({
   SES_AWS_SECRET_ACCESS_KEY: optionalString,
   SES_FROM_EMAIL: requiredString,
   SES_FROM_NAME: requiredString,
+
+  // Where the feedback widget's messages land. Optional, and unset means the
+  // notification is skipped, not that the feature is off: the row is stored
+  // either way, so a missing address costs the email and nothing else. Local and
+  // test runs therefore need no configuration.
+  FEEDBACK_NOTIFICATION_TO: optionalString,
 
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString,
   OTEL_SERVICE_NAME: optionalString,
