@@ -302,7 +302,7 @@ const submitDelete = async () => {
     <CommonBaseModal
       :open="!!renameTarget"
       labelledby="nd-collection-rename-title"
-      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-background border border-hairline shadow-xl"
       @close="renameTarget = null"
     >
       <div class="px-4 py-3 border-b border-modal-border">
@@ -349,7 +349,7 @@ const submitDelete = async () => {
     <CommonBaseModal
       :open="showCreateModal"
       labelledby="nd-collection-create-title"
-      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-background border border-hairline shadow-xl"
       @close="showCreateModal = false"
     >
       <div class="px-4 py-3 border-b border-modal-border">
@@ -396,7 +396,7 @@ const submitDelete = async () => {
     <CommonBaseModal
       :open="!!visibilityTarget"
       labelledby="nd-collection-visibility-title"
-      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-background border border-hairline shadow-xl"
       @close="visibilityTarget = null"
     >
       <div class="px-4 py-3 border-b border-modal-border">
@@ -436,7 +436,7 @@ const submitDelete = async () => {
     <CommonBaseModal
       :open="!!deleteTarget"
       labelledby="nd-collection-delete-title"
-      panel-class="w-full max-w-md mx-4 rounded-xl bg-modal-background border border-modal-border shadow-xl"
+      panel-class="w-full max-w-md mx-4 rounded-xl bg-background border border-hairline shadow-xl"
       @close="deleteTarget = null"
     >
       <div class="px-4 py-3 border-b border-modal-border">

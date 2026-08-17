@@ -241,7 +241,7 @@ const submitEdit = async () => {
     :open="!!segment"
     labelledby="nd-segment-edit-modal-title"
     :panel-class="[
-      'mx-auto flex flex-col bg-white border shadow-sm rounded-xl dark:bg-modal-background dark:border-modal-border transition-all duration-200',
+      'mx-auto flex flex-col bg-background border border-hairline shadow-sm rounded-xl transition-all duration-200',
       showHistory ? 'w-full max-w-6xl' : 'w-full max-w-3xl',
     ]"
     @close="closeModal"

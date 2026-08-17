@@ -30,7 +30,7 @@ const resolvedConfirmLabel = computed(() => props.confirmLabel ?? t('common.conf
     :open="visible"
     z-index-class="z-50"
     overlay-class="items-center justify-center bg-black/60"
-    panel-class="bg-surface border border-hairline rounded-xl p-6 w-full max-w-sm"
+    panel-class="bg-background border border-hairline rounded-xl p-6 w-full max-w-sm"
     :label="title"
     @close="emit('cancel')"
   >
