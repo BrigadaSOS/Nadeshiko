@@ -83,6 +83,21 @@ const isAnkiConfigured = computed(() => {
   const profile = anki.activeProfile;
   return !!profile?.deck?.trim() && !!profile.model?.trim() && profile.fields.length > 0 && !!profile.key?.trim();
 });
+
+/**
+ * Configured AND actually reachable. A profile can be perfectly filled in while
+ * Anki is closed, and offering the export then sends the reader through a menu
+ * to a toast that says it failed -- the same dead end the word card's control
+ * used to have.
+ *
+ * `connectReachable === false` rather than a falsy check: `null` means nothing
+ * has asked AnkiConnect this session, and disabling the export on that would
+ * disable it for every reader who has not opened a word card yet.
+ */
+const ankiUnavailable = computed(() => !isAnkiConfigured.value || anki.connectReachable === false);
+
+/** Which of the two problems it is, so the menu item can say. */
+const ankiBlockedMessage = computed(() => (isAnkiConfigured.value ? t('anki.notRunning') : t('anki.configRequired')));
 const addingCollectionId = ref<string | null>(null);
 const showCollectionPicker = ref(false);
 
@@ -206,17 +221,17 @@ const sharedMediaName = computed(() =>
         <!-- Anki by last added -->
         <ClientOnly>
           <template v-if="user.isLoggedIn">
-            <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiLast')"
+            <SearchDropdownItem :is-disabled="ankiUnavailable" :text="$t('searchpage.main.buttons.addToAnkiLast')"
               :iconPath="mdiFileDocumentPlusOutline"
-              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
-              :on-disabled-click="!isAnkiConfigured ? openAnkiSettings : undefined"
+              :tooltip="ankiUnavailable ? ankiBlockedMessage : undefined"
+              :on-disabled-click="ankiUnavailable ? openAnkiSettings : undefined"
               @click="anki.addSentenceToAnki(content)" />
 
             <!-- Anki by ID -->
-            <SearchDropdownItem :is-disabled="!isAnkiConfigured" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+            <SearchDropdownItem :is-disabled="ankiUnavailable" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
               @click="openAnkiModal()" :iconPath="mdiCardSearchOutline"
-              :tooltip="!isAnkiConfigured ? $t('anki.configRequired') : undefined"
-              :on-disabled-click="!isAnkiConfigured ? openAnkiSettings : undefined" />
+              :tooltip="ankiUnavailable ? ankiBlockedMessage : undefined"
+              :on-disabled-click="ankiUnavailable ? openAnkiSettings : undefined" />
           </template>
           <template v-else>
             <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"
