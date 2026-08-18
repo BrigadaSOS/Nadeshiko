@@ -83,6 +83,42 @@ export function useWordMining(
   // control that leads straight to the missing setting.
   const canMine = computed(() => canConfigureMine.value && !!profile.value?.key?.trim());
 
+  /**
+   * Why the Anki controls cannot act, or null when they can.
+   *
+   * One value rather than a boolean per condition, because the control needs to
+   * SAY which one it is and "disabled" on its own is the least useful thing a
+   * button can tell somebody. Ordered by what the reader has to do first: no
+   * amount of running Anki helps a profile with no note type, so configuration
+   * is reported ahead of reachability.
+   *
+   * `offline` is deliberately not returned while `connectReachable` is null.
+   * Nothing has asked AnkiConnect yet at that point, and announcing "Anki is not
+   * running" to a reader whose Anki is running perfectly well -- they simply have
+   * not opened a card yet -- is worse than saying nothing.
+   */
+  const mineBlockedReason = computed<'not-configured' | 'no-key' | 'offline' | null>(() => {
+    if (!canConfigureMine.value) return 'not-configured';
+    if (!profile.value?.key?.trim()) return 'no-key';
+    if (anki.connectReachable === false) return 'offline';
+    return null;
+  });
+
+  /** Whether the controls should act, as opposed to explain. */
+  const mineReady = computed(() => mineBlockedReason.value === null);
+
+  /**
+   * Whether this profile has any field a pick could change.
+   *
+   * Read by the card to decide whether to offer the toggles at all: on a profile
+   * that writes no definition anywhere, ticking a dictionary would be a control
+   * with no effect. Any of the three counts -- the pick narrows the stack, and
+   * all three are derived from it.
+   */
+  const mapsDefinition = computed(() =>
+    (profile.value?.fields ?? []).some((field) => field.value?.includes('{definition')),
+  );
+
   /** The expression field is what "already mined" is judged on, and it is
    *  optional in settings -- so a profile can be perfectly able to export and
    *  still have no way to answer the question. Mining then falls back to the
@@ -302,5 +338,17 @@ export function useWordMining(
   // and a caller has nothing to do with the answer -- the star's absence already
   // says "not mined, or we could not ask", which is the only thing the card can
   // honestly claim either way.
-  return { minedNoteId, mining, canConfigureMine, canMine, probeMined, clearMined, openMinedNote, mineSentence };
+  return {
+    minedNoteId,
+    mining,
+    canConfigureMine,
+    canMine,
+    mineBlockedReason,
+    mineReady,
+    mapsDefinition,
+    probeMined,
+    clearMined,
+    openMinedNote,
+    mineSentence,
+  };
 }

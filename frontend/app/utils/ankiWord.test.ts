@@ -533,56 +533,67 @@ describe('splitting definitions across fields', () => {
     ],
   } as unknown as ShirabeWord;
 
-  it('keeps every dictionary in one field when no cut is set', () => {
-    const { definition, definitionRest } = minedWord(stacked, token({ dictForm: '死ぬ' }), EN, '', 0);
+  // `{definition}` is every dictionary, the way Yomitan's `{glossary}` is, and
+  // nothing else on the card can change what it contains.
+  it('keeps every dictionary in {definition}', () => {
+    const { definition } = minedWord(stacked, token({ dictForm: '死ぬ' }), EN);
 
     expect(definition).toContain('息が絶える');
+    expect(definition).toContain('命がなくなる');
     expect(definition).toContain('to die');
-    expect(definitionRest).toBe('');
   });
 
-  it('cuts after the reader chosen number of dictionaries', () => {
-    const { definition, definitionRest } = minedWord(stacked, token({ dictForm: '死ぬ' }), EN, '', 1);
+  it('puts only the top of the stack in {definition-first}', () => {
+    const { definitionFirst } = minedWord(stacked, token({ dictForm: '死ぬ' }), EN);
 
-    expect(definition).toContain('息が絶える');
-    expect(definition).not.toContain('命がなくなる');
-    expect(definitionRest).toContain('命がなくなる');
-    expect(definitionRest).toContain('to die');
+    expect(definitionFirst).toContain('息が絶える');
+    expect(definitionFirst).not.toContain('命がなくなる');
+    expect(definitionFirst).not.toContain('to die');
   });
 
-  // Counted in DICTIONARIES, never in senses: splitting one dictionary across
-  // two card faces is not a division anybody means.
-  it('never splits a single dictionary across the two fields', () => {
-    const wordy = {
+  // Nearly everybody: one dictionary answers, so first and all say the same
+  // thing rather than one of them being empty.
+  it('makes first and all agree for a single-dictionary card', () => {
+    const { definition, definitionFirst } = minedWord(TEKAGEN, token(), EN);
+
+    expect(definitionFirst).not.toBe('');
+    expect(definitionFirst).toBe(definition);
+  });
+
+  // `{definition:<slug>}`, keyed on the slug because that is what a stored field
+  // mapping points at while a display name moves under it.
+  it('renders one definition per dictionary, keyed by slug', () => {
+    const slugged = {
       id: '死ぬ',
       headword: '死ぬ',
       entries: [
         {
-          dictionary: '三省堂国語辞典',
-          senses: [
-            { definitions: [{ lang: 'ja', text: 'いち' }], tags: [] },
-            { definitions: [{ lang: 'ja', text: 'に' }], tags: [] },
-          ],
+          dictionary: 'sanseido',
+          dictionaryName: '三省堂国語辞典',
+          senses: [{ definitions: [{ lang: 'ja', text: '息が絶える' }], tags: [] }],
         },
-        { dictionary: 'JMdict', senses: [{ definitions: [{ lang: 'en', text: 'to die' }], tags: [] }] },
+        {
+          dictionary: 'jmdict',
+          dictionaryName: 'JMdict',
+          senses: [{ definitions: [{ lang: 'en', text: 'to die' }], tags: [] }],
+        },
       ],
     } as unknown as ShirabeWord;
 
-    const { definition, definitionRest } = minedWord(wordy, token({ dictForm: '死ぬ' }), EN, '', 1);
+    const { definitionsByDictionary } = minedWord(slugged, token({ dictForm: '死ぬ' }), EN);
 
-    expect(definition).toContain('いち');
-    expect(definition).toContain('に');
-    expect(definitionRest).toContain('to die');
-    expect(definitionRest).not.toContain('いち');
+    expect(Object.keys(definitionsByDictionary).sort()).toEqual(['jmdict', 'sanseido']);
+    expect(definitionsByDictionary.sanseido).toContain('息が絶える');
+    expect(definitionsByDictionary.sanseido).not.toContain('to die');
+    expect(definitionsByDictionary.jmdict).toContain('to die');
   });
 
-  // The reader who linked nothing, which is nearly everybody: one dictionary
-  // answers, so there is never anything to put in the second field.
-  it('leaves the second field empty for a single-dictionary card', () => {
-    const { definition, definitionRest } = minedWord(TEKAGEN, token(), EN, '', 1);
+  // A dictionary the word is not in has no key at all, which is what tells the
+  // export that field has nothing to say for this word.
+  it('omits a dictionary that did not answer', () => {
+    const { definitionsByDictionary } = minedWord(TEKAGEN, token(), EN);
 
-    expect(definition).not.toBe('');
-    expect(definitionRest).toBe('');
+    expect(definitionsByDictionary.sanseido).toBeUndefined();
   });
 });
 
@@ -612,7 +623,7 @@ describe('a note built from more than one dictionary', () => {
   } as unknown as ShirabeWord;
 
   it('names each dictionary above its own senses', () => {
-    const { definition } = minedWord(stacked, token({ dictForm: '食べる' }), EN, '', 0);
+    const { definition } = minedWord(stacked, token({ dictForm: '食べる' }), EN);
 
     expect(definition).toContain('デジタル大辞泉');
     expect(definition).toContain('大辞林 第三版');
@@ -620,7 +631,7 @@ describe('a note built from more than one dictionary', () => {
   });
 
   it('carries the dictionary own tier rather than a running count', () => {
-    const { definition } = minedWord(stacked, token({ dictForm: '食べる' }), EN, '', 0);
+    const { definition } = minedWord(stacked, token({ dictForm: '食べる' }), EN);
 
     expect(definition).toContain('①');
     expect(definition).toContain('㋐');
@@ -631,8 +642,109 @@ describe('a note built from more than one dictionary', () => {
   // The ordinary word, and nearly every reader: one dictionary answered, so
   // naming it above its own senses would be noise.
   it('names nothing when there is only one dictionary', () => {
-    const { definition } = minedWord(TEKAGEN, token(), EN, '', 0);
+    const { definition } = minedWord(TEKAGEN, token(), EN);
 
     expect(definition).not.toContain('nd-dictionary');
+  });
+});
+
+/**
+ * Picking dictionaries in the word card.
+ *
+ * A pick NARROWS the stack: every definition field is derived from what is left,
+ * so ticking 大辞泉 makes the whole note a 大辞泉 note rather than adding a
+ * shortlist beside the full stack.
+ */
+describe('picking dictionaries', () => {
+  const stack = {
+    id: '死ぬ',
+    headword: '死ぬ',
+    reading: 'しぬ',
+    entries: [
+      {
+        dictionary: 'sanseido',
+        dictionaryName: '三省堂国語辞典',
+        senses: [{ definitions: [{ lang: 'ja', text: '息が絶える' }], tags: [] }],
+      },
+      {
+        dictionary: 'daijirin',
+        dictionaryName: '大辞林',
+        senses: [{ definitions: [{ lang: 'ja', text: '命がなくなる' }], tags: [] }],
+      },
+      {
+        dictionary: 'jmdict',
+        dictionaryName: 'JMdict',
+        senses: [{ definitions: [{ lang: 'en', text: 'to die' }], tags: [] }],
+      },
+    ],
+  } as unknown as ShirabeWord;
+
+  it('keeps the whole stack when the reader ticked nothing', () => {
+    const { definition, pickedDictionaries } = minedWord(stack, token({ dictForm: '死ぬ' }), EN);
+
+    expect(definition).toContain('息が絶える');
+    expect(definition).toContain('命がなくなる');
+    expect(definition).toContain('to die');
+    expect(pickedDictionaries).toBe(0);
+  });
+
+  it('replaces {definition} with only the ticked dictionaries', () => {
+    const { definition } = minedWord(stack, token({ dictForm: '死ぬ' }), EN, '', new Set(['sanseido', 'jmdict']));
+
+    expect(definition).toContain('息が絶える');
+    expect(definition).toContain('to die');
+    expect(definition).not.toContain('命がなくなる');
+  });
+
+  // Everything derives from the narrowed stack, so "the first dictionary" means
+  // the first of the ones still on the card.
+  it('re-points {definition-first} at the first ticked dictionary', () => {
+    const { definitionFirst } = minedWord(stack, token({ dictForm: '死ぬ' }), EN, '', new Set(['jmdict']));
+
+    expect(definitionFirst).toContain('to die');
+    expect(definitionFirst).not.toContain('息が絶える');
+  });
+
+  // A dictionary the reader ticked away is not on this card, so a field naming
+  // it has nothing to say -- which is the same "miss" it already handles.
+  it('empties {definition:<slug>} for a dictionary that was not ticked', () => {
+    const { definitionsByDictionary } = minedWord(stack, token({ dictForm: '死ぬ' }), EN, '', new Set(['jmdict']));
+
+    expect(Object.keys(definitionsByDictionary)).toEqual(['jmdict']);
+  });
+
+  // Keyed on the SLUG, because that is the dictionary's identity: a name is
+  // renamed by Shirabe and shared by two of a reader's own uploads.
+  it('keys on the slug rather than the printed name', () => {
+    const { definition } = minedWord(stack, token({ dictForm: '死ぬ' }), EN, '', new Set(['三省堂国語辞典']));
+
+    expect(definition).toBe('');
+  });
+
+  it('still hangs the source link on a narrowed definition', () => {
+    const { definition } = minedWord(stack, token({ dictForm: '死ぬ' }), EN, '', new Set(['daijirin']));
+
+    expect(definition).toContain('shirabe.org');
+  });
+
+  // A dictionary the reader has since removed from their stack, or one with no
+  // entry for this word: it matches nothing rather than throwing.
+  it('ignores a dictionary that is not on this card', () => {
+    const { definition } = minedWord(stack, token({ dictForm: '死ぬ' }), EN, '', new Set(['jmdict', 'gone']));
+
+    expect(definition).toContain('to die');
+    expect(definition).not.toContain('undefined');
+  });
+
+  it('reports how many dictionaries were ticked', () => {
+    const { pickedDictionaries } = minedWord(
+      stack,
+      token({ dictForm: '死ぬ' }),
+      EN,
+      '',
+      new Set(['jmdict', 'daijirin']),
+    );
+
+    expect(pickedDictionaries).toBe(2);
   });
 });

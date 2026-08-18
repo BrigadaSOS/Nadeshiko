@@ -174,6 +174,34 @@ export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | u
  * aligned by Shirabe against `headword`, so a title of 彼方 over furigana
  * computed for かなた would be misaligned on the one row that has to be right.
  */
+/**
+ * The word's ruby, but only when it actually spells the word.
+ *
+ * Shirabe sends `furigana` per candidate and it is not always aligned against
+ * that candidate's headword: every candidate for よう comes back with
+ * `[{text: "よう"}]`, so 良う and 癰 both carry the READING where their ruby
+ * should be. Rendered straight, that painted "よう" as the title of a card the
+ * reader had just switched to 良う -- the picker moved, the senses moved, and the
+ * one thing naming the word did not.
+ *
+ * The rule is simply that ruby has to spell its word: concatenate the segment
+ * texts and compare. Anything else is about a different spelling and is dropped,
+ * leaving the plain headword, which is always right if plainer.
+ */
+/** A run of text with optional ruby over it. Mirrors the shape the token
+ *  enrichment uses, so the card and the note draw from one idea of furigana. */
+export interface FuriganaSegment {
+  text: string;
+  reading: string;
+}
+
+export function headwordFurigana(word: ShirabeWord | null): FuriganaSegment[] {
+  const segments = (word?.furigana ?? []).filter((segment) => segment.text);
+  if (segments.length === 0 || !word?.headword) return [];
+  const spelled = segments.map((segment) => segment.text).join('');
+  return spelled === word.headword ? segments.map((s) => ({ text: s.text, reading: s.ruby ?? '' })) : [];
+}
+
 export function candidateName(candidate: ShirabeCandidate): string {
   return candidate.matchedHeadword || candidate.headword;
 }
@@ -450,6 +478,21 @@ export interface CardSense {
    *  monolingual definition and a JMdict gloss sitting in one numbered list with
    *  nothing to tell them apart reads as one dictionary contradicting itself. */
   dictionary: string;
+  /**
+   * The same dictionary's STABLE id, for anything that has to name it in stored
+   * configuration rather than print it.
+   *
+   * Separate from `dictionary` above because that one is deliberately the NAME,
+   * and a name is the wrong thing to key on: Shirabe renames dictionaries, a
+   * re-upload changes one, and two of a reader's packs can share a title. An
+   * Anki field mapped to `{definition:sanseido}` has to keep meaning the same
+   * dictionary across all of that.
+   *
+   * Optional because a Shirabe old enough not to publish it leaves nothing to
+   * carry, and because it is only ever read by name-a-dictionary features: the
+   * card itself prints `dictionary` and never needs this.
+   */
+  dictionarySlug?: string;
   /** What to PRINT as this sense's number: `1`, `①` or `㋐` depending on its
    *  tier, counted within its own dictionary. See `numberSenses`. */
   number: string;
@@ -566,7 +609,11 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
     // Named, not slugged: what goes on screen above a group of senses is the
     // dictionary's name. The slug is the fallback for an older Shirabe, and is
     // what the card showed before this.
-    (entry.senses ?? []).map((sense) => ({ sense, dictionary: entry.dictionaryName || entry.dictionary })),
+    (entry.senses ?? []).map((sense) => ({
+      sense,
+      dictionary: entry.dictionaryName || entry.dictionary,
+      slug: entry.dictionary ?? '',
+    })),
   );
   const cards: CardSense[] = [];
   // The last POS actually printed, which is not the same as the previous card's
@@ -581,7 +628,7 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
   const printed = new Map<string, number>();
   const kept: Array<{ sense: ShirabeSense; dictionary: string }> = [];
 
-  for (const { sense, dictionary } of senses) {
+  for (const { sense, dictionary, slug } of senses) {
     const glosses = glossRows(selectDefinitions(sense.definitions, preference));
     if (glosses.length === 0) continue;
 
@@ -605,6 +652,7 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
       // something false about the next.
       notes: (sense.notes ?? []).filter((note) => note.trim().length > 0),
       dictionary,
+      dictionarySlug: slug,
       // Placeholders: the numbers depend on the whole run of senses a dictionary
       // kept, which is not known until the loop has finished.
       number: '',
@@ -613,6 +661,23 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
   }
 
   return numberSenses(cards, kept);
+}
+
+/**
+ * How to name one dictionary on a card, for anything that has to GROUP by it.
+ *
+ * The slug where there is one, because the name is not an identity: Shirabe
+ * renames packs, a re-upload changes one, and two of a reader's uploads can
+ * share a title -- so keying on the name would silently fuse two dictionaries
+ * into one group and hand a reader who picked one the senses of both.
+ *
+ * The name is the fallback rather than an error, because a Shirabe too old to
+ * publish slugs still has to group correctly by what it prints. Falling back
+ * per sense rather than per card is deliberate: a stack can mix a slugged pack
+ * with an unslugged one, and each is then keyed by the best id it has.
+ */
+export function dictionaryKey(sense: Pick<CardSense, 'dictionary' | 'dictionarySlug'>): string {
+  return sense.dictionarySlug || sense.dictionary;
 }
 
 /** ①-⑳ ㉑-㉟ ㊱-㊿ is every circled numeral Unicode has, and ㋐-㋾ every circled
@@ -766,6 +831,29 @@ const SMALL_KANA = 'ゃゅょャュョぁぃぅぇぉァィゥェォ';
  * high on the first mora only; anything else is high from the second mora to the
  * downstep. Mirrors Shirabe's own pitch diagram.
  */
+/**
+ * The accent pattern's name, from its downstep and how many morae the word has.
+ *
+ * The four Japanese textbooks name: heiban (no downstep), atamadaka (falls after
+ * the first mora), odaka (falls after the LAST one, audible only on what
+ * follows) and nakadaka (anywhere between). Odaka and nakadaka are the pair that
+ * needs the mora count, which is why this takes the reading rather than the
+ * number alone -- `3` is odaka on a three-mora word and nakadaka on a four.
+ *
+ * Yomitan publishes the same thing as `{pitch-accent-categories}` and Lapis has
+ * a field for it; the numbers alone are in `{word-pitch-num}`.
+ */
+export function pitchCategory(reading: string, downstep: number): string {
+  if (!Number.isInteger(downstep) || downstep < 0) return '';
+  if (downstep === 0) return 'heiban';
+  if (downstep === 1) return 'atamadaka';
+  // Counted in MORAE, not characters: ょ and っ do not carry a beat of their own,
+  // and `pitchMorae` already knows how to split them off.
+  const morae = pitchMorae(reading, downstep).length;
+  if (morae > 0 && downstep >= morae) return 'odaka';
+  return 'nakadaka';
+}
+
 export function pitchMorae(reading: string, downstep: number): PitchMora[] {
   const morae: string[] = [];
   for (const character of reading) {
