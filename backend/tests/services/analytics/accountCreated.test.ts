@@ -29,8 +29,6 @@ describe('captureAccountCreatedAfterUserCreate', () => {
     expect(capture).toHaveBeenCalledTimes(1);
     expect(capture).toHaveBeenCalledWith({
       userId: '42',
-      username: 'someone',
-      email: 'someone@example.test',
       createdAt: completeUser.createdAt,
     });
   });
@@ -56,13 +54,9 @@ describe('captureAccountCreatedAfterUserCreate', () => {
     expect(capture.mock.calls[0]?.[0]).toMatchObject({ createdAt: undefined });
   });
 
-  it.each([
-    ['no id', { ...completeUser, id: undefined }],
-    ['no email', { ...completeUser, email: null }],
-    ['no name', { ...completeUser, name: '' }],
-  ])('stays silent for a user with %s', (_label, user) => {
-    // A half-formed user would produce a person with no way to join it back to
-    // our own database, which is worse than no event.
+  it.each([['no id', { ...completeUser, id: undefined }]])('stays silent for a user with %s', (_label, user) => {
+    // Without the stable account id, the server event cannot join the browser
+    // activity, so it is more honest to drop it.
     const capture = vi.fn();
 
     captureAccountCreatedAfterUserCreate(user, capture);
