@@ -593,7 +593,13 @@ watch(ankiconnectAddress, (newValue) => {
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-white/20">
-              <tr class="divide-x divide-gray-200 dark:divide-white/20" v-for="(item, index) in fieldOptions" :key="index">
+              <tr
+                class="divide-x divide-gray-200 dark:divide-white/20"
+                v-for="(item, index) in fieldOptions"
+                :key="index"
+                data-testid="anki-field-row"
+                :data-field="item.key"
+              >
                 <td
                   class="w-6/12 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
                   {{ item.key }}
@@ -602,7 +608,7 @@ watch(ankiconnectAddress, (newValue) => {
                   <div class="border border-hairline my-3 mx-2 rounded-lg bg-input-background">
                     <div class="w-full flex justify-between items-center gap-x-1">
                       <div class="grow py-1 px-3">
-                        <input v-model="item.value"
+                        <input v-model="item.value" data-testid="anki-field-value"
                           class="w-full p-0 bg-transparent border-0 text-gray-800 focus:ring-0 dark:text-white"
                           type="text" />
                       </div>
