@@ -62,7 +62,7 @@ const CHROMIUM = chromiumLauncher();
 // so `activity` does NOT cover `activity-privacy.spec.ts`. A spec that looks
 // covered but is not runs signed out and dies in `beforeEach`.
 const AUTHENTICATED_TESTS =
-  /(activity|activity-privacy|admin-reports|anki-deck-model|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
+  /(activity|activity-privacy|anki-deck-model|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
 
 /**
  * SMOKE MODE, set by the production release workflow. Staging keeps the whole
