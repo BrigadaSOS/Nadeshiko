@@ -31,6 +31,8 @@ const typeLabel = computed(() => {
       </svg>
       <span class="font-semibold text-white text-sm">{{ typeLabel }}</span>
     </div>
-    <p class="text-sm text-white/80 leading-relaxed">{{ announcement.message }}</p>
+    <p class="text-sm text-white/80 leading-relaxed">
+      <CommonAnnouncementText :message="announcement.message" />
+    </p>
   </div>
 </template>
