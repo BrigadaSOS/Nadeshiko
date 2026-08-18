@@ -160,7 +160,18 @@ test.describe('Media filter drawer (mobile)', () => {
 
     await openDrawer(page);
     const back = drawer(page).getByTestId('media-filter-back');
-    if (await back.isVisible().catch(() => false)) {
+    // Waited for rather than asked about. The two levels cross over with
+    // `mode="out-in"`, so the one arriving does not exist for a moment --
+    // and `isVisible()` does not wait, so asking the instant the drawer
+    // opens answered "no back button" for a title that has one. The
+    // fallback then clicked a row that was still transitioning out, which
+    // is the "element was detached from the DOM, retrying" loop that made
+    // this look like a click that could never land.
+    const hasBack = await back
+      .waitFor({ state: 'visible', timeout: 5_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (hasBack) {
       await back.click();
     } else {
       // A movie never drills in: a second click on the title already in scope
