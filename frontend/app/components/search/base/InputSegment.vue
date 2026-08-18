@@ -142,6 +142,27 @@ const closeRecents = () => {
   activeIndex.value = -1;
 };
 
+/**
+ * Empty the box and hand the caret back.
+ *
+ * On a results page the field arrives holding the search that produced the page,
+ * so a reader who wants a different one has to clear it before they can type.
+ * Until this button there was nothing to press, and they did it by hand: over
+ * thirty days PostHog logged ~5.8k rageclicks on this input, clustered a few
+ * pixels to the right of the query text, which is a triple-click select-all
+ * being counted as rage. The field was never broken -- selection, focus and
+ * caret all behave -- it simply asked for a gesture instead of offering a
+ * control.
+ *
+ * Focus moves back to the input rather than staying on the button, so the next
+ * keystroke lands in the field. That focus opens the recents menu through
+ * `onInputFocus`, which is the right thing for a box that is now empty.
+ */
+const clearQuery = () => {
+  query.value = '';
+  inputRef.value?.focus();
+};
+
 onMounted(() => {
   const isMobile = /Android|webOS|iPhone|iPad|Opera Mini/i.test(navigator.userAgent);
   if (!isMobile) {
@@ -338,7 +359,7 @@ const showBatchModal = ref(false);
           :aria-activedescendant="activeIndex >= 0 ? recentOptionId(activeIndex) : undefined" autocomplete="off"
           @pointerdown="openRecents"
           :class="[showRecents ? 'rounded-b-none' : '', barAccentClass]"
-          class="border py-3 h-full pl-4 pr-4 md:pr-32 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
+          class="border py-3 h-full pl-4 pr-12 md:pr-44 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
           :placeholder="$t('common.searchAnything')" />
 
         <!--
@@ -357,7 +378,24 @@ const showBatchModal = ref(false);
             :accented="isWindowFocused" @select="runRecent" @forget="forgetRecent" @clear="clearRecents"
             @activate="activeIndex = $event" @deactivate="activeIndex = -1" />
         </Transition>
-        <div class="absolute inset-y-0 end-3 flex items-center pointer-events-none">
+        <!--
+          The clear button and the shortcut hint share one strip, the button
+          first so it sits inboard of the hint and the two never overlap: the
+          input reserves both (`pr-12`, and `md:pr-44` where the hint is also
+          showing). The strip stays `pointer-events-none` so the hint cannot
+          swallow a click meant for the field, and only the button opts back in.
+        -->
+        <div class="absolute inset-y-0 end-3 flex items-center gap-x-2 pointer-events-none">
+          <button
+            v-if="query"
+            type="button"
+            data-testid="search-clear"
+            :aria-label="$t('common.clearSearch')"
+            :title="$t('common.clearSearch')"
+            class="pointer-events-auto cursor-pointer inline-flex justify-center items-center rounded-md p-1.5 text-ink-faint hover:text-ink hover:bg-control transition-colors motion-reduce:transition-none"
+            @click="clearQuery">
+            <UiBaseIcon :path="mdiClose" w="w-5" h="h-5" size="20" />
+          </button>
           <span
             class="hidden md:inline-flex items-center whitespace-nowrap py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
             <kbd

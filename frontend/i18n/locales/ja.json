@@ -26,6 +26,7 @@
   },
   "common": {
     "cancel": "キャンセル",
+    "clearSearch": "検索をクリア",
     "close": "閉じる",
     "confirm": "確認",
     "logoAlt": "Nadeshikoのロゴ",
