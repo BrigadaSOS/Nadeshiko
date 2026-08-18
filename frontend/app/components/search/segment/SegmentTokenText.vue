@@ -6,11 +6,13 @@ import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
   cardForms,
   cardHeadword,
+  headwordFurigana,
   lookupState,
   candidatePartOfSpeech,
   candidateName,
   candidateSummary,
   cardSenses,
+  dictionaryKey,
   pickerChips,
   glossPreference,
   kanjiIn,
@@ -36,7 +38,14 @@ import { fetchWord, peekWord, type WordLookup } from '~/utils/wordLookup';
 //
 // `mdiFileDocumentPlusOutline` is the same mark the segment menu's Anki entries
 // use for adding, so the two places that mine agree with each other.
-import { mdiFileDocumentCheckOutline, mdiFileDocumentPlusOutline, mdiImagePlusOutline, mdiOpenInNew } from '@mdi/js';
+import {
+  mdiChevronLeft,
+  mdiChevronRight,
+  mdiFileDocumentCheckOutline,
+  mdiFileDocumentPlusOutline,
+  mdiImagePlusOutline,
+  mdiOpenInNew,
+} from '@mdi/js';
 import type { SearchResult } from '~/types/search';
 // The singleton, not `usePostHog()`. That composable resolves through
 // `useNuxtApp()`, which throws when it is reached from a detached async
@@ -59,7 +68,7 @@ type Props = {
 };
 
 const props = defineProps<Props>();
-const { locale } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const localePath = useLocalePath();
 
@@ -297,26 +306,31 @@ const minedCard = computed(() =>
   // The sentence goes in so the note can mark WHICH word was mined. Taken from
   // the result rather than from the tokens, because the token offsets address
   // exactly this string.
-  //
-  // The dictionary cut point comes off the active Anki profile: only a reader
-  // with a Shirabe stack ever has more than one dictionary on a card, and only
-  // they can say which of them belong on the front of it. Zero -- no profile, or
-  // a profile that never set it -- means no cut.
   minedWord(
     word.value,
     hoveredToken.value,
     glossLanguages.value,
     props.result?.segment.textJa.content ?? '',
-    ankiStore().activeProfile?.primaryDictionaries ?? 0,
+    pickedForExport.value,
   ),
 );
 
-const { minedNoteId, mining, canConfigureMine, canMine, probeMined, clearMined, openMinedNote, mineSentence } =
-  useWordMining(
-    () => props.result,
-    () => miningWord.value,
-    () => minedCard.value,
-  );
+const {
+  minedNoteId,
+  mining,
+  canConfigureMine,
+  mineBlockedReason,
+  mineReady,
+  mapsDefinition,
+  probeMined,
+  clearMined,
+  openMinedNote,
+  mineSentence,
+} = useWordMining(
+  () => props.result,
+  () => miningWord.value,
+  () => minedCard.value,
+);
 
 /** How many distinct words the reader has opened in THIS sentence, which is the
  *  number that decides whether the lookup should batch. One per component
@@ -358,6 +372,10 @@ async function loadWord(token: EnrichedToken): Promise<void> {
     clearLookup();
     return;
   }
+
+  // A card opening on a token is standing at the start of its own trail, however
+  // far the previous card wandered.
+  clearTrail();
 
   const ref = token.lookupRef;
   // Staleness below is judged on this string, so it has to be the same identity
@@ -427,6 +445,24 @@ function applyLookup(answer: WordLookup): void {
   // to draw and needs no state of its own. The other three are things it says.
   const state = lookupState(answer.candidates.length, answer.reason, answer.nameOnly);
   wordState.value = state === 'shown' ? 'idle' : state;
+
+  /**
+   * Ask Anki again, about the word the dictionary just named.
+   *
+   * The probe fires when the card OPENS, which is before the lookup lands, so it
+   * asks about the token's own dictionary form -- あんた for a token the
+   * dictionary will resolve to 手加減. `useWordMining` then discards that answer
+   * on arrival because the open word has changed under it, which is right: an
+   * answer about あんた says nothing about 手加減. What was missing is the
+   * follow-up. Nothing re-asked, so a word the reader already had read as new
+   * whenever AnkiConnect answered before Shirabe did -- a race between two
+   * services that do not wait on each other, and one the local stub wins every
+   * time.
+   *
+   * Same reason `pickCandidate` re-probes, and the same staleness guards drop
+   * whichever of the two lands late.
+   */
+  void probeMined();
 }
 
 /**
@@ -640,6 +676,8 @@ const closeTooltip = () => {
   // forever -- the card reopened stuck on "Looking up…" until something else
   // happened to reset it.
   clearLookup();
+  clearTrail();
+  clearPicked();
   revealDefinitions.value = false;
   pendingLookup = null;
   clearMined();
@@ -678,6 +716,9 @@ const pickCandidate = (index: number) => {
   }
 
   picked.value = index;
+  // Another candidate is another word, with its own senses behind the same row
+  // numbers. Whatever was ticked described the word the reader just moved off.
+  clearPicked();
 
   // Deliberately does NOT scroll. The definition lives at the top of the card
   // and the list at the bottom, so following the pick would take the reader off
@@ -950,9 +991,9 @@ onBeforeUnmount(() => {
  * alignment of the same word.
  */
 const headFurigana = computed(() => {
-  const fromWord = (word.value?.furigana ?? [])
-    .filter((seg) => seg.text)
-    .map((seg) => ({ text: seg.text, reading: seg.ruby ?? '' }));
+  // Guarded: Shirabe's per-candidate furigana does not always spell that
+  // candidate's headword. See `headwordFurigana`.
+  const fromWord = headwordFurigana(word.value);
   if (fromWord.length > 0) return fromWord;
 
   // Only when the head IS the token's own surface. An inflected token shows its
@@ -1058,23 +1099,187 @@ const wordParts = computed(() => (word.value?.parts ?? []).filter((part) => part
  * picker. Nothing is pushed or navigated, so the reader is one hover away from
  * the sentence they were reading.
  */
-async function showPart(part: { lemma: string; text: string; reading?: string }): Promise<void> {
-  const ref = { lemma: part.lemma, surface: part.text, reading: part.reading ?? '', pos: '' };
+/**
+ * Which DICTIONARIES the reader has ticked, by `dictionaryKey`.
+ *
+ * This replaced a drag-to-highlight capture that read `window.getSelection()`
+ * off the card. Dragging could say more -- half a sense, one gloss out of three
+ * -- but it said it invisibly: nothing on screen indicated a selection was
+ * armed, so the feature was undiscoverable to everyone who had not read the
+ * field list in settings, and a stray drag while reading silently changed what
+ * the next mine wrote. Ticking is coarser and legible, and legible wins on a
+ * control whose mistakes are only ever found weeks later on a review card.
+ *
+ * The dictionary is the unit a reader actually chooses in. A stack is assembled
+ * deliberately -- a monolingual pack on top, JMdict underneath as a safety net
+ * -- so "this word gets 大辞泉 only" re-applies a decision they have already
+ * made once, where "senses 1 and 3" is one they would have to make again for
+ * every word. It is also the unit the exported note already speaks in: the
+ * markup names its dictionaries above the senses they wrote.
+ *
+ * Keyed rather than indexed, so a pick survives the list re-rendering under it:
+ * turning a gloss language off drops senses and renumbers the rest.
+ *
+ * Cleared whenever the card changes which word it is ABOUT -- closing, walking
+ * into a part, stepping back, or picking another candidate. Carrying a pick to
+ * a different word would put one word's definition on another word's note.
+ */
+/** Shared, so `pickedForExport` returns the same identity on every card that is
+ *  not trimming rather than a fresh set per evaluation. */
+const NO_PICK: ReadonlySet<string> = new Set<string>();
+
+const pickedDictionaries = ref<Set<string>>(new Set());
+
+const clearPicked = () => {
+  if (pickedDictionaries.value.size > 0) pickedDictionaries.value = new Set();
+};
+
+/** Reassigned rather than mutated: a `Set` is not deeply reactive, so a card
+ *  that ticked in place would not repaint. */
+const togglePick = (key: string) => {
+  const next = new Set(pickedDictionaries.value);
+  if (!next.delete(key)) next.add(key);
+  pickedDictionaries.value = next;
+};
+
+/**
+ * The dictionaries on the card, in the order they are printed.
+ *
+ * Deduplicated on the key rather than the name for the reason `dictionaryKey`
+ * exists: two of a reader's own uploads can share a title, and fusing them into
+ * one toggle would hand somebody who ticked one the senses of both.
+ */
+const cardDictionaries = computed(() => {
+  const seen = new Map<string, string>();
+  for (const sense of senses.value) {
+    const key = dictionaryKey(sense);
+    if (!seen.has(key)) seen.set(key, sense.dictionary);
+  }
+  return [...seen].map(([key, name]) => ({ key, name }));
+});
+
+const deselectAllDictionaries = () => {
+  pickedDictionaries.value = new Set();
+};
+
+/**
+ * Whether to offer the toggles at all.
+ *
+ * Gated on the same configuration the mine button is, because a pick with
+ * nowhere to go is a control that does nothing: a reader with no Anki profile
+ * would be ticking dictionaries into the void, and so would one whose profile
+ * writes no definition anywhere.
+ *
+ * And never for a single-dictionary card, which is most of them: ticking the
+ * only dictionary there is means the same thing as ticking nothing, so the
+ * control would be a checkbox that cannot change the outcome.
+ */
+const canPickDictionaries = computed(
+  () => canConfigureMine.value && !!props.result && mapsDefinition.value && cardDictionaries.value.length > 1,
+);
+
+/**
+ * What actually reaches the note.
+ *
+ * All of them and none of them are the same instruction -- "do not trim" -- and
+ * both hand `minedWord` an empty set, so `{definition}` keeps the whole stack it
+ * has always held. That is what makes "Deselect all" safe: it is how a reader
+ * starts a pick over, not a way to mine a card with no definition on it.
+ */
+const pickedForExport = computed(() => {
+  const size = pickedDictionaries.value.size;
+  if (size === 0 || size === cardDictionaries.value.length) return NO_PICK;
+  return pickedDictionaries.value;
+});
+
+/** The card stating what it will export. */
+const pickSummary = computed(() =>
+  t('tokenTooltip.pickedDictionaries', {
+    count: pickedDictionaries.value.size,
+    total: cardDictionaries.value.length,
+  }),
+);
+
+type CardLocation = { lemma: string; surface: string; reading: string; pos: string };
+
+/**
+ * Where the card is standing, relative to the token it opened on.
+ *
+ * `trail` is the parts the reader has opened, deepest last; empty means they are
+ * on the word the card opened on, which is why the original never needs storing
+ * -- `hoveredToken.lookupRef` still holds it. `forward` is what they have stepped
+ * back out of, discarded the moment they walk somewhere new, which is what every
+ * back/forward pair does and what stops the two disagreeing.
+ */
+const trail = ref<CardLocation[]>([]);
+const forward = ref<CardLocation[]>([]);
+const canGoBack = computed(() => trail.value.length > 0);
+const canGoForward = computed(() => forward.value.length > 0);
+
+/** The card's own lookup, shared by the parts row and both history controls, so
+ *  all three paint an answer the same way and guard staleness the same way. */
+async function loadLocation(location: CardLocation): Promise<void> {
   const locale = glossLanguages.value.labels;
 
-  const cached = peekWord(ref, locale);
+  // Before the cache hit as well as after it: walking into a part is a different
+  // word whether or not we already had it, and a pick carried across would trim
+  // the new word's definition to the old word's sense numbers.
+  clearPicked();
+
+  const cached = peekWord(location, locale);
   if (cached !== undefined) return applyLookup(cached);
 
   clearLookup();
   wordState.value = 'loading';
-  // Guarded like the hover path: a slow answer for a part the reader has since
+  // Guarded like the hover path: a slow answer for a word the reader has since
   // navigated away from must not paint over whatever they are looking at now.
-  const asked = `${ref.lemma}|${ref.surface}|${ref.reading}|${ref.pos}`;
+  const asked = `${location.lemma}|${location.surface}|${location.reading}|${location.pos}`;
   pendingLookup = asked;
-  const found = await fetchWord(ref, locale);
+  const found = await fetchWord(location, locale);
   if (pendingLookup !== asked) return;
   pendingLookup = null;
   applyLookup(found);
+}
+
+/** The token the card opened on, which is where an empty trail points. */
+function openedOn(): CardLocation | null {
+  const ref = hoveredToken.value?.lookupRef;
+  return ref ? { lemma: ref.lemma, surface: ref.surface, reading: ref.reading, pos: ref.pos } : null;
+}
+
+function currentLocation(): CardLocation | null {
+  return trail.value[trail.value.length - 1] ?? openedOn();
+}
+
+async function showPart(part: { lemma: string; text: string; reading?: string }): Promise<void> {
+  const location = { lemma: part.lemma, surface: part.text, reading: part.reading ?? '', pos: '' };
+  trail.value = [...trail.value, location];
+  forward.value = [];
+  await loadLocation(location);
+}
+
+async function goBack(): Promise<void> {
+  const left = trail.value[trail.value.length - 1];
+  if (!left) return;
+  trail.value = trail.value.slice(0, -1);
+  forward.value = [...forward.value, left];
+  const target = currentLocation();
+  if (target) await loadLocation(target);
+}
+
+async function goForward(): Promise<void> {
+  const next = forward.value[forward.value.length - 1];
+  if (!next) return;
+  forward.value = forward.value.slice(0, -1);
+  trail.value = [...trail.value, next];
+  await loadLocation(next);
+}
+
+/** Nothing survives the card closing or moving to another word: the trail is
+ *  about one card's worth of wandering, not a page-level history. */
+function clearTrail(): void {
+  trail.value = [];
+  forward.value = [];
 }
 
 /** The other spellings this word is written with. Only from the detail call:
@@ -1129,6 +1334,25 @@ const mineThisSentence = () => {
 const addContextOnly = () => {
   void mineSentence({ wordFields: false });
 };
+
+/**
+ * What the disabled Anki control says, which is the whole point of it being
+ * there rather than absent: a control that vanishes when Anki is closed teaches
+ * the reader nothing, and one that just greys out teaches them slightly less.
+ * Every branch leads to the same place -- the Anki settings page -- because
+ * every one of them is fixed there, including starting Anki, which is where the
+ * server address and the add-on are explained.
+ */
+const mineBlockedMessage = computed(() => {
+  switch (mineBlockedReason.value) {
+    case 'offline':
+      return t('anki.notRunning');
+    case 'no-key':
+      return t('anki.keyFieldRequired');
+    default:
+      return t('anki.configRequired');
+  }
+});
 
 const openAnkiSettings = () => {
   closeTooltip();
@@ -1319,6 +1543,38 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
 
                  `result` gates it too: the mine sends this SENTENCE, and a
                  caller that did not hand one over has nothing to send. -->
+            <!-- Back and forward through the parts the reader has opened. Shown
+                 only once there is somewhere to go: a card opened on a word and
+                 never navigated is the ordinary case, and two dead arrows on it
+                 would be chrome that never does anything.
+
+                 Forward is rendered even when it is dead, but only while back is
+                 alive, so the pair does not appear and disappear a control at a
+                 time under the cursor. -->
+            <span v-if="canGoBack || canGoForward" class="token-tooltip__nav">
+              <button
+                type="button"
+                data-testid="word-back"
+                class="token-tooltip__nav-button"
+                :disabled="!canGoBack"
+                :aria-label="$t('tokenTooltip.back')"
+                :title="$t('tokenTooltip.back')"
+                @click="goBack"
+              >
+                <UiBaseIcon :path="mdiChevronLeft" :size="18" />
+              </button>
+              <button
+                type="button"
+                data-testid="word-forward"
+                class="token-tooltip__nav-button"
+                :disabled="!canGoForward"
+                :aria-label="$t('tokenTooltip.forward')"
+                :title="$t('tokenTooltip.forward')"
+                @click="goForward"
+              >
+                <UiBaseIcon :path="mdiChevronRight" :size="18" />
+              </button>
+            </span>
             <span v-if="canConfigureMine && result" class="token-tooltip__tools">
               <!--
                 One control, whose shape says which situation the reader is in.
@@ -1331,7 +1587,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 words. Two bare icons side by side was the version that made
                 nobody sure which one they were about to press.
               -->
-              <template v-if="canMine">
+              <template v-if="mineReady">
               <SearchDropdownContainer
                 v-if="minedNoteId !== null"
                 dropdownId="nd-word-mine"
@@ -1387,10 +1643,11 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
               <button
                 v-else
                 type="button"
+                data-testid="word-mine-blocked"
                 class="token-tooltip__tool is-configuration-required"
                 aria-disabled="true"
-                :aria-label="$t('anki.configRequired')"
-                :title="$t('anki.configRequired')"
+                :aria-label="mineBlockedMessage"
+                :title="mineBlockedMessage"
                 @click="openAnkiSettings">
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path :d="mdiFileDocumentPlusOutline" fill="currentColor" /></svg>
               </button>
@@ -1440,6 +1697,30 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
               </span>
             </div>
 
+            <!-- What this expression is made of, and the only way to reach those
+                 words: the chip spans them, so they cannot be hovered, and a
+                 merged expression is the only candidate, so the picker offers no
+                 way in either.
+
+                 Above the senses rather than below them because it is navigation,
+                 not detail. Underneath it sat past every gloss of every
+                 dictionary the reader has stacked -- the one row on the card that
+                 goes somewhere, reachable only by scrolling to the end of the one
+                 thing they were already reading. Forms and kanji stay below: those
+                 describe THIS word, and the reader who wants them is finished
+                 reading. -->
+            <div v-if="wordParts.length > 0" class="token-tooltip__parts">
+              <span class="token-tooltip__parts-label">{{ $t('tokenTooltip.parts') }}</span>
+              <button
+                v-for="part in wordParts"
+                :key="part.id"
+                type="button"
+                class="token-tooltip__part"
+                lang="ja"
+                @click="showPart(part)"
+              >{{ part.text }}</button>
+            </div>
+
             <!-- Before the senses, not after, because a name HAS a gloss: the
                  JMnedict entry for 明日香 reads "Asuka", a romanisation of the
                  word already at the top of the card. Rendering it as sense 1 is
@@ -1467,10 +1748,31 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 <li
                   v-if="namesSources && sense.dictionary !== senses[si - 1]?.dictionary"
                   class="token-tooltip__source-row"
+                  :class="{ 'is-picked': pickedDictionaries.has(dictionaryKey(sense)) }"
                 >
-                  <span class="token-tooltip__source">{{ sense.dictionary }}</span>
+                  <!-- The dictionary's own name is the tick target: it is
+                       already the thing that labels the run of senses below it,
+                       so the control lands exactly where a reader would point
+                       when they say "just this one". -->
+                  <button
+                    v-if="canPickDictionaries"
+                    type="button"
+                    class="token-tooltip__source token-tooltip__source-toggle"
+                    :data-testid="`word-dictionary-toggle-${dictionaryKey(sense)}`"
+                    :aria-pressed="pickedDictionaries.has(dictionaryKey(sense))"
+                    :aria-label="$t('tokenTooltip.pickDictionary', { dictionary: sense.dictionary })"
+                    :title="$t('tokenTooltip.pickDictionary', { dictionary: sense.dictionary })"
+                    @click="togglePick(dictionaryKey(sense))"
+                  >{{ sense.dictionary }}</button>
+                  <span v-else class="token-tooltip__source">{{ sense.dictionary }}</span>
                 </li>
-                <li class="token-tooltip__sense" :class="`token-tooltip__sense--indent-${sense.indent}`">
+                <li
+                  class="token-tooltip__sense"
+                  :class="[
+                    `token-tooltip__sense--indent-${sense.indent}`,
+                    { 'is-picked': pickedDictionaries.has(dictionaryKey(sense)) },
+                  ]"
+                >
                   <!-- The number as a cell of the row rather than an `::marker`
                        out in the list's own gutter: it sits inside the section,
                        flush under the dictionary that owns it, and each
@@ -1503,6 +1805,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 </li>
               </template>
             </ol>
+
             <button
               v-else-if="definitionsAreHidden"
               type="button"
@@ -1529,20 +1832,6 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                  true, and the dictionary chips below still work. -->
             <p v-else-if="wordState === 'unavailable'" class="token-tooltip__pending">{{ $t('tokenTooltip.unavailable') }}</p>
 
-            <!-- What this expression is made of. Above the forms row because it
-                 answers a bigger question: forms are other spellings of the SAME
-                 word, these are the different words the chip swallowed. -->
-            <div v-if="wordParts.length > 0" class="token-tooltip__parts">
-              <span class="token-tooltip__parts-label">{{ $t('tokenTooltip.parts') }}</span>
-              <button
-                v-for="part in wordParts"
-                :key="part.id"
-                type="button"
-                class="token-tooltip__part"
-                lang="ja"
-                @click="showPart(part)"
-              >{{ part.text }}</button>
-            </div>
 
             <!-- The other spellings. The reader may well have met one of these
                  rather than the headword above, and nothing else on the card
@@ -1670,6 +1959,34 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                 @click="othersOpen = false"
               >{{ $t('tokenTooltip.showLess') }}</button>
             </template>
+          </div>
+
+          <!--
+            What the mine is about to write, and the way back out of it.
+
+            Absent until the reader ticks something, because until then there is
+            nothing to say: an untouched card exports every dictionary, which is
+            what it has always done and what the senses above already show. The
+            row is the pick's own footprint -- it appears with the first tick,
+            and "Deselect all" is what makes it go away again.
+
+            In the footer rather than under the senses, because it is a summary
+            of the whole list rather than a note on its last row -- and because
+            the alternative put it between the senses and the "no definitions"
+            branch that follows them, which broke that `v-else-if` chain.
+          -->
+          <div
+            v-if="canPickDictionaries && pickedDictionaries.size > 0"
+            class="token-tooltip__pick"
+            data-testid="word-pick-summary"
+          >
+            <span class="token-tooltip__pick-text">{{ pickSummary }}</span>
+            <button
+              type="button"
+              class="token-tooltip__pick-action"
+              data-testid="word-pick-deselect-all"
+              @click="deselectAllDictionaries"
+            >{{ $t('tokenTooltip.pickDeselectAll') }}</button>
           </div>
 
           <div v-if="dictionaryLinks.length > 0" class="token-tooltip__links">
@@ -1815,6 +2132,51 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
 /* The word is what the card is about, so it is the one thing sized to be read
    at a glance rather than to fit. `ruby rt` is 0.55em, so the furigana grows
    with it and the head keeps its proportions. */
+/* The back/forward pair, in the header's right-hand group beside the mine
+   button rather than in front of the headword: this is where the reader came
+   from, not what the card is about, and the word has to be the first thing read.
+
+   `margin-left: auto` pushes the group right, and the sibling rule below takes
+   that auto OFF the tools when these arrows precede them. Two auto margins on one
+   flex line do not stack the way it reads: the free space is split EQUALLY
+   between them, which would have parked the arrows halfway across the header. */
+.token-tooltip__nav {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 3px;
+  margin-left: auto;
+}
+/* The arrows already pushed the group right; a second auto here would take half
+   the free space back. Tools keep their own auto for the ordinary card, which
+   has no arrows at all. */
+.token-tooltip__nav + .token-tooltip__tools {
+  margin-left: 4px;
+}
+.token-tooltip__nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--ink-muted);
+  background: transparent;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+.token-tooltip__nav-button:hover:not(:disabled) {
+  background: var(--surface-lift);
+  color: var(--ink);
+}
+.token-tooltip__nav-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .token-tooltip__word {
   font-size: 22px;
   font-weight: 600;
@@ -2098,7 +2460,6 @@ a.token-tooltip__word:hover {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 6px;
-  padding: 0 14px;
   margin-top: 8px;
 }
 
@@ -2106,7 +2467,7 @@ a.token-tooltip__word:hover {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ink-muted);
+  color: var(--ink-faint);
 }
 
 .token-tooltip__form {
@@ -2216,18 +2577,22 @@ a.token-tooltip__word:hover {
 .token-tooltip__inflection {
   flex: 0 0 auto;
   margin: 4px 0 0;
-  padding: 0 14px;
   font-size: 12px;
   color: var(--ink-faint);
 }
 
+/* No padding of its own: `.token-tooltip__body` already insets every row by
+   14px, and repeating it here pushed the badges 28px in while the senses, parts
+   and kanji beside them sat at 14 -- measured 485 against 471, the one row on
+   the card that did not line up with the word it describes. The inflection line
+   above and the forms row below carried the same leftover, from before these
+   three were moved inside the scrolling body. */
 .token-tooltip__badges {
   flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-top: 7px;
-  padding: 0 14px;
 }
 
 .token-tooltip__badge {
@@ -2371,6 +2736,89 @@ a.token-tooltip__word:hover {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
+}
+
+/* The dictionary's name doubles as the tick target when a pick is possible.
+
+   Reusing the heading rather than adding a checkbox column is what keeps this
+   from costing horizontal space on a card that is already narrow, and the name
+   is what a reader would point at anyway when they say "just this one".
+   Everything but the interaction is inherited from `__source`, so a picked and
+   an unpicked card are the same shape and the list does not reflow when the
+   first dictionary is ticked. */
+.token-tooltip__source-toggle {
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.token-tooltip__source-toggle:hover,
+.token-tooltip__source-toggle:focus-visible {
+  color: var(--accent);
+}
+
+/* The picked dictionaries keep full contrast and the rest drop back, rather
+   than the other way round: what the reader is building is the SHORTLIST, so the
+   card should read as the shortlist the moment there is one. Nothing is hidden
+   -- a pick is reversible, and the dictionaries left out are still the answer to
+   "what else does this mean". */
+.token-tooltip__senses:has(.is-picked) .token-tooltip__sense:not(.is-picked) {
+  color: var(--ink-faint);
+}
+
+.token-tooltip__source-row.is-picked .token-tooltip__source {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* The last row of the body, directly above the LOOK UP IN rule. Its own padding
+   matches the links row below it, so the two footer bands line up on the same
+   left edge as everything else in the card. */
+.token-tooltip__pick {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 0 14px;
+}
+
+.token-tooltip__pick-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+/* Text buttons rather than pills. They are a way to undo a fiddly bit of
+   ticking, not a thing to reach for on the way in, so they should read as the
+   quietest controls on the card -- and the disabled state is doing most of the
+   work anyway: on a card nobody has touched, "Select all" is already done. */
+.token-tooltip__pick-action {
+  flex: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--ink-soft);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.token-tooltip__pick-action:hover:not(:disabled),
+.token-tooltip__pick-action:focus-visible:not(:disabled) {
+  color: var(--accent);
+}
+
+.token-tooltip__pick-action:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+  opacity: 0.5;
 }
 
 /* One step per tier the dictionary actually used, and the step is the number
@@ -2619,20 +3067,29 @@ a.token-tooltip__word:hover {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  padding: 8px 14px 0;
+  /* 10 to match the card's own 10px padding-bottom, which is the whole gap
+     under this row -- the pills are the last thing in the card. It was 8, so
+     they sat 8 below the rule and 10 above the edge and read as having slipped
+     down. Bottom stays 0: the card supplies that half, and setting it here
+     would add to it rather than replace it. */
+  padding: 10px 14px 0;
   border-top: 1px solid var(--line);
 }
 
+/* 10px and faint like the PARTS and ALSO WRITTEN labels above it. These three
+   rows are the same shape -- a small caps label, then its values -- and they
+   were drawn at three different weights of the same idea: 10/faint, 10/muted
+   and 11/faint. */
 .token-tooltip__links-label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--ink-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .token-tooltip__link {
-  font-size: 12px;
-  color: var(--ink-muted);
+  font-size: 13px;
+  color: var(--ink);
   text-decoration: none;
   padding: 2px 8px;
   border-radius: 999px;
