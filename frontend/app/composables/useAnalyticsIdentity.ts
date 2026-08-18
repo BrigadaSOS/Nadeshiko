@@ -23,6 +23,18 @@ import {
  */
 let reportedThisPageLoad = false;
 
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'icloud.com',
+  'me.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'proton.me',
+  'protonmail.com',
+  'yahoo.com',
+]);
+
 /**
  * Tells PostHog who this is, and reports the signup or login if this page load is
  * where that changed.
@@ -152,8 +164,7 @@ function releaseLegacyIdentity(
 function currentPersonProperties(store: ReturnType<typeof userStore>) {
   return {
     user_id: store.userId ?? undefined,
-    email: store.userEmail ?? undefined,
-    username: store.userName ?? undefined,
+    email_category: emailCategory(store.userEmail),
     role: store.userInfo?.role ?? undefined,
     content_rating: store.preferences?.contentRatingPreferences,
     media_name_language: store.preferences?.mediaNameLanguage,
@@ -163,4 +174,17 @@ function currentPersonProperties(store: ReturnType<typeof userStore>) {
     hidden_categories: store.preferences?.hiddenCategories ?? [],
     default_search_category: store.preferences?.defaultSearchCategory ?? 'ALL',
   };
+}
+
+/**
+ * Keeps the acquisition distinction that an email address used to provide,
+ * without sending an address or even a domain to PostHog. A custom domain is a
+ * useful proxy for a school, team, or developer workflow; the exact domain is
+ * not needed to answer that product question.
+ */
+function emailCategory(email: string | null | undefined): 'personal_provider' | 'custom_domain' | undefined {
+  const domain = email?.trim().toLowerCase().split('@')[1];
+  if (!domain) return undefined;
+
+  return PERSONAL_EMAIL_DOMAINS.has(domain) ? 'personal_provider' : 'custom_domain';
 }
