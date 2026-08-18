@@ -496,6 +496,9 @@ function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: 
     // word out of one is not the same result as a card that led with the right
     // word out of five, and only this separates them.
     candidate_count: answer.candidates.length,
+    // The work queue for dictionary coverage lives in this field: the words that
+    // come back 'missing' most often, weighted by how often they turn up.
+    lemma: ref.lemma,
     // Whether a miss is a proper noun (expected, uninteresting) or a verb the
     // dictionary should have had.
     pos: ref.pos || null,
@@ -704,6 +707,7 @@ const pickCandidate = (index: number) => {
       // The rate of this against `candidates[0]` is the direct measure of how
       // often Shirabe's leading answer was the right one, and it is the one
       // signal their side cannot get from its own traffic.
+      lemma: hoveredToken.value?.lookupRef.lemma ?? null,
       pos: hoveredToken.value?.lookupRef.pos || null,
       from_index: picked.value,
       to_index: index,
@@ -1316,7 +1320,7 @@ const searchForWord = (query: string) => {
  */
 const viewMinedNote = () => {
   if (posthog.__loaded) {
-    posthog.capture('anki_note_viewed_from_card');
+    posthog.capture('anki_note_viewed_from_card', { lemma: miningWord.value });
   }
   void openMinedNote();
 };
@@ -1422,12 +1426,13 @@ const cardOutcome = computed<'shown' | 'name' | 'no_senses' | 'missing' | 'unava
  * No `sendBeacon` dance: every one of these links is `target="_blank"`, so the
  * page it fires from is still there when the request goes out.
  */
-function reportDictionaryClick(dictionary: DictionaryId, _surface: ShirabeLinkSurface, position: number): void {
+function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSurface, position: number): void {
   if (!posthog.__loaded) return;
 
   const ref = hoveredToken.value?.lookupRef;
   posthog.capture('dictionary_link_clicked', {
     dictionary,
+    surface,
     // Whether the reader was leaving the dictionary the card is built from, or
     // leaving it FOR something else. Derivable from `dictionary`, but only if
     // you know which preset is `required`, and that has moved once already.
@@ -1438,6 +1443,7 @@ function reportDictionaryClick(dictionary: DictionaryId, _surface: ShirabeLinkSu
     // five enabled leaves for one of them more often than a reader with none
     // does, and that is a preference setting rather than a verdict on the card.
     alternatives_enabled: dictionaryLinks.value.filter((link) => link.id !== 'shirabe').length,
+    lemma: ref?.lemma ?? null,
     pos: ref?.pos || null,
     // Same pair `word_card_opened` carries, so the two can be sliced together:
     // an empty card is usually a gloss-language story, and so is leaving one.

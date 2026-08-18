@@ -244,9 +244,9 @@ export function useWordMining(
    * on the word: which words readers look up and already own, versus which they
    * look up again and again and have never mined.
    */
-  function reportProbe(_word: string, mined: boolean): void {
+  function reportProbe(word: string, mined: boolean): void {
     if (!posthog.__loaded) return;
-    posthog.capture('word_card_mined_checked', { mined });
+    posthog.capture('word_card_mined_checked', { mined, lemma: word });
   }
 
   /** Forget what the closed card knew, so the next one never opens wearing the
