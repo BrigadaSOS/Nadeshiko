@@ -35,6 +35,28 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     return transporter;
   }
 
+  if (config.MAIL_TRANSPORT === 'zepto') {
+    const host = config.SMTP_ADDRESS ?? 'smtp.zeptomail.jp';
+    const port = config.SMTP_PORT ? Number(config.SMTP_PORT) : 587;
+    const user = config.SMTP_USER_NAME ?? 'emailapikey';
+    const pass = config.SMTP_PASSWORD;
+
+    if (!pass) {
+      throw new Error('MAIL_TRANSPORT=zepto requires SMTP_PASSWORD (the ZeptoMail Send Mail Token).');
+    }
+
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
+      auth: { user, pass },
+    });
+
+    logger.info({ environment, host, port }, 'Email transport configured with ZeptoMail SMTP');
+    return transporter;
+  }
+
   const region = config.SES_AWS_REGION;
   const accessKeyId = config.SES_AWS_ACCESS_KEY_ID;
   const secretAccessKey = config.SES_AWS_SECRET_ACCESS_KEY;
@@ -235,7 +257,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
   if (previewUrl) {
     logger.info({ to, subject, previewUrl }, 'Test email opened in your browser');
   } else {
-    logger.info({ to, subject }, 'Test email sent via SES');
+    logger.info({ to, subject }, 'Test email sent');
   }
 
   return { previewUrl };

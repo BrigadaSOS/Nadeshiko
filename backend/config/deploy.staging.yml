@@ -64,6 +64,9 @@ env:
     - SES_AWS_SECRET_ACCESS_KEY
     - SES_FROM_EMAIL
     - SES_FROM_NAME
+    # Present so a MAIL_TRANSPORT flip to zepto does not also need a secrets
+    # file edit. Unused while MAIL_TRANSPORT stays ses.
+    - SMTP_PASSWORD
 
     - E2E_USER_PASSWORD
 
@@ -80,6 +83,14 @@ env:
     PORT: 80
     RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://stg.nadeshiko.co
+
+    # Dual-sender ready: nadeshiko.co is verified in ZeptoMail and
+    # SMTP_PASSWORD is in SSM. Flip this to zepto to cut STG over; flip
+    # back to ses to roll back. SES DNS stays in place either way.
+    MAIL_TRANSPORT: ses
+    SMTP_ADDRESS: smtp.zeptomail.jp
+    SMTP_PORT: "587"
+    SMTP_USER_NAME: emailapikey
 
     # Its own client on Shirabe, not production's: the redirect is exact-matched,
     # so one registration cannot cover two hostnames.

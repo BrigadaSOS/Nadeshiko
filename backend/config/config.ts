@@ -105,6 +105,15 @@ const envSchema = z.object({
   SES_FROM_EMAIL: requiredString,
   SES_FROM_NAME: requiredString,
 
+  // Outbound transport. `ses` is the current path; `zepto` is SMTP via
+  // smtp.zeptomail.jp. Staging flips this without dropping SES DNS so we can
+  // roll back by flipping it back. From-address stays SES_FROM_EMAIL either way.
+  MAIL_TRANSPORT: z.enum(['ses', 'zepto']).default('ses'),
+  SMTP_ADDRESS: optionalString,
+  SMTP_PORT: optionalString,
+  SMTP_USER_NAME: optionalString,
+  SMTP_PASSWORD: optionalString,
+
   // Where the feedback widget's messages land. Optional, and unset means the
   // notification is skipped, not that the feature is off: the row is stored
   // either way, so a missing address costs the email and nothing else. Local and
