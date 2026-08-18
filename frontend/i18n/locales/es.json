@@ -458,6 +458,7 @@
       "placeholders": {
         "message": "Escribe un mensaje para el anuncio..."
       },
+      "markdownHint": "Admite **negrita**, *cursiva*, `código` y [enlaces](/media). Las rutas del sitio como /media no salen de la app.",
       "activeDescription": "Cuando está activo, el banner se muestra a todos los visitantes.",
       "types": {
         "INFO": "Información",

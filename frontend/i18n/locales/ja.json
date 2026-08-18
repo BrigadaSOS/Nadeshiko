@@ -458,6 +458,7 @@
       "placeholders": {
         "message": "お知らせメッセージを入力..."
       },
+      "markdownHint": "**太字**、*斜体*、`コード`、[リンク](/media) が使えます。/media のようなサイト内パスはアプリ内で開きます。",
       "activeDescription": "有効にすると、すべての訪問者にバナーが表示されます。",
       "types": {
         "INFO": "情報",
