@@ -556,18 +556,27 @@ the OpenSSH binary, so whether `~/.ssh/config` governs its host key checking
 depends on Kamal's own `verify_host_key` default — worth confirming before
 treating the pin as covering deploys too.
 
-### SES credentials are static keys
+### Outbound mail: SES today, ZeptoMail ready on staging
 
+Staging and production send as `noreply@nadeshiko.co` via Amazon SES.
 `SES_AWS_ACCESS_KEY_ID` / `SES_AWS_SECRET_ACCESS_KEY` are long-lived IAM user
 keys held in SSM and injected into the backend container. Every other AWS
 interaction in this repo already uses OIDC role assumption
 (`aws-actions/configure-aws-credentials` with `role-to-assume`), so these are the
 only static AWS credentials left, and nothing rotates them.
 
-**TODO (infra, not doable from this repo):** replace them with either an instance
-/ workload role the container assumes, or at minimum a documented rotation
-schedule with two active keys so rotation does not require downtime. This needs
-changes in the AWS account, so it cannot be done by editing anything here.
+Staging also carries a ZeptoMail SMTP path (`smtp.zeptomail.jp`) behind
+`MAIL_TRANSPORT`. Leave it at `ses` until a test send has gone through
+ZeptoMail; flip to `zepto` to cut over, flip back to `ses` to roll back. SES
+DKIM and `mail.nadeshiko.co` stay in DNS either way. The Send Mail Token lives
+at `/nadeshiko/staging/SMTP_PASSWORD`. Host, port, and user are clear env in
+`deploy.staging.yml`. Production is not wired yet.
+
+**TODO (infra, not doable from this repo):** replace the SES keys with either an
+instance / workload role the container assumes, or at minimum a documented
+rotation schedule with two active keys so rotation does not require downtime.
+This needs changes in the AWS account, so it cannot be done by editing anything
+here.
 
 ## Cloudflare edge configuration
 

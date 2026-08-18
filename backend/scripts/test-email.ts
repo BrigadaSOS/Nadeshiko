@@ -17,7 +17,7 @@ const { previewUrl } = await sendTestEmail(template, to);
 if (previewUrl) {
   console.log(`\nPreview URL: ${previewUrl}`);
 } else {
-  console.log('\nEmail sent via SES (no preview URL in non-local environments).');
+  console.log('\nEmail sent (no preview URL in non-local environments).');
 }
 
 process.exit(0);
