@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  pitchCategory,
+  headwordFurigana,
   candidateName,
   candidatePartOfSpeech,
   candidateSummary,
@@ -383,6 +385,28 @@ describe('shirabe links', () => {
  * corpus search and the Anki probe all have to name the SAME word, and the
  * reader can move which word that is.
  */
+describe('headwordFurigana', () => {
+  it('keeps ruby that spells the headword', () => {
+    const word = { headword: '手加減', furigana: [{ text: '手加減', ruby: 'てかげん' }] } as never;
+
+    expect(headwordFurigana(word)).toEqual([{ text: '手加減', reading: 'てかげん' }]);
+  });
+
+  // Shirabe sends the READING here for every candidate of よう, so 良う and 癰
+  // both arrive carrying `[{text: 'よう'}]`. Rendered straight, the card titled
+  // itself よう however far the reader moved the picker.
+  it('drops ruby that spells a different word', () => {
+    const word = { headword: '良う', furigana: [{ text: 'よう' }] } as never;
+
+    expect(headwordFurigana(word)).toEqual([]);
+  });
+
+  it('is empty when there is no furigana at all', () => {
+    expect(headwordFurigana({ headword: '猫', furigana: [] } as never)).toEqual([]);
+    expect(headwordFurigana(null)).toEqual([]);
+  });
+});
+
 describe('cardHeadword', () => {
   const candidate = (headword: string) => ({ id: headword, headword }) as ShirabeWord;
 
@@ -881,5 +905,26 @@ describe('sense numbering', () => {
     } as unknown as ShirabeWord;
 
     expect(cardSenses(flat, preference('en')).map((sense) => [sense.number, sense.indent])).toEqual([['①', 0]]);
+  });
+});
+
+describe('pitchCategory', () => {
+  it('names the four textbook patterns off the downstep and the mora count', () => {
+    // はな (2 morae): 0 flat, 1 falls after the first, 2 falls after the last.
+    expect(pitchCategory('はな', 0)).toBe('heiban');
+    expect(pitchCategory('はな', 1)).toBe('atamadaka');
+    expect(pitchCategory('はな', 2)).toBe('odaka');
+  });
+
+  // The pair that needs the count: the same 3 is odaka on a three-mora word and
+  // nakadaka on a longer one.
+  it('tells odaka from nakadaka by where the word ends', () => {
+    expect(pitchCategory('こころ', 3)).toBe('odaka');
+    expect(pitchCategory('こころざし', 3)).toBe('nakadaka');
+  });
+
+  it('has no name for a downstep that is not one', () => {
+    expect(pitchCategory('はな', -1)).toBe('');
+    expect(pitchCategory('はな', Number.NaN)).toBe('');
   });
 });
