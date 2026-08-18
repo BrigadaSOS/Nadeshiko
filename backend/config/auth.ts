@@ -339,7 +339,7 @@ export function captureAccountCreatedAfterUserCreate(
   user: BetterAuthCreatedUser,
   captureFn: typeof captureAccountCreated = captureAccountCreated,
 ) {
-  if (!user.id || !user.email || !user.name) {
+  if (!user.id) {
     return;
   }
 
@@ -351,8 +351,6 @@ export function captureAccountCreatedAfterUserCreate(
 
   captureFn({
     userId: String(user.id),
-    username: user.name,
-    email: user.email,
     createdAt: createdAt instanceof Date || typeof createdAt === 'string' ? createdAt : undefined,
   });
 }

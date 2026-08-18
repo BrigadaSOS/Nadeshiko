@@ -62,8 +62,6 @@ function analyticsClient(): PostHog | null {
 
 export interface AccountCreatedInput {
   userId: number | string;
-  username: string;
-  email: string;
   createdAt?: Date | string;
 }
 
@@ -85,11 +83,6 @@ export function captureAccountCreated(input: AccountCreatedInput): void {
       distinctId: String(input.userId),
       event: 'account_created',
       properties: {
-        $set: {
-          user_id: String(input.userId),
-          username: input.username,
-          email: input.email,
-        },
         // Written from here as well as the browser so that a reader whose client
         // events never arrive still has a dated person rather than a blank one.
         $set_once: {

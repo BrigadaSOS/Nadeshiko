@@ -499,7 +499,6 @@ export const ankiStore = defineStore('anki', {
       const trackExportFailed = (reason: string, extra: Record<string, unknown> = {}) => {
         posthog?.capture('anki_export_failed', {
           reason,
-          media_name: mediaName(sentence.media),
           media_id: sentence.media.publicId,
           export_method: exportMethod,
           ...extra,
@@ -956,7 +955,6 @@ export const ankiStore = defineStore('anki', {
         }
 
         posthog?.capture('anki_export_completed', {
-          media_name: mediaName(sentence.media),
           media_id: sentence.media.publicId,
           export_method: exportMethod,
           // How many dictionaries the reader ticked, 0 on the overwhelming
@@ -968,9 +966,7 @@ export const ankiStore = defineStore('anki', {
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
       } catch (error) {
         reportError('anki:export-failed', error, { 'segment.publicId': sentence.segment.publicId });
-        trackExportFailed('error', {
-          error_message: error instanceof Error ? error.message : String(error),
-        });
+        trackExportFailed('error');
         useToastError($i18n.t('anki.toast.cardAddError', { error: error }));
       }
     },
