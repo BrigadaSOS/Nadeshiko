@@ -143,6 +143,8 @@
   },
   "anki": {
     "configRequired": "この機能を使用するには、設定でAnkiを設定してください",
+    "notRunning": "Ankiが応答していません。AnkiConnectアドオンを有効にしたAnkiを起動してから、もう一度お試しください。",
+    "keyFieldRequired": "この機能を使うには、Anki設定でキーフィールドを設定してください。",
     "modal": {
       "title": "コレクション内を検索",
       "description": "Ankiにあるカードを検索し、画像や音声を追加できます。「キーフィールド」が設定タブで設定されている必要があります。",
@@ -321,8 +323,8 @@
         "word": "単語",
         "wordreading": "単語の読み",
         "wordfurigana": "単語（ふりがな付き）",
-        "definition": "語義",
-        "definitionRest": "語義（残りの辞書）",
+        "definition": "語義（すべての辞書）",
+        "definitionFirst": "語義（最初の辞書）",
         "wordpitch": "アクセント",
         "wordpitchnum": "アクセント位置（数字）",
         "wordaudio": "単語の音声",
@@ -350,7 +352,11 @@
         "sortdesc": "最長",
         "sorttime_asc": "時系列順",
         "sorttime_desc": "逆順",
-        "sortrandom": "ランダム"
+        "sortrandom": "ランダム",
+        "wordfrequency": "頻度順位",
+        "wordjlpt": "JLPTレベル",
+        "wordpitchcategories": "アクセント型",
+        "sentencefurigana": "文（ふりがな付き）"
       },
       "labels": {
         "noresults": "結果が見つかりませんでした...",
@@ -845,6 +851,7 @@
       "keyFieldRequiredMessage": "Ankiへのエクスポートを有効にするには、下でキーフィールドを選択してください。",
       "fieldColumn": "フィールド",
       "contentColumn": "内容",
+      "fieldComposeHelp": "選んだプレースホルダーは、すでに入っている内容を置き換えるのではなく追加されるため、1つのフィールドに複数を入れられます（辞書を2つ並べる、など）。つなぎ方を変えたい場合は、入力欄を直接編集してください。",
       "sentenceGroup": "例文",
       "sentenceImage": "例文の画像",
       "sentenceAudio": "例文の音声",
@@ -861,15 +868,16 @@
       "profileNamePlaceholder": "プロフィール名",
       "deleteProfile": "削除",
       "openBrowserOnExport": "カードをエクスポート時にAnkiブラウザを開く",
-      "primaryDictionaries": "カードの表に載せる主な辞書の数",
-      "primaryDictionariesHint": "Shirabe の辞書のうち何冊を {definition} に入れるか。それ以降は {definition-rest} に入るので、裏面に回せます。0 ならすべての辞書が {definition} に入ります。",
       "saving": "保存中...",
       "saved": "保存しました",
       "modal": {
         "cancel": "キャンセル",
         "save": "保存"
       },
-      "profileSaveError": "Ankiプロファイルを保存できませんでした。"
+      "profileSaveError": "Ankiプロファイルを保存できませんでした。",
+      "dictionarySubmenu": "語義（辞書を指定）…",
+      "dictionaryBack": "戻る",
+      "dictionaryGroup": "あなたの辞書"
     }
   },
   "blog": {
@@ -942,7 +950,12 @@
     "showLess": "折りたたむ",
     "isName": "これは固有名詞のようです。",
     "parts": "構成",
-    "nameEntry": "名前"
+    "nameEntry": "名前",
+    "back": "戻る",
+    "forward": "進む",
+    "pickDictionary": "{dictionary}をカードに入れる",
+    "pickedDictionaries": "辞書{total}件中{count}件を選択",
+    "pickDeselectAll": "すべて解除"
   },
   "searchContainer": {
     "errorTitle": "502",

@@ -143,6 +143,8 @@
   },
   "anki": {
     "configRequired": "Configure Anki in Settings to use this feature",
+    "notRunning": "Anki isn't responding. Open Anki with the AnkiConnect add-on enabled, then try again.",
+    "keyFieldRequired": "Set a Key Field in your Anki settings to use this.",
     "modal": {
       "title": "Search your collection",
       "description": "Find a card in your Anki collection and add image/audio to it. Requires 'Key Field' to be configured in settings.",
@@ -321,8 +323,8 @@
         "word": "Word",
         "wordreading": "Word reading",
         "wordfurigana": "Word (with furigana)",
-        "definition": "Definition",
-        "definitionRest": "Definition (remaining dictionaries)",
+        "definition": "Definition (all dictionaries)",
+        "definitionFirst": "Definition (first dictionary)",
         "wordpitch": "Pitch accent",
         "wordpitchnum": "Pitch accent position",
         "wordaudio": "Word audio",
@@ -350,7 +352,11 @@
         "sortdesc": "Largest",
         "sorttime_asc": "Chronological",
         "sorttime_desc": "Reverse",
-        "sortrandom": "Random"
+        "sortrandom": "Random",
+        "wordfrequency": "Frequency rank",
+        "wordjlpt": "JLPT level",
+        "wordpitchcategories": "Pitch accent pattern",
+        "sentencefurigana": "Sentence (with furigana)"
       },
       "labels": {
         "noresults": "No results found...",
@@ -845,6 +851,7 @@
       "keyFieldRequiredMessage": "Select a Key Field below to enable Anki exports.",
       "fieldColumn": "Field",
       "contentColumn": "Content",
+      "fieldComposeHelp": "Each placeholder you pick is added to the field rather than replacing what is already there, so one field can carry several — two dictionaries stacked, say. Edit the box directly to change how they are joined.",
       "sentenceGroup": "Sentence",
       "sentenceImage": "Sentence image",
       "sentenceAudio": "Sentence audio",
@@ -855,8 +862,6 @@
       "noFieldsMessage": "Please try again or check your AnkiConnect connection",
       "serverAddressLabel": "AnkiConnect server address",
       "openBrowserOnExport": "Open Anki browser when exporting a card",
-      "primaryDictionaries": "Main dictionaries on the front of a card",
-      "primaryDictionariesHint": "How many of your Shirabe dictionaries fill {definition}. Anything past them goes to {definition-rest}, so you can put the others on the back. 0 puts every dictionary in {definition}.",
       "profile": "Profile",
       "newProfile": "New",
       "defaultProfile": "Default",
@@ -869,7 +874,10 @@
         "cancel": "Cancel",
         "save": "Save"
       },
-      "profileSaveError": "Couldn't save your Anki profile."
+      "profileSaveError": "Couldn't save your Anki profile.",
+      "dictionarySubmenu": "Definition (one dictionary)…",
+      "dictionaryBack": "Back",
+      "dictionaryGroup": "YOUR DICTIONARIES"
     }
   },
   "blog": {
@@ -942,7 +950,12 @@
     "showLess": "Show fewer",
     "isName": "This looks like a name.",
     "parts": "Parts",
-    "nameEntry": "Name"
+    "nameEntry": "Name",
+    "back": "Back",
+    "forward": "Forward",
+    "pickDictionary": "Put {dictionary} on the card",
+    "pickedDictionaries": "Selected {count} of {total} dictionaries",
+    "pickDeselectAll": "Deselect all"
   },
   "searchContainer": {
     "errorTitle": "502",
