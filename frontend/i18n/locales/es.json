@@ -143,6 +143,8 @@
   },
   "anki": {
     "configRequired": "Configura Anki en Ajustes para usar esta función",
+    "notRunning": "Anki no responde. Abre Anki con el complemento AnkiConnect activado e inténtalo de nuevo.",
+    "keyFieldRequired": "Configura un campo clave en tus ajustes de Anki para usar esto.",
     "modal": {
       "title": "Busca en tu colección",
       "description": "Busca una carta en tu colección de Anki y añádele imagen/audio. Requiere que el 'Key Field' esté configurado en ajustes.",
@@ -321,8 +323,8 @@
         "word": "Palabra",
         "wordreading": "Lectura de la palabra",
         "wordfurigana": "Palabra (con furigana)",
-        "definition": "Definición",
-        "definitionRest": "Definición (diccionarios restantes)",
+        "definition": "Definición (todos los diccionarios)",
+        "definitionFirst": "Definición (primer diccionario)",
         "wordpitch": "Acento tonal",
         "wordpitchnum": "Posición del acento tonal",
         "wordaudio": "Audio de la palabra",
@@ -350,7 +352,11 @@
         "sortdesc": "Más largas",
         "sortrandom": "Aleatorio",
         "sorttime_asc": "Cronológico",
-        "sorttime_desc": "Inverso"
+        "sorttime_desc": "Inverso",
+        "wordfrequency": "Rango de frecuencia",
+        "wordjlpt": "Nivel JLPT",
+        "wordpitchcategories": "Patrón de acento tonal",
+        "sentencefurigana": "Oración (con furigana)"
       },
       "labels": {
         "noresults": "No hay resultados...",
@@ -845,6 +851,7 @@
       "keyFieldRequiredMessage": "Selecciona un campo clave abajo para habilitar las exportaciones a Anki.",
       "fieldColumn": "Campo",
       "contentColumn": "Contenido",
+      "fieldComposeHelp": "Cada marcador que eliges se añade al campo en lugar de reemplazar lo que ya hay, así que un campo puede contener varios: dos diccionarios uno debajo del otro, por ejemplo. Edita la caja directamente para cambiar cómo se unen.",
       "sentenceGroup": "Frase",
       "sentenceImage": "Imagen de la frase",
       "sentenceAudio": "Audio de la frase",
@@ -855,8 +862,6 @@
       "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
       "serverAddressLabel": "Dirección del servidor de AnkiConnect",
       "openBrowserOnExport": "Abrir el navegador de Anki al exportar una carta",
-      "primaryDictionaries": "Diccionarios principales en el frente de la tarjeta",
-      "primaryDictionariesHint": "Cuántos de tus diccionarios de Shirabe llenan {definition}. Lo que quede va a {definition-rest}, para que puedas ponerlo en el reverso. 0 pone todos los diccionarios en {definition}.",
       "profile": "Perfil",
       "newProfile": "Nuevo",
       "defaultProfile": "Predeterminado",
@@ -869,7 +874,10 @@
         "cancel": "Cancelar",
         "save": "Guardar"
       },
-      "profileSaveError": "No se pudo guardar tu perfil de Anki."
+      "profileSaveError": "No se pudo guardar tu perfil de Anki.",
+      "dictionarySubmenu": "Definición (un diccionario)…",
+      "dictionaryBack": "Volver",
+      "dictionaryGroup": "TUS DICCIONARIOS"
     }
   },
   "blog": {
@@ -942,7 +950,12 @@
     "showLess": "Ver menos",
     "isName": "Esto parece ser un nombre propio.",
     "parts": "Partes",
-    "nameEntry": "Nombre"
+    "nameEntry": "Nombre",
+    "back": "Atrás",
+    "forward": "Adelante",
+    "pickDictionary": "Poner {dictionary} en la tarjeta",
+    "pickedDictionaries": "Seleccionados {count} de {total} diccionarios",
+    "pickDeselectAll": "Deseleccionar todo"
   },
   "searchContainer": {
     "errorTitle": "502",
