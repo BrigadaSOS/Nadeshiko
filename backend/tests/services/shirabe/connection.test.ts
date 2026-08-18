@@ -31,10 +31,16 @@ const { startLink, completeLink, missingScopes, resyncStack, REQUIRED_SCOPES } =
 );
 
 /** A stored link, in the shape the service reads and writes it. */
+/** The reader every stored row here belongs to. The ciphertext is bound to it,
+ *  so a fixture sealed for anyone else would fail to open -- which is the
+ *  property being relied on rather than a detail of the fixture. */
+const STORED_USER_ID = 42;
+const TOKEN_CONTEXT = { purpose: 'shirabe.token', aad: String(STORED_USER_ID) };
+
 function storedConnection(overrides: Record<string, unknown> = {}) {
   return {
-    userId: 42,
-    tokenCiphertext: encryptSecret('shr_reader_key', CONFIG.SHIRABE_CONNECTION_SECRET),
+    userId: STORED_USER_ID,
+    tokenCiphertext: encryptSecret('shr_reader_key', CONFIG.SHIRABE_CONNECTION_SECRET, TOKEN_CONTEXT),
     stack: ['jmdict:en'],
     stackFingerprint: 'abc123',
     syncedAt: new Date('2026-01-01T00:00:00Z'),
@@ -143,7 +149,9 @@ describe('shirabe connection', () => {
 
       const [connection] = saved;
       expect(connection.tokenCiphertext).not.toContain('shr_the_key');
-      expect(String(connection.tokenCiphertext)).toMatch(/^v1\./);
+      // Format version, then the id of the key that sealed it -- which is what
+      // lets a later rotation tell old rows from new ones.
+      expect(String(connection.tokenCiphertext)).toMatch(/^v2\.[0-9a-f]{8}\./);
       expect(connection.tokenPrefix).toBe('shr_the_key'.slice(0, 12));
     });
 
@@ -225,7 +233,7 @@ describe('shirabe connection', () => {
       const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
       const existing = {
         userId: 42,
-        tokenCiphertext: encryptSecret('shr_the_old_key', CONFIG.SHIRABE_CONNECTION_SECRET),
+        tokenCiphertext: encryptSecret('shr_the_old_key', CONFIG.SHIRABE_CONNECTION_SECRET, TOKEN_CONTEXT),
         save: () => Promise.resolve(existing),
       };
       vi.mocked(ShirabeConnection.findOne).mockResolvedValueOnce(existing as never);
@@ -246,7 +254,7 @@ describe('shirabe connection', () => {
       const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
       const existing = {
         userId: 42,
-        tokenCiphertext: encryptSecret('shr_the_old_key', CONFIG.SHIRABE_CONNECTION_SECRET),
+        tokenCiphertext: encryptSecret('shr_the_old_key', CONFIG.SHIRABE_CONNECTION_SECRET, TOKEN_CONTEXT),
         save() {
           saved.push(this as never);
           return Promise.resolve(this);

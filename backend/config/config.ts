@@ -61,7 +61,30 @@ const envSchema = z.object({
   //                             credentials in the clear.
   SHIRABE_OAUTH_CLIENT_ID: z.string().default('nadeshiko'),
   SHIRABE_OAUTH_REDIRECT_URI: z.string().default(''),
-  SHIRABE_CONNECTION_SECRET: z.string().default(''),
+  /**
+   * Key material, not a passphrase.
+   *
+   * Empty means the connection feature is off, which is a real deployment and
+   * the reason this is not simply required. Anything else has to be long enough
+   * to be a generated secret: `secretBox` derives a 32-byte key from whatever it
+   * is given, so a four-character value produces a perfectly valid-looking key
+   * that is trivially guessable, and nothing downstream can tell the difference.
+   */
+  SHIRABE_CONNECTION_SECRET: z
+    .string()
+    .default('')
+    .refine((value) => value === '' || value.length >= 32, {
+      message:
+        'SHIRABE_CONNECTION_SECRET must be at least 32 characters of generated key material (or empty to disable linking)',
+    }),
+  /**
+   * The key being rotated OUT, read but never written.
+   *
+   * Set it to the outgoing value while re-encrypting, and stored rows keep
+   * opening under it because each carries the id of the key that sealed it.
+   * Empty the rest of the time, which is almost always.
+   */
+  SHIRABE_CONNECTION_SECRET_PREVIOUS: z.string().default(''),
 
   API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(150),
