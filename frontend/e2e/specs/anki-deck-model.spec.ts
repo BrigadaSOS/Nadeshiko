@@ -137,4 +137,61 @@ test.describe('Anki deck to note type', () => {
 
     await expect(model).toHaveValue('');
   });
+  /**
+   * Building a field out of more than one placeholder.
+   *
+   * The menu used to REPLACE the field's contents, which made it a
+   * one-of-these picker: a reader could type `{definition:a}<br>{definition:b}`
+   * by hand but had no reason to think a field could hold two, since every
+   * click wiped the last one. Appending is what makes composing reachable, and
+   * the substitution fills every placeholder rather than only the first.
+   */
+  test('adding a second placeholder keeps the first', async ({ authenticatedPage }) => {
+    const { deck, model } = await openSettings(authenticatedPage);
+    const status = authenticatedPage.getByTestId('anki-save-status');
+
+    await deck.selectOption('Mining');
+    // Both settled before touching the table: the note type fills itself a
+    // moment after the deck, and the field rows are rebuilt from it.
+    await expect(model).toHaveValue('Lapis', { timeout: 15_000 });
+
+    const row = authenticatedPage
+      .getByTestId('anki-field-row')
+      .filter({ has: authenticatedPage.getByText('Expression', { exact: true }) });
+    const value = row.getByTestId('anki-field-value');
+    await expect(value).toBeVisible({ timeout: 15_000 });
+
+    // Emptied so the assertions below can be exact, then waited out. Every edit
+    // here autosaves on a 400ms debounce and the profile coming back reloads the
+    // table -- clicking through rows that are being replaced underneath is the
+    // "element was detached from the DOM" this otherwise hits.
+    // Waited all the way out, not just to "Saved": the badge lingers, so a later
+    // check for it would pass on THIS write and let the next click land while
+    // the table was still being rebuilt.
+    const settle = async () => {
+      await expect(status).toHaveText(/Saved/i, { timeout: 15_000 });
+      await expect(status).toHaveCSS('opacity', '0', { timeout: 15_000 });
+    };
+
+    await value.fill('');
+    await settle();
+
+    // Scoped to this row's own menu. Every row renders its dropdown under the
+    // same id, so a page-wide lookup matches the other rows' copies too and
+    // lands on whichever happens to be mid-animation.
+    const pick = async (label: string) => {
+      await row.getByRole('button').last().click();
+      const menu = row.getByTestId('dropdown-menu');
+      await expect(menu).toBeVisible();
+      await menu.getByRole('button', { name: label, exact: true }).click();
+    };
+
+    await pick('Word');
+    await expect(value).toHaveValue('{word}');
+    await settle();
+
+    // The second one lands beside the first rather than over it.
+    await pick('Word reading');
+    await expect(value).toHaveValue('{word}<br>{word-reading}');
+  });
 });
