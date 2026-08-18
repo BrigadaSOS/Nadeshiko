@@ -556,21 +556,20 @@ the OpenSSH binary, so whether `~/.ssh/config` governs its host key checking
 depends on Kamal's own `verify_host_key` default — worth confirming before
 treating the pin as covering deploys too.
 
-### Outbound mail: SES today, ZeptoMail ready on staging
+### Outbound mail: ZeptoMail on staging, SES on production
 
-Staging and production send as `noreply@nadeshiko.co` via Amazon SES.
+Both environments send as `noreply@nadeshiko.co`. Production still uses Amazon
+SES. Staging uses ZeptoMail SMTP (`smtp.zeptomail.jp`) via `MAIL_TRANSPORT=zepto`.
+Flip staging back to `ses` to roll back. SES DKIM and `mail.nadeshiko.co` stay
+in DNS either way. The Send Mail Token lives at
+`/nadeshiko/staging/SMTP_PASSWORD`. Host, port, and user are clear env in
+`deploy.staging.yml`. Production is not wired to ZeptoMail yet.
+
 `SES_AWS_ACCESS_KEY_ID` / `SES_AWS_SECRET_ACCESS_KEY` are long-lived IAM user
 keys held in SSM and injected into the backend container. Every other AWS
 interaction in this repo already uses OIDC role assumption
 (`aws-actions/configure-aws-credentials` with `role-to-assume`), so these are the
 only static AWS credentials left, and nothing rotates them.
-
-Staging also carries a ZeptoMail SMTP path (`smtp.zeptomail.jp`) behind
-`MAIL_TRANSPORT`. Leave it at `ses` until a test send has gone through
-ZeptoMail; flip to `zepto` to cut over, flip back to `ses` to roll back. SES
-DKIM and `mail.nadeshiko.co` stay in DNS either way. The Send Mail Token lives
-at `/nadeshiko/staging/SMTP_PASSWORD`. Host, port, and user are clear env in
-`deploy.staging.yml`. Production is not wired yet.
 
 **TODO (infra, not doable from this repo):** replace the SES keys with either an
 instance / workload role the container assumes, or at minimum a documented
