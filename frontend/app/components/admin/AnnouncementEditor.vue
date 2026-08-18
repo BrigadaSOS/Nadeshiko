@@ -125,7 +125,12 @@ const previewTitle = computed(() => {
           :placeholder="t('accountSettings.announcement.placeholders.message')"
           class="nd-input resize-none"
         />
-        <p class="text-xs text-gray-500 mt-1 text-right">{{ form.message?.length ?? 0 }}/500</p>
+        <!-- The count is of what is typed, markup included, because that is what
+             the 500-character limit measures. -->
+        <div class="mt-1 flex items-start justify-between gap-4">
+          <p class="text-xs text-gray-500">{{ t('accountSettings.announcement.markdownHint') }}</p>
+          <p class="text-xs text-gray-500 shrink-0">{{ form.message?.length ?? 0 }}/500</p>
+        </div>
       </div>
 
       <div>
@@ -178,7 +183,9 @@ const previewTitle = computed(() => {
             </svg>
             <span class="font-semibold text-white text-sm">{{ previewTitle }}</span>
           </div>
-          <p class="text-sm text-white/80 leading-relaxed">{{ form.message }}</p>
+          <p class="text-sm text-white/80 leading-relaxed">
+            <CommonAnnouncementText :message="form.message" />
+          </p>
         </div>
       </div>
     </div>
