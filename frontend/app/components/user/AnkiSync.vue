@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import {
-  mdiCheckBold,
-  mdiVideo,
-  mdiImage,
-  mdiVolumeHigh,
-  mdiText,
-  mdiPlus,
-  mdiDelete,
-  mdiPencil,
   mdiBookOpenVariant,
   mdiChartLine,
-  mdiNumeric,
+  mdiCheckBold,
+  mdiChevronLeft,
   mdiContentCopy,
+  mdiDelete,
   mdiFormatColorHighlight,
+  mdiImage,
+  mdiNumeric,
+  mdiPencil,
+  mdiPlus,
+  mdiText,
+  mdiVideo,
+  mdiVolumeHigh,
 } from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
 import type { AnkiProfile } from '@/stores/anki';
@@ -39,16 +40,6 @@ const modelKey = ref<string | null>(null);
 const ankiconnectAddress = ref('http://127.0.0.1:8765');
 const openBrowserOnExport = ref(true);
 
-/**
- * How many of the reader's dictionaries fill `{definition}` before the rest
- * spill into `{definition-rest}`.
- *
- * Zero is "no cut", and is the default: everything lands in `{definition}`,
- * which is what that field did before the split existed. Only a reader who
- * linked a Shirabe account ever has more than one dictionary on a card, so for
- * everyone else this control changes nothing whatever they set it to.
- */
-const primaryDictionaries = ref(0);
 const showNameModal = ref(false);
 const nameModalInput = ref('');
 const nameModalMode = ref<'create' | 'rename'>('create');
@@ -68,7 +59,6 @@ const loadFromActiveProfile = () => {
   modelKey.value = profile.key ?? null;
   ankiconnectAddress.value = profile.serverAddress ?? 'http://127.0.0.1:8765';
   openBrowserOnExport.value = profile.openBrowserOnExport !== false;
-  primaryDictionaries.value = profile.primaryDictionaries ?? 0;
 };
 
 let pendingSaveData: Partial<AnkiProfile> = {};
@@ -129,11 +119,24 @@ const debouncedSave = (data: Partial<AnkiProfile>) => {
   scheduleSave();
 };
 
-const setKeyValueField = (fieldName: string, value: string) => {
+/**
+ * Add a placeholder to a field, keeping whatever is already in it.
+ *
+ * It used to REPLACE, which made the menu a one-of-these picker and quietly put
+ * a ceiling on what a field could say -- there was no way to build
+ * `{definition:sanseido}<br>{definition:jmdict}` except by typing both by hand,
+ * and no reason to think you could, since every click wiped the last one.
+ *
+ * `<br>` between them because these land in Anki HTML fields and stacking is
+ * what a reader is doing when they add a second one. Anything else -- a space,
+ * a dash, parentheses around a reading -- is a line edit away in the input
+ * beside the menu, which is also where a placeholder added by mistake comes off
+ * again.
+ */
+const appendFieldPlaceholder = (fieldName: string, placeholder: string) => {
   const field = fieldOptions.value.find((field) => field.key === fieldName);
-  if (field) {
-    field.value = value;
-  }
+  if (!field) return;
+  field.value = field.value ? `${field.value}<br>${placeholder}` : placeholder;
 };
 
 const ankiCardCss = ANKI_CARD_CSS;
@@ -217,12 +220,68 @@ const deleteCurrentProfile = async () => {
   }
 };
 
+/**
+ * The reader's own Shirabe dictionaries, for the `{definition:<slug>}` picker.
+ *
+ * Read from the connection endpoint the settings page already has rather than
+ * from a session field, because the NAMES only exist over there: a reader's own
+ * uploads are filed under a hash of their contents, so a picker built from slugs
+ * alone would offer `yomitan-c89af12122021a8a` to the person who uploaded
+ * 三省堂国語辞典. Same call `ConnectionsCard` makes.
+ *
+ * Failure is silent and leaves the list empty, which hides the submenu: a reader
+ * who has linked nothing has no dictionaries to name, and that is by far the
+ * commonest case rather than an error worth a toast.
+ */
+type ShirabeDictionary = { slug: string; name: string; language: string | null };
+const shirabeDictionaries = ref<ShirabeDictionary[]>([]);
+
+/** Which field's menu is currently showing the dictionary list, by field name.
+ *  Null is the ordinary placeholder menu. */
+const dictionaryPickerFor = ref<string | null>(null);
+
+const { openDropdownId } = useDropdownState();
+// Reopening a menu starts at the top level. Without this a reader who drilled
+// in, closed the menu and opened it again would land in the dictionary list with
+// no memory of having asked for it.
+watch(openDropdownId, () => {
+  dictionaryPickerFor.value = null;
+});
+
+async function loadShirabeDictionaries() {
+  try {
+    const data = await $fetch<{
+      connection: { dictionaries?: string[]; dictionaryNames?: Record<string, string> } | null;
+    }>('/v1/user/connections/shirabe');
+    const names = data.connection?.dictionaryNames ?? {};
+    // A stack entry is `slug:language`, and the same dictionary sits in the
+    // stack twice for a reader who reads it in two languages -- but a FIELD maps
+    // to the dictionary, not to one language of it, so the slug is deduped here.
+    const seen = new Set<string>();
+    const list: ShirabeDictionary[] = [];
+    for (const source of data.connection?.dictionaries ?? []) {
+      const separator = source.lastIndexOf(':');
+      const slug = separator === -1 ? source : source.slice(0, separator);
+      const language = separator === -1 ? null : source.slice(separator + 1).toUpperCase();
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+      list.push({ slug, name: names[slug] || slug, language });
+    }
+    shirabeDictionaries.value = list;
+  } catch {
+    shirabeDictionaries.value = [];
+  }
+}
+
 onMounted(async () => {
   await store.migrateFromLocalStorage();
   if (store.profiles.length === 0) {
     await store.createProfile(t('accountSettings.anki.defaultProfile'));
   }
   await fetchAndLoad();
+  // Not awaited with the rest: the picker is an extra, and a slow or failing
+  // connection lookup must not hold up the fields table.
+  void loadShirabeDictionaries();
   suppressWatchers = true;
   loadFromActiveProfile();
   await nextTick();
@@ -322,15 +381,6 @@ watch(openBrowserOnExport, (newValue) => {
   debouncedSave({ openBrowserOnExport: newValue });
 });
 
-watch(primaryDictionaries, (newValue) => {
-  // Clamped rather than validated: a number input can be typed into, and a
-  // negative or fractional cut point has no meaning. Zero stays reachable
-  // because it is the one that turns the split off.
-  const clamped = Math.max(0, Math.floor(Number(newValue) || 0));
-  if (clamped !== newValue) primaryDictionaries.value = clamped;
-  debouncedSave({ primaryDictionaries: clamped });
-});
-
 watch(ankiconnectAddress, (newValue) => {
   debouncedSave({ serverAddress: newValue });
   fetchAndLoad();
@@ -356,24 +406,6 @@ watch(ankiconnectAddress, (newValue) => {
           <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.openBrowserOnExport') }}</span>
         </div>
 
-        <!-- Splitting the definition across two fields. Only ever more than one
-             dictionary for a reader who linked a Shirabe account, so this reads
-             as a no-op to everyone else -- which is why it says what it is for
-             rather than only what it does. -->
-        <div class="mt-4 flex items-start gap-3">
-          <input
-            v-model.number="primaryDictionaries"
-            type="number"
-            min="0"
-            step="1"
-            data-testid="anki-primary-dictionaries"
-            class="nd-input w-20 shrink-0"
-          />
-          <div>
-            <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.primaryDictionaries') }}</span>
-            <p class="text-gray-500 text-xs">{{ $t('accountSettings.anki.primaryDictionariesHint') }}</p>
-          </div>
-        </div>
 
         <div class="mt-4">
           <div v-if="isLoading" role="alert"
@@ -547,6 +579,11 @@ watch(ankiconnectAddress, (newValue) => {
           </div>
         </div>
 
+        <!-- Said here because the menu below gives no other sign of it: picking
+             adds rather than replaces, and a reader who does not know that has
+             no reason to try a second placeholder. -->
+        <p class="mb-3 text-sm text-gray-400">{{ $t('accountSettings.anki.fieldComposeHelp') }}</p>
+
         <div class="border rounded-lg dark:border-modal-border">
           <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
             <thead>
@@ -580,26 +617,27 @@ watch(ankiconnectAddress, (newValue) => {
                             </template>
                             <template #content>
                               <SearchDropdownContent>
+                                <template v-if="dictionaryPickerFor !== item.key">
                                 <div class="nd-menu-label">
                                   {{ $t('accountSettings.anki.sentenceGroup') }}
                                 </div>
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-jp}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-jp}')"
                                   :text="$t('searchpage.main.buttons.jpsentence')" :iconPath="mdiText" />
                                 <!-- The same sentence with the mined word marked.
                                      Offered next to the plain one rather than
                                      replacing it: a reader with cards already
                                      built keeps the field they mapped. -->
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{content_jp_highlight}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{content_jp_highlight}')"
                                   :text="$t('searchpage.main.buttons.jpsentencehighlight')" :iconPath="mdiFormatColorHighlight" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-en}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-en}')"
                                   :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-es}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-es}')"
                                   :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{image}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{image}')"
                                   :text="$t('accountSettings.anki.sentenceImage')" :iconPath="mdiImage" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-audio}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-audio}')"
                                   :text="$t('accountSettings.anki.sentenceAudio')" :iconPath="mdiVolumeHigh" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{sentence-info}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-info}')"
                                   :text="$t('searchpage.main.buttons.info')" :iconPath="mdiText" />
                                 <!-- The selected word, which only the word card
                                      can fill: these are mined by clicking a word
@@ -609,30 +647,89 @@ watch(ankiconnectAddress, (newValue) => {
                                 <div class="nd-menu-label">
                                   {{ $t('accountSettings.anki.selectedWordGroup') }}
                                 </div>
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word}')"
                                   :text="$t('searchpage.main.buttons.word')" :iconPath="mdiText" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-reading}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-reading}')"
                                   :text="$t('searchpage.main.buttons.wordreading')" :iconPath="mdiText" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-furigana}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-furigana}')"
                                   :text="$t('searchpage.main.buttons.wordfurigana')" :iconPath="mdiText" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-audio}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-audio}')"
                                   :text="$t('searchpage.main.buttons.wordaudio')" :iconPath="mdiVolumeHigh" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-pitch}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch}')"
                                   :text="$t('searchpage.main.buttons.wordpitch')" :iconPath="mdiChartLine" />
                                 <!-- The number on its own, for a note type that
                                      draws its own diagram from the position. -->
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-pitch-num}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch-num}')"
                                   :text="$t('searchpage.main.buttons.wordpitchnum')" :iconPath="mdiNumeric" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{definition}')"
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{definition}')"
                                   :text="$t('searchpage.main.buttons.definition')" :iconPath="mdiBookOpenVariant" />
-                                <!-- Only does anything for a reader whose stack
-                                     answers with more dictionaries than their cut
-                                     point, which is why the control that sets it
-                                     lives beside this list rather than inside it. -->
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{definition-rest}')"
-                                  :text="$t('searchpage.main.buttons.definitionRest')" :iconPath="mdiBookOpenVariant" />
-                                <SearchDropdownItem @click="setKeyValueField(item.key, '{word-info}')"
+                                <!-- Whatever sits at the top of their Shirabe
+                                     stack. The zero-setup version of the named
+                                     dictionary below: it follows a reorder over
+                                     there, and cannot go stale when a dictionary
+                                     is swapped out. -->
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{definition-first}')"
+                                  :text="$t('searchpage.main.buttons.definitionFirst')" :iconPath="mdiBookOpenVariant" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch-categories}')"
+                                  :text="$t('searchpage.main.buttons.wordpitchcategories')" :iconPath="mdiChartLine" />
+                                <!-- A plain rank, so a note type can sort a deck
+                                     on it the way Lapis's FreqSort does. -->
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-frequency}')"
+                                  :text="$t('searchpage.main.buttons.wordfrequency')" :iconPath="mdiNumeric" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-jlpt}')"
+                                  :text="$t('searchpage.main.buttons.wordjlpt')" :iconPath="mdiNumeric" />
+                                <!-- The whole line's readings. Yomitan cannot
+                                     produce this at all; our parse already has
+                                     every token's reading. -->
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-furigana}')"
+                                  :text="$t('searchpage.main.buttons.sentencefurigana')" :iconPath="mdiText" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-info}')"
                                   :text="$t('searchpage.main.buttons.wordinfo')" :iconPath="mdiText" />
+                                <!-- One named dictionary, for a note type that
+                                     wants 三省堂 in one field and JMdict in
+                                     another. Only offered to a reader who has
+                                     dictionaries to name, which means a linked
+                                     Shirabe account: for everybody else the three
+                                     definition rows above are the whole story.
+
+                                     `data-nd-keep-open` because this opens the
+                                     next level of the SAME menu -- without it the
+                                     container's click handler closes the dropdown
+                                     on the way in. -->
+                                <span v-if="shirabeDictionaries.length > 0" data-nd-keep-open>
+                                  <SearchDropdownItem
+                                    data-testid="anki-dictionary-submenu"
+                                    :text="$t('accountSettings.anki.dictionarySubmenu')"
+                                    :iconPath="mdiBookOpenVariant"
+                                    @click="dictionaryPickerFor = item.key" />
+                                </span>
+                                </template>
+
+                                <!-- The dictionary list: the same menu, one level
+                                     in. A list rather than a nested flyout because
+                                     a reader with nine dictionaries needs the room,
+                                     and because a flyout on a settings table that
+                                     already sits inside a scrolling panel is a
+                                     placement problem with no good answer. -->
+                                <template v-else>
+                                  <span data-nd-keep-open>
+                                    <SearchDropdownItem
+                                      data-testid="anki-dictionary-back"
+                                      :text="$t('accountSettings.anki.dictionaryBack')"
+                                      :iconPath="mdiChevronLeft"
+                                      @click="dictionaryPickerFor = null" />
+                                  </span>
+                                  <div class="nd-menu-label">
+                                    {{ $t('accountSettings.anki.dictionaryGroup') }}
+                                  </div>
+                                  <SearchDropdownItem
+                                    v-for="dictionary in shirabeDictionaries"
+                                    :key="dictionary.slug"
+                                    data-testid="anki-dictionary-option"
+                                    :text="dictionary.language ? `${dictionary.name} (${dictionary.language})` : dictionary.name"
+                                    :iconPath="mdiBookOpenVariant"
+                                    @click="appendFieldPlaceholder(item.key, `{definition:${dictionary.slug}}`)" />
+                                </template>
                               </SearchDropdownContent>
                             </template>
                           </SearchDropdownContainer>

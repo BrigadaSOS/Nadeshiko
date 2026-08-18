@@ -15,6 +15,16 @@ interface IAnkiState {
   availableDecks: string[];
   availableModels: string[];
   activeProfileId: string | null;
+  /**
+   * Whether AnkiConnect answered the last time anything asked it.
+   *
+   * `null` until something has, which is NOT the same as `false`: a reader who
+   * has not opened a word card yet has no answer either way, and a control that
+   * called that "Anki is not running" would be guessing. Set from
+   * `executeAction`, the one place that finds out, so every caller shares one
+   * answer instead of each discovering it separately.
+   */
+  connectReachable: boolean | null;
 }
 
 interface IField {
@@ -31,21 +41,6 @@ export interface AnkiProfile {
   key?: string;
   serverAddress: string;
   openBrowserOnExport?: boolean;
-  /**
-   * How many of the reader's dictionaries fill `{definition}` before the rest
-   * spill into `{definition-rest}`.
-   *
-   * Only ever more than one dictionary for a reader who linked a Shirabe
-   * account: a word card carries one entry per dictionary in their stack, and
-   * somebody with nine monolingual dictionaries does not want all fifty senses
-   * in one field. Which of them belong on the front of a card is a judgement
-   * only they can make, so it is a number here rather than a rule in the code.
-   *
-   * Undefined or zero means NO CUT -- everything lands in `{definition}`, which
-   * is what that field did before this existed. Nobody's note changes shape
-   * until they ask for it.
-   */
-  primaryDictionaries?: number;
 }
 
 interface PermissionResponse {
@@ -91,6 +86,7 @@ import type { SearchResult } from '~/types/search';
 import type { MinedWord } from '~/utils/ankiWord';
 import { deckNotesQuery, mostCommonModel } from '~/utils/ankiMining';
 import { defineStore } from 'pinia';
+import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
 import { userStore } from '@/stores/auth';
 import { handleApiError } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
@@ -125,6 +121,7 @@ export const ankiStore = defineStore('anki', {
     availableDecks: [],
     availableModels: [],
     activeProfileId: import.meta.client ? localStorage.getItem('anki-active-profile') : null,
+    connectReachable: null,
   }),
   getters: {
     profiles(): AnkiProfile[] {
@@ -224,8 +221,13 @@ export const ankiStore = defineStore('anki', {
           throw new Error(`Failed to fetch ${action}.`);
         }
 
+        // Recorded on the way through rather than probed for. Anki running is
+        // exactly "the last call reached it", and the word card already asks on
+        // every open, so the controls get a live answer at no extra request.
+        this.connectReachable = true;
         return await response.json();
       } catch (error) {
+        this.connectReachable = false;
         if (!options.silent) reportError('anki:connect-request-failed', error, { 'anki.action': action });
         // AnkiConnect is unreachable (Anki closed, add-on disabled, CORS refused).
         // Returning null explicitly -- every caller must treat this as "no answer"
@@ -653,8 +655,12 @@ export const ankiStore = defineStore('anki', {
           'word-pitch-num',
           'word-pitch',
           'word-info',
+          'word-frequency',
+          'word-jlpt',
+          'word-pitch-categories',
+          'sentence-furigana',
           'definition',
-          'definition-rest',
+          'definition-first',
           'image',
           'empty',
           'word',
@@ -662,128 +668,212 @@ export const ankiStore = defineStore('anki', {
         const fieldsNew: Record<string, string> = {};
 
         /**
-         * Write a word-level field, or leave it exactly as it was.
+         * Which placeholders are facts about the WORD rather than the sentence.
          *
-         * The skip is the whole point. These fields are only ever filled from
-         * the word card, and the other two export paths -- the dropdown's "last
-         * added card" and the note picker -- are reached without a word having
-         * been selected at all. Writing a blank there would erase the definition
-         * Yomitan put on the note, which is the one thing this feature must not
-         * do to the readers who already have a working setup. Same discipline
-         * `{image}` and `{sentence-audio}` follow when their upload fails.
+         * Two that read like word placeholders are deliberately not among them.
+         * `{sentence-furigana}` is computed from the line's own tokens, and
+         * `{content_jp_highlight}` marks which word was mined inside the
+         * sentence -- both are context about the LINE, so both fill on the "add
+         * context only" path that exists to leave a reader's own glossary alone.
          */
-        const setWordField = (key: string, template: string, placeholder: string, value: string | undefined) => {
-          if (!value) return;
-          fieldsNew[key] = template.replace(`{${placeholder}}`, value);
+        const WORD_PLACEHOLDER =
+          /^\{(?:definition|definition:[^}]+|definition-first|word|word-reading|word-furigana|word-audio|word-pitch|word-pitch-num|word-pitch-categories|word-frequency|word-jlpt|word-info)\}$/;
+
+        /**
+         * What one placeholder is worth on this export, or `undefined` for
+         * "nothing to say".
+         *
+         * The distinction is the whole safety property of the feature, and it
+         * predates composing. `undefined` means the field it sits in is left
+         * exactly as it was, because a word-level placeholder is only ever
+         * filled from the word card -- and the other two export paths (the
+         * dropdown's "last added card" and the note picker) are reached without
+         * a word having been selected at all. Writing a blank there would erase
+         * the definition Yomitan put on the note, which is the one thing this
+         * must not do to readers who already have a working setup. `{image}` and
+         * `{sentence-audio}` follow the same discipline when an upload fails.
+         *
+         * An empty STRING is different: it is a deliberate clear. Only
+         * `{definition:<slug>}` and `{empty}` return one.
+         */
+        const resolvePlaceholder = (token: string): string | undefined => {
+          /**
+           * `{definition:<slug>}` names ONE of the reader's dictionaries, so it
+           * cannot join the fixed alternation below -- the slug is whatever
+           * Shirabe calls that pack, including the content hash a Yomitan upload
+           * is filed under. Tested first because a bare `{definition}` would
+           * otherwise claim the prefix and write every dictionary into a field
+           * that asked for one.
+           *
+           * Unlike every other word field, a miss CLEARS. The others are empty
+           * when a feature is off, where blanking a field the reader filled
+           * would be destructive; this one is empty when the open word is not in
+           * that dictionary -- including when the reader ticked that dictionary
+           * away in the card -- and leaving the previous export's text there
+           * would put ANOTHER WORD's definition on this note.
+           */
+          const named = /^\{definition:([^}]+)\}$/.exec(token);
+          if (named) {
+            if (!withWordFields) return undefined;
+            return minedWord?.definitionsByDictionary?.[named[1] as string] ?? '';
+          }
+
+          const key = token.slice(1, -1);
+          /** A word-level value: absent unless the word card supplied one, and
+           *  never written by the paths that have no word. */
+          const word = (value: string | undefined) => (withWordFields ? value || undefined : undefined);
+
+          switch (key) {
+            case 'empty':
+              return '';
+            case 'sentence-jp':
+              return `<div>${sentence.segment.textJa.content}</div>`;
+            /*
+             * The whole line's readings, in Anki's own notation. Yomitan cannot
+             * produce this -- it knows the reading of the word the reader tapped
+             * and nothing about the rest of the line -- which is why Lapis ships
+             * `SentenceFurigana` empty and sends people to an addon for it.
+             *
+             * Beside `sentence-jp` rather than with the word fields, and NOT
+             * gated on `withWordFields`: it is a fact about the sentence, so it
+             * fills from the sentence card's own export as well as from the word
+             * card, and survives the "keep my glossary" path that exists to
+             * leave the word alone.
+             */
+            case 'sentence-furigana':
+              return tokensToAnkiFurigana(sentence.segment.textJa.content, sentence.segment.textJa.tokens ?? []);
+            case 'sentence-es': {
+              const text = sentence.segment.textEs.content;
+              return text ? `<div>${text}</div>` : undefined;
+            }
+            case 'sentence-en': {
+              const text = sentence.segment.textEn.content;
+              return text ? `<div>${text}</div>` : undefined;
+            }
+            case 'image':
+              return imageResult?.result ? `<img src="${imageResult.result}">` : undefined;
+            case 'sentence-audio':
+              return audioResult?.result ? `[sound:${audioResult.result}]` : undefined;
+            case 'word-audio':
+              return wordAudioResult?.result ? `[sound:${wordAudioResult.result}]` : undefined;
+            case 'sentence-info': {
+              const isMovie = sentence.media.airingFormat === 'MOVIE';
+              const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
+              const sentenceUrl = `${window.location.origin}${buildSentencePath(sentence.segment.publicId)}`;
+              return (
+                `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
+                `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`
+              );
+            }
+            case 'word':
+              return word(minedWord?.word);
+            case 'word-reading':
+              return word(minedWord?.reading);
+            case 'word-furigana':
+              return word(minedWord?.furigana);
+            case 'definition':
+              return word(minedWord?.definition);
+            /**
+             * The top dictionary of whatever the card is showing -- which a pick
+             * narrows, so this follows a reader who ticked one dictionary rather
+             * than going on naming the one they ticked away. Empty means
+             * UNTOUCHED here, unlike `{definition:<slug>}` above: this field is
+             * empty only when the lookup found nothing at all, which is the same
+             * condition every other word field treats that way.
+             */
+            case 'definition-first':
+              return word(minedWord?.definitionFirst);
+            case 'word-pitch':
+              return word(minedWord?.pitch);
+            case 'word-pitch-num':
+              return word(minedWord?.pitchPositions);
+            case 'word-frequency':
+              return word(minedWord?.frequency);
+            case 'word-jlpt':
+              return word(minedWord?.jlpt);
+            case 'word-pitch-categories':
+              return word(minedWord?.pitchCategories);
+            case 'word-info':
+              return word(minedWord?.info);
+            /**
+             * The sentence with the mined word marked.
+             *
+             * A placeholder that had been reserved in `allowedFields` since
+             * before there was a word card to fill it: a field mapped to it
+             * matched the regex, fell through the switch and was silently left
+             * alone, so readers who found the name got nothing and no error. It
+             * is a separate field from `{sentence-jp}` on purpose -- the plain
+             * one keeps working exactly as it did, and nobody's existing cards
+             * change shape because this arrived.
+             */
+            case 'content_jp_highlight':
+              return minedWord?.sentenceHighlight || undefined;
+            default:
+              return undefined;
+          }
         };
 
+        /**
+         * Every placeholder in a field, not just the first.
+         *
+         * `{definition:...}` leads the alternation for the reason above, and
+         * `word` trails the `word-*` names it is a prefix of. The closing brace
+         * means backtracking would sort the second one out anyway -- `word`
+         * cannot be followed by `}` in `{word-reading}` -- but relying on that
+         * puts the reader's reading field one regex tweak away from being filled
+         * with the headword, and the order costs nothing.
+         */
+        const PLACEHOLDER = new RegExp(`\\{(?:definition:[^}]+|${allowedFields.join('|')})\\}`, 'g');
+
+        /** Whether this export has word content to write at all: the word card
+         *  supplied some, and the reader did not ask for the sentence alone. */
+        const wordFieldsUsable = withWordFields && !!minedWord;
+
         profile.fields.forEach((field) => {
-          if (field.value) {
-            const regex = new RegExp(`\\{(${allowedFields.join('|')})\\}`);
-            const match = field.value.match(regex);
+          if (!field.value) return;
 
-            if (match) {
-              const key = match[1];
+          /**
+           * A field is written when at least one of its placeholders had
+           * something to say, and the ones that did not collapse to nothing.
+           *
+           * For a field holding a single placeholder -- which is every field
+           * anybody had before composing existed -- this is exactly the old
+           * behaviour: resolved writes, unresolved leaves it alone. For a
+           * composite it is the useful generalisation: a word with no pitch
+           * still gets its definition, rather than losing the whole field to one
+           * absent part.
+           */
+          let resolvedAny = false;
+          /**
+           * ...with one exception that outranks it: a field that mentions the
+           * word is written only when there IS a word to write.
+           *
+           * Two paths reach here without one -- the dropdown's "last added card"
+           * and the note picker, neither of which selects a word -- and "add
+           * context only" asks for the same restraint deliberately. A composite
+           * mixing sentence and word placeholders would otherwise be written
+           * with its word half blanked, which is the glossary-clobbering all
+           * three exist to avoid: on a Yomitan-made note that half holds the
+           * definition Yomitan wrote. One word-level placeholder is enough to
+           * leave the whole field alone.
+           *
+           * A field holding only word placeholders lands in the same place by
+           * either rule, since none of them would have resolved.
+           */
+          let blockedWordField = false;
 
-              switch (key) {
-                case 'empty':
-                  fieldsNew[field.key] = field.value.replace(`{${key}}`, '');
-                  break;
-                case 'sentence-jp':
-                  fieldsNew[field.key] = field.value.replace(
-                    `{${key}}`,
-                    `<div>${sentence.segment.textJa.content}</div>`,
-                  );
-                  break;
-                case 'sentence-es': {
-                  const text = sentence.segment.textEs.content;
-                  if (!text) break;
-                  fieldsNew[field.key] = field.value.replace(`{${key}}`, `<div>${text}</div>`);
-                  break;
-                }
-                case 'sentence-en': {
-                  const text = sentence.segment.textEn.content;
-                  if (!text) break;
-                  fieldsNew[field.key] = field.value.replace(`{${key}}`, `<div>${text}</div>`);
-                  break;
-                }
-                case 'image':
-                  if (imageResult?.result) {
-                    fieldsNew[field.key] = field.value.replace(`{${key}}`, `<img src="${imageResult.result}">`);
-                  }
-                  break;
-                case 'sentence-audio':
-                  if (audioResult?.result) {
-                    fieldsNew[field.key] = field.value.replace(`{${key}}`, `[sound:${audioResult.result}]`);
-                  }
-                  break;
-                case 'word':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.word);
-                  break;
-                case 'word-reading':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.reading);
-                  break;
-                case 'word-furigana':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.furigana);
-                  break;
-                case 'definition':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.definition);
-                  break;
-                /**
-                 * The dictionaries past the reader's primary ones, so a stack of
-                 * nine monolinguals can put the main definition on the front of
-                 * a card and the rest on the back.
-                 *
-                 * Empty unless they set a cut point AND their stack answered
-                 * with more dictionaries than it -- and empty means UNTOUCHED
-                 * here, like every other word field: a reader who turns the
-                 * split off must not have this field blanked on their next
-                 * export.
-                 */
-                case 'definition-rest':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.definitionRest);
-                  break;
-                case 'word-pitch':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.pitch);
-                  break;
-                case 'word-pitch-num':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.pitchPositions);
-                  break;
-                case 'word-info':
-                  if (withWordFields) setWordField(field.key, field.value, key, minedWord?.info);
-                  break;
-                /**
-                 * The sentence with the mined word marked.
-                 *
-                 * A placeholder that has been reserved in `allowedFields` since
-                 * before there was a word card to fill it: a field mapped to it
-                 * matched the regex, fell through the switch and was silently
-                 * left alone, so readers who found the name got nothing and no
-                 * error. It is a separate field from `{sentence-jp}` on purpose
-                 * -- the plain one keeps working exactly as it did, and nobody's
-                 * existing cards change shape because this arrived.
-                 */
-                case 'content_jp_highlight':
-                  setWordField(field.key, field.value, key, minedWord?.sentenceHighlight);
-                  break;
-                case 'word-audio':
-                  if (wordAudioResult?.result) {
-                    fieldsNew[field.key] = field.value.replace(`{${key}}`, `[sound:${wordAudioResult.result}]`);
-                  }
-                  break;
-                case 'sentence-info': {
-                  const isMovie = sentence.media.airingFormat === 'MOVIE';
-                  const episodePart = isMovie ? 'Movie' : `Episode ${sentence.segment.episode}`;
-                  const sentenceUrl = `${window.location.origin}${buildSentencePath(sentence.segment.publicId)}`;
-                  const info =
-                    `<hr><small>${mediaName(sentence.media)}・${episodePart}, Timestamp: ${formatMs(sentence.segment.startTimeMs)}` +
-                    `<br><a href="${sentenceUrl}">View on Nadeshiko</a></small>`;
-                  fieldsNew[field.key] = field.value.replace(`{${key}}`, info);
-                  break;
-                }
-              }
+          const next = field.value.replace(PLACEHOLDER, (token) => {
+            if (!wordFieldsUsable && WORD_PLACEHOLDER.test(token)) {
+              blockedWordField = true;
+              return '';
             }
-          }
+            const value = resolvePlaceholder(token);
+            if (value === undefined) return '';
+            resolvedAny = true;
+            return value;
+          });
+
+          if (resolvedAny && !blockedWordField) fieldsNew[field.key] = next;
         });
 
         let writtenNoteId: number;
@@ -869,6 +959,10 @@ export const ankiStore = defineStore('anki', {
           media_name: mediaName(sentence.media),
           media_id: sentence.media.publicId,
           export_method: exportMethod,
+          // How many dictionaries the reader ticked, 0 on the overwhelming
+          // majority of exports. Here to say whether picking is worth the row it
+          // occupies on the card.
+          picked_dictionaries: withWordFields ? (minedWord?.pickedDictionaries ?? 0) : 0,
         });
 
         useToastSuccess($i18n.t('anki.toast.cardAdded'));
