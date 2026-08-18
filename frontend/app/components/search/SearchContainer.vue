@@ -504,9 +504,11 @@ const trackSearch = (response: SearchResponse) => {
 
   const resultsCount = response?.pagination?.estimatedTotalHits ?? 0;
   const searchEventProps = {
+    query: query.value,
     category: category.value,
     has_media_filter: !!media.value,
     media_id: mediaId,
+    media_name: mediaNameValue,
     episode_number: episode.value,
     results_count: resultsCount,
   };
