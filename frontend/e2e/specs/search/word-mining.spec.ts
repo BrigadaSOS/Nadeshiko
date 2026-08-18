@@ -120,7 +120,16 @@ async function stubShirabeWord(page: Page, word: unknown = STUB_WORD): Promise<v
   await page.route('**/api/shirabe/words/**', (route: Route) =>
     word === null
       ? route.fulfill({ status: 404, contentType: 'application/json', body: '{"error":"not found"}' })
-      : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(word) }),
+      : route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          // The candidates envelope the route actually returns, not the bare
+          // word. `fetchWord` reads `answer.candidates`, so a bare object is an
+          // empty list to it -- which the card reports as "no dictionary entry"
+          // and every assertion about a definition then fails against the
+          // token's own fallback rather than against the stub.
+          body: JSON.stringify({ candidates: [word] }),
+        }),
   );
 }
 
@@ -135,6 +144,34 @@ const STUB_WORD = {
   entries: [
     {
       dictionary: 'jmdict',
+      senses: [
+        {
+          definitions: [{ lang: 'en', text: 'allowance' }],
+          tags: [{ category: 'partOfSpeech', code: 'n', label: 'noun (common) (futsuumeishi)' }],
+        },
+      ],
+    },
+  ],
+};
+
+/**
+ * The same word answered by two dictionaries.
+ *
+ * What a pick needs to be offered at all: the toggles only appear on a card
+ * that names more than one source, because ticking the only dictionary there is
+ * means the same thing as ticking nothing.
+ */
+const STUB_WORD_TWO_DICTIONARIES = {
+  ...STUB_WORD,
+  entries: [
+    {
+      dictionary: 'sanseido',
+      dictionaryName: '三省堂国語辞典',
+      senses: [{ definitions: [{ lang: 'ja', text: 'てぬきをすること' }], tags: [] }],
+    },
+    {
+      dictionary: 'jmdict',
+      dictionaryName: 'JMdict',
       senses: [
         {
           definitions: [{ lang: 'en', text: 'allowance' }],
@@ -164,6 +201,23 @@ function writtenFields(calls: AnkiCall[]): Record<string, string> {
   const write = calls.filter((call) => call.action === 'updateNoteFields').at(-1);
   return (write?.params?.note?.fields ?? {}) as Record<string, string>;
 }
+
+/**
+ * The fields of the last note the export wrote, by whichever call wrote it.
+ *
+ * A mine lands as `updateNoteFields` on a note that already exists and as
+ * `addNote` on one that does not, and which of the two a test gets is decided by
+ * whether AnkiConnect's "do you have this word?" answer beat the dictionary's --
+ * a race between two services that do not wait on each other. Tests about what
+ * is WRITTEN should not have to care which side won.
+ */
+function writtenFieldsAny(calls: AnkiCall[]): Record<string, string> {
+  const write = calls.filter((call) => call.action === 'updateNoteFields' || call.action === 'addNote').at(-1);
+  return (write?.params?.note?.fields ?? {}) as Record<string, string>;
+}
+
+const writeCount = (calls: AnkiCall[]) =>
+  calls.filter((call) => call.action === 'updateNoteFields' || call.action === 'addNote').length;
 
 /** A profile complete enough to mine with, including the expression field the
  *  "already mined?" question is asked against. */
@@ -597,5 +651,209 @@ test.describe('Word card mining', () => {
 
     await expect(mineButton(page)).toHaveCount(0);
     expect(calls).toHaveLength(0);
+  });
+  /**
+   * The whole point of the toggles: what the reader ticked is what the note
+   * says the word means.
+   *
+   * Ticking replaces rather than appends -- a reader who chose one dictionary is
+   * saying the other is not what this card is for.
+   */
+  test('mines only the dictionaries the reader ticked, in place of the definition', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, WORD_FIELDS);
+    await stubShirabeWord(page, STUB_WORD_TWO_DICTIONARIES);
+    const calls = await stubAnkiConnect(page, [MINED_NOTE_ID]);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      await search.openFirstTokenCard();
+      // The toggles are the signal that the lookup landed: they only render for
+      // a card naming more than one dictionary. Deliberately not the mined star
+      // -- that is AnkiConnect's answer rather than the dictionary's, and the
+      // two do not arrive in a fixed order.
+      await expect(page.getByTestId('word-dictionary-toggle-jmdict')).toBeVisible({ timeout: 10_000 });
+
+      // Nothing is ticked on an untouched card, so the row is absent: it is the
+      // pick's own footprint rather than a permanent fixture.
+      await expect(page.getByTestId('word-pick-summary')).toHaveCount(0);
+
+      await page.getByTestId('word-dictionary-toggle-jmdict').click();
+      await expect(page.getByTestId('word-pick-summary')).toContainText('1 of 2');
+
+      await mine(page);
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+
+      const fields = writtenFieldsAny(calls);
+      expect(fields.Definition).toContain('allowance');
+      expect(fields.Definition).not.toContain('てぬきをすること');
+      // Re-rendered rather than sliced out of the card's DOM: a pick is a
+      // well-formed definition, with the way back to the word still on it.
+      expect(fields.Definition).toContain('nd-senses');
+      expect(fields.Definition).toContain('View on shirabe.org');
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+
+  /**
+   * "Deselect all" is how a reader starts a pick over, not a way to mine a card
+   * with no definition on it: none ticked and all ticked are the same
+   * instruction, so both leave the whole stack on the note.
+   */
+  test('leaves the definition whole when every dictionary is deselected', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, WORD_FIELDS);
+    await stubShirabeWord(page, STUB_WORD_TWO_DICTIONARIES);
+    const calls = await stubAnkiConnect(page, [MINED_NOTE_ID]);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      await search.openFirstTokenCard();
+      await expect(page.getByTestId('word-dictionary-toggle-jmdict')).toBeVisible({ timeout: 10_000 });
+
+      await page.getByTestId('word-dictionary-toggle-jmdict').click();
+      await expect(page.getByTestId('word-pick-summary')).toBeVisible();
+      // Clearing the pick takes the row with it, and leaves the note exactly as
+      // it would have been had the reader never ticked anything.
+      await page.getByTestId('word-pick-deselect-all').click();
+      await expect(page.getByTestId('word-pick-summary')).toHaveCount(0);
+
+      await mine(page);
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+
+      const fields = writtenFieldsAny(calls);
+      expect(fields.Definition).toContain('allowance');
+      expect(fields.Definition).toContain('てぬきをすること');
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+
+  /** A pick describes the dictionaries in front of the reader. Reopening the
+   *  card must not inherit it, or one word's shortlist trims another word's
+   *  definition. */
+  test('drops the pick when the card closes', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, WORD_FIELDS);
+    await stubShirabeWord(page, STUB_WORD_TWO_DICTIONARIES);
+    const calls = await stubAnkiConnect(page, [MINED_NOTE_ID]);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      await search.openFirstTokenCard();
+      await expect(page.getByTestId('word-dictionary-toggle-jmdict')).toBeVisible({ timeout: 10_000 });
+
+      await page.getByTestId('word-dictionary-toggle-jmdict').click();
+      await expect(page.getByTestId('word-pick-summary')).toContainText('1 of 2');
+
+      await page.keyboard.press('Escape');
+      await search.openFirstTokenCard();
+      await expect(page.getByTestId('word-dictionary-toggle-jmdict')).toBeVisible({ timeout: 10_000 });
+      // Back to nothing ticked, rather than inheriting the last card's trim.
+      await expect(page.getByTestId('word-pick-summary')).toHaveCount(0);
+
+      await mine(page);
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+
+      expect(writtenFieldsAny(calls).Definition).toContain('てぬきをすること');
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+  /**
+   * Several placeholders in one field, which is how a reader groups two named
+   * dictionaries onto one line of a card.
+   *
+   * Every occurrence is substituted, not just the first. The old substitution
+   * took one match per field and returned, so a second placeholder shipped to
+   * Anki as literal `{definition:jmdict}` text on the note -- and a named
+   * dictionary anywhere in a field blocked every other placeholder in it.
+   */
+  test('fills every placeholder in a composite field', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, [
+      { key: 'Expression', value: '{word}' },
+      { key: 'Definition', value: '{definition:sanseido}<br>{definition:jmdict}' },
+      { key: 'Info', value: '{word} ({word-reading}) — {word-jlpt}' },
+    ]);
+    await stubShirabeWord(page, STUB_WORD_TWO_DICTIONARIES);
+    const calls = await stubAnkiConnect(page, [MINED_NOTE_ID]);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      await search.openFirstTokenCard();
+      await expect(page.getByTestId('word-dictionary-toggle-jmdict')).toBeVisible({ timeout: 10_000 });
+
+      await mine(page);
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+
+      const fields = writtenFieldsAny(calls);
+      expect(fields.Definition).toContain('てぬきをすること');
+      expect(fields.Definition).toContain('allowance');
+      // The literal text a single-substitution pass used to leave behind.
+      expect(fields.Definition).not.toContain('{definition:');
+      // A named dictionary in a field no longer swallows the rest of it.
+      expect(fields.Info).toBe(`${STUB_HEADWORD} (てかげん) — N1`);
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+
+  /**
+   * A composite mixing sentence and word placeholders, on the path that exists
+   * to leave the word alone.
+   *
+   * One word-level placeholder is enough to leave the whole field untouched:
+   * writing it with its word half blanked is exactly the glossary-clobbering
+   * "add context only" exists to prevent.
+   */
+  test('leaves a mixed field alone when adding context only', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, [
+      { key: 'Expression', value: '{word}' },
+      { key: 'Mixed', value: '{sentence-jp}<br>{definition}' },
+      { key: 'SentenceOnly', value: '{sentence-jp}' },
+      // Context about the LINE rather than the word, so it fills on this path
+      // even though it is only ever computed from a mined word.
+      { key: 'Marked', value: '{content_jp_highlight}' },
+    ]);
+    await stubShirabeWord(page, STUB_WORD_TWO_DICTIONARIES);
+    const calls = await stubAnkiConnect(page, [MINED_NOTE_ID]);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      await search.openFirstTokenCard();
+      await expect(minedMenuButton(page)).toBeVisible({ timeout: 10_000 });
+
+      await minedMenuButton(page).click();
+      await page.getByTestId('dropdown-menu').getByRole('button', { name: /Add this sentence/i }).click();
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+
+      const fields = writtenFieldsAny(calls);
+      // The sentence-only field still fills: it says nothing about the word.
+      expect(fields.SentenceOnly).toContain('<div>');
+      expect(fields.Marked).toContain('nd-target');
+      // The mixed one is not written at all, rather than written with a blank
+      // where the reader's glossary was.
+      expect(fields.Mixed).toBeUndefined();
+    } finally {
+      await clearAnkiProfiles(page);
+    }
   });
 });

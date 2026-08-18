@@ -1,11 +1,14 @@
 import { furiganaNotation, type EnrichedToken, type FuriganaSegment } from '~/utils/tokenEnrichment';
 import {
-  cardSenses,
-  pitchMorae,
-  shirabeWordUrl,
   type CardSense,
   type GlossPreference,
   type ShirabeWord,
+  cardSenses,
+  dictionaryKey,
+  headwordFurigana,
+  pitchCategory,
+  pitchMorae,
+  shirabeWordUrl,
 } from '~/utils/wordCard';
 
 /**
@@ -199,12 +202,69 @@ export interface MinedWord {
   reading: string;
   /** `手加減[てかげん]`, Anki's own ruby notation. */
   furigana: string;
-  /** Numbered senses, or '' when the dictionary had nothing the reader reads. */
+  /**
+   * Every dictionary's senses, numbered, or '' when none of them had anything
+   * the reader reads.
+   *
+   * ALWAYS the whole stack. It used to be "the first N dictionaries", with N set
+   * on the settings page, which meant a field mapped to `{definition}` quietly
+   * changed what it contained when a number moved on another screen. The two
+   * fields below are the split; this one is the answer to "what does this word
+   * mean", and it means the same thing forever.
+   */
   definition: string;
-  /** The dictionaries after the reader's primary ones, for `{definition-rest}`.
-   *  Empty unless they have set a cut point AND their stack answered with more
-   *  dictionaries than it. See `splitSenses`. */
-  definitionRest: string;
+  /**
+   * How many dictionaries the reader ticked, or 0 when they ticked none.
+   *
+   * Not content -- nothing writes it to a field. A pick has already been applied
+   * to the three definition fields above by the time this is read, and this is
+   * only here so the export event can report how often picking is used without
+   * inferring it from how long a definition came out.
+   */
+  pickedDictionaries: number;
+  /**
+   * How common the word is, as a corpus rank: `155`, plain digits.
+   *
+   * Its own field because Lapis sorts a deck on it (`FreqSort` <- Yomitan's
+   * `{frequency-harmonic-rank}`), and that needs a number Anki can order rather
+   * than the `#155` badge the card prints.
+   */
+  frequency: string;
+  /** The JLPT level the dictionary files the word under, `N3`. */
+  jlpt: string;
+  /**
+   * The accent patterns by name -- heiban, atamadaka, nakadaka, odaka -- one per
+   * recorded accent. The category is what a reader recognises; the downstep in
+   * `{word-pitch-num}` is what a template computes with.
+   */
+  pitchCategories: string;
+  /**
+   * The first dictionary in the reader's stack, for `{definition-first}`.
+   *
+   * Yomitan's `{glossary-first}` is the same idea: its template renders
+   * `definition.definitions.[0]`, which in grouped mode is the top dictionary in
+   * the reader's own priority order, and it ships `-brief` and `-no-dictionary`
+   * variants of it. Lapis does not use it -- its MainDefinition names a
+   * dictionary outright (`{single-glossary-jmdict/jitendex}`) -- so both shapes
+   * exist in the wild and this offers both.
+   *
+   * Worth having beside `{definition:<slug>}` because it needs no setup and
+   * cannot go stale: stack order is a preference the reader already expressed in
+   * Shirabe, and swapping a dictionary out re-points this for free where a named
+   * slug would quietly go empty.
+   */
+  definitionFirst: string;
+  /**
+   * One rendered definition per dictionary, keyed by SLUG, for
+   * `{definition:<slug>}`.
+   *
+   * Keyed on the slug rather than the name because this is what a stored Anki
+   * field mapping points at, and a name moves. Only dictionaries that actually
+   * answered for this word appear -- a reader who maps a dictionary the word is
+   * not in gets no key, which is what tells the export the field has nothing to
+   * say.
+   */
+  definitionsByDictionary: Record<string, string>;
   /** Mora diagram for the first accent pattern, or '' when there is none. */
   pitch: string;
   /**
@@ -238,15 +298,26 @@ export interface MinedWord {
   audioFilename: string | null;
 }
 
+/** Nothing ticked. Shared rather than defaulted to a fresh `new Set()` per call,
+ *  because `minedWord` runs inside a computed that re-evaluates on every hover:
+ *  a new empty set each time is a new identity each time, which is exactly the
+ *  kind of thing that quietly defeats a downstream memo. */
+const EMPTY_PICK: ReadonlySet<string> = new Set<string>();
+
 const EMPTY: MinedWord = {
   word: '',
   reading: '',
   furigana: '',
   definition: '',
-  definitionRest: '',
+  definitionFirst: '',
+  pickedDictionaries: 0,
+  definitionsByDictionary: {},
   pitch: '',
   info: '',
   pitchPositions: '',
+  frequency: '',
+  jlpt: '',
+  pitchCategories: '',
   sentenceHighlight: '',
   audioUrl: null,
   audioFilename: null,
@@ -320,53 +391,6 @@ function chips(sense: CardSense): string {
  * reader's own `GlossPreference` is what makes a Spanish reader's card land in
  * Spanish without this function knowing that is what it did.
  */
-/**
- * Splitting a card's senses across two Anki fields, at the reader's own cut
- * point.
- *
- * A hover card can render nine monolingual dictionaries, labelled and in stack
- * order, because the reader is looking at it now and can scroll. A note is read
- * months later on a phone, and one field holding fifty senses from nine
- * dictionaries is not a flashcard. But which dictionaries belong on the front of
- * a card is a judgement only the reader can make -- some want one monolingual
- * definition, some want a monolingual plus an English safety net -- so this is a
- * setting rather than a rule.
- *
- * `primary` is the first `count` dictionaries in stack order and fills
- * `{definition}`. `rest` is everything after them and fills `{definition-rest}`,
- * so a reader can put their main dictionary on the front of the card and the
- * others on the back.
- *
- * Counted in DICTIONARIES, not senses: cutting a dictionary in half would put
- * sense 4 of 三省堂 on one card face and sense 5 on the other, which is not a
- * division anybody means.
- *
- * `count` of zero, or anything below one, means "no cut": everything lands in
- * `{definition}` and `rest` is empty. That is the default, and it is what
- * `{definition}` did before this existed -- so nobody's existing note changes
- * shape until they ask for it.
- */
-export function splitSenses(
-  word: ShirabeWord,
-  preference: GlossPreference,
-  count: number,
-): { primary: CardSense[]; rest: CardSense[] } {
-  const senses = cardSenses(word, preference);
-  if (!Number.isFinite(count) || count < 1) return { primary: senses, rest: [] };
-
-  // Stack order is the order the senses already arrive in, so the first `count`
-  // DISTINCT dictionaries are simply the first ones seen.
-  const primaryDictionaries = new Set<string>();
-  for (const sense of senses) {
-    if (primaryDictionaries.size >= count && !primaryDictionaries.has(sense.dictionary)) break;
-    primaryDictionaries.add(sense.dictionary);
-  }
-
-  return {
-    primary: senses.filter((sense) => primaryDictionaries.has(sense.dictionary)),
-    rest: senses.filter((sense) => !primaryDictionaries.has(sense.dictionary)),
-  };
-}
 
 export function definitionHtml(senses: CardSense[]): string {
   if (senses.length === 0) return '';
@@ -517,12 +541,13 @@ export function pitchAudioFilename(reading: string, downstep: number, url: strin
 /** Shirabe's headword ruby in the shape the furigana renderer takes. A word with
  *  no alignment renders bare, exactly as a token with no `f` does. */
 function headwordSegments(word: ShirabeWord): FuriganaSegment[] {
-  const furigana = word.furigana ?? [];
+  // Same guard the card applies: ruby that does not spell the headword is about
+  // some other spelling, and writing it into `{word-furigana}` would put よう on
+  // a note whose word is 良う. Falling back to the plain headword is right rather
+  // than merely safe -- it is what the field held before furigana existed.
+  const furigana = headwordFurigana(word);
   if (furigana.length === 0) return [{ text: word.headword, reading: '' }];
-  return furigana.map((segment) => ({
-    text: segment.text,
-    reading: segment.ruby ?? '',
-  }));
+  return furigana;
 }
 
 /**
@@ -535,16 +560,17 @@ function headwordSegments(word: ShirabeWord): FuriganaSegment[] {
  * definitions, pitch, badges -- has no fallback, because there is nothing to
  * fall back TO and an empty string is what tells the store to leave the field
  * alone.
+ *
+ * @param picked Which DICTIONARIES the reader ticked in the card, by
+ *               `dictionaryKey`. Empty is the ordinary case and means "all of
+ *               them", which is what every definition field already holds.
  */
 export function minedWord(
   word: ShirabeWord | null,
   token: EnrichedToken | null,
   preference: GlossPreference,
   sentenceText = '',
-  /** How many dictionaries fill `{definition}` before the rest spill into
-   *  `{definition-rest}`. Zero means no cut, which is the default and what this
-   *  field did before the split existed. See `splitSenses`. */
-  primaryDictionaries = 0,
+  picked: ReadonlySet<string> = EMPTY_PICK,
 ): MinedWord {
   if (!word && !token) return EMPTY;
 
@@ -569,9 +595,56 @@ export function minedWord(
   // always has a way back to the word. Hung on only when there is a
   // definition: an empty string is what tells the store to leave the field
   // alone, and a lone link would count as content.
-  const { primary, rest } = splitSenses(word, preference, primaryDictionaries);
-  const senses = definitionHtml(primary);
-  const restSenses = definitionHtml(rest);
+  // `{definition}` is every dictionary; the split fields are the same senses cut
+  // in two. Rendered from `cardSenses` once via each half rather than
+  // concatenating the two, so the sense numbering in `{definition}` runs
+  // straight through the stack instead of restarting at the second dictionary.
+  const everything = cardSenses(word, preference);
+  /**
+   * A pick NARROWS the stack, and every field below is derived from what is
+   * left. That is the whole model: ticking 大辞泉 means "this word's card is a
+   * 大辞泉 card", so `{definition}` is 大辞泉, `{definition-first}` is 大辞泉,
+   * and a `{definition:jmdict}` field has nothing to say about this word.
+   *
+   * The alternative was routing the pick into a field of its own and leaving
+   * the definition whole -- which put both the shortlist and the full stack on
+   * one note, and made what a tick did depend on which fields happened to be
+   * mapped. One rule that always replaces is the one a reader can predict.
+   *
+   * Keyed on the dictionary rather than positionally, which is what makes a
+   * pick survive the card re-rendering under it: turning a gloss language off
+   * drops senses and renumbers the rest, and a pick stored as "rows 2 and 5"
+   * would then name different senses than the reader ticked. A dictionary that
+   * is no longer on the card simply matches nothing.
+   */
+  const all = picked.size === 0 ? everything : everything.filter((sense) => picked.has(dictionaryKey(sense)));
+  const senses = definitionHtml(all);
+
+  // Grouped after the fact rather than rendered per entry, so every one of these
+  // goes through the same `cardSenses` the card and the fields above used: the
+  // language selection, the repeated-part-of-speech blanking and the per
+  // dictionary cap are decided once, and a named dictionary cannot quietly
+  // disagree with the same senses shown in `{definition}`.
+  const byDictionary: Record<string, CardSense[]> = {};
+  for (const sense of all) {
+    const slug = sense.dictionarySlug;
+    if (!slug) continue;
+    if (!byDictionary[slug]) byDictionary[slug] = [];
+    byDictionary[slug].push(sense);
+  }
+  const definitionsByDictionary: Record<string, string> = {};
+  for (const [slug, group] of Object.entries(byDictionary)) {
+    const html = definitionHtml(group);
+    if (html) definitionsByDictionary[slug] = html;
+  }
+
+  // Stack order is the order the senses arrive in, so the first dictionary is
+  // whichever one the first sense came from. Grouped on the NAME rather than the
+  // slug, because a Shirabe too old to publish slugs still groups correctly by
+  // what it prints -- and this field must not go empty on that reader.
+  const firstDictionary = all[0]?.dictionary;
+  const firstSenses =
+    firstDictionary === undefined ? '' : definitionHtml(all.filter((sense) => sense.dictionary === firstDictionary));
 
   return {
     word: headword,
@@ -580,9 +653,17 @@ export function minedWord(
     reading: reading === headword ? '' : reading,
     furigana: furiganaNotation(headwordSegments(word)),
     definition: senses ? `${senses}${definitionSourceHtml(word, preference.labels)}` : '',
-    // No source link: it is the same word, and two links to it on one note is
-    // one more than anybody needs.
-    definitionRest: restSenses,
+    // The source link rides on the two fields that can stand alone as the whole
+    // answer. Not on `{definition:<slug>}`: a note mapping a named dictionary
+    // almost always maps `{definition}` beside it, and two links to the same word
+    // on one note is one more than anybody needs.
+    definitionFirst: firstSenses ? `${firstSenses}${definitionSourceHtml(word, preference.labels)}` : '',
+    definitionsByDictionary,
+    // How many dictionaries the reader ticked, for the export event. Not a field
+    // anything writes: the pick is already visible in the three above, and this
+    // is only here so the rate of picking can be read without inferring it from
+    // definition lengths.
+    pickedDictionaries: picked.size,
     // The reading the diagram is drawn over is the DICTIONARY's, not the token's:
     // morae are counted off it, and counting them off an inflected reading would
     // put the downstep in the wrong place.
@@ -592,6 +673,15 @@ export function minedWord(
     pitchPositions: (word.pitch ?? [])
       .map((pattern) => pattern.downstep)
       .filter((downstep) => Number.isInteger(downstep))
+      .join(', '),
+    // Digits only. A rank of 0 is a real and very common word, so this guards on
+    // the TYPE rather than on truthiness -- otherwise the commonest words in the
+    // language would be the ones whose frequency field never filled.
+    frequency: typeof word.frequency === 'number' ? String(word.frequency) : '',
+    jlpt: word.jlpt ?? '',
+    pitchCategories: (word.pitch ?? [])
+      .map((pattern) => pitchCategory(word.reading ?? headword, pattern.downstep))
+      .filter((name) => name !== '')
       .join(', '),
     info: infoHtml(word),
     sentenceHighlight: highlightedSentence(sentenceText, token),
