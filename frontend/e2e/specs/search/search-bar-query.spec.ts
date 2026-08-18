@@ -60,3 +60,56 @@ test.describe('The search bar shows the search in the URL', () => {
     await expect(search.searchInput).toHaveValue('');
   });
 });
+
+/**
+ * The consequence of the rule above: a results page arrives with the bar full,
+ * so the reader who wants a different search has to empty it first.
+ *
+ * There used to be nothing to press, and the heatmap showed what they did
+ * instead -- roughly 5.8k rageclicks in thirty days, all on this input, a few
+ * pixels right of where the query text ends. That is a triple-click select-all,
+ * counted as rage because it is three clicks in one spot. The field itself was
+ * never broken, which is why nothing else caught this: it just asked for a
+ * gesture where it should have offered a control.
+ */
+test.describe('Clearing the search bar', () => {
+  test('the button is there only when there is something to clear', async ({ page }) => {
+    const search = new SearchPage(page);
+    await search.goto('猫');
+    await search.expectResultsVisible();
+    await expect(search.searchClear).toBeVisible();
+
+    await search.searchClear.click();
+    await expect(search.searchClear).toBeHidden();
+  });
+
+  test('clearing empties the bar and leaves the caret in it', async ({ page }) => {
+    const search = new SearchPage(page);
+    await search.goto('学校');
+    await search.expectResultsVisible();
+
+    const urlBefore = page.url();
+    await search.searchClear.click();
+
+    await expect(search.searchInput).toHaveValue('');
+    // Focus comes back to the field rather than staying on the button, so the
+    // next keystroke is the next search instead of being swallowed.
+    await expect(search.searchInput).toBeFocused();
+    // Clearing the bar is not a navigation: the results under it are still the
+    // ones the URL names until a new search is submitted.
+    expect(page.url()).toBe(urlBefore);
+  });
+
+  test('a cleared bar can be typed into and searched straight away', async ({ page }) => {
+    const search = new SearchPage(page);
+    await search.goto('学校');
+    await search.expectResultsVisible();
+
+    await search.searchClear.click();
+    await search.searchInput.fill('猫');
+    await search.searchInput.press('Enter');
+
+    await page.waitForURL(/\/search\/%E7%8C%AB$/, { timeout: 15_000, waitUntil: 'commit' });
+    await expect(search.searchInput).toHaveValue('猫');
+  });
+});
