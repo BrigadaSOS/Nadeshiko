@@ -86,14 +86,23 @@ interface PendingFlow {
  * callback opens it. Shirabe sees an opaque string; the browser carries a blob
  * only we can read.
  */
+/** Its own key, derived from the same root as the stored tokens but unrelated to
+ *  it: a `state` handed around in a browser URL should not share key material
+ *  with credentials sitting in the database. */
+const STATE_CONTEXT = { purpose: 'shirabe.oauth-state' } as const;
+
+/** Bound to the reader, so a ciphertext lifted into another reader's row fails
+ *  to open rather than handing them someone else's Shirabe key. */
+const tokenContext = (userId: number) => ({ purpose: 'shirabe.token', aad: String(userId) });
+
 function sealFlow(flow: PendingFlow): string {
-  return encryptSecret(JSON.stringify(flow), connectionSecret());
+  return encryptSecret(JSON.stringify(flow), connectionSecret(), STATE_CONTEXT);
 }
 
 function openFlow(state: string): PendingFlow {
   let flow: PendingFlow;
   try {
-    flow = JSON.parse(decryptSecret(state, connectionSecret())) as PendingFlow;
+    flow = JSON.parse(decryptSecret(state, connectionSecrets(), STATE_CONTEXT)) as PendingFlow;
   } catch {
     // Deliberately the same message for a forged state, a corrupt one, and one
     // sealed under a rotated secret: a caller cannot use the difference to
@@ -106,6 +115,15 @@ function openFlow(state: string): PendingFlow {
   }
 
   return flow;
+}
+
+/**
+ * Every key a stored value might have been sealed with: the current one first,
+ * then the one being rotated out if there is one. Writing always uses
+ * `connectionSecret`; only reading looks past it.
+ */
+function connectionSecrets(): string[] {
+  return [config.SHIRABE_CONNECTION_SECRET, config.SHIRABE_CONNECTION_SECRET_PREVIOUS].filter(Boolean);
 }
 
 function connectionSecret(): string {
@@ -286,7 +304,7 @@ async function saveConnection(userId: number, token: TokenResponse, profile: MeR
   // old key cannot be reached still gets the link they asked for.
   if (connection.tokenCiphertext) await revokeKey(readToken(connection), userId);
 
-  connection.tokenCiphertext = encryptSecret(token.apiKey, connectionSecret());
+  connection.tokenCiphertext = encryptSecret(token.apiKey, connectionSecret(), tokenContext(userId));
   connection.tokenPrefix = token.apiKey.slice(0, 12);
   connection.scopes = grantedScopes(token, profile);
   connection.shirabeName = profile.user?.displayName || profile.user?.name || null;
@@ -326,7 +344,7 @@ export async function findConnection(userId: number): Promise<ShirabeConnection 
 /** The stored key, in the clear. Only two callers have any business with this:
  *  the lookup path, and `unlink`, which hands it back to Shirabe to revoke. */
 export function readToken(connection: ShirabeConnection): string {
-  return decryptSecret(connection.tokenCiphertext, connectionSecret());
+  return decryptSecret(connection.tokenCiphertext, connectionSecrets(), tokenContext(connection.userId));
 }
 
 /**

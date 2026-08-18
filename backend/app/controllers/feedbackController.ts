@@ -56,12 +56,24 @@ interface FormToken {
  * "no token is ever valid", which would turn the widget off in exactly the
  * environment nobody checked.
  */
+/**
+ * Its own key, which matters more here than anywhere else: the root secret is
+ * `BETTER_AUTH_SECRET`, the value that also secures sessions. Deriving a
+ * separate key per purpose means a form token can never be mistaken for -- or
+ * used to attack -- anything the auth secret protects.
+ */
+const FORM_TOKEN_CONTEXT = { purpose: 'feedback.form-token' } as const;
+
 function formTokenSecret(): string {
   return config.BETTER_AUTH_SECRET;
 }
 
 export const getFeedbackFormToken: GetFeedbackFormToken = async (_params, respond) => {
-  const token = encryptSecret(JSON.stringify({ issuedAt: Date.now() } satisfies FormToken), formTokenSecret());
+  const token = encryptSecret(
+    JSON.stringify({ issuedAt: Date.now() } satisfies FormToken),
+    formTokenSecret(),
+    FORM_TOKEN_CONTEXT,
+  );
   return respond.with200().body({ token });
 };
 
@@ -131,7 +143,7 @@ function automatedReason(nickname: string | undefined, formToken: string): strin
 
   let token: FormToken;
   try {
-    token = JSON.parse(decryptSecret(formToken, formTokenSecret())) as FormToken;
+    token = JSON.parse(decryptSecret(formToken, formTokenSecret(), FORM_TOKEN_CONTEXT)) as FormToken;
   } catch {
     // Forged, corrupt, or sealed under a rotated secret. Indistinguishable here,
     // and all three mean the form this came from is not one we served.
