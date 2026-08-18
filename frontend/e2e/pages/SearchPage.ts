@@ -3,6 +3,7 @@ import { type Locator, type Page, expect } from '@playwright/test';
 export class SearchPage {
   readonly page: Page;
   readonly searchInput: Locator;
+  readonly searchClear: Locator;
   readonly searchButton: Locator;
   readonly categoryTabs: Locator;
   readonly segmentCards: Locator;
@@ -20,6 +21,8 @@ export class SearchPage {
   constructor(page: Page) {
     this.page = page;
     this.searchInput = page.getByTestId('search-input');
+    // Only in the DOM while the bar holds something to clear.
+    this.searchClear = page.getByTestId('search-clear');
     this.recentsMenu = page.getByTestId('search-recents');
     this.recentsItems = page.getByTestId('search-recents-item');
     this.recentsClear = page.getByTestId('search-recents-clear');
