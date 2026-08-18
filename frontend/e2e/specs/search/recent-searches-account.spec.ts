@@ -61,12 +61,29 @@ test.describe('Recent searches (account)', () => {
     await search.expectResultsVisible();
     await expect.poll(() => accountSearchQueries(authenticatedPage), { timeout: 15_000 }).toContain(QUERY);
 
+    // Everything the clear is responsible for, read just before it runs.
+    const before = await accountSearchQueries(authenticatedPage);
+
     await authenticatedPage.goto('/search');
     await search.expectHydrated();
     await search.openRecents();
     await search.recentsClear.click();
 
     await expect(search.recentsMenu).toBeHidden();
-    await expect.poll(() => accountSearchQueries(authenticatedPage), { timeout: 15_000 }).toHaveLength(0);
+    // None of those survive -- rather than the history being empty outright.
+    // The E2E account is shared and the suite runs its files in parallel, so
+    // another spec searching a moment after the clear lands puts a row back and
+    // an emptiness assertion fails on work this test did not do. What the clear
+    // actually promises is that what WAS there is gone, and from the account
+    // rather than only from this browser.
+    await expect
+      .poll(
+        async () => {
+          const after = await accountSearchQueries(authenticatedPage);
+          return after.filter((query) => before.includes(query));
+        },
+        { timeout: 15_000 },
+      )
+      .toHaveLength(0);
   });
 });
