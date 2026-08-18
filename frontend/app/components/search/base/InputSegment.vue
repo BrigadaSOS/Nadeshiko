@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiTextSearch } from '@mdi/js';
+import { mdiClose, mdiTextSearch } from '@mdi/js';
 import { decodeSearchQuery } from '~/utils/routes';
 import { RECENTS_LISTBOX_ID, recentOptionId } from '~/utils/searchRecents';
 
