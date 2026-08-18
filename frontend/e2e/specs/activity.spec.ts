@@ -85,7 +85,41 @@ test.describe('Activity', () => {
     // Click the audio play button on the first result
     const playButton = authenticatedPage.getByTestId('audio-play-button').first();
     await expect(playButton).toBeVisible({ timeout: 15_000 });
+
+    /**
+     * Armed BEFORE the click, and waiting on the write rather than polling for
+     * its result.
+     *
+     * The activity is only recorded once `audio.play()` RESOLVES -- see
+     * `startAudio` in the player store -- so this waits on a real clip being
+     * fetched from the CDN and decoded, which on a CI runner is neither instant
+     * nor reliably under any particular number of seconds. Polling the activity
+     * list for 15s was really a 15s budget for the network, and it ran out often
+     * enough to make this the flakiest test in the suite.
+     *
+     * Waiting on the request the play produces removes the guess: it arrives
+     * when playback actually started, however long that took. And when playback
+     * genuinely cannot start, this fails saying the write never happened rather
+     * than that a list was empty.
+     */
+    const recorded = authenticatedPage.waitForResponse(
+      (response) =>
+        response.url().includes('/v1/user/activity') &&
+        response.request().method() === 'POST' &&
+        // Matched on the BODY, not just the endpoint: the search a few lines up
+        // posts to the same route, and a SEARCH write landing late would satisfy
+        // a waiter that only checked the URL -- passing this test without any
+        // audio having played.
+        (response.request().postData() ?? '').includes('SEGMENT_PLAY') &&
+        response.ok(),
+      { timeout: 45_000 },
+    );
+
     await playButton.click();
+    await recorded;
+
+    // Still asked for afterwards: the write returning 200 is not the same as it
+    // being readable, and the history below is rendered from the read side.
     await waitForActivity(authenticatedPage, 'SEGMENT_PLAY');
 
     // Check activity history shows an Audio Play entry

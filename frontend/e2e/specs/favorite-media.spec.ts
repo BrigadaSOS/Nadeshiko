@@ -125,9 +125,23 @@ test.describe('Favorite Media', () => {
       // this test picked, which is the property that actually matters: what the
       // server rendered has to be what the account holds, not what the page it
       // came from happened to remember.
-      const stored = await authenticatedPage.request.get('/v1/user/favorite-media');
-      const { favoriteMedia } = await stored.json();
-      expect(favoriteMedia.length).toBeGreaterThan(0);
+      // Polled, not read once. `aria-pressed` flips optimistically the moment
+      // the star is clicked, so the assertion above is satisfied while the write
+      // is still in flight -- and a single read a millisecond later legitimately
+      // sees an account that has not been updated yet. Waiting for the title
+      // itself to appear also says more than a count does: it is the one that
+      // was starred, not merely that something is starred.
+      const fetchFavorites = async (): Promise<Array<{ publicId: string }>> => {
+        const stored = await authenticatedPage.request.get('/v1/user/favorite-media');
+        const { favoriteMedia } = await stored.json();
+        return favoriteMedia;
+      };
+
+      await expect
+        .poll(async () => (await fetchFavorites()).map((media) => media.publicId), { timeout: 15_000 })
+        .toContain(rowId);
+
+      const favoriteMedia = await fetchFavorites();
 
       const favorites = new FavoriteMediaPage(authenticatedPage);
       await favorites.goto();
