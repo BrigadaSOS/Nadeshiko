@@ -32,7 +32,9 @@ let fixtures: CoreFixtures;
 
 /** A token as the endpoint would have issued it, aged by `ageMs`. */
 function tokenIssued(ageMs: number): string {
-  return encryptSecret(JSON.stringify({ issuedAt: Date.now() - ageMs }), config.BETTER_AUTH_SECRET);
+  return encryptSecret(JSON.stringify({ issuedAt: Date.now() - ageMs }), config.BETTER_AUTH_SECRET, {
+    purpose: 'feedback.form-token',
+  });
 }
 
 const VALID_TOKEN = () => tokenIssued(5_000);
