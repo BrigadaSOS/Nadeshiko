@@ -9,6 +9,13 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
+## 2.4.3 (2026-08-20)
+
+### Fixes
+
+- **Sentences**: a link with a malformed id now says the sentence was not found, instead of showing an error page. 2.4.2 fixed this for ids that were the right shape but no longer existed; an id of the wrong shape entirely — `/sentence/13123123123` — is rejected before we ever look it up, and that case was still reporting a fault on our side. The same applied to titles and collections.
+- **Menus on phones**: the menus behind the buttons under each sentence — Add, Save, Copy and the overflow — now stay on screen. Copy sits far enough to the right that its menu ran off the edge of a phone, so part of it could not be read or tapped, and the same anchoring left the others with an odd gap on one side. The sort menu in the search filters and the one on the media page had the same problem.
+
 ## 2.4.2 (2026-08-20)
 
 ### Highlights
