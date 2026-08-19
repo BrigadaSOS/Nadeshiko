@@ -158,8 +158,21 @@ const onDocumentKeydown = (event: KeyboardEvent) => {
   close();
 };
 
-const onWindowScroll = () => {
-  if (props.teleport) close();
+/**
+ * A teleported menu is placed against the viewport, so it stops matching its
+ * trigger the moment the page moves under it -- closing is the honest response.
+ *
+ * Its OWN scrolling is not that. A menu with a scrolling body (the hidden-results
+ * breakdown caps at `max-h-64`) raises scroll events like anything else, and this
+ * listener is on `window` in the capture phase, so it sees them: the reader
+ * reached for the list and the list vanished. The menu has not moved relative to
+ * anything, so there is nothing to close for.
+ */
+const onWindowScroll = (event: Event) => {
+  if (!props.teleport) return;
+  const target = event.target;
+  if (target instanceof Node && menuRef.value?.contains(target)) return;
+  close();
 };
 
 watch(isOpen, async (open) => {

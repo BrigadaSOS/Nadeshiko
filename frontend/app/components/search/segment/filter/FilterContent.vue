@@ -280,7 +280,7 @@ const applyPendingFocus = () => {
                 <!-- An episode is not a thing you star, but the title above it is:
                      the empty star column keeps these counts under that one. -->
                 <template #trailing>
-                    <SearchSegmentFilterFavoriteStar :media="{ mediaPublicId: null }" class="mr-4" />
+                    <SearchSegmentFilterFavoriteStar :media="{ mediaPublicId: null }" class="mr-2" />
                 </template>
             </SearchSegmentFilterRow>
             <div v-if="episodesList.length === 0">
@@ -301,7 +301,7 @@ const applyPendingFocus = () => {
                 :selected="item.mediaPublicId === selectedMediaId"
                 @select="filterAnime(item.mediaPublicId, item.displayName, item.slug)">
                 <template #trailing>
-                    <SearchSegmentFilterFavoriteStar :media="item" class="mr-4" />
+                    <SearchSegmentFilterFavoriteStar :media="item" class="mr-2" />
                 </template>
             </SearchSegmentFilterRow>
         </div>
