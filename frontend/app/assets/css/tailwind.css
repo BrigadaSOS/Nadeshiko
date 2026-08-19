@@ -61,7 +61,7 @@
      actions, and compact selects. A hairline on `--control` so the fill does
      not vanish into a card, muted ink, and a lift on hover. */
   .nd-btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium whitespace-nowrap;
+    @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium whitespace-nowrap;
     background: var(--control);
     color: var(--ink-faint);
     border: 1px solid var(--line);
@@ -107,6 +107,18 @@
   [dir="rtl"] select.nd-input,
   [dir="rtl"] select.nd-select {
     background-position: left 0.75rem center;
+  }
+
+  /* One control height, shared by every single-line control.
+     `h-9` rather than matching padding, because padding and font size cannot be
+     relied on to agree across a select, an input and a button -- a select's
+     intrinsic height is the browser's, so it never lined up with a button no
+     matter what padding it was given. Buttons carry the same `h-9`.
+     `:not(textarea)` because a textarea using `.nd-input` sizes from its
+     `rows`, and pinning it would collapse all seven of them. */
+  .nd-input:not(textarea),
+  .nd-select {
+    @apply h-9;
   }
 
   .nd-input {
@@ -159,14 +171,31 @@
     @apply text-base font-semibold text-white;
   }
 
+  /* One setting: what it is, and the control that changes it.
+     Side by side from `sm` up, stacked below it. A select sharing a phone's
+     width with two lines of description leaves neither usable -- the
+     description wraps to four words a line and grows the row taller than the
+     card it sits in, while the control is squeezed to little more than its own
+     chevron. Stacked, the control takes the full width instead. */
+  .nd-settings-row {
+    @apply flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4;
+  }
+
   .nd-input::placeholder {
     color: var(--ink-faint);
   }
 
-  /* The primary call-to-action button. */
+  /* The primary call-to-action button. Same height as `nd-btn`, and `inline-flex`
+     with a gap so the ones carrying an icon do not have to re-state it. */
   .nd-btn-accent {
-    @apply py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white;
+    @apply inline-flex h-9 items-center justify-center gap-1.5 py-2 px-4 text-sm font-semibold rounded-lg bg-button-accent-main text-white;
     @apply hover:bg-button-accent-hover disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  /* The destructive twin of `nd-btn-accent`, for Delete and Revoke. */
+  .nd-btn-danger {
+    @apply inline-flex h-9 items-center justify-center gap-1.5 py-2 px-4 text-sm font-medium rounded-lg bg-white/10 text-red-400;
+    @apply hover:bg-red-500/20 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   /*

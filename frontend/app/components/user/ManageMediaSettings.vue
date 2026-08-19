@@ -122,30 +122,34 @@ const onToggleHidden = async (media: MarkedMedia) => {
       {{ t('favoriteMedia.capReached') }}
     </p>
 
-    <div v-if="rows.length > 0" class="mt-3 overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
-        <thead>
+    <!-- Below `md` the title and its other names stack, with the two controls
+         pinned to the right of the title. Both name columns truncate, so shared
+         between them a phone's width leaves neither readable. -->
+    <div v-if="rows.length > 0" class="mt-3 md:overflow-x-auto">
+      <table class="block w-full md:table md:min-w-full md:divide-y md:divide-gray-200 md:dark:divide-white/20">
+        <thead class="hidden md:table-header-group">
           <tr>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.hiddenMediaTable.media') }}</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.hiddenMediaTable.otherNames') }}</th>
             <th class="py-2 text-right text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.account.manageMediaTableActions') }}</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+        <tbody class="block md:table-row-group md:divide-y md:divide-gray-200 md:dark:divide-white/10">
           <tr
             v-for="media in rows"
             :key="media.publicId"
             :data-testid="isSearching ? 'media-lookup-result' : 'managed-media-item'"
             :data-favorite="isFavorite(media.publicId) ? 'true' : 'false'"
             :data-hidden="isMediaHidden(media.publicId) ? 'true' : 'false'"
+            class="flex flex-wrap items-center gap-x-3 border-b border-white/10 py-3 last:border-0 md:table-row md:border-0 md:py-0"
           >
-            <td lang="ja" class="py-3 text-sm text-gray-100 max-w-[18rem]">
+            <td lang="ja" class="order-1 min-w-0 flex-1 text-sm text-gray-100 md:flex-none md:table-cell md:py-3 md:max-w-[18rem]">
               <p class="font-medium truncate">{{ displayMediaName(media) }}</p>
             </td>
-            <td lang="ja" class="py-3 text-xs text-gray-400 max-w-[24rem]">
+            <td lang="ja" class="order-3 w-full min-w-0 text-xs text-gray-400 md:order-none md:w-auto md:table-cell md:py-3 md:max-w-[24rem]">
               <p class="truncate">{{ secondaryMediaNames(media) || '-' }}</p>
             </td>
-            <td class="py-3 text-sm whitespace-nowrap">
+            <td class="order-2 text-sm whitespace-nowrap md:table-cell md:py-3">
               <!-- 44px targets, 8px apart. This is a settings table with room to
                    spare, and both controls are icon-only, so the tap area is all
                    there is to aim at; the gap keeps two adjacent targets from
