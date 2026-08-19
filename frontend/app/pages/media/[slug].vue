@@ -9,6 +9,7 @@ import {
   pageTitle,
   socialTitle,
 } from '~/utils/metaTags';
+import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
 import { mediaSameAsUrls } from '~/utils/media';
 
@@ -64,8 +65,10 @@ const { data: media, error: mediaError } = await useAsyncData<Media | null>(
       (fetchError: { statusCode?: number; status?: number }) => {
         // A retired or mistyped slug is a genuine 404; anything else is our own
         // lookup failing and must not be dressed up as "this title does not exist".
-        const status = fetchError?.statusCode ?? fetchError?.status;
-        if (status === 404) return null;
+        // 400 as well as 404: the id pattern is enforced by the API, so a
+        // malformed one is rejected before the lookup and means the same thing
+        // to a reader -- no such page. See `isMissing`.
+        if (isMissing(apiErrorStatus(fetchError))) return null;
         reportError('media:slug-resolve-failed', fetchError, { 'media.slug': slug.value });
         throw fetchError;
       },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiErrorStatus } from './apiError';
+import { apiErrorStatus, isMissing } from './apiError';
 
 /**
  * The case that matters is the last one. `apiErrorStatus` exists because
@@ -38,5 +38,24 @@ describe('apiErrorStatus', () => {
     // shared prototype.
     const acrossBundles = JSON.parse(JSON.stringify({ status: 404, code: 'NOT_FOUND' }));
     expect(apiErrorStatus(acrossBundles)).toBe(404);
+  });
+});
+
+describe('isMissing', () => {
+  it('treats 404 as no such thing', () => {
+    expect(isMissing(404)).toBe(true);
+  });
+
+  it('treats 400 as no such thing, because the id never reached a lookup', () => {
+    // The half that was missed. Public ids are ^[A-Za-z0-9_-]{12}$ and the API
+    // rejects anything else before the handler runs, so /sentence/13123123123
+    // came back 400 and the page rendered 500.
+    expect(isMissing(400)).toBe(true);
+  });
+
+  it('leaves real faults alone', () => {
+    for (const status of [500, 502, 503, 429, 403, 401, 200, undefined]) {
+      expect(isMissing(status)).toBe(false);
+    }
   });
 });

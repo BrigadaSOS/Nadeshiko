@@ -73,3 +73,21 @@ export function apiErrorStatus(err: unknown): number | undefined {
   if (typeof candidate.statusCode === 'number') return candidate.statusCode;
   return undefined;
 }
+
+/**
+ * Whether a failed lookup means "no such thing" rather than "we broke".
+ *
+ * 404 is the obvious half. 400 is the half that got missed, and it left the
+ * original bug half-fixed: every public id is `^[A-Za-z0-9_-]{12}$`, validated
+ * at the API before the handler runs, so a malformed one comes back 400 without
+ * anything ever being looked up. `/es/sentence/13123123123` is eleven digits --
+ * it returned 400, fell through to the failure branch, and rendered 500 at a
+ * point where the only honest answer was "that is not an address".
+ *
+ * Sound only where the URL is the entire input to the call, which is the case
+ * for these id lookups: nothing else can be malformed, so a 400 cannot be
+ * reporting our mistake. Do not reach for this on a call that sends a body.
+ */
+export function isMissing(status: number | undefined): boolean {
+  return status === 404 || status === 400;
+}

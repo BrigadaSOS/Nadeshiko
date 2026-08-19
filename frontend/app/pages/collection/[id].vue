@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isMissing } from '~/utils/apiError';
 import { resolveSearchResponse, resolveStatsResponse } from '~/utils/resolvers';
 import { DEFAULT_OG_IMAGE_PATH, DEFAULT_OG_IMAGE_SIZE, buildOgImageTags, socialTitle } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
@@ -34,7 +35,8 @@ const fetchSentenceData = async () => {
     }
     // A deleted or mistyped collection link is a genuine 404; anything else is our
     // own failure and must not be dressed up as "this collection does not exist".
-    if (status === 404) return null;
+    // 400 too -- a malformed id is rejected before the lookup. See `isMissing`.
+    if (isMissing(status)) return null;
     throw result.error;
   }
 
