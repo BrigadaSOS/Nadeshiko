@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiCheckBold } from '@mdi/js';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { handleApiError } from '~/utils/apiError';
 
 /**
@@ -18,6 +18,7 @@ import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const localePath = useLocalePath();
 
 const state = ref<'working' | 'done' | 'failed'>('working');
@@ -44,6 +45,13 @@ onMounted(async () => {
       { method: 'POST', body: { code, state: sealed } },
     );
     shirabeName.value = connection?.shirabeName || t('connections.shirabe.anonymous');
+    // The code is spent and the state has done its job; neither belongs in the
+    // address bar any longer. Left there, a reload re-posted a consumed code
+    // and told the reader a link that had worked seconds ago had failed, and
+    // the code sat in browser history for good measure. Only on success: on a
+    // failure the URL stays, so a reload is a retry for the one case where
+    // that helps (the exchange never reached Shirabe).
+    await router.replace({ path: route.path, query: {} });
     // Says so and stops, rather than redirecting to settings on its own. A
     // redirect here spends the one moment the reader is looking for an answer:
     // they approved something on another site, came back, and the page they
@@ -52,8 +60,15 @@ onMounted(async () => {
     state.value = 'done';
   } catch (caught) {
     state.value = 'failed';
-    message.value = t('connections.callback.failed');
-    handleApiError('shirabeConnection.callback', caught);
+    // The one failure the reader can do something about on their own: the
+    // session ran out (or was never here -- another browser opened the magic
+    // link) while they were over at Shirabe. Named, so the page does not say
+    // "could not be completed" about a link that only needs them signed in.
+    const status =
+      (caught as { status?: number; response?: { status?: number } })?.status ??
+      (caught as { response?: { status?: number } })?.response?.status;
+    message.value = status === 401 ? t('connections.callback.signedOut') : t('connections.callback.failed');
+    handleApiError('shirabeConnection.callback', caught, { toastKey: false });
   }
 });
 </script>

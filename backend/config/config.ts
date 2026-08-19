@@ -62,6 +62,14 @@ const envSchema = z.object({
   SHIRABE_OAUTH_CLIENT_ID: z.string().default('nadeshiko'),
   SHIRABE_OAUTH_REDIRECT_URI: z.string().default(''),
   /**
+   * We are a CONFIDENTIAL client over there: a server that can keep a secret,
+   * and so must present it at the token endpoint on every exchange, renewal and
+   * revocation. Minted once by `bin/rails oauth_clients:register ...
+   * CONFIDENTIAL=1` on Shirabe and shown once; only its digest lives there.
+   * Empty means we would be refused as a client, so linking is off.
+   */
+  SHIRABE_OAUTH_CLIENT_SECRET: z.string().default(''),
+  /**
    * Key material, not a passphrase.
    *
    * Empty means the connection feature is off, which is a real deployment and

@@ -31,7 +31,6 @@ interface Connection {
   disconnected: boolean;
   linkedAt: string;
   shirabeName: string | null;
-  tokenPrefix: string;
   scopes: string[];
   dictionaries: string[];
   /** Slug => display name, as Shirabe names them. Empty for a link made before

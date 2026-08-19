@@ -21,6 +21,12 @@ const PREFERENCE_WRITE_PATHS = [
   /^\/v1\/user\/preferences\/?$/,
   /^\/v1\/user\/excluded-media(?:\/|$)/,
   /^\/v1\/user\/favorite-media(?:\/|$)/,
+  // Not a preferences column, but the same cached identity: `get-session`
+  // folds `user.shirabe` (linked, stack fingerprint) into what this cache
+  // stores, and linking (`POST .../callback`) or unlinking (`DELETE`) moves it.
+  // Left out, a reader who had just linked got the default dictionaries for a
+  // minute -- their first lookups being the ones they linked to change.
+  /^\/v1\/user\/connections\/shirabe(?:\/callback)?\/?$/,
 ];
 
 export function writesPreferences(method: string, pathname: string): boolean {
