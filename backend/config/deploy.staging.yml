@@ -75,6 +75,10 @@ env:
     # not cover stg.nadeshiko.co -- and its own secret, so a dump of one
     # environment does not decrypt the other's stored keys.
     - SHIRABE_CONNECTION_SECRET
+    # Our client secret at Shirabe (a confidential OAuth client): presented on
+    # every token exchange, renewal and revocation. Unset, Shirabe refuses us as
+    # a client and linking is off.
+    - SHIRABE_OAUTH_CLIENT_SECRET
 
   clear:
     ENVIRONMENT: development
