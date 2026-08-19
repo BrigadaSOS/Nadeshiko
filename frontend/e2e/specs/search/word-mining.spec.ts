@@ -736,6 +736,50 @@ test.describe('Word card mining', () => {
     }
   });
 
+  /**
+   * "Select all" is the way BACK from a pick that went one dictionary too far,
+   * not another way to choose: it lands on the same note "Deselect all" does.
+   *
+   * It offers itself only while something is left to tick -- a control that
+   * cannot change the row it sits in would be claiming an effect it does not
+   * have -- so the button disappearing IS the assertion that every dictionary
+   * is now on the card.
+   */
+  test('select all puts every dictionary back on the note', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, WORD_FIELDS);
+    await stubShirabeWord(page, STUB_WORD_TWO_DICTIONARIES);
+    const calls = await stubAnkiConnect(page, [MINED_NOTE_ID]);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      await search.openFirstTokenCard();
+      await expect(page.getByTestId('word-dictionary-toggle-jmdict')).toBeVisible({ timeout: 10_000 });
+
+      await page.getByTestId('word-dictionary-toggle-jmdict').click();
+      await expect(page.getByTestId('word-pick-summary')).toContainText('1 of 2');
+
+      await page.getByTestId('word-pick-select-all').click();
+      await expect(page.getByTestId('word-pick-summary')).toContainText('2 of 2');
+      await expect(page.getByTestId('word-pick-select-all')).toHaveCount(0);
+      // The row itself stays: the reader is still holding a pick, and
+      // "Deselect all" is how they put it down.
+      await expect(page.getByTestId('word-pick-deselect-all')).toBeVisible();
+
+      await mine(page);
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+
+      const fields = writtenFieldsAny(calls);
+      expect(fields.Definition).toContain('allowance');
+      expect(fields.Definition).toContain('てぬきをすること');
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+
   /** A pick describes the dictionaries in front of the reader. Reopening the
    *  card must not inherit it, or one word's shortlist trims another word's
    *  definition. */
