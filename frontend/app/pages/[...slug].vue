@@ -150,9 +150,7 @@ useHead(() => ({
           { property: 'article:modified_time', content: contentDate.value },
         ]
       : []),
-    ...(isBlogPost.value && contentAuthor.value
-      ? [{ property: 'article:author', content: contentAuthor.value }]
-      : []),
+    ...(isBlogPost.value && contentAuthor.value ? [{ property: 'article:author', content: contentAuthor.value }] : []),
     ...buildOgImageTags(`${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`, DEFAULT_OG_IMAGE_SIZE),
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: title.value },
