@@ -40,6 +40,10 @@ env:
     # be rotated without re-encrypting what is stored, or every linked account
     # stops working at once.
     - SHIRABE_CONNECTION_SECRET
+    # Our client secret at Shirabe (a confidential OAuth client): presented on
+    # every token exchange, renewal and revocation. Unset, Shirabe refuses us as
+    # a client and linking is off.
+    - SHIRABE_OAUTH_CLIENT_SECRET
 
     - EMAIL_API_NADEDB
     - USERNAME_API_NADEDB
