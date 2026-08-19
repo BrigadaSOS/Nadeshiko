@@ -8,7 +8,7 @@ import {
   reportShirabeRefusal,
   reportStackFingerprint,
 } from '~~/server/utils/shirabeReader';
-import { withoutNameEntries } from '~~/server/utils/shirabeNames';
+import { distinctNameAnswers, withoutNameEntries } from '~~/server/utils/shirabeNames';
 
 /**
  * Which words a token could be, ranked, with their definitions.
@@ -218,6 +218,23 @@ const handler = defineEventHandler(async (event) => {
     const candidates = words.length > 0 ? words : all;
     if (!candidates.length) throw createError({ statusCode: 404, statusMessage: 'No entry for this word' });
 
+    // ...but only when being a name is genuinely all there is to say.
+    //
+    // The paragraph above is right about 明日香 and wrong about ドラえもん, and the
+    // difference is not names, it is repetition. 明日香 is four people and four
+    // glosses, so one line beats a picker of strangers. ドラえもん is two
+    // candidates saying the same sentence -- "Doraemon (manga by Fujiko F. Fujio;
+    // media franchise)" -- and 織田信長 is one. Answering those with "this looks
+    // like a name" throws away the definition the reader came for, in a corpus
+    // made of anime subtitles where that definition is often the whole point.
+    //
+    // So the one-liner is kept for the many-answers case and dropped for the
+    // single-answer one, where the card renders the entry as it would any other.
+    // The candidates still carry `name: true`, so the card keeps tagging them --
+    // the reader is told it is a name AND what it is, rather than one instead of
+    // the other.
+    const nameOnly = words.length === 0 && distinctNameAnswers(all) > 1;
+
     // A dictionary entry changes when a dictionary is reimported, so it caches
     // hard. `public` only while the answer is the one everybody gets: a reader
     // asking with their own stack gets a card built from dictionaries that are
@@ -240,7 +257,7 @@ const handler = defineEventHandler(async (event) => {
     return {
       ...found,
       candidates,
-      nameOnly: words.length === 0,
+      nameOnly,
       ...(answeredAsReader && answer?.stackFingerprint ? { stackFingerprint: answer.stackFingerprint } : {}),
     };
   } catch (error: unknown) {
