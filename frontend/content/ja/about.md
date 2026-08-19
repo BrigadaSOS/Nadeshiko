@@ -1,9 +1,9 @@
 ---
-title: "About"
+title: "このサイトについて"
 description: "Nadeshikoについて、制作チームとコントリビューターをご紹介します。"
 ---
 
-# About
+# このサイトについて
 
 ## 貢献とクレジット
 

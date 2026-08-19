@@ -62,11 +62,11 @@
   "appMeta": {
     "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",
     "defaultPageTitle": "Search Japanese sentences from anime",
-    "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+    "defaultDescription": "Search over 1.3 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
   },
   "home": {
     "version": "v{version}",
-    "nadeDbDescription": "A tool for searching japanese sentences from multiple contexts.",
+    "nadeDbDescription": "A tool for searching Japanese sentences from multiple contexts.",
     "nadeDbDescriptionJpSearch": "Search in Japanese",
     "nadeDbDescriptionOtherSearch": "Search in English",
     "nadeDbDescriptionExclusiveSearch": "Exclusive search",
@@ -78,7 +78,7 @@
       },
       "feature2": {
         "title": "Save any sentence",
-        "description": "Save sentences in multiple formats such as images, audios, and videos."
+        "description": "Save sentences in multiple formats such as images, audio, and video."
       },
       "feature3": {
         "title": "View the context of what you find",
@@ -90,7 +90,7 @@
       },
       "feature5": {
         "title": "Direct integration with Discord",
-        "description": "Search the same 1M+ sentences without leaving your server with our official bot.",
+        "description": "Search the same 1.3M+ sentences without leaving your server with our official bot.",
         "linkText": "Add the bot to your Discord server!"
       }
     },
@@ -136,7 +136,7 @@
     "episodes": "Episodes",
     "videos": "Videos",
     "sentenceCountLabel": "Sentence Count:",
-    "anilistButton": "Anilist",
+    "anilistButton": "AniList",
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
@@ -526,7 +526,7 @@
       },
       "metrics": {
         "searches": "Sentences Searched",
-        "plays": "Audios Played",
+        "plays": "Audio Played",
         "exports": "Anki Exports",
         "shares": "Links Shared"
       },
@@ -916,7 +916,7 @@
     "imageAlt": "Not found"
   },
   "segment": {
-    "noResultsTitle": "404",
+    "noResultsTitle": "No results",
     "noResultsMessage": "Try a different search or search in {link}",
     "contentRatingShow": "Show",
     "contentRatingHide": "Hide",
@@ -976,7 +976,7 @@
     "pickDeselectAll": "Deselect all"
   },
   "searchContainer": {
-    "errorTitle": "502",
+    "errorTitle": "Something went wrong",
     "errorMessage1": "An error occurred",
     "errorMessage2": "Try searching again with the button below.",
     "retryButton": "Retry connection",
@@ -1131,7 +1131,7 @@
       "discord": "Login with Discord"
     },
     "labels": {
-      "successfullogin": "Succesful login!",
+      "successfullogin": "Successful login!",
       "logout": "You are now logged out.",
       "banneduser": "Your account has been suspended. Please contact support.",
       "errorlogin400": "Please check your email/password and try again.",
@@ -1165,7 +1165,7 @@
   "seo": {
     "home": {
       "title": "Nadeshiko: Search Japanese sentences from anime",
-      "description": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+      "description": "Search over 1.3 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
     },
     "stats": {
       "title": "Stats",
