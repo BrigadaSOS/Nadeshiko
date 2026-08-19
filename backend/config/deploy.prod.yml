@@ -67,6 +67,7 @@ env:
     - SES_AWS_SECRET_ACCESS_KEY
     - SES_FROM_EMAIL
     - SES_FROM_NAME
+    - SMTP_PASSWORD
 
     - E2E_USER_PASSWORD
 
@@ -75,6 +76,13 @@ env:
     PORT: 80
     RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://nadeshiko.co
+
+    # Prod sends via smtp.zeptomail.jp. Flip back to ses to roll back;
+    # SES DKIM and mail.nadeshiko.co stay in DNS either way.
+    MAIL_TRANSPORT: zepto
+    SMTP_ADDRESS: smtp.zeptomail.jp
+    SMTP_PORT: "587"
+    SMTP_USER_NAME: emailapikey
 
     # What Shirabe has us registered as. The redirect is exact-matched over
     # there, so this string and the one in their `oauth_clients` row have to be

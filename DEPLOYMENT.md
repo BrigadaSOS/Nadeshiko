@@ -556,14 +556,25 @@ the OpenSSH binary, so whether `~/.ssh/config` governs its host key checking
 depends on Kamal's own `verify_host_key` default — worth confirming before
 treating the pin as covering deploys too.
 
-### Outbound mail: ZeptoMail on staging, SES on production
+### Outbound mail: ZeptoMail on staging and production
 
-Both environments send as `noreply@nadeshiko.co`. Production still uses Amazon
-SES. Staging uses ZeptoMail SMTP (`smtp.zeptomail.jp`) via `MAIL_TRANSPORT=zepto`.
-Flip staging back to `ses` to roll back. SES DKIM and `mail.nadeshiko.co` stay
-in DNS either way. The Send Mail Token lives at
-`/nadeshiko/staging/SMTP_PASSWORD`. Host, port, and user are clear env in
-`deploy.staging.yml`. Production is not wired to ZeptoMail yet.
+Both environments send as `noreply@nadeshiko.co` via ZeptoMail SMTP
+(`smtp.zeptomail.jp`) with `MAIL_TRANSPORT=zepto`. Flip either back to `ses`
+to roll back. SES DKIM and `mail.nadeshiko.co` stay in DNS either way. The
+Send Mail Token lives at `/nadeshiko/staging/SMTP_PASSWORD` and
+`/nadeshiko/prod/SMTP_PASSWORD`. Host, port, and user are clear env in
+`deploy.staging.yml` and `deploy.prod.yml`.
+
+**`SMTP_PASSWORD` must exist in SSM for both destinations.** `.kamal/secrets.prod`
+resolves it, and `.kamal/ssm-secret` exits non-zero on a missing or blank
+parameter, which aborts the deploy at secret resolution before anything is
+built.
+
+```bash
+aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
+  --name /nadeshiko/prod/SMTP_PASSWORD --type SecureString \
+  --value '<ZeptoMail Send Mail Token>'
+```
 
 `SES_AWS_ACCESS_KEY_ID` / `SES_AWS_SECRET_ACCESS_KEY` are long-lived IAM user
 keys held in SSM and injected into the backend container. Every other AWS
