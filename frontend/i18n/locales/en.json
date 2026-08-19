@@ -26,6 +26,7 @@
   },
   "common": {
     "cancel": "Cancel",
+    "search": "Search",
     "clearSearch": "Clear search",
     "close": "Close",
     "confirm": "Confirm",
@@ -442,7 +443,7 @@
         "unban": "Unban"
       },
       "pagination": {
-        "showing": "Showing {start}–{end} of {total}",
+        "showing": "Showing {start}-{end} of {total}",
         "previous": "Previous",
         "next": "Next"
       },
@@ -851,7 +852,7 @@
       "keyFieldRequiredMessage": "Adding to your last added card works without one. Set a Key Field to mine words from a word card, and to choose a note by searching your collection.",
       "fieldColumn": "Field",
       "contentColumn": "Content",
-      "fieldComposeHelp": "Each placeholder you pick is added to the field rather than replacing what is already there, so one field can carry several — two dictionaries stacked, say. Edit the box directly to change how they are joined.",
+      "fieldComposeHelp": "Each placeholder you pick is added to the field rather than replacing what is already there, so one field can carry several, such as two dictionaries stacked. Edit the box directly to change how they are joined.",
       "sentenceGroup": "Sentence",
       "sentenceImage": "Sentence image",
       "sentenceAudio": "Sentence audio",
@@ -1161,7 +1162,7 @@
     "media": {
       "title": "Browse Media",
       "description": "Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.",
-      "pageTitle": "{media} — Japanese sentences with translations"
+      "pageTitle": "{media}: Japanese sentences with translations"
     },
     "blog": {
       "title": "Blog",
@@ -1180,13 +1181,13 @@
       "mediaDescription": "{count} Japanese sentences from {media} with English and Spanish translations.",
       "mediaDescriptionEpisode": "{count} Japanese sentences from {media} episode {episode} with English and Spanish translations.",
       "mediaDescriptionEpisodes": "{count} Japanese sentences from {media} across {episodeCount} episodes with English and Spanish translations.",
-      "wordTitle": "{query} — Japanese example sentences"
+      "wordTitle": "{query}: Japanese example sentences"
     },
     "sentence": {
       "title": "Sentence",
       "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.",
       "episode": "Episode {n}",
-      "pageTitle": "「{sentence}」 — {media}"
+      "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {
       "description": "Browse the \"{name}\" collection on Nadeshiko"
@@ -1298,7 +1299,7 @@
       "upgrade": "Update permissions",
       "reconnect": "Reconnect",
       "upgradeNeeded": "Linked as {name}. A new permission is needed for the latest features",
-      "disconnected": "Linked as {name}, but Shirabe has stopped accepting the connection — your own dictionaries are not being used. Reconnect to bring them back.",
+      "disconnected": "Linked as {name}, but Shirabe has stopped accepting the connection, so your own dictionaries are not being used. Reconnect to bring them back.",
       "confirmDisconnect": "Disconnect your Shirabe account? The key is revoked on Shirabe, and word cards go back to the default dictionaries."
     },
     "callback": {
