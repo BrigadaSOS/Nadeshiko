@@ -9,6 +9,28 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
+## 2.4.2 (2026-08-20)
+
+### Highlights
+
+- **Blog**: an RSS feed, one per language, linked from the blog itself so a reader finds it without guessing an address.
+- **Wording**: one name per thing, throughout. A show, film or channel is a "title" — it had also been called content, media and a show, sometimes on the same screen. A result is a "sentence", where parts of the site said segment, clip or line. And signing in is "sign in", "sign up" and "sign out", instead of three different verbs inside the same flow.
+
+### Fixes
+
+- **Search**: a search for something that is not a word now finds nothing, which is the right answer. A run of consonants returned thousands of unrelated sentences with every word highlighted as though it had matched, and two different strings of nonsense returned identical results — the text was being thrown away before the search ran.
+- **Sentences**: a link to a sentence that no longer exists now says the sentence was not found, instead of showing an error page. Every dead permalink was being reported as a fault on our side.
+- **Language**: switching language on About, Privacy, Terms, DMCA, the changelog or any blog post no longer lands on "page not found". Opening the same address directly had always worked, which is what made this easy to miss.
+- **Share previews**: a link to a title unfurls with its banner at the right shape. The size we declared did not match the image, so the preview came out cropped.
+- **Blog**: previews on the index no longer swallow text written in angle brackets — the v2.1.0 post's `/search <word>` had lost its argument — and their bullet spacing is fixed.
+- **Dates**: a date reads the same wherever you are. The stats page showed one day for a moment and then corrected itself to another.
+- **DMCA**: the list of what a takedown notice must contain had its headings one step out of line with the text beneath them, so anyone following the bold labels would have filed an invalid notice.
+- **Privacy policy**: it asked you twice to get in touch without giving an address, described push notifications from a mobile app that does not exist, and understated who handles your data. All three are corrected, and there is a contact section.
+- **Home**: the sentence total was rounded up behind a "+", so it claimed more than the real figure; it is now rounded down and written the same way as on the stats page. "Over 1 million sentences" was a third short of what is actually there.
+- **Japanese and Spanish**: two English words in the menus, an English heading on the About page in every language, and the missing accents on the Spanish home page.
+- **Audio player**: every button now says what it does to a screen reader. Eight of the nine were silent, so the player could be opened and not operated.
+- **Reading**: long pages are set to a readable width rather than the full window, where a line could run to about 160 characters and the last of it slid under the feedback button. The coverage figures on the stats page are legible against the background, and Tab now reaches a "skip to content" link before the eleven controls in the header.
+
 ## 2.4.1 (2026-08-20)
 
 ### Fixes
