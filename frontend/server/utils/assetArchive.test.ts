@@ -11,6 +11,10 @@ import {
 
 const RETENTION_MS = assetArchiveRetentionMs(ASSET_ARCHIVE_RETENTION_DAYS);
 
+/** A real build id, which is what `app.buildAssetsDir` puts in front of every
+ *  asset so two builds never claim the same URL. */
+const BUILD = '7cacf72b-0bb6-48ef-b756-7858e8a1aba7';
+
 /**
  * `archivableAssetName` is the only thing between a request path and a file
  * read, so its rejections matter more than its acceptances.
@@ -28,7 +32,20 @@ describe('archivableAssetName', () => {
     '0KcF1APn.js.map',
     'entry.B_5rQ3lk.woff2',
   ])('accepts %s, which is the shape a build actually emits', (name) => {
-    expect(archivableAssetName(`/_nuxt/${name}`)).toBe(name);
+    expect(archivableAssetName(`/_nuxt/${BUILD}/${name}`)).toBe(`${BUILD}/${name}`);
+  });
+
+  // The build segment is the routing key AND the guard. Anything that is not a
+  // build id cannot address the archive at all, however well-formed the rest of
+  // the path is.
+  it.each([
+    ['no build segment at all', '/_nuxt/DrC9mS-I2.js'],
+    ['a segment that is not a build id', '/_nuxt/assets/DrC9mS-I2.js'],
+    ['a truncated build id', '/_nuxt/7cacf72b-0bb6/DrC9mS-I2.js'],
+    ['an uppercase build id, which Nuxt does not emit', `/_nuxt/${BUILD.toUpperCase()}/DrC9mS-I2.js`],
+    ['a third segment', `/_nuxt/${BUILD}/nested/DrC9mS-I2.js`],
+  ])('declines %s', (_label, path) => {
+    expect(archivableAssetName(path)).toBeNull();
   });
 
   it.each([
@@ -43,7 +60,11 @@ describe('archivableAssetName', () => {
   // `maxAge: 1` so it is never stale. Serving a superseded copy of the file
   // whose entire job is to announce that the build changed would be worse than
   // the 404 this module exists to prevent.
-  it.each(['/_nuxt/builds/latest.json', '/_nuxt/builds/meta/e1559bf3.json'])('never serves %s', (path) => {
+  it.each([
+    `/_nuxt/${BUILD}/builds/latest.json`,
+    `/_nuxt/${BUILD}/builds/meta/e1559bf3.json`,
+    '/_nuxt/builds/latest.json',
+  ])('never serves %s', (path) => {
     expect(archivableAssetName(path)).toBeNull();
   });
 
@@ -57,6 +78,11 @@ describe('archivableAssetName', () => {
     '/_nuxt/.env',
     '/_nuxt/..',
     '/_nuxt/sub/dir.js',
+    `/_nuxt/${BUILD}/../../etc/passwd`,
+    `/_nuxt/${BUILD}/..%2f..%2fetc%2fpasswd`,
+    `/_nuxt/${BUILD}/.env`,
+    `/_nuxt/${BUILD}/..`,
+    '/_nuxt/../7cacf72b-0bb6-48ef-b756-7858e8a1aba7/x.js',
   ])('refuses to resolve %s', (path) => {
     expect(archivableAssetName(path)).toBeNull();
   });
