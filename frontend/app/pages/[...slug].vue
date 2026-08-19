@@ -139,6 +139,20 @@ useHead(() => ({
     { name: 'description', content: description.value },
     { property: 'og:title', content: title.value },
     { property: 'og:description', content: description.value },
+    // A blog post is an Article and says so in its JSON-LD; the og:type stayed
+    // `website` because nothing in the app ever set it, so the whole site
+    // inherited the one declared in nuxt.config. The dated fields only go out
+    // when there is a date to put in them.
+    { property: 'og:type', content: isBlogPost.value ? 'article' : 'website' },
+    ...(isBlogPost.value && contentDate.value
+      ? [
+          { property: 'article:published_time', content: contentDate.value },
+          { property: 'article:modified_time', content: contentDate.value },
+        ]
+      : []),
+    ...(isBlogPost.value && contentAuthor.value
+      ? [{ property: 'article:author', content: contentAuthor.value }]
+      : []),
     ...buildOgImageTags(`${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`, DEFAULT_OG_IMAGE_SIZE),
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: title.value },

@@ -193,9 +193,20 @@ export function canonicalPath(path: string, queryParam: string | ReadonlyArray<s
   const raw = getStringQueryValue(queryParam);
   const { localePrefix, localizedPath } = splitLocalePrefix(path);
   if (raw === null || !localizedPath.startsWith('/search/')) {
-    return path;
+    return stripTrailingSlash(path);
   }
   return withLocalePrefix(localePrefix, buildWordSearchPath(decodeSearchQuery(raw)));
+}
+
+/**
+ * `/en/media/one-punch-man/` and `/en/media/one-punch-man` are the same page and
+ * both answer 200. The slashed one used to canonicalise to ITSELF, so the two
+ * were a duplicate pair each vouching for its own version -- exactly the state
+ * a canonical exists to prevent. The home page already got this right, because
+ * `/en/` collapses to the locale root rather than to a deeper path.
+ */
+function stripTrailingSlash(path: string): string {
+  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
 /**

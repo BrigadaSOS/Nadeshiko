@@ -143,6 +143,8 @@ describe('toSlimToken', () => {
 describe('parseSegments batching', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
+    __testing.resetPacing();
   });
 
   /** A response whose single token's surface is the text that was sent. */
@@ -223,5 +225,123 @@ describe('parseSegments batching', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     await expect(parseSegments([])).resolves.toEqual([]);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A corpus pass is ~6,600 requests over two hours against a server other people
+ * are reading from. One Cloudflare 502 used to end it: `parseChunk` threw, `run`
+ * unwound, and a pass died 372,000 segments in with no retry anywhere.
+ */
+describe('parseSegments resilience', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    __testing.resetPacing();
+  });
+
+  const echo = (texts: string[]) => ({
+    tokens: texts.map((text) => [{ position: 0, length: text.length, surface: text, pos: 'noun' }]),
+  });
+  const ok = (texts: string[]) =>
+    new Response(JSON.stringify(echo(texts)), { status: 200, headers: { 'content-type': 'application/json' } });
+
+  it('retries a 502 and keeps the answer', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      const texts = JSON.parse(String((init as RequestInit).body)).texts as string[];
+      calls += 1;
+      if (calls === 1) return new Response('<html>502</html>', { status: 502 });
+      return ok(texts);
+    });
+
+    const promise = parseSegments(['猫が好き']);
+    await vi.runAllTimersAsync();
+
+    expect((await promise)[0]?.[0]?.s).toBe('猫が好き');
+    expect(calls).toBe(2);
+  });
+
+  /** A 400 is our bug and a 401 is a bad key. Neither improves on the fifth try. */
+  it('does not retry a 400', async () => {
+    let calls = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      calls += 1;
+      return new Response('{}', { status: 400 });
+    });
+
+    await expect(parseSegments(['猫'])).rejects.toThrow('400');
+    expect(calls).toBe(1);
+  });
+
+  it('gives up after RETRY_ATTEMPTS rather than retrying forever', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      calls += 1;
+      return new Response('<html>503</html>', { status: 503 });
+    });
+
+    const promise = parseSegments(['猫']);
+    const assertion = expect(promise).rejects.toThrow('503');
+    await vi.runAllTimersAsync();
+    await assertion;
+
+    expect(calls).toBe(__testing.RETRY_ATTEMPTS);
+  });
+
+  it('treats a lost connection as worth retrying and a 404 as not', () => {
+    const { isTransient } = __testing;
+    expect(isTransient(null)).toBe(true); // timeout, reset socket, DNS
+    expect(isTransient(429)).toBe(true);
+    expect(isTransient(502)).toBe(true);
+    expect(isTransient(503)).toBe(true);
+    expect(isTransient(404)).toBe(false);
+    expect(isTransient(401)).toBe(false);
+  });
+});
+
+/**
+ * Concurrency 3 drove shirabe.org to 145% CPU against a ~200% ceiling and took
+ * reader page loads from 0.24s to 1.6s p95, with `puma_backlog` at 0 throughout:
+ * readers were not queueing for a worker, they were sharing a core with a 2.4s
+ * parse. The pass now reads its own latency and yields instead.
+ */
+describe('parseSegments pacing', () => {
+  afterEach(() => __testing.resetPacing());
+
+  const { recordChunkTiming, inFlightLimit, PARSE_CONCURRENCY } = __testing;
+
+  it('drops to one in flight when a chunk comes back much slower', () => {
+    recordChunkTiming(200, 200); // 1ms/text, the floor
+    expect(inFlightLimit()).toBe(PARSE_CONCURRENCY);
+
+    recordChunkTiming(1_000, 200); // 5ms/text, five times the floor
+    expect(inFlightLimit()).toBe(1);
+  });
+
+  /** The floor is per TEXT: a short last chunk must not look fast and reset it. */
+  it('measures per text, so a short final chunk is not mistaken for speed', () => {
+    recordChunkTiming(200, 200); // 1ms/text
+    recordChunkTiming(20, 20); // also 1ms/text, and far shorter overall
+    expect(inFlightLimit()).toBe(PARSE_CONCURRENCY);
+  });
+
+  it('climbs back one step at a time once the chunks are fast again', () => {
+    recordChunkTiming(200, 200);
+    recordChunkTiming(1_000, 200);
+    expect(inFlightLimit()).toBe(1);
+
+    for (let i = 0; i < 10; i++) recordChunkTiming(200, 200);
+    expect(inFlightLimit()).toBe(2);
+
+    for (let i = 0; i < 10; i++) recordChunkTiming(200, 200);
+    expect(inFlightLimit()).toBe(3);
+  });
+
+  it('never climbs past the configured ceiling', () => {
+    for (let i = 0; i < 100; i++) recordChunkTiming(200, 200);
+    expect(inFlightLimit()).toBe(PARSE_CONCURRENCY);
   });
 });

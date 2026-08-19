@@ -289,6 +289,16 @@ describe('canonicalPath', () => {
     expect(canonicalPath('/es/search', undefined)).toBe('/es/search');
   });
 
+  it('drops a trailing slash so the two spellings do not each vouch for themselves', () => {
+    // Both answer 200, so without this /en/media/one-punch-man/ canonicalised to
+    // itself and the pair became a duplicate each claiming to be the original.
+    expect(canonicalPath('/en/media/one-punch-man/', undefined)).toBe('/en/media/one-punch-man');
+    expect(canonicalPath('/en/media/one-punch-man', undefined)).toBe('/en/media/one-punch-man');
+    // The locale root is already the shortest form; it must not lose its slash
+    // and become the bare origin.
+    expect(canonicalPath('/', undefined)).toBe('/');
+  });
+
   it('undoes the extra layer the router adds to route.path', () => {
     // Requested /en/search/%25E8; `route.path` reads it back one layer deeper.
     expect(canonicalPath('/en/search/%2525E8', '%25E8')).toBe('/en/search/%25E8');

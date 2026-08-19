@@ -25,47 +25,59 @@ export default defineNuxtPlugin(() => {
   const route = useRoute();
   const { url: siteUrl } = useSiteConfig();
 
+  /**
+   * The one answer to "what is this page's URL", so the canonical and `og:url`
+   * cannot give two.
+   *
+   * They did: the canonical deliberately keeps `media` and `episode` on a
+   * faceted search, while `og:url` was never set anywhere and fell back to the
+   * path-only default -- one head, two contradictory claims.
+   */
+  const resolveCanonical = () => {
+    // NOT `route.path`, which is one percent-encoding layer deeper than the
+    // URL that was requested -- see `canonicalPath`. Emitting that as a link
+    // is what turned one search URL into an unbounded family of ever-longer
+    // ones, so every href below is built from this and never from route.path.
+    const path = canonicalPath(route.path, route.params.query as string | string[] | undefined);
+    const { localePrefix, localizedPath } = splitLocalePrefix(path);
+
+    const rewrite = CANONICAL_REWRITES[localizedPath];
+    if (rewrite) {
+      const queryMap: Record<string, string> = {};
+      for (const [k, v] of Object.entries(route.query)) {
+        if (typeof v === 'string') queryMap[k] = v;
+      }
+      return { localePrefix, target: rewrite(queryMap), suffix: '' };
+    }
+
+    const allowedParams =
+      Object.entries(CANONICAL_PARAMS).find(([prefix]) => localizedPath.startsWith(prefix))?.[1] ?? [];
+
+    const params = new URLSearchParams();
+    for (const key of allowedParams) {
+      const value = route.query[key];
+      if (typeof value === 'string' && value) {
+        params.set(key, value);
+      }
+    }
+
+    const query = params.toString();
+    const suffix = query ? `?${query}` : '';
+
+    return { localePrefix, target: localizedPath, suffix };
+  };
+
+  const href = () => {
+    const { localePrefix, target, suffix } = resolveCanonical();
+    return `${siteUrl}${withLocalePrefix(localePrefix, target)}${suffix}`;
+  };
+
   useHead({
     link: () => {
-      // NOT `route.path`, which is one percent-encoding layer deeper than the
-      // URL that was requested -- see `canonicalPath`. Emitting that as a link
-      // is what turned one search URL into an unbounded family of ever-longer
-      // ones, so every href below is built from this and never from route.path.
-      const path = canonicalPath(route.path, route.params.query as string | string[] | undefined);
-      const { localePrefix, localizedPath } = splitLocalePrefix(path);
-
-      const rewrite = CANONICAL_REWRITES[localizedPath];
-      if (rewrite) {
-        const queryMap: Record<string, string> = {};
-        for (const [k, v] of Object.entries(route.query)) {
-          if (typeof v === 'string') queryMap[k] = v;
-        }
-        const rewritten = rewrite(queryMap);
-        return [
-          { rel: 'canonical', href: `${siteUrl}${withLocalePrefix(localePrefix, rewritten)}` },
-          ...alternates(siteUrl, localePrefix, rewritten, ''),
-        ];
-      }
-
-      const allowedParams =
-        Object.entries(CANONICAL_PARAMS).find(([prefix]) => localizedPath.startsWith(prefix))?.[1] ?? [];
-
-      const params = new URLSearchParams();
-      for (const key of allowedParams) {
-        const value = route.query[key];
-        if (typeof value === 'string' && value) {
-          params.set(key, value);
-        }
-      }
-
-      const query = params.toString();
-      const suffix = query ? `?${query}` : '';
-
-      return [
-        { rel: 'canonical', href: `${siteUrl}${withLocalePrefix(localePrefix, localizedPath)}${suffix}` },
-        ...alternates(siteUrl, localePrefix, localizedPath, suffix),
-      ];
+      const { localePrefix, target, suffix } = resolveCanonical();
+      return [{ rel: 'canonical', href: href() }, ...alternates(siteUrl, localePrefix, target, suffix)];
     },
+    meta: () => [{ property: 'og:url', content: href() }],
   });
 });
 
