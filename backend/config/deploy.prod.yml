@@ -84,6 +84,19 @@ env:
     SMTP_PORT: "587"
     SMTP_USER_NAME: emailapikey
 
+    # Where the feedback widget's notification lands. UNSET IS SILENT: the row is
+    # still stored, but `sendFeedbackEmail` logs "FEEDBACK_NOTIFICATION_TO unset"
+    # and returns, which is how feedback #1 was submitted on 2026-08-19 and read
+    # by nobody until someone queried the table.
+    #
+    # This is not a mailbox. `nadeshiko.co` inbound goes to the Cloudflare Email
+    # Routing catch-all, whose worker (brigadasos-infra/email-worker) forwards to
+    # the addresses in its FORWARD_TO and posts a copy to Discord -- so delivery
+    # depends on those staying verified destinations over there, not on anything
+    # in this repo. The reader's own address rides on Reply-To, so replying from
+    # a forwarded copy reaches them rather than this alias.
+    FEEDBACK_NOTIFICATION_TO: support@nadeshiko.co
+
     # What Shirabe has us registered as. The redirect is exact-matched over
     # there, so this string and the one in their `oauth_clients` row have to be
     # character-for-character the same or the consent screen refuses the request.
