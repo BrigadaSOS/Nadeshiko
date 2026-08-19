@@ -192,7 +192,7 @@ const submitDelete = async () => {
         <p v-if="collections.length > 0" class="text-sm text-gray-400">{{ t('accountSettings.collections.count', { count: formatNumber(collections.length) }) }}</p>
         <button
           type="button"
-          class="flex items-center gap-1.5 py-2 px-4 text-sm font-bold rounded-lg bg-button-accent-main text-white hover:bg-button-accent-hover transition-colors"
+          class="nd-btn-accent transition-colors"
           data-testid="create-collection-button"
           @click="openCreate"
         >
@@ -201,8 +201,12 @@ const submitDelete = async () => {
       </div>
     </div>
     <div class="mt-4">
-      <table v-if="collections.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
-        <thead>
+      <!-- This one already drops its two date columns below `sm`/`lg`, so the
+           stack only has to deal with four: the name and the menu on one line,
+           the count and visibility beneath. The count is a bare number once the
+           header naming it is gone, so it says what it is. -->
+      <table v-if="collections.length > 0" class="block w-full md:table md:min-w-full md:divide-y md:divide-gray-200 md:dark:divide-white/20">
+        <thead class="hidden md:table-header-group">
           <tr>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.collections.table.name') }}</th>
             <th class="py-2 text-center text-xs font-medium text-white/90 uppercase">{{ t('accountSettings.collections.table.segments') }}</th>
@@ -212,9 +216,14 @@ const submitDelete = async () => {
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="collection in collections" :key="collection.publicId" data-testid="collection-row">
-            <td class="py-3 text-sm text-gray-100 max-w-[20rem]">
+        <tbody class="block md:table-row-group md:divide-y md:divide-gray-200 md:dark:divide-white/10">
+          <tr
+            v-for="collection in collections"
+            :key="collection.publicId"
+            data-testid="collection-row"
+            class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/10 py-3 last:border-0 md:table-row md:border-0 md:py-0"
+          >
+            <td class="order-1 min-w-0 flex-1 text-sm text-gray-100 md:flex-none md:table-cell md:py-3 md:max-w-[20rem]">
               <NuxtLink
                 :to="`/collection/${collection.publicId}`"
                 class="font-medium truncate block hover:text-blue-400 transition-colors"
@@ -222,10 +231,10 @@ const submitDelete = async () => {
                 {{ collection.name }}
               </NuxtLink>
             </td>
-            <td class="py-3 text-sm text-gray-300 tabular-nums text-center">
-              {{ formatNumber(collection.segmentCount ?? 0) }}
+            <td class="order-3 text-xs text-gray-400 tabular-nums md:order-none md:table-cell md:py-3 md:text-sm md:text-gray-300 md:text-center">
+              {{ formatNumber(collection.segmentCount ?? 0) }}<span class="md:hidden"> {{ t('accountSettings.collections.table.segments').toLowerCase() }}</span>
             </td>
-            <td class="py-3 text-sm">
+            <td class="order-4 text-sm md:order-none md:table-cell md:py-3">
               <span
                 class="text-xs px-2 py-0.5 rounded-full border"
                 :class="collection.visibility === 'PUBLIC'
@@ -235,13 +244,13 @@ const submitDelete = async () => {
                 {{ t(`accountSettings.collections.visibility.${collection.visibility}`) }}
               </span>
             </td>
-            <td class="py-3 text-sm text-gray-300 hidden sm:table-cell">
+            <td class="hidden text-sm text-gray-300 sm:table-cell sm:py-3">
               {{ formatDate(collection.createdAt) }}
             </td>
-            <td class="py-3 text-sm text-gray-300 hidden lg:table-cell">
+            <td class="hidden text-sm text-gray-300 lg:table-cell lg:py-3">
               {{ formatDate(collection.updatedAt) }}
             </td>
-            <td class="py-3 text-sm text-right">
+            <td class="order-2 ml-auto text-sm md:ml-0 md:table-cell md:py-3 md:text-right">
               <SearchDropdownContainer
                 dropdown-id="nd-collection-actions"
                 teleport

@@ -89,7 +89,7 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
         </div>
         <button
           data-testid="activity-history-clear"
-          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1.5 px-3 rounded disabled:opacity-50"
+          class="nd-btn-accent"
           :disabled="clearing"
           @click="emit('clear-history')"
         >
@@ -136,10 +136,24 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
           <li
             v-for="entry in familiarEntries"
             :key="entry.media.publicId"
-            class="flex items-center justify-between gap-4 text-sm"
+            class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm sm:flex-nowrap sm:justify-between"
           >
-            <span lang="ja" class="text-gray-100 truncate">{{ displayMediaName(entry) }}</span>
-            <span class="ml-auto text-gray-400 text-xs shrink-0">
+            <!-- The title takes a line of its OWN below `sm`, and truncates on it.
+                 The count and the Forget button are both `shrink-0` and together
+                 run to about 300px, so on a phone they left the title roughly one
+                 character of width -- and since CJK breaks between any two
+                 characters, `break-words` then ran the whole name vertically down
+                 the card, one character per line.
+
+                 `min-w-0` still matters on the wide layout: a flex item defaults
+                 to `min-width: auto` and would otherwise refuse to shrink below
+                 its content, overflowing the row instead of ellipsing. -->
+            <span
+              lang="ja"
+              class="w-full min-w-0 truncate text-gray-100 sm:w-auto sm:flex-1"
+              :title="displayMediaName(entry)"
+            >{{ displayMediaName(entry) }}</span>
+            <span class="text-gray-400 text-xs shrink-0 sm:ml-auto">
               {{ familiarCounts(entry) }}
             </span>
             <!-- Per title, beside the whole-tally Forget above: a reader who
@@ -147,7 +161,7 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
                  rest away to be rid of it. -->
             <button
               type="button"
-              class="shrink-0 text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40"
+              class="ml-auto shrink-0 text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40 sm:ml-0"
               :disabled="forgettingId === entry.media.publicId"
               :title="t('accountSettings.activity.privacy.forgetTitleHint', { title: displayMediaName(entry) })"
               :aria-label="t('accountSettings.activity.privacy.forgetTitleHint', { title: displayMediaName(entry) })"

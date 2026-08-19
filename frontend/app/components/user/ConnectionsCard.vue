@@ -212,7 +212,14 @@ const actionLabel = computed(() => {
     <h3 class="nd-settings-title">{{ t('connections.title') }}</h3>
 
     <div class="mt-4">
-      <div class="flex justify-between items-center gap-4">
+      <!-- The button drops to its own line below `sm`. Beside the text it was
+           competing with a description that wraps to five lines on a phone, so
+           both got squeezed: the description into a narrow column and the button
+           into whatever was left. Full width there, which `nd-btn` already
+           centres its label for. Written out rather than using
+           `nd-settings-row`, because composing a utility over that
+           component-layer class would win at every width, not just this one. -->
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div class="flex items-center gap-3">
           <!-- Their mark, not ours. A row naming another service is easier to
                recognise by its logo than by reading it, and this card is a list
@@ -221,9 +228,9 @@ const actionLabel = computed(() => {
             src="/assets/shirabe-logo.png"
             alt=""
             aria-hidden="true"
-            width="32"
-            height="32"
-            class="w-8 h-8 shrink-0 rounded"
+            width="40"
+            height="40"
+            class="w-10 h-10 shrink-0 rounded"
           >
           <div>
             <p class="text-white">{{ t('connections.shirabe.name') }}</p>
@@ -231,7 +238,7 @@ const actionLabel = computed(() => {
           </div>
         </div>
         <button
-          class="nd-btn shrink-0"
+          class="nd-btn w-full shrink-0 sm:w-auto"
           :disabled="isLoading || isWorking"
           data-testid="shirabe-connection-toggle"
           @click="action()"

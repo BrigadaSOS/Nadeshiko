@@ -405,7 +405,7 @@ const logoutCurrentUser = async () => {
     <div class="flex items-center justify-between gap-2">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.infoTitle') }}</h3>
       <button
-        class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+        class="nd-btn-accent"
         :disabled="loggingOut"
         @click="logoutCurrentUser"
       >
@@ -443,7 +443,7 @@ const logoutCurrentUser = async () => {
                 {{ changingEmail ? $t('accountSettings.account.changeEmailSending') : $t('accountSettings.account.changeEmailSend') }}
               </button>
               <button
-                class="text-gray-400 hover:text-white text-sm font-medium py-2 px-3"
+                class="nd-btn"
                 @click="editingEmail = false; changeEmailError = ''"
               >
                 {{ $t('accountSettings.account.changeEmailCancel') }}
@@ -484,7 +484,7 @@ const logoutCurrentUser = async () => {
           {{ $t('accountSettings.account.sessions.logoutOtherDevices') }}
         </button>
         <button
-          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="nd-btn-accent"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeAllUserSessions"
         >
@@ -496,9 +496,12 @@ const logoutCurrentUser = async () => {
     <p v-if="sessionsError" class="mt-4 text-red-300">{{ sessionsError }}</p>
     <p v-if="sessionsLoading" data-testid="sessions-loading" class="mt-4 text-gray-300">{{ $t('accountSettings.account.sessions.loading') }}</p>
 
-    <div v-else class="mt-4 overflow-x-auto">
-      <table v-if="sessionRows.length > 0" class="min-w-full divide-y divide-gray-200 dark:divide-white/20">
-        <thead>
+    <!-- Below `md` a session is a block: the device on its own line, then the
+         two dates labelled (the header that named them is gone), then Revoke.
+         Two full timestamps and a user agent will not share a phone's width. -->
+    <div v-else class="mt-4 md:overflow-x-auto">
+      <table v-if="sessionRows.length > 0" class="block w-full md:table md:min-w-full md:divide-y md:divide-gray-200 md:dark:divide-white/20">
+        <thead class="hidden md:table-header-group">
           <tr>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.account.sessions.table.userAgent') }}</th>
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.account.sessions.table.created') }}</th>
@@ -506,20 +509,24 @@ const logoutCurrentUser = async () => {
             <th class="py-2 text-left text-xs font-medium text-white/90 uppercase"></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-          <tr v-for="session in sessionRows" :key="session.token" :data-testid="isCurrentSession(session.token) ? 'session-row-current' : 'session-row'" :class="{ 'bg-white/5': isCurrentSession(session.token) }">
-            <td class="py-3 text-sm text-gray-200">
+        <tbody class="block md:table-row-group md:divide-y md:divide-gray-200 md:dark:divide-white/10">
+          <tr v-for="session in sessionRows" :key="session.token" :data-testid="isCurrentSession(session.token) ? 'session-row-current' : 'session-row'" :class="['flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/10 py-3 last:border-0 md:table-row md:border-0 md:py-0', { 'bg-white/5': isCurrentSession(session.token) }]">
+            <td class="order-1 w-full min-w-0 break-words text-sm text-gray-200 md:w-auto md:table-cell md:py-3">
               {{ formatUserAgent(session.userAgent) }}
               <span v-if="isCurrentSession(session.token)" class="ml-2 inline-flex items-center rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
                 {{ $t('accountSettings.account.sessions.current') }}
               </span>
             </td>
-            <td class="py-3 text-sm text-gray-200">{{ formatDate(session.createdAt, 'dateTime') }}</td>
-            <td class="py-3 text-sm text-gray-200">{{ formatDate(session.expiresAt, 'dateTime') }}</td>
-            <td class="py-3 text-sm text-right">
+            <td class="order-2 text-xs text-gray-400 md:table-cell md:py-3 md:text-sm md:text-gray-200">
+              <span class="md:hidden">{{ $t('accountSettings.account.sessions.table.created') }}: </span>{{ formatDate(session.createdAt, 'dateTime') }}
+            </td>
+            <td class="order-3 w-full text-xs text-gray-400 md:w-auto md:table-cell md:py-3 md:text-sm md:text-gray-200">
+              <span class="md:hidden">{{ $t('accountSettings.account.sessions.table.expires') }}: </span>{{ formatDate(session.expiresAt, 'dateTime') }}
+            </td>
+            <td class="order-4 ml-auto text-sm md:ml-0 md:table-cell md:py-3 md:text-right">
               <button
                 v-if="!isCurrentSession(session.token)"
-                class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-1 px-3 rounded disabled:opacity-50"
+                class="nd-btn-accent"
                 :disabled="sessionsActionLoading"
                 @click="revokeSingleSession(session.token)"
               >
@@ -538,7 +545,7 @@ const logoutCurrentUser = async () => {
   <div class="nd-settings-card">
     <h3 class="nd-settings-title">{{ $t('accountSettings.account.preferencesTitle') }}</h3>
     <div class="mt-4">
-      <div class="flex justify-between items-center">
+      <div class="nd-settings-row">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.mediaNameLanguage') }}</p>
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.mediaNameLanguageDescription', { language: mediaNameLanguageLabel }) }} <span lang="ja" class="text-white/80 italic">{{ mediaNameExample }}</span></p>
@@ -555,7 +562,7 @@ const logoutCurrentUser = async () => {
         </select>
       </div>
       <div class="mt-4">
-        <div class="flex justify-between items-center gap-4">
+        <div class="nd-settings-row">
           <div>
             <p class="text-white">{{ $t('accountSettings.account.defaultSearchCategory') }}</p>
             <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.defaultSearchCategoryDescription') }}</p>
@@ -581,7 +588,7 @@ const logoutCurrentUser = async () => {
            is already right in the server's first render. `savingPreferences`
            therefore does not gate it. -->
       <div class="mt-4">
-        <div class="flex justify-between items-center gap-4">
+        <div class="nd-settings-row">
           <div>
             <p class="text-white">{{ $t('accountSettings.account.motion') }}</p>
             <p class="text-gray-400 text-sm">{{ $t(`accountSettings.account.motionHint_${motionPreference}`) }}</p>
@@ -599,7 +606,7 @@ const logoutCurrentUser = async () => {
         </div>
       </div>
 
-      <div class="flex justify-between items-center mt-4">
+      <div class="nd-settings-row mt-4">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.questionableContent') }}</p>
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.questionableContentDesc') }}. {{ contentRatingDescription() }}</p>
@@ -668,7 +675,7 @@ const logoutCurrentUser = async () => {
 
       <!-- The word card's own settings, beside the two dictionary rows: all of
            it is about what happens when a reader taps a word. -->
-      <div class="mt-4 flex justify-between items-center gap-4">
+      <div class="mt-4 nd-settings-row">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.definitionSize') }}</p>
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.definitionSizeDescription') }}</p>
@@ -686,7 +693,7 @@ const logoutCurrentUser = async () => {
         </select>
       </div>
 
-      <div class="mt-4 flex justify-between items-center gap-4">
+      <div class="mt-4 nd-settings-row">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.translationLanguages') }}</p>
           <!-- The description changes when a Shirabe account is linked, because
@@ -721,7 +728,7 @@ const logoutCurrentUser = async () => {
   <div class="nd-settings-card">
     <h3 class="nd-settings-title">{{ $t('accountSettings.account.additionalTitle') }}</h3>
     <div class="mt-4 space-y-4">
-      <div class="flex justify-between items-center">
+      <div class="nd-settings-row">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.exportData') }}</p>
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
@@ -734,12 +741,12 @@ const logoutCurrentUser = async () => {
           {{ exportingData ? $t('accountSettings.account.exportingData') : $t('accountSettings.account.exportData') }}
         </button>
       </div>
-      <div class="flex justify-between items-center">
+      <div class="nd-settings-row">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
-          class="bg-button-accent-main hover:bg-button-accent-hover text-white text-sm font-medium py-2 px-4 rounded disabled:opacity-50"
+          class="nd-btn-accent"
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"
         >

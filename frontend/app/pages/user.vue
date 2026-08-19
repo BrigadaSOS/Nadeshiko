@@ -152,7 +152,11 @@ watch(activeTabRoute, scrollActiveTabIntoView);
           </nav>
         </div>
 
-        <div class="block md:hidden">
+        <!-- `mb-3` matches the gap `nd-settings-card` leaves between cards, so
+             the first card sits off the tab underline by the same amount every
+             later card sits off the one above it. Without it the card's top
+             edge and the active tab's border touch. -->
+        <div class="block md:hidden mb-3">
           <nav ref="mobileTabsRef" :aria-label="$t('accountSettings.menu.tabsAriaLabel')" class="mobile-settings-tabs flex select-none overflow-x-auto">
             <NuxtLink
               v-for="tab in allTabs"
