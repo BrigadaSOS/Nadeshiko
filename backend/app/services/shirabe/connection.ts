@@ -3,7 +3,7 @@ import { config } from '@config/config';
 import { logger } from '@config/log';
 import { ShirabeConnection } from '@app/models/ShirabeConnection';
 import { InvalidRequestError, ValidationFailedError } from '@app/errors';
-import { decryptSecret, encryptSecret } from '@lib/secretBox';
+import { currentKeyId, decryptSecret, encryptSecret, keyIdOf } from '@lib/secretBox';
 
 /**
  * Linking a reader's Shirabe account to their Nadeshiko one: OAuth 2.0
@@ -211,7 +211,16 @@ export async function completeLink(userId: number, code: string, state: string):
   }
 
   const token = await exchangeCode(code, flow.verifier);
-  const profile = await fetchProfile(token.apiKey);
+  // Any refusal here is the same outcome for the reader -- the link did not
+  // happen, start again -- so the status `fetchProfile` now carries is only
+  // logged. It exists for `refreshStack`, where a 401 means something a 500
+  // does not.
+  const profile = await fetchProfile(token.apiKey).catch((error: unknown) => {
+    if (error instanceof ShirabeRefusedError) {
+      throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
+    }
+    throw error;
+  });
   assertGranted(token, profile);
 
   return await saveConnection(userId, token, profile);
@@ -274,6 +283,24 @@ async function exchangeCode(code: string, verifier: string): Promise<TokenRespon
   return token;
 }
 
+/**
+ * A refusal from Shirabe, with the status still attached.
+ *
+ * `fetchProfile` used to collapse every non-ok response into one
+ * `InvalidRequestError`, which read fine at the only call site it had -- the
+ * link flow, where any failure means "start again" -- and erased the one thing
+ * `refreshStack` needs to tell a dead link from a bad minute. Shirabe is precise
+ * about this and we were throwing the precision away: 401 is `API_KEY_INVALID`
+ * (invalid, expired, or revoked), 403 is `INSUFFICIENT_SCOPE`, and everything
+ * else is not an answer about the key at all.
+ */
+export class ShirabeRefusedError extends Error {
+  constructor(readonly status: number) {
+    super(`Shirabe refused the request with ${status}`);
+    this.name = 'ShirabeRefusedError';
+  }
+}
+
 async function fetchProfile(apiKey: string): Promise<MeResponse> {
   const response = await fetch(new URL(ME_PATH, config.SHIRABE_API_BASE), {
     headers: { authorization: `Bearer ${apiKey}` },
@@ -281,8 +308,8 @@ async function fetchProfile(apiKey: string): Promise<MeResponse> {
   });
 
   if (!response.ok) {
-    logger.warn({ status: response.status }, 'Shirabe would not answer /me for a freshly minted key');
-    throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
+    logger.warn({ status: response.status }, 'Shirabe would not answer /me');
+    throw new ShirabeRefusedError(response.status);
   }
 
   return (await response.json()) as MeResponse;
@@ -308,6 +335,10 @@ async function saveConnection(userId: number, token: TokenResponse, profile: MeR
   connection.tokenPrefix = token.apiKey.slice(0, 12);
   connection.scopes = grantedScopes(token, profile);
   connection.shirabeName = profile.user?.displayName || profile.user?.name || null;
+  // Whatever ended the last link is over: this key was minted seconds ago and
+  // has already answered `/me`. Cleared here rather than left to the next
+  // refresh so the settings page the reader lands back on is right immediately.
+  connection.disconnectedAt = null;
   applyProfile(connection, profile);
 
   return await connection.save();
@@ -348,23 +379,78 @@ export function readToken(connection: ShirabeConnection): string {
 }
 
 /**
+ * Move a stored key onto the CURRENT encryption secret, if it is not there yet.
+ *
+ * The half of key rotation that reading across two keys does not give you.
+ * `keyIdOf` says which secret sealed a row without opening it, so a rotation can
+ * run as a background pass: point the new secret at `SHIRABE_CONNECTION_SECRET`,
+ * leave the outgoing one in `_PREVIOUS`, and walk the table. Without this the
+ * old key can never be retired, because nothing ever stops depending on it.
+ *
+ * Returns whether it wrote, so a pass can report what it did and be run again
+ * without doing it twice. Rows already on the current key are the common case
+ * after the first pass and cost one string comparison.
+ *
+ * v1 rows carry no key id at all and so always rewrite -- which is the intent:
+ * they are also the rows with no purpose separation and no owner binding.
+ */
+export async function reencryptToken(connection: ShirabeConnection): Promise<boolean> {
+  const secret = connectionSecret();
+  if (keyIdOf(connection.tokenCiphertext) === currentKeyId(secret)) return false;
+
+  // Through `readToken`, so the reading side keeps its one definition of which
+  // keys apply and in what order -- a second copy here is how a rotation starts
+  // silently skipping rows.
+  const token = readToken(connection);
+  connection.tokenCiphertext = encryptSecret(token, secret, tokenContext(connection.userId));
+  await connection.save();
+  return true;
+}
+
+/**
  * Re-read the stack from Shirabe.
  *
  * A key that has been revoked at the other end answers 401, and that is the one
  * failure worth acting on rather than logging: the link is over, and leaving the
- * row would keep a dead credential on the settings page. Every other failure
- * leaves what we have -- Shirabe being briefly unreachable is not a reason to
- * forget a reader's stack.
+ * row unmarked would keep a dead credential on the settings page.
+ *
+ * Every other failure leaves what we have -- Shirabe being briefly unreachable
+ * is not a reason to forget a reader's stack, and treating it as one would
+ * disconnect everybody over a bad minute.
+ *
+ * A successful read also CLEARS the mark. The commonest way a link comes back is
+ * not a re-consent but the reader undoing whatever ended it, and a row that
+ * answers `/me` is by definition not refused.
  */
 export async function refreshStack(connection: ShirabeConnection): Promise<ShirabeConnection> {
   try {
     const profile = await fetchProfile(readToken(connection));
     applyProfile(connection, profile);
+    connection.disconnectedAt = null;
     return await connection.save();
   } catch (error) {
+    if (error instanceof ShirabeRefusedError && error.status === 401) {
+      return await markDisconnected(connection);
+    }
     logger.warn({ err: error, userId: connection.userId }, 'Could not refresh a Shirabe stack');
     return connection;
   }
+}
+
+/**
+ * Record that Shirabe refused this key, if it has not already been recorded.
+ *
+ * Idempotent on purpose: the lookup path reports a refusal per word, so a reader
+ * hovering their way down a page reports the same dead link a dozen times. Only
+ * the first one is a write, and the timestamp keeps meaning "when the link
+ * ended" rather than "when they last hovered something".
+ */
+export async function markDisconnected(connection: ShirabeConnection): Promise<ShirabeConnection> {
+  if (connection.disconnectedAt) return connection;
+
+  logger.info({ userId: connection.userId }, 'Shirabe refused a reader key; the link is over until they redo it');
+  connection.disconnectedAt = new Date();
+  return await connection.save();
 }
 
 /**

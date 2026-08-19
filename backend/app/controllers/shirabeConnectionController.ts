@@ -5,6 +5,7 @@ import type {
   UnlinkShirabe,
   GetShirabeCredential,
   ResyncShirabeStack,
+  ReportShirabeRefusal,
 } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
 import { AccessDeniedError, NotFoundError } from '@app/errors';
@@ -12,6 +13,7 @@ import { isInternalProxyRequest } from '@lib/internalProxy';
 import {
   completeLink,
   findConnection,
+  markDisconnected,
   missingScopes,
   readToken,
   refreshStack,
@@ -130,6 +132,46 @@ export const resyncShirabeStack: ResyncShirabeStack = async ({ body }, respond, 
   }
 
   await resyncStack(user.id, body.stackFingerprint);
+
+  return respond.with204();
+};
+
+/**
+ * Record what a lookup learned about a reader's key.
+ *
+ * The lookup path is the only place that finds out a link has died: it sends the
+ * reader's key, Shirabe refuses it, and the request quietly answers from the
+ * default dictionaries. That refusal used to end at a `logger.warn`, so the
+ * reader kept their "Linked as ..." card and kept paying a doomed round trip per
+ * word, forever.
+ *
+ * Which repair it is comes from Shirabe's own distinction, and getting the two
+ * confused would be worse than doing nothing: a 401 disconnects a link, so
+ * treating a narrowed scope as one would unlink readers who only needed to
+ * re-approve a permission.
+ *
+ * 204 whatever happened, like the resync beside it. The caller has already
+ * answered its own request and could do nothing with a failure but log it twice.
+ */
+export const reportShirabeRefusal: ReportShirabeRefusal = async ({ body }, respond, req) => {
+  const user = assertUser(req);
+
+  if (!isInternalProxyRequest(req)) {
+    throw new AccessDeniedError('This route is only callable by the Nadeshiko frontend server');
+  }
+
+  const connection = await findConnection(user.id);
+  if (!connection) return respond.with204();
+
+  if (body.status === 401) {
+    await markDisconnected(connection);
+  } else if (body.status === 403) {
+    // Not a repair: the key still works, it is missing a permission. Re-reading
+    // the stack refreshes the stored scopes, which is what `missingScopes` is
+    // computed from -- so this surfaces as the existing "Update permissions"
+    // offer rather than as a broken link.
+    await refreshStack(connection);
+  }
 
   return respond.with204();
 };

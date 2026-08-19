@@ -9,6 +9,7 @@ description: |
 required:
   - needsUpgrade
   - missingScopes
+  - disconnected
   - linkedAt
   - tokenPrefix
   - scopes
@@ -29,6 +30,15 @@ properties:
     items:
       type: string
     example: []
+  disconnected:
+    type: boolean
+    description: >-
+      True when Shirabe refused this key outright -- the reader revoked it from
+      their Shirabe access list, or it was swept for being idle. The link is over
+      until they make a new one, and their own dictionaries are not being used
+      until they do. Distinct from `needsUpgrade`, which is a link that still
+      works: this one is a repair.
+    example: false
   linkedAt:
     type: string
     format: date-time
