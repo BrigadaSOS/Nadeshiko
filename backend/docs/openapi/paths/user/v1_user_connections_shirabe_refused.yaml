@@ -1,0 +1,55 @@
+post:
+  tags:
+    - User
+  x-internal: true
+  operationId: reportShirabeRefusal
+  summary: Report that Shirabe refused a reader's key on a lookup
+  description: |
+    A word lookup is where a dead link is actually discovered: the reader's key
+    is sent, Shirabe refuses it, and the lookup quietly answers from the default
+    dictionaries instead. Without this, that refusal was a log line and nothing
+    else -- the settings page went on naming the account, and every later lookup
+    repeated the same doomed round trip.
+
+    What the status means is Shirabe's own distinction, and the three outcomes
+    are different repairs:
+
+    * `401` - the key is invalid, expired or revoked. The link is over until the
+      reader makes a new one, and it is marked so the settings page can say so.
+    * `403` - the key works but is missing a permission. The stack is re-read so
+      the stored scopes catch up, which surfaces as a re-consent rather than a
+      repair.
+    * anything else - not an answer about the key. Ignored.
+
+    Refused unless the request came through our own Nitro proxy (the shared
+    internal secret), like the credential and resync routes beside it. A client
+    that could post here could disconnect its own reader's link at will.
+
+  security:
+    - SessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+          properties:
+            status:
+              type: integer
+              minimum: 100
+              maximum: 599
+              description: The HTTP status Shirabe answered the lookup with.
+              example: 401
+  responses:
+    "204":
+      description: Recorded, or nothing worth recording.
+    "401":
+      $ref: "../../components/responses/Unauthorized.yaml"
+    "403":
+      $ref: "../../components/responses/Forbidden.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"

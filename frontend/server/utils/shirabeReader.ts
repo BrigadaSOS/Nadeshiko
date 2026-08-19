@@ -164,6 +164,34 @@ export async function reportStackFingerprint(event: H3Event, fingerprint: string
 }
 
 /**
+ * Tell the backend that Shirabe refused this reader's key.
+ *
+ * The lookup path is where a dead link is discovered and, until this existed,
+ * where the discovery died: a `logger.warn` and a silent fall back to the
+ * default dictionaries, repeated on every word, forever. The backend decides
+ * what the status means -- 401 ends the link, 403 is a permission to re-approve,
+ * anything else is ignored -- because that is a fact about the stored row, not
+ * about this request.
+ *
+ * Same channel and the same discipline as `reportStackFingerprint` above: fire
+ * and forget, un-awaited, errors swallowed. The lookup has already answered, and
+ * a backend that cannot be reached costs one more doomed round trip next time.
+ */
+export async function reportShirabeRefusal(event: H3Event, status: number): Promise<void> {
+  try {
+    const config = useRuntimeConfig();
+    await $fetch(internalBackendUrl(config, '/v1/user/connections/shirabe/refused'), {
+      method: 'POST',
+      headers: buildInternalBackendHeaders(config, { cookie: readerCookie(event) }, event),
+      body: { status },
+      timeout: 2000,
+    });
+  } catch (error) {
+    logger.warn({ err: error }, 'Could not report a refused Shirabe key');
+  }
+}
+
+/**
  * The reader's Shirabe key, or null when there is nothing to fetch.
  *
  * Called only on a cache miss, which is what keeps a route that mostly serves

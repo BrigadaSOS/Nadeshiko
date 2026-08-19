@@ -94,6 +94,32 @@ export class ShirabeConnection extends BaseEntity {
   @Column({ name: 'synced_at', type: 'timestamptz', nullable: true })
   syncedAt?: Date | null;
 
+  /**
+   * When Shirabe last refused this key outright, or null while the link works.
+   *
+   * A link can end at the other end -- the reader revokes it from their Shirabe
+   * access list, or it is swept for being idle -- and nothing here would know.
+   * The row went on looking healthy, the settings page went on saying "Linked
+   * as ...", and every lookup went on spending a doomed round trip before
+   * quietly falling back to the default dictionaries. The reader lost their own
+   * dictionaries and was never told.
+   *
+   * Set only on a 401, which Shirabe uses for exactly one thing: invalid,
+   * expired or revoked (`API_KEY_INVALID`). A 403 is a scope narrowed and lands
+   * on `needsUpgrade` instead; a 429 or an outage is not an answer about the
+   * key at all and must leave this alone, or Shirabe having a bad minute would
+   * unlink everybody.
+   *
+   * The ciphertext deliberately STAYS. It is encrypted, and `unlink` still
+   * wants the plaintext to hand back to Shirabe -- a revoke that is a no-op
+   * against an already-dead key is better than never trying. Marking rather
+   * than deleting the row is also what lets the card say the link expired,
+   * where a deleted one could only say "not connected" and leave the reader
+   * wondering what they did.
+   */
+  @Column({ name: 'disconnected_at', type: 'timestamptz', nullable: true })
+  disconnectedAt?: Date | null;
+
   @OneToOne('User', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user?: User;
@@ -111,6 +137,9 @@ export class ShirabeConnection extends BaseEntity {
       // keep working the whole time.
       needsUpgrade: missingScopes.length > 0,
       missingScopes,
+      /** The repair `needsUpgrade` is careful not to claim: Shirabe refused this
+       *  key, so the link is over until the reader makes a new one. */
+      disconnected: this.disconnectedAt != null,
       // ISO strings rather than Dates: the published shape says `date-time`, and
       // a Date only becomes one by accident of whatever serializes it last.
       linkedAt: this.createdAt.toISOString(),

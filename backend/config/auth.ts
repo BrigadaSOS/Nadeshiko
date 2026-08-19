@@ -292,9 +292,24 @@ async function sessionShirabe(userId: number) {
     // per render.
     const connection = await ShirabeConnection.findOne({
       where: { userId },
-      select: { id: true, stackFingerprint: true, stack: true },
+      select: { id: true, stackFingerprint: true, stack: true, disconnectedAt: true },
     });
     if (!connection) return null;
+
+    /**
+     * A refused key is not a link, however much the row looks like one.
+     *
+     * `linked` is what gates the whole reader path: the lookup route reads it to
+     * decide whether to fetch the stored credential at all, so leaving it true
+     * for a dead link means every single word costs a doomed credential fetch
+     * and a doomed Shirabe call before falling back to the defaults it was
+     * always going to fall back to.
+     *
+     * The row still exists and the settings page still reads it -- that is where
+     * the reader is told what happened and offered the repair. This is only
+     * about not spending requests on a key we already know Shirabe refuses.
+     */
+    if (connection.disconnectedAt) return null;
 
     return {
       linked: true,

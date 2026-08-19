@@ -26,9 +26,16 @@ vi.mock('@app/models/ShirabeConnection', () => ({
   },
 }));
 
-const { startLink, completeLink, missingScopes, resyncStack, REQUIRED_SCOPES } = await import(
-  '@app/services/shirabe/connection'
-);
+const {
+  startLink,
+  completeLink,
+  missingScopes,
+  readToken,
+  refreshStack,
+  reencryptToken,
+  resyncStack,
+  REQUIRED_SCOPES,
+} = await import('@app/services/shirabe/connection');
 
 /** A stored link, in the shape the service reads and writes it. */
 /** The reader every stored row here belongs to. The ciphertext is bound to it,
@@ -45,6 +52,8 @@ function storedConnection(overrides: Record<string, unknown> = {}) {
     stackFingerprint: 'abc123',
     syncedAt: new Date('2026-01-01T00:00:00Z'),
     scopes: [...REQUIRED_SCOPES],
+    /** Null is a live link, which is what almost every fixture here wants. */
+    disconnectedAt: null as Date | null,
     save() {
       saved.push(this as Record<string, unknown>);
       return Promise.resolve(this);
@@ -383,5 +392,120 @@ describe('resyncStack', () => {
     vi.mocked(ShirabeConnection.findOne).mockResolvedValue(null as never);
 
     await expect(resyncStack(42, 'abc123')).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * What happens when Shirabe refuses the key we hold.
+ *
+ * The distinction this rests on is Shirabe's own: 401 is `API_KEY_INVALID` --
+ * invalid, expired, or revoked -- and 403 is `INSUFFICIENT_SCOPE`, a key that
+ * still works. Confusing the two would be worse than doing nothing: treating a
+ * narrowed scope as a death would unlink readers who needed to approve one
+ * permission, and treating a death as transient is what left them silently on
+ * the default dictionaries with a card still reading "Linked as ...".
+ */
+describe('refreshStack', () => {
+  beforeEach(() => {
+    saved.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  const refuse = (status: number) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('nope', { status })),
+    );
+
+  it('marks the link over when Shirabe refuses the key outright', async () => {
+    const connection = storedConnection();
+    refuse(401);
+
+    await refreshStack(connection as never);
+
+    expect(connection.disconnectedAt).toBeInstanceOf(Date);
+    expect(saved).toHaveLength(1);
+  });
+
+  it('leaves the link alone when Shirabe is simply unhappy', async () => {
+    // A 500 or a timeout says nothing about the key. Disconnecting on one would
+    // unlink every reader over a bad minute at the other end.
+    for (const status of [403, 429, 500]) {
+      const connection = storedConnection();
+      refuse(status);
+
+      await refreshStack(connection as never);
+
+      expect(connection.disconnectedAt, `status ${status} must not end the link`).toBeNull();
+    }
+  });
+
+  it('brings a link back when Shirabe answers again', async () => {
+    // The commonest repair is not a re-consent: the reader undoes whatever ended
+    // it over there, and a row that can read /me is by definition not refused.
+    const connection = storedConnection({ disconnectedAt: new Date('2026-01-01T00:00:00Z') });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ preferences: { dictionaries: ['jmdict:en'], stackFingerprint: 'abc123' } })),
+    );
+
+    await refreshStack(connection as never);
+
+    expect(connection.disconnectedAt).toBeNull();
+  });
+
+  it('does not rewrite a link that is already known to be over', async () => {
+    // The lookup path reports a refusal per word, so a reader hovering down a
+    // page reports the same dead link a dozen times. The timestamp has to keep
+    // meaning "when it ended", not "when they last hovered something".
+    const ended = new Date('2026-01-01T00:00:00Z');
+    const connection = storedConnection({ disconnectedAt: ended });
+    refuse(401);
+
+    await refreshStack(connection as never);
+
+    expect(connection.disconnectedAt).toBe(ended);
+    expect(saved).toHaveLength(0);
+  });
+});
+
+/**
+ * The pass that lets a key rotation finish rather than merely survive.
+ */
+describe('reencryptToken', () => {
+  beforeEach(() => {
+    saved.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  it('leaves a row already sealed with the current key alone', async () => {
+    const connection = storedConnection();
+    const before = connection.tokenCiphertext;
+
+    expect(await reencryptToken(connection as never)).toBe(false);
+    expect(connection.tokenCiphertext).toBe(before);
+    expect(saved).toHaveLength(0);
+  });
+
+  it('moves a row sealed with the previous key onto the current one', async () => {
+    const OLD = 'the-outgoing-connection-secret-x';
+    const connection = storedConnection({
+      tokenCiphertext: encryptSecret('shr_reader_key', OLD, TOKEN_CONTEXT),
+    });
+    const before = connection.tokenCiphertext;
+    // Both keys configured, which is the state a rotation runs in.
+    (CONFIG as Record<string, unknown>).SHIRABE_CONNECTION_SECRET_PREVIOUS = OLD;
+
+    try {
+      expect(await reencryptToken(connection as never)).toBe(true);
+      expect(connection.tokenCiphertext).not.toBe(before);
+      // Still the same key underneath, still bound to the same reader.
+      expect(readToken(connection as never)).toBe('shr_reader_key');
+      // And a second pass is a no-op, which is what makes an interrupted run
+      // safe to simply repeat.
+      expect(await reencryptToken(connection as never)).toBe(false);
+    } finally {
+      delete (CONFIG as Record<string, unknown>).SHIRABE_CONNECTION_SECRET_PREVIOUS;
+    }
   });
 });

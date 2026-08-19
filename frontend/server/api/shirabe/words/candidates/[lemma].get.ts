@@ -1,7 +1,13 @@
 import { createError, getQuery, getRouterParam, setResponseHeader } from 'h3';
 import { logger } from '~~/server/utils/logger';
 import { callShirabe, describeFailure } from '~~/server/utils/shirabeCall';
-import { readerHasOwnStack, readerStack, readerToken, reportStackFingerprint } from '~~/server/utils/shirabeReader';
+import {
+  readerHasOwnStack,
+  readerStack,
+  readerToken,
+  reportShirabeRefusal,
+  reportStackFingerprint,
+} from '~~/server/utils/shirabeReader';
 import { withoutNameEntries } from '~~/server/utils/shirabeNames';
 
 /**
@@ -159,6 +165,19 @@ const handler = defineEventHandler(async (event) => {
       if (status !== 401 && status !== 403 && status !== 429) throw readerError;
 
       logger.warn({ lemma, status }, 'A reader Shirabe key was refused; answering with the default dictionaries');
+
+      // All three still fall back -- the reader gets an answer either way -- but
+      // only two of them say anything about the LINK, and that has to reach the
+      // backend or the discovery dies here. Shirabe's own distinction: 401 is a
+      // key that is invalid, expired or revoked, 403 is one missing a
+      // permission, and 429 is the reader being busy, which is not an answer
+      // about the key at all.
+      //
+      // Un-awaited like `reportStackFingerprint`: this request already has what
+      // it needs, and what the report buys is the reader's NEXT request not
+      // repeating a round trip we now know is doomed.
+      if (status !== 429) void reportShirabeRefusal(event, status);
+
       answeredAsReader = false;
       answer = await ask();
     }
