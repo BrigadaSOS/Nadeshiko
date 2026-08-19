@@ -1,5 +1,5 @@
 <template>
-    <div ref="rootRef" data-testid="dropdown" class="relative inline-flex">
+    <div ref="rootRef" data-testid="dropdown" :class="rootClass">
         <slot :is-open="isOpen" :toggle="toggle" :close="close" :dropdown-id="resolvedDropdownId"></slot>
         <!--
             `v-if`, NOT `v-show`, and on the busiest page that difference is most
@@ -52,6 +52,10 @@ const props = withDefaults(
   defineProps<{
     dropdownId?: string;
     dropdownContainerClass?: string;
+    /** Root element classes. The default is a shrink-to-trigger inline box; pass
+     *  e.g. a full-width bordered box to make the whole control the trigger and
+     *  anchor the menu (`inset-x-0`) to it rather than to a corner of it. */
+    rootClass?: string;
     /** Render the menu on `body` so sticky/overflow ancestors cannot clip it. */
     teleport?: boolean;
     /** Horizontal edge of the trigger the teleported menu lines up with. */
@@ -61,6 +65,7 @@ const props = withDefaults(
   {
     dropdownId: 'nd-dropdown',
     dropdownContainerClass: 'absolute top-full z-50 min-w-60 mt-1',
+    rootClass: 'relative inline-flex',
     teleport: false,
     teleportAlign: 'start',
     menuStyle: undefined,

@@ -605,25 +605,36 @@ watch(ankiconnectAddress, (newValue) => {
                   {{ item.key }}
                 </td>
                 <td class="whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
-                  <div class="border border-hairline my-3 mx-2 rounded-lg bg-input-background">
-                    <div class="w-full flex justify-between items-center gap-x-1">
-                      <div class="grow py-1 px-3">
-                        <input v-model="item.value" data-testid="anki-field-value"
-                          class="w-full p-0 bg-transparent border-0 text-gray-800 focus:ring-0 dark:text-white"
-                          type="text" />
-                      </div>
-                      <div class="flex flex-col divide-y text-left border-s border-s-neutral-600">
-                        <div>
-                          <SearchDropdownContainer dropdownId="nd-dropdown-with-header"
-                            dropdownContainerClass="absolute top-full end-0 z-50 min-w-60 mt-1">
-                            <template #default>
-                              <SearchDropdownMainButton dropdownId="nd-dropdown-with-header">
-                                <UiBaseIcon />
-                              </SearchDropdownMainButton>
-                            </template>
-                            <template #content>
-                              <SearchDropdownContent>
-                                <template v-if="dictionaryPickerFor !== item.key">
+                  <!-- One control: the placeholder input with the menu tucked into
+                       its right edge as a borderless chevron. The container IS the
+                       bordered box (`rootClass`), so the menu anchors below the WHOLE
+                       control (`inset-x-0`, no corner overlap), and focusing the input
+                       opens it -- the reader picks from the list or just types. -->
+                  <SearchDropdownContainer
+                    dropdownId="nd-dropdown-with-header"
+                    rootClass="relative flex items-center my-3 mx-2 rounded-lg border border-hairline bg-input-background focus-within:border-neutral-500"
+                    dropdownContainerClass="absolute top-full inset-x-0 z-50 mt-1">
+                    <template #default="{ isOpen, toggle }">
+                      <input v-model="item.value" data-testid="anki-field-value"
+                        class="grow min-w-0 py-2 ps-3 pe-1 bg-transparent border-0 text-gray-800 focus:ring-0 dark:text-white"
+                        type="text" @focus="isOpen || toggle()" />
+                      <SearchDropdownMainButton
+                        dropdownId="nd-dropdown-with-header"
+                        dropdownButtonClass="flex items-center self-stretch px-2.5 rounded-e-lg text-gray-400 hover:text-gray-200 focus:outline-none" />
+                    </template>
+                    <template #content>
+                        <SearchDropdownContent>
+                          <!-- Adding a placeholder APPENDS (see appendFieldPlaceholder), so
+                               the menu stays open to stack several -- a gloss from each
+                               dictionary, a reading beside a word -- instead of closing on
+                               the first pick and making the reader reopen it for the next.
+                               `data-nd-keep-open` is what tells DropdownContainer.onMenuClick
+                               not to dismiss on the click. -->
+                          <div data-nd-keep-open>
+                            <template v-if="dictionaryPickerFor !== item.key">
+                                <!-- SENTENCE: everything about the mined LINE, grouped as
+                                     the three Japanese forms, then translations, then
+                                     media, then the episode it came from. -->
                                 <div class="nd-menu-label">
                                   {{ $t('accountSettings.anki.sentenceGroup') }}
                                 </div>
@@ -635,21 +646,29 @@ watch(ankiconnectAddress, (newValue) => {
                                      built keeps the field they mapped. -->
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{content_jp_highlight}')"
                                   :text="$t('searchpage.main.buttons.jpsentencehighlight')" :iconPath="mdiFormatColorHighlight" />
+                                <!-- The whole line's readings, beside the other Japanese
+                                     forms it belongs with (it resolves from the SENTENCE,
+                                     not the word). Yomitan cannot produce this at all;
+                                     our parse already has every token's reading. -->
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-furigana}')"
+                                  :text="$t('searchpage.main.buttons.sentencefurigana')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-en}')"
                                   :text="$t('searchpage.main.buttons.ensentence')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-es}')"
                                   :text="$t('searchpage.main.buttons.essentence')" :iconPath="mdiText" />
-                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{image}')"
-                                  :text="$t('accountSettings.anki.sentenceImage')" :iconPath="mdiImage" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-audio}')"
                                   :text="$t('accountSettings.anki.sentenceAudio')" :iconPath="mdiVolumeHigh" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{image}')"
+                                  :text="$t('accountSettings.anki.sentenceImage')" :iconPath="mdiImage" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-info}')"
                                   :text="$t('searchpage.main.buttons.info')" :iconPath="mdiText" />
-                                <!-- The selected word, which only the word card
-                                     can fill: these are mined by clicking a word
-                                     in a sentence, not by the Add to Anki
-                                     dropdown. A field mapped here is left
-                                     untouched by the other export paths. -->
+                                <!-- SELECTED WORD: facts about the mined word, which only
+                                     the word card can fill (mined by clicking a word in a
+                                     sentence, not from the Add to Anki dropdown). Ordered
+                                     word forms, then audio, then definitions, then the
+                                     three pitch fields together, then the numeric
+                                     metadata. A field mapped here is left untouched by the
+                                     other export paths. -->
                                 <div class="nd-menu-label">
                                   {{ $t('accountSettings.anki.selectedWordGroup') }}
                                 </div>
@@ -661,12 +680,6 @@ watch(ankiconnectAddress, (newValue) => {
                                   :text="$t('searchpage.main.buttons.wordfurigana')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-audio}')"
                                   :text="$t('searchpage.main.buttons.wordaudio')" :iconPath="mdiVolumeHigh" />
-                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch}')"
-                                  :text="$t('searchpage.main.buttons.wordpitch')" :iconPath="mdiChartLine" />
-                                <!-- The number on its own, for a note type that
-                                     draws its own diagram from the position. -->
-                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch-num}')"
-                                  :text="$t('searchpage.main.buttons.wordpitchnum')" :iconPath="mdiNumeric" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{definition}')"
                                   :text="$t('searchpage.main.buttons.definition')" :iconPath="mdiBookOpenVariant" />
                                 <!-- Whatever sits at the top of their Shirabe
@@ -676,6 +689,13 @@ watch(ankiconnectAddress, (newValue) => {
                                      is swapped out. -->
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{definition-first}')"
                                   :text="$t('searchpage.main.buttons.definitionFirst')" :iconPath="mdiBookOpenVariant" />
+                                <!-- The three pitch fields kept together: the graph, the
+                                     position number on its own (for a note type that draws
+                                     its own diagram), and the accent pattern. -->
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch}')"
+                                  :text="$t('searchpage.main.buttons.wordpitch')" :iconPath="mdiChartLine" />
+                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch-num}')"
+                                  :text="$t('searchpage.main.buttons.wordpitchnum')" :iconPath="mdiNumeric" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-pitch-categories}')"
                                   :text="$t('searchpage.main.buttons.wordpitchcategories')" :iconPath="mdiChartLine" />
                                 <!-- A plain rank, so a note type can sort a deck
@@ -684,11 +704,6 @@ watch(ankiconnectAddress, (newValue) => {
                                   :text="$t('searchpage.main.buttons.wordfrequency')" :iconPath="mdiNumeric" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-jlpt}')"
                                   :text="$t('searchpage.main.buttons.wordjlpt')" :iconPath="mdiNumeric" />
-                                <!-- The whole line's readings. Yomitan cannot
-                                     produce this at all; our parse already has
-                                     every token's reading. -->
-                                <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{sentence-furigana}')"
-                                  :text="$t('searchpage.main.buttons.sentencefurigana')" :iconPath="mdiText" />
                                 <SearchDropdownItem @click="appendFieldPlaceholder(item.key, '{word-info}')"
                                   :text="$t('searchpage.main.buttons.wordinfo')" :iconPath="mdiText" />
                                 <!-- One named dictionary, for a note type that
@@ -736,13 +751,10 @@ watch(ankiconnectAddress, (newValue) => {
                                     :iconPath="mdiBookOpenVariant"
                                     @click="appendFieldPlaceholder(item.key, `{definition:${dictionary.slug}}`)" />
                                 </template>
-                              </SearchDropdownContent>
-                            </template>
-                          </SearchDropdownContainer>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                          </div>
+                        </SearchDropdownContent>
+                      </template>
+                    </SearchDropdownContainer>
                 </td>
               </tr>
             </tbody>
