@@ -359,7 +359,7 @@ const showBatchModal = ref(false);
           :aria-activedescendant="activeIndex >= 0 ? recentOptionId(activeIndex) : undefined" autocomplete="off"
           @pointerdown="openRecents"
           :class="[showRecents ? 'rounded-b-none' : '', barAccentClass]"
-          class="border py-3 h-full pl-4 pr-12 md:pr-44 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
+          class="border py-3 h-full pl-4 pr-24 md:pr-44 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
           :placeholder="$t('common.searchAnything')" />
 
         <!--
@@ -396,6 +396,25 @@ const showBatchModal = ref(false);
             @click="clearQuery">
             <UiBaseIcon :path="mdiClose" w="w-5" h="h-5" size="20" />
           </button>
+          <!--
+            Simultaneous search, below `md` only. Its standalone button went with
+            the search button when the pair was dropped for the keyboard's Go
+            key, and it took the feature with it: Go replaces "search", but
+            nothing replaced "search several at once", so on a phone there was no
+            way in at all. It lands in this strip because the strip is already
+            here and already reserved for by the input's padding -- and outboard
+            of the clear button, so it keeps one position whether or not there is
+            a query to clear.
+          -->
+          <button
+            type="button"
+            data-testid="search-batch-inline"
+            :aria-label="$t('batchSearch.title')"
+            :title="$t('batchSearch.title')"
+            class="md:hidden pointer-events-auto cursor-pointer inline-flex justify-center items-center rounded-md p-1.5 text-ink-faint hover:text-ink hover:bg-control transition-colors motion-reduce:transition-none"
+            @click="showBatchModal = true">
+            <UiBaseIcon :path="mdiTextSearch" w="w-5" h="h-5" size="20" />
+          </button>
           <span
             class="hidden md:inline-flex items-center whitespace-nowrap py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
             <kbd
@@ -426,6 +445,8 @@ const showBatchModal = ref(false);
       <div class="hidden md:grid grid-cols-2 gap-2">
         <button
           data-testid="search-button"
+          :aria-label="$t('common.search')"
+          :title="$t('common.search')"
           class="col-span-1 py-4 px-4 border border-hairline inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="submitFromSearchButton">
           <svg class="flex-shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -437,6 +458,8 @@ const showBatchModal = ref(false);
         </button>
 
         <button
+          :aria-label="$t('batchSearch.title')"
+          :title="$t('batchSearch.title')"
           class="col-span-1 py-4 px-4 border border-hairline inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="showBatchModal = true">
           <UiBaseIcon :path="mdiTextSearch" w="w-5 md:w-5" h="h-5 md:h-5" size="20" class="" />
