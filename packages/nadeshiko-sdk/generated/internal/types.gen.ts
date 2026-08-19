@@ -1743,10 +1743,8 @@ export type ApiKeyScope = 'ADD_MEDIA' | 'READ_MEDIA' | 'UPDATE_MEDIA' | 'REMOVE_
 /**
  * A reader's linked Shirabe account, as the reader is shown it.
  *
- * Never carries the stored key: nothing here can be used to act on their Shirabe
- * account. `tokenPrefix` is only the handful of characters Shirabe itself prints
- * in its own access list, so somebody comparing the two lists can tell which row
- * is this one.
+ * Never carries the stored tokens: nothing here can be used to act on their
+ * Shirabe account.
  *
  */
 export type ShirabeConnection = {
@@ -1767,10 +1765,6 @@ export type ShirabeConnection = {
      * Who they are on Shirabe, for the settings page to name the link.
      */
     shirabeName?: string;
-    /**
-     * The first characters of the key, to recognise it by. Not usable.
-     */
-    tokenPrefix: string;
     /**
      * What the reader granted. Today that is READ_ACCOUNT and nothing else.
      */
