@@ -3,7 +3,7 @@ import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@
 import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 
 useSeoMeta({
@@ -47,6 +47,19 @@ const {
   default: () => null,
 });
 
+// The "search in your own language" example only shows the reader's own
+// language: an English reader gets `school`, a Spanish one `escuela`. Naming
+// both was a hint that the OTHER language is also searchable, which nobody needs
+// on the page they landed on in their own. Japanese is not one of the two, so
+// its copy still names both.
+const otherLanguageExamples = computed(() => {
+  const english = { query: 'school', label: 'School' };
+  const spanish = { query: 'escuela', label: 'Escuela' };
+  if (locale.value === 'en') return [english];
+  if (locale.value === 'es') return [spanish];
+  return [english, spanish];
+});
+
 const filteredRecentMedia = computed(() => media.value?.media ?? []);
 </script>
 
@@ -85,10 +98,11 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionOtherSearch') }}:
-                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                    :to="localePath('/search/school')">School</NuxtLink>,
-                                                <NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                    :to="localePath('/search/escuela')">Escuela</NuxtLink>
+                                                <template v-for="(example, index) in otherLanguageExamples" :key="example.query"
+                                                    ><NuxtLink class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
+                                                        :to="localePath(`/search/${example.query}`)">{{ example.label }}</NuxtLink
+                                                    ><span v-if="index < otherLanguageExamples.length - 1">, </span></template
+                                                >
                                             </li>
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionExclusiveSearch') }}:

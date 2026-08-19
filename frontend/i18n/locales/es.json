@@ -46,7 +46,7 @@
     "version": "v{version}",
     "nadeDbDescription": "Una herramienta para buscar oraciones en japonés desde multiples contextos.",
     "nadeDbDescriptionJpSearch": "Búsqueda en Japonés",
-    "nadeDbDescriptionOtherSearch": "Búsqueda en Inglés o Español",
+    "nadeDbDescriptionOtherSearch": "Búsqueda en Español",
     "nadeDbDescriptionExclusiveSearch": "Busqueda excluyente",
     "nadeDbDescriptionExactSearch": "Busqueda exacta",
     "keyFeatures": {
