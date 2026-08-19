@@ -4,8 +4,15 @@ import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 
 const { locale, t } = useI18n();
 const route = useRoute();
+const localePath = useLocalePath();
 
-const page = computed(() => Number(route.query.page || 1));
+// `?page=99`, `?page=0`, `?page=-1` and `?page=abc` all rendered 200 with "No
+// blog posts available yet" -- untrue, and indexable. Anything that is not a
+// positive integer is page 1; a page past the end is handled below.
+const page = computed(() => {
+  const raw = Number(route.query.page);
+  return Number.isInteger(raw) && raw >= 1 ? raw : 1;
+});
 const pageSize = 9;
 
 const { data: posts, refresh } = await useAsyncData(
@@ -38,6 +45,14 @@ const { data: posts, refresh } = await useAsyncData(
   { watch: [page, locale] },
 );
 
+// A page past the last one is a wrong URL, not an empty blog. Rendering it as
+// 200 told crawlers the blog had no posts, from any `?page=` a link or a bot
+// happened to invent. Page 1 stays 200 even with nothing published, because
+// then "no posts yet" is the true answer.
+if (posts.value && posts.value.totalPages > 0 && page.value > posts.value.totalPages) {
+  throw createError({ statusCode: 404, statusMessage: 'Page Not Found' });
+}
+
 useSeoMeta({
   title: () => t('seo.blog.title'),
   ogTitle: () => t('seo.blog.title'),
@@ -50,6 +65,19 @@ useSeoMeta({
 });
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
+
+// Without this the feed exists but nothing finds it: readers discover one from
+// the page it belongs to, not by guessing a path.
+useHead({
+  link: [
+    {
+      rel: 'alternate',
+      type: 'application/rss+xml',
+      title: 'Nadeshiko Blog',
+      href: localePath('/blog/rss.xml'),
+    },
+  ],
+});
 </script>
 
 <template>
