@@ -95,3 +95,16 @@ export function searchUrl(options: SearchLinkOptions = {}, link?: LinkAttributio
 export function mediaSearchUrl(mediaPublicId: string, episode?: number, link?: LinkAttribution): string {
   return searchUrl({ mediaPublicId, episodes: episode == null ? undefined : [episode] }, link);
 }
+
+/**
+ * The community invite, mirrored from `frontend/shared/utils/socialLinks.ts`.
+ *
+ * The bot builds from `discord/` alone and cannot import the canonical file, so
+ * this is a second copy on purpose. It cannot drift silently: the frontend suite
+ * runs `socialLinks.sync.test.ts`, which scans every file in the repo and fails
+ * on any invite code that disagrees with the constant.
+ *
+ * Deliberately not routed through `attribute()` -- this link leaves Discord for
+ * Discord, so there is no Nadeshiko pageview at the other end to attribute.
+ */
+export const DISCORD_INVITE_URL = 'https://discord.gg/qRak9MprUS';

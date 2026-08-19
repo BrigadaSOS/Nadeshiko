@@ -5,7 +5,7 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { aboutUrl, homeUrl } from '../links';
+import { DISCORD_INVITE_URL, aboutUrl, homeUrl } from '../links';
 
 export const data = new SlashCommandBuilder().setName('info').setDescription('About Nadeshiko and useful links');
 
@@ -19,7 +19,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     `- <https://patreon.com/BrigadaSOS>`,
     '',
     `Found a bug or have a suggestion? Join our **Discord server**:`,
-    `- https://discord.gg/qRak9MprUS`,
+    `- ${DISCORD_INVITE_URL}`,
   ];
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
