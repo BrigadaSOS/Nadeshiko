@@ -26,6 +26,7 @@
   },
   "common": {
     "cancel": "キャンセル",
+    "search": "検索",
     "clearSearch": "検索をクリア",
     "close": "閉じる",
     "confirm": "確認",
@@ -1186,7 +1187,7 @@
       "title": "文章",
       "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。",
       "episode": "第{n}話",
-      "pageTitle": "「{sentence}」 — {media}"
+      "pageTitle": "「{sentence}」（{media}）"
     },
     "collection": {
       "description": "Nadeshikoの「{name}」コレクションを閲覧"

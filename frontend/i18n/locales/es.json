@@ -26,6 +26,7 @@
   },
   "common": {
     "cancel": "Cancelar",
+    "search": "Buscar",
     "clearSearch": "Borrar búsqueda",
     "close": "Cerrar",
     "confirm": "Confirmar",
@@ -442,7 +443,7 @@
         "unban": "Desbloquear"
       },
       "pagination": {
-        "showing": "Mostrando {start}–{end} de {total}",
+        "showing": "Mostrando {start}-{end} de {total}",
         "previous": "Anterior",
         "next": "Siguiente"
       },
@@ -1161,7 +1162,7 @@
     "media": {
       "title": "Explorar Contenido",
       "description": "Explora el anime, J-dramas y audiolibros disponibles en Nadeshiko. Busca entre miles de títulos con oraciones en japonés.",
-      "pageTitle": "{media} — oraciones japonesas con traducciones"
+      "pageTitle": "{media}: oraciones japonesas con traducciones"
     },
     "blog": {
       "title": "Blog",
@@ -1180,13 +1181,13 @@
       "mediaDescription": "{count} oraciones japonesas de {media} con traducciones al inglés y español.",
       "mediaDescriptionEpisode": "{count} oraciones japonesas del episodio {episode} de {media} con traducciones al inglés y español.",
       "mediaDescriptionEpisodes": "{count} oraciones japonesas de {media} en {episodeCount} episodios con traducciones al inglés y español.",
-      "wordTitle": "{query} — oraciones de ejemplo en japonés"
+      "wordTitle": "{query}: oraciones de ejemplo en japonés"
     },
     "sentence": {
       "title": "Oración",
       "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas.",
       "episode": "Episodio {n}",
-      "pageTitle": "「{sentence}」 — {media}"
+      "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {
       "description": "Explora la colección \"{name}\" en Nadeshiko"
