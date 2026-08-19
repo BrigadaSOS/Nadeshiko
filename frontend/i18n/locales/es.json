@@ -159,7 +159,6 @@
     },
     "toast": {
       "noSettings": "No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.",
-      "keyFieldRequired": "Configura un campo clave en los ajustes de Anki antes de exportar.",
       "miningCard": "Minando la carta...",
       "noCardToExport": "No hay carta de Anki para exportar. Por favor, añada una carta primero.",
       "cardFoundInOtherDeck": "Se encontro la carta pero no en el mazo \"{deck}\". Verifica que Yomitan y Nadeshiko usen el mismo mazo.",
@@ -848,8 +847,8 @@
       "selectModel": "Selecciona un modelo",
       "keyFieldLabel": "Campo clave",
       "selectKeyField": "Selecciona el campo que corresponde al ID de tu mazo",
-      "keyFieldRequiredTitle": "Se requiere un campo clave",
-      "keyFieldRequiredMessage": "Selecciona un campo clave abajo para habilitar las exportaciones a Anki.",
+      "keyFieldRequiredTitle": "Sin campo clave",
+      "keyFieldRequiredMessage": "Añadir a la última tarjeta creada funciona sin él. Elige un campo clave para minar palabras desde una tarjeta de palabra y para elegir una nota buscando en tu colección.",
       "fieldColumn": "Campo",
       "contentColumn": "Contenido",
       "fieldComposeHelp": "Cada marcador que eliges se añade al campo en lugar de reemplazar lo que ya hay, así que un campo puede contener varios: dos diccionarios uno debajo del otro, por ejemplo. Edita la caja directamente para cambiar cómo se unen.",

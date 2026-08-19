@@ -75,14 +75,20 @@ const posthog = usePostHog();
 const { t } = useI18n();
 const router = useRouter();
 const localePath = useLocalePath();
-// Both sentence-level exports depend on the key field: the picker searches it,
-// and without it a profile cannot identify the card it is meant to update.
-// Keep this derived from the active profile so changing Anki settings while a
-// results page is open immediately updates both menu items.
+// Derived from the active profile rather than read once on mount, so changing
+// Anki settings while a results page is open updates both menu items.
+//
+// Enough to write a note at all: which deck and note type to look in, and at
+// least one field mapping to fill. The key field is NOT part of it -- see
+// `pickerUnavailable` for the one export that does need it.
 const isAnkiConfigured = computed(() => {
   const profile = anki.activeProfile;
-  return !!profile?.deck?.trim() && !!profile.model?.trim() && profile.fields.length > 0 && !!profile.key?.trim();
+  return !!profile?.deck?.trim() && !!profile.model?.trim() && profile.fields.length > 0;
 });
+
+/** The field naming the word a note is about. Optional in settings, and only
+ *  the surfaces that SEARCH on it are entitled to require it. */
+const hasKeyField = computed(() => !!anki.activeProfile?.key?.trim());
 
 /**
  * Configured AND actually reachable. A profile can be perfectly filled in while
@@ -96,8 +102,29 @@ const isAnkiConfigured = computed(() => {
  */
 const ankiUnavailable = computed(() => !isAnkiConfigured.value || anki.connectReachable === false);
 
-/** Which of the two problems it is, so the menu item can say. */
+/**
+ * The note picker asks Anki WHICH note is about a word, and the key field is the
+ * field it searches -- so this one export needs it where the other does not.
+ * "Add to last added card" targets `deck + note + added:2 is:new` and has never
+ * consulted the key at all.
+ */
+const pickerUnavailable = computed(() => ankiUnavailable.value || !hasKeyField.value);
+
+/**
+ * Which problem it is, so the menu item can SAY -- "disabled" on its own is the
+ * least useful thing a control can tell somebody.
+ *
+ * Ordered by what the reader has to fix first: no amount of running Anki helps a
+ * profile with no note type, so configuration is reported ahead of reachability.
+ * The picker's extra condition slots in with the other settings problem, ahead
+ * of reachability for the same reason.
+ */
 const ankiBlockedMessage = computed(() => (isAnkiConfigured.value ? t('anki.notRunning') : t('anki.configRequired')));
+const pickerBlockedMessage = computed(() => {
+  if (!isAnkiConfigured.value) return t('anki.configRequired');
+  if (!hasKeyField.value) return t('anki.keyFieldRequired');
+  return t('anki.notRunning');
+});
 const addingCollectionId = ref<string | null>(null);
 const showCollectionPicker = ref(false);
 
@@ -227,11 +254,13 @@ const sharedMediaName = computed(() =>
               :on-disabled-click="ankiUnavailable ? openAnkiSettings : undefined"
               @click="anki.addSentenceToAnki(content)" />
 
-            <!-- Anki by ID -->
-            <SearchDropdownItem :is-disabled="ankiUnavailable" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
+            <!-- Anki by ID. Gated more tightly than the item above: this one
+                 searches the key field, so a profile without one cannot offer it
+                 even though it can export perfectly well. -->
+            <SearchDropdownItem :is-disabled="pickerUnavailable" :text="$t('searchpage.main.buttons.addToAnkiSearch')"
               @click="openAnkiModal()" :iconPath="mdiCardSearchOutline"
-              :tooltip="ankiUnavailable ? ankiBlockedMessage : undefined"
-              :on-disabled-click="ankiUnavailable ? openAnkiSettings : undefined" />
+              :tooltip="pickerUnavailable ? pickerBlockedMessage : undefined"
+              :on-disabled-click="pickerUnavailable ? openAnkiSettings : undefined" />
           </template>
           <template v-else>
             <SearchDropdownItem :is-disabled="true" :text="$t('searchpage.main.buttons.addToAnkiLast')"

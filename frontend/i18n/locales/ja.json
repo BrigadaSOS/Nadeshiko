@@ -159,7 +159,6 @@
     },
     "toast": {
       "noSettings": "設定が見つかりません。設定ページで拡張機能を設定してください。",
-      "keyFieldRequired": "エクスポートする前に、Ankiの設定でキーフィールドを設定してください。",
       "miningCard": "カードを処理中...",
       "noCardToExport": "エクスポート先のAnkiカードがありません。まずカードを追加してください。",
       "cardFoundInOtherDeck": "カードが見つかりましたが、デッキ「{deck}」にありません。YomitanとNadeshikoが同じデッキを使用しているか確認してください。",
@@ -848,8 +847,8 @@
       "selectModel": "モデルを選択",
       "keyFieldLabel": "キーフィールド",
       "selectKeyField": "デッキIDに対応するフィールドを選択",
-      "keyFieldRequiredTitle": "キーフィールドが必要です",
-      "keyFieldRequiredMessage": "Ankiへのエクスポートを有効にするには、下でキーフィールドを選択してください。",
+      "keyFieldRequiredTitle": "キーフィールドが未設定です",
+      "keyFieldRequiredMessage": "最後に追加したカードへの書き出しは未設定でも使えます。単語カードから単語をマイニングする場合と、コレクションを検索してノートを選ぶ場合はキーフィールドを設定してください。",
       "fieldColumn": "フィールド",
       "contentColumn": "内容",
       "fieldComposeHelp": "選んだプレースホルダーは、すでに入っている内容を置き換えるのではなく追加されるため、1つのフィールドに複数を入れられます（辞書を2つ並べる、など）。つなぎ方を変えたい場合は、入力欄を直接編集してください。",

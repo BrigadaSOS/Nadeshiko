@@ -412,17 +412,23 @@ export const ankiStore = defineStore('anki', {
       }
     },
 
-    /** The sentence-level entry points, which have no selected word to send.
-     *  Kept positional so the two callers that predate `MinedWord` are untouched. */
+    /**
+     * The sentence-level entry points, which have no selected word to send.
+     * Kept positional so the two callers that predate `MinedWord` are untouched.
+     *
+     * Deliberately NOT gated on the key field. Neither path here needs one: the
+     * note picker hands over an id it has already resolved, and the last-added
+     * card is found on `deck + note + added:2 is:new`, which is how it has
+     * worked since long before a key field existed. The key answers a different
+     * question -- WHICH note is about this word -- and only the two surfaces
+     * that ask it require it (the picker's own search, and the word card).
+     *
+     * A guard here briefly made the key mandatory for every export, which
+     * silently withdrew the last-added-card flow from every reader who had never
+     * set one. That is the Yomitan-first workflow, and it was the majority of
+     * exports.
+     */
     async addSentenceToAnki(sentence: SearchResult, id?: number, method?: string) {
-      // The menu normally prevents this, but keep the feature safe if a stale
-      // page or another caller reaches it after the key field was cleared.
-      // Without a key, a sentence-level export has no reliable card identity.
-      if (!this.activeProfile?.key?.trim()) {
-        const { $i18n } = useNuxtApp();
-        useToastError($i18n.t('anki.toast.keyFieldRequired'));
-        return;
-      }
       await this.addResultToAnki(sentence, { noteId: id, method });
     },
 
