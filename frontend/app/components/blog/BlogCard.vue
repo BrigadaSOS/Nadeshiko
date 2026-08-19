@@ -35,7 +35,7 @@ const formattedDate = computed(() => {
     const date = new Date(dateValue);
     if (Number.isNaN(date.getTime())) return null;
 
-    return d(date, 'short');
+    return d(date, 'dateUtc');
   } catch {
     return null;
   }

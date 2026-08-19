@@ -24,6 +24,28 @@
       "logout": "Logout"
     }
   },
+  "announcementBanner": {
+    "titles": {
+      "INFO": "Notice",
+      "WARNING": "Important Notice",
+      "MAINTENANCE": "Maintenance Notice"
+    }
+  },
+  "player": {
+    "controls": {
+      "rewind": "Rewind",
+      "forward": "Forward",
+      "previous": "Previous clip",
+      "next": "Next clip",
+      "play": "Play",
+      "pause": "Pause",
+      "autoplay": "Autoplay",
+      "repeat": "Repeat",
+      "enterFullscreen": "Full screen",
+      "exitFullscreen": "Exit full screen",
+      "close": "Close player"
+    }
+  },
   "common": {
     "cancel": "Cancel",
     "search": "Search",
@@ -472,11 +494,6 @@
         "WARNING": "Warning",
         "MAINTENANCE": "Maintenance"
       },
-      "previewTitles": {
-        "INFO": "Notice",
-        "WARNING": "Important Notice",
-        "MAINTENANCE": "Maintenance Notice"
-      },
       "save": "Save",
       "saving": "Saving...",
       "deactivate": "Deactivate",
@@ -578,9 +595,6 @@
       "burstLimit": "Separately, each key is limited to {max} requests per minute.",
       "usageLimitMessage": {
         "prefix": "If you need to increase your API usage limit, please reach out to us at"
-      },
-      "legacyKeysMessage": {
-        "prefix": "To manage API keys created on the previous version of the site, visit"
       },
       "apiKeyManagement": "API Key Management",
       "addApiKey": "Add API Key",
@@ -930,7 +944,9 @@
     "expandNoNext": "No later sentence in this episode.",
     "expandFailed": "Couldn't expand this sentence. Please try again.",
     "expandAudioFailed": "Expanded the text, but the audio could not be built. Playback and Anki export will use the original clip.",
-    "expanding": "Expanding…"
+    "expanding": "Expanding…",
+    "playAudio": "Play audio",
+    "loading": "Loading"
   },
   "tokenTooltip": {
     "lookupIn": "Look up in",

@@ -20,6 +20,7 @@ import { storeToRefs } from 'pinia';
 
 const route = useRoute();
 
+const { t } = useI18n();
 const playerStore = usePlayerStore();
 const ytPlayer = useYoutubeSegmentPlayer();
 const { mediaName } = useMediaName();
@@ -339,27 +340,28 @@ const getAnimeImage = (result: any) => {
 
                         <div class="flex items-center justify-center gap-8 md:gap-12">
 
-                            <button @click="seekBackward" class="group p-2">
+                            <button @click="seekBackward" class="group p-2" :aria-label="t('player.controls.rewind')">
                                 <UiBaseIcon :path="mdiRewind" :size="28"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
-                            <button @click="playerStore.prev()" class="group p-2">
+                            <button @click="playerStore.prev()" class="group p-2" :aria-label="t('player.controls.previous')">
                                 <UiBaseIcon :path="mdiSkipPrevious" :size="36"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
                             <button @click="playerStore.togglePlay()"
-                                class="w-16 h-16 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg shadow-white/10">
+                                class="w-16 h-16 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg shadow-white/10"
+                                :aria-label="isPlaying ? t('player.controls.pause') : t('player.controls.play')">
                                 <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="40" />
                             </button>
 
-                            <button @click="playerStore.next()" class="group p-2">
+                            <button @click="playerStore.next()" class="group p-2" :aria-label="t('player.controls.next')">
                                 <UiBaseIcon :path="mdiSkipNext" :size="36"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
-                            <button @click="seekForward" class="group p-2">
+                            <button @click="seekForward" class="group p-2" :aria-label="t('player.controls.forward')">
                                 <UiBaseIcon :path="mdiFastForward" :size="28"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
@@ -369,20 +371,24 @@ const getAnimeImage = (result: any) => {
                         <div class="flex items-center justify-center gap-2 mt-8">
                             <button @click="playerStore.toggleAutoplay()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors"
-                                :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }" title="Autoplay">
+                                :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }"
+                                :aria-label="t('player.controls.autoplay')" :aria-pressed="autoplay">
                                 <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
                             </button>
                             <button @click="playerStore.toggleRepeat()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors"
-                                :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
+                                :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }"
+                                :aria-label="t('player.controls.repeat')" :aria-pressed="repeat">
                                 <UiBaseIcon :path="mdiRepeat" :size="20" />
                             </button>
                             <button @click="playerStore.toggleImmersive()"
-                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80"
+                                :aria-label="t('player.controls.exitFullscreen')">
                                 <UiBaseIcon :path="mdiFullscreenExit" :size="20" />
                             </button>
                             <button @click="playerStore.hidePlayer()"
-                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80">
+                                class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80"
+                                :aria-label="t('player.controls.close')">
                                 <UiBaseIcon :path="mdiClose" :size="20" />
                             </button>
                         </div>
@@ -410,23 +416,26 @@ const getAnimeImage = (result: any) => {
 
 
                     <div class="flex items-center gap-1 md:gap-3">
-                        <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block">
+                        <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.rewind')">
                             <UiBaseIcon :path="mdiRewind" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
                         <button @click="playerStore.prev()"
-                            class="p-2 text-white/70 hover:text-white transition-colors">
+                            class="p-2 text-white/70 hover:text-white transition-colors"
+                            :aria-label="t('player.controls.previous')">
                             <UiBaseIcon :path="mdiSkipPrevious" :size="24" />
                         </button>
                         <button @click="playerStore.togglePlay()"
-                            class="p-2 text-white hover:text-red-400 transition-colors">
+                            class="p-2 text-white hover:text-red-400 transition-colors"
+                            :aria-label="isPlaying ? t('player.controls.pause') : t('player.controls.play')">
                             <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="24" />
                         </button>
                         <button @click="playerStore.next()"
-                            class="p-2 text-white/70 hover:text-white transition-colors">
+                            class="p-2 text-white/70 hover:text-white transition-colors"
+                            :aria-label="t('player.controls.next')">
                             <UiBaseIcon :path="mdiSkipNext" :size="24" />
                         </button>
-                        <button @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block">
+                        <button @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.forward')">
                             <UiBaseIcon :path="mdiFastForward" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
@@ -436,20 +445,24 @@ const getAnimeImage = (result: any) => {
                     <div class="flex items-center gap-2 pl-4 border-l border-white/10">
                         <button @click="playerStore.toggleAutoplay()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
-                            :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }">
+                            :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }"
+                            :aria-label="t('player.controls.autoplay')" :aria-pressed="autoplay">
                             <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
                         </button>
                         <button @click="playerStore.toggleRepeat()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
-                            :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }" title="Repeat">
+                            :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }"
+                            :aria-label="t('player.controls.repeat')" :aria-pressed="repeat">
                             <UiBaseIcon :path="mdiRepeat" :size="20" />
                         </button>
                         <button @click="playerStore.toggleImmersive()"
-                            class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70">
+                            class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70"
+                            :aria-label="t('player.controls.enterFullscreen')">
                             <UiBaseIcon :path="mdiFullscreen" :size="20" />
                         </button>
                         <button @click="playerStore.hidePlayer()"
-                            class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70">
+                            class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70"
+                            :aria-label="t('player.controls.close')">
                             <UiBaseIcon :path="mdiClose" :size="20" />
                         </button>
                     </div>

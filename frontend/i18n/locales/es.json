@@ -24,6 +24,28 @@
       "logout": "Cerrar sesión"
     }
   },
+  "announcementBanner": {
+    "titles": {
+      "INFO": "Aviso",
+      "WARNING": "Aviso importante",
+      "MAINTENANCE": "Aviso de mantenimiento"
+    }
+  },
+  "player": {
+    "controls": {
+      "rewind": "Retroceder",
+      "forward": "Avanzar",
+      "previous": "Clip anterior",
+      "next": "Clip siguiente",
+      "play": "Reproducir",
+      "pause": "Pausar",
+      "autoplay": "Reproducción automática",
+      "repeat": "Repetir",
+      "enterFullscreen": "Pantalla completa",
+      "exitFullscreen": "Salir de pantalla completa",
+      "close": "Cerrar reproductor"
+    }
+  },
   "common": {
     "cancel": "Cancelar",
     "search": "Buscar",
@@ -472,11 +494,6 @@
         "WARNING": "Advertencia",
         "MAINTENANCE": "Mantenimiento"
       },
-      "previewTitles": {
-        "INFO": "Aviso",
-        "WARNING": "Aviso importante",
-        "MAINTENANCE": "Aviso de mantenimiento"
-      },
       "save": "Guardar",
       "saving": "Guardando...",
       "deactivate": "Desactivar",
@@ -578,9 +595,6 @@
       "burstLimit": "Aparte, cada clave está limitada a {max} solicitudes por minuto.",
       "usageLimitMessage": {
         "prefix": "Si necesitas aumentar tu límite de uso de la API, contáctanos en"
-      },
-      "legacyKeysMessage": {
-        "prefix": "Para administrar llaves API creadas en la versión anterior del sitio, visita"
       },
       "apiKeyManagement": "Gestión de llaves API",
       "addApiKey": "Añadir llave API",
@@ -930,7 +944,9 @@
     "expandNoNext": "No hay ninguna frase posterior en este episodio.",
     "expandFailed": "No se pudo expandir esta frase. Inténtalo de nuevo.",
     "expandAudioFailed": "Se expandió el texto, pero no se pudo generar el audio: la reproducción y la exportación a Anki usarán el audio original.",
-    "expanding": "Expandiendo…"
+    "expanding": "Expandiendo…",
+    "playAudio": "Reproducir audio",
+    "loading": "Cargando"
   },
   "tokenTooltip": {
     "lookupIn": "Buscar en",
