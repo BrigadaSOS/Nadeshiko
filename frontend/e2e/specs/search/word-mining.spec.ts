@@ -224,7 +224,7 @@ const writeCount = (calls: AnkiCall[]) =>
 async function configureAnkiProfile(
   page: Page,
   fields: Array<{ key: string; value: string }> = [{ key: 'Expression', value: '{word}' }],
-  extra: { openBrowserOnExport?: boolean } = {},
+  extra: { openBrowserOnExport?: boolean; key?: string } = {},
 ): Promise<void> {
   await page.request.patch('/v1/user/preferences', {
     data: {
@@ -896,6 +896,100 @@ test.describe('Word card mining', () => {
       // The mixed one is not written at all, rather than written with a blank
       // where the reader's glossary was.
       expect(fields.Mixed).toBeUndefined();
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+});
+
+/**
+ * The sentence card's Add menu, and which of its two Anki exports the key field
+ * governs.
+ *
+ * The key field names the note a word is about, and it is optional in settings.
+ * Only the surfaces that SEARCH on it are entitled to require it: the note
+ * picker, whose query IS that field, and the word card above. "Add to last added
+ * card" targets `deck + note + added:2 is:new` and has never consulted it.
+ *
+ * Requiring it for both briefly withdrew the last-added-card flow from every
+ * reader who had never set one -- the Yomitan-first workflow, and the majority
+ * of exports. These tests exist so that cannot happen again without a red run.
+ */
+test.describe('Sentence export gating', () => {
+  const LAST_CARD = /Last added card/i;
+  const PICKER = /Search your collection/i;
+
+  const openAddMenu = async (page: Page) => {
+    const menu = page.getByTestId('save-dropdown').first();
+    await menu.locator('button').first().click();
+    await expect(menu.getByTestId('dropdown-menu')).toBeVisible();
+    return menu;
+  };
+
+  /** A profile that can write a note but cannot answer "which note is this word
+   *  about" -- exactly the reader the regression withdrew the feature from. */
+  const configureWithoutKey = (page: Page) =>
+    configureAnkiProfile(page, [{ key: 'Sentence', value: '{sentence-jp}' }], { key: '' });
+
+  test('exports to the last added card with no key field set', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureWithoutKey(page);
+    const calls = await stubAnkiConnect(page, []);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      const menu = await openAddMenu(page);
+      const lastCard = menu.getByRole('button', { name: LAST_CARD });
+
+      // Offered, not greyed out with a tooltip pointing at settings...
+      await expect(lastCard).not.toHaveClass(/is-disabled/);
+
+      // ...and it actually writes, rather than merely looking available.
+      await lastCard.click();
+      await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+
+  test('withholds the note picker until a key field is set', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureWithoutKey(page);
+    await stubAnkiConnect(page, []);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      const menu = await openAddMenu(page);
+
+      // The one export whose query IS the key field. Disabled here rather than
+      // offered and then failing, and it says which setting is missing rather
+      // than "Anki is not configured", which would be untrue.
+      await expect(menu.getByRole('button', { name: PICKER })).toHaveClass(/is-disabled/);
+      await expect(menu.getByText('Set a Key Field in your Anki settings to use this.')).toHaveCount(1);
+    } finally {
+      await clearAnkiProfiles(page);
+    }
+  });
+
+  test('offers both exports once a key field is set', async ({ page }) => {
+    await loginAsE2EUser(page);
+    await configureAnkiProfile(page, [{ key: 'Sentence', value: '{sentence-jp}' }]);
+    await stubAnkiConnect(page, []);
+
+    const search = new SearchPage(page);
+    await search.goto(QUERY);
+    await search.expectResultsVisible();
+
+    try {
+      const menu = await openAddMenu(page);
+      await expect(menu.getByRole('button', { name: LAST_CARD })).not.toHaveClass(/is-disabled/);
+      await expect(menu.getByRole('button', { name: PICKER })).not.toHaveClass(/is-disabled/);
     } finally {
       await clearAnkiProfiles(page);
     }

@@ -159,7 +159,6 @@
     },
     "toast": {
       "noSettings": "No settings found. Please go to settings page and configure the extension.",
-      "keyFieldRequired": "Set a Key Field in Anki Settings before exporting.",
       "miningCard": "Mining the card...",
       "noCardToExport": "No Anki card to export to. Please add a card first.",
       "cardFoundInOtherDeck": "Card found but not in deck \"{deck}\". Check that Yomitan and Nadeshiko are using the same deck.",
@@ -848,8 +847,8 @@
       "selectModel": "Select a model",
       "keyFieldLabel": "Key Field",
       "selectKeyField": "Select the field that corresponds to your deck ID",
-      "keyFieldRequiredTitle": "Key Field required",
-      "keyFieldRequiredMessage": "Select a Key Field below to enable Anki exports.",
+      "keyFieldRequiredTitle": "No Key Field set",
+      "keyFieldRequiredMessage": "Adding to your last added card works without one. Set a Key Field to mine words from a word card, and to choose a note by searching your collection.",
       "fieldColumn": "Field",
       "contentColumn": "Content",
       "fieldComposeHelp": "Each placeholder you pick is added to the field rather than replacing what is already there, so one field can carry several — two dictionaries stacked, say. Edit the box directly to change how they are joined.",
