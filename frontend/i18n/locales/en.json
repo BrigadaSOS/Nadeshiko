@@ -8,7 +8,7 @@
       "home": "Home",
       "about": "About",
       "api": "API",
-      "login": "Login / Sign up",
+      "login": "Sign in / Sign up",
       "profile": "Profile",
       "privacy": "Privacy",
       "dmca": "DMCA",
@@ -21,7 +21,7 @@
       "collections": "Collections",
       "activity": "Activity",
       "language": "Language",
-      "logout": "Logout"
+      "logout": "Sign out"
     }
   },
   "announcementBanner": {
@@ -101,7 +101,7 @@
     "stats": {
       "sentenceCount": "Sentences",
       "episodeCount": "Episodes",
-      "mediaCount": "Total content"
+      "mediaCount": "Titles"
     }
   },
   "batchSearch": {
@@ -130,7 +130,7 @@
   },
   "animeList": {
     "recentlyAddedTitle": "Recently Added",
-    "fullListTitle": "List of content",
+    "fullListTitle": "All titles",
     "seeAll": "See all",
     "sentenceCount": "sentences",
     "episodes": "Episodes",
@@ -208,7 +208,7 @@
     "closeSrOnly": "Close"
   },
   "modalMediaEdit": {
-    "title": "Edit Media",
+    "title": "Edit media",
     "editButton": "Edit",
     "publicId": "Public ID",
     "cover": "Cover",
@@ -242,7 +242,7 @@
     "deleteError": "Failed to delete media"
   },
   "modalSegmentEdit": {
-    "title": "Edit Segment",
+    "title": "Edit sentence",
     "editButton": "Edit",
     "japanese": "Japanese",
     "english": "English",
@@ -254,8 +254,8 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "close": "Close",
-    "saveSuccess": "Segment updated successfully",
-    "saveError": "Failed to update segment",
+    "saveSuccess": "Sentence updated",
+    "saveError": "Failed to update sentence",
     "timing": "Position & Timing",
     "position": "Position",
     "startTimeMs": "Start (ms)",
@@ -288,7 +288,7 @@
       "video": "Video"
     },
     "deleteEpisode": "Delete Episode",
-    "deleteEpisodeConfirm": "Delete episode {episode} and all its segments?",
+    "deleteEpisodeConfirm": "Delete episode {episode} and all its sentences?",
     "deleteEpisodeYes": "Delete",
     "deleteEpisodeSuccess": "Episode deleted successfully",
     "deleteEpisodeError": "Failed to delete episode"
@@ -575,9 +575,9 @@
         "clearHistoryDescription": "Permanently delete all activity data from your account.",
         "clearHistoryButton": "Clear History",
         "clearing": "Clearing...",
-        "familiarTitle": "Remember which shows I study",
+        "familiarTitle": "Remember which titles I study",
         "familiarDescription": "Keeps a monthly count per title so the titles you study sort to the top of the search media filter. Separate from your activity history.",
-        "familiarListTitle": "Shows we think you like",
+        "familiarListTitle": "Titles we think you like",
         "familiarListEmpty": "Nothing tallied yet. Export a card or play a clip and titles will show up here.",
         "familiarCounts": "{cards} · {plays} · {shares}",
         "forgetTitle": "Forget",
@@ -618,7 +618,7 @@
       "rename": "Rename",
       "deactivate": "Deactivate",
       "createApiKeyModal": {
-        "title": "Create API Key",
+        "title": "Create API key",
         "nameLabel": "Name",
         "namePlaceholder": "Enter a name for this API key",
         "scopesLabel": "Permissions",
@@ -637,7 +637,7 @@
         "create": "Create"
       },
       "renameApiKeyModal": {
-        "title": "Rename API Key",
+        "title": "Rename API key",
         "nameLabel": "Name",
         "namePlaceholder": "Enter a new name for this API key",
         "save": "Save"
@@ -652,7 +652,7 @@
       "usernameLabel": "Username",
       "emailLabel": "Email",
       "notAvailable": "Not available",
-      "logout": "Logout",
+      "logout": "Sign out",
       "loggingOut": "Logging out...",
       "additionalTitle": "Additional",
       "preferencesTitle": "Preferences",
@@ -688,7 +688,7 @@
         "none": "None"
       },
       "motionHint_system": "Follows your device's accessibility setting for reduced motion.",
-      "motionHint_reduced": "Keeps small colour and fade effects, drops anything that slides or resizes.",
+      "motionHint_reduced": "Keeps small color and fade effects, drops anything that slides or resizes.",
       "motionHint_none": "Nothing animates at all. Pick this if the interface still feels slow.",
       "defaultSearchCategoryHiddenOption": "{category} (hidden)",
       "defaultSearchCategoryHiddenNotice": "{category} is hidden under Hide Categories, so searches open on All until you show it again.",
@@ -726,8 +726,8 @@
       "sessions": {
         "title": "Sessions",
         "refresh": "Refresh",
-        "logoutOtherDevices": "Log Out Other Devices",
-        "logoutAllSessions": "Log Out All Sessions",
+        "logoutOtherDevices": "Sign out other devices",
+        "logoutAllSessions": "Sign out all sessions",
         "loading": "Loading sessions...",
         "current": "Current",
         "revoke": "Revoke",
@@ -757,7 +757,7 @@
       "hiddenMedia": "Hide Media",
       "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
       "hiddenMediaEmpty": "No hidden media. Search results will include all available media.",
-      "hiddenMediaListTitle": "Hidden Media List",
+      "hiddenMediaListTitle": "Hidden titles",
       "hiddenMediaCount": "{count} hidden",
       "mediaHiddenToast": "{name} hidden from search results",
       "mediaUnhiddenToast": "{name} back in search results",
@@ -782,12 +782,12 @@
         "unknownBrowser": "Unknown browser"
       },
       "exportError": "Couldn't export your data. Please try again.",
-      "mediaLookup": "Find a Title",
-      "mediaLookupDescription": "Search the catalogue to favorite a title or hide it. Favorited titles sort to the top of the media filter; hidden ones drop out of search results entirely.",
+      "mediaLookup": "Find a title",
+      "mediaLookupDescription": "Search the catalog to favorite a title or hide it. Favorited titles sort to the top of the media filter; hidden ones drop out of search results entirely.",
       "mediaLookupPlaceholder": "Search for a title...",
       "mediaLookupNoResults": "No media found for this query.",
       "manageMedia": "Manage Media",
-      "manageMediaDescription": "Favorite a title to sort it to the top of the media filter when you search, or hide it to drop it out of search results entirely. Search the catalogue to find a title, or use the list below to change one you have already marked.",
+      "manageMediaDescription": "Favorite a title to sort it to the top of the media filter when you search, or hide it to drop it out of search results entirely. Search the catalog to find a title, or use the list below to change one you have already marked.",
       "manageMediaEmpty": "Nothing favorited or hidden yet. Search above to find a title.",
       "manageMediaTableActions": "Actions",
       "mediaFallback": "Media #{id}"
@@ -814,7 +814,7 @@
       "deleteError": "Failed to delete collection",
       "table": {
         "name": "Name",
-        "segments": "Segments",
+        "segments": "Sentences",
         "visibility": "Visibility",
         "created": "Created",
         "updated": "Updated"
@@ -860,9 +860,9 @@
       "selectDeck": "Select a deck",
       "modelLabel": "Model",
       "selectModel": "Select a model",
-      "keyFieldLabel": "Key Field",
+      "keyFieldLabel": "Key field",
       "selectKeyField": "Select the field that corresponds to your deck ID",
-      "keyFieldRequiredTitle": "No Key Field set",
+      "keyFieldRequiredTitle": "No key field set",
       "keyFieldRequiredMessage": "Adding to your last added card works without one. Set a Key Field to mine words from a word card, and to choose a note by searching your collection.",
       "fieldColumn": "Field",
       "contentColumn": "Content",
@@ -1019,10 +1019,10 @@
     "clearError": "Your recent searches couldn't be cleared. Please try again."
   },
   "reports": {
-    "modalTitle": "Report an Issue",
+    "modalTitle": "Report an issue",
     "targetLabel": "Target",
     "reason": "Reason",
-    "tabSegment": "Segment",
+    "tabSegment": "Sentence",
     "tabMedia": "Media",
     "description": "Description (optional)",
     "descriptionPlaceholder": "Provide additional details about the issue...",
@@ -1032,7 +1032,7 @@
     "submitError": "Failed to submit report",
     "cancel": "Cancel",
     "reportSegment": "Report",
-    "loginRequired": "Please log in to use this feature",
+    "loginRequired": "Please sign in to use this feature",
     "noReports": "No reports found",
     "loading": "Loading...",
     "loadMore": "Load more",
@@ -1043,7 +1043,7 @@
       "WRONG_JAPANESE_TEXT": "Wrong Japanese text",
       "LOW_QUALITY_AUDIO": "Low quality audio",
       "NSFW_NOT_TAGGED": "Content not rated",
-      "DUPLICATE_SEGMENT": "Duplicate segment",
+      "DUPLICATE_SEGMENT": "Duplicate sentence",
       "WRONG_TITLE": "Wrong title",
       "DUPLICATE_MEDIA": "Duplicate media",
       "WRONG_EPISODE_NUMBER": "Wrong episode number",
@@ -1106,7 +1106,7 @@
         "AUTO": "Auto"
       },
       "targetTypes": {
-        "SEGMENT": "Segment",
+        "SEGMENT": "Sentence",
         "EPISODE": "Episode",
         "MEDIA": "Media"
       },
@@ -1127,11 +1127,11 @@
       "auth": "Authentication"
     },
     "buttons": {
-      "google": "Login with Google",
-      "discord": "Login with Discord"
+      "google": "Sign in with Google",
+      "discord": "Sign in with Discord"
     },
     "labels": {
-      "successfullogin": "Successful login!",
+      "successfullogin": "Signed in",
       "logout": "You are now logged out.",
       "banneduser": "Your account has been suspended. Please contact support.",
       "errorlogin400": "Please check your email/password and try again.",
@@ -1149,7 +1149,7 @@
     "title": "Keyboard Shortcuts",
     "navigation": "Navigation",
     "navigateCards": "Navigate between results",
-    "prevNextSegment": "Previous / Next segment",
+    "prevNextSegment": "Previous / Next sentence",
     "backToSearch": "Back to search bar",
     "playback": "Playback",
     "playSelected": "Play selected result",
@@ -1220,7 +1220,7 @@
     "summary": {
       "sentences": "Sentences",
       "uniqueWords": "Unique words",
-      "totalContent": "Total content",
+      "totalContent": "Titles",
       "episodes": "Episodes",
       "dialogueHours": "Dialogue hours"
     },
@@ -1286,15 +1286,15 @@
     "noReport": "no report",
     "restore": "Restore",
     "restoring": "Restoring...",
-    "restoreSuccess": "Segment restored",
-    "restoreError": "Failed to restore segment",
+    "restoreSuccess": "Sentence restored",
+    "restoreError": "Failed to restore sentence",
     "window": {
       "day": "Last 24 hours",
       "week": "Last 7 days",
       "month": "Last 30 days"
     },
     "table": {
-      "segment": "Segment",
+      "segment": "Sentence",
       "change": "Change",
       "report": "Report",
       "when": "When",

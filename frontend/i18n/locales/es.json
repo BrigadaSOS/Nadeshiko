@@ -101,7 +101,7 @@
     "stats": {
       "sentenceCount": "Oraciones",
       "episodeCount": "Episodios",
-      "mediaCount": "Contenido total"
+      "mediaCount": "Títulos"
     }
   },
   "batchSearch": {
@@ -130,7 +130,7 @@
   },
   "animeList": {
     "recentlyAddedTitle": "Recién añadidos",
-    "fullListTitle": "Listado de Contenido",
+    "fullListTitle": "Todos los títulos",
     "seeAll": "Ver todos",
     "sentenceCount": "oraciones",
     "episodes": "Episodios",
@@ -208,7 +208,7 @@
     "closeSrOnly": "Cerrar"
   },
   "modalMediaEdit": {
-    "title": "Editar Media",
+    "title": "Editar medio",
     "editButton": "Editar",
     "publicId": "ID público",
     "cover": "Portada",
@@ -242,7 +242,7 @@
     "deleteError": "Error al eliminar media"
   },
   "modalSegmentEdit": {
-    "title": "Editar segmento",
+    "title": "Editar oración",
     "editButton": "Editar",
     "japanese": "Japonés",
     "english": "Inglés",
@@ -254,8 +254,8 @@
     "saving": "Guardando...",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "saveSuccess": "Segmento actualizado correctamente",
-    "saveError": "Error al actualizar el segmento",
+    "saveSuccess": "Oración actualizada",
+    "saveError": "Error al actualizar la oración",
     "timing": "Posición y Tiempos",
     "position": "Posición",
     "startTimeMs": "Inicio (ms)",
@@ -288,7 +288,7 @@
       "video": "Video"
     },
     "deleteEpisode": "Eliminar episodio",
-    "deleteEpisodeConfirm": "¿Eliminar el episodio {episode} y todos sus segmentos?",
+    "deleteEpisodeConfirm": "¿Eliminar el episodio {episode} y todas sus oraciones?",
     "deleteEpisodeYes": "Eliminar",
     "deleteEpisodeSuccess": "Episodio eliminado correctamente",
     "deleteEpisodeError": "Error al eliminar el episodio"
@@ -575,9 +575,9 @@
         "clearHistoryDescription": "Elimina permanentemente todos los datos de actividad de tu cuenta.",
         "clearHistoryButton": "Borrar historial",
         "clearing": "Borrando...",
-        "familiarTitle": "Recordar qué series estudio",
+        "familiarTitle": "Recordar qué títulos estudio",
         "familiarDescription": "Guarda un recuento mensual por título para que los títulos que estudias aparezcan primero en el filtro de medios. Independiente de tu historial de actividad.",
-        "familiarListTitle": "Series que creemos que te gustan",
+        "familiarListTitle": "Títulos que creemos que te gustan",
         "familiarListEmpty": "Todavía no hay recuento. Exporta una tarjeta o reproduce un clip y los títulos aparecerán aquí.",
         "familiarCounts": "{cards} · {plays} · {shares}",
         "forgetTitle": "Olvidar",
@@ -814,7 +814,7 @@
       "deleteError": "Error al eliminar la colección",
       "table": {
         "name": "Nombre",
-        "segments": "Segmentos",
+        "segments": "Oraciones",
         "visibility": "Visibilidad",
         "created": "Creada",
         "updated": "Actualizada"
@@ -1022,7 +1022,7 @@
     "modalTitle": "Reportar un problema",
     "targetLabel": "Objetivo",
     "reason": "Razón",
-    "tabSegment": "Segmento",
+    "tabSegment": "Oración",
     "tabMedia": "Contenido",
     "description": "Descripción (opcional)",
     "descriptionPlaceholder": "Proporciona detalles adicionales sobre el problema...",
@@ -1043,7 +1043,7 @@
       "WRONG_JAPANESE_TEXT": "Texto japonés incorrecto",
       "LOW_QUALITY_AUDIO": "Audio de baja calidad",
       "NSFW_NOT_TAGGED": "Contenido sin clasificar",
-      "DUPLICATE_SEGMENT": "Segmento duplicado",
+      "DUPLICATE_SEGMENT": "Oración duplicada",
       "WRONG_TITLE": "Título incorrecto",
       "DUPLICATE_MEDIA": "Contenido duplicado",
       "WRONG_EPISODE_NUMBER": "Número de episodio incorrecto",
@@ -1106,7 +1106,7 @@
         "AUTO": "Auto"
       },
       "targetTypes": {
-        "SEGMENT": "Segmento",
+        "SEGMENT": "Oración",
         "EPISODE": "Episodio",
         "MEDIA": "Contenido"
       },
@@ -1149,7 +1149,7 @@
     "title": "Atajos de teclado",
     "navigation": "Navegación",
     "navigateCards": "Navegar entre resultados",
-    "prevNextSegment": "Segmento anterior / siguiente",
+    "prevNextSegment": "Oración anterior / siguiente",
     "backToSearch": "Volver a la barra de búsqueda",
     "playback": "Reproducción",
     "playSelected": "Reproducir resultado seleccionado",
@@ -1220,7 +1220,7 @@
     "summary": {
       "sentences": "Oraciones",
       "uniqueWords": "Palabras únicas",
-      "totalContent": "Contenido total",
+      "totalContent": "Títulos",
       "episodes": "Episodios",
       "dialogueHours": "Horas de diálogo"
     },
@@ -1286,15 +1286,15 @@
     "noReport": "sin reporte",
     "restore": "Restaurar",
     "restoring": "Restaurando...",
-    "restoreSuccess": "Segmento restaurado",
-    "restoreError": "No se pudo restaurar el segmento",
+    "restoreSuccess": "Oración restaurada",
+    "restoreError": "No se pudo restaurar la oración",
     "window": {
       "day": "Últimas 24 horas",
       "week": "Últimos 7 días",
       "month": "Últimos 30 días"
     },
     "table": {
-      "segment": "Segmento",
+      "segment": "Oración",
       "change": "Cambio",
       "report": "Reporte",
       "when": "Cuándo",
