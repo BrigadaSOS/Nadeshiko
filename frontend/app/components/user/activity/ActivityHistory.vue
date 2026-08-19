@@ -133,9 +133,17 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
             : t('accountSettings.activity.history.empty')
       }}
     </div>
-    <div v-else class="mt-4 overflow-x-auto">
-      <table class="w-full text-sm table-fixed">
-        <thead>
+    <!-- Below `md` a row is not a table row: the type chip and the date share
+         a line, the details take their own beneath it, and the header is dropped
+         because nothing under it is in columns any more.
+
+         `table-fixed` spends 18rem of the width on the three sized columns, so
+         on a phone the details column was left about 70px -- and the media chip
+         inside it is `flex-shrink-0`, so it did not truncate into that, it
+         painted straight over the date. -->
+    <div v-else class="mt-4 md:overflow-x-auto">
+      <table class="block w-full text-sm md:table md:table-fixed">
+        <thead class="hidden md:table-header-group">
           <tr class="border-b border-white/10 text-left">
             <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium w-28">{{ t('accountSettings.activity.history.table.type') }}</th>
             <th class="pb-2 pr-4 text-xs uppercase tracking-wide text-gray-400 font-medium">{{ t('accountSettings.activity.history.table.details') }}</th>
@@ -143,12 +151,14 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
             <th class="pb-2 w-8" />
           </tr>
         </thead>
-        <tbody class="divide-y divide-white/5">
+        <tbody class="block md:table-row-group md:divide-y md:divide-white/5">
           <tr
             v-for="activity in groupedActivities"
             :key="activity.id"
             :class="[
               'group transition-colors',
+              'flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-white/5 py-3',
+              'md:table-row md:border-0 md:py-0',
               activityHref(activity) && 'cursor-pointer hover:bg-white/5 focus-within:bg-white/5',
             ]"
             :role="activityHref(activity) ? 'link' : undefined"
@@ -157,7 +167,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
             @keydown.enter="openActivity(activity)"
             @keydown.space.prevent="openActivity(activity)"
           >
-            <td class="py-2.5 pr-4 whitespace-nowrap">
+            <td class="order-1 md:table-cell md:py-2.5 md:pr-4 md:whitespace-nowrap">
               <span
                 :class="[
                   'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
@@ -168,7 +178,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
                 <span v-if="activity.count > 1" class="opacity-70">&times;{{ activity.count }}</span>
               </span>
             </td>
-            <td class="py-2.5 pr-4">
+            <td class="order-4 w-full min-w-0 md:order-none md:w-auto md:table-cell md:py-2.5 md:pr-4">
               <div
                 v-if="activity.searchQuery"
                 class="flex min-w-0 items-center gap-2"
@@ -176,7 +186,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
                 <span class="min-w-0 truncate text-gray-200 group-hover:text-white">{{ activity.searchQuery }}</span>
                 <span
                   v-if="activity.mediaPublicId"
-                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
+                  class="inline-flex max-w-[12rem] min-w-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
                 >
                   {{ activity.mediaName || t('accountSettings.activity.history.inOneTitle') }}
                 </span>
@@ -188,17 +198,17 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
                 <span v-if="activity.japaneseText" class="min-w-0 truncate text-gray-200 group-hover:text-white">{{ stripTags(activity.japaneseText) }}</span>
                 <span
                   v-if="activity.mediaName"
-                  class="inline-flex max-w-[12rem] flex-shrink-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
+                  class="inline-flex max-w-[12rem] min-w-0 items-center truncate rounded-full border border-hairline bg-lift-strong px-2.5 py-0.5 text-xs font-medium text-ink-muted"
                 >{{ activity.mediaName }}</span>
               </div>
               <span v-else class="text-gray-500">{{ t('accountSettings.activity.history.noDetails') }}</span>
             </td>
-            <td class="py-2.5 pr-4 text-right text-gray-400 text-xs whitespace-nowrap">
+            <td class="order-2 ml-auto text-gray-400 text-xs whitespace-nowrap md:ml-0 md:table-cell md:py-2.5 md:pr-4 md:text-right">
               {{ formatDate(activity.createdAt, 'dateTime') }}
             </td>
-            <td class="py-2.5 text-center w-8">
+            <td class="order-3 md:table-cell md:py-2.5 md:text-center md:w-8">
               <button
-                class="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
+                class="opacity-60 md:opacity-0 md:group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
                 :title="t('accountSettings.activity.history.remove')"
                 :disabled="activity.ids.some(id => deletingIds.has(id))"
                 @click.stop="emit('delete', activity.ids)"

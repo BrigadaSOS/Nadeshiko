@@ -296,7 +296,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
             </div>
             <div class="ml-auto">
                 <button
-                    class="bg-button-accent-main hover:bg-button-accent-hover text-white font-bold py-2 px-4 rounded transition-colors" data-testid="add-api-key-button" @click="openCreateModal">
+                    class="nd-btn-accent" data-testid="add-api-key-button" @click="openCreateModal">
                     <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
                     {{ $t('accountSettings.developer.addApiKey') }}
                 </button>
@@ -334,9 +334,14 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
         </div>
         
         <div class="mt-6">
-            <div class="border rounded-lg dark:border-modal-border overflow-x-auto">
-                <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
-                    <thead>
+            <!-- Below `md` a key is a block, not a row: name and status on one
+                 line with the menu, then the masked key, its permissions and the
+                 date beneath. Six `whitespace-nowrap` columns at fixed twelfths
+                 cannot be made to fit a phone, and scrolling them sideways hides
+                 the menu that revokes the key. -->
+            <div class="md:border md:rounded-lg md:dark:border-modal-border md:overflow-x-auto">
+                <table class="block w-full md:table md:divide-y md:bg-graypalid/20 md:divide-gray-200 md:dark:divide-white/30">
+                    <thead class="hidden md:table-header-group">
                         <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
                             <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.name') }}</th>
                             <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.tableHeaders.key') }}</th>
@@ -346,21 +351,22 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                             <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.developer.options') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-white/20">
-                        <tr class="divide-x divide-gray-200 dark:divide-white/20" data-testid="api-key-row"
+                    <tbody class="block md:table-row-group md:divide-y md:divide-gray-200 md:dark:divide-white/20">
+                        <tr class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline py-4 last:border-0 md:table-row md:divide-x md:divide-gray-200 md:dark:divide-white/20 md:border-0 md:py-0"
+                            data-testid="api-key-row"
                             v-for="(item, index) in fieldOptions.keys">
                             <td
-                                class="w-2/12 py-4 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
+                                class="order-1 min-w-0 break-words text-base font-medium text-gray-800 dark:text-gray-200 md:w-2/12 md:table-cell md:py-4 md:whitespace-nowrap md:text-center md:px-2">
                                 {{ item.name }}
                             </td>
                             <td
-                                class="w-2/12 py-4 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
+                                class="order-4 w-full font-mono text-sm text-gray-400 md:w-2/12 md:table-cell md:py-4 md:whitespace-nowrap md:text-center md:text-base md:px-2 md:font-medium md:text-gray-800 md:dark:text-gray-200">
                                 {{ item.hint }}•••
                             </td>
                             <td
-                                class="w-4/12 py-4 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
-                                <div class="flex flex-col items-center justify-center w-full gap-y-2">
-                                    <div class="inline-flex flex-wrap justify-center gap-2 w-full">
+                                class="order-5 w-full md:w-4/12 md:table-cell md:py-4 md:whitespace-nowrap md:text-center md:text-base md:px-2 md:font-medium md:text-gray-800 md:dark:text-gray-200">
+                                <div class="flex flex-col items-start justify-center w-full gap-y-2 md:items-center">
+                                    <div class="inline-flex flex-wrap justify-start gap-2 w-full md:justify-center">
 
                                         <span v-for="(permission, index) in item?.permissions" :key="index"
                                             class="py-1 px-1.5 inline-flex items-center gap-x-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-500/10 dark:text-blue-500">
@@ -370,13 +376,16 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                 </div>
                             </td>
                             <td
-                                class="w-2/12 py-4 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
+                                class="order-6 w-full text-sm text-gray-400 md:w-2/12 md:table-cell md:py-4 md:whitespace-nowrap md:text-center md:text-base md:px-2 md:font-medium md:text-gray-800 md:dark:text-gray-200">
+                              <!-- The header carries this on a wide screen; stacked, the
+                                   date is a bare string with nothing to say what it is. -->
+                              <span class="md:hidden">{{ $t('accountSettings.developer.tableHeaders.createdAt') }}: </span>
                               <!-- For a while some db items didn't have createdAt date, so as a placeholder we show this date -->
                               {{ formatDate(item.createdAt) }}
                             </td>
 
                             <td
-                                class="w-1/12 whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
+                                class="order-2 ml-auto whitespace-nowrap text-base font-medium text-gray-800 dark:text-gray-200 md:w-1/12 md:ml-0 md:table-cell md:text-center md:px-2">
                                 <span v-if="!item.isActive"
                                     class="bg-gray-100 mb-1 text-gray-800 text-sm xxl:text-base xxm:text-2xl font-medium inline-flex items-center px-2.5 py-0.5 rounded mr-2 dark:bg-sred/50 dark:text-white/90 border border-gray-700">{{ $t('accountSettings.developer.statusInactive') }}
                                 </span>
@@ -385,7 +394,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                 </span>
                             </td>
                             <td
-                                class="w-2/12 py-4 align-middle whitespace-nowrap text-base px-2 font-medium text-gray-800 dark:text-gray-200 ">
+                                class="order-3 whitespace-nowrap text-base font-medium text-gray-800 dark:text-gray-200 md:w-2/12 md:table-cell md:py-4 md:align-middle md:px-2">
                                 <div class="flex justify-center items-center h-full">
                                     <SearchDropdownContainer
                                         class="mb-2 mx-auto"
@@ -569,7 +578,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                     <button
                         type="button"
                         data-testid="create-apikey-submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-button-accent-main rounded-lg hover:bg-button-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="nd-btn-accent disabled:cursor-not-allowed"
                         :disabled="!modalKeyName || selectedScopes.length === 0 || isLoading"
                         @click="confirmCreateApiKey"
                     >
@@ -624,7 +633,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                     <button
                         type="button"
                         data-testid="rename-apikey-submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-button-accent-main rounded-lg hover:bg-button-accent-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="nd-btn-accent disabled:cursor-not-allowed"
                         :disabled="!renameKeyName || isLoading"
                         @click="confirmRenameApiKey"
                     >

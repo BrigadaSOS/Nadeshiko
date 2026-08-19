@@ -484,7 +484,11 @@ watch(ankiconnectAddress, (newValue) => {
             {{ profile.name }}
           </option>
         </select>
-        <div class="flex gap-2">
+        <!-- Wraps, and takes the card's width to wrap WITHIN. The row is
+             `items-start` in a column on mobile, so this box is sized by its
+             contents rather than by the card -- three buttons that do not fit
+             then push past the card's edge instead of moving to a second line. -->
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             class="nd-btn"
             :disabled="isSaving"
@@ -494,7 +498,7 @@ watch(ankiconnectAddress, (newValue) => {
             {{ $t('accountSettings.anki.renameProfile') }}
           </button>
           <button
-            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white rounded-lg bg-button-accent-main hover:bg-button-accent-hover transition-colors"
+            class="nd-btn-accent"
             :disabled="isSaving"
             @click="openCreateModal"
           >
@@ -503,7 +507,7 @@ watch(ankiconnectAddress, (newValue) => {
           </button>
           <button
             v-if="store.profiles.length > 1"
-            class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-400 rounded-lg bg-white/10 hover:bg-red-500/20 transition-colors"
+            class="nd-btn-danger"
             :disabled="isSaving"
             @click="deleteCurrentProfile"
           >
@@ -584,27 +588,46 @@ watch(ankiconnectAddress, (newValue) => {
              no reason to try a second placeholder. -->
         <p class="mb-3 text-sm text-gray-400">{{ $t('accountSettings.anki.fieldComposeHelp') }}</p>
 
-        <div class="border rounded-lg dark:border-modal-border">
-          <table class="min-w-full divide-y bg-graypalid/20 divide-gray-200 dark:divide-white/30">
-            <thead>
+        <!-- Below `md` this is not a table at all: every row becomes a block,
+             the field name a label above its own full-width input, and the
+             header is dropped because each row now carries its own.
+
+             A two-column table cannot be made to work on a phone here. Field
+             names are `whitespace-nowrap` and a note type's are routinely long
+             (`ExpressionFurigana`), so the table's own minimum width is wider
+             than the screen: it either widened the card and the page with it, or
+             -- once made to scroll -- hid the placeholder column off the edge
+             with no sign it was there, put the input inside a scroll container
+             that clipped its own menu, and closed that menu again on the scroll
+             the browser fired to bring the focused input into view.
+
+             `md` rather than `sm` because it is where this page already switches
+             between a sidebar and the tab bar. -->
+        <div class="md:border md:rounded-lg md:dark:border-modal-border">
+          <table class="block w-full md:table md:divide-y md:bg-graypalid/20 md:divide-gray-200 md:dark:divide-white/30">
+            <thead class="hidden md:table-header-group">
               <tr class="divide-x bg-input-background divide-gray-200 dark:divide-white/30">
                 <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.anki.fieldColumn') }}</th>
                 <th scope="col" class="py-3 text-center text-xs font-medium text-white/90 uppercase">{{ $t('accountSettings.anki.contentColumn') }}</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-white/20">
+            <tbody class="block md:table-row-group md:divide-y md:divide-gray-200 md:dark:divide-white/20">
               <tr
-                class="divide-x divide-gray-200 dark:divide-white/20"
+                class="block border-b border-hairline pb-3 mb-3 last:border-0 last:pb-0 last:mb-0 md:table-row md:divide-x md:divide-gray-200 md:dark:divide-white/20 md:border-0 md:p-0 md:m-0"
                 v-for="(item, index) in fieldOptions"
                 :key="index"
                 data-testid="anki-field-row"
                 :data-field="item.key"
               >
+                <!-- The row's own label when stacked, a table cell when not: left
+                     aligned above its input on a phone, centred in its column on a
+                     wide screen. `break-words` because the name is only allowed to
+                     be `nowrap` while it has a column of its own. -->
                 <td
-                  class="w-6/12 whitespace-nowrap text-base text-center px-2 font-medium text-gray-800 dark:text-gray-200">
+                  class="block break-words text-left text-sm text-gray-400 md:w-6/12 md:table-cell md:whitespace-nowrap md:text-center md:text-base md:px-2 md:font-medium md:text-gray-800 md:dark:text-gray-200">
                   {{ item.key }}
                 </td>
-                <td class="whitespace-nowrap text-center text-base px-2 font-medium text-gray-800 dark:text-gray-200">
+                <td class="block md:table-cell md:whitespace-nowrap md:text-center md:text-base md:px-2 md:font-medium md:text-gray-800 md:dark:text-gray-200">
                   <!-- One control: the placeholder input with the menu tucked into
                        its right edge as a borderless chevron. The container IS the
                        bordered box (`rootClass`), so the menu anchors below the WHOLE
@@ -612,7 +635,7 @@ watch(ankiconnectAddress, (newValue) => {
                        opens it -- the reader picks from the list or just types. -->
                   <SearchDropdownContainer
                     dropdownId="nd-dropdown-with-header"
-                    rootClass="relative flex items-center my-3 mx-2 rounded-lg border border-hairline bg-input-background focus-within:border-neutral-500"
+                    rootClass="relative flex items-center mt-1 mb-0 md:my-3 md:mx-2 rounded-lg border border-hairline bg-input-background focus-within:border-neutral-500"
                     dropdownContainerClass="absolute top-full inset-x-0 z-50 mt-1">
                     <template #default="{ isOpen, toggle }">
                       <input v-model="item.value" data-testid="anki-field-value"
@@ -845,7 +868,7 @@ watch(ankiconnectAddress, (newValue) => {
           {{ $t('accountSettings.anki.modal.cancel') }}
         </button>
         <button
-          class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-red-500 hover:bg-red-600 transition-colors"
+          class="nd-btn-accent bg-red-500 hover:bg-red-600"
           :disabled="!nameModalInput.trim()"
           @click="confirmNameModal"
         >

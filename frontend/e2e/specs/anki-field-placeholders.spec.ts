@@ -21,6 +21,11 @@ const MODEL_FIELDS = ['Expression', 'Meaning'];
  * anki-deck-model.spec.ts mocks it. The dictionaries come from Shirabe, so that
  * endpoint is stubbed too -- a reader who has linked nothing is never offered
  * the submenu at all.
+ *
+ * Runs at desktop width, where the fields are a two-column table. Below `md`
+ * every row becomes a block with its name above its own full-width input, which
+ * is why the menu is scoped to the ROW here rather than to the page: it is an
+ * ordinary absolutely-positioned menu inside the row, not a teleported one.
  */
 async function mockAnki(page: Page) {
   await page.route(`${ANKI_ADDRESS}/**`, async (route: Route) => {
@@ -90,8 +95,8 @@ const openFieldTable = async (page: Page) => {
 };
 
 test.describe('Anki field placeholder menu', () => {
-  test('drilling into the dictionary list keeps the menu open', async ({ authenticatedPage }) => {
-    const row = await openFieldTable(authenticatedPage);
+  test('drilling into the dictionary list keeps the menu open', async ({ authenticatedPage: page }) => {
+    const row = await openFieldTable(page);
     const menu = row.getByTestId('dropdown-menu');
 
     // Focusing the input is what opens the menu -- the chevron is a second way
@@ -107,8 +112,8 @@ test.describe('Anki field placeholder menu', () => {
     await expect(row.getByTestId('anki-dictionary-submenu')).toHaveCount(0);
   });
 
-  test('coming back out of the dictionary list keeps the menu open', async ({ authenticatedPage }) => {
-    const row = await openFieldTable(authenticatedPage);
+  test('coming back out of the dictionary list keeps the menu open', async ({ authenticatedPage: page }) => {
+    const row = await openFieldTable(page);
     const menu = row.getByTestId('dropdown-menu');
 
     await row.getByTestId('anki-field-value').click();
@@ -124,8 +129,8 @@ test.describe('Anki field placeholder menu', () => {
 
   /** Picking APPENDS, so the menu stays open to stack a second one -- the
    *  reason the whole body carries `data-nd-keep-open`. */
-  test('naming a dictionary appends it and leaves the list up', async ({ authenticatedPage }) => {
-    const row = await openFieldTable(authenticatedPage);
+  test('naming a dictionary appends it and leaves the list up', async ({ authenticatedPage: page }) => {
+    const row = await openFieldTable(page);
     const input = row.getByTestId('anki-field-value');
 
     await input.click();
@@ -141,8 +146,8 @@ test.describe('Anki field placeholder menu', () => {
   });
 
   /** The menu still has to close when the reader is actually done with it. */
-  test('closes on a click outside it', async ({ authenticatedPage }) => {
-    const row = await openFieldTable(authenticatedPage);
+  test('closes on a click outside it', async ({ authenticatedPage: page }) => {
+    const row = await openFieldTable(page);
     const menu = row.getByTestId('dropdown-menu');
 
     await row.getByTestId('anki-field-value').click();
@@ -150,7 +155,7 @@ test.describe('Anki field placeholder menu', () => {
 
     // The table's own header: inside the card, outside the dropdown, and
     // neither a link nor a control that opens something of its own.
-    await authenticatedPage.locator('thead').first().click();
+    await page.locator('thead').first().click();
 
     await expect(menu).toHaveCount(0);
   });
