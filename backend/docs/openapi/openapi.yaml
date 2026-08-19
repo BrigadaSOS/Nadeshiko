@@ -151,6 +151,8 @@ paths:
     $ref: "./paths/user/v1_user_connections_shirabe_credential.yaml"
   "/v1/user/connections/shirabe/resync":
     $ref: "./paths/user/v1_user_connections_shirabe_resync.yaml"
+  "/v1/user/connections/shirabe/refused":
+    $ref: "./paths/user/v1_user_connections_shirabe_refused.yaml"
   "/v1/user/excluded-media":
     $ref: "./paths/user/v1_user_excluded_media.yaml"
   "/v1/user/excluded-media/{mediaPublicId}":

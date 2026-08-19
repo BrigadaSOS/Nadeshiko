@@ -25,6 +25,10 @@ interface Connection {
    *  feature existed. A re-consent, not a repair. */
   needsUpgrade: boolean;
   missingScopes: string[];
+  /** Shirabe refused the key outright -- revoked over there, or swept for being
+   *  idle. Unlike `needsUpgrade` this IS a repair: the reader's own dictionaries
+   *  are not being used until they link again. */
+  disconnected: boolean;
   linkedAt: string;
   shirabeName: string | null;
   tokenPrefix: string;
@@ -99,15 +103,23 @@ async function disconnect() {
 }
 
 /**
- * Three states, not two.
+ * Four states, and the middle two are opposites worth keeping apart.
  *
- * `upgrade` is the one worth being careful about: the account IS linked and what
- * it was linked for still works, so the row must not read as broken. It asks for
- * a permission a newer feature wants, and says which feature, because "approve
- * more permissions" with no reason attached is a thing readers decline.
+ * `upgrade` is a link that WORKS: what it was linked for still resolves, and it
+ * is asking for a permission a newer feature wants. It must not read as broken,
+ * because "approve more permissions" with no reason attached is a thing readers
+ * decline.
+ *
+ * `disconnected` is the repair. Shirabe refused the key outright -- the reader
+ * revoked it over there, or it was swept for being idle -- so their own
+ * dictionaries are NOT being used and nothing here can fix that except making a
+ * new link. It is checked first: a dead link that also happens to be missing a
+ * scope is dead, and offering "update permissions" for a key that no longer
+ * exists sends the reader somewhere that cannot help them.
  */
-const state = computed<'unlinked' | 'linked' | 'upgrade'>(() => {
+const state = computed<'unlinked' | 'linked' | 'upgrade' | 'disconnected'>(() => {
   if (!connection.value) return 'unlinked';
+  if (connection.value.disconnected) return 'disconnected';
   return connection.value.needsUpgrade ? 'upgrade' : 'linked';
 });
 
@@ -120,10 +132,10 @@ const state = computed<'unlinked' | 'linked' | 'upgrade'>(() => {
  * had no way to confirm that anything over here had noticed.
  *
  * It is also what makes a refresh button unnecessary rather than merely absent.
- * Opening this page already re-reads the stack when the copy is old
- * (`refreshIfStale`), so the list is current by the time it renders -- and a
- * button that refreshes something invisible is one people press twice and then
- * distrust.
+ * Opening this page re-reads the stack from Shirabe before answering
+ * (`getShirabeConnection` calls `refreshStack`), so the list is current by the
+ * time it renders -- and a button that refreshes something invisible is one
+ * people press twice and then distrust.
  */
 const dictionaries = computed(() =>
   (connection.value?.dictionaries ?? []).map((source, index) => ({ ...dictionaryLabel(source), position: index + 1 })),
@@ -169,13 +181,20 @@ const description = computed(() => {
   if (state.value === 'unlinked') return t('connections.shirabe.description');
 
   const name = connection.value?.shirabeName || t('connections.shirabe.anonymous');
+  // Named even here: it is how the reader recognises WHICH link ended, and the
+  // sentence has to say the dictionaries are not being used -- otherwise a card
+  // reading "connected to Lumi" and a word card reading the default definitions
+  // are two facts nobody can reconcile.
+  if (state.value === 'disconnected') return t('connections.shirabe.disconnected', { name });
   return state.value === 'upgrade'
     ? t('connections.shirabe.upgradeNeeded', { name })
     : t('connections.shirabe.linkedAs', { name });
 });
 
-/** Re-consent goes through the same door as a first link: Shirabe mints a new
- *  key for the wider grant, and the old one is revoked as it is replaced. */
+/** Re-consent and repair go through the same door as a first link: Shirabe mints
+ *  a new key, and the old one is revoked as it is replaced. Only a working link
+ *  offers to disconnect -- there is nothing left to disconnect from once Shirabe
+ *  has refused the key. */
 const action = computed(() => (state.value === 'linked' ? disconnect : connect));
 
 /** Spelled out rather than built from the state name. An interpolated key reads
@@ -184,6 +203,7 @@ const action = computed(() => (state.value === 'linked' ? disconnect : connect))
 const actionLabel = computed(() => {
   if (state.value === 'linked') return t('connections.shirabe.disconnect');
   if (state.value === 'upgrade') return t('connections.shirabe.upgrade');
+  if (state.value === 'disconnected') return t('connections.shirabe.reconnect');
   return t('connections.shirabe.connect');
 });
 </script>
@@ -221,10 +241,13 @@ const actionLabel = computed(() => {
         </button>
       </div>
 
-      <!-- Only once there is a link to describe. Unlinked, the row is an offer,
-           and a list of dictionaries the reader does not have yet would read as
-           a claim about their account. -->
-      <div v-if="dictionaries.length" class="mt-4 pt-4 border-t border-white/10">
+      <!-- Only once there is a WORKING link to describe. Unlinked, the row is an
+           offer, and a list of dictionaries the reader does not have yet would
+           read as a claim about their account. Disconnected, the list is the
+           last thing we saw before Shirabe refused the key: still true of their
+           Shirabe account, no longer true of anything happening here, and the
+           one thing on this card that would keep implying the link works. -->
+      <div v-if="dictionaries.length && state !== 'disconnected'" class="mt-4 pt-4 border-t border-white/10">
         <p class="text-gray-300 text-sm">{{ t('connections.shirabe.dictionaries') }}</p>
         <!-- A LIST rather than a row of pills. A stack is ordered and can run to
              twenty entries, and pills wrapped over five lines read as a bag of

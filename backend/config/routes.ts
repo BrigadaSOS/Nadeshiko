@@ -94,6 +94,7 @@ import {
   unlinkShirabe,
   getShirabeCredential,
   resyncShirabeStack,
+  reportShirabeRefusal,
 } from '@app/controllers/shirabeConnectionController';
 import { listFamiliarMedia, clearFamiliarMedia, forgetFamiliarMedia } from '@app/controllers/familiarMediaController';
 import { exportUserData } from '@app/controllers/userExportController';
@@ -288,6 +289,7 @@ const UserRoutes = createUserRouter({
   unlinkShirabe,
   getShirabeCredential,
   resyncShirabeStack,
+  reportShirabeRefusal,
   listExcludedMedia,
   addExcludedMedia,
   removeExcludedMedia,
