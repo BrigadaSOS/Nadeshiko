@@ -80,7 +80,7 @@ const sortContent = async (type: string) => {
          visible. `text-sm` is load-bearing on desktop: the sidebar column is
          `yomitan-ignore` (font-size: 0) and this control no longer inherits
          a size from the card. -->
-    <SearchDropdownContainer class="w-full flex" dropdownId="nd-dropdown-with-header">
+    <SearchDropdownContainer class="w-full flex" dropdownId="nd-dropdown-with-header" teleport>
         <template #default>
             <SearchDropdownMainButton
                 dropdown-button-class="w-full py-2.5 px-4 text-center flex justify-center items-center gap-x-2 text-sm font-semibold rounded-lg border border-hairline bg-button-primary-main text-ink hover:bg-surface-hover disabled:opacity-50 disabled:pointer-events-none outline-none"

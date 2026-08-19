@@ -304,7 +304,7 @@ watch([searchQuery, filterCategory], () => {
         :placeholder="$t('searchpage.main.labels.searchmain')"
       />
       <div class="flex items-center mb-4">
-        <SearchDropdownContainer class="" dropdownId="nd-dropdown-with-header">
+        <SearchDropdownContainer class="" dropdownId="nd-dropdown-with-header" teleport>
           <template #default>
             <!-- Named rather than left on the shared `dropdown-toggle` test id.
                  The page object reached for `.first()` of that id, which is a

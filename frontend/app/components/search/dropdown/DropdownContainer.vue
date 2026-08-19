@@ -46,7 +46,7 @@ import {
   NESTED_IN_TOKEN_TOOLTIP_KEY,
   type DropdownContext,
 } from '~/composables/useDropdownState';
-import { placeDropdownMenu, type DropdownAlign } from '~/utils/dropdownPlacement';
+import { DROPDOWN_MARGIN, placeDropdownMenu, type DropdownAlign } from '~/utils/dropdownPlacement';
 
 const props = withDefaults(
   defineProps<{
@@ -98,8 +98,29 @@ const viewport = () => ({ width: window.innerWidth, height: window.innerHeight }
 const placeMenu = (menuSize: { width: number; height: number }) => {
   const trigger = rootRef.value?.getBoundingClientRect();
   if (!trigger) return;
-  const pos = placeDropdownMenu(trigger, menuSize, viewport(), props.teleportAlign);
-  placedStyle.value = { position: 'fixed', top: `${pos.top}px`, left: `${pos.left}px` };
+  const vp = viewport();
+  const pos = placeDropdownMenu(trigger, menuSize, vp, props.teleportAlign);
+  // The cap is what makes the placement stable. A fixed element with only
+  // `left` set shrinks to fit the space left of the viewport edge, so the menu
+  // measured at one position and then moved has room to grow at the new one --
+  // it was clamped using a 240px measurement, re-laid out where 248px was
+  // available, and took all of it, landing flush against the edge with the
+  // margin the clamp had just reserved. Capping the width at the placement
+  // removes the second lay-out, and makes overflow impossible whatever the
+  // content does.
+  placedStyle.value = {
+    position: 'fixed',
+    top: `${pos.top}px`,
+    left: `${pos.left}px`,
+    maxWidth: `${Math.max(0, vp.width - pos.left - DROPDOWN_MARGIN)}px`,
+    // Above every modal, because teleporting takes the menu out of the one it
+    // was opened from. Inside a dialog the class's `z-50` used to sit in that
+    // dialog's own stacking context and simply worked; against `body` it lands
+    // under the `z-[60]`-`z-[80]` a modal draws at, and the menu opens
+    // invisibly behind it -- which is what the context view showed. Below the
+    // skip link at 100, which has to stay reachable over anything.
+    zIndex: '90',
+  };
 };
 
 const close = () => closeDropdown(resolvedDropdownId.value);
