@@ -4,7 +4,7 @@ import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate } from '~/utils/engagedVie
 import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
 import { resolveSearchResponse } from '~/utils/resolvers';
-import { apiErrorStatus } from '~/utils/apiError';
+import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
 import type { SearchStatsResponse } from '~/types/search';
 
@@ -44,7 +44,14 @@ const fetchSentenceData = async () => {
     // Matched on the status rather than the error's class -- see `apiErrorStatus`
     // for why identity is not reliable across the SSR boundary, and for what it
     // cost here.
-    if (apiErrorStatus(error) === 404) return null;
+    //
+    // 400 counts too, and missing that left half the bug in place: a publicId is
+    // `^[A-Za-z0-9_-]{12}$`, so the API rejects anything else as invalid before
+    // it looks the id up. /es/sentence/13123123123 is eleven digits, got a 400
+    // rather than a 404, and still rendered 500. The only input to this call is
+    // the id out of the URL, so a 400 can only mean that id is not one -- which
+    // is a wrong address, not a fault on our side.
+    if (isMissing(apiErrorStatus(error))) return null;
     reportError('sentence:fetch-failed', error, { 'segment.publicId': id.value });
     throw error;
   });
