@@ -9,6 +9,13 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
+## 2.4.1 (2026-08-20)
+
+### Fixes
+
+- **Site**: a deploy no longer blocks the page you already have open. Every file we build is fingerprinted, and your browser refuses to run one whose fingerprint does not match what your page expects. Two builds were reusing the same filenames for files whose contents differed, so a tab open across a deploy asked for a file it knew and was handed a different one, which it then refused: the page stopped responding until you reloaded it. Each build now keeps its files apart from every other build's, so the page you have open keeps finding exactly the files it was built with. An open tab also notices a new version within about five minutes instead of an hour.
+- **Discord**: the invite link on the site, in the about page, in the footer and in the bot itself now works. The old one had expired, so every one of them led to a dead page.
+
 ## 2.4.0 (2026-08-19)
 
 ### Highlights
