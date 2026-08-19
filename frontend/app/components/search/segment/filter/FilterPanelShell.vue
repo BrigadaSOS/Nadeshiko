@@ -32,24 +32,51 @@ const scrollbarGutter = ref(0);
 const measureGutter = () => {
   const el = scrollRegion.value;
   // getBoundingClientRect over offsetWidth: the latter is rounded to whole
-  // pixels, which left the header a pixel off a fractional scrollbar.
-  if (el) scrollbarGutter.value = el.getBoundingClientRect().width - el.clientWidth;
+  // pixels, which left the header a pixel off a fractional scrollbar. Clamped
+  // because the two widths disagree by a sub-pixel fraction even with no
+  // scrollbar in play -- measured at -0.11px on a live panel -- and a negative
+  // gutter would pull the header in rather than leave it where the rows are.
+  if (el) scrollbarGutter.value = Math.max(0, el.getBoundingClientRect().width - el.clientWidth);
 };
 
 // The gutter now comes and goes with the rows, so a window resize listener is
 // not enough: the observer fires on the content box, which is exactly what a
 // scrollbar appearing or disappearing changes.
 let observer: ResizeObserver | null = null;
+let pendingMeasure: number | null = null;
+
+/**
+ * The measurement happens on the NEXT frame, never inside the observer callback.
+ *
+ * Writing a reactive value from the callback re-renders the panel while the
+ * browser is still delivering resize notifications, and the browser reports
+ * that as an unhandled `ResizeObserver loop completed with undelivered
+ * notifications`. That reached error tracking from real sessions the night the
+ * panel shipped -- always on an episode-level panel, the only level whose
+ * header consumes the gutter.
+ *
+ * Coalesced, so a burst of resizes in one frame measures once.
+ */
+const scheduleMeasure = () => {
+  if (pendingMeasure !== null) return;
+  pendingMeasure = requestAnimationFrame(() => {
+    pendingMeasure = null;
+    measureGutter();
+  });
+};
 
 onMounted(() => {
   measureGutter();
   if (scrollRegion.value) {
-    observer = new ResizeObserver(measureGutter);
+    observer = new ResizeObserver(scheduleMeasure);
     observer.observe(scrollRegion.value);
   }
 });
 
-onUnmounted(() => observer?.disconnect());
+onUnmounted(() => {
+  observer?.disconnect();
+  if (pendingMeasure !== null) cancelAnimationFrame(pendingMeasure);
+});
 </script>
 
 <template>
