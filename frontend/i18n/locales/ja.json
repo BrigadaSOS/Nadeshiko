@@ -101,7 +101,7 @@
     "stats": {
       "sentenceCount": "文",
       "episodeCount": "エピソード",
-      "mediaCount": "総コンテンツ数"
+      "mediaCount": "作品数"
     }
   },
   "batchSearch": {
@@ -130,7 +130,7 @@
   },
   "animeList": {
     "recentlyAddedTitle": "最近追加されたもの",
-    "fullListTitle": "コンテンツ一覧",
+    "fullListTitle": "作品一覧",
     "seeAll": "すべて見る",
     "sentenceCount": "文",
     "episodes": "エピソード",
@@ -242,7 +242,7 @@
     "deleteError": "メディアの削除に失敗しました"
   },
   "modalSegmentEdit": {
-    "title": "セグメント編集",
+    "title": "例文の編集",
     "editButton": "編集",
     "japanese": "日本語",
     "english": "英語",
@@ -254,8 +254,8 @@
     "saving": "保存中...",
     "cancel": "キャンセル",
     "close": "閉じる",
-    "saveSuccess": "セグメントを更新しました",
-    "saveError": "セグメントの更新に失敗しました",
+    "saveSuccess": "例文を更新しました",
+    "saveError": "例文の更新に失敗しました",
     "timing": "位置とタイミング",
     "position": "位置",
     "startTimeMs": "開始 (ms)",
@@ -288,7 +288,7 @@
       "video": "動画"
     },
     "deleteEpisode": "エピソードを削除",
-    "deleteEpisodeConfirm": "エピソード {episode} とそのすべてのセグメントを削除しますか？",
+    "deleteEpisodeConfirm": "エピソード {episode} とそのすべての例文を削除しますか？",
     "deleteEpisodeYes": "削除",
     "deleteEpisodeSuccess": "エピソードを削除しました",
     "deleteEpisodeError": "エピソードの削除に失敗しました"
@@ -814,7 +814,7 @@
       "deleteError": "コレクションの削除に失敗しました",
       "table": {
         "name": "名前",
-        "segments": "セグメント",
+        "segments": "例文",
         "visibility": "公開設定",
         "created": "作成日",
         "updated": "更新日"
@@ -1022,7 +1022,7 @@
     "modalTitle": "問題を報告する",
     "targetLabel": "対象",
     "reason": "理由",
-    "tabSegment": "セグメント",
+    "tabSegment": "例文",
     "tabMedia": "メディア",
     "description": "説明（任意）",
     "descriptionPlaceholder": "問題の詳細を入力してください...",
@@ -1043,7 +1043,7 @@
       "WRONG_JAPANESE_TEXT": "日本語テキストが間違っている",
       "LOW_QUALITY_AUDIO": "音声の品質が低い",
       "NSFW_NOT_TAGGED": "コンテンツ未分類",
-      "DUPLICATE_SEGMENT": "重複セグメント",
+      "DUPLICATE_SEGMENT": "例文の重複",
       "WRONG_TITLE": "タイトルが間違っている",
       "DUPLICATE_MEDIA": "重複メディア",
       "WRONG_EPISODE_NUMBER": "エピソード番号が間違っている",
@@ -1106,7 +1106,7 @@
         "AUTO": "自動"
       },
       "targetTypes": {
-        "SEGMENT": "セグメント",
+        "SEGMENT": "例文",
         "EPISODE": "エピソード",
         "MEDIA": "メディア"
       },
@@ -1149,7 +1149,7 @@
     "title": "キーボードショートカット",
     "navigation": "ナビゲーション",
     "navigateCards": "結果間を移動",
-    "prevNextSegment": "前 / 次のセグメント",
+    "prevNextSegment": "前 / 次の例文",
     "backToSearch": "検索バーに戻る",
     "playback": "再生",
     "playSelected": "選択した結果を再生",
@@ -1220,7 +1220,7 @@
     "summary": {
       "sentences": "文数",
       "uniqueWords": "ユニーク単語",
-      "totalContent": "総コンテンツ数",
+      "totalContent": "作品数",
       "episodes": "エピソード数",
       "dialogueHours": "会話時間"
     },
@@ -1286,15 +1286,15 @@
     "noReport": "報告なし",
     "restore": "復元",
     "restoring": "復元中...",
-    "restoreSuccess": "セグメントを復元しました",
-    "restoreError": "セグメントの復元に失敗しました",
+    "restoreSuccess": "例文を復元しました",
+    "restoreError": "例文の復元に失敗しました",
     "window": {
       "day": "過去24時間",
       "week": "過去7日間",
       "month": "過去30日間"
     },
     "table": {
-      "segment": "セグメント",
+      "segment": "例文",
       "change": "変更",
       "report": "報告",
       "when": "日時",
