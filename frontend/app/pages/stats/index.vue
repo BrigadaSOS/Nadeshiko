@@ -141,7 +141,7 @@ const translationLanguages = computed(() => {
       <div class="dark:bg-card-background rounded-lg px-5 py-5">
         <div class="flex items-baseline justify-between mb-5">
           <h2 class="text-lg font-semibold">{{ $t('statsPage.coverage.title') }}</h2>
-          <p v-if="stats?.lastUpdated" class="text-white/30 text-xs">
+          <p v-if="stats?.lastUpdated" class="text-white/55 text-xs">
             {{ $t('statsPage.coverage.updated', { date: formatDate(stats.lastUpdated, 'dateUtc') }) }}
           </p>
         </div>
@@ -159,7 +159,7 @@ const translationLanguages = computed(() => {
               </span>
               <span class="text-sm">
                 <span class="font-semibold tabular-nums text-button-accent-main">{{ formatNumber(tier.percentage) }}%</span>
-                <span class="text-white/30 ml-2 text-xs tabular-nums">{{ formatNumber(tier.covered) }}/{{ formatNumber(tier.tier) }}</span>
+                <span class="text-white/55 ml-2 text-xs tabular-nums">{{ formatNumber(tier.covered) }}/{{ formatNumber(tier.tier) }}</span>
               </span>
             </div>
             <div class="w-full rounded-full h-2 nd-accent-bg-faint">

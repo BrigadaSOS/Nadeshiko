@@ -57,7 +57,8 @@
     "searchAnything": "Buscar cualquier cosa",
     "toggleNavigation": "Alternar navegación",
     "translationUnavailable": "Esta página aún no está disponible en tu idioma, por lo que se muestra la versión en inglés.",
-    "justNow": "Justo ahora"
+    "justNow": "Justo ahora",
+    "skipToContent": "Saltar al contenido"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko: Buscador de oraciones de anime en Japonés",

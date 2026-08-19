@@ -57,7 +57,8 @@
     "searchAnything": "Search anything!",
     "toggleNavigation": "Toggle navigation",
     "translationUnavailable": "This page is not available in your language yet, so the English version is shown.",
-    "justNow": "Just now"
+    "justNow": "Just now",
+    "skipToContent": "Skip to content"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",

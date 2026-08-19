@@ -57,7 +57,8 @@
     "searchAnything": "何でも検索",
     "toggleNavigation": "ナビゲーションを切り替え",
     "translationUnavailable": "このページはまだお使いの言語に翻訳されていないため、英語版を表示しています。",
-    "justNow": "たった今"
+    "justNow": "たった今",
+    "skipToContent": "本文へスキップ"
   },
   "appMeta": {
     "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
