@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { NadeshikoError } from '@brigadasos/nadeshiko-sdk';
+import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core';
+import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate } from '~/utils/engagedView';
 import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
 import { resolveSearchResponse } from '~/utils/resolvers';
@@ -188,13 +190,90 @@ const schemaOrgNodes = computed(() => [
 
 useSchemaOrg(schemaOrgNodes);
 
+/**
+ * Two events for one permalink visit, deliberately.
+ *
+ * `shared_link_viewed` fires on every load, exactly as it always has.
+ * `shared_link_read` fires only once the page has held the reader's attention
+ * for `ENGAGED_VIEW_DWELL_MS` of foreground time.
+ *
+ * The obvious implementation is one event, gated on dwell. It was written that
+ * way first and it was wrong, for the reason PostHog gives in "Managing bot and
+ * AI traffic": dropping at capture is the one option that loses the data
+ * entirely, while keeping the event and excluding it at query time stays
+ * flexible and reversible. Three things follow from taking their advice instead:
+ *
+ * - The existing series keeps its meaning, so August 2026 can still be compared
+ *   with July rather than showing a step change that is really an instrumentation
+ *   change.
+ * - Automated traffic stays *countable*. The gap between the two events is the
+ *   scraping metric, and a silent capture-time drop would have thrown away the
+ *   only number that shows the problem exists.
+ * - The dwell threshold stops being load-bearing. As a query-time distinction it
+ *   can be re-cut later; baked into shipped JavaScript, a threshold set too high
+ *   deletes real readers invisibly and permanently -- which is precisely the
+ *   failure `signup_completed` already had.
+ *
+ * Why dwell at all, rather than a user-agent or fingerprint test: the scrapers
+ * that made this necessary send ordinary Chrome user agents and execute our
+ * JavaScript, so `$virt_is_bot` and PostHog's own bot-filter transformation both
+ * pass them through. Fingerprint heuristics fare no better here -- the
+ * "viewport larger than screen" test popular in write-ups on this fires on 0.7%
+ * of the suspected scraper events and 4.7% of known-human ones, so it would both
+ * miss them and libel real readers. What the scrapers do not do is stay.
+ */
 if (import.meta.client) {
-  const result = initialSentenceData.value?.results?.[0];
   const posthog = usePostHog();
-  posthog?.capture('shared_link_viewed', {
-    segment_id: id.value,
-    media_name: result ? mediaName(result.media) : undefined,
-    referrer: document.referrer || undefined,
+
+  const viewProperties = () => {
+    const result = initialSentenceData.value?.results?.[0];
+    return {
+      segment_id: id.value,
+      media_name: result ? mediaName(result.media) : undefined,
+      referrer: document.referrer || undefined,
+    };
+  };
+
+  posthog?.capture('shared_link_viewed', viewProperties());
+
+  const visibility = useDocumentVisibility();
+  const gate = createEngagedViewGate(ENGAGED_VIEW_DWELL_MS, visibility.value === 'visible', Date.now());
+
+  // `useTimeoutFn` reads its delay through a ref, which is what lets a view
+  // interrupted halfway resume for the remainder instead of restarting.
+  const remainingMs = ref(ENGAGED_VIEW_DWELL_MS);
+
+  const { start, stop } = useTimeoutFn(
+    () => {
+      if (!gate.claim(Date.now())) return;
+      posthog?.capture('shared_link_read', viewProperties());
+    },
+    remainingMs,
+    // Armed below, so a tab that starts in the background schedules nothing.
+    { immediate: false },
+  );
+
+  const arm = (now: number) => {
+    remainingMs.value = Math.max(0, ENGAGED_VIEW_DWELL_MS - gate.elapsed(now));
+    start();
+  };
+
+  // The timer is driven off visibility rather than left to run free: armed when
+  // the tab is in front, stopped when it goes behind, re-armed for whatever dwell
+  // is still owed. A link opened into a background tab -- the normal fate of one
+  // opened from Discord -- is counted as read when the reader gets to it, and
+  // never before.
+  watch(visibility, (state) => {
+    const now = Date.now();
+    const visible = state === 'visible';
+
+    gate.setVisible(visible, now);
+    if (visible) arm(now);
+    else stop();
+  });
+
+  onMounted(() => {
+    if (visibility.value === 'visible') arm(Date.now());
   });
 }
 </script>
