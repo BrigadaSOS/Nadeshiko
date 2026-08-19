@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { env } from './config/env';
 import { INDEXED_LOCALES as APP_INDEXED_LOCALES } from './app/utils/i18n';
@@ -46,6 +47,9 @@ const GOOGLE_FONTS_ORIGIN = 'https://fonts.googleapis.com';
 const GOOGLE_FONTS_STATIC_ORIGIN = 'https://fonts.gstatic.com';
 const TYPEKIT_ORIGIN = 'https://use.typekit.net';
 const YOUTUBE_THUMBNAIL_ORIGIN = 'https://i.ytimg.com';
+
+/** Unique per build; see `buildId` below. */
+const BUILD_ID = randomUUID();
 
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
@@ -112,6 +116,10 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    /** See `buildId` below: one directory per build, so two builds never claim
+     *  the same asset URL. */
+    buildAssetsDir: `/_nuxt/${BUILD_ID}/`,
+
     head: {
       // The theme class lives on <html>, not on a wrapper inside the app.
       //
@@ -472,6 +480,52 @@ export default defineNuxtConfig({
       httpCacheDuration: 60 * 60 * 24,
     },
   },
+  /**
+   * How soon an already-open tab notices that a deploy has happened.
+   *
+   * Nuxt's default is an hour, and that hour is the whole failure window. A tab
+   * that loaded before a deploy holds that build's HTML, which names its chunks
+   * by content-hashed filename AND pins each one with an SRI digest. Those
+   * filenames are not unique per build in practice -- see
+   * `server/utils/assetArchive.ts` -- so a lazy import inside that stale hour
+   * fetches the NEW bytes under the OLD name, fails the digest and is blocked:
+   * `Failed to fetch dynamically imported module`, then NUXT_E1005. That is what
+   * v2.4.0's deploy did to tabs left open on 2026-08-19.
+   *
+   * Five minutes because the check is one request for a small manifest JSON, so
+   * the cost is a poll per tab per five minutes against a window that is
+   * otherwise twelve times longer. It SHRINKS the race rather than removing it;
+   * what removes it is making a filename mean one byte sequence again.
+   */
+  experimental: {
+    checkOutdatedBuildInterval: 5 * 60 * 1000,
+  },
+
+  /**
+   * One directory per build, and it is what makes `server/utils/assetArchive.ts`
+   * true again rather than merely tidy.
+   *
+   * That archive keeps a superseded build's chunks servable, on the premise that
+   * a content-hashed filename means one byte sequence forever. `@posthog/nuxt`
+   * breaks the premise: it stamps a per-build id into every JS file AFTER Vite
+   * has hashed the name from the pre-injection bytes, so an UNCHANGED chunk
+   * keeps its name and changes its body on every deploy. Two builds then claim
+   * one URL, the archive can only hold one of them, and a tab holding the other
+   * build's HTML gets an SRI block rather than the 404 the archive was built to
+   * prevent.
+   *
+   * Giving each build its own segment means two builds never name the same URL,
+   * so whichever HTML a reader holds asks for bytes that still exist and still
+   * match the digest it pinned. `buildId` is set from the same value so the app
+   * manifest and the assets agree about which build this is.
+   *
+   * It costs archive space: a deploy now adds a full build rather than only the
+   * chunks that changed. That cost was already being paid and hidden -- PostHog
+   * rewrites every JS file every build, so nothing was ever unchanged; the
+   * archive was overwriting bodies under old names instead of keeping them.
+   */
+  buildId: BUILD_ID,
+
   compatibilityDate: '2024-07-28',
   build: {
     transpile: ['vue-toastification'],
