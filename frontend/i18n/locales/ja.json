@@ -956,6 +956,7 @@
     "forward": "進む",
     "pickDictionary": "{dictionary}をカードに入れる",
     "pickedDictionaries": "辞書{total}件中{count}件を選択",
+    "pickSelectAll": "すべて選択",
     "pickDeselectAll": "すべて解除"
   },
   "searchContainer": {
