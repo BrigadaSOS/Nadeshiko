@@ -278,6 +278,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck --workspace frontend
 
+      # Cheap, and the only thing standing between three locales and silent
+      # drift: a key added to en.json alone renders as its own dotted path on
+      # /es and /ja. Parity held by hand until now, which is not a guarantee.
+      - name: Locale parity
+        run: npm run i18n:check --workspace frontend
+
       - name: Test
         run: npm run test --workspace frontend
 
