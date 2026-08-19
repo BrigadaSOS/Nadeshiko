@@ -122,9 +122,34 @@ const onMenuClick = (event: MouseEvent) => {
   close();
 };
 
+/**
+ * Inside or outside is decided on the event's own path, not on where the
+ * clicked node sits by the time this runs.
+ *
+ * A menu item that re-renders its OWN menu is unmounted before the click
+ * reaches `document`: the microtask checkpoint between listeners flushes Vue's
+ * patch while the event is still bubbling. `contains` then answers false for a
+ * click that was unmistakably inside, and the menu dismisses itself on the way
+ * in -- which is what closed the Anki field menu the moment a reader drilled
+ * into the dictionary list, the one item whose whole job is to replace the list
+ * around it.
+ *
+ * `composedPath` is snapshotted when the event is dispatched, so it still names
+ * the menu the click started in. The `contains` check stays as the fallback for
+ * a synthetic event with no path.
+ */
 const onDocumentClick = (event: MouseEvent) => {
-  const target = event.target as Node | null;
-  if (target && (rootRef.value?.contains(target) || menuRef.value?.contains(target))) return;
+  const root = rootRef.value;
+  const menu = menuRef.value;
+  const path = event.composedPath();
+
+  if (path.length > 0) {
+    if ((root && path.includes(root)) || (menu && path.includes(menu))) return;
+  } else {
+    const target = event.target as Node | null;
+    if (target && (root?.contains(target) || menu?.contains(target))) return;
+  }
+
   close();
 };
 
