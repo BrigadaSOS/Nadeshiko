@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { withoutNameEntries } from './shirabeNames';
+import { distinctNameAnswers, withoutNameEntries } from './shirabeNames';
 
 const word = (id: string, dictionary: string) => ({ id, dictionary });
 
@@ -62,5 +62,64 @@ describe('withoutNameEntries with the published flag', () => {
     ]);
 
     expect(kept.map((candidate) => candidate.id)).toEqual(['b']);
+  });
+});
+
+/** A candidate carrying one entry of one sense, with the definitions given. */
+const glossed = (...definitions: Array<{ lang: string; text: string }>) => ({
+  entries: [{ senses: [{ definitions }] }],
+});
+
+const en = (text: string) => ({ lang: 'en', text });
+const es = (text: string) => ({ lang: 'es', text });
+
+describe('distinctNameAnswers', () => {
+  const DORAEMON = 'Doraemon (manga by Fujiko F. Fujio; media franchise)';
+
+  // The case that prompted this. Two candidates, one jmdict and one jmnedict,
+  // saying the identical sentence -- so the card has one thing to show, not a
+  // picker of strangers, and "This looks like a name" threw it away.
+  it('counts two candidates with the same gloss as one answer', () => {
+    expect(
+      distinctNameAnswers([
+        glossed(en(DORAEMON), es('Doraemon (manga de Fujiko F. Fujio; franquicia mediática)')),
+        glossed(en(DORAEMON)),
+      ]),
+    ).toBe(1);
+  });
+
+  // The case the name state exists for, which must keep it: four people, four
+  // glosses, and a picker of those is exactly the noise worth collapsing.
+  it('counts four different people as four answers', () => {
+    expect(
+      distinctNameAnswers([glossed(en('Asuka')), glossed(en('Akika')), glossed(en('Asuga')), glossed(en('Haruka'))]),
+    ).toBe(4);
+  });
+
+  it('counts a lone candidate as one answer', () => {
+    expect(distinctNameAnswers([glossed(en('Oda Nobunaga (1534-1582)'))])).toBe(1);
+  });
+
+  // Translations of one answer are still one answer. Comparing every string a
+  // candidate holds would call these two different and defeat the point.
+  it('ignores languages one candidate has and another lacks', () => {
+    expect(distinctNameAnswers([glossed(en('Tokyo'), es('Tokio')), glossed(en('Tokyo'))])).toBe(1);
+  });
+
+  // No `en` anywhere: the fallback compares what the candidates do have rather
+  // than collapsing them all to an empty signature.
+  it('falls back to other languages when no English gloss exists', () => {
+    expect(distinctNameAnswers([glossed(es('Asuka')), glossed(es('Haruka'))])).toBe(2);
+  });
+
+  // An unreadable candidate must never merge with another into "one answer" --
+  // that would render a blank card instead of saying it is a name.
+  it('refuses to collapse when a candidate has nothing to read', () => {
+    expect(distinctNameAnswers([glossed(en(DORAEMON)), { entries: [] }])).toBe(Number.POSITIVE_INFINITY);
+    expect(distinctNameAnswers([{}])).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it('treats an empty list as no answers', () => {
+    expect(distinctNameAnswers([])).toBe(0);
   });
 });
