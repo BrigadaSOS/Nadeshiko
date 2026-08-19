@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DEFAULT_OG_IMAGE_PATH, DEFAULT_OG_IMAGE_SIZE, buildOgImageTags } from '~/utils/metaTags';
+import { DEFAULT_OG_IMAGE_PATH, buildOgImageTags } from '~/utils/metaTags';
 import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 
 const { t } = useI18n();
@@ -25,9 +25,13 @@ useHead(() => ({
     { name: 'description', content: t('appMeta.defaultDescription') },
     { property: 'og:title', content: t('appMeta.defaultTitle') },
     { property: 'og:description', content: t('appMeta.defaultDescription') },
-    // The size travels with the image: a page that overrides `og:image` also
-    // overrides these two, which is the whole point of keeping them together.
-    ...buildOgImageTags(ogImage, DEFAULT_OG_IMAGE_SIZE),
+    // Image only, deliberately without its size. The size cannot be stated
+    // here: this is the fallback layer, and unhead dedupes `og:image` per tag,
+    // not per group -- a page that overrode the image but knew no size (a media
+    // banner, whose height varies by title) replaced the URL and left this
+    // pair behind, so 1200x630 went on describing a 1200x400 banner. A page
+    // that genuinely uses the default card declares the size itself.
+    ...buildOgImageTags(ogImage),
     { name: 'twitter:title', content: t('appMeta.defaultTitle') },
     { name: 'twitter:description', content: t('appMeta.defaultDescription') },
   ],
