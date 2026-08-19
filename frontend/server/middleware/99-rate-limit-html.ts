@@ -2,6 +2,8 @@ import { env } from '~~/config/env';
 import { ipRateLimit, type IpRateLimitOptions } from '~~/server/utils/ipRateLimit';
 import { RESERVED_EXACT, RESERVED_PREFIXES } from '~~/server/utils/localeRouting';
 import { presentsBypassSecret, RATE_LIMIT_BYPASS_HEADER } from '~~/server/utils/rateLimitBypass';
+import { getClientIp } from '~~/server/utils/clientIp';
+import { isVerifiedCrawler } from '~~/server/utils/verifiedCrawler';
 
 // Throttle HTML renders per IP. The paths to leave alone -- the static redirects
 // (00-locale, search-redirect), the API proxy (v1/*), the health endpoint and
@@ -25,6 +27,13 @@ export default defineEventHandler(async (event) => {
   // slot in the bucket either, or a CI run would still exhaust the budget for
   // whatever real visitor shares its address.
   if (presentsBypassSecret(getRequestHeader(event, RATE_LIMIT_BYPASS_HEADER), env.NUXT_RATE_LIMIT_BYPASS_SECRET)) {
+    return;
+  }
+  // Same placement, and for the same reason: a search crawler that has proved
+  // itself should not consume a slot either, or it would still exhaust the
+  // budget for a visitor sharing its address. Proof is forward-confirmed reverse
+  // DNS, never the User-Agent -- see verifiedCrawler.ts.
+  if (isVerifiedCrawler(getClientIp(event), getRequestHeader(event, 'user-agent'))) {
     return;
   }
 
