@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 const config = useRuntimeConfig();
 const localePath = useLocalePath();
 // A second door on desktop, where the floating button is the first: people look
@@ -71,7 +72,7 @@ const { openFeedback } = useFeedbackWidget();
 
         <div class="flex -mx-2">
           <a
-            href="https://discord.gg/qRak9MprUS"
+            :href="DISCORD_INVITE_URL"
             class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
             target="_blank"
             aria-label="Discord"

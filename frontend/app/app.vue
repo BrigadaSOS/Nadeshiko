@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DEFAULT_OG_IMAGE_PATH, DEFAULT_OG_IMAGE_SIZE, buildOgImageTags } from '~/utils/metaTags';
+import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 
 const { t } = useI18n();
 const { origin } = useRequestURL();
@@ -61,7 +62,7 @@ useSchemaOrg([
   defineOrganization({
     name: 'Nadeshiko',
     logo: `${origin}${DEFAULT_OG_IMAGE_PATH}`,
-    sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', 'https://discord.gg/qRak9MprUS'],
+    sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', DISCORD_INVITE_URL],
   }),
 ]);
 </script>
