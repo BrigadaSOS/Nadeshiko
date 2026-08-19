@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
+import { DEFAULT_OG_IMAGE_PATH, DEFAULT_OG_IMAGE_SIZE, buildOgImageTags } from '~/utils/metaTags';
 import { reportError } from '~/utils/reportError';
+import { splitLocalePrefix } from '~/utils/routes';
 
 interface MarkdownPagePayload {
   title: string;
@@ -19,14 +20,14 @@ const { locale, t, d } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 const localePath = useLocalePath();
 
+// Strips whichever locale the path carries, not just the active one. The two go
+// out of step on a language switch: `locale` flips first and `route.path` still
+// reads /en/about for a tick, so matching only the active locale left the prefix
+// on, asked the content API for the page "en/about", and turned every switch on
+// a markdown page into a 404 that a reload then silently repaired.
 const slug = computed(() => {
-  let raw = route.path.replace(/^\//, '').replace(/\/$/, '');
-  if (raw === locale.value) {
-    raw = '';
-  } else if (raw.startsWith(`${locale.value}/`)) {
-    raw = raw.slice(locale.value.length + 1);
-  }
-  return raw || 'index';
+  const { localizedPath } = splitLocalePrefix(route.path);
+  return localizedPath.replace(/^\//, '').replace(/\/$/, '') || 'index';
 });
 
 const isBlogPost = computed(() => slug.value.startsWith('blog/'));
@@ -138,7 +139,7 @@ useHead(() => ({
     { name: 'description', content: description.value },
     { property: 'og:title', content: title.value },
     { property: 'og:description', content: description.value },
-    { property: 'og:image', content: `${requestOrigin}${DEFAULT_OG_IMAGE_PATH}` },
+    ...buildOgImageTags(`${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`, DEFAULT_OG_IMAGE_SIZE),
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: title.value },
     { name: 'twitter:description', content: description.value },
@@ -156,7 +157,7 @@ useHead(() => ({
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              {{ d(new Date(contentDate), 'short') }}
+              {{ d(new Date(contentDate), 'dateUtc') }}
             </time>
             <img v-if="(data as any).image" :src="(data as any).image" :alt="title" class="blog-cover" loading="eager" />
           </template>

@@ -142,7 +142,7 @@ const translationLanguages = computed(() => {
         <div class="flex items-baseline justify-between mb-5">
           <h2 class="text-lg font-semibold">{{ $t('statsPage.coverage.title') }}</h2>
           <p v-if="stats?.lastUpdated" class="text-white/30 text-xs">
-            {{ $t('statsPage.coverage.updated', { date: formatDate(stats.lastUpdated) }) }}
+            {{ $t('statsPage.coverage.updated', { date: formatDate(stats.lastUpdated, 'dateUtc') }) }}
           </p>
         </div>
 

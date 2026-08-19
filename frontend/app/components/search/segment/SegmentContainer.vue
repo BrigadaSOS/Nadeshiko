@@ -469,13 +469,13 @@ watch(playingVideoId, (id) => {
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button (plays the inline YouTube embed for YouTube segments) -->
-            <button data-testid="audio-play-button" @click="playerStore.setPlaylist(resultList, index)"
+            <button data-testid="audio-play-button" :aria-label="$t('segment.playAudio')" @click="playerStore.setPlaylist(resultList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-hairline bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300">
               <UiBaseIcon v-if="!((isPlaying && currentResult && currentResult.segment.publicId === result.segment.publicId) || playingVideoId === result.segment.publicId)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
               <span v-else
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
-                role="status" aria-label="loading"></span>
+                role="status" :aria-label="$t('segment.loading')"></span>
             </button>
 
             <!-- Japanese Sentence -->
@@ -643,8 +643,8 @@ watch(playingVideoId, (id) => {
     <div v-if="isLoading" class="text-center">
       <div
         class="animate-spin inline-block w-6 h-6 my-5 border-[3px] border-current border-t-transparent text-white rounded-full"
-        role="status" aria-label="loading">
-        <span class="sr-only">Loading...</span>
+        role="status" :aria-label="$t('segment.loading')">
+        <span class="sr-only">{{ $t('segment.loading') }}</span>
       </div>
     </div>
   </div>

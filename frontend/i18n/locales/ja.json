@@ -24,6 +24,28 @@
       "logout": "ログアウト"
     }
   },
+  "announcementBanner": {
+    "titles": {
+      "INFO": "お知らせ",
+      "WARNING": "重要なお知らせ",
+      "MAINTENANCE": "メンテナンスのお知らせ"
+    }
+  },
+  "player": {
+    "controls": {
+      "rewind": "巻き戻し",
+      "forward": "早送り",
+      "previous": "前のクリップ",
+      "next": "次のクリップ",
+      "play": "再生",
+      "pause": "一時停止",
+      "autoplay": "自動再生",
+      "repeat": "リピート",
+      "enterFullscreen": "全画面表示",
+      "exitFullscreen": "全画面表示を終了",
+      "close": "プレーヤーを閉じる"
+    }
+  },
   "common": {
     "cancel": "キャンセル",
     "search": "検索",
@@ -472,11 +494,6 @@
         "WARNING": "警告",
         "MAINTENANCE": "メンテナンス"
       },
-      "previewTitles": {
-        "INFO": "お知らせ",
-        "WARNING": "重要なお知らせ",
-        "MAINTENANCE": "メンテナンスのお知らせ"
-      },
       "save": "保存",
       "saving": "保存中...",
       "deactivate": "無効化",
@@ -578,9 +595,6 @@
       "burstLimit": "これとは別に、各キーは1分あたり{max}リクエストまでです。",
       "usageLimitMessage": {
         "prefix": "API使用上限を増やしたい場合は、以下までご連絡ください"
-      },
-      "legacyKeysMessage": {
-        "prefix": "旧バージョンのサイトで作成したAPIキーを管理するには、こちらへアクセスしてください"
       },
       "apiKeyManagement": "APIキー管理",
       "addApiKey": "APIキーを追加",
@@ -930,7 +944,9 @@
     "expandNoNext": "このエピソードにはこれより後の文がありません。",
     "expandFailed": "文を展開できませんでした。もう一度お試しください。",
     "expandAudioFailed": "テキストは展開しましたが、音声を生成できませんでした。再生と Anki への書き出しには元の音声が使われます。",
-    "expanding": "展開中…"
+    "expanding": "展開中…",
+    "playAudio": "音声を再生",
+    "loading": "読み込み中"
   },
   "tokenTooltip": {
     "lookupIn": "辞書で調べる",
