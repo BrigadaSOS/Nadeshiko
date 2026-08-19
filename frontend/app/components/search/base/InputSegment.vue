@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiClose, mdiTextSearch } from '@mdi/js';
+import { mdiClose, mdiMagnify, mdiTextSearch } from '@mdi/js';
 import { decodeSearchQuery } from '~/utils/routes';
 import { RECENTS_LISTBOX_ID, recentOptionId } from '~/utils/searchRecents';
 
@@ -359,7 +359,7 @@ const showBatchModal = ref(false);
           :aria-activedescendant="activeIndex >= 0 ? recentOptionId(activeIndex) : undefined" autocomplete="off"
           @pointerdown="openRecents"
           :class="[showRecents ? 'rounded-b-none' : '', barAccentClass]"
-          class="border py-3 h-full pl-4 pr-24 md:pr-44 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
+          class="border py-3 h-full pl-4 pr-32 md:pr-44 block w-full rounded-lg bg-input-background border-hairline text-ink placeholder:text-ink-faint text-base outline-none transition-[border-radius,border-color] duration-200 ease-out motion-reduce:transition-none"
           :placeholder="$t('common.searchAnything')" />
 
         <!--
@@ -395,6 +395,23 @@ const showBatchModal = ref(false);
             class="pointer-events-auto cursor-pointer inline-flex justify-center items-center rounded-md p-1.5 text-ink-faint hover:text-ink hover:bg-control transition-colors motion-reduce:transition-none"
             @click="clearQuery">
             <UiBaseIcon :path="mdiClose" w="w-5" h="h-5" size="20" />
+          </button>
+          <!--
+            Normal search, below `md` only, where the full-size search button is
+            gone. The keyboard's Go key still submits, but it is only there while
+            the keyboard is up: a reader who pasted a query, took one off the
+            history, or simply put the keyboard away had nothing left to press.
+            Inboard of simultaneous search, so the two keep the order they have
+            above `md` and that button does not move from where it already sits.
+          -->
+          <button
+            type="button"
+            data-testid="search-inline"
+            :aria-label="$t('common.search')"
+            :title="$t('common.search')"
+            class="md:hidden pointer-events-auto cursor-pointer inline-flex justify-center items-center rounded-md p-1.5 text-ink-faint hover:text-ink hover:bg-control transition-colors motion-reduce:transition-none"
+            @click="submitFromSearchButton">
+            <UiBaseIcon :path="mdiMagnify" w="w-5" h="h-5" size="20" />
           </button>
           <!--
             Simultaneous search, below `md` only. Its standalone button went with
@@ -436,11 +453,11 @@ const showBatchModal = ref(false);
 
       </div>
       <!--
-        Gone below `md`, where the on-screen keyboard's Go key is how a search is
-        submitted anyway and two icon buttons cost a third of the bar. The input
-        column takes the width back, and the recents menu is anchored to that
-        column (`inset-x-0` in SearchRecentsMenu), so the history runs the full
-        width of the bar without being repositioned.
+        Gone below `md`, where two full-size buttons cost a third of the bar. The
+        input column takes the width back, and the recents menu is anchored to
+        that column (`inset-x-0` in SearchRecentsMenu), so the history runs the
+        full width of the bar without being repositioned. Neither action is lost
+        with them: the strip inside the field carries both at icon size.
       -->
       <div class="hidden md:grid grid-cols-2 gap-2">
         <button
