@@ -407,7 +407,13 @@ export default defineNuxtConfig({
         groups: [
           {
             userAgent: '*',
-            allow: ['/en/', '/es/', '/docs/'],
+            // No `/docs/`: the module expands an unprefixed path across the
+            // locales, so one entry became Allow lines for /en/docs/, /es/docs/
+            // and /ja/docs/ -- all three 404 (only /docs/api/index.html is
+            // real), and the last one contradicted the /ja disallow two lines
+            // below. The entry bought nothing either way, since nothing here
+            // disallows the docs.
+            allow: ['/en/', '/es/'],
             disallow: ['/ja', '/ja/', ...PRIVATE_DISALLOW, '/api/', '/v1/', '/_nuxt/'],
           },
         ],
