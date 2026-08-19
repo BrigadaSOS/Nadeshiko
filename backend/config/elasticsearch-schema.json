@@ -560,6 +560,10 @@
         "sudachi_reading_katakana": {
           "type": "sudachi_readingform"
         },
+        "kana_no_empty": {
+          "type": "length",
+          "min": 1
+        },
         "sudachi_pos_filter": {
           "type": "sudachi_part_of_speech",
           "stoptags": ["助詞", "助動詞", "補助記号,句点", "補助記号,読点"]
@@ -655,13 +659,13 @@
           "type": "custom",
           "char_filter": ["normalize"],
           "tokenizer": "ja_sudachi_tokenizer",
-          "filter": ["sudachi_reading_katakana", "cjk_width", "lowercase"]
+          "filter": ["sudachi_reading_katakana", "kana_no_empty", "cjk_width", "lowercase"]
         },
         "ja_kana_search_analyzer": {
           "type": "custom",
           "char_filter": ["normalize", "romaji_to_kana"],
           "tokenizer": "ja_sudachi_tokenizer",
-          "filter": ["sudachi_reading_katakana", "cjk_width", "lowercase"]
+          "filter": ["sudachi_reading_katakana", "kana_no_empty", "cjk_width", "lowercase"]
         }
       }
     }
