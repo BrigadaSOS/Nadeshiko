@@ -115,6 +115,7 @@ export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportRespo
 export type CreateUserApiKeyRequestBodyOutput = z.output<typeof schemas.s_CreateUserApiKeyRequestBody>;
 export type CompleteShirabeLinkRequestBodyOutput = z.output<typeof schemas.s_CompleteShirabeLinkRequestBody>;
 export type ResyncShirabeStackRequestBodyOutput = z.output<typeof schemas.s_ResyncShirabeStackRequestBody>;
+export type ReportShirabeRefusalRequestBodyOutput = z.output<typeof schemas.s_ReportShirabeRefusalRequestBody>;
 export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
 export type AddFavoriteMediaRequestBodyOutput = z.output<typeof schemas.s_AddFavoriteMediaRequestBody>;
 

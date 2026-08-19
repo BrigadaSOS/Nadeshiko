@@ -44,6 +44,7 @@ export const routeAuth: RouteAuth[] = [
   { method: 'post', path: '/v1/user/connections/shirabe/callback', middleware: requireSession() },
   { method: 'get', path: '/v1/user/connections/shirabe/credential', middleware: requireSession() },
   { method: 'post', path: '/v1/user/connections/shirabe/resync', middleware: requireSession() },
+  { method: 'post', path: '/v1/user/connections/shirabe/refused', middleware: requireSession() },
   { method: 'get', path: '/v1/user/excluded-media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_PROFILE)) },
   { method: 'post', path: '/v1/user/excluded-media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.WRITE_PROFILE)) },
   { method: 'delete', path: '/v1/user/excluded-media/:mediaPublicId', middleware: requireAuth(enforceApiKeyScope(ApiPermission.WRITE_PROFILE)) },

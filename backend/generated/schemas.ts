@@ -353,6 +353,7 @@ export const s_SegmentStatus = z.enum(['ACTIVE', 'HIDDEN', 'DELETED']);
 export const s_ShirabeConnection = z.object({
   needsUpgrade: PermissiveBoolean,
   missingScopes: z.array(z.string()),
+  disconnected: PermissiveBoolean,
   linkedAt: z.iso.datetime({ offset: true }),
   shirabeName: z.string().nullable().optional(),
   tokenPrefix: z.string(),
@@ -972,6 +973,8 @@ export const s_CreateUserApiKeyRequestBody = z.object({
 export const s_CompleteShirabeLinkRequestBody = z.object({ code: z.string(), state: z.string() });
 
 export const s_ResyncShirabeStackRequestBody = z.object({ stackFingerprint: z.string().max(64) });
+
+export const s_ReportShirabeRefusalRequestBody = z.object({ status: z.coerce.number().min(100).max(599) });
 
 export const s_AddExcludedMediaRequestBody = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
