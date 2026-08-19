@@ -70,6 +70,8 @@ If you still need access to the previous version, the old server remains availab
 
 > **IMPORTANT:** For plugins that still use the old API, you still need to create and manage the API key through the old website. We are working with the owners of external plugins to help them migrate to the Nadeshiko V2.0 as soon as possible, after which you can just use the API Keys from the new page.
 
+> **Update, 20 August 2026:** old.nadeshiko.co has since been shut down as announced and no longer resolves. Everything above about the old site is kept for the record — API keys are now created and managed entirely from your account settings here.
+
 ## Thank You
 
 We really want to thank everybody who uses Nadeshiko. Seeing it being loved so much across the community is what keeps us motivated to make it even better.

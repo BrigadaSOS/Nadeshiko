@@ -6,7 +6,7 @@
   "navbar": {
     "buttons": {
       "home": "ホーム",
-      "about": "About",
+      "about": "Nadeshikoについて",
       "api": "API",
       "login": "ログイン / サインアップ",
       "profile": "プロフィール",
@@ -16,7 +16,7 @@
       "settings": "設定",
       "blog": "ブログ",
       "changelog": "更新履歴",
-      "stats": "Stats",
+      "stats": "統計",
       "media": "メディア",
       "collections": "コレクション",
       "activity": "アクティビティ",
@@ -62,7 +62,7 @@
   "appMeta": {
     "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
     "defaultPageTitle": "アニメの日本語文を検索",
-    "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+    "defaultDescription": "さまざまなアニメやJドラマから130万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
   },
   "home": {
     "version": "v{version}",
@@ -90,7 +90,7 @@
       },
       "feature5": {
         "title": "Discordとの直接連携",
-        "description": "公式ボットで、サーバーを離れずに100万件以上の同じ例文を検索できます。",
+        "description": "公式ボットで、サーバーを離れずに130万件以上の同じ例文を検索できます。",
         "linkText": "ボットをDiscordサーバーに追加しよう！"
       }
     },
@@ -136,7 +136,7 @@
     "episodes": "エピソード",
     "videos": "動画",
     "sentenceCountLabel": "文:",
-    "anilistButton": "Anilist",
+    "anilistButton": "AniList",
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
@@ -916,7 +916,7 @@
     "imageAlt": "ページが見つかりません"
   },
   "segment": {
-    "noResultsTitle": "404",
+    "noResultsTitle": "検索結果なし",
     "noResultsMessage": "別の検索をお試しいただくか、{link} で検索してみてください",
     "contentRatingShow": "表示",
     "contentRatingHide": "非表示",
@@ -976,7 +976,7 @@
     "pickDeselectAll": "すべて解除"
   },
   "searchContainer": {
-    "errorTitle": "502",
+    "errorTitle": "エラーが発生しました",
     "errorMessage1": "エラーが発生しました",
     "errorMessage2": "下のボタンで再試行してください。",
     "retryButton": "接続を再試行",
@@ -1165,7 +1165,7 @@
   "seo": {
     "home": {
       "title": "Nadeshiko：アニメの日本語文を検索",
-      "description": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+      "description": "さまざまなアニメやJドラマから130万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
     },
     "stats": {
       "title": "統計",

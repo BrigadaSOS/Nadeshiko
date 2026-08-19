@@ -16,8 +16,8 @@
       "settings": "Ajustes",
       "blog": "Blog",
       "changelog": "Novedades",
-      "stats": "Stats",
-      "media": "Media",
+      "stats": "Estadísticas",
+      "media": "Medios",
       "collections": "Colecciones",
       "activity": "Actividad",
       "language": "Idioma",
@@ -62,7 +62,7 @@
   "appMeta": {
     "defaultTitle": "Nadeshiko: Buscador de oraciones de anime en Japonés",
     "defaultPageTitle": "Buscador de oraciones de anime en Japonés",
-    "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+    "defaultDescription": "Busca más de 1,3 millones de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
   },
   "home": {
     "version": "v{version}",
@@ -90,7 +90,7 @@
       },
       "feature5": {
         "title": "Integración directa con Discord",
-        "description": "Busca entre el mismo millón de oraciones sin salir de tu servidor con nuestro bot oficial.",
+        "description": "Busca entre los mismos 1,3 millones de oraciones sin salir de tu servidor con nuestro bot oficial.",
         "linkText": "¡Añade el bot a tu servidor de Discord!"
       }
     },
@@ -136,7 +136,7 @@
     "episodes": "Episodios",
     "videos": "Videos",
     "sentenceCountLabel": "Cantidad de Oraciones:",
-    "anilistButton": "Anilist",
+    "anilistButton": "AniList",
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
     "youtubeButton": "YouTube",
@@ -916,7 +916,7 @@
     "imageAlt": "No encontrado"
   },
   "segment": {
-    "noResultsTitle": "404",
+    "noResultsTitle": "Sin resultados",
     "noResultsMessage": "Prueba con otra búsqueda o busca en {link}",
     "contentRatingShow": "Mostrar",
     "contentRatingHide": "Ocultar",
@@ -976,7 +976,7 @@
     "pickDeselectAll": "Deseleccionar todo"
   },
   "searchContainer": {
-    "errorTitle": "502",
+    "errorTitle": "Algo salió mal",
     "errorMessage1": "Se produjo un error",
     "errorMessage2": "Reintenta la búsqueda con el botón de abajo.",
     "retryButton": "Reintentar conexión",
@@ -1165,7 +1165,7 @@
   "seo": {
     "home": {
       "title": "Nadeshiko: Buscador de oraciones de anime en Japonés",
-      "description": "Busca más de 1 millón de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
+      "description": "Busca más de 1,3 millones de oraciones en japonés con traducciones al inglés y español de una gran variedad de anime y J-dramas."
     },
     "stats": {
       "title": "Estadísticas",
