@@ -6,6 +6,11 @@ import { mediaBrowsePath } from '~/utils/routes';
 const { t, locale } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 const localePath = useLocalePath();
+// Rounded DOWN, then suffixed: `Math.ceil` behind a leading "+" claimed more
+// than a figure that was already above the truth (1,318,789 rendered as
+// "+1318800"), and the bare digits were the only unformatted count on the site.
+// The suffix side matches /stats, which has always written "1,318,789+".
+const { formatNumber } = useFormat();
 
 useSeoMeta({
   title: () => t('seo.home.title'),
@@ -219,7 +224,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                         <div class="w-full sm:w-auto sm:flex-1">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
                                                 <h2 class="title-font font-medium text-2xl text-white">
-                                                    +{{ Math.ceil((media?.stats?.totalSegments || 0) / 100) * 100 }}
+                                                    {{ formatNumber(Math.floor((media?.stats?.totalSegments || 0) / 100) * 100) }}+
                                                 </h2>
                                                 <p class="leading-relaxed text-sm">
                                                     {{ $t('home.stats.sentenceCount') }}

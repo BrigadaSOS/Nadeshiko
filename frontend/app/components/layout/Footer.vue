@@ -93,7 +93,7 @@ const { openFeedback } = useFeedbackWidget();
             </svg>
           </a>
           <a
-            href="https://github.com/BrigadaSOS/BrigadaSOS-db"
+            href="https://github.com/BrigadaSOS/Nadeshiko"
             class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
             target="_blank"
             aria-label="Github"

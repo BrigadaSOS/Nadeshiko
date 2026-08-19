@@ -69,6 +69,8 @@ Si todavía necesitas acceder a la página anterior, el servidor antiguo seguir�
 
 > **IMPORTANTE:** Para plugins externos que todavía usan la API antigua, aún es necesario crear y gestionar las claves API a través de la web y cuenta antigua. Estamos trabajando con los dueños de plugins externos para ayudarles a migrar a Nadeshiko V2.0 lo antes posible.
 
+> **Actualización, 20 de agosto de 2026:** old.nadeshiko.co ya fue apagado tal y como se anunció y su dominio ya no resuelve. Lo anterior sobre la página antigua se conserva como registro: las claves API se crean y gestionan por completo desde los ajustes de tu cuenta aquí.
+
 ## Agradecimientos
 
 Queremos dar las gracias a todos los que a día de hoy siguen usando Nadeshiko. Ver lo mucho que se se le aprecia tanto en la comunidad es lo que realmente nos motiva a seguir mejorándolo.
