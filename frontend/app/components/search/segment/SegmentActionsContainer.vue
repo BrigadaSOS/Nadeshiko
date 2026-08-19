@@ -236,7 +236,7 @@ const sharedMediaName = computed(() =>
 );
 </script>
 <template>
-  <SearchDropdownContainer data-testid="save-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="save-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
       <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header" @click="loadCollections">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
@@ -340,7 +340,7 @@ const sharedMediaName = computed(() =>
     </template>
   </SearchDropdownContainer>
 
-  <SearchDropdownContainer data-testid="download-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="download-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
       <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiTrayArrowDown" />
@@ -366,7 +366,7 @@ const sharedMediaName = computed(() =>
     </template>
   </SearchDropdownContainer>
 
-  <SearchDropdownContainer data-testid="copy-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header">
+  <SearchDropdownContainer data-testid="copy-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
       <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiContentCopy" />
@@ -411,7 +411,8 @@ const sharedMediaName = computed(() =>
   </UiButtonPrimaryAction>
 
   <SearchDropdownContainer data-testid="more-dropdown" class="mr-2 my-1" dropdownId="nd-dropdown-with-header"
-    dropdownContainerClass="absolute top-full right-0 z-50 min-w-60 mt-1">
+    teleport teleportAlign="end"
+    dropdownContainerClass="z-50 min-w-60">
     <template #default>
       <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
         <UiBaseIcon :path="mdiDotsHorizontal" />
