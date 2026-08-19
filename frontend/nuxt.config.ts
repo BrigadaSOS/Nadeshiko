@@ -26,6 +26,27 @@ const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 // and a CSP entry that covers more than it needs is one nobody can safely
 // narrow later.
 const SHIRABE_CDN_ORIGIN = 'https://cdn.shirabe.org';
+/**
+ * Origins that belong to the reader's browser extensions rather than to us.
+ *
+ * This audience is Japanese learners, and a large share of them read with a
+ * dictionary or mining extension injected into the page -- Yomitan, 10ten,
+ * Migaku. An injected content script is governed by the *page's* CSP, not the
+ * extension's, so a policy that names only our own origins quietly breaks the
+ * tools our readers came here with. It also reports a great deal of noise doing
+ * it: Migaku's font host alone accounted for 14,114 violations in one week,
+ * around 80% of every violation the site recorded.
+ *
+ * Passive subresources only -- fonts, images, stylesheets. Nothing here grants
+ * script execution; see the note on `script-src` for why extension scripts stay
+ * blocked.
+ */
+const MIGAKU_ASSET_ORIGIN = 'https://migaku-public-data.migaku.com';
+const GOOGLE_FONTS_ORIGIN = 'https://fonts.googleapis.com';
+const GOOGLE_FONTS_STATIC_ORIGIN = 'https://fonts.gstatic.com';
+const TYPEKIT_ORIGIN = 'https://use.typekit.net';
+const YOUTUBE_THUMBNAIL_ORIGIN = 'https://i.ytimg.com';
+
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
 // Where browsers post CSP violations. Sent through our own PostHog proxy rather
@@ -222,6 +243,15 @@ export default defineNuxtConfig({
         ? false
         : {
             'default-src': ["'self'"],
+            // Extension-injected scripts are deliberately NOT accommodated here,
+            // and cannot be. Their reports arrive as `blocked-uri: inline`
+            // (2,558 of 2,574 script violations in a week), and the only
+            // directive that would admit an inline script is 'unsafe-inline' --
+            // which browsers ignore outright whenever a nonce is present. So the
+            // choice is not "allow extensions or not", it is "keep nonces or
+            // not", and nonces are the whole reason this policy is worth having.
+            // The extensions in question inject through non-inline paths as well,
+            // so what is lost is a fallback rather than the feature.
             'script-src': [
               "'self'",
               // Not 'unsafe-inline': a nonce is present, so browsers ignore
@@ -233,9 +263,11 @@ export default defineNuxtConfig({
               CF_INSIGHTS_ORIGIN,
               'https://www.youtube.com',
             ],
-            'style-src': ["'self'", "'unsafe-inline'"],
-            'img-src': ["'self'", 'data:', CDN_ORIGIN],
-            'font-src': ["'self'"],
+            'style-src': ["'self'", "'unsafe-inline'", GOOGLE_FONTS_ORIGIN],
+            'img-src': ["'self'", 'data:', CDN_ORIGIN, YOUTUBE_THUMBNAIL_ORIGIN],
+            // `data:` is here for the reader's extensions too, not for us: several
+            // inline their fonts rather than fetching them.
+            'font-src': ["'self'", 'data:', MIGAKU_ASSET_ORIGIN, GOOGLE_FONTS_STATIC_ORIGIN, TYPEKIT_ORIGIN],
             'connect-src': [
               "'self'",
               CDN_ORIGIN,
