@@ -1296,7 +1296,9 @@
       "dictionariesHint": "Shirabe で変更する",
       "anonymous": "Shirabe アカウント",
       "upgrade": "権限を更新",
+      "reconnect": "再接続",
       "upgradeNeeded": "{name} として連携中。新しい機能には追加の権限が必要です",
+      "disconnected": "{name} として連携していましたが、Shirabe側で接続が無効になりました。現在あなたの辞書は使われていません。再接続すると元に戻ります。",
       "confirmDisconnect": "Shirabe との連携を解除しますか？Shirabe 側のキーは無効化され、単語カードは既定の辞書に戻ります。"
     },
     "callback": {

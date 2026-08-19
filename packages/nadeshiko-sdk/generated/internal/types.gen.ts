@@ -1758,6 +1758,10 @@ export type ShirabeConnection = {
      * The permissions a re-consent would add. Empty unless `needsUpgrade`.
      */
     missingScopes: Array<string>;
+    /**
+     * True when Shirabe refused this key outright -- the reader revoked it from their Shirabe access list, or it was swept for being idle. The link is over until they make a new one, and their own dictionaries are not being used until they do. Distinct from `needsUpgrade`, which is a link that still works: this one is a repair.
+     */
+    disconnected: boolean;
     linkedAt: string;
     /**
      * Who they are on Shirabe, for the settings page to name the link.
@@ -2546,6 +2550,10 @@ export type AgentActivityResponse = {
  * Site-wide announcement banner
  */
 export type Announcement = {
+    /**
+     * The banner text. Stored and returned verbatim; the web client renders a small inline markdown subset from it -- links, bold, italic, code spans and line breaks -- so `maxLength` counts the markup as well as the words. Anything outside that subset, raw HTML included, is shown as the characters it is made of rather than interpreted. Other clients are free to print it as plain text.
+     *
+     */
     message: string;
     type: 'INFO' | 'WARNING' | 'MAINTENANCE';
     active: boolean;
@@ -4499,6 +4507,48 @@ export type ResyncShirabeStackResponses = {
 };
 
 export type ResyncShirabeStackResponse = ResyncShirabeStackResponses[keyof ResyncShirabeStackResponses];
+
+export type ReportShirabeRefusalData = {
+    body: {
+        /**
+         * The HTTP status Shirabe answered the lookup with.
+         */
+        status: number;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe/refused';
+};
+
+export type ReportShirabeRefusalErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type ReportShirabeRefusalError = ReportShirabeRefusalErrors[keyof ReportShirabeRefusalErrors];
+
+export type ReportShirabeRefusalResponses = {
+    /**
+     * Recorded, or nothing worth recording.
+     */
+    204: void;
+};
+
+export type ReportShirabeRefusalResponse = ReportShirabeRefusalResponses[keyof ReportShirabeRefusalResponses];
 
 export type ListExcludedMediaData = {
     body?: never;

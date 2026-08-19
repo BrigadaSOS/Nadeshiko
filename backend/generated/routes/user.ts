@@ -37,6 +37,7 @@ import type {
   t_RemoveExcludedMediaParamSchema,
   t_RemoveFavoriteMediaParamSchema,
   t_Report,
+  t_ReportShirabeRefusalRequestBody,
   t_ResyncShirabeStackRequestBody,
   t_ShirabeConnection,
   t_UserActivityRequest,
@@ -44,7 +45,7 @@ import type {
   t_UserMe,
   t_UserPreferences,
 } from '../models.ts';
-import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, ResyncShirabeStackRequestBodyOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, ReportShirabeRefusalRequestBodyOutput, ResyncShirabeStackRequestBodyOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
   s_ActivityType,
   s_AddExcludedMediaRequestBody,
@@ -62,6 +63,7 @@ import {
   s_Error500,
   s_MediaSummary,
   s_Report,
+  s_ReportShirabeRefusalRequestBody,
   s_ResyncShirabeStackRequestBody,
   s_ShirabeConnection,
   s_UserActivityRequest,
@@ -209,6 +211,22 @@ export type ResyncShirabeStackResponder = {
 export type ResyncShirabeStack = (
   params: Params<void, void, ResyncShirabeStackRequestBodyOutput, void>,
   respond: ResyncShirabeStackResponder,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type ReportShirabeRefusalResponder = {
+  with204(): ExpressRuntimeResponse<void>;
+  with401(): ExpressRuntimeResponse<t_Error401>;
+  with403(): ExpressRuntimeResponse<t_Error403>;
+  with429(): ExpressRuntimeResponse<t_Error429>;
+  with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ReportShirabeRefusal = (
+  params: Params<void, void, ReportShirabeRefusalRequestBodyOutput, void>,
+  respond: ReportShirabeRefusalResponder,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -493,6 +511,7 @@ export type UserImplementation = {
   completeShirabeLink: CompleteShirabeLink;
   getShirabeCredential: GetShirabeCredential;
   resyncShirabeStack: ResyncShirabeStack;
+  reportShirabeRefusal: ReportShirabeRefusal;
   listExcludedMedia: ListExcludedMedia;
   addExcludedMedia: AddExcludedMedia;
   removeExcludedMedia: RemoveExcludedMedia;
@@ -952,6 +971,57 @@ export function createUserRouter(
         .resyncShirabeStack(input, responder, req, res, next)
         .catch(handleImplementationError)
         .then(handleResponse(res, resyncShirabeStackResponseBodyValidator));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  const reportShirabeRefusalResponseBodyValidator = responseValidationFactory(
+    [
+      ['204', z.undefined()],
+      ['401', s_Error401],
+      ['403', s_Error403],
+      ['429', s_Error429],
+      ['500', s_Error500],
+    ],
+    undefined,
+  );
+
+  // reportShirabeRefusal
+  router.post(`/v1/user/connections/shirabe/refused`, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const input = {
+        params: undefined,
+        query: undefined,
+        body: parseRequestInput(s_ReportShirabeRefusalRequestBody, req.body, RequestInputType.RequestBody),
+        headers: undefined,
+      };
+
+      const responder = {
+        with204() {
+          return new ExpressRuntimeResponse<void>(204);
+        },
+        with401() {
+          return new ExpressRuntimeResponse<t_Error401>(401);
+        },
+        with403() {
+          return new ExpressRuntimeResponse<t_Error403>(403);
+        },
+        with429() {
+          return new ExpressRuntimeResponse<t_Error429>(429);
+        },
+        with500() {
+          return new ExpressRuntimeResponse<t_Error500>(500);
+        },
+        withStatus(status: StatusCode) {
+          return new ExpressRuntimeResponse(status);
+        },
+      };
+
+      await implementation
+        .reportShirabeRefusal(input, responder, req, res, next)
+        .catch(handleImplementationError)
+        .then(handleResponse(res, reportShirabeRefusalResponseBodyValidator));
     } catch (error) {
       next(error);
     }

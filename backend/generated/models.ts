@@ -767,6 +767,7 @@ export type t_SegmentUpdateRequest = {
 export type t_ShirabeConnection = {
   dictionaries: string[];
   dictionaryNames?: Record<string, string>;
+  disconnected: boolean;
   linkedAt: string;
   missingScopes: string[];
   needsUpgrade: boolean;
@@ -1205,6 +1206,10 @@ export type t_RemoveFavoriteMediaParamSchema = {
 export type t_RemoveSegmentFromCollectionParamSchema = {
   collectionPublicId: string;
   segmentPublicId: string;
+};
+
+export type t_ReportShirabeRefusalRequestBody = {
+  status: number;
 };
 
 export type t_RestoreSegmentRevisionParamSchema = {
