@@ -1,0 +1,16 @@
+meta {
+  name: Issue a feedback form token
+  type: http
+  seq: 57
+}
+
+get {
+  url: {{baseUrl}}/v1/feedback/token
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

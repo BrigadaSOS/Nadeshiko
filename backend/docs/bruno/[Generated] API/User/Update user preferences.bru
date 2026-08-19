@@ -1,7 +1,7 @@
 meta {
   name: Update user preferences
   type: http
-  seq: 33
+  seq: 46
 }
 
 patch {
@@ -20,6 +20,10 @@ body:json {
       "EN": "",
       "ES": ""
     },
+    "translationLanguages": [],
+    "wordPopup": {
+      "definitionSize": ""
+    },
     "searchHistory": {
       "enabled": false
     },
@@ -36,9 +40,11 @@ body:json {
           }
         ],
         "key": "",
-        "serverAddress": ""
+        "serverAddress": "",
+        "openBrowserOnExport": false
       }
     ],
+    "defaultSearchCategory": "",
     "hiddenCategories": [],
     "hiddenMedia": [
       {
@@ -47,7 +53,19 @@ body:json {
         "nameJa": "",
         "nameRomaji": ""
       }
-    ]
+    ],
+    "favoriteMedia": [
+      {
+        "mediaPublicId": "",
+        "nameEn": "",
+        "nameJa": "",
+        "nameRomaji": "",
+        "favoritedAt": ""
+      }
+    ],
+    "familiarMedia": {
+      "enabled": false
+    }
   }
 }
 

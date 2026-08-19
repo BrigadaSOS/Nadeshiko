@@ -1,0 +1,26 @@
+meta {
+  name: Star media
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{baseUrl}}/v1/user/favorite-media
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "mediaPublicId": "V1StGXR8_Z5d"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

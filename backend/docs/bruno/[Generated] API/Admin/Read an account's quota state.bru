@@ -1,0 +1,27 @@
+meta {
+  name: Read an account's quota state
+  type: http
+  seq: 79
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/users/:userId/quota
+  body: none
+  auth: none
+}
+
+params:query {
+  userId:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

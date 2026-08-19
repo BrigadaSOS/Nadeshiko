@@ -1,0 +1,29 @@
+meta {
+  name: Report that Shirabe refused a reader's key on a lookup
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{baseUrl}}/v1/user/connections/shirabe/refused
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "status": 401
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}
