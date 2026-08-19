@@ -8,10 +8,7 @@
  * out with an English heading on /es and /ja while the preview promised
  * otherwise.
  */
-export function announcementTitle(
-  t: (key: string) => string,
-  type: string | null | undefined,
-): string {
+export function announcementTitle(t: (key: string) => string, type: string | null | undefined): string {
   switch (type) {
     case 'WARNING':
       return t('announcementBanner.titles.WARNING');

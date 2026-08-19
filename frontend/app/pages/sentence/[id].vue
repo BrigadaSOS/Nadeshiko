@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { NadeshikoError } from '@brigadasos/nadeshiko-sdk';
 import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core';
 import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate } from '~/utils/engagedView';
 import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
 import { resolveSearchResponse } from '~/utils/resolvers';
+import { apiErrorStatus } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
 import type { SearchStatsResponse } from '~/types/search';
 
@@ -41,7 +41,10 @@ const fetchSentenceData = async () => {
   const segment = await loadSegment(id.value, sdk).catch((error: unknown) => {
     // A deleted or mistyped permalink is a genuine 404; anything else is our own
     // failure and must not be dressed up as "this sentence does not exist".
-    if (error instanceof NadeshikoError && error.status === 404) return null;
+    // Matched on the status rather than the error's class -- see `apiErrorStatus`
+    // for why identity is not reliable across the SSR boundary, and for what it
+    // cost here.
+    if (apiErrorStatus(error) === 404) return null;
     reportError('sentence:fetch-failed', error, { 'segment.publicId': id.value });
     throw error;
   });
