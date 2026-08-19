@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { announcementTitle } from '~/utils/announcement';
+
 // Through `/api/announcement` rather than the SDK directly, so the one answer
 // every visitor shares can be cached once instead of re-fetched per render. The
 // route swallows the failure case too -- "no announcement" is served as an error
@@ -9,18 +11,14 @@ const { data } = await useFetch('/api/announcement', {
   default: () => ({ announcement: null }),
 });
 
+const { t } = useI18n();
+
 const announcement = computed(() => data.value?.announcement ?? null);
 
-const typeLabel = computed(() => {
-  switch (announcement.value?.type) {
-    case 'WARNING':
-      return 'Important Notice';
-    case 'MAINTENANCE':
-      return 'Maintenance Notice';
-    default:
-      return 'Notice';
-  }
-});
+// The heading is ours and translates; the message below it is admin-authored
+// free text and has no per-locale variant, so a non-English reader still gets
+// an English body. Worth knowing before writing one.
+const typeLabel = computed(() => announcementTitle(t, announcement.value?.type));
 </script>
 
 <template>

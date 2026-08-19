@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Announcement as AnnouncementData } from '@brigadasos/nadeshiko-sdk';
+import { announcementTitle } from '~/utils/announcement';
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
@@ -97,16 +98,7 @@ const typeOptions = computed(
     ] as const,
 );
 
-const previewTitle = computed(() => {
-  switch (form.type) {
-    case 'WARNING':
-      return t('accountSettings.announcement.previewTitles.WARNING');
-    case 'MAINTENANCE':
-      return t('accountSettings.announcement.previewTitles.MAINTENANCE');
-    default:
-      return t('accountSettings.announcement.previewTitles.INFO');
-  }
-});
+const previewTitle = computed(() => announcementTitle(t, form.type));
 </script>
 
 <template>

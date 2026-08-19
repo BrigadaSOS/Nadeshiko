@@ -23,11 +23,14 @@ export function useFormat() {
 
   /**
    * `short` -> 5 Aug 2026, `long` -> 5 August 2026, `dateTime` adds the time.
+   * All three sit in the reader's zone; `dateUtc` is `short` pinned to UTC, for
+   * dates that belong to the content rather than the reader and so have to
+   * survive server rendering without resolving to two different days.
    * Invalid or missing input renders as "-" rather than "Invalid Date".
    */
   const formatDate = (
     value: Date | string | number | null | undefined,
-    style: 'short' | 'long' | 'dateTime' = 'short',
+    style: 'short' | 'long' | 'dateTime' | 'dateUtc' = 'short',
   ): string => {
     const date = toDate(value);
     return date === null ? '-' : d(date, style);
