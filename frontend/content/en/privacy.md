@@ -4,7 +4,7 @@ description: "Read Nadeshiko's privacy policy to understand how we collect, use,
 ---
 
 # Privacy Policy
-**Last updated: January 19, 2026**
+**Last updated: August 20, 2026**
 
 This Privacy Policy describes our policies and procedures on the collection, use, and disclosure of your information when you use our service and tells you about your privacy rights and how the law protects you.
 
@@ -41,7 +41,7 @@ Nadeshiko may use personal data for the following purposes:
 
 - **To provide and maintain our service**, including to monitor the usage of our service.
 - **To manage your account**: to manage your registration as a user of the service. The personal data you provide can give you access to different functionalities of the service that are available to you as a registered user.
-- **To contact you**: To contact you by email or other equivalent forms of electronic communication, such as a mobile application's push notifications regarding updates or informative communications related to the functionalities, products, or contracted services, including security updates, when necessary or reasonable for their implementation.
+- **To contact you**: To contact you by email regarding updates or informative communications related to the functionalities and services you use, including security updates, when necessary or reasonable for their implementation.
 - **To manage your requests**: To attend and manage your requests to us.
 - **For other purposes**: We may use your information for other purposes, such as data analysis, identifying usage trends and to evaluate and improve our service and your experience.
 
@@ -51,7 +51,7 @@ We may share your personal information in the following situations:
 - **With Other Users**: when you share personal information or otherwise interact in the public areas with other users, such information may be viewed by all users and may be publicly distributed outside. Other users will be able to view descriptions of your activity, communicate with you, and view your profile.
 - **With Your Consent**: We may disclose your personal information for any other purpose with your consent.
 
-**Any data we do collect will not be sold nor purposefully shared with any third-parties.**
+**We do not sell your personal data. Apart from the service providers described in this policy -- who process data on our behalf to host the site, deliver its content and measure how it is used -- we do not share it with third parties.**
 
 ## Retention of Your Personal Data
 Nadeshiko will retain your personal data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use your personal data to the extent necessary to comply with our legal obligations (for example, if we are required to retain your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.
@@ -95,3 +95,7 @@ We have no control over and assume no responsibility for the content, privacy po
 We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page.
 
 We will let you know via email and/or a prominent notice on our service, prior to the change becoming effective and update the "Last updated" date at the top of this Privacy Policy.
+
+## Contact Us
+If you have any questions about this Privacy Policy, you can contact us:
+- **Email**: contact@nadeshiko.co
