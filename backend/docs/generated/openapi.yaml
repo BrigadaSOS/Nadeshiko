@@ -1582,6 +1582,7 @@ paths:
       tags:
         - User
       x-internal: true
+      x-server-only: true
       operationId: getShirabeCredential
       summary: The reader's Shirabe key, for our own server only
       description: |
@@ -1623,6 +1624,7 @@ paths:
       tags:
         - User
       x-internal: true
+      x-server-only: true
       operationId: resyncShirabeStack
       summary: Reconcile the stored Shirabe stack against a fingerprint a lookup saw
       description: |
@@ -1668,6 +1670,7 @@ paths:
       tags:
         - User
       x-internal: true
+      x-server-only: true
       operationId: reportShirabeRefusal
       summary: Report that Shirabe refused a reader's key on a lookup
       description: |
@@ -5958,16 +5961,13 @@ components:
       description: |
         A reader's linked Shirabe account, as the reader is shown it.
 
-        Never carries the stored key: nothing here can be used to act on their Shirabe
-        account. `tokenPrefix` is only the handful of characters Shirabe itself prints
-        in its own access list, so somebody comparing the two lists can tell which row
-        is this one.
+        Never carries the stored tokens: nothing here can be used to act on their
+        Shirabe account.
       required:
         - needsUpgrade
         - missingScopes
         - disconnected
         - linkedAt
-        - tokenPrefix
         - scopes
         - dictionaries
         - stackIsPrivate
@@ -5994,10 +5994,6 @@ components:
           nullable: true
           description: Who they are on Shirabe, for the settings page to name the link.
           example: Lumi
-        tokenPrefix:
-          type: string
-          description: The first characters of the key, to recognise it by. Not usable.
-          example: shr_2f8Kq1zX
         scopes:
           type: array
           description: What the reader granted. Today that is READ_ACCOUNT and nothing else.

@@ -356,7 +356,6 @@ export const s_ShirabeConnection = z.object({
   disconnected: PermissiveBoolean,
   linkedAt: z.iso.datetime({ offset: true }),
   shirabeName: z.string().nullable().optional(),
-  tokenPrefix: z.string(),
   scopes: z.array(z.string()),
   dictionaries: z.array(z.string()),
   dictionaryNames: z.record(z.string(), z.string()).optional(),
