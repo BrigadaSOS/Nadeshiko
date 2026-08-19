@@ -4,7 +4,7 @@ description: "Lee la política de privacidad de Nadeshiko para entender cómo re
 ---
 
 # Política de Privacidad
-**Última actualización: 19 de enero de 2026**
+**Última actualización: 20 de agosto de 2026**
 
 Esta Política de Privacidad describe nuestras políticas y procedimientos sobre la recopilación, uso y divulgación de su información cuando utiliza nuestro servicio y le informa sobre sus derechos de privacidad y cómo la ley lo protege.
 
@@ -40,7 +40,7 @@ Nadeshiko puede utilizar datos personales para los siguientes propósitos:
 
 - **Para proporcionar y mantener nuestro servicio**, incluso para monitorear el uso de nuestro servicio.
 - **Para gestionar su cuenta**: para gestionar su registro como usuario del servicio. Los datos personales que proporcione pueden darle acceso a diferentes funcionalidades del servicio que están disponibles para usted como usuario registrado.
-- **Para comunicarse con usted**: Para ponerse en contacto con usted por correo electrónico o mediante otras formas de comunicación electrónica equivalentes, como las notificaciones push de una aplicación móvil en relación con actualizaciones o comunicaciones informativas relacionadas con las funcionalidades, productos o servicios contratados, incluidas las actualizaciones de seguridad, cuando sea necesario o razonable para su implementación.
+- **Para comunicarse con usted**: Para ponerse en contacto con usted por correo electrónico en relación con actualizaciones o comunicaciones informativas relacionadas con las funcionalidades y servicios que utiliza, incluidas las actualizaciones de seguridad, cuando sea necesario o razonable para su implementación.
 - **Para gestionar sus solicitudes**: Para atender y gestionar sus solicitudes hacia nosotros.
 - **Para otros propósitos**: Podemos utilizar su información para otros fines, como análisis de datos, identificación de tendencias de uso y para evaluar y mejorar nuestro servicio y su experiencia.
 
@@ -50,7 +50,7 @@ Podemos compartir su información personal en las siguientes situaciones:
 - **Con otros usuarios**: cuando comparte información personal o interactúa en las áreas públicas con otros usuarios, esa información puede ser vista por todos los usuarios y puede ser distribuida públicamente en el exterior. De igual manera, otros usuarios podrán ver las descripciones de su actividad, comunicarse con usted y ver su perfil.
 - **Con su consentimiento**: Podemos divulgar su información personal para cualquier otro propósito con su consentimiento.
 
-**Cualquier dato que recopilemos no será vendido ni compartido intencionalmente con terceros.**
+**No vendemos sus datos personales. Salvo los proveedores de servicios descritos en esta política -- que procesan los datos en nuestro nombre para alojar el sitio, distribuir su contenido y medir su uso --, no los compartimos con terceros.**
 
 ## Retención de Sus Datos Personales
 Nadeshiko conservará sus datos personales solo durante el tiempo necesario para los fines establecidos en esta Política de Privacidad. Retendremos y utilizaremos sus datos personales en la medida necesaria para cumplir con nuestras obligaciones legales (por ejemplo, si estamos obligados a retener sus datos para cumplir con las leyes aplicables), resolver disputas y hacer cumplir nuestros acuerdos legales y políticas.
@@ -94,3 +94,7 @@ No tenemos control y no asumimos ninguna responsabilidad por el contenido, las p
 Podemos actualizar nuestra Política de Privacidad de vez en cuando. Le notificaremos cualquier cambio publicando la nueva Política de Privacidad en esta página.
 
 Le informaremos a través de correo electrónico y/o un aviso destacado en nuestro servicio, antes de que el cambio entre en vigor y actualizaremos la fecha de "Última actualización" en la parte superior de esta Política de Privacidad.
+
+## Contáctenos
+Si tiene alguna pregunta sobre esta Política de Privacidad, puede ponerse en contacto con nosotros:
+- **Correo electrónico**: contact@nadeshiko.co

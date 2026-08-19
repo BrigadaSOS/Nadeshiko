@@ -5,7 +5,7 @@ description: "Política de eliminación DMCA de Nadeshiko e instrucciones para e
 
 # Política DMCA
 
-**Última actualización: 19 de enero de 2026**
+**Última actualización: 20 de agosto de 2026**
 
 ## Derechos de Autor y Cumplimiento de DMCA
 
@@ -21,9 +21,9 @@ Si es titular de derechos de autor y cree que algún contenido del servicio Nade
 
 **Información Requerida para un Aviso DMCA:**
 
-1. **Identificación de la obra protegida por derechos de autor**: Una firma física o electrónica de una persona autorizada para actuar en nombre del propietario de un derecho exclusivo que supuestamente se ha infringido.
+1. **Firma**: Una firma física o electrónica de una persona autorizada para actuar en nombre del propietario de un derecho exclusivo que supuestamente se ha infringido.
 
-2. **Identificación del material presuntamente infractor**: Identificación de la obra protegida por derechos de autor que se alega ha sido infringida, o, si varias obras protegidas en un único sitio en línea están cubiertas por una única notificación, una lista representativa de dichas obras en ese sitio.
+2. **Identificación de la obra protegida por derechos de autor**: Identificación de la obra protegida por derechos de autor que se alega ha sido infringida, o, si varias obras protegidas en un único sitio en línea están cubiertas por una única notificación, una lista representativa de dichas obras en ese sitio.
 
 3. **Ubicación del material presuntamente infractor**: Identificación del material que se alega que está infringiendo o que es objeto de actividad infractora y que debe eliminarse o deshabilitar su acceso, e información razonablemente suficiente para permitirnos localizar el material.
 

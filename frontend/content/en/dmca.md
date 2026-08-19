@@ -5,7 +5,7 @@ description: "Nadeshiko's DMCA takedown policy and instructions for submitting c
 
 # DMCA Policy
 
-**Last updated: January 19, 2026**
+**Last updated: August 20, 2026**
 
 ## Copyright and DMCA Compliance
 
@@ -21,9 +21,9 @@ If you are a copyright holder and believe that any content on the Nadeshiko serv
 
 **Required Information for a DMCA Notice:**
 
-1. **Identification of the copyrighted work**: A physical or electronic signature of a person authorized to act on behalf of the owner of an exclusive right that is allegedly infringed.
+1. **Signature**: A physical or electronic signature of a person authorized to act on behalf of the owner of an exclusive right that is allegedly infringed.
 
-2. **Identification of the infringing material**: Identification of the copyrighted work claimed to have been infringed, or, if multiple copyrighted works at a single online site are covered by a single notification, a representative list of such works on that site.
+2. **Identification of the copyrighted work**: Identification of the copyrighted work claimed to have been infringed, or, if multiple copyrighted works at a single online site are covered by a single notification, a representative list of such works on that site.
 
 3. **Location of the infringing material**: Identification of the material that is claimed to be infringing or to be the subject of infringing activity and that is to be removed or access to which is to be disabled, and information reasonably sufficient to permit us to locate the material.
 
