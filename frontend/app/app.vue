@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { DEFAULT_OG_IMAGE_PATH, buildOgImageTags } from '~/utils/metaTags';
-import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 
 const { t } = useI18n();
 const { origin } = useRequestURL();
@@ -50,25 +49,6 @@ useHead(() => ({
    */
   title: t('appMeta.defaultPageTitle'),
 }));
-
-/**
- * The publisher behind every page, declared once at the root.
- *
- * Without it the graph had no `Organization` node at all, so the `WebPage` and
- * `Article` nodes the pages below emit had nothing to name as their publisher --
- * and `defineArticle` on the blog quietly wants one. Declaring it here rather
- * than per-page means the id is stable and every page's graph can reference it.
- *
- * `sameAs` is only for profiles that are unambiguously ours and unlikely to
- * move; it is how a search engine ties this site to those accounts.
- */
-useSchemaOrg([
-  defineOrganization({
-    name: 'Nadeshiko',
-    logo: `${origin}${DEFAULT_OG_IMAGE_PATH}`,
-    sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', DISCORD_INVITE_URL],
-  }),
-]);
 </script>
 
 <template>

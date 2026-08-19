@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { env } from './config/env';
 import { INDEXED_LOCALES as APP_INDEXED_LOCALES } from './app/utils/i18n';
 import { PRIVATE_PATH_SEGMENTS } from './shared/utils/privatePaths';
+import { DISCORD_INVITE_URL } from './shared/utils/socialLinks';
+import { DEFAULT_OG_IMAGE_PATH } from './app/utils/metaTags';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
 // Analytics ship in production only. Everywhere else the SDK just fails against
@@ -370,6 +372,27 @@ export default defineNuxtConfig({
       },
     },
   }),
+  /**
+   * The publisher, declared where the module puts it rather than from a page.
+   *
+   * `defineOrganization()` in app.vue built a SECOND Organization at
+   * `#organization`, carrying the logo -- while the node every other member of
+   * the graph points at (`WebSite.publisher`, `WebPage.about`,
+   * `Article.author`/`publisher`) is the `#identity` one the module derives
+   * from this config, which had no logo at all. Google resolves publisher to
+   * `#identity`, found none, and the Article rich result went without.
+   */
+  schemaOrg: {
+    identity: {
+      type: 'Organization',
+      name: 'Nadeshiko',
+      url: SITE_URL,
+      logo: `${SITE_URL}${DEFAULT_OG_IMAGE_PATH}`,
+      // Only profiles unambiguously ours and unlikely to move: this is how a
+      // search engine ties the site to those accounts.
+      sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', DISCORD_INVITE_URL],
+    },
+  },
   site: {
     url: SITE_URL,
     name: 'Nadeshiko',
