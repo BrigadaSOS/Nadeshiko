@@ -88,6 +88,6 @@ description: "Nadeshikoについて、制作チームとコントリビュータ
 ご意見、ご提案、ご協力、またはその他のお問い合わせは、以下の方法でご連絡ください。
 
 - **メール**: contact@nadeshiko.co
-- **Discord**: [Nadeshiko](https://discord.gg/c6yGwbXruq)
+- **Discord**: [Nadeshiko](https://discord.gg/qRak9MprUS)
 
 このサイトは AGPL-3.0 ライセンスの下にあります。

@@ -116,7 +116,7 @@ watch(() => route.fullPath, closeNavSidebar);
                 </div>
                 <div class="gap-2 flex flex-row">
                     <div class="flex items-center">
-                    <a href="https://discord.gg/c6yGwbXruq"
+                    <a href="https://discord.gg/qRak9MprUS"
                         class="mx-2 hidden lg:flex text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                         target="_blank" aria-label="Discord">
                         <svg class="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg"
@@ -310,7 +310,7 @@ watch(() => route.fullPath, closeNavSidebar);
             <div class="mt-auto border-t border-hairline py-3 px-5">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <a href="https://discord.gg/c6yGwbXruq"
+                        <a href="https://discord.gg/qRak9MprUS"
                             class="flex items-center justify-center size-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-neutral-700"
                             target="_blank" aria-label="Discord">
                             <svg class="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg"

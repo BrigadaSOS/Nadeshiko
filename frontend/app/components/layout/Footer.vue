@@ -71,7 +71,7 @@ const { openFeedback } = useFeedbackWidget();
 
         <div class="flex -mx-2">
           <a
-            href="https://discord.gg/c6yGwbXruq"
+            href="https://discord.gg/qRak9MprUS"
             class="mx-2 text-gray-600 transition-colors duration-300 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
             target="_blank"
             aria-label="Discord"
