@@ -103,6 +103,21 @@ function keyIdFor(secret: string): string {
   return createHash('sha256').update(`secretBox:key-id:${secret}`, 'utf8').digest('hex').slice(0, 8);
 }
 
+/** Which key sealed this, without opening it. What a re-encryption pass sorts on
+ *  -- and it needs no key at all, so a row can be attributed even by something
+ *  that could not decrypt it. */
+export function keyIdOf(payload: string): string | null {
+  const [version, keyId] = payload.split('.');
+  if (version !== VERSION) return null;
+  return keyId || null;
+}
+
+/** The id the CURRENT secret stamps. Anything not matching it is a row a
+ *  rotation has yet to reach -- including v1 rows, which carry no id at all. */
+export function currentKeyId(secret: string): string {
+  return keyIdFor(secret);
+}
+
 function aadFor(context: SealContext): Buffer {
   return Buffer.from(`${context.purpose}\u0000${context.aad ?? ''}`, 'utf8');
 }
