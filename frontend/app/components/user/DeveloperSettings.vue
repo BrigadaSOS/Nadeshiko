@@ -282,10 +282,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
           {{ t('accountSettings.developer.usageLimitMessage.prefix') }}
           <a href="mailto:contact@nadeshiko.co" class="text-red-400 hover:underline">contact@nadeshiko.co</a>.
         </p>
-        <p class="mt-2 text-gray-400 text-sm">
-          {{ t('accountSettings.developer.legacyKeysMessage.prefix') }}
-          <a href="https://old.nadeshiko.co/settings/developer" target="_blank" rel="noopener noreferrer" class="text-red-400 hover:underline">old.nadeshiko.co/settings/developer</a>.
-        </p>
     </div>
 
     <!-- Card -->
