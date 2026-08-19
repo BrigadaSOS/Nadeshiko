@@ -775,7 +775,6 @@ export type t_ShirabeConnection = {
   shirabeName?: string | null;
   stackIsPrivate: boolean;
   syncedAt?: string | null;
-  tokenPrefix: string;
 };
 
 export type t_StatsOverview = {
