@@ -31,8 +31,8 @@
  */
 
 import { constants, createReadStream } from 'node:fs';
-import { copyFile, readFile, readdir, stat, utimes, unlink } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { copyFile, mkdir, readFile, readdir, rmdir, stat, utimes, unlink } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import {
   archivableAssetName,
   archivedAssetPath,
@@ -41,6 +41,7 @@ import {
   assetHasExpired,
   assetPathname,
   isArchivableAsset,
+  isBuildSegment,
 } from '~~/server/utils/assetArchive';
 import { logger } from '~~/server/utils/logger';
 
@@ -63,10 +64,24 @@ export default defineNitroPlugin(async (nitroApp) => {
 
   const sourceDir = resolve(process.cwd(), BUILD_ASSET_DIR);
 
+  // One level down now: `app.buildAssetsDir` gives each build its own segment,
+  // so the running build's files live in `_nuxt/<buildId>/` and every key here
+  // carries that segment. Directories that are not a build id -- there are none
+  // today beyond the build's own `builds/` manifest folder, which sits INSIDE
+  // the build segment -- are skipped rather than walked.
   let liveAssets: Set<string>;
   try {
-    const entries = await readdir(sourceDir, { withFileTypes: true });
-    liveAssets = new Set(entries.filter((entry) => entry.isFile()).map((entry) => entry.name));
+    const builds = await readdir(sourceDir, { withFileTypes: true });
+    liveAssets = new Set<string>();
+
+    for (const build of builds) {
+      if (!build.isDirectory() || !isBuildSegment(build.name)) continue;
+
+      const files = await readdir(join(sourceDir, build.name), { withFileTypes: true });
+      for (const file of files) {
+        if (file.isFile()) liveAssets.add(`${build.name}/${file.name}`);
+      }
+    }
   } catch (error) {
     logger.error({ err: error, sourceDir }, 'asset archive: cannot list the running build, staying off');
     return;
@@ -225,6 +240,10 @@ async function publish(
     const destination = join(archiveDir, name);
 
     try {
+      // `name` is `<build>/<file>`, so the build's directory has to exist before
+      // the copy. Idempotent, and cheap enough to do per file rather than
+      // tracking which builds have been created in this pass.
+      await mkdir(dirname(destination), { recursive: true });
       await copyFile(source, destination, constants.COPYFILE_EXCL);
       copied++;
       // A fresh copy already carries the current time, and skipping the extra
@@ -280,6 +299,13 @@ async function publish(
   logger.info({ copied, replaced, pruned, retentionMs }, 'asset archive: publish complete');
 }
 
+/**
+ * The shape this module used to write before `app.buildAssetsDir` gave each
+ * build its own segment: a bare asset name in the archive root. Kept only so the
+ * one-time cleanup above can recognise its own leftovers.
+ */
+const LEGACY_FLAT_ASSET = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
+
 async function prune(
   archiveDir: string,
   liveAssets: ReadonlySet<string>,
@@ -288,39 +314,97 @@ async function prune(
 ): Promise<number> {
   let pruned = 0;
 
-  const entries = await readdir(archiveDir, { withFileTypes: true });
+  // Walks build directories rather than files: the archive mirrors the layout
+  // the server serves, so a name only means something with its build segment in
+  // front of it. Anything in here that is not a build directory was not written
+  // by this module and is left alone, same as a stray file always was.
+  const builds = await readdir(archiveDir, { withFileTypes: true });
 
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
+  for (const build of builds) {
+    // Files sitting directly in the archive root are from before builds had
+    // their own directory. Nothing can request them any more -- the served path
+    // now requires a build segment -- so they are unreachable bytes on a volume
+    // rather than a retention question, and they go on the first pass after the
+    // upgrade. Guarded by the OLD allowlist so this can still only delete files
+    // this module wrote: a stray file someone left here is left alone, exactly
+    // as it always was.
+    if (build.isFile()) {
+      if (!LEGACY_FLAT_ASSET.test(build.name)) continue;
 
-    // Same allowlist that decides what may be SERVED from here, reused so this
-    // pass can only ever delete files this module could have written. A stray
-    // file someone left in the volume is left alone rather than tidied away.
-    if (!archivableAssetName(`/_nuxt/${entry.name}`)) continue;
-
-    const file = join(archiveDir, entry.name);
-
-    try {
-      // A sourcemap in here can only be a leftover from before they were
-      // excluded, and it will never be requested. Age is beside the point --
-      // waiting out the retention window on 10MB of files nothing can ask for
-      // is just a slower way of keeping them.
-      if (!isArchivableAsset(entry.name)) {
-        await unlink(file);
+      try {
+        await unlink(join(archiveDir, build.name));
         pruned++;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          logger.warn({ err: error, name: build.name }, 'asset archive: could not prune a pre-build-segment asset');
+        }
+      }
+      continue;
+    }
+
+    if (!build.isDirectory() || !isBuildSegment(build.name)) continue;
+
+    const buildDir = join(archiveDir, build.name);
+    const entries = await readdir(buildDir, { withFileTypes: true });
+    let remaining = 0;
+
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        remaining++;
         continue;
       }
 
-      const info = await stat(file);
-      if (!assetHasExpired(entry.name, info.mtimeMs, liveAssets, now, retentionMs)) continue;
+      const key = `${build.name}/${entry.name}`;
 
-      await unlink(file);
-      pruned++;
-    } catch (error) {
-      // ENOENT is a sibling worker having pruned the same file first, which is
-      // the expected outcome for two of the three workers.
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        logger.warn({ err: error, name: entry.name }, 'asset archive: could not prune an expired asset');
+      // Same allowlist that decides what may be SERVED from here, reused so this
+      // pass can only ever delete files this module could have written. A stray
+      // file someone left in the volume is left alone rather than tidied away.
+      if (!archivableAssetName(`/_nuxt/${key}`)) {
+        remaining++;
+        continue;
+      }
+
+      const file = join(buildDir, entry.name);
+
+      try {
+        // A sourcemap in here can only be a leftover from before they were
+        // excluded, and it will never be requested. Age is beside the point --
+        // waiting out the retention window on 10MB of files nothing can ask for
+        // is just a slower way of keeping them.
+        if (!isArchivableAsset(entry.name)) {
+          await unlink(file);
+          pruned++;
+          continue;
+        }
+
+        const info = await stat(file);
+        if (!assetHasExpired(key, info.mtimeMs, liveAssets, now, retentionMs)) {
+          remaining++;
+          continue;
+        }
+
+        await unlink(file);
+        pruned++;
+      } catch (error) {
+        // ENOENT is a sibling worker having pruned the same file first, which is
+        // the expected outcome for two of the three workers.
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          logger.warn({ err: error, name: key }, 'asset archive: could not prune an expired asset');
+        }
+        remaining++;
+      }
+    }
+
+    // A build whose every file has aged out leaves an empty directory behind,
+    // and they accumulate one per deploy forever. `rmdir` without `recursive`
+    // is deliberate: it refuses a directory that still holds anything, so this
+    // cannot race a sibling worker into deleting a build that is still live.
+    if (remaining === 0) {
+      try {
+        await rmdir(buildDir);
+      } catch {
+        // ENOTEMPTY (a sibling wrote between the count and the call) or ENOENT
+        // (a sibling removed it first). Both mean there is nothing to do.
       }
     }
   }

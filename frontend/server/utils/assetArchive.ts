@@ -22,6 +22,32 @@
  * and an archived copy is indistinguishable from the original. Unchanged chunks
  * keep their name across builds, so a deploy adds only what actually changed --
  * single-digit MB against the ~10MB a full build weighs.
+ *
+ * THAT PREMISE IS CURRENTLY FALSE FOR JS, which is the one thing to know before
+ * trusting anything above. `@posthog/nuxt` stamps a per-build UUID into every JS
+ * file in `.output/public` (`//# chunkId=...`) AFTER Vite has hashed the
+ * filename from the pre-injection content. An unchanged chunk therefore keeps
+ * its name and gets DIFFERENT BYTES on every deploy, and this archive ends up
+ * holding one of those bodies while the running build serves another under the
+ * same URL.
+ *
+ * The reader-visible failure is then not the 404 everything here was built for.
+ * It is an SRI block: a tab holding the old build's HTML has pinned that
+ * filename to the old digest, asks for it, receives the new build's bytes and
+ * refuses to execute them. v2.4.0 did exactly this on 2026-08-19:
+ *
+ *     Failed to find a valid digest in the 'integrity' attribute for resource
+ *     '/_nuxt/CNs_Ozdc2.js' ... The resource has been blocked.
+ *
+ * A reload fixes it, because the new HTML pins the new digest. Nothing in this
+ * file can: it cannot serve two bodies for one URL, and which digest is demanded
+ * belongs to whichever HTML the reader happens to be holding.
+ *
+ * The fix is to make a filename mean one byte sequence again -- a per-build
+ * `app.buildAssetsDir` so two builds never share a URL, or a chunk id derived
+ * from the file's own content rather than from the build. Until one lands,
+ * `experimental.checkOutdatedBuildInterval` (nuxt.config.ts) shortens how long a
+ * tab can sit in the window; it does not close it.
  */
 
 import { resolve, sep } from 'node:path';
@@ -94,23 +120,50 @@ const ASSET_PREFIX = '/_nuxt/';
 const ASSET_NAME = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 
 /**
- * The archived file a request is asking for, or `null` if this request is not
- * one this archive may answer.
+ * A build's own directory segment, which `app.buildAssetsDir` sets to the build
+ * id (a UUID). Matched strictly rather than loosely, because this pattern is
+ * doing two jobs at once: it routes a request to the right build, AND it is what
+ * keeps `builds/**` out -- `builds` is not a UUID, so the app manifest cannot
+ * express itself as a build segment however the rest of the path is arranged.
+ */
+const BUILD_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function isBuildSegment(segment: string): boolean {
+  return BUILD_SEGMENT.test(segment);
+}
+
+/**
+ * The archived file a request is asking for, as a `<build>/<name>` key, or
+ * `null` if this request is not one this archive may answer.
  *
- * ONE PATH SEGMENT ONLY, which is what keeps `/_nuxt/builds/**` out. Those are
- * the app manifest (`builds/latest.json` and `builds/meta/*.json`) -- Nuxt's own
- * record of which build is current, served with `maxAge: 1` precisely so it is
- * never stale. Serving a superseded copy of the file whose job is to say "the
- * build changed" would be the one genuinely harmful thing this module could do.
+ * EXACTLY TWO SEGMENTS, the first a build id and the second an asset name. That
+ * is what keeps the app manifest out: it lives at
+ * `/_nuxt/<build>/builds/latest.json` and `/_nuxt/<build>/builds/meta/*.json`,
+ * which is three segments and whose middle one is not a UUID either. It is
+ * Nuxt's own record of which build is current, served with `maxAge: 1` precisely
+ * so it is never stale, and serving a superseded copy of the file whose job is
+ * to say "the build changed" would be the one genuinely harmful thing this
+ * module could do.
+ *
+ * The key keeps its slash all the way to `archivedAssetPath`, which resolves it
+ * and re-checks containment -- neither segment can express a traversal, and the
+ * resolution is checked anyway.
  */
 export function archivableAssetName(pathname: string): string | null {
   if (!pathname.startsWith(ASSET_PREFIX)) return null;
 
-  const name = pathname.slice(ASSET_PREFIX.length);
+  const rest = pathname.slice(ASSET_PREFIX.length);
+  const slash = rest.indexOf('/');
+  if (slash <= 0) return null;
+
+  const build = rest.slice(0, slash);
+  const name = rest.slice(slash + 1);
+
+  if (!BUILD_SEGMENT.test(build)) return null;
   if (!name || name.includes('/')) return null;
   if (!ASSET_NAME.test(name)) return null;
 
-  return name;
+  return `${build}/${name}`;
 }
 
 /**
