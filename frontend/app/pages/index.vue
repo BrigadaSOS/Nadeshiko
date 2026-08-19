@@ -56,7 +56,12 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                     <div class="nd-page px-4 md:px-0">
                         <LayoutSystemAnnouncementBanner />
                         <SearchBaseInputSegment />
-                        <div class="py-2 xl:py-4">
+                        <!-- `pt-3` is the gap `<main>` leaves ABOVE the search bar,
+                             so the bar sits in an even band rather than tight to the
+                             header and adrift from the page. The bottom keeps its
+                             larger padding: that one separates sections, not a
+                             control from its own surroundings. -->
+                        <div class="pt-3 pb-2 xl:pb-4">
                             <div class="flex dark:text-white/80 gap-10 flex-col xl:flex-row justify-between">
                                 <div class="flex-1 md:min-w-[30rem]">
                                     <div class="flex rounded-lg flex-col first-letter:items-left">

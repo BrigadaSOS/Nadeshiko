@@ -941,19 +941,27 @@ onBeforeRouteUpdate(async (to, from) => {
              to an equally empty search across everything. -->
         <div class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0 || hasSearchQuery">
             <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-2 border-b border-b-line-subtle px-4 md:gap-3 md:px-0">
-                <NuxtLink
-                    v-if="collectionId"
-                    :to="localePath('/user/collections')"
-                    class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-hairline"
-                >
-                    <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
-                    </svg>
-                    {{ $t('searchContainer.backToCollections') }}
-                </NuxtLink>
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
                         <CommonTabsHeader :showBorder="false">
+                            <!-- Inside the strip, as its first item, rather than
+                                 beside it. Outside it was `shrink-0` next to a
+                                 scroller, so it held its full width while the
+                                 tabs scrolled underneath -- on a phone that left
+                                 the tab itself clipped, and the link read as
+                                 pinned rather than as part of the row. An `<li>`
+                                 because the strip is a `<ul>`. -->
+                            <li v-if="collectionId" class="shrink-0 flex items-center">
+                                <NuxtLink
+                                    :to="localePath('/user/collections')"
+                                    class="inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pe-4 me-1 py-4 border-e border-hairline"
+                                >
+                                    <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
+                                    </svg>
+                                    {{ $t('searchContainer.backToCollections') }}
+                                </NuxtLink>
+                            </li>
                             <CommonTabsItem v-if="!media || hasSearchQuery" data-testid="search-category-tab-all" category="all"
                                 :categoryName="media ? t('searchContainer.categoryAll') : animeTabName"
                                 :count="media ? unfilteredResultCount : getCategoryCount('all')"

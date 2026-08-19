@@ -42,10 +42,16 @@ const localePath = useLocalePath();
 
     <!-- The reason is the link: "hidden by your filters" says which filters when
          asked, rather than parking a second control at the end of the line. -->
+    <!-- Teleported so the panel is placed against the VIEWPORT rather than
+         against the trigger's left edge. `max-w` capped the width but not the
+         position: the trigger is the last words of a sentence, so on a phone it
+         starts near the right margin and even a capped panel hung off the screen
+         from there. `placeDropdownMenu` clamps it back inside. -->
     <SearchDropdownContainer
       v-else
       dropdownId="nd-hidden-results"
-      dropdown-container-class="absolute top-full left-0 z-50 w-72 max-w-[calc(100vw-2rem)] p-3 mt-1.5">
+      teleport
+      dropdown-container-class="z-50 w-72 max-w-[calc(100vw-2rem)] p-3">
       <template #default="{ toggle, isOpen }">
         <span class="inline-flex flex-wrap items-center gap-x-1">
           <i18n-t

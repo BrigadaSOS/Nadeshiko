@@ -34,14 +34,19 @@ defineEmits<{ select: [] }>();
          rather than running under the card's own border. Hidden on the first
          row so the list does not open with a line under the card edge. -->
     <div class="mx-5 border-t border-line-subtle" aria-hidden="true" />
+    <!-- The highlight is inset and rounded rather than full-bleed, so a
+         selected or hovered row reads as its own object instead of a band that
+         runs into the rules above and below it and out to the panel's edges.
+         The inset is taken OUT of the button's padding (`mx-2` + `pl-3` is the
+         `pl-5` it replaces), so the label and the count do not move. -->
     <div
       :class="{ 'bg-sgrayhover': selected }"
-      class="flex duration-300 items-center w-full hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left">
+      class="flex duration-300 items-center mx-2 my-0.5 rounded-lg hover:bg-sgrayhover text-xs xxl:text-base xxm:text-2xl text-left">
       <button
         type="button"
         :title="title"
         @click="$emit('select')"
-        class="flex flex-1 min-w-0 items-center justify-between pl-5 pr-4 py-2 text-left outline-none">
+        class="flex flex-1 min-w-0 items-center justify-between pl-3 pr-2 py-2 text-left outline-none">
         <span class="flex-1 min-w-0 pr-2" :class="truncate ? 'truncate' : 'line-clamp-2 break-words'">
           {{ label }}
         </span>
