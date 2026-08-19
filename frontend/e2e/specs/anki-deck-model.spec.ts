@@ -179,19 +179,28 @@ test.describe('Anki deck to note type', () => {
     // Scoped to this row's own menu. Every row renders its dropdown under the
     // same id, so a page-wide lookup matches the other rows' copies too and
     // lands on whichever happens to be mid-animation.
-    const pick = async (label: string) => {
-      await row.getByRole('button').last().click();
-      const menu = row.getByTestId('dropdown-menu');
-      await expect(menu).toBeVisible();
-      await menu.getByRole('button', { name: label, exact: true }).click();
-    };
+    const menu = row.getByTestId('dropdown-menu');
 
-    await pick('Word');
+    // Focusing the input opens the menu -- the reader picks from the list or just
+    // types -- so no explicit click on the chevron is needed to reach it.
+    await value.focus();
+    await expect(menu).toBeVisible();
+
+    // The menu STAYS OPEN after a pick: adding a placeholder appends, so a reader
+    // stacks several (a gloss per dictionary, a reading beside a word) from one
+    // open menu rather than reopening it for each. It used to dismiss on the
+    // first pick, which is what `data-nd-keep-open` on the item list now prevents.
+    await menu.getByRole('button', { name: 'Word', exact: true }).click();
     await expect(value).toHaveValue('{word}');
-    await settle();
+    await expect(menu, 'the menu stays open to stack a second placeholder').toBeVisible();
 
-    // The second one lands beside the first rather than over it.
-    await pick('Word reading');
+    // The second one lands beside the first rather than over it, without reopening.
+    await menu.getByRole('button', { name: 'Word reading', exact: true }).click();
     await expect(value).toHaveValue('{word}<br>{word-reading}');
+    await settle();
   });
+
+
+
+
 });
