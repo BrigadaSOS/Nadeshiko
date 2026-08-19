@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 
-import { NadeshikoError, type Category, type UserPreferences } from '@brigadasos/nadeshiko-sdk';
+import type { Category, UserPreferences } from '@brigadasos/nadeshiko-sdk';
 
+import { apiErrorStatus } from '~/utils/apiError';
 import { ALL_CATEGORIES, CATEGORY_LABEL_KEYS } from '~/utils/categories';
 import { MOTION_LEVELS, type MotionLevel } from '~/composables/useMotionPreference';
 import { normalizeTranslationLanguages, type TranslationLanguage } from '~/composables/useTranslationLanguages';
@@ -142,7 +143,7 @@ const { data: previewData } = await useLazyAsyncData('content-rating-preview', (
     // Decorative preview for the content-rating setting: the panel renders fine
     // without it, so a failure must not interrupt the settings page.
     .catch((error: unknown) => {
-      const retired = error instanceof NadeshikoError && error.status === 404;
+      const retired = apiErrorStatus(error) === 404;
       if (!retired) {
         reportError('account:content-rating-preview-failed', error);
       }
