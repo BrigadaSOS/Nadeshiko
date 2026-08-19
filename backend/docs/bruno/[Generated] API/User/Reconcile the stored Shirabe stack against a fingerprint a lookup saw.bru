@@ -1,0 +1,29 @@
+meta {
+  name: Reconcile the stored Shirabe stack against a fingerprint a lookup saw
+  type: http
+  seq: 34
+}
+
+post {
+  url: {{baseUrl}}/v1/user/connections/shirabe/resync
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "stackFingerprint": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

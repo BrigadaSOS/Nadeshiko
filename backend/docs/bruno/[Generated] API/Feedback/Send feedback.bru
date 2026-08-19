@@ -1,0 +1,30 @@
+meta {
+  name: Send feedback
+  type: http
+  seq: 56
+}
+
+post {
+  url: {{baseUrl}}/v1/feedback
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "body": "The audio on the search page stops after the first segment on Firefox.",
+    "email": "you@example.com",
+    "formToken": "",
+    "nickname": "",
+    "pagePath": "/search?q=彼女",
+    "locale": "es",
+    "appVersion": "2.4.0",
+    "posthogSessionId": "",
+    "posthogDistinctId": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

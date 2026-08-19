@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.4.0
+  version: 2.4.1
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -48,7 +48,8 @@ tags:
       Collection endpoints for managing saved segment collections.
   - name: User
     description: |
-      User endpoints for profile data, excluded media, and activity history.
+      User endpoints for profile data, excluded and starred media, and activity
+      history.
   - name: Activity
     description: |
       Activity endpoints for tracking and querying the authenticated user's activity history.
@@ -887,6 +888,101 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/api-keys:
+    post:
+      tags:
+        - User
+      operationId: createUserApiKey
+      summary: Create an API key with chosen scopes
+      description: |
+        Creates an API key for the signed-in reader, carrying exactly the scopes
+        asked for.
+
+        Use this rather than the better-auth `/v1/auth/api-key/create` endpoint
+        whenever the key is going anywhere but your own code. That endpoint cannot
+        take a scope list — the underlying plugin treats `permissions` as a
+        server-only field and rejects any request that carries one — so keys made
+        through it get the read-only default instead.
+
+        **Scopes are the whole of a key's authority.** Nothing re-checks the owner's
+        role when the key is used, so a key with `WRITE_PROFILE` can rewrite that
+        account's profile from anywhere it ends up. Grant the narrowest set the
+        consumer needs: a third-party search or dictionary tool wants
+        `["READ_MEDIA"]` and nothing else.
+
+        Session-authenticated only. A key cannot be used to mint another key.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - scopes
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: Label shown in the reader's key list. Not secret.
+                  example: Entei (read-only)
+                scopes:
+                  type: array
+                  minItems: 1
+                  maxItems: 12
+                  description: |
+                    Capabilities to grant. Must be non-empty and free of duplicates.
+                  items:
+                    $ref: '#/components/schemas/ApiKeyScope'
+                  example:
+                    - READ_MEDIA
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - key
+                  - scopes
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                    description: Identifier for the key, for renaming or revoking it later
+                  name:
+                    type: string
+                    description: The label supplied at creation
+                  key:
+                    type: string
+                    description: |
+                      The secret, returned **only here and never again**. It is
+                      stored hashed, so a reader who loses it must create another.
+                    example: nade_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                  scopes:
+                    type: array
+                    description: The scopes actually granted
+                    items:
+                      $ref: '#/components/schemas/ApiKeyScope'
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/user/excluded-media:
     get:
       tags:
@@ -990,6 +1086,175 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/favorite-media:
+    get:
+      tags:
+        - User
+      operationId: listFavoriteMedia
+      summary: List starred media
+      description: |
+        Returns the media the authenticated reader has starred, newest first.
+      security:
+        - ApiKey:
+            - READ_PROFILE
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - favoriteMedia
+                properties:
+                  favoriteMedia:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MediaSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - User
+      operationId: addFavoriteMedia
+      summary: Star media
+      description: |
+        Stars a media title for the authenticated reader. Starred titles sort to the
+        top of the search media filter.
+
+        Refused with `400` past 100 entries: the whole preferences column is
+        rewritten on every change, so the list is deliberately bounded.
+      security:
+        - ApiKey:
+            - WRITE_PROFILE
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - mediaPublicId
+              properties:
+                mediaPublicId:
+                  type: string
+                  pattern: ^[A-Za-z0-9_-]{12}$
+                  description: Public ID of the media to star
+                  example: V1StGXR8_Z5d
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/favorite-media/{mediaPublicId}:
+    delete:
+      tags:
+        - User
+      operationId: removeFavoriteMedia
+      summary: Unstar media
+      description: |
+        Removes a media title from the authenticated reader's starred list. The title
+        keeps appearing in the search media filter; it simply stops sorting first.
+      security:
+        - ApiKey:
+            - WRITE_PROFILE
+      parameters:
+        - name: mediaPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          description: Public ID of the media to unstar
+          example: V1StGXR8_Z5d
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/familiar-media:
+    get:
+      tags:
+        - Activity
+      operationId: listFamiliarMedia
+      summary: List the titles the reader studies most
+      description: |
+        Returns the titles the authenticated reader engages with most, highest score
+        first, for sorting the search media filter and for showing the reader what
+        the tally holds.
+
+        Scored from a monthly per-title tally of Anki exports, plays and shares --
+        NOT from the activity log, which `searchHistory` governs and a nightly job
+        prunes at 90 days. Anki exports weigh heaviest (deliberate mining); plays are
+        scaled logarithmically so one long autoplay session cannot outrank a month of
+        study. Empty when the reader has `familiarMedia.enabled` off.
+      security:
+        - ApiKey:
+            - READ_ACTIVITY
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - familiarMedia
+                properties:
+                  familiarMedia:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - media
+                        - score
+                        - ankiCount
+                        - playCount
+                        - shareCount
+                      properties:
+                        media:
+                          $ref: '#/components/schemas/MediaSummary'
+                        score:
+                          type: number
+                          description: Weighted engagement score; ordering key, not a display value.
+                        ankiCount:
+                          type: integer
+                        playCount:
+                          type: integer
+                        shareCount:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1140,6 +1405,11 @@ components:
       scheme: bearer
       bearerFormat: APIKey
       description: 'Send `Authorization: Bearer <api_key>`. Get your API key from https://nadeshiko.co/user/developer'
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: nadeshiko.session_token
+      description: Session authentication via cookie
   schemas:
     SearchQuery:
       type: object
@@ -1367,6 +1637,27 @@ components:
           example: eyJraW...N119
         sort:
           $ref: '#/components/schemas/SearchSort'
+        preferMedia:
+          type: array
+          description: |
+            Public IDs of titles the caller wants first, used **only** to break ties.
+
+            Segments Elasticsearch ranked equally are reordered so the ones from these
+            titles come first; nothing crosses a rank boundary. Which segments land on
+            a page, how many there are and the cursor that walks to the next one are
+            all exactly what they would have been without this field — only the order
+            within an already-tied run changes.
+
+            Sent by the web client for a signed-in reader, from the titles they have
+            favourited and the ones their activity says they know. Ignored unless
+            `sort.mode` is `RELEVANCE`, since every other mode sorts on a key the
+            caller asked for by name. Unknown IDs are ignored rather than rejected.
+          items:
+            type: string
+            pattern: ^[A-Za-z0-9_-]{12}$
+          maxItems: 120
+          example:
+            - V1StGXR8_Z5d
         filters:
           $ref: '#/components/schemas/SearchFilters'
         include:
@@ -1773,6 +2064,16 @@ components:
           minLength: 1
           description: End date of the media (last airing/release)
           example: '2011-04-02'
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            When this entry was last modified. Distinct from the airing dates above,
+            which describe the work; this describes the record, and is what the sitemap
+            publishes as `lastmod` so crawlers can tell a changed title from an
+            untouched one. Null for a row never updated since the column was added.
+          example: '2026-08-14T09:12:44.000Z'
         category:
           $ref: '#/components/schemas/Category'
         segmentCount:
@@ -2721,6 +3022,8 @@ components:
             - periodYyyymm
             - periodStart
             - periodEnd
+            - tier
+            - burst
           properties:
             used:
               type: integer
@@ -2752,6 +3055,65 @@ components:
               format: date-time
               description: End of the current month (UTC).
               example: '2026-02-28T23:59:59.999Z'
+            tier:
+              type: object
+              nullable: true
+              description: |
+                The quota tier this account sits on. Null when the account is on none,
+                or when an override is in force and the tier no longer describes the
+                limit.
+              required:
+                - id
+                - displayName
+              properties:
+                id:
+                  type: string
+                  example: plus
+                displayName:
+                  type: string
+                  example: Plus
+            burst:
+              type: object
+              description: |
+                The OTHER limit. Separate from the monthly allowance and enforced per
+                API key over a short window, so a caller can exhaust it with plenty of
+                month left -- which is why both are surfaced together, and why the two
+                429s carry an `X-RateLimit-Reason` telling them apart.
+              required:
+                - max
+                - windowMs
+              properties:
+                max:
+                  type: integer
+                  description: Requests allowed per key within `windowMs`.
+                  example: 150
+                windowMs:
+                  type: integer
+                  description: Length of the burst window, in milliseconds.
+                  example: 60000
+    ApiKeyScope:
+      type: string
+      description: |
+        A capability an API key may carry. A key-authenticated request is checked
+        against this list and nothing else, so a key's scopes are the whole of what it
+        can do — a reader's role is not consulted again at request time.
+
+        The corpus-write scopes (`ADD_MEDIA`, `UPDATE_MEDIA`, `REMOVE_MEDIA`) may only
+        be granted by an admin; asking for one without the role is refused with `403`.
+      enum:
+        - ADD_MEDIA
+        - READ_MEDIA
+        - UPDATE_MEDIA
+        - REMOVE_MEDIA
+        - READ_PROFILE
+        - WRITE_PROFILE
+        - READ_ACTIVITY
+        - WRITE_ACTIVITY
+        - READ_COLLECTIONS
+        - CREATE_COLLECTIONS
+        - UPDATE_COLLECTIONS
+        - DELETE_COLLECTIONS
+      example: READ_MEDIA
     ActivityType:
       type: string
       enum:
