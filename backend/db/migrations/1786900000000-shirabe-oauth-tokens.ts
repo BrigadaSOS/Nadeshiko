@@ -28,7 +28,9 @@ export class ShirabeOauthTokens1786900000000 implements MigrationInterface {
     await queryRunner.query(`ALTER TABLE "ShirabeConnection" DROP COLUMN "token_ciphertext"`);
     await queryRunner.query(`ALTER TABLE "ShirabeConnection" DROP COLUMN "token_prefix"`);
     await queryRunner.query(`ALTER TABLE "ShirabeConnection" ADD COLUMN "access_token_ciphertext" text NOT NULL`);
-    await queryRunner.query(`ALTER TABLE "ShirabeConnection" ADD COLUMN "access_token_expires_at" timestamptz NOT NULL`);
+    await queryRunner.query(
+      `ALTER TABLE "ShirabeConnection" ADD COLUMN "access_token_expires_at" timestamptz NOT NULL`,
+    );
     await queryRunner.query(`ALTER TABLE "ShirabeConnection" ADD COLUMN "refresh_token_ciphertext" text NOT NULL`);
   }
 
