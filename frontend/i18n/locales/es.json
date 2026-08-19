@@ -1296,7 +1296,9 @@
       "dictionariesHint": "Ve a Shirabe para cambiarlos",
       "anonymous": "tu cuenta de Shirabe",
       "upgrade": "Actualizar permisos",
+      "reconnect": "Volver a conectar",
       "upgradeNeeded": "Vinculada como {name}. Hace falta un permiso nuevo para las últimas funciones",
+      "disconnected": "Vinculado como {name}, pero Shirabe ha dejado de aceptar la conexión: tus propios diccionarios no se están usando. Vuelve a conectar para recuperarlos.",
       "confirmDisconnect": "¿Desconectar tu cuenta de Shirabe? Se revocará la clave en Shirabe y las tarjetas de palabra volverán a los diccionarios por defecto."
     },
     "callback": {

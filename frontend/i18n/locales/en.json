@@ -1296,7 +1296,9 @@
       "dictionariesHint": "Go to Shirabe to change them",
       "anonymous": "your Shirabe account",
       "upgrade": "Update permissions",
+      "reconnect": "Reconnect",
       "upgradeNeeded": "Linked as {name}. A new permission is needed for the latest features",
+      "disconnected": "Linked as {name}, but Shirabe has stopped accepting the connection — your own dictionaries are not being used. Reconnect to bring them back.",
       "confirmDisconnect": "Disconnect your Shirabe account? The key is revoked on Shirabe, and word cards go back to the default dictionaries."
     },
     "callback": {

@@ -1663,6 +1663,61 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/shirabe/refused:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: reportShirabeRefusal
+      summary: Report that Shirabe refused a reader's key on a lookup
+      description: |
+        A word lookup is where a dead link is actually discovered: the reader's key
+        is sent, Shirabe refuses it, and the lookup quietly answers from the default
+        dictionaries instead. Without this, that refusal was a log line and nothing
+        else -- the settings page went on naming the account, and every later lookup
+        repeated the same doomed round trip.
+
+        What the status means is Shirabe's own distinction, and the three outcomes
+        are different repairs:
+
+        * `401` - the key is invalid, expired or revoked. The link is over until the
+          reader makes a new one, and it is marked so the settings page can say so.
+        * `403` - the key works but is missing a permission. The stack is re-read so
+          the stored scopes catch up, which surfaces as a re-consent rather than a
+          repair.
+        * anything else - not an answer about the key. Ignored.
+
+        Refused unless the request came through our own Nitro proxy (the shared
+        internal secret), like the credential and resync routes beside it. A client
+        that could post here could disconnect its own reader's link at will.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: integer
+                  minimum: 100
+                  maximum: 599
+                  description: The HTTP status Shirabe answered the lookup with.
+                  example: 401
+      responses:
+        '204':
+          description: Recorded, or nothing worth recording.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/user/excluded-media:
     get:
       tags:
@@ -5910,6 +5965,7 @@ components:
       required:
         - needsUpgrade
         - missingScopes
+        - disconnected
         - linkedAt
         - tokenPrefix
         - scopes
@@ -5926,6 +5982,10 @@ components:
           items:
             type: string
           example: []
+        disconnected:
+          type: boolean
+          description: 'True when Shirabe refused this key outright -- the reader revoked it from their Shirabe access list, or it was swept for being idle. The link is over until they make a new one, and their own dictionaries are not being used until they do. Distinct from `needsUpgrade`, which is a link that still works: this one is a repair.'
+          example: false
         linkedAt:
           type: string
           format: date-time
