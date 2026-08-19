@@ -88,6 +88,14 @@ type ImageSize = { readonly width: number; readonly height: number };
  * all. Omitting the pair makes crawlers fetch and measure, which is slower and
  * completely correct. Guessing within nine pixels would just be the same bug
  * with a smaller error bar.
+ *
+ * For the same reason the size is never declared by a FALLBACK layer. `app.vue`
+ * supplies the default card for every page that sets no image of its own, and
+ * it passes no size: unhead dedupes `og:image` per tag rather than per group, so
+ * a page that replaced the URL but had no size to give left the fallback's
+ * width and height in place, describing an image that was no longer there --
+ * the same bug this function was written to end, one layer up. A page that
+ * really does use the default card passes `DEFAULT_OG_IMAGE_SIZE` itself.
  */
 export function buildOgImageTags(url: string, size?: ImageSize): MetaTag[] {
   const tags: MetaTag[] = [
