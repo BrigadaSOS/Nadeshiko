@@ -19,7 +19,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     `- <https://patreon.com/BrigadaSOS>`,
     '',
     `Found a bug or have a suggestion? Join our **Discord server**:`,
-    `- https://discord.gg/c6yGwbXruq`,
+    `- https://discord.gg/qRak9MprUS`,
   ];
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(

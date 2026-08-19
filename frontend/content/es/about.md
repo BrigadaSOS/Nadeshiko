@@ -88,6 +88,6 @@ Para obtener información sobre derechos de autor y DMCA, consulte nuestra [Pol�
 Si desea ponerse en contacto ya sea para dejar algún comentario, sugerencia, contribución o alguna otra cosa, puede hacerlo a través de:
 
 - **Correo electrónico**: contact@nadeshiko.co
-- **Discord**: [Nadeshiko](https://discord.gg/c6yGwbXruq)
+- **Discord**: [Nadeshiko](https://discord.gg/qRak9MprUS)
 
 Este sitio web está bajo la Licencia AGPL-3.0.

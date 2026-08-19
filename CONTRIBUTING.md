@@ -216,7 +216,7 @@ short, which is fine.
 
 ## Reporting issues
 
-Open an issue on [GitHub](https://github.com/BrigadaSOS/Nadeshiko/issues). For questions, feature ideas, or general discussion, join the [Nadeshiko Discord](https://discord.gg/c6yGwbXruq).
+Open an issue on [GitHub](https://github.com/BrigadaSOS/Nadeshiko/issues). For questions, feature ideas, or general discussion, join the [Nadeshiko Discord](https://discord.gg/qRak9MprUS).
 
 If you see a bug and want to provide a fix for it, you are free to just open a pull request directly. But for features or improvements, we encourage to first add an Issue or ask in the Discord server so we can align on the solution before working on any code changes.
 

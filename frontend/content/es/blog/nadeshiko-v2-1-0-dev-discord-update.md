@@ -76,7 +76,7 @@ client = Nadeshiko(token="nade_xxx")
 result = client.search(query="食べる")
 ```
 
-Si tienes preguntas o quieres pedir un nuevo endpoint, no dudes en escribirnos en nuestro [servidor de Discord](https://discord.gg/c6yGwbXruq).
+Si tienes preguntas o quieres pedir un nuevo endpoint, no dudes en escribirnos en nuestro [servidor de Discord](https://discord.gg/qRak9MprUS).
 
 ## ¿Qué viene a continuación?
 
@@ -86,7 +86,7 @@ También estamos apuntando a un conjunto más amplio de mejoras de rendimiento p
 
 No escribimos posts en el blog por cada pequeño cambio, pero estamos constantemente lanzando cosas nuevas a Nadeshiko. Si quieres estar al tanto, pásate por nuestro servidor de Discord y escríbenos directamente.
 
-<a class="bot-install-card" href="https://discord.gg/c6yGwbXruq" target="_blank" rel="noopener noreferrer">
+<a class="bot-install-card" href="https://discord.gg/qRak9MprUS" target="_blank" rel="noopener noreferrer">
   <img class="bot-install-card-avatar" src="/logo-38d6e06a.webp" alt="" loading="lazy" />
   <div class="bot-install-card-info">
     <div class="bot-install-card-header"><span class="bot-install-card-name">Nadeshiko Discord</span></div>

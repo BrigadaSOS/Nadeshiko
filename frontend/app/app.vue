@@ -61,7 +61,7 @@ useSchemaOrg([
   defineOrganization({
     name: 'Nadeshiko',
     logo: `${origin}${DEFAULT_OG_IMAGE_PATH}`,
-    sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', 'https://discord.gg/c6yGwbXruq'],
+    sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', 'https://discord.gg/qRak9MprUS'],
   }),
 ]);
 </script>
