@@ -2,10 +2,10 @@ import '@config/boot';
 import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
 import { ShirabeConnection } from '@app/models/ShirabeConnection';
-import { reencryptToken } from '@app/services/shirabe/connection';
+import { reencryptTokens } from '@app/services/shirabe/connection';
 
 /**
- * Move every stored Shirabe key onto the current encryption secret.
+ * Move every stored Shirabe token pair onto the current encryption secret.
  *
  * The step that lets a key rotation FINISH. `secretBox` stamps each ciphertext
  * with the id of the key that sealed it and can read across the current secret
@@ -48,7 +48,7 @@ async function main(): Promise<void> {
       for (const connection of batch) {
         scanned += 1;
         try {
-          if (await reencryptToken(connection)) rewritten += 1;
+          if (await reencryptTokens(connection)) rewritten += 1;
         } catch (error) {
           // One unreadable row must not abandon the rest: the likeliest cause is
           // a key that was rotated without `_PREVIOUS` being kept, and that row
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
           // other readers rotated rather than everybody stuck behind the worst
           // row in the table.
           failed += 1;
-          logger.error({ err: error, userId: connection.userId }, 'Could not re-encrypt a Shirabe token');
+          logger.error({ err: error, userId: connection.userId }, 'Could not re-encrypt Shirabe tokens');
         }
       }
     }

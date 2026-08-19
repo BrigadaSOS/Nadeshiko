@@ -32,23 +32,26 @@ export class ShirabeConnection extends BaseEntity {
   userId!: number;
 
   /**
-   * The Shirabe API key, encrypted at rest (see lib/secretBox.ts).
+   * The reader's Shirabe credentials, encrypted at rest (see lib/secretBox.ts).
    *
-   * It is theirs, not ours: it can read their account and, if they ever grant
-   * the scopes for it, write to their study data. A dump of this table must not
-   * be a pile of live credentials for somebody else's service.
+   * An OAuth token pair, under a grant the reader approved on Shirabe's consent
+   * screen and can revoke from their access list. The ACCESS token is what a
+   * lookup sends, and it lives an hour: `accessTokenExpiresAt` is what tells the
+   * credential route to renew it before handing it out. The REFRESH token is
+   * what renews it, single-use and replaced on every renewal, good for ninety
+   * days from its last use. Both are theirs, not ours: they can read their
+   * account and, if they ever grant the scopes for it, write to their study
+   * data. A dump of this table must not be a pile of live credentials for
+   * somebody else's service.
    */
-  @Column({ name: 'token_ciphertext', type: 'text' })
-  tokenCiphertext!: string;
+  @Column({ name: 'access_token_ciphertext', type: 'text' })
+  accessTokenCiphertext!: string;
 
-  /**
-   * The key's first few characters, which is what Shirabe itself shows in its
-   * access list. Stored so our settings page can say WHICH key this is without
-   * decrypting anything: a reader comparing the two lists needs to recognize the
-   * row, not read the secret.
-   */
-  @Column({ name: 'token_prefix', type: 'varchar', length: 32 })
-  tokenPrefix!: string;
+  @Column({ name: 'access_token_expires_at', type: 'timestamptz' })
+  accessTokenExpiresAt!: Date;
+
+  @Column({ name: 'refresh_token_ciphertext', type: 'text' })
+  refreshTokenCiphertext!: string;
 
   @Column({ name: 'scopes', type: 'jsonb', default: () => "'[]'::jsonb" })
   scopes!: string[];
@@ -98,21 +101,21 @@ export class ShirabeConnection extends BaseEntity {
    * When Shirabe last refused this key outright, or null while the link works.
    *
    * A link can end at the other end -- the reader revokes it from their Shirabe
-   * access list, or it is swept for being idle -- and nothing here would know.
+   * access list, or ninety days pass without a renewal -- and nothing here would know.
    * The row went on looking healthy, the settings page went on saying "Linked
    * as ...", and every lookup went on spending a doomed round trip before
    * quietly falling back to the default dictionaries. The reader lost their own
    * dictionaries and was never told.
    *
-   * Set only on a 401, which Shirabe uses for exactly one thing: invalid,
-   * expired or revoked (`API_KEY_INVALID`). A 403 is a scope narrowed and lands
+   * Set only when Shirabe refuses to RENEW (`invalid_grant`), or answers 401
+   * to a token we have just renewed: the grant is over. A 403 is a scope narrowed and lands
    * on `needsUpgrade` instead; a 429 or an outage is not an answer about the
    * key at all and must leave this alone, or Shirabe having a bad minute would
    * unlink everybody.
    *
-   * The ciphertext deliberately STAYS. It is encrypted, and `unlink` still
+   * The ciphertexts deliberately STAY. They are encrypted, and `unlink` still
    * wants the plaintext to hand back to Shirabe -- a revoke that is a no-op
-   * against an already-dead key is better than never trying. Marking rather
+   * against an already-dead grant is better than never trying. Marking rather
    * than deleting the row is also what lets the card say the link expired,
    * where a deleted one could only say "not connected" and leave the reader
    * wondering what they did.
@@ -144,7 +147,6 @@ export class ShirabeConnection extends BaseEntity {
       // a Date only becomes one by accident of whatever serializes it last.
       linkedAt: this.createdAt.toISOString(),
       shirabeName: this.shirabeName ?? null,
-      tokenPrefix: this.tokenPrefix,
       scopes: this.scopes,
       dictionaries: this.stack,
       /** Slug => display name, for the stack above. Absent for a link made

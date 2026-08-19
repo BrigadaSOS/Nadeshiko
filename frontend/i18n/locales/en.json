@@ -1305,6 +1305,7 @@
       "working": "Finishing the connection…",
       "declined": "The connection was not approved, so nothing was linked.",
       "failed": "That connection could not be completed.",
+      "signedOut": "You are signed out here, so the connection could not be finished. Sign in and start it again from your settings.",
       "back": "Back to settings",
       "done": "Shirabe connected",
       "goToSettings": "Go to settings"

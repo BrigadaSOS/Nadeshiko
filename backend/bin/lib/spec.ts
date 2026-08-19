@@ -39,6 +39,14 @@ export interface OpenApiOperation {
   tags?: string[];
   responses?: Record<string, unknown>;
   'x-internal'?: boolean;
+  /**
+   * Reachable by our own frontend SERVER only, never by a browser -- even the
+   * signed-in reader's own, even through the site's `/v1` proxy. The proxy
+   * stamps every request it forwards with the internal secret, so a controller
+   * checking that secret cannot tell a server-side call from a browser call the
+   * proxy relayed; this marker is what generates the proxy's refusal.
+   */
+  'x-server-only'?: boolean;
 }
 
 export type PathItem = Partial<Record<HttpMethod, OpenApiOperation>>;
@@ -69,6 +77,7 @@ export interface SpecOperation {
   security: SecurityRequirement[] | undefined;
   tags: string[];
   isInternal: boolean;
+  isServerOnly: boolean;
   /** The raw operation, for consumers that need fields beyond the above. */
   operation: OpenApiOperation;
 }
@@ -103,6 +112,7 @@ export function listOperations(spec: Pick<OpenApiSpec, 'paths'>): SpecOperation[
         security: operation.security,
         tags: operation.tags ?? [],
         isInternal: Boolean(operation['x-internal']),
+        isServerOnly: Boolean(operation['x-server-only']),
         operation,
       });
     }

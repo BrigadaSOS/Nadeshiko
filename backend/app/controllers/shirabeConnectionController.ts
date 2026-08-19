@@ -13,9 +13,9 @@ import { isInternalProxyRequest } from '@lib/internalProxy';
 import {
   completeLink,
   findConnection,
+  getReaderAccessToken,
   markDisconnected,
   missingScopes,
-  readToken,
   refreshStack,
   resyncStack,
   startLink,
@@ -96,6 +96,14 @@ export const unlinkShirabe: UnlinkShirabe = async (_params, respond, req) => {
  * traffic classifier already trust, set by the Nitro proxy on every request it
  * forwards. With no secret configured it answers false, so the fail-safe is that
  * this route is simply unavailable rather than open.
+ *
+ * "Every request it forwards" is the catch, and it is why this check is only
+ * the INNER door. The proxy stamps browser requests too, so a browser calling
+ * this route through the site's own `/v1` would have arrived carrying the
+ * secret -- and did, once. The outer door is the proxy refusing to forward the
+ * route at all: the spec marks it `x-server-only`, which generates the proxy's
+ * deny list, and tests/routes/serverOnlyRoutesAgreement.test.ts keeps that
+ * marker matched to every handler that calls `isInternalProxyRequest`.
  */
 export const getShirabeCredential: GetShirabeCredential = async (_params, respond, req) => {
   const user = assertUser(req);
@@ -104,10 +112,15 @@ export const getShirabeCredential: GetShirabeCredential = async (_params, respon
     throw new AccessDeniedError('This credential is only readable by the Nadeshiko frontend server');
   }
 
-  const connection = await findConnection(user.id);
-  if (!connection) throw new NotFoundError('No Shirabe account is linked');
+  // A VALID access token, renewed under a row lock if the hour is nearly up
+  // (`getReaderAccessToken`), so the frontend never sends one about to expire.
+  // Null means there is nothing to hand out -- no link, or one Shirabe has
+  // refused -- and the lookup falls back to the service key, which is a 404 here
+  // exactly as an unlinked reader always was.
+  const token = await getReaderAccessToken(user.id);
+  if (!token) throw new NotFoundError('No Shirabe account is linked');
 
-  return respond.with200().body({ token: readToken(connection) });
+  return respond.with200().body({ token });
 };
 
 /**
