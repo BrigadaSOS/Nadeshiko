@@ -5,6 +5,7 @@ import { mediaBrowsePath } from '~/utils/routes';
 
 const { t, locale } = useI18n();
 const { url: siteUrl } = useSiteConfig();
+const localePath = useLocalePath();
 
 useSeoMeta({
   title: () => t('seo.home.title'),
@@ -17,12 +18,32 @@ useSeoMeta({
   twitterDescription: () => t('seo.home.description'),
 });
 
+/**
+ * The site node, and the searchbox hanging off it.
+ *
+ * Both halves were wrong in ways that only show in the assembled graph.
+ *
+ * The id has to carry the locale. Every other page lets the module build the
+ * `WebSite` node and gets `.../en#website`, which is what their `WebPage`
+ * points at; this page declared its own and resolved the id against the bare
+ * site URL, so home -- the one page most likely to be read for the searchbox --
+ * published a `WebPage.isPartOf` aimed at a node its own graph did not contain.
+ *
+ * And `defineSearchAction` has to be nested here rather than sit beside it.
+ * As a sibling it was emitted as a top-level `@graph` member that nothing
+ * referenced: Google reads the searchbox off `WebSite.potentialAction`, so a
+ * detached one is inert. The target keeps the locale prefix too -- without it
+ * every sitelinks search cost a 302 on the way in.
+ */
 useSchemaOrg([
   defineWebSite({
+    '@id': `${siteUrl}${localePath('/')}#website`,
     name: 'Nadeshiko',
-  }),
-  defineSearchAction({
-    target: `${siteUrl}/search/{search_term_string}`,
+    potentialAction: [
+      defineSearchAction({
+        target: `${siteUrl}${localePath('/')}/search/{search_term_string}`,
+      }),
+    ],
   }),
 ]);
 
@@ -31,7 +52,6 @@ useHead({
   link: [{ rel: 'search', type: 'application/opensearchdescription+xml', title: 'Nadeshiko', href: '/opensearch.xml' }],
 });
 const config = useRuntimeConfig();
-const localePath = useLocalePath();
 const { mediaName } = useMediaName();
 
 // Through `/api/home/recent-media` rather than the SDK directly: the list is the
