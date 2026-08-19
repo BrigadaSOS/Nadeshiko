@@ -80,10 +80,26 @@ test.describe('Mobile viewport', () => {
     const searchInput = page.getByTestId('search-input');
     await searchInput.click();
     await searchInput.fill('学校');
-    // Enter, not the button: below `md` the search and simultaneous-search
-    // buttons are hidden so the input and its history get the whole bar, and
-    // the on-screen keyboard's Go key is what submits.
+    // Enter, not a button: below `md` the full-size search and
+    // simultaneous-search buttons are hidden so the input and its history get
+    // the whole bar, and the on-screen keyboard's Go key is what submits.
     await searchInput.press('Enter');
+
+    await expect(page).toHaveURL(/\/search\//, { timeout: 10_000 });
+  });
+
+  test('the magnifier inside the field submits without the keyboard', async ({ page }) => {
+    await page.goto('/');
+
+    const searchInput = page.getByTestId('search-input');
+    await expect(searchInput).toBeVisible({ timeout: 10_000 });
+    await searchInput.fill('学校');
+
+    // Go is only there while the keyboard is up, so a query that arrived by
+    // paste or off the history left nothing to press. The full-size button is
+    // still gone -- this is the icon in the strip inside the field.
+    await expect(page.getByTestId('search-button')).toBeHidden();
+    await page.getByTestId('search-inline').click();
 
     await expect(page).toHaveURL(/\/search\//, { timeout: 10_000 });
   });
