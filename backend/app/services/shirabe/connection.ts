@@ -4,14 +4,20 @@ import { logger } from '@config/log';
 import { ShirabeConnection } from '@app/models/ShirabeConnection';
 import { InvalidRequestError, ValidationFailedError } from '@app/errors';
 import { currentKeyId, decryptSecret, encryptSecret, keyIdOf } from '@lib/secretBox';
+import { Cache, createCacheNamespace } from '@lib/cache';
 
 /**
  * Linking a reader's Shirabe account to their Nadeshiko one: OAuth 2.0
- * authorization code with PKCE, ending in a scoped Shirabe API key we store.
+ * authorization code with PKCE, ending in a token PAIR we store and renew.
  *
- * We are a registered client over there (`OauthClient`, admin-registered), which
- * is what lets Shirabe's consent screen name us rather than print a label we
- * sent about ourselves, and what pins the address a code may be redirected to.
+ * We are a CONFIDENTIAL client over there (`OauthClient`, admin-registered): the
+ * consent screen names us rather than printing a label we sent about ourselves,
+ * the address a code may be redirected to is pinned, and we present a client
+ * secret on every call to the token endpoint. What the exchange yields is an
+ * access token that lives an hour and a refresh token that rotates on every
+ * renewal, both under a grant the reader can revoke from their Shirabe access
+ * list. The access token is what a lookup sends; the refresh token is what
+ * `getReaderAccessToken` trades for the next one when the hour is nearly up.
  *
  * Scopes: READ_DICTIONARY and READ_ACCOUNT. The consent screen is the moment a
  * reader decides, and a permission with no feature behind it is the one that
@@ -21,6 +27,7 @@ import { currentKeyId, decryptSecret, encryptSecret, keyIdOf } from '@lib/secret
 
 const AUTHORIZE_PATH = '/oauth/authorize';
 const TOKEN_PATH = '/api/v1/oauth/token';
+const REVOKE_PATH = '/api/v1/oauth/revoke';
 const ME_PATH = '/api/v1/me';
 /**
  * What this deployment needs from a linked account, and the single place that
@@ -64,6 +71,51 @@ export const REQUIRED_SCOPES = ['READ_DICTIONARY', 'READ_ACCOUNT'] as const;
 const FLOW_TTL_MS = 15 * 60 * 1000;
 const TIMEOUT_MS = 10_000;
 
+/**
+ * Who we say we are on every call made with a reader's key.
+ *
+ * Shirabe records the agent that redeemed the code on the key it mints, and
+ * shows it on the reader's access list beside the client name. Node's default
+ * would print "node" there, which tells the reader nothing about which of their
+ * connected apps this row is.
+ */
+const USER_AGENT = 'Nadeshiko (+https://nadeshiko.co)';
+
+/**
+ * Renew the access token this long before it actually expires, so a lookup
+ * never goes out on a token that dies in flight. The reader's key is fetched on
+ * a cache miss and used moments later, but the clocks are two machines' and the
+ * network is real, so a minute of headroom is cheap insurance.
+ */
+const ACCESS_TOKEN_RENEW_AHEAD_MS = 60 * 1000;
+
+/**
+ * How old a stack copy may get before a reader's PRESENCE refreshes it.
+ *
+ * Two things ride on this one number. The stack copy is what lookups are cached
+ * by, and it is otherwise only re-read when the reader opens their settings or a
+ * lookup notices drift -- so a reader who reads daily but rarely hovers a new
+ * word could carry a week-old stack. And the grant itself: Shirabe ends an OAuth
+ * grant whose refresh token has not been renewed in 90 days, and renewal only
+ * happens when we need a new access token, which is when a lookup misses cache.
+ * A reader here every day whose lookups all hit their browser cache would renew
+ * nothing and, in 90 days, lose a link they are relying on. This refresh reads
+ * `/me` through `refreshStack`, which renews the token when it is due -- so it
+ * re-copies the stack AND keeps an active reader's grant from ever reaching the
+ * idle horizon.
+ *
+ * A week is far enough under 90 days that a reader who shows up even monthly is
+ * never dropped, and far enough over a day that a daily reader costs Shirabe one
+ * extra request a week rather than one a visit.
+ */
+export const STACK_STALE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Readers whose stale stack a refresh is already in flight or recently done
+ *  for. Session reads arrive in bursts (a page is several of them), and without
+ *  this every one of the burst would start its own Shirabe round trip. */
+const REFRESH_INFLIGHT_CACHE = createCacheNamespace('shirabeStackRefresh', 10_000);
+const REFRESH_INFLIGHT_MS = 60 * 60 * 1000;
+
 interface PendingFlow {
   userId: number;
   verifier: string;
@@ -92,8 +144,11 @@ interface PendingFlow {
 const STATE_CONTEXT = { purpose: 'shirabe.oauth-state' } as const;
 
 /** Bound to the reader, so a ciphertext lifted into another reader's row fails
- *  to open rather than handing them someone else's Shirabe key. */
-const tokenContext = (userId: number) => ({ purpose: 'shirabe.token', aad: String(userId) });
+ *  to open rather than handing them someone else's Shirabe token. A purpose per
+ *  half, so an access ciphertext cannot be opened as a refresh one even in the
+ *  same row. */
+const accessTokenContext = (userId: number) => ({ purpose: 'shirabe.access-token', aad: String(userId) });
+const refreshTokenContext = (userId: number) => ({ purpose: 'shirabe.refresh-token', aad: String(userId) });
 
 function sealFlow(flow: PendingFlow): string {
   return encryptSecret(JSON.stringify(flow), connectionSecret(), STATE_CONTEXT);
@@ -171,16 +226,22 @@ export function startLink(userId: number): { authorizeUrl: string; state: string
   return { authorizeUrl: url.toString(), state };
 }
 
+/** The token endpoint's answer (RFC 6749 §5.1). One shape for the first
+ *  exchange and for every renewal. */
 interface TokenResponse {
-  apiKey: string;
-  scopes?: string[];
+  access_token: string;
+  refresh_token: string;
+  /** Seconds the access token lives. */
+  expires_in: number;
+  /** Space-separated granted scopes. */
+  scope?: string;
 }
 
 interface MeResponse {
   user?: { name?: string; displayName?: string };
-  /** What the key we just used actually carries, which is not always what we
+  /** What the token we just used actually carries, which is not always what we
    *  asked for: Shirabe narrows a request to what the client is registered for. */
-  key?: { scopes?: string[] };
+  credential?: { scopes?: string[] };
   preferences?: {
     dictionaries?: string[];
     stackFingerprint?: string;
@@ -210,20 +271,38 @@ export async function completeLink(userId: number, code: string, state: string):
     throw new InvalidRequestError('This link request belongs to a different account.');
   }
 
-  const token = await exchangeCode(code, flow.verifier);
-  // Any refusal here is the same outcome for the reader -- the link did not
-  // happen, start again -- so the status `fetchProfile` now carries is only
-  // logged. It exists for `refreshStack`, where a 401 means something a 500
-  // does not.
-  const profile = await fetchProfile(token.apiKey).catch((error: unknown) => {
-    if (error instanceof ShirabeRefusedError) {
-      throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
-    }
-    throw error;
-  });
-  assertGranted(token, profile);
+  const token = await exchangeCode(bodyForCode(code, flow.verifier));
 
-  return await saveConnection(userId, token, profile);
+  // From here on a grant EXISTS on the reader's Shirabe access list, approved
+  // for us, and only we hold its tokens. Anything that stops the link being
+  // stored has to hand that grant back, or every failed attempt leaves another
+  // live "Nadeshiko" row over there that nothing on this side will ever use.
+  try {
+    // The cheap check first: the token response already says what the grant
+    // carries, and a token missing READ_ACCOUNT cannot even read `/me` -- so
+    // asking `/me` first would turn the one misconfiguration `assertGranted`
+    // exists to name into a generic 403 that names nothing.
+    assertGranted(token, {});
+
+    // Any refusal here is the same outcome for the reader -- the link did not
+    // happen, start again -- so the status `fetchProfile` now carries is only
+    // logged. It exists for `refreshStack`, where a 401 means something a 500
+    // does not.
+    const profile = await fetchProfile(token.access_token).catch((error: unknown) => {
+      if (error instanceof ShirabeRefusedError) {
+        throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
+      }
+      throw error;
+    });
+    // Again, on what `/me` reports: it is the authority on the token that made
+    // the call, and the token response is only what Shirabe meant to grant.
+    assertGranted(token, profile);
+
+    return await saveConnection(userId, token, profile);
+  } catch (error) {
+    await revokeGrant(token.refresh_token, userId);
+    throw error;
+  }
 }
 
 /**
@@ -254,33 +333,82 @@ function assertGranted(token: TokenResponse, profile: MeResponse): void {
   );
 }
 
-async function exchangeCode(code: string, verifier: string): Promise<TokenResponse> {
+/** The token-endpoint body for the first exchange: the code, its PKCE verifier,
+ *  and our client identity. */
+function bodyForCode(code: string, verifier: string): Record<string, string> {
+  return {
+    grant_type: 'authorization_code',
+    code,
+    code_verifier: verifier,
+    redirect_uri: config.SHIRABE_OAUTH_REDIRECT_URI,
+    ...clientCredentials(),
+  };
+}
+
+/** Who we are to the token endpoint. A confidential client, so the secret rides
+ *  on every call: the exchange, the renewal, the revoke. */
+function clientCredentials(): Record<string, string> {
+  return {
+    client_id: config.SHIRABE_OAUTH_CLIENT_ID,
+    client_secret: config.SHIRABE_OAUTH_CLIENT_SECRET,
+  };
+}
+
+/**
+ * The grant is over, and no renewal can bring it back: the reader revoked it,
+ * it idled out, or the refresh token was replayed and Shirabe killed the grant.
+ * Distinct from a transient failure precisely because the caller reacts
+ * differently -- this marks the link disconnected, a bad minute does not.
+ */
+export class ShirabeGrantOverError extends Error {
+  constructor() {
+    super('The Shirabe grant is no longer valid');
+    this.name = 'ShirabeGrantOverError';
+  }
+}
+
+/**
+ * POST the token endpoint. `invalid_grant` from a refresh is the grant ending,
+ * and is raised as `ShirabeGrantOverError`; every other non-ok is transient and
+ * raised plainly, so a renewal in progress does not disconnect a reader over a
+ * 500. The exchange path treats both the same (any failure means "start again")
+ * and translates at its own call site.
+ */
+async function exchangeCode(body: Record<string, string>): Promise<TokenResponse> {
   const response = await fetch(new URL(TOKEN_PATH, config.SHIRABE_API_BASE), {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'authorization_code',
-      code,
-      code_verifier: verifier,
-      redirect_uri: config.SHIRABE_OAUTH_REDIRECT_URI,
-      client_id: config.SHIRABE_OAUTH_CLIENT_ID,
-    }),
+    headers: { 'content-type': 'application/json', 'user-agent': USER_AGENT },
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
   if (!response.ok) {
     // The body carries Shirabe's own reason (an expired code, a redirect
-    // mismatch), which is worth logging and NOT worth showing: it is about our
-    // two servers, and a reader can do nothing with it but try again.
+    // mismatch, an `error`), worth logging and NOT worth showing: it is about
+    // our two servers, and a reader can do nothing with it but try again.
     const detail = await response.text().catch(() => '');
-    logger.warn({ status: response.status, detail }, 'Shirabe rejected the authorization code');
+    logger.warn({ status: response.status, detail }, 'Shirabe rejected a token request');
+    if (body.grant_type === 'refresh_token' && isInvalidGrant(detail)) throw new ShirabeGrantOverError();
     throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
   }
 
   const token = (await response.json()) as TokenResponse;
-  if (!token?.apiKey) throw new InvalidRequestError('Shirabe returned no key for this link.');
+  if (!token?.access_token || !token?.refresh_token) {
+    throw new InvalidRequestError('Shirabe returned no tokens for this link.');
+  }
 
   return token;
+}
+
+/** Shirabe answers a dead refresh token with `error: "invalid_grant"` (RFC 6749
+ *  §5.2). That is the one refusal that means the link is over rather than that
+ *  Shirabe is briefly unwell. */
+function isInvalidGrant(detail: string): boolean {
+  try {
+    return (JSON.parse(detail) as { error?: string }).error === 'invalid_grant';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -303,7 +431,7 @@ export class ShirabeRefusedError extends Error {
 
 async function fetchProfile(apiKey: string): Promise<MeResponse> {
   const response = await fetch(new URL(ME_PATH, config.SHIRABE_API_BASE), {
-    headers: { authorization: `Bearer ${apiKey}` },
+    headers: { authorization: `Bearer ${apiKey}`, 'user-agent': USER_AGENT },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
@@ -320,37 +448,57 @@ async function saveConnection(userId: number, token: TokenResponse, profile: MeR
   // with two stacks gives a lookup no way to say which one it meant.
   const connection = (await ShirabeConnection.findOne({ where: { userId } })) ?? ShirabeConnection.create({ userId });
 
-  // The key we are about to stop using. Revoked rather than forgotten, and this
-  // is not the same call as `unlink`: there, the reader asked us to let go of a
-  // credential that stays theirs; here, WE are replacing one we minted and will
-  // never use again. Leaving it would put a live key on their Shirabe access
-  // list that nothing on this side can ever reach -- and re-consent, which is
-  // how a scope upgrade works, goes through here every time.
-  //
-  // Best effort, and deliberately after the new key is in hand: a reader whose
-  // old key cannot be reached still gets the link they asked for.
-  if (connection.tokenCiphertext) await revokeKey(readToken(connection), userId);
+  // The grant we are about to stop using, its refresh token read BEFORE it is
+  // overwritten and revoked only AFTER the new pair is stored -- see below.
+  const replaced = connection.refreshTokenCiphertext ? readRefreshTokenIfPossible(connection) : null;
 
-  connection.tokenCiphertext = encryptSecret(token.apiKey, connectionSecret(), tokenContext(userId));
-  connection.tokenPrefix = token.apiKey.slice(0, 12);
+  applyTokens(connection, token);
   connection.scopes = grantedScopes(token, profile);
   connection.shirabeName = profile.user?.displayName || profile.user?.name || null;
-  // Whatever ended the last link is over: this key was minted seconds ago and
-  // has already answered `/me`. Cleared here rather than left to the next
+  // Whatever ended the last link is over: this grant was approved seconds ago
+  // and has already answered `/me`. Cleared here rather than left to the next
   // refresh so the settings page the reader lands back on is right immediately.
   connection.disconnectedAt = null;
   applyProfile(connection, profile);
 
-  return await connection.save();
+  const stored = await connection.save();
+
+  // Revoked rather than forgotten, and this is not the same call as `unlink`:
+  // there, the reader asked us to let go of a grant that stays theirs; here, WE
+  // are replacing one we will never use again. Leaving it would put a live grant
+  // on their Shirabe access list that nothing on this side can ever reach -- and
+  // re-consent, which is how a scope upgrade works, goes through here every time.
+  //
+  // Only once the new one is on disk. Revoking first looked equally reasonable
+  // and was not: a write that failed after the revoke left the reader with a
+  // row pointing at a dead grant and no new one, a broken link they did nothing
+  // to cause. Best effort from here, since the link the reader asked for already
+  // exists.
+  if (replaced) await revokeGrant(replaced, userId);
+
+  return stored;
+}
+
+/** Seal both tokens and stamp when the access one runs out. The single place
+ *  the pair is written, so the exchange and every renewal store it the same. */
+function applyTokens(connection: ShirabeConnection, token: TokenResponse): void {
+  const userId = connection.userId;
+  connection.accessTokenCiphertext = encryptSecret(token.access_token, connectionSecret(), accessTokenContext(userId));
+  connection.refreshTokenCiphertext = encryptSecret(
+    token.refresh_token,
+    connectionSecret(),
+    refreshTokenContext(userId),
+  );
+  connection.accessTokenExpiresAt = new Date(Date.now() + token.expires_in * 1000);
 }
 
 /**
- * What the key really carries. `/api/v1/me` is the authority -- it reports the
- * scopes of the key that made the call -- and the token response is the fallback
- * for a Shirabe old enough not to send it.
+ * What the grant really carries. `/api/v1/me` is the authority -- it reports the
+ * scopes of the token that made the call -- and the token response's `scope`
+ * string is the fallback when `/me` was not read (a renewal).
  */
 function grantedScopes(token: TokenResponse, profile: MeResponse): string[] {
-  return profile.key?.scopes ?? token.scopes ?? [...REQUIRED_SCOPES];
+  return profile.credential?.scopes ?? token.scope?.split(' ').filter(Boolean) ?? [...REQUIRED_SCOPES];
 }
 
 /** What this deployment needs that a link does not carry. Empty means good. */
@@ -360,7 +508,7 @@ export function missingScopes(connection: ShirabeConnection): string[] {
 }
 
 function applyProfile(connection: ShirabeConnection, profile: MeResponse): void {
-  if (profile.key?.scopes) connection.scopes = profile.key.scopes;
+  if (profile.credential?.scopes) connection.scopes = profile.credential.scopes;
   connection.stack = profile.preferences?.dictionaries ?? [];
   connection.stackNames = profile.preferences?.dictionaryNames ?? {};
   connection.stackFingerprint = profile.preferences?.stackFingerprint ?? null;
@@ -372,10 +520,114 @@ export async function findConnection(userId: number): Promise<ShirabeConnection 
   return await ShirabeConnection.findOne({ where: { userId } });
 }
 
-/** The stored key, in the clear. Only two callers have any business with this:
- *  the lookup path, and `unlink`, which hands it back to Shirabe to revoke. */
-export function readToken(connection: ShirabeConnection): string {
-  return decryptSecret(connection.tokenCiphertext, connectionSecrets(), tokenContext(connection.userId));
+/** The stored access token, in the clear. The lookup path is its only caller,
+ *  and only through `getReaderAccessToken`, which renews it first if it is due. */
+export function readAccessToken(connection: ShirabeConnection): string {
+  return decryptSecret(connection.accessTokenCiphertext, connectionSecrets(), accessTokenContext(connection.userId));
+}
+
+/** The stored refresh token, in the clear. For renewal and for revocation. */
+export function readRefreshToken(connection: ShirabeConnection): string {
+  return decryptSecret(connection.refreshTokenCiphertext, connectionSecrets(), refreshTokenContext(connection.userId));
+}
+
+/**
+ * The stored refresh token, or null when it cannot be opened -- for the callers
+ * whose job is to LET GO of the grant.
+ *
+ * `readRefreshToken` throws when a ciphertext will not open: sealed under a
+ * secret that is no longer configured, or corrupt. For `unlink` and for a
+ * re-link that was the wrong answer -- the reader could neither remove the dead
+ * link nor make a new one, and both attempts answered 500 for something only an
+ * operator could have caused. A token we cannot read is a grant we cannot
+ * revoke, and that is a log line, not a reason to keep the reader stuck.
+ */
+function readRefreshTokenIfPossible(connection: ShirabeConnection): string | null {
+  try {
+    return readRefreshToken(connection);
+  } catch (error) {
+    logger.error(
+      { err: error, userId: connection.userId },
+      'A stored Shirabe refresh token cannot be read and so the grant cannot be revoked; the reader can revoke it at Shirabe',
+    );
+    return null;
+  }
+}
+
+/** Due for renewal: expired, or close enough that a lookup made with it might
+ *  arrive after it dies. */
+function accessTokenIsDue(connection: ShirabeConnection, now: number = Date.now()): boolean {
+  return connection.accessTokenExpiresAt.getTime() <= now + ACCESS_TOKEN_RENEW_AHEAD_MS;
+}
+
+/**
+ * A valid access token for this reader, renewing it first if it is due, or null
+ * when there is nothing to hand out.
+ *
+ * The credential route calls this and nothing else. Null covers every reason a
+ * lookup should quietly fall back to the service key: no link, a link Shirabe
+ * has refused, or a renewal that found the grant over (which marks it so, so the
+ * next lookup does not try again).
+ */
+export async function getReaderAccessToken(userId: number): Promise<string | null> {
+  const connection = await findConnection(userId);
+  if (!connection || connection.disconnectedAt) return null;
+  if (!accessTokenIsDue(connection)) return readAccessToken(connection);
+
+  try {
+    const renewed = await renewAccessToken(userId);
+    return renewed && readAccessToken(renewed);
+  } catch (error) {
+    if (error instanceof ShirabeGrantOverError) {
+      await markDisconnected(connection);
+      return null;
+    }
+    // A transient failure while renewing: the token we hold may already be past
+    // its minute of headroom but is likely still good for the lookup about to
+    // use it, and a bad minute at Shirabe must not read as a dead link.
+    logger.warn({ err: error, userId }, 'Could not renew a Shirabe access token; using the one we hold');
+    return readAccessToken(connection);
+  }
+}
+
+/**
+ * Trade the refresh token for the next pair, under a row lock.
+ *
+ * The lock is not decoration. A refresh token is single-use, and Shirabe
+ * revokes the whole grant if the same one is presented twice: two Nadeshiko
+ * workers renewing the same reader at once would each spend it, and the second
+ * would kill the link. Serialised on the row, the second waiter re-reads inside
+ * the lock, finds the token no longer due, and returns the pair the first one
+ * just stored.
+ *
+ * Returns the refreshed connection, or null when the grant is not renewable at
+ * all (no refresh token to read). Throws `ShirabeGrantOverError` when Shirabe
+ * says the grant is over.
+ */
+async function renewAccessToken(userId: number): Promise<ShirabeConnection | null> {
+  return ShirabeConnection.getRepository().manager.transaction(async (manager) => {
+    const connection = await manager
+      .createQueryBuilder(ShirabeConnection, 'connection')
+      .setLock('pessimistic_write')
+      .where('connection.userId = :userId', { userId })
+      .getOne();
+    if (!connection || connection.disconnectedAt) return null;
+
+    // Another worker renewed while we waited for the lock. Its pair is on the
+    // row we just read; nothing to do.
+    if (!accessTokenIsDue(connection)) return connection;
+
+    const refreshToken = readRefreshToken(connection);
+    const token = await exchangeCode({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      ...clientCredentials(),
+    });
+
+    applyTokens(connection, token);
+    if (token.scope) connection.scopes = token.scope.split(' ').filter(Boolean);
+    return manager.save(connection);
+  });
 }
 
 /**
@@ -394,15 +646,19 @@ export function readToken(connection: ShirabeConnection): string {
  * v1 rows carry no key id at all and so always rewrite -- which is the intent:
  * they are also the rows with no purpose separation and no owner binding.
  */
-export async function reencryptToken(connection: ShirabeConnection): Promise<boolean> {
+export async function reencryptTokens(connection: ShirabeConnection): Promise<boolean> {
   const secret = connectionSecret();
-  if (keyIdOf(connection.tokenCiphertext) === currentKeyId(secret)) return false;
+  const current = currentKeyId(secret);
+  if (keyIdOf(connection.accessTokenCiphertext) === current && keyIdOf(connection.refreshTokenCiphertext) === current) {
+    return false;
+  }
 
-  // Through `readToken`, so the reading side keeps its one definition of which
+  // Through the readers, so the reading side keeps its one definition of which
   // keys apply and in what order -- a second copy here is how a rotation starts
   // silently skipping rows.
-  const token = readToken(connection);
-  connection.tokenCiphertext = encryptSecret(token, secret, tokenContext(connection.userId));
+  const userId = connection.userId;
+  connection.accessTokenCiphertext = encryptSecret(readAccessToken(connection), secret, accessTokenContext(userId));
+  connection.refreshTokenCiphertext = encryptSecret(readRefreshToken(connection), secret, refreshTokenContext(userId));
   await connection.save();
   return true;
 }
@@ -424,11 +680,19 @@ export async function reencryptToken(connection: ShirabeConnection): Promise<boo
  */
 export async function refreshStack(connection: ShirabeConnection): Promise<ShirabeConnection> {
   try {
-    const profile = await fetchProfile(readToken(connection));
+    // Through the same renew-if-due path a lookup uses, so a refresh never sends
+    // a token about to expire and a renewal that finds the grant over is what
+    // marks the link disconnected.
+    const accessToken = await getReaderAccessToken(connection.userId);
+    if (!accessToken) return (await findConnection(connection.userId)) ?? connection;
+
+    const profile = await fetchProfile(accessToken);
     applyProfile(connection, profile);
     connection.disconnectedAt = null;
     return await connection.save();
   } catch (error) {
+    // A 401 on a token we just renewed is the grant revoked out from under us
+    // between the renewal and this call: the link is over.
     if (error instanceof ShirabeRefusedError && error.status === 401) {
       return await markDisconnected(connection);
     }
@@ -448,9 +712,57 @@ export async function refreshStack(connection: ShirabeConnection): Promise<Shira
 export async function markDisconnected(connection: ShirabeConnection): Promise<ShirabeConnection> {
   if (connection.disconnectedAt) return connection;
 
-  logger.info({ userId: connection.userId }, 'Shirabe refused a reader key; the link is over until they redo it');
+  logger.info(
+    { userId: connection.userId },
+    'Shirabe would not renew a reader grant; the link is over until they redo it',
+  );
   connection.disconnectedAt = new Date();
   return await connection.save();
+}
+
+/**
+ * Whether a stack copy this old is due a presence-driven refresh. Exported so the
+ * session path can decide from the columns it already reads, without loading
+ * the row or knowing the number.
+ */
+export function stackIsStale(syncedAt: Date | null | undefined, now: number = Date.now()): boolean {
+  return !syncedAt || syncedAt.getTime() < now - STACK_STALE_MS;
+}
+
+/**
+ * The reader is here; make sure their link is too.
+ *
+ * Called from the session read, which is the one place that sees every reader
+ * on every visit -- so it is a check on the row the session already loaded and
+ * a round trip only when `stackIsStale` says so, once per `REFRESH_INFLIGHT_MS`
+ * per reader however many session reads a page costs. The common case is one
+ * date comparison and no request.
+ *
+ * What it buys is described on `STACK_STALE_MS`: a fresh stack copy for a
+ * reader who never opens their settings, and a renewal often enough that an
+ * active reader's grant never reaches Shirabe's 90-day idle horizon even if all
+ * their lookups hit cache. There is deliberately no timer over all linked
+ * accounts; a reader who is not here has nothing to keep fresh, and if they stay
+ * away long enough for the grant to idle out, the reconnect card is the honest
+ * answer.
+ *
+ * Never throws and never awaited by its caller: it is a session read's side
+ * errand, and a Shirabe outage must not slow a page or sign anybody out.
+ */
+export async function refreshIfStale(userId: number): Promise<void> {
+  const inflightKey = String(userId);
+  if (Cache.get<true>(REFRESH_INFLIGHT_CACHE, inflightKey)) return;
+  Cache.set(REFRESH_INFLIGHT_CACHE, inflightKey, true, REFRESH_INFLIGHT_MS);
+
+  try {
+    const connection = await findConnection(userId);
+    if (!connection || !stackIsStale(connection.syncedAt)) return;
+
+    logger.info({ userId }, 'A linked reader is here with a stale Shirabe stack; refreshing it');
+    await refreshStack(connection);
+  } catch (error) {
+    logger.warn({ err: error, userId }, 'Could not refresh a stale Shirabe stack');
+  }
 }
 
 /**
@@ -520,28 +832,31 @@ export async function unlink(userId: number): Promise<boolean> {
   const connection = await findConnection(userId);
   if (!connection) return false;
 
-  await revokeKey(readToken(connection), userId);
+  const refreshToken = readRefreshTokenIfPossible(connection);
+  if (refreshToken) await revokeGrant(refreshToken, userId);
 
   await connection.remove();
   return true;
 }
 
 /**
- * Hand a key back to Shirabe to cut off. Never throws: every caller has already
- * decided to stop using this key, and Shirabe being unreachable is not a reason
- * to leave the reader holding a link we no longer honour on our side.
+ * Hand a grant back to Shirabe to cut off (RFC 7009), by its refresh token.
+ * Never throws: every caller has already decided to stop using this grant, and
+ * Shirabe being unreachable is not a reason to leave the reader holding a link
+ * we no longer honour on our side.
  *
  * The reader can always finish the job themselves at /account/settings#access,
  * which is why a failure here is a log line rather than an error.
  */
-async function revokeKey(token: string, userId: number): Promise<void> {
+async function revokeGrant(refreshToken: string, userId: number): Promise<void> {
   try {
-    await fetch(new URL('/api/v1/me/key', config.SHIRABE_API_BASE), {
-      method: 'DELETE',
-      headers: { authorization: `Bearer ${token}` },
+    await fetch(new URL(REVOKE_PATH, config.SHIRABE_API_BASE), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'user-agent': USER_AGENT },
+      body: JSON.stringify({ token: refreshToken, ...clientCredentials() }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (error) {
-    logger.warn({ err: error, userId }, 'Could not revoke a Shirabe key; dropping it on this side anyway');
+    logger.warn({ err: error, userId }, 'Could not revoke a Shirabe grant; dropping it on this side anyway');
   }
 }

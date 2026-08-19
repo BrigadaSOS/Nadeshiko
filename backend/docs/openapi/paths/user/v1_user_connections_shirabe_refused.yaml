@@ -2,6 +2,10 @@ post:
   tags:
     - User
   x-internal: true
+  # Server-only: the frontend proxy refuses to forward a browser here (see
+  # bin/generateServerOnlyRoutes.ts). The controller re-checks the internal
+  # secret; this is the outer door.
+  x-server-only: true
   operationId: reportShirabeRefusal
   summary: Report that Shirabe refused a reader's key on a lookup
   description: |

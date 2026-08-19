@@ -155,9 +155,9 @@ describe('readerToken', () => {
   });
 
   it('returns the key the backend hands over', async () => {
-    $fetch.mockResolvedValue({ token: 'shr_reader_key' });
+    $fetch.mockResolvedValue({ token: 'shra_reader_access' });
 
-    expect(await readerToken(fakeEvent(SIGNED_IN))).toBe('shr_reader_key');
+    expect(await readerToken(fakeEvent(SIGNED_IN))).toBe('shra_reader_access');
   });
 
   // Every way this can fail -- an unlinked reader (404), a revoked key, a
@@ -197,8 +197,8 @@ describe('a handler that has lost its headers', () => {
     // cookie exists.
     await readerStack(event as never);
 
-    $fetch.mockResolvedValue({ token: 'shr_reader_key' });
-    expect(await readerToken(stripped(event))).toBe('shr_reader_key');
+    $fetch.mockResolvedValue({ token: 'shra_reader_access' });
+    expect(await readerToken(stripped(event))).toBe('shra_reader_access');
   });
 
   // And the reader who never signed in must not acquire a cookie from anywhere:

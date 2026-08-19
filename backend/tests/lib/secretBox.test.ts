@@ -7,7 +7,7 @@ const CTX = { purpose: 'test.purpose' };
 
 describe('secretBox', () => {
   it('round-trips a value', () => {
-    expect(decryptSecret(encryptSecret('shr_live_token', SECRET, CTX), SECRET, CTX)).toBe('shr_live_token');
+    expect(decryptSecret(encryptSecret('shra_live_token', SECRET, CTX), SECRET, CTX)).toBe('shra_live_token');
   });
 
   // The nonce is random per encryption, so identical plaintexts do not produce
@@ -19,7 +19,7 @@ describe('secretBox', () => {
   });
 
   it('refuses a value encrypted under a different secret', () => {
-    const sealed = encryptSecret('shr_live_token', SECRET, CTX);
+    const sealed = encryptSecret('shra_live_token', SECRET, CTX);
 
     expect(() => decryptSecret(sealed, 'a-different-secret-entirely', CTX)).toThrow(SecretBoxError);
   });
@@ -27,14 +27,14 @@ describe('secretBox', () => {
   // Authenticated encryption: an edited ciphertext fails to open rather than
   // decrypting to something an attacker chose.
   it('refuses a tampered payload', () => {
-    const [version, keyId, nonce, tag, ciphertext] = encryptSecret('shr_live_token', SECRET, CTX).split('.');
+    const [version, keyId, nonce, tag, ciphertext] = encryptSecret('shra_live_token', SECRET, CTX).split('.');
     const flipped = `${ciphertext.slice(0, -4)}AAAA`;
 
     expect(() => decryptSecret([version, keyId, nonce, tag, flipped].join('.'), SECRET, CTX)).toThrow(SecretBoxError);
   });
 
   it('refuses a payload from an unknown format version', () => {
-    const sealed = encryptSecret('shr_live_token', SECRET, CTX).replace(/^v2\./, 'v9.');
+    const sealed = encryptSecret('shra_live_token', SECRET, CTX).replace(/^v2\./, 'v9.');
 
     expect(() => decryptSecret(sealed, SECRET, CTX)).toThrow(/Unknown secret format/);
   });
@@ -66,7 +66,7 @@ describe('secretBox', () => {
    */
   describe('purpose separation', () => {
     it('cannot open a value sealed for another purpose', () => {
-      const sealed = encryptSecret('shr_live_token', SECRET, { purpose: 'shirabe.token' });
+      const sealed = encryptSecret('shra_live_token', SECRET, { purpose: 'shirabe.access-token' });
 
       expect(() => decryptSecret(sealed, SECRET, { purpose: 'shirabe.oauth-state' })).toThrow(SecretBoxError);
     });
@@ -88,16 +88,16 @@ describe('secretBox', () => {
    */
   describe('owner binding', () => {
     it('refuses a ciphertext moved to another owner', () => {
-      const mine = encryptSecret('shr_live_token', SECRET, { purpose: 'shirabe.token', aad: '42' });
+      const mine = encryptSecret('shra_live_token', SECRET, { purpose: 'shirabe.access-token', aad: '42' });
 
-      expect(decryptSecret(mine, SECRET, { purpose: 'shirabe.token', aad: '42' })).toBe('shr_live_token');
-      expect(() => decryptSecret(mine, SECRET, { purpose: 'shirabe.token', aad: '43' })).toThrow(SecretBoxError);
+      expect(decryptSecret(mine, SECRET, { purpose: 'shirabe.access-token', aad: '42' })).toBe('shra_live_token');
+      expect(() => decryptSecret(mine, SECRET, { purpose: 'shirabe.access-token', aad: '43' })).toThrow(SecretBoxError);
     });
 
     it('refuses a ciphertext whose owner was dropped entirely', () => {
-      const bound = encryptSecret('shr_live_token', SECRET, { purpose: 'shirabe.token', aad: '42' });
+      const bound = encryptSecret('shra_live_token', SECRET, { purpose: 'shirabe.access-token', aad: '42' });
 
-      expect(() => decryptSecret(bound, SECRET, { purpose: 'shirabe.token' })).toThrow(SecretBoxError);
+      expect(() => decryptSecret(bound, SECRET, { purpose: 'shirabe.access-token' })).toThrow(SecretBoxError);
     });
   });
 
@@ -153,10 +153,10 @@ describe('secretBox', () => {
     }
 
     it('still opens, whatever purpose is asked for', () => {
-      const legacy = sealV1('shr_live_token', SECRET);
+      const legacy = sealV1('shra_live_token', SECRET);
 
-      expect(decryptSecret(legacy, SECRET, CTX)).toBe('shr_live_token');
-      expect(decryptSecret(legacy, SECRET, { purpose: 'anything.else' })).toBe('shr_live_token');
+      expect(decryptSecret(legacy, SECRET, CTX)).toBe('shra_live_token');
+      expect(decryptSecret(legacy, SECRET, { purpose: 'anything.else' })).toBe('shra_live_token');
     });
 
     it('is only ever read, never written', () => {

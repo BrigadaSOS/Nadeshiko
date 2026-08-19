@@ -1305,6 +1305,7 @@
       "working": "Terminando la conexión…",
       "declined": "No se aprobó la conexión, así que no se vinculó nada.",
       "failed": "No se pudo completar la conexión.",
+      "signedOut": "Aquí no has iniciado sesión, así que no se pudo terminar la conexión. Inicia sesión y vuelve a empezar desde tus ajustes.",
       "back": "Volver a ajustes",
       "done": "Shirabe conectado",
       "goToSettings": "Ir a ajustes"

@@ -120,6 +120,7 @@ async function generateApi(): Promise<void> {
   await run('node', ['--import', 'tsx', 'bin/generateRouteAuth.ts'], stagingEnv);
   await run('node', ['--import', 'tsx', 'bin/generateErrorProfiles.ts'], stagingEnv);
   await run('node', ['--import', 'tsx', 'bin/generatePublicRoutes.ts'], stagingEnv);
+  await run('node', ['--import', 'tsx', 'bin/generateServerOnlyRoutes.ts'], stagingEnv);
 
   publishGenerated(STAGING_DIR, LIVE_DIR);
   markGeneratedReady(LIVE_DIR);

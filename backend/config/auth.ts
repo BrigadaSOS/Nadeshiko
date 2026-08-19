@@ -11,6 +11,7 @@ import { admin, createAccessControl, customSession, magicLink } from 'better-aut
 import { Pool } from 'pg';
 import { logger } from '@config/log';
 import { Cache, createCacheNamespace } from '@lib/cache';
+import { refreshIfStale, stackIsStale } from '@app/services/shirabe/connection';
 
 const postgres = getAppPostgresConfig();
 
@@ -292,9 +293,20 @@ async function sessionShirabe(userId: number) {
     // per render.
     const connection = await ShirabeConnection.findOne({
       where: { userId },
-      select: { id: true, stackFingerprint: true, stack: true, disconnectedAt: true },
+      select: { id: true, stackFingerprint: true, stack: true, disconnectedAt: true, syncedAt: true },
     });
     if (!connection) return null;
+
+    // The reader is here. If their stack copy has gone a week without being
+    // re-read, re-read it -- and by doing so renew the OAuth token when it is
+    // due, which is what keeps an active reader's grant from reaching Shirabe's
+    // 90-day idle horizon even when every lookup hits cache.
+    // Fire-and-forget: the session read is not waiting on Shirabe for anything,
+    // and `refreshIfStale` dedupes and never throws. Before the disconnected
+    // check on purpose -- a successful read is what clears that mark, and a
+    // reader whose key was refused a while ago may since have undone whatever
+    // caused it.
+    if (stackIsStale(connection.syncedAt)) void refreshIfStale(userId);
 
     /**
      * A refused key is not a link, however much the row looks like one.

@@ -53,6 +53,23 @@ describe('writesPreferences', () => {
     expect(writesPreferences('DELETE', '/v1/user/excluded-media/o5TILLJ9oQi0')).toBe(true);
   });
 
+  it('treats linking and unlinking a Shirabe account as an identity write', () => {
+    // `get-session` carries `user.shirabe`, which is what a lookup decides
+    // whose dictionaries to answer from; a stale copy after linking is the one
+    // minute the reader most wants it fresh.
+    expect(writesPreferences('POST', '/v1/user/connections/shirabe/callback')).toBe(true);
+    expect(writesPreferences('DELETE', '/v1/user/connections/shirabe')).toBe(true);
+    // Starting a link stores nothing, but it is a POST to the same path and the
+    // rule reads method and path only. Harmless: one dropped cache entry for a
+    // reader who is about to leave for Shirabe anyway.
+    expect(writesPreferences('POST', '/v1/user/connections/shirabe')).toBe(true);
+    expect(writesPreferences('GET', '/v1/user/connections/shirabe')).toBe(false);
+    // The server-only reports never reach this proxy, and would not be writes
+    // to the cached identity if they did.
+    expect(writesPreferences('POST', '/v1/user/connections/shirabe/resync')).toBe(false);
+    expect(writesPreferences('POST', '/v1/user/connections/shirabe/refused')).toBe(false);
+  });
+
   it('leaves reads alone', () => {
     expect(writesPreferences('GET', '/v1/user/preferences')).toBe(false);
     expect(writesPreferences('GET', '/v1/user/favorite-media')).toBe(false);
