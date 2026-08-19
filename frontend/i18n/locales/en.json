@@ -956,6 +956,7 @@
     "forward": "Forward",
     "pickDictionary": "Put {dictionary} on the card",
     "pickedDictionaries": "Selected {count} of {total} dictionaries",
+    "pickSelectAll": "Select all",
     "pickDeselectAll": "Deselect all"
   },
   "searchContainer": {

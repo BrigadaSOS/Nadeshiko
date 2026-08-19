@@ -1163,6 +1163,23 @@ const deselectAllDictionaries = () => {
 };
 
 /**
+ * Tick every dictionary on the card.
+ *
+ * Exports the same note "Deselect all" does -- `pickedForExport` reads a full
+ * pick and an empty one as the same instruction -- so this is not another way to
+ * choose, it is the way BACK from a pick that went one dictionary too far.
+ * Ticking three of four by hand to undo a stray untick is the tedium it removes.
+ *
+ * Offered only while something is left to tick, since a button that cannot
+ * change the row it sits in is a button that lies about being able to.
+ */
+const selectAllDictionaries = () => {
+  pickedDictionaries.value = new Set(cardDictionaries.value.map((dictionary) => dictionary.key));
+};
+
+const canSelectAllDictionaries = computed(() => pickedDictionaries.value.size < cardDictionaries.value.length);
+
+/**
  * Whether to offer the toggles at all.
  *
  * Gated on the same configuration the mine button is, because a pick with
@@ -1981,6 +1998,13 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             data-testid="word-pick-summary"
           >
             <span class="token-tooltip__pick-text">{{ pickSummary }}</span>
+            <button
+              v-if="canSelectAllDictionaries"
+              type="button"
+              class="token-tooltip__pick-action"
+              data-testid="word-pick-select-all"
+              @click="selectAllDictionaries"
+            >{{ $t('tokenTooltip.pickSelectAll') }}</button>
             <button
               type="button"
               class="token-tooltip__pick-action"
