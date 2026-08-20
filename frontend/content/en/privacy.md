@@ -42,6 +42,8 @@ Nadeshiko may use personal data for the following purposes:
 - **To provide and maintain our service**, including to monitor the usage of our service.
 - **To manage your account**: to manage your registration as a user of the service. The personal data you provide can give you access to different functionalities of the service that are available to you as a registered user.
 - **To contact you**: To contact you by email regarding updates or informative communications related to the functionalities and services you use, including security updates, when necessary or reasonable for their implementation.
+
+  These fall into two groups. **Account emails** — sign-in links, address verification, and notices about your account — are part of the service working and are always sent. **Emails about Nadeshiko** — a note a week after you sign up, an occasional summary of your own activity, and announcements when a significant new version is released — are informational, and you can turn them off at any time from the link at the bottom of any one of them or from your account settings. Turning them off never affects your sign-in or account emails.
 - **To manage your requests**: To attend and manage your requests to us.
 - **For other purposes**: We may use your information for other purposes, such as data analysis, identifying usage trends and to evaluate and improve our service and your experience.
 
@@ -51,7 +53,13 @@ We may share your personal information in the following situations:
 - **With Other Users**: when you share personal information or otherwise interact in the public areas with other users, such information may be viewed by all users and may be publicly distributed outside. Other users will be able to view descriptions of your activity, communicate with you, and view your profile.
 - **With Your Consent**: We may disclose your personal information for any other purpose with your consent.
 
-**We do not sell your personal data. Apart from the service providers described in this policy -- who process data on our behalf to host the site, deliver its content and measure how it is used -- we do not share it with third parties.**
+- **With service providers**: we use a small number of providers who process data on our behalf, under contract and only on our instructions:
+  - **Hetzner** — hosting the servers the service runs on
+  - **Cloudflare** — content delivery, DNS, media storage, and protection against abuse
+  - **Zoho (ZeptoMail and Zoho Campaigns)** — sending the emails described above
+  - **PostHog** — measuring how the site is used
+
+**We do not sell your personal data. Apart from the service providers listed above, we do not share it with third parties.**
 
 ## Retention of Your Personal Data
 Nadeshiko will retain your personal data only for as long as is necessary for the purposes set out in this Privacy Policy. We will retain and use your personal data to the extent necessary to comply with our legal obligations (for example, if we are required to retain your data to comply with applicable laws), resolve disputes, and enforce our legal agreements and policies.

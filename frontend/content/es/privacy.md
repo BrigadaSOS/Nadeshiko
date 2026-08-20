@@ -41,6 +41,8 @@ Nadeshiko puede utilizar datos personales para los siguientes propósitos:
 - **Para proporcionar y mantener nuestro servicio**, incluso para monitorear el uso de nuestro servicio.
 - **Para gestionar su cuenta**: para gestionar su registro como usuario del servicio. Los datos personales que proporcione pueden darle acceso a diferentes funcionalidades del servicio que están disponibles para usted como usuario registrado.
 - **Para comunicarse con usted**: Para ponerse en contacto con usted por correo electrónico en relación con actualizaciones o comunicaciones informativas relacionadas con las funcionalidades y servicios que utiliza, incluidas las actualizaciones de seguridad, cuando sea necesario o razonable para su implementación.
+
+  Estos correos son de dos tipos. Los **correos de la cuenta** —enlaces de inicio de sesión, verificación de la dirección y avisos sobre su cuenta— forman parte del funcionamiento del servicio y siempre se envían. Los **correos sobre Nadeshiko** —un mensaje una semana después de registrarse, un resumen ocasional de su propia actividad y anuncios cuando se publica una versión importante— son informativos, y puede desactivarlos en cualquier momento desde el enlace que aparece al final de cualquiera de ellos o desde los ajustes de su cuenta. Desactivarlos nunca afecta a los correos de inicio de sesión ni a los de la cuenta.
 - **Para gestionar sus solicitudes**: Para atender y gestionar sus solicitudes hacia nosotros.
 - **Para otros propósitos**: Podemos utilizar su información para otros fines, como análisis de datos, identificación de tendencias de uso y para evaluar y mejorar nuestro servicio y su experiencia.
 
@@ -50,7 +52,13 @@ Podemos compartir su información personal en las siguientes situaciones:
 - **Con otros usuarios**: cuando comparte información personal o interactúa en las áreas públicas con otros usuarios, esa información puede ser vista por todos los usuarios y puede ser distribuida públicamente en el exterior. De igual manera, otros usuarios podrán ver las descripciones de su actividad, comunicarse con usted y ver su perfil.
 - **Con su consentimiento**: Podemos divulgar su información personal para cualquier otro propósito con su consentimiento.
 
-**No vendemos sus datos personales. Salvo los proveedores de servicios descritos en esta política -- que procesan los datos en nuestro nombre para alojar el sitio, distribuir su contenido y medir su uso --, no los compartimos con terceros.**
+- **Con proveedores de servicios**: recurrimos a un número reducido de proveedores que procesan datos en nuestro nombre, por contrato y únicamente siguiendo nuestras instrucciones:
+  - **Hetzner** — alojamiento de los servidores en los que funciona el servicio
+  - **Cloudflare** — distribución de contenido, DNS, almacenamiento de archivos y protección frente a abusos
+  - **Zoho (ZeptoMail y Zoho Campaigns)** — envío de los correos descritos anteriormente
+  - **PostHog** — medición del uso del sitio
+
+**No vendemos sus datos personales. Salvo los proveedores de servicios enumerados anteriormente, no los compartimos con terceros.**
 
 ## Retención de Sus Datos Personales
 Nadeshiko conservará sus datos personales solo durante el tiempo necesario para los fines establecidos en esta Política de Privacidad. Retendremos y utilizaremos sus datos personales en la medida necesaria para cumplir con nuestras obligaciones legales (por ejemplo, si estamos obligados a retener sus datos para cumplir con las leyes aplicables), resolver disputas y hacer cumplir nuestros acuerdos legales y políticas.
