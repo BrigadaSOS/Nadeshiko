@@ -92,9 +92,37 @@ export type WebhookRejectReason = (typeof WEBHOOK_REJECT_REASONS)[number];
  * deploy becomes after a rollout that added this field: counted honestly rather
  * than misattributed to whichever kind happened to be first in the union.
  */
-export type EmailKind = 'welcome' | 'magic-link' | 'verify-new-email' | 'feedback' | 'unknown';
+/**
+ * Every message the app can send, and the whole of the `email.kind` label.
+ *
+ * BOUNDED BY CONSTRUCTION, like everything else in this file. The lifecycle
+ * kinds are the general shape of the mail, never the individual send: the recap
+ * is `recap`, not `recap-2026-08`. A per-month label would grow the series count
+ * without limit and quietly turn every rate alert that divides by `email.sent`
+ * into a division across buckets that do not line up. The specific campaign
+ * lives in `EmailLifecycleSend` and in the client reference, where it is a value
+ * rather than a dimension.
+ */
+export type EmailKind =
+  | 'welcome'
+  | 'magic-link'
+  | 'verify-new-email'
+  | 'feedback'
+  | 'onboarding-day7'
+  | 'feedback-ask'
+  | 'recap'
+  | 'unknown';
 
-export const EMAIL_KINDS: readonly EmailKind[] = ['welcome', 'magic-link', 'verify-new-email', 'feedback', 'unknown'];
+export const EMAIL_KINDS: readonly EmailKind[] = [
+  'welcome',
+  'magic-link',
+  'verify-new-email',
+  'feedback',
+  'onboarding-day7',
+  'feedback-ask',
+  'recap',
+  'unknown',
+];
 
 export function recordEmailSent(kind: EmailKind): void {
   emailSent.add(1, { 'email.kind': kind });

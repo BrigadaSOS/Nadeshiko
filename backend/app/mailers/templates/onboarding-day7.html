@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to Nadeshiko</title>
+    <title>A week with Nadeshiko</title>
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -90,6 +90,9 @@
         color: #9ca3af;
         text-align: center;
       }
+          .card-footer a {
+        color: #9ca3af;
+      }
     </style>
   </head>
   <body>
@@ -103,31 +106,31 @@
         </div>
 
         <div class="card-body">
-          <h1 class="card-title">Welcome, {{username}}!</h1>
-          <p class="card-text">Thanks for signing up. Here's a quick look at what you can do:</p>
+          <h1 class="card-title">{{headline}}</h1>
+          <p class="card-text">Hi, I'm David &mdash; one of the people who build Nadeshiko. You signed up a week ago, so I wanted to send one note and then leave you to it.</p>
+          <p class="card-text">{{intro}}</p>
 
           <div class="features">
             <ul>
-              <li><strong>Search:</strong> Look up words and phrases in English, Spanish, or Japanese across anime and dramas</li>
-              <li><strong>Context:</strong> See how words are actually used by native speakers in real scenes</li>
-              <li><strong>Shadow:</strong> Practice your pronunciation with native audio in our immersive player</li>
-              <li><strong>Collections:</strong> Save and organize your favorite segments for later review</li>
+              <li><strong>{{tipOneTitle}}</strong> {{tipOneBody}}</li>
+              <li><strong>{{tipTwoTitle}}</strong> {{tipTwoBody}}</li>
+              <li><strong>{{tipThreeTitle}}</strong> {{tipThreeBody}}</li>
             </ul>
           </div>
 
-          <p class="card-text">Our database contains millions of example sentences. The easiest way to get started is to just search for a word or phrase you're curious about.</p>
-
           <div class="btn-wrapper">
-            <a href="{{baseUrl}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none !important; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
-              <span style="color: #ffffff; text-decoration: none !important;">Start Searching</span>
+            <a href="{{ctaUrl}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none !important; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
+              <span style="color: #ffffff; text-decoration: none !important;">{{ctaLabel}}</span>
             </a>
           </div>
 
-          <p class="hint-text">Have questions or feedback? Reach us at <a href="mailto:support@nadeshiko.co" style="color: #ef5552; text-decoration: none;">support@nadeshiko.co</a>.</p>
+          <p class="hint-text">Questions, or something not working? Just reply &mdash; this comes from my own inbox and I read everything that arrives.</p>
         </div>
 
         <div class="card-footer">
-          &copy; {{year}} Nadeshiko
+          &copy; {{year}} Nadeshiko<br />
+          <a href="{{unsubscribeUrl}}" style="color: #9ca3af; text-decoration: underline;">Unsubscribe from these emails</a>
+          &middot; Sign-in and account emails are not affected.
         </div>
       </div>
     </div>

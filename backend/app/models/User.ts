@@ -47,6 +47,19 @@ export interface UserPreferences {
    * an aggregate count, and a reader may want one without the other.
    */
   familiarMedia?: { enabled: boolean };
+  /**
+   * Whether we may send this account the lifecycle mail -- the day-7 note, the
+   * feedback ask, the monthly recap. Absent means yes: these are service
+   * messages under the privacy policy's "updates or informative communications
+   * related to the functionalities and services you use", so the default is on
+   * and the reader turns it off.
+   *
+   * NOT a gate on transactional mail. A magic link, an address verification and
+   * a bounce are the account working, not news about it, and honouring this flag
+   * for them would let somebody lock themselves out of sign-in by clicking
+   * unsubscribe in a recap.
+   */
+  productEmails?: { enabled: boolean };
   ankiProfiles?: AnkiProfile[];
   hiddenMedia?: HiddenMediaItem[];
   favoriteMedia?: FavoriteMediaItem[];

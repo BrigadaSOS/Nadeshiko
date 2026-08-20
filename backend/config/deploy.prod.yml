@@ -62,12 +62,19 @@ env:
     - ID_OAUTH_GOOGLE
     - SECRET_OAUTH_GOOGLE
 
-    - SES_AWS_REGION
-    - SES_AWS_ACCESS_KEY_ID
-    - SES_AWS_SECRET_ACCESS_KEY
-    - SES_FROM_EMAIL
-    - SES_FROM_NAME
+    - MAIL_FROM_EMAIL
+    - MAIL_FROM_NAME
     - SMTP_PASSWORD
+    # Signs the bounce/complaint webhook ZeptoMail posts to
+    # /v1/webhooks/zeptomail. Without it the endpoint answers 503 rather than
+    # trusting an unsigned payload, because a forged hard bounce suppresses
+    # somebody's address and locks them out of magic-link sign-in.
+    - ZEPTOMAIL_WEBHOOK_SECRET
+    # Lifting a suppression has two halves: our row and ZeptoMail's own list.
+    # These are the second half, scoped to delete-only.
+    - ZOHO_CLIENT_ID
+    - ZOHO_CLIENT_SECRET
+    - ZOHO_REFRESH_TOKEN
 
     - E2E_USER_PASSWORD
 
@@ -77,9 +84,9 @@ env:
     RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://nadeshiko.co
 
-    # Prod sends via smtp.zeptomail.jp. Flip back to ses to roll back;
-    # SES DKIM and mail.nadeshiko.co stay in DNS either way.
-    MAIL_TRANSPORT: zepto
+    # ZeptoMail is the only transport. `MAIL_TRANSPORT` is gone with the SES
+    # branch it used to select, and so are the SES_AWS_* credentials -- the last
+    # static AWS keys this container held, which nothing rotated.
     SMTP_ADDRESS: smtp.zeptomail.jp
     SMTP_PORT: "587"
     SMTP_USER_NAME: emailapikey

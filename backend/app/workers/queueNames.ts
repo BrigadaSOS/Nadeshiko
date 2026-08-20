@@ -2,7 +2,7 @@ export const ES_SYNC_CREATE_QUEUE = 'es-sync-create';
 export const ES_SYNC_UPDATE_QUEUE = 'es-sync-update';
 export const ES_SYNC_DELETE_QUEUE = 'es-sync-delete';
 export const EMAIL_SEND_QUEUE = 'email-send';
-export const EMAIL_SUPPRESSION_LIFT_QUEUE = 'email-suppression-lift';
+export const EMAIL_LIFECYCLE_QUEUE = 'email-lifecycle-sweep';
 export const ACTIVITY_RETENTION_QUEUE = 'activity-retention-cleanup';
 export const AFFINITY_RETENTION_QUEUE = 'affinity-retention-cleanup';
 
@@ -13,7 +13,7 @@ export const ALL_QUEUES = [
   ES_SYNC_UPDATE_QUEUE,
   ES_SYNC_DELETE_QUEUE,
   EMAIL_SEND_QUEUE,
-  EMAIL_SUPPRESSION_LIFT_QUEUE,
+  EMAIL_LIFECYCLE_QUEUE,
   ACTIVITY_RETENTION_QUEUE,
   AFFINITY_RETENTION_QUEUE,
 ] as const;

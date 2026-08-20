@@ -31,6 +31,8 @@ export { Feedback, FEEDBACK_MAX_BODY, FEEDBACK_MAX_URLS } from './Feedback';
 
 // Outbound mail: what came back, and who we stopped writing to
 export { EmailEvent, EMAIL_EVENTS } from './EmailEvent';
+export { EmailLifecycleSend, LIFECYCLE_KINDS } from './EmailLifecycleSend';
+export type { LifecycleKind } from './EmailLifecycleSend';
 export type { EmailEventName } from './EmailEvent';
 export { EmailSuppression, SUPPRESSION_CAUSES, isPermanentCause } from './EmailSuppression';
 export type { SuppressionCause } from './EmailSuppression';
