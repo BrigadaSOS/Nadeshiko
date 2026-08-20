@@ -146,6 +146,28 @@ const envSchema = z.object({
   SMTP_USER_NAME: optionalString,
   SMTP_PASSWORD: optionalString,
 
+  // Proves that a bounce notification really came from ZeptoMail.
+  //
+  // Optional in the schema but not optional in effect: without it
+  // /v1/webhooks/zeptomail answers 503 to everything rather than trusting an
+  // unsigned payload, because a forged hard bounce suppresses an address and
+  // locks somebody out of magic-link sign-in. Unset is the correct state for
+  // local and test runs, which have no Agent posting to them.
+  ZEPTOMAIL_WEBHOOK_SECRET: optionalString,
+
+  // Zoho OAuth, used for exactly one call: removing an address from ZeptoMail's
+  // OWN suppression list. Auto-suppression is on at the Agent, so forgiving an
+  // address means clearing two lists; deleting only our row leaves the app
+  // believing it can write to somebody the relay still refuses. Absent is a
+  // supported state -- the lift then does our half and says so.
+  ZOHO_CLIENT_ID: optionalString,
+  ZOHO_CLIENT_SECRET: optionalString,
+  ZOHO_REFRESH_TOKEN: optionalString,
+  // Zoho's hosts are per data centre and must match the region the Agent and the
+  // OAuth client were registered in. Ours is Japan, like the SMTP relay.
+  ZOHO_ACCOUNTS_HOST: z.string().default('accounts.zoho.jp'),
+  ZEPTOMAIL_API_HOST: z.string().default('api.zeptomail.jp'),
+
   // Where the feedback widget's messages land. Optional, and unset means the
   // notification is skipped, not that the feature is off: the row is stored
   // either way, so a missing address costs the email and nothing else. Local and

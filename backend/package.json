@@ -18,6 +18,7 @@
     "lint:openapi": "redocly lint",
     "lint:fix": "biome check . --write",
     "generate:api": "node --import tsx bin/generateApi.ts",
+    "email:lift": "node --env-file-if-exists=.env --import tsx bin/liftEmailSuppression.ts",
     "generate:auth-spec": "node --env-file-if-exists=.env --import tsx bin/generateAuthSpec.ts",
     "generate:bruno": "npm run docs:bundle && node --env-file-if-exists=.env --import tsx bin/generateBrunoCollection.ts",
     "generate:all": "npm run generate:api && npm run generate:bruno && npm run docs:build",

@@ -2,6 +2,7 @@ import { PgBoss } from 'pg-boss';
 import { registerActivityRetentionWorker } from '@app/workers/activityRetentionWorker';
 import { registerAffinityRetentionWorker } from '@app/workers/affinityRetentionWorker';
 import { registerEmailWorkers } from '@app/workers/emailWorker';
+import { registerEmailSuppressionLiftWorkers } from '@app/workers/emailSuppressionLiftWorker';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { registerQueueMetrics } from '@app/workers/workerInstrumentation';
@@ -10,6 +11,7 @@ import {
   ACTIVITY_RETENTION_QUEUE,
   AFFINITY_RETENTION_QUEUE,
   EMAIL_SEND_QUEUE,
+  EMAIL_SUPPRESSION_LIFT_QUEUE,
   ES_SYNC_CREATE_QUEUE,
   ES_SYNC_DELETE_QUEUE,
   ES_SYNC_UPDATE_QUEUE,
@@ -75,6 +77,19 @@ export const workersInitializer: RuntimeInitializer = {
         },
       },
       {
+        name: EMAIL_SUPPRESSION_LIFT_QUEUE,
+        options: {
+          // Longer backoff and fewer tries than a send. This talks to two Zoho
+          // hosts and nobody is waiting on it: our own row is already gone, so a
+          // retry that lands ten minutes later is as good as one that lands now.
+          retryLimit: 3,
+          retryDelay: 60000,
+          retryBackoff: true,
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
+      },
+      {
         name: ACTIVITY_RETENTION_QUEUE,
         options: {
           retryLimit: 3,
@@ -111,6 +126,7 @@ export const workersInitializer: RuntimeInitializer = {
 
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);
+    await registerEmailSuppressionLiftWorkers(boss);
     await registerActivityRetentionWorker(boss);
     await registerAffinityRetentionWorker(boss);
   },

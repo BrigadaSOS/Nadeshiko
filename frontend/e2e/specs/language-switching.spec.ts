@@ -40,8 +40,11 @@ test.describe('Language switching', () => {
     await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
     await expect(page.locator('header').getByRole('link', { name: 'Acerca de' })).toBeVisible({ timeout: 10_000 });
 
-    // Navigate to another page via the Spanish-localized nav link
-    await page.locator('header').getByRole('link', { name: 'Media', exact: true }).click();
+    // 'Medios', not 'Media': the nav link is localized, and this asserted the
+    // English name until the Spanish header stopped using it. The point of the
+    // step is that the SPANISH nav keeps the reader in Spanish, so the localized
+    // name is the thing worth matching on.
+    await page.locator('header').getByRole('link', { name: 'Medios', exact: true }).click();
     await expect(page).toHaveURL(/\/es\/media/);
 
     // Language should still be Spanish

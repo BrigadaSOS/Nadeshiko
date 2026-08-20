@@ -2,6 +2,7 @@ import { logger } from '@config/log';
 import { analyticsInitializer } from './analytics';
 import { authInitializer } from './auth';
 import { databaseInitializer } from './database';
+import { emailInitializer } from './email';
 import { masterApiKeyInitializer } from './masterApiKey';
 import { telemetryInitializer } from './telemetry';
 import type { RuntimeContext, RuntimeInitializer } from './types';
@@ -15,6 +16,8 @@ const initializers: RuntimeInitializer[] = [
   analyticsInitializer,
   authInitializer,
   databaseInitializer,
+  // After the database: the suppression gauge it registers reads a table.
+  emailInitializer,
   masterApiKeyInitializer,
   workersInitializer,
 ];
