@@ -559,11 +559,34 @@ treating the pin as covering deploys too.
 ### Outbound mail: ZeptoMail on staging and production
 
 Both environments send as `noreply@nadeshiko.co` via ZeptoMail SMTP
-(`smtp.zeptomail.jp`) with `MAIL_TRANSPORT=zepto`. Flip either back to `ses`
-to roll back. SES DKIM and `mail.nadeshiko.co` stay in DNS either way. The
-Send Mail Token lives at `/nadeshiko/staging/SMTP_PASSWORD` and
+(`smtp.zeptomail.jp`), and that is now the **only** transport. The Send Mail
+Token lives at `/nadeshiko/staging/SMTP_PASSWORD` and
 `/nadeshiko/prod/SMTP_PASSWORD`. Host, port, and user are clear env in
 `deploy.staging.yml` and `deploy.prod.yml`.
+
+**Amazon SES is gone**, along with `MAIL_TRANSPORT` and the
+`@aws-sdk/client-sesv2` dependency. It had been the rollback path for the
+ZeptoMail cutover, and a rollback path nobody exercises is not a safety net — it
+is a second sending identity with its own DKIM records and its own reputation
+that nothing watches. Removing it also retired **the last static AWS credentials
+this container held**: `SES_AWS_ACCESS_KEY_ID` / `SES_AWS_SECRET_ACCESS_KEY` were
+long-lived IAM user keys that nothing rotated, and the mailer was their only
+consumer.
+
+Two loose ends outside this repo, neither urgent and both safe to leave:
+
+- `/nadeshiko/{prod,staging}/SES_AWS_*` can be deleted from SSM and the IAM user
+  retired. Nothing reads them.
+- The **SSM parameters are still named `SES_FROM_EMAIL` / `SES_FROM_NAME`** while
+  the env vars they feed are now `MAIL_FROM_EMAIL` / `MAIL_FROM_NAME`. The
+  mapping is in `.kamal/secrets.*`, which is the one place that has to know. The
+  values were never SES-specific, so renaming the parameters would mean creating
+  them before the deploy that reads them — and a listed secret that cannot be
+  read aborts the deploy at secret resolution — for no gain.
+- The three SES DKIM CNAMEs and `mail.nadeshiko.co` are still in DNS. Harmless
+  where they are; delete them only alongside a Terraform apply that also removes
+  their `import` blocks, since an import block whose target has no configuration
+  is a hard plan failure for the whole estate.
 
 **`SMTP_PASSWORD` must exist in SSM for both destinations.** `.kamal/secrets.prod`
 resolves it, and `.kamal/ssm-secret` exits non-zero on a missing or blank
@@ -576,17 +599,170 @@ aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
   --value '<ZeptoMail Send Mail Token>'
 ```
 
-`SES_AWS_ACCESS_KEY_ID` / `SES_AWS_SECRET_ACCESS_KEY` are long-lived IAM user
-keys held in SSM and injected into the backend container. Every other AWS
-interaction in this repo already uses OIDC role assumption
-(`aws-actions/configure-aws-credentials` with `role-to-assume`), so these are the
-only static AWS credentials left, and nothing rotates them.
+**The static-AWS-credentials TODO that used to be here is CLOSED**, and by
+deletion rather than by rotation. `SES_AWS_ACCESS_KEY_ID` /
+`SES_AWS_SECRET_ACCESS_KEY` were the only static AWS credentials the backend
+container held; every other AWS interaction in this repo already uses OIDC role
+assumption. Dropping the SES transport removed their only consumer, so there is
+no longer a key to rotate.
 
-**TODO (infra, not doable from this repo):** replace the SES keys with either an
-instance / workload role the container assumes, or at minimum a documented
-rotation schedule with two active keys so rotation does not require downtime.
-This needs changes in the AWS account, so it cannot be done by editing anything
-here.
+### Bounces, complaints, and the suppression list
+
+Mail used to be one-way: we handed a message to ZeptoMail and never heard another
+word, so a dead address was written to forever and the bounce rate lived only in
+a Zoho console nobody has open. Worse, two of the four send paths were invisible
+to every alert we had — `sendMagicLinkEmail` and `sendVerifyNewEmail` are called
+inline from better-auth and never touch pg-boss, so `NadeshikoJobsFailing` could
+not see them at all. A revoked Send Mail Token would have taken out sign-in
+silently.
+
+The return path is `POST /v1/webhooks/zeptomail`
+(`app/controllers/webhooks/zeptomailController.ts`), keyed on
+`ZEPTOMAIL_WEBHOOK_SECRET` from SSM and **failing closed** without it: a forged
+hard bounce suppresses an address and locks somebody out of magic-link sign-in,
+so an unauthenticated payload is refused rather than trusted.
+
+Four implementation details are not guessable, and the first two are places where
+**ZeptoMail's own documentation and its own console disagree**:
+
+- **Authentication.** The docs describe an HMAC `producer-signature` header. The
+  Agent's webhook dialog offers only a static authorization header, name and value
+  of your choosing, which is what is actually configured
+  (`X-Nadeshiko-Webhook-Token`). The controller accepts **either**, both keyed on
+  `ZEPTOMAIL_WEBHOOK_SECRET`, and refuses when neither is present. Betting on the
+  documented one alone would refuse every real delivery.
+- **Body shape.** The docs describe form-encoded `data=<urlencoded JSON>`; the
+  console posts plain JSON. Both are accepted. The body is parsed as *text* a
+  layer earlier (`config/application.ts`, before `express.json`) so the HMAC can be
+  checked against the exact bytes that were sent.
+- **The Verify button POSTs sample payloads, not a ping.** They look exactly like
+  real events, with `zylker.com` recipients (Zoho's fictional company). They are
+  filtered before anything is recorded — a sample *complaint* would otherwise fire
+  `NadeshikoEmailComplaint`, a critical tripwire, on the day the webhook is
+  configured.
+- **Attribution.** Outbound mail carries `X-TM-CLIENT-REF` (set for every message
+  in `sendEmail`), which returns as `client_reference`. Over SMTP it is the only
+  thing tying a bounce back to which mail we sent and why.
+
+**The webhook cannot be created before the endpoint is live.** The console's
+Verify button POSTs to the URL and refuses to save unless it answers, so the order
+is: secret into SSM, deploy, *then* configure the webhook at
+`https://api.nadeshiko.co/v1/webhooks/zeptomail`. Staging has its own Agent, its
+own secret, and its own webhook.
+
+```bash
+aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
+  --name /nadeshiko/prod/ZEPTOMAIL_WEBHOOK_SECRET --type SecureString \
+  --value "$(openssl rand -base64 32)"
+```
+
+What arrives becomes an `EmailEvent` row (the log, deduped on the provider's
+request id) and, for a hard bounce or complaint, an `EmailSuppression` row (the
+decision). A hard bounce also clears the account's `is_verified`. Soft bounces
+only suppress after five in a rolling week, because a full mailbox is not a
+verdict.
+
+**Suppression is enforced in `sendEmail`, never per-sender.** Every path funnels
+through that one function — the inline ones directly, the queued ones through
+`emailWorker` — so a list checked in each send path would only be as good as the
+discipline of whoever writes the next one. If you add a fifth mailer, route it
+through `sendEmail` rather than reaching for the transport yourself.
+
+**Auto-suppression must be ON in the ZeptoMail console.** It is a toggle, off by
+default, and it is the half that keeps working when our webhook does not.
+
+#### Lifting a suppression has two halves
+
+Because auto-suppression is on, ZeptoMail keeps a suppression list of its own.
+Deleting our row and stopping there leaves the app believing it can write to
+somebody the relay silently still refuses — and both halves look fine
+individually, so nothing reports the disagreement. Use the script, which does
+both:
+
+```bash
+npm run email:lift -w backend -- someone@example.com
+```
+
+A raw `DELETE FROM "EmailSuppression"` in psql looks like it worked and does half
+the job.
+
+The provider half is backed by a **Zoho Self Client in the JP data centre**,
+scoped `Zeptomail.Suppressions.DELETE` — delete only, which is all the app does.
+Its `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET` / `ZOHO_REFRESH_TOKEN` are in SSM for
+both environments. One client covers the whole LOST COORDS ZeptoMail org, so the
+same three values also live under `/shirabe/`. If they are ever missing the
+script still removes our row, then says out loud that the relay is still refusing
+the address and exits non-zero.
+
+Two details that cost a debugging session, both verified against the live JP API
+on 2026-08-20:
+
+- **The body field is `values`, and it is an array.** The obvious
+  `{"value": "..."}` is answered with
+  `SERR_110 "Parameter less than min occurrance", target: "values"` — a Bad
+  Syntax error naming a field the request never sent, which reads like a server
+  fault rather than ours.
+- **`DND_102` "Suppression data not found" is success.** A lift's goal is that
+  ZeptoMail is no longer refusing the address; if it never held the address —
+  a manual suppression of ours, or auto-suppression that never fired — the goal
+  is already met, and treating it as a failure sends somebody hunting for a
+  problem that does not exist.
+
+Mostly the answer is that nobody should be lifted: a hard bounce is usually a
+typo, an address that never existed. The cases this exists for are a
+`repeated_soft_bounce` on a mailbox that was full and is not now, and undoing a
+false positive. A `complaint` should be lifted only if you know exactly why it was
+wrong — sending again is how one complaint becomes a blocked domain.
+
+#### Keep email types in their proper channel
+
+This protects sign-in deliverability and complies with each provider's sending
+policy.
+
+| Message | Tool | Rule |
+| --- | --- | --- |
+| Welcome, magic link, email verification, feedback notification, and an affected-user service or privacy-policy notice | The app, through ZeptoMail | Triggered by the account or service event. Keep it factual; no promotional material. |
+| Product-research surveys, feature announcements to a group, lifecycle check-ins | Zoho Campaigns | Marketing mail. Opted-in audience only, with the provider's unsubscribe link. |
+| A personally written support reply | Zoho Mail | One-to-one correspondence only. Do not turn a template, BCC batch, or mail merge into a Zoho Mail campaign. |
+
+#### What to watch, and how often
+
+Six alert rules live in `brigadasos-infra/.../vmalert-rules/nadeshiko-email.yml`
+and reach Discord on first firing. **Their thresholds are guesses**, derived from
+Zoho's published limits rather than from Nadeshiko's own history — the metrics
+start existing with this deploy. Replace them with observed numbers after a week
+of real sends.
+
+Reputation feeds are a weekly read, not paging: Cloudflare DMARC Management and
+ZeptoMail's own bounce analytics, which is the only place the Agent's daily
+blocking-limit state is visible. Google Postmaster Tools, Yahoo Sender Hub and
+Microsoft SNDS say nothing below roughly 100 messages a day to that provider —
+set them up when volume justifies them.
+
+#### DNS, verified live 2026-08-20
+
+| Piece | State |
+| --- | --- |
+| DKIM (ZeptoMail) | `1818452._domainkey`, live |
+| DKIM (SES) | three CNAMEs, still live but **no longer used** — SES was removed as a transport; safe to delete with their Terraform import blocks |
+| DKIM (Zoho Mail inbox) | `zmail._domainkey`, live |
+| SPF | Zoho JP + ZeptoMail JP + ZeptoMail global, **3 lookups**, all flat, well inside the cap of 10 |
+| DMARC | `v=DMARC1; p=quarantine; rua=mailto:…@dmarc-reports.cloudflare.net;` — reports on since 2026-08-20 |
+| Return-Path | Aligned. The record is `bounce-zem.nadeshiko.co`, so `dig bounce.nadeshiko.co` finds nothing and concludes the opposite |
+| MTA-STS / TLS-RPT | Absent, deliberately: not on the path to reading a bounce |
+
+**DMARC reporting is on as of 2026-08-20.** Until then the record was
+`p=quarantine` with no `rua=` — enforcement without evidence, and no route to
+`p=reject`, because there was nothing to read before taking the next step.
+Cloudflare DMARC Management is now enabled and its address is **also written into
+`brigadasos-infra/terraform/cloudflare-dns.tf`**, which is the part that is easy
+to skip: the dashboard edits `_dmarc` out of band, so without the Terraform side
+the next apply of anything at all silently reverts it and reports stop with no
+error anywhere. MX was verified unchanged immediately after (`mx*.zoho.jp`), as
+was SPF.
+
+Read the reports weekly. `p=quarantine` stays until they show every legitimate
+sender aligned; moving to `p=reject` should be a reading, not a guess.
 
 ## Cloudflare edge configuration
 

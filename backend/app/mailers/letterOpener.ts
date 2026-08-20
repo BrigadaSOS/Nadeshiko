@@ -26,7 +26,7 @@ export interface LetterOpenerInfo {
 
 /**
  * Reads the browser preview URL off a transport result, if the transport
- * produced one. SES deliveries have none.
+ * produced one. Real SMTP deliveries have none.
  */
 export function getPreviewUrl(info: unknown): string | null {
   if (typeof info === 'object' && info !== null && 'previewUrl' in info) {
