@@ -29,6 +29,7 @@ import { mediaSameAsUrls } from '~/utils/media';
  */
 
 const { t } = useI18n();
+const { formatNumber } = useFormat();
 const route = useRoute();
 const localePath = useLocalePath();
 const { mediaName } = useMediaName();
@@ -193,7 +194,7 @@ const metaTags = computed(() => {
     totalResults = episodeHits.find((h) => h.episode === filterEpisode)?.hitCount ?? 0;
   }
 
-  const count = totalResults.toLocaleString();
+  const count = formatNumber(totalResults);
   let description = t('seo.search.mediaDescription', { count, media: title });
 
   if (episodeHits && episodeHits.length > 0) {

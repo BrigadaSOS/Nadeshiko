@@ -23,6 +23,7 @@ definePageMeta({
 });
 
 const { t } = useI18n();
+const { formatNumber } = useFormat();
 const route = useRoute();
 const localePath = useLocalePath();
 
@@ -294,7 +295,7 @@ const metaTags = computed(() => {
     let description: string;
 
     if (totalResults > 0) {
-      const countNum = totalResults.toLocaleString();
+      const countNum = formatNumber(totalResults);
       const count = isLowerBound ? `${t('seo.search.atLeast')}${countNum}` : countNum;
       let breakdown = '';
       if (stats && stats.length > 0) {
@@ -305,7 +306,7 @@ const metaTags = computed(() => {
           .filter((s) => (s.count ?? 0) > 0)
           .map((s) =>
             t('seo.search.fromCategory', {
-              count: (s.count ?? 0).toLocaleString(),
+              count: formatNumber(s.count ?? 0),
               category: t(`seo.search.category${s.category === 'ANIME' ? 'Anime' : 'Jdrama'}`),
             }),
           );
@@ -347,7 +348,7 @@ const metaTags = computed(() => {
     }
 
     const title = animeName;
-    const count = totalResults.toLocaleString();
+    const count = formatNumber(totalResults);
     let description = t('seo.search.mediaDescription', { count, media: animeName });
 
     if (episodeHits && episodeHits.length > 0) {
