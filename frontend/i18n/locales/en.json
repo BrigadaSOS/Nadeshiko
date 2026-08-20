@@ -723,6 +723,10 @@
       "changeEmailSending": "Sending...",
       "changeEmailCancel": "Cancel",
       "changeEmailSuccess": "A verification email has been sent to your current email address. Please check your inbox.",
+      "productEmailsTitle": "Emails about Nadeshiko",
+      "productEmailsDescription": "Occasional emails about your activity and new features. Sign-in links and account emails are always sent.",
+      "productEmailsOnToast": "You will get emails about Nadeshiko",
+      "productEmailsOffToast": "You will not get emails about Nadeshiko",
       "changeEmailFailed": "Failed to request email change.",
       "sessions": {
         "title": "Sessions",
@@ -893,7 +897,29 @@
       "profileSaveError": "Couldn't save your Anki profile.",
       "dictionarySubmenu": "Definition (one dictionary)…",
       "dictionaryBack": "Back",
-      "dictionaryGroup": "YOUR DICTIONARIES"
+      "dictionaryGroup": "YOUR DICTIONARIES",
+      "connectFailure": {
+        "unreachable": {
+          "title": "Anki did not answer",
+          "body": "Nadeshiko could not reach AnkiConnect at all. One of the three below is almost always the reason."
+        },
+        "permission_denied": {
+          "title": "Anki is running, and is waiting for you",
+          "body": "AnkiConnect answered and asked whether this site may connect. Switch to the Anki window, click Yes on that dialog, then try again."
+        },
+        "connect_error": {
+          "title": "AnkiConnect refused the request",
+          "body": "Anki is running but AnkiConnect turned the request down. Check that 'https://nadeshiko.co' is listed in its webCorsOriginList setting, then restart Anki."
+        },
+        "http_error": {
+          "title": "Something answered, but it was not AnkiConnect",
+          "body": "The server address replied with an error. Check the AnkiConnect server address below is the one Anki is listening on."
+        },
+        "no_decks": {
+          "title": "Connected, but there are no decks",
+          "body": "AnkiConnect let us in and reported no decks to export into. Create a deck in Anki, then try again."
+        }
+      }
     }
   },
   "blog": {
@@ -917,7 +943,6 @@
     "imageAlt": "Not found"
   },
   "segment": {
-    "noResultsTitle": "No results",
     "noResultsMessage": "Try a different search or search in {link}",
     "contentRatingShow": "Show",
     "contentRatingHide": "Hide",
@@ -947,7 +972,8 @@
     "expandAudioFailed": "Expanded the text, but the audio could not be built. Playback and Anki export will use the original clip.",
     "expanding": "Expanding…",
     "playAudio": "Play audio",
-    "loading": "Loading"
+    "loading": "Loading",
+    "noResultsSupport": "Looking for something we don't have yet? Suggest what we add next on our {link}"
   },
   "tokenTooltip": {
     "lookupIn": "Look up in",
@@ -1142,8 +1168,17 @@
       "label": "Or sign in with your email",
       "placeholder": "Enter your email",
       "send": "Send link",
-      "sent": "Check your email for a sign-in link.",
-      "retry": "Try a different email"
+      "sent": "Sign-in email sent to {email}.",
+      "sentHint": "Open the link in it, or type the code from that email here:",
+      "retry": "Try a different email",
+      "codeLabel": "Sign-in code from the email",
+      "codePlaceholder": "ABC123",
+      "codeSubmit": "Sign in",
+      "codeInvalid": "That code is not right. Check the email, or ask for a new one.",
+      "codeWrongBrowser": "This code was not requested from this browser. Open the link in the email instead.",
+      "resend": "Send it again",
+      "resendIn": "You can ask for another in {seconds}s",
+      "rateLimited": "That is as many sign-in emails as we can send to this address for now. A link we already sent still works."
     }
   },
   "shortcuts": {
@@ -1332,7 +1367,9 @@
   "feedback": {
     "open": "Feedback",
     "title": "Send feedback",
-    "subtitle": "Send us your message here.",
+    "subtitle": "Found a bug or have a suggestion? Send us a message here.",
+    "discord": "You can also find us on our {link}.",
+    "discordLink": "Discord server",
     "bodyLabel": "Your message",
     "bodyPlaceholder": "Your message…",
     "emailLabel": "Email",
@@ -1347,5 +1384,32 @@
     "error": "That did not go through. Check your message and try again.",
     "errorRetry": "Something went wrong preparing the form. Try sending again.",
     "errorRateLimited": "You have sent a lot just now. Give it a minute and try again."
+  },
+  "unsubscribe": {
+    "title": "Unsubscribe from Nadeshiko emails?",
+    "detail": "This stops the occasional emails about your activity and new features. Your sign-in links and account emails are not affected.",
+    "confirm": "Unsubscribe",
+    "cancel": "No, keep them",
+    "done": "Unsubscribed",
+    "doneDetail": "You will not get those emails again. Sign-in links and account emails still work as before, and you can turn these back on any time in your settings.",
+    "invalid": "This unsubscribe link is not valid. You can turn these emails off in your account settings instead.",
+    "failed": "That could not be completed. Please try again, or turn these emails off in your account settings.",
+    "goToSettings": "Go to settings"
+  },
+  "signupNudge": {
+    "action": "Create an account",
+    "dismiss": "Not now",
+    "download": {
+      "title": "Export to Anki?",
+      "message": "With an account you can send sentences straight to your Anki deck."
+    },
+    "depth": {
+      "title": "Enjoying Nadeshiko?",
+      "message": "With an account, you can save your favorite sentences and export them to Anki."
+    }
+  },
+  "mediaPage": {
+    "resultsFailed": "We could not load the sentences for this title.",
+    "resultsRetry": "Try again"
   }
 }

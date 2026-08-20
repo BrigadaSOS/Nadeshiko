@@ -723,6 +723,10 @@
       "changeEmailSending": "送信中...",
       "changeEmailCancel": "キャンセル",
       "changeEmailSuccess": "現在のメールアドレスに確認メールを送信しました。受信トレイを確認してください。",
+      "productEmailsTitle": "Nadeshiko からのお知らせメール",
+      "productEmailsDescription": "アクティビティのまとめや新機能についての不定期なメールです。ログイン用リンクとアカウント関連のメールは常に送信されます。",
+      "productEmailsOnToast": "Nadeshiko からのお知らせメールを受け取ります",
+      "productEmailsOffToast": "Nadeshiko からのお知らせメールを受け取りません",
       "changeEmailFailed": "メールアドレスの変更リクエストに失敗しました。",
       "sessions": {
         "title": "セッション",
@@ -893,7 +897,29 @@
       "profileSaveError": "Ankiプロファイルを保存できませんでした。",
       "dictionarySubmenu": "語義（辞書を指定）…",
       "dictionaryBack": "戻る",
-      "dictionaryGroup": "あなたの辞書"
+      "dictionaryGroup": "あなたの辞書",
+      "connectFailure": {
+        "unreachable": {
+          "title": "Ankiから応答がありませんでした",
+          "body": "AnkiConnectにまったく接続できませんでした。原因はほぼ以下の3つのいずれかです。"
+        },
+        "permission_denied": {
+          "title": "Ankiは起動しています。あなたの操作待ちです",
+          "body": "AnkiConnectが応答し、このサイトの接続を許可するか確認しています。Ankiのウィンドウに切り替えてダイアログで「はい」を選び、もう一度お試しください。"
+        },
+        "connect_error": {
+          "title": "AnkiConnectがリクエストを拒否しました",
+          "body": "Ankiは起動していますが、AnkiConnectがリクエストを拒否しました。webCorsOriginList設定に'https://nadeshiko.co'が含まれているか確認し、Ankiを再起動してください。"
+        },
+        "http_error": {
+          "title": "応答はありましたが、AnkiConnectではありませんでした",
+          "body": "サーバーアドレスがエラーを返しました。下のAnkiConnectサーバーアドレスが、Ankiが待ち受けているものと同じか確認してください。"
+        },
+        "no_decks": {
+          "title": "接続できましたが、デッキがありません",
+          "body": "AnkiConnectは接続を許可しましたが、書き出せるデッキがありませんでした。Ankiでデッキを作成してから、もう一度お試しください。"
+        }
+      }
     }
   },
   "blog": {
@@ -917,7 +943,6 @@
     "imageAlt": "ページが見つかりません"
   },
   "segment": {
-    "noResultsTitle": "検索結果なし",
     "noResultsMessage": "別の検索をお試しいただくか、{link} で検索してみてください",
     "contentRatingShow": "表示",
     "contentRatingHide": "非表示",
@@ -947,7 +972,8 @@
     "expandAudioFailed": "テキストは展開しましたが、音声を生成できませんでした。再生と Anki への書き出しには元の音声が使われます。",
     "expanding": "展開中…",
     "playAudio": "音声を再生",
-    "loading": "読み込み中"
+    "loading": "読み込み中",
+    "noResultsSupport": "まだ収録されていない作品をお探しですか？次に追加する作品を {link} で提案できます。"
   },
   "tokenTooltip": {
     "lookupIn": "辞書で調べる",
@@ -1142,8 +1168,17 @@
       "label": "またはメールアドレスでログイン",
       "placeholder": "メールアドレス",
       "send": "リンクを送信",
-      "sent": "ログインリンクをメールで送信しました。",
-      "retry": "別のメールアドレスで試す"
+      "sent": "{email} にサインイン用メールを送信しました。",
+      "sentHint": "メール内のリンクを開くか、記載のコードをここに入力してください：",
+      "retry": "別のメールアドレスで試す",
+      "codeLabel": "メールに記載のサインインコード",
+      "codePlaceholder": "ABC123",
+      "codeSubmit": "サインイン",
+      "codeInvalid": "コードが正しくありません。メールを確認するか、新しいコードをリクエストしてください。",
+      "codeWrongBrowser": "このコードはこのブラウザからリクエストされたものではありません。メール内のリンクをお使いください。",
+      "resend": "もう一度送信する",
+      "resendIn": "{seconds}秒後にもう一度リクエストできます",
+      "rateLimited": "このアドレスに送れるサインイン用メールは現時点で上限に達しました。すでに送信済みのリンクは引き続きご利用いただけます。"
     }
   },
   "shortcuts": {
@@ -1332,7 +1367,9 @@
   "feedback": {
     "open": "フィードバック",
     "title": "フィードバックを送る",
-    "subtitle": "メッセージはこちらからお送りください。",
+    "subtitle": "不具合の報告やご要望は、こちらからお送りください。",
+    "discord": "{link}でもお待ちしています。",
+    "discordLink": "Discord サーバー",
     "bodyLabel": "メッセージ",
     "bodyPlaceholder": "メッセージを入力…",
     "emailLabel": "メールアドレス",
@@ -1347,5 +1384,32 @@
     "error": "送信できませんでした。内容をご確認のうえ、もう一度お試しください。",
     "errorRetry": "フォームの準備中に問題が発生しました。もう一度送信してください。",
     "errorRateLimited": "短時間に多く送信されています。1分ほど待ってからお試しください。"
+  },
+  "unsubscribe": {
+    "title": "Nadeshiko からのメール配信を停止しますか？",
+    "detail": "アクティビティのまとめや新機能に関するメールの配信を停止します。ログイン用リンクやアカウント関連のメールには影響しません。",
+    "confirm": "配信を停止する",
+    "cancel": "いいえ、受け取り続ける",
+    "done": "配信を停止しました",
+    "doneDetail": "これらのメールは今後届きません。ログイン用リンクやアカウント関連のメールはこれまでどおり届きます。設定からいつでも再開できます。",
+    "invalid": "この配信停止リンクは無効です。アカウント設定からこれらのメールをオフにできます。",
+    "failed": "処理を完了できませんでした。もう一度お試しいただくか、アカウント設定からこれらのメールをオフにしてください。",
+    "goToSettings": "設定を開く"
+  },
+  "signupNudge": {
+    "action": "アカウントを作成",
+    "dismiss": "今はしない",
+    "download": {
+      "title": "Ankiに書き出しますか？",
+      "message": "アカウントがあれば、文をそのままAnkiのデッキに送れます。"
+    },
+    "depth": {
+      "title": "Nadeshikoは気に入りましたか？",
+      "message": "アカウントがあれば、お気に入りの文を保存してAnkiに書き出せます。"
+    }
+  },
+  "mediaPage": {
+    "resultsFailed": "この作品のセンテンスを読み込めませんでした。",
+    "resultsRetry": "再試行"
   }
 }

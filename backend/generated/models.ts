@@ -827,6 +827,10 @@ export type t_Token = {
   s: string;
 };
 
+export type t_UnsubscribeReceipt = {
+  unsubscribed: boolean;
+};
+
 export type t_UpdateAccountQuotaRequest = {
   quotaOverride?: number | null;
   reason?: string;
@@ -967,6 +971,9 @@ export type t_UserPreferences = {
     nameRomaji?: string;
   }[];
   mediaNameLanguage?: 'ENGLISH' | 'JAPANESE' | 'ROMAJI';
+  productEmails?: {
+    enabled?: boolean;
+  };
   searchHistory?: {
     enabled?: boolean;
   };
@@ -1222,6 +1229,10 @@ export type t_ResyncShirabeStackRequestBody = {
 
 export type t_SearchCollectionSegmentsParamSchema = {
   collectionPublicId: string;
+};
+
+export type t_UnsubscribeFromEmailQuerySchema = {
+  token: string;
 };
 
 export type t_UpdateAdminReportParamSchema = {

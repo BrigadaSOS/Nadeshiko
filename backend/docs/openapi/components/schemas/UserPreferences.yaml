@@ -186,3 +186,18 @@ properties:
       enabled:
         type: boolean
         description: Whether familiar-media tallying is enabled (default true)
+  productEmails:
+    type: object
+    description: |
+      Whether we may send this account the lifecycle mail — the day-7 note, the
+      feedback ask, the monthly recap. Absent means yes: these are service
+      messages about the functionality the reader uses, so the default is on and
+      the reader turns it off, here or from the link in any of them.
+
+      Does NOT govern transactional mail. Sign-in links and address verification
+      are the account working rather than news about it, and honouring this flag
+      for them would let somebody lock themselves out by unsubscribing.
+    properties:
+      enabled:
+        type: boolean
+        description: Whether lifecycle emails are enabled (default true)
