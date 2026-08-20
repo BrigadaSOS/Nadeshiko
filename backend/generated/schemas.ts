@@ -386,6 +386,8 @@ export const s_Token = z.object({
   parts: z.array(z.object({ s: z.string(), b: z.coerce.number(), e: z.coerce.number() })).optional(),
 });
 
+export const s_UnsubscribeReceipt = z.object({ unsubscribed: PermissiveBoolean });
+
 export const s_UpdateAccountQuotaRequest = z.object({
   tierId: z.string().optional(),
   quotaOverride: z.coerce.number().min(0).nullable().optional(),
@@ -793,6 +795,7 @@ export const s_UserPreferences = z.object({
     )
     .optional(),
   familiarMedia: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
+  productEmails: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
 });
 
 export const s_UserReportTarget = z.discriminatedUnion('type', [s_ReportTargetMedia, s_ReportTargetSegmentInput]);

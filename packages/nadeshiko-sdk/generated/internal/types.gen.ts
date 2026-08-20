@@ -2074,6 +2074,23 @@ export type UserPreferences = {
          */
         enabled?: boolean;
     };
+    /**
+     * Whether we may send this account the lifecycle mail — the day-7 note, the
+     * feedback ask, the monthly recap. Absent means yes: these are service
+     * messages about the functionality the reader uses, so the default is on and
+     * the reader turns it off, here or from the link in any of them.
+     *
+     * Does NOT govern transactional mail. Sign-in links and address verification
+     * are the account working rather than news about it, and honouring this flag
+     * for them would let somebody lock themselves out by unsubscribing.
+     *
+     */
+    productEmails?: {
+        /**
+         * Whether lifecycle emails are enabled (default true)
+         */
+        enabled?: boolean;
+    };
 };
 
 /**
@@ -2298,6 +2315,16 @@ export type FeedbackFormToken = {
      * Opaque, short-lived. Pass back as `formToken` when submitting.
      */
     token: string;
+};
+
+export type UnsubscribeReceipt = {
+    /**
+     * Always `true` when the token was readable. A token for an account that has
+     * since been deleted also answers `true`: the end state the caller asked for
+     * already holds, and there is nothing for them to act on.
+     *
+     */
+    unsubscribed: boolean;
 };
 
 /**
@@ -5478,6 +5505,49 @@ export type GetFeedbackFormTokenResponses = {
 
 export type GetFeedbackFormTokenResponse = GetFeedbackFormTokenResponses[keyof GetFeedbackFormTokenResponses];
 
+export type UnsubscribeFromEmailData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Opaque token from the unsubscribe link in the email. Carries the account
+         * it was issued for, sealed, so it cannot be edited into a token for
+         * somebody else. Does not expire — a recap is read when the reader gets
+         * round to it, and a link that answers "this expired, sign in instead" is
+         * how an opt-out becomes a spam complaint.
+         *
+         */
+        token: string;
+    };
+    url: '/v1/email/unsubscribe';
+};
+
+export type UnsubscribeFromEmailErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type UnsubscribeFromEmailError = UnsubscribeFromEmailErrors[keyof UnsubscribeFromEmailErrors];
+
+export type UnsubscribeFromEmailResponses = {
+    /**
+     * OK
+     */
+    200: UnsubscribeReceipt;
+};
+
+export type UnsubscribeFromEmailResponse = UnsubscribeFromEmailResponses[keyof UnsubscribeFromEmailResponses];
+
 export type ListCollectionsData = {
     body?: never;
     path?: never;
@@ -6986,6 +7056,87 @@ export type SignInWithMagicLinkResponses = {
 };
 
 export type SignInWithMagicLinkResponse = SignInWithMagicLinkResponses[keyof SignInWithMagicLinkResponses];
+
+export type SignInWithEmailOtpData = {
+    body: {
+        /**
+         * Email address to sign in
+         */
+        email: string;
+        /**
+         * OTP sent to the email
+         */
+        otp: string;
+        /**
+         * User display name. Only used if the user is registering for the first time. Eg: "my-name"
+         */
+        name?: string;
+        /**
+         * User profile image URL. Only used if the user is registering for the first time.
+         */
+        image?: string;
+        [key: string]: unknown;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/auth/sign-in/email-otp';
+};
+
+export type SignInWithEmailOtpErrors = {
+    /**
+     * Bad Request. Usually due to missing parameters, or invalid parameters.
+     */
+    400: {
+        message: string;
+    };
+    /**
+     * Unauthorized. Due to missing or invalid authentication.
+     */
+    401: {
+        message: string;
+    };
+    /**
+     * Forbidden. You do not have permission to access this resource or to perform this action.
+     */
+    403: {
+        message?: string;
+    };
+    /**
+     * Not Found. The requested resource was not found.
+     */
+    404: {
+        message?: string;
+    };
+    /**
+     * Too Many Requests. You have exceeded the rate limit. Try again later.
+     */
+    429: {
+        message?: string;
+    };
+    /**
+     * Internal Server Error. This is a problem with the server that you cannot fix.
+     */
+    500: {
+        message?: string;
+    };
+};
+
+export type SignInWithEmailOtpError = SignInWithEmailOtpErrors[keyof SignInWithEmailOtpErrors];
+
+export type SignInWithEmailOtpResponses = {
+    /**
+     * Success
+     */
+    200: {
+        /**
+         * Session token for the authenticated session
+         */
+        token: string;
+        user: AuthUser;
+    };
+};
+
+export type SignInWithEmailOtpResponse = SignInWithEmailOtpResponses[keyof SignInWithEmailOtpResponses];
 
 export type ListUserSessionsData = {
     body?: never;

@@ -1,0 +1,52 @@
+post:
+  tags:
+    - Email
+  x-internal: true
+  operationId: unsubscribeFromEmail
+  summary: Turn off lifecycle email
+  description: |
+    Stops the day-7 note, the feedback ask and the monthly recap for the account
+    the token names. Transactional mail — sign-in links, address verification —
+    is unaffected, because a reader must not be able to lock themselves out of
+    their own account by unsubscribing from a newsletter.
+
+    Unauthenticated on purpose. The recipient is reading an email, not a signed-in
+    page, and an opt-out that first demanded a password is the pattern that turns
+    an unsubscribe into a spam complaint. The token carries the account, sealed,
+    so no session is needed and none is trusted.
+
+    THE TOKEN IS A QUERY PARAMETER BECAUSE RFC 8058 LEAVES NO CHOICE. This is the
+    target of `List-Unsubscribe-Post`, and a one-click unsubscribe posts a fixed
+    body — `List-Unsubscribe=One-Click` — to the URI verbatim. Nothing the sender
+    puts in a request body survives that, so anything identifying the recipient
+    has to travel in the URI. Any body sent is ignored rather than rejected, for
+    the same reason.
+
+    Idempotent: mailbox providers fire this with nobody present and may retry.
+  security: []
+  parameters:
+    - name: token
+      in: query
+      required: true
+      schema:
+        type: string
+        maxLength: 512
+      description: |
+        Opaque token from the unsubscribe link in the email. Carries the account
+        it was issued for, sealed, so it cannot be edited into a token for
+        somebody else. Does not expire — a recap is read when the reader gets
+        round to it, and a link that answers "this expired, sign in instead" is
+        how an opt-out becomes a spam complaint.
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/UnsubscribeReceipt.yaml"
+    "400":
+      $ref: "../../components/responses/BadRequest.yaml"
+    "429":
+      $ref: "../../components/responses/TooManyRequests.yaml"
+    "500":
+      $ref: "../../components/responses/InternalServerError.yaml"
