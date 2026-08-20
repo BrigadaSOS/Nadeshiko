@@ -58,6 +58,7 @@ export type SegmentStatusOutput = z.output<typeof schemas.s_SegmentStatus>;
 export type ShirabeConnectionOutput = z.output<typeof schemas.s_ShirabeConnection>;
 export type TierOutput = z.output<typeof schemas.s_Tier>;
 export type TokenOutput = z.output<typeof schemas.s_Token>;
+export type UnsubscribeReceiptOutput = z.output<typeof schemas.s_UnsubscribeReceipt>;
 export type UpdateAccountQuotaRequestOutput = z.output<typeof schemas.s_UpdateAccountQuotaRequest>;
 export type UpdateCollectionSegmentRequestOutput = z.output<typeof schemas.s_UpdateCollectionSegmentRequest>;
 export type UserActivityRequestOutput = z.output<typeof schemas.s_UserActivityRequest>;
@@ -172,6 +173,9 @@ export const listCollectionsQuerySchema = z.object({
     take: z.coerce.number().min(1).max(100).optional().default(20),
   });
 export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
+
+export const unsubscribeFromEmailQuerySchema = z.object({ token: z.string().max(512) });
+export type UnsubscribeFromEmailQueryOutput = z.output<typeof unsubscribeFromEmailQuerySchema>;
 
 export const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),

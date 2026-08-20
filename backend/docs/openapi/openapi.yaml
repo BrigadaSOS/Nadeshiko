@@ -75,6 +75,12 @@ tags:
     description: |
       Free-text feedback from anyone using the site, signed in or not.
 
+  - name: Email
+    x-internal: true
+    description: |
+      Recipient-facing controls for the mail we send. Reachable without a session
+      because they are used from an email client, not from the site.
+
 x-tagGroups:
   - name: Core
     tags:
@@ -187,6 +193,10 @@ paths:
     $ref: "./paths/feedback/v1_feedback.yaml"
   "/v1/feedback/token":
     $ref: "./paths/feedback/v1_feedback_token.yaml"
+
+  # Email endpoints
+  "/v1/email/unsubscribe":
+    $ref: "./paths/email/v1_email_unsubscribe.yaml"
 
   # Collection endpoints
   "/v1/collections":

@@ -1,0 +1,11 @@
+type: object
+required:
+  - unsubscribed
+properties:
+  unsubscribed:
+    type: boolean
+    description: |
+      Always `true` when the token was readable. A token for an account that has
+      since been deleted also answers `true`: the end state the caller asked for
+      already holds, and there is nothing for them to act on.
+    example: true

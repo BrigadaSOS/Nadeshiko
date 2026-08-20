@@ -45,7 +45,7 @@ info:
 
     To request a quota increase, reach out via the [contact
     page](https://nadeshiko.co/about).
-  version: 2.4.0
+  version: 2.4.4
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -89,6 +89,13 @@ tags:
     x-internal: true
     description: |
       Free-text feedback from anyone using the site, signed in or not.
+  - name: Email
+    x-internal: true
+    description: >
+      Recipient-facing controls for the mail we send. Reachable without a
+      session
+
+      because they are used from an email client, not from the site.
   - name: Auth
     x-internal: true
     description: Session and credential endpoints served by better-auth. Present so
@@ -2809,6 +2816,92 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /v1/email/unsubscribe:
+    post:
+      tags:
+        - Email
+      x-internal: true
+      operationId: unsubscribeFromEmail
+      summary: Turn off lifecycle email
+      description: >
+        Stops the day-7 note, the feedback ask and the monthly recap for the
+        account
+
+        the token names. Transactional mail — sign-in links, address
+        verification —
+
+        is unaffected, because a reader must not be able to lock themselves out
+        of
+
+        their own account by unsubscribing from a newsletter.
+
+
+        Unauthenticated on purpose. The recipient is reading an email, not a
+        signed-in
+
+        page, and an opt-out that first demanded a password is the pattern that
+        turns
+
+        an unsubscribe into a spam complaint. The token carries the account,
+        sealed,
+
+        so no session is needed and none is trusted.
+
+
+        THE TOKEN IS A QUERY PARAMETER BECAUSE RFC 8058 LEAVES NO CHOICE. This
+        is the
+
+        target of `List-Unsubscribe-Post`, and a one-click unsubscribe posts a
+        fixed
+
+        body — `List-Unsubscribe=One-Click` — to the URI verbatim. Nothing the
+        sender
+
+        puts in a request body survives that, so anything identifying the
+        recipient
+
+        has to travel in the URI. Any body sent is ignored rather than rejected,
+        for
+
+        the same reason.
+
+
+        Idempotent: mailbox providers fire this with nobody present and may
+        retry.
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 512
+          description: >
+            Opaque token from the unsubscribe link in the email. Carries the
+            account
+
+            it was issued for, sealed, so it cannot be edited into a token for
+
+            somebody else. Does not expire — a recap is read when the reader
+            gets
+
+            round to it, and a link that answers "this expired, sign in instead"
+            is
+
+            how an opt-out becomes a spam complaint.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnsubscribeReceipt"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /v1/collections:
     get:
       tags:
@@ -4379,6 +4472,120 @@ paths:
                 properties:
                   status:
                     type: boolean
+        "400":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+          description: Bad Request. Usually due to missing parameters, or invalid
+            parameters.
+        "401":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+          description: Unauthorized. Due to missing or invalid authentication.
+        "403":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Forbidden. You do not have permission to access this resource or to
+            perform this action.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Not Found. The requested resource was not found.
+        "429":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Too Many Requests. You have exceeded the rate limit. Try again later.
+        "500":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Internal Server Error. This is a problem with the server that you
+            cannot fix.
+      x-internal: true
+  /v1/auth/sign-in/email-otp:
+    post:
+      tags:
+        - Auth
+      description: Sign in with email and OTP
+      operationId: signInWithEmailOtp
+      security:
+        - bearerAuth: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: Email address to sign in
+                otp:
+                  type: string
+                  description: OTP sent to the email
+                name:
+                  type: string
+                  description: 'User display name. Only used if the user is registering for the
+                    first time. Eg: "my-name"'
+                image:
+                  type: string
+                  description: User profile image URL. Only used if the user is registering for
+                    the first time.
+              required:
+                - email
+                - otp
+              additionalProperties: {}
+              propertyNames:
+                type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Session token for the authenticated session
+                  user:
+                    $ref: "#/components/schemas/AuthUser"
+                required:
+                  - token
+                  - user
         "400":
           content:
             application/json:
@@ -9252,6 +9459,31 @@ components:
             enabled:
               type: boolean
               description: Whether familiar-media tallying is enabled (default true)
+        productEmails:
+          type: object
+          description: >
+            Whether we may send this account the lifecycle mail — the day-7
+            note, the
+
+            feedback ask, the monthly recap. Absent means yes: these are service
+
+            messages about the functionality the reader uses, so the default is
+            on and
+
+            the reader turns it off, here or from the link in any of them.
+
+
+            Does NOT govern transactional mail. Sign-in links and address
+            verification
+
+            are the account working rather than news about it, and honouring
+            this flag
+
+            for them would let somebody lock themselves out by unsubscribing.
+          properties:
+            enabled:
+              type: boolean
+              description: Whether lifecycle emails are enabled (default true)
     ActivityType:
       type: string
       enum:
@@ -9686,6 +9918,22 @@ components:
         token:
           type: string
           description: Opaque, short-lived. Pass back as `formToken` when submitting.
+    UnsubscribeReceipt:
+      type: object
+      required:
+        - unsubscribed
+      properties:
+        unsubscribed:
+          type: boolean
+          description: >
+            Always `true` when the token was readable. A token for an account
+            that has
+
+            since been deleted also answers `true`: the end state the caller
+            asked for
+
+            already holds, and there is nothing for them to act on.
+          example: true
     CollectionListResponse:
       type: object
       description: Paginated collection list response

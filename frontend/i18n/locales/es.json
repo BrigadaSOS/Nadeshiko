@@ -723,6 +723,10 @@
       "changeEmailSending": "Enviando...",
       "changeEmailCancel": "Cancelar",
       "changeEmailSuccess": "Se ha enviado un correo de verificación a tu dirección actual. Revisa tu bandeja de entrada.",
+      "productEmailsTitle": "Correos sobre Nadeshiko",
+      "productEmailsDescription": "Correos ocasionales sobre tu actividad y las novedades. Los enlaces de inicio de sesión y los correos de la cuenta siempre se envían.",
+      "productEmailsOnToast": "Recibirás correos sobre Nadeshiko",
+      "productEmailsOffToast": "No recibirás correos sobre Nadeshiko",
       "changeEmailFailed": "No se pudo solicitar el cambio de correo.",
       "sessions": {
         "title": "Sesiones",
@@ -893,7 +897,29 @@
       "profileSaveError": "No se pudo guardar tu perfil de Anki.",
       "dictionarySubmenu": "Definición (un diccionario)…",
       "dictionaryBack": "Volver",
-      "dictionaryGroup": "TUS DICCIONARIOS"
+      "dictionaryGroup": "TUS DICCIONARIOS",
+      "connectFailure": {
+        "unreachable": {
+          "title": "Anki no ha respondido",
+          "body": "Nadeshiko no ha podido conectar con AnkiConnect. Casi siempre se debe a uno de estos tres motivos."
+        },
+        "permission_denied": {
+          "title": "Anki está abierto y te está esperando",
+          "body": "AnkiConnect ha respondido y ha preguntado si este sitio puede conectarse. Ve a la ventana de Anki, pulsa Sí en ese diálogo y vuelve a intentarlo."
+        },
+        "connect_error": {
+          "title": "AnkiConnect ha rechazado la petición",
+          "body": "Anki está abierto pero AnkiConnect ha rechazado la petición. Verifica que 'https://nadeshiko.co' esté en su ajuste webCorsOriginList y reinicia Anki."
+        },
+        "http_error": {
+          "title": "Ha respondido algo, pero no era AnkiConnect",
+          "body": "La dirección del servidor ha respondido con un error. Verifica que la dirección de AnkiConnect de abajo sea la que Anki está escuchando."
+        },
+        "no_decks": {
+          "title": "Conectado, pero no hay mazos",
+          "body": "AnkiConnect ha aceptado la conexión y no ha devuelto ningún mazo al que exportar. Crea un mazo en Anki y vuelve a intentarlo."
+        }
+      }
     }
   },
   "blog": {
@@ -917,7 +943,6 @@
     "imageAlt": "No encontrado"
   },
   "segment": {
-    "noResultsTitle": "Sin resultados",
     "noResultsMessage": "Prueba con otra búsqueda o busca en {link}",
     "contentRatingShow": "Mostrar",
     "contentRatingHide": "Ocultar",
@@ -947,7 +972,8 @@
     "expandAudioFailed": "Se expandió el texto, pero no se pudo generar el audio: la reproducción y la exportación a Anki usarán el audio original.",
     "expanding": "Expandiendo…",
     "playAudio": "Reproducir audio",
-    "loading": "Cargando"
+    "loading": "Cargando",
+    "noResultsSupport": "¿Buscas algo que todavía no tenemos? Propón lo próximo que añadimos en nuestro {link}"
   },
   "tokenTooltip": {
     "lookupIn": "Buscar en",
@@ -1142,8 +1168,17 @@
       "label": "O inicia sesión con tu email",
       "placeholder": "Correo electrónico",
       "send": "Enviar enlace",
-      "sent": "Revisa tu correo para el enlace de inicio de sesión.",
-      "retry": "Intentar con otro correo"
+      "sent": "Correo de acceso enviado a {email}.",
+      "sentHint": "Abre el enlace que contiene o escribe aquí el código de ese correo:",
+      "retry": "Intentar con otro correo",
+      "codeLabel": "Código de acceso del correo",
+      "codePlaceholder": "ABC123",
+      "codeSubmit": "Entrar",
+      "codeInvalid": "Ese código no es correcto. Revisa el correo o pide uno nuevo.",
+      "codeWrongBrowser": "Este código no se ha pedido desde este navegador. Abre el enlace del correo en su lugar.",
+      "resend": "Enviarlo de nuevo",
+      "resendIn": "Puedes pedir otro en {seconds}s",
+      "rateLimited": "Hemos enviado ya todos los correos de acceso que podemos a esta dirección por ahora. Un enlace enviado antes sigue funcionando."
     }
   },
   "shortcuts": {
@@ -1332,7 +1367,9 @@
   "feedback": {
     "open": "Comentarios",
     "title": "Enviar comentarios",
-    "subtitle": "Envíanos tu mensaje aquí.",
+    "subtitle": "¿Has encontrado un fallo o tienes una sugerencia? Envíanos un mensaje aquí.",
+    "discord": "También puedes encontrarnos en nuestro {link}.",
+    "discordLink": "servidor de Discord",
     "bodyLabel": "Tu mensaje",
     "bodyPlaceholder": "Tu mensaje…",
     "emailLabel": "Correo electrónico",
@@ -1347,5 +1384,32 @@
     "error": "No se ha podido enviar. Revisa tu mensaje e inténtalo de nuevo.",
     "errorRetry": "Ha habido un problema al preparar el formulario. Inténtalo de nuevo.",
     "errorRateLimited": "Has enviado muchos mensajes seguidos. Espera un minuto e inténtalo de nuevo."
+  },
+  "unsubscribe": {
+    "title": "¿Cancelar la suscripción a los correos de Nadeshiko?",
+    "detail": "Esto detiene los correos ocasionales sobre tu actividad y las novedades. Tus enlaces de inicio de sesión y los correos de la cuenta no se ven afectados.",
+    "confirm": "Cancelar suscripción",
+    "cancel": "No, quiero seguir recibiéndolos",
+    "done": "Suscripción cancelada",
+    "doneDetail": "No volverás a recibir esos correos. Los enlaces de inicio de sesión y los correos de la cuenta siguen funcionando igual, y puedes volver a activarlos cuando quieras en tus ajustes.",
+    "invalid": "Este enlace para cancelar la suscripción no es válido. Puedes desactivar estos correos en los ajustes de tu cuenta.",
+    "failed": "No se ha podido completar. Inténtalo de nuevo o desactiva estos correos en los ajustes de tu cuenta.",
+    "goToSettings": "Ir a los ajustes"
+  },
+  "signupNudge": {
+    "action": "Crear una cuenta",
+    "dismiss": "Ahora no",
+    "download": {
+      "title": "¿Exportar a Anki?",
+      "message": "Con una cuenta puedes enviar frases directamente a tu mazo de Anki."
+    },
+    "depth": {
+      "title": "¿Te está gustando Nadeshiko?",
+      "message": "Con una cuenta, puedes guardar tus frases favoritas y exportarlas a Anki."
+    }
+  },
+  "mediaPage": {
+    "resultsFailed": "No hemos podido cargar las frases de este título.",
+    "resultsRetry": "Reintentar"
   }
 }
