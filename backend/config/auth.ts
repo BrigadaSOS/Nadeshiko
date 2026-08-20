@@ -46,6 +46,14 @@ const DISABLED_PATHS = [
 const MAGIC_LINK_COOLDOWN_CACHE = createCacheNamespace('magicLinkCooldown', 10_000);
 const MAGIC_LINK_COOLDOWN_MS = 14 * 60 * 1000;
 
+/**
+ * How long an impersonation lasts, and the reason it is a constant rather than a
+ * number inside the admin plugin's options: the session update hook below has to
+ * know it too, and the two drifting apart would silently lengthen or shorten
+ * every impersonation.
+ */
+const IMPERSONATION_SESSION_MAX_AGE_MS = 30 * 60 * 1000;
+
 const adminAc = createAccessControl({
   user: [
     'create',
@@ -493,7 +501,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       admin({
         defaultRole: UserRoleType.USER,
         adminRoles: [UserRoleType.ADMIN],
-        impersonationSessionDuration: 30 * 60,
+        impersonationSessionDuration: IMPERSONATION_SESSION_MAX_AGE_MS / 1000,
         ac: adminAc,
         roles: pluginRoles,
         schema: {
@@ -547,20 +555,46 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
     ],
     databaseHooks: {
       session: {
-        create: {
-          before: async (session) => {
-            const userId = Number(session.userId);
-            if (!Number.isInteger(userId) || userId <= 0) return;
+        /**
+         * Impersonation sessions, and ONLY impersonation sessions.
+         *
+         * better-auth issues one of these with its own short duration and then
+         * refreshes it on the same global schedule as everything else: a
+         * 30-minute session is inside the refresh window from the moment it is
+         * created, so the refresh writes `now + expiresIn` and the most
+         * privileged session on the site -- one admin acting as another account
+         * -- becomes a thirty-day one. This holds it to the duration the admin
+         * plugin was configured with.
+         *
+         * In an ordinary browser the refresh never gets this far: better-auth
+         * sets a `dont_remember` cookie alongside an impersonation and skips
+         * refreshing entirely while it rides along. This covers the case where
+         * that cookie is not carried -- a token replayed on its own -- which is
+         * exactly the case worth being careful about.
+         *
+         * ADMINS ARE DELIBERATELY NOT SPECIAL HERE. There used to be a create
+         * hook giving them eight hours instead of thirty days, and it never
+         * enforced anything: the first refresh, roughly five minutes after
+         * signing in, rewrote it to the full thirty. Rather than start enforcing
+         * a cap the site had never actually run under, the decision was to drop
+         * it -- admins now hold the same sliding thirty-day session as every
+         * other reader, which is what they have held in practice all along. If a
+         * shorter admin lifetime is ever wanted, it needs BOTH a create hook and
+         * a branch here; one without the other is the bug this replaced.
+         *
+         * Returning `false` to skip the write is not an option in this hook: the
+         * caller reads a null update as a dead session and deletes the cookie,
+         * which would sign the reader out on their next request.
+         */
+        update: {
+          before: async (data, context) => {
+            const active = context?.context.session;
+            if (!active?.session.impersonatedBy) return;
 
-            const user = await findUserById(userId);
-            if (user?.role !== UserRoleType.ADMIN) return;
+            const createdAt = new Date(active.session.createdAt).getTime();
+            if (!Number.isFinite(createdAt)) return;
 
-            return {
-              data: {
-                ...session,
-                expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
-              },
-            };
+            return { data: { ...data, expiresAt: new Date(createdAt + IMPERSONATION_SESSION_MAX_AGE_MS) } };
           },
         },
         delete: {
