@@ -8,6 +8,7 @@ import {
 } from '@app/errors';
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '@config/auth';
+import { logger } from '@config/log';
 import { fromNodeHeaders } from 'better-auth/node';
 import { trace } from '@opentelemetry/api';
 import {
@@ -20,14 +21,104 @@ import {
 
 type VerifyApiKey = (args: { body: { key: string } }) => Promise<unknown>;
 
-export const requireSessionAuth = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+/**
+ * The session cookie's own name, asked of better-auth rather than rebuilt from
+ * `cookiePrefix`.
+ *
+ * It carries a `__Secure-` prefix wherever `useSecureCookies` is on (production,
+ * staging) and none in development, and guessing wrong here fails silently:
+ * nothing matches, nothing is forwarded, and sessions keep dying at thirty days
+ * with no error to notice. `auth.$context` is a promise resolved once at boot;
+ * the result is memoised so this is not a `then` per authenticated request.
+ */
+let sessionTokenCookieName: Promise<string> | null = null;
+
+function getSessionTokenCookieName(): Promise<string> {
+  sessionTokenCookieName ??= auth.$context
+    .then((context) => context.authCookies.sessionToken.name)
+    .catch((error: unknown) => {
+      // Not cached as a rejection: a failure here is almost certainly a boot
+      // race, and a permanently poisoned promise would disable cookie renewal
+      // for the life of the process.
+      sessionTokenCookieName = null;
+      throw error;
+    });
+
+  return sessionTokenCookieName;
+}
+
+/**
+ * Hands the browser the session cookie better-auth just renewed.
+ *
+ * Sessions slide -- `expiresIn` 30 days, `updateAge` 7 (config/auth.ts) -- so a
+ * reader who comes back inside a month should never have to sign in again. That
+ * needs BOTH halves of the session to move, and until now only one of them did.
+ * The `getSession` call below writes the new `expires_at` to the row, but it is
+ * an in-process call: better-auth builds the renewed `Set-Cookie`, hands it back
+ * on `headers`, and this middleware dropped it. The row slid, the cookie did
+ * not, and the browser deleted it exactly 30 days after sign-in however much
+ * reading had happened in between.
+ *
+ * The one path where the header did reach a browser is `/v1/auth/*`, which
+ * better-auth answers itself -- in practice the account settings page, via
+ * `/list-sessions`. That is the whole reason this looked like it worked for
+ * some readers and not others: the ones who never opened settings were logged
+ * out on schedule.
+ *
+ * ONLY the session token, not everything better-auth emits. `get-session` also
+ * rewrites the `session_data` cookie cache on every single call, and forwarding
+ * that from here would put ~1KB on every API response and have the browser echo
+ * it back on every request afterwards -- to fix nothing, since that cookie is a
+ * five-minute read cache and its lifetime logs nobody out. The token cookie is
+ * written only when a refresh actually happened, so in steady state this
+ * appends nothing at all: one small header per reader per week.
+ *
+ * Appending it to an API response is safe, and that rests on a fact worth
+ * stating out loud: every Cloudflare cache rule (brigadasos-infra,
+ * terraform/cloudflare-cache.tf) is conditioned on `not http.cookie contains
+ * "nadeshiko.session_token"`, so a request that can produce this header is a
+ * request the edge never caches. Re-check that before edge-caching anything
+ * session-authenticated.
+ *
+ * Never throws. A failure to renew a cookie must not become a 401 for a reader
+ * whose session is perfectly valid -- which is what would happen if this threw
+ * inside the caller's `try`.
+ */
+async function forwardRenewedSessionCookie(res: Response, headers: Headers | undefined | null): Promise<void> {
+  try {
+    const entries = headers?.getSetCookie?.() ?? [];
+    if (entries.length === 0) return;
+
+    const name = await getSessionTokenCookieName();
+    // `${name}.` catches the chunked variants better-auth writes when a cookie
+    // outgrows the 4KB limit (`${name}.0`, `${name}.1`, ...). The session token
+    // is far too short to chunk today, but a filter that would silently forward
+    // half a cookie later is not worth the two characters saved.
+    const renewed = entries.filter((entry) => entry.startsWith(`${name}=`) || entry.startsWith(`${name}.`));
+    if (renewed.length === 0) return;
+
+    for (const cookie of renewed) {
+      res.append('Set-Cookie', cookie);
+    }
+  } catch (error) {
+    logger.warn({ err: error }, 'Could not forward the renewed session cookie');
+  }
+}
+
+export const requireSessionAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   if (req.auth) return next();
 
   try {
-    const sessionData = await auth.api.getSession({
+    // `returnHeaders` is what makes the renewal above reachable: without it
+    // better-auth still slides the row and still builds the cookie, and the
+    // cookie is thrown away with the rest of the response envelope.
+    const { headers, response: sessionData } = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
       query: { disableCookieCache: true },
+      returnHeaders: true,
     });
+
+    await forwardRenewedSessionCookie(res, headers);
 
     if (!sessionData?.user?.id) {
       throw new AuthCredentialsRequiredError('Session token missing.');
