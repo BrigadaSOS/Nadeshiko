@@ -594,9 +594,14 @@ parameter, which aborts the deploy at secret resolution before anything is
 built.
 
 ```bash
-aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
-  --name /nadeshiko/prod/SMTP_PASSWORD --type SecureString \
-  --value '<ZeptoMail Send Mail Token>'
+# Both tiers, same token: staging sends through the production Agent. See
+# "Bounces, complaints, and the suppression list" for what that does and does
+# not imply.
+for TIER in prod staging; do
+  aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
+    --name "/nadeshiko/$TIER/SMTP_PASSWORD" --type SecureString \
+    --value '<ZeptoMail Send Mail Token>' --overwrite
+done
 ```
 
 **The static-AWS-credentials TODO that used to be here is CLOSED**, and by
@@ -647,13 +652,41 @@ Four implementation details are not guessable, and the first two are places wher
 **The webhook cannot be created before the endpoint is live.** The console's
 Verify button POSTs to the URL and refuses to save unless it answers, so the order
 is: secret into SSM, deploy, *then* configure the webhook at
-`https://api.nadeshiko.co/v1/webhooks/zeptomail`. Staging has its own Agent, its
-own secret, and its own webhook.
+`https://api.nadeshiko.co/v1/webhooks/zeptomail`.
+
+**Staging and production share one ZeptoMail Agent**, deliberately. The `nadeshiko`
+Agent, its Send Mail Token and its webhook secret are the same values in
+`/nadeshiko/prod/*` and `/nadeshiko/staging/*` — one sending identity, one DKIM
+key, one reputation to watch. Two Agents would mean two of each, and the second
+one is the one nobody looks at.
+
+Three things follow from that, and none of them are bugs to fix:
+
+- **A webhook belongs to an Agent, not to an environment, so there is exactly one
+  and it points at production.** A bounce from mail staging sent is delivered to
+  `api.nadeshiko.co` and lands in the production database. That is the intended
+  reading: the address really did bounce, and it is the same reader either way.
+- **`ZEPTOMAIL_WEBHOOK_SECRET` is identical in both tiers**, which is what lets
+  that single webhook be re-pointed at `api-stg.nadeshiko.co` for an afternoon
+  without minting anything. While it points at staging, production learns about no
+  bounces at all — so point it back.
+- **Staging sends spend production's credits and production's reputation.** The
+  ceiling on that is `LIFECYCLE_EMAILS_ONLY_TO` in `deploy.staging.yml`, which is
+  why that allowlist is mandatory there rather than merely advisable: staging is
+  reseeded from prod, so its `User` table holds real addresses and the Agent
+  behind it is the real one.
 
 ```bash
-aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
-  --name /nadeshiko/prod/ZEPTOMAIL_WEBHOOK_SECRET --type SecureString \
-  --value "$(openssl rand -base64 32)"
+# The SAME value goes into both tiers -- one Agent, one webhook, one secret it
+# is checked against. Generated once and written twice rather than twice over,
+# because two values would leave whichever tier the webhook is not pointing at
+# quietly unable to accept a delivery.
+SECRET="$(openssl rand -base64 32)"
+for TIER in prod staging; do
+  aws ssm put-parameter --profile nadeshiko-admin --region eu-north-1 \
+    --name "/nadeshiko/$TIER/ZEPTOMAIL_WEBHOOK_SECRET" --type SecureString \
+    --value "$SECRET" --overwrite
+done
 ```
 
 What arrives becomes an `EmailEvent` row (the log, deduped on the provider's
