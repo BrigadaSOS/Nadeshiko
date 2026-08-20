@@ -11,12 +11,7 @@ setupTestSuite();
  * single-element array. The published documentation carries no complete sample,
  * so the parser accepts both this and the unwrapped form, and both are tested.
  */
-function bouncePayload(overrides: {
-  event?: string;
-  address?: string;
-  requestId?: string;
-  wrap?: boolean;
-} = {}) {
+function bouncePayload(overrides: { event?: string; address?: string; requestId?: string; wrap?: boolean } = {}) {
   const event = overrides.event ?? 'hardbounce';
   const address = overrides.address ?? 'gone@example.com';
   const wrap = overrides.wrap ?? true;
@@ -96,9 +91,7 @@ describe('recordZeptomailPayload', () => {
    * configured, and teach everyone the channel cries wolf.
    */
   it('ignores the zylker.com samples a Verify probe sends', async () => {
-    const events = await recordZeptomailPayload(
-      bouncePayload({ event: 'feedback', address: 'rebecca@zylker.com' }),
-    );
+    const events = await recordZeptomailPayload(bouncePayload({ event: 'feedback', address: 'rebecca@zylker.com' }));
 
     expect(events).toHaveLength(0);
     expect(await EmailEvent.count()).toBe(0);
@@ -184,9 +177,7 @@ describe('recordZeptomailPayload', () => {
    */
   it('keeps the first cause when a second event would suppress again', async () => {
     await recordZeptomailPayload(bouncePayload({ address: 'both@example.com', requestId: 'wh-a' }));
-    await recordZeptomailPayload(
-      bouncePayload({ event: 'feedback', address: 'both@example.com', requestId: 'wh-b' }),
-    );
+    await recordZeptomailPayload(bouncePayload({ event: 'feedback', address: 'both@example.com', requestId: 'wh-b' }));
 
     const rows = await EmailSuppression.findBy({ address: 'both@example.com' });
     expect(rows).toHaveLength(1);
