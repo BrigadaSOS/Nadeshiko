@@ -65,10 +65,15 @@ test.describe('Expand sentence', () => {
     await search.expectResultsVisible();
   });
 
+  // The menu is looked up on the PAGE, not under the trigger. `more-dropdown`
+  // passes `teleport`, so DropdownContainer renders the panel into `body` and it
+  // is not a descendant of the card it belongs to -- scoping to the dropdown
+  // matches nothing. Page scope is safe because `useDropdownState` keeps at most
+  // one menu open at a time, and the toggle above has just opened this one.
   const openMenu = async (card: import('@playwright/test').Locator) => {
     const dropdown = card.getByTestId('more-dropdown');
     await dropdown.getByTestId('dropdown-toggle').click();
-    const menu = dropdown.getByTestId('dropdown-menu');
+    const menu = card.page().getByTestId('dropdown-menu');
     await expect(menu).toBeVisible();
     return menu;
   };

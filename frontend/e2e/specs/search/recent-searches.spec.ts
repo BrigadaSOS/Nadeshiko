@@ -207,7 +207,9 @@ test.describe('Recent searches', () => {
     const copy = search.segmentCards.first().getByTestId('copy-dropdown');
     await copy.getByTestId('dropdown-toggle').click();
 
-    await expect(copy.getByTestId('dropdown-menu')).toBeVisible();
+    // Page-scoped: `copy-dropdown` teleports its panel to `body`, so it is not
+    // under the trigger and `copy.getByTestId('dropdown-menu')` matches nothing.
+    await expect(page.getByTestId('dropdown-menu')).toBeVisible();
     await expect(search.recentsMenu).toBeHidden();
   });
 
