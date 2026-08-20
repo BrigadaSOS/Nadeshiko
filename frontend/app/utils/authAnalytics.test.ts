@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   acquisitionSetOnce,
   ANALYTICS_IDENTITY_KEY,
+  FIRST_TOUCH_KEY,
+  firstTouchSetOnce,
+  readFirstTouch,
+  rememberFirstTouch,
   ANALYTICS_SESSION_KEY,
   AUTH_CALLBACK_PARAM,
   AUTH_GATE_PARAM,
@@ -444,5 +448,100 @@ describe('authEventProperties', () => {
     expect(
       authEventProperties({ gate: 'anki_add_search', source: 'anki_add_search', provider: 'magic_link', at: NOW }),
     ).toEqual({ provider: 'magic_link', source: 'anki_add_search', gate: 'anki_add_search' });
+  });
+});
+
+describe('rememberFirstTouch', () => {
+  const visit = (over: Partial<Parameters<typeof rememberFirstTouch>[1]> = {}) => ({
+    referrer: '',
+    search: '',
+    pathname: '/',
+    ownHost: 'nadeshiko.co',
+    ...over,
+  });
+
+  it('records the referring domain and where they landed', () => {
+    const storage = fakeStorage();
+
+    rememberFirstTouch(storage, visit({ referrer: 'https://www.reddit.com/r/x', pathname: '/search/kimi' }), NOW);
+
+    expect(readFirstTouch(storage)).toEqual({ referrer: 'www.reddit.com', landing: '/search/kimi', at: NOW });
+  });
+
+  /**
+   * The contract the whole thing rests on. Every later page load and the OAuth
+   * round trip all call this, and any of them overwriting would turn "where did
+   * they come from" into "where were they last".
+   */
+  it('never overwrites what it already knows', () => {
+    const storage = fakeStorage();
+
+    rememberFirstTouch(storage, visit({ referrer: 'https://www.reddit.com/r/x' }), NOW);
+    rememberFirstTouch(storage, visit({ referrer: 'https://accounts.google.com/' }), NOW + 60_000);
+
+    expect(readFirstTouch(storage)?.referrer).toBe('www.reddit.com');
+  });
+
+  /**
+   * A same-origin referrer is an internal navigation that happened to be a full
+   * page load. Counting it as an acquisition is not a rounding error --
+   * `nadeshiko.co` was the second-largest "source" on the site at 2,389 people.
+   */
+  it('folds our own domain into direct', () => {
+    const storage = fakeStorage();
+
+    rememberFirstTouch(storage, visit({ referrer: 'https://nadeshiko.co/search/x' }), NOW);
+
+    expect(readFirstTouch(storage)?.referrer).toBe('$direct');
+  });
+
+  it('reads no referrer as direct', () => {
+    const storage = fakeStorage();
+
+    rememberFirstTouch(storage, visit(), NOW);
+
+    expect(readFirstTouch(storage)?.referrer).toBe('$direct');
+  });
+
+  it('keeps the campaign tags when there are any', () => {
+    const storage = fakeStorage();
+
+    rememberFirstTouch(storage, visit({ search: '?utm_source=discord&utm_medium=bot&utm_campaign=search' }), NOW);
+
+    expect(firstTouchSetOnce(storage).$set_once).toMatchObject({
+      first_touch_utm_source: 'discord',
+      first_touch_utm_medium: 'bot',
+      first_touch_utm_campaign: 'search',
+    });
+  });
+
+  /**
+   * `$set_once` can only be written once, so a blank tag would burn the slot on
+   * a confident nothing -- the same reason `acquisitionSetOnce` omits an unknown
+   * provider.
+   */
+  it('omits campaign tags rather than storing them empty', () => {
+    const storage = fakeStorage();
+
+    rememberFirstTouch(storage, visit({ referrer: 'https://www.google.com/' }), NOW);
+
+    expect(firstTouchSetOnce(storage).$set_once).toEqual({
+      first_touch_referrer: 'www.google.com',
+      first_touch_landing: '/',
+    });
+  });
+
+  it('says nothing at all when there is no first touch parked', () => {
+    expect(firstTouchSetOnce(fakeStorage())).toEqual({});
+  });
+
+  it('survives storage that refuses every operation', () => {
+    expect(() => rememberFirstTouch(hostileStorage, visit(), NOW)).not.toThrow();
+    expect(readFirstTouch(hostileStorage)).toBeNull();
+    expect(firstTouchSetOnce(hostileStorage)).toEqual({});
+  });
+
+  it('treats a malformed record as nothing rather than throwing', () => {
+    expect(readFirstTouch(fakeStorage({ [FIRST_TOUCH_KEY]: 'not json' }))).toBeNull();
   });
 });

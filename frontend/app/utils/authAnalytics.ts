@@ -30,7 +30,18 @@
  * Add a member here rather than passing a free string, so the values stay a
  * closed set that a PostHog breakdown can be read off without cleaning.
  */
-export const AUTH_GATES = ['anki_add_last', 'anki_add_search', 'collection_choose', 'report_segment'] as const;
+export const AUTH_GATES = [
+  'anki_add_last',
+  'anki_add_search',
+  'collection_choose',
+  'report_segment',
+  // The two below are not walls the reader ran into -- they are asks we made
+  // first, from `useSignupNudge`. They sit in the same closed set anyway so that
+  // one PostHog breakdown compares "we blocked them" against "we offered", which
+  // is the comparison that decides whether either approach is worth keeping.
+  'download_nudge',
+  'depth_nudge',
+] as const;
 
 export type AuthGate = (typeof AUTH_GATES)[number];
 
@@ -487,4 +498,146 @@ export function acquisitionSetOnce(properties: ReturnType<typeof authEventProper
   if (properties.gate) setOnce.signup_gate = properties.gate;
 
   return Object.keys(setOnce).length > 0 ? { $set_once: setOnce } : {};
+}
+
+/**
+ * Where this browser first arrived from, recorded once and never again.
+ *
+ * WHY THIS EXISTS RATHER THAN `$initial_referring_domain`. posthog-js sets that
+ * family of properties, but only on a person profile, and `person_profiles`
+ * defaults to `identified_only` -- so for a signed-out visitor there is no
+ * profile to set them on, and by the time one exists (at signup) the referrer is
+ * whichever OAuth provider just redirected them back. In the 90 days to
+ * 2026-08-20 that left 18,538 of ~18,900 people with no first-touch property at
+ * all, which is why "where do our signups come from" had no answer: the
+ * event-level referrer was fine and there was nothing to join it to.
+ *
+ * Turning `person_profiles` up to `always` would also fix it, at the cost of a
+ * billable profile for every anonymous reader. This costs one localStorage key.
+ */
+export const FIRST_TOUCH_KEY = 'nd-first-touch';
+
+export interface FirstTouch {
+  /** Referring domain, or `$direct`. Matches what posthog-js would have stored. */
+  referrer: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  /** Where they landed, path only -- a full URL would carry the query with it. */
+  landing: string;
+  /** Epoch ms. Never compared against, only reported; the age is the useful part. */
+  at: number;
+}
+
+/**
+ * The referring domain, with our own domain folded into `$direct`.
+ *
+ * A same-origin referrer is an internal navigation that happened to be a full
+ * page load, not an acquisition, and counting it as one is not a rounding error:
+ * `nadeshiko.co` was the second-largest "source" on the site at 2,389 people.
+ */
+function referrerDomain(referrer: string, ownHost: string): string {
+  if (!referrer) return '$direct';
+  try {
+    const { hostname } = new URL(referrer);
+    return hostname === ownHost ? '$direct' : hostname;
+  } catch {
+    return '$direct';
+  }
+}
+
+/**
+ * Records the first touch, or leaves the existing one alone.
+ *
+ * WRITE-ONCE IS THE ENTIRE CONTRACT. The second visit, the OAuth round trip and
+ * every later page load all call this, and any of them overwriting would turn
+ * "where did they come from" into "where were they last", which is the question
+ * the event-level referrer already answers.
+ */
+export function rememberFirstTouch(
+  storage: IntentStorage | undefined,
+  visit: { referrer: string; search: string; pathname: string; ownHost: string },
+  now: number,
+): void {
+  if (!storage) return;
+
+  try {
+    if (storage.getItem(FIRST_TOUCH_KEY)) return;
+  } catch {
+    return;
+  }
+
+  const params = new URLSearchParams(visit.search);
+  const touch: FirstTouch = {
+    referrer: referrerDomain(visit.referrer, visit.ownHost),
+    landing: visit.pathname,
+    at: now,
+  };
+
+  // Omitted rather than stored empty, for the same reason `acquisitionSetOnce`
+  // omits an unknown provider: these become `$set_once` keys, and a blank one
+  // burns the slot on a confident nothing.
+  const source = params.get('utm_source');
+  const medium = params.get('utm_medium');
+  const campaign = params.get('utm_campaign');
+  if (source) touch.utmSource = source;
+  if (medium) touch.utmMedium = medium;
+  if (campaign) touch.utmCampaign = campaign;
+
+  try {
+    storage.setItem(FIRST_TOUCH_KEY, JSON.stringify(touch));
+  } catch {
+    // Same reasoning as `rememberAuthIntent`: attribution is never worth
+    // breaking the visit it is describing.
+  }
+}
+
+/** Reads the parked first touch. Absent or malformed both read as nothing. */
+export function readFirstTouch(storage: IntentStorage | undefined): FirstTouch | null {
+  if (!storage) return null;
+
+  let raw: string | null = null;
+  try {
+    raw = storage.getItem(FIRST_TOUCH_KEY);
+  } catch {
+    return null;
+  }
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<FirstTouch>;
+    if (typeof parsed?.referrer !== 'string') return null;
+    return {
+      referrer: parsed.referrer,
+      landing: typeof parsed.landing === 'string' ? parsed.landing : '/',
+      at: typeof parsed.at === 'number' ? parsed.at : 0,
+      ...(parsed.utmSource ? { utmSource: parsed.utmSource } : {}),
+      ...(parsed.utmMedium ? { utmMedium: parsed.utmMedium } : {}),
+      ...(parsed.utmCampaign ? { utmCampaign: parsed.utmCampaign } : {}),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The first touch as person properties, for the signup identify.
+ *
+ * `$set_once` rather than `$set`, matching `acquisitionSetOnce`: this describes
+ * how the account was won and must not move when they come back through a
+ * different door.
+ */
+export function firstTouchSetOnce(storage: IntentStorage | undefined): { $set_once?: Record<string, string> } {
+  const touch = readFirstTouch(storage);
+  if (!touch) return {};
+
+  const setOnce: Record<string, string> = {
+    first_touch_referrer: touch.referrer,
+    first_touch_landing: touch.landing,
+  };
+  if (touch.utmSource) setOnce.first_touch_utm_source = touch.utmSource;
+  if (touch.utmMedium) setOnce.first_touch_utm_medium = touch.utmMedium;
+  if (touch.utmCampaign) setOnce.first_touch_utm_campaign = touch.utmCampaign;
+
+  return { $set_once: setOnce };
 }
