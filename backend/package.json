@@ -19,6 +19,8 @@
     "lint:fix": "biome check . --write",
     "generate:api": "node --import tsx bin/generateApi.ts",
     "email:lift": "node --env-file-if-exists=.env --import tsx bin/liftEmailSuppression.ts",
+    "email:audience": "node --env-file-if-exists=.env --import tsx bin/exportEmailAudience.ts",
+    "email:sync-unsubscribes": "node --env-file-if-exists=.env --import tsx bin/syncCampaignsUnsubscribes.ts",
     "generate:auth-spec": "node --env-file-if-exists=.env --import tsx bin/generateAuthSpec.ts",
     "generate:bruno": "npm run docs:bundle && node --env-file-if-exists=.env --import tsx bin/generateBrunoCollection.ts",
     "generate:all": "npm run generate:api && npm run generate:bruno && npm run docs:build",
@@ -55,7 +57,6 @@
     "node": "^24 || >=26"
   },
   "dependencies": {
-    "@aws-sdk/client-sesv2": "^3.1108.0",
     "@better-auth/api-key": "^1.6.27",
     "@elastic/elasticsearch": "^9.4.3",
     "@nahkies/typescript-express-runtime": "0.26.0",

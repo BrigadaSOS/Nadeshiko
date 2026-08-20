@@ -1,15 +1,9 @@
 import type { Request, Response } from 'express';
-import { config } from '@config/config';
 import { logger } from '@config/log';
 import { recordWebhookRejected } from '@app/services/email/metrics';
 import type { WebhookRejectReason } from '@app/services/email/metrics';
-import {
-  extractPayload,
-  signatureValid,
-  tokenMatches,
-  SIGNATURE_HEADER,
-  TOKEN_HEADER,
-} from '@app/services/email/zeptomailSignature';
+import * as signature from '@app/services/email/zeptomailSignature';
+import { SIGNATURE_HEADER, TOKEN_HEADER } from '@app/services/email/zeptomailSignature';
 import { recordZeptomailPayload } from '@app/services/email/zeptomailEvent';
 import { WEBHOOK_ZEPTOMAIL_PATH } from './paths';
 
@@ -39,7 +33,7 @@ export { WEBHOOK_ZEPTOMAIL_PATH };
  */
 
 export async function handleZeptomailWebhook(req: Request, res: Response): Promise<void> {
-  const secret = config.ZEPTOMAIL_WEBHOOK_SECRET;
+  const secret = signature.getWebhookSecret();
 
   if (!secret) {
     // 503 rather than 401: this is our fault, not the caller's, and every bounce
@@ -49,11 +43,11 @@ export async function handleZeptomailWebhook(req: Request, res: Response): Promi
   }
 
   const raw = typeof req.body === 'string' ? req.body : '';
-  const payloadText = extractPayload(raw);
+  const payloadText = signature.extractPayload(raw);
 
   const authenticated =
-    tokenMatches(headerValue(req, TOKEN_HEADER), secret) ||
-    signatureValid({ header: headerValue(req, SIGNATURE_HEADER), payload: payloadText, secret });
+    signature.tokenMatches(headerValue(req, TOKEN_HEADER), secret) ||
+    signature.signatureValid({ header: headerValue(req, SIGNATURE_HEADER), payload: payloadText, secret });
 
   if (!authenticated) {
     reject(res, 'unauthenticated', 401);

@@ -1,30 +1,45 @@
 import { request } from '../../helpers/http';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import crypto from 'node:crypto';
-import { setupTestSuite, createTestApp } from '../../helpers/setup';
-import { config } from '@config/config';
+import type { MockInstance } from 'vitest';
+import { vi } from 'vitest';
+import { setupTestSuite } from '../../helpers/setup';
+import { buildApplication } from '@config/application';
+import { handleZeptomailWebhook } from '@app/controllers/webhooks/zeptomailController';
+import { WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/paths';
+import * as signature from '@app/services/email/zeptomailSignature';
 import { EmailEvent, EmailSuppression } from '@app/models';
 
 setupTestSuite();
 
-const app = createTestApp();
-const PATH = '/v1/webhooks/zeptomail';
+/**
+ * A dedicated app rather than `createTestApp`, which mounts only the subset of
+ * routes its callers need. The middleware under test is in `buildApplication`
+ * itself -- the text body parser that has to run before the JSON one -- so the
+ * app has to be built the real way for this to prove anything.
+ */
+const app = buildApplication({
+  rateLimit: false,
+  mountRoutes: (instance) => {
+    instance.post(WEBHOOK_ZEPTOMAIL_PATH, handleZeptomailWebhook);
+  },
+});
+
+const PATH = WEBHOOK_ZEPTOMAIL_PATH;
 const SECRET = 'webhook-secret-for-tests';
 
 /**
- * `config` is frozen at module load, so the secret is swapped in per test rather
- * than set through the environment: the app is already built by then.
+ * `config` is frozen at module load and the app is already built by the time a
+ * test runs, so the secret is stubbed at its accessor rather than assigned.
  */
-const mutableConfig = config as unknown as Record<string, string | undefined>;
-let originalSecret: string | undefined;
+let secretSpy: MockInstance;
 
 beforeEach(() => {
-  originalSecret = mutableConfig.ZEPTOMAIL_WEBHOOK_SECRET;
-  mutableConfig.ZEPTOMAIL_WEBHOOK_SECRET = SECRET;
+  secretSpy = vi.spyOn(signature, 'getWebhookSecret').mockReturnValue(SECRET);
 });
 
 afterEach(() => {
-  mutableConfig.ZEPTOMAIL_WEBHOOK_SECRET = originalSecret;
+  secretSpy.mockRestore();
 });
 
 function hardBounce(address = 'gone@example.com', requestId = 'wh-1') {
@@ -50,7 +65,7 @@ describe('POST /v1/webhooks/zeptomail', () => {
    * bounce arriving while it lasts is one we never learn about.
    */
   it('answers 503 and records nothing when no secret is configured', async () => {
-    mutableConfig.ZEPTOMAIL_WEBHOOK_SECRET = undefined;
+    secretSpy.mockReturnValue(undefined);
 
     const response = await request(app).post(PATH).set('Content-Type', 'application/json').send(hardBounce());
 

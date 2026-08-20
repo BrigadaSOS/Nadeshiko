@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { config } from '@config/config';
 
 /**
  * Proving a ZeptoMail webhook is really from ZeptoMail.
@@ -21,6 +22,18 @@ import crypto from 'node:crypto';
 export const TOKEN_HEADER = 'x-nadeshiko-webhook-token';
 
 export const SIGNATURE_HEADER = 'producer-signature';
+
+/**
+ * The shared secret both authentication paths are keyed on.
+ *
+ * Read through a function rather than off `config` at the call site because
+ * `config` is frozen at module load: a test that needs a configured endpoint
+ * cannot assign one, and assigning anyway throws inside a hook and leaves the
+ * suite's transaction open. This is the seam tests stub instead.
+ */
+export function getWebhookSecret(): string | undefined {
+  return config.ZEPTOMAIL_WEBHOOK_SECRET;
+}
 
 /**
  * How stale a signed payload may be. A signature with no freshness check is a
