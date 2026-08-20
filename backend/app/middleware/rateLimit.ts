@@ -128,7 +128,10 @@ export function isPrivateAddress(ip: string | undefined): boolean {
 // better-auth API-key limiter already surfaces RateLimitExceededError). Routing
 // through next() lets the central error handler attach the requestId/instance
 // and record the 4xx error metric.
-function buildHandler(scope: 'global' | 'auth' | 'feedback', detail: string): RequestHandler {
+function buildHandler(
+  scope: 'global' | 'auth' | 'feedback' | 'unsubscribe' | 'sign-in-address' | 'sign-in-global',
+  detail: string,
+): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     // The same address the bucket was keyed on, not `req.ip` -- otherwise the
     // log and the alert describe a different client than the one being counted.
@@ -203,6 +206,96 @@ export const feedbackRateLimit = rateLimit({
 });
 
 /**
+ * The unsubscribe endpoint, for callers reaching the API directly.
+ *
+ * ITS OWN BUCKET, sharing only the number with feedback. Both are
+ * unauthenticated writes and neither should be able to spend the other's
+ * budget: a burst of feedback spam must not be what stops somebody opting out of
+ * a recap, because the alternative they reach for is the spam button.
+ *
+ * Note this limits by IP, and `List-Unsubscribe-Post` arrives from the mailbox
+ * provider rather than the reader -- so a large send can produce many one-click
+ * unsubscribes from a handful of Google addresses. The window is generous enough
+ * for that; if it ever is not, the symptom is a 429 in `scope=unsubscribe` and
+ * the fix is a bypass for those callers, never a smaller limit.
+ */
+export const unsubscribeRateLimit = rateLimit({
+  windowMs: WINDOW_MS,
+  limit: FEEDBACK_MAX,
+  keyGenerator: clientKey,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: shouldSkip,
+  handler: buildHandler('unsubscribe', 'Too many unsubscribe requests from this IP. Please slow down.'),
+});
+
+/**
+ * The address a sign-in mail was asked for, lowercased.
+ *
+ * Falls back to the IP when there is no address to key on -- a malformed body
+ * still costs somebody's budget rather than slipping past both limits.
+ */
+function signInAddressKey(req: Request): string {
+  const email = (req.body as { email?: unknown } | undefined)?.email;
+  if (typeof email === 'string' && email.trim()) {
+    return `email:${email.trim().toLowerCase()}`;
+  }
+
+  return `ip:${clientKey(req)}`;
+}
+
+/**
+ * Five sign-in mails an hour to one address, which is the real budget: it is the
+ * thing that stops somebody being mailed repeatedly, and it replaced a silent
+ * 14-minute cooldown that sent nothing and said nothing.
+ *
+ * DELIBERATELY NO `skip: shouldSkip`, and this is the one line in this file
+ * worth reading twice. Every other limiter here skips traffic that arrived
+ * through our own frontend, because they key on the IP and behind the proxy
+ * every reader collapses onto one bucket -- limiting that would throttle
+ * everybody against a single counter. This one keys on the ADDRESS, which has no
+ * such collapse, and browser traffic is essentially every real sign-in. Skipping
+ * it would exempt the entire audience and leave the limit guarding nothing but
+ * direct API callers.
+ */
+export const signInAddressRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  keyGenerator: signInAddressKey,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: buildHandler(
+    'sign-in-address',
+    'Too many sign-in emails for that address. Please wait before asking for another.',
+  ),
+});
+
+/**
+ * The ceiling on outbound sign-in mail for the whole application.
+ *
+ * The one abuse a per-address and a per-IP limit cannot see between them: an
+ * attacker with a thousand addresses across a botnet stays under both and still
+ * spends a thousand mails an hour of our sending reputation. Keyed on a constant
+ * so every request shares one counter.
+ *
+ * Set far above real traffic. Reaching it refuses EVERYONE until the window
+ * rolls, which is a genuine cost -- nobody can sign in -- and it is the trade
+ * taken deliberately, because an Agent banned for abuse costs more and lasts
+ * longer. Since the SES removal there is no second transport to fall back to.
+ */
+export const signInGlobalRateLimit = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: 2_000,
+  keyGenerator: () => 'sign-in-global',
+  standardHeaders: false,
+  legacyHeaders: false,
+  handler: buildHandler(
+    'sign-in-global',
+    'Sign-in email is temporarily unavailable. Please try again later, or use a link you already have.',
+  ),
+});
+
+/**
  * Clears every limiter's hit counters.
  *
  * The limiters are module singletons backed by an in-memory store, so in a
@@ -214,7 +307,14 @@ export const feedbackRateLimit = rateLimit({
 export function resetRateLimiters(): void {
   // `resetAll` is optional on the store rather than the handler, so it is not on
   // the handler's public type even though the default memory store implements it.
-  for (const limiter of [globalRateLimit, authRateLimit, feedbackRateLimit]) {
+  for (const limiter of [
+    globalRateLimit,
+    authRateLimit,
+    feedbackRateLimit,
+    unsubscribeRateLimit,
+    signInAddressRateLimit,
+    signInGlobalRateLimit,
+  ]) {
     (limiter as unknown as { resetAll?: () => void }).resetAll?.();
   }
 }

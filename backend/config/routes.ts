@@ -13,7 +13,16 @@ import { AppDataSource } from '@config/database';
 import { client as elasticsearchClient } from '@config/elasticsearch';
 import { routeAuth } from 'generated/routeAuth';
 import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInvalidation';
-import { authRateLimit, feedbackRateLimit } from '@app/middleware/rateLimit';
+import {
+  authRateLimit,
+  feedbackRateLimit,
+  signInAddressRateLimit,
+  signInGlobalRateLimit,
+  unsubscribeRateLimit,
+} from '@app/middleware/rateLimit';
+import { loginCodeBinding } from '@app/middleware/loginCodeBinding';
+import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
+import { config } from '@config/config';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
 import { handleZeptomailWebhook, WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/zeptomailController';
@@ -68,6 +77,7 @@ import {
   bulkDeleteAdminReports,
 } from '@app/controllers/reportController';
 import { createFeedback, getFeedbackFormToken } from '@app/controllers/feedbackController';
+import { unsubscribeFromEmail } from '@app/controllers/emailController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import {
   listUserActivity,
@@ -107,6 +117,7 @@ import { createRouter as createAdminRouter } from 'generated/routes/admin';
 import { createRouter as createActivityRouter } from 'generated/routes/activity';
 import { createRouter as createUserRouter } from 'generated/routes/user';
 import { createRouter as createFeedbackRouter } from 'generated/routes/feedback';
+import { createRouter as createEmailRouter } from 'generated/routes/email';
 import { createRouter as createStatsRouter } from 'generated/routes/stats';
 
 export const noCache = (_req: Request, res: Response, next: NextFunction) => {
@@ -275,6 +286,10 @@ const FeedbackRoutes = createFeedbackRouter({
   getFeedbackFormToken,
 });
 
+const EmailRoutes = createEmailRouter({
+  unsubscribeFromEmail,
+});
+
 const StatsRoutes = createStatsRouter({
   getStatsOverview,
   getCoveredWords,
@@ -377,6 +392,7 @@ const AUTH_ROUTES: ReadonlySet<string> = new Set([
   '/v1/auth/revoke-other-sessions',
   '/v1/auth/revoke-session',
   '/v1/auth/revoke-sessions',
+  '/v1/auth/sign-in/email-otp',
   '/v1/auth/sign-in/magic-link',
   '/v1/auth/sign-in/social',
   '/v1/auth/sign-out',
@@ -417,6 +433,7 @@ for (const { method, path, middleware } of routeAuth) {
 router.get('/v1/admin/announcement', setRouteTemplate('/v1/admin/announcement'));
 router.post('/v1/feedback', setRouteTemplate('/v1/feedback'), feedbackRateLimit);
 router.get('/v1/feedback/token', setRouteTemplate('/v1/feedback/token'), feedbackRateLimit);
+router.post('/v1/email/unsubscribe', setRouteTemplate('/v1/email/unsubscribe'), unsubscribeRateLimit);
 
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);
@@ -426,6 +443,7 @@ router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
 router.use('/', FeedbackRoutes);
+router.use('/', EmailRoutes);
 
 // The ZeptoMail bounce/complaint webhook.
 //
@@ -436,6 +454,15 @@ router.use('/', FeedbackRoutes);
 //
 // Its body is parsed as text a layer earlier (config/application.ts) so the HMAC
 // can be checked against the exact bytes ZeptoMail sent.
+//
+// It sits behind the GLOBAL per-IP limiter, which is what we want against a
+// public URL scanners will find. ZeptoMail delivers from a small set of
+// addresses, so in principle a mass bounce could be 429'd and lost -- but the
+// limit is 300/min against a service that sends a handful of transactional mails
+// a day, so reaching it would take a send this app cannot currently make. If
+// volume ever changes that, this route needs its own bucket: a 429 here is a
+// bounce we never learn about, because ZeptoMail's retry behaviour is
+// undocumented.
 router.post(WEBHOOK_ZEPTOMAIL_PATH, noCache, setRouteTemplate(WEBHOOK_ZEPTOMAIL_PATH), handleZeptomailWebhook);
 
 export function mountRoutes(app: Application): Application {
@@ -443,6 +470,43 @@ export function mountRoutes(app: Application): Application {
 
   // Tighter per-IP limit on the auth surface (scoped before the auth handlers).
   app.use('/v1/auth', authRateLimit);
+
+  // Ties a sign-in code to the browser that asked for it, on the two paths that
+  // issue and spend one. Ahead of `toNodeHandler` so a code from a browser that
+  // never asked is refused before better-auth counts it as a failed attempt --
+  // otherwise a stranger's guesses would burn the real reader's five tries.
+  app.use(loginCodeBinding);
+
+  // What actually bounds outbound sign-in mail: five an hour to one address, and
+  // a ceiling across the whole application. Scoped to the send, not to
+  // `/v1/auth` as a whole -- verifying a link or reading a session costs no mail
+  // and must keep working while somebody is over their budget.
+  //
+  // Ahead of `toNodeHandler`, so a refused request never reaches better-auth and
+  // never becomes a row. Both answer 429 with `Retry-After`, which is what the
+  // modal counts down from.
+  //
+  // NOT MOUNTED LOCALLY, which is a routing decision rather than a `skip` inside
+  // the limiters: local mail goes to letter-opener and the point of the local
+  // flow is running it again and again, where a budget locks out the only person
+  // it can reach. Keeping the limiters themselves free of an environment check
+  // is also what lets the suite -- which runs as `local` -- exercise them.
+  //
+  // ADDRESS BEFORE CEILING, and the order is load-bearing: each limiter spends
+  // its counter as the request passes through, so a ceiling mounted first is
+  // spent by requests the address limiter is about to refuse. One client
+  // hammering a single address -- or posting garbage bodies -- would be refused
+  // after five and still drain the day's 2,000 in as many requests, taking
+  // sign-in mail offline for everyone. Counting only what survives the
+  // per-address gate makes exhausting the ceiling take ~400 distinct addresses
+  // each under 5/hour, which is the mail-volume abuse it exists for.
+  //
+  // The trade: with the address limiter first, its in-memory key cardinality is
+  // bounded by the upstream per-IP limiters rather than by the ceiling. Keys
+  // expire with the hour window, so that is a bounded cost worth paying.
+  if (getAppEnvironment(config.ENVIRONMENT) !== APP_ENVIRONMENT.LOCAL) {
+    app.post('/v1/auth/sign-in/magic-link', signInAddressRateLimit, signInGlobalRateLimit);
+  }
 
   app.all(
     '/v1/auth/magic-link/verify',
@@ -468,4 +532,5 @@ export {
   AdminRoutes,
   UserRoutes,
   FeedbackRoutes,
+  EmailRoutes,
 };
