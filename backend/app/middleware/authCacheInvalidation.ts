@@ -30,7 +30,13 @@ async function resolveAuthenticatedUserId(headers: NodeJS.Dict<string | string[]
   try {
     const sessionData = await auth.api.getSession({
       headers: fromNodeHeaders(headers),
-      query: { disableCookieCache: true },
+      // `disableRefresh` because this call wants an identity and nothing else,
+      // and a session read is not free of side effects: without it, a read here
+      // can be the one that slides the session -- and then it is better-auth's
+      // own handler, running next on this very request, that finds nothing due
+      // and sends the browser no renewed cookie. The renewal only comes round
+      // once a week, so a caller that cannot deliver it must not spend it.
+      query: { disableCookieCache: true, disableRefresh: true },
     });
 
     const userId = Number(sessionData?.user?.id);
