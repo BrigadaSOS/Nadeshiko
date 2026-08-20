@@ -16,7 +16,7 @@ import {
   mdiVolumeHigh,
 } from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
-import type { AnkiProfile } from '@/stores/anki';
+import type { AnkiConnectFailure, AnkiProfile } from '@/stores/anki';
 import { ANKI_CARD_CSS } from '~/utils/ankiWord';
 import { copyToClipboard } from '~/utils/media';
 import { handleApiError } from '~/utils/apiError';
@@ -288,6 +288,19 @@ onMounted(async () => {
   suppressWatchers = false;
 });
 
+/**
+ * The diagnosis, and the reason this panel is worth more than the toast it
+ * replaced.
+ *
+ * `connectFailure` is `null` on the paths that fail before anything is attempted
+ * (no active profile), so `unreachable` is the fallback -- it is the reason that
+ * generic advice fits, which is exactly what an unknown failure needs.
+ */
+const failureReason = computed<AnkiConnectFailure>(() => store.connectFailure ?? 'unreachable');
+const failureTitle = computed(() => t(`accountSettings.anki.connectFailure.${failureReason.value}.title`));
+const failureBody = computed(() => t(`accountSettings.anki.connectFailure.${failureReason.value}.body`));
+const showGenericTips = computed(() => failureReason.value === 'unreachable');
+
 const fetchAndLoad = async () => {
   if (!store.activeProfile) return;
 
@@ -450,12 +463,18 @@ watch(ankiconnectAddress, (newValue) => {
                   d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
                   clip-rule="evenodd" />
               </svg>
-              <strong class="block font-medium">{{ $t('accountSettings.anki.connectionError') }}</strong>
+              <strong class="block font-medium">{{ failureTitle }}</strong>
             </div>
             <p class="mt-2 text-sm text-red-700 dark:text-red-200">
-              {{ $t('accountSettings.anki.errorMessage') }}
+              {{ failureBody }}
             </p>
-            <ol class="pl-5 text-sm dark:text-red-200 list-disc">
+            <!--
+              The three generic tips only for `unreachable`. Every other reason
+              names its own fix above, and listing "make sure Anki is running"
+              under "Anki is running and is waiting for you" is how this panel
+              used to send people looking in the wrong place.
+            -->
+            <ol v-if="showGenericTips" class="pl-5 text-sm dark:text-red-200 list-disc">
               <li>
                 {{ $t('accountSettings.anki.troubleshootingTips.ankiRunning') }}
                 <a class="underline text-blue-400" href="https://ankiweb.net/shared/info/2055492159">Ankiconnect</a>
