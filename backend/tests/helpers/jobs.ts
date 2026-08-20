@@ -65,6 +65,8 @@ export async function performEnqueuedJobs(block: () => Promise<void>): Promise<v
   }
 
   for (const job of emailJobs) {
-    await sendEmail(job);
+    // Same fallback the real worker uses: `kind` is optional on the job so a
+    // rollout does not strand jobs enqueued by the previous deploy.
+    await sendEmail({ ...job, kind: job.kind ?? 'unknown' });
   }
 }
