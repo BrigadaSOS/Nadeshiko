@@ -11,6 +11,41 @@ interface AnkiNote {
   tags: string[];
 }
 
+/**
+ * Why the last attempt to reach AnkiConnect did not end in usable data.
+ *
+ * A closed set, for the same reason `AUTH_GATES` is one: each member is both a
+ * PostHog breakdown value and the key of the tip the settings page shows, and a
+ * free string would give us an uncategorised failure and a panel with nothing in
+ * it.
+ *
+ * The split that earns this type is `permission_denied` against `unreachable`.
+ * They were one outcome until now -- "could not establish connection" -- and they
+ * are opposites: an unreachable Anki is not running, while a denied one IS
+ * running, answered, and is waiting for the reader to click Allow on a dialog
+ * behind their browser. Telling the second group to check Anki is running is a
+ * dead end, and it is not a small group: 328 failed connection tests from 69
+ * readers in 30 days, against 479 successes from 86.
+ *
+ * - `unreachable` -- `fetch` itself rejected. Anki closed, add-on not installed,
+ *   origin not in the add-on's CORS list, or an extension blocking the request.
+ *   These are ONE reason on purpose: the browser reports all four as the same
+ *   opaque `TypeError`, and splitting them here would be invention.
+ * - `permission_denied` -- AnkiConnect answered and refused this origin.
+ * - `connect_error` -- it answered with an error of its own.
+ * - `http_error` -- it answered with a non-2xx status.
+ * - `no_decks` -- it answered, granted us access, and has nothing to export to.
+ */
+export const ANKI_CONNECT_FAILURES = [
+  'unreachable',
+  'permission_denied',
+  'connect_error',
+  'http_error',
+  'no_decks',
+] as const;
+
+export type AnkiConnectFailure = (typeof ANKI_CONNECT_FAILURES)[number];
+
 interface IAnkiState {
   availableDecks: string[];
   availableModels: string[];
@@ -25,6 +60,14 @@ interface IAnkiState {
    * answer instead of each discovering it separately.
    */
   connectReachable: boolean | null;
+  /**
+   * Why the last attempt failed, or `null` when the last one worked.
+   *
+   * Kept beside `connectReachable` rather than derived from it because the two
+   * answer different questions: `permission_denied` and `no_decks` both leave
+   * AnkiConnect perfectly reachable and still leave the reader unable to export.
+   */
+  connectFailure: AnkiConnectFailure | null;
 }
 
 interface IField {
@@ -122,6 +165,7 @@ export const ankiStore = defineStore('anki', {
     availableModels: [],
     activeProfileId: import.meta.client ? localStorage.getItem('anki-active-profile') : null,
     connectReachable: null,
+    connectFailure: null,
   }),
   getters: {
     profiles(): AnkiProfile[] {
@@ -218,6 +262,7 @@ export const ankiStore = defineStore('anki', {
         });
 
         if (!response.ok) {
+          this.connectFailure = 'http_error';
           throw new Error(`Failed to fetch ${action}.`);
         }
 
@@ -225,9 +270,29 @@ export const ankiStore = defineStore('anki', {
         // exactly "the last call reached it", and the word card already asks on
         // every open, so the controls get a live answer at no extra request.
         this.connectReachable = true;
-        return await response.json();
+
+        const body = await response.json();
+
+        // ANKICONNECT REPORTS ITS OWN FAILURES IN THE BODY, WITH A 200. A refused
+        // origin comes back as `{result: null, error: "..."}` and used to travel
+        // all the way to a caller reading `.result` off it, which is `null`, which
+        // is indistinguishable here from "Anki is closed". Recorded before the
+        // body is handed on so the reason survives even though the shape does not.
+        if (body?.error) {
+          this.connectFailure = 'connect_error';
+        } else {
+          this.connectFailure = null;
+        }
+
+        return body;
       } catch (error) {
         this.connectReachable = false;
+        // `http_error` was set above and is more specific than what we can tell
+        // from here, so it wins. Everything else reaching this branch is `fetch`
+        // itself rejecting, which the browser reports identically whether Anki is
+        // closed, the add-on is absent, the origin is not in its CORS list, or an
+        // extension ate the request -- see `ANKI_CONNECT_FAILURES`.
+        if (this.connectFailure !== 'http_error') this.connectFailure = 'unreachable';
         if (!options.silent) reportError('anki:connect-request-failed', error, { 'anki.action': action });
         // AnkiConnect is unreachable (Anki closed, add-on disabled, CORS refused).
         // Returning null explicitly -- every caller must treat this as "no answer"
@@ -241,7 +306,21 @@ export const ankiStore = defineStore('anki', {
       try {
         const permission = await this.requestPermission();
         if (permission === null) {
+          // `connectFailure` is already whatever `executeAction` decided --
+          // `unreachable`, `http_error` or `connect_error`. Left alone rather than
+          // overwritten, because it is the more specific answer.
           throw new Error('AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?');
+        }
+
+        // ANKI IS RUNNING AND SAID NO. This used to fall through: the check above
+        // only ruled out `null`, so a reader who dismissed AnkiConnect's "allow
+        // this origin?" dialog carried on to fetch decks, got an empty list, and
+        // was reported as `success: true` with `deck_count: 0`. They then read a
+        // panel telling them to make sure Anki was running -- which it was, with
+        // the dialog they needed sitting behind the browser window.
+        if (permission !== 'granted') {
+          this.connectFailure = 'permission_denied';
+          throw new Error(`AnkiConnect refused this site (permission: ${permission}).`);
         }
 
         const decks = await this.getAllDeckNames();
@@ -253,6 +332,16 @@ export const ankiStore = defineStore('anki', {
         if (models && Array.isArray(models)) {
           this.availableModels = models;
         }
+
+        // Granted, reachable, and nothing to export into. Rare, but it is a
+        // different fix from every other branch (make a deck) and it used to be
+        // counted as a success that the reader could not act on.
+        if (this.availableDecks.length === 0) {
+          this.connectFailure = 'no_decks';
+          throw new Error('AnkiConnect returned no decks.');
+        }
+
+        this.connectFailure = null;
         const posthog = usePostHog();
         posthog?.capture('anki_connection_tested', {
           success: true,
@@ -261,7 +350,13 @@ export const ankiStore = defineStore('anki', {
         });
       } catch (error) {
         const posthog = usePostHog();
-        posthog?.capture('anki_connection_tested', { success: false });
+        // The reason is the entire point of this event now. Without it the 328
+        // failures we can see in 30 days say only that something went wrong, and
+        // the fix for each of them is different.
+        posthog?.capture('anki_connection_tested', {
+          success: false,
+          reason: this.connectFailure ?? 'unreachable',
+        });
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to load Anki data: ${message}`);
       }
