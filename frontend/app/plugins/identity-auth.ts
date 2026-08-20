@@ -58,6 +58,9 @@ export default defineNuxtPlugin({
           // forwarding their cookie, while the SDK authenticates as the service.
 
           const { logger } = await import('~~/server/utils/logger');
+          const { applyRenewedSessionCookies, renewedSessionCookies } = await import(
+            '~~/server/utils/sessionCookieRenewal'
+          );
 
           // Session AND preferences share one cache entry. Fetching preferences
           // outside it meant every render of every page made an uncached round
@@ -68,28 +71,48 @@ export default defineNuxtPlugin({
           const identity = await ssrAuthFetch(event, async () => {
             let reachedBackend = true;
 
-            const session = await $fetch<{ user?: any; session?: any }>(sessionUrl, {
-              method: 'GET',
-              headers,
-              // ofetch retries GETs on 429 and 5xx by default, and both are
-              // wrong for a call blocking a render. Retrying a 429 attacks our
-              // own rate limiter: on 2026-08-09 that turned one throttled call
-              // into three and held a Nitro worker while it waited. The
-              // signed-out fallback below is cheaper than any retry.
-              retry: false,
-            }).catch((error: unknown) => {
-              // Rendering signed-out is the right fallback -- the page still works
-              // for a reader whose session we could not confirm. But an unreachable
-              // backend looks identical to a signed-out visitor from here, so it is
-              // logged: otherwise an auth outage shows up only as "everyone got
-              // logged out", with nothing in the logs to say why. `reachedBackend`
-              // carries that same distinction to the client, which retries on it.
-              logger.warn({ err: error }, 'SSR session lookup failed; rendering as signed out');
-              reachedBackend = false;
-              return null;
-            });
+            // `.raw` rather than a plain `$fetch`, for the response HEADERS and
+            // nothing else: this call is what makes the backend slide the
+            // session, and the renewed `Set-Cookie` it answers with has to be
+            // passed on to the browser or the reader is signed out 30 days
+            // after sign-in no matter how much they read. See
+            // `server/utils/sessionCookieRenewal.ts`.
+            const sessionResponse = await $fetch
+              .raw<{ user?: any; session?: any }>(sessionUrl, {
+                method: 'GET',
+                headers,
+                // ofetch retries GETs on 429 and 5xx by default, and both are
+                // wrong for a call blocking a render. Retrying a 429 attacks our
+                // own rate limiter: on 2026-08-09 that turned one throttled call
+                // into three and held a Nitro worker while it waited. The
+                // signed-out fallback below is cheaper than any retry.
+                retry: false,
+              })
+              .catch((error: unknown) => {
+                // Rendering signed-out is the right fallback -- the page still works
+                // for a reader whose session we could not confirm. But an unreachable
+                // backend looks identical to a signed-out visitor from here, so it is
+                // logged: otherwise an auth outage shows up only as "everyone got
+                // logged out", with nothing in the logs to say why. `reachedBackend`
+                // carries that same distinction to the client, which retries on it.
+                logger.warn({ err: error }, 'SSR session lookup failed; rendering as signed out');
+                reachedBackend = false;
+                return null;
+              });
 
-            if (!session?.user) return { session: null, preferences: {} as Record<string, any>, reachedBackend };
+            const session = sessionResponse?._data ?? null;
+            // Cached alongside the session rather than applied here: this
+            // callback runs inside `ssrAuthFetch`, so it is skipped entirely on
+            // a cache hit, and applying the header from in here would renew the
+            // cookie only for whichever render happened to miss. Re-emitting the
+            // same header for the other renders in that window is harmless --
+            // same token, and `Max-Age` is relative, so each one is a full 30
+            // days from when it is sent.
+            const renewedCookies = renewedSessionCookies(sessionResponse?.headers);
+
+            if (!session?.user) {
+              return { session: null, preferences: {} as Record<string, any>, reachedBackend, renewedCookies };
+            }
 
             const prefsUrl = internalBackendUrl(config, '/v1/user/preferences');
             const preferences = await $fetch<Record<string, any>>(prefsUrl, {
@@ -105,8 +128,10 @@ export default defineNuxtPlugin({
               return {} as Record<string, any>;
             });
 
-            return { session, preferences, reachedBackend };
+            return { session, preferences, reachedBackend, renewedCookies };
           });
+
+          applyRenewedSessionCookies(event, identity.renewedCookies);
 
           const response = identity.session;
           ssrCheck.value = identity.reachedBackend ? 'resolved' : 'failed';
