@@ -9,7 +9,7 @@ import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 // seam: the alternative is minting a real better-auth cookie per test.
 const getSession = vi.fn();
 vi.mock('@config/auth', () => ({
-  auth: { api: { getSession: () => getSession() } },
+  auth: { api: { getSession: (...args: unknown[]) => getSession(...args) } },
 }));
 
 // Captured rather than sent. The assertions that matter are which sender the
@@ -127,6 +127,11 @@ describe('POST /v1/feedback', () => {
     await request(app)
       .post('/v1/feedback')
       .send({ body: 'From my account', formToken: VALID_TOKEN(), email: 'someone-else@example.com' });
+
+    // Identity only. A session read slides the session, and this response has
+    // no way to give the browser the cookie that comes back -- the renewal is
+    // weekly, so spending it here would cost that reader the whole window.
+    expect(getSession).toHaveBeenCalledWith(expect.objectContaining({ query: { disableRefresh: true } }));
 
     const stored = await Feedback.findOneOrFail({ where: { body: 'From my account' } });
     expect(stored.userId).toBe(fixtures.users.kevin.id);

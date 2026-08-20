@@ -187,7 +187,13 @@ async function resolveSender(
   const anonymous = { userId: null, email: null, name: null };
 
   try {
-    const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
+    // `disableRefresh`: this only wants to know who is writing. Sliding the
+    // session from here would spend the weekly renewal on a response that has
+    // no way to hand the new cookie back -- see `requireSessionAuth`.
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+      query: { disableRefresh: true },
+    });
     const userId = Number(session?.user?.id);
     if (!Number.isInteger(userId) || userId <= 0) return anonymous;
 

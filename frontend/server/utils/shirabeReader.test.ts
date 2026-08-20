@@ -50,6 +50,10 @@ describe('readerHasOwnStack', () => {
     $fetch.mockResolvedValue({ user: { shirabe: { linked: true } } });
 
     expect(await readerHasOwnStack(fakeEvent(SIGNED_IN))).toBe(true);
+    // Never slides the session: a lookup answer can be stored in the shared
+    // cache, so the renewed cookie that a refresh returns could not be passed
+    // on from here even if it arrived. `identity-auth` is the path that can.
+    expect($fetch).toHaveBeenCalledWith(expect.stringContaining('disableRefresh=true'), expect.anything());
   });
 
   it('treats a signed-in reader who linked nothing as having no stack', async () => {
