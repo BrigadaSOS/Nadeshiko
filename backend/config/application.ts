@@ -12,8 +12,16 @@ import { globalRateLimit } from '@app/middleware/rateLimit';
 import { trafficClassification, trafficAttributesFor } from '@app/middleware/trafficClassification';
 import { mountRoutes as defaultMountRoutes } from '@config/routes';
 import { getMeter } from '@config/telemetry';
+import { WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/paths';
 
 const JSON_BODY_LIMIT = '10mb';
+
+/**
+ * A bounce notification is a few kilobytes. The generous global limit exists for
+ * segment payloads and has no business applying to a public, unauthenticated
+ * endpoint that anyone on the internet can post to.
+ */
+const WEBHOOK_BODY_LIMIT = '256kb';
 
 type RouteMounter = (app: Application) => void;
 
@@ -87,6 +95,22 @@ function configureMiddleware(
 
   // Capture response bodies BEFORE logging (must be before httpLogger)
   app.use(responseBodyLogger);
+
+  // The ZeptoMail webhook, before the JSON parser can reach it.
+  //
+  // Its body has to survive as the EXACT bytes that were sent, because the HMAC
+  // is computed over them, and it arrives in two different shapes: the docs
+  // describe form-encoded `data=<urlencoded JSON>` and the console posts plain
+  // JSON. `express.json` would parse one and ignore the other, leaving the
+  // signature uncheckable in both cases. `type: '*/*'` takes whichever turns up
+  // as text; body-parser marks the body handled, so the JSON parser below is a
+  // no-op for this path rather than a second read of a consumed stream.
+  //
+  // NO `verify: rawBodySaver` here on purpose. It would put the whole payload --
+  // a bouncing person's address and the receiving server's message about them --
+  // into the HTTP access log. The verified event is stored in `EmailEvent` where
+  // it is the subject of the record and access is controlled.
+  app.use(WEBHOOK_ZEPTOMAIL_PATH, express.text({ type: '*/*', limit: WEBHOOK_BODY_LIMIT }));
 
   // Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
   app.use(express.json({ limit: JSON_BODY_LIMIT, verify: rawBodySaver as any }));

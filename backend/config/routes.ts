@@ -16,6 +16,7 @@ import { invalidateAuthCachesAfterMutation } from '@app/middleware/authCacheInva
 import { authRateLimit, feedbackRateLimit } from '@app/middleware/rateLimit';
 import { search, getSearchStats, searchWords } from '@app/controllers/searchController';
 import { getAdminUsersWithProviders } from '@app/controllers/adminDashboardController';
+import { handleZeptomailWebhook, WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/zeptomailController';
 import { listTiers, getAdminUserQuota, updateAdminUserQuota } from '@app/controllers/adminQuotaController';
 import { getAnnouncement, updateAnnouncement } from '@app/controllers/announcementController';
 import { listAgentActivity } from '@app/controllers/agentActivityController';
@@ -425,6 +426,17 @@ router.use('/', CollectionsRoutes);
 router.use('/', AdminRoutes);
 router.use('/', UserRoutes);
 router.use('/', FeedbackRoutes);
+
+// The ZeptoMail bounce/complaint webhook.
+//
+// Registered by hand rather than generated, because it is a provider callback
+// and not part of the API contract the SDK publishes. It carries no session and
+// authenticates on a shared secret instead, so it must stay clear of the auth
+// middleware -- which it does by living outside `/v1/auth`.
+//
+// Its body is parsed as text a layer earlier (config/application.ts) so the HMAC
+// can be checked against the exact bytes ZeptoMail sent.
+router.post(WEBHOOK_ZEPTOMAIL_PATH, noCache, setRouteTemplate(WEBHOOK_ZEPTOMAIL_PATH), handleZeptomailWebhook);
 
 export function mountRoutes(app: Application): Application {
   app.get('/up', noCache, healthCheck);

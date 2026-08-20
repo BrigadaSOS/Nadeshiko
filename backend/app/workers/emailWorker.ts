@@ -19,13 +19,15 @@ export async function registerEmailWorkers(boss: PgBoss): Promise<void> {
 }
 
 async function handleEmailJob(job: Job<EmailJobData>): Promise<void> {
-  const { to, subject, html, replyTo } = job.data;
+  const { to, subject, html, replyTo, kind } = job.data;
 
   try {
-    await sendEmail({ to, subject, html, replyTo });
-    logger.info({ to, subject }, 'Email sent');
+    // `kind` is optional on the job so a rollout does not strand jobs enqueued by
+    // the previous deploy. Falling back to `welcome` would misattribute them, so
+    // they are counted honestly as what they are: unlabelled.
+    await sendEmail({ to, subject, html, replyTo, kind: kind ?? 'unknown' });
   } catch (error) {
-    logger.error({ err: error, to, subject }, 'Error processing email job');
+    logger.error({ err: error, 'email.kind': kind }, 'Error processing email job');
     throw error; // Re-throw to trigger pg-boss retry
   }
 }

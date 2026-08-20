@@ -11,9 +11,25 @@ import {
 } from './emailTemplates';
 import { createLetterOpenerTransport, getPreviewUrl, LETTER_OPENER_DIR } from './letterOpener';
 import { sendEmailJob } from '@app/workers/emailQueue';
+import { getTracer } from '@config/telemetry';
+import { recordError } from '@lib/errorFingerprint';
+import { isSuppressed } from '@app/services/email/suppression';
+import { recordEmailBlocked, recordEmailDeliveryError, recordEmailSent } from '@app/services/email/metrics';
+import type { EmailKind } from '@app/services/email/metrics';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 
+const tracer = getTracer();
+
 let transporter: nodemailer.Transporter | null = null;
+
+/**
+ * Test seam. The transport is memoised for the life of the process, which is
+ * right in production and wrong across test cases: the first file to send an
+ * email would otherwise pin every later one to its own mock.
+ */
+export function resetTransporterForTests(): void {
+  transporter = null;
+}
 
 /**
  * Lazily creates and returns a nodemailer transport configured for the appropriate environment.
@@ -91,6 +107,16 @@ interface EmailOptions {
   subject: string;
   html: string;
   /**
+   * Which message this is. Rides out as `X-TM-CLIENT-REF` and comes back on
+   * every bounce, complaint, and open as `client_reference`.
+   *
+   * Over SMTP it is the ONLY attribution we get: the webhook names an address,
+   * and without this nothing says which mail we sent it or why. It is also the
+   * `email.kind` metric label, which is what turns "our bounce rate is up" into
+   * "people are typo-ing addresses at the signup form".
+   */
+  kind: EmailKind;
+  /**
    * Who a reply goes to, when that is not us.
    *
    * Only the feedback notification sets it: those land in the team inbox but are
@@ -103,40 +129,66 @@ interface EmailOptions {
 
 /**
  * Sends an email directly (synchronous, for use by workers).
+ *
+ * THIS IS THE ENFORCEMENT POINT for the suppression list, and it works because
+ * every path funnels through here: `sendMagicLinkEmail` and `sendVerifyNewEmail`
+ * call it inline, and the queued welcome and feedback mails reach it through
+ * `emailWorker`. A check in each sender would be only as good as the discipline
+ * of whoever writes the next one. If you add a fifth mailer, route it through
+ * this function rather than reaching for the transport yourself.
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
   const fromEmail = config.SES_FROM_EMAIL;
   const fromName = config.SES_FROM_NAME;
 
-  try {
-    const transport = await getTransporter();
-
-    const info = await transport.sendMail({
-      from: `${fromName} <${fromEmail}>`,
-      replyTo: options.replyTo,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-    });
-
-    const previewUrl = getPreviewUrl(info);
-    if (previewUrl) {
-      logger.info(
-        {
-          to: options.to,
-          subject: options.subject,
-          previewUrl,
-        },
-        'Email opened in your browser',
-      );
-      return;
-    }
-
-    logger.info({ to: options.to, subject: options.subject }, 'Email sent');
-  } catch (error) {
-    logger.error({ err: error, to: options.to }, 'Failed to send email');
-    throw error;
+  // RETURN RATHER THAN THROW. The caller asked to send a welcome email, not to
+  // handle a delivery policy, and throwing would turn a known-bad address into a
+  // pg-boss job that fails its five retries and then needs clearing by hand.
+  if (await isSuppressed(options.to)) {
+    recordEmailBlocked();
+    logger.info({ 'email.kind': options.kind }, 'Not sending: the recipient is suppressed');
+    return;
   }
+
+  return tracer.startActiveSpan(`email.send ${options.kind}`, async (span) => {
+    span.setAttribute('email.kind', options.kind);
+    span.setAttribute('messaging.system', 'smtp');
+
+    try {
+      const transport = await getTransporter();
+
+      const info = await transport.sendMail({
+        from: `${fromName} <${fromEmail}>`,
+        replyTo: options.replyTo,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        headers: { 'X-TM-CLIENT-REF': options.kind },
+      });
+
+      recordEmailSent(options.kind);
+
+      const previewUrl = getPreviewUrl(info);
+      if (previewUrl) {
+        logger.info({ 'email.kind': options.kind, previewUrl }, 'Email opened in your browser');
+        return;
+      }
+
+      logger.info({ 'email.kind': options.kind }, 'Email sent');
+    } catch (error) {
+      // The relay refusing us AT HANDOFF, which is a different incident from a
+      // recipient bouncing: it is about us and it hits everybody equally. Counted
+      // apart, and deliberately never treated as a verdict on this address.
+      recordEmailDeliveryError(error instanceof Error ? error.name : 'UnknownError');
+      recordError(error instanceof Error ? error : new Error(String(error)), 'email:send', {
+        'email.kind': options.kind,
+      });
+      logger.error({ err: error, 'email.kind': options.kind }, 'Failed to send email');
+      throw error;
+    } finally {
+      span.end();
+    }
+  });
 }
 
 /**
@@ -155,6 +207,7 @@ export async function sendWelcomeEmail(userId: number, username: string, email: 
       to: email,
       subject,
       html,
+      kind: 'welcome',
     },
     `welcome-${userId}`, // Dedupe key to prevent duplicate welcome emails
   );
@@ -162,12 +215,12 @@ export async function sendWelcomeEmail(userId: number, username: string, email: 
 
 export async function sendMagicLinkEmail(email: string, url: string): Promise<void> {
   const { subject, html } = await buildMagicLinkEmail(url);
-  await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html, kind: 'magic-link' });
 }
 
 export async function sendVerifyNewEmail(email: string, verificationUrl: string): Promise<void> {
   const { subject, html } = await buildVerifyNewEmailEmail(verificationUrl);
-  await sendEmail({ to: email, subject, html });
+  await sendEmail({ to: email, subject, html, kind: 'verify-new-email' });
 }
 
 /**
@@ -201,7 +254,7 @@ export async function sendFeedbackEmail(
   const { subject, html } = await buildFeedbackEmail(input);
 
   await sendEmailJob(
-    { to, subject, html, replyTo: input.replyTo },
+    { to, subject, html, replyTo: input.replyTo, kind: 'feedback' },
     // One notification per row. A pg-boss retry that re-runs the enqueue must not
     // put a second copy of the same message in the inbox.
     `feedback-${input.feedbackId}`,
@@ -251,6 +304,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     to,
     subject,
     html,
+    headers: { 'X-TM-CLIENT-REF': template },
   });
 
   const previewUrl = getPreviewUrl(info);
