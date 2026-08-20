@@ -72,9 +72,23 @@ jobs:
 
           bucket=$(read_param R2_BACKUP_BUCKET)
           host_base=$(read_param R2_BACKUP_HOST_BASE)
-          AWS_ACCESS_KEY_ID=$(read_param R2_BACKUP_ACCESS_KEY_ID)
-          AWS_SECRET_ACCESS_KEY=$(read_param R2_BACKUP_SECRET_ACCESS_KEY)
-          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+          r2_key_id=$(read_param R2_BACKUP_ACCESS_KEY_ID)
+          r2_secret=$(read_param R2_BACKUP_SECRET_ACCESS_KEY)
+          echo "::add-mask::${r2_key_id}"
+          echo "::add-mask::${r2_secret}"
+
+          # Read into their own names first, and swap only once every SSM call is
+          # done. `AWS_ACCESS_KEY_ID=$(...)` looks local but is not: the variable
+          # is already in the environment, put there by configure-aws-credentials,
+          # so assigning to it re-exports it. Doing that inline left the NEXT
+          # `read_param` running `aws ssm` with R2's key id against the role's
+          # secret and session token, and AWS rejects that mismatched triple with
+          # `UnrecognizedClientException: The security token included in the
+          # request is invalid` -- which reads like an expired OIDC token and is
+          # not one. Every run of this workflow failed here from the day it was
+          # added until 2026-08-20.
+          export AWS_ACCESS_KEY_ID="$r2_key_id"
+          export AWS_SECRET_ACCESS_KEY="$r2_secret"
           # The R2 credentials are not the OIDC role's; drop the session token so
           # the CLI does not try to combine the two.
           unset AWS_SESSION_TOKEN
