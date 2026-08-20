@@ -919,10 +919,14 @@ test.describe('Sentence export gating', () => {
   const LAST_CARD = /Last added card/i;
   const PICKER = /Search your collection/i;
 
+  // Returns the MENU, not the dropdown wrapper. `save-dropdown` teleports its
+  // panel to `body`, so the items are no longer descendants of the trigger and
+  // the callers' `menu.getByRole('button', ...)` lookups would find nothing.
   const openAddMenu = async (page: Page) => {
-    const menu = page.getByTestId('save-dropdown').first();
-    await menu.locator('button').first().click();
-    await expect(menu.getByTestId('dropdown-menu')).toBeVisible();
+    const dropdown = page.getByTestId('save-dropdown').first();
+    await dropdown.locator('button').first().click();
+    const menu = page.getByTestId('dropdown-menu');
+    await expect(menu).toBeVisible();
     return menu;
   };
 
