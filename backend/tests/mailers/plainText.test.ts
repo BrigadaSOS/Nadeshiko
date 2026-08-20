@@ -88,7 +88,7 @@ describe('the plaintext of a real email', () => {
   it('carries the unsubscribe link on lifecycle mail', async () => {
     const { html } = await buildOnboardingDay7Email({
       username: 'alice',
-      signals: { activityVisible: true, totalSearches: 0, totalExports: 0 },
+      signals: { activityVisible: true, totalSearches: 0, totalExports: 0, hasAnkiProfile: false },
       unsubscribeUrl: 'https://nadeshiko.co/unsubscribe?token=xyz',
     });
 

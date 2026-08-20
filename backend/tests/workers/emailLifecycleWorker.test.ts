@@ -7,6 +7,7 @@ import { EmailLifecycleSend, EmailSuppression, User, UserActivity } from '@app/m
 import { ActivityType } from '@app/models/UserActivity';
 import { runLifecycleSweep } from '@app/workers/emailLifecycleWorker';
 import type { EmailJobData } from '@app/workers/emailQueue';
+import type { DeepPartial } from 'typeorm';
 
 setupTestSuite();
 
@@ -31,17 +32,19 @@ let seq = 0;
  * `created_at` is a `CreateDateColumn`, so TypeORM stamps it on insert and the
  * age these tests turn on has to be written afterwards.
  */
-async function userAgedDays(days: number, overrides: Partial<User> = {}): Promise<User> {
+async function userAgedDays(days: number, overrides: DeepPartial<User> = {}): Promise<User> {
   seq += 1;
-  const user = await User.save(
-    User.create({
-      username: `sweep-${seq}`,
-      email: `sweep-${seq}@example.com`,
-      isActive: true,
-      preferences: {},
-      ...overrides,
-    }),
-  );
+  // Overrides applied after `create` rather than spread inside it: a
+  // `DeepPartial` in the literal widens the argument enough that TypeORM's
+  // array overload wins, and `save` then answers `User[]`.
+  const user = User.create({
+    username: `sweep-${seq}`,
+    email: `sweep-${seq}@example.com`,
+    isActive: true,
+    preferences: {},
+  });
+  Object.assign(user, overrides);
+  await user.save();
 
   await User.query(`UPDATE "User" SET created_at = now() - make_interval(days => $1, hours => 12) WHERE id = $2`, [
     days,

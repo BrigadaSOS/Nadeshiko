@@ -22,7 +22,8 @@ describe('asking for a sign-in mail', () => {
     const response = await request(app).post('/v1/auth/sign-in/magic-link').send({ email: 'reader@example.com' });
 
     expect(response.status).toBe(200);
-    const cookie = response.headers['set-cookie']?.find((value: string) => value.startsWith(LOGIN_CODE_COOKIE));
+    const setCookies = response.headers['set-cookie'] as unknown as string[] | undefined;
+    const cookie = setCookies?.find((value) => value.startsWith(LOGIN_CODE_COOKIE));
     expect(cookie).toBeDefined();
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=Lax');
