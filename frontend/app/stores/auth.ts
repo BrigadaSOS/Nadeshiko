@@ -2,7 +2,9 @@ import { useNuxtApp } from '#app';
 import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import { defineStore } from 'pinia';
 import { setReaderStack } from '~/utils/wordLookup';
+import { MAGIC_LINK_HOLD_BACKS } from '~/utils/magicLinkHoldBack';
 import { handleApiError } from '~/utils/apiError';
+import { splitLocalePrefix } from '~/utils/routes';
 import {
   ANALYTICS_DELIBERATE_SIGN_OUT_KEY,
   AUTH_CALLBACK_PARAM,
@@ -261,7 +263,17 @@ export const userStore = defineStore('user', {
       await this.loginWithProvider('discord');
     },
 
-    async sendMagicLink(email: string): Promise<boolean> {
+    /**
+     * Ask for a sign-in email.
+     *
+     * Returns the outcome rather than a bare boolean, because "we did not send
+     * one" has two very different meanings: something broke, or you already have
+     * five this hour and the server said when you may ask again. The second is
+     * not an error to apologise for, it is a number to count down.
+     */
+    async sendMagicLink(
+      email: string,
+    ): Promise<{ status: 'ok' } | { status: 'rate-limited'; retryAfterSeconds: number } | { status: 'failed' }> {
       try {
         // `magic_callback` is kept alongside the shared marker so links already
         // sitting in an inbox still land on a page that knows what they are.
@@ -275,11 +287,54 @@ export const userStore = defineStore('user', {
           readAuthIntent(authIntentStorage(), Date.now()),
         );
         await useNadeshikoSdk().signInWithMagicLink({ email, callbackURL });
-        return true;
+        return { status: 'ok' };
       } catch (error) {
         // The caller renders the failure inline in the auth modal.
         handleApiError('auth:magic-link-request-failed', error, { toastKey: false });
-        return false;
+
+        const status =
+          (error as { status?: number; response?: { status?: number } })?.status ??
+          (error as { response?: { status?: number } })?.response?.status;
+
+        if (status === 429) {
+          // The SDK already lifts `Retry-After` off the response for us. The
+          // fallback is the shortest hold-back rather than zero, so a server
+          // that answered 429 without the header still produces a wait instead
+          // of a button that invites an immediate second refusal.
+          const retryAfterSeconds = (error as { retryAfterSeconds?: number })?.retryAfterSeconds;
+          return { status: 'rate-limited', retryAfterSeconds: retryAfterSeconds ?? MAGIC_LINK_HOLD_BACKS[0] };
+        }
+
+        return { status: 'failed' };
+      }
+    },
+
+    /**
+     * The typed half of the emailed sign-in.
+     *
+     * Only works in the browser that asked for the mail: the backend leaves a
+     * sealed cookie when the link goes out and refuses a code without a matching
+     * one. That is what lets the code be six characters — see
+     * `app/services/auth/loginCode.ts` in the backend.
+     *
+     * Returns a reason rather than a boolean, because the two failures need
+     * different words: a wrong code is worth trying again, a code typed in the
+     * wrong browser never will be.
+     */
+    async signInWithCode(email: string, code: string): Promise<'ok' | 'wrong-browser' | 'failed'> {
+      try {
+        await useNadeshikoSdk().signInWithEmailOtp({ email, otp: code });
+        await this.getBasicInfo();
+        return 'ok';
+      } catch (error) {
+        const status =
+          (error as { status?: number; response?: { status?: number } })?.status ??
+          (error as { response?: { status?: number } })?.response?.status;
+        const detail = (error as { data?: { code?: string } })?.data?.code;
+
+        handleApiError('auth:login-code-failed', error, { toastKey: false });
+        if (status === 400 && detail === 'LOGIN_CODE_NOT_BOUND') return 'wrong-browser';
+        return 'failed';
       }
     },
 
@@ -343,7 +398,23 @@ export const userStore = defineStore('user', {
       }
 
       this.resetAuthState();
-      router.push(localePath('/'));
+
+      // STAY WHERE THE READER WAS, unless the page needs an account.
+      //
+      // Signing out is not a request to go somewhere else. Most of this site is
+      // public -- a media page, a search, a sentence -- and being thrown back to
+      // the home page loses the reader's place for no reason.
+      //
+      // `/user/**` is the exception, and the only one: its guard lives in
+      // pages/user.vue and would bounce an anonymous visitor anyway, so going
+      // there ourselves avoids a redirect flash. `/settings/**` and `/admin/**`
+      // are only legacy redirects INTO `/user/**`, so they are covered by the
+      // same check once the locale prefix is off.
+      const { localizedPath } = splitLocalePrefix(router.currentRoute.value.path);
+      if (localizedPath === '/user' || localizedPath.startsWith('/user/')) {
+        router.push(localePath('/'));
+      }
+
       useToastSuccess(msg ? msg : $i18n.t('modalauth.labels.logout'));
     },
 

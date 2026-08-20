@@ -7,9 +7,17 @@ import { sendWelcomeEmail, sendVerifyNewEmail, sendMagicLinkEmail } from '@app/m
 import { ensureDefaultCollections } from '@app/controllers/collectionController';
 import { betterAuth } from 'better-auth';
 import { apiKey } from '@better-auth/api-key';
-import { admin, createAccessControl, customSession, magicLink } from 'better-auth/plugins';
+import { admin, createAccessControl, customSession, emailOTP, magicLink } from 'better-auth/plugins';
 import { Pool } from 'pg';
 import { logger } from '@config/log';
+import {
+  LOGIN_CODE_LENGTH,
+  LOGIN_CODE_MAX_ATTEMPTS,
+  LOGIN_CODE_TTL_MS,
+  generateLoginCode,
+} from '@app/services/auth/loginCode';
+import { APIError } from 'better-auth/api';
+import { isSuppressed } from '@app/services/email/suppression';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { refreshIfStale, stackIsStale } from '@app/services/shirabe/connection';
 
@@ -40,11 +48,48 @@ const DISABLED_PATHS = [
   '/forget-password',
 ];
 
-// Tracked in the shared cache rather than a bare Map so entries expire with the
-// cooldown instead of accumulating one permanent row per user who ever
-// requested a magic link, and so the namespace stays within an entry cap.
-const MAGIC_LINK_COOLDOWN_CACHE = createCacheNamespace('magicLinkCooldown', 10_000);
-const MAGIC_LINK_COOLDOWN_MS = 14 * 60 * 1000;
+// A 14-minute per-user cooldown used to live here. It has been replaced by
+// `signInAddressRateLimit` (five an hour, per address) for one reason: it
+// returned WITHOUT SENDING AND WITHOUT SAYING SO, so a reader who did not
+// receive the first mail asked again, got a "check your inbox" screen, and got
+// nothing -- the exact failure the suppression branch in `sendMagicLink`
+// explicitly refuses to introduce a few lines further down. It was also keyed on
+// an existing `User.id`, so a brand-new address had no cooldown at all.
+
+/**
+ * Where the sign-in code waits between being minted and being posted.
+ *
+ * ONE EMAIL, NOT TWO, is the whole reason this exists. better-auth generates and
+ * stores the code inside `sendVerificationOTP`, which is a callback whose job is
+ * normally to send its own mail -- and a second message arriving beside the
+ * magic link would be two things to read, two things to expire, and twice the
+ * volume on a relay we are careful about. So that callback sends nothing and
+ * leaves the code here, and `sendMagicLink` picks it up and puts both in one
+ * message.
+ *
+ * The handoff is not racy despite looking it: `sendMagicLink` awaits the call
+ * that triggers the stash before it reads, so the value is always present by
+ * then. The short TTL is a leak guard, not a coordination window.
+ */
+const LOGIN_CODE_HANDOFF_CACHE = createCacheNamespace('loginCodeHandoff', 10_000);
+const LOGIN_CODE_HANDOFF_MS = 60 * 1000;
+
+/**
+ * The live instance, assigned immediately after construction.
+ *
+ * `sendMagicLink` has to ask better-auth for a code, which means reaching the
+ * very object it is being passed into. A module-level import of `auth` from here
+ * would be a cycle; this is the same reference without one.
+ */
+/**
+ * Typed as the one call it is used for rather than as the whole instance:
+ * `typeof auth` is inferred from the options this very object is passed into, so
+ * naming it here would be circular. A structural minimum also states plainly
+ * what this reference is allowed to do.
+ */
+let authInstance: {
+  api: { sendVerificationOTP: (args: { body: { email: string; type: 'sign-in' } }) => Promise<unknown> };
+} | null = null;
 
 /**
  * How long an impersonation lasts, and the reason it is a constant rather than a
@@ -517,20 +562,72 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
           },
         },
       }),
+      /**
+       * The typed half of the emailed sign-in. See `@app/services/auth/loginCode`
+       * for why six characters is enough and what the browser binding buys.
+       *
+       * `sendVerificationOTP` DELIBERATELY SENDS NOTHING. It is the hook where
+       * better-auth hands over the code it has just hashed and stored, and the
+       * only thing wanted here is the value -- the magic-link mail carries it.
+       * Only `sign-in` is stashed: the other three types are flows we do not run
+       * this way, and silently swallowing one of them later would be a message
+       * that never arrives.
+       */
+      emailOTP({
+        otpLength: LOGIN_CODE_LENGTH,
+        expiresIn: LOGIN_CODE_TTL_MS / 1000,
+        allowedAttempts: LOGIN_CODE_MAX_ATTEMPTS,
+        // Hashed, like every other credential we hold: a database dump must not
+        // be a list of live sign-in codes.
+        storeOTP: 'hashed',
+        disableSignUp: false,
+        generateOTP: () => generateLoginCode(),
+        sendVerificationOTP: async ({ email, otp, type }) => {
+          if (type !== 'sign-in') return;
+          Cache.set(LOGIN_CODE_HANDOFF_CACHE, email.trim().toLowerCase(), otp, LOGIN_CODE_HANDOFF_MS);
+        },
+      }),
       magicLink({
         expiresIn: 15 * 60,
-        rateLimit: { window: 5 * 60, max: 3 },
+        // Sixty an hour per client, matching shirabe. Loose ON PURPOSE: an IP is
+        // not a person -- a school, an office and everyone behind CGNAT share
+        // one -- and the tight `3 per 5 minutes` this replaced would lock a
+        // classroom out at the fourth student. The per-person budget is
+        // `signInAddressRateLimit`; this is only here to stop one machine
+        // walking a list of addresses.
+        //
+        // Only meaningful because `advanced.ipAddress` below now lets better-auth
+        // resolve a real client. Before that it could not, and every request
+        // shared one bucket -- see the note there.
+        rateLimit: { window: 60 * 60, max: 60 },
         sendMagicLink: async ({ email, url }) => {
-          const existingUser = await User.findOne({ where: { email } });
-          if (existingUser) {
-            const cooldownKey = String(existingUser.id);
-            // A live entry means a link went out within the cooldown window.
-            if (Cache.get<true>(MAGIC_LINK_COOLDOWN_CACHE, cooldownKey)) {
-              return;
-            }
-            Cache.set(MAGIC_LINK_COOLDOWN_CACHE, cooldownKey, true, MAGIC_LINK_COOLDOWN_MS);
+          // REFUSE OUT LOUD, rather than letting `sendEmail` drop it silently.
+          //
+          // The suppression check in `sendEmail` protects our sending reputation
+          // and would already stop this message, but it stops it invisibly: the
+          // caller gets a success, the person gets a "check your inbox" screen,
+          // and nothing ever arrives. Magic link is a sign-in path, so that is a
+          // locked account with no error message -- which is the exact failure
+          // this whole feature exists to end, and it would be perverse to
+          // introduce it here.
+          //
+          // This does leak that an address is suppressed, which is a small
+          // enumeration signal. It buys somebody who would otherwise be stuck
+          // forever a reason to try their other address, and a suppressed
+          // address is not evidence that an account exists -- most of what is on
+          // that list never signed up.
+          if (await isSuppressed(email)) {
+            throw new APIError('BAD_REQUEST', {
+              code: 'EMAIL_UNDELIVERABLE',
+              message:
+                'We cannot deliver email to that address: a previous message bounced or was reported as spam. Please use a different address.',
+            });
           }
-          await sendMagicLinkEmailFn(email, url);
+
+          // AFTER the suppression and cooldown checks above, both of which can
+          // return without sending: minting a code for a mail we then decide not
+          // to send would leave a live row nobody was ever told about.
+          await sendMagicLinkEmailFn(email, url, await mintLoginCode(email));
         },
       }),
       apiKey({
@@ -597,14 +694,6 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
             return { data: { ...data, expiresAt: new Date(createdAt + IMPERSONATION_SESSION_MAX_AGE_MS) } };
           },
         },
-        delete: {
-          after: async (session) => {
-            const userId = Number(session.userId);
-            if (Number.isInteger(userId) && userId > 0) {
-              Cache.delete(MAGIC_LINK_COOLDOWN_CACHE, String(userId));
-            }
-          },
-        },
       },
       user: {
         create: {
@@ -649,6 +738,28 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       },
     },
     advanced: {
+      /**
+       * WITHOUT THIS, BETTER-AUTH RATE LIMITS THE WHOLE SITE AS ONE CLIENT.
+       *
+       * Its limiter is on by default in production, and it resolves the caller
+       * from `x-forwarded-for` -- but with no `trustedProxies` configured it
+       * only trusts a header carrying a SINGLE value, and refuses a chain as
+       * spoofable. Behind Cloudflare, the Kamal proxy and the Nitro proxy that
+       * header is always a chain, so the address came back null and every
+       * request keyed to one shared `no-trusted-ip` bucket per path. The
+       * magic-link rule above was therefore a cap on the entire application
+       * rather than on a client: it has never fired, because the volume has
+       * never been high enough, and the first thing that would have tripped it
+       * is a release announcement bringing people back to sign in at once.
+       *
+       * `cf-connecting-ip` is a single value that Cloudflare sets and the proxy
+       * forwards, which is the same header `resolveClientIp` prefers for our own
+       * limiters. `x-forwarded-for` stays as the fallback for a request that
+       * did not come through Cloudflare.
+       */
+      ipAddress: {
+        ipAddressHeaders: ['cf-connecting-ip', 'x-forwarded-for'],
+      },
       database: {
         generateId: 'serial',
       },
@@ -662,4 +773,33 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
   } as BetterAuthOptions;
 }
 
+/**
+ * Ask better-auth for a sign-in code, and get the plaintext back.
+ *
+ * Returns null rather than throwing on any failure, and that direction is
+ * deliberate: the code is the SECOND way into an account and the link in the
+ * same message is the first. A code that could not be minted costs the reader a
+ * convenience; an exception here would cost them the sign-in email entirely.
+ */
+async function mintLoginCode(email: string): Promise<string | null> {
+  const key = email.trim().toLowerCase();
+
+  try {
+    await authInstance?.api.sendVerificationOTP({ body: { email, type: 'sign-in' } });
+    return Cache.get<string>(LOGIN_CODE_HANDOFF_CACHE, key);
+  } catch (error) {
+    logger.warn({ err: error }, 'Could not mint a sign-in code; sending the link on its own');
+    return null;
+  } finally {
+    // Read once. Left behind it would be a plaintext credential sitting in
+    // memory for a minute after the only thing that needed it has finished.
+    Cache.delete(LOGIN_CODE_HANDOFF_CACHE, key);
+  }
+}
+
 export const auth = betterAuth(buildAuthOptions());
+// `buildAuthOptions` returns the widened `BetterAuthOptions`, so better-auth
+// cannot infer the plugin endpoints back out of it and `auth.api` is typed with
+// the base routes only. The cast asserts the one endpoint this file calls, which
+// the `emailOTP` plugin above is what puts there.
+authInstance = auth as unknown as typeof authInstance;
