@@ -21,10 +21,12 @@ export function initSettings(dbPath = 'data/settings.db') {
   mkdirSync(dirname(dbPath), { recursive: true });
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
-  // `auto_embed` is not dropped from existing databases. It is NOT NULL with a
-  // default, so leaving it costs one unread integer per guild, while an ALTER
-  // TABLE DROP COLUMN on a live SQLite file buys a migration path for nothing.
-  // New databases simply never get the column.
+  // `auto_embed` survives in databases created before it was removed. It
+  // configured auto-embedding of pasted sentence links -- a feature that is gone
+  // and is not coming back, so nothing reads the column and nothing should. It
+  // is NOT NULL with a default, so leaving it costs one unread integer per
+  // guild, while an ALTER TABLE DROP COLUMN on a live SQLite file buys a
+  // migration path for nothing. New databases never get the column.
   db.exec(`
     CREATE TABLE IF NOT EXISTS guild_settings (
       guild_id TEXT PRIMARY KEY,

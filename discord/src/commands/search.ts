@@ -42,42 +42,45 @@ import { createLogger } from '../logger';
 import { getActiveTraceId, traceComponent } from '../instrumentation';
 import { recordSearch } from '../analytics';
 import { getGuildSettings, type Language } from '../settings';
+import { anywhere } from '../install';
 
 const log = createLogger('cmd:search');
 
-export const data = new SlashCommandBuilder()
-  .setName('search')
-  .setDescription('Search for Japanese sentences in anime and drama')
-  .addStringOption((opt) =>
-    opt.setName('query').setDescription('Search query (Japanese, English, or romaji)').setRequired(false),
-  )
-  .addBooleanOption((opt) => opt.setName('exact').setDescription('Exact phrase match').setRequired(false))
-  .addStringOption((opt) =>
-    opt
-      .setName('media')
-      .setDescription('Filter by anime/drama (type to search)')
-      .setRequired(false)
-      .setAutocomplete(true),
-  )
-  .addStringOption((opt) =>
-    opt
-      .setName('category')
-      .setDescription('Filter by category')
-      .setRequired(false)
-      .addChoices({ name: 'Anime', value: 'ANIME' }, { name: 'J-Drama', value: 'JDRAMA' }),
-  )
-  .addStringOption((opt) =>
-    opt
-      .setName('language')
-      .setDescription('Override translation language')
-      .setRequired(false)
-      .addChoices(
-        { name: 'English', value: 'en' },
-        { name: 'Spanish', value: 'es' },
-        { name: 'Both', value: 'both' },
-        { name: 'None', value: 'none' },
-      ),
-  );
+export const data = anywhere(
+  new SlashCommandBuilder()
+    .setName('search')
+    .setDescription('Search for Japanese sentences in anime and drama')
+    .addStringOption((opt) =>
+      opt.setName('query').setDescription('Search query (Japanese, English, or romaji)').setRequired(false),
+    )
+    .addBooleanOption((opt) => opt.setName('exact').setDescription('Exact phrase match').setRequired(false))
+    .addStringOption((opt) =>
+      opt
+        .setName('media')
+        .setDescription('Filter by anime/drama (type to search)')
+        .setRequired(false)
+        .setAutocomplete(true),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName('category')
+        .setDescription('Filter by category')
+        .setRequired(false)
+        .addChoices({ name: 'Anime', value: 'ANIME' }, { name: 'J-Drama', value: 'JDRAMA' }),
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName('language')
+        .setDescription('Override translation language')
+        .setRequired(false)
+        .addChoices(
+          { name: 'English', value: 'en' },
+          { name: 'Spanish', value: 'es' },
+          { name: 'Both', value: 'both' },
+          { name: 'None', value: 'none' },
+        ),
+    ),
+);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const settings = getGuildSettings(interaction.guildId);

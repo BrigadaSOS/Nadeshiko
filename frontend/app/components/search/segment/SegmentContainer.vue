@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose } from '@mdi/js';
+import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose, mdiPatreon, mdiOpenInNew } from '@mdi/js';
 
+import { PATREON_URL } from '#shared/utils/socialLinks';
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import type { SearchResult, SearchResponse } from '~/types/search';
@@ -690,8 +691,13 @@ watch(playingVideoId, (id) => {
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
             <img class="mb-6"
               src="/assets/no-results.gif" :alt="$t('searchContainer.noResultsImageAlt')" />
-            <h2 class="font-bold text-red-400 text-3xl">{{ $t('segment.noResultsTitle') }}</h2>
-            <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchpage.main.labels.noresults') }}</h1>
+            <!-- One heading, not two. This used to read "404" over "No results
+                 found…", which was a pair rather than a repetition; an unrelated
+                 commit renamed the first to "No results" and left the page saying
+                 the same thing twice in two sizes. The `<h1>` is the one that
+                 stays: a search with no matches is not a 404, and the heading a
+                 crawler reads should be the honest one. -->
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchpage.main.labels.noresults') }}</h1>
             <p class="mt-4 text-gray-500 dark:text-gray-400">
               <i18n-t keypath="segment.noResultsMessage" tag="span">
                 <template #link>
@@ -699,6 +705,59 @@ watch(playingVideoId, (id) => {
                 </template>
               </i18n-t>
             </p>
+            <!-- An empty search is the one moment the corpus visibly falls
+                 short, so it is the honest place to say what a reader can do
+                 about it. Given its own card rather than a third grey paragraph:
+                 stacked under two lines of the same muted text it read as more
+                 apology, when it is the only thing on this page offering a way
+                 forward. Deliberately still below the retry advice -- the reader
+                 came here for a sentence, and the ask should not outrank the
+                 answer. -->
+            <!-- The whole card is the link, not just the brand word. At a dead end
+                 the reader should have one obvious thing to press, and a four-word
+                 target inside a paragraph is a small one. -->
+            <a
+              :href="PATREON_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-8 flex w-full items-center gap-3.5 rounded-xl bg-surface px-5 py-4 text-left transition-colors hover:bg-surface-hover"
+            >
+              <!-- Patreon's own coral rather than the site accent, and bare rather
+                   than in a tinted badge. A brand mark is recognised by its colour
+                   before its shape, so tinting it to match the site turned the one
+                   element a reader identifies instantly into another red glyph.
+                   Hardcoded like the Google and Discord marks in `ModalLoginSignUp`:
+                   it belongs to Patreon, not to our palette. -->
+              <UiBaseIcon
+                :path="mdiPatreon"
+                :size="26"
+                w="w-[26px]"
+                h="h-[26px]"
+                class="shrink-0 text-[#FF424D]"
+                aria-hidden="true"
+              />
+              <p class="text-sm leading-relaxed text-ink-muted">
+                <i18n-t keypath="segment.noResultsSupport" tag="span">
+                  <!-- A span, not an anchor. The card around it is already the
+                       link, and an <a> inside an <a> is invalid HTML that browsers
+                       recover from by splitting the outer one -- which would give
+                       the reader two overlapping targets instead of the single
+                       large one this change exists to create. It keeps the link
+                       styling because it still names where the card goes. -->
+                  <template #link>
+                    <span class="text-red-400 underline underline-offset-4">Patreon</span>
+                  </template>
+                </i18n-t>
+              </p>
+              <UiBaseIcon
+                :path="mdiOpenInNew"
+                :size="16"
+                w="w-4"
+                h="h-4"
+                class="ms-auto shrink-0 text-ink-faint"
+                aria-hidden="true"
+              />
+            </a>
           </div>
         </div>
       </div>

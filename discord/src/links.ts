@@ -108,3 +108,33 @@ export function mediaSearchUrl(mediaPublicId: string, episode?: number, link?: L
  * Discord, so there is no Nadeshiko pageview at the other end to attribute.
  */
 export const DISCORD_INVITE_URL = 'https://discord.gg/qRak9MprUS';
+
+/**
+ * Where somebody is sent to install the bot.
+ *
+ * Built from the application id the client reports rather than mirrored from
+ * `socialLinks.ts` like the invite above. The bot knows its own id at runtime
+ * and cannot be wrong about it, so a second hardcoded copy would be a drift
+ * risk bought for nothing.
+ *
+ * Bare on purpose: with both installation contexts enabled on the application,
+ * Discord answers this with a chooser -- add to a server, or add to your own
+ * apps -- and resolves the scopes itself. Naming `scope=bot` would collapse it
+ * back to the server-only path, which is the gate worth removing: the people
+ * who want to look up a line are rarely admins of the server they are sitting
+ * in.
+ *
+ * Not routed through `attribute()`: this link leaves Discord for Discord, so
+ * there is no Nadeshiko pageview at the far end to attribute.
+ */
+export function botInstallUrl(applicationId: string): string {
+  return `https://discord.com/oauth2/authorize?client_id=${applicationId}`;
+}
+
+/**
+ * The admin-facing variant, which names the exact permission set so a server
+ * owner can see what they are granting before they grant it.
+ */
+export function botGuildInstallUrl(applicationId: string, permissions: string): string {
+  return `https://discord.com/oauth2/authorize?client_id=${applicationId}&permissions=${permissions}&scope=bot%20applications.commands`;
+}

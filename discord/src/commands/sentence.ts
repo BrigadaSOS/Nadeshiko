@@ -14,15 +14,18 @@ import { createLogger } from '../logger';
 import { getActiveTraceId, traceComponent } from '../instrumentation';
 import { getGuildSettings } from '../settings';
 import { executeSearch } from './search';
+import { anywhere } from '../install';
 
 const log = createLogger('cmd:sentence');
 
-export const data = new SlashCommandBuilder()
-  .setName('sentence')
-  .setDescription('Look up a specific sentence by ID or Nadeshiko URL')
-  .addStringOption((opt) =>
-    opt.setName('id').setDescription('Segment public ID, UUID, or Nadeshiko URL').setRequired(true),
-  );
+export const data = anywhere(
+  new SlashCommandBuilder()
+    .setName('sentence')
+    .setDescription('Look up a specific sentence by ID or Nadeshiko URL')
+    .addStringOption((opt) =>
+      opt.setName('id').setDescription('Segment public ID, UUID, or Nadeshiko URL').setRequired(true),
+    ),
+);
 
 export function parseSegmentId(input: string): string {
   const urlMatch = input.match(/nadeshiko\.co\/(?:(?:en|es|ja)\/)?sentence\/([A-Za-z0-9_-]+)/);
