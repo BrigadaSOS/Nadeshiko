@@ -2,6 +2,7 @@ import { request } from '../helpers/http';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
+import { sessionResult } from '../helpers/session';
 import { invalidateUserCache, invalidateApiKeyCacheForUser } from '@app/middleware/authCacheStore';
 import { auth } from '@config/auth';
 import { buildApplication } from '@config/application';
@@ -30,7 +31,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockGetSession.mockReset();
-  mockGetSession.mockResolvedValue(null);
+  mockGetSession.mockResolvedValue(sessionResult(null));
   mockVerifyApiKey.mockReset();
   invalidateUserCache(fixtures.users.kevin.id);
   invalidateUserCache(fixtures.users.regular.id);
@@ -264,7 +265,7 @@ function uniqueBearerToken() {
 }
 
 function mockSessionAuth(userId: number) {
-  mockGetSession.mockResolvedValue({ user: { id: String(userId) } });
+  mockGetSession.mockResolvedValue(sessionResult({ user: { id: String(userId) } }));
 }
 
 function mockBetterAuthApiKey(userId: number, permissions: string[]): string {
