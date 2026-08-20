@@ -45,6 +45,16 @@ function isQuerySyntaxError(error: unknown): boolean {
   const message = [elasticError.message, ...errorCauses.map((cause) => cause.reason)].join(' ').toLowerCase();
   return (
     message.includes('failed to parse query') ||
+    // Not a typo of the line above: a query whose syntax parses but cannot be
+    // built reaches the shard and fails there instead, as a
+    // `query_shard_exception` reading "failed to create query: ...". A tilde is
+    // how readers meet it -- `query_string` reads `~` as a fuzziness modifier, so
+    // an anime title like `本好きの下剋上 ~司書になるためには…~ 第一部` asks for a
+    // fuzziness of `第一部` and the shard answers `fuzziness cannot be [...]`.
+    // Same class as a parse failure from here: the reader wrote something the
+    // strict parser will never accept, and `simple_query_string` takes it
+    // literally.
+    message.includes('failed to create query') ||
     message.includes('cannot parse') ||
     message.includes('lexical error') ||
     message.includes('token_mgr_error')
