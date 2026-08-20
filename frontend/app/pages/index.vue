@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiSync, mdiDownload, mdiHistory, mdiCardMultiple, mdiRefresh } from '@mdi/js';
+import { DISCORD_BOT_INSTALL_URL, PATREON_URL } from '#shared/utils/socialLinks';
 import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
 
@@ -86,6 +87,27 @@ const otherLanguageExamples = computed(() => {
 });
 
 const filteredRecentMedia = computed(() => media.value?.media ?? []);
+
+/**
+ * The install link is the only step of the Discord funnel that happens on our
+ * side, and until now nothing recorded it.
+ *
+ * `autocapture` is off (`nuxt.config.ts`), so an outbound click fires no event
+ * of its own -- which left the whole funnel unreadable in the direction that
+ * matters. The bot reports how many servers it is in and how often it is used;
+ * neither answers whether anybody ever set out to install it. A visitor who
+ * clicks and does not finish, and a visitor who never clicks, are the same
+ * absence without this, and they call for opposite fixes.
+ *
+ * `locale` because the copy is translated and the link sits in a features list
+ * whose position differs by how long the surrounding text runs.
+ *
+ * No `sendBeacon` dance: the link is `target="_blank"`, so this page is still
+ * here when the request goes out.
+ */
+function reportBotInstallClick(): void {
+  usePostHog()?.capture('discord_bot_install_clicked', { locale: locale.value, surface: 'home_key_features' });
+}
 </script>
 
 <template>
@@ -207,8 +229,9 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                             <p class="mb-2">{{ $t('home.keyFeatures.feature5.title') }}</p>
                                             <span class="font-normal dark:text-white/60">{{
                                                 $t('home.keyFeatures.feature5.description') }} <a
-                                                    href="https://discord.com/oauth2/authorize?client_id=1064964424684806184"
+                                                    :href="DISCORD_BOT_INSTALL_URL"
                                                     target="_blank" rel="noopener noreferrer"
+                                                    @click="reportBotInstallClick"
                                                     class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors">{{
                                                         $t('home.keyFeatures.feature5.linkText') }}</a></span>
                                         </div>
@@ -398,7 +421,7 @@ const filteredRecentMedia = computed(() => media.value?.media ?? []);
                                         </a>
                                     </div>
                                     <div class="mt-5 w-auto">
-                                        <a href="https://patreon.com/BrigadaSOS">
+                                        <a :href="PATREON_URL">
                                             <img class="h-12 object-contain rounded-md" src="/patreon-0c68395a.png"
                                                 alt="Become a Patron" height="48" loading="lazy" />
                                         </a>

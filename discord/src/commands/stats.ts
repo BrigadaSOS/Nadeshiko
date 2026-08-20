@@ -3,10 +3,13 @@ import { getStats } from '../api';
 import { buildStatsEmbed } from '../embeds';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
+import { anywhere } from '../install';
 
 const log = createLogger('cmd:stats');
 
-export const data = new SlashCommandBuilder().setName('stats').setDescription('Show Nadeshiko corpus statistics');
+export const data = anywhere(
+  new SlashCommandBuilder().setName('stats').setDescription('Show Nadeshiko corpus statistics'),
+);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();

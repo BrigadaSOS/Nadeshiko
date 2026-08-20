@@ -165,6 +165,35 @@ export function bindGuilds(fn: () => GuildInfo[]): void {
   readGuilds = fn;
 }
 
+/**
+ * Whether the bot is a member of a given guild -- the guard that keeps
+ * `discord.guild.interactions` bounded now that commands are user-installable.
+ *
+ * Before user installs, `actor.guildId` could only ever name a server the bot
+ * had been added to, so the counter grew with installs and the 250-server cap
+ * above described its whole range. A user install breaks that: the command
+ * travels with the PERSON, so it fires in any server they happen to be in, and
+ * the guild id on the interaction is a server the bot has never seen. That is
+ * an unbounded label in a store shared with lostcoords -- precisely the landfill
+ * the note at the top of this file exists to prevent.
+ *
+ * Dropping those is not a loss. The counter is only ever read joined onto
+ * `discord_guild_info` ("who is using the bot", "which installs never converted
+ * into use"), and that series exists only for guilds in the client's cache, so
+ * a guild id with no matching info series answers no question anyone asks. The
+ * usage itself is not lost either -- PostHog still receives it, group and all,
+ * and PostHog is built for that cardinality.
+ *
+ * A separate predicate rather than a scan of `readGuilds()`: that one maps the
+ * entire cache into fresh objects on every call, which is fine twice a scrape
+ * and wasteful once per interaction.
+ */
+let isInGuild: ((guildId: string) => boolean) | undefined;
+
+export function bindGuildMembership(fn: (guildId: string) => boolean): void {
+  isInGuild = fn;
+}
+
 // ---------------------------------------------------------------------------
 // PostHog
 // ---------------------------------------------------------------------------
@@ -268,7 +297,7 @@ function capture(actor: Actor, event: string, properties: Record<string, unknown
 // The events themselves
 // ---------------------------------------------------------------------------
 
-export type InteractionKind = 'command' | 'component' | 'modal' | 'autocomplete' | 'message';
+export type InteractionKind = 'command' | 'component' | 'modal' | 'autocomplete';
 
 /**
  * Recorded for every handled interaction, from both sinks at once, so the
@@ -287,7 +316,11 @@ export function recordInteraction(params: {
 
   interactionDuration.record(durationSeconds, { kind, name, surface, status });
 
-  if (actor.guildId) {
+  // Unbound means the client is not ready, which is not a state an interaction
+  // can arrive in -- so reaching here without a predicate means somebody added a
+  // call path that forgot to bind one. Skip rather than record: a gap in a
+  // dashboard is recoverable, and an unbounded label in a shared store is not.
+  if (actor.guildId && isInGuild?.(actor.guildId)) {
     guildInteractions.add(1, { guild_id: actor.guildId, status });
   }
 

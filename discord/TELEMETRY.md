@@ -69,7 +69,7 @@ so nothing ever caught them — and a completely different debugging one.
 
 | Metric | Attributes | Notes |
 | --- | --- | --- |
-| `discord.interaction.duration` | `kind`, `name`, `surface`, `status` | histogram, seconds. `kind` is command/component/modal/autocomplete/message |
+| `discord.interaction.duration` | `kind`, `name`, `surface`, `status` | histogram, seconds. `kind` is command/component/modal/autocomplete |
 | `discord.interaction.errors` | `kind`, `name`, `surface`, `error_type` | |
 | `discord.searches` | `mode`, `outcome` | `outcome` is results/empty |
 | `discord.links.emitted` | `target`, `surface` | click-through denominator |
@@ -77,7 +77,7 @@ so nothing ever caught them — and a completely different debugging one.
 | `discord.guilds` | — | observable gauge over the client's guild cache, so it survives restarts |
 | `discord.guild.info` | `guild_id`, `guild_name` | constant 1; the labels are the payload |
 | `discord.guild.members` | `guild_id` | approximate member count |
-| `discord.guild.interactions` | `guild_id`, `status` | per-server usage |
+| `discord.guild.interactions` | `guild_id`, `status` | per-server usage, **only for servers the bot is a member of** |
 
 ### Servers are named, users are hashed
 
@@ -97,6 +97,14 @@ statement about today.
 `discord.guild.interactions` is its own counter rather than a `guild_id` label
 on the duration histogram, which would have been multiplicative (~35 names ×
 every server) instead of growing with servers alone.
+
+Since the commands became user-installable it also **skips guilds the bot is not
+in**. A user install travels with the person, so the guild id on an interaction
+can name any server they happen to be sitting in — an unbounded label, which is
+the one thing the metrics side does not tolerate. Nothing is lost by dropping
+them: the counter is only ever read joined onto `discord_guild_info`, which
+exists only for servers in the client's cache, and PostHog still receives the
+interaction with its group attached.
 
 `discord.command.duration` and `discord.command.errors` are gone. Nothing
 consumed them, so nothing broke — but a query written before that date returns
@@ -125,6 +133,17 @@ join time would leave those permanently anonymous.
 shape — `query_length`, `result_count` — because the questions worth asking are
 about distributions, and the moment a query string lands in PostHog this becomes
 a system holding user content.
+
+## Installation contexts
+
+`src/install.ts` holds the policy in one place. Corpus commands (`/search`,
+`/sentence`, `/random`, `/stats`, `/info`) are `anywhere` — installable by a
+server *or* a person, runnable in guilds, DMs and group DMs. Server commands
+(`/settings`, `/health`) are `serverOnly`.
+
+**The payload is only half of it.** User installs must also be enabled in the
+Developer Portal under Installation → Installation Contexts, or Discord rejects
+`integration_types` when `npm run register` runs.
 
 ### Configuration
 

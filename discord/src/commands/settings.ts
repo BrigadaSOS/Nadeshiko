@@ -12,6 +12,7 @@ import { getGuildSettings, setGuildSetting, resetGuildSettings, type Language, t
 import { BOT_CONFIG } from '../config';
 import { createLogger } from '../logger';
 import { getActiveTraceId, traceComponent } from '../instrumentation';
+import { serverOnly } from '../install';
 
 const log = createLogger('cmd:settings');
 
@@ -22,10 +23,12 @@ const LANGUAGE_OPTIONS: { label: string; emoji: string; value: Language }[] = [
   { label: 'Show None', emoji: '🇯🇵', value: 'none' },
 ];
 
-export const data = new SlashCommandBuilder()
-  .setName('settings')
-  .setDescription('Configure Nadeshiko for this server')
-  .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild);
+export const data = serverOnly(
+  new SlashCommandBuilder()
+    .setName('settings')
+    .setDescription('Configure Nadeshiko for this server')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const guildId = interaction.guildId;
