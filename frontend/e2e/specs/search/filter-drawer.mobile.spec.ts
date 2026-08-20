@@ -25,6 +25,17 @@ const drawer = (page: Page) => page.getByTestId('filter-drawer');
 const drawerToggle = (page: Page) => page.getByTestId('filter-drawer-toggle');
 
 /**
+ * The sort menu, looked up on the PAGE rather than inside the drawer.
+ *
+ * SortContent passes `teleport`, so DropdownContainer renders the panel into
+ * `body` -- precisely so the drawer's own scroll container cannot clip it. That
+ * puts it outside `filter-drawer`, so scoping the lookup to the drawer matches
+ * nothing. Page scope is safe because `useDropdownState` allows at most one open
+ * menu, and the drawer only has this one.
+ */
+const sortMenu = (page: Page) => page.getByTestId('dropdown-menu');
+
+/**
  * Opens the drawer, or leaves it open if it already is.
  *
  * The guard is the whole point. Picking a title deliberately KEEPS the drawer
@@ -210,7 +221,7 @@ test.describe('Media filter drawer (mobile)', () => {
 
     await openDrawer(page);
     await drawer(page).getByTestId('dropdown-toggle').click();
-    await drawer(page).getByTestId('dropdown-menu').getByRole('button', { name: 'Largest' }).click();
+    await sortMenu(page).getByRole('button', { name: 'Largest' }).click();
 
     await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
     await expect(page).toHaveURL(/sort=desc/, { timeout: 10_000 });
@@ -250,7 +261,7 @@ test.describe('Media filter drawer (mobile)', () => {
     const pickRandom = async () => {
       await openDrawer(page);
       await drawer(page).getByTestId('dropdown-toggle').click();
-      await drawer(page).getByTestId('dropdown-menu').getByRole('button', { name: 'Random' }).click();
+      await sortMenu(page).getByRole('button', { name: 'Random' }).click();
       await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
       await expect(page).toHaveURL(/sort=random&seed=\d+/, { timeout: 10_000 });
       await search.expectResultsVisible();
@@ -283,7 +294,7 @@ test.describe('Media filter drawer (mobile)', () => {
 
     await openDrawer(page);
     await drawer(page).getByTestId('dropdown-toggle').click();
-    await drawer(page).getByTestId('dropdown-menu').getByRole('button', { name: 'Random' }).click();
+    await sortMenu(page).getByRole('button', { name: 'Random' }).click();
     await expect(page).toHaveURL(/seed=\d+/, { timeout: 10_000 });
     await search.expectResultsVisible();
 
@@ -299,7 +310,7 @@ test.describe('Media filter drawer (mobile)', () => {
     // parameter nothing reads, which comes back to life if random is picked again.
     await openDrawer(page);
     await drawer(page).getByTestId('dropdown-toggle').click();
-    await drawer(page).getByTestId('dropdown-menu').getByRole('button', { name: 'Shortest' }).click();
+    await sortMenu(page).getByRole('button', { name: 'Shortest' }).click();
     await expect(page).toHaveURL(/sort=asc/, { timeout: 10_000 });
     await expect(page).not.toHaveURL(/seed=/, { timeout: 10_000 });
   });
@@ -311,7 +322,7 @@ test.describe('Media filter drawer (mobile)', () => {
 
     await openDrawer(page);
     await drawer(page).getByTestId('dropdown-toggle').click();
-    await drawer(page).getByTestId('dropdown-menu').getByRole('button', { name: 'Random' }).click();
+    await sortMenu(page).getByRole('button', { name: 'Random' }).click();
     await expect(page).toHaveURL(/sort=random/, { timeout: 10_000 });
     await search.expectResultsVisible();
 
