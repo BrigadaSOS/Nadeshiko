@@ -119,26 +119,61 @@ const searchScope = computed<SearchScope>(() => ({
   hiddenCategories: hiddenCategories.value,
 }));
 
-const [{ data: initialSentenceData }, { data: initialStatsData }] = await Promise.all([
-  useAsyncData(
-    () => `media-sentences-${slug.value}-${episodeNumberParam.value ?? 'all'}`,
-    async () => {
-      const outcome = await fetchSentences(searchScope.value);
-      return outcome.status === 'ok' ? outcome.data : null;
-    },
-    { server: true, lazy: false, watch: [] },
-  ),
-  useAsyncData(
-    () => `media-stats-${slug.value}-${episodeNumberParam.value ?? 'all'}`,
-    async () => {
-      const outcome = await fetchStats(searchScope.value);
-      // Failures are reported inside `fetchStats`, which still has the response
-      // and can tell a 403 apart from a real error.
-      return outcome.status === 'ok' ? outcome.data : null;
-    },
-    { server: true, lazy: false, watch: [] },
-  ),
-]);
+/**
+ * Whether the first load of the results actually failed.
+ *
+ * `fetchSentences` can answer `error`, `forbidden` or `stale`, and all three
+ * used to be flattened into `null` -- which renders exactly like a title with no
+ * segments. A reader whose request failed during a sign-in was told the show was
+ * empty, and nothing anywhere said otherwise. Tracked separately rather than by
+ * changing what is handed to `SearchContainer`, so the shared component's
+ * contract is untouched: `null` still means "nothing to seed with", and this
+ * says whether that was a real answer.
+ */
+const sentencesFailed = ref(false);
+
+const [{ data: initialSentenceData, refresh: refreshSentences }, { data: initialStatsData, refresh: refreshStats }] =
+  await Promise.all([
+    useAsyncData(
+      () => `media-sentences-${slug.value}-${episodeNumberParam.value ?? 'all'}`,
+      async () => {
+        const outcome = await fetchSentences(searchScope.value);
+        sentencesFailed.value = outcome.status !== 'ok';
+        return outcome.status === 'ok' ? outcome.data : null;
+      },
+      { server: true, lazy: false, watch: [] },
+    ),
+    useAsyncData(
+      () => `media-stats-${slug.value}-${episodeNumberParam.value ?? 'all'}`,
+      async () => {
+        const outcome = await fetchStats(searchScope.value);
+        // Failures are reported inside `fetchStats`, which still has the response
+        // and can tell a 403 apart from a real error.
+        return outcome.status === 'ok' ? outcome.data : null;
+      },
+      { server: true, lazy: false, watch: [] },
+    ),
+  ]);
+
+const reloadResults = async () => {
+  await Promise.all([refreshSentences(), refreshStats()]);
+};
+
+/**
+ * Re-resolve the results when the session changes.
+ *
+ * Both fetches pass `watch: []`, so nothing refetched for the life of the page
+ * -- but what these return depends on the viewer: hidden media, hidden
+ * categories, content rating and translation languages all feed `searchScope`.
+ * Signing in or out therefore has to re-ask, or the reader keeps looking at
+ * somebody else's answer until they navigate.
+ */
+watch(
+  () => userStore().isLoggedIn,
+  () => {
+    void reloadResults();
+  },
+);
 
 const requestOrigin = useRequestURL().origin;
 
@@ -254,6 +289,19 @@ useSchemaOrg(
                  lives in the path here, so the box has to be told what it is. -->
             <SearchBaseInputSegment :scope-media-id="mediaPublicId" />
           </div>
+          <!-- A failed load, said out loud. Without this the page renders exactly
+               like a title with no segments, and the reader has no way to tell
+               "nothing here" from "we could not ask". Above the results rather
+               than replacing them: whatever did arrive is still worth showing. -->
+          <div
+            v-if="sentencesFailed"
+            data-testid="media-results-error"
+            class="mx-4 md:mx-0 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm"
+          >
+            <span class="text-red-200">{{ t('mediaPage.resultsFailed') }}</span>
+            <button class="nd-btn" @click="reloadResults">{{ t('mediaPage.resultsRetry') }}</button>
+          </div>
+
           <SearchContainer
             :initial-sentence-data="initialSentenceData"
             :initial-stats-data="initialStatsData"
