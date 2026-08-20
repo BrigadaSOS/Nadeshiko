@@ -26,6 +26,7 @@ const props = withDefaults(
 );
 
 const { mediaName, language } = useMediaName();
+const { formatNumber } = useFormat();
 
 const title = computed(() => mediaName(props.media));
 
@@ -136,7 +137,7 @@ const catalogLinks = computed(() => {
         </p>
 
         <p class="mt-2 text-sm font-medium dark:text-gray-200 sm:mt-3">
-          {{ media.segmentCount.toLocaleString() }} {{ $t('animeList.sentenceCount') }}
+          {{ formatNumber(media.segmentCount) }} {{ $t('animeList.sentenceCount') }}
           <span class="dark:text-gray-500"> · </span>
           <MediaCountLabel :media="media" />
         </p>

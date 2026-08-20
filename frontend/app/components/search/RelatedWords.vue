@@ -18,6 +18,12 @@ import { buildWordSearchPath } from '~/utils/routes';
 defineProps<{ words: { word: string; matchCount: number }[] }>();
 
 const localePath = useLocalePath();
+// Not `toLocaleString()`: with no locale argument it reads the RUNTIME's, which
+// is the server's on the way out and the reader's browser on the way back, so
+// `23,931` server-side became `23.931` for a German reader and hydration found
+// two different strings. `formatNumber` is bound to the page's own locale, so
+// both renders agree. See `i18n.config.ts`, where dates already pin for this.
+const { formatNumber } = useFormat();
 </script>
 
 <template>
@@ -30,7 +36,7 @@ const localePath = useLocalePath();
           lang="ja"
           class="inline-flex items-baseline gap-1.5 rounded-full bg-[rgba(255,255,255,0.06)] px-3 py-1 text-sm transition-colors hover:bg-[rgba(255,255,255,0.12)] dark:text-gray-200">
           {{ item.word }}
-          <span class="text-xs dark:text-gray-500">{{ item.matchCount.toLocaleString() }}</span>
+          <span class="text-xs dark:text-gray-500">{{ formatNumber(item.matchCount) }}</span>
         </NuxtLink>
       </li>
     </ul>
