@@ -8,7 +8,9 @@ import {
   authEventProperties,
   authIntentStorage,
   consumeAuthIntent,
+  firstTouchSetOnce,
   readStoredValue,
+  rememberFirstTouch,
   removeStoredValue,
   resolveAuthTransition,
   resolveLostSession,
@@ -57,6 +59,21 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
   const store = userStore();
   const posthog = usePostHog();
   if (!posthog) return;
+
+  // BEFORE THE SIGNED-OUT RETURN BELOW, and that is the whole point: the first
+  // touch worth recording belongs to a visitor who does not have an account yet.
+  // By the time one exists, `document.referrer` is whichever OAuth provider just
+  // redirected them back. Write-once, so every later load is a no-op.
+  rememberFirstTouch(
+    authIntentStorage(),
+    {
+      referrer: document.referrer,
+      search: window.location.search,
+      pathname: window.location.pathname,
+      ownHost: window.location.hostname,
+    },
+    Date.now(),
+  );
 
   // Signed out, which is not the same as "nothing to report". A reader whose
   // session ended without them asking arrives here looking exactly like a
@@ -133,7 +150,9 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
     // Recording it on the person as well as the event is what lets a retention or
     // engagement question be broken down by acquisition gate later, without
     // re-deriving it from the event stream every time.
-    ...(transition === 'signup_completed' ? acquisitionSetOnce(properties) : {}),
+    ...(transition === 'signup_completed'
+      ? mergeSetOnce(acquisitionSetOnce(properties), firstTouchSetOnce(storage))
+      : {}),
   });
 }
 
@@ -260,4 +279,18 @@ function emailCategory(email: string | null | undefined): 'personal_provider' | 
   if (!domain) return undefined;
 
   return PERSONAL_EMAIL_DOMAINS.has(domain) ? 'personal_provider' : 'custom_domain';
+}
+
+/**
+ * Folds several `$set_once` blocks into one.
+ *
+ * Spreading them into the capture directly would not work: each carries the same
+ * `$set_once` key, so the last one silently wins and the gate attribution or the
+ * first touch would go missing depending on the order they were written in.
+ */
+function mergeSetOnce(...blocks: Array<{ $set_once?: Record<string, string> }>): {
+  $set_once?: Record<string, string>;
+} {
+  const merged = Object.assign({}, ...blocks.map((block) => block.$set_once ?? {})) as Record<string, string>;
+  return Object.keys(merged).length > 0 ? { $set_once: merged } : {};
 }

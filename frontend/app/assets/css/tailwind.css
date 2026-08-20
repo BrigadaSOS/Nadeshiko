@@ -849,3 +849,36 @@
     background-color: var(--background);
   }
 }
+
+/*
+ * Flattens the toast wrapper for signup nudges.
+ *
+ * `SignupNudgeToast` draws the whole panel -- fill, rule, radius, shadow -- so
+ * the library's own container has to contribute nothing, or the reader gets a
+ * card inside a card with two different corner radii. The stock chrome that is a
+ * prop (`icon`, `closeButton`) is switched off where the toast is raised; this
+ * handles the part that is only reachable as CSS.
+ *
+ * Deliberately unlayered. `vue-toastification/dist/index.css` is imported by its
+ * own plugin, so nothing here controls whether it lands before or after the
+ * Tailwind layers -- and unlayered rules outrank layered ones no matter which
+ * order they arrive in. Scoped to `.nd-toast-nudge` so ordinary success, error
+ * and info toasts keep the library's look.
+ */
+.Vue-Toastification__toast.nd-toast-nudge {
+  padding: 0;
+  min-height: 0;
+  max-width: none;
+  width: auto;
+  background-color: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  font-family: inherit;
+}
+
+.Vue-Toastification__toast.nd-toast-nudge .Vue-Toastification__toast-body {
+  padding: 0;
+  /* The body is a flex child with `flex: 1` in the library's stylesheet, which
+     would stretch the panel to the container width and undo its own max. */
+  flex: 0 0 auto;
+}

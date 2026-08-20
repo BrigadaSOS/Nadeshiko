@@ -41,6 +41,7 @@ const localePath = useLocalePath();
 const sdk = useNadeshikoSdk();
 const { fetchSentences, fetchStats, cancelSentences } = useSearchFetch();
 const posthog = usePostHog();
+const signupNudge = useSignupNudge();
 const { contentRating } = useContentRating();
 const { includedLanguages } = useTranslationVisibility();
 const route = useRoute();
@@ -526,6 +527,11 @@ const trackSearch = (response: SearchResponse) => {
   if (resultsCount === 0) {
     posthog?.capture('search_results_empty', searchEventProps);
   }
+
+  // Counted on arrival at results for the same reason the event above is: a
+  // search that was clicked, pasted or linked into is still a search, and
+  // arriving is the one moment they all share.
+  signupNudge.recordSearch();
   if (userStore().isLoggedIn) {
     // Fire-and-forget telemetry: never let it interrupt or warn about a search that
     // already rendered its results.

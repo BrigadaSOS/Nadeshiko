@@ -307,6 +307,13 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
   const posthog = usePostHog();
   posthog?.capture('segment_downloaded', { download_type: typeMap[ext ?? ''] ?? ext });
 
+  // A signed-out reader saving a clip is the closest thing to a stated intent
+  // this site gets: they want to keep the sentence, and an account is how it
+  // gets kept properly. Fired here rather than at the four call sites in
+  // `SegmentActionsContainer` for the same reason the capture above is -- one of
+  // them would eventually be added without it.
+  useSignupNudge().nudgeAfterDownload();
+
   if (isBlobUrl) {
     const a = document.createElement('a');
     a.href = url as string;
