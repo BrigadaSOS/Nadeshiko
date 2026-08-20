@@ -123,7 +123,16 @@ async function resolveStack(event: H3Event): Promise<ReaderStack> {
     const session = await ssrAuthFetch(
       event,
       () =>
-        $fetch<SessionResponse>(internalBackendUrl(config, '/v1/auth/get-session'), {
+        // `disableRefresh`, and it matters more here than anywhere: a session
+        // read slides the session, and the renewed `Set-Cookie` that comes back
+        // cannot be passed on from this path. The response a lookup produces is
+        // shared-cacheable for readers who have linked nothing, so putting a
+        // session cookie on it would hand one reader's session to the next --
+        // the renewal has to be left to `identity-auth`, which answers a
+        // personal render and can forward it safely. Without this, a reader who
+        // looks up more words than they load pages could go a whole week's
+        // window without their cookie being renewed.
+        $fetch<SessionResponse>(internalBackendUrl(config, '/v1/auth/get-session?disableRefresh=true'), {
           headers: buildInternalBackendHeaders(config, { cookie: getRequestHeader(event, 'cookie') || '' }, event),
           timeout: 2000,
         }),

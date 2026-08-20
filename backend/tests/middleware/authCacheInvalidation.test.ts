@@ -44,6 +44,13 @@ describe('invalidateAuthCachesAfterMutation', () => {
 
     expect(next).toHaveBeenCalledTimes(1);
     expect(invalidateUserCacheSpy).toHaveBeenCalledWith(42);
+    // Reads the identity without sliding the session: better-auth's own handler
+    // runs next on this same request and is the one that can hand a renewed
+    // cookie to the browser. Spending the weekly refresh here would leave it
+    // with nothing to send.
+    expect(mockGetSession).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { disableCookieCache: true, disableRefresh: true } }),
+    );
     expect(invalidateApiKeyCacheSpy).toHaveBeenCalledWith(42);
   });
 
