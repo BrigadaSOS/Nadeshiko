@@ -62,6 +62,7 @@ const EXPOSED_ROUTES = [
   '/sign-out',
   '/sign-in/social',
   '/sign-in/magic-link',
+  '/sign-in/email-otp',
   '/list-sessions',
   '/revoke-session',
   '/revoke-sessions',
@@ -85,6 +86,22 @@ type Operation = Record<string, unknown> & {
 type PathItem = Record<string, Operation>;
 
 /** `admin/ban-user` -> `authAdminBanUser`. Stable, and unique across the set. */
+/**
+ * Operation ids better-auth names in a shape the SDK generator disagrees with.
+ *
+ * `signInWithEmailOTP` is better-auth's own id, and the two halves of the SDK
+ * codegen normalize a run of capitals differently: the client factory keeps
+ * `...OTP` while the function module emits `...Otp`, so the generated package
+ * imports a name it does not export and the frontend fails to typecheck. Fixing
+ * it at the source keeps both halves reading the same string.
+ *
+ * Keyed by what better-auth calls it, so an upgrade that renames the route makes
+ * this entry stop applying rather than silently rename something else.
+ */
+const OPERATION_ID_OVERRIDES: Record<string, string> = {
+  signInWithEmailOTP: 'signInWithEmailOtp',
+};
+
 function deriveOperationId(path: string): string {
   const words = path
     .split('/')
@@ -206,6 +223,7 @@ async function generateAuthSpec(): Promise<{ paths: Record<string, PathItem>; sc
       op.tags = ['Auth'];
       op['x-internal'] = true;
       op.operationId ||= deriveOperationId(route);
+      op.operationId = OPERATION_ID_OVERRIDES[op.operationId] ?? op.operationId;
 
       const hasSuccess = Object.keys(op.responses ?? {}).some((code) => code.startsWith('2'));
       if (!hasSuccess) {
