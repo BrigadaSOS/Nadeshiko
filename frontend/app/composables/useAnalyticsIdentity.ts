@@ -1,13 +1,17 @@
 import {
+  ANALYTICS_DELIBERATE_SIGN_OUT_KEY,
   ANALYTICS_IDENTITY_KEY,
   ANALYTICS_SESSION_KEY,
+  ANALYTICS_SESSION_STARTED_KEY,
   absorbIntentFromUrl,
   acquisitionSetOnce,
   authEventProperties,
   authIntentStorage,
   consumeAuthIntent,
   readStoredValue,
+  removeStoredValue,
   resolveAuthTransition,
+  resolveLostSession,
   writeStoredValue,
 } from '~/utils/authAnalytics';
 
@@ -52,7 +56,17 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
 
   const store = userStore();
   const posthog = usePostHog();
-  if (!posthog || !store.isLoggedIn || !store.userId) return;
+  if (!posthog) return;
+
+  // Signed out, which is not the same as "nothing to report". A reader whose
+  // session ended without them asking arrives here looking exactly like a
+  // first-time visitor, and until this branch existed that is precisely what
+  // they were counted as -- which is how sessions could stop being renewed for
+  // everyone, for a month at a time, with nothing anywhere to say so.
+  if (!store.isLoggedIn || !store.userId) {
+    reportLostSession(posthog);
+    return;
+  }
 
   // An admin looking through someone else's account is not that person. Without
   // this, impersonation would identify the admin's browser as the target user and
@@ -80,6 +94,12 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
     writeStoredValue(storage, ANALYTICS_IDENTITY_KEY, userId);
     if (store.sessionId) writeStoredValue(storage, ANALYTICS_SESSION_KEY, store.sessionId);
   };
+
+  // Outside `remember()` on purpose: that only runs on a transition, so a reader
+  // already signed in when this shipped would never get a start time and their
+  // eventual sign-out would be reported ageless. Written on every load instead,
+  // and only when it actually moves, which is once per session.
+  rememberSessionStart(storage, store.sessionCreatedAt);
 
   if (migratedFromLegacyKey) {
     // This browser's reader did not just sign in, they were re-keyed underneath.
@@ -115,6 +135,59 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
     // re-deriving it from the event stream every time.
     ...(transition === 'signup_completed' ? acquisitionSetOnce(properties) : {}),
   });
+}
+
+/**
+ * Records when the current session began, so its age is known after it is gone.
+ */
+function rememberSessionStart(storage: ReturnType<typeof authIntentStorage>, sessionCreatedAt: string | null): void {
+  if (!sessionCreatedAt) return;
+
+  const startedAt = Date.parse(sessionCreatedAt);
+  if (!Number.isFinite(startedAt)) return;
+
+  const stored = String(startedAt);
+  if (readStoredValue(storage, ANALYTICS_SESSION_STARTED_KEY) === stored) return;
+
+  writeStoredValue(storage, ANALYTICS_SESSION_STARTED_KEY, stored);
+}
+
+/**
+ * Reports a session this browser lost without being asked, once.
+ *
+ * `session_lost` says what was observed and not why, deliberately: a cleared
+ * cookie jar, a revoked session, a ban and an expiry are indistinguishable from
+ * here. What separates them is `hours_signed_in` -- everything a person chooses
+ * to do is spread across the range, and only a mechanical expiry piles up on one
+ * value. A spike there is the alarm; the number it spikes at names the horizon
+ * that is cutting people off.
+ *
+ * The identity is forgotten on the way out so this fires once per lost session
+ * rather than on every page load that follows it.
+ */
+function reportLostSession(posthog: NonNullable<ReturnType<typeof usePostHog>>): void {
+  const storage = authIntentStorage();
+  const deliberate = readStoredValue(storage, ANALYTICS_DELIBERATE_SIGN_OUT_KEY) !== null;
+
+  const lost = resolveLostSession({
+    storedUserId: readStoredValue(storage, ANALYTICS_IDENTITY_KEY),
+    storedSessionStartedAt: readStoredValue(storage, ANALYTICS_SESSION_STARTED_KEY),
+    deliberate,
+    now: Date.now(),
+  });
+
+  // Cleared whether or not anything was reported: it answers "since the last
+  // load", and leaving it set would silence the next genuine loss.
+  removeStoredValue(storage, ANALYTICS_DELIBERATE_SIGN_OUT_KEY);
+
+  if (!lost || reportedThisPageLoad) return;
+  reportedThisPageLoad = true;
+
+  removeStoredValue(storage, ANALYTICS_IDENTITY_KEY);
+  removeStoredValue(storage, ANALYTICS_SESSION_KEY);
+  removeStoredValue(storage, ANALYTICS_SESSION_STARTED_KEY);
+
+  posthog.capture('session_lost', { hours_signed_in: lost.hoursSignedIn });
 }
 
 /**
