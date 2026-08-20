@@ -7,6 +7,37 @@ const posthog = usePostHog();
 const magicLinkEmail = ref('');
 const magicLinkSent = ref(false);
 const magicLinkLoading = ref(false);
+const loginCode = ref('');
+const codeLoading = ref(false);
+const codeError = ref('');
+const magicLinkSends = ref(0);
+const resendIn = ref(0);
+const magicLinkError = ref('');
+let resendTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Counts the hold-back down once a second and stops at zero.
+ *
+ * Cleared before starting so a second send cannot leave two intervals running
+ * against one counter, which reads as the clock ticking twice as fast.
+ */
+function startResendCountdown(seconds: number) {
+  stopResendCountdown();
+  resendIn.value = Math.max(0, Math.ceil(seconds));
+  if (resendIn.value === 0) return;
+
+  resendTimer = setInterval(() => {
+    resendIn.value -= 1;
+    if (resendIn.value <= 0) stopResendCountdown();
+  }, 1000);
+}
+
+function stopResendCountdown() {
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = null;
+}
+
+onUnmounted(stopResendCountdown);
 const { isLoginModalOpen, closeLoginModal, loginModalSource } = useLoginModal();
 
 /**
@@ -47,22 +78,83 @@ const handleDiscordLogin = async () => {
 };
 
 const handleMagicLink = async () => {
-  if (!magicLinkEmail.value.trim()) return;
+  if (!magicLinkEmail.value.trim() || magicLinkLoading.value || resendIn.value > 0) return;
   beginLogin('magic_link');
   magicLinkLoading.value = true;
-  const sent = await store.sendMagicLink(magicLinkEmail.value.trim());
+  magicLinkError.value = '';
+  const outcome = await store.sendMagicLink(magicLinkEmail.value.trim());
   magicLinkLoading.value = false;
-  if (sent) {
+
+  if (outcome.status === 'ok') {
     magicLinkSent.value = true;
+    magicLinkSends.value += 1;
+    // Each send waits longer than the last; asking again while one is pending is
+    // a resend by definition.
+    startResendCountdown(holdBackFor(magicLinkSends.value));
     posthog?.capture('magic_link_requested');
-  } else {
-    useToastError($i18n.t('modalauth.labels.errorlogin400'));
+    return;
   }
+
+  if (outcome.status === 'rate-limited') {
+    // Not a failure to apologise for — they have had their five this hour, and
+    // the server said when they may ask again. Stay on the sent view so the code
+    // field remains usable: a link they already have still works.
+    magicLinkSent.value = true;
+    magicLinkError.value = $i18n.t('modalauth.magiclink.rateLimited');
+    startResendCountdown(outcome.retryAfterSeconds);
+    return;
+  }
+
+  useToastError($i18n.t('modalauth.labels.errorlogin400'));
+};
+
+/**
+ * Spend the typed code.
+ *
+ * `wrong-browser` is its own outcome rather than a generic failure because the
+ * two need different advice: a mistyped code is worth another go, a code typed
+ * into a browser that never asked for it never will be, and the way out is the
+ * link in the same email.
+ */
+const handleLoginCode = async () => {
+  const code = loginCode.value.trim();
+  if (!code || codeLoading.value) return;
+
+  codeLoading.value = true;
+  codeError.value = '';
+  const outcome = await store.signInWithCode(magicLinkEmail.value.trim(), code);
+  codeLoading.value = false;
+
+  if (outcome === 'ok') {
+    posthog?.capture('login_code_used');
+    resetMagicLinkState();
+    closeLoginModal();
+    useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
+    return;
+  }
+
+  codeError.value = $i18n.t(
+    outcome === 'wrong-browser' ? 'modalauth.magiclink.codeWrongBrowser' : 'modalauth.magiclink.codeInvalid',
+  );
+  loginCode.value = '';
+};
+
+/** "Try a different email" — drops this browser's attempt, not the mail already sent. */
+const resetMagicLink = () => {
+  magicLinkSent.value = false;
+  loginCode.value = '';
+  codeError.value = '';
+  magicLinkError.value = '';
 };
 
 function resetMagicLinkState() {
   magicLinkSent.value = false;
   magicLinkEmail.value = '';
+  loginCode.value = '';
+  codeError.value = '';
+  magicLinkError.value = '';
+  magicLinkSends.value = 0;
+  stopResendCountdown();
 }
 
 watch(isLoginModalOpen, (open) => {
@@ -141,10 +233,66 @@ watch(isLoginModalOpen, (open) => {
                 {{ $t('modalauth.magiclink.send') }}
               </UiButtonPrimaryAction>
             </div>
-            <p v-else class="text-sm text-green-400">
-              {{ $t('modalauth.magiclink.sent') }}
-              <button class="ml-2 underline text-gray-400 hover:text-gray-300" @click="magicLinkSent = false">{{ $t('modalauth.magiclink.retry') }}</button>
-            </p>
+            <div v-else class="space-y-3">
+              <!-- Names the address it went to, then says what to do next. The
+                   old copy said only "check your email", which left the code
+                   field below it looking like something you might have to fill
+                   in as well as opening the link. -->
+              <p class="text-sm text-green-400">{{ $t('modalauth.magiclink.sent', { email: magicLinkEmail }) }}</p>
+              <p class="text-sm text-gray-400">{{ $t('modalauth.magiclink.sentHint') }}</p>
+
+              <!-- The code is the second way in, for when the mail is on a phone
+                   and the session is wanted here. It only works in this browser:
+                   the backend refuses a code without a matching claim, which is
+                   what keeps six characters safe to read aloud. -->
+              <div class="flex gap-2">
+                <input
+                  v-model="loginCode"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="one-time-code"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  maxlength="9"
+                  :disabled="codeLoading"
+                  :placeholder="$t('modalauth.magiclink.codePlaceholder')"
+                  :aria-label="$t('modalauth.magiclink.codeLabel')"
+                  class="nd-input flex-1 text-center font-mono tracking-[0.3em] uppercase disabled:opacity-50"
+                  @keyup.enter="handleLoginCode"
+                />
+                <UiButtonPrimaryAction
+                  :disabled="codeLoading || !loginCode.trim()"
+                  @click="handleLoginCode"
+                  class="py-2 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-surface text-ink hover:bg-surface-hover disabled:opacity-50"
+                >
+                  {{ $t('modalauth.magiclink.codeSubmit') }}
+                </UiButtonPrimaryAction>
+              </div>
+
+              <p v-if="codeError" class="text-sm text-red-300">{{ codeError }}</p>
+              <p v-if="magicLinkError" class="text-sm text-amber-300">{{ magicLinkError }}</p>
+
+              <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <!-- The wait is shown rather than the button being merely dead,
+                     because a disabled control with no reason attached reads as
+                     broken. Counting down also tells somebody whose mail is slow
+                     that waiting is the right thing to do. -->
+                <span v-if="resendIn > 0" class="text-gray-400">
+                  {{ $t('modalauth.magiclink.resendIn', { seconds: resendIn }) }}
+                </span>
+                <button
+                  v-else
+                  class="underline text-gray-400 hover:text-gray-300"
+                  :disabled="magicLinkLoading"
+                  @click="handleMagicLink"
+                >
+                  {{ $t('modalauth.magiclink.resend') }}
+                </button>
+                <button class="underline text-gray-400 hover:text-gray-300" @click="resetMagicLink">
+                  {{ $t('modalauth.magiclink.retry') }}
+                </button>
+              </p>
+            </div>
           </div>
         </div>
   </CommonBaseModal>
