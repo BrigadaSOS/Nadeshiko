@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
 import posthog from 'posthog-js';
+import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 import { userStore } from '~/stores/auth';
 import { handleApiError } from '~/utils/apiError';
 
@@ -171,7 +172,22 @@ function analyticsIds(): { posthogSessionId?: string; posthogDistinctId?: string
       </div>
 
       <form v-else class="flex flex-col gap-4 p-4" @submit.prevent="submit">
-        <p class="text-sm text-ink-muted">{{ t('feedback.subtitle') }}</p>
+        <!-- The invite rides along in the same paragraph: it is the other door,
+             for what is a conversation rather than a message into a box, not a
+             second instruction to read. -->
+        <p class="text-sm text-ink-muted">
+          {{ t('feedback.subtitle') }}
+          <i18n-t keypath="feedback.discord" tag="span" scope="global">
+            <template #link>
+              <a
+                :href="DISCORD_INVITE_URL"
+                target="_blank"
+                rel="noopener"
+                class="underline underline-offset-2 hover:text-ink"
+              >{{ t('feedback.discordLink') }}</a>
+            </template>
+          </i18n-t>
+        </p>
 
         <div
           v-if="errorMessage"

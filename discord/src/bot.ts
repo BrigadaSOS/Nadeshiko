@@ -4,6 +4,7 @@ import { BOT_CONFIG, getApplicationId, validateConfig } from './config';
 import { createLogger } from './logger';
 import {
   bindGuilds,
+  bindGuildMembership,
   identifyGuild,
   recordGuildChange,
   recordRateLimit,
@@ -18,6 +19,7 @@ import { initSettings } from './settings';
 import { allCommands, type Command } from './commands';
 import { searchMediaCache } from './mediaCache';
 import { getMediaName } from './embeds';
+import { botGuildInstallUrl, botInstallUrl } from './links';
 
 const log = createLogger('bot');
 
@@ -90,6 +92,7 @@ async function main() {
         memberCount: guild.memberCount,
       })),
     );
+    bindGuildMembership((guildId) => readyClient.guilds.cache.has(guildId));
 
     // Every guild, not only ones that join later: the bot was already in
     // servers before any of this existed, and naming groups only at join time
@@ -101,9 +104,10 @@ async function main() {
     log.info({ tag: readyClient.user.tag, guilds: readyClient.guilds.cache.size }, 'Bot online');
     log.info(
       {
-        url: `https://discord.com/oauth2/authorize?client_id=${readyClient.user.id}&permissions=${INVITE_PERMISSIONS}&scope=bot%20applications.commands`,
+        install: botInstallUrl(readyClient.user.id),
+        guildInstall: botGuildInstallUrl(readyClient.user.id, INVITE_PERMISSIONS),
       },
-      'Invite URL',
+      'Install URLs',
     );
   });
 

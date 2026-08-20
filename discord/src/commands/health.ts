@@ -3,12 +3,15 @@ import { BOT_CONFIG } from '../config';
 import { homeUrl, searchUrl } from '../links';
 import { createLogger } from '../logger';
 import { getActiveTraceId } from '../instrumentation';
+import { serverOnly } from '../install';
 
 const log = createLogger('cmd:health');
 
 const STATUS_PAGE = 'https://status.nadeshiko.co';
 
-export const data = new SlashCommandBuilder().setName('health').setDescription('Check Nadeshiko system status');
+export const data = serverOnly(
+  new SlashCommandBuilder().setName('health').setDescription('Check Nadeshiko system status'),
+);
 
 async function checkEndpoint(url: string): Promise<{ ok: boolean; latency: number; status?: number }> {
   const start = performance.now();

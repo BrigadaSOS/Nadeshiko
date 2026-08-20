@@ -5,9 +5,12 @@ import {
   ButtonStyle,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { DISCORD_INVITE_URL, aboutUrl, homeUrl } from '../links';
+import { DISCORD_INVITE_URL, aboutUrl, botInstallUrl, homeUrl } from '../links';
+import { anywhere } from '../install';
 
-export const data = new SlashCommandBuilder().setName('info').setDescription('About Nadeshiko and useful links');
+export const data = anywhere(
+  new SlashCommandBuilder().setName('info').setDescription('About Nadeshiko and useful links'),
+);
 
 export async function execute(interaction: ChatInputCommandInteraction) {
   const lines = [
@@ -21,6 +24,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     `Found a bug or have a suggestion? Join our **Discord server**:`,
     `- ${DISCORD_INVITE_URL}`,
   ];
+
+  // The people reading this already know the bot exists, which makes them the
+  // cheapest audience there is for the one thing the website cannot reach: a
+  // personal install, usable in servers where nobody will ever add a bot.
+  const installUrl = botInstallUrl(interaction.client.application.id);
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -38,6 +46,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setStyle(ButtonStyle.Link)
       .setURL('https://patreon.com/BrigadaSOS')
       .setEmoji('💜'),
+    new ButtonBuilder().setLabel('Add to Discord').setStyle(ButtonStyle.Link).setURL(installUrl).setEmoji('➕'),
   );
 
   await interaction.reply({ content: lines.join('\n'), components: [row] });
