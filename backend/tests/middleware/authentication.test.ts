@@ -2,6 +2,7 @@ import { request } from '../helpers/http';
 import express, { type Request, type Response, type ErrorRequestHandler } from 'express';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, type Mock } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
+import { sessionResult } from '../helpers/session';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { requireApiKeyAuth, requireSessionAuth, assertUser } from '@app/middleware/authentication';
@@ -62,6 +63,17 @@ function createApiKeyApp() {
   app.use(handleErrors as ErrorRequestHandler);
   _apiKeyApp = app;
   return app;
+}
+
+/**
+ * The session cookie's real name in the test environment, which is where the
+ * `__Secure-` prefix does or does not appear. Read from better-auth for the
+ * same reason the middleware reads it: hardcoding it here would let this file
+ * keep passing after a `cookiePrefix` or `useSecureCookies` change that broke
+ * renewal in production.
+ */
+async function sessionTokenCookieName(): Promise<string> {
+  return (await auth.$context).authCookies.sessionToken.name;
 }
 
 function createSessionApp() {
@@ -349,9 +361,7 @@ describe('requireApiKeyAuth', () => {
 
 describe('requireSessionAuth', () => {
   it('authenticates with a valid session', async () => {
-    mockGetSession.mockResolvedValue({
-      user: { id: String(fixtures.users.kevin.id) },
-    });
+    mockGetSession.mockResolvedValue(sessionResult({ user: { id: String(fixtures.users.kevin.id) } }));
 
     const app = createSessionApp();
     const res = await request(app).get('/test');
@@ -364,7 +374,7 @@ describe('requireSessionAuth', () => {
   });
 
   it('returns 401 when session is missing', async () => {
-    mockGetSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(sessionResult(null));
 
     const app = createSessionApp();
     const res = await request(app).get('/test');
@@ -374,13 +384,59 @@ describe('requireSessionAuth', () => {
   });
 
   it('returns 401 when session has no user id', async () => {
-    mockGetSession.mockResolvedValue({ user: {} });
+    mockGetSession.mockResolvedValue(sessionResult({ user: {} }));
 
     const app = createSessionApp();
     const res = await request(app).get('/test');
 
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_REQUIRED' });
+  });
+
+  it('forwards a renewed session cookie to the browser', async () => {
+    // The whole point of `returnHeaders`: better-auth renews the cookie in
+    // process, and if this middleware does not pass it on, the browser keeps
+    // the Max-Age it was given at sign-in and drops the session at 30 days
+    // however active the reader was.
+    const renewed = `${await sessionTokenCookieName()}=renewed.signature; Path=/; HttpOnly; Max-Age=2592000`;
+    mockGetSession.mockResolvedValue(sessionResult({ user: { id: String(fixtures.users.kevin.id) } }, [renewed]));
+
+    const app = createSessionApp();
+    const res = await request(app).get('/test');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['set-cookie']).toEqual([renewed]);
+  });
+
+  it('forwards only the session token, not the cookie cache', async () => {
+    // `get-session` rewrites the `session_data` cache cookie on every call.
+    // Forwarding it would add roughly a kilobyte to every API response and to
+    // every request the browser makes afterwards, and renew nothing that
+    // decides when a reader is signed out.
+    const name = await sessionTokenCookieName();
+    const renewed = `${name}=renewed.signature; Path=/; HttpOnly`;
+    mockGetSession.mockResolvedValue(
+      sessionResult({ user: { id: String(fixtures.users.kevin.id) } }, [
+        `${name.replace('session_token', 'session_data')}=cached.payload; Path=/; Max-Age=300`,
+        renewed,
+      ]),
+    );
+
+    const app = createSessionApp();
+    const res = await request(app).get('/test');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['set-cookie']).toEqual([renewed]);
+  });
+
+  it('sets no cookie on the requests between renewals', async () => {
+    mockGetSession.mockResolvedValue(sessionResult({ user: { id: String(fixtures.users.kevin.id) } }));
+
+    const app = createSessionApp();
+    const res = await request(app).get('/test');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['set-cookie']).toBeUndefined();
   });
 
   it('returns 401 when session lookup throws', async () => {
@@ -414,7 +470,7 @@ describe('idempotent guard', () => {
     app.use(handleErrors as ErrorRequestHandler);
 
     // No session mock — would 401 if the guard didn't skip
-    mockGetSession.mockResolvedValue(null);
+    mockGetSession.mockResolvedValue(sessionResult(null));
 
     const res = await request(app).get('/test');
     expect(res.status).toBe(200);
