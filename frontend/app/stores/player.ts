@@ -145,6 +145,10 @@ export const usePlayerStore = defineStore('player', {
         is_autoplay: this.autoplay,
       });
 
+      // Deliberate plays only. `this.autoplay` is the same flag the event above
+      // carries, so the counter and the analytics agree on what a play is.
+      if (!this.autoplay) useSignupNudge().recordPlay();
+
       const user = userStore();
       if (user.isLoggedIn) {
         const sdk = useNadeshikoSdk();

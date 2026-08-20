@@ -22,6 +22,13 @@ export default {
           DEFAULT: 'var(--surface)',
           soft: 'var(--surface-soft)',
           lift: 'var(--surface-lift)',
+          // `--surface-hover` has existed as a token all along; it just had no
+          // entry here, so `hover:bg-surface-hover` generated no CSS and the
+          // magic-link buttons in `ModalLoginSignUp` had no hover state at all.
+          // Nothing errors on a missing colour key -- Tailwind simply emits
+          // nothing -- which is why it sat unnoticed. `accent` already carries a
+          // `hover`, so this is the shape the palette was assumed to have.
+          hover: 'var(--surface-hover)',
         },
         hairline: 'var(--line)',
         ink: {
