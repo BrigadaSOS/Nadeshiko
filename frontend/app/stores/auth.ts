@@ -4,11 +4,13 @@ import { defineStore } from 'pinia';
 import { setReaderStack } from '~/utils/wordLookup';
 import { handleApiError } from '~/utils/apiError';
 import {
+  ANALYTICS_DELIBERATE_SIGN_OUT_KEY,
   AUTH_CALLBACK_PARAM,
   authIntentStorage,
   readAuthIntent,
   withAuthCallbackMarker,
   withAuthIntentParams,
+  writeStoredValue,
 } from '~/utils/authAnalytics';
 
 type UserRole = 'ADMIN' | 'MOD' | 'USER' | 'PATREON';
@@ -61,6 +63,14 @@ export interface SessionInfo {
   id?: string | null;
   token?: string | null;
   impersonatedBy?: unknown;
+  /**
+   * When the session began, from the server rather than from anything this
+   * browser remembers. It is what lets an involuntary sign-out be reported with
+   * the session's age attached -- and the age is the whole diagnostic, because a
+   * mechanical expiry lands on the same number every time and nothing a reader
+   * does by choice ever does.
+   */
+  createdAt?: string | null;
 }
 
 function defaultAuthState() {
@@ -69,6 +79,8 @@ function defaultAuthState() {
     userId: null as string | null,
     /** Identifies the session itself; see `SessionInfo.id`. */
     sessionId: null as string | null,
+    /** ISO timestamp the session began; see `SessionInfo.createdAt`. */
+    sessionCreatedAt: null as string | null,
     /** ISO timestamp the account was created, used to tell a signup from a login. */
     userCreatedAt: null as string | null,
     userName: null as string | null,
@@ -184,6 +196,7 @@ export const userStore = defineStore('user', {
         isLoggedIn: true,
         userId: sessionUser?.id != null ? String(sessionUser.id) : null,
         sessionId: response?.session?.id != null ? String(response.session.id) : null,
+        sessionCreatedAt: response?.session?.createdAt ?? null,
         userCreatedAt: sessionUser?.createdAt ?? null,
         userName: sessionUser?.name ?? null,
         userEmail: sessionUser?.email ?? null,
@@ -318,6 +331,9 @@ export const userStore = defineStore('user', {
       if (import.meta.client) {
         const posthog = usePostHog();
         posthog?.capture('user_logged_out');
+        // Marks this sign-out as the reader's own doing, so the next load does
+        // not report it as a session they lost. See `reportLostSession`.
+        writeStoredValue(authIntentStorage(), ANALYTICS_DELIBERATE_SIGN_OUT_KEY, String(Date.now()));
         // Drops the identity so the next visitor on this browser is anonymous
         // again. Deliberately does NOT clear `ANALYTICS_IDENTITY_KEY`: that record
         // is what stops a sign-out and straight-back-in, inside the five minutes

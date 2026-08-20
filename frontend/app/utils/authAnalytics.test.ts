@@ -16,7 +16,9 @@ import {
   readAuthIntent,
   readStoredValue,
   rememberAuthIntent,
+  removeStoredValue,
   resolveAuthTransition,
+  resolveLostSession,
   updateAuthIntent,
   withAuthCallbackMarker,
   withAuthIntentParams,
@@ -331,6 +333,79 @@ describe('stored values', () => {
   it('survives hostile storage', () => {
     expect(() => writeStoredValue(hostileStorage, ANALYTICS_IDENTITY_KEY, '42')).not.toThrow();
     expect(readStoredValue(hostileStorage, ANALYTICS_IDENTITY_KEY)).toBeNull();
+    expect(() => removeStoredValue(hostileStorage, ANALYTICS_IDENTITY_KEY)).not.toThrow();
+  });
+
+  it('forgets a value, which is what keeps a lost session reported once', () => {
+    const storage = fakeStorage();
+    writeStoredValue(storage, ANALYTICS_IDENTITY_KEY, '42');
+    removeStoredValue(storage, ANALYTICS_IDENTITY_KEY);
+
+    expect(readStoredValue(storage, ANALYTICS_IDENTITY_KEY)).toBeNull();
+  });
+});
+
+/**
+ * The detector for a whole class of bug that is otherwise silent: when a session
+ * ends because something expired rather than because the reader asked, nothing
+ * fails, no request 401s, and the site simply renders signed-out. The only thing
+ * that separates that from ordinary churn is the AGE of the sessions being lost,
+ * so these tests are mostly about not drowning that number in false positives.
+ */
+describe('resolveLostSession', () => {
+  const HOUR = 3_600_000;
+  const now = 1_787_000_000_000;
+
+  it('reports a session that ended without a sign-out, with its age', () => {
+    expect(
+      resolveLostSession({
+        storedUserId: '42',
+        storedSessionStartedAt: String(now - 30 * 24 * HOUR),
+        deliberate: false,
+        now,
+      }),
+    ).toEqual({ hoursSignedIn: 720 });
+  });
+
+  it('says nothing when the reader signed out on purpose', () => {
+    // The identity key survives a deliberate sign-out by design, so this flag is
+    // the only thing standing between the signal and every logout on the site.
+    expect(
+      resolveLostSession({
+        storedUserId: '42',
+        storedSessionStartedAt: String(now - 3 * HOUR),
+        deliberate: true,
+        now,
+      }),
+    ).toBeNull();
+  });
+
+  it('says nothing for a browser that was never signed in', () => {
+    expect(
+      resolveLostSession({ storedUserId: null, storedSessionStartedAt: String(now - HOUR), deliberate: false, now }),
+    ).toBeNull();
+  });
+
+  it('still reports the loss when the age is unknown or nonsense', () => {
+    // Losing the age is worth reporting ageless -- the count alone still moves
+    // when something starts cutting people off -- but a fabricated age would
+    // land on the histogram as a real reading, which is worse than a gap.
+    for (const startedAt of [null, 'yesterday', '0', String(now + HOUR)]) {
+      expect(
+        resolveLostSession({ storedUserId: '42', storedSessionStartedAt: startedAt, deliberate: false, now }),
+      ).toEqual({ hoursSignedIn: null });
+    }
+  });
+
+  it('keeps one decimal, because a fixed horizon repeats to within hours', () => {
+    expect(
+      resolveLostSession({
+        storedUserId: '42',
+        storedSessionStartedAt: String(now - (30 * 24 * HOUR + 15 * 60 * 1000)),
+        deliberate: false,
+        now,
+      }),
+    ).toEqual({ hoursSignedIn: 720.3 });
   });
 });
 

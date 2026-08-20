@@ -301,12 +301,45 @@ export const ANALYTICS_IDENTITY_KEY = 'nd-analytics-user';
  */
 export const ANALYTICS_SESSION_KEY = 'nd-analytics-session';
 
+/**
+ * When the session this browser is signed in with began, as milliseconds.
+ *
+ * Kept alongside the identity because the question it answers can only be asked
+ * once the session is already gone: "how long had they been signed in?" A reader
+ * who signs out, clears cookies or is revoked produces a spread of ages; a
+ * mechanical expiry produces the SAME age every time, and that spike is the only
+ * thing that distinguishes a bug from ordinary churn. Sourced from the server's
+ * `session.createdAt`, not from when this browser first noticed, so it is right
+ * for sessions that predate this code.
+ */
+export const ANALYTICS_SESSION_STARTED_KEY = 'nd-analytics-session-started';
+
+/**
+ * Set when the reader signs out on purpose, and consumed by the next load.
+ *
+ * Without it every deliberate sign-out would be reported as a lost session:
+ * `logout()` deliberately leaves the identity key in place (so signing straight
+ * back in is not counted as a second signup), which is exactly the state a
+ * silent expiry leaves behind. This is the one bit that tells them apart.
+ */
+export const ANALYTICS_DELIBERATE_SIGN_OUT_KEY = 'nd-analytics-signed-out';
+
 export function readStoredValue(storage: IntentStorage | undefined, key: string): string | null {
   if (!storage) return null;
   try {
     return storage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+export function removeStoredValue(storage: IntentStorage | undefined, key: string): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Same tolerance as the writes: storage can be blocked outright. The cost is
+    // a repeated event, never a broken page.
   }
 }
 
@@ -317,6 +350,37 @@ export function writeStoredValue(storage: IntentStorage | undefined, key: string
   } catch {
     // See `rememberAuthIntent`. The cost is a repeated login event, not a break.
   }
+}
+
+/**
+ * Whether a browser that is now signed out lost a session it did not ask to
+ * lose, and how old that session was.
+ *
+ * Pure, and separated from the composable, because this is the part worth being
+ * sure of: it decides whether an event fires at all, and a false positive here
+ * (reporting every deliberate sign-out) would bury the signal it exists to
+ * surface under ordinary traffic.
+ *
+ * The age is deliberately reported in hours rather than days. A cookie that
+ * expires on a fixed schedule produces a value that repeats to within a few
+ * hours across thousands of readers, and rounding to days would blur exactly the
+ * detail that makes the spike visible.
+ */
+export function resolveLostSession(input: {
+  /** The account this browser last reported on. Nothing means it was never signed in here. */
+  storedUserId: string | null;
+  /** When that session began, as the stored millisecond string. */
+  storedSessionStartedAt: string | null;
+  /** Whether the reader signed out on purpose since the last load. */
+  deliberate: boolean;
+  now: number;
+}): { hoursSignedIn: number | null } | null {
+  if (!input.storedUserId || input.deliberate) return null;
+
+  const startedAt = Number(input.storedSessionStartedAt);
+  const usable = Number.isFinite(startedAt) && startedAt > 0 && startedAt <= input.now;
+
+  return { hoursSignedIn: usable ? Math.round(((input.now - startedAt) / 3_600_000) * 10) / 10 : null };
 }
 
 export type AuthTransition = 'signup_completed' | 'user_logged_in';
