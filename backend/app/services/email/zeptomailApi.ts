@@ -51,17 +51,19 @@ export async function deleteProviderSuppression(address: string): Promise<boolea
   if (!token) return false;
 
   try {
-    const response = await fetch(`https://${config.ZEPTOMAIL_API_HOST}/v1.1/suppressions/email`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ value: address }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await deleteRequest(token, address);
 
     if (response.ok) return true;
+
+    // "Not found" IS SUCCESS HERE, and treating it as a failure was the first
+    // thing this code got wrong in testing.
+    //
+    // The goal of a lift is that ZeptoMail is not refusing the address any more.
+    // If it never had the address on its list -- because we suppressed it
+    // manually, or auto-suppression had not fired -- then that goal is already
+    // met, and reporting failure would make every such lift exit non-zero and
+    // send somebody hunting for a problem that does not exist.
+    if (await isNotFound(response)) return true;
 
     // A rejected token is worth one retry with a fresh one: the cache holds a
     // token for fifty minutes against a stated hour, but the clock that matters
@@ -70,13 +72,8 @@ export async function deleteProviderSuppression(address: string): Promise<boolea
       cachedToken = null;
       const retryToken = await accessToken();
       if (retryToken) {
-        const retry = await fetch(`https://${config.ZEPTOMAIL_API_HOST}/v1.1/suppressions/email`, {
-          method: 'DELETE',
-          headers: { Authorization: `Zoho-oauthtoken ${retryToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value: address }),
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (retry.ok) return true;
+        const retry = await deleteRequest(retryToken, address);
+        if (retry.ok || (await isNotFound(retry))) return true;
       }
     }
 
@@ -84,6 +81,37 @@ export async function deleteProviderSuppression(address: string): Promise<boolea
     return false;
   } catch (error) {
     logger.warn({ err: error }, 'ZeptoMail was unreachable for a suppression delete');
+    return false;
+  }
+}
+
+/**
+ * `values` IS AN ARRAY, and it is the detail most likely to be got wrong.
+ *
+ * The obvious reading of "delete this one address" is `{ value: "..." }`, and
+ * that is what shirabe shipped. ZeptoMail answers it with
+ * `SERR_110 "Parameter less than min occurrance", target: "values"` -- a Bad
+ * Syntax error naming a field the request never sent, which reads like a server
+ * problem rather than our own. Verified against the live JP API on 2026-08-20.
+ */
+function deleteRequest(token: string, address: string): Promise<Response> {
+  return fetch(`https://${config.ZEPTOMAIL_API_HOST}/v1.1/suppressions/email`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Zoho-oauthtoken ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ values: [address] }),
+    signal: AbortSignal.timeout(10_000),
+  });
+}
+
+/** ZeptoMail says `DND_102` when the address is not on its suppression list. */
+async function isNotFound(response: Response): Promise<boolean> {
+  try {
+    const body = (await response.clone().json()) as { error?: { code?: string } };
+    return body?.error?.code === 'DND_102';
+  } catch {
     return false;
   }
 }
