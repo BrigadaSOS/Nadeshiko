@@ -17,6 +17,18 @@ export interface EmailJobData {
    * rather than failing on a field it never had.
    */
   kind?: EmailKind;
+  /**
+   * `List-Unsubscribe` target, carried through the queue so a job that runs
+   * minutes later still offers the reader the way out. Optional for the same
+   * reason `kind` is: a job enqueued by an older deploy has to keep working.
+   */
+  unsubscribeUrl?: string;
+  /**
+   * Which run of `kind` this is (`recap-2026-08`), for the lifecycle mail that
+   * recurs. Rides out inside the client reference so a bounce three days later
+   * names the send rather than only its shape.
+   */
+  campaign?: string;
 }
 
 /**

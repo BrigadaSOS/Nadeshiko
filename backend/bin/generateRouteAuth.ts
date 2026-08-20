@@ -64,11 +64,21 @@ const CORPUS_WRITE_PERMISSIONS = new Set<string>([
  *   their bot resistance — see the honeypot, the issue-time token and the
  *   per-IP limit in feedbackController. They read nothing back: the response is
  *   a fixed acknowledgement either way.
+ *
+ *   unsubscribeFromEmail -- POST /v1/email/unsubscribe. Read from a mail client
+ *   by somebody who is not signed in, which is the entire point: an opt-out that
+ *   first demanded a password is the pattern that produces spam complaints
+ *   instead of unsubscribes, and `List-Unsubscribe-Post` is fired by the mailbox
+ *   provider with no person present at all. Authority comes from the sealed
+ *   token rather than a session -- see `@app/services/email/unsubscribe`. It
+ *   reads nothing back and can only ever turn mail OFF, so the worst a forged
+ *   call achieves is that we send less.
  */
 export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
   'getAnnouncement',
   'createFeedback',
   'getFeedbackFormToken',
+  'unsubscribeFromEmail',
 ]);
 
 /**

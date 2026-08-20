@@ -130,17 +130,59 @@ const envSchema = z.object({
 
   E2E_USER_PASSWORD: optionalString,
 
-  SES_AWS_REGION: optionalString,
-  SES_AWS_ACCESS_KEY_ID: optionalString,
-  SES_AWS_SECRET_ACCESS_KEY: optionalString,
-  SES_FROM_EMAIL: requiredString,
-  SES_FROM_NAME: requiredString,
+  // Who transactional mail comes from. Required, because a message with no
+  // From is not a message.
+  MAIL_FROM_EMAIL: requiredString,
+  MAIL_FROM_NAME: requiredString,
 
-  // Outbound transport. `ses` is the rollback path; `zepto` is SMTP via
-  // smtp.zeptomail.jp. Deployed environments flip this without dropping SES
-  // DNS so we can roll back by flipping it back. From-address stays
-  // SES_FROM_EMAIL either way.
-  MAIL_TRANSPORT: z.enum(['ses', 'zepto']).default('ses'),
+  // Who the LIFECYCLE mail comes from, which is deliberately not the same
+  // person as the above.
+  //
+  // The day-7 note, the feedback ask and the recap are written in the first
+  // person and ask to be replied to. Sending those from `noreply@` makes the
+  // email a lie the moment somebody answers it, and "we would love to hear from
+  // you, from an address that discards your reply" is worse than not asking.
+  //
+  // DEFAULTED RATHER THAN REQUIRED, because the failure mode of an unset value
+  // is silent: the mail still sends, still says "reply to me", and still goes
+  // out from an address nobody reads. A default means the promise in the
+  // template holds even in an environment where nobody set this.
+  //
+  // Any address on the ZeptoMail-verified domain works; the DKIM signature is
+  // per-domain, not per-mailbox. It does still need to exist as a real inbox --
+  // that is the entire point of it.
+  LIFECYCLE_FROM_EMAIL: z.string().default('dav@nadeshiko.co'),
+  LIFECYCLE_FROM_NAME: z.string().default('David from Nadeshiko'),
+
+  // THE MASTER SWITCH FOR LIFECYCLE MAIL, and it is off.
+  //
+  // Off does not mean the sweep stops. It runs every night, selects exactly the
+  // accounts it would write to, and logs what it would have sent -- so the
+  // candidate counts can be read off production for a week before anybody
+  // decides to turn this on. What it does not do is enqueue anything, and,
+  // just as importantly, it does not write the `EmailLifecycleSend` claim rows:
+  // a dry run that claimed would mark every swept account as already-done, and
+  // the day this was enabled it would send to nobody and look like it worked.
+  //
+  // Default false rather than true-in-development, because "which environment
+  // is this" is the wrong question. The right one is "has a person read the copy
+  // and decided", and that has exactly one answer until they have.
+  LIFECYCLE_EMAILS_ENABLED: booleanString,
+
+  // A staging post between off and everyone: when set, only these addresses get
+  // a real send and every other candidate stays a dry run. Comma-separated.
+  //
+  // For seeing the mail arrive in a real inbox, rendered by a real client, with
+  // real links -- which is the one thing `npm run email:test` cannot show you.
+  // Leave it unset to mean "everybody", which only takes effect once the switch
+  // above is on.
+  LIFECYCLE_EMAILS_ONLY_TO: optionalString,
+
+  // Outbound is ZeptoMail SMTP, and only that. There is no MAIL_TRANSPORT
+  // switch any more: the `ses` branch existed as the rollback path for the
+  // cutover, and a rollback path nobody has exercised in months is not a safety
+  // net, it is a second sending identity with its own DKIM records and its own
+  // unwatched reputation.
   SMTP_ADDRESS: optionalString,
   SMTP_PORT: optionalString,
   SMTP_USER_NAME: optionalString,

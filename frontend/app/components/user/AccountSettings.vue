@@ -66,6 +66,8 @@ const savingPreferences = ref(false);
 
 const editingEmail = ref(false);
 const newEmail = ref('');
+const productEmailsEnabled = ref(user_store.preferences?.productEmails?.enabled !== false);
+const togglingProductEmails = ref(false);
 const changingEmail = ref(false);
 const changeEmailMessage = ref('');
 const changeEmailError = ref('');
@@ -85,6 +87,40 @@ const requestEmailChange = async () => {
     }
   } finally {
     changingEmail.value = false;
+  }
+};
+
+/**
+ * The same switch the unsubscribe link in every lifecycle email flips.
+ *
+ * Governs only that mail -- the day-7 note, the feedback ask, the monthly
+ * recap. Sign-in links and address verification are unaffected and deliberately
+ * have no switch: an account you cannot receive mail for is one you cannot get
+ * back into. The copy under the toggle says so, because a reader turning this
+ * off has no other way to know it is safe.
+ */
+const toggleProductEmails = async () => {
+  if (togglingProductEmails.value) return;
+  togglingProductEmails.value = true;
+  const newValue = !productEmailsEnabled.value;
+  try {
+    await sdk.updateUserPreferences({ productEmails: { enabled: newValue } });
+    productEmailsEnabled.value = newValue;
+    // Written through to the store for the same reason the activity toggles do
+    // it: the initial value above reads from there, so leaving the page and
+    // coming back would otherwise show the old state.
+    user_store.preferences = { ...(user_store.preferences ?? {}), productEmails: { enabled: newValue } };
+    usePostHog()?.capture('setting_changed', { setting_name: 'productEmails', value: newValue });
+    useToastSuccess(
+      t(newValue ? 'accountSettings.account.productEmailsOnToast' : 'accountSettings.account.productEmailsOffToast'),
+    );
+  } catch (error) {
+    handleApiError('account:product-emails-toggle-failed', error, {
+      toastKey: 'accountSettings.account.preferenceError',
+      context: { 'preference.key': 'productEmails' },
+    });
+  } finally {
+    togglingProductEmails.value = false;
   }
 };
 
@@ -460,6 +496,30 @@ const logoutCurrentUser = async () => {
           @click="editingEmail = true; newEmail = ''; changeEmailMessage = ''; changeEmailError = ''"
         >
           {{ $t('accountSettings.account.changeEmail') }}
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between gap-4 pt-4 border-t border-gray-700">
+        <div>
+          <p class="text-white font-medium">{{ $t('accountSettings.account.productEmailsTitle') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.productEmailsDescription') }}</p>
+        </div>
+        <button
+          data-testid="product-emails-toggle"
+          :disabled="togglingProductEmails"
+          :aria-pressed="productEmailsEnabled"
+          :class="[
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+            productEmailsEnabled ? 'bg-red-500' : 'bg-gray-600',
+          ]"
+          @click="toggleProductEmails"
+        >
+          <span
+            :class="[
+              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+              productEmailsEnabled ? 'translate-x-5' : 'translate-x-0',
+            ]"
+          />
         </button>
       </div>
     </div>

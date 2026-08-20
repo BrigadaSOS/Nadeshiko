@@ -2,7 +2,7 @@ import { PgBoss } from 'pg-boss';
 import { registerActivityRetentionWorker } from '@app/workers/activityRetentionWorker';
 import { registerAffinityRetentionWorker } from '@app/workers/affinityRetentionWorker';
 import { registerEmailWorkers } from '@app/workers/emailWorker';
-import { registerEmailSuppressionLiftWorkers } from '@app/workers/emailSuppressionLiftWorker';
+import { registerEmailLifecycleWorker } from '@app/workers/emailLifecycleWorker';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { registerQueueMetrics } from '@app/workers/workerInstrumentation';
@@ -11,7 +11,7 @@ import {
   ACTIVITY_RETENTION_QUEUE,
   AFFINITY_RETENTION_QUEUE,
   EMAIL_SEND_QUEUE,
-  EMAIL_SUPPRESSION_LIFT_QUEUE,
+  EMAIL_LIFECYCLE_QUEUE,
   ES_SYNC_CREATE_QUEUE,
   ES_SYNC_DELETE_QUEUE,
   ES_SYNC_UPDATE_QUEUE,
@@ -77,15 +77,16 @@ export const workersInitializer: RuntimeInitializer = {
         },
       },
       {
-        name: EMAIL_SUPPRESSION_LIFT_QUEUE,
+        name: EMAIL_LIFECYCLE_QUEUE,
         options: {
-          // Longer backoff and fewer tries than a send. This talks to two Zoho
-          // hosts and nobody is waiting on it: our own row is already gone, so a
-          // retry that lands ten minutes later is as good as one that lands now.
-          retryLimit: 3,
-          retryDelay: 60000,
-          retryBackoff: true,
-          expireInSeconds: 3600,
+          // One retry, not five. This is a sweep over a query, so a second run
+          // finds exactly what the first would have; the value of retrying is
+          // covering a transient database blip, and beyond that a failure means
+          // the query is wrong and repeating it just delays the log line saying
+          // so. Nobody is waiting: the next run is tomorrow at 05:00 either way.
+          retryLimit: 1,
+          retryDelay: 300000,
+          expireInSeconds: 1800,
           retentionSeconds: 86400,
         },
       },
@@ -119,6 +120,10 @@ export const workersInitializer: RuntimeInitializer = {
     // An hour after the activity sweep, so the two nightly deletes do not
     // contend for the same window.
     await boss.schedule(AFFINITY_RETENTION_QUEUE, '0 4 * * *', {});
+    // An hour after the affinity sweep, which is what the recap will read. The
+    // order matters on the 1st of the month: mailing a summary built from a
+    // tally that has not finished rolling over would report the wrong month.
+    await boss.schedule(EMAIL_LIFECYCLE_QUEUE, '0 5 * * *', {});
     logger.info('PgBoss initialized, queues created, cron scheduled');
 
     setBossInstance(boss);
@@ -126,7 +131,7 @@ export const workersInitializer: RuntimeInitializer = {
 
     await registerEsSyncWorkers(boss);
     await registerEmailWorkers(boss);
-    await registerEmailSuppressionLiftWorkers(boss);
+    await registerEmailLifecycleWorker(boss);
     await registerActivityRetentionWorker(boss);
     await registerAffinityRetentionWorker(boss);
   },

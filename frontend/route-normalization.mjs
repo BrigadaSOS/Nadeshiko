@@ -33,6 +33,12 @@ const STATIC_PAGES = new Set([
   // in a way nobody reports, because a reader who lands on an error here simply
   // gives up on connecting.
   '/link/shirabe/callback',
+  // The unsubscribe confirmation. Its own series for the same reason as the
+  // Shirabe callback: a reader who lands here and cannot complete it does not
+  // write in to say so, they press the spam button instead -- which costs the
+  // sending reputation that every sign-in link depends on. Folded into
+  // `/__other` that failure would be invisible.
+  '/unsubscribe',
 ]);
 
 const ROUTE_PATTERNS = [

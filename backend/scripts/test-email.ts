@@ -1,6 +1,8 @@
-import { sendTestEmail, type TestEmailTemplate } from '@app/mailers/email';
+import { sendTestEmail, TEST_EMAIL_TEMPLATES, type TestEmailTemplate } from '@app/mailers/email';
 
-const VALID_TEMPLATES: TestEmailTemplate[] = ['welcome', 'verify-new-email', 'magic-link', 'feedback'];
+// Read from the mailer rather than restated here, so a template added there
+// is previewable without anybody remembering to update this list.
+const VALID_TEMPLATES: readonly TestEmailTemplate[] = TEST_EMAIL_TEMPLATES;
 
 const template = (process.argv[2] as TestEmailTemplate) || 'welcome';
 const to = process.argv[3] || 'test@example.com';
