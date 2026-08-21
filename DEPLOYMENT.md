@@ -18,9 +18,18 @@ the Discord bot are separate Kamal services on that host.
 ## Mental model
 
 - **`main` is staging.** Any merge or direct push to `main` deploys to stg.
-- **`production` is what prod runs.** A long-lived branch that only ever moves
-  forward: fast-forwarded from `main` when cutting a release, or committed to
-  directly for a hotfix. Pushing to it deploys nothing on its own.
+- **`production` is what prod runs.** A branch that only ever moves forward:
+  fast-forwarded from `main` when cutting a release, or committed to directly
+  for a hotfix. Pushing to it deploys nothing on its own.
+
+  It is not load-bearing between releases. Everything it points at is already
+  reachable from `main` (that is the invariant the merge-back preserves), so
+  deleting it loses no commits, and `release.yml` fetches it with `|| true` and
+  guards the ancestry check on its existence — a repo with no `production`
+  branch still releases off `main`. Recreate it at release time
+  (`git push origin main:production`) or when a hotfix needs the lane. What it
+  cannot be is *renamed*: the tag guard names `main` and `production`
+  literally, so a tag on `hotfix/foo` is rejected however correct the commit is.
 - **A `vX.Y.Z` tag is production.** Tagging a commit deploys that commit to prod.
   The tag must sit on `main` or on `production`; `release.yml` rejects anything
   else, so a release always points at a commit that was reviewed and, if it came
@@ -86,6 +95,15 @@ the **stable** (public) SDKs, and creates a GitHub Release.
 
 The tag version must match the version recorded in the package files, so bump
 the version first, then tag the resulting commit.
+
+"The resulting commit" is the bump commit only if nothing landed after it. The
+check is `release:check-version` against the *tagged* commit's package files,
+not an assertion that the tag sits on the bump itself, so main moving on is fine
+and common — v2.4.5 shipped three commits past its own bump. Everything
+between the bump and the tag ships under that version, which is the intent: the
+version names the release, not the commit that typed the number. If the bump is
+stale enough that the extra work deserves its own number, bump again rather than
+tagging the older one.
 
 From the repository root:
 
@@ -184,6 +202,34 @@ it keeps one rule ("a tag ships the stack") instead of two.
 To ship a bot-only fix without waiting for a release, commit it to `production`
 and cut a patch tag, or run the workflow by hand from the Actions tab
 (`workflow_dispatch`, pick the ref).
+
+### Slash command definitions are not deployed
+
+Deploying the bot ships the code that *answers* a command. It does not tell
+Discord the command exists. The names, descriptions and options in the slash
+picker live on Discord's side, and only a `PUT` to their API changes them:
+
+```bash
+cd discord && kamal register -d prod    # alias for: app exec npm run register
+```
+
+`bot.ts` can do it at boot, but only under `REGISTER_COMMANDS=true`, which no
+deploy config sets — so in practice the deploy never registers and this step
+is always manual.
+
+**It is only needed when a definition changed**, which is rarer than it sounds:
+rewriting a handler, changing what a command replies, or reformatting the file
+all ship on the deploy alone. What needs registering is a command added or
+removed, or a change to a `setName` / `setDescription` / `add*Option` /
+`setRequired` call. Diff those calls against the last released tag rather
+than the file as a whole — v2.4.5 rewrote most of `discord/src/commands/` and
+needed no registration, because every definition came out byte-identical once
+the reindentation was normalized away.
+
+Getting it wrong is not symmetrical. Skipping it when a definition changed
+leaves users a picker that disagrees with the bot — an option Discord will not
+send, or a command that 404s on invoke. Running it when nothing changed is a
+no-op `PUT`.
 
 ### One prerequisite that fails the deploy hard, not softly
 
