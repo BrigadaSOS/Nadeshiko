@@ -25,14 +25,42 @@ import { type IntentStorage, readStoredValue, writeStoredValue } from '~/utils/a
  * both a typo'd key that silently never cools down and a made-up category in
  * the funnel.
  *
- * - `download` -- they saved a clip. Anki export is the thing an account adds to
- *   that, and it is the feature the signed-in population actually lives in.
+ * - `download` -- they reached for Anki, by saving a clip or by opening the add
+ *   menu. Export is the thing an account adds to either, and it is the feature
+ *   the signed-in population actually lives in. See `NUDGE_TRIGGERS` for why
+ *   both moments spend one cooldown rather than two.
  * - `depth` -- they have used the site properly this visit and have not been
  *   asked anything yet.
  */
 export const SIGNUP_NUDGES = ['download', 'depth'] as const;
 
 export type SignupNudge = (typeof SIGNUP_NUDGES)[number];
+
+/**
+ * What made a nudge fire, which is not the same question as which nudge fired.
+ *
+ * `download` and `add_menu` both raise the `download` nudge -- the same panel,
+ * the same offer, the same cooldown key -- because they are one ask arriving at
+ * two moments: the reader who has just saved a clip, and the reader who has
+ * opened the add menu and found the Anki entries greyed out. Sharing the
+ * cooldown is the point rather than an accident: a reader who does both in one
+ * sitting has been asked once, and asking again ten seconds later with identical
+ * copy is exactly the nagging `NUDGE_COOLDOWN_MS` exists to prevent.
+ *
+ * They stay distinguishable in PostHog and in the parked auth intent, so the
+ * question of which moment actually converts can be read off rather than guessed
+ * at.
+ */
+export const NUDGE_TRIGGERS = ['download', 'add_menu', 'depth'] as const;
+
+export type NudgeTrigger = (typeof NUDGE_TRIGGERS)[number];
+
+/** Which panel a trigger raises, and so which cooldown it spends. */
+export const NUDGE_BY_TRIGGER: Record<NudgeTrigger, SignupNudge> = {
+  download: 'download',
+  add_menu: 'download',
+  depth: 'depth',
+};
 
 /**
  * How long a nudge stays quiet after it has been shown once.
