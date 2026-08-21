@@ -41,6 +41,9 @@
       "pause": "Pause",
       "autoplay": "Autoplay",
       "repeat": "Repeat",
+      "speed": "Playback speed ({rate}×)",
+      "speedMenu": "Playback speed",
+      "volume": "Volume",
       "enterFullscreen": "Full screen",
       "exitFullscreen": "Exit full screen",
       "close": "Close player"
@@ -1161,7 +1164,8 @@
       "successfullogin": "Signed in",
       "logout": "You are now logged out.",
       "banneduser": "Your account has been suspended. Please contact support.",
-      "errorlogin400": "Please check your email/password and try again.",
+      "errorlogin400": "We could not sign you in. Please try again.",
+      "logindenied": "Sign-in was not approved. Try again, or sign in with your email instead.",
       "closeSrOnly": "Close"
     },
     "magiclink": {
