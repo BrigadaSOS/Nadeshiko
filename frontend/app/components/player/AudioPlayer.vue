@@ -12,10 +12,15 @@ import {
   mdiFullscreenExit,
   mdiClose,
   mdiFullscreen,
+  mdiVolumeHigh,
+  mdiVolumeMedium,
+  mdiVolumeLow,
+  mdiVolumeOff,
 } from '@mdi/js';
-import { usePlayerStore } from '~/stores/player';
+import { PLAYBACK_RATES, usePlayerStore } from '~/stores/player';
 import { splitLocalePrefix } from '~/utils/routes';
-import { watch, ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { watch, ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { onClickOutside, useMediaQuery } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 
 const route = useRoute();
@@ -24,8 +29,19 @@ const { t } = useI18n();
 const playerStore = usePlayerStore();
 const ytPlayer = useYoutubeSegmentPlayer();
 const { mediaName } = useMediaName();
-const { currentResult, isPlaying, showPlayer, autoplay, repeat, isImmersive, currentAudio, playlist, currentIndex } =
-  storeToRefs(playerStore);
+const {
+  currentResult,
+  isPlaying,
+  showPlayer,
+  autoplay,
+  repeat,
+  isImmersive,
+  currentAudio,
+  playlist,
+  currentIndex,
+  volume,
+  playbackRate,
+} = storeToRefs(playerStore);
 
 const { scrollBehavior } = useMotionPreference();
 
@@ -45,16 +61,45 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
 
   if (!showPlayer.value) return;
 
+  // Keys a menu owns, and must therefore not be captured from it.
+  //
+  // This handler is bound with `capture: true`, so its `preventDefault()` lands
+  // before the button does and no click is synthesized. For an ordinary
+  // transport button that costs nothing -- Space toggling playback is what it
+  // would have done anyway -- but a `role="menuitemradio"` needs Space to pick
+  // an item, and its trigger needs Space to open the menu at all. Tag names
+  // cannot tell any of these apart, so the test is the role each element is
+  // standing in.
+  //
+  // ANY menu, not just this component's. The listener is on `window`, so
+  // `target` is whatever holds focus anywhere on the page and these match the
+  // search dropdowns and visibility menus too. That is the point rather than an
+  // oversight: with the player open, Space on one of those triggers was being
+  // captured into `togglePlay` and the dropdown never opened.
+  //
+  // Deliberately per-key rather than one bail at the top of the handler: Escape
+  // below is how a menu is dismissed from the keyboard, and it also has to
+  // reach its own `stopPropagation()` -- that call is what keeps an underlying
+  // `BaseModal` from closing instead, which is the "innermost first" ordering
+  // its comment describes. Returning early for every key inverted exactly that.
+  const inMenu = target.closest('[role="menu"]') !== null;
+  const opensMenu = target.closest('[aria-haspopup="menu"]') !== null;
+
   switch (event.code) {
     case 'Space':
+      if (inMenu || opensMenu) return;
       event.preventDefault();
       playerStore.togglePlay();
       break;
     case 'ArrowLeft':
+      // Skipping tracks from inside an open menu is not what the arrow was
+      // reached for, whether or not the menu answers it yet.
+      if (inMenu) return;
       event.preventDefault();
       playerStore.prev();
       break;
     case 'ArrowRight':
+      if (inMenu) return;
       event.preventDefault();
       playerStore.next();
       break;
@@ -73,10 +118,13 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
     case 'Escape': {
       // Before the modal: a player open over Context is a layer on top of
       // the dialog, so the first Escape dismisses it and the next one
-      // closes the dialog. Immersive is a layer on the player.
+      // closes the dialog. Immersive is a layer on the player, and the speed
+      // menu is a layer on both -- innermost first, so Escape never closes
+      // something the reader can still see an open menu in front of.
       event.preventDefault();
       event.stopPropagation();
-      if (isImmersive.value) playerStore.toggleImmersive();
+      if (rateMenuOpen.value) rateMenuOpen.value = false;
+      else if (isImmersive.value) playerStore.toggleImmersive();
       else playerStore.hidePlayer();
       break;
     }
@@ -283,6 +331,72 @@ const getAnimeImage = (result: any) => {
   if (!result) return '';
   return result.segment.urls.imageUrl;
 };
+
+/**
+ * Whether this device has a mouse-like pointer, gating the volume slider.
+ *
+ * Not a width breakpoint: the thing that decides whether this control can work
+ * is the input, not the viewport. A phone in landscape is wide enough for `md:`
+ * and still cannot use it -- iOS treats `HTMLMediaElement.volume` as read-only,
+ * so the slider would move and nothing would happen. Touch devices keep their
+ * hardware volume keys, which is the better control there anyway.
+ */
+const hasFinePointer = useMediaQuery('(hover: hover) and (pointer: fine)');
+
+const volumePercent = computed(() => Math.round(volume.value * 100));
+
+const volumeIcon = computed(() => {
+  if (volume.value === 0) return mdiVolumeOff;
+  if (volume.value < 0.34) return mdiVolumeLow;
+  if (volume.value < 0.67) return mdiVolumeMedium;
+  return mdiVolumeHigh;
+});
+
+const onVolumeInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  playerStore.setVolume(Number(target.value) / 100);
+};
+
+/**
+ * The speed menu's open state, shared by both layouts, and a wrapper ref per
+ * layout.
+ *
+ * One open flag is right -- the menu is one control wherever it is drawn. One
+ * ref is not: the two layouts are separate `v-if`s rather than a `v-if`/`v-else`
+ * pair, and the immersive branch sits inside a 400ms `zoom-fade` transition, so
+ * leaving immersive mounts the bar while the immersive markup is still on its
+ * way out. For that window both wrappers exist, and a single ref would hold
+ * whichever one Vue assigned last -- then be nulled outright by the leaving
+ * branch's unmount, since Vue queues ref assignment as a post-render effect but
+ * unsets synchronously. `onClickOutside` would be left watching nothing.
+ */
+const rateMenuOpen = ref(false);
+const rateMenuBarRef = ref<HTMLElement | null>(null);
+const rateMenuImmersiveRef = ref<HTMLElement | null>(null);
+
+// Each wrapper ignores the other: for the same 400ms both are mounted, and a
+// bare pair of handlers would have each read a click inside its counterpart as
+// "outside" and close a menu the reader was in the middle of using.
+onClickOutside(
+  rateMenuBarRef,
+  () => {
+    rateMenuOpen.value = false;
+  },
+  { ignore: [rateMenuImmersiveRef] },
+);
+
+onClickOutside(
+  rateMenuImmersiveRef,
+  () => {
+    rateMenuOpen.value = false;
+  },
+  { ignore: [rateMenuBarRef] },
+);
+
+const selectPlaybackRate = (rate: number) => {
+  playerStore.setPlaybackRate(rate);
+  rateMenuOpen.value = false;
+};
 </script>
 
 <template>
@@ -369,6 +483,34 @@ const getAnimeImage = (result: any) => {
                         </div>
 
                         <div class="flex items-center justify-center gap-2 mt-8">
+                            <div ref="rateMenuImmersiveRef" class="relative">
+                                <button @click="rateMenuOpen = !rateMenuOpen"
+                                    class="px-2 py-1 rounded-full hover:bg-white/10 transition-colors text-xs font-bold tabular-nums"
+                                    :class="playbackRate === 1 ? 'text-white/60' : 'text-red-400'"
+                                    :aria-label="t('player.controls.speed', { rate: playbackRate })"
+                                    aria-haspopup="menu" :aria-expanded="rateMenuOpen">
+                                    {{ playbackRate }}×
+                                </button>
+                                <!-- Opens upward: the player is pinned to the bottom of the viewport, so
+                                     a menu below the button would be off-screen. -->
+                                <div v-if="rateMenuOpen" role="menu" :aria-label="t('player.controls.speedMenu')"
+                                    class="absolute bottom-full right-0 mb-2 py-1 min-w-[4.5rem] rounded-lg bg-neutral-800 shadow-xl ring-1 ring-white/10 overflow-hidden">
+                                    <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio"
+                                        :aria-checked="playbackRate === rate" @click="selectPlaybackRate(rate)"
+                                        class="w-full px-3 py-1.5 text-left text-xs font-bold tabular-nums hover:bg-white/10 transition-colors"
+                                        :class="playbackRate === rate ? 'text-red-400' : 'text-white/70'">
+                                        {{ rate }}×
+                                    </button>
+                                </div>
+                            </div>
+                            <div v-if="hasFinePointer" class="flex items-center gap-2 px-1">
+                                <UiBaseIcon :path="volumeIcon" :size="20" class="text-white/50" />
+                                <input type="range" min="0" max="100" step="1" :value="volumePercent"
+                                    :style="{ '--volume-fill': volumePercent + '%' }"
+                                    @input="onVolumeInput" @change="playerStore.trackVolumeChange()"
+                                    class="player-volume w-20"
+                                    :aria-label="t('player.controls.volume')" :aria-valuetext="`${volumePercent}%`" />
+                            </div>
                             <button @click="playerStore.toggleAutoplay()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors"
                                 :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }"
@@ -415,7 +557,11 @@ const getAnimeImage = (result: any) => {
                     </div>
 
 
-                    <div class="flex items-center gap-1 md:gap-3">
+                    <!-- Full width below `md` so the two control groups each get
+                         their own centred row: the bar wraps at that size, and
+                         groups sized to their content wrap left-aligned, which
+                         reads as two ragged clusters rather than a transport. -->
+                    <div class="flex items-center justify-center gap-1 w-full md:w-auto md:gap-3">
                         <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.rewind')">
                             <UiBaseIcon :path="mdiRewind" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
@@ -442,7 +588,39 @@ const getAnimeImage = (result: any) => {
 
                     </div>
 
-                    <div class="flex items-center gap-2 pl-4 border-l border-white/10">
+                    <!-- The rule divides this group from the transport, so it is
+                         only drawn while the two share a row. Wrapped, it reads
+                         as a stray line hanging off the left edge. -->
+                    <div
+                        class="flex items-center justify-center gap-2 w-full md:w-auto md:pl-4 md:border-l md:border-white/10">
+                        <div ref="rateMenuBarRef" class="relative">
+                            <button @click="rateMenuOpen = !rateMenuOpen"
+                                class="px-2 py-1 rounded-full hover:bg-white/10 transition-colors text-xs font-bold tabular-nums"
+                                :class="playbackRate === 1 ? 'text-white/60' : 'text-red-400'"
+                                :aria-label="t('player.controls.speed', { rate: playbackRate })"
+                                aria-haspopup="menu" :aria-expanded="rateMenuOpen">
+                                {{ playbackRate }}×
+                            </button>
+                            <!-- Opens upward: the player is pinned to the bottom of the viewport, so
+                                 a menu below the button would be off-screen. -->
+                            <div v-if="rateMenuOpen" role="menu" :aria-label="t('player.controls.speedMenu')"
+                                class="absolute bottom-full right-0 mb-2 py-1 min-w-[4.5rem] rounded-lg bg-neutral-800 shadow-xl ring-1 ring-white/10 overflow-hidden">
+                                <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio"
+                                    :aria-checked="playbackRate === rate" @click="selectPlaybackRate(rate)"
+                                    class="w-full px-3 py-1.5 text-left text-xs font-bold tabular-nums hover:bg-white/10 transition-colors"
+                                    :class="playbackRate === rate ? 'text-red-400' : 'text-white/70'">
+                                    {{ rate }}×
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="hasFinePointer" class="flex items-center gap-2 px-1">
+                            <UiBaseIcon :path="volumeIcon" :size="20" class="text-white/50" />
+                            <input type="range" min="0" max="100" step="1" :value="volumePercent"
+                                :style="{ '--volume-fill': volumePercent + '%' }"
+                                @input="onVolumeInput" @change="playerStore.trackVolumeChange()"
+                                class="player-volume w-20"
+                                :aria-label="t('player.controls.volume')" :aria-valuetext="`${volumePercent}%`" />
+                        </div>
                         <button @click="playerStore.toggleAutoplay()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
                             :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }"
@@ -470,3 +648,66 @@ const getAnimeImage = (result: any) => {
             </div>
         </div>
 </template>
+
+<style scoped>
+/*
+ * The volume slider.
+ *
+ * Hand-styled because a native range input renders as a platform-coloured form
+ * control, which in the middle of the player bar reads as a stray input rather
+ * than part of the transport. The track carries its own fill (a hard-stopped
+ * gradient driven by `--volume-fill`) since neither engine paints the portion
+ * left of the thumb on its own, and an unfilled track gives no read on the
+ * level at a glance.
+ */
+.player-volume {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.player-volume::-webkit-slider-runnable-track {
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    rgb(255 255 255 / 0.85) var(--volume-fill),
+    rgb(255 255 255 / 0.2) var(--volume-fill)
+  );
+}
+
+.player-volume::-moz-range-track {
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    rgb(255 255 255 / 0.85) var(--volume-fill),
+    rgb(255 255 255 / 0.2) var(--volume-fill)
+  );
+}
+
+.player-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  background: #fff;
+  /* Centres a 0.75rem thumb on the 0.25rem track. */
+  margin-top: -0.25rem;
+}
+
+.player-volume::-moz-range-thumb {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: none;
+  border-radius: 9999px;
+  background: #fff;
+}
+
+.player-volume:focus-visible {
+  outline: 2px solid rgb(248 113 113);
+  outline-offset: 4px;
+}
+</style>
