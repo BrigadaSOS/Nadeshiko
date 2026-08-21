@@ -823,6 +823,7 @@ export type t_Token = {
     s: string;
   }[];
   posLabel?: string;
+  pt?: string;
   r: string;
   s: string;
 };
