@@ -13,6 +13,22 @@ function reportFailedLogin(reason: string) {
   usePostHog()?.capture('login_failed', { ...authEventProperties(intent), reason });
 }
 
+/**
+ * What to tell the reader about a rejected round trip.
+ *
+ * `access_denied` is the provider's own code and it means one of two things:
+ * the reader cancelled at the consent screen, or the provider refused them
+ * without asking (a managed Google account whose admin has not allowed the app,
+ * a supervised account). Neither is a mistake the reader can correct by trying
+ * the same button harder, so it gets a line that says the request was not
+ * approved and points at the one sign-in nobody else has to approve.
+ */
+function callbackErrorLabel(reason: string): string {
+  if (reason === 'banned') return 'modalauth.labels.banneduser';
+  if (reason === 'access_denied') return 'modalauth.labels.logindenied';
+  return 'modalauth.labels.errorlogin400';
+}
+
 export default defineNuxtPlugin({
   name: 'auth-callback',
   // `identity-auth` finishes the client-side session bootstrap that
@@ -57,9 +73,7 @@ export default defineNuxtPlugin({
         // is not hypothetical here: 264 people picked Google in 90 days and the
         // data could not say what became of any of them.
         reportFailedLogin(String(callbackError));
-        useToastError(
-          $i18n.t(callbackError === 'banned' ? 'modalauth.labels.banneduser' : 'modalauth.labels.errorlogin400'),
-        );
+        useToastError($i18n.t(callbackErrorLabel(String(callbackError))));
         return;
       }
 
