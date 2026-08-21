@@ -1,3 +1,5 @@
+import { createCorpusCache } from './ssrCorpusCache';
+
 /**
  * A short-lived, per-process cache for the segment a permalink render needs.
  *
@@ -42,6 +44,11 @@
  * credential per route rather than per call-site, so "which identity did this
  * response belong to" becomes a property of the path being fetched. Check that
  * before adding a second call here.
+ *
+ * The second call arrived on 2026-08-22 and it is `mediaCache`, which passes
+ * that check for the same reason this one does. It lives in its own module with
+ * its own store rather than sharing this one — see `ssrCorpusCache.ts` for why
+ * that separation is load-bearing and not housekeeping.
  */
 
 /** Five minutes. This is the window in which an edited segment keeps serving
@@ -56,26 +63,7 @@ const TTL_MS = 5 * 60 * 1000;
  *  slow memory leak; ordinary traffic never approaches it. */
 const MAX_ENTRIES = 2_000;
 
-type Entry<T> = { kind: 'inflight'; promise: Promise<T> } | { kind: 'value'; value: T; expiresAt: number };
-
-const store = new Map<string, Entry<unknown>>();
-
-function gc(now: number): void {
-  for (const [k, e] of store) {
-    if (e.kind === 'value' && e.expiresAt <= now) store.delete(k);
-  }
-
-  // Still over after dropping what expired: evict oldest-first. Map preserves
-  // insertion order, so the head is the least recently *added* entry. Not a
-  // true LRU, and deliberately not — a hot segment being re-added on expiry is
-  // the common case, and the accounting an LRU needs is not worth it here.
-  if (store.size > MAX_ENTRIES) {
-    for (const k of store.keys()) {
-      if (store.size <= MAX_ENTRIES) break;
-      store.delete(k);
-    }
-  }
-}
+const cache = createCorpusCache({ ttlMs: TTL_MS, maxEntries: MAX_ENTRIES });
 
 /**
  * Run `fetcher` for `publicId`, reusing a fresh answer or an in-flight one.
@@ -90,30 +78,11 @@ function gc(now: number): void {
  * enumerated ID occupy an entry, and it would make a newly published segment
  * invisible for five minutes for no gain.
  */
-export async function cachedSegment<T>(publicId: string, fetcher: () => Promise<T>): Promise<T> {
-  const now = Date.now();
-  gc(now);
-
-  const existing = store.get(publicId);
-  if (existing?.kind === 'value' && existing.expiresAt > now) return existing.value as T;
-  if (existing?.kind === 'inflight') return existing.promise as Promise<T>;
-
-  const promise = (async () => {
-    try {
-      const value = await fetcher();
-      store.set(publicId, { kind: 'value', value, expiresAt: Date.now() + TTL_MS });
-      return value;
-    } catch (error) {
-      store.delete(publicId);
-      throw error;
-    }
-  })();
-
-  store.set(publicId, { kind: 'inflight', promise });
-  return promise;
+export function cachedSegment<T>(publicId: string, fetcher: () => Promise<T>): Promise<T> {
+  return cache.fetch(publicId, fetcher);
 }
 
 /** Test-only -- DO NOT call from prod code. */
 export function _resetForTests(): void {
-  store.clear();
+  cache._resetForTests();
 }
