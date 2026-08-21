@@ -183,10 +183,23 @@ const envSchema = z.object({
   // cutover, and a rollback path nobody has exercised in months is not a safety
   // net, it is a second sending identity with its own DKIM records and its own
   // unwatched reputation.
+  // Outbound goes over the ZeptoMail HTTP API, not SMTP. The SMTP handoff cost
+  // FOUR TO SIX SECONDS per message on production -- a fresh TLS-and-AUTH
+  // conversation with a relay in Tokyo, roughly ten round trips -- and the
+  // magic-link path pays that synchronously while somebody watches a button.
+  //
+  // `SMTP_PASSWORD` is still the credential: ZeptoMail's Send Mail Token is the
+  // SMTP password AND the API key. The name is now wrong and is kept anyway,
+  // because renaming it means renaming an SSM parameter in two tiers to save a
+  // word. The others are vestigial and read by nothing.
   SMTP_ADDRESS: optionalString,
   SMTP_PORT: optionalString,
   SMTP_USER_NAME: optionalString,
   SMTP_PASSWORD: optionalString,
+
+  // Set only if the Send Mail Token ever stops doubling as the API key, so that
+  // becomes a configuration change rather than a deploy of the mailer.
+  ZEPTOMAIL_SEND_TOKEN: optionalString,
 
   // Proves that a bounce notification really came from ZeptoMail.
   //
