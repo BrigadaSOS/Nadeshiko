@@ -5,6 +5,7 @@ import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures } from '../fixtures/loader';
 import { assertDifference } from '../helpers/assertions';
 import { setBossInstance } from '@app/workers/pgBossClient';
+import { TOKEN_PARSE_QUEUE } from '@app/workers/queueNames';
 import { toSegmentDTO } from '@app/controllers/mappers/segmentMapper';
 import { toMediaBaseDTO } from '@app/controllers/mappers/sharedMapper';
 import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/models/Segment';
@@ -23,14 +24,32 @@ const activeSpies: Array<{ mockRestore: () => void }> = [];
 const MISSING_MEDIA_PUBLIC_ID = 'MissingMed01';
 const MISSING_SEGMENT_PUBLIC_ID = 'MissSegm0012';
 
+const bossSendDebounced = vi.fn(async () => 'test-job-id');
+const bossInsert = vi.fn(async () => ['test-job-id']);
+
+/** The segment ids a queue was asked to work on during the current test. */
+function enqueuedOn(queue: string): number[] {
+  return [
+    ...bossSendDebounced.mock.calls
+      .filter(([name]: any[]) => name === queue)
+      .map(([, data]: any[]) => data.segmentId as number),
+    ...bossInsert.mock.calls
+      .filter(([name]: any[]) => name === queue)
+      .flatMap(([, jobs]: any[]) => jobs.map((job: any) => job.data.segmentId as number)),
+  ];
+}
+
 beforeAll(async () => {
   setBossInstance({
-    sendDebounced: async () => 'test-job-id',
+    sendDebounced: bossSendDebounced,
+    insert: bossInsert,
   } as any);
   core = await seedCoreFixtures();
 });
 
 beforeEach(() => {
+  bossSendDebounced.mockClear();
+  bossInsert.mockClear();
   signInAs(app, core.users.kevin);
 });
 
@@ -160,6 +179,31 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments', () => {
     );
   });
 
+  it('queues the new line for tokenization', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const media = fixtures.media.testShow;
+    const episode = fixtures.episodes.pilot;
+    await MediaExternalId.save({ mediaId: media.id, source: ExternalSourceType.ANILIST, externalId: '99998' });
+
+    const res = await request(app)
+      .post(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments`)
+      .send({
+        position: 1,
+        startTimeMs: 0,
+        endTimeMs: 900,
+        textJa: { content: '走る' },
+        textEn: { content: 'runs', isMachineTranslated: false },
+        textEs: { content: 'corre', isMachineTranslated: false },
+        storage: 'R2',
+        hashedId: 'single-parse',
+      });
+
+    expect(res.status).toBe(201);
+
+    const created = await Segment.findOneByOrFail({ publicId: res.body.publicId });
+    expect(enqueuedOn(TOKEN_PARSE_QUEUE)).toContain(created.id);
+  });
+
   it('returns 404 when media does not exist', async () => {
     const res = await request(app)
       .post(`/v1/media/${MISSING_MEDIA_PUBLIC_ID}/episodes/1/segments`)
@@ -287,6 +331,26 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments/batch', () =>
     );
   });
 
+  it('queues every ingested line for tokenization', async () => {
+    // The hole this closes: an upload used to insert its rows, index them, and
+    // stop. `Fate/stay night: Unlimited Blade Works` landed on 2026-08-21 with
+    // 3,816 sentences and no morphology in either environment, because the only
+    // thing that had ever called Shirabe was a script somebody ran by hand.
+    const { media, episode } = await seedIngestTarget();
+
+    const res = await request(app)
+      .post(`/v1/media/${media.publicId}/episodes/${episode.episodeNumber}/segments/batch`)
+      .send({ segments: batchOf(CLEAN) });
+
+    expect(res.status).toBe(201);
+
+    const created = await Segment.find({ where: { mediaId: media.id }, select: { id: true } });
+    const byId = (a: number, b: number) => a - b;
+    expect([...new Set(enqueuedOn(TOKEN_PARSE_QUEUE))].sort(byId)).toEqual(
+      created.map((segment) => segment.id).sort(byId),
+    );
+  });
+
   it('accepts a batch too small for the signal to mean anything', async () => {
     const { media, episode } = await seedIngestTarget();
 
@@ -389,6 +453,51 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
     expect(updated.status).toBe(SegmentStatus.HIDDEN);
     expect(updated.storage).toBe(SegmentStorage.LOCAL);
     expect(updated.hashedId).toBe('updated-hash');
+  });
+
+  it('drops the analysis and asks for a new one when the Japanese changes', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const episode = fixtures.episodes.pilot;
+    // `b`/`e` are offsets into the sentence that was parsed. Leave them in place
+    // over an edited line and the reader gets furigana over the wrong kanji,
+    // with nothing anywhere saying the analysis no longer fits.
+    const segment = await seedSegment(fixtures.media.testShow.id, episode.episodeNumber, {
+      contentJa: '走る',
+      tokens: [{ s: '走る', d: '走る', r: 'ハシル', b: 0, e: 2, p: '動詞' }],
+    });
+
+    const res = await request(app)
+      .patch(`/v1/media/segments/${segment.publicId}`)
+      .send({ textJa: { content: '歩く' } });
+
+    expect(res.status).toBe(200);
+
+    const updated = await Segment.findOneByOrFail({ id: segment.id });
+    expect(updated.contentJa).toBe('歩く');
+    expect(updated.tokens).toBeNull();
+    expect(enqueuedOn(TOKEN_PARSE_QUEUE)).toContain(segment.id);
+  });
+
+  it('keeps the analysis when the edit leaves the Japanese alone', async () => {
+    const fixtures = await loadFixtures(['mediaWithEpisode']);
+    const episode = fixtures.episodes.pilot;
+    const tokens = [{ s: '走る', d: '走る', r: 'ハシル', b: 0, e: 2, p: '動詞' }];
+    const segment = await seedSegment(fixtures.media.testShow.id, episode.episodeNumber, {
+      contentJa: '走る',
+      tokens,
+    });
+
+    // Fixing a translation or a timing says nothing about the morphology, and
+    // re-parsing on every edit would spend Shirabe's CPU to arrive back here.
+    const res = await request(app)
+      .patch(`/v1/media/segments/${segment.publicId}`)
+      .send({ textEn: { content: 'he walks' }, startTimeMs: 5, endTimeMs: 900 });
+
+    expect(res.status).toBe(200);
+
+    const updated = await Segment.findOneByOrFail({ id: segment.id });
+    expect(updated.tokens).toEqual(tokens);
+    expect(enqueuedOn(TOKEN_PARSE_QUEUE)).not.toContain(segment.id);
   });
 
   it('returns 404 when segment does not exist', async () => {
