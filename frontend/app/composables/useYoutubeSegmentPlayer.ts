@@ -42,6 +42,8 @@ type YtPlayer = {
   seekTo?: (s: number, allowSeekAhead: boolean) => void;
   getCurrentTime?: () => number;
   loadVideoById?: (opts: { videoId: string; startSeconds?: number }) => void;
+  setVolume?: (volume: number) => void;
+  setPlaybackRate?: (rate: number) => void;
 };
 
 let player: YtPlayer | null = null;
@@ -55,6 +57,11 @@ let apiReady: Promise<void> | null = null;
 // Set when a tap happens before the warm player is ready; replayed on onReady.
 let pendingVideoId: string | null = null;
 let trackingBound = false;
+// The player bar owns volume and speed for both playback paths. Held here
+// rather than read back off the player because the store is the source of
+// truth and this player may not exist yet when a value is set.
+let desiredVolume = 1;
+let desiredRate = 1;
 
 const hostElId = (publicId: string) => `yt-host-${publicId}`;
 
@@ -131,6 +138,7 @@ function ensureWarmPlayer(videoId: string) {
     events: {
       onReady: () => {
         playerReady = true;
+        applyPlaybackSettings();
         // A tap happened before we were ready — start it now (cold-start only;
         // iOS may not autoplay this first one since it's outside the gesture).
         if (pendingVideoId && clientState?.activeSegmentId.value) {
@@ -197,10 +205,25 @@ function finishClip() {
   cb?.();
 }
 
+/**
+ * Re-assert the wanted volume and speed on the player.
+ *
+ * Called after every load and on ready, not once at setup: a player that has
+ * not finished loading drops both, and while the IFrame API documents them as
+ * persisting across `loadVideoById`, a clip that came back at the wrong speed
+ * is indistinguishable to the reader from a broken control.
+ */
+function applyPlaybackSettings() {
+  // The IFrame API takes volume as 0-100, unlike HTMLMediaElement's 0-1.
+  player?.setVolume?.(Math.round(desiredVolume * 100));
+  player?.setPlaybackRate?.(desiredRate);
+}
+
 /** Load + play the active segment's video on the warm player. */
 function startPlayback(videoId: string) {
   if (!player?.loadVideoById) return;
   player.loadVideoById({ videoId, startSeconds });
+  applyPlaybackSettings();
   player.playVideo?.();
   startPoll();
 }
@@ -288,6 +311,18 @@ export function useYoutubeSegmentPlayer() {
     startPoll();
   }
 
+  /** Set volume as a 0..1 fraction, matching `HTMLMediaElement.volume`. */
+  function setVolume(value: number) {
+    desiredVolume = value;
+    applyPlaybackSettings();
+  }
+
+  /** Set the playback rate. YouTube ignores rates outside the ones it offers. */
+  function setPlaybackRate(rate: number) {
+    desiredRate = rate;
+    applyPlaybackSettings();
+  }
+
   /** Seek to a fraction (0..1) of the clip window [start, end]. */
   function seekToClipFraction(fraction: number) {
     if (!player?.seekTo) return;
@@ -305,6 +340,8 @@ export function useYoutubeSegmentPlayer() {
     resume,
     restart,
     seekToClipFraction,
+    setVolume,
+    setPlaybackRate,
     stop,
   };
 }
