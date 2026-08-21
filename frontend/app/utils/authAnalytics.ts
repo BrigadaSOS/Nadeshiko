@@ -35,11 +35,18 @@ export const AUTH_GATES = [
   'anki_add_search',
   'collection_choose',
   'report_segment',
-  // The two below are not walls the reader ran into -- they are asks we made
+  // The three below are not walls the reader ran into -- they are asks we made
   // first, from `useSignupNudge`. They sit in the same closed set anyway so that
   // one PostHog breakdown compares "we blocked them" against "we offered", which
   // is the comparison that decides whether either approach is worth keeping.
+  //
+  // `add_nudge` and `download_nudge` offer the same thing and share a cooldown,
+  // but they are separate members because the reader's position differs: one has
+  // just saved a clip, the other has the add menu open in front of them with the
+  // Anki entries greyed out. Which of those converts is worth being able to read
+  // off without inferring it.
   'download_nudge',
+  'add_nudge',
   'depth_nudge',
 ] as const;
 

@@ -45,6 +45,18 @@ const { languages: translationLanguages } = useTranslationLanguages();
  */
 const { openLoginModal } = useLoginModal();
 
+/**
+ * The same offer, made a step earlier.
+ *
+ * Opening this menu signed out is a reader reaching for Anki, which is the
+ * intent the download nudge was built around -- so it raises the same panel,
+ * spends the same weekly cooldown, and is told apart from the download only in
+ * PostHog and in the signup attribution. The greyed-out entries below still open
+ * the login modal on their own when pressed; the panel just says why they are
+ * grey without asking anyone to hover a tooltip to find out.
+ */
+const signupNudge = useSignupNudge();
+
 type Props = {
   content: SearchResult;
   hideContextButton?: boolean;
@@ -139,6 +151,17 @@ const {
   rememberLast: saveLastCollection,
   restoreLastCollection,
 } = useCollectionOptions();
+
+/**
+ * Both halves of pressing Add: the signed-in reader's collection list, and the
+ * signed-out reader's nudge. Each is a no-op for the other -- `load` returns
+ * early when signed out, and `nudgeOnAddMenu` when signed in -- so the button
+ * does not have to know which reader it has.
+ */
+function openAddMenu() {
+  loadCollections();
+  signupNudge.nudgeOnAddMenu();
+}
 
 onMounted(() => {
   restoreLastCollection();
@@ -238,7 +261,7 @@ const sharedMediaName = computed(() =>
 <template>
   <SearchDropdownContainer data-testid="save-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
-      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header" @click="loadCollections">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header" @click="openAddMenu">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.add') }}</span>
       </SearchDropdownMainButton>

@@ -3,7 +3,10 @@ import type { IntentStorage } from '~/utils/authAnalytics';
 import {
   DEPTH_PLAYS_THRESHOLD,
   DEPTH_SEARCHES_THRESHOLD,
+  NUDGE_BY_TRIGGER,
   NUDGE_COOLDOWN_MS,
+  NUDGE_TRIGGERS,
+  SIGNUP_NUDGES,
   depthReached,
   isNudgeDue,
   nudgeStorageKey,
@@ -94,6 +97,29 @@ describe('isNudgeDue', () => {
   it('does not throw when storage refuses to be written', () => {
     expect(() => recordNudgeShown(hostileStorage, 'download', NOW)).not.toThrow();
     expect(() => recordNudgeShown(undefined, 'download', NOW)).not.toThrow();
+  });
+});
+
+describe('NUDGE_BY_TRIGGER', () => {
+  it('raises one panel for both ways a reader reaches for Anki', () => {
+    expect(NUDGE_BY_TRIGGER.download).toBe('download');
+    expect(NUDGE_BY_TRIGGER.add_menu).toBe('download');
+  });
+
+  // The whole reason the two triggers share a nudge: saving a clip and then
+  // opening the add menu is one reader in one sitting, and the second panel
+  // would repeat the first word for word.
+  it('spends a single cooldown across those two triggers', () => {
+    const storage = fakeStorage();
+    recordNudgeShown(storage, NUDGE_BY_TRIGGER.download, NOW);
+
+    expect(isNudgeDue(storage, NUDGE_BY_TRIGGER.add_menu, NOW)).toBe(false);
+  });
+
+  it('maps every trigger to a real nudge', () => {
+    for (const trigger of NUDGE_TRIGGERS) {
+      expect(SIGNUP_NUDGES).toContain(NUDGE_BY_TRIGGER[trigger]);
+    }
   });
 });
 

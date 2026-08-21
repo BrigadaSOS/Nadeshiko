@@ -1,8 +1,21 @@
 import { mdiAccountPlusOutline, mdiFileDocumentPlusOutline } from '@mdi/js';
 import { POSITION, useToast } from 'vue-toastification';
 import SignupNudgeToast from '~/components/common/SignupNudgeToast.vue';
-import { authIntentStorage } from '~/utils/authAnalytics';
-import { type SignupNudge, depthReached, isNudgeDue, recordNudgeShown } from '~/utils/signupNudges';
+import { type AuthGate, authIntentStorage } from '~/utils/authAnalytics';
+import { NUDGE_BY_TRIGGER, type NudgeTrigger, depthReached, isNudgeDue, recordNudgeShown } from '~/utils/signupNudges';
+
+/**
+ * Which gate a signup gets attributed to when the reader accepts the panel.
+ *
+ * A map rather than a conditional so that adding a trigger without deciding how
+ * its signups should be credited is a type error rather than a quiet fold into
+ * whichever branch happened to be the default.
+ */
+const GATE_BY_TRIGGER: Record<NudgeTrigger, AuthGate> = {
+  download: 'download_nudge',
+  add_menu: 'add_nudge',
+  depth: 'depth_nudge',
+};
 
 interface NudgePanel {
   iconPath: string;
@@ -130,7 +143,8 @@ export function useSignupNudge() {
   const searches = () => useState('nd-nudge-searches', () => 0);
 
   /**
-   * Shows a nudge, unless it is on cooldown or the reader is already signed in.
+   * Shows the panel a trigger asks for, unless that panel is on cooldown or the
+   * reader is already signed in.
    *
    * The signed-in check is here rather than at each call site so that a new call
    * site cannot forget it -- the same reasoning that put `login_modal_opened`
@@ -138,9 +152,12 @@ export function useSignupNudge() {
    *
    * Assumes it is already inside `guarded`.
    */
-  function show(nudge: SignupNudge) {
+  function show(trigger: NudgeTrigger) {
     if (userStore().isLoggedIn) return;
 
+    // Two triggers share the `download` panel, and so share its cooldown -- the
+    // reader who saves a clip and then opens the add menu has been asked once.
+    const nudge = NUDGE_BY_TRIGGER[trigger];
     const storage = authIntentStorage();
     const now = Date.now();
     if (!isNudgeDue(storage, nudge, now)) return;
@@ -152,7 +169,7 @@ export function useSignupNudge() {
     // This is what makes the cooldown legible from the outside: without it a
     // quiet week looks identical to a broken trigger, and the funnel from ask to
     // account would have no denominator.
-    usePostHog()?.capture('signup_nudge_shown', { nudge });
+    usePostHog()?.capture('signup_nudge_shown', { nudge, trigger });
 
     const { $i18n } = useNuxtApp();
     raiseNudgePanel({
@@ -165,14 +182,14 @@ export function useSignupNudge() {
       message: $i18n.t(`signupNudge.${nudge}.message`),
       actionLabel: $i18n.t('signupNudge.action'),
       dismissLabel: $i18n.t('signupNudge.dismiss'),
-      onAction: () => openLoginModalFor(nudge),
+      onAction: () => openLoginModalFor(trigger),
       // Without this, a reader who read the panel and said no is indistinguishable
       // from one who never looked at it -- both are simply an absence after
       // `signup_nudge_shown`. That is the difference between copy that is not
       // landing and copy that is not being seen, which is the first thing anyone
       // will want to know from this experiment.
       onDismiss: () => {
-        usePostHog()?.capture('signup_nudge_dismissed', { nudge });
+        usePostHog()?.capture('signup_nudge_dismissed', { nudge, trigger });
       },
     });
   }
@@ -182,15 +199,33 @@ export function useSignupNudge() {
    * modal state this touches is shared and the reader may have signed in from
    * somewhere else in the seconds the toast was on screen.
    */
-  function openLoginModalFor(nudge: SignupNudge) {
+  function openLoginModalFor(trigger: NudgeTrigger) {
     if (userStore().isLoggedIn) return;
-    useLoginModal().openLoginModal(nudge === 'download' ? 'download_nudge' : 'depth_nudge');
+    useLoginModal().openLoginModal(GATE_BY_TRIGGER[trigger]);
   }
 
   return {
     /** Called after a clip is saved. The ask is Anki, because that is what an account adds. */
     nudgeAfterDownload() {
       guarded(() => show('download'));
+    },
+
+    /**
+     * Called when a signed-out reader opens a segment's add menu.
+     *
+     * The menu they have just opened lists both Anki exports greyed out with a
+     * "log in" tooltip, which is a wall discovered by opening a drawer -- the
+     * exact shape of gate `signupNudges` was written because nobody meets. The
+     * panel says the same thing where it can be read without hovering anything,
+     * and the disabled entries still open the login modal when pressed, so the
+     * reader who goes for the menu item rather than the panel is not stranded.
+     *
+     * Fires on close as well as open, since the trigger is a plain toggle with
+     * no open state to read from out here. Harmless: the first click spends the
+     * cooldown and every click after it is a no-op for a week.
+     */
+    nudgeOnAddMenu() {
+      guarded(() => show('add_menu'));
     },
 
     /**
