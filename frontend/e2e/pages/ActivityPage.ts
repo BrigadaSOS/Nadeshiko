@@ -17,7 +17,11 @@ export class ActivityPage {
     this.page = page;
     this.overviewHeading = page.getByRole('heading', { name: 'Activity Overview' });
     this.searchesCount = page.locator('text=Sentences Searched').locator('..').locator('p.text-2xl');
-    this.playsCount = page.locator('text=Audios Played').locator('..').locator('p.text-2xl');
+    // 'Audio Played', not 'Audios Played': the card was renamed with the rest of
+    // the terminology pass and this locator was not, so it matched nothing. The
+    // failure stayed hidden until the teleported-dropdown fix stopped
+    // `maxFailures` aborting the run before this spec was reached.
+    this.playsCount = page.locator('text=Audio Played').locator('..').locator('p.text-2xl');
     this.exportsCount = page.locator('text=Anki Exports').locator('..').locator('p.text-2xl');
     this.sharesCount = page.locator('text=Links Shared').locator('..').locator('p.text-2xl');
     this.historyHeading = page.getByRole('heading', { name: 'Activity History' });
