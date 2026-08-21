@@ -1,4 +1,19 @@
 <script setup lang="ts">
+import { mdiBookmarkMultipleOutline, mdiFileDocumentPlusOutline, mdiHistory } from '@mdi/js';
+
+/**
+ * Why an account is worth making, in the order a reader meets the features.
+ *
+ * `mdiFileDocumentPlusOutline` is deliberately the same mark the segment menu,
+ * the word card and the download nudge already use for Anki, so somebody who met
+ * the greyed-out menu entry recognises what is being offered rather than reading
+ * it as a new thing.
+ */
+const accountBenefits = [
+  { key: 'anki', icon: mdiFileDocumentPlusOutline },
+  { key: 'collections', icon: mdiBookmarkMultipleOutline },
+  { key: 'sync', icon: mdiHistory },
+] as const;
 import { type AuthProvider, authIntentStorage, updateAuthIntent } from '~/utils/authAnalytics';
 
 const store = userStore();
@@ -189,6 +204,27 @@ watch(isLoginModalOpen, (open) => {
         </div>
 
         <div class="p-6 space-y-3">
+          <!-- What the account is FOR, before the buttons that create one.
+               The modal used to open on three sign-in methods and no reason to
+               use any of them -- which is a fair thing to ask of somebody who
+               reached it from the header, and no answer at all for the reader
+               the nudges send here. These three are the features an account
+               actually adds; everything else on the site already works signed
+               out. -->
+          <ul class="space-y-2.5 pb-1">
+            <li v-for="benefit in accountBenefits" :key="benefit.key" class="flex items-start gap-2.5">
+              <UiBaseIcon
+                :path="benefit.icon"
+                :size="18"
+                w="w-[18px]"
+                h="h-[18px]"
+                class="mt-0.5 shrink-0 text-red-400"
+                aria-hidden="true"
+              />
+              <span class="text-sm leading-snug text-gray-300">{{ $t(`modalauth.benefits.${benefit.key}`) }}</span>
+            </li>
+          </ul>
+
           <button
             type="button"
             @click="handleGoogleLogin"
@@ -225,12 +261,17 @@ watch(isLoginModalOpen, (open) => {
                 class="nd-input flex-1 disabled:opacity-50"
                 @keyup.enter="handleMagicLink"
               />
+              <!-- The spinner is not decoration here. The send is synchronous
+                   all the way through an SMTP handshake to Japan, so this button
+                   sits for four to six seconds; without a spinner the reader
+                   gets no acknowledgement at all and presses it again. -->
               <UiButtonPrimaryAction
                 :disabled="magicLinkLoading"
                 @click="handleMagicLink"
                 class="py-2 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-surface text-ink hover:bg-surface-hover disabled:opacity-50"
               >
-                {{ $t('modalauth.magiclink.send') }}
+                <span v-if="magicLinkLoading" class="nd-spinner" aria-hidden="true" />
+                <span>{{ $t(magicLinkLoading ? 'modalauth.magiclink.sending' : 'modalauth.magiclink.send') }}</span>
               </UiButtonPrimaryAction>
             </div>
             <div v-else class="space-y-3">

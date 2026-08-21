@@ -1178,7 +1178,13 @@
       "codeWrongBrowser": "Este código no se ha pedido desde este navegador. Abre el enlace del correo en su lugar.",
       "resend": "Enviarlo de nuevo",
       "resendIn": "Puedes pedir otro en {seconds}s",
-      "rateLimited": "Hemos enviado ya todos los correos de acceso que podemos a esta dirección por ahora. Un enlace enviado antes sigue funcionando."
+      "rateLimited": "Hemos enviado ya todos los correos de acceso que podemos a esta dirección por ahora. Un enlace enviado antes sigue funcionando.",
+      "sending": "Enviando…"
+    },
+    "benefits": {
+      "anki": "Exporta frases a Anki con audio, captura y definiciones",
+      "collections": "Guarda frases en colecciones a las que puedes volver",
+      "sync": "Tu historial y tus preferencias te siguen en cualquier dispositivo"
     }
   },
   "shortcuts": {
