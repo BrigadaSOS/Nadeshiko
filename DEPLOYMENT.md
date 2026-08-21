@@ -558,11 +558,28 @@ treating the pin as covering deploys too.
 
 ### Outbound mail: ZeptoMail on staging and production
 
-Both environments send as `noreply@nadeshiko.co` via ZeptoMail SMTP
-(`smtp.zeptomail.jp`), and that is now the **only** transport. The Send Mail
-Token lives at `/nadeshiko/staging/SMTP_PASSWORD` and
-`/nadeshiko/prod/SMTP_PASSWORD`. Host, port, and user are clear env in
-`deploy.staging.yml` and `deploy.prod.yml`.
+Both environments send as `noreply@nadeshiko.co` through the ZeptoMail **HTTP
+API** (`api.zeptomail.jp/v1.1/email`), and that is now the only transport. The
+Send Mail Token lives at `/nadeshiko/staging/SMTP_PASSWORD` and
+`/nadeshiko/prod/SMTP_PASSWORD` — the same value serves as the SMTP password and
+as the API key, which is why the parameter keeps its now-inaccurate name.
+
+**SMTP was dropped because it was costing four to six seconds a message.**
+Measured on production: magic-link requests ran at ~250 ms until the ZeptoMail
+cutover shipped in v2.4.0, and 3.9–5.8 s afterwards. The relay is in Tokyo and
+the app is not, so each send opened a fresh conversation — TCP, STARTTLS, the
+TLS handshake, AUTH, MAIL FROM, RCPT TO, DATA, QUIT — roughly ten round trips
+before ZeptoMail did any work. One HTTPS request spends one, on a connection
+Node keeps alive.
+
+That mattered because `sendMagicLinkEmail` and `sendVerifyNewEmail` send
+*inline*: they never touch pg-boss, so the reader's HTTP request waits for the
+whole handoff. Queuing them would have hidden the latency, and was rejected —
+`sendMagicLink` refuses a suppressed address out loud and the caller needs that
+answer inside the request. The remaining `SMTP_*` values are vestigial and read
+by nothing; local development still uses letter-opener, which is the only other
+transport and the one that cannot silently rot, because the branch nobody runs
+opens a file in a browser.
 
 **Amazon SES is gone**, along with `MAIL_TRANSPORT` and the
 `@aws-sdk/client-sesv2` dependency. It had been the rollback path for the
@@ -645,9 +662,11 @@ Four implementation details are not guessable, and the first two are places wher
   filtered before anything is recorded — a sample *complaint* would otherwise fire
   `NadeshikoEmailComplaint`, a critical tripwire, on the day the webhook is
   configured.
-- **Attribution.** Outbound mail carries `X-TM-CLIENT-REF` (set for every message
-  in `sendEmail`), which returns as `client_reference`. Over SMTP it is the only
-  thing tying a bounce back to which mail we sent and why.
+- **Attribution.** Every message carries a client reference (set once in
+  `sendEmail`), which returns on the webhook as `client_reference` and is the only
+  thing tying a bounce back to which mail we sent and why. Over the API it is a
+  native field; letter-opener still writes it as the `X-TM-CLIENT-REF` header
+  SMTP used, so a local preview shows what production sends.
 
 **The webhook cannot be created before the endpoint is live.** The console's
 Verify button POSTs to the URL and refuses to save unless it answers, so the order
