@@ -1,0 +1,20 @@
+meta {
+  name: Turn off lifecycle email
+  type: http
+  seq: 58
+}
+
+post {
+  url: {{baseUrl}}/v1/email/unsubscribe
+  body: none
+  auth: none
+}
+
+params:query {
+  token:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

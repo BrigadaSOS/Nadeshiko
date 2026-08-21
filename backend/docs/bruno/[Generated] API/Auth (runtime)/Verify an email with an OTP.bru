@@ -1,11 +1,11 @@
 meta {
-  name: Sign out the current user
+  name: Verify an email with an OTP
   type: http
-  seq: 127
+  seq: 106
 }
 
 post {
-  url: {{baseUrl}}/v1/auth/sign-out
+  url: {{baseUrl}}/v1/auth/email-otp/check-verification-otp
   body: none
   auth: none
 }
