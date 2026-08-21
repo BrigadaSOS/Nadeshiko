@@ -34,6 +34,7 @@ import {
 } from './mappers/segmentMapper';
 import { toSearchResponseDTO } from './mappers/searchMapper';
 import { sendBulkEsSyncJobs } from '@app/workers/esSyncQueue';
+import { sendBulkTokenParseJobs, sendTokenParseJob } from '@app/workers/tokenParseQueue';
 import { Cache } from '@lib/cache';
 import { logger } from '@config/log';
 import { assertUser } from '@app/middleware/authentication';
@@ -86,6 +87,8 @@ export const createSegment: CreateSegment = async ({ params, body }, respond) =>
     }),
   ) as Segment;
   await segment.save();
+
+  await sendTokenParseJob(segment.id);
 
   return respond.with201().body(toSegmentInternalDTO(segment, undefined, media.publicId));
 };
@@ -158,6 +161,20 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
   if (allIds.length > 0) {
     sendBulkEsSyncJobs(allIds.map((segmentId) => ({ segmentId, operation: 'CREATE' as const }))).catch((error) => {
       logger.error({ err: error }, 'Failed to enqueue bulk ES sync jobs for batch segment creation');
+    });
+
+    // Tokenization is asynchronous and deliberately does not gate the index. An
+    // episode is searchable the moment it lands; the morphology follows a few
+    // seconds later and the token parse enqueues its own ES sync when it does.
+    // The other order -- index only once tokens exist -- means a Shirabe outage
+    // takes search for the new episode down with it, which is a much worse day
+    // than an episode that renders plain highlights for a minute.
+    //
+    // The two syncs cannot race into a stale document: both handlers re-read the
+    // segment from Postgres when they run, so whichever writes last writes the
+    // current row either way.
+    sendBulkTokenParseJobs(allIds).catch((error) => {
+      logger.error({ err: error }, 'Failed to enqueue token parse jobs for batch segment creation');
     });
 
     Cache.invalidate(MEDIA_INFO_CACHE);
@@ -319,6 +336,28 @@ export type RevisionProvenance = {
   reportId: number | null;
 };
 
+/**
+ * Drops an analysis that no longer describes the sentence it was made from.
+ *
+ * A `SlimToken` is not just a list of words: `b` and `e` are offsets INTO the
+ * string that was parsed, and the frontend slices the sentence with them to
+ * place ruby and to build word cards. Change the Japanese underneath and every
+ * one of those offsets points somewhere else — a moderator fixing a typo would
+ * leave the line rendering furigana over the wrong kanji, with nothing
+ * anywhere saying so.
+ *
+ * So the edit clears them, and the reparse is enqueued once the edit commits.
+ * Null tokens are an ordinary state the whole read path already handles (it is
+ * what a segment looks like between ingest and its parse) and render as plain
+ * highlight HTML. Wrong tokens are not a state anything handles.
+ */
+function clearTokensIfJapaneseChanged(segment: Segment, previousJa: string): boolean {
+  if (segment.contentJa === previousJa) return false;
+
+  segment.tokens = null;
+  return true;
+}
+
 async function applySegmentUpdate(
   segmentId: number,
   body: SegmentUpdateRequestOutput,
@@ -326,7 +365,7 @@ async function applySegmentUpdate(
 ): Promise<Segment> {
   // The revision is this edit's audit trail, so it is written in the same
   // transaction as the edit: a caller that gets a 200 has both rows, or neither.
-  return Segment.getRepository().manager.transaction(async (manager) => {
+  const { segment, reparse } = await Segment.getRepository().manager.transaction(async (manager) => {
     // Serialises concurrent edits of the same segment. Without the lock two writers
     // read the same MAX(revision_number) and collide on the unique index, and both
     // snapshot the same stale pre-state instead of chaining.
@@ -337,13 +376,23 @@ async function applySegmentUpdate(
       .getOneOrFail();
 
     const snapshot = toSegmentSnapshot(segment);
+    const previousJa = segment.contentJa;
     Object.assign(segment, toSegmentUpdatePatch(body));
+    const reparse = clearTokensIfJapaneseChanged(segment, previousJa);
     await manager.save(segment);
 
     await createSegmentRevision(manager, segmentId, snapshot, provenance);
 
-    return segment;
+    return { segment, reparse };
   });
+
+  // Enqueued after the commit, not from inside it. A job sent mid-transaction
+  // can be picked up before the transaction lands, and the worker would then
+  // read the row as it was before the edit and write back tokens for the old
+  // sentence — the exact staleness this is here to prevent.
+  if (reparse) await sendTokenParseJob(segment.id);
+
+  return segment;
 }
 
 /**
@@ -360,7 +409,7 @@ async function applyRevisionRestore(
   revisionNumber: number,
   provenance: RevisionProvenance,
 ): Promise<Segment> {
-  return Segment.getRepository().manager.transaction(async (manager) => {
+  const { segment, reparse } = await Segment.getRepository().manager.transaction(async (manager) => {
     const segment = await manager
       .createQueryBuilder(Segment, 'segment')
       .setLock('pessimistic_write')
@@ -373,15 +422,23 @@ async function applyRevisionRestore(
     }
 
     const snapshot = toSegmentSnapshot(segment);
+    const previousJa = segment.contentJa;
     Object.assign(segment, fromSegmentSnapshot(target.snapshot));
+    // A snapshot carries the sentence but never its analysis, so a restore that
+    // moves the Japanese needs the same treatment as an edit that does.
+    const reparse = clearTokensIfJapaneseChanged(segment, previousJa);
     // `save` rather than a query-builder update: the ES reindex rides on the
     // entity's afterUpdate subscriber, and a query-builder update does not fire it.
     await manager.save(segment);
 
     await createSegmentRevision(manager, segmentId, snapshot, provenance);
 
-    return segment;
+    return { segment, reparse };
   });
+
+  if (reparse) await sendTokenParseJob(segment.id);
+
+  return segment;
 }
 
 /**
