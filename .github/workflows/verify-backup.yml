@@ -151,11 +151,64 @@ jobs:
           [ "$failed" -eq 0 ] || exit 1
           echo "All expected databases have a recent, plausible backup."
 
+  # Not `notify-deploy-failure.yml`. That posts as "Nadeshiko deploys" into the
+  # deploy channel, and a nightly backup check failing is not a deploy failing:
+  # it went to a channel nobody reads for this, which is how fourteen
+  # consecutive failures went unnoticed for a fortnight.
+  #
+  # The warning channel is where this belongs -- brigadasos-infra's SECRETS.md
+  # gives it as "needs attention today", against critical's "broken now" and
+  # audit's routine reports. An unverified backup is exactly that: nothing is on
+  # fire, and it should not wait either.
   notify:
     needs: verify
     if: failure()
-    uses: ./.github/workflows/notify-deploy-failure.yml
-    with:
-      environment: prod
-      failed-jobs: ${{ toJSON(needs) }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
+
+      - name: Post failure to the warning channel
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+        run: |
+          set -euo pipefail
+
+          # `/nadeshiko/shared/`, not `/nadeshiko/prod/`: the same channel takes
+          # staging's, and both CI roles are granted that prefix. The canonical
+          # copy under `/brigadasos-infra/monitoring/victoria/` is deliberately
+          # NOT read here -- neither role can reach outside its own path, and
+          # SECRETS.md asks each consumer to hold its own copy regardless.
+          webhook=$(aws ssm get-parameter --name /nadeshiko/shared/DISCORD_WARNING_WEBHOOK_URL \
+            --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+
+          if [ -z "$webhook" ] || [ "$webhook" = "None" ]; then
+            echo "::notice title=Backup verification alert skipped::/nadeshiko/shared/DISCORD_WARNING_WEBHOOK_URL is not set, so there is nowhere to report to."
+            exit 0
+          fi
+
+          jq -n \
+            --arg workflow "$WORKFLOW" \
+            --arg url "$RUN_URL" \
+            '{
+              username: "Nadeshiko backups",
+              embeds: [{
+                title: ($workflow + " failed"),
+                url: $url,
+                description: "The nightly dump was not verified. The dump itself may still be fine -- this check is what says so, and it did not get to.",
+                color: 16225300
+              }]
+            }' > payload.json
+
+          # A broken notification channel must not fail the run on top of the
+          # failure it was reporting; the verify job is already red.
+          if ! curl --fail --silent --show-error --max-time 20 \
+            -H 'Content-Type: application/json' \
+            --data-binary @payload.json "$webhook"; then
+            echo "::warning title=Backup verification alert failed::Could not post to the Discord warning webhook."
+          fi
