@@ -15,6 +15,16 @@ vi.mock('@config/log', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: v
 
 const saved: Record<string, unknown>[] = [];
 
+/**
+ * Column-scoped writes, as `{criteria, patch}`.
+ *
+ * Worth recording separately from `saved` because WHICH columns a write names
+ * is the property under test: everything but the two token writers has to leave
+ * the pair alone, or it writes a superseded copy back over a renewal it never
+ * saw. See `never writes the token pair back` below.
+ */
+const updates: { criteria: Record<string, unknown>; patch: Record<string, unknown> }[] = [];
+
 // The row `renewAccessToken` locks and re-reads inside its transaction. Tests
 // that exercise renewal set this to the connection the lock should return.
 let lockedConnection: Record<string, unknown> | null = null;
@@ -37,6 +47,10 @@ vi.mock('@app/models/ShirabeConnection', () => {
   return {
     ShirabeConnection: {
       findOne: vi.fn(async () => null),
+      update: vi.fn(async (criteria: Record<string, unknown>, patch: Record<string, unknown>) => {
+        updates.push({ criteria, patch });
+        return { affected: 1 };
+      }),
       create: vi.fn((attributes: Record<string, unknown>) => ({
         ...attributes,
         save() {
@@ -137,6 +151,7 @@ type ShirabeRequest = { method: string; body: string; headers: Record<string, st
 describe('shirabe connection', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     lockedConnection = null;
     vi.restoreAllMocks();
   });
@@ -404,6 +419,7 @@ describe('shirabe connection', () => {
 describe('getReaderAccessToken', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     lockedConnection = null;
     vi.restoreAllMocks();
   });
@@ -499,6 +515,7 @@ describe('getReaderAccessToken', () => {
 describe('resyncStack', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     lockedConnection = null;
     vi.restoreAllMocks();
   });
@@ -528,7 +545,9 @@ describe('resyncStack', () => {
     await resyncStack(STORED_USER_ID, 'abc123');
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(saved).toContain(connection);
+    // The date and nothing else: a confirmation must not be able to carry a
+    // stale token pair back with it.
+    expect(updates).toEqual([{ criteria: { userId: STORED_USER_ID }, patch: { syncedAt: connection.syncedAt } }]);
     expect(connection.syncedAt.getTime()).toBeGreaterThan(new Date('2026-01-01T00:00:00Z').getTime());
   });
 
@@ -543,6 +562,7 @@ describe('resyncStack', () => {
 describe('refreshStack', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     lockedConnection = null;
     vi.restoreAllMocks();
   });
@@ -577,6 +597,7 @@ describe('refreshStack', () => {
   it('leaves the link alone when Shirabe is simply unhappy', async () => {
     for (const status of [429, 500]) {
       saved.length = 0;
+      updates.length = 0;
       const connection = storedConnection();
       const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
       vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
@@ -590,6 +611,71 @@ describe('refreshStack', () => {
 
       expect(connection.disconnectedAt, `status ${status} must not end the link`).toBeNull();
     }
+  });
+
+  /**
+   * The bug this exists for, and it was not theoretical: readers were told to
+   * reconnect within hours of connecting, again and again, and the log said
+   * Shirabe had ended their grant.
+   *
+   * What really happened is here. The caller's instance is read BEFORE
+   * `getReaderAccessToken` renews, the renewal rotates the pair on the row it
+   * locked -- a different object, as it is in Postgres -- and a whole-entity
+   * `save()` afterwards writes the caller's now-spent pair back over it.
+   * Nothing looks wrong until the next renewal presents a refresh token Shirabe
+   * has already seen, which is `invalid_grant`, which is the grant over.
+   *
+   * The fixtures are deliberately two objects. One would pass this test while
+   * production kept failing, which is exactly what the old tests did.
+   */
+  it('never writes the token pair back over a renewal it did not make', async () => {
+    const held = storedConnection({ accessTokenExpiresAt: new Date(Date.now() + 10 * 1000) });
+    lockedConnection = storedConnection({ accessTokenExpiresAt: new Date(Date.now() + 10 * 1000) });
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(held as never);
+    mockShirabe();
+
+    await refreshStack(held as never);
+
+    // The renewal rotated the pair on the row it locked, and that is the copy
+    // that has to survive this call.
+    expect(readAccessToken(lockedConnection as never)).toBe('shra_renewed_access');
+    expect(saved, 'a stack read must not save the whole entity').not.toContain(held);
+
+    const patch = updates.at(-1)?.patch ?? {};
+    for (const column of ['accessTokenCiphertext', 'refreshTokenCiphertext', 'accessTokenExpiresAt']) {
+      expect(Object.keys(patch), `a stack read must not write ${column}`).not.toContain(column);
+    }
+    expect(patch.stackFingerprint).toBe('9f2c1b7d4a0e6835');
+    expect(patch.disconnectedAt).toBeNull();
+  });
+
+  it('marks a link over without writing the token pair back', async () => {
+    // Same shape, the failing branch: the renewal succeeded, `/me` then answered
+    // 401 because the grant was revoked in between. The mark must travel alone.
+    const held = storedConnection({ accessTokenExpiresAt: new Date(Date.now() + 10 * 1000) });
+    lockedConnection = storedConnection({ accessTokenExpiresAt: new Date(Date.now() + 10 * 1000) });
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(held as never);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: URL | string) => {
+        if (String(url).includes('/oauth/token')) {
+          return Response.json({
+            access_token: 'shra_renewed_access',
+            refresh_token: 'shrr_renewed_refresh',
+            expires_in: 3600,
+          });
+        }
+        return new Response('nope', { status: 401 });
+      }),
+    );
+
+    await refreshStack(held as never);
+
+    expect(held.disconnectedAt).toBeInstanceOf(Date);
+    expect(saved).not.toContain(held);
+    expect(Object.keys(updates.at(-1)?.patch ?? {})).toEqual(['disconnectedAt']);
   });
 
   it('brings a link back when Shirabe answers again', async () => {
@@ -608,6 +694,7 @@ describe('refreshStack', () => {
 describe('reencryptTokens', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     vi.restoreAllMocks();
   });
 
@@ -643,6 +730,7 @@ describe('reencryptTokens', () => {
 describe('unlink', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     vi.restoreAllMocks();
   });
 
@@ -679,6 +767,7 @@ describe('unlink', () => {
 describe('refreshIfStale', () => {
   beforeEach(() => {
     saved.length = 0;
+    updates.length = 0;
     lockedConnection = null;
     vi.restoreAllMocks();
   });
@@ -699,7 +788,7 @@ describe('refreshIfStale', () => {
     await refreshIfStale(7001);
 
     expect(connection.stackFingerprint).toBe('9f2c1b7d4a0e6835');
-    expect(saved).toContain(connection);
+    expect(updates.at(-1)?.criteria).toEqual({ userId: 7001 });
   });
 
   it('does not ask twice for the same reader within the hour', async () => {

@@ -36,7 +36,7 @@ export class ShirabeConnection extends BaseEntity {
    *
    * An OAuth token pair, under a grant the reader approved on Shirabe's consent
    * screen and can revoke from their access list. The ACCESS token is what a
-   * lookup sends, and it lives an hour: `accessTokenExpiresAt` is what tells the
+   * lookup sends, and it lives a month: `accessTokenExpiresAt` is what tells the
    * credential route to renew it before handing it out. The REFRESH token is
    * what renews it, single-use and replaced on every renewal, good for ninety
    * days from its last use. Both are theirs, not ours: they can read their

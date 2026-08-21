@@ -14,10 +14,13 @@ import { Cache, createCacheNamespace } from '@lib/cache';
  * consent screen names us rather than printing a label we sent about ourselves,
  * the address a code may be redirected to is pinned, and we present a client
  * secret on every call to the token endpoint. What the exchange yields is an
- * access token that lives an hour and a refresh token that rotates on every
+ * access token that lives a month and a refresh token that rotates on every
  * renewal, both under a grant the reader can revoke from their Shirabe access
  * list. The access token is what a lookup sends; the refresh token is what
- * `getReaderAccessToken` trades for the next one when the hour is nearly up.
+ * `getReaderAccessToken` trades for the next one when that month is nearly up.
+ * Read the lifetime from `expires_in` and never assume it: it is Shirabe's to
+ * choose, and it has already changed once (an hour, until renewals turned out
+ * to be the only moment a link can be lost).
  *
  * Scopes: READ_DICTIONARY and READ_ACCOUNT. The consent screen is the moment a
  * reader decides, and a permission with no feature behind it is the one that
@@ -507,13 +510,40 @@ export function missingScopes(connection: ShirabeConnection): string[] {
   return REQUIRED_SCOPES.filter((scope) => !granted.has(scope));
 }
 
+/**
+ * What a `/me` read changes about a stored link, as a PATCH rather than as a
+ * mutated entity.
+ *
+ * The distinction is not style, it is the whole reason links kept dying
+ * overnight. `save()` on a loaded entity writes every column that differs from
+ * the row AS IT IS NOW -- and the instance a caller is holding was read before
+ * `getReaderAccessToken` rotated the token pair underneath it. Saving that
+ * instance put the SPENT refresh token back on the row, and a spent refresh
+ * token is what Shirabe answers `invalid_grant` to, which ends the grant. The
+ * reader was asked to reconnect within hours of connecting, over and over, and
+ * the log line said their grant was over when we had thrown it away ourselves.
+ *
+ * So a stack read updates stack columns and NOTHING else. The token pair has
+ * exactly two writers -- the first exchange in `saveConnection` and the renewal
+ * under its row lock -- and neither of them is a caller holding an entity.
+ */
+function profilePatch(profile: MeResponse) {
+  return {
+    // Absent from the patch rather than defaulted: a `/me` that reports no
+    // scopes is not a link that carries none.
+    ...(profile.credential?.scopes ? { scopes: profile.credential.scopes } : {}),
+    stack: profile.preferences?.dictionaries ?? [],
+    stackNames: profile.preferences?.dictionaryNames ?? {},
+    stackFingerprint: profile.preferences?.stackFingerprint ?? null,
+    stackIsPrivate: profile.preferences?.stackIsPrivate ?? false,
+    syncedAt: new Date(),
+  };
+}
+
+/** The patch above, applied in place. For `saveConnection`, which is writing the
+ *  whole row anyway because it is the row's first writer. */
 function applyProfile(connection: ShirabeConnection, profile: MeResponse): void {
-  if (profile.credential?.scopes) connection.scopes = profile.credential.scopes;
-  connection.stack = profile.preferences?.dictionaries ?? [];
-  connection.stackNames = profile.preferences?.dictionaryNames ?? {};
-  connection.stackFingerprint = profile.preferences?.stackFingerprint ?? null;
-  connection.stackIsPrivate = profile.preferences?.stackIsPrivate ?? false;
-  connection.syncedAt = new Date();
+  Object.assign(connection, profilePatch(profile));
 }
 
 export async function findConnection(userId: number): Promise<ShirabeConnection | null> {
@@ -687,9 +717,18 @@ export async function refreshStack(connection: ShirabeConnection): Promise<Shira
     if (!accessToken) return (await findConnection(connection.userId)) ?? connection;
 
     const profile = await fetchProfile(accessToken);
-    applyProfile(connection, profile);
-    connection.disconnectedAt = null;
-    return await connection.save();
+
+    // A COLUMN-SCOPED update, and it has to stay one. `getReaderAccessToken`
+    // above may have just rotated the token pair on the row, on an instance
+    // that is not this one -- so `connection.save()` here would write this
+    // instance's now-spent pair back over the fresh one and doom the link at
+    // the next renewal. See `profilePatch`.
+    const patch = { ...profilePatch(profile), disconnectedAt: null };
+    await ShirabeConnection.update({ userId: connection.userId }, patch);
+
+    // In memory too, since the caller renders what it was handed.
+    Object.assign(connection, patch);
+    return connection;
   } catch (error) {
     // A 401 on a token we just renewed is the grant revoked out from under us
     // between the renewal and this call: the link is over.
@@ -717,7 +756,11 @@ export async function markDisconnected(connection: ShirabeConnection): Promise<S
     'Shirabe would not renew a reader grant; the link is over until they redo it',
   );
   connection.disconnectedAt = new Date();
-  return await connection.save();
+  // Scoped for the reason on `profilePatch`: the commonest caller is a refresh
+  // that has already been through `getReaderAccessToken`, so the instance in
+  // hand may be carrying a superseded token pair that must not be written back.
+  await ShirabeConnection.update({ userId: connection.userId }, { disconnectedAt: connection.disconnectedAt });
+  return connection;
 }
 
 /**
@@ -805,7 +848,10 @@ export async function resyncStack(userId: number, observed: string): Promise<voi
 
     if (connection.stackFingerprint === observed) {
       connection.syncedAt = new Date();
-      await connection.save();
+      // One column, for the reason on `profilePatch`. A lookup can be renewing
+      // this reader's token in another request while this one is stamping a
+      // date, and a whole-entity save would race it.
+      await ShirabeConnection.update({ userId }, { syncedAt: connection.syncedAt });
       return;
     }
 
