@@ -11,3 +11,7 @@
 .codex
 node_modules/
 .env
+
+# Local analysis scratch (audio loudness survey, UI screenshots)
+/audio-loudness-*.csv
+/player-bar.png

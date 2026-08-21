@@ -41,6 +41,9 @@
       "pause": "一時停止",
       "autoplay": "自動再生",
       "repeat": "リピート",
+      "speed": "再生速度（{rate}倍）",
+      "speedMenu": "再生速度",
+      "volume": "音量",
       "enterFullscreen": "全画面表示",
       "exitFullscreen": "全画面表示を終了",
       "close": "プレーヤーを閉じる"
@@ -1161,7 +1164,8 @@
       "successfullogin": "ログイン成功！",
       "logout": "ログアウトしました。",
       "banneduser": "アカウントが停止されています。サポートにお問い合わせください。",
-      "errorlogin400": "メールアドレス/パスワードを確認して再試行してください。",
+      "errorlogin400": "サインインできませんでした。もう一度お試しください。",
+      "logindenied": "サインインが承認されませんでした。もう一度お試しいただくか、メールでサインインしてください。",
       "closeSrOnly": "閉じる"
     },
     "magiclink": {

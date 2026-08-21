@@ -41,6 +41,9 @@
       "pause": "Pausar",
       "autoplay": "Reproducción automática",
       "repeat": "Repetir",
+      "speed": "Velocidad de reproducción ({rate}×)",
+      "speedMenu": "Velocidad de reproducción",
+      "volume": "Volumen",
       "enterFullscreen": "Pantalla completa",
       "exitFullscreen": "Salir de pantalla completa",
       "close": "Cerrar reproductor"
@@ -1161,7 +1164,8 @@
       "successfullogin": "Inicio de sesión exitoso!",
       "logout": "Se ha cerrado la sesión.",
       "banneduser": "Tu cuenta ha sido suspendida. Por favor contacta a soporte.",
-      "errorlogin400": "Por favor, revisa tu correo/contraseña e intenta de nuevo.",
+      "errorlogin400": "No hemos podido iniciar tu sesión. Inténtalo de nuevo.",
+      "logindenied": "No se aprobó el inicio de sesión. Inténtalo de nuevo o entra con tu correo.",
       "closeSrOnly": "Cerrar"
     },
     "magiclink": {
