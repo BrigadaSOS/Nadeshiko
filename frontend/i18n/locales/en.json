@@ -1178,7 +1178,13 @@
       "codeWrongBrowser": "This code was not requested from this browser. Open the link in the email instead.",
       "resend": "Send it again",
       "resendIn": "You can ask for another in {seconds}s",
-      "rateLimited": "That is as many sign-in emails as we can send to this address for now. A link we already sent still works."
+      "rateLimited": "That is as many sign-in emails as we can send to this address for now. A link we already sent still works.",
+      "sending": "Sending…"
+    },
+    "benefits": {
+      "anki": "Export sentences to Anki with audio, screenshot and definitions",
+      "collections": "Save sentences into collections you can come back to",
+      "sync": "Your history and preferences follow you on every device"
     }
   },
   "shortcuts": {
