@@ -6,11 +6,17 @@ import type { SlimToken } from '@app/models/Segment';
  * Shirabe parses our Japanese. This is the only place that talks to it, and the
  * only place that knows how its answer becomes one of our tokens.
  *
- * Both paths through the corpus come here: the one-time backfill of everything
- * we already have, and every new episode as it lands. That is the point of it
- * being one function. A second implementation of this mapping (a Ruby task on
- * their side, say) would be a second thing to keep in step with our published
+ * Both paths through the corpus come here: the backfill scripts, and the token
+ * parse worker that every ingest and every edit enqueues into. That is the point
+ * of it being one function. A second implementation of this mapping (a Ruby task
+ * on their side, say) would be a second thing to keep in step with our published
  * `Token`, and the two would drift on the first field either of us added.
+ *
+ * This paragraph described the worker for three months before the worker
+ * existed, and reading it was how nobody noticed. `Fate/stay night: Unlimited
+ * Blade Works` was uploaded on 2026-08-21, the day after the corpus backfill,
+ * and its 3,816 sentences sat with `tokens = NULL` in both environments because
+ * nothing on the ingest path had ever called this. See `tokenParseWorker`.
  *
  * What Shirabe returns is its own shape, built for a reader: a `tokens` array
  * per input with positions and grouping, plus a deduplicated `vocabulary` pool
