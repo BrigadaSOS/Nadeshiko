@@ -51,7 +51,10 @@ describe('the served Token schema', () => {
     // Key-by-key rather than a single toEqual, so a failure names the field
     // that got stripped instead of printing two large objects.
     for (const key of Object.keys(FULL_TOKEN) as Array<keyof typeof FULL_TOKEN>) {
-      expect(served, `\`${key}\` is on SlimToken but not in Token.yaml, so it is stripped from every response`).toHaveProperty(key);
+      expect(
+        served,
+        `\`${key}\` is on SlimToken but not in Token.yaml, so it is stripped from every response`,
+      ).toHaveProperty(key);
     }
     expect(served).toEqual(FULL_TOKEN);
   });
