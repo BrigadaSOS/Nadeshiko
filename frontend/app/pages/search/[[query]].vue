@@ -199,7 +199,15 @@ const [{ data: initialSentenceData }, { data: initialStatsData }, , { data: scop
     async () => {
       const id = mediaQueryParam.value;
       if (!id) return null;
-      return sdk.getMedia(id).catch((error: unknown) => {
+      // Server-side this goes through the shared media cache: `?media=` is in
+      // the sitemap for every title, so a crawl asks for the same few hundred
+      // records over and over. See `server/utils/mediaCache.ts`.
+      const load = async () => {
+        if (!import.meta.server) return sdk.getMedia(id);
+        const { cachedMedia } = await import('~~/server/utils/mediaCache');
+        return cachedMedia(id, () => sdk.getMedia(id));
+      };
+      return load().catch((error: unknown) => {
         reportError('search:scoped-media-fetch-failed', error, { 'media.publicId': id });
         return null;
       });

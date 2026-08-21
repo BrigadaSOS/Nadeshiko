@@ -35,6 +35,22 @@ const loadSegment = async (publicId: string, sdk: ReturnType<typeof useNadeshiko
   return cachedSegment(publicId, () => sdk.getSegment(publicId));
 };
 
+/**
+ * The parent title, cached server-side for the same reason the segment above is
+ * -- but with far more to gain, because hundreds of sentences share one title.
+ *
+ * This call is what made `GET /v1/media/:id` the busiest route on the backend:
+ * a crawl of the permalink surface fetched the same ~325 records over 400,000
+ * times a day. Caching the segment alone did not touch it, since a segment hit
+ * still fell through to a live media call. See `server/utils/mediaCache.ts`.
+ */
+const loadMedia = async (publicId: string, sdk: ReturnType<typeof useNadeshikoSdk>) => {
+  if (!import.meta.server) return sdk.getMedia(publicId);
+
+  const { cachedMedia } = await import('~~/server/utils/mediaCache');
+  return cachedMedia(publicId, () => sdk.getMedia(publicId));
+};
+
 const fetchSentenceData = async () => {
   const sdk = useNadeshikoSdk();
 
@@ -57,7 +73,7 @@ const fetchSentenceData = async () => {
   });
   if (!segment) return null;
 
-  const media = await sdk.getMedia(segment.mediaPublicId).catch((error: unknown) => {
+  const media = await loadMedia(segment.mediaPublicId, sdk).catch((error: unknown) => {
     // The sentence itself resolved; a missing media only costs the page its title card.
     reportError('sentence:media-fetch-failed', error, { 'media.publicId': segment.mediaPublicId });
     return null;
