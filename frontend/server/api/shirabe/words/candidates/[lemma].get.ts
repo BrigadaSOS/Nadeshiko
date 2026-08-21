@@ -104,9 +104,14 @@ const handler = defineEventHandler(async (event) => {
   // are dropped rather than sent, so a blank never reads as "no reading".
   //
   // `pos` must be Shirabe's SHORT tag (`verb`, `prt`, `pron`), not a UniDic one.
-  // The caller owes that; see `shortPos` in ~/utils/tokenEnrichment. Sent raw it
-  // is not an error, it just skips the rung of the ranking that a closed word
-  // class decides -- which is the rung きみ needs to answer 君 over the grain 黍.
+  // The caller owes that; see `shortPos` in ~/utils/tokenEnrichment.
+  //
+  // Sent raw it does not merely skip the rung of the ranking that a closed word
+  // class decides -- the rung きみ needs to answer 君 over the grain 黍. An
+  // unrecognised category makes the lookup answer with NO candidates, and 分かる
+  // comes back as missing as readily as a coined word does. That was live until
+  // 2.4.1 and cost about nine points of lookup success; `word_card_opened`
+  // measures it, so a regression here shows up as the `missing` rate climbing.
   const token: Record<string, string> = { lemma };
   for (const key of ['surface', 'reading', 'pos'] as const) {
     const value = String(query[key] ?? '').trim();

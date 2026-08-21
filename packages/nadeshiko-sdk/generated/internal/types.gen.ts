@@ -224,6 +224,11 @@ export type Token = {
      */
     posLabel?: string;
     /**
+     * The short part-of-speech tag the dictionary lookup ranks by (`verb`, `prt`, `exp`), where `p` is UniDic's Japanese category and `posLabel` is the printable wording. A client resolving a word should send this rather than mapping `p` itself: the mapping is the parser's to make, and a category it grows that a hand-written table lacks would otherwise silently resolve to no tag at all. Empty for punctuation, symbols and whitespace, which are nothing to look up. Absent on anything parsed before it was stored.
+     *
+     */
+    pt?: string;
+    /**
      * How this token was grouped: a plain word, a compound, an inflected form, a counter, a function word, a merged grammatical expression, or a symbol.
      *
      */

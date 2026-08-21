@@ -380,6 +380,7 @@ export const s_Token = z.object({
   e: z.coerce.number(),
   p: z.string(),
   posLabel: z.string().optional(),
+  pt: z.string().optional(),
   kind: z.enum(['word', 'compound', 'inflected', 'counter', 'function', 'expression', 'symbol']).optional(),
   f: z.array(z.object({ t: z.string(), r: z.string().optional() })).optional(),
   inflection: z.object({ labels: z.array(z.string()), base: z.string() }).optional(),
