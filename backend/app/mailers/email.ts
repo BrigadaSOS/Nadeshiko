@@ -13,6 +13,7 @@ import {
 } from './emailTemplates';
 import { createLetterOpenerTransport, getPreviewUrl, LETTER_OPENER_DIR } from './letterOpener';
 import { htmlToPlainText } from './plainText';
+import { sendViaZeptomailApi, type ZeptomailMessage } from './zeptomailSend';
 import { sendEmailJob } from '@app/workers/emailQueue';
 import { getTracer } from '@config/telemetry';
 import { recordError } from '@lib/errorFingerprint';
@@ -64,25 +65,52 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
     return transporter;
   }
 
-  const host = config.SMTP_ADDRESS ?? 'smtp.zeptomail.jp';
-  const port = config.SMTP_PORT ? Number(config.SMTP_PORT) : 587;
-  const user = config.SMTP_USER_NAME ?? 'emailapikey';
-  const pass = config.SMTP_PASSWORD;
+  // Outside local there is no nodemailer transport at all any more -- see
+  // `deliver`. Reaching here means a caller asked for one where none exists.
+  throw new Error('No local mail transport outside development: deployed environments send over the ZeptoMail API.');
+}
 
-  if (!pass) {
-    throw new Error('SMTP_PASSWORD is required outside local: it is the ZeptoMail Send Mail Token.');
+/** Local opens mail in a browser; everywhere else it goes over the wire. */
+function usesLetterOpener(): boolean {
+  return getAppEnvironment(config.ENVIRONMENT) === APP_ENVIRONMENT.LOCAL;
+}
+
+/**
+ * Hands one message to whichever transport this environment has, and answers
+ * with a preview URL when there is one to show.
+ *
+ * THE SPLIT IS BY ENVIRONMENT, NOT BY CONFIGURATION, and that is the point.
+ * `MAIL_TRANSPORT` used to select between two real relays and was deleted
+ * because the unselected one rotted; this replaces it with a choice that cannot
+ * drift, because the branch nobody is running is the one that opens a file in a
+ * browser.
+ */
+async function deliver(message: ZeptomailMessage): Promise<string | null> {
+  if (!usesLetterOpener()) {
+    await sendViaZeptomailApi(message);
+    return null;
   }
 
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    requireTLS: port === 587,
-    auth: { user, pass },
+  const transport = await getTransporter();
+  const info = await transport.sendMail({
+    from: `${message.from.name} <${message.from.address}>`,
+    replyTo: message.replyTo,
+    to: message.to,
+    subject: message.subject,
+    html: message.html,
+    text: message.text,
+    headers: {
+      'X-TM-CLIENT-REF': message.clientReference,
+      ...(message.unsubscribeUrl
+        ? {
+            'List-Unsubscribe': `<${message.unsubscribeUrl}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          }
+        : {}),
+    },
   });
 
-  logger.info({ environment, host, port }, 'Email transport configured with ZeptoMail SMTP');
-  return transporter;
+  return getPreviewUrl(info);
 }
 
 /**
@@ -200,39 +228,29 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 
   return tracer.startActiveSpan(`email.send ${options.kind}`, async (span) => {
     span.setAttribute('email.kind', options.kind);
-    span.setAttribute('messaging.system', 'smtp');
+    span.setAttribute('messaging.system', usesLetterOpener() ? 'letter-opener' : 'zeptomail-api');
 
     try {
-      const transport = await getTransporter();
+      // Derived here rather than per template, so it cannot be the thing
+      // somebody forgets on the next mailer. See `htmlToPlainText` for why an
+      // HTML-only message costs us reputation on the Agent that carries
+      // sign-in.
+      const text = htmlToPlainText(options.html);
+      const clientReference = options.campaign ? `${options.kind}:${options.campaign}` : options.kind;
 
-      const info = await transport.sendMail({
-        from: `${fromName} <${fromEmail}>`,
-        replyTo: options.replyTo,
+      const previewUrl = await deliver({
+        from: { address: fromEmail, name: fromName },
         to: options.to,
         subject: options.subject,
         html: options.html,
-        // Derived here rather than per template, so it cannot be the thing
-        // somebody forgets on the next mailer. See `htmlToPlainText` for why an
-        // HTML-only message costs us reputation on the Agent that carries
-        // sign-in.
-        text: htmlToPlainText(options.html),
-        headers: {
-          'X-TM-CLIENT-REF': options.campaign ? `${options.kind}:${options.campaign}` : options.kind,
-          // RFC 8058. Both headers or neither: `List-Unsubscribe-Post` alone is
-          // meaningless, and the URI alone gets a provider that opens it in a
-          // browser rather than posting to it.
-          ...(options.unsubscribeUrl
-            ? {
-                'List-Unsubscribe': `<${options.unsubscribeUrl}>`,
-                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-              }
-            : {}),
-        },
+        text,
+        replyTo: options.replyTo,
+        clientReference,
+        unsubscribeUrl: options.unsubscribeUrl,
       });
 
       recordEmailSent(options.kind);
 
-      const previewUrl = getPreviewUrl(info);
       if (previewUrl) {
         logger.info({ 'email.kind': options.kind, previewUrl }, 'Email opened in your browser');
         return;
@@ -491,18 +509,18 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
   // showed the wrong sender -- and "reply to me" under a `noreply@` header is
   // exactly the mistake a preview exists to catch.
   const { email: fromEmail, name: fromName } = senderFor(kindOfTestTemplate(template));
-  const transport = await getTransporter();
 
-  const info = await transport.sendMail({
-    from: `${fromName} <${fromEmail}>`,
+  // Through `deliver` like every real send, so a preview exercises the transport
+  // this environment actually uses rather than a second code path that could
+  // render differently from the thing readers receive.
+  const previewUrl = await deliver({
+    from: { address: fromEmail, name: fromName },
     to,
     subject,
     html,
     text: htmlToPlainText(html),
-    headers: { 'X-TM-CLIENT-REF': template },
+    clientReference: template,
   });
-
-  const previewUrl = getPreviewUrl(info);
   if (previewUrl) {
     logger.info({ to, subject, previewUrl }, 'Test email opened in your browser');
   } else {
