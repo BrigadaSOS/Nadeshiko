@@ -1,0 +1,23 @@
+meta {
+  name: Request email change with verification OTP sent to the new email
+  type: http
+  seq: 107
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/email-otp/request-email-change
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}

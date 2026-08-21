@@ -9,6 +9,28 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
+## 2.4.5 (2026-08-21)
+
+### Fixes
+
+- **Your own dictionaries**: a linked Shirabe account stays linked. Reading your dictionary stack could put a spent credential back over a fresh one, so the next renewal failed and a link made in the morning was asking to be reconnected by the afternoon — reported as though you had revoked it yourself, which you had not.
+- **Account**: the sign-in box now says what an account is for. It opened on three sign-in buttons and no reason to press any of them, which was particularly unhelpful if you arrived from an offer to export to Anki and then met a screen that never mentioned Anki again; three bullets now name what an account adds. "Send link" also shows that it is working, rather than just looking disabled for the four to six seconds the request takes.
+- **Search**: the counts on the word panel read correctly in every language. They were written with whatever language the server happened to default to and then rewritten by your browser, so 23,931 became 23.931 in a German browser and the page stopped updating from that point on. English and Japanese were unaffected; German, Dutch, French and Spanish were not.
+
+## 2.4.4 (2026-08-20)
+
+### Highlights
+
+- **Sign-in**: a six-character code beside the emailed link, for when the mail arrives on one device and you want to be signed in on another. The code only works in the browser that asked for it, so a code read aloud down a phone is worthless to whoever is listening. The link itself stays portable, which is the point of having both.
+- **Discord bot**: you can add the bot to your own account instead of having to find a server admin. Its commands then follow you into any server, group DM or DM, needing nobody's permission. `/settings` and `/health` stay server-only, since they configure or report on a server.
+
+### Fixes
+
+- **Search**: a title containing a tilde no longer fails. The `~` was read as a search operator rather than as part of the name, so `本好きの下剋上 ~司書になるためには手段を選んでいられません~` asked for something impossible and the search returned an error instead of results.
+- **Sign-in**: asking for another email now tells you when you can try again, instead of saying "check your inbox" and sending nothing — which left anyone who never received the first one waiting on a second that was never sent. A brand-new address had no limit at all, and a send that fails now says so instead of reporting success.
+- **Anki**: the connection test says which way it failed. "Could not establish connection" covered both an Anki that is not running and an Anki that is running, has answered, and is waiting for you to click Allow on a dialog sitting behind your browser window — and it told the second group to check that Anki was running.
+- **Account**: you stay signed in as long as you should. Sessions renew weekly, but the renewal only happened when the page called the API and was not always handed back to your browser, so it could be spent without ever reaching you.
+
 ## 2.4.3 (2026-08-20)
 
 ### Fixes

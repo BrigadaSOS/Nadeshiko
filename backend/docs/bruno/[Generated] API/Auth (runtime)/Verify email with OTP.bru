@@ -1,0 +1,23 @@
+meta {
+  name: Verify email with OTP
+  type: http
+  seq: 111
+}
+
+post {
+  url: {{baseUrl}}/v1/auth/email-otp/verify-email
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+script:pre-request {
+  const sessionToken = bru.getEnvVar("sessionToken");
+  if (sessionToken) {
+    req.setHeader("Cookie", "nadeshiko.session_token=" + sessionToken);
+  }
+}
