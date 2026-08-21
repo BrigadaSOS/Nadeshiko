@@ -416,6 +416,29 @@ export default defineNuxtConfig({
             allow: ['/en/', '/es/'],
             disallow: ['/ja', '/ja/', ...PRIVATE_DISALLOW, '/api/', '/v1/', '/_nuxt/'],
           },
+          // SEO backlink crawlers, turned away by name.
+          //
+          // Measured over the 24h to 2026-08-22, across the two media routes:
+          // MJ12bot (Majestic) 2,706 requests and DotBot (Moz) 287, every one of
+          // them serving a commercial backlink index rather than any search
+          // engine a reader uses. Unlike the scrapers the WAF deals with, both
+          // identify themselves honestly and both document that they obey
+          // robots.txt, so asking is the correct instrument and a firewall rule
+          // is not needed to make it stick.
+          //
+          // AhrefsBot is deliberately NOT here despite being the third-largest
+          // crawler on the site (26,180 requests in the same window): it backs
+          // the backlink reporting we actually read.
+          //
+          // `_skipI18n` because the module otherwise expands `/` into `/`,
+          // `/en/`, `/es/` and `/ja/`. Harmless -- the bare `/` still wins --
+          // but three redundant lines under a group whose whole point is one
+          // directive.
+          {
+            userAgent: ['MJ12bot', 'DotBot'],
+            disallow: ['/'],
+            _skipI18n: true,
+          },
         ],
         sitemap: `${SITE_URL}/sitemap_index.xml`,
       },
