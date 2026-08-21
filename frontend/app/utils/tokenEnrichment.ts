@@ -48,9 +48,15 @@ export interface SlimToken {
  *
  * Built here, once, so no caller assembles it by hand out of single-letter
  * fields -- which is where it used to go wrong. `reading` is KATAKANA and `pos`
- * is the RAW UniDic tag, because that is what Shirabe resolves against; the
- * display forms of both are different values living on the same object, and
- * sending those instead returns 200 for the wrong word rather than failing.
+ * is Shirabe's SHORT tag (`verb`, `prt`), which is what `words/identify` ranks
+ * by; the display forms of both are different values living on the same object,
+ * and sending those instead returns 200 for the wrong word rather than failing.
+ *
+ * `pos` carried the raw UniDic tag (動詞) until 2.4.1, and that was not the
+ * harmless mismatch the comment here used to claim: the ranker does not
+ * recognise the category, so it resolves with no part of speech at all and
+ * ordinary words come back with no candidates. It cost about nine points of
+ * lookup success -- 10.5% of cards missing before the fix shipped, 1.7% after.
  */
 export interface WordRef {
   /** Dictionary form. */
@@ -232,12 +238,18 @@ function highlightRanges(highlight: string): Array<{ start: number; end: number 
  * `CONJ_CLASS_LABELS` and the 55-entry `AUX_LABELS` all went when Shirabe took
  * over the parsing, and none of them is coming back.
  *
- * This one earns its place by being temporary and closed. `identify` needs the
- * short tag; our stored tokens carry only `p`, because `parseSegments.ts` maps
- * `posFull[0]` and drops the short one. Deriving costs seventeen entries over a
- * fixed set of UniDic categories, where re-parsing the corpus to store the tag
- * costs a corpus pass. So: derive now, store `pt` when the corpus is next
- * re-tokenized, and delete this once every token carries one.
+ * It is the FALLBACK now, not the source. `pt` carries the parser's own short
+ * tag and the corpus has been re-tokenized to fill it, so this runs only for a
+ * token that predates the field -- and for one arriving from a cache or a
+ * client older than the API that started serving it.
+ *
+ * Kept rather than deleted, and not only for those. It is seventeen entries
+ * over a closed set of UniDic categories, and the alternative to a stale
+ * mapping here is no tag at all: `identify` answers an unrecognised category
+ * with no candidates rather than with a worse ranking, so a token that reaches
+ * the lookup with an empty `pos` loses the word outright. A copy that can drift
+ * beats nothing to fall back to, as long as `pt` is what gets sent when it is
+ * there. Drop it once no token can arrive without `pt`.
  *
  * `連語` is the entry that is not in their table. It is a merged grammatical
  * expression (について, けれども) with no single morpheme to take a POS from, so
