@@ -4,6 +4,7 @@ import { registerAffinityRetentionWorker } from '@app/workers/affinityRetentionW
 import { registerEmailWorkers } from '@app/workers/emailWorker';
 import { registerEmailLifecycleWorker } from '@app/workers/emailLifecycleWorker';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
+import { registerTokenParseWorker } from '@app/workers/tokenParseWorker';
 import { setBossInstance } from '@app/workers/pgBossClient';
 import { registerQueueMetrics } from '@app/workers/workerInstrumentation';
 import {
@@ -15,6 +16,8 @@ import {
   ES_SYNC_CREATE_QUEUE,
   ES_SYNC_DELETE_QUEUE,
   ES_SYNC_UPDATE_QUEUE,
+  TOKEN_PARSE_QUEUE,
+  TOKEN_SWEEP_QUEUE,
 } from '@app/workers/queueNames';
 import { getAppPostgresConfig } from '@config/postgresConfig';
 import { logger } from '@config/log';
@@ -110,6 +113,38 @@ export const workersInitializer: RuntimeInitializer = {
           retentionSeconds: 86400,
         },
       },
+      {
+        name: TOKEN_PARSE_QUEUE,
+        options: {
+          // Shirabe is a small server that also serves readers, so a failure
+          // here is usually "come back later" rather than "this will never
+          // work": a restart mid-deploy, a 502, a slow chunk timing out. Backing
+          // off across five attempts rides those out. `parseSegments` retries
+          // the individual chunk first; this is the outer net for when the whole
+          // pull dies.
+          retryLimit: 5,
+          retryDelay: 30000,
+          retryBackoff: true,
+          // Generous next to the ES queues' hour. A full pull is 500 sentences
+          // and the adaptive limiter drops to one chunk at a time when Shirabe
+          // is under load, which is exactly when a tighter expiry would start
+          // killing work that was going to succeed.
+          expireInSeconds: 3600,
+          retentionSeconds: 86400,
+        },
+      },
+      {
+        name: TOKEN_SWEEP_QUEUE,
+        options: {
+          // A sweep over a query, so a retry finds what the first run would
+          // have. Same reasoning as the email lifecycle sweep: one retry covers
+          // a database blip, and past that the next run is tomorrow.
+          retryLimit: 1,
+          retryDelay: 300000,
+          expireInSeconds: 1800,
+          retentionSeconds: 86400,
+        },
+      },
     ];
 
     for (const queue of queues) {
@@ -124,6 +159,10 @@ export const workersInitializer: RuntimeInitializer = {
     // order matters on the 1st of the month: mailing a summary built from a
     // tally that has not finished rolling over would report the wrong month.
     await boss.schedule(EMAIL_LIFECYCLE_QUEUE, '0 5 * * *', {});
+    // Last of the nightly jobs, and the only one that talks to another service.
+    // It runs after the deletes so it never queues a parse for a row the
+    // retention sweep is about to remove.
+    await boss.schedule(TOKEN_SWEEP_QUEUE, '0 6 * * *', {});
     logger.info('PgBoss initialized, queues created, cron scheduled');
 
     setBossInstance(boss);
@@ -134,6 +173,7 @@ export const workersInitializer: RuntimeInitializer = {
     await registerEmailLifecycleWorker(boss);
     await registerActivityRetentionWorker(boss);
     await registerAffinityRetentionWorker(boss);
+    await registerTokenParseWorker(boss);
   },
   shutdown: async () => {
     if (boss) {
