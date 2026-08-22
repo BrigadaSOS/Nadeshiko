@@ -11,7 +11,7 @@ import {
 } from '~/utils/metaTags';
 import type { Media } from '@brigadasos/nadeshiko-sdk';
 import { reportError } from '~/utils/reportError';
-import { buildMediaPath, decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
+import { buildMediaPath, decodeSearchQuery } from '~/utils/routes';
 
 definePageMeta({
   // All from `/media/<slug>` only changes the path because the title lives in
@@ -165,6 +165,30 @@ const statsCacheKey = computed(() => {
 const sdk = useNadeshikoSdk();
 
 /**
+ * THE STATS CALL IS NOT MADE FOR A CRAWLER, and this is the one guard on the
+ * page that changes what gets rendered rather than only how fast.
+ *
+ * `/v1/search/stats` is the most expensive thing a search render asks for: an
+ * Elasticsearch aggregation over every media and every episode that matches,
+ * cached on the backend under a key that is the query plus every filter. A
+ * crawler walks a new query per request, so every one of those renders minted a
+ * cache entry nobody would ever read again -- 48k bot calls per 6h against 1.6k
+ * from readers (measured 2026-08-22), and a backend that OOM-killed every three
+ * hours because of it (Nadeshiko#522).
+ *
+ * WHAT A CRAWLER LOSES: the per-category breakdown clause in the meta
+ * description ("N from anime, M from drama"). The result count itself comes
+ * from the sentences call's `estimatedTotalHits` and is unaffected, as are the
+ * title, the results, and every link on the page. The filter panel's counts are
+ * a reader control that a crawler does not render.
+ *
+ * If that breakdown turns out to be worth keeping for search engines, the fix
+ * is a stats request that asks only for the category buckets -- cheap, bounded,
+ * and cacheable under a key with no query in it -- not turning this back on.
+ */
+const rendersForCrawler = useRequestTraffic() === 'bot';
+
+/**
  * User-scoped, unlike the two keys above, because the ranking is about months of
  * study and does not change between queries -- one fetch serves every search in
  * the session. The identity is folded into the key so signing out and back in
@@ -179,7 +203,7 @@ const [{ data: initialSentenceData }, { data: initialStatsData }, , { data: scop
     watch: [],
   }),
   useAsyncData(statsCacheKey.value, () => fetchStatsData(), {
-    server: true,
+    server: !rendersForCrawler,
     lazy: false,
     watch: [],
   }),
@@ -268,18 +292,46 @@ const { data: relatedWordsData } = await useAsyncData(
 
 const relatedWords = computed(() => relatedWordsData.value?.words ?? []);
 
-const requestOrigin = useRequestURL().origin;
-const isJapaneseSearchRoute = computed(() => splitLocalePrefix(route.path).localePrefix === '/ja');
+/**
+ * A QUERY THAT FOUND NOTHING IS NOT A PAGE WORTH INDEXING, and this route mints
+ * them without limit: `/search/<anything>` answers 200 for any string,
+ * self-canonicalises, and advertises a Spanish twin of itself. The sitemap
+ * submits 19,784 curated word searches; everything else typed, linked or
+ * guessed at is the same template over an empty result set, competing with
+ * them. Crawlers do walk it -- that enumeration is what filled the search-stats
+ * cache until the backend ran out of heap.
+ *
+ * `follow`, not `noindex, nofollow`: the page still carries the nav and the
+ * related-word links, and they lead somewhere worth having.
+ *
+ * ONLY WHEN THE EMPTINESS IS KNOWN. `initialSentenceData` is null when the SSR
+ * fetch FAILED as well as when it returned nothing, and the two must not be
+ * treated alike -- a backend blip would otherwise de-index good pages wholesale,
+ * which is far more expensive than briefly indexing a thin one.
+ *
+ * THROUGH `useRobotsRule`, NOT A `robots` META IN `metaTags` BELOW, and the
+ * difference is not stylistic: @nuxtjs/robots renders its meta from
+ * `event.context.robots.rule` and wins the dedupe against a hand-pushed tag.
+ * This page used to push `noindex, follow` for `/ja` that way, and production
+ * served `noindex, nofollow` on those pages regardless -- the module's value,
+ * from `'/ja/**': { robots: false }`. That branch was removed rather than
+ * ported: the route rule already says what it was trying to say, and it says it
+ * where the rest of the estate's indexing rules live. This composable sets the
+ * rule the module itself renders, so it survives.
+ */
+const emptyResultPage = computed(() => {
+  const data = initialSentenceData.value;
+  if (!searchQuery.value || data == null) return false;
+  return (data.pagination?.estimatedTotalHits ?? data.results?.length ?? 0) === 0;
+});
+useRobotsRule(emptyResultPage.value ? 'noindex, follow' : undefined);
 
+const requestOrigin = useRequestURL().origin;
 const metaTags = computed(() => {
   const defaultTitle = t('seo.search.title');
   const defaultDescription = t('seo.search.defaultDescription');
 
   const tags = buildDefaultMetaTags(defaultTitle, defaultDescription);
-
-  if (isJapaneseSearchRoute.value) {
-    tags.meta.push({ name: 'robots', content: 'noindex, follow' });
-  }
 
   const result = initialSentenceData.value?.results?.[0];
   const q = searchQuery.value;
