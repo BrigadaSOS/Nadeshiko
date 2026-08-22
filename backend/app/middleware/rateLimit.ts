@@ -76,13 +76,49 @@ function clientKey(req: Request): string {
 // the same answer and the two must not drift.
 const shouldSkip = isTrustedInternalCaller;
 
-// Six series at most (three scopes x two sources), which is why `source` is a
+// Twelve series at most (six scopes x two sources), which is why `source` is a
 // class and not the address itself: the address is unbounded, and the question
 // this answers needs only the class.
+export const RATE_LIMIT_SCOPES = [
+  'global',
+  'auth',
+  'feedback',
+  'unsubscribe',
+  'sign-in-address',
+  'sign-in-global',
+] as const;
+
+export type RateLimitScope = (typeof RATE_LIMIT_SCOPES)[number];
+
+const RATE_LIMIT_SOURCES = ['internal', 'external'] as const;
+
 const rateLimitedCount = getMeter().createCounter('http.server.rate_limited', {
   description: 'Requests rejected by the per-IP rate limiter, by caller class',
   unit: '{request}',
 });
+
+/**
+ * Create all twelve series at zero, before anything has been throttled.
+ *
+ * WITHOUT THIS, NadeshikoBackendProdRateLimitingItself CANNOT FIRE AND CANNOT BE
+ * SEEN NOT TO FIRE. `source="internal"` is written the first time we throttle
+ * one of our own, which is the thing the rule exists to catch and therefore the
+ * thing that has never happened -- so the series does not exist, the rule reads
+ * NO DATA rather than false, and it reports healthy forever. It was carried on
+ * NadeshikoAlertRuleMatchesNothing's exclusion list for exactly that reason;
+ * seeding is what lets it come off the list.
+ *
+ * Re-emitted on an interval by the telemetry initializer, not just called once:
+ * these exports are DELTA, so a series seeded and never touched has one sample
+ * and then nothing. See SERIES_HEARTBEAT_INTERVAL_MS in @config/telemetry.
+ */
+export function seedRateLimitSeries(): void {
+  for (const scope of RATE_LIMIT_SCOPES) {
+    for (const source of RATE_LIMIT_SOURCES) {
+      rateLimitedCount.add(0, { scope, source });
+    }
+  }
+}
 
 /**
  * Private-range, loopback and link-local addresses -- the container network and
@@ -128,10 +164,7 @@ export function isPrivateAddress(ip: string | undefined): boolean {
 // better-auth API-key limiter already surfaces RateLimitExceededError). Routing
 // through next() lets the central error handler attach the requestId/instance
 // and record the 4xx error metric.
-function buildHandler(
-  scope: 'global' | 'auth' | 'feedback' | 'unsubscribe' | 'sign-in-address' | 'sign-in-global',
-  detail: string,
-): RequestHandler {
+function buildHandler(scope: RateLimitScope, detail: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     // The same address the bucket was keyed on, not `req.ip` -- otherwise the
     // log and the alert describe a different client than the one being counted.
