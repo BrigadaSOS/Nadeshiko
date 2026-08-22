@@ -232,6 +232,9 @@ const segmentLangRows = computed(() =>
     .filter((row) => row.mode !== 'hidden'),
 );
 
+const { revertActiveConcatenation, concatenatedResult, isConcatenated, isConcatenating, loadNextSegment } =
+  useSegmentConcatenation();
+
 const openModal = (content: SearchResult) => {
   selectedResult.value = content;
 };
@@ -241,6 +244,22 @@ const openAnkiModal = (result: SearchResult) => {
 };
 
 const openEditModal = (result: SearchResult) => {
+  // Collapse an expansion before the editor reads the card.
+  //
+  // It has to be here rather than on success, because everything that goes
+  // wrong has already gone wrong by then. `ModalSegmentEdit` seeds its form
+  // from `segment.textJa.content`, which on an expanded card is the three
+  // merged sentences -- so the reader is handed the neighbours' text to edit,
+  // and saving PUTs all three to the API as the one sentence's content. The
+  // result it emits back then spreads the expansion's `highlight` and `tokens`
+  // forward too, which would re-stamp the merged text onto the card whatever
+  // we did to it afterwards.
+  //
+  // Reverting first means the editor opens on the sentence it names. The
+  // expansion is lost, which is the honest outcome: it is one click to rebuild,
+  // and the alternative was editing a sentence the card was not showing.
+  if (isConcatenated(result)) revertActiveConcatenation();
+
   segmentToEdit.value = result;
 };
 
@@ -262,14 +281,15 @@ const openReportModal = (result: SearchResult, type: 'SEGMENT' | 'MEDIA' = 'SEGM
 const onEditSuccess = (updated: SearchResult) => {
   const list = resultList.value;
   const idx = list.findIndex((r) => r.segment.publicId === updated.segment.publicId);
-  if (idx !== -1) {
-    const item = list[idx];
-    if (item) item.segment = { ...updated.segment };
-  }
-};
+  if (idx === -1) return;
 
-const { revertActiveConcatenation, concatenatedResult, isConcatenated, isConcatenating, loadNextSegment } =
-  useSegmentConcatenation();
+  const item = list[idx];
+  if (!item) return;
+
+  // No collapse needed here: `openEditModal` already did it, so the card this
+  // lands on is plain and `updated.segment` describes the one sentence.
+  item.segment = { ...updated.segment };
+};
 
 // An expanded card that a new search scrolls off the list can no longer be
 // reverted from the UI, so its concatenated audio blob would never be released.
