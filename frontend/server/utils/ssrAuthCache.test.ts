@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { dropSessionEntries, hasSessionCookie, ssrAuthFetch, _resetForTests } from './ssrAuthCache';
+import { dropSessionEntries, hasSessionCookie, ssrAuthFetch, _resetSsrAuthCacheForTests } from './ssrAuthCache';
 
-beforeEach(() => _resetForTests());
+beforeEach(() => _resetSsrAuthCacheForTests());
 
 function fakeEvent(cookieHeader?: string, ip = '1.2.3.4') {
   return {

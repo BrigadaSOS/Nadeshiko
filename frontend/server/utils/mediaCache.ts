@@ -75,7 +75,16 @@ export function cachedMedia<T>(mediaPublicId: string, fetcher: () => Promise<T>)
   return cache.fetch(mediaPublicId, fetcher);
 }
 
-/** Test-only -- DO NOT call from prod code. */
-export function _resetForTests(): void {
+/**
+ * Test-only -- DO NOT call from prod code.
+ *
+ * Named for its module rather than the bare `_resetForTests` the others here
+ * once used. Nitro auto-imports every export under `server/utils/`, so the bare
+ * name was declared by five modules into one namespace: Nuxt resolved the
+ * collision by picking one and warning, which meant an auto-imported call would
+ * silently have reset a DIFFERENT cache than the file it was written in. The
+ * tests import by path and so were never wrong, but only by luck.
+ */
+export function _resetMediaCacheForTests(): void {
   cache._resetForTests();
 }

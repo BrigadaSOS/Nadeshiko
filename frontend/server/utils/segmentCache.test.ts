@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cachedSegment, _resetForTests } from './segmentCache';
+import { cachedSegment, _resetSegmentCacheForTests } from './segmentCache';
 
 describe('cachedSegment', () => {
   it('serves a repeat lookup without calling the backend again', async () => {
-    _resetForTests();
+    _resetSegmentCacheForTests();
     const fetcher = vi.fn(async () => ({ publicId: 'seg_1' }));
 
     const first = await cachedSegment('seg_1', fetcher);
@@ -18,7 +18,7 @@ describe('cachedSegment', () => {
     // before the first answer lands, so a plain TTL cache would miss on every
     // one of them and forward the whole burst to the backend -- which is the
     // shape that took production down on 2026-08-09.
-    _resetForTests();
+    _resetSegmentCacheForTests();
     let resolveFetch: (v: unknown) => void = () => {};
     const fetcher = vi.fn(
       () =>
@@ -37,7 +37,7 @@ describe('cachedSegment', () => {
   });
 
   it('keeps different segments in different entries', async () => {
-    _resetForTests();
+    _resetSegmentCacheForTests();
     const fetcher = vi.fn(async (id: string) => ({ publicId: id }));
 
     const a = await cachedSegment('seg_a', () => fetcher('seg_a'));
@@ -51,7 +51,7 @@ describe('cachedSegment', () => {
   it('does not cache failures, and retries the next caller', async () => {
     // A cached error would pin a permalink to a failure for the whole TTL over
     // a single backend blip.
-    _resetForTests();
+    _resetSegmentCacheForTests();
     const fetcher = vi.fn().mockRejectedValueOnce(new Error('backend down')).mockResolvedValue({ publicId: 'seg_1' });
 
     await expect(cachedSegment('seg_1', fetcher)).rejects.toThrow('backend down');
@@ -60,7 +60,7 @@ describe('cachedSegment', () => {
   });
 
   it('propagates a rejection to every caller waiting on the same inflight call', async () => {
-    _resetForTests();
+    _resetSegmentCacheForTests();
     const fetcher = vi.fn(() => Promise.reject(new Error('boom')));
 
     const waiters = [
@@ -75,7 +75,7 @@ describe('cachedSegment', () => {
   it('stays bounded when a crawler walks the corpus', async () => {
     // Without the cap this is a slow memory leak: one entry per segment, and
     // the corpus is far larger than any process should hold.
-    _resetForTests();
+    _resetSegmentCacheForTests();
     for (let i = 0; i < 2_500; i++) {
       await cachedSegment(`seg_${i}`, async () => ({ publicId: `seg_${i}` }));
     }

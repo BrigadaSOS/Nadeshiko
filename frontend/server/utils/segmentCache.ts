@@ -82,7 +82,7 @@ export function cachedSegment<T>(publicId: string, fetcher: () => Promise<T>): P
   return cache.fetch(publicId, fetcher);
 }
 
-/** Test-only -- DO NOT call from prod code. */
-export function _resetForTests(): void {
+/** Test-only -- DO NOT call from prod code. Named per-module; see `mediaCache.ts`. */
+export function _resetSegmentCacheForTests(): void {
   cache._resetForTests();
 }

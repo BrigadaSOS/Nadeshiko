@@ -124,6 +124,6 @@ export async function ipRateLimit(
 }
 
 // Test-only -- DO NOT call from prod code
-export function _resetForTests(): void {
+export function _resetIpRateLimitForTests(): void {
   buckets.clear();
 }
