@@ -223,6 +223,6 @@ export function dropSessionEntries(event: H3Event): void {
   }
 }
 
-export function _resetForTests(): void {
+export function _resetSsrAuthCacheForTests(): void {
   store.clear();
 }
