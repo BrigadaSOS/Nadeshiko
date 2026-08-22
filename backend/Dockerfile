@@ -61,6 +61,32 @@ FROM node:24-slim AS release
 WORKDIR /app
 COPY --from=build /app /app
 USER node
+
+# HEAP CAP, SET EXPLICITLY BECAUSE THE DEFAULT IS DERIVED AND THIS SERVICE HAS
+# ALREADY DIED OF IT (#522: "FATAL ERROR: Ineffective mark-compacts near heap
+# limit", every ~3 hours for three days). Node sizes the old space from the
+# memory the CONTAINER can see, never the host's: measured 2026-08-22 in this
+# image, `-m 1.5g` yields a heap_size_limit of 864 MiB while the same image
+# unconstrained on the 8GB host yields 4288 MiB. So the ceiling that killed the
+# process was one nobody chose, and it silently tracks whatever
+# `config/deploy.prod.yml` grants that week.
+#
+# 1024 MiB inside the 1.5g cap there, matching the frontend, which learned this
+# first (#484) -- read the equivalent block in frontend/Dockerfile before
+# changing either. The flag caps the OLD SPACE, not the whole heap: measured
+# heap_size_limit is 1120 MiB with this value at this container size, so the
+# real headroom against 1536 MiB is ~416 MiB for everything that is not the JS
+# heap -- the pg pool, the Elasticsearch client, Pino's buffers, the OTel batch
+# processors.
+#
+# THIS IS NOT WHAT FIXED #522. The leak was an unbounded cache
+# (SEARCH_STATS_CACHE, capped in the same change); raising the ceiling only
+# lengthens the fuse. What this buys is that the ceiling is now a decision with
+# a number next to it instead of a derived value nobody can see.
+#
+# Raise BOTH numbers together, or neither.
+ENV NODE_OPTIONS=--max-old-space-size=1024
+
 # Docker sets net.ipv4.ip_unprivileged_port_start=0, so the unprivileged `node`
 # user can still bind the PORT 80 the deploy configs use.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
