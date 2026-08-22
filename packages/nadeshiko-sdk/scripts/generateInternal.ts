@@ -340,7 +340,23 @@ function buildRepackExpression(fn: string, ep: EndpointInfo): string {
     case 'body-only':
       return [
         `    const { throwOnError: tOE, ...body } = params ?? {};`,
-        `    const p = ${fn}({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);`,
+        // ALWAYS SENDS A BODY, even an empty one, and the omission it replaces
+        // was a real outage on a real endpoint. An endpoint in this layout
+        // declares a JSON request body; skipping it when the caller passes no
+        // fields sends a POST with no body at all, and a server validating that
+        // body sees `undefined` rather than `{}`. Measured against production's
+        // own auth surface on 2026-08-22:
+        //
+        //   POST /v1/auth/delete-user  (no body) -> 400 "[body] Invalid input:
+        //                                            expected object, received
+        //                                            undefined"
+        //   POST /v1/auth/delete-user  {}        -> 401, i.e. past validation
+        //
+        // which is Nadeshiko#521: `deleteUser({})` from the settings page could
+        // never reach the auth check. Sending `{}` costs nothing on an endpoint
+        // whose fields are all optional, and on one with required fields the
+        // server's error is the same either way -- clearer, if anything.
+        `    const p = ${fn}({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);`,
       ].join('\n');
 
     case 'query-only':
@@ -372,7 +388,8 @@ function buildRepackExpression(fn: string, ep: EndpointInfo): string {
       const pathObj = ep.pathParams.map(p => p.name).join(', ');
       return [
         `    const { throwOnError: tOE, ${destructure}, ...body } = params ?? {};`,
-        `    const p = ${fn}({ path: { ${pathObj} }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);`,
+        // Unconditional for the same reason as `body-only` above.
+        `    const p = ${fn}({ path: { ${pathObj} }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);`,
       ].join('\n');
     }
 

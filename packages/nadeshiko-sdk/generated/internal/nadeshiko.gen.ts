@@ -564,7 +564,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _search = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = search({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = search({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
   _search.paginate = (params?: any) => flatPaginate(
@@ -577,19 +577,19 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _getSearchStats = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = getSearchStats({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = getSearchStats({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _searchWords = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = searchWords({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = searchWords({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _searchMedia = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = searchMedia({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = searchMedia({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -674,7 +674,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _createUserApiKey = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = createUserApiKey({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createUserApiKey({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -686,7 +686,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _addExcludedMedia = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = addExcludedMedia({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = addExcludedMedia({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -708,7 +708,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _addFavoriteMedia = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = addFavoriteMedia({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = addFavoriteMedia({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -768,7 +768,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _createCollection = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = createCollection({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createCollection({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -794,7 +794,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _addSegmentToCollection = (params?: any) => {
     const { throwOnError: tOE, collectionPublicId, ...body } = params ?? {};
-    const p = addSegmentToCollection({ path: { collectionPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = addSegmentToCollection({ path: { collectionPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -804,7 +804,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     }
     const params = paramsOrId;
     const { throwOnError: tOE, collectionPublicId, ...body } = params ?? {};
-    const p = searchCollectionSegments({ path: { collectionPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = searchCollectionSegments({ path: { collectionPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
   _searchCollectionSegments.paginate = (params?: any) => flatPaginate(
@@ -837,13 +837,13 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _triggerCoveredWordsUpdate = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = triggerCoveredWordsUpdate({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = triggerCoveredWordsUpdate({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _createMedia = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = createMedia({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createMedia({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -853,7 +853,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     }
     const params = paramsOrId;
     const { throwOnError: tOE, segmentPublicId, ...body } = params ?? {};
-    const p = updateSegment({ path: { segmentPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateSegment({ path: { segmentPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -879,7 +879,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     }
     const params = paramsOrId;
     const { throwOnError: tOE, mediaPublicId, ...body } = params ?? {};
-    const p = updateMedia({ path: { mediaPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateMedia({ path: { mediaPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -895,13 +895,13 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _createEpisode = (params?: any) => {
     const { throwOnError: tOE, mediaPublicId, ...body } = params ?? {};
-    const p = createEpisode({ path: { mediaPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createEpisode({ path: { mediaPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _updateEpisode = (params?: any) => {
     const { throwOnError: tOE, mediaPublicId, episodeNumber, ...body } = params ?? {};
-    const p = updateEpisode({ path: { mediaPublicId, episodeNumber }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateEpisode({ path: { mediaPublicId, episodeNumber }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -927,19 +927,19 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _createSegment = (params?: any) => {
     const { throwOnError: tOE, mediaPublicId, episodeNumber, ...body } = params ?? {};
-    const p = createSegment({ path: { mediaPublicId, episodeNumber }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createSegment({ path: { mediaPublicId, episodeNumber }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _createSegmentsBatch = (params?: any) => {
     const { throwOnError: tOE, mediaPublicId, episodeNumber, ...body } = params ?? {};
-    const p = createSegmentsBatch({ path: { mediaPublicId, episodeNumber }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createSegmentsBatch({ path: { mediaPublicId, episodeNumber }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _moderateEpisodeSegments = (params?: any) => {
     const { throwOnError: tOE, mediaPublicId, episodeNumber, ...body } = params ?? {};
-    const p = moderateEpisodeSegments({ path: { mediaPublicId, episodeNumber }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = moderateEpisodeSegments({ path: { mediaPublicId, episodeNumber }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -963,7 +963,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _completeShirabeLink = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = completeShirabeLink({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = completeShirabeLink({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -975,13 +975,13 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _resyncShirabeStack = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = resyncShirabeStack({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = resyncShirabeStack({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _reportShirabeRefusal = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = reportShirabeRefusal({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = reportShirabeRefusal({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1003,7 +1003,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _createUserReport = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = createUserReport({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createUserReport({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1015,13 +1015,13 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _updateUserPreferences = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = updateUserPreferences({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateUserPreferences({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _trackUserActivity = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = trackUserActivity({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = trackUserActivity({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1059,7 +1059,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _createFeedback = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = createFeedback({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = createFeedback({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1081,13 +1081,13 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     }
     const params = paramsOrId;
     const { throwOnError: tOE, collectionPublicId, ...body } = params ?? {};
-    const p = updateCollection({ path: { collectionPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateCollection({ path: { collectionPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _updateCollectionSegment = (params?: any) => {
     const { throwOnError: tOE, collectionPublicId, segmentPublicId, ...body } = params ?? {};
-    const p = updateCollectionSegment({ path: { collectionPublicId, segmentPublicId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateCollectionSegment({ path: { collectionPublicId, segmentPublicId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1116,19 +1116,19 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _batchUpdateAdminReports = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = batchUpdateAdminReports({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = batchUpdateAdminReports({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _bulkUpdateAdminReports = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = bulkUpdateAdminReports({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = bulkUpdateAdminReports({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _bulkDeleteAdminReports = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = bulkDeleteAdminReports({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = bulkDeleteAdminReports({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1138,7 +1138,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     }
     const params = paramsOrId;
     const { throwOnError: tOE, reportId, ...body } = params ?? {};
-    const p = updateAdminReport({ path: { reportId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateAdminReport({ path: { reportId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1166,7 +1166,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _updateAnnouncement = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = updateAnnouncement({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateAnnouncement({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1198,7 +1198,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     }
     const params = paramsOrId;
     const { throwOnError: tOE, userId, ...body } = params ?? {};
-    const p = updateAdminUserQuota({ path: { userId }, ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = updateAdminUserQuota({ path: { userId }, body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1210,31 +1210,31 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _getSessionPost = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = getSessionPost({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = getSessionPost({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _signOut = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = signOut({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = signOut({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _socialSignIn = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = socialSignIn({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = socialSignIn({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _signInWithMagicLink = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = signInWithMagicLink({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = signInWithMagicLink({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _signInWithEmailOtp = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = signInWithEmailOtp({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = signInWithEmailOtp({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1246,37 +1246,37 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _authRevokeSession = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = authRevokeSession({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = authRevokeSession({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _authRevokeSessions = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = authRevokeSessions({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = authRevokeSessions({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _authRevokeOtherSessions = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = authRevokeOtherSessions({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = authRevokeOtherSessions({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _deleteUser = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = deleteUser({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = deleteUser({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _changeEmail = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = changeEmail({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = changeEmail({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _authApiKeyCreate = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = authApiKeyCreate({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = authApiKeyCreate({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
@@ -1288,25 +1288,25 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const _authApiKeyUpdate = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = authApiKeyUpdate({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = authApiKeyUpdate({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _banUser = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = banUser({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = banUser({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _unbanUser = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = unbanUser({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = unbanUser({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
   const _impersonateUser = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
-    const p = impersonateUser({ ...(Object.keys(body).length > 0 ? { body } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    const p = impersonateUser({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 

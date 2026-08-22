@@ -129,6 +129,20 @@ beforeAll(async () => {
       });
     }
 
+    // Delete user (POST body-only, all fields optional). Reports what actually
+    // arrived on the wire, so a test can tell "sent {}" from "sent nothing".
+    if (url.pathname === '/v1/auth/delete-user' && req.method === 'POST') {
+      let raw = '';
+      req.setEncoding('utf-8');
+      await new Promise<void>((resolve) => {
+        req.on('data', (chunk: string) => {
+          raw += chunk;
+        });
+        req.on('end', () => resolve());
+      });
+      return jsonResponse(res, { success: true, message: 'User deleted', _rawBody: raw });
+    }
+
     // better-auth answers in its OWN shape, not RFC 7807: a string `code` and a
     // `message`, with no `status`, `title` or `detail`. This is the response that
     // used to surface as `NadeshikoError: API error undefined`.
@@ -398,5 +412,34 @@ describe('error handling', () => {
       .catch((e: unknown) => e);
 
     expect((err as NadeshikoError).requestUrl).not.toContain('?');
+  });
+});
+
+describe('body-only endpoints with no fields', () => {
+  /**
+   * Nadeshiko#521. The wrapper used to omit `body` entirely when the caller
+   * passed no fields, which sends a POST with no request body at all -- and a
+   * server that validates the body then sees `undefined` rather than `{}`.
+   * Measured against the real auth surface on 2026-08-22:
+   *
+   *   POST /v1/auth/delete-user  (no body) -> 400 "[body] Invalid input:
+   *                                            expected object, received undefined"
+   *   POST /v1/auth/delete-user  {}        -> 401, i.e. past validation
+   *
+   * So `deleteAccount()` on the settings page could never reach the auth check.
+   * The endpoint's fields are all optional; the body itself is not.
+   */
+  test('deleteUser({}) still sends a JSON body', async () => {
+    const client = makeClient();
+    const result = (await client.deleteUser({})) as unknown as { _rawBody: string };
+
+    expect(result._rawBody).toBe('{}');
+  });
+
+  test('deleteUser() with no argument at all sends a JSON body too', async () => {
+    const client = makeClient();
+    const result = (await client.deleteUser()) as unknown as { _rawBody: string };
+
+    expect(result._rawBody).toBe('{}');
   });
 });
