@@ -461,6 +461,12 @@ export const usePlayerStore = defineStore('player', {
       const result = this.currentResult;
       if (!result) {
         playbackToken++;
+        // Nothing to play, so nothing is playing. Without this the flag keeps
+        // whatever the previous clip left on it and the transport sits showing
+        // a pause button over silence -- `releaseAudio` above has already
+        // detached the element, so there is not even anything to press it on.
+        // Reachable through an out-of-range `startIndex` into `setPlaylist`.
+        this.isPlaying = false;
         return;
       }
 
