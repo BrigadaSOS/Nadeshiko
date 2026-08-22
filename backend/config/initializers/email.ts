@@ -1,31 +1,30 @@
-import { seedEmailSeries } from '@app/services/email/metrics';
 import { registerSuppressionMetrics } from '@app/services/email/suppression';
 import type { RuntimeInitializer } from './types';
 
 /**
- * Make every email series exist before anything has happened to it.
+ * Register the suppression gauge, which reads the suppression table at scrape
+ * time and therefore has to come after `databaseInitializer`.
  *
- * THIS IS NOT COSMETIC, and it is the step that is easiest to skip and hardest
- * to notice missing. An OTel counter creates its series on first increment, so a
- * counter for something that has never happened does not exist -- and
- * `increase(...) > 0` over a metric with no series evaluates to NO DATA rather
- * than to false. The alert rule cannot fire, and a rule matching nothing looks
- * exactly like a healthy service.
+ * THE SEEDING THAT USED TO LIVE HERE MOVED, and it moved because doing it once
+ * was not enough. Every enumerable email series is still created at zero so its
+ * alert rule has something to read -- an OTel counter creates its series on
+ * first increment, so a counter for something that has never happened does not
+ * exist, `increase(...) > 0` over it evaluates to NO DATA rather than to false,
+ * and the rule reports healthy forever. Shirabe shipped the same feature
+ * without it and four of its five email rules were inert from their first day.
  *
- * Shirabe shipped the same feature without this and four of its five email rules
- * were inert from the moment they were deployed; the meta-alert that watches for
- * rules matching no series is what eventually found them.
+ * But these exports are DELTA, so a seeded counter emits one data point and then
+ * goes silent, and the rule stops matching an hour after each deploy. The seed
+ * is therefore re-emitted on an interval by `telemetryInitializer`, whose module
+ * note carries the measurement. `seedEmailSeries()` itself is unchanged, in
+ * @app/services/email/metrics.
  *
  * Seeding also makes the bounce RATE honest: a numerator over a denominator that
  * does not exist is not zero, it is nothing.
- *
- * Runs after `databaseInitializer` because the suppression gauge reads the
- * table. The gauge is only REGISTERED here -- its callback runs at scrape time.
  */
 export const emailInitializer: RuntimeInitializer = {
   name: 'email',
   initialize: () => {
-    seedEmailSeries();
     registerSuppressionMetrics();
   },
 };
