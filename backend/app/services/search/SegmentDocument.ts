@@ -68,7 +68,41 @@ type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categor
 const SEARCH_IN_IDS_CHUNK_SIZE = 1000;
 
 export class SegmentDocument {
-  static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats');
+  /**
+   * CAPPED EXPLICITLY, because the default 10,000 entries is a heap-sized bomb
+   * for THIS namespace specifically. The key is the whole query plus every
+   * filter, so its space is as unbounded as the search box; the value is a
+   * per-media and per-episode aggregation over the corpus plus the media map
+   * that goes with it, which is the largest thing this service caches. Every
+   * other namespace is either keyed on a closed set (tiers, `all`,
+   * `globalStats`) or holds something tiny; this one is both unbounded and big.
+   *
+   * WHAT THAT COST, measured 2026-08-20 to 08-22. The backend was OOM-killing
+   * from inside V8 every ~3 hours (Nadeshiko#522). At the default cap, old_space
+   * climbed from a flat 205-307MB baseline to 690-750MB and V8 gave up
+   * compacting -- against a heap_size_limit of 864MB that Node derives from the
+   * container's 1.5g, so neither the kernel nor any container-memory alert ever
+   * saw it. Reproduced locally at 12,000 unique-query stats requests: 10,017
+   * `expiresAt` numbers, 10,052 key strings and 58,994 objects still on the heap
+   * after a forced GC, i.e. the cap, held.
+   *
+   * The fuel was crawler traffic. /v1/search/stats went from ~2.4k to 30k+
+   * bot-driven calls per 6 hours on 2026-08-19 18:00 UTC (readers stayed flat at
+   * 1-3k), each with a query nobody would ask twice, and the heap started
+   * climbing three hours later.
+   *
+   * 250 IS SIZED FROM THE PROD ENTRY, not from a round number: ~50KB per entry
+   * back-derived from the climb (495MB of growth over the ~10k entries that fit
+   * before the crash), so 250 is ~12MB. It does not lower the reader hit rate in
+   * any way that matters -- readers repeat a small set of queries, and at the
+   * old cap the crawler evicted them anyway.
+   *
+   * The upstream fix is not caching what nobody will ask for twice: the stats
+   * panel is not rendered for a crawler, so the SSR call behind it should not be
+   * made for one. That belongs in the frontend, and until it lands this cap is
+   * what keeps the process alive.
+   */
+  static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats', 250);
 
   static async search(
     request: SearchRequestInput,
