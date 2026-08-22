@@ -85,21 +85,43 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
   const inMenu = target.closest('[role="menu"]') !== null;
   const opensMenu = target.closest('[aria-haspopup="menu"]') !== null;
 
+  // Inside a menu, every shortcut here is off except Escape.
+  //
+  // A denylist was the wrong shape. Space and the arrows were the keys anyone
+  // thinks of, but `f` was the one that actually broke things: focus now lives
+  // on a menu item, and toggling immersive unmounts the whole layout branch
+  // under it -- item, trigger and all -- dropping focus to `<body>` while the
+  // menu re-mounts in the other layout still open and no longer reachable by
+  // keyboard. `r` and `l` are the same shape, quieter. Defaulting to off also
+  // means a shortcut added to this switch later is safe in a menu without
+  // anyone remembering this exists.
+  //
+  // Escape is the exception, but only for OUR menu. It is how the speed menu
+  // closes, and it has to reach its own `stopPropagation()` below -- that call
+  // is what keeps an underlying `BaseModal` from closing instead of the menu.
+  //
+  // `[role="menu"]` matches the search dropdowns and visibility menus too,
+  // though, and this handler has no business answering their Escape: it would
+  // hide the player, then stop the event before the dropdown that had focus
+  // ever saw it, leaving that menu open with the player gone. `rateMenuOpen`
+  // is what tells the two apart -- if our menu is not open, the Escape is not
+  // ours to take.
+  if (inMenu && !(event.code === 'Escape' && rateMenuOpen.value)) return;
+
   switch (event.code) {
     case 'Space':
-      if (inMenu || opensMenu) return;
+      // Not `inMenu` -- that is handled above. This is the trigger itself,
+      // which needs Space to open the menu it owns. Capturing it here meant the
+      // speed button answered Space by toggling playback and never opening.
+      if (opensMenu) return;
       event.preventDefault();
       playerStore.togglePlay();
       break;
     case 'ArrowLeft':
-      // Skipping tracks from inside an open menu is not what the arrow was
-      // reached for, whether or not the menu answers it yet.
-      if (inMenu) return;
       event.preventDefault();
       playerStore.prev();
       break;
     case 'ArrowRight':
-      if (inMenu) return;
       event.preventDefault();
       playerStore.next();
       break;
@@ -333,15 +355,44 @@ const getAnimeImage = (result: any) => {
 };
 
 /**
- * Whether this device has a mouse-like pointer, gating the volume slider.
+ * Whether this device has a mouse-like pointer.
  *
- * Not a width breakpoint: the thing that decides whether this control can work
- * is the input, not the viewport. A phone in landscape is wide enough for `md:`
- * and still cannot use it -- iOS treats `HTMLMediaElement.volume` as read-only,
- * so the slider would move and nothing would happen. Touch devices keep their
- * hardware volume keys, which is the better control there anyway.
+ * Not a width breakpoint: a phone in landscape is wide enough for `md:` and is
+ * still the wrong place for this control, since touch devices keep their
+ * hardware volume keys and those are the better instrument anyway.
  */
 const hasFinePointer = useMediaQuery('(hover: hover) and (pointer: fine)');
+
+/**
+ * Whether this browser lets script move the output volume at all.
+ *
+ * Asked of the platform rather than inferred from it. iOS and iPadOS treat
+ * `HTMLMediaElement.volume` as read-only -- assignments are accepted and
+ * silently discarded -- and no media query reports that. The pointer test alone
+ * got iPhones right by accident and iPads wrong: an iPad with a trackpad or a
+ * Magic Keyboard answers `(hover: hover) and (pointer: fine)` truthfully, drew
+ * the slider, and then let the reader drag a control that could never do
+ * anything. Setting a value and reading it back is the only thing that
+ * distinguishes them.
+ *
+ * Resolved on mount, never during SSR: there is no `Audio` on the server, and
+ * `hasFinePointer` is false there too, so the control is absent from the markup
+ * either way and this cannot desync hydration.
+ */
+const canSetVolume = ref(false);
+
+onMounted(() => {
+  try {
+    const probe = new Audio();
+    probe.volume = 0.5;
+    canSetVolume.value = probe.volume === 0.5;
+  } catch {
+    canSetVolume.value = false;
+  }
+});
+
+/** Both halves have to hold: usable input, and a volume that actually moves. */
+const showVolumeSlider = computed(() => hasFinePointer.value && canSetVolume.value);
 
 const volumePercent = computed(() => Math.round(volume.value * 100));
 
@@ -374,6 +425,14 @@ const rateMenuOpen = ref(false);
 const rateMenuBarRef = ref<HTMLElement | null>(null);
 const rateMenuImmersiveRef = ref<HTMLElement | null>(null);
 
+// A hidden player takes its menu with it. Without this the flag survives the
+// close -- a route change or Escape hides the bar with the menu still open, and
+// the next clip the reader plays brings the player back up with a speed menu
+// hanging off it that nobody asked for.
+watch(showPlayer, (visible) => {
+  if (!visible) rateMenuOpen.value = false;
+});
+
 // Each wrapper ignores the other: for the same 400ms both are mounted, and a
 // bare pair of handlers would have each read a click inside its counterpart as
 // "outside" and close a menu the reader was in the middle of using.
@@ -392,6 +451,100 @@ onClickOutside(
   },
   { ignore: [rateMenuBarRef] },
 );
+
+/**
+ * The wrapper belonging to the layout currently on screen.
+ *
+ * Chosen by `isImmersive` rather than by whichever ref happens to be set: for
+ * the 400ms a `zoom-fade` takes to leave, both are, and the leaving one is the
+ * wrong place to be putting focus.
+ */
+const activeRateWrapper = () => (isImmersive.value ? rateMenuImmersiveRef.value : rateMenuBarRef.value);
+
+const rateMenuItems = () => {
+  const wrapper = activeRateWrapper();
+  return wrapper ? [...wrapper.querySelectorAll<HTMLElement>('[role="menuitemradio"]')] : [];
+};
+
+const rateMenuTrigger = () => activeRateWrapper()?.querySelector<HTMLElement>('[aria-haspopup="menu"]') ?? null;
+
+/**
+ * Move focus into the menu when it opens, and back to the trigger when it
+ * closes.
+ *
+ * A menu that opens without taking focus is one a keyboard reader has to hunt
+ * for with Tab, and one that closes without giving focus back drops it to
+ * `<body>` -- from which the next Tab restarts at the top of the document,
+ * nowhere near the player they were just using. Escape made that reachable in
+ * one keystroke.
+ *
+ * Focus is only taken back if it is still inside the menu: a click elsewhere
+ * closes this too, and yanking focus to the trigger then would steal it from
+ * whatever the reader actually went to.
+ */
+watch(rateMenuOpen, async (open) => {
+  const trigger = rateMenuTrigger();
+  if (open) {
+    await nextTick();
+    const items = rateMenuItems();
+    const checked = items.find((item) => item.getAttribute('aria-checked') === 'true');
+    (checked ?? items[0])?.focus();
+    return;
+  }
+
+  const wrapper = activeRateWrapper();
+  if (wrapper?.contains(document.activeElement)) trigger?.focus();
+});
+
+/**
+ * Arrow, Home and End inside the open menu.
+ *
+ * Wrapping at both ends, which is what a menu of five speeds wants: the list is
+ * short enough that the reader is as likely to be heading for 0.5x from the
+ * bottom as from the top. Space and Enter are left to the button itself -- the
+ * global handler no longer captures Space in here, so activation is the
+ * platform's again.
+ */
+const onRateMenuKeydown = (event: KeyboardEvent) => {
+  const items = rateMenuItems();
+  if (items.length === 0) return;
+
+  const current = items.indexOf(document.activeElement as HTMLElement);
+
+  const focusAt = (index: number) => {
+    event.preventDefault();
+    items[(index + items.length) % items.length]?.focus();
+  };
+
+  switch (event.code) {
+    case 'ArrowDown':
+      focusAt(current + 1);
+      break;
+    case 'ArrowUp':
+      focusAt(current - 1);
+      break;
+    case 'Home':
+      focusAt(0);
+      break;
+    case 'End':
+      focusAt(items.length - 1);
+      break;
+    case 'Tab':
+      // Tabbing out of a menu closes it, rather than walking the reader through
+      // five speeds on the way to the next control.
+      //
+      // Focus moves to the trigger first and synchronously, before the close:
+      // Tab's own handling runs after this handler returns, so leaving focus on
+      // an item that the close is about to unmount would drop it to `<body>`
+      // and send the next Tab back to the top of the document. From the
+      // trigger -- which sits immediately before the menu in the DOM -- the
+      // browser continues to exactly the control the reader was heading for.
+      // Deliberately not prevented: where Tab goes is the platform's business.
+      rateMenuTrigger()?.focus();
+      rateMenuOpen.value = false;
+      break;
+  }
+};
 
 const selectPlaybackRate = (rate: number) => {
   playerStore.setPlaybackRate(rate);
@@ -494,8 +647,9 @@ const selectPlaybackRate = (rate: number) => {
                                 <!-- Opens upward: the player is pinned to the bottom of the viewport, so
                                      a menu below the button would be off-screen. -->
                                 <div v-if="rateMenuOpen" role="menu" :aria-label="t('player.controls.speedMenu')"
+                                    @keydown="onRateMenuKeydown"
                                     class="absolute bottom-full right-0 mb-2 py-1 min-w-[4.5rem] rounded-lg bg-neutral-800 shadow-xl ring-1 ring-white/10 overflow-hidden">
-                                    <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio"
+                                    <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio" tabindex="-1"
                                         :aria-checked="playbackRate === rate" @click="selectPlaybackRate(rate)"
                                         class="w-full px-3 py-1.5 text-left text-xs font-bold tabular-nums hover:bg-white/10 transition-colors"
                                         :class="playbackRate === rate ? 'text-red-400' : 'text-white/70'">
@@ -503,7 +657,7 @@ const selectPlaybackRate = (rate: number) => {
                                     </button>
                                 </div>
                             </div>
-                            <div v-if="hasFinePointer" class="flex items-center gap-2 px-1">
+                            <div v-if="showVolumeSlider" class="flex items-center gap-2 px-1">
                                 <UiBaseIcon :path="volumeIcon" :size="20" class="text-white/50" />
                                 <input type="range" min="0" max="100" step="1" :value="volumePercent"
                                     :style="{ '--volume-fill': volumePercent + '%' }"
@@ -604,8 +758,9 @@ const selectPlaybackRate = (rate: number) => {
                             <!-- Opens upward: the player is pinned to the bottom of the viewport, so
                                  a menu below the button would be off-screen. -->
                             <div v-if="rateMenuOpen" role="menu" :aria-label="t('player.controls.speedMenu')"
+                                    @keydown="onRateMenuKeydown"
                                 class="absolute bottom-full right-0 mb-2 py-1 min-w-[4.5rem] rounded-lg bg-neutral-800 shadow-xl ring-1 ring-white/10 overflow-hidden">
-                                <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio"
+                                <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio" tabindex="-1"
                                     :aria-checked="playbackRate === rate" @click="selectPlaybackRate(rate)"
                                     class="w-full px-3 py-1.5 text-left text-xs font-bold tabular-nums hover:bg-white/10 transition-colors"
                                     :class="playbackRate === rate ? 'text-red-400' : 'text-white/70'">
@@ -613,7 +768,7 @@ const selectPlaybackRate = (rate: number) => {
                                 </button>
                             </div>
                         </div>
-                        <div v-if="hasFinePointer" class="flex items-center gap-2 px-1">
+                        <div v-if="showVolumeSlider" class="flex items-center gap-2 px-1">
                             <UiBaseIcon :path="volumeIcon" :size="20" class="text-white/50" />
                             <input type="range" min="0" max="100" step="1" :value="volumePercent"
                                 :style="{ '--volume-fill': volumePercent + '%' }"
