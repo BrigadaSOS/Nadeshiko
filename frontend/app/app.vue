@@ -49,6 +49,22 @@ useHead(() => ({
    */
   title: t('appMeta.defaultPageTitle'),
 }));
+
+/**
+ * The `WebSite` node's description, in the language of the page carrying it.
+ *
+ * `site.description` in nuxt.config is a single hardcoded string, so every
+ * locale's structured data quoted the English one: `/es/` pages shipped
+ * `"inLanguage":"es"` beside an English sentence, on every page of the Spanish
+ * site. The config value is now language-neutral -- no locale can be wrong
+ * about a description that names no language -- and the real per-locale copy
+ * comes from here, where `t()` can see which locale is rendering.
+ *
+ * No `@id`: leaving it to resolve to the module's own `#website` node is what
+ * makes this a merge rather than a second WebSite in the graph. The home page
+ * adds `potentialAction` to the same node the same way.
+ */
+useSchemaOrg([defineWebSite({ description: t('appMeta.defaultDescription') })]);
 </script>
 
 <template>

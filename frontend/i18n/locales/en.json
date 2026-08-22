@@ -66,7 +66,7 @@
   "appMeta": {
     "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",
     "defaultPageTitle": "Search Japanese sentences from anime",
-    "defaultDescription": "Search over 1.3 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+    "defaultDescription": "Search over 1.3 million Japanese sentences with English translations from a wide variety of anime and J-dramas."
   },
   "home": {
     "version": "v{version}",
@@ -1211,7 +1211,7 @@
   "seo": {
     "home": {
       "title": "Nadeshiko: Search Japanese sentences from anime",
-      "description": "Search over 1.3 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas."
+      "description": "Search over 1.3 million Japanese sentences with English translations from a wide variety of anime and J-dramas."
     },
     "stats": {
       "title": "Stats",
@@ -1232,22 +1232,22 @@
     },
     "search": {
       "title": "Search",
-      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.",
+      "defaultDescription": "Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.",
       "atLeast": "At least ",
       "categoryAnime": "anime",
       "categoryJdrama": "live-action",
       "fromCategory": "{count} from {category}",
       "breakdownWrapper": " ({parts})",
-      "descriptionWithResults": "{count} example sentences containing \"{query}\"{breakdown} with English and Spanish translations.",
-      "descriptionNoResults": "Search for \"{query}\" in over 1 million Japanese sentences from anime and J-dramas, with English and Spanish translations.",
-      "mediaDescription": "{count} Japanese sentences from {media} with English and Spanish translations.",
-      "mediaDescriptionEpisode": "{count} Japanese sentences from {media} episode {episode} with English and Spanish translations.",
-      "mediaDescriptionEpisodes": "{count} Japanese sentences from {media} across {episodeCount} episodes with English and Spanish translations.",
+      "descriptionWithResults": "{count} example sentences containing \"{query}\"{breakdown} with English translations.",
+      "descriptionNoResults": "Search for \"{query}\" in over 1 million Japanese sentences from anime and J-dramas, with English translations.",
+      "mediaDescription": "{count} Japanese sentences from {media} with English translations.",
+      "mediaDescriptionEpisode": "{count} Japanese sentences from {media} episode {episode} with English translations.",
+      "mediaDescriptionEpisodes": "{count} Japanese sentences from {media} across {episodeCount} episodes with English translations.",
       "wordTitle": "{query}: Japanese example sentences"
     },
     "sentence": {
       "title": "Sentence",
-      "defaultDescription": "Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.",
+      "defaultDescription": "Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.",
       "episode": "Episode {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },

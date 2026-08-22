@@ -396,8 +396,13 @@ export default defineNuxtConfig({
   site: {
     url: SITE_URL,
     name: 'Nadeshiko',
-    description:
-      'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
+    // LANGUAGE-NEUTRAL ON PURPOSE. This string is not localised -- it is one
+    // value for the whole site -- and it used to name English and Spanish, so
+    // the `WebSite` node on every `/es/` page carried an English sentence next
+    // to `"inLanguage":"es"`. The per-locale wording is set in `app.vue`, which
+    // can read the active locale; what stays here is the fallback, and a
+    // fallback that names no language cannot contradict the page it lands on.
+    description: 'Search over 1 million Japanese sentences from a wide variety of anime and J-dramas.',
   },
   robots: isDev
     ? {
@@ -452,6 +457,7 @@ export default defineNuxtConfig({
             urls: SITEMAP_STATIC_URLS_EN,
             sources: [
               '/api/__sitemap__/media?locale=en',
+              ['/api/__sitemap__/episodes?locale=en', { timeout: 60000 }],
               ['/api/__sitemap__/words?locale=en', { timeout: 60000 }],
               '/api/__sitemap__/blog?locale=en',
             ],
@@ -460,6 +466,7 @@ export default defineNuxtConfig({
             urls: SITEMAP_STATIC_URLS_ES,
             sources: [
               '/api/__sitemap__/media?locale=es',
+              ['/api/__sitemap__/episodes?locale=es', { timeout: 60000 }],
               ['/api/__sitemap__/words?locale=es', { timeout: 60000 }],
               '/api/__sitemap__/blog?locale=es',
             ],
