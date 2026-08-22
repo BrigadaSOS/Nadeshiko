@@ -14,7 +14,7 @@ vi.mock('~~/server/utils/internalBackend', () => ({
 }));
 
 const { readerHasOwnStack, readerStack, readerToken, reportStackFingerprint } = await import('./shirabeReader');
-const { _resetForTests } = await import('./ssrAuthCache');
+const { _resetSsrAuthCacheForTests } = await import('./ssrAuthCache');
 
 function fakeEvent(cookieHeader?: string) {
   return {
@@ -35,7 +35,7 @@ const SIGNED_IN = 'nadeshiko.session_token=tok1';
 describe('readerHasOwnStack', () => {
   beforeEach(() => {
     $fetch.mockReset();
-    _resetForTests();
+    _resetSsrAuthCacheForTests();
   });
 
   // Most of the traffic: every crawler, every share link, every signed-out
@@ -93,7 +93,7 @@ describe('readerHasOwnStack', () => {
 describe('readerStack', () => {
   beforeEach(() => {
     $fetch.mockReset();
-    _resetForTests();
+    _resetSsrAuthCacheForTests();
   });
 
   it('carries the fingerprint the session reports', async () => {
@@ -126,7 +126,7 @@ describe('readerStack', () => {
 describe('reportStackFingerprint', () => {
   beforeEach(() => {
     $fetch.mockReset();
-    _resetForTests();
+    _resetSsrAuthCacheForTests();
   });
 
   it('posts the fingerprint to the backend', async () => {
@@ -150,7 +150,7 @@ describe('reportStackFingerprint', () => {
 describe('readerToken', () => {
   beforeEach(() => {
     $fetch.mockReset();
-    _resetForTests();
+    _resetSsrAuthCacheForTests();
   });
 
   it('fetches nothing for a reader with no session', async () => {
@@ -186,7 +186,7 @@ describe('readerToken', () => {
 describe('a handler that has lost its headers', () => {
   beforeEach(() => {
     $fetch.mockReset();
-    _resetForTests();
+    _resetSsrAuthCacheForTests();
   });
 
   /** What Nitro hands the handler: the same context object, no headers. */

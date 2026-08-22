@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cachedMedia, _resetForTests } from './mediaCache';
-import { cachedSegment, _resetForTests as _resetSegmentsForTests } from './segmentCache';
+import { cachedMedia, _resetMediaCacheForTests } from './mediaCache';
+import { cachedSegment, _resetSegmentCacheForTests as _resetSegmentsForTests } from './segmentCache';
 import { createPublicRouteMatcher } from '#shared/utils/backendSdk';
 import { publicApiRoutes } from './generated/publicApiRoutes';
 
@@ -48,7 +48,7 @@ describe('cachedMedia safety precondition', () => {
 
 describe('cachedMedia', () => {
   it('serves a repeat lookup without calling the backend again', async () => {
-    _resetForTests();
+    _resetMediaCacheForTests();
     const fetcher = vi.fn(async () => ({ publicId: 'med_1' }));
 
     const first = await cachedMedia('med_1', fetcher);
@@ -63,7 +63,7 @@ describe('cachedMedia', () => {
     // title, so a crawler on fifty different permalinks of the same show
     // produces fifty simultaneous lookups of one media record -- every one of
     // them a miss under a plain TTL cache.
-    _resetForTests();
+    _resetMediaCacheForTests();
     let resolveFetch: (v: unknown) => void = () => {};
     const fetcher = vi.fn(
       () =>
@@ -81,7 +81,7 @@ describe('cachedMedia', () => {
   });
 
   it('does not cache failures, and retries the next caller', async () => {
-    _resetForTests();
+    _resetMediaCacheForTests();
     const fetcher = vi.fn().mockRejectedValueOnce(new Error('backend down')).mockResolvedValue({ publicId: 'med_1' });
 
     await expect(cachedMedia('med_1', fetcher)).rejects.toThrow('backend down');
@@ -93,7 +93,7 @@ describe('cachedMedia', () => {
     // The measured catalogue is ~325 titles against a 5,000 cap, so under real
     // traffic this cache never evicts -- which is what makes the hit rate ~100%
     // rather than merely good.
-    _resetForTests();
+    _resetMediaCacheForTests();
     for (let i = 0; i < 325; i++) {
       await cachedMedia(`med_${i}`, async () => ({ publicId: `med_${i}` }));
     }
@@ -108,7 +108,7 @@ describe('cachedMedia', () => {
     // a shared store keyed on the bare ID would let one answer the other -- a
     // Media returned where a Segment was asked for, typed as a Segment. This is
     // the test that keeps `ssrCorpusCache`'s one-store-per-type rule honest.
-    _resetForTests();
+    _resetMediaCacheForTests();
     _resetSegmentsForTests();
 
     const collidingId = 'AbCdEfGhIjKl';

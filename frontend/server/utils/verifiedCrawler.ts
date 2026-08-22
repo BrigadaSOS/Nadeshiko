@@ -243,7 +243,7 @@ export function _setResolverForTests(next: CrawlerResolver | null): void {
 }
 
 // Test-only -- DO NOT call from prod code
-export function _resetForTests(): void {
+export function _resetVerifiedCrawlerForTests(): void {
   cache.clear();
   inFlight.clear();
 }

@@ -10,7 +10,7 @@ import {
   isVerifiedCrawler,
   normalizeIp,
   verifyAddress,
-  _resetForTests,
+  _resetVerifiedCrawlerForTests,
   _setResolverForTests,
   type CrawlerResolver,
 } from './verifiedCrawler';
@@ -50,7 +50,7 @@ function googlebotFamily() {
 }
 
 beforeEach(() => {
-  _resetForTests();
+  _resetVerifiedCrawlerForTests();
   _setResolverForTests(null);
 });
 

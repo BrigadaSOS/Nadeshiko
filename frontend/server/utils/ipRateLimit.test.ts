@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ipRateLimit, perWorkerMax, _resetForTests } from './ipRateLimit';
+import { ipRateLimit, perWorkerMax, _resetIpRateLimitForTests } from './ipRateLimit';
 
 function fakeEvent(headers: Record<string, string | undefined>, ip = '1.2.3.4') {
   return {
@@ -10,7 +10,7 @@ function fakeEvent(headers: Record<string, string | undefined>, ip = '1.2.3.4') 
 
 describe('ipRateLimit', () => {
   it('returns null when under the limit', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const ev = fakeEvent({});
     for (let i = 0; i < 5; i++) {
       const res = await ipRateLimit(ev, { windowMs: 60_000, max: 5 });
@@ -19,7 +19,7 @@ describe('ipRateLimit', () => {
   });
 
   it('returns a 429 response when over the limit', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const ev = fakeEvent({});
     for (let i = 0; i < 3; i++) {
       await ipRateLimit(ev, { windowMs: 60_000, max: 3 });
@@ -30,7 +30,7 @@ describe('ipRateLimit', () => {
   });
 
   it('keys buckets by x-forwarded-for when present', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const a = fakeEvent({ 'x-forwarded-for': '5.6.7.8' });
     const b = fakeEvent({ 'x-forwarded-for': '9.10.11.12' });
     for (let i = 0; i < 3; i++) await ipRateLimit(a, { windowMs: 60_000, max: 3 });
@@ -40,7 +40,7 @@ describe('ipRateLimit', () => {
   });
 
   it('falls back to socket remoteAddress when no x-forwarded-for', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const a = fakeEvent({}, '13.14.15.16');
     const b = fakeEvent({}, '17.18.19.20');
     for (let i = 0; i < 3; i++) await ipRateLimit(a, { windowMs: 60_000, max: 3 });
@@ -53,7 +53,7 @@ describe('ipRateLimit', () => {
     // honours that, so a client that sends its own owns the leftmost entry.
     // Rotating it once per request used to mint a fresh bucket every time --
     // the limiter counted diligently and never counted the same visitor twice.
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const opts = { windowMs: 60_000, max: 3 };
     const rotating = (n: number) => fakeEvent({ 'cf-connecting-ip': '203.0.113.7', 'x-forwarded-for': `10.0.0.${n}` });
 
@@ -67,7 +67,7 @@ describe('ipRateLimit', () => {
   it('still separates genuinely different visitors behind Cloudflare', async () => {
     // The mirror of the case above: preferring cf-connecting-ip must not
     // collapse everyone arriving through the edge onto one bucket.
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const opts = { windowMs: 60_000, max: 3 };
     const a = fakeEvent({ 'cf-connecting-ip': '203.0.113.7' });
     const b = fakeEvent({ 'cf-connecting-ip': '198.51.100.4' });
@@ -79,7 +79,7 @@ describe('ipRateLimit', () => {
   });
 
   it('isolates buckets per (key, route) tuple', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const a = fakeEvent({});
     for (let i = 0; i < 3; i++) await ipRateLimit(a, { windowMs: 60_000, max: 3, route: '/v1/auth' });
     // Different route = different bucket
@@ -87,7 +87,7 @@ describe('ipRateLimit', () => {
   });
 
   it('window expires and bucket resets', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const ev = fakeEvent({});
     for (let i = 0; i < 3; i++) await ipRateLimit(ev, { windowMs: 50, max: 3 });
     expect(await ipRateLimit(ev, { windowMs: 50, max: 3 })).not.toBeNull();
@@ -128,7 +128,7 @@ describe('perWorkerMax', () => {
   });
 
   it('advertises the share it will actually enforce', async () => {
-    _resetForTests();
+    _resetIpRateLimitForTests();
     const ev = fakeEvent({});
     const headers: Record<string, string> = {};
     ev.node.res.setHeader = (name: string, value: string) => {
