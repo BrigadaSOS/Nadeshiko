@@ -379,6 +379,43 @@ the `docker` user, which is in the `docker` group and NOT in `sudo`. Only a `v*`
 tag invoked it, so nothing exercised it until v2.3.0, which failed on its first
 remote command. Production releases are now a plain `kamal deploy`.
 
+## Postgres: the admin password is a file, not an env var
+
+The `postgres` accessory takes `POSTGRES_PASSWORD_FILE`, not `POSTGRES_PASSWORD`
+(brigadasos-infra#5). Kamal renders `backend/config/postgres/admin-password.erb`
+from the same SSM-backed secret and bind-mounts it at
+`/run/secrets/postgres-admin-password`, so the value never enters the container
+environment where `docker exec … env`, `docker inspect` and `/proc/<pid>/environ`
+would all hand it out.
+
+Three things this does not do, and one of them is a job for a human:
+
+- **It is not a boundary.** Root on the host reads the mounted file as easily as
+  the environment, and docker-group access is root-equivalent. What it removes
+  is casual disclosure — inspect output in a ticket, an agent transcript.
+- **It does not rotate the leaked value.** Whatever has been sitting in that
+  container's environment is disclosed; rotate the SSM parameter, `ALTER ROLE`,
+  and the app's own secret before considering the issue closed.
+- **`kamal deploy` does not apply it.** Accessories are only touched by
+  `kamal accessory …`, so this reaches production through
+  `kamal accessory reboot postgres -d prod`, which restarts the database and
+  drops every pooled connection. Do it deliberately, not as part of a release.
+
+The password is read only when the data directory is initialised, so an existing
+database keeps working with or without it; the file is what makes disaster
+recovery onto an empty volume work. Verify after a reboot:
+
+```bash
+# both should print nothing
+ssh nadeshiko 'docker inspect --format "{{range .Config.Env}}{{println .}}{{end}}" \
+  nadeshiko-backend-prod-postgres | grep POSTGRES_PASSWORD='
+ssh nadeshiko 'docker exec nadeshiko-backend-prod-postgres printenv POSTGRES_PASSWORD'
+```
+
+The backend container still carries the *application* role's password in its own
+environment. Same disclosure class, different credential, and not addressed here
+— it needs the app to read a file rather than an env var.
+
 ## Postgres backups and restore
 
 The `pg-backup` accessory in `backend/config/deploy.prod.yml` runs
