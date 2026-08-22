@@ -1,6 +1,6 @@
 {
   "name": "@brigadasos/nadeshiko-sdk",
-  "version": "2.4.6",
+  "version": "2.4.7",
   "private": true,
   "type": "module",
   "//": "Workspace consumers import TypeScript source from generated/internal. The npm package that external users install is built and published by the nadeshiko-sdk-ts repository.",
