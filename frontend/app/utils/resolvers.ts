@@ -44,6 +44,7 @@ function resolveSearchResult(segment: Segment, mediaMap: Record<string, Media>):
     segment,
     blobAudio: null,
     blobAudioUrl: null,
+    expandedWindow: null,
   };
 }
 

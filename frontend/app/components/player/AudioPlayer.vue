@@ -17,7 +17,7 @@ import {
   mdiVolumeLow,
   mdiVolumeOff,
 } from '@mdi/js';
-import { PLAYBACK_RATES, usePlayerStore } from '~/stores/player';
+import { PLAYBACK_RATES, resolveClipWindow, usePlayerStore } from '~/stores/player';
 import { splitLocalePrefix } from '~/utils/routes';
 import { watch, ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { onClickOutside, useMediaQuery } from '@vueuse/core';
@@ -227,9 +227,13 @@ const SEEK_STEP = 1;
 const isYoutubeActive = () => currentResult.value?.media.category === 'YOUTUBE';
 
 const seek = (delta: number) => {
-  const seg = currentResult.value?.segment;
-  if (isYoutubeActive() && seg) {
-    const span = (seg.endTimeMs - seg.startTimeMs) / 1000;
+  const result = currentResult.value;
+  if (isYoutubeActive() && result) {
+    // Read through the resolver, not off the segment: the step is a fraction of
+    // the clip, so on an expanded segment the segment's own span would move the
+    // playhead by the wrong amount in both directions.
+    const clip = resolveClipWindow(result);
+    const span = (clip.endMs - clip.startMs) / 1000;
     if (span <= 0) return;
     const next = Math.min(Math.max(ytPlayer.clipProgress.value + delta / span, 0), 1);
     ytPlayer.seekToClipFraction(next);

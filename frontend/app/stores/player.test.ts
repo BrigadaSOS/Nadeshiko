@@ -8,6 +8,7 @@ import {
   isUnactionablePlaybackError,
   normalizePlaybackRate,
   resolveAudioSource,
+  resolveClipWindow,
   whenPlayable,
 } from './player';
 
@@ -17,6 +18,22 @@ const result = (blobAudioUrl: string | null): SearchResult =>
     segment: { publicId: 'seg-1', urls: { audioUrl: 'https://cdn.test/seg-1.mp3' } },
     blobAudio: null,
     blobAudioUrl,
+    expandedWindow: null,
+  }) as unknown as SearchResult;
+
+const youtubeResult = (): SearchResult =>
+  ({
+    media: { publicId: 'media-1', category: 'YOUTUBE' },
+    segment: {
+      publicId: 'seg-1',
+      externalVideoId: 'vid-1',
+      startTimeMs: 61_500,
+      endTimeMs: 64_250,
+      urls: { audioUrl: 'https://cdn.test/seg-1.mp3' },
+    },
+    blobAudio: null,
+    blobAudioUrl: null,
+    expandedWindow: null,
   }) as unknown as SearchResult;
 
 describe('resolveAudioSource', () => {
@@ -40,6 +57,32 @@ describe('resolveAudioSource', () => {
 
     expanded.blobAudioUrl = null;
     expect(resolveAudioSource(expanded)).toBe('https://cdn.test/seg-1.mp3');
+  });
+});
+
+describe('resolveClipWindow', () => {
+  it("plays the segment's own span when nothing has been expanded", () => {
+    expect(resolveClipWindow(youtubeResult())).toEqual({ startMs: 61_500, endMs: 64_250 });
+  });
+
+  it("grows to the expansion's span once one has been merged", () => {
+    // The bug this exists for: expanding left rewrites the text but leaves
+    // `startTimeMs` alone -- deliberately, since the card's timestamp and the
+    // "watch on YouTube" link are built from it -- so a clip read off the
+    // segment replayed the original window and the pulled-in half was never
+    // heard.
+    const expanded = youtubeResult();
+    expanded.expandedWindow = { startMs: 58_000, endMs: 64_250 };
+    expect(resolveClipWindow(expanded)).toEqual({ startMs: 58_000, endMs: 64_250 });
+  });
+
+  it('follows the result as it is expanded and reverted', () => {
+    const expanded = youtubeResult();
+    expanded.expandedWindow = { startMs: 58_000, endMs: 70_000 };
+    expect(resolveClipWindow(expanded)).toEqual({ startMs: 58_000, endMs: 70_000 });
+
+    expanded.expandedWindow = null;
+    expect(resolveClipWindow(expanded)).toEqual({ startMs: 61_500, endMs: 64_250 });
   });
 });
 
