@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from '@config/config';
+import type { CatalogueSize } from '@app/services/stats/catalogueSize';
 
 function escapeHTML(str: string): string {
   return str
@@ -15,15 +16,136 @@ function getLogoUrl(): string {
   return `${config.BASE_URL}/logo-38d6e06a.webp`;
 }
 
-export async function buildWelcomeEmail(username: string): Promise<{
+/**
+ * The face on the mail that claims to come from a person.
+ *
+ * JPEG rather than WebP, unlike the logo: Outlook on Windows renders through
+ * Word, which has never supported WebP, so `logo-38d6e06a.webp` is already an
+ * alt-text box for those readers. One broken image in a header is survivable;
+ * a broken face under "Hi! I'm David" is the sentence contradicting itself.
+ *
+ * Content-hashed like the logo so it can be cached forever and replaced by
+ * writing a new file rather than by busting anything.
+ */
+function getAvatarUrl(): string {
+  return `${config.BASE_URL}/david-b5b22fdc.jpg`;
+}
+
+/**
+ * What the welcome email shows, in the order a reader meets it.
+ *
+ * THE PROSE IS NOT HERE ANY MORE, and that is the point of this shape. Titles,
+ * bodies and bullets are static English text that a person rewrites far more
+ * often than anybody touches this file, and having them in a TypeScript string
+ * literal meant every wording change was a code change, in a different file from
+ * the markup it renders into, with no way to see the result. They live in
+ * `templates/welcome.html` now, where they can be read in place and edited
+ * against a live preview.
+ *
+ * What stays here is what the template genuinely cannot know: which asset each
+ * section shows, where its still links to, and the `utm_content` that keeps the
+ * four separable in PostHog.
+ *
+ * `image` IS ALLOWED TO BE EMPTY, and that is the design rather than a
+ * placeholder state. Images are blocked by default in a good share of mail
+ * clients, so each section has to read correctly with nothing but its heading
+ * and its text -- and a section whose asset does not exist yet simply renders as
+ * that. The Anki section is deliberately and permanently empty: it is a round
+ * trip through Anki's own settings and a running copy of Anki on the reader's
+ * machine, so any still that fits an email is a picture of a dialog rather than
+ * of the feature.
+ */
+/**
+ * The community invite, written out rather than imported: this is the backend
+ * and the constant lives in `frontend/shared/utils/socialLinks.ts`, which it
+ * cannot reach. That file's `socialLinks.sync.test.ts` walks the repo for every
+ * `discord.gg/<code>` in a scanned extension -- `.html` included -- so this copy
+ * and the template's are both held to the real code by that test. Rotate the
+ * invite there and it will name this line.
+ */
+const DISCORD_INVITE_URL = 'https://discord.gg/qRak9MprUS';
+
+interface WelcomeStep {
+  /** A file under `frontend/public/email/`, or empty for a text-only section. */
+  image: string;
+  /** Describes the thing happening, for the reader whose client blocks images. */
+  alt: string;
+  /**
+   * Where the still takes them, which is the whole reason it is a still.
+   *
+   * Inline `<video>` plays in Apple Mail and in almost nothing else, so a
+   * fallback image has to exist either way -- and a clip that plays INSIDE the
+   * email gives the reader no reason to leave it. A thumbnail that opens the
+   * site does the thing this email is for, and the click is the only signal we
+   * get about which feature anybody actually wants.
+   */
+  path: string;
+  /** `utm_content`, so the four are separable in PostHog. */
+  slug: string;
+}
+
+const WELCOME_STEPS: readonly [WelcomeStep, WelcomeStep, WelcomeStep, WelcomeStep] = [
+  {
+    image: 'search-ecdd60e0.jpg',
+    alt: 'Searching for a word and the results filling in',
+    path: '/search',
+    slug: 'search',
+  },
+  {
+    image: 'word-card-b33b017a.jpg',
+    alt: 'Clicking a word to open its definition card',
+    path: '/search',
+    slug: 'word-card',
+  },
+  { image: 'player-0a312790.jpg', alt: 'Playing a clip and looping it in the player', path: '/search', slug: 'player' },
+  { image: '', alt: '', path: '/user/settings', slug: 'anki' },
+] as const;
+
+/** Where the welcome email's demo assets live, when they exist. */
+function stepImageUrl(file: string): string {
+  return file ? `${config.BASE_URL}/email/${file}` : '';
+}
+
+export async function buildWelcomeEmail(
+  username: string,
+  catalogue?: CatalogueSize | null,
+): Promise<{
   subject: string;
   html: string;
 }> {
   const subject = 'Welcome to Nadeshiko!';
+  const [one, two, three, four] = WELCOME_STEPS;
+
+  // Absent when the count failed or was not asked for, and the whole row
+  // disappears with it -- see `catalogueSize` on why a missing number must not be
+  // a missing email. Formatted here rather than in the template, which cannot do
+  // thousands separators.
+  const number = (value: number) => value.toLocaleString('en-US');
+
   const html = await renderTemplate('welcome', {
     username,
     baseUrl: config.BASE_URL,
+    // One flag for the row, three pairs for the cards. Empty hides the lot.
+    scale: catalogue ? 'yes' : '',
+    scaleSentences: catalogue ? number(catalogue.sentences) : '',
+    scaleTitles: catalogue ? number(catalogue.titles) : '',
+    scaleHours: catalogue ? number(catalogue.hours) : '',
+    discordUrl: DISCORD_INVITE_URL,
+    discordIconUrl: `${config.BASE_URL}/email/discord-711a1bee.png`,
+    stepOneImage: stepImageUrl(one.image),
+    stepOneAlt: one.alt,
+    stepOneUrl: withCampaignTags(one.path, 'welcome', one.slug),
+    stepTwoImage: stepImageUrl(two.image),
+    stepTwoAlt: two.alt,
+    stepTwoUrl: withCampaignTags(two.path, 'welcome', two.slug),
+    stepThreeImage: stepImageUrl(three.image),
+    stepThreeAlt: three.alt,
+    stepThreeUrl: withCampaignTags(three.path, 'welcome', three.slug),
+    stepFourImage: stepImageUrl(four.image),
+    stepFourAlt: four.alt,
+    stepFourUrl: withCampaignTags(four.path, 'welcome', four.slug),
     logoUrl: getLogoUrl(),
+    avatarUrl: getAvatarUrl(),
     year: getCurrentYear(),
   });
 
@@ -99,193 +221,6 @@ function truncate(value: string, max: number): string {
 }
 
 /**
- * How much of the site the reader has actually touched in their first week,
- * as far as we can honestly tell.
- *
- * `activityVisible` is the field that keeps this honest, and it is not optional.
- * `UserActivity` is written only for readers who leave `searchHistory` on, so a
- * reader who turned it off produces a row of zeroes that is indistinguishable
- * from a reader who signed up and never came back. Sending the second email to
- * the first is telling somebody who uses the site daily that they have not
- * started yet -- and the reason we cannot tell is that they asked us not to
- * keep the log, which makes it doubly bad. When it is false, nothing is
- * inferred and the neutral variant goes out.
- */
-export interface OnboardingSignals {
-  activityVisible: boolean;
-  totalSearches: number;
-  totalExports: number;
-  /**
-   * Whether they have ever saved an Anki profile.
-   *
-   * Read from preferences rather than from `UserActivity`, which means it is
-   * known even for a reader who turned their history off -- the one signal here
-   * that survives `activityVisible` being false.
-   */
-  hasAnkiProfile: boolean;
-}
-
-export type OnboardingVariant = 'getting-started' | 'anki' | 'anki-stalled' | 'going-further';
-
-/**
- * Which day-7 email this reader should get.
- *
- * Ordered by how much it would help, not by how much they have done: never
- * searched is the biggest gap, never exported is the next, and somebody doing
- * both gets the one that assumes they are past the basics.
- *
- * THE SPLIT BETWEEN `anki` AND `anki-stalled` IS THE POINT OF THIS FUNCTION.
- * Both are readers with no exports, and they are stuck at opposite ends of the
- * same feature: one has never opened the settings, the other has saved a profile
- * and is being refused by AnkiConnect on their own machine. Of the 263 accounts
- * created in the 90 days to 2026-08-20, 102 had a profile and no export at all
- * against 107 who had both -- so telling that half to "set up Anki export", which
- * is what one variant for both did, is telling them to do the thing they already
- * did. See `ANKI_CONNECT_FAILURES` on the frontend for what actually stops them.
- */
-export function pickOnboardingVariant(signals: OnboardingSignals): OnboardingVariant {
-  // Their history is off, so searches and exports are both zero regardless of
-  // what they have done, and nothing may be inferred from them. The profile is
-  // the exception -- it is a preference, not a logged action -- and a saved
-  // profile with a site we cannot see them using is still worth one nudge about
-  // the connection, because that is the step that fails silently.
-  if (!signals.activityVisible) return signals.hasAnkiProfile ? 'anki-stalled' : 'going-further';
-  if (signals.totalSearches === 0) return 'getting-started';
-  if (signals.totalExports === 0) return signals.hasAnkiProfile ? 'anki-stalled' : 'anki';
-  return 'going-further';
-}
-
-interface Tip {
-  title: string;
-  body: string;
-}
-
-interface VariantCopy {
-  subject: string;
-  headline: string;
-  intro: string;
-  /**
-   * Exactly three, as a tuple rather than an array: the template has three slots
-   * and a fourth tip would silently not be sent. It also means the indices below
-   * are known-present, which under `noUncheckedIndexedAccess` is the difference
-   * between plain reads and six non-null assertions.
-   */
-  tips: [Tip, Tip, Tip];
-  ctaLabel: string;
-  ctaPath: string;
-}
-
-const ONBOARDING_COPY: Record<OnboardingVariant, VariantCopy> = {
-  'getting-started': {
-    subject: 'Getting started with Nadeshiko',
-    headline: 'A good first search',
-    intro: 'You have not run a search yet, so here is the shortest path to seeing what it is for.',
-    tips: [
-      {
-        title: 'Search a word you half-know.',
-        body: 'Nadeshiko finds it in real anime and drama lines, so you hear how it is actually used rather than how a dictionary says it is.',
-      },
-      {
-        title: 'Search in English or Spanish too.',
-        body: 'You do not need the Japanese word to find the Japanese sentence.',
-      },
-      {
-        title: 'Play the clip.',
-        body: 'Every result carries its own audio and its scene, which is the part a wordlist cannot give you.',
-      },
-    ],
-    ctaLabel: 'Try a search',
-    ctaPath: '/search',
-  },
-  anki: {
-    subject: 'Send Nadeshiko sentences straight to Anki',
-    headline: 'The part most people find last',
-    intro:
-      'You have been searching, which is the hard half. The other half is keeping what you find, and Nadeshiko will do that for you.',
-    tips: [
-      {
-        title: 'Export to Anki in one click.',
-        body: 'The sentence, its audio, its screenshot and the definition all go across together, already on the card.',
-      },
-      {
-        title: 'Point it at your own deck.',
-        body: 'Set the deck, note type and fields once in settings and every later export follows them.',
-      },
-      {
-        title: 'Save first, sort later.',
-        body: 'Collections hold anything you want to come back to without deciding about it now.',
-      },
-    ],
-    ctaLabel: 'Set up Anki export',
-    ctaPath: '/user/settings',
-  },
-  /**
-   * For a reader who saved a profile and has never exported once.
-   *
-   * Every tip is a thing to CHECK, not a feature to discover, because this
-   * reader has already decided they want the feature -- what they are missing is
-   * that AnkiConnect refused them, on their own machine, in a way the site could
-   * not previously name. Ordered by how often each one is the answer.
-   */
-  'anki-stalled': {
-    subject: 'Your Anki export is one setting away',
-    headline: 'Set up, but nothing has landed yet',
-    intro:
-      'You saved an Anki profile and no card has gone across since. That is almost always one of three things, and none of them are your deck.',
-    tips: [
-      {
-        title: 'Anki has to be open, on the same machine.',
-        body: 'AnkiConnect runs inside Anki itself, so the export reaches nothing while Anki is closed -- including on a phone.',
-      },
-      {
-        title: 'It may be waiting for you to say yes.',
-        body: 'The first time a site connects, AnkiConnect opens a dialog asking permission, and it can sit behind your browser window unnoticed. Bring Anki to the front and look for it.',
-      },
-      {
-        title: 'Add us to webCorsOriginList.',
-        body: "In Anki, under Tools, Add-ons, AnkiConnect, Config, make sure 'https://nadeshiko.co' is in webCorsOriginList, then restart Anki.",
-      },
-    ],
-    ctaLabel: 'Test the connection',
-    ctaPath: '/user/sync',
-  },
-  'going-further': {
-    subject: 'Three things Nadeshiko does that you might have missed',
-    headline: 'Three things worth knowing',
-    intro: 'You have found your way around. These are the parts readers usually discover months in.',
-    /*
-     * CHOSEN FROM WHAT SIGNED-IN READERS ACTUALLY OPEN, over the 30 days to
-     * 2026-08-20, rather than from what we would like them to. The three tips
-     * here before were collections, the media filter and Shirabe, and they were
-     * the three least-used things on the site: 1 reader created a collection in
-     * that window, 5 changed media visibility, and Shirabe has 3 connections in
-     * its entire history with none in 90 days. An email that lands once and
-     * spends all three slots on features nobody takes up is a wasted send.
-     *
-     * These three are each used by enough readers to be proven worth having and
-     * missed by enough to be worth telling: the word card (192), context (337)
-     * and sharing (137).
-     */
-    tips: [
-      {
-        title: 'Click any word in a line.',
-        body: 'The word card gives you its readings and definitions without leaving the result, and can add that single word to Anki on its own.',
-      },
-      {
-        title: 'Open the context around a line.',
-        body: 'Every result can expand into the lines before and after it, so a sentence that makes no sense alone usually makes sense in its scene.',
-      },
-      {
-        title: 'Share a line as a link.',
-        body: 'Any segment becomes a URL that plays the clip for whoever you send it to, with no account needed on their end.',
-      },
-    ],
-    ctaLabel: 'Open Nadeshiko',
-    ctaPath: '/',
-  },
-};
-
-/**
  * Every link in a lifecycle email is tagged, so a visit that started in the
  * inbox is attributable in PostHog -- which auto-captures `utm_*` on pageview,
  * so there is nothing to add on the frontend.
@@ -303,46 +238,198 @@ export function withCampaignTags(path: string, campaign: string, content: string
   return url.toString();
 }
 
-export async function buildOnboardingDay7Email(input: {
-  username: string;
-  signals: OnboardingSignals;
-  unsubscribeUrl: string;
-}): Promise<{ subject: string; html: string; variant: OnboardingVariant }> {
-  const variant = pickOnboardingVariant(input.signals);
-  const copy = ONBOARDING_COPY[variant];
-
-  const html = await renderTemplate('onboarding-day7', {
-    headline: copy.headline,
-    intro: copy.intro,
-    tipOneTitle: copy.tips[0].title,
-    tipOneBody: copy.tips[0].body,
-    tipTwoTitle: copy.tips[1].title,
-    tipTwoBody: copy.tips[1].body,
-    tipThreeTitle: copy.tips[2].title,
-    tipThreeBody: copy.tips[2].body,
-    ctaLabel: copy.ctaLabel,
-    ctaUrl: withCampaignTags(copy.ctaPath, `onboarding-day7-${variant}`, 'cta'),
-    unsubscribeUrl: input.unsubscribeUrl,
-    logoUrl: getLogoUrl(),
-    year: getCurrentYear(),
-  });
-
-  return { subject: copy.subject, html, variant };
-}
-
+/**
+ * The day-7 ask, in the only two shapes a week-old account comes in.
+ *
+ * ONE EMAIL RATHER THAN TWO, because it is one email: you have been here a week,
+ * tell me something. What changes is which question can be answered. A reader
+ * who has searched has an opinion about the thing; a reader who has not has an
+ * opinion about what they came for, which is the more useful half -- it is the
+ * difference between what Nadeshiko is and what people expect it to be.
+ *
+ * THE COLD QUESTION IS DELIBERATELY NOT "WHY DIDN'T YOU?". An email that opens
+ * by pointing out what somebody failed to do reads as an accusation and gets
+ * answered by nobody. "What were you hoping to find" asks for the same
+ * information and is answerable without admitting anything.
+ *
+ * ONLY THE COLD OPENING GETS A BUTTON, which is the one thing worth copying from
+ * how other people write these. The action this email wants is a REPLY, and a
+ * button competes with it: "Tell me" pointing at the home page gave a reader
+ * somewhere to click that does nothing feedback-shaped, and every click on it
+ * was a reply we did not get. The cold opening keeps its button because "try a
+ * search" is a real action with a real destination.
+ *
+ * The branch rides out in the campaign rather than the kind, so the two are
+ * separable in PostHog and in the click tags without adding a metric series --
+ * see `sendEmail` on why `email.kind` has to stay bounded.
+ */
 export async function buildFeedbackAskEmail(input: {
   username: string;
+  /** Whether they have ever run a search. See `hasStarted` in the lifecycle worker. */
+  started: boolean;
   unsubscribeUrl: string;
-}): Promise<{ subject: string; html: string }> {
+}): Promise<{ subject: string; html: string; campaign: string }> {
+  const campaign = input.started ? 'feedback-ask-started' : 'feedback-ask-cold';
+
   const html = await renderTemplate('feedback-ask', {
     username: input.username,
-    ctaUrl: withCampaignTags('/', 'feedback-ask', 'cta'),
+    // Exactly one of these carries a value, and `renderTemplate` drops the
+    // section belonging to the other. Two sections rather than two templates,
+    // for the reason `renderTemplate` documents: a second copy of a message is
+    // how one of them quietly stops matching the other.
+    started: input.started ? 'yes' : '',
+    cold: input.started ? '' : 'yes',
+    // Read only by the cold section, and dropped with it when they have started.
+    ctaUrl: withCampaignTags('/search', campaign, 'cta'),
     unsubscribeUrl: input.unsubscribeUrl,
     logoUrl: getLogoUrl(),
+    avatarUrl: getAvatarUrl(),
     year: getCurrentYear(),
   });
 
-  return { subject: 'How is Nadeshiko working out?', html };
+  const subject = input.started ? 'How is Nadeshiko working out?' : 'What were you hoping to find?';
+
+  return { subject, html, campaign };
+}
+
+/**
+ * The win-back note, sent once the reader's last session has lapsed.
+ *
+ * `newTitles` IS THE WHOLE MESSAGE. "We miss you" is a sentence about us; a
+ * count of what has been added since they were last here is a sentence about
+ * them, and it is the only honest reason to think a second visit would go
+ * differently from the first. It also has to be the lead rather than a question,
+ * because this reader has already had a question -- the day-7 ask -- and did not
+ * answer it. Asking again is the same email twice.
+ *
+ * ZERO IS A REAL ANSWER, and it gets its own shape rather than a dropped line.
+ * A quiet month leaves this email with no argument at all, and "0 new titles" is
+ * an argument for staying away; so when there is nothing to report it stops
+ * pretending and asks what went wrong instead, which is the one thing still
+ * worth getting from somebody on their way out. That shape has no button either:
+ * "see what is new" over a month with nothing new is a link to a
+ * disappointment, and the reply is the whole point of sending it at all.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT SAY is that their data is safe. It is the
+ * standard move in win-back mail -- "your profile and references are still
+ * exactly where you left them" -- and it works for products where a lapsed
+ * reader has years of accumulated state to lose. A lapsed Nadeshiko reader has
+ * saved almost nothing (one collection was created across a whole month), so
+ * reassuring them their collections survived reads as a reminder that they never
+ * made one.
+ */
+export interface DormantTitle {
+  name: string;
+  coverUrl: string;
+  url: string;
+}
+
+/** How many covers the grid will show. Past this they stop being a sample and become a list. */
+export const DORMANT_TITLE_SLOTS = 8;
+
+/** The column the card gives its content, once padding is taken off the 640px card. */
+const CONTENT_WIDTH = 576;
+
+/** Covers come off the CDN at 460 wide; the height varies, so the tile fixes the shape. */
+const COVER_RATIO = 647 / 460;
+
+/** No tile is ever bigger than this, however few there are. One cover must not fill the email. */
+const MAX_TILE = 180;
+
+const TILE_GAP = 8;
+
+/**
+ * How the covers are laid out for a given count.
+ *
+ * One row up to four. Five and six read better as two rows of three than as a
+ * row of four with a widow, and seven and eight as two rows of four. The last
+ * row is centred when it is short, so a five ends as three over two rather than
+ * three over two-hugging-the-left.
+ */
+export function titleRows<T>(titles: readonly T[]): T[][] {
+  const perRow = titles.length <= 4 ? titles.length : titles.length <= 6 ? 3 : 4;
+  if (perRow === 0) return [];
+
+  const rows: T[][] = [];
+  for (let i = 0; i < titles.length; i += perRow) rows.push(titles.slice(i, i + perRow));
+  return rows;
+}
+
+/**
+ * The cover grid, built here because its shape depends on the count.
+ *
+ * EVERY TILE IS THE SAME SIZE, including in a row that is not full: the widest
+ * row decides, so a seven does not render four small covers above three large
+ * ones. And the tile is capped at `MAX_TILE`, so a single cover is a cover
+ * rather than a poster.
+ *
+ * Escapes its own inputs. It is returned through the raw `{{{ }}}` path, which
+ * does no escaping of its own -- see `renderTemplate`.
+ */
+export function renderTitleGrid(titles: readonly DormantTitle[]): string {
+  const rows = titleRows(titles.slice(0, DORMANT_TITLE_SLOTS));
+  if (rows.length === 0) return '';
+
+  const widest = Math.max(...rows.map((row) => row.length));
+  const width = Math.min(MAX_TILE, Math.floor((CONTENT_WIDTH - (widest - 1) * TILE_GAP) / widest));
+  const height = Math.round(width * COVER_RATIO);
+
+  return rows
+    .map((row) => {
+      const cells = row
+        .map((title) => {
+          const name = escapeHTML(title.name);
+          return `<td style="padding: 0 ${TILE_GAP / 2}px ${TILE_GAP}px; vertical-align: top; width: ${width}px;">
+                <a href="${escapeHTML(title.url)}" style="text-decoration: none; color: #a8a8a8;">
+                  <img src="${escapeHTML(title.coverUrl)}" alt="${name}" width="${width}" height="${height}" style="width: ${width}px; height: ${height}px; object-fit: cover; border-radius: 6px; display: block;" />
+                  <span style="display: block; font-size: 12px; line-height: 1.35; margin-top: 6px; color: #a8a8a8; width: ${width}px;">${name}</span>
+                </a>
+              </td>`;
+        })
+        .join('\n              ');
+
+      return `<table role="presentation" align="center" style="border-collapse: collapse; margin: 0 auto;">
+            <tr>
+              ${cells}
+            </tr>
+          </table>`;
+    })
+    .join('\n          ');
+}
+
+export async function buildDormant30Email(input: {
+  username: string;
+  newTitles: number;
+  /**
+   * A few of them, to show rather than count. At most `DORMANT_TITLE_SLOTS`;
+   * anything past that is dropped, since the template has fixed cells.
+   */
+  titles: DormantTitle[];
+  unsubscribeUrl: string;
+}): Promise<{ subject: string; html: string }> {
+  const hasNews = input.newTitles > 0;
+  const subject = hasNews
+    ? `We added ${input.newTitles} new titles since you were last here!`
+    : 'Anything we could have done?';
+
+  const html = await renderTemplate('dormant-30', {
+    username: input.username,
+    // Empty rather than '0': `renderTemplate` keeps a section when the value is
+    // truthy, and the string '0' is.
+    newTitles: hasNews ? String(input.newTitles) : '',
+    noNews: hasNews ? '' : 'yes',
+    // The grid is generated rather than slotted, because its shape depends on
+    // how many covers there are -- see `renderTitleGrid`. Raw on purpose, and it
+    // escapes its own inputs.
+    titleGrid: renderTitleGrid(input.titles),
+    ctaUrl: withCampaignTags('/', 'dormant-30', 'cta'),
+    unsubscribeUrl: input.unsubscribeUrl,
+    logoUrl: getLogoUrl(),
+    avatarUrl: getAvatarUrl(),
+    year: getCurrentYear(),
+  });
+
+  return { subject, html };
 }
 
 export async function renderTemplate(templateName: string, variables: Record<string, string>): Promise<string> {
@@ -366,6 +453,19 @@ export async function renderTemplate(templateName: string, variables: Record<str
   // Any section whose variable was not supplied at all. Left in place these
   // would ship as literal `{{#code}}` text in the message.
   html = html.replace(/\s*{{#\w+}}[\s\S]*?{{\/\w+}}/g, '');
+
+  // TRIPLE BRACE IS RAW, double brace is escaped. Mustache's convention, and it
+  // exists here for exactly one thing: markup this module generates itself, such
+  // as `renderTitleGrid`, whose shape depends on how many items there are and so
+  // cannot be expressed as fixed slots in the template.
+  //
+  // NEVER PUT ANYTHING THAT CAME FROM A READER OR A DATABASE THROUGH IT. The
+  // generator is responsible for escaping its own inputs -- `renderTitleGrid`
+  // runs every title name through `escapeHTML` before it reaches here -- and a
+  // second caller that forgets is an HTML injection into a message we send.
+  for (const [key, value] of Object.entries(variables)) {
+    html = html.replaceAll(`{{{${key}}}}`, String(value));
+  }
 
   for (const [key, value] of Object.entries(variables)) {
     html = html.replaceAll(`{{${key}}}`, escapeHTML(String(value)));

@@ -69,10 +69,10 @@ describe('the email metric contract', () => {
 
     const kinds = sent?.dataPoints.map((point) => point.attributes['email.kind']).sort();
     expect(kinds).toEqual([
+      'dormant-30',
       'feedback',
       'feedback-ask',
       'magic-link',
-      'onboarding-day7',
       'recap',
       'unknown',
       'verify-new-email',

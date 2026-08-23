@@ -108,8 +108,8 @@ export type EmailKind =
   | 'magic-link'
   | 'verify-new-email'
   | 'feedback'
-  | 'onboarding-day7'
   | 'feedback-ask'
+  | 'dormant-30'
   | 'recap'
   | 'unknown';
 
@@ -118,8 +118,8 @@ export const EMAIL_KINDS: readonly EmailKind[] = [
   'magic-link',
   'verify-new-email',
   'feedback',
-  'onboarding-day7',
   'feedback-ask',
+  'dormant-30',
   'recap',
   'unknown',
 ];
