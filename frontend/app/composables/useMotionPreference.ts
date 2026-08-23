@@ -1,3 +1,4 @@
+import { MOTION_COOKIE } from '#shared/utils/preferenceCookies';
 import { useCookiePreference } from '~/composables/useCookiePreference';
 
 /**
@@ -22,7 +23,10 @@ export type MotionLevel = (typeof MOTION_LEVELS)[number];
 
 export const DEFAULT_MOTION_LEVEL: MotionLevel = 'system';
 
-const COOKIE_NAME = 'nd-motion';
+// Imported rather than spelled out: a bare string here is exactly how this
+// cookie stayed out of RENDER_FORKING_PREFERENCE_COOKIES, and out of every cache
+// bypass that reads it, for its whole life. See that file.
+const COOKIE_NAME = MOTION_COOKIE;
 
 const isMotionLevel = (value: string | null): value is MotionLevel =>
   !!value && (MOTION_LEVELS as readonly string[]).includes(value);
