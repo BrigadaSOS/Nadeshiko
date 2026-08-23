@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Media } from '@brigadasos/nadeshiko-sdk';
-import type { SearchScope } from '~/composables/useSearchFetch';
+import { stripEpisodeHits, stripUnreadTokenFields, type SearchScope } from '~/composables/useSearchFetch';
 import {
   DEFAULT_OG_IMAGE_PATH,
   DEFAULT_OG_IMAGE_SIZE,
@@ -140,7 +140,9 @@ const [{ data: initialSentenceData, refresh: refreshSentences }, { data: initial
       async () => {
         const outcome = await fetchSentences(searchScope.value);
         sentencesFailed.value = outcome.status !== 'ok';
-        return outcome.status === 'ok' ? outcome.data : null;
+        // Slimmed before it is handed back, because what this returns IS the
+        // hydration payload: see `stripUnreadTokenFields`.
+        return outcome.status === 'ok' ? stripUnreadTokenFields(outcome.data) : null;
       },
       { server: true, lazy: false, watch: [] },
     ),
@@ -150,7 +152,11 @@ const [{ data: initialSentenceData, refresh: refreshSentences }, { data: initial
         const outcome = await fetchStats(searchScope.value);
         // Failures are reported inside `fetchStats`, which still has the response
         // and can tell a 403 apart from a real error.
-        return outcome.status === 'ok' ? outcome.data : null;
+        if (outcome.status !== 'ok') return null;
+        // Every OTHER title's per-episode counts leave here: 4,670 of the 5,802
+        // objects this page used to serialize. This title's stay -- they are the
+        // episode list the drawer opens on, and `metaTags` below counts them.
+        return stripEpisodeHits(outcome.data, mediaPublicId.value);
       },
       { server: true, lazy: false, watch: [] },
     ),

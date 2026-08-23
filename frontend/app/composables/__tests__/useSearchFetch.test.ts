@@ -19,12 +19,16 @@ import { deferred } from './deferred';
 import {
   COLLECTION_PAGE_SIZE,
   SEARCH_PAGE_SIZE,
+  buildMediaStatsFilters,
   buildSentenceFilters,
   buildStatsFilters,
   createRequestSequencer,
   createSearchFetcher,
+  stripEpisodeHits,
+  stripUnreadTokenFields,
   type SearchScope,
 } from '../useSearchFetch';
+import type { SearchResponse, SearchStatsResponse } from '~/types/search';
 
 const fakeSdk = { client: { id: 'test-client' } } as never;
 
@@ -457,5 +461,138 @@ describe('fetchSentences preferMedia', () => {
 
     expect(bodyOf().preferMedia).toHaveLength(120);
     expect(bodyOf().preferMedia[0]).toBe(many[0]);
+  });
+});
+
+/**
+ * What the page serializes into `__NUXT_DATA__`. The assertions are about size
+ * as much as shape: 81% of a title page's payload was per-episode counts for
+ * titles the page is not about.
+ */
+describe('SSR payload slimming', () => {
+  const stat = (mediaPublicId: string, episodes: number[]) => ({
+    mediaPublicId,
+    matchCount: episodes.length,
+    episodeHits: episodes.map((episode) => ({ episode, hitCount: 3 })),
+    nameRomaji: '',
+    nameEn: '',
+    nameJa: '',
+    category: 'ANIME' as const,
+    airingFormat: 'TV' as const,
+    slug: mediaPublicId,
+  });
+
+  const stats = (): SearchStatsResponse => ({
+    media: [stat('keep-me', [1, 2, 3]), stat('drop-me', [1, 2]), stat('drop-me-too', [7])],
+    categories: [{ category: 'ANIME', count: 6, realCount: 6 }],
+  });
+
+  it('keeps the named title’s episode counts and empties every other one', () => {
+    const slim = stripEpisodeHits(stats(), 'keep-me');
+
+    expect(slim.media.map((entry) => entry.episodeHits.length)).toEqual([3, 0, 0]);
+    // Emptied, not removed: the drawer's rule is "an empty list means ask".
+    expect(slim.media[1]).toHaveProperty('episodeHits', []);
+    // Everything the tabs and the title list read is untouched.
+    expect(slim.media.map((entry) => entry.matchCount)).toEqual([3, 2, 1]);
+    expect(slim.categories).toEqual(stats().categories);
+  });
+
+  it('empties all of them when the URL named no title', () => {
+    expect(stripEpisodeHits(stats(), null).media.every((entry) => entry.episodeHits.length === 0)).toBe(true);
+  });
+
+  it('does not mutate the response it was handed', () => {
+    const original = stats();
+    stripEpisodeHits(original, 'keep-me');
+
+    expect(original.media[1]?.episodeHits).toHaveLength(2);
+  });
+
+  const token = () => ({
+    s: '焼けた',
+    d: '焼ける',
+    r: 'ヤケタ',
+    b: 0,
+    e: 3,
+    p: '動詞',
+    pt: 'verb',
+    kind: 'inflected',
+    posLabel: 'Verb',
+    f: [{ t: '焼', r: 'や' }, { t: 'けた' }],
+    inflection: { labels: ['past'], base: '焼ける' },
+  });
+
+  const response = (): SearchResponse =>
+    ({
+      results: [{ segment: { textJa: { content: '焼けた', highlight: '', tokens: [token(), token()] } } }],
+    }) as unknown as SearchResponse;
+
+  it('drops the token label nothing renders and keeps everything that addresses the text', () => {
+    const slim = stripUnreadTokenFields(response());
+    const [first] = slim.results[0]!.segment.textJa.tokens;
+
+    expect(first).not.toHaveProperty('posLabel');
+    // `b`/`e` decide the highlight and the Anki furigana slicing, `p`/`pt` the
+    // dictionary lookup, `kind` whether the token is askable at all.
+    expect(first).toMatchObject({ s: '焼けた', d: '焼ける', r: 'ヤケタ', b: 0, e: 3, p: '動詞', pt: 'verb' });
+    expect(first).toHaveProperty('kind', 'inflected');
+    expect(first).toHaveProperty('f');
+    expect(first).toHaveProperty('inflection');
+  });
+
+  it('leaves a result with no tokens alone', () => {
+    const untokenized = {
+      results: [{ segment: { textJa: { content: 'ねこ', highlight: '', tokens: [] } } }],
+    } as unknown as SearchResponse;
+
+    expect(stripUnreadTokenFields(untokenized).results[0]).toBe(untokenized.results[0]);
+  });
+});
+
+describe('buildMediaStatsFilters', () => {
+  it('asks for the one title, all of its episodes, hidden or not', () => {
+    const filters = buildMediaStatsFilters(
+      scope({
+        mediaPublicId: 'media-1',
+        // The reader has an episode open. The drawer still has to list its siblings.
+        episode: 4,
+        hiddenMediaExclude: [{ mediaPublicId: 'media-1' }],
+      }),
+    );
+
+    expect(filters.media?.include).toEqual([{ mediaPublicId: 'media-1' }]);
+    expect(filters.media?.exclude).toBeUndefined();
+  });
+});
+
+describe('fetchStats scoped to one title', () => {
+  const bodyOf = () => sdkMocks.getSearchStats.mock.calls[0]![0].body;
+
+  it('sends the media filter and skips the includes it would not read', async () => {
+    sdkMocks.getSearchStats.mockResolvedValueOnce({
+      data: {
+        media: [{ mediaPublicId: 'media-1', matchCount: 2, episodeHits: [{ episode: 1, hitCount: 2 }] }],
+        categories: [],
+      },
+      response: new Response(),
+    });
+
+    const outcome = await createSearchFetcher(fakeSdk).fetchStats(scope({ mediaPublicId: 'media-1' }), {
+      scopeToSelectedMedia: true,
+    });
+
+    expect(bodyOf().filters.media?.include).toEqual([{ mediaPublicId: 'media-1' }]);
+    expect(bodyOf().include).toBeUndefined();
+    expect(outcome).toMatchObject({ status: 'ok' });
+  });
+
+  it('leaves the tab counts unscoped by default', async () => {
+    sdkMocks.getSearchStats.mockResolvedValueOnce({ data: { media: [], categories: [] }, response: new Response() });
+
+    await createSearchFetcher(fakeSdk).fetchStats(scope({ mediaPublicId: 'media-1' }));
+
+    expect(bodyOf().filters.media).toBeUndefined();
+    expect(bodyOf().include).toEqual(['media']);
   });
 });

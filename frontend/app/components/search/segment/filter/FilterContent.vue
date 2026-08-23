@@ -2,6 +2,7 @@
 import { useTimeoutFn } from '@vueuse/core';
 import { mdiChevronLeft } from '@mdi/js';
 import { CATEGORY_API_MAPPING } from '~/utils/categories';
+import { EPISODE_HITS_LOADING } from '~/composables/useSearchFetch';
 import { compareMediaRows } from '~/utils/mediaFilterSort';
 import type { ResolvedMediaStats, SearchSidebarData } from '~/types/search';
 
@@ -141,6 +142,14 @@ const episodesList = computed(() => {
     .map((entry) => ({ episode: entry.episode, count: entry.hitCount }))
     .sort((a, b) => a.episode - b.episode);
 });
+
+/**
+ * The counts above are no longer in the page payload for every title -- see
+ * `stripEpisodeHits` -- so drilling into one on a search page has a request in
+ * front of it. Without this the reader is told "no episodes found" for the
+ * length of that request, on a title that plainly has some.
+ */
+const episodeHitsLoading = inject(EPISODE_HITS_LOADING, readonly(ref(false)));
 
 const filterAnime = (mediaPublicId: string, _animeName: string, slug?: string | null) => {
   // A second click on the title already in scope drops it, same as a second
@@ -283,10 +292,10 @@ const applyPendingFocus = () => {
                     <SearchSegmentFilterFavoriteStar :media="{ mediaPublicId: null }" class="mr-2" />
                 </template>
             </SearchSegmentFilterRow>
-            <div v-if="episodesList.length === 0">
+            <div v-if="episodesList.length === 0" :aria-busy="episodeHitsLoading">
                 <div class="mx-5 border-t border-line-subtle" aria-hidden="true" />
                 <div class="px-5 py-2 text-xs text-gray-400 dark:text-gray-500">
-                    {{ $t('episodeFilter.noEpisodes') }}
+                    {{ episodeHitsLoading ? $t('segmentSidebar.loading') : $t('episodeFilter.noEpisodes') }}
                 </div>
             </div>
         </div>
