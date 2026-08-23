@@ -91,6 +91,14 @@ const currentView = computed(() => normalizeView(route.query.view));
 const searchQuery = computed(() => normalizeQuery(route.query.query));
 const filterCategory = computed(() => normalizeCategory(route.query.category));
 
+/**
+ * The page of the catalogue to render, as an opaque cursor from a previous
+ * response. See the next-page link at the foot of the template for why this
+ * exists at all; `buildQueryParams` deliberately drops it, so changing the
+ * search box or the category filter starts again from the first page.
+ */
+const pageCursor = computed(() => (typeof route.query.cursor === 'string' ? route.query.cursor : undefined));
+
 const filterCategoryLabel = computed(() => {
   switch (filterCategory.value) {
     case 'ANIME':
@@ -122,6 +130,34 @@ const buildQueryParams = (params: MediaBrowseParams = {}) => {
   };
 };
 
+/**
+ * Where "next page" points, or null when this is the last one.
+ *
+ * WHY A LINK AND NOT JUST THE INFINITE SCROLL. Googlebot runs JavaScript but it
+ * does not scroll, so the sentinel below never fires for it and everything past
+ * the first `take: pageSize` is invisible. This page is the only thing on the
+ * site that links the ~319 title pages, and 28 of them were reachable; the rest
+ * were in the sitemap and nothing else. A crawler can now walk the catalogue a
+ * page at a time, and a reader without JavaScript gets the same way out.
+ *
+ * Built from the FIRST response rather than from live pagination state: once
+ * the reader has scrolled and appended, "next page" would otherwise skip past
+ * what they have already been shown. It hides itself in that case -- see the
+ * template -- because at that point the scroll has taken over.
+ *
+ * An opaque cursor rather than `?page=2`, which would read better. The list
+ * endpoint paginates by cursor only, and while the value happens to encode an
+ * offset, that is the backend's business: constructing one here would put a
+ * copy of its cursor format in the frontend, to be broken silently the next
+ * time it changes. `canonical.ts` allowlists the param so each page of the
+ * catalogue is its own canonical URL rather than collapsing onto the first.
+ */
+const nextPageLink = computed(() => {
+  const cursor = initialResponse.value?.cursor;
+  if (!cursor) return null;
+  return localePath({ path: '/media', query: { ...buildQueryParams(), cursor } });
+});
+
 const updateUrl = async (params: MediaBrowseParams = {}) => {
   const nextQuery = buildQueryParams(params);
   await router.push({ query: nextQuery });
@@ -136,12 +172,13 @@ const {
   error,
   refresh,
 } = await useAsyncData(
-  () => `search-media-${searchQuery.value}-${filterCategory.value}`,
+  () => `search-media-${searchQuery.value}-${filterCategory.value}-${pageCursor.value ?? 'first'}`,
   async () => {
     const raw = await sdk.listMedia({
       query: searchQuery.value || undefined,
       take: pageSize,
       category: filterCategory.value || undefined,
+      cursor: pageCursor.value,
     });
     return {
       media: raw?.media ?? [],
@@ -150,7 +187,7 @@ const {
     };
   },
   {
-    watch: [searchQuery, filterCategory],
+    watch: [searchQuery, filterCategory, pageCursor],
     server: true,
     lazy: false,
     default: () => ({
@@ -581,6 +618,18 @@ watch([searchQuery, filterCategory], () => {
 
       <!-- Infinite scroll sentinel -->
       <CommonInfiniteScrollObserver v-if="hasMore && !loading" root-margin="200px" @intersect="onSentinelVisible" />
+
+      <!-- The crawlable way through the catalogue, and the one that works
+           without JavaScript. Hidden once the scroll has appended a page, when
+           it would point behind where the reader already is. -->
+      <div v-if="nextPageLink && media.length <= pageSize" class="mt-6 text-center">
+        <NuxtLink
+          :to="nextPageLink"
+          class="inline-block px-4 py-2 text-sm text-white/40 hover:text-white/70 transition-colors"
+        >
+          {{ $t('mediaBrowse.nextPage') }} &rarr;
+        </NuxtLink>
+      </div>
 
       <MediaModalMediaEdit
         v-if="user.isAdmin"

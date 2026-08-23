@@ -160,6 +160,7 @@
     "forgetError": "このタイトルを削除できませんでした。もう一度お試しください。"
   },
   "mediaBrowse": {
+    "nextPage": "次のページ",
     "showHiddenMedia": "非表示の作品を表示",
     "hideHiddenMedia": "非表示の作品を隠す",
     "loadError": "メディア一覧を読み込めませんでした。",
