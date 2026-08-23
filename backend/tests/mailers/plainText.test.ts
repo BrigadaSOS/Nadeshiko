@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { htmlToPlainText } from '@app/mailers/plainText';
-import { buildMagicLinkEmail, buildOnboardingDay7Email } from '@app/mailers/emailTemplates';
+import { buildMagicLinkEmail, buildFeedbackAskEmail } from '@app/mailers/emailTemplates';
 
 describe('htmlToPlainText', () => {
   it('drops the stylesheet rather than reading it out', () => {
@@ -86,9 +86,9 @@ describe('the plaintext of a real email', () => {
   });
 
   it('carries the unsubscribe link on lifecycle mail', async () => {
-    const { html } = await buildOnboardingDay7Email({
+    const { html } = await buildFeedbackAskEmail({
       username: 'alice',
-      signals: { activityVisible: true, totalSearches: 0, totalExports: 0, hasAnkiProfile: false },
+      started: true,
       unsubscribeUrl: 'https://nadeshiko.co/unsubscribe?token=xyz',
     });
 

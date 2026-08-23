@@ -1,6 +1,7 @@
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import { PostHog } from 'posthog-node';
+import type { EmailKind } from '@app/services/email/metrics';
 
 /**
  * Server-side PostHog, used for the handful of facts the browser cannot be
@@ -97,6 +98,170 @@ export function captureAccountCreated(input: AccountCreatedInput): void {
   }
 }
 
+export interface EmailSentInput {
+  userId: number | string;
+  /** The `EmailKind`, kept as a bounded set so a breakdown stays readable. */
+  kind: EmailKind;
+  /** Which run of it, e.g. `feedback-ask-cold` or `recap-2026-09`. */
+  campaign: string;
+}
+
+/**
+ * Records that a message actually went out to somebody.
+ *
+ * THE DENOMINATOR, and it is the only one of the three email stores that can be
+ * one. The others answer different questions and neither can answer this:
+ *
+ * - `EmailLifecycleSend` is the ledger. It knows who got what, which is what
+ *   dedupes a second send, but it lives in Postgres and knows nothing about what
+ *   the reader did next.
+ * - `email.sent` (OTel, see `services/email/metrics`) is operational. It is
+ *   deliberately labelled by kind ONLY, because a per-campaign label would grow
+ *   the series count without limit and break every alert that divides one email
+ *   counter by another.
+ *
+ * This one lands on the same PostHog person as the reader's own pageviews,
+ * keyed on the account id, so a send can be joined to the utm-tagged visit it
+ * produced and to whatever they did after. Without it every click is a numerator
+ * over nothing.
+ *
+ * Campaign is a PROPERTY rather than part of the event name, so a recap that
+ * runs every month accumulates into one series that can be broken down by
+ * period instead of a new event name each time.
+ *
+ * Never throws and never awaits: this is called on the send path, and a send
+ * must not fail because an analytics queue is unhappy.
+ */
+export function captureEmailSent(input: EmailSentInput): void {
+  const posthog = analyticsClient();
+  if (!posthog) return;
+
+  try {
+    posthog.capture({
+      distinctId: String(input.userId),
+      event: 'email_sent',
+      properties: { kind: input.kind, campaign: input.campaign },
+    });
+  } catch (error) {
+    logger.error({ err: error, kind: input.kind }, 'Failed to enqueue email_sent analytics event');
+  }
+}
+
+export interface ApiKeyCreatedInput {
+  userId: number | string;
+  /** The scopes actually granted, after the role ceiling has been applied. */
+  scopes: string[];
+}
+
+/**
+ * Records that an account issued itself an API key.
+ *
+ * WHY THIS IS WORTH AN EVENT AT ALL, when it happens a handful of times a week.
+ * It is the single most misread signal we have. A reader who signs up for API
+ * access scores zero on every engagement counter the product has -- no search, no
+ * playback, no Anki export -- so the signup channel announces them as a dud and
+ * every activation figure counts them as one. Measured over 60 days
+ * (2026-08-24): of 21 accounts that searched and played nothing, 11 had opened
+ * the API key page. That is not a rounding error in the activation rate, it is a
+ * segment being systematically misfiled as failure.
+ *
+ * The key NAME is deliberately not sent. It is free text the owner chose, so it
+ * is the one field here capable of carrying something personal, and no question
+ * worth asking needs it -- the scopes say what the key is for.
+ *
+ * `has_api_key` is set on the person as well as the event so that any later
+ * question -- retention, engagement, email response -- can be split by it without
+ * re-deriving the segment from the event stream every time.
+ */
+export function captureApiKeyCreated(input: ApiKeyCreatedInput): void {
+  const posthog = analyticsClient();
+  if (!posthog) return;
+
+  try {
+    posthog.capture({
+      distinctId: String(input.userId),
+      event: 'api_key_created',
+      properties: {
+        scopes: input.scopes,
+        scope_count: input.scopes.length,
+        $set: { has_api_key: true },
+        $set_once: { first_api_key_at: new Date().toISOString() },
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to enqueue api_key_created analytics event');
+  }
+}
+
+/**
+ * Remembers which UTC day each account was last seen calling the API on.
+ *
+ * Bounded by the number of accounts that actually use the API -- a few dozen --
+ * because an account's entry is REPLACED when the day rolls over rather than
+ * added to. Process-local and deliberately not persisted: see the note on
+ * over-counting in `captureApiActiveDay`.
+ */
+const apiActiveDayByUser = new Map<string, string>();
+
+export interface ApiActiveDayInput {
+  userId: number | string;
+  /** Month-to-date usage as it stood when the request arrived, before this one. */
+  quotaUsed: number;
+  quotaLimit: number;
+}
+
+/**
+ * Records that an account used the API today. ONE EVENT PER ACCOUNT PER DAY, not
+ * one per request.
+ *
+ * THE NAME SAYS `day` BECAUSE THAT IS WHAT IT COUNTS. An `api_request_made` that
+ * fired once a day would be a trap: every rate, every "requests per user", every
+ * sum over it would be wrong by whatever factor that account's traffic happened
+ * to be, and nothing in the series would say so. This module already carries one
+ * pair of events that mean different things (`account_created` against the
+ * browser's `signup_completed`) and the reason it is survivable is that the names
+ * do not pretend to be interchangeable.
+ *
+ * Per-request capture was the alternative and it is not worth it. A single
+ * account can spend 5,000 requests a month inside its quota, so per-request
+ * events would be the largest series in the project by a wide margin, bought to
+ * answer questions -- who uses the API, how hard, and does it last -- that a
+ * daily grain answers just as well. Request VOLUME is already counted exactly, in
+ * Postgres, by `AccountQuotaUsage`; `quota_used` below carries that number onto
+ * the event so a dashboard can read consumption without joining anything.
+ *
+ * The dedupe is process-local, and production forks THREE workers (see the tier
+ * cache in `middleware/apiLimiterQuota`, which accepts the same limitation for
+ * the same reason), so an account can produce up to three events a day, plus one
+ * more per deploy. Read this series as `uniq(person_id)` per day and that is
+ * invisible; read it as `count()` and it is inflated by up to 3x. The alternative
+ * is shared state this backend has no Redis for, to sharpen a number nobody
+ * needs sharp.
+ */
+export function captureApiActiveDay(input: ApiActiveDayInput): void {
+  const posthog = analyticsClient();
+  if (!posthog) return;
+
+  const userId = String(input.userId);
+  const today = new Date().toISOString().slice(0, 10);
+  if (apiActiveDayByUser.get(userId) === today) return;
+  apiActiveDayByUser.set(userId, today);
+
+  try {
+    posthog.capture({
+      distinctId: userId,
+      event: 'api_active_day',
+      properties: {
+        quota_used: input.quotaUsed,
+        quota_limit: input.quotaLimit,
+        $set_once: { first_api_request_at: new Date().toISOString() },
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to enqueue api_active_day analytics event');
+  }
+}
+
 function toIsoString(value: Date | string | undefined): string | undefined {
   if (!value) return undefined;
   const date = value instanceof Date ? value : new Date(value);
@@ -121,7 +286,14 @@ export async function shutdownAnalytics(): Promise<void> {
   }
 }
 
-/** Test seam: drops the memoised client so configuration can be re-read. */
+/**
+ * Test seam: drops the memoised client so configuration can be re-read.
+ *
+ * Clears the API day-dedupe too. Without that, the first test to capture an
+ * active day would silence every later one for the same account, and the
+ * failure would land on whichever test happened to run second.
+ */
 export function resetAnalyticsClientForTests(): void {
   client = undefined;
+  apiActiveDayByUser.clear();
 }

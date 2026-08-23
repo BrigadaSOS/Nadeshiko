@@ -201,6 +201,24 @@ const envSchema = z.object({
   // becomes a configuration change rather than a deploy of the mailer.
   ZEPTOMAIL_SEND_TOKEN: optionalString,
 
+  // A SECOND AGENT FOR LIFECYCLE MAIL, and it is unset on purpose.
+  //
+  // Everything currently leaves through one ZeptoMail Agent: sign-in links and
+  // the day-7 ask and the win-back note all share one sending identity. That is
+  // fine at seven messages a night and stops being fine the moment a recurring
+  // recap joins them -- a policy action against the recap would take magic links
+  // with it, and losing those means losing sign-in.
+  //
+  // Set this to a second Agent's token and every lifecycle kind moves to it,
+  // leaving transactional mail where it is. Left unset it falls back to
+  // `ZEPTOMAIL_SEND_TOKEN`, so today's behaviour is unchanged and the split is a
+  // config change rather than a deploy of the mailer.
+  //
+  // The Agent is only half of it. DKIM is signed per DOMAIN, so reputation stays
+  // shared until lifecycle mail also moves to its own subdomain -- which is the
+  // point of doing this before the recap rather than after.
+  ZEPTOMAIL_LIFECYCLE_SEND_TOKEN: optionalString,
+
   // Proves that a bounce notification really came from ZeptoMail.
   //
   // Optional in the schema but not optional in effect: without it

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { renderTemplate, buildWelcomeEmail } from '@app/mailers/emailTemplates';
+import {
+  renderTemplate,
+  buildWelcomeEmail,
+  buildFeedbackAskEmail,
+  buildDormant30Email,
+  titleRows,
+} from '@app/mailers/emailTemplates';
 
 describe('renderTemplate', () => {
   it('replaces placeholders with values', async () => {
@@ -59,5 +65,177 @@ describe('buildWelcomeEmail', () => {
 
     expect(result.html).not.toContain('<img src=x');
     expect(result.html).toContain('&lt;img');
+  });
+});
+
+describe('buildFeedbackAskEmail', () => {
+  const unsubscribeUrl = 'https://nadeshiko.co/unsubscribe?token=t';
+
+  /**
+   * The action this email wants is a reply, and a button competes with it. A
+   * "Tell me" button pointing at the home page was somewhere to click that did
+   * nothing feedback-shaped, and every click on it was a reply we did not get.
+   */
+  it('gives the started opening no button at all', async () => {
+    const result = await buildFeedbackAskEmail({ username: 'alice', started: true, unsubscribeUrl });
+
+    expect(result.campaign).toBe('feedback-ask-started');
+    expect(result.html).not.toContain('utm_content=cta');
+    expect(result.html).toContain('hit reply');
+  });
+
+  /** The cold opening keeps one, because "try a search" is a real action. */
+  it('gives the cold opening a search button', async () => {
+    const result = await buildFeedbackAskEmail({ username: 'alice', started: false, unsubscribeUrl });
+
+    expect(result.campaign).toBe('feedback-ask-cold');
+    expect(result.html).toContain('utm_campaign=feedback-ask-cold');
+    expect(result.html).toContain('Try a search');
+  });
+
+  it('sends exactly one of the two openings', async () => {
+    const started = await buildFeedbackAskEmail({ username: 'alice', started: true, unsubscribeUrl });
+    const cold = await buildFeedbackAskEmail({ username: 'alice', started: false, unsubscribeUrl });
+
+    expect(started.html).not.toContain('What were you hoping to find');
+    expect(cold.html).not.toContain('what would you change first');
+    expect(started.html).not.toContain('{{');
+    expect(cold.html).not.toContain('{{');
+  });
+});
+
+describe('buildDormant30Email', () => {
+  const unsubscribeUrl = 'https://nadeshiko.co/unsubscribe?token=t';
+  const title = (name: string) => ({
+    name,
+    coverUrl: `https://cdn.test/${name}/cover.webp`,
+    url: `https://nadeshiko.co/media/${name}`,
+  });
+
+  it('leads with what has been added since they left', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      newTitles: 57,
+      titles: [title('frieren')],
+      unsubscribeUrl,
+    });
+
+    expect(result.subject).toBe('We added 57 new titles since you were last here!');
+    expect(result.html).toContain('57 new titles');
+  });
+
+  /**
+   * A quiet month is a real answer, and "0 new titles since you were last here"
+   * is an argument for staying away. The section goes, the email still sends.
+   */
+  it('drops the line entirely when nothing has been added', async () => {
+    const result = await buildDormant30Email({ username: 'alice', newTitles: 0, titles: [], unsubscribeUrl });
+
+    expect(result.subject).toBe('Anything we could have done?');
+    expect(result.html).not.toContain('new titles');
+    expect(result.html).not.toContain('{{');
+  });
+
+  it('carries the unsubscribe link untagged', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      newTitles: 3,
+      titles: [title('frieren')],
+      unsubscribeUrl,
+    });
+
+    expect(result.html).toContain(unsubscribeUrl);
+    expect(result.html).toContain('utm_campaign=dormant-30');
+  });
+
+  /**
+   * The row layout is the whole reason the grid is generated rather than
+   * slotted: one row up to four, two rows of three at five and six, two rows of
+   * four at seven and eight.
+   */
+  it.each([
+    [1, [1]],
+    [2, [2]],
+    [3, [3]],
+    [4, [4]],
+    [5, [3, 2]],
+    [6, [3, 3]],
+    [7, [4, 3]],
+    [8, [4, 4]],
+  ])('lays %i covers out as %j', (count, shape) => {
+    const rows = titleRows(Array.from({ length: count }, (_, i) => i));
+
+    expect(rows.map((row) => row.length)).toEqual(shape);
+  });
+
+  it('renders every cover it is given, up to the cap', async () => {
+    const names = Array.from({ length: 8 }, (_, i) => `title-${i}`);
+    const result = await buildDormant30Email({
+      username: 'alice',
+      newTitles: 57,
+      titles: names.map(title),
+      unsubscribeUrl,
+    });
+
+    expect(result.html.match(/cover\.webp/g)).toHaveLength(8);
+    expect(result.html).not.toContain('{{');
+  });
+
+  /**
+   * EVERY TILE THE SAME SIZE, including in a short row: the widest row decides,
+   * so a seven does not render four small covers above three large ones.
+   */
+  it('sizes every tile from the widest row', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      newTitles: 7,
+      titles: Array.from({ length: 7 }, (_, i) => title(`t${i}`)),
+      unsubscribeUrl,
+    });
+
+    const widths = [...result.html.matchAll(/<img src="https:\/\/cdn\.test[^"]*"[^>]*width="(\d+)"/g)].map((m) => m[1]);
+    expect(widths).toHaveLength(7);
+    expect(new Set(widths).size).toBe(1);
+  });
+
+  /** One cover is a cover, not a poster. */
+  it('never grows a tile past the cap, however few there are', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      newTitles: 1,
+      titles: [title('lonely')],
+      unsubscribeUrl,
+    });
+
+    const width = Number(result.html.match(/<img src="https:\/\/cdn\.test[^"]*"[^>]*width="(\d+)"/)?.[1]);
+    expect(width).toBe(180);
+  });
+
+  it('drops the grid entirely when there are no covers', async () => {
+    const result = await buildDormant30Email({ username: 'alice', newTitles: 0, titles: [], unsubscribeUrl });
+
+    expect(result.html).not.toContain('cover.webp');
+    expect(result.html).not.toContain('{{');
+  });
+
+  /** The raw path does no escaping, so the generator has to do its own. */
+  it('escapes a title name rather than letting it become markup', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      newTitles: 1,
+      titles: [{ name: '<img src=x onerror=alert(1)>', coverUrl: 'https://cdn.test/a.webp', url: 'https://n.co/a' }],
+      unsubscribeUrl,
+    });
+
+    expect(result.html).not.toContain('onerror=alert(1)>');
+    expect(result.html).toContain('&lt;img');
+  });
+
+  /** "See what is new" over a month with nothing new is a link to a disappointment. */
+  it('drops the button too when there is no news', async () => {
+    const result = await buildDormant30Email({ username: 'alice', newTitles: 0, titles: [], unsubscribeUrl });
+
+    expect(result.html).not.toContain('utm_content=cta');
+    expect(result.html).toContain('Reply and tell me');
   });
 });

@@ -6,10 +6,10 @@ import {
   buildVerifyNewEmailEmail,
   buildMagicLinkEmail,
   buildFeedbackEmail,
-  buildOnboardingDay7Email,
   buildFeedbackAskEmail,
+  buildDormant30Email,
+  type DormantTitle,
   type FeedbackEmailInput,
-  type OnboardingSignals,
 } from './emailTemplates';
 import { createLetterOpenerTransport, getPreviewUrl, LETTER_OPENER_DIR } from './letterOpener';
 import { htmlToPlainText } from './plainText';
@@ -24,6 +24,8 @@ import { unsubscribeUrls } from '@app/services/email/unsubscribe';
 import { recordEmailBlocked, recordEmailDeliveryError, recordEmailSent } from '@app/services/email/metrics';
 import type { EmailKind } from '@app/services/email/metrics';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
+import { catalogueSize } from '@app/services/stats/catalogueSize';
+import { captureEmailSent } from '@app/services/analytics/posthog';
 
 const tracer = getTracer();
 
@@ -192,7 +194,13 @@ function isLifecycleKind(kind: EmailKind): boolean {
 }
 
 function senderFor(kind: EmailKind): { email: string; name: string } {
-  if (isLifecycleKind(kind)) {
+  // WELCOME IS THE EXCEPTION, and it is a sender exception rather than a kind
+  // one on purpose. It reads as a note from a person -- "Hi! I'm David" -- and
+  // invites a reply, so it cannot go out over `noreply@`. But it must not become
+  // a lifecycle kind to get that: lifecycle kinds are gated on
+  // `LIFECYCLE_EMAILS_ENABLED`, and a welcome email that stops arriving because
+  // somebody has not switched the newsletter on is an outage, not a policy.
+  if (isLifecycleKind(kind) || kind === 'welcome') {
     return { email: config.LIFECYCLE_FROM_EMAIL, name: config.LIFECYCLE_FROM_NAME };
   }
 
@@ -247,6 +255,11 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
         replyTo: options.replyTo,
         clientReference,
         unsubscribeUrl: options.unsubscribeUrl,
+        // Decided here for the same reason the From address is: this is the one
+        // place that already knows which side of the transactional line a kind
+        // falls on, and a transport that had to work it out for itself would be
+        // a second copy of that judgement waiting to disagree.
+        lifecycle: isLifecycleKind(options.kind),
       });
 
       recordEmailSent(options.kind);
@@ -282,7 +295,10 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
  * @param email - Email address of the new user
  */
 export async function sendWelcomeEmail(userId: number, username: string, email: string): Promise<void> {
-  const { subject, html } = await buildWelcomeEmail(username);
+  // Read here rather than inside the builder, so the template layer stays a pure
+  // function of its inputs and the one place that touches the database is the
+  // one that already knows how to fail softly.
+  const { subject, html } = await buildWelcomeEmail(username, await catalogueSize());
 
   await sendEmailJob(
     {
@@ -293,6 +309,8 @@ export async function sendWelcomeEmail(userId: number, username: string, email: 
     },
     `welcome-${userId}`, // Dedupe key to prevent duplicate welcome emails
   );
+
+  captureEmailSent({ userId, kind: 'welcome', campaign: 'welcome' });
 }
 
 export async function sendMagicLinkEmail(email: string, url: string, code?: string | null): Promise<void> {
@@ -344,44 +362,26 @@ export async function sendFeedbackEmail(
 }
 
 /**
- * The day-7 note and the month-30 feedback ask.
+ * The day-7 ask.
  *
- * Both take the `campaign` rather than deriving it, because the sweep has
- * already written it to `EmailLifecycleSend` and the two must agree: the row
- * says what we sent and the client reference says what came back, and a
- * mismatch would leave a bounce attributable to nothing.
- *
- * The client reference goes out as `<kind>:<campaign>` -- see `sendEmail` for
- * why the campaign cannot become a metric label.
+ * `campaign` comes back OUT of the builder rather than going in, because the
+ * builder is what decides which opening the reader gets and the two have to
+ * agree: the `EmailLifecycleSend` row says what we sent and the client
+ * reference says what came back, and a mismatch leaves a bounce attributable to
+ * nothing. The caller writes its claim row from the value returned here.
  */
-export async function sendOnboardingDay7Email(input: {
-  userId: number;
-  username: string;
-  email: string;
-  campaign: string;
-  signals: OnboardingSignals;
-}): Promise<void> {
-  const { oneClick, page } = unsubscribeUrls(input.userId);
-  const { subject, html } = await buildOnboardingDay7Email({
-    username: input.username,
-    signals: input.signals,
-    unsubscribeUrl: page,
-  });
-
-  await sendEmailJob(
-    { to: input.email, subject, html, kind: 'onboarding-day7', campaign: input.campaign, unsubscribeUrl: oneClick },
-    `onboarding-day7-${input.userId}`,
-  );
-}
-
 export async function sendFeedbackAskEmail(input: {
   userId: number;
   username: string;
   email: string;
-  campaign: string;
-}): Promise<void> {
-  const { oneClick, page } = unsubscribeUrls(input.userId);
-  const { subject, html } = await buildFeedbackAskEmail({ username: input.username, unsubscribeUrl: page });
+  started: boolean;
+}): Promise<string> {
+  const { oneClick, page } = unsubscribeUrls(input.userId, 'checkins');
+  const { subject, html, campaign } = await buildFeedbackAskEmail({
+    username: input.username,
+    started: input.started,
+    unsubscribeUrl: page,
+  });
 
   await sendEmailJob(
     {
@@ -389,7 +389,7 @@ export async function sendFeedbackAskEmail(input: {
       subject,
       html,
       kind: 'feedback-ask',
-      campaign: input.campaign,
+      campaign,
       unsubscribeUrl: oneClick,
       // NO `replyTo`. A reply is the point of this email, and `senderFor` has
       // already made the From a real inbox -- so replies go there on their own.
@@ -405,6 +405,53 @@ export async function sendFeedbackAskEmail(input: {
     },
     `feedback-ask-${input.userId}`,
   );
+
+  captureEmailSent({ userId: input.userId, kind: 'feedback-ask', campaign });
+
+  return campaign;
+}
+
+/**
+ * The win-back note, once a reader's last session has lapsed.
+ *
+ * `campaign` carries the month rather than repeating the kind, because unlike
+ * the other two this one may legitimately happen to the same account twice --
+ * see `EmailLifecycleSend.campaign`. The dedupe key follows it for the same
+ * reason: keyed on the kind alone, a second dormancy a year later would be
+ * swallowed as a duplicate of the first.
+ */
+export async function sendDormant30Email(input: {
+  userId: number;
+  username: string;
+  email: string;
+  campaign: string;
+  newTitles: number;
+  titles: DormantTitle[];
+}): Promise<void> {
+  const { oneClick, page } = unsubscribeUrls(input.userId, 'checkins');
+  const { subject, html } = await buildDormant30Email({
+    username: input.username,
+    newTitles: input.newTitles,
+    titles: input.titles,
+    unsubscribeUrl: page,
+  });
+
+  await sendEmailJob(
+    {
+      to: input.email,
+      subject,
+      html,
+      kind: 'dormant-30',
+      campaign: input.campaign,
+      unsubscribeUrl: oneClick,
+      // No `replyTo`, for the reason spelled out on the feedback ask: the From
+      // is already a personal mailbox, and "reply and tell me why" has to reach
+      // one rather than a role address that posts into a chat channel.
+    },
+    `${input.campaign}-${input.userId}`,
+  );
+
+  captureEmailSent({ userId: input.userId, kind: 'dormant-30', campaign: input.campaign });
 }
 
 export const TEST_EMAIL_TEMPLATES = [
@@ -412,11 +459,10 @@ export const TEST_EMAIL_TEMPLATES = [
   'verify-new-email',
   'magic-link',
   'feedback',
-  'onboarding-day7-getting-started',
-  'onboarding-day7-anki',
-  'onboarding-day7-anki-stalled',
-  'onboarding-day7-going-further',
-  'feedback-ask',
+  'feedback-ask-started',
+  'feedback-ask-cold',
+  'dormant-30',
+  'dormant-30-quiet',
 ] as const;
 
 export type TestEmailTemplate = (typeof TEST_EMAIL_TEMPLATES)[number];
@@ -424,20 +470,20 @@ export type TestEmailTemplate = (typeof TEST_EMAIL_TEMPLATES)[number];
 /**
  * The real `EmailKind` behind a preview name.
  *
- * The four day-7 previews are variants of one message rather than four
- * messages, so they all collapse back to the kind the sweep would actually send.
+ * The two feedback previews are openings of one message rather than two
+ * messages, so they collapse back to the kind the sweep would actually send.
+ * Listed rather than prefix-matched so the compiler can narrow: a `startsWith`
+ * leaves the opening names in the type and the return stops typechecking, which
+ * is the check earning its keep -- add a preview whose name is not a real kind
+ * and this is where you find out.
  */
 function kindOfTestTemplate(template: TestEmailTemplate): EmailKind {
-  // Listed rather than prefix-matched so the compiler can narrow: a `startsWith`
-  // leaves the variant names in the type and the return stops typechecking,
-  // which is the check earning its keep -- add a preview whose name is not a
-  // real kind and this is where you find out.
   switch (template) {
-    case 'onboarding-day7-getting-started':
-    case 'onboarding-day7-anki':
-    case 'onboarding-day7-anki-stalled':
-    case 'onboarding-day7-going-further':
-      return 'onboarding-day7';
+    case 'feedback-ask-started':
+    case 'feedback-ask-cold':
+      return 'feedback-ask';
+    case 'dormant-30-quiet':
+      return 'dormant-30';
     default:
       return template;
   }
@@ -478,31 +524,51 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
         'User agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
       ].join('\n'),
     }));
-  } else if (template.startsWith('onboarding-day7')) {
-    // The four variants are reached by their signals rather than by name, so a
-    // preview exercises the real branch in `pickOnboardingVariant` instead of a
-    // parallel switch that could drift from it. `anki` and `anki-stalled` differ
-    // only by `hasAnkiProfile`, which is the whole distinction being previewed.
-    const signals: OnboardingSignals =
-      template === 'onboarding-day7-getting-started'
-        ? { activityVisible: true, totalSearches: 0, totalExports: 0, hasAnkiProfile: false }
-        : template === 'onboarding-day7-anki'
-          ? { activityVisible: true, totalSearches: 12, totalExports: 0, hasAnkiProfile: false }
-          : template === 'onboarding-day7-anki-stalled'
-            ? { activityVisible: true, totalSearches: 12, totalExports: 0, hasAnkiProfile: true }
-            : { activityVisible: true, totalSearches: 12, totalExports: 4, hasAnkiProfile: true };
-
-    ({ subject, html } = await buildOnboardingDay7Email({
+  } else if (template === 'feedback-ask-started' || template === 'feedback-ask-cold') {
+    ({ subject, html } = await buildFeedbackAskEmail({
       username,
-      signals,
+      started: template === 'feedback-ask-started',
       unsubscribeUrl: unsubscribeUrls(1).page,
     }));
-  } else if (template === 'feedback-ask') {
-    ({ subject, html } = await buildFeedbackAskEmail({ username, unsubscribeUrl: unsubscribeUrls(1).page }));
+  } else if (template === 'dormant-30' || template === 'dormant-30-quiet') {
+    // Both shapes are previewable, because they are different emails to write:
+    // one leads with what has been added, the other admits there is nothing to
+    // report and asks what was missing instead. A preview of only the first
+    // hides the copy that is hardest to get right.
+    ({ subject, html } = await buildDormant30Email({
+      username,
+      newTitles: template === 'dormant-30' ? 57 : 0,
+      titles:
+        template === 'dormant-30'
+          ? [
+              {
+                name: 'Frieren: Beyond Journey\u2019s End',
+                coverUrl: `${config.BASE_URL}/logo-38d6e06a.webp`,
+                url: `${config.BASE_URL}/media/frieren`,
+              },
+              {
+                name: 'Violet Evergarden',
+                coverUrl: `${config.BASE_URL}/logo-38d6e06a.webp`,
+                url: `${config.BASE_URL}/media/violet-evergarden`,
+              },
+              {
+                name: 'Kaguya-sama: Love Is War',
+                coverUrl: `${config.BASE_URL}/logo-38d6e06a.webp`,
+                url: `${config.BASE_URL}/media/kaguya-sama`,
+              },
+            ]
+          : [],
+      unsubscribeUrl: unsubscribeUrls(1).page,
+    }));
   } else {
     ({ subject, html } = await buildMagicLinkEmail(`${config.BASE_URL}/v1/auth/magic-link/verify?token=test-token`));
   }
 
+  // Through `senderFor` rather than reading the config directly, so a preview
+  // shows the From the real send would use. Reading `MAIL_FROM_*` here meant the
+  // one place anybody actually LOOKS at these emails was the one place that
+  // showed the wrong sender -- and "reply to me" under a `noreply@` header is
+  // exactly the mistake a preview exists to catch.
   // Through `senderFor` rather than reading the config directly, so a preview
   // shows the From the real send would use. Reading `MAIL_FROM_*` here meant the
   // one place anybody actually LOOKS at these emails was the one place that

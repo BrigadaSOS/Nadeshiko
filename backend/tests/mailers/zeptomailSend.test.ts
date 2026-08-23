@@ -1,5 +1,26 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { sendViaZeptomailApi, type ZeptomailMessage } from '@app/mailers/zeptomailSend';
+
+/**
+ * `config` is frozen at module load, so varying the agent token means standing
+ * something else in front of it. Same shape as `lifecycleGate.test.ts`, and for
+ * the same reason -- see the note there on why the Proxy wraps a copy.
+ */
+const overrides: Record<string, unknown> = {};
+
+vi.mock('@config/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@config/config')>();
+
+  return {
+    ...actual,
+    config: new Proxy(
+      { ...actual.config },
+      { get: (target, key) => (key in overrides ? overrides[key as string] : target[key as keyof typeof target]) },
+    ),
+  };
+});
+
+const { sendViaZeptomailApi } = await import('@app/mailers/zeptomailSend');
+type ZeptomailMessage = import('@app/mailers/zeptomailSend').ZeptomailMessage;
 
 /**
  * The transport the deployed environments actually use, and the one the rest of
@@ -48,6 +69,7 @@ function captureRequest() {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  delete overrides.ZEPTOMAIL_LIFECYCLE_SEND_TOKEN;
 });
 
 describe('sending over the ZeptoMail API', () => {
@@ -62,6 +84,42 @@ describe('sending over the ZeptoMail API', () => {
     expect(seen.body.subject).toBe('Your sign-in link');
     expect(seen.body.htmlbody).toBe('<p>Hello</p>');
     expect(seen.body.textbody).toBe('Hello');
+  });
+
+  /**
+   * THE AGENT SPLIT, which is a config change rather than a code one.
+   *
+   * Everything shares one Agent today. When a recurring recap joins the day-7
+   * ask and the win-back, a policy action against it would take magic links with
+   * it -- so lifecycle mail gets the option of its own Agent, and transactional
+   * mail stays where it is. Unset, both fall back to the single token, which is
+   * what these two cases pin.
+   */
+  it('sends lifecycle mail through its own agent once one is configured', async () => {
+    overrides.ZEPTOMAIL_LIFECYCLE_SEND_TOKEN = 'lifecycle-agent-token';
+    const seen = captureRequest();
+
+    await sendViaZeptomailApi({ ...MESSAGE, lifecycle: true });
+
+    expect(seen.headers.Authorization).toBe('Zoho-enczapikey lifecycle-agent-token');
+  });
+
+  it('leaves transactional mail on the original agent', async () => {
+    overrides.ZEPTOMAIL_LIFECYCLE_SEND_TOKEN = 'lifecycle-agent-token';
+    const seen = captureRequest();
+
+    await sendViaZeptomailApi({ ...MESSAGE, lifecycle: false });
+
+    expect(seen.headers.Authorization).not.toContain('lifecycle-agent-token');
+  });
+
+  it('falls back to the single agent while no lifecycle token is set', async () => {
+    const seen = captureRequest();
+
+    await sendViaZeptomailApi({ ...MESSAGE, lifecycle: true });
+
+    expect(seen.headers.Authorization).toMatch(/^Zoho-enczapikey .+/);
+    expect(seen.headers.Authorization).not.toContain('lifecycle-agent-token');
   });
 
   /** The prefix is part of the credential's format; ZeptoMail refuses the bare token. */

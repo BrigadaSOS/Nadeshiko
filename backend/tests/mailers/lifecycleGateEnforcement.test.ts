@@ -31,7 +31,7 @@ afterEach(() => {
  * would be a convention rather than a control.
  */
 describe('the lifecycle switch, enforced at the send', () => {
-  it.each(['onboarding-day7', 'feedback-ask', 'recap'] as const)('refuses to send %s', async (kind) => {
+  it.each(['feedback-ask', 'dormant-30', 'recap'] as const)('refuses to send %s', async (kind) => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind });
 
     expect(sendMail).not.toHaveBeenCalled();
@@ -54,7 +54,7 @@ describe('the lifecycle switch, enforced at the send', () => {
   it('sends lifecycle mail once the gate allows the recipient', async () => {
     mayReallySend.mockReturnValue(true);
 
-    await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'onboarding-day7' });
+    await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'feedback-ask' });
 
     expect(sendMail).toHaveBeenCalledTimes(1);
   });
