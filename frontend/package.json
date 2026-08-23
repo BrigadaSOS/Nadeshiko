@@ -24,9 +24,6 @@
   },
   "dependencies": {
     "@brigadasos/nadeshiko-sdk": "*",
-    "@grafana/faro-transport-otlp-http": "^2.9.0",
-    "@grafana/faro-web-sdk": "^2.9.0",
-    "@grafana/faro-web-tracing": "^2.9.0",
     "@mdi/js": "^7.4.47",
     "@nuxtjs/i18n": "^10.6.0",
     "@nuxtjs/seo": "5.3.6",
@@ -54,6 +51,7 @@
     "posthog-node": "^5.49.0",
     "shiki": "^4.4.3",
     "vue-toastification": "^2.0.0-rc.5",
+    "web-vitals": "5.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

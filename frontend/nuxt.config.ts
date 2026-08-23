@@ -61,7 +61,9 @@ const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
 // Reports bypass `connect-src`, so the endpoint needs no CSP allowance.
 const CSP_REPORT_URI = `${POSTHOG_ORIGIN}/report/?token=${POSTHOG_PUBLIC_KEY}`;
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
-const FARO_ORIGIN = 'https://o.nadeshiko.co';
+// The host Alloy collector. Faro used to post here; the RUM reporter
+// (app/plugins/rum.client.ts) still does, on a different path.
+const COLLECTOR_ORIGIN = 'https://o.nadeshiko.co';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -114,7 +116,7 @@ export default defineNuxtConfig({
       allowedHosts: true,
     },
     optimizeDeps: {
-      include: ['@unhead/vue', '@grafana/faro-web-sdk', '@grafana/faro-web-tracing'],
+      include: ['@unhead/vue'],
     },
   },
   app: {
@@ -212,8 +214,17 @@ export default defineNuxtConfig({
       // failure. Without it the card still shows what the token itself knows:
       // the word, its reading, and what the form is doing.
       shirabeLookups: Boolean(env.NUXT_SHIRABE_API_KEY),
-      faroUrl: env.NUXT_PUBLIC_FARO_URL || '',
-      faroAppName: env.NUXT_PUBLIC_FARO_APP_NAME || '',
+      /**
+       * The browser-metrics receiver the RUM reporter posts web vitals to, and
+       * the name that reporter identifies itself by.
+       *
+       * DELIBERATELY NOT NAMED AFTER FARO, which these replaced on 2026-08-23.
+       * shirabe kept posting vitals to a variable called FARO_URL long after no
+       * Faro code remained anywhere in it; naming them for what they are now
+       * costs one coordinated env change today and saves that confusion.
+       */
+      browserMetricsUrl: env.NUXT_PUBLIC_BROWSER_METRICS_URL || '',
+      browserAppName: env.NUXT_PUBLIC_BROWSER_APP_NAME || '',
     },
   },
   // Only .vue files are components. The default scan also picks up .ts, which
@@ -283,7 +294,7 @@ export default defineNuxtConfig({
               CDN_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
-              FARO_ORIGIN,
+              COLLECTOR_ORIGIN,
 
               'http://127.0.0.1:*',
               'http://localhost:*',

@@ -12,7 +12,8 @@ const sdkMocks = vi.hoisted(() => ({
 vi.mock('@brigadasos/nadeshiko-sdk', () => sdkMocks);
 
 const reportErrorMock = vi.hoisted(() => vi.fn());
-vi.mock('../../utils/reportError', () => ({ reportError: reportErrorMock }));
+const reportEventMock = vi.hoisted(() => vi.fn());
+vi.mock('../../utils/reportError', () => ({ reportError: reportErrorMock, reportEvent: reportEventMock }));
 
 import { deferred } from './deferred';
 import {
@@ -299,19 +300,18 @@ describe('fetchSentences', () => {
   });
 
   // A transport failure resolves with no `response` at all rather than throwing,
-  // so it lands on the same branch a 500 does. It stays out of PostHog's issue
-  // list -- nothing here is ours to fix -- but not out of Faro, which is the
-  // only place an edge outage would show while the origin looks healthy.
-  it('keeps a request that never got a response out of the issue list, not out of Faro', async () => {
+  // so it lands on the same branch a 500 does. It stays out of the issue list --
+  // nothing here is ours to fix -- but it is still counted, because an edge
+  // outage while the origin is healthy shows up nowhere else.
+  it('counts a request that never got a response instead of filing it as an issue', async () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.search.mockResolvedValueOnce({ error: {}, response: undefined });
     expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
-    expect(reportErrorMock).toHaveBeenCalledWith(
-      'search:sentences-fetch-failed',
-      expect.any(Error),
-      expect.objectContaining({ 'http.status_code': '0' }),
-      { faroOnly: true },
+    expect(reportErrorMock).not.toHaveBeenCalled();
+    expect(reportEventMock).toHaveBeenCalledWith(
+      'search_fetch_failed',
+      expect.objectContaining({ 'http.status_code': '0', 'search.kind': 'sentences' }),
     );
   });
 
@@ -332,7 +332,6 @@ describe('fetchSentences', () => {
       'search:sentences-fetch-failed',
       expect.any(Error),
       expect.objectContaining({ 'http.status_code': '502' }),
-      { faroOnly: false },
     );
   });
 
@@ -348,7 +347,6 @@ describe('fetchSentences', () => {
       'search:sentences-fetch-failed',
       expect.any(Error),
       expect.objectContaining({ 'http.status_code': '200' }),
-      { faroOnly: false },
     );
   });
 });
@@ -365,17 +363,16 @@ describe('fetchStats', () => {
   });
 
   // The stats fetch fires alongside the sentences one, so a reader whose network
-  // drops files two reports for one event. Same rule, applied on both paths.
-  it('applies the same Faro-only rule to a stats request that never got a response', async () => {
+  // drops produces two reports for one event. Same rule, applied on both paths.
+  it('counts a stats request that never got a response, on the same rule', async () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: undefined });
     expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error' });
-    expect(reportErrorMock).toHaveBeenCalledWith(
-      'search:stats-fetch-failed',
-      expect.any(Error),
-      expect.objectContaining({ 'http.status_code': '0' }),
-      { faroOnly: true },
+    expect(reportErrorMock).not.toHaveBeenCalled();
+    expect(reportEventMock).toHaveBeenCalledWith(
+      'search_fetch_failed',
+      expect.objectContaining({ 'http.status_code': '0', 'search.kind': 'stats' }),
     );
   });
 

@@ -34,7 +34,7 @@ const frontendRoot = fileURLToPath(new URL('../..', import.meta.url));
  * default: it is asking about the browser on purpose, from a `.client` plugin
  * that never runs during SSR, and the answer is telemetry rather than markup.
  */
-const ALLOWED = new Set(['app/plugins/00-faro.client.ts']);
+const ALLOWED = new Set<string>([]);
 
 /** `.toLocaleString()` and friends, called with no arguments at all. */
 const BARE_TO_LOCALE = /\.toLocale(?:String|DateString|TimeString)\(\s*\)/;

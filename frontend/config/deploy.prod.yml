@@ -228,7 +228,7 @@ env:
     # Grafana Faro browser RUM. o.nadeshiko.co is routed by kamal-proxy to the
     # host Alloy's Faro receiver (:4329, /collect); its CORS already allows
     # nadeshiko.co + dev.nadeshiko.co. Replaces the old otelcol-browser sidecar.
-    NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co/collect"
+    NUXT_PUBLIC_BROWSER_METRICS_URL: "https://o.nadeshiko.co/v1/metrics"
 
 # The otelcol-browser accessory was removed: browser RUM now goes straight to
 # the host Alloy Faro receiver. Server-side (SSR) telemetry still uses
