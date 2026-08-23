@@ -104,6 +104,24 @@ env:
     # a forwarded copy reaches them rather than this alias.
     FEEDBACK_NOTIFICATION_TO: support@nadeshiko.co
 
+    # LIFECYCLE MAIL IS LIVE. The nightly sweep at 05:00 UTC stops being a dry
+    # run and starts sending: the day-7 ask to accounts a week old, and the
+    # win-back to accounts whose session lapsed in the last 24 hours.
+    #
+    # Measured against production before flipping this, over five nights of dry
+    # run and a direct count: about three of each per night. The dormant backlog
+    # is 331 accounts, but the sweep only takes the ones that lapsed last night,
+    # so the first night is a handful rather than half the base.
+    #
+    # `LIFECYCLE_EMAILS_ONLY_TO` is deliberately not set. Previewing goes through
+    # `npm run email:test <template> <address>`, which bypasses this gate
+    # entirely, so a rehearsal does not need the switch on at all.
+    #
+    # Set this back to "false" to stop everything; accounts already claimed in
+    # `EmailLifecycleSend` are never re-sent, and accounts swept while off are
+    # never claimed, so they stay eligible when it comes back.
+    LIFECYCLE_EMAILS_ENABLED: "true"
+
     # What Shirabe has us registered as. The redirect is exact-matched over
     # there, so this string and the one in their `oauth_clients` row have to be
     # character-for-character the same or the consent screen refuses the request.
