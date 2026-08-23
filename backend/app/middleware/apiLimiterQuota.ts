@@ -3,6 +3,7 @@ import { AuthCredentialsInvalidError, QuotaExceededError } from '@app/errors';
 import { ApiKeyKind, AuthType, Tier } from '@app/models';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 import { resolveQuotaLimit } from '@app/models/quota';
+import { captureApiActiveDay } from '@app/services/analytics/posthog';
 import { logger } from '@config/log';
 
 /**
@@ -92,6 +93,12 @@ export const rateLimitApiQuota = async (req: Request, res: Response, next: NextF
     res.on('finish', () => {
       logger.debug({ userId: user.id, statusCode: res.statusCode }, 'API quota finish callback fired');
       if (res.statusCode >= 200 && res.statusCode < 300) {
+        // Same success condition as the quota increment, so "an active day" and
+        // "a request that counted against the quota" can never disagree. The
+        // quota figures are the ones read above, i.e. before this request was
+        // added -- month-to-date as the day's first call found it.
+        captureApiActiveDay({ userId: user.id, quotaUsed: quota.quotaUsed, quotaLimit: quota.quotaLimit });
+
         AccountQuotaUsage.incrementForUser(user.id)
           .then(() => {
             logger.debug({ userId: user.id }, 'Account quota incremented successfully');
