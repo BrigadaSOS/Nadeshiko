@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SearchScope } from '~/composables/useSearchFetch';
+import { stripEpisodeHits, stripUnreadTokenFields, type SearchScope } from '~/composables/useSearchFetch';
 import {
   DEFAULT_OG_IMAGE_PATH,
   DEFAULT_OG_IMAGE_SIZE,
@@ -124,13 +124,18 @@ const searchScope = computed<SearchScope>(() => ({
 
 const fetchSentenceData = async () => {
   const outcome = await fetchSentences(searchScope.value);
-  return outcome.status === 'ok' ? outcome.data : null;
+  // Slimmed before it is handed back, because what this returns IS the hydration
+  // payload: see `stripUnreadTokenFields`.
+  return outcome.status === 'ok' ? stripUnreadTokenFields(outcome.data) : null;
 };
 
 const fetchStatsData = async () => {
   const outcome = await fetchStats(searchScope.value);
   if (outcome.status === 'ok') {
-    return outcome.data;
+    // Per-episode counts only for a title the URL actually named. A word search
+    // names none, so all 492 of the pairs it was carrying go; `?media=` keeps
+    // the one the meta description and the open drawer both read.
+    return stripEpisodeHits(outcome.data, mediaQueryParam.value);
   }
   // Failures are reported inside `fetchStats`, which still has the response and
   // can tell a 403 apart from a real error. Re-reporting the bare outcome here
