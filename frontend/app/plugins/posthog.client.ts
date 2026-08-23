@@ -1,5 +1,6 @@
 import type { CaptureResult } from 'posthog-js';
 import { createExceptionDeduper, exceptionSignature } from '~/utils/exceptionDedupe';
+import { isUnactionableException } from '~/utils/exceptionNoise';
 import { posthog, startPostHog } from '~/utils/posthogClient';
 
 /**
@@ -74,10 +75,12 @@ export default defineNuxtPlugin({
            * survive -- so this is the earliest place it can go, and now the only
            * one that is provably early enough.
            *
-           * Drops the second copy of every double-captured `$exception`; see
-           * `~/utils/exceptionDedupe` for why there are two.
+           * Drops the second copy of every double-captured `$exception` (see
+           * `~/utils/exceptionDedupe` for why there are two), and the
+           * autocaptured ones that were never faults (see
+           * `~/utils/exceptionNoise`).
            */
-          before_send: dropDuplicateExceptions(),
+          before_send: buildBeforeSend(),
         });
 
         if (common?.debug) client.debug(true);
@@ -100,12 +103,23 @@ export default defineNuxtPlugin({
   },
 });
 
-/** The dedupe `before_send`, over a deduper that lives as long as the page. */
-function dropDuplicateExceptions(): (event: CaptureResult | null) => CaptureResult | null {
+/**
+ * The `before_send` posthog-js is initialised with, over a deduper that lives as
+ * long as the page.
+ *
+ * One function rather than the array posthog-js also accepts: the two rules have
+ * to run in this order -- dropping the noise first means the deduper never
+ * records a signature for an event that is not being sent, so it cannot expire
+ * a later real one -- and composing them here states that, where an array leaves
+ * it to the SDK's iteration order.
+ */
+function buildBeforeSend(): (event: CaptureResult | null) => CaptureResult | null {
   const isDuplicate = createExceptionDeduper();
 
   return (event) => {
     if (event?.event !== '$exception') return event;
+
+    if (isUnactionableException(event.properties)) return null;
 
     const signature = exceptionSignature(event.properties);
     if (!signature) return event;
