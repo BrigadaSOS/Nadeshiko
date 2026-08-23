@@ -25,6 +25,7 @@ import { recordEmailBlocked, recordEmailDeliveryError, recordEmailSent } from '@
 import type { EmailKind } from '@app/services/email/metrics';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 import { catalogueSize } from '@app/services/stats/catalogueSize';
+import { SENDERS, configuredSender, fromNameFor, senderForUser } from './senders';
 import { captureEmailSent } from '@app/services/analytics/posthog';
 
 const tracer = getTracer();
@@ -164,6 +165,13 @@ interface EmailOptions {
    * another. The webhook splits this back apart; see `EmailEvent`.
    */
   campaign?: string;
+  /**
+   * Whose mail this is, when there is a reader behind it.
+   *
+   * Only used to pick which of the two of us it comes from. Absent for
+   * transactional mail, which has one identity and always has.
+   */
+  userId?: number;
 }
 
 /**
@@ -193,7 +201,16 @@ function isLifecycleKind(kind: EmailKind): boolean {
   return (LIFECYCLE_KINDS as readonly string[]).includes(kind);
 }
 
-function senderFor(kind: EmailKind): { email: string; name: string } {
+function senderFor(kind: EmailKind, userId?: number): { email: string; name: string } {
+  // A PERSONAL EMAIL COMES FROM A PERSON, and which person is decided by the
+  // reader rather than by configuration -- see `senderForUser` on why it is
+  // sticky. Everything without a reader behind it falls back to the configured
+  // identity, which is what the relay has always used.
+  if (userId !== undefined && (isLifecycleKind(kind) || kind === 'welcome')) {
+    const sender = senderForUser(userId);
+    return { email: sender.email, name: fromNameFor(sender) };
+  }
+
   // WELCOME IS THE EXCEPTION, and it is a sender exception rather than a kind
   // one on purpose. It reads as a note from a person -- "Hi! I'm David" -- and
   // invites a reply, so it cannot go out over `noreply@`. But it must not become
@@ -201,14 +218,14 @@ function senderFor(kind: EmailKind): { email: string; name: string } {
   // `LIFECYCLE_EMAILS_ENABLED`, and a welcome email that stops arriving because
   // somebody has not switched the newsletter on is an outage, not a policy.
   if (isLifecycleKind(kind) || kind === 'welcome') {
-    return { email: config.LIFECYCLE_FROM_EMAIL, name: config.LIFECYCLE_FROM_NAME };
+    return configuredSender();
   }
 
   return { email: config.MAIL_FROM_EMAIL, name: config.MAIL_FROM_NAME };
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const { email: fromEmail, name: fromName } = senderFor(options.kind);
+  const { email: fromEmail, name: fromName } = senderFor(options.kind, options.userId);
 
   // THE SECOND ENFORCEMENT POINT FOR THE LIFECYCLE SWITCH, and the last one.
   //
@@ -298,7 +315,7 @@ export async function sendWelcomeEmail(userId: number, username: string, email: 
   // Read here rather than inside the builder, so the template layer stays a pure
   // function of its inputs and the one place that touches the database is the
   // one that already knows how to fail softly.
-  const { subject, html } = await buildWelcomeEmail(username, await catalogueSize());
+  const { subject, html } = await buildWelcomeEmail(username, senderForUser(userId), await catalogueSize());
 
   await sendEmailJob(
     {
@@ -306,6 +323,7 @@ export async function sendWelcomeEmail(userId: number, username: string, email: 
       subject,
       html,
       kind: 'welcome',
+      userId,
     },
     `welcome-${userId}`, // Dedupe key to prevent duplicate welcome emails
   );
@@ -379,6 +397,7 @@ export async function sendFeedbackAskEmail(input: {
   const { oneClick, page } = unsubscribeUrls(input.userId, 'checkins');
   const { subject, html, campaign } = await buildFeedbackAskEmail({
     username: input.username,
+    sender: senderForUser(input.userId),
     started: input.started,
     unsubscribeUrl: page,
   });
@@ -390,6 +409,7 @@ export async function sendFeedbackAskEmail(input: {
       html,
       kind: 'feedback-ask',
       campaign,
+      userId: input.userId,
       unsubscribeUrl: oneClick,
       // NO `replyTo`. A reply is the point of this email, and `senderFor` has
       // already made the From a real inbox -- so replies go there on their own.
@@ -431,6 +451,7 @@ export async function sendDormant30Email(input: {
   const { oneClick, page } = unsubscribeUrls(input.userId, 'checkins');
   const { subject, html } = await buildDormant30Email({
     username: input.username,
+    sender: senderForUser(input.userId),
     newTitles: input.newTitles,
     titles: input.titles,
     unsubscribeUrl: page,
@@ -443,6 +464,7 @@ export async function sendDormant30Email(input: {
       html,
       kind: 'dormant-30',
       campaign: input.campaign,
+      userId: input.userId,
       unsubscribeUrl: oneClick,
       // No `replyTo`, for the reason spelled out on the feedback ask: the From
       // is already a personal mailbox, and "reply and tell me why" has to reach
@@ -507,7 +529,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
   let html: string;
 
   if (template === 'welcome') {
-    ({ subject, html } = await buildWelcomeEmail(username));
+    ({ subject, html } = await buildWelcomeEmail(username, SENDERS[0]));
   } else if (template === 'verify-new-email') {
     ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
   } else if (template === 'feedback') {
@@ -527,6 +549,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
   } else if (template === 'feedback-ask-started' || template === 'feedback-ask-cold') {
     ({ subject, html } = await buildFeedbackAskEmail({
       username,
+      sender: SENDERS[0],
       started: template === 'feedback-ask-started',
       unsubscribeUrl: unsubscribeUrls(1).page,
     }));
@@ -537,6 +560,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     // hides the copy that is hardest to get right.
     ({ subject, html } = await buildDormant30Email({
       username,
+      sender: SENDERS[0],
       newTitles: template === 'dormant-30' ? 57 : 0,
       titles:
         template === 'dormant-30'

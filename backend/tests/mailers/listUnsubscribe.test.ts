@@ -139,6 +139,26 @@ describe('who a message comes from', () => {
   });
 
   /**
+   * A personal email comes from a person, and which one is decided by the reader
+   * rather than by configuration. Transactional mail keeps the one identity it
+   * has always had -- there is nobody to reply to on a sign-in link.
+   */
+  it.each([
+    [1, 'Natsume'],
+    [2, 'Dav'],
+  ])('sends a reader with id %i their own sender', async (userId, expected) => {
+    await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'feedback-ask', userId });
+
+    expect(fromOf()).toContain(expected);
+  });
+
+  it('leaves transactional mail on the configured address whoever the reader is', async () => {
+    await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'magic-link', userId: 1 });
+
+    expect(fromOf()).toBe(`${config.MAIL_FROM_NAME} <${config.MAIL_FROM_EMAIL}>`);
+  });
+
+  /**
    * The two senders have to actually differ, or the routing above is a no-op
    * that every assertion still passes.
    */

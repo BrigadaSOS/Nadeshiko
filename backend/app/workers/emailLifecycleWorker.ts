@@ -3,7 +3,7 @@ import { MoreThan, QueryFailedError } from 'typeorm';
 import { EmailLifecycleSend, Media, User } from '@app/models';
 import { getMediaCoverUrl } from '@lib/utils/storage';
 import { config } from '@config/config';
-import { DORMANT_TITLE_SLOTS, type DormantTitle } from '@app/mailers/emailTemplates';
+import { DORMANT_TITLE_SLOTS, type DormantTitle, withCampaignTags } from '@app/mailers/emailTemplates';
 import type { LifecycleKind } from '@app/models';
 import { UserActivity } from '@app/models/UserActivity';
 import { logger } from '@config/log';
@@ -108,6 +108,23 @@ const LATEST_SESSION_EXPIRY = `(SELECT MAX(s.expires_at) FROM "session" s WHERE 
 export const DORMANT_REPEAT_FLOOR_DAYS = 180;
 
 /**
+ * How many win-back notes may go out on one night.
+ *
+ * THE CAP IS WHAT MAKES "DORMANT" A STATE RATHER THAN AN ANNIVERSARY. Taking
+ * only the accounts that crossed thirty days LAST NIGHT is self-limiting, but it
+ * also abandons everybody already past it -- 331 accounts when this shipped,
+ * half the base, who would never hear from us again purely because their lapse
+ * date fell before the feature existed.
+ *
+ * So the query asks the honest question -- has this account been away thirty
+ * days -- and the cap handles the consequence: the first nights drain the
+ * backlog twenty-five at a time rather than mailing 331 people at once down the
+ * relay that also carries every magic link. At about three fresh lapses a night
+ * the backlog clears in a fortnight and this stops binding on its own.
+ */
+export const DORMANT_NIGHTLY_CAP = 25;
+
+/**
  * Accounts whose last session lapsed in the past day.
  *
  * A ONE-DAY WINDOW, and here it is load-bearing rather than tidy. The other two
@@ -124,20 +141,26 @@ export const DORMANT_REPEAT_FLOOR_DAYS = 180;
  * least a session lifetime between two sends; the floor puts half a year there.
  */
 async function dormantCandidates(): Promise<User[]> {
-  return User.createQueryBuilder('user')
-    .where('user.is_active = true')
-    .andWhere(`${LATEST_SESSION_EXPIRY} < now()`)
-    .andWhere(`${LATEST_SESSION_EXPIRY} >= now() - make_interval(days => 1)`)
-    .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`)
-    .andWhere(
-      `NOT EXISTS (
+  return (
+    User.createQueryBuilder('user')
+      .where('user.is_active = true')
+      .andWhere(`${LATEST_SESSION_EXPIRY} < now()`)
+      .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`)
+      .andWhere(
+        `NOT EXISTS (
          SELECT 1 FROM "EmailLifecycleSend" s
          WHERE s.user_id = user.id AND s.kind = 'dormant-30'
            AND s.sent_at >= now() - make_interval(days => :floor)
        )`,
-      { floor: DORMANT_REPEAT_FLOOR_DAYS },
-    )
-    .getMany();
+        { floor: DORMANT_REPEAT_FLOOR_DAYS },
+      )
+      // Most recently lapsed first, because they are the warmest: somebody who
+      // went quiet last week is likelier to come back than somebody who left a
+      // year ago, and the long tail still drains behind them.
+      .orderBy(LATEST_SESSION_EXPIRY, 'DESC')
+      .take(DORMANT_NIGHTLY_CAP)
+      .getMany()
+  );
 }
 
 /** The month a dormancy was noticed, so the same account may go quiet again next year. */
@@ -166,22 +189,35 @@ async function titlesAddedSinceLastVisit(userId: number): Promise<{ count: numbe
   const lastSeen = rows[0]?.last_seen;
   if (!lastSeen) return { count: 0, samples: [] };
 
-  const [media, count] = await Media.findAndCount({
-    where: { createdAt: MoreThan(lastSeen) },
-    order: { createdAt: 'DESC' },
-    take: DORMANT_TITLE_SLOTS,
-  });
+  const count = await Media.countBy({ createdAt: MoreThan(lastSeen) });
+
+  // ALWAYS A FULL GRID, topped up with the newest titles overall when fewer
+  // than that many arrived while they were away.
+  //
+  // The reason is what the covers are for. `count` is the argument -- it has to
+  // stay the honest number of titles added since their visit, and it does. The
+  // grid is the *pull*: eight covers somebody recognises is a reason to come
+  // back, and two covers is a reason to think nothing happens here. Ingest is
+  // bursty enough that a thirty-day lapser usually lands in a quiet stretch and
+  // would otherwise get a two-cover email arguing against itself.
+  //
+  // Newest first either way, so the genuinely new ones lead.
+  const media = await Media.find({ order: { createdAt: 'DESC' }, take: DORMANT_TITLE_SLOTS });
 
   return {
     count,
-    samples: media.map((title) => ({
+    samples: media.map((title, index) => ({
       // English first because the mail is English. Falling through the other two
       // matters more than it looks: a title with no English name would otherwise
       // render as an empty caption under a cover, which reads as a broken email
       // rather than as a missing translation.
       name: title.nameEn || title.nameRomaji || title.nameJa,
       coverUrl: getMediaCoverUrl(title),
-      url: `${config.BASE_URL}/media/${title.slug}`,
+      // TAGGED BY POSITION, not just as "a cover". Untagged, a click on a title
+      // is indistinguishable from any other visit and the one thing this email
+      // is actually testing -- whether showing what is here beats saying how
+      // much was added -- cannot be read off.
+      url: withCampaignTags(`/media/${title.slug}`, 'dormant-30', `title-${index + 1}`),
     })),
   };
 }
@@ -230,18 +266,15 @@ export const FEEDBACK_ASK_AGE_DAYS = 7;
  * and the client reference agree.
  *
  * DAY 7 RATHER THAN DAY 30, and the numbers are the argument. At day 30 the
- * production dry run found 0.8 candidates a night against 3.8 at day 7 -- and a
- * month-30 ask only ever reaches the people it is already working for, which is
- * a survey of survivors. A week in, the impression is fresh and the population
- * still includes the people who are about to drift away, who are the ones worth
- * hearing from.
+ * production dry run found under one candidate a night against three at day 7 --
+ * and a month-30 ask only ever reaches the people it is already working for,
+ * which is a survey of survivors. A week in, the impression is fresh and the
+ * population still includes the people who are about to drift away.
  *
- * Seven is probably still late for the half who never searched -- somebody who
- * signs up and does not use a thing is usually gone within hours. Splitting the
- * cold branch onto its own earlier schedule is a real option, and deliberately
- * not taken yet: there is no point building two schedules before knowing the
- * first one gets answered at all. `FEEDBACK_ASK_AGE_DAYS` is where that change
- * starts.
+ * Seven is probably still late for the half who never searched. Splitting the
+ * cold branch onto its own earlier schedule is a real option, deliberately not
+ * taken yet: there is no point building two schedules before knowing the first
+ * gets answered at all. `FEEDBACK_ASK_AGE_DAYS` is where that change starts.
  */
 async function sweepFeedbackAsk(): Promise<void> {
   const users = await candidates('feedback-ask', FEEDBACK_ASK_AGE_DAYS);
