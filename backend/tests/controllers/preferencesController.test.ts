@@ -2,8 +2,10 @@ import { request } from '../helpers/http';
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
+import { loadFixtures } from '../fixtures/loader';
 import { User } from '@app/models/User';
 import { CategoryType } from '@app/models/Media';
+import { z } from 'zod/v4';
 
 setupTestSuite();
 
@@ -158,10 +160,7 @@ describe('PATCH /v1/user/preferences', () => {
 
   it('replaces arrays instead of deep-merging them', async () => {
     fixtures.users.kevin.preferences = {
-      hiddenMedia: [
-        { mediaPublicId: 'old-media-01', nameEn: 'Old One' },
-        { mediaPublicId: 'old-media-02', nameEn: 'Old Two' },
-      ],
+      hiddenMedia: [{ mediaPublicId: 'old-media-01' }, { mediaPublicId: 'old-media-02' }],
     };
     await fixtures.users.kevin.save();
     signInAs(app, fixtures.users.kevin);
@@ -169,12 +168,12 @@ describe('PATCH /v1/user/preferences', () => {
     const res = await request(app)
       .patch('/v1/user/preferences')
       .send({
-        hiddenMedia: [{ mediaPublicId: 'new-media-99', nameEn: 'Only New' }],
+        hiddenMedia: [{ mediaPublicId: 'new-media-99' }],
       });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      hiddenMedia: [{ mediaPublicId: 'new-media-99', nameEn: 'Only New' }],
+      hiddenMedia: [{ mediaPublicId: 'new-media-99' }],
     });
   });
 
@@ -204,5 +203,123 @@ describe('PATCH /v1/user/preferences', () => {
     const res = await request(app).patch('/v1/user/preferences').send({ favoriteMedia: atCap });
 
     expect(res.status).toBe(200);
+  });
+});
+
+/**
+ * Rows written before `SlimMediaPreferences1787200000000` hold
+ * `{ mediaPublicId, nameEn, ... }` where the slim shape holds an id. The
+ * migration rewrote them, but a restore from an older dump has not, and the
+ * failure mode is the worst one available: a reader's hidden list resolving to
+ * nothing and every title they hid coming back.
+ */
+describe('preferences written before the media lists were slimmed', () => {
+  it('reads the old objects as ids', async () => {
+    await User.update(
+      { id: fixtures.users.kevin.id },
+      {
+        preferences: {
+          hiddenMedia: [{ mediaPublicId: 'legacy-hid-1', nameEn: 'Old One' }] as never,
+          favoriteMedia: [
+            { mediaPublicId: 'legacy-fav-1', nameEn: 'Old Two', favoritedAt: '2026-01-02T03:04:05.000Z' },
+          ] as never,
+        },
+      },
+    );
+    signInAs(app, await User.findOneByOrFail({ id: fixtures.users.kevin.id }));
+
+    const res = await request(app).get('/v1/user/preferences');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      hiddenMedia: [{ mediaPublicId: 'legacy-hid-1' }],
+      favoriteMedia: [{ mediaPublicId: 'legacy-fav-1', favoritedAt: '2026-01-02T03:04:05.000Z' }],
+    });
+  });
+
+  it('reads a bare id string, the shape this list is headed for', async () => {
+    // Nothing writes this yet. `hiddenMedia` drops the wrapper once no old
+    // container or stale tab is left to read it, and accepting it here now is
+    // what makes that a backend-only change rather than another migration.
+    await User.update({ id: fixtures.users.kevin.id }, { preferences: { hiddenMedia: ['bare-id-01'] as never } });
+    signInAs(app, await User.findOneByOrFail({ id: fixtures.users.kevin.id }));
+
+    const res = await request(app).get('/v1/user/preferences');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ hiddenMedia: [{ mediaPublicId: 'bare-id-01' }] });
+  });
+
+  it('heals the row on the next write, whatever that write was about', async () => {
+    await User.update(
+      { id: fixtures.users.kevin.id },
+      { preferences: { hiddenMedia: [{ mediaPublicId: 'legacy-hid-1', nameEn: 'Old One' }] as never } },
+    );
+    signInAs(app, await User.findOneByOrFail({ id: fixtures.users.kevin.id }));
+
+    const res = await request(app)
+      .patch('/v1/user/preferences')
+      .send({ searchHistory: { enabled: false } });
+
+    expect(res.status).toBe(200);
+
+    const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
+    expect(saved.preferences.hiddenMedia).toEqual([{ mediaPublicId: 'legacy-hid-1' }]);
+  });
+});
+
+/**
+ * Kamal keeps the old containers serving while the new ones come up, so for a
+ * window the rows this code writes are being read back by the code it replaced.
+ * The entries below are what that old code called valid -- its name fields were
+ * optional -- which is the whole reason `hiddenMedia` stayed a wrapper object
+ * instead of becoming a bare id string.
+ */
+describe('what the previous release can still read', () => {
+  // A copy of the pre-change schema, on purpose: this is the contract under
+  // test, so it has to be spelled out rather than imported from the generated
+  // file that has already moved on.
+  const previousReleaseSchema = z.object({
+    hiddenMedia: z
+      .array(
+        z.object({
+          mediaPublicId: z.string(),
+          nameEn: z.string().optional(),
+          nameJa: z.string().optional(),
+          nameRomaji: z.string().optional(),
+        }),
+      )
+      .optional(),
+    favoriteMedia: z
+      .array(
+        z.object({
+          mediaPublicId: z.string(),
+          nameEn: z.string().optional(),
+          nameJa: z.string().optional(),
+          nameRomaji: z.string().optional(),
+          favoritedAt: z.iso.datetime({ offset: true }),
+        }),
+      )
+      .optional(),
+  });
+
+  it('validates and reads everything this release writes', async () => {
+    const loaded = await loadFixtures(['singleMedia']);
+    const media = loaded.media.testShow;
+    signInAs(app, fixtures.users.kevin);
+
+    await request(app).post('/v1/user/excluded-media').send({ mediaPublicId: media.publicId });
+    await request(app).post('/v1/user/favorite-media').send({ mediaPublicId: media.publicId });
+
+    const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
+
+    // Would throw where the old container's response validation would 500.
+    const parsed = previousReleaseSchema.parse(saved.preferences);
+
+    // And `item.mediaPublicId`, which is how all of the old code reaches in,
+    // still answers -- a bare string would have read as `undefined` and emptied
+    // the reader's hidden list mid-deploy.
+    expect(parsed.hiddenMedia?.map((item) => item.mediaPublicId)).toEqual([media.publicId]);
+    expect(parsed.favoriteMedia?.map((item) => item.mediaPublicId)).toEqual([media.publicId]);
   });
 });

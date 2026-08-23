@@ -30,10 +30,10 @@ describe('POST /v1/user/excluded-media', () => {
 
     expect(res.status).toBe(204);
 
+    // The id alone: the names this used to copy in rode every page's hydration
+    // payload and were never read back. See `SlimMediaPreferences1787200000000`.
     const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
-    expect(saved.preferences.hiddenMedia).toEqual([
-      expect.objectContaining({ mediaPublicId: media.publicId, nameEn: media.nameEn }),
-    ]);
+    expect(saved.preferences.hiddenMedia).toEqual([{ mediaPublicId: media.publicId }]);
   });
 
   it('is a no-op when the media is already hidden', async () => {
@@ -66,7 +66,10 @@ describe('POST /v1/user/excluded-media', () => {
     expect(res.status).toBe(204);
 
     const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
-    expect(saved.preferences.hiddenMedia?.map((item) => item.mediaPublicId)).toEqual(['concurrent1', media.publicId]);
+    expect(saved.preferences.hiddenMedia).toEqual([
+      { mediaPublicId: 'concurrent1' },
+      { mediaPublicId: media.publicId },
+    ]);
   });
 
   it('returns 404 when the media does not exist', async () => {
@@ -105,7 +108,7 @@ describe('DELETE /v1/user/excluded-media/:mediaPublicId', () => {
     expect(res.status).toBe(204);
 
     const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
-    expect(saved.preferences.hiddenMedia?.map((item) => item.mediaPublicId)).toEqual(['concurrent1']);
+    expect(saved.preferences.hiddenMedia).toEqual([{ mediaPublicId: 'concurrent1' }]);
   });
 
   it('returns 404 when the media is not hidden', async () => {
@@ -142,6 +145,26 @@ describe('GET /v1/user/excluded-media', () => {
     expect(res.body.excludedMedia).toHaveLength(1);
     expect(res.body.excludedMedia[0]).toMatchObject({ publicId: media.publicId });
   });
+
+  it('still resolves a row stored before the list was slimmed', async () => {
+    const loaded = await loadFixtures(['singleMedia']);
+    const media = loaded.media.testShow;
+    // The pre-slimming shape. Read as ids, or the reader's hidden list resolves
+    // to nothing and every title they hid comes back.
+    await User.update(
+      { id: fixtures.users.kevin.id },
+      { preferences: { hiddenMedia: [{ mediaPublicId: media.publicId, nameEn: 'Stale Copy' }] as never } },
+    );
+    signInAs(app, await User.findOneByOrFail({ id: fixtures.users.kevin.id }));
+
+    const res = await request(app).get('/v1/user/excluded-media');
+
+    expect(res.status).toBe(200);
+    // Named from `Media`, not from the stale copy in the blob.
+    expect(res.body.excludedMedia).toEqual([
+      expect.objectContaining({ publicId: media.publicId, nameEn: media.nameEn }),
+    ]);
+  });
 });
 
 describe('POST /v1/user/favorite-media', () => {
@@ -155,11 +178,7 @@ describe('POST /v1/user/favorite-media', () => {
 
     const saved = await User.findOneByOrFail({ id: fixtures.users.kevin.id });
     expect(saved.preferences.favoriteMedia).toEqual([
-      expect.objectContaining({
-        mediaPublicId: media.publicId,
-        nameEn: media.nameEn,
-        favoritedAt: expect.any(String),
-      }),
+      { mediaPublicId: media.publicId, favoritedAt: expect.any(String) },
     ]);
   });
 

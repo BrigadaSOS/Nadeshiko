@@ -7,13 +7,6 @@
  * to live outside the SFC.
  */
 
-export type MarkedMediaSource = {
-  mediaPublicId: string;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji?: string;
-};
-
 export type MarkedMedia = {
   publicId: string;
   nameEn?: string;
@@ -21,48 +14,34 @@ export type MarkedMedia = {
   nameRomaji?: string;
 };
 
-const timestamp = (value?: string): number => {
-  const parsed = Date.parse(value || '');
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
-
 /**
- * Favourites and hidden titles merged into one list, most recently acted on
- * first.
+ * Favourites and hidden titles merged into one list.
  *
- * A title that is both favourited and hidden appears once, ordered by whichever
- * happened later: it is one title carrying two flags, not two entries, and the
- * row it renders shows both.
+ * Takes ids and a separate name lookup because the stored preferences carry no
+ * names any more -- they are resolved from `/v1/user/favorite-media` and
+ * `/v1/user/excluded-media`, which read the catalogue rather than a copy of it
+ * that goes stale on a rename. An id the lookup does not answer for is still
+ * listed: the row falls back to `Media #{id}` and its controls still work, which
+ * is what a reader needs to clear an entry whose title has left the catalogue.
  *
- * Titles with no usable timestamp sort last rather than being dropped -- a
- * missing date is a reason to place a title badly, not to hide a setting the
- * reader made.
+ * Favourites come first, in the order given (the endpoint sorts them newest
+ * first), then the hidden titles in the order they were hidden. A title that is
+ * both appears once, under favourites: it is one title carrying two flags, not
+ * two entries, and the row it renders shows both.
  */
 export function mergeMarkedMedia(
-  favorites: Array<MarkedMediaSource & { favoritedAt?: string }>,
-  hidden: Array<MarkedMediaSource & { hiddenAt?: string }>,
+  favoriteIds: readonly string[],
+  hiddenIds: readonly string[],
+  names: ReadonlyMap<string, MarkedMedia>,
 ): MarkedMedia[] {
-  const byId = new Map<string, { media: MarkedMedia; at: number }>();
+  const seen = new Set<string>();
+  const merged: MarkedMedia[] = [];
 
-  const add = (item: MarkedMediaSource, at: number) => {
-    const existing = byId.get(item.mediaPublicId);
-    if (existing) {
-      existing.at = Math.max(existing.at, at);
-      return;
-    }
-    byId.set(item.mediaPublicId, {
-      at,
-      media: {
-        publicId: item.mediaPublicId,
-        nameEn: item.nameEn,
-        nameJa: item.nameJa,
-        nameRomaji: item.nameRomaji,
-      },
-    });
-  };
+  for (const publicId of [...favoriteIds, ...hiddenIds]) {
+    if (seen.has(publicId)) continue;
+    seen.add(publicId);
+    merged.push(names.get(publicId) ?? { publicId });
+  }
 
-  for (const item of favorites) add(item, timestamp(item.favoritedAt));
-  for (const item of hidden) add(item, timestamp(item.hiddenAt));
-
-  return [...byId.values()].sort((a, b) => b.at - a.at).map((entry) => entry.media);
+  return merged;
 }

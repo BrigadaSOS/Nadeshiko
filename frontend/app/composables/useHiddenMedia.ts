@@ -2,11 +2,7 @@ import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import type { MediaFilterItem } from '~/types/search';
 import { handleApiError } from '~/utils/apiError';
 
-type SdkHiddenMediaItem = NonNullable<UserPreferences['hiddenMedia']>[number];
-
-export type HiddenMediaItem = SdkHiddenMediaItem & {
-  hiddenAt: string;
-};
+type HiddenMediaItem = NonNullable<UserPreferences['hiddenMedia']>[number];
 
 const LEGACY_LOCAL_STORAGE_KEY = 'nadeshiko.hiddenMedia';
 
@@ -14,6 +10,22 @@ const LEGACY_LOCAL_STORAGE_KEY = 'nadeshiko.hiddenMedia';
 // once per session, not on every call. Client-only, so the module-level flag is
 // never shared between SSR requests.
 let legacyStorageCleared = false;
+
+/**
+ * A stored entry is `{ mediaPublicId }`. It used to carry `nameEn`, `nameJa` and
+ * `nameRomaji` too, and still does on a row an old container wrote back during a
+ * deploy -- harmless, since only the id is ever asked for. Bare strings are read
+ * as well: `hiddenMedia` is meant to become one once no old client is left, and
+ * a reader that already accepts it is what makes that a backend-only change.
+ *
+ * Emptying this list is the one outcome worth defending against: it would hand
+ * the reader back every search result they deliberately hid.
+ */
+function toMediaPublicId(entry: unknown): string | null {
+  if (typeof entry === 'string') return entry || null;
+  const id = (entry as { mediaPublicId?: unknown } | null)?.mediaPublicId;
+  return typeof id === 'string' && id ? id : null;
+}
 
 export function useHiddenMedia() {
   const user = userStore();
@@ -23,31 +35,33 @@ export function useHiddenMedia() {
     localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY);
   }
 
-  const items = computed<HiddenMediaItem[]>(() => {
+  const hiddenMediaIds = computed<string[]>(() => {
     if (!user.isLoggedIn) return [];
     const raw = user.preferences?.hiddenMedia;
     if (!Array.isArray(raw)) return [];
-    // The API type has no `hiddenAt`; the predicate states what this composable
-    // has always assumed about stored entries, which the `any` here used to hide.
-    return raw.filter(
-      (item): item is HiddenMediaItem => !!item && typeof item === 'object' && typeof item.mediaPublicId === 'string',
-    );
+    return (raw as unknown[]).map(toMediaPublicId).filter((id): id is string => id !== null);
   });
 
-  const hiddenMediaIds = computed<string[]>(() => items.value.map((item) => item.mediaPublicId));
-
   const hiddenMediaExcludeFilter = computed<MediaFilterItem[]>(() =>
-    items.value.map((item) => ({ mediaPublicId: item.mediaPublicId })),
+    hiddenMediaIds.value.map((mediaPublicId) => ({ mediaPublicId })),
   );
 
-  const isMediaHidden = (mediaPublicId: string): boolean => {
-    return items.value.some((item) => item.mediaPublicId === mediaPublicId);
-  };
+  const isMediaHidden = (mediaPublicId: string): boolean => hiddenMediaIds.value.includes(mediaPublicId);
 
   /**
    * Returns whether the change reached the server, for callers that confirm it.
    * The failure path rolls back and reports itself, so without this a caller
    * cannot tell a saved change from one that was undone under it.
+   *
+   * Takes the whole media row because the callers have one in hand; the names on
+   * it are no longer stored, and the settings table resolves them from
+   * `/v1/user/excluded-media` instead.
+   *
+   * No `hiddenAt` either. This composable used to stamp one, but no write path
+   * ever sent it: the endpoint below does not take it, and nothing PATCHes this
+   * list. It survived a page load in exactly nobody's row, so the settings list
+   * that "ordered by it" was really ordering every hidden title at epoch. Its
+   * removal loses no stored data.
    */
   const toggleHideMedia = async (media: {
     publicId: string;
@@ -57,22 +71,16 @@ export function useHiddenMedia() {
   }): Promise<boolean> => {
     if (!user.isLoggedIn) return false;
 
-    const existing = items.value.findIndex((item) => item.mediaPublicId === media.publicId);
-    const isUnhiding = existing >= 0;
-    const nextItems: HiddenMediaItem[] = isUnhiding
-      ? items.value.filter((_, i) => i !== existing)
-      : [
-          ...items.value,
-          {
-            mediaPublicId: media.publicId,
-            nameEn: media.nameEn,
-            nameJa: media.nameJa,
-            nameRomaji: media.nameRomaji,
-            hiddenAt: new Date().toISOString(),
-          },
-        ];
+    const isUnhiding = hiddenMediaIds.value.includes(media.publicId);
+    const previousItems = user.preferences?.hiddenMedia;
+    // Rebuilt from the ids rather than spliced into the stored array, so an
+    // optimistic update also normalizes whatever shape the row arrived in.
+    const nextItems: HiddenMediaItem[] = (
+      isUnhiding
+        ? hiddenMediaIds.value.filter((id) => id !== media.publicId)
+        : [...hiddenMediaIds.value, media.publicId]
+    ).map((mediaPublicId) => ({ mediaPublicId }));
 
-    const previousItems = items.value;
     user.preferences = {
       ...(user.preferences ?? {}),
       hiddenMedia: nextItems,
@@ -109,7 +117,6 @@ export function useHiddenMedia() {
   };
 
   return {
-    items,
     hiddenMediaIds,
     hiddenMediaExcludeFilter,
     isMediaHidden,

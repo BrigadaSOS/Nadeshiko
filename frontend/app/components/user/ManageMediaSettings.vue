@@ -3,6 +3,7 @@ import { mdiClose, mdiEye, mdiEyeOff, mdiMagnify, mdiStar, mdiStarOutline } from
 import { MAX_FAVORITE_MEDIA } from '~/composables/useFavoriteMedia';
 import { type MarkedMedia, mergeMarkedMedia } from '~/utils/manageMediaList';
 import { useToastSuccess } from '~/utils/toast';
+import { handleApiError } from '~/utils/apiError';
 
 /**
  * Every "which titles do I want to see" decision in one card.
@@ -21,13 +22,66 @@ const { formatNumber } = useFormat();
 const { displayMediaName, secondaryMediaNames } = useMediaDisplayName();
 const { query, results, loading, failed } = useMediaSearch('media-lookup:search-failed');
 const { items: favoriteItems, toggleFavorite, isFavorite, atCap } = useFavoriteMedia();
-const { items: hiddenItems, toggleHideMedia, isMediaHidden } = useHiddenMedia();
+const { hiddenMediaIds, toggleHideMedia, isMediaHidden } = useHiddenMedia();
 const posthog = usePostHog();
 
 const isSearching = computed(() => query.value.trim().length > 0);
 
-/** What the reader has marked, newest action first. See `mergeMarkedMedia`. */
-const markedMedia = computed<MarkedMedia[]>(() => mergeMarkedMedia(favoriteItems.value, hiddenItems.value));
+/**
+ * Public id -> how the catalogue writes that title.
+ *
+ * Preferences store ids and nothing else, so this card -- the only screen that
+ * has to *name* what a reader marked -- resolves them once from the two list
+ * endpoints, which read `Media` server-side. Entries are added as the reader
+ * marks new titles, from the search row they clicked, so a toggle never needs a
+ * second round trip to show the title it just added.
+ */
+const resolvedNames = ref(new Map<string, MarkedMedia>());
+const resolveFailed = ref(false);
+
+const rememberName = (media: MarkedMedia) => {
+  resolvedNames.value = new Map(resolvedNames.value).set(media.publicId, media);
+};
+
+/**
+ * Client-side on purpose. Resolving during SSR would fold every marked title's
+ * names back into `__NUXT_DATA__` -- the exact payload taking them out of
+ * preferences was meant to shrink -- and on one settings tab, not every page.
+ */
+onMounted(async () => {
+  const sdk = useNadeshikoSdk();
+  try {
+    const [favorites, excluded] = await Promise.all([sdk.listFavoriteMedia(), sdk.listExcludedMedia()]);
+    const next = new Map(resolvedNames.value);
+    for (const media of [...favorites.favoriteMedia, ...excluded.excludedMedia]) {
+      next.set(media.publicId, {
+        publicId: media.publicId,
+        nameEn: media.nameEn,
+        nameJa: media.nameJa,
+        nameRomaji: media.nameRomaji,
+      });
+    }
+    resolvedNames.value = next;
+  } catch (error) {
+    // The rows still render, from their ids, and both controls still work --
+    // so the notice explains the ids rather than replacing the table with an
+    // error the reader cannot act on.
+    resolveFailed.value = true;
+    handleApiError('manage-media:resolve-failed', error, { toastKey: false });
+  }
+});
+
+/** Newest first, the order `/v1/user/favorite-media` returns and a reload restores. */
+const favoriteIdsNewestFirst = computed<string[]>(() =>
+  [...favoriteItems.value]
+    .sort((a, b) => (b.favoritedAt ?? '').localeCompare(a.favoritedAt ?? ''))
+    .map((item) => item.mediaPublicId),
+);
+
+/** What the reader has marked. See `mergeMarkedMedia`. */
+const markedMedia = computed<MarkedMedia[]>(() =>
+  mergeMarkedMedia(favoriteIdsNewestFirst.value, hiddenMediaIds.value, resolvedNames.value),
+);
 
 const rows = computed<MarkedMedia[]>(() =>
   isSearching.value
@@ -49,6 +103,7 @@ const rows = computed<MarkedMedia[]>(() =>
  */
 const onToggleFavorite = async (media: MarkedMedia) => {
   const wasFavorite = isFavorite(media.publicId);
+  rememberName(media);
   const saved = await toggleFavorite({
     publicId: media.publicId,
     nameEn: media.nameEn,
@@ -66,6 +121,7 @@ const onToggleFavorite = async (media: MarkedMedia) => {
 
 const onToggleHidden = async (media: MarkedMedia) => {
   const wasHidden = isMediaHidden(media.publicId);
+  rememberName(media);
   const saved = await toggleHideMedia({
     publicId: media.publicId,
     nameEn: media.nameEn,
@@ -93,7 +149,7 @@ const onToggleHidden = async (media: MarkedMedia) => {
       <p class="text-sm text-gray-400">
         {{ t('accountSettings.account.favoriteMediaCount', { count: formatNumber(favoriteItems.length), max: formatNumber(MAX_FAVORITE_MEDIA) }) }}
         &middot;
-        {{ t('accountSettings.account.hiddenMediaCount', { count: formatNumber(hiddenItems.length) }) }}
+        {{ t('accountSettings.account.hiddenMediaCount', { count: formatNumber(hiddenMediaIds.length) }) }}
       </p>
     </div>
     <p class="text-gray-400 text-sm mt-1">{{ t('accountSettings.account.manageMediaDescription') }}</p>
@@ -120,6 +176,10 @@ const onToggleHidden = async (media: MarkedMedia) => {
 
     <p v-if="atCap" class="mt-3 text-sm text-amber-300" data-testid="favorite-media-cap-notice">
       {{ t('favoriteMedia.capReached') }}
+    </p>
+
+    <p v-if="resolveFailed && !isSearching" class="mt-3 text-sm text-red-400" data-testid="managed-media-names-error">
+      {{ t('errors.generic') }}
     </p>
 
     <!-- Below `md` the title and its other names stack, with the two controls

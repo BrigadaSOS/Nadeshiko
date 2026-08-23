@@ -960,16 +960,10 @@ export type t_UserPreferences = {
   favoriteMedia?: {
     favoritedAt: string;
     mediaPublicId: string;
-    nameEn?: string;
-    nameJa?: string;
-    nameRomaji?: string;
   }[];
   hiddenCategories?: t_Category[];
   hiddenMedia?: {
     mediaPublicId: string;
-    nameEn?: string;
-    nameJa?: string;
-    nameRomaji?: string;
   }[];
   mediaNameLanguage?: 'ENGLISH' | 'JAPANESE' | 'ROMAJI';
   productEmails?: {
