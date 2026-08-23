@@ -1,7 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { dropSessionEntries, hasSessionCookie, ssrAuthFetch, _resetSsrAuthCacheForTests } from './ssrAuthCache';
 
-beforeEach(() => _resetSsrAuthCacheForTests());
+/**
+ * The counter is the only thing that can tell a cache hit from a render that
+ * never had a session cookie, so it is worth a test rather than a hope. Mocked
+ * at the API level because the module resolves its meter once, at import: a spy
+ * installed later would watch an object nothing calls.
+ */
+const adds: Array<{ value: number; attributes: Record<string, unknown> }> = [];
+
+vi.mock('@opentelemetry/api', () => ({
+  metrics: {
+    getMeter: () => ({
+      createCounter: () => ({
+        add: (value: number, attributes: Record<string, unknown>) => adds.push({ value, attributes }),
+      }),
+    }),
+  },
+}));
+
+import {
+  dropSessionEntries,
+  hasSessionCookie,
+  recordAnonymousRender,
+  ssrAuthFetch,
+  _resetSsrAuthCacheForTests,
+} from './ssrAuthCache';
+
+/** The outcomes recorded so far, in order. */
+function outcomes(): string[] {
+  return adds.map((a) => String(a.attributes.outcome));
+}
+
+beforeEach(() => {
+  _resetSsrAuthCacheForTests();
+  adds.length = 0;
+});
 
 function fakeEvent(cookieHeader?: string, ip = '1.2.3.4') {
   return {
@@ -51,10 +84,14 @@ describe('ssrAuthFetch', () => {
 
   /**
    * The preferences stamp. A reader who changes a preference has to see it on
-   * the very next render, and deleting the entry could only ever have worked in
-   * the worker that served the write -- production forks three of them, each
-   * with its own copy of this map. The cookie rides the request instead, so
-   * every worker misses.
+   * the very next render, and deleting the entry only works in the process that
+   * served the write. The cookie rides the request instead, so any process
+   * misses.
+   *
+   * (This used to say production forks three workers. It does not -- the preset
+   * is baked in as `node-server` at build time and the `NITRO_CLUSTER_WORKERS`
+   * in `deploy.prod.yml` is inert. See `PREFS_VERSION_COOKIE` for why the stamp
+   * is still worth having on one process.)
    */
   it('does NOT reuse the pre-change entry once a preferences stamp arrives', async () => {
     const fetcher = vi.fn().mockResolvedValue({});
@@ -280,5 +317,63 @@ describe('scopes', () => {
     await ssrAuthFetch(event as never, shirabe, 'shirabe');
     expect(identity).toHaveBeenCalledTimes(2);
     expect(shirabe).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * Before this counter, a cache hit and a cookie-less render were the same
+ * observation from outside: both fast, neither logged. Every "signed-in render"
+ * latency figure this project has quoted was therefore a figure about misses
+ * only, with the hits it was supposed to include invisible underneath.
+ */
+describe('lookup counter', () => {
+  const SIGNED_IN = 'nadeshiko.session_token=tok1';
+
+  it('separates the miss that pays for a backend call from the hit that does not', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ ok: true });
+    await ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher);
+    await ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher);
+
+    expect(outcomes()).toEqual(['miss', 'hit']);
+  });
+
+  /**
+   * A second render arriving while the first is still waiting is neither: no
+   * backend call, but a concurrent render rather than a later one. Counting it
+   * as a hit would credit the TTL for work the in-flight dedup did.
+   */
+  it('counts a joined in-flight build as coalesced', async () => {
+    let release: (v: unknown) => void = () => {};
+    const fetcher = vi.fn(() => new Promise((resolve) => (release = resolve)));
+
+    const first = ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher);
+    const second = ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher);
+    release({ ok: true });
+    await Promise.all([first, second]);
+
+    expect(outcomes()).toEqual(['miss', 'coalesced']);
+  });
+
+  it('records the miss even when the backend call throws', async () => {
+    const fetcher = vi.fn().mockRejectedValue(new Error('auth down'));
+    await expect(ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher)).rejects.toThrow('auth down');
+
+    // An outage has to show up as misses. A counter that goes quiet instead
+    // reads identically to nobody visiting.
+    expect(outcomes()).toEqual(['miss']);
+  });
+
+  it('records the cookie-less render that never reaches the cache', () => {
+    recordAnonymousRender();
+    expect(outcomes()).toEqual(['anonymous']);
+  });
+
+  it('tags each lookup with its scope, so the two callers can be told apart', async () => {
+    const fetcher = vi.fn().mockResolvedValue({});
+    await ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher, 'identity');
+    await ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher, 'shirabe');
+
+    expect(adds.map((a) => a.attributes.scope)).toEqual(['identity', 'shirabe']);
+    expect(adds.every((a) => a.value === 1)).toBe(true);
   });
 });
