@@ -1,4 +1,4 @@
-import posthog from 'posthog-js';
+import { posthog, isAnalyticsEnabled } from '~/utils/posthogClient';
 import { getPagePath } from '~/utils/pagePath';
 
 function toError(value: unknown): Error {
@@ -21,14 +21,23 @@ function toError(value: unknown): Error {
  * Faro uniquely had was TTFB, which `plugins/rum.client.ts` now reports as a real
  * histogram, and browser traces, which were accepted as lost.
  *
- * Falls back to `console.error` on the server and before PostHog has loaded.
+ * Falls back to `console.error` on the server and on builds with no analytics.
  */
 export function reportError(name: string, error: unknown, attributes?: Record<string, string>): void {
   // Not `usePostHog()`: that resolves through `useNuxtApp()`, which throws whenever
   // this is reached from a detached async catch — the common case here — so every
   // such capture was silently swallowed and PostHog only ever saw what its own
-  // handlers caught. The singleton needs no Nuxt context.
-  if (!import.meta.client || !posthog.__loaded) {
+  // handlers caught. `~/utils/posthogClient` is a module-scope singleton and
+  // needs no Nuxt context either.
+  //
+  // The test is `isAnalyticsEnabled()` and NOT `posthog.__loaded`, and that
+  // difference is the whole reason an error thrown during page load still
+  // arrives. posthog-js is fetched asynchronously now, so `__loaded` is false
+  // for the first stretch of every load — which would have sent exactly the
+  // errors most worth having to the console instead. Captures made before the
+  // SDK lands are queued and replayed in order once it does; this guard is
+  // only about builds where no SDK is coming at all.
+  if (!import.meta.client || !isAnalyticsEnabled()) {
     console.error(`[${name}]`, error);
     return;
   }
@@ -66,6 +75,6 @@ export function reportError(name: string, error: unknown, attributes?: Record<st
  * reach this from detached async catches where `useNuxtApp()` throws.
  */
 export function reportEvent(name: string, properties?: Record<string, string>): void {
-  if (!import.meta.client || !posthog.__loaded) return;
+  if (!import.meta.client || !isAnalyticsEnabled()) return;
   posthog.capture(name, properties);
 }

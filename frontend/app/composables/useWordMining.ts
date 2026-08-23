@@ -7,7 +7,7 @@ import type { SearchResult } from '~/types/search';
 // it this way: that composable resolves through `useNuxtApp()` and throws when
 // it is reached from a detached async continuation, which is exactly where the
 // probe's answer is reported from -- after `await executeAction`.
-import posthog from 'posthog-js';
+import { posthog } from '~/utils/posthogClient';
 
 /**
  * The word card's half of the Anki workflow: whether the open word is already
@@ -245,7 +245,10 @@ export function useWordMining(
    * look up again and again and have never mined.
    */
   function reportProbe(word: string, mined: boolean): void {
-    if (!posthog.__loaded) return;
+    // Unguarded: posthog-js is fetched asynchronously, so a `__loaded` test here
+    // would drop the probes on the first card of a page load -- the one a reader
+    // is most likely to open. `posthog` queues until the SDK lands and no-ops for
+    // good on builds that have none.
     posthog.capture('word_card_mined_checked', { mined, lemma: word });
   }
 

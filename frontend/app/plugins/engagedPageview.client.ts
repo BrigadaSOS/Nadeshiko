@@ -1,4 +1,4 @@
-import posthog from 'posthog-js';
+import { posthog, isAnalyticsEnabled } from '~/utils/posthogClient';
 import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate, type EngagedViewGate } from '~/utils/engagedView';
 
 /**
@@ -38,10 +38,19 @@ import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate, type EngagedViewGate } fr
  */
 export default defineNuxtPlugin({
   name: 'engagedPageview',
+  // The `posthog` plugin is what starts the SDK loading, and `isAnalyticsEnabled()`
+  // below is false until it has. Without this that test would run first and this
+  // plugin would never install itself in production -- alphabetical order puts
+  // `engagedPageview` well ahead of `posthog`.
+  dependsOn: ['posthog'],
   setup() {
-    // App plugins run after module plugins, so posthog-js is initialised by now.
-    // Absent outside production, where the module is not installed at all.
-    if (!posthog.__loaded) return;
+    // Not `posthog.__loaded`: the SDK is fetched asynchronously now, so at plugin
+    // time it has certainly not arrived and that test would be false on every
+    // load. What this actually wants to know is whether analytics exist on this
+    // build at all -- they do not outside production, where the module is not
+    // installed. Everything captured before the SDK lands is queued, so the gate
+    // is "will there be a client" and not "is there one yet".
+    if (!isAnalyticsEnabled()) return;
 
     const router = useRouter();
 

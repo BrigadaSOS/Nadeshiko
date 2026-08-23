@@ -395,6 +395,44 @@ export default defineNuxtConfig({
       },
     },
   }),
+  hooks: {
+    /**
+     * Drops `@posthog/nuxt`'s own client plugin so `plugins/posthog.client.ts`
+     * can load posthog-js asynchronously in its place.
+     *
+     * The module's plugin does `import posthog from "posthog-js"` at module
+     * scope, which is enough on its own to pin the SDK into the entry chunk:
+     * 99,765 B brotli of a 185,156 B entry graph, 53.9% of everything the
+     * browser must fetch, parse and execute before the app can hydrate
+     * (measured 2026-08-23 against a production build of the search page).
+     * There is no module option to turn the plugin off -- `setup()` calls
+     * `addPlugin` unconditionally -- so removing it from the resolved app is
+     * what is left. The server plugin, the auto-imported composables and the
+     * source-map upload all stay: only the client plugin is replaced.
+     *
+     * THROWS RATHER THAN WARNS, and that is deliberate. If a module upgrade
+     * moves or renames the plugin, the filter silently stops matching and the
+     * build regresses in the worst possible way: BOTH plugins register, the
+     * module's one wins the `posthog.__loaded` race, the static import is back,
+     * and nothing about the site looks wrong -- the entry chunk is just 99KB
+     * heavier again with no failing test anywhere. Same reasoning as
+     * `verify-sri`: a regression here breaks the BUILD, not the site.
+     */
+    'app:resolve'(app) {
+      if (!isProd) return;
+
+      const before = app.plugins.length;
+      app.plugins = app.plugins.filter((plugin) => !plugin.src.includes('@posthog/nuxt/dist/runtime/vue-plugin'));
+
+      if (app.plugins.length === before) {
+        throw new Error(
+          "@posthog/nuxt's client plugin was not found at dist/runtime/vue-plugin, so it could not be replaced " +
+            'by app/plugins/posthog.client.ts. Leaving it in place would re-add posthog-js to the entry chunk ' +
+            'and initialise the SDK twice. Update the path in the app:resolve hook in nuxt.config.ts.',
+        );
+      }
+    },
+  },
   /**
    * The publisher, declared where the module puts it rather than from a page.
    *
