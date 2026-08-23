@@ -13,6 +13,14 @@ const CANONICAL_PARAMS: Record<string, string[]> = {
   // not a view of the whole; `sort` deliberately is not -- it reorders the same
   // set and would multiply every title into as many URLs as there are orders.
   '/media': ['query', 'category', 'episode'],
+  // Each tier of the frequency list is a different set of words, so a tier is a
+  // page in its own right rather than a view of one -- without this every
+  // `?tier=` would canonicalise to the bare `/stats/words` and the six tiers
+  // that are not the default would be consolidated away. `filter` is here for
+  // the same reason and for a second one: the sitemap points at
+  // `filter=COVERED`, and a canonical that dropped it would advertise a URL
+  // listing words whose search pages are `noindex`.
+  '/stats/words': ['tier', 'filter'],
 };
 
 /**
