@@ -19,6 +19,9 @@ import type {
   WordMatchMedia,
 } from '@brigadasos/nadeshiko-sdk';
 
+/** A span of playback, in milliseconds from the start of the episode or video. */
+export type ClipWindow = { startMs: number; endMs: number };
+
 /** A search result with includes resolved (segment joined with its media). */
 export type SearchResult = {
   media: Media;
@@ -26,6 +29,17 @@ export type SearchResult = {
   /** Client-side audio concatenation blob, set by useSegmentConcatenation. */
   blobAudio: Blob | null;
   blobAudioUrl: string | null;
+  /**
+   * The span an expansion merged, set alongside the blob by
+   * `useSegmentConcatenation` and null while the card shows its own line.
+   *
+   * Kept beside the segment rather than written into its `startTimeMs` /
+   * `endTimeMs`: those are what the card's timestamp, the "watch on YouTube"
+   * deep link and the Anki note's timestamp are built from, and none of them
+   * should move because the reader pulled in a neighbouring line. The clip that
+   * *plays* is the only thing that grows -- see `resolveClipWindow`.
+   */
+  expandedWindow: ClipWindow | null;
 };
 
 /** Search response with includes resolved into flat SearchResult array. */
