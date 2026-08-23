@@ -412,9 +412,6 @@
         "context": "文脈",
         "loadError": "前後の文脈を読み込めませんでした。"
       }
-    },
-    "relatedWords": {
-      "heading": "この漢字を含む単語"
     }
   },
   "activity": {

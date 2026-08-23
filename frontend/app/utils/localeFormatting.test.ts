@@ -9,8 +9,9 @@ import { describe, expect, it } from 'vitest';
  * `(1234).toLocaleString()` with no argument does not mean "the site's locale".
  * It means "whatever locale this JavaScript runtime defaults to" -- which is the
  * SERVER's on the way out and the READER'S BROWSER on the way back. For anything
- * server-rendered the two disagree the moment those differ: `RelatedWords.vue`
- * sent `23,931` from Node and re-rendered it as `23.931` in a German browser, so
+ * server-rendered the two disagree the moment those differ: a match count in
+ * the since-removed `RelatedWords.vue` went out as `23,931` from Node and
+ * re-rendered as `23.931` in a German browser, so
  * Vue found two different strings over one text node and gave up on the tree
  * with "Hydration completed but contains mismatches." That was 138 reported
  * mismatches over 39 hours, about 2% of sessions, and it was invisible to every

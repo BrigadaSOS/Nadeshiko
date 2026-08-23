@@ -273,31 +273,6 @@ if (browsedMediaSlug.value) {
 }
 
 /**
- * The kanji relatives linked at the foot of a word page.
- *
- * Fetched with the page rather than by the component, so the links are in the
- * server-rendered HTML -- these exist to give ~19.8k otherwise-orphan word pages
- * something linking to them, and a link a crawler never receives does nothing.
- *
- * Word pages only: a title browse has the catalogue linking it onward, and a
- * bare `/search` has nothing to be related to. The route answers from an
- * in-memory index and is `swr`-cached for a day, so this is not a backend hop.
- */
-const { data: relatedWordsData } = await useAsyncData(
-  () => `related-words-${searchQuery.value || 'none'}`,
-  () => {
-    if (!searchQuery.value || mediaQueryParam.value) return Promise.resolve({ words: [] });
-    return $fetch<{ words: { word: string; matchCount: number }[] }>('/api/words/related', {
-      query: { word: searchQuery.value },
-      // A missing related-words list is not worth an error page.
-    }).catch(() => ({ words: [] }));
-  },
-  { default: () => ({ words: [] }), watch: [] },
-);
-
-const relatedWords = computed(() => relatedWordsData.value?.words ?? []);
-
-/**
  * A QUERY THAT FOUND NOTHING IS NOT A PAGE WORTH INDEXING, and this route mints
  * them without limit: `/search/<anything>` answers 200 for any string,
  * self-canonicalises, and advertises a Spanish twin of itself. The sitemap
@@ -517,10 +492,6 @@ useSchemaOrg(schemaOrgNodes);
                                 <MediaHeader v-if="scopedMedia && mediaQueryParam" :media="scopedMedia" heading="h2" />
                             </template>
                         </SearchContainer>
-                        <!-- Word pages only: a title browse has the catalogue to
-                             link it onward, and a bare `/search` has nothing to
-                             be related to. -->
-                        <SearchRelatedWords :words="relatedWords" />
                     </div>
             </div>
         </div>
