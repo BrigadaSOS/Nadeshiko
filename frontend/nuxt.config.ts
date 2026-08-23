@@ -731,12 +731,6 @@ export default defineNuxtConfig({
     // expire: it resolves through the slug index's miss path
     // (server/utils/mediaSlugIndex.ts), which is what makes the long window safe.
     '/api/media/by-slug/**': { swr: 86400 },
-    // The related-word links under a word page. Identical for every reader and
-    // derived from the frequency list, which moves only on a corpus reimport --
-    // so a long window, and one that matters: the index behind it is built by
-    // paginating the top 5k words, and this tier is what keeps a crawler walking
-    // ~19.8k word pages from reaching that build more than once.
-    '/api/words/related': { swr: 86400 },
     // Block all indexing on dev environments
     ...(isDev && {
       '/**': {

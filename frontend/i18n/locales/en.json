@@ -412,9 +412,6 @@
         "context": "Context",
         "loadError": "Couldn't load the surrounding context."
       }
-    },
-    "relatedWords": {
-      "heading": "Words sharing these kanji"
     }
   },
   "activity": {
