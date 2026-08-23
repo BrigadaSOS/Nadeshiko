@@ -1,7 +1,3 @@
-import en from './locales/en.json' with { type: 'json' };
-import es from './locales/es.json' with { type: 'json' };
-import ja from './locales/ja.json' with { type: 'json' };
-
 // Shared shapes: the Intl options are locale-independent, only the resolved
 // output differs. Keeping them in one place stops the three locales drifting.
 const shortDate = { year: 'numeric', month: 'short', day: 'numeric' } as const;
@@ -33,14 +29,14 @@ const numberFormats = {
   percent,
 };
 
+// No `messages` here, deliberately. Importing the three JSONs compiled them into
+// one chunk every reader downloaded whole -- 41,974 B brotli of en+es+ja, 10.8% of
+// the page's JS -- so the locales are declared as `file:` in nuxt.config.ts and the
+// module loads only the active one. What stays is the part that is genuinely shared:
+// the Intl formats below, which are locale-independent by construction.
 export default {
   legacy: false,
   globalInjection: true,
-  messages: {
-    en,
-    es,
-    ja,
-  },
   datetimeFormats: {
     en: datetimeFormats,
     es: datetimeFormats,

@@ -508,21 +508,34 @@ export default defineNuxtConfig({
     // `language` as "no ISO code" and silently emits no hreflang alternates at
     // all -- the warning is the only signal. Keep these in sync with the
     // hreflang values Google expects.
+    //
+    // `file:` on every locale, and it is a bundle-size decision, not a tidiness
+    // one. While i18n.config.ts imported the three JSONs directly they were
+    // compiled into one chunk carrying en+es+ja, and every reader downloaded all
+    // three: 41,974 B brotli on a page whose entire JS was 388,870 B, so 10.8% of
+    // it was translations in languages that reader is not reading. Declaring the
+    // files hands loading to the module, which fetches only the active locale.
+    // Measured on /en/search/test, local production build, 2026-08-23:
+    // 388,870 -> 347,585 B of JS, plus one 14,902 B messages.json = 26,383 B
+    // less over the wire; ~24.6 KB for /es and /ja, whose messages are larger.
     locales: [
       {
         code: 'en',
         language: 'en',
         name: 'English',
+        file: 'en.json',
       },
       {
         code: 'es',
         language: 'es',
         name: 'Español',
+        file: 'es.json',
       },
       {
         code: 'ja',
         language: 'ja',
         name: '日本語',
+        file: 'ja.json',
       },
     ],
     defaultLocale: 'en',
@@ -538,15 +551,21 @@ export default defineNuxtConfig({
     // asked again. That is what put it at 75% of all SSR requests during the #484
     // window, 275k hits in three hours.
     //
-    // Worth being precise about what it is NOT, because #484 guessed wrong and the
-    // guess is plausible: this route does not serve our messages. They come from
-    // i18n.config.ts, which is bundled into the app, so the server route has no file
-    // loaders to read and answers `{"en":{}}` -- nine bytes, verified against prod. The
-    // cost was never bytes or JSON work, only the round trip, and the round trip is
-    // what a cacheable answer removes.
+    // This route DOES serve our messages now, which it did not when these two knobs
+    // were added. Back then i18n.config.ts imported the JSONs, the handler had no file
+    // loaders to read and answered `{"en":{}}` -- nine bytes -- so the only cost was
+    // the round trip. Declaring `file:` on each locale above is what moved 47,718 B of
+    // English JSON out of the client bundle and onto this URL, so the two knobs below
+    // stopped being an optimisation and became the thing that keeps it affordable.
+    //
+    // The traffic it adds is one fetch per reader per day, not per navigation: ~1,000
+    // visitors/day against 2,040 SSR renders/day (PostHog, 7d to 2026-08-23), each of
+    // those renders already 532 KB of HTML. Cloudflare does not cache `.json` by
+    // default and a Cache Rule for `/_i18n/*` would make it one fetch per PoP per day
+    // instead, but at this volume the origin does not need one.
     //
     // `cacheLifetime` is the gate, and its default is the trap: the module reads it as
-    // -1, caching off, unless some locale declares a `file:` -- and ours are inline.
+    // -1, caching off, unless some locale declares a `file:`.
     // `httpCacheDuration` is what the handler then writes into Cache-Control, and its
     // own default is 10 SECONDS, short enough to be worth almost nothing on its own.
     //
