@@ -3,6 +3,7 @@ import { assertUser } from '@app/middleware/authentication';
 import { InsufficientPermissionsError, InternalServerError, InvalidRequestError } from '@app/errors';
 import { ApiPermission, Tier } from '@app/models';
 import { auth, BETTER_AUTH_API_PERMISSION_RESOURCE, resolveGrantableApiPermissions } from '@config/auth';
+import { captureApiKeyCreated } from '@app/services/analytics/posthog';
 
 /**
  * Declared locally and reached for through a cast, the same way
@@ -97,6 +98,12 @@ export const createUserApiKey: CreateUserApiKey = async ({ body }, respond, req)
   if (!created?.key) {
     throw new InternalServerError('API key was created without a returnable secret.');
   }
+
+  // After the throw above, so it only ever reports a key the caller actually
+  // received. Never awaited and never able to throw -- issuing a key must not
+  // fail because an analytics queue is unhappy, the same rule the sign-up hook
+  // follows.
+  captureApiKeyCreated({ userId: user.id, scopes: requested });
 
   return respond.with201().body({
     id: created.id,
