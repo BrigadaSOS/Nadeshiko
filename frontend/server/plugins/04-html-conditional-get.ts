@@ -36,7 +36,37 @@ import { htmlEtag, ifNoneMatchSatisfied } from '~~/server/utils/htmlEtag';
  * The CSP stays per-render on every 200, so nothing about the policy is
  * weakened -- a 304 has no body to apply a policy to.
  */
+/**
+ * OFF UNLESS ASKED FOR, because today the header never reaches a reader.
+ *
+ * Cloudflare injects `/cdn-cgi/challenge-platform/...` into every `text/html`
+ * response on this zone and drops the origin `ETag` along with it. That is not
+ * something the zone config can turn off: Bot Fight Mode pins JavaScript
+ * Detections on, the API accepts `enable_js: false` and reports it back while
+ * the injection continues, and every HTML rewriter, bot feature and security
+ * toggle was tried against it (the bisect is in brigadasos-infra,
+ * terraform/cloudflare-security.tf). The stripping tracks content type, not
+ * cache state -- `favicon.ico` keeps its ETag on HIT, on MISS and on a bypassed
+ * request, while any HTML loses it.
+ *
+ * So the work below is correct and unreachable, and it is not free: eliding the
+ * nonce copies the whole rendered document, ~400KB a render on a search page,
+ * on a process that OOM-killed for three days in August 2026 (Nadeshiko#522).
+ * Paying that for a header the edge discards is the wrong trade.
+ *
+ * The flag is the whole fix, and it is deliberately a flag rather than a
+ * deletion: the plugin is verified working against the origin -- personal tier
+ * returns `W/"..."` and `If-None-Match` on it returns 304 -- so the day the
+ * edge stops rewriting HTML, this becomes a one-line change and not a rewrite.
+ * Set `NUXT_HTML_CONDITIONAL_GET=1`, having first checked that
+ * `curl -sI https://nadeshiko.co/docs/api/index.html` shows an `etag`; if it
+ * does not, the flag will not help.
+ */
+const ENABLED = process.env.NUXT_HTML_CONDITIONAL_GET === '1';
+
 export default defineNitroPlugin((nitroApp) => {
+  if (!ENABLED) return;
+
   nitroApp.hooks.hook('beforeResponse', (event, response) => {
     // `beforeResponse` fires for everything Nitro answers, so the first job is to
     // recognise a rendered page. `ndCacheTier` is set by
