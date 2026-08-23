@@ -113,7 +113,7 @@ describe('resolveGrantableApiPermissions', () => {
 });
 
 describe('enrichSessionUser', () => {
-  it('adds role from database user', async () => {
+  it('adds role and preferences from database user', async () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN, preferences: { locale: 'ja' } }) as any);
     const user = await enrichSessionUser({ id: '9', email: 'u@test.local' }, findUserById as any);
 
@@ -121,19 +121,44 @@ describe('enrichSessionUser', () => {
     expect(user).toMatchObject({
       id: '9',
       role: UserRoleType.ADMIN,
+      preferences: { locale: 'ja' },
     });
-    expect(user).not.toHaveProperty('preferences');
   });
 
-  it('falls back to USER role when DB user is missing', async () => {
+  /**
+   * The whole reason preferences were pulled off the session in e730331b4 was a
+   * fear that the 5-minute `cookieCache` would pin them. It cannot: better-auth
+   * runs this function on whatever the base `/get-session` handler returns,
+   * cache hit or not, and the enriched fields are read from the row rather than
+   * from the incoming user. This is that guarantee as a test -- a stale blob on
+   * the passed-in (cookie-cached) session user must lose to the database.
+   */
+  it('overrides a stale preferences blob on the incoming session user', async () => {
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.USER, preferences: { locale: 'ja' } }) as any);
+    const user = await enrichSessionUser(
+      { id: '9', preferences: { locale: 'en', searchHistory: { enabled: false } } },
+      findUserById as any,
+    );
+
+    expect(user.preferences).toEqual({ locale: 'ja' });
+  });
+
+  it('falls back to USER role and empty preferences when DB user is missing', async () => {
     const findUserById = vi.fn(async () => null);
     const user = await enrichSessionUser({ id: '10' }, findUserById as any);
 
     expect(user).toMatchObject({
       id: '10',
       role: UserRoleType.USER,
+      preferences: {},
     });
-    expect(user).not.toHaveProperty('preferences');
+  });
+
+  it('falls back to empty preferences when the row has none', async () => {
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.USER, preferences: null }) as any);
+    const user = await enrichSessionUser({ id: '11' }, findUserById as any);
+
+    expect(user.preferences).toEqual({});
   });
 });
 

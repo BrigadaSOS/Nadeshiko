@@ -32,12 +32,19 @@ export default defineNuxtPlugin({
         try {
           // Dynamic import keeps these server-only utils (and their node:crypto
           // dependency) out of the client bundle.
-          const { hasSessionCookie, ssrAuthFetch } = await import('~~/server/utils/ssrAuthCache');
+          const { hasSessionCookie, recordAnonymousRender, ssrAuthFetch } = await import(
+            '~~/server/utils/ssrAuthCache'
+          );
 
           // No cookie, no session: the backend has nothing to add, and asking it
           // anyway is a round trip on the critical path of most renders the site
           // serves -- every crawler, every share link, every cold first visit.
           if (!hasSessionCookie(event)) {
+            // Counted, because this branch and a cache hit were previously
+            // indistinguishable from outside: both are fast and neither logged,
+            // so every "signed-in render" figure taken off wall-clock latency was
+            // really a figure about cache misses. This is the denominator.
+            recordAnonymousRender();
             ssrCheck.value = 'none';
             return;
           }
@@ -62,12 +69,25 @@ export default defineNuxtPlugin({
             '~~/server/utils/sessionCookieRenewal'
           );
 
-          // Session AND preferences share one cache entry. Fetching preferences
-          // outside it meant every render of every page made an uncached round
-          // trip for a logged-in reader, which is most of what the cache exists
-          // to avoid. Both now go stale together after the same 30s -- the
-          // window the session was already accepting, and preference edits are
-          // made client-side, where the store updates without a re-render.
+          // ONE backend call, not two in a row. `get-session` now carries the
+          // reader's preferences on `user.preferences` (backend/config/auth.ts,
+          // `enrichSessionUser`), so the `GET /v1/user/preferences` that used to
+          // follow it is gone.
+          //
+          // Sequential was the cost, not the count: nothing in this plugin's
+          // caller starts until it returns, so the two calls were ~94ms p50
+          // (production, 2026-08-23) of dead time in front of every signed-in
+          // render's `useAsyncData`. They could not be parallelised either --
+          // the preferences call was skipped entirely when the session came back
+          // signed out, which is the majority of the requests that get this far.
+          // The backend spends nothing extra for it: the row was already being
+          // read for `role`.
+          //
+          // Staleness is unchanged, which is the part worth checking before
+          // touching this. Preferences have shared this cache entry and its
+          // `nd-prefs-version` invalidation since they were fetched separately;
+          // they were never fresher than the session, they were merely fetched
+          // twice.
           const identity = await ssrAuthFetch(event, async () => {
             let reachedBackend = true;
 
@@ -110,25 +130,7 @@ export default defineNuxtPlugin({
             // days from when it is sent.
             const renewedCookies = renewedSessionCookies(sessionResponse?.headers);
 
-            if (!session?.user) {
-              return { session: null, preferences: {} as Record<string, any>, reachedBackend, renewedCookies };
-            }
-
-            const prefsUrl = internalBackendUrl(config, '/v1/user/preferences');
-            const preferences = await $fetch<Record<string, any>>(prefsUrl, {
-              method: 'GET',
-              headers,
-              // Same reasoning as the session call above; preferences are
-              // additive and every one falls back to a default.
-              retry: false,
-            }).catch((error: unknown) => {
-              // Preferences are additive -- every one falls back to a default -- so
-              // the session stays usable without them.
-              logger.warn({ err: error }, 'SSR preferences lookup failed; using defaults');
-              return {} as Record<string, any>;
-            });
-
-            return { session, preferences, reachedBackend, renewedCookies };
+            return { session: session?.user ? session : null, reachedBackend, renewedCookies };
           });
 
           applyRenewedSessionCookies(event, identity.renewedCookies);
@@ -137,7 +139,11 @@ export default defineNuxtPlugin({
           ssrCheck.value = identity.reachedBackend ? 'resolved' : 'failed';
 
           if (store.applySession(response)) {
-            store.preferences = identity.preferences;
+            // Off the session user, where the backend now puts it. `applySession`
+            // picks the fields it wants by name and does not carry this one, so
+            // reading it here is what keeps the store's contract unchanged --
+            // and the blob is not stored twice in the hydration payload.
+            store.preferences = response?.user?.preferences ?? {};
           }
         } catch (error) {
           const { logger } = await import('~~/server/utils/logger');
