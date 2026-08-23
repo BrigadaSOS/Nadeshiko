@@ -63,6 +63,13 @@ export default defineEventHandler((event) => {
   // Cloudflare rule can be checked against.
   setResponseHeader(event, 'X-Nd-Cache-Tier', tier);
 
+  // The same answer on the context, which is how `04-html-conditional-get` knows
+  // it is looking at a rendered page at all. That plugin runs on `beforeResponse`,
+  // which fires for every response Nitro produces -- API JSON included -- and the
+  // presence of this key is the cheapest available proof that the request got
+  // past the `isReservedLocalePath` return above.
+  event.context.ndCacheTier = tier;
+
   // A route that already said something about caching means it. `/` is
   // `private, no-store` from the locale router and must stay that way.
   if (getResponseHeader(event, 'Cache-Control')) return;
@@ -79,7 +86,9 @@ export default defineEventHandler((event) => {
   //
   // Still no `max-age`, so the reasoning above about `nd-ssr-identity-check` is
   // untouched -- this only forces the revalidation that was already assumed.
-  // A 304 costs a round trip and no body.
+  // That revalidation now actually ends in a 304: `04-html-conditional-get`
+  // attaches an ETag once the body exists, so the round trip costs headers
+  // instead of the 66KB-to-113KB document it used to return every time.
   setResponseHeader(event, 'Cache-Control', 'private, no-cache');
 
   // Both tests have to pass: the right kind of visitor asking for the right kind
