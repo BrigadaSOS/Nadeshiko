@@ -114,8 +114,12 @@ env:
     # So: enabled, and delivering to exactly one mailbox. Every other candidate
     # is swept, logged, and not sent -- which is the behaviour worth watching
     # anyway. Widen this only for an address that has agreed to receive it.
-    LIFECYCLE_EMAILS_ENABLED: "true"
-    LIFECYCLE_EMAILS_ONLY_TO: dav@nadeshiko.co
+    # Off. Staging shares the sending domain with production, and its accounts
+    # are real enough to have real addresses on them -- so a sweep here that
+    # decided to send is mail nobody asked for, from the identity production
+    # depends on. Previewing goes through `npm run email:test`, which bypasses
+    # this gate entirely and needs no switch.
+    LIFECYCLE_EMAILS_ENABLED: "false"
 
     # Its own client on Shirabe, not production's: the redirect is exact-matched,
     # so one registration cannot cover two hostnames.
