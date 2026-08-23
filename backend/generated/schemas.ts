@@ -774,26 +774,9 @@ export const s_UserPreferences = z.object({
     .optional(),
   defaultSearchCategory: z.enum(['ALL', 'ANIME', 'JDRAMA', 'YOUTUBE']).optional(),
   hiddenCategories: z.array(s_Category).optional(),
-  hiddenMedia: z
-    .array(
-      z.object({
-        mediaPublicId: z.string(),
-        nameEn: z.string().optional(),
-        nameJa: z.string().optional(),
-        nameRomaji: z.string().optional(),
-      }),
-    )
-    .optional(),
+  hiddenMedia: z.array(z.object({ mediaPublicId: z.string() })).optional(),
   favoriteMedia: z
-    .array(
-      z.object({
-        mediaPublicId: z.string(),
-        nameEn: z.string().optional(),
-        nameJa: z.string().optional(),
-        nameRomaji: z.string().optional(),
-        favoritedAt: z.iso.datetime({ offset: true }),
-      }),
-    )
+    .array(z.object({ mediaPublicId: z.string(), favoritedAt: z.iso.datetime({ offset: true }) }))
     .optional(),
   familiarMedia: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
   productEmails: z.object({ enabled: PermissiveBoolean.optional() }).optional(),

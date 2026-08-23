@@ -13,7 +13,11 @@ import { config } from '@config/config';
 import { NotFoundError } from '@app/errors';
 import { toMediaSummaryDTO } from './mappers/sharedMapper';
 import { toUserMeDTO } from './mappers/userMapper';
-import { mutateUserPreferences, assertFavoriteMediaWithinCap } from './preferencesController';
+import {
+  mutateUserPreferences,
+  assertFavoriteMediaWithinCap,
+  normalizeMediaPreferences,
+} from './preferencesController';
 
 export const getMe: GetMe = async (_params, respond, req) => {
   const user = assertUser(req);
@@ -41,8 +45,11 @@ export const getMe: GetMe = async (_params, respond, req) => {
 
 export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req) => {
   const user = assertUser(req);
-  const hiddenMedia = user.preferences?.hiddenMedia ?? [];
-  const publicIds = hiddenMedia.map((item) => item.mediaPublicId).filter(Boolean);
+  // Normalized rather than read straight off `req.user`: this endpoint is the
+  // only place the settings table gets titles from, and a bare-string row would
+  // resolve to a list of `undefined`.
+  const hiddenMedia = normalizeMediaPreferences(user.preferences ?? {}).hiddenMedia ?? [];
+  const publicIds = hiddenMedia.map((item) => item.mediaPublicId);
 
   if (publicIds.length === 0) {
     return respond.with200().body({ excludedMedia: [] });
@@ -75,18 +82,9 @@ export const addExcludedMedia: AddExcludedMedia = async ({ body }, respond, req)
       return current;
     }
 
-    return {
-      ...current,
-      hiddenMedia: [
-        ...hiddenMedia,
-        {
-          mediaPublicId: media.publicId,
-          nameEn: media.nameEn,
-          nameJa: media.nameJa,
-          nameRomaji: media.nameRomaji,
-        },
-      ],
-    };
+    // The id alone. The names this used to copy in were never read back -- the
+    // list endpoint above resolves them from `Media`, where a rename lands.
+    return { ...current, hiddenMedia: [...hiddenMedia, { mediaPublicId: media.publicId }] };
   });
 
   return respond.with204();
@@ -114,7 +112,7 @@ export const listFavoriteMedia: ListFavoriteMedia = async (_params, respond, req
   // Newest first: the settings list reads as "what I starred lately", while the
   // search filter sorts its own copy alphabetically. Both orders come from the
   // same stored list, which is why `favoritedAt` is stored at all.
-  const favoriteMedia = [...(user.preferences?.favoriteMedia ?? [])].sort((a, b) =>
+  const favoriteMedia = [...(normalizeMediaPreferences(user.preferences ?? {}).favoriteMedia ?? [])].sort((a, b) =>
     (b.favoritedAt ?? '').localeCompare(a.favoritedAt ?? ''),
   );
   const publicIds = favoriteMedia.map((item) => item.mediaPublicId).filter(Boolean);
@@ -156,10 +154,8 @@ export const addFavoriteMedia: AddFavoriteMedia = async ({ body }, respond, req)
         ...favoriteMedia,
         {
           mediaPublicId: media.publicId,
-          nameEn: media.nameEn,
-          nameJa: media.nameJa,
-          nameRomaji: media.nameRomaji,
-          // Server-set: a client clock decides nothing about stored order.
+          // Server-set: a client clock decides nothing about stored order. The
+          // only field kept beside the id; see `hiddenMedia` in `User.ts`.
           favoritedAt: new Date().toISOString(),
         },
       ],

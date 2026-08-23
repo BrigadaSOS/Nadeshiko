@@ -7,6 +7,7 @@ import type { Report } from '@app/models';
 import { toCollectionDTO } from './collectionMapper';
 import { type ReportPublicIdMaps, toReportDTO } from './reportMapper';
 import { toUserActivityDTO } from './activityMapper';
+import { normalizeMediaPreferences } from '../preferencesController';
 
 export const toExportCollectionDTO = (collection: Collection): t_UserExportCollection => {
   const orderedItems = collection.segmentItems?.slice().sort((a, b) => a.position - b.position) ?? [];
@@ -46,7 +47,9 @@ export const toUserExportDTO = (
     email: user.email,
     createdAt: user.createdAt.toISOString(),
   },
-  preferences: user.preferences || {},
+  // Normalized so an account nobody has written to since the media lists were
+  // slimmed still exports a body that matches the schema it is validated against.
+  preferences: normalizeMediaPreferences(user.preferences || {}),
   activity: activity.map(toUserActivityDTO),
   collections: collections.map(toExportCollectionDTO),
   reports: reports.map((report) =>
