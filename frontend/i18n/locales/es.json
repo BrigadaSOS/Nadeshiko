@@ -160,6 +160,7 @@
     "forgetError": "No se pudo olvidar ese título. Inténtalo de nuevo."
   },
   "mediaBrowse": {
+    "nextPage": "Página siguiente",
     "showHiddenMedia": "Mostrar contenido oculto",
     "hideHiddenMedia": "Ocultar contenido oculto",
     "loadError": "No se pudo cargar la lista de medios.",
