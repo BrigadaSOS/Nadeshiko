@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
-import posthog from 'posthog-js';
+import { posthog } from '~/utils/posthogClient';
 import { DISCORD_INVITE_URL } from '#shared/utils/socialLinks';
 import { userStore } from '~/stores/auth';
 import { handleApiError } from '~/utils/apiError';
@@ -130,6 +130,12 @@ async function submit() {
 /**
  * The sender's PostHog ids, read at submit so a report links to their session
  * replay. Absent wherever posthog is not loaded, which includes local dev.
+ *
+ * `__loaded` and not `isAnalyticsEnabled()`, unlike every other call site: these
+ * are reads, and a read is the one thing the pre-load stub cannot defer -- there
+ * is no session id to give until the SDK has made one. A submission in that
+ * window travels without ids rather than with wrong ones, which is what it did
+ * before this was deferred too.
  */
 function analyticsIds(): { posthogSessionId?: string; posthogDistinctId?: string } {
   if (!posthog.__loaded) return {};
