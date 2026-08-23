@@ -273,11 +273,45 @@ export async function resolveGrantableApiPermissions(
   return user?.role === UserRoleType.ADMIN ? ADMIN_GRANTABLE_API_PERMISSIONS : USER_GRANTABLE_API_PERMISSIONS;
 }
 
+/**
+ * PREFERENCES RIDE THE SESSION, and they have been here before -- e730331b4
+ * ("Fetch preferences separately to avoid tying these to the cookie",
+ * 2026-03-31) took them out six weeks after `cookieCache` was switched on. The
+ * fear was that a reader's preferences would be pinned to the cached session
+ * cookie for its 5-minute life, so a saved change would not show until it
+ * expired. Neither half of that holds now:
+ *
+ * - better-auth cannot pin them. `customSession` does not wrap the cached
+ *   value; it registers its OWN `/get-session`, calls the base handler, and runs
+ *   this function on whatever comes back (better-auth 1.6.27,
+ *   plugins/custom-session/index.mjs). The cookie cache lives inside the base
+ *   handler, so a cache HIT still reaches here -- and every field below is read
+ *   from `findUserById`, never from the spread. The cookie decides whether
+ *   Postgres is asked for the SESSION; it has never decided anything about role,
+ *   shirabe, or these.
+ * - The frontend already treated them as session data anyway. Preferences have
+ *   shared the session's SSR cache entry since 24af28c65 (2026-08-05) and its
+ *   `nd-prefs-version` invalidation since 37e7a654d (2026-08-14). Their
+ *   staleness window was already the session's, to the millisecond.
+ *
+ * What it buys: `GET /v1/user/preferences` was the second of two STRICTLY
+ * SEQUENTIAL backend calls in the SSR prologue (`app/plugins/identity-auth.ts`),
+ * and nothing on a signed-in render started until both returned. Measured
+ * 2026-08-23 in production, that prologue was ~94ms p50 of the signed-in
+ * render gap; this deletes the second round trip from it. The row is already in
+ * hand -- `defaultFindUserById` is a `findOne` with no `select`, so `preferences`
+ * came back with `role` all along and was thrown away.
+ *
+ * `{}` rather than undefined when the row is missing: every preference falls
+ * back to a default, and a reader is better served by an empty object than by a
+ * key the client has to guard.
+ */
 export async function enrichSessionUser(user: BetterAuthSessionUser, findUserById: FindUserById = defaultFindUserById) {
   const dbUser = await findUserById(Number(user.id));
   return {
     ...user,
     role: dbUser?.role ?? UserRoleType.USER,
+    preferences: dbUser?.preferences ?? {},
     shirabe: await sessionShirabe(Number(user.id)),
   };
 }
