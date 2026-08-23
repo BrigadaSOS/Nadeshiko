@@ -39,6 +39,7 @@ Examples:
   scripts/remote-db.sh prod status
   scripts/remote-db.sh prod audit-wakati
   scripts/remote-db.sh prod prepare ${PROD_FLAG}
+  scripts/remote-db.sh prod backfill-session-country ${PROD_FLAG} -- --db ~/GeoLite2-Country.mmdb
 EOF
 }
 
@@ -61,8 +62,8 @@ case "$ENV" in
 esac
 
 case "$CMD" in
-  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati) ;;
-  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media or audit-wakati (got '$CMD')" >&2; exit 1 ;;
+  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati|backfill-session-country) ;;
+  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media, audit-wakati or backfill-session-country (got '$CMD')" >&2; exit 1 ;;
 esac
 
 # A reindex rebuilds the whole search index from PostgreSQL, which is
@@ -169,6 +170,13 @@ case "$CMD" in
     # Zero downtime: builds a new versioned index and swaps the alias, so the
     # old one keeps answering until the new one is complete.
     run_with_env node --import tsx bin/es.ts reindex
+    ;;
+  backfill-session-country)
+    # One-time: resolves the `ip_address` already on every session row to a
+    # country, for the rows written before `session.country` existed. Reads a
+    # local GeoLite2 file -- no address is sent anywhere. Arguments after `--`
+    # reach the script, which is where `--db` and `--dry-run` go.
+    run_with_env node --import tsx scripts/backfill-session-country.ts "${@:4}"
     ;;
   audit-wakati)
     # Read-only: ranks every media by how morpheme-segmented its subtitles look,
