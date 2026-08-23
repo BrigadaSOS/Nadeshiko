@@ -161,7 +161,7 @@ useHead(() => ({
 
 <template>
   <div class="min-h-screen">
-      <div v-if="data" class="nd-page-prose px-4 md:px-0 pb-6">
+      <div v-if="data" class="nd-page px-4 md:px-0 pb-6">
         <div class="content-markdown" :class="{ 'is-blog-post': isBlogPost, 'is-changelog': isChangelog }">
           <template v-if="isBlogPost">
             <h1 class="blog-title" :lang="contentLang">{{ title }}</h1>
