@@ -1,7 +1,14 @@
 import { mdiAccountPlusOutline, mdiFileDocumentPlusOutline } from '@mdi/js';
 import { type AuthGate, authIntentStorage } from '~/utils/authAnalytics';
 import { raiseNudgePanel } from './useNudgePanel';
-import { NUDGE_BY_TRIGGER, type NudgeTrigger, depthReached, isNudgeDue, recordNudgeShown } from '~/utils/signupNudges';
+import {
+  NUDGE_BY_TRIGGER,
+  type NudgeTrigger,
+  depthReached,
+  isNudgeDue,
+  recordNudgeDismissed,
+  recordNudgeShown,
+} from '~/utils/signupNudges';
 
 /**
  * Which gate a signup gets attributed to when the reader accepts the panel.
@@ -80,6 +87,8 @@ export function useSignupNudge() {
 
     // Two triggers share the `download` panel, and so share its cooldown -- the
     // reader who saves a clip and then opens the add menu has been asked once.
+    // A reader who meets a *different* panel in the same sitting is covered by
+    // the quiet period inside `isNudgeDue`, not here.
     const nudge = NUDGE_BY_TRIGGER[trigger];
     const storage = authIntentStorage();
     const now = Date.now();
@@ -87,12 +96,14 @@ export function useSignupNudge() {
 
     // Recorded before the toast rather than after, so a throw inside the toast
     // library cannot leave a nudge that re-fires on every download.
-    recordNudgeShown(storage, nudge, now);
+    const askNumber = recordNudgeShown(storage, nudge, now);
 
     // This is what makes the cooldown legible from the outside: without it a
     // quiet week looks identical to a broken trigger, and the funnel from ask to
-    // account would have no denominator.
-    usePostHog()?.capture('signup_nudge_shown', { nudge, trigger });
+    // account would have no denominator. `ask_number` is the one that decides
+    // whether the ladder should exist at all -- a second ask that converts like
+    // the first justifies repeating, one that converts at nothing says stop.
+    usePostHog()?.capture('signup_nudge_shown', { nudge, trigger, ask_number: askNumber });
 
     const { $i18n } = useNuxtApp();
     raiseNudgePanel({
@@ -112,7 +123,15 @@ export function useSignupNudge() {
       // landing and copy that is not being seen, which is the first thing anyone
       // will want to know from this experiment.
       onDismiss: () => {
-        usePostHog()?.capture('signup_nudge_dismissed', { nudge, trigger });
+        // Guarded again rather than relying on the wrapper around `show`: this
+        // runs whenever the reader gets round to pressing the button, which is
+        // long after that call stack is gone.
+        guarded(() => {
+          // A pressed "Not now" ends the ladder sooner than silence does -- see
+          // `asksSpent` for why the two are not worth the same.
+          recordNudgeDismissed(storage, nudge);
+          usePostHog()?.capture('signup_nudge_dismissed', { nudge, trigger, ask_number: askNumber });
+        });
       },
     });
   }
