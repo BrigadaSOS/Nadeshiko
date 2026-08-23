@@ -921,6 +921,18 @@
           "body": "AnkiConnectは接続を許可しましたが、書き出せるデッキがありませんでした。Ankiでデッキを作成してから、もう一度お試しください。"
         }
       }
+    },
+    "emails": {
+      "title": "メール",
+      "allTitle": "Nadeshikoからのメール",
+      "recapTitle": "月次まとめ",
+      "recapDescription": "Nadeshikoで学習した内容の月次まとめ。",
+      "checkinsTitle": "ときどきのお知らせ",
+      "checkinsDescription": "Nadeshikoの使い心地についての質問。",
+      "updatesTitle": "新機能とリリース",
+      "updatesDescription": "Nadeshikoの最新の更新情報と変更点。",
+      "transactionalNote": "ログインリンクとアカウント関連のメールは、ここでの設定にかかわらず必ず送信されます。",
+      "preferenceError": "設定を保存できませんでした。もう一度お試しください。"
     }
   },
   "blog": {
@@ -971,6 +983,7 @@
     "expandNoNext": "このエピソードにはこれより後の文がありません。",
     "expandFailed": "文を展開できませんでした。もう一度お試しください。",
     "expandAudioFailed": "テキストは展開しましたが、音声を生成できませんでした。再生と Anki への書き出しには元の音声が使われます。",
+    "expandAudioFailedStreamed": "テキストは展開しましたが、音声を生成できませんでした。Anki への書き出しには元の音声が使われます。",
     "expanding": "展開中…",
     "playAudio": "音声を再生",
     "loading": "読み込み中",

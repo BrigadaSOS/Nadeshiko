@@ -45,7 +45,7 @@ info:
 
     To request a quota increase, reach out via the [contact
     page](https://nadeshiko.co/about).
-  version: 2.4.8
+  version: 2.4.9
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -9524,7 +9524,37 @@ components:
           properties:
             enabled:
               type: boolean
-              description: Whether lifecycle emails are enabled (default true)
+              description: >
+                The master switch, and the only thing a `List-Unsubscribe`
+                header with
+
+                no category sets. Off here stops every category below it.
+            recap:
+              type: boolean
+              description: >
+                The monthly digest of the reader's own activity. Absent means
+                follow
+
+                `enabled` — never a fresh yes, or a reader who left before this
+
+                category existed would be re-subscribed by its arrival.
+            checkins:
+              type: boolean
+              description: >
+                The occasional one-off questions: the day-7 note and the
+                win-back.
+
+                Absent means follow `enabled`.
+            updates:
+              type: boolean
+              description: >
+                Releases and new features, including any request for support
+                that
+
+                rides in one. Sent through Zoho Campaigns rather than from here,
+                so
+
+                this governs the audience export. Absent means follow `enabled`.
     ActivityType:
       type: string
       enum:
@@ -10534,6 +10564,9 @@ components:
         isActive:
           type: boolean
           default: true
+        signupCountry:
+          type: string
+          readOnly: true
       required:
         - id
         - name
@@ -10565,6 +10598,9 @@ components:
         userId:
           type: string
         impersonatedBy:
+          type: string
+          readOnly: true
+        country:
           type: string
           readOnly: true
       required:

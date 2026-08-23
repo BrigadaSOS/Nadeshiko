@@ -4,7 +4,7 @@ import { AppDataSource } from '@config/database';
 import { logger } from '@config/log';
 import { User } from '@app/models';
 import { normalizeAddress, suppress } from '@app/services/email/suppression';
-import { unsubscribeFromProductEmails } from '@app/services/email/unsubscribe';
+import { setProductEmailCategory } from '@app/services/email/unsubscribe';
 
 /**
  * Bring Zoho Campaigns' opt-outs and bounces back into our own database.
@@ -153,7 +153,11 @@ async function main(): Promise<void> {
         // Nothing to turn off, and nothing to report as a failure.
         if (!user) continue;
         matched += 1;
-        if (apply && (await unsubscribeFromProductEmails(user.id))) changed += 1;
+        // `updates` ONLY, not the master. Campaigns carries the announcements
+        // and nothing else, so an opt-out from there speaks for announcements
+        // and nothing else -- killing their recap and check-ins too would be us
+        // reading "less" as "none".
+        if (apply && (await setProductEmailCategory(user.id, 'updates', false))) changed += 1;
         continue;
       }
 

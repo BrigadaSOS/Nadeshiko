@@ -921,6 +921,18 @@
           "body": "AnkiConnect let us in and reported no decks to export into. Create a deck in Anki, then try again."
         }
       }
+    },
+    "emails": {
+      "title": "Emails",
+      "allTitle": "Emails about Nadeshiko",
+      "recapTitle": "Monthly recap",
+      "recapDescription": "A monthly summary of what you have studied with Nadeshiko.",
+      "checkinsTitle": "Occasional check-ins",
+      "checkinsDescription": "Questions about how Nadeshiko is working for you.",
+      "updatesTitle": "New features and releases",
+      "updatesDescription": "Latest updates and changes in Nadeshiko.",
+      "transactionalNote": "Sign-in links and account emails are always sent, whatever you choose here.",
+      "preferenceError": "That preference could not be saved. Please try again."
     }
   },
   "blog": {
@@ -971,6 +983,7 @@
     "expandNoNext": "No later sentence in this episode.",
     "expandFailed": "Couldn't expand this sentence. Please try again.",
     "expandAudioFailed": "Expanded the text, but the audio could not be built. Playback and Anki export will use the original clip.",
+    "expandAudioFailedStreamed": "Expanded the text, but the audio could not be built. The Anki export will use the original clip.",
     "expanding": "Expanding…",
     "playAudio": "Play audio",
     "loading": "Loading",

@@ -5,7 +5,7 @@ import { issueUnsubscribeToken, readUnsubscribeToken, acceptsProductEmails } fro
 
 describe('unsubscribe tokens', () => {
   it('round-trips the account it was issued for', () => {
-    expect(readUnsubscribeToken(issueUnsubscribeToken(42))).toBe(42);
+    expect(readUnsubscribeToken(issueUnsubscribeToken(42))).toEqual({ userId: 42 });
   });
 
   it('issues a different string each time, since the nonce is random', () => {
@@ -78,5 +78,70 @@ describe('acceptsProductEmails', () => {
 
   it('honours an explicit opt-in', () => {
     expect(acceptsProductEmails({ productEmails: { enabled: true } })).toBe(true);
+  });
+});
+
+describe('the finer grain', () => {
+  it('sends a category the reader has said nothing about', () => {
+    expect(acceptsProductEmails({ productEmails: { enabled: true } }, 'recap')).toBe(true);
+    expect(acceptsProductEmails({}, 'recap')).toBe(true);
+  });
+
+  it('stops a category the reader turned off', () => {
+    expect(acceptsProductEmails({ productEmails: { enabled: true, recap: false } }, 'recap')).toBe(false);
+  });
+
+  it('leaves the other categories alone', () => {
+    const preferences = { productEmails: { enabled: true, recap: false } };
+
+    expect(acceptsProductEmails(preferences, 'checkins')).toBe(true);
+    expect(acceptsProductEmails(preferences, 'updates')).toBe(true);
+  });
+
+  /**
+   * THE MIGRATION HAZARD. A reader who turned everything off before a category
+   * existed has no opinion stored about it, and reading that silence as consent
+   * would re-subscribe every opt-out the day a new category ships.
+   */
+  it('never reads a missing category as a fresh yes', () => {
+    const goneAway = { productEmails: { enabled: false } };
+
+    expect(acceptsProductEmails(goneAway, 'recap')).toBe(false);
+    expect(acceptsProductEmails(goneAway, 'checkins')).toBe(false);
+    expect(acceptsProductEmails(goneAway)).toBe(false);
+  });
+
+  /** The master still answers the broad question, which the audience export asks. */
+  it('answers the categoryless question from the master alone', () => {
+    expect(acceptsProductEmails({ productEmails: { enabled: true, recap: false } })).toBe(true);
+  });
+});
+
+/**
+ * RFC 8058 unsubscribes the reader from "the list" that sent the message, and a
+ * category is that list. One-clicking out of a monthly recap says nothing about
+ * the one question we ask at day seven.
+ */
+describe('what a one-click unsubscribe speaks for', () => {
+  it('carries the category the message belonged to', () => {
+    expect(readUnsubscribeToken(issueUnsubscribeToken(42, 'recap'))).toEqual({ userId: 42, category: 'recap' });
+  });
+
+  /** What a token minted before categories existed meant, and the safe reading. */
+  it('means everything when it names no category', () => {
+    expect(readUnsubscribeToken(issueUnsubscribeToken(42))?.category).toBeUndefined();
+  });
+
+  /**
+   * A category we do not recognise can only come from a version of this that
+   * knew something we do not, and "everything" is the safe reading of a list we
+   * cannot name.
+   */
+  it('drops a category it cannot place rather than trusting it', () => {
+    const forged = issueUnsubscribeToken(42);
+    const withUnknown = readUnsubscribeToken(forged);
+
+    expect(withUnknown).toEqual({ userId: 42 });
+    expect(acceptsProductEmails({ productEmails: { enabled: true } }, 'recap')).toBe(true);
   });
 });

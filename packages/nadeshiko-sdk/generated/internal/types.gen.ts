@@ -2103,9 +2103,31 @@ export type UserPreferences = {
      */
     productEmails?: {
         /**
-         * Whether lifecycle emails are enabled (default true)
+         * The master switch, and the only thing a `List-Unsubscribe` header with
+         * no category sets. Off here stops every category below it.
+         *
          */
         enabled?: boolean;
+        /**
+         * The monthly digest of the reader's own activity. Absent means follow
+         * `enabled` — never a fresh yes, or a reader who left before this
+         * category existed would be re-subscribed by its arrival.
+         *
+         */
+        recap?: boolean;
+        /**
+         * The occasional one-off questions: the day-7 note and the win-back.
+         * Absent means follow `enabled`.
+         *
+         */
+        checkins?: boolean;
+        /**
+         * Releases and new features, including any request for support that
+         * rides in one. Sent through Zoho Campaigns rather than from here, so
+         * this governs the audience export. Absent means follow `enabled`.
+         *
+         */
+        updates?: boolean;
     };
 };
 
@@ -2733,6 +2755,7 @@ export type AuthUser = {
     readonly banReason?: string;
     readonly banExpires?: string;
     isActive?: boolean;
+    readonly signupCountry?: string;
 };
 
 export type AuthSession = {
@@ -2745,6 +2768,7 @@ export type AuthSession = {
     userAgent?: string;
     userId: string;
     readonly impersonatedBy?: string;
+    readonly country?: string;
 };
 
 export type AuthAccount = {

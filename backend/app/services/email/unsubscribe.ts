@@ -31,6 +31,32 @@ import { mutateUserPreferences } from '@app/controllers/preferencesController';
  * grants one act on one preference, and an attacker who forges every one of them
  * has succeeded in making us send less mail.
  */
+/**
+ * The categories a reader can hold separately, and what belongs in each.
+ *
+ * A category exists when somebody could plausibly want one and not the other.
+ * Fewer than this and people unsubscribe from everything to stop one thing;
+ * more and nobody reads the page they are set on.
+ *
+ * The axis is NOT "which product area" but what kind of commitment the mail is:
+ *
+ * - `recap` recurs forever and is about them.
+ * - `checkins` are finite, rare, and are us asking them something.
+ * - `updates` are about the product rather than about them.
+ *
+ * THERE IS DELIBERATELY NO `support` CATEGORY, and the reason is worth keeping
+ * so it does not get added back on principle. A Patreon ask is either a line at
+ * the bottom of an update -- in which case `updates` already governs it, and a
+ * separate key would mean conditionally stripping a paragraph per recipient --
+ * or it is a standalone appeal, which is identical content to the whole list,
+ * which makes it bulk, which sends it through Zoho Campaigns and its own
+ * unsubscribe list rather than through here at all. Either way the key would
+ * govern nothing. Whatever email carries the ask, that email's category owns it.
+ */
+export const EMAIL_CATEGORIES = ['recap', 'checkins', 'updates'] as const;
+
+export type EmailCategory = (typeof EMAIL_CATEGORIES)[number];
+
 const UNSUBSCRIBE_CONTEXT = { purpose: 'email.unsubscribe' } as const;
 
 /**
@@ -46,10 +72,24 @@ function unsubscribeSecret(): string {
 
 interface UnsubscribeToken {
   userId: number;
+  /**
+   * Which category the message carrying this token belonged to.
+   *
+   * RFC 8058 unsubscribes the reader from "the list" that sent the message, and
+   * a category IS that list -- somebody who one-clicks out of a monthly recap
+   * has said nothing about the one question we ask at day seven. Absent means
+   * the whole lot, which is what a token minted before categories existed
+   * meant and the safe reading of one we cannot place.
+   */
+  category?: EmailCategory;
 }
 
-export function issueUnsubscribeToken(userId: number): string {
-  return encryptSecret(JSON.stringify({ userId } satisfies UnsubscribeToken), unsubscribeSecret(), UNSUBSCRIBE_CONTEXT);
+export function issueUnsubscribeToken(userId: number, category?: EmailCategory): string {
+  return encryptSecret(
+    JSON.stringify({ userId, ...(category ? { category } : {}) } satisfies UnsubscribeToken),
+    unsubscribeSecret(),
+    UNSUBSCRIBE_CONTEXT,
+  );
 }
 
 /**
@@ -60,11 +100,18 @@ export function issueUnsubscribeToken(userId: number): string {
  * answers the same way regardless, because telling a stranger which of those it
  * was is telling them something about a token they do not hold.
  */
-export function readUnsubscribeToken(token: string): number | null {
+export function readUnsubscribeToken(token: string): UnsubscribeToken | null {
   try {
     const payload = JSON.parse(decryptSecret(token, unsubscribeSecret(), UNSUBSCRIBE_CONTEXT)) as UnsubscribeToken;
     const userId = Number(payload?.userId);
-    return Number.isInteger(userId) && userId > 0 ? userId : null;
+    if (!Number.isInteger(userId) || userId <= 0) return null;
+
+    // An unrecognised category is dropped rather than trusted: it can only come
+    // from a token minted by a version of this that knew something we do not, and
+    // "everything" is the safe reading of a list we cannot name.
+    const category = EMAIL_CATEGORIES.includes(payload.category as EmailCategory) ? payload.category : undefined;
+
+    return { userId, ...(category ? { category } : {}) };
   } catch {
     return null;
   }
@@ -88,8 +135,8 @@ export function readUnsubscribeToken(token: string): number | null {
  * Both hang off `BASE_URL`, which is the site origin -- the Nitro proxy forwards
  * `/v1/**` to the backend, so the one-click URL is same-origin with the page.
  */
-export function unsubscribeUrls(userId: number): { oneClick: string; page: string } {
-  const token = encodeURIComponent(issueUnsubscribeToken(userId));
+export function unsubscribeUrls(userId: number, category?: EmailCategory): { oneClick: string; page: string } {
+  const token = encodeURIComponent(issueUnsubscribeToken(userId, category));
 
   return {
     oneClick: `${config.BASE_URL}/v1/email/unsubscribe?token=${token}`,
@@ -126,9 +173,59 @@ export async function unsubscribeFromProductEmails(userId: number): Promise<bool
 }
 
 /**
- * Whether we may send this account lifecycle mail. Absent means yes; see the
- * note on `UserPreferences.productEmails`.
+ * Turns one category off, leaving the others and the master alone.
+ *
+ * The narrow counterpart to `unsubscribeFromProductEmails`, and the difference
+ * matters: an opt-out that arrives from ONE surface must not speak for the
+ * others. Somebody who unsubscribed from a release announcement in Campaigns
+ * said nothing about their monthly recap, and reading it as everything is how a
+ * reader who wanted less ends up with none.
+ *
+ * Goes through `mutateUserPreferences` for the reason the master switch does:
+ * the whole preferences column is rewritten on every change, so a read-modify-
+ * write of its own would drop whatever landed alongside it.
  */
-export function acceptsProductEmails(preferences: User['preferences'] | null | undefined): boolean {
-  return preferences?.productEmails?.enabled !== false;
+export async function setProductEmailCategory(
+  userId: number,
+  category: EmailCategory,
+  enabled: boolean,
+): Promise<boolean> {
+  try {
+    await mutateUserPreferences(userId, (current) => ({
+      ...current,
+      productEmails: {
+        // Absent means "follow the master", which is true and stays true; naming
+        // it here would turn a reader who never touched this into one who did.
+        enabled: current.productEmails?.enabled !== false,
+        ...current.productEmails,
+        [category]: enabled,
+      },
+    }));
+    return true;
+  } catch (error) {
+    if (error instanceof EntityNotFoundError) return false;
+    throw error;
+  }
+}
+
+/**
+ * Whether we may send this account a given category of product mail.
+ *
+ * Called with no category it answers the broader question -- may we send them
+ * anything at all -- which is what the announcement audience export wants.
+ *
+ * ABSENT MEANS FOLLOW THE MASTER, for a category as much as for the whole. A
+ * reader who turned everything off before a category existed must not start
+ * receiving it because their preferences have no opinion about a key that did
+ * not exist when they left.
+ */
+export function acceptsProductEmails(
+  preferences: User['preferences'] | null | undefined,
+  category?: EmailCategory,
+): boolean {
+  const productEmails = preferences?.productEmails;
+  if (productEmails?.enabled === false) return false;
+  if (!category) return true;
+
+  return productEmails?.[category] !== false;
 }
