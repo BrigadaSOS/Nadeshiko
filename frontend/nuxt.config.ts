@@ -281,7 +281,51 @@ export default defineNuxtConfig({
             // The extensions in question inject through non-inline paths as well,
             // so what is lost is a fallback rather than the feature.
             'script-src': [
-              "'self'",
+              /**
+               * PATHS, NOT `'self'`, AND THAT IS THE WHOLE POINT OF THIS LINE.
+               *
+               * Cloudflare injects a bot-detection stub into every HTML page
+               * view on this zone and it cannot be turned off -- Bot Fight Mode
+               * pins JavaScript Detections on, and Cloudflare's own docs say
+               * "for Bot Fight Mode customers, JavaScript Detections is
+               * automatically enabled and cannot be disabled". Toggling Bot
+               * Fight Mode off and on again does not release it; every rewriter,
+               * bot feature and security setting on the zone was bisected
+               * against it (brigadasos-infra, terraform/cloudflare-security.tf).
+               *
+               * The stub carries OUR nonce -- Cloudflare reads it out of the
+               * policy and stamps it on -- so a nonce cannot stop it. What it
+               * cannot forge is a path. The stub's only job is
+               *   s.src = '/cdn-cgi/challenge-platform/scripts/precursor/main.js'
+               * and that load succeeded only because `'self'` admits every
+               * same-origin script. Naming the one prefix we actually serve
+               * scripts from blocks it and nothing else.
+               *
+               * WHAT IT BUYS, measured with Lighthouse on /en/search/彼女 before
+               * changing anything: that script is 4,569 ms of scripting and a
+               * single 2,282 ms long task -- roughly four times all of our own
+               * JavaScript combined, and 82% of total blocking time. Blocking it
+               * takes the mobile performance score from 42 to 70 and TBT from
+               * 1,980 ms to 350 ms.
+               *
+               * It does NOT bring back the HTML `ETag`: the edge still rewrites
+               * the body, so the validator is still stripped on the way out.
+               * This stops the browser EXECUTING the script, nothing more.
+               *
+               * BOTH HOSTS, EXPLICITLY, and not `SITE_URL`: that constant is
+               * `isDev`-based, so a production build running on staging thinks
+               * it is nadeshiko.co and would block staging's own bundle. CSP is
+               * `false` when `isLocal`, so local dev never sees this.
+               *
+               * THE CONSTRAINT THIS CREATES: every same-origin script must live
+               * under `/_nuxt/`. That is true today -- there is no JS in
+               * `public/`, no service worker, and Nuxt emits every chunk and
+               * dynamic import under this prefix -- but a script added anywhere
+               * else will be blocked with no warning other than a CSP report.
+               * Add its prefix here if that day comes.
+               */
+              'https://nadeshiko.co/_nuxt/',
+              'https://stg.nadeshiko.co/_nuxt/',
               // Not 'unsafe-inline': a nonce is present, so browsers ignore
               // 'unsafe-inline' anyway, and inline scripts are trusted only when
               // they carry this request's nonce.
