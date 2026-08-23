@@ -154,6 +154,53 @@ env:
     # would triple SSR capacity, and would also give each worker its own copy of
     # every in-process cache (segments, assets, the SSR session cache) as well as
     # its own rate-limit buckets. Do it deliberately, at build time, or not at all.
+    #
+    # COSTED ON 2026-08-23, AND THE ANSWER WAS NO. Written down because the
+    # arithmetic is the expensive part and it should not have to be redone:
+    #
+    # THE DOCKERFILE `ARG` IS NOT THE LEVER, which the paragraph above implies by
+    # naming it alongside nuxt.config. Nitro resolves the preset as
+    # `configOverrides.preset || process.env.NITRO_PRESET` (nitropack 2.13.4,
+    # dist/core/index.mjs:725), and Nuxt passes `nuxt.options.nitro` in as those
+    # overrides (@nuxt/nitro-server dist/index.mjs:366, :861). So the explicit
+    # `preset: 'node-server'` at nuxt.config.ts:812 WINS OVER THE ENV VAR, and
+    # flipping `ARG NITRO_PRESET=node_cluster` would be a third inert copy of this
+    # intent -- worse than the two here, because it looks like the fix. The one
+    # line that turns clustering on lives in nuxt.config.ts, nowhere else.
+    #
+    # MEMORY. One worker peaked at 935 MiB over 30 days (cadvisor, prod; the 906
+    # in the `memory:` comment above was the same measurement in August). Nothing
+    # in that number is shared between forks in steady state -- V8 writes over the
+    # copy-on-write pages within seconds -- so three workers plus the primary that
+    # forks them is 3*935 + ~150 = ~2.9 GiB of working set. Holding today's peak-
+    # to-cap ratio (935/1536 = 61%, which is what keeps
+    # NadeshikoContainerMemoryNearLimit an early warning rather than a death
+    # rattle) needs a 4.75g cap; even an uncomfortable 75% needs 3.85g.
+    #
+    # There is nowhere to take it from. The host is a cx33: 7.57 GiB total, and
+    # the caps already written across the four deploy files come to 8.5 GiB (ES
+    # 3.5, postgres 1.5, backend 1.5, this 1.5, discord 0.5) -- which only works
+    # because they do not peak together. Measured worst case, `MemAvailable` on
+    # the host bottomed at 3.18 GiB over 7 days, and most of that is the page
+    # cache Postgres and Elasticsearch read through. Kamal also runs the old and
+    # new containers side by side across a deploy, so whatever this cap becomes,
+    # budget it twice.
+    #
+    # And NODE_OPTIONS goes with it: `--max-old-space-size=1024` is set in the
+    # Dockerfile ENV, which every forked worker inherits, so three workers permit
+    # 3 * 1216 MiB of heap -- more than even the 3.85g cap. Dividing it to ~341
+    # MiB per worker puts the cap under the working set one process already has,
+    # which is how #484 happened.
+    #
+    # CPU says the same thing from the other side. `node_load1` on this host is
+    # 2.96 at p95 and peaked at 7.36 over 7 days, on 4 vCPU shared with Postgres,
+    # Elasticsearch and the backend. Three workers plus a primary do not add
+    # parallelism to a box that is already oversubscribed at peak; they move the
+    # wait from the event loop to the run queue and pay for three more copies of
+    # every cache to fill it.
+    #
+    # What would change the answer: a bigger box, or moving Elasticsearch off
+    # this one. Not a config edit.
     NITRO_PRESET: node_cluster
     NITRO_CLUSTER_WORKERS: 3
 
@@ -187,6 +234,20 @@ env:
     #
     # Staging is deliberately not given these: it runs a single process, so the
     # config/env.ts defaults are already its true limits.
+    #
+    # THERE IS A FOURTH LIMIT THAT DIVIDES AND IT IS NOT LISTED HERE:
+    # NUXT_RATE_LIMIT_V1_FEEDBACK_MAX, default 5 (config/env.ts:83), applied in
+    # server/utils/v1ProxyPolicy.ts through the same `ipRateLimit` and therefore
+    # the same `perWorkerMax`. It is absent because 5 is the right service-wide
+    # number and one process enforces exactly that today.
+    #
+    # It is written down because it is the one that division treats worst. The
+    # three below split cleanly -- 60/3 = 20, 120/3 = 40, 30/3 = 10 -- but
+    # `perWorkerMax` rounds up from a small numerator: ceil(5/3) = 2, so a
+    # visitor pinned to one worker is guaranteed 2 a minute against an intent of
+    # 5. That is a 60% cut hiding in a rounding rule, on the limit nobody would
+    # think to check because it is not in this file. Anyone enabling clustering
+    # sets it here explicitly first.
     NUXT_RATE_LIMIT_HTML_MAX: 60
     NUXT_RATE_LIMIT_V1_API_MAX: 120
     NUXT_RATE_LIMIT_V1_AUTH_MAX: 30
