@@ -64,29 +64,6 @@
     outline-offset: 2px;
   }
 
-  /**
-   * Long-form pages: about / privacy / terms / DMCA / changelog / the blog.
-   *
-   * `.nd-page` is 90% of the viewport, which is right for the search and media
-   * grids and wrong for prose -- at 1440 it gives a 1296px column, roughly 160
-   * characters, about twice a comfortable measure, and wider still on a large
-   * monitor. It also ran the text under the fixed feedback button in the
-   * corner, by 42px at 768 and 29px at 1024.
-   *
-   * A separate class rather than a modifier on `.nd-page`: two rules setting
-   * max-width in the same layer only differ by source order, which is not a
-   * thing to depend on.
-   */
-  .nd-page-prose {
-    @apply w-full mx-auto;
-  }
-
-  @screen md {
-    .nd-page-prose {
-      max-width: min(var(--page-width), var(--page-width-prose));
-    }
-  }
-
   /* Text/number/password inputs and compact selects on dark surfaces. */
   .nd-input,
   .nd-select {
@@ -760,9 +737,6 @@
     /* Width of the page content column -- see `.nd-page`. */
     --page-width: 90%;
     --page-max-width: 1800px;
-    /* Reading measure for prose -- see `.nd-page-prose`. ~46rem lands around 75
-       characters at the body size these pages use. */
-    --page-width-prose: 46rem;
 
     /* Height of the sticky search results bar (category tabs + the EN/ES/
        furigana controls). The title sidebar parks itself directly below it,
