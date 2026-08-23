@@ -341,6 +341,18 @@ export default defineNuxtConfig({
         capture_pageview: true,
         capture_pageleave: false,
         autocapture: false,
+        /**
+         * SURVEYS ARE NOT ENABLED ON THIS PROJECT, and without this the client
+         * fetched their runtime anyway: `surveys.js` is 33.5KB brotli, loaded on
+         * every page load, second only to the session recorder among PostHog's
+         * lazy extensions and larger than any single thing the icon markup could
+         * save. Measured 2026-08-23 against the live page, alongside
+         * posthog-recorder.js 60.7KB, dead-clicks 7.0KB, exception-autocapture
+         * 5.1KB and web-vitals 2.7KB.
+         *
+         * Turn this back off the day a survey ships, not before.
+         */
+        disable_surveys: true,
       },
       serverConfig: {
         enableExceptionAutocapture: false,
@@ -655,7 +667,13 @@ export default defineNuxtConfig({
     // index this sits on is cached in-process as well (see
     // `server/utils/mediaSlugIndex.ts`); this tier is what keeps a crawler
     // walking 317 title pages from re-entering the handler for each one.
-    '/api/media/by-slug/**': { swr: 3600 },
+    // RAISED FROM 3600 on 2026-08-23. A slug maps to a media id for the life of
+    // the title, and the catalogue sees ~3 renders per slug per day across 242
+    // slugs -- so a one-hour window expired before almost every second visit and
+    // the call reached the origin anyway. A new title does not wait for this to
+    // expire: it resolves through the slug index's miss path
+    // (server/utils/mediaSlugIndex.ts), which is what makes the long window safe.
+    '/api/media/by-slug/**': { swr: 86400 },
     // The related-word links under a word page. Identical for every reader and
     // derived from the frequency list, which moves only on a corpus reimport --
     // so a long window, and one that matters: the index behind it is built by
