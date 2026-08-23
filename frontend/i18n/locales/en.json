@@ -160,6 +160,7 @@
     "forgetError": "Couldn't forget that title. Please try again."
   },
   "mediaBrowse": {
+    "nextPage": "Next page",
     "showHiddenMedia": "Show hidden media",
     "hideHiddenMedia": "Hide hidden media",
     "loadError": "Couldn't load the media list.",

@@ -12,7 +12,12 @@ const CANONICAL_PARAMS: Record<string, string[]> = {
   // canonical because a single episode of a title is its own list of sentences,
   // not a view of the whole; `sort` deliberately is not -- it reorders the same
   // set and would multiply every title into as many URLs as there are orders.
-  '/media': ['query', 'category', 'episode'],
+  // `cursor` paginates the catalogue. Each page of it is a distinct set of
+  // titles, so it is its own canonical URL -- collapsing pages 2..n onto `/media`
+  // would tell a crawler the only page worth keeping is the first, which is the
+  // opposite of why the next-page link exists. Harmless on `/media/<slug>`,
+  // which never sets it.
+  '/media': ['query', 'category', 'episode', 'cursor'],
   // Each tier of the frequency list is a different set of words, so a tier is a
   // page in its own right rather than a view of one -- without this every
   // `?tier=` would canonicalise to the bare `/stats/words` and the six tiers
