@@ -51,7 +51,12 @@ import type { SearchResult } from '~/types/search';
 // `useNuxtApp()`, which throws when it is reached from a detached async
 // continuation -- and the outcome below is reported after `await fetchWord`,
 // which is exactly one. Same reasoning, and the same import, as `reportError`.
-import posthog from 'posthog-js';
+//
+// None of the four captures below is guarded on `__loaded` any more: posthog-js
+// is fetched asynchronously, so that test is false for the first stretch of every
+// load and would have dropped the card a reader opens first. This client queues
+// until the SDK lands.
+import { posthog } from '~/utils/posthogClient';
 import { NESTED_IN_TOKEN_TOOLTIP_KEY } from '~/composables/useDropdownState';
 
 type Props = {
@@ -487,8 +492,6 @@ function applyLookup(answer: WordLookup): void {
  * them would move rates that are supposed to be about the dictionary.
  */
 function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: boolean): void {
-  if (!posthog.__loaded) return;
-
   const ref = token.lookupRef;
   posthog.capture('word_card_opened', {
     outcome: answer.candidates.length > 0 ? (senses.value.length > 0 ? 'shown' : 'no_senses') : answer.reason,
@@ -702,18 +705,16 @@ const pickCandidate = (index: number) => {
   const chosen = candidates.value[index];
   if (!chosen) return;
 
-  if (posthog.__loaded) {
-    posthog.capture('word_card_candidate_picked', {
-      // The rate of this against `candidates[0]` is the direct measure of how
-      // often Shirabe's leading answer was the right one, and it is the one
-      // signal their side cannot get from its own traffic.
-      lemma: hoveredToken.value?.lookupRef.lemma ?? null,
-      pos: hoveredToken.value?.lookupRef.pos || null,
-      from_index: picked.value,
-      to_index: index,
-      candidate_count: candidates.value.length,
-    });
-  }
+  posthog.capture('word_card_candidate_picked', {
+    // The rate of this against `candidates[0]` is the direct measure of how
+    // often Shirabe's leading answer was the right one, and it is the one
+    // signal their side cannot get from its own traffic.
+    lemma: hoveredToken.value?.lookupRef.lemma ?? null,
+    pos: hoveredToken.value?.lookupRef.pos || null,
+    from_index: picked.value,
+    to_index: index,
+    candidate_count: candidates.value.length,
+  });
 
   picked.value = index;
   // Another candidate is another word, with its own senses behind the same row
@@ -1336,9 +1337,7 @@ const searchForWord = (query: string) => {
  * dismissing the card would make them find the word again to do it.
  */
 const viewMinedNote = () => {
-  if (posthog.__loaded) {
-    posthog.capture('anki_note_viewed_from_card', { lemma: miningWord.value });
-  }
+  posthog.capture('anki_note_viewed_from_card', { lemma: miningWord.value });
   void openMinedNote();
 };
 
@@ -1444,8 +1443,6 @@ const cardOutcome = computed<'shown' | 'name' | 'no_senses' | 'missing' | 'unava
  * page it fires from is still there when the request goes out.
  */
 function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSurface, position: number): void {
-  if (!posthog.__loaded) return;
-
   const ref = hoveredToken.value?.lookupRef;
   posthog.capture('dictionary_link_clicked', {
     dictionary,

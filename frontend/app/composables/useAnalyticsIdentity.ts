@@ -16,6 +16,7 @@ import {
   resolveLostSession,
   writeStoredValue,
 } from '~/utils/authAnalytics';
+import { onPostHogReady } from '~/utils/posthogClient';
 
 /**
  * Guards against the two plugins that call this both reporting the same
@@ -57,23 +58,47 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
   if (!import.meta.client) return;
 
   const store = userStore();
-  const posthog = usePostHog();
-  if (!posthog) return;
 
+  /**
+   * Where this load arrived from, read NOW and acted on later.
+   *
+   * Everything below waits for posthog-js, which is fetched asynchronously (see
+   * `~/utils/posthogClient`). None of it can be deferred with a live read of
+   * `window.location`: `auth-callback` strips the query at `app:mounted`, and on
+   * a cold load -- which is what a magic link opened from an inbox always is --
+   * that happens BEFORE the SDK lands. Reading the search string from inside the
+   * callback would hand a magic-link landing an empty query and lose the intent
+   * it travelled with, which is the whole attribution for that sign-in.
+   */
+  const arrival = {
+    referrer: document.referrer,
+    search: window.location.search,
+    pathname: window.location.pathname,
+    ownHost: window.location.hostname,
+  };
+
+  // The rest needs posthog-js to ANSWER, not merely to record: `get_distinct_id()`
+  // and `get_property()` below decide whether to `reset()` before identifying,
+  // and the pre-load stub cannot answer either. Getting `undefined` there would
+  // skip the legacy-key release for every reader whose load was slower than the
+  // SDK, and posthog-js refuses to re-identify -- so they would be stranded on
+  // their display-name distinct id permanently. Never runs outside production,
+  // where nothing starts a client.
+  onPostHogReady((posthog) => reconcile(posthog, store, arrival, options));
+}
+
+/** @param arrival Snapshotted in `reconcileAnalyticsIdentity`; see the note there. */
+function reconcile(
+  posthog: NonNullable<ReturnType<typeof usePostHog>>,
+  store: ReturnType<typeof userStore>,
+  arrival: { referrer: string; search: string; pathname: string; ownHost: string },
+  options: { viaCallback: boolean },
+) {
   // BEFORE THE SIGNED-OUT RETURN BELOW, and that is the whole point: the first
   // touch worth recording belongs to a visitor who does not have an account yet.
   // By the time one exists, `document.referrer` is whichever OAuth provider just
   // redirected them back. Write-once, so every later load is a no-op.
-  rememberFirstTouch(
-    authIntentStorage(),
-    {
-      referrer: document.referrer,
-      search: window.location.search,
-      pathname: window.location.pathname,
-      ownHost: window.location.hostname,
-    },
-    Date.now(),
-  );
+  rememberFirstTouch(authIntentStorage(), arrival, Date.now());
 
   // Signed out, which is not the same as "nothing to report". A reader whose
   // session ended without them asking arrives here looking exactly like a
@@ -97,7 +122,7 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
 
   // Before anything reads the intent: a magic link may have arrived on a device
   // that never saw the modal, carrying its attribution in the URL instead.
-  absorbIntentFromUrl(storage, window.location.search, now);
+  absorbIntentFromUrl(storage, arrival.search, now);
 
   const storedUserId = readStoredValue(storage, ANALYTICS_IDENTITY_KEY);
   const storedSessionId = readStoredValue(storage, ANALYTICS_SESSION_KEY);
