@@ -68,6 +68,25 @@ const editingEmail = ref(false);
 const newEmail = ref('');
 const productEmailsEnabled = ref(user_store.preferences?.productEmails?.enabled !== false);
 const togglingProductEmails = ref(false);
+
+/**
+ * The finer grain under the master switch.
+ *
+ * ABSENT MEANS FOLLOW THE MASTER, which is why these read `!== false` rather
+ * than defaulting to `true`: a reader who has never touched them has no opinion
+ * stored, and the server treats that silence as "whatever `enabled` says". A
+ * checkbox that showed them as explicitly on would be inventing a decision they
+ * never made.
+ */
+const EMAIL_CATEGORIES = ['recap', 'checkins', 'updates'] as const;
+type EmailCategory = (typeof EMAIL_CATEGORIES)[number];
+
+const emailCategories = reactive(
+  Object.fromEntries(
+    EMAIL_CATEGORIES.map((key) => [key, user_store.preferences?.productEmails?.[key] !== false]),
+  ) as Record<EmailCategory, boolean>,
+);
+const togglingCategory = ref<EmailCategory | null>(null);
 const changingEmail = ref(false);
 const changeEmailMessage = ref('');
 const changeEmailError = ref('');
@@ -91,6 +110,36 @@ const requestEmailChange = async () => {
 };
 
 /**
+ * One category on or off, leaving the master and the others alone.
+ *
+ * Sends only the key that changed, merged over what is already stored, because
+ * the whole `productEmails` object is rewritten on every write -- posting a
+ * fresh object built from local state would silently clear anything set on
+ * another device since this page loaded.
+ */
+const toggleEmailCategory = async (category: EmailCategory) => {
+  if (togglingCategory.value) return;
+  togglingCategory.value = category;
+  const newValue = !emailCategories[category];
+
+  const productEmails = { ...(user_store.preferences?.productEmails ?? {}), [category]: newValue };
+
+  try {
+    await sdk.updateUserPreferences({ productEmails });
+    emailCategories[category] = newValue;
+    user_store.preferences = { ...(user_store.preferences ?? {}), productEmails };
+    usePostHog()?.capture('setting_changed', { setting_name: `productEmails.${category}`, value: newValue });
+  } catch (error) {
+    handleApiError('account:product-emails-category-failed', error, {
+      toastKey: 'accountSettings.emails.preferenceError',
+      context: { 'preference.key': `productEmails.${category}` },
+    });
+  } finally {
+    togglingCategory.value = null;
+  }
+};
+
+/**
  * The same switch the unsubscribe link in every lifecycle email flips.
  *
  * Governs only that mail -- the day-7 note, the feedback ask, the monthly
@@ -104,12 +153,13 @@ const toggleProductEmails = async () => {
   togglingProductEmails.value = true;
   const newValue = !productEmailsEnabled.value;
   try {
-    await sdk.updateUserPreferences({ productEmails: { enabled: newValue } });
+    const productEmails = { ...(user_store.preferences?.productEmails ?? {}), enabled: newValue };
+    await sdk.updateUserPreferences({ productEmails });
     productEmailsEnabled.value = newValue;
     // Written through to the store for the same reason the activity toggles do
     // it: the initial value above reads from there, so leaving the page and
     // coming back would otherwise show the old state.
-    user_store.preferences = { ...(user_store.preferences ?? {}), productEmails: { enabled: newValue } };
+    user_store.preferences = { ...(user_store.preferences ?? {}), productEmails };
     usePostHog()?.capture('setting_changed', { setting_name: 'productEmails', value: newValue });
     useToastSuccess(
       t(newValue ? 'accountSettings.account.productEmailsOnToast' : 'accountSettings.account.productEmailsOffToast'),
@@ -499,29 +549,6 @@ const logoutCurrentUser = async () => {
         </button>
       </div>
 
-      <div class="flex items-center justify-between gap-4 pt-4 border-t border-gray-700">
-        <div>
-          <p class="text-white font-medium">{{ $t('accountSettings.account.productEmailsTitle') }}</p>
-          <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.productEmailsDescription') }}</p>
-        </div>
-        <button
-          data-testid="product-emails-toggle"
-          :disabled="togglingProductEmails"
-          :aria-pressed="productEmailsEnabled"
-          :class="[
-            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-            productEmailsEnabled ? 'bg-red-500' : 'bg-gray-600',
-          ]"
-          @click="toggleProductEmails"
-        >
-          <span
-            :class="[
-              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-              productEmailsEnabled ? 'translate-x-5' : 'translate-x-0',
-            ]"
-          />
-        </button>
-      </div>
     </div>
   </div>
 
@@ -784,6 +811,75 @@ const logoutCurrentUser = async () => {
   <!-- Below preferences because that is what it is: which dictionaries the word
        card answers from, decided on another site the reader has an account on. -->
   <ConnectionsCard />
+
+
+  <!-- Below connections, because this is the last thing about the account that
+       is a preference rather than an action -- what we may send, before the card
+       that offers to export or delete everything. -->
+  <div data-testid="emails-card" class="nd-settings-card">
+    <h3 class="nd-settings-title">{{ $t('accountSettings.emails.title') }}</h3>
+
+    <div class="mt-4 space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-white font-medium">{{ $t('accountSettings.emails.allTitle') }}</p>
+        </div>
+        <button
+          data-testid="product-emails-toggle"
+          :disabled="togglingProductEmails"
+          :aria-pressed="productEmailsEnabled"
+          :class="[
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+            productEmailsEnabled ? 'bg-red-500' : 'bg-gray-600',
+          ]"
+          @click="toggleProductEmails"
+        >
+          <span
+            :class="[
+              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+              productEmailsEnabled ? 'translate-x-5' : 'translate-x-0',
+            ]"
+          />
+        </button>
+      </div>
+
+      <!-- Dimmed rather than hidden when the master is off: a reader needs to
+           see what they would get back before turning it on again. -->
+      <div
+        :class="[
+          'space-y-4 pt-4 border-t border-gray-700 transition-opacity',
+          productEmailsEnabled ? '' : 'opacity-50',
+        ]"
+      >
+        <div v-for="category in EMAIL_CATEGORIES" :key="category" class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-white">{{ $t(`accountSettings.emails.${category}Title`) }}</p>
+            <p class="text-gray-400 text-sm">{{ $t(`accountSettings.emails.${category}Description`) }}</p>
+          </div>
+          <button
+            :data-testid="`email-category-${category}`"
+            :disabled="!productEmailsEnabled || togglingCategory !== null"
+            :aria-pressed="productEmailsEnabled && emailCategories[category]"
+            :class="[
+              'relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+              productEmailsEnabled ? 'cursor-pointer' : 'cursor-not-allowed',
+              productEmailsEnabled && emailCategories[category] ? 'bg-red-500' : 'bg-gray-600',
+            ]"
+            @click="toggleEmailCategory(category)"
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                productEmailsEnabled && emailCategories[category] ? 'translate-x-5' : 'translate-x-0',
+              ]"
+            />
+          </button>
+        </div>
+      </div>
+
+      <p class="text-gray-500 text-sm pt-2">{{ $t('accountSettings.emails.transactionalNote') }}</p>
+    </div>
+  </div>
 
   <!-- Card -->
   <div class="nd-settings-card">

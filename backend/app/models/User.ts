@@ -57,7 +57,31 @@ export interface UserPreferences {
    * for them would let somebody lock themselves out of sign-in by clicking
    * unsubscribe in a recap.
    */
-  productEmails?: { enabled: boolean };
+  productEmails?: {
+    /**
+     * The master switch, and the only one `List-Unsubscribe` touches.
+     *
+     * RFC 8058 one-click is POSTed by Gmail or Outlook with no person present,
+     * and what it promises is "stop sending me this". A header that turned off
+     * one category would not be that, so it sets this and this alone.
+     */
+    enabled: boolean;
+    /**
+     * The categories below are the finer grain, and ABSENT MEANS FOLLOW
+     * `enabled` -- never a fresh yes.
+     *
+     * That distinction is the whole migration hazard. Treat a missing key as
+     * consent and every reader who has already unsubscribed gets quietly
+     * re-subscribed the day a new category ships, into mail they never saw and
+     * never agreed to. That is how an opt-out becomes a spam report.
+     */
+    /** The monthly digest of their own activity. Recurring, indefinitely. */
+    recap?: boolean;
+    /** Occasional one-off questions: the day-7 ask, the win-back note. */
+    checkins?: boolean;
+    /** Releases and new features, including any request for support that rides in one. */
+    updates?: boolean;
+  };
   ankiProfiles?: AnkiProfile[];
   /**
    * The titles the reader hid, as ids and nothing else.
@@ -116,6 +140,33 @@ export class User extends BaseEntity {
 
   @Column({ name: 'role', type: 'enum', enum: UserRoleType, default: UserRoleType.USER })
   role!: UserRoleType;
+
+  /**
+   * Cloudflare's two-letter country for the request that opened this account.
+   *
+   * Written once, at creation, and never updated -- where somebody signs in
+   * from later is `session.country`, which is a different question. Null on
+   * every account created before this was recorded, and on any created without
+   * a Cloudflare hop (a seed, a script, local development), so absence means
+   * "not recorded" rather than "unknown country".
+   */
+  @Column({ name: 'signup_country', type: 'varchar', length: 2, nullable: true })
+  signupCountry?: string | null;
+
+  /**
+   * Roughly when this account was last used, and from where.
+   *
+   * Accurate to about a week, not to the minute: it moves on session creation
+   * and on session refresh, and better-auth only refreshes past its seven-day
+   * `updateAge`. Impersonated sessions do not move it. `lastSeenCountry` can
+   * lag `lastSeenAt`, because a request that carried no country leaves the
+   * previous one standing rather than nulling it -- see the migration.
+   */
+  @Column({ name: 'last_seen_at', type: 'timestamptz', nullable: true })
+  lastSeenAt?: Date | null;
+
+  @Column({ name: 'last_seen_country', type: 'varchar', length: 2, nullable: true })
+  lastSeenCountry?: string | null;
 
   /**
    * The quota level this account sits on. Resolved through `resolveQuotaLimit`

@@ -967,7 +967,10 @@ export type t_UserPreferences = {
   }[];
   mediaNameLanguage?: 'ENGLISH' | 'JAPANESE' | 'ROMAJI';
   productEmails?: {
+    checkins?: boolean;
     enabled?: boolean;
+    recap?: boolean;
+    updates?: boolean;
   };
   searchHistory?: {
     enabled?: boolean;
