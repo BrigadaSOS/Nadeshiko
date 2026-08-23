@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import type { SearchResult } from '~/types/search';
+import type { ClipWindow, SearchResult } from '~/types/search';
 import { reportError } from '~/utils/reportError';
 import { firstNonBlank } from '~/utils/strings';
 
@@ -18,6 +18,21 @@ function isYoutube(result: SearchResult | null): boolean {
  */
 export function resolveAudioSource(result: SearchResult): string {
   return result.blobAudioUrl ?? result.segment.urls.audioUrl;
+}
+
+/**
+ * The span a result should play right now: the one an expansion merged when
+ * there is one, the segment's own otherwise.
+ *
+ * The YouTube path's counterpart to `resolveAudioSource`, and read on every play
+ * for the same reason. An expansion deliberately leaves `startTimeMs` /
+ * `endTimeMs` alone -- see `SearchResult.expandedWindow` -- so a clip handed to
+ * the iframe straight off the segment plays the pre-expansion window no matter
+ * how much text grew around it. That is the whole of why "expand left" looked
+ * like a dead control on YouTube while it worked everywhere else.
+ */
+export function resolveClipWindow(result: SearchResult): ClipWindow {
+  return result.expandedWindow ?? { startMs: result.segment.startTimeMs, endMs: result.segment.endTimeMs };
 }
 
 /**
@@ -41,7 +56,18 @@ export function isUnactionablePlaybackError(error: unknown): boolean {
   // Matched on `name` against any Error rather than on `instanceof DOMException`:
   // the name is the part the spec pins down, and narrowing to the class buys
   // nothing here -- nothing else rejects a play() with either of these names.
-  return error instanceof Error && (error.name === 'AbortError' || error.name === 'NotAllowedError');
+  //
+  // The `instanceof Error` half is gone for the same reason, and it was not
+  // free: it is the only engine-dependent part of this test, and the reports
+  // that outlived the filter say so. In the week to 2026-08-23 this fingerprint
+  // carried 37 `AbortError: The fetching process for the media resource was
+  // aborted at the user's request`, all from Firefox and 3 of them after the
+  // filter shipped, while no other engine sent that message once -- Chrome and
+  // Brave stopped reporting theirs the day it went live. A rejection that says
+  // its name is `AbortError` is the case this drops, whatever its prototype
+  // chain looks like.
+  const name = (error as { name?: unknown } | null | undefined)?.name;
+  return name === 'AbortError' || name === 'NotAllowedError';
 }
 
 /**
@@ -291,6 +317,23 @@ export const usePlayerStore = defineStore('player', {
       }
     },
 
+    /**
+     * A YouTube clip whose video will not load -- removed, made private, or with
+     * embedding turned off since it was indexed.
+     *
+     * Deliberately not routed through `handleEnded`: with repeat on, "ended"
+     * means play it again, and a video that cannot load would fail, repeat and
+     * fail again as fast as the iframe could report it. Autoplay still moves on,
+     * since skipping past a dead video is what a mining run wants.
+     */
+    handleClipUnplayable() {
+      if (this.autoplay) {
+        this.next();
+        return;
+      }
+      this.isPlaying = false;
+    },
+
     trackPlay() {
       const posthog = usePostHog();
       posthog?.capture('segment_played', {
@@ -455,6 +498,26 @@ export const usePlayerStore = defineStore('player', {
       this.isPlaying = false;
     },
 
+    /**
+     * Move the player onto `result`'s clip window after an expansion changed it.
+     *
+     * Only the YouTube path needs telling. A media element re-reads its source
+     * through `resolveAudioSource` on its next play, but the iframe was handed a
+     * start and an end when the clip was loaded and holds them until something
+     * says otherwise -- so an expansion made while the clip is up, or paused
+     * part-way through, would keep playing the window it started with.
+     */
+    retimeCurrentClip(result: SearchResult) {
+      if (this.currentResult !== result || !isYoutube(result)) return;
+      const yt = useYoutubeSegmentPlayer();
+      // Not the clip on the player: it finished, or another card took it over.
+      // The next play reads the window fresh, so there is nothing to move.
+      if (yt.activeSegmentId.value !== result.segment.publicId) return;
+
+      const clip = resolveClipWindow(result);
+      yt.retimeClip(clip.startMs, clip.endMs);
+    },
+
     playCurrent() {
       this.releaseAudio();
 
@@ -475,7 +538,11 @@ export const usePlayerStore = defineStore('player', {
       if (isYoutube(result)) {
         playbackToken++;
         const seg = result.segment;
-        yt.play(seg.publicId, seg.externalVideoId ?? '', seg.startTimeMs, seg.endTimeMs, () => this.handleEnded());
+        const clip = resolveClipWindow(result);
+        yt.play(seg.publicId, seg.externalVideoId ?? '', clip.startMs, clip.endMs, {
+          onEnded: () => this.handleEnded(),
+          onFailed: () => this.handleClipUnplayable(),
+        });
         yt.setVolume(this.volume);
         yt.setPlaybackRate(this.playbackRate);
         this.isPlaying = true;
