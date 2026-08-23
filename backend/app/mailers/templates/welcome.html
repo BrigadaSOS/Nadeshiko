@@ -107,21 +107,28 @@
 
         <div class="card-body">
           <h1 class="card-title">Welcome, {{username}}!</h1>
-          <table role="presentation" style="border-collapse: collapse; margin: 0 0 4px;">
+          <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 4px;">
             <tr>
-              <td style="width: 78px; vertical-align: top; padding: 3px 14px 0 0;">
-                <img src="{{avatarUrl}}" alt="David" width="64" height="64" style="width: 64px; height: 64px; border-radius: 32px; display: block;" />
+              <td style="width: 76px; vertical-align: middle; padding: 0 10px 0 0;">
+                <img src="{{avatarUrl}}" alt="{{senderName}}" width="66" height="66" style="width: 66px; height: 66px; border-radius: 33px; display: block;" />
               </td>
-              <td style="vertical-align: top;">
-                <p class="card-text" style="margin: 0;">Hi! I'm David, one of the creators of Nadeshiko. Thanks for signing up. I wanted to walk you through what the site does in roughly the order you will run into it, so you know what is waiting for you before you go looking for it.</p>
+              <!--
+                THE NEGATIVE MARGIN CANCELS THE PARAGRAPH'S OWN. Copy blocks end
+                with a 16px bottom margin, which is right between paragraphs and
+                wrong here twice over: it makes the text cell taller than the
+                text, so `vertical-align: middle` centres the avatar against
+                whitespace and it reads high -- and it stacks with the first
+                section's top margin into a gap under the greeting.
+              -->
+              <td style="vertical-align: middle;">
+                <div style="margin-bottom: -16px;">{{{copy.intro}}}</div>
               </td>
             </tr>
           </table>
 
-          <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 22px 0 0;">
+          <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 14px 0 0;">
             <tr><td>
-              <p style="font-size: 16px; font-weight: 600; color: #e8e8e8; margin: 0 0 4px;">Search a word, hear it in a real scene</p>
-              <p class="card-text" style="margin: 0 0 10px;">Start with a word you half-know and put it in the search box in Japanese, or in English or Spanish if the Japanese has not stuck yet. What comes back are real lines out of anime and J-drama and YouTube with the audio exactly as it was said, so you get to hear how the word actually lands in a sentence rather than how a dictionary says it should.</p>
+              {{{copy.search}}}
               {{#stepOneImage}}
               <a href="{{stepOneUrl}}" style="text-decoration: none;"><img src="{{stepOneImage}}" alt="{{stepOneAlt}}" width="576" style="width: 100%; max-width: 576px; height: auto; border-radius: 8px; border: 1px solid #3c3c3c; display: block;" /></a>
               {{/stepOneImage}}
@@ -130,8 +137,7 @@
 
           <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 22px 0 0;">
             <tr><td>
-              <p style="font-size: 16px; font-weight: 600; color: #e8e8e8; margin: 0 0 4px;">Click any word for its reading and meaning</p>
-              <p class="card-text" style="margin: 0 0 10px;">Any word in a line can be clicked and its readings and meanings open right there on top of the sentence you were already reading. It sounds like a small thing until you notice you have stopped losing your place every time you need to check something.</p>
+              {{{copy.wordCard}}}
               {{#stepTwoImage}}
               <a href="{{stepTwoUrl}}" style="text-decoration: none;"><img src="{{stepTwoImage}}" alt="{{stepTwoAlt}}" width="576" style="width: 100%; max-width: 576px; height: auto; border-radius: 8px; border: 1px solid #3c3c3c; display: block;" /></a>
               {{/stepTwoImage}}
@@ -140,8 +146,7 @@
 
           <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 22px 0 0;">
             <tr><td>
-              <p style="font-size: 16px; font-weight: 600; color: #e8e8e8; margin: 0 0 4px;">Replay the line until you can say it</p>
-              <p class="card-text" style="margin: 0 0 10px;">Every result comes with the clip it was taken from and you can play it back as many times as you need until the rhythm of it sticks. This is the part people use for shadowing, because you are copying a delivery that actually happened instead of guessing at one from the text.</p>
+              {{{copy.player}}}
               {{#stepThreeImage}}
               <a href="{{stepThreeUrl}}" style="text-decoration: none;"><img src="{{stepThreeImage}}" alt="{{stepThreeAlt}}" width="576" style="width: 100%; max-width: 576px; height: auto; border-radius: 8px; border: 1px solid #3c3c3c; display: block;" /></a>
               {{/stepThreeImage}}
@@ -150,21 +155,23 @@
 
           <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 22px 0 0;">
             <tr><td>
-              <p style="font-size: 16px; font-weight: 600; color: #e8e8e8; margin: 0 0 4px;">Keep what you find</p>
-              <p class="card-text" style="margin: 0 0 8px;">This is what the account is actually for, and it is where most people end up spending their time.</p>
-              <ul style="margin: 0 0 10px; padding-left: 20px; color: #a8a8a8; font-size: 15px;">
-                <li style="margin-bottom: 6px;">Save anything you want to come back to into a collection and it will still be sitting there whenever you get round to it.</li>
-                <li style="margin-bottom: 6px;">Send a line straight to Anki in one click and the sentence and its audio and its screenshot and the definition all arrive on the card together.</li>
-                <li>Point it at your own deck and note type once and every export after that just follows what you set.</li>
-              </ul>
+              {{{copy.keep}}}
               {{#stepFourImage}}
               <a href="{{stepFourUrl}}" style="text-decoration: none;"><img src="{{stepFourImage}}" alt="{{stepFourAlt}}" width="576" style="width: 100%; max-width: 576px; height: auto; border-radius: 8px; border: 1px solid #3c3c3c; display: block;" /></a>
               {{/stepFourImage}}
             </td></tr>
           </table>
 
+          <!--
+            One rhythm for the run-in to the call to action: a line, a small gap,
+            the thing it introduces. `copy.growth` above the numbers and
+            `copy.ready` above the button use the same 18px so the two read as a
+            pair rather than as two unrelated bits of spacing.
+          -->
+          <div style="margin: 18px 0 -8px;">{{{copy.growth}}}</div>
+
           {{#scale}}
-          <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 26px 0 0;">
+          <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 8px 0 0;">
             <tr>
               <td style="width: 33.33%; padding-right: 8px; vertical-align: top;">
                 <div style="border: 1px solid #3c3c3c; border-radius: 8px; padding: 14px 10px; text-align: center;">
@@ -188,7 +195,9 @@
           </table>
           {{/scale}}
 
-          <div class="btn-wrapper">
+          <div style="margin: 18px 0 -8px; text-align: center;">{{{copy.ready}}}</div>
+
+          <div class="btn-wrapper" style="margin: 8px 0 0;">
             <a href="{{baseUrl}}" style="display: inline-block; background-color: #ef5552; color: #ffffff; text-decoration: none !important; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; letter-spacing: 0.01em;">
               <span style="color: #ffffff; text-decoration: none !important;">Start searching</span>
             </a>
@@ -197,22 +206,32 @@
 
 
           <a href="{{discordUrl}}" style="text-decoration: none; color: inherit;">
-            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 14px 0 0; border: 1px solid #3c3c3c; border-radius: 8px;">
+            <table role="presentation" style="width: 100%; border-collapse: separate; margin: 14px 0 0; background-color: #2c2c2c; border: 1px solid #3c3c3c; border-radius: 10px;">
               <tr>
-                <td style="width: 48px; padding: 14px 0 14px 14px; vertical-align: middle;">
-                  <img src="{{discordIconUrl}}" alt="Discord" width="40" height="40" style="width: 40px; height: 40px; border-radius: 10px; display: block;" />
+                <td style="width: 62px; padding: 14px 0 14px 14px; vertical-align: middle;">
+                  <img src="{{discordIconUrl}}" alt="Discord" width="52" height="52" style="width: 52px; height: 52px; border-radius: 12px; display: block;" />
                 </td>
-                <td style="padding: 14px; vertical-align: middle;">
-                  <div style="font-size: 15px; font-weight: 600; color: #e8e8e8;">Come and meet everyone else using it</div>
-                  <div style="font-size: 13px; color: #a8a8a8; margin-top: 2px;">There is a Discord where Nadeshiko readers hang around, and it is the easiest place to reach the rest of the community.</div>
+                <!--
+                  Top padding only. The copy block's own last paragraph carries a
+                  16px bottom margin, which lands where the cell's bottom padding
+                  would have gone -- so the card reads evenly without the two
+                  stacking into a gap.
+                -->
+                <td style="padding: 12px 14px 0 8px; vertical-align: middle;">
+                  {{{copy.discord}}}
                 </td>
               </tr>
             </table>
           </a>
 
-          <p class="hint-text">Do you still have any questions or something not working? Just reply here! I read everything that arrives.</p>
+          <div style="margin: 26px 0 0;">{{{copy.reply}}}</div>
 
-          <p style="margin: 22px 0 0; font-size: 14px; color: #a8a8a8; line-height: 1.35;">David<br /><a href="https://x.com/davafons" style="color: #8a8a8a; font-size: 13px; text-decoration: none;">Co-founder of Nadeshiko</a></p>
+          <table role="presentation" style="border-collapse: collapse; margin: 6px 0 0;"><tr>
+            <td style="vertical-align: middle; padding-right: 10px;">
+              <img src="{{avatarUrl}}" alt="{{senderName}}" width="40" height="40" style="width: 40px; height: 40px; border-radius: 20px; display: block;" />
+            </td>
+            <td style="vertical-align: middle; font-size: 14px; color: #a8a8a8; line-height: 1.35;">{{senderName}}<br /><a href="{{senderProfileUrl}}" style="color: #8a8a8a; font-size: 13px; text-decoration: none;">Co-founder of Nadeshiko</a></td>
+          </tr></table>
         </div>
 
         <div class="card-footer">

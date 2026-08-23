@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from '@config/config';
+import { loadCopy } from './copy';
+import { type Sender, senderForUser } from './senders';
 import type { CatalogueSize } from '@app/services/stats/catalogueSize';
 
 function escapeHTML(str: string): string {
@@ -16,19 +18,13 @@ function getLogoUrl(): string {
   return `${config.BASE_URL}/logo-38d6e06a.webp`;
 }
 
-/**
- * The face on the mail that claims to come from a person.
- *
- * JPEG rather than WebP, unlike the logo: Outlook on Windows renders through
- * Word, which has never supported WebP, so `logo-38d6e06a.webp` is already an
- * alt-text box for those readers. One broken image in a header is survivable;
- * a broken face under "Hi! I'm David" is the sentence contradicting itself.
- *
- * Content-hashed like the logo so it can be cached forever and replaced by
- * writing a new file rather than by busting anything.
- */
-function getAvatarUrl(): string {
-  return `${config.BASE_URL}/david-b5b22fdc.jpg`;
+/** Every personal email carries the same three things about whoever wrote it. */
+export function senderVariables(sender: Sender): Record<string, string> {
+  return {
+    senderName: sender.name,
+    senderProfileUrl: sender.profileUrl,
+    avatarUrl: `${config.BASE_URL}${sender.avatarPath}`,
+  };
 }
 
 /**
@@ -84,6 +80,21 @@ interface WelcomeStep {
   slug: string;
 }
 
+/**
+ * What each welcome section SHOWS. What it says lives in `copy/welcome.md`.
+ *
+ * The split is deliberate: prose is the thing that gets rewritten, and it should
+ * not be a code change in a different file from the words it sits next to. What
+ * stays here is what Markdown cannot express -- which asset a section shows,
+ * where its still links to, and the `utm_content` that keeps the four separable.
+ *
+ * `image` IS ALLOWED TO BE EMPTY, and that is the design rather than a
+ * placeholder state. Images are blocked by default in a good share of mail
+ * clients, so each section has to read correctly with nothing but its words. The
+ * Anki section is permanently empty: it is a round trip through Anki's own
+ * settings and a running copy of Anki on the reader's machine, so any still that
+ * fits an email is a picture of a dialog rather than of the feature.
+ */
 const WELCOME_STEPS: readonly [WelcomeStep, WelcomeStep, WelcomeStep, WelcomeStep] = [
   {
     image: 'search-ecdd60e0.jpg',
@@ -108,6 +119,7 @@ function stepImageUrl(file: string): string {
 
 export async function buildWelcomeEmail(
   username: string,
+  sender: Sender,
   catalogue?: CatalogueSize | null,
 ): Promise<{
   subject: string;
@@ -123,6 +135,8 @@ export async function buildWelcomeEmail(
   const number = (value: number) => value.toLocaleString('en-US');
 
   const html = await renderTemplate('welcome', {
+    ...(await loadCopy('welcome')),
+    ...senderVariables(sender),
     username,
     baseUrl: config.BASE_URL,
     // One flag for the row, three pairs for the cards. Empty hides the lot.
@@ -145,7 +159,6 @@ export async function buildWelcomeEmail(
     stepFourAlt: four.alt,
     stepFourUrl: withCampaignTags(four.path, 'welcome', four.slug),
     logoUrl: getLogoUrl(),
-    avatarUrl: getAvatarUrl(),
     year: getCurrentYear(),
   });
 
@@ -163,6 +176,7 @@ export async function buildMagicLinkEmail(
 ): Promise<{ subject: string; html: string }> {
   const subject = 'Nadeshiko: Your sign-in link';
   const html = await renderTemplate('magic-link', {
+    ...(await loadCopy('magic-link')),
     url,
     code: code ?? '',
     logoUrl: getLogoUrl(),
@@ -175,6 +189,7 @@ export async function buildMagicLinkEmail(
 export async function buildVerifyNewEmailEmail(url: string): Promise<{ subject: string; html: string }> {
   const subject = 'Nadeshiko: Verify your new email';
   const html = await renderTemplate('verify-new-email', {
+    ...(await loadCopy('verify-new-email')),
     url,
     logoUrl: getLogoUrl(),
     year: getCurrentYear(),
@@ -201,6 +216,7 @@ export interface FeedbackEmailInput {
 export async function buildFeedbackEmail(input: FeedbackEmailInput): Promise<{ subject: string; html: string }> {
   const subject = `\u{1F4AC} Feedback from ${input.from}: ${truncate(collapseWhitespace(input.message), 60)}`;
   const html = await renderTemplate('feedback', {
+    ...(await loadCopy('feedback')),
     from: input.from,
     message: input.message,
     context: input.context,
@@ -265,6 +281,7 @@ export function withCampaignTags(path: string, campaign: string, content: string
  */
 export async function buildFeedbackAskEmail(input: {
   username: string;
+  sender: Sender;
   /** Whether they have ever run a search. See `hasStarted` in the lifecycle worker. */
   started: boolean;
   unsubscribeUrl: string;
@@ -272,6 +289,10 @@ export async function buildFeedbackAskEmail(input: {
   const campaign = input.started ? 'feedback-ask-started' : 'feedback-ask-cold';
 
   const html = await renderTemplate('feedback-ask', {
+    ...(await loadCopy('feedback-ask')),
+    ...senderVariables(input.sender),
+    discordUrl: DISCORD_INVITE_URL,
+    discordIconUrl: `${config.BASE_URL}/email/discord-711a1bee.png`,
     username: input.username,
     // Exactly one of these carries a value, and `renderTemplate` drops the
     // section belonging to the other. Two sections rather than two templates,
@@ -283,7 +304,6 @@ export async function buildFeedbackAskEmail(input: {
     ctaUrl: withCampaignTags('/search', campaign, 'cta'),
     unsubscribeUrl: input.unsubscribeUrl,
     logoUrl: getLogoUrl(),
-    avatarUrl: getAvatarUrl(),
     year: getCurrentYear(),
   });
 
@@ -399,6 +419,7 @@ export function renderTitleGrid(titles: readonly DormantTitle[]): string {
 
 export async function buildDormant30Email(input: {
   username: string;
+  sender: Sender;
   newTitles: number;
   /**
    * A few of them, to show rather than count. At most `DORMANT_TITLE_SLOTS`;
@@ -407,12 +428,22 @@ export async function buildDormant30Email(input: {
   titles: DormantTitle[];
   unsubscribeUrl: string;
 }): Promise<{ subject: string; html: string }> {
+  // THE COUNT STILL DECIDES THE SHAPE, IT JUST NO LONGER APPEARS.
+  //
+  // Ingest is bursty -- two titles in a quiet month, eighty in a busy quarter --
+  // so the honest number is often small enough to argue against the email
+  // carrying it, and a floor would have meant printing a figure a reader can
+  // disprove from the home page in four seconds. The grid is topped up to a full
+  // eight either way, so it does the pulling and the sentence stays true without
+  // committing to a figure.
   const hasNews = input.newTitles > 0;
-  const subject = hasNews
-    ? `We added ${input.newTitles} new titles since you were last here!`
-    : 'Anything we could have done?';
+  const subject = hasNews ? 'We added new titles since you were last here!' : 'Anything we could have done?';
 
   const html = await renderTemplate('dormant-30', {
+    ...(await loadCopy('dormant-30')),
+    ...senderVariables(input.sender),
+    discordUrl: DISCORD_INVITE_URL,
+    discordIconUrl: `${config.BASE_URL}/email/discord-711a1bee.png`,
     username: input.username,
     // Empty rather than '0': `renderTemplate` keeps a section when the value is
     // truthy, and the string '0' is.
@@ -425,7 +456,6 @@ export async function buildDormant30Email(input: {
     ctaUrl: withCampaignTags('/', 'dormant-30', 'cta'),
     unsubscribeUrl: input.unsubscribeUrl,
     logoUrl: getLogoUrl(),
-    avatarUrl: getAvatarUrl(),
     year: getCurrentYear(),
   });
 

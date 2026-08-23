@@ -9,6 +9,16 @@ export interface EmailJobData {
   html: string;
   replyTo?: string;
   /**
+   * Whose mail this is, carried through the queue so the worker can resolve the
+   * same sender the builder rendered the body with.
+   *
+   * Without it a job that renders as a note from Natsume would go out over Dav's
+   * address, because `sendEmail` decides the `From` and runs on the other side
+   * of the queue. Optional for the same reason `kind` is: a job enqueued by an
+   * older deploy must still run after a rollout.
+   */
+  userId?: number;
+  /**
    * Carried through the queue so a job that runs minutes later still knows which
    * message it is: the worker hands this to `sendEmail`, which turns it into the
    * `X-TM-CLIENT-REF` header and the `email.kind` metric label.

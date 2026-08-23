@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { SENDERS } from '@app/mailers/senders';
 import {
   renderTemplate,
   buildWelcomeEmail,
@@ -49,19 +50,19 @@ describe('renderTemplate', () => {
 
 describe('buildWelcomeEmail', () => {
   it('returns the correct subject', async () => {
-    const result = await buildWelcomeEmail('alice');
+    const result = await buildWelcomeEmail('alice', SENDERS[0]);
 
     expect(result.subject).toBe('Welcome to Nadeshiko!');
   });
 
   it('includes the username in the html', async () => {
-    const result = await buildWelcomeEmail('alice');
+    const result = await buildWelcomeEmail('alice', SENDERS[0]);
 
     expect(result.html).toContain('alice');
   });
 
   it('escapes the username in html', async () => {
-    const result = await buildWelcomeEmail('<img src=x onerror=alert(1)>');
+    const result = await buildWelcomeEmail('<img src=x onerror=alert(1)>', SENDERS[0]);
 
     expect(result.html).not.toContain('<img src=x');
     expect(result.html).toContain('&lt;img');
@@ -77,16 +78,28 @@ describe('buildFeedbackAskEmail', () => {
    * nothing feedback-shaped, and every click on it was a reply we did not get.
    */
   it('gives the started opening no button at all', async () => {
-    const result = await buildFeedbackAskEmail({ username: 'alice', started: true, unsubscribeUrl });
+    const result = await buildFeedbackAskEmail({
+      username: 'alice',
+      sender: SENDERS[0],
+      started: true,
+      unsubscribeUrl,
+    });
 
     expect(result.campaign).toBe('feedback-ask-started');
+    // Structure, not wording: this copy lives in a Markdown file that gets
+    // rewritten often, and pinning a phrase there fails on an edit rather than
+    // on a regression.
     expect(result.html).not.toContain('utm_content=cta');
-    expect(result.html).toContain('hit reply');
   });
 
   /** The cold opening keeps one, because "try a search" is a real action. */
   it('gives the cold opening a search button', async () => {
-    const result = await buildFeedbackAskEmail({ username: 'alice', started: false, unsubscribeUrl });
+    const result = await buildFeedbackAskEmail({
+      username: 'alice',
+      sender: SENDERS[0],
+      started: false,
+      unsubscribeUrl,
+    });
 
     expect(result.campaign).toBe('feedback-ask-cold');
     expect(result.html).toContain('utm_campaign=feedback-ask-cold');
@@ -94,8 +107,13 @@ describe('buildFeedbackAskEmail', () => {
   });
 
   it('sends exactly one of the two openings', async () => {
-    const started = await buildFeedbackAskEmail({ username: 'alice', started: true, unsubscribeUrl });
-    const cold = await buildFeedbackAskEmail({ username: 'alice', started: false, unsubscribeUrl });
+    const started = await buildFeedbackAskEmail({
+      username: 'alice',
+      sender: SENDERS[0],
+      started: true,
+      unsubscribeUrl,
+    });
+    const cold = await buildFeedbackAskEmail({ username: 'alice', sender: SENDERS[0], started: false, unsubscribeUrl });
 
     expect(started.html).not.toContain('What were you hoping to find');
     expect(cold.html).not.toContain('what would you change first');
@@ -112,16 +130,21 @@ describe('buildDormant30Email', () => {
     url: `https://nadeshiko.co/media/${name}`,
   });
 
+  /**
+   * The count decides the shape but never appears: ingest is bursty enough that
+   * the honest number is often small, and a padded one is disprovable from the
+   * home page. The grid does the pulling instead.
+   */
   it('leads with what has been added since they left', async () => {
     const result = await buildDormant30Email({
       username: 'alice',
+      sender: SENDERS[0],
       newTitles: 57,
       titles: [title('frieren')],
       unsubscribeUrl,
     });
 
-    expect(result.subject).toBe('We added 57 new titles since you were last here!');
-    expect(result.html).toContain('57 new titles');
+    expect(result.subject).toBe('We added new titles since you were last here!');
   });
 
   /**
@@ -129,7 +152,13 @@ describe('buildDormant30Email', () => {
    * is an argument for staying away. The section goes, the email still sends.
    */
   it('drops the line entirely when nothing has been added', async () => {
-    const result = await buildDormant30Email({ username: 'alice', newTitles: 0, titles: [], unsubscribeUrl });
+    const result = await buildDormant30Email({
+      username: 'alice',
+      sender: SENDERS[0],
+      newTitles: 0,
+      titles: [],
+      unsubscribeUrl,
+    });
 
     expect(result.subject).toBe('Anything we could have done?');
     expect(result.html).not.toContain('new titles');
@@ -139,6 +168,7 @@ describe('buildDormant30Email', () => {
   it('carries the unsubscribe link untagged', async () => {
     const result = await buildDormant30Email({
       username: 'alice',
+      sender: SENDERS[0],
       newTitles: 3,
       titles: [title('frieren')],
       unsubscribeUrl,
@@ -172,6 +202,7 @@ describe('buildDormant30Email', () => {
     const names = Array.from({ length: 8 }, (_, i) => `title-${i}`);
     const result = await buildDormant30Email({
       username: 'alice',
+      sender: SENDERS[0],
       newTitles: 57,
       titles: names.map(title),
       unsubscribeUrl,
@@ -188,6 +219,7 @@ describe('buildDormant30Email', () => {
   it('sizes every tile from the widest row', async () => {
     const result = await buildDormant30Email({
       username: 'alice',
+      sender: SENDERS[0],
       newTitles: 7,
       titles: Array.from({ length: 7 }, (_, i) => title(`t${i}`)),
       unsubscribeUrl,
@@ -202,6 +234,7 @@ describe('buildDormant30Email', () => {
   it('never grows a tile past the cap, however few there are', async () => {
     const result = await buildDormant30Email({
       username: 'alice',
+      sender: SENDERS[0],
       newTitles: 1,
       titles: [title('lonely')],
       unsubscribeUrl,
@@ -212,7 +245,13 @@ describe('buildDormant30Email', () => {
   });
 
   it('drops the grid entirely when there are no covers', async () => {
-    const result = await buildDormant30Email({ username: 'alice', newTitles: 0, titles: [], unsubscribeUrl });
+    const result = await buildDormant30Email({
+      username: 'alice',
+      sender: SENDERS[0],
+      newTitles: 0,
+      titles: [],
+      unsubscribeUrl,
+    });
 
     expect(result.html).not.toContain('cover.webp');
     expect(result.html).not.toContain('{{');
@@ -222,6 +261,7 @@ describe('buildDormant30Email', () => {
   it('escapes a title name rather than letting it become markup', async () => {
     const result = await buildDormant30Email({
       username: 'alice',
+      sender: SENDERS[0],
       newTitles: 1,
       titles: [{ name: '<img src=x onerror=alert(1)>', coverUrl: 'https://cdn.test/a.webp', url: 'https://n.co/a' }],
       unsubscribeUrl,
@@ -231,11 +271,24 @@ describe('buildDormant30Email', () => {
     expect(result.html).toContain('&lt;img');
   });
 
-  /** "See what is new" over a month with nothing new is a link to a disappointment. */
-  it('drops the button too when there is no news', async () => {
-    const result = await buildDormant30Email({ username: 'alice', newTitles: 0, titles: [], unsubscribeUrl });
+  /**
+   * The button and the grid used to sit inside the news branch, on the reasoning
+   * that "see what is new" over a month with nothing new is a link to a
+   * disappointment. That stopped holding once the grid is topped up to a full
+   * eight from the newest titles overall -- see `titlesAddedSinceLastVisit` --
+   * so there is always something to look at and both shapes get both.
+   */
+  it('keeps the grid and the button in the quiet shape too', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      sender: SENDERS[0],
+      newTitles: 0,
+      titles: ['a', 'b', 'c'].map(title),
+      unsubscribeUrl,
+    });
 
-    expect(result.html).not.toContain('utm_content=cta');
-    expect(result.html).toContain('Reply and tell me');
+    expect(result.html.match(/cover\.webp/g)).toHaveLength(3);
+    expect(result.html).toContain('utm_content=cta');
+    expect(result.html).not.toContain('{{');
   });
 });
