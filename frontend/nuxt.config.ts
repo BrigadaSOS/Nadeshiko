@@ -79,6 +79,13 @@ const SITEMAP_STATIC_PATHS = [
   '/changelog',
   '/stats',
   '/stats/words',
+  // One entry per tier, because the tier chips on that page are the only links
+  // the site has to most of the ~19.8k word pages and a crawler has to be able
+  // to reach each tier to follow them. `filter=COVERED` deliberately: the
+  // default `ALL` mixes in words with no sentences, whose search pages are
+  // `noindex`, and pointing a crawler at those spends crawl budget on pages we
+  // have asked it to ignore. `canonical.ts` allowlists both params.
+  ...[1000, 2000, 5000, 10000, 20000, 50000, 100000].map((tier) => `/stats/words?tier=${tier}&filter=COVERED`),
 ];
 const SITEMAP_STATIC_URLS_EN = ['/en', ...SITEMAP_STATIC_PATHS.map((path) => `/en${path}`)];
 const SITEMAP_STATIC_URLS_ES = ['/es', ...SITEMAP_STATIC_PATHS.map((path) => `/es${path}`)];

@@ -118,26 +118,55 @@ async function fetchWords() {
   tierStats.value = outcome.page.tierStats;
 }
 
-function updateUrl() {
-  router.replace({
-    query: {
-      tier: String(activeTier.value),
-      ...(activeFilter.value !== 'ALL' ? { filter: activeFilter.value } : {}),
-    },
-  });
+/**
+ * The query string this page's state lives in. Every control writes here and
+ * nothing fetches directly -- the watcher below is the only thing that reloads
+ * the grid, so a chip click and a pasted URL take the same path and cannot
+ * disagree about what is on screen.
+ *
+ * Both controls navigate with `replace`, as they did before: seven tiers times
+ * three filters is a lot of history entries for what is one page, and `back`
+ * should leave rather than walk them.
+ */
+function queryFor(tier: number, filter: 'ALL' | 'COVERED' | 'UNCOVERED') {
+  return { tier: String(tier), ...(filter !== 'ALL' ? { filter } : {}) };
 }
 
-async function selectTier(tier: number) {
-  activeTier.value = tier;
-  updateUrl();
-  await fetchWords();
+/**
+ * The tier chips are REAL LINKS, and that is the point of them.
+ *
+ * They used to be `<button @click>`, which meant the only `?tier=` a crawler
+ * could ever see was whichever one the bare URL rendered -- the other six tiers
+ * had no href anywhere on the site and were undiscoverable. This page carries
+ * the site's only links to the ~19.8k word pages (`/search/<word>`, 98% of the
+ * sitemap), so that put ~500 of them within reach and orphaned the rest.
+ *
+ * The active filter rides along so a crawler arriving from the sitemap on
+ * `filter=COVERED` stays on covered words as it walks the tiers, rather than
+ * being handed back the default `ALL` and its `noindex` entries.
+ */
+function tierLink(tier: number) {
+  return localePath({ path: '/stats/words', query: queryFor(tier, activeFilter.value) });
 }
 
-async function selectFilter(filter: 'ALL' | 'COVERED' | 'UNCOVERED') {
-  activeFilter.value = filter;
-  updateUrl();
-  await fetchWords();
+function selectFilter(filter: 'ALL' | 'COVERED' | 'UNCOVERED') {
+  router.replace({ query: queryFor(activeTier.value, filter) });
 }
+
+watch(
+  () => route.query,
+  (query) => {
+    const requested = Number(query.tier);
+    const tier = TIERS.includes(requested as (typeof TIERS)[number]) ? requested : 1000;
+    const requestedFilter = query.filter;
+    const filter = requestedFilter === 'COVERED' || requestedFilter === 'UNCOVERED' ? requestedFilter : 'ALL';
+    if (tier === activeTier.value && filter === activeFilter.value) return;
+
+    activeTier.value = tier;
+    activeFilter.value = filter;
+    fetchWords();
+  },
+);
 
 async function loadMore() {
   const outcome = await fetchNextPage(fetchWordsPage);
@@ -182,17 +211,18 @@ const onSentinelVisible = () => {
     </div>
 
     <div class="flex flex-wrap items-center gap-2 mb-4">
-      <button
+      <NuxtLink
         v-for="tier in TIERS"
         :key="tier"
+        :to="tierLink(tier)"
+        replace
         class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
         :class="activeTier === tier
           ? 'bg-white/15 text-white'
           : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'"
-        @click="selectTier(tier)"
       >
         {{ tierLabel(tier) }}
-      </button>
+      </NuxtLink>
     </div>
 
     <div class="flex items-center gap-3 mb-6">
