@@ -144,5 +144,35 @@ describe('SegmentResponse', () => {
       expect(segments[0].textJa.highlight).toBe('<em>食べ</em>ました');
       expect(segments[0].textJa.tokens).toBeNull();
     });
+
+    // A segment may be stored somewhere other than the rest of its title, which
+    // is the whole reason the column is per segment. Building urls from the
+    // media path instead pointed 654 of Mushoku Tensei II's segments at objects
+    // that were not there -- playable on the sentence page, 404 in search.
+    it('builds urls from the segment path when it differs from the media path', () => {
+      const hit = makeEsHit('1', { storageBasePath: 'anime/elsewhere', hashedId: 'abc123', episode: 8 });
+      const esResponse = makeEsResponse([hit]);
+      const mediaInfo = makeMediaInfoMap(1);
+
+      const { segments } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
+
+      expect(segments).toHaveLength(1);
+      const { imageUrl, audioUrl, videoUrl } = segments[0].urls;
+      for (const url of [imageUrl, audioUrl, videoUrl]) {
+        expect(url).toContain('anime/elsewhere');
+        expect(url).not.toContain('anime/test-anime');
+      }
+    });
+
+    it('falls back to the media path for a document indexed before the field existed', () => {
+      const hit = makeEsHit('1', { storageBasePath: undefined as unknown as string });
+      const esResponse = makeEsResponse([hit]);
+      const mediaInfo = makeMediaInfoMap(1);
+
+      const { segments } = SegmentResponse.buildSearchResultSegments(esResponse, mediaInfo);
+
+      expect(segments).toHaveLength(1);
+      expect(segments[0].urls.audioUrl).toContain('anime/test-anime');
+    });
   });
 });

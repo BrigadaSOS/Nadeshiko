@@ -80,7 +80,21 @@ export class SegmentResponse {
           mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaInfo);
         }
 
-        const storageBasePath = mediaInfo.storageBasePath;
+        // The SEGMENT's own path, not the media's. They are equal for every
+        // title whose objects all sit in one directory, which is nearly all of
+        // them -- but the column exists per segment because that is not
+        // guaranteed, and `SegmentIndexer` indexes it for exactly this read.
+        //
+        // Discarding it split one title in half. Mushoku Tensei II (media 47)
+        // has 654 segments stored under another title's directory, and building
+        // their urls from the media path pointed every one at an object that is
+        // not there: the sentence page played them (it maps from the segment,
+        // see `mappers/segmentMapper`) while the same clip 404'd in search.
+        //
+        // Falls back to the media path when a document predates the field, so a
+        // partially reindexed cluster degrades to the old behaviour rather than
+        // building urls against `undefined`.
+        const storageBasePath = data.storageBasePath || mediaInfo.storageBasePath;
         const storage: Storage = data.storage.toUpperCase() as Storage;
         const segmentForUrls = {
           mediaId,
