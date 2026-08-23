@@ -6,7 +6,7 @@ import * as lifecycleGate from '@app/services/email/lifecycleGate';
 import * as analytics from '@app/services/analytics/posthog';
 import { EmailLifecycleSend, EmailSuppression, User, UserActivity } from '@app/models';
 import { ActivityType } from '@app/models/UserActivity';
-import { DORMANT_REPEAT_FLOOR_DAYS, runLifecycleSweep } from '@app/workers/emailLifecycleWorker';
+import { DORMANT_NIGHTLY_CAP, DORMANT_REPEAT_FLOOR_DAYS, runLifecycleSweep } from '@app/workers/emailLifecycleWorker';
 import type { EmailJobData } from '@app/workers/emailQueue';
 import type { DeepPartial } from 'typeorm';
 
@@ -249,7 +249,14 @@ describe('the day-7 ask itself', () => {
    * Discord channel via the Zoho bridge. Somebody answering "what would you
    * change first?" is entitled to assume that is a private reply.
    */
-  it('leaves reply-to unset, so replies go back to the sender', async () => {
+  /**
+   * A reply goes to whichever of the two of us wrote: their `From` is a real
+   * mailbox, so the message needs nothing else on it. An explicit reply-to would
+   * only be worth adding to point somewhere shared -- and the address it would
+   * point at has to be one the Cloudflare catch-all worker does not publish into
+   * Discord, which is a question about that worker rather than about this code.
+   */
+  it('leaves reply-to unset, so replies go back to whoever wrote', async () => {
     await userAgedDays(7);
 
     await runLifecycleSweep();
@@ -286,19 +293,48 @@ describe('the dormant win-back note', () => {
   });
 
   /**
-   * THE ONE THAT KEEPS THE FIRST NIGHT SMALL. Dormancy is a state rather than an
-   * anniversary: "has not signed in for 30 days" is true of a large share of
-   * every account ever created, so an un-windowed version of this query mails
-   * hundreds of people the first time it runs -- down a relay that is
-   * transactional-only and also carries every magic link.
+   * DORMANCY IS A STATE, NOT AN ANNIVERSARY. Taking only last night's lapses
+   * would be self-limiting but would abandon everybody already past thirty days
+   * -- half the account base when this shipped -- purely because their lapse
+   * date fell before the feature existed.
    */
-  it.each([48, 24 * 30, 24 * 365])('leaves an account that lapsed %i hours ago alone', async (hours) => {
+  it.each([48, 24 * 30, 24 * 365])('still reaches an account that lapsed %i hours ago', async (hours) => {
     const user = await userAgedDays(400);
     await session(user, { lapsedHoursAgo: hours });
 
     await runLifecycleSweep();
 
-    expect(kindsSent()).not.toContain('dormant-30');
+    expect(kindsSent()).toContain('dormant-30');
+  });
+
+  /**
+   * WHAT KEEPS THE FIRST NIGHT SMALL, now that the window is gone. The backlog
+   * drains at this rate instead of going out at once down the relay that also
+   * carries every magic link.
+   */
+  it('sends no more than the nightly cap, however big the backlog', async () => {
+    for (let i = 0; i < DORMANT_NIGHTLY_CAP + 6; i++) {
+      const user = await userAgedDays(400);
+      await session(user, { lapsedHoursAgo: 24 * (i + 2) });
+    }
+
+    await runLifecycleSweep();
+
+    expect(kindsSent().filter((kind) => kind === 'dormant-30')).toHaveLength(DORMANT_NIGHTLY_CAP);
+  });
+
+  /** Warmest first: last week's leaver is likelier to come back than last year's. */
+  it('takes the most recently lapsed first', async () => {
+    const recent = await userAgedDays(400);
+    await session(recent, { lapsedHoursAgo: 24 });
+    for (let i = 0; i < DORMANT_NIGHTLY_CAP; i++) {
+      const older = await userAgedDays(400);
+      await session(older, { lapsedHoursAgo: 24 * (i + 30) });
+    }
+
+    await runLifecycleSweep();
+
+    expect(enqueued.map((job) => job.to)).toContain(recent.email);
   });
 
   it('leaves a reader who is still signed in alone', async () => {
