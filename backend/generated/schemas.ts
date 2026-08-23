@@ -779,7 +779,14 @@ export const s_UserPreferences = z.object({
     .array(z.object({ mediaPublicId: z.string(), favoritedAt: z.iso.datetime({ offset: true }) }))
     .optional(),
   familiarMedia: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
-  productEmails: z.object({ enabled: PermissiveBoolean.optional() }).optional(),
+  productEmails: z
+    .object({
+      enabled: PermissiveBoolean.optional(),
+      recap: PermissiveBoolean.optional(),
+      checkins: PermissiveBoolean.optional(),
+      updates: PermissiveBoolean.optional(),
+    })
+    .optional(),
 });
 
 export const s_UserReportTarget = z.discriminatedUnion('type', [s_ReportTargetMedia, s_ReportTargetSegmentInput]);

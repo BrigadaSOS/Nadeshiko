@@ -921,6 +921,18 @@
           "body": "AnkiConnect ha aceptado la conexión y no ha devuelto ningún mazo al que exportar. Crea un mazo en Anki y vuelve a intentarlo."
         }
       }
+    },
+    "emails": {
+      "title": "Correos",
+      "allTitle": "Correos sobre Nadeshiko",
+      "recapTitle": "Resumen mensual",
+      "recapDescription": "Un resumen mensual de lo que has estudiado con Nadeshiko.",
+      "checkinsTitle": "Mensajes puntuales",
+      "checkinsDescription": "Preguntas sobre qué tal te funciona Nadeshiko.",
+      "updatesTitle": "Novedades y versiones",
+      "updatesDescription": "Últimas novedades y cambios en Nadeshiko.",
+      "transactionalNote": "Los enlaces de inicio de sesión y los correos de cuenta se envían siempre, elijas lo que elijas aquí.",
+      "preferenceError": "No se pudo guardar esa preferencia. Inténtalo de nuevo."
     }
   },
   "blog": {
@@ -971,6 +983,7 @@
     "expandNoNext": "No hay ninguna frase posterior en este episodio.",
     "expandFailed": "No se pudo expandir esta frase. Inténtalo de nuevo.",
     "expandAudioFailed": "Se expandió el texto, pero no se pudo generar el audio: la reproducción y la exportación a Anki usarán el audio original.",
+    "expandAudioFailedStreamed": "Se expandió el texto, pero no se pudo generar el audio: la exportación a Anki usará el audio original.",
     "expanding": "Expandiendo…",
     "playAudio": "Reproducir audio",
     "loading": "Cargando",
