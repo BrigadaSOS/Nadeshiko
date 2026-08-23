@@ -13,8 +13,11 @@ const envSchema = z.object({
     (val) => (val === '' ? undefined : val),
     z.enum(['local', 'development', 'production']).default('production'),
   ),
-  NUXT_PUBLIC_FARO_URL: optionalString,
-  NUXT_PUBLIC_FARO_APP_NAME: optionalString,
+  // The browser-metrics receiver the RUM reporter posts web vitals to. Absent
+  // outside production and staging, which is what stops a local run from
+  // beaconing at the collector.
+  NUXT_PUBLIC_BROWSER_METRICS_URL: optionalString,
+  NUXT_PUBLIC_BROWSER_APP_NAME: optionalString,
   NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),
   NUXT_NADESHIKO_API_KEY: z.string().trim().default(''),
   // Shirabe parses the corpus and serves the definitions behind every word. The

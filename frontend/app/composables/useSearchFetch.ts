@@ -14,7 +14,7 @@ import {
 // Relative rather than `~/`: this module is unit-tested outside Nuxt. `vitest.config.ts`
 // now maps `~` too, so this is belt-and-braces rather than a hard requirement.
 import { ALL_CATEGORIES, CATEGORY_API_MAPPING } from '../utils/categories';
-import { reportError } from '../utils/reportError';
+import { reportError, reportEvent } from '../utils/reportError';
 import { resolveSearchResponse, resolveStatsResponse } from '../utils/resolvers';
 import type { MediaFilterItem, SearchResponse, SearchStatsResponse } from '~/types/search';
 
@@ -246,31 +246,36 @@ const emptyResponseOutcome = (
     return { status: 'error' };
   }
 
-  // A transport failure goes to Faro but NOT to PostHog error tracking. Two
-  // thirds of both search fingerprints were this, landing on the sentences and
-  // the stats fetch in the *same millisecond* -- one reader's network going
-  // away, filed as two faults of ours. As triaged issues they are unactionable
-  // noise, which is what buried the reports that are not.
+  // A transport failure is COUNTED, not filed as an exception. Two thirds of
+  // both search fingerprints were this, landing on the sentences and the stats
+  // fetch in the *same millisecond* -- one reader's network going away, filed as
+  // two faults of ours. As triaged issues they are unactionable noise, which is
+  // what buried the reports that are not.
   //
-  // They are still worth counting, though, and dropping them entirely was the
-  // wrong trade: if the edge fails while the origin is healthy, server-side
-  // metrics look fine and this is the only place the outage is visible. Faro
-  // takes it as one more exception in a stream nobody triages, where a spike
-  // reads as a spike; PostHog keeps its issue list about things with a fix.
-  const transportFailure = isTransportFailure(response);
+  // They are still worth counting, and dropping them entirely was the wrong
+  // trade: if the edge fails while the origin is healthy, server-side metrics
+  // look fine and this is the only place the outage is visible. Faro used to
+  // take them as one more exception in a stream nobody triaged; with Faro gone
+  // (2026-08-23) they go to PostHog as a plain event instead, where a spike is
+  // still a spike and the issue list stays about things with a fix.
+  //
+  // ~127 a week, so the event volume is negligible.
+  if (isTransportFailure(response)) {
+    reportEvent('search_fetch_failed', {
+      'search.kind': kind,
+      'search.scope': scope,
+      'http.status_code': String(response?.status ?? 0),
+    });
+    return { status: 'error' };
+  }
 
   // The status code stays OUT of the message and in the properties: it is the one
   // part that varies, and interpolating it would fingerprint 500 apart from 503
   // and scatter one fault across an issue per status code.
-  reportError(
-    `search:${kind}-fetch-failed`,
-    new Error(`search ${kind} fetch returned an empty response`),
-    {
-      'search.scope': scope,
-      'http.status_code': String(response?.status ?? 0),
-    },
-    { faroOnly: transportFailure },
-  );
+  reportError(`search:${kind}-fetch-failed`, new Error(`search ${kind} fetch returned an empty response`), {
+    'search.scope': scope,
+    'http.status_code': String(response?.status ?? 0),
+  });
   return { status: 'error' };
 };
 
