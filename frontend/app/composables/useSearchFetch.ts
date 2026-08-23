@@ -17,6 +17,7 @@ import { ALL_CATEGORIES, CATEGORY_API_MAPPING } from '../utils/categories';
 import { reportError, reportEvent } from '../utils/reportError';
 import { resolveSearchResponse, resolveStatsResponse } from '../utils/resolvers';
 import type { MediaFilterItem, SearchResponse, SearchStatsResponse } from '~/types/search';
+import type { InjectionKey, Ref } from 'vue';
 
 /** Page size for corpus searches (`/v1/search`). */
 export const SEARCH_PAGE_SIZE = 30;
@@ -207,6 +208,102 @@ export const buildSentenceFilters = (scope: SearchScope): SearchFilters =>
 export const buildStatsFilters = (scope: SearchScope): SearchFilters =>
   buildFilters(scope, { withSelectedMedia: false, excludeHiddenMedia: true });
 
+/**
+ * Filters for the counts of ONE title -- the episode drawer's drill-down, which
+ * the page payload no longer carries for every title in the catalogue (see
+ * `stripEpisodeHits`).
+ *
+ * `episode` is dropped on the way in: an `?episode=` in the URL would narrow the
+ * include to that single episode and hand the drawer a list containing only the
+ * row that is already selected, with no way back to its siblings. Hidden media
+ * are not excluded either -- naming a title is asking for it, the same rule
+ * `buildSentenceFilters` follows.
+ */
+export const buildMediaStatsFilters = (scope: SearchScope): SearchFilters =>
+  buildFilters({ ...scope, episode: null }, { withSelectedMedia: true, excludeHiddenMedia: false });
+
+/**
+ * The per-episode breakdown, kept only for the title the page is actually about.
+ *
+ * `/v1/search/stats` answers with `episodeHits` for EVERY title it counted, and
+ * that made the answer the page's dominant cost. Measured against production on
+ * 2026-08-23: `/en/media/bakemonogatari` serialized 5,802 objects, 4,670 of them
+ * `{episode, hitCount}` pairs, and 4,655 of THOSE described the 241 titles the
+ * page is not about. Emptying them takes the payload from 342,660 to 164,890
+ * bytes raw, 56,740 to 38,746 brotli. `/en/search/食べる` is the same shape one
+ * step worse -- it names no title, so all 1,983 of its pairs go: 226,083 to
+ * 155,446 raw, 40,631 to 33,761 brotli.
+ *
+ * AN EMPTIED LIST, NOT AN ABSENT KEY. `episodeHits` is required by the API type,
+ * and the drawer's rule is "empty means ask": a title only appears in the stats
+ * at all because something matched inside it, so it has at least one hit in at
+ * least one episode and an empty list here can only be one this function
+ * emptied. `SearchContainer` fetches the real one, scoped to that single title,
+ * when the reader drills in.
+ *
+ * SSR PAYLOADS ONLY -- this is called from the pages' `useAsyncData`, not from
+ * `fetchStats`. A client-side stats refetch is not serialized into anything, so
+ * it keeps the full breakdown and the drill-down answers from memory.
+ */
+export const stripEpisodeHits = (
+  stats: SearchStatsResponse,
+  keepMediaPublicId: string | null,
+): SearchStatsResponse => ({
+  ...stats,
+  media: stats.media.map((entry) =>
+    entry.mediaPublicId === keepMediaPublicId ? entry : { ...entry, episodeHits: [] },
+  ),
+});
+
+/**
+ * Token fields nothing renders, off the SSR payload.
+ *
+ * `posLabel` is the part of speech in words ("Verb", "Particle"). It is on all
+ * but a handful of the tokens a page of results carries -- 389 of them on the
+ * title page measured above, 247 on the search -- and no component has read it
+ * since `enrichTokens` dropped its `pos` alias: the colouring keys off `p`
+ * (`POS_CLASS`), the dictionary lookup off `pt` with `p` as its fallback
+ * (`shortPos`), and the inflection line off `inflection`. Worth 5,914 bytes raw
+ * and 392 brotli on that page: small next to the counts above, and the cheapest
+ * bytes on the page to stop sending.
+ *
+ * `b`/`e` are deliberately NOT touched and must not be: they are the character
+ * offsets `enrichTokens` intersects with the `<em>` ranges to decide what is
+ * highlighted, the offsets `tokensToAnkiFurigana` slices the sentence on, and the
+ * offsets `segmentConcatenation` shifts when it merges neighbours. `kind` is read
+ * by `isAskable`, and `f`, `inflection` and `parts` all address the same text.
+ */
+export const stripUnreadTokenFields = (response: SearchResponse): SearchResponse => ({
+  ...response,
+  results: response.results.map((result) => {
+    const tokens = result.segment.textJa?.tokens;
+    if (!tokens?.length) return result;
+
+    return {
+      ...result,
+      segment: {
+        ...result.segment,
+        textJa: {
+          ...result.segment.textJa,
+          tokens: tokens.map(({ posLabel: _posLabel, ...rest }) => rest),
+        },
+      },
+    };
+  }),
+});
+
+/**
+ * Whether the episode drawer is waiting on the counts it no longer gets for
+ * free.
+ *
+ * Provided by `SearchContainer`, which owns the search scope and so is the only
+ * component that can ask for a title's breakdown, and injected by
+ * `FilterContent`, which is the one that has to say so. A prop would have to
+ * cross `SegmentSidebar`, which has no stake in it. Defaults to "not loading"
+ * for the panel rendered outside a container.
+ */
+export const EPISODE_HITS_LOADING: InjectionKey<Readonly<Ref<boolean>>> = Symbol('nd-episode-hits-loading');
+
 const isForbidden = (response: Response | undefined): boolean => response?.status === 401 || response?.status === 403;
 
 /**
@@ -372,7 +469,15 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
     }
   };
 
-  const fetchStats = async (scope: SearchScope): Promise<FetchOutcome<SearchStatsResponse>> => {
+  /**
+   * `scopeToSelectedMedia` asks for one title's counts instead of the whole
+   * result set's: the drill-down request, not the tab request. See
+   * `buildMediaStatsFilters`.
+   */
+  const fetchStats = async (
+    scope: SearchScope,
+    options: { scopeToSelectedMedia?: boolean } = {},
+  ): Promise<FetchOutcome<SearchStatsResponse>> => {
     const generation = statsRequests.start();
     const stale = (): boolean => !statsRequests.isCurrent(generation);
 
@@ -393,8 +498,11 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         ...requestOptions(generation),
         body: {
           query: scope.query ? { search: scope.query } : undefined,
-          filters: buildStatsFilters(scope),
-          include: ['media'],
+          filters: options.scopeToSelectedMedia ? buildMediaStatsFilters(scope) : buildStatsFilters(scope),
+          // No `include` on the drill-down: the only field read off that answer
+          // is `episodeHits`, and the title's name, slug and format are already
+          // on the row the reader clicked to get here.
+          ...(options.scopeToSelectedMedia ? {} : { include: ['media' as const] }),
         },
       });
       if (stale()) return { status: 'stale' };

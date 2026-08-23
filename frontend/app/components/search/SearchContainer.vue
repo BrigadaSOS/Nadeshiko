@@ -9,7 +9,7 @@ import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
 import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
 import { splitLocalePrefix } from '~/utils/routes';
-import type { SearchScope } from '~/composables/useSearchFetch';
+import { EPISODE_HITS_LOADING, type SearchScope } from '~/composables/useSearchFetch';
 import type { Category } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
@@ -171,6 +171,38 @@ const loadHiddenBreakdown = async () => {
   );
 };
 
+/**
+ * The selected title's per-episode counts, fetched on demand.
+ *
+ * The SSR payload stopped carrying them for anything but the title the page is
+ * about (`stripEpisodeHits`), and picking a title deliberately does NOT refetch
+ * the stats -- `statsScopeChanged` at the foot of this file is blind to
+ * `?media=` on purpose, so the tabs keep describing the whole result set the
+ * query matched. So the one title the reader drilled into is asked for on its
+ * own: one bounded request in place of 242 titles' worth of counts on every
+ * render. Filled by the watcher below, which is where `searchScope` exists.
+ *
+ * Nothing to fetch once a client-side `loadStats()` has run: that answer is not
+ * serialized anywhere, so it still carries every title's breakdown and
+ * `episodeHitsNeeded` finds nothing to ask for.
+ */
+const fetchedEpisodeHits = ref<{ mediaPublicId: string; hits: ResolvedMediaStats['episodeHits'] } | null>(null);
+const episodeHitsLoading = ref(false);
+// The drawer says so; it cannot reach this any other way. See EPISODE_HITS_LOADING.
+provide(EPISODE_HITS_LOADING, readonly(episodeHitsLoading));
+
+/** Puts a fetched breakdown back on the row the drawer reads it off. */
+const withFetchedEpisodeHits = (entries: ResolvedMediaStats[]): ResolvedMediaStats[] => {
+  const fetched = fetchedEpisodeHits.value;
+  if (!fetched) return entries;
+
+  return entries.map((entry) =>
+    entry.mediaPublicId === fetched.mediaPublicId && entry.episodeHits.length === 0
+      ? { ...entry, episodeHits: fetched.hits }
+      : entry,
+  );
+};
+
 const searchData = computed(() => {
   const sentencePayload = sentenceData.value;
   const statsPayload = statsData.value;
@@ -199,7 +231,7 @@ const searchData = computed(() => {
     cursor: sentencePayload?.pagination?.cursor,
     pagination: sentencePayload?.pagination,
     categories,
-    media: filteredMedia,
+    media: withFetchedEpisodeHits(filteredMedia),
   };
 });
 
@@ -442,6 +474,60 @@ watch(searchScope, () => {
   hiddenBreakdown.value = null;
   hiddenBreakdownError.value = false;
 });
+
+// Its own fetcher instance, for the reason the two above have theirs: a shared
+// `fetchStats` supersedes whatever the previous call left in flight, and the tab
+// counts and this drill-down are answered by the same endpoint.
+const { fetchStats: fetchEpisodeHits } = useSearchFetch();
+
+/**
+ * Which title, if any, is missing the episode list the drawer is about to show.
+ *
+ * Read off `statsData` rather than `searchData`, which is not a detail: the
+ * merged copy is what `searchData` exposes, so keying this on it would clear the
+ * need as soon as the answer arrived, drop the merge, and ask again forever.
+ */
+const episodeHitsNeeded = computed(() => {
+  const id = media.value;
+  if (!id) return null;
+  const stat = statsData.value?.media?.find((entry) => entry.mediaPublicId === id);
+  // No row means the query matched nothing inside this title -- there is no
+  // episode list to drill into, and an empty one is the honest answer.
+  return stat && stat.episodeHits.length === 0 ? id : null;
+});
+
+watch(
+  episodeHitsNeeded,
+  async (id) => {
+    if (!id) {
+      fetchedEpisodeHits.value = null;
+      episodeHitsLoading.value = false;
+      return;
+    }
+    if (fetchedEpisodeHits.value?.mediaPublicId === id) return;
+    // Never on the server: the payload already holds the breakdown for the one
+    // title a server render is about, and spending a second round trip to
+    // re-serialize what was just stripped is the opposite of the point.
+    if (!import.meta.client) return;
+
+    fetchedEpisodeHits.value = null;
+    episodeHitsLoading.value = true;
+
+    const outcome = await fetchEpisodeHits({ ...searchScope.value, mediaPublicId: id }, { scopeToSelectedMedia: true });
+
+    // A newer pick owns the state now, and started its own spinner.
+    if (id !== episodeHitsNeeded.value) return;
+
+    episodeHitsLoading.value = false;
+    // A failed drill-down leaves the drawer saying the title has no episodes,
+    // which is the same thing it said before this request existed.
+    fetchedEpisodeHits.value =
+      outcome.status === 'ok'
+        ? { mediaPublicId: id, hits: outcome.data.media.find((entry) => entry.mediaPublicId === id)?.episodeHits ?? [] }
+        : null;
+  },
+  { immediate: true },
+);
 
 const loadStats = async () => {
   const outcome = await fetchStats(searchScope.value);
