@@ -18,6 +18,8 @@ import {
 } from '@app/services/auth/loginCode';
 import { APIError } from 'better-auth/api';
 import { isSuppressed } from '@app/services/email/suppression';
+import { countryFromAuthContext } from '@app/services/auth/requestCountry';
+import { recordLastSeen, resolveUserId, shouldRecordLastSeen } from '@app/services/auth/lastSeen';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { refreshIfStale, stackIsStale } from '@app/services/shirabe/connection';
 
@@ -512,6 +514,11 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       additionalFields: {
         isActive: { type: 'boolean', fieldName: 'is_active', defaultValue: true },
         role: { type: 'string', fieldName: 'role', defaultValue: 'USER' },
+        // `input: false` so the value can only ever come from the header the
+        // create hook reads. Without it better-auth accepts the field from the
+        // sign-up request body, and a self-declared country is worse than none:
+        // it looks like a measurement and is not one.
+        signupCountry: { type: 'string', fieldName: 'signup_country', required: false, input: false },
       },
       changeEmail: {
         enabled: true,
@@ -530,6 +537,13 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
         userAgent: 'user_agent',
         createdAt: 'created_at',
         updatedAt: 'updated_at',
+      },
+      additionalFields: {
+        // Alongside `ip_address` and `user_agent`, which better-auth already
+        // fills from the same request. `input: false` for the same reason as
+        // `signupCountry` above -- it is read from the edge, never accepted
+        // from a caller.
+        country: { type: 'string', fieldName: 'country', required: false, input: false },
       },
       expiresIn: 30 * 24 * 60 * 60,
       updateAge: 7 * 24 * 60 * 60,
@@ -687,6 +701,41 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
     databaseHooks: {
       session: {
         /**
+         * Where this device is signing in from.
+         *
+         * Set here rather than left to the adapter because better-auth fills
+         * `ip_address` and `user_agent` itself but knows nothing about
+         * `CF-IPCountry`. Reading it off the same context it uses for those two
+         * keeps the three columns describing one request instead of drifting
+         * apart.
+         *
+         * Never throws and never blocks: a missing header returns null and the
+         * session is written without a country, which is the state every
+         * existing row is already in.
+         */
+        create: {
+          before: async (data, context) => {
+            const country = countryFromAuthContext(context);
+            if (!country) return;
+
+            return { data: { ...data, country } };
+          },
+          /**
+           * A sign-in is the most precise last-seen there is, so it is recorded
+           * here as well as on refresh.
+           *
+           * `after`, not `before`: this writes to a different table, and
+           * better-auth runs after-hooks once the session is committed. A
+           * failure updating a convenience column must not be able to roll back
+           * or fail the sign-in that provoked it.
+           */
+          after: async (session, context) => {
+            if (!shouldRecordLastSeen(session)) return;
+
+            await recordLastSeen(resolveUserId(session) as number, countryFromAuthContext(context));
+          },
+        },
+        /**
          * Impersonation sessions, and ONLY impersonation sessions.
          *
          * better-auth issues one of these with its own short duration and then
@@ -727,11 +776,26 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
 
             return { data: { ...data, expiresAt: new Date(createdAt + IMPERSONATION_SESSION_MAX_AGE_MS) } };
           },
+          /**
+           * The refresh is what keeps last-seen current for somebody who never
+           * signs in again because they never sign out. It fires at most once
+           * per `updateAge` -- seven days -- so this is a weekly write per
+           * active reader, not a per-request one.
+           *
+           * Impersonation is filtered by `shouldRecordLastSeen`, which is the
+           * same rule the create hook uses and the reason it is a named
+           * predicate rather than an inline check in both places.
+           */
+          after: async (session, context) => {
+            if (!shouldRecordLastSeen(session)) return;
+
+            await recordLastSeen(resolveUserId(session) as number, countryFromAuthContext(context));
+          },
         },
       },
       user: {
         create: {
-          before: async (user) => {
+          before: async (user, context) => {
             const name = (
               user.name?.trim() ||
               (user.email ? (user.email.split('@')[0] ?? '').replace(/[^a-zA-Z0-9_]/g, '') || 'user' : 'user')
@@ -741,10 +805,20 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
             // address, and OAuth carries the provider's own claim. Forcing it
             // true here would also vouch for email/password sign-ups, which
             // prove nothing (that path is disabled today — see DISABLED_PATHS).
+            //
+            // `signupCountry` is written here and nowhere else. This hook is the
+            // only moment the request that opened the account is still in reach:
+            // the `verification` row that carried the magic link is deleted on
+            // consumption, so a minute later there is nothing left to ask. Null
+            // when the header is absent, and the column stays null forever after
+            // -- where the reader signs in from later is `session.country`.
+            const signupCountry = countryFromAuthContext(context);
+
             return {
               data: {
                 ...user,
                 name,
+                ...(signupCountry ? { signupCountry } : {}),
               },
             };
           },
