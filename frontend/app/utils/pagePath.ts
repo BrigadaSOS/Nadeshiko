@@ -2,6 +2,11 @@ import { splitLocalePrefix, withLocalePrefix } from '~/utils/routes';
 
 const DYNAMIC_ROUTE_PATTERNS: [RegExp, string][] = [
   [/^\/search\/.*/, '/search/:query'],
+  // Added 2026-08-23 for the RUM reporter, which turns this into a Prometheus
+  // label: 242 media slugs across three locales is 726 series per vital per
+  // bucket, and the blog is unbounded over time.
+  [/^\/media\/.+/, '/media/:slug'],
+  [/^\/blog\/.+/, '/blog/:slug'],
   [/^\/sentence\/.*/, '/sentence/:id'],
   [/^\/collection\/.*/, '/collection/:id'],
   [/^\/s\/.*/, '/s/:id'],

@@ -122,4 +122,4 @@ env:
 
     # Grafana Faro browser RUM → host Alloy Faro receiver (:4329, /collect) via
     # kamal-proxy; CORS allows dev.nadeshiko.co. Re-enabled (was commented out).
-    NUXT_PUBLIC_FARO_URL: "https://o.nadeshiko.co/collect"
+    NUXT_PUBLIC_BROWSER_METRICS_URL: "https://o.nadeshiko.co/v1/metrics"
