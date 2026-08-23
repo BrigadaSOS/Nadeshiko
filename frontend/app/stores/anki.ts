@@ -46,6 +46,40 @@ export const ANKI_CONNECT_FAILURES = [
 
 export type AnkiConnectFailure = (typeof ANKI_CONNECT_FAILURES)[number];
 
+/**
+ * AnkiConnect is not available on this reader's machine -- closed, add-on
+ * absent, origin refused, no decks to export into.
+ *
+ * Exists so a caller can tell that apart from a fault in the store, because the
+ * two want opposite handling: this one wants the setup panel and nothing in
+ * error tracking, and a fault wants both. Until it existed every failure of
+ * `loadAnkiData` arrived as a bare `Error` and was filed -- 124 reports from 25
+ * readers in the week to 2026-08-23, none of them a bug, all of them saying
+ * only that somebody had Anki closed.
+ *
+ * The reason travels on the error rather than being read back off the store,
+ * which by the time a caller looks may describe a later call.
+ */
+export class AnkiUnavailableError extends Error {
+  readonly reason: AnkiConnectFailure;
+
+  constructor(message: string, reason: AnkiConnectFailure) {
+    super(message);
+    this.name = 'AnkiUnavailableError';
+    this.reason = reason;
+  }
+}
+
+/**
+ * Matched on `name` rather than with `instanceof`, for the reason
+ * `~/utils/apiError` documents at length: a class identity is only reliable
+ * while there is exactly one copy of the class, and that is not a property this
+ * build guarantees.
+ */
+export function isAnkiUnavailable(error: unknown): error is AnkiUnavailableError {
+  return (error as { name?: unknown } | null | undefined)?.name === 'AnkiUnavailableError';
+}
+
 interface IAnkiState {
   availableDecks: string[];
   availableModels: string[];
@@ -132,7 +166,7 @@ import { defineStore } from 'pinia';
 import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
 import { userStore } from '@/stores/auth';
 import { handleApiError } from '~/utils/apiError';
-import { reportError } from '~/utils/reportError';
+import { reportError, reportEvent } from '~/utils/reportError';
 import { buildSentencePath } from '~/utils/routes';
 
 /**
@@ -285,7 +319,11 @@ export const ankiStore = defineStore('anki', {
         }
 
         return body;
-      } catch (error) {
+        // The thrown value is deliberately not bound: nothing here reads it any
+        // more. `fetch` rejects with the same opaque `TypeError` whichever of
+        // the four reasons applies, so `connectFailure` below carries every bit
+        // of what we know, and the event this branch sends is built from that.
+      } catch {
         this.connectReachable = false;
         // `http_error` was set above and is more specific than what we can tell
         // from here, so it wins. Everything else reaching this branch is `fetch`
@@ -293,7 +331,20 @@ export const ankiStore = defineStore('anki', {
         // closed, the add-on is absent, the origin is not in its CORS list, or an
         // extension ate the request -- see `ANKI_CONNECT_FAILURES`.
         if (this.connectFailure !== 'http_error') this.connectFailure = 'unreachable';
-        if (!options.silent) reportError('anki:connect-request-failed', error, { 'anki.action': action });
+        // Counted, not filed. Every way this branch is reached is the reader's
+        // own machine -- Anki closed, add-on absent, origin not in its CORS
+        // list -- so there is no fix in the app to hang an issue on, and 132
+        // reports from 26 readers in the week to 2026-08-23 said nothing that
+        // the rate of successful exports does not. `silent` already spared the
+        // word card's per-lookup probe from filing these; this extends the same
+        // judgement to the calls the reader did ask for, which are no more
+        // actionable, just rarer.
+        if (!options.silent) {
+          reportEvent('anki_connect_request_failed', {
+            'anki.action': action,
+            'anki.reason': this.connectFailure ?? 'unreachable',
+          });
+        }
         // AnkiConnect is unreachable (Anki closed, add-on disabled, CORS refused).
         // Returning null explicitly -- every caller must treat this as "no answer"
         // rather than dereferencing `.result` off undefined.
@@ -309,7 +360,10 @@ export const ankiStore = defineStore('anki', {
           // `connectFailure` is already whatever `executeAction` decided --
           // `unreachable`, `http_error` or `connect_error`. Left alone rather than
           // overwritten, because it is the more specific answer.
-          throw new Error('AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?');
+          throw new AnkiUnavailableError(
+            'AnkiConnect did not respond. Is Anki running with the AnkiConnect add-on enabled?',
+            this.connectFailure ?? 'unreachable',
+          );
         }
 
         // ANKI IS RUNNING AND SAID NO. This used to fall through: the check above
@@ -320,7 +374,10 @@ export const ankiStore = defineStore('anki', {
         // the dialog they needed sitting behind the browser window.
         if (permission !== 'granted') {
           this.connectFailure = 'permission_denied';
-          throw new Error(`AnkiConnect refused this site (permission: ${permission}).`);
+          throw new AnkiUnavailableError(
+            `AnkiConnect refused this site (permission: ${permission}).`,
+            'permission_denied',
+          );
         }
 
         const decks = await this.getAllDeckNames();
@@ -338,7 +395,7 @@ export const ankiStore = defineStore('anki', {
         // counted as a success that the reader could not act on.
         if (this.availableDecks.length === 0) {
           this.connectFailure = 'no_decks';
-          throw new Error('AnkiConnect returned no decks.');
+          throw new AnkiUnavailableError('AnkiConnect returned no decks.', 'no_decks');
         }
 
         this.connectFailure = null;
@@ -355,8 +412,15 @@ export const ankiStore = defineStore('anki', {
         // the fix for each of them is different.
         posthog?.capture('anki_connection_tested', {
           success: false,
-          reason: this.connectFailure ?? 'unreachable',
+          reason: isAnkiUnavailable(error) ? error.reason : (this.connectFailure ?? 'unreachable'),
         });
+
+        // Rethrown as it came, so the caller can still tell the two apart. The
+        // `Failed to load Anki data:` wrapper is kept only for the other branch:
+        // its whole audience was the error report, and an unavailable Anki no
+        // longer files one.
+        if (isAnkiUnavailable(error)) throw error;
+
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`Failed to load Anki data: ${message}`);
       }

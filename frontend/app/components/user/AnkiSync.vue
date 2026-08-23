@@ -17,6 +17,7 @@ import {
 } from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
 import type { AnkiConnectFailure, AnkiProfile } from '@/stores/anki';
+import { isAnkiUnavailable } from '@/stores/anki';
 import { ANKI_CARD_CSS } from '~/utils/ankiWord';
 import { copyToClipboard } from '~/utils/media';
 import { handleApiError } from '~/utils/apiError';
@@ -316,7 +317,15 @@ const fetchAndLoad = async () => {
     // AnkiConnect runs on the user's own machine; `isError` already renders the
     // "can't reach Anki" panel with setup instructions, so no toast on top of it.
     isError.value = true;
-    handleApiError('anki:connect-load-failed', error, { toastKey: false });
+    // And no error report either, when the reason is that Anki was not there to
+    // answer. `loadAnkiData` has already captured `anki_connection_tested` with
+    // the specific reason, which is the part worth keeping -- the throw itself
+    // has no fix in the app, and filing it put 124 reports from 25 readers into
+    // the issue list in the week to 2026-08-23. A failure of any other kind is
+    // a fault in the store and still reports.
+    if (!isAnkiUnavailable(error)) {
+      handleApiError('anki:connect-load-failed', error, { toastKey: false });
+    }
   } finally {
     isLoading.value = false;
   }
