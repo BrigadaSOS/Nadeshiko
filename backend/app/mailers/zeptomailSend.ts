@@ -30,11 +30,24 @@ import { config } from '@config/config';
  * `ZEPTOMAIL_SEND_TOKEN` first so the two can be separated by configuration
  * alone if that ever stops being true, without a deploy of this file.
  */
-function sendToken(): string | undefined {
+function sendToken(lifecycle: boolean): string | undefined {
+  // Lifecycle mail prefers its own Agent when one is configured; everything
+  // falls back to the single token, which is the state today. See
+  // `ZEPTOMAIL_LIFECYCLE_SEND_TOKEN` in the config for why the split exists.
+  if (lifecycle && config.ZEPTOMAIL_LIFECYCLE_SEND_TOKEN) return config.ZEPTOMAIL_LIFECYCLE_SEND_TOKEN;
+
   return config.ZEPTOMAIL_SEND_TOKEN ?? config.SMTP_PASSWORD;
 }
 
 export interface ZeptomailMessage {
+  /**
+   * Whether this is lifecycle mail, which decides which Agent carries it.
+   *
+   * Passed rather than derived from the kind, because this module deliberately
+   * knows nothing about `EmailKind` -- it is the transport, and `sendEmail` is
+   * the one place that already answers this question for the From address too.
+   */
+  lifecycle?: boolean;
   from: { address: string; name: string };
   to: string;
   subject: string;
@@ -58,7 +71,7 @@ export interface ZeptomailMessage {
 const REQUEST_TIMEOUT_MS = 10_000;
 
 export async function sendViaZeptomailApi(message: ZeptomailMessage): Promise<void> {
-  const token = sendToken();
+  const token = sendToken(message.lifecycle === true);
   if (!token) {
     throw new Error('ZeptoMail send token is not configured (set SMTP_PASSWORD, or ZEPTOMAIL_SEND_TOKEN).');
   }

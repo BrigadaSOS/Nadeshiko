@@ -78,7 +78,21 @@ describe('unsubscribeUrls', () => {
 
     for (const url of [oneClick, page]) {
       const token = decodeURIComponent(new URL(url).searchParams.get('token') ?? '');
-      expect(readUnsubscribeToken(token)).toBe(42);
+      expect(readUnsubscribeToken(token)).toEqual({ userId: 42 });
+    }
+  });
+
+  /**
+   * Both links carry the category, so the header and the visible link speak for
+   * the same list. A one-click out of a recap must not take the day-7 ask with
+   * it, and the page must not offer to keep something the header already stopped.
+   */
+  it('carries the category into both links', async () => {
+    const { oneClick, page } = unsubscribeUrls(42, 'recap');
+
+    for (const url of [oneClick, page]) {
+      const token = decodeURIComponent(new URL(url).searchParams.get('token') ?? '');
+      expect(readUnsubscribeToken(token)).toEqual({ userId: 42, category: 'recap' });
     }
   });
 
@@ -93,7 +107,7 @@ describe('unsubscribeUrls', () => {
 describe('who a message comes from', () => {
   const fromOf = () => sendMail.mock.calls[0][0].from as string;
 
-  it.each(['onboarding-day7', 'feedback-ask', 'recap'] as const)('sends %s from a real inbox', async (kind) => {
+  it.each(['feedback-ask', 'dormant-30', 'recap'] as const)('sends %s from a real inbox', async (kind) => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind });
 
     expect(fromOf()).toBe(`${config.LIFECYCLE_FROM_NAME} <${config.LIFECYCLE_FROM_EMAIL}>`);
@@ -104,14 +118,25 @@ describe('who a message comes from', () => {
    * nothing to reply to, and inviting a reply that will not be read is worse
    * than not inviting one.
    */
-  it.each(['magic-link', 'verify-new-email', 'welcome', 'feedback'] as const)(
-    'keeps %s on the no-reply sender',
-    async (kind) => {
-      await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind });
+  it.each(['magic-link', 'verify-new-email', 'feedback'] as const)('keeps %s on the no-reply sender', async (kind) => {
+    await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind });
 
-      expect(fromOf()).toBe(`${config.MAIL_FROM_NAME} <${config.MAIL_FROM_EMAIL}>`);
-    },
-  );
+    expect(fromOf()).toBe(`${config.MAIL_FROM_NAME} <${config.MAIL_FROM_EMAIL}>`);
+  });
+
+  /**
+   * WELCOME IS THE EXCEPTION, and it is a sender exception rather than a kind
+   * one. It reads as a note from a person and asks for a reply, so it cannot go
+   * out over `noreply@` -- but it must not become a lifecycle kind to get that,
+   * because lifecycle kinds are gated and a welcome email that stops arriving
+   * when the newsletter is off is an outage.
+   */
+  it('sends welcome from the personal address without gating it', async () => {
+    await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'welcome' });
+
+    expect(fromOf()).toBe(`${config.LIFECYCLE_FROM_NAME} <${config.LIFECYCLE_FROM_EMAIL}>`);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+  });
 
   /**
    * The two senders have to actually differ, or the routing above is a no-op

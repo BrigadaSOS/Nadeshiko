@@ -3,9 +3,10 @@ import type { MockInstance } from 'vitest';
 import { setupTestSuite } from '../helpers/setup';
 import * as emailQueueModule from '@app/workers/emailQueue';
 import * as lifecycleGate from '@app/services/email/lifecycleGate';
+import * as analytics from '@app/services/analytics/posthog';
 import { EmailLifecycleSend, EmailSuppression, User, UserActivity } from '@app/models';
 import { ActivityType } from '@app/models/UserActivity';
-import { runLifecycleSweep } from '@app/workers/emailLifecycleWorker';
+import { DORMANT_REPEAT_FLOOR_DAYS, runLifecycleSweep } from '@app/workers/emailLifecycleWorker';
 import type { EmailJobData } from '@app/workers/emailQueue';
 import type { DeepPartial } from 'typeorm';
 
@@ -13,9 +14,11 @@ setupTestSuite();
 
 let enqueued: EmailJobData[];
 let sendEmailJob: MockInstance;
+let captureEmailSent: MockInstance;
 
 beforeEach(() => {
   enqueued = [];
+  captureEmailSent = vi.spyOn(analytics, 'captureEmailSent').mockImplementation(() => {});
   sendEmailJob = vi.spyOn(emailQueueModule, 'sendEmailJob').mockImplementation(async (data) => {
     enqueued.push(data);
     return 'mock-job-id';
@@ -24,6 +27,7 @@ beforeEach(() => {
 
 afterEach(() => {
   sendEmailJob.mockRestore();
+  captureEmailSent.mockRestore();
 });
 
 let seq = 0;
@@ -54,15 +58,34 @@ async function userAgedDays(days: number, overrides: DeepPartial<User> = {}): Pr
   return user;
 }
 
+/**
+ * A better-auth session row, which is where dormancy is read from.
+ *
+ * `expires_at` is the field the sweeps ask about: better-auth gives a session 30
+ * days and pushes the expiry out on use, so a lapsed newest session means
+ * nobody has signed in for a month. Written by hand here because signing in for
+ * real is a whole auth stack away from a worker test.
+ */
+async function session(user: User, opts: { lapsedHoursAgo?: number; lastSeenDaysAgo?: number } = {}): Promise<void> {
+  seq += 1;
+  const lapsed = opts.lapsedHoursAgo;
+
+  await User.query(
+    `INSERT INTO "session" (token, user_id, expires_at, created_at, updated_at)
+     VALUES ($1, $2, now() - make_interval(hours => $3), now(), now() - make_interval(days => $4))`,
+    [`token-${seq}`, user.id, lapsed ?? -24 * 15, opts.lastSeenDaysAgo ?? 30],
+  );
+}
+
 const kindsSent = () => enqueued.map((job) => job.kind);
 
-describe('the day-7 onboarding sweep', () => {
+describe('the day-7 sweep', () => {
   it('mails an account that registered seven days ago', async () => {
     const user = await userAgedDays(7);
 
     await runLifecycleSweep();
 
-    expect(kindsSent()).toEqual(['onboarding-day7']);
+    expect(kindsSent()).toEqual(['feedback-ask']);
     expect(enqueued[0]?.to).toBe(user.email);
   });
 
@@ -77,7 +100,7 @@ describe('the day-7 onboarding sweep', () => {
 
     await runLifecycleSweep();
 
-    expect(kindsSent()).not.toContain('onboarding-day7');
+    expect(kindsSent()).not.toContain('feedback-ask');
   });
 
   it('sends once even when the sweep runs twice the same night', async () => {
@@ -86,7 +109,7 @@ describe('the day-7 onboarding sweep', () => {
     await runLifecycleSweep();
     await runLifecycleSweep();
 
-    expect(kindsSent()).toEqual(['onboarding-day7']);
+    expect(kindsSent()).toEqual(['feedback-ask']);
   });
 
   it('records what it sent, so a later sweep can see it', async () => {
@@ -96,7 +119,7 @@ describe('the day-7 onboarding sweep', () => {
 
     const rows = await EmailLifecycleSend.findBy({ userId: user.id });
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.kind).toBe('onboarding-day7');
+    expect(rows[0]?.kind).toBe('feedback-ask');
   });
 
   it('respects an opt-out', async () => {
@@ -105,6 +128,36 @@ describe('the day-7 onboarding sweep', () => {
     await runLifecycleSweep();
 
     expect(enqueued).toHaveLength(0);
+  });
+
+  /** The finer grain: off for check-ins, still on for everything else. */
+  it('respects turning off just this category', async () => {
+    await userAgedDays(7, { preferences: { productEmails: { enabled: true, checkins: false } } });
+
+    await runLifecycleSweep();
+
+    expect(enqueued).toHaveLength(0);
+  });
+
+  /**
+   * ABSENT MEANS FOLLOW THE MASTER. A reader who left before a category existed
+   * must not start receiving it because their preferences have no opinion about
+   * a key that did not exist when they went.
+   */
+  it('does not read a missing category as a fresh yes', async () => {
+    await userAgedDays(7, { preferences: { productEmails: { enabled: false } } });
+
+    await runLifecycleSweep();
+
+    expect(enqueued).toHaveLength(0);
+  });
+
+  it('still sends when another category is the one turned off', async () => {
+    await userAgedDays(7, { preferences: { productEmails: { enabled: true, recap: false } } });
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toEqual(['feedback-ask']);
   });
 
   it('skips a deactivated account', async () => {
@@ -133,152 +186,252 @@ describe('the day-7 onboarding sweep', () => {
   });
 });
 
-describe('which day-7 variant a reader gets', () => {
-  const variantFrom = (html: string) => {
-    const match = html.match(/utm_campaign=onboarding-day7-([a-z-]+)/);
-    return match?.[1];
-  };
+/**
+ * ONE EMAIL, TWO OPENINGS, and this is the seam. Which question a reader can
+ * answer depends on whether they have used the site -- and that cannot be read
+ * from sessions here, because a session lasts 30 days and so is uniformly live
+ * at day 7.
+ */
+describe('which question the day-7 ask leads with', () => {
+  const campaignOfAsk = () => enqueued.find((job) => job.kind === 'feedback-ask')?.campaign;
 
-  it('leads with getting started when they have never searched', async () => {
+  it('asks what they were hoping to find when they have never searched', async () => {
     await userAgedDays(7);
 
     await runLifecycleSweep();
 
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('getting-started');
+    expect(campaignOfAsk()).toBe('feedback-ask-cold');
+    expect(enqueued[0]?.subject).toBe('What were you hoping to find?');
   });
 
-  it('leads with Anki when they have searched but never exported', async () => {
+  it('asks what they would change once they have searched', async () => {
     const user = await userAgedDays(7);
     await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
 
     await runLifecycleSweep();
 
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('anki');
+    expect(campaignOfAsk()).toBe('feedback-ask-started');
+    expect(enqueued[0]?.subject).toBe('How is Nadeshiko working out?');
   });
 
-  it('moves past the basics once they have done both', async () => {
-    const user = await userAgedDays(7);
-    await UserActivity.save([
-      UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }),
-      UserActivity.create({ userId: user.id, activityType: ActivityType.ANKI_EXPORT }),
-    ]);
+  it('sends one email per reader, whichever opening it picked', async () => {
+    const started = await userAgedDays(7);
+    await UserActivity.save(UserActivity.create({ userId: started.id, activityType: ActivityType.SEARCH }));
+    await userAgedDays(7);
 
     await runLifecycleSweep();
 
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('going-further');
+    expect(kindsSent()).toEqual(['feedback-ask', 'feedback-ask']);
+    expect(enqueued.map((job) => job.campaign).sort()).toEqual(['feedback-ask-cold', 'feedback-ask-started']);
   });
 
   /**
-   * THE TRAP THIS WHOLE BRANCH EXISTS FOR. `UserActivity` is written only for
-   * readers who leave `searchHistory` on, so for anyone who turned it off the
-   * counts are zero for a reason that has nothing to do with whether they use
-   * the site. Reading that as "never searched" would send the absolute
-   * beginner's email to somebody mining daily — and the reason we cannot tell is
-   * that they asked us not to keep the log.
+   * `UserActivity` is written only for readers who leave `searchHistory` on, so
+   * a row of zeroes means "we are not allowed to know" rather than "never
+   * searched". Of the two ways to be wrong, asking a quiet reader what they
+   * would change is a question they can ignore; telling a daily user they have
+   * not started yet says we have not been paying attention.
    */
-  it('infers nothing when the reader turned their activity log off', async () => {
+  it('treats an invisible activity log as having started', async () => {
     await userAgedDays(7, { preferences: { searchHistory: { enabled: false } } });
 
     await runLifecycleSweep();
 
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('going-further');
-  });
-
-  /**
-   * The two halves of "has never exported", which used to be one email.
-   *
-   * A reader with no profile has not started; a reader WITH one has started,
-   * finished, and been refused by AnkiConnect on their own machine. Of the 263
-   * accounts created in the 90 days to 2026-08-20, 102 were in the second group
-   * against 107 who had exported — so the variant telling them to go and set up
-   * Anki export was addressing the larger half by describing what they had
-   * already done.
-   */
-  it('tells a reader with no profile how to set Anki up', async () => {
-    const user = await userAgedDays(7);
-    await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
-
-    await runLifecycleSweep();
-
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('anki');
-  });
-
-  it('tells a reader who saved a profile and never exported why it fails', async () => {
-    const user = await userAgedDays(7, {
-      preferences: {
-        ankiProfiles: [{ id: 'p1', name: 'Default', fields: [], serverAddress: 'http://127.0.0.1:8765' }],
-      },
-    });
-    await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
-
-    await runLifecycleSweep();
-
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('anki-stalled');
-  });
-
-  /**
-   * The one signal that survives the activity log being off, because it is a
-   * preference rather than a logged action. A saved profile with no visible
-   * usage is still worth one nudge about the connection: that step fails
-   * silently, so "we cannot see them exporting" and "they cannot export" look
-   * identical from here, and only one of them is fixable by an email.
-   */
-  it('still reaches a stalled reader whose activity log is off', async () => {
-    await userAgedDays(7, {
-      preferences: {
-        searchHistory: { enabled: false },
-        ankiProfiles: [{ id: 'p1', name: 'Default', fields: [], serverAddress: 'http://127.0.0.1:8765' }],
-      },
-    });
-
-    await runLifecycleSweep();
-
-    expect(variantFrom(enqueued[0]?.html ?? '')).toBe('anki-stalled');
+    expect(campaignOfAsk()).toBe('feedback-ask-started');
   });
 });
 
-describe('the day-30 feedback ask', () => {
-  it('mails an account that registered thirty days ago', async () => {
-    await userAgedDays(30);
-
-    await runLifecycleSweep();
-
-    expect(kindsSent()).toEqual(['feedback-ask']);
-  });
-
-  it('is a different one-shot from the day-7 note', async () => {
-    const user = await userAgedDays(30);
-    await EmailLifecycleSend.save(
-      EmailLifecycleSend.create({
-        userId: user.id,
-        kind: 'onboarding-day7',
-        campaign: 'onboarding-day7',
-        sentAt: new Date(),
-      }),
-    );
-
-    await runLifecycleSweep();
-
-    expect(kindsSent()).toEqual(['feedback-ask']);
-  });
-
+describe('the day-7 ask itself', () => {
   /**
    * A reply is the point of this one, and `senderFor` already makes the From a
    * personal mailbox. An explicit reply-to would redirect answers to a role
-   * address, and role addresses post in full — sender, subject, body — into a
+   * address, and role addresses post in full -- sender, subject, body -- into a
    * Discord channel via the Zoho bridge. Somebody answering "what would you
    * change first?" is entitled to assume that is a private reply.
    */
   it('leaves reply-to unset, so replies go back to the sender', async () => {
-    await userAgedDays(30);
+    await userAgedDays(7);
 
     await runLifecycleSweep();
 
     expect(enqueued[0]?.replyTo).toBeUndefined();
   });
+
+  /**
+   * The reason it moved off day 30. The production dry run found 0.8 candidates
+   * a night there against 3.8 at day 7 -- and a month-30 ask reaches only the
+   * people it is already working for, which is a survey of survivors.
+   */
+  it('no longer waits for day 30', async () => {
+    const user = await userAgedDays(30);
+    await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('feedback-ask');
+  });
+});
+
+describe('the dormant win-back note', () => {
+  const campaignOf = (kind: string) => enqueued.find((job) => job.kind === kind)?.campaign;
+
+  it('mails a reader whose session lapsed last night', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lapsedHoursAgo: 12 });
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toEqual(['dormant-30']);
+    expect(enqueued[0]?.to).toBe(user.email);
+  });
+
+  /**
+   * THE ONE THAT KEEPS THE FIRST NIGHT SMALL. Dormancy is a state rather than an
+   * anniversary: "has not signed in for 30 days" is true of a large share of
+   * every account ever created, so an un-windowed version of this query mails
+   * hundreds of people the first time it runs -- down a relay that is
+   * transactional-only and also carries every magic link.
+   */
+  it.each([48, 24 * 30, 24 * 365])('leaves an account that lapsed %i hours ago alone', async (hours) => {
+    const user = await userAgedDays(400);
+    await session(user, { lapsedHoursAgo: hours });
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('dormant-30');
+  });
+
+  it('leaves a reader who is still signed in alone', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lapsedHoursAgo: -24 * 10 });
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('dormant-30');
+  });
+
+  it('leaves an account with no session history alone', async () => {
+    await userAgedDays(90);
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('dormant-30');
+  });
+
+  it('sends once even when the sweep runs twice the same night', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lapsedHoursAgo: 12 });
+
+    await runLifecycleSweep();
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toEqual(['dormant-30']);
+  });
+
+  /**
+   * Going quiet is a state, and a reader who comes back and drifts away again
+   * has genuinely gone dormant twice -- so the campaign carries the month rather
+   * than repeating the kind, and the unique index stops being once-ever.
+   */
+  it('names the month it noticed, so a later dormancy is a different send', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lapsedHoursAgo: 12 });
+
+    await runLifecycleSweep();
+
+    expect(campaignOf('dormant-30')).toMatch(/^dormant-30-\d{4}-\d{2}$/);
+  });
+
+  it('holds off when one went out inside the repeat floor', async () => {
+    const user = await userAgedDays(400);
+    await session(user, { lapsedHoursAgo: 12 });
+    await EmailLifecycleSend.save(
+      EmailLifecycleSend.create({
+        userId: user.id,
+        kind: 'dormant-30',
+        campaign: 'dormant-30-2026-01',
+        sentAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      }),
+    );
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('dormant-30');
+  });
+
+  it('writes again once the floor has passed', async () => {
+    const user = await userAgedDays(400);
+    await session(user, { lapsedHoursAgo: 12 });
+    await EmailLifecycleSend.save(
+      EmailLifecycleSend.create({
+        userId: user.id,
+        kind: 'dormant-30',
+        campaign: 'dormant-30-2025-01',
+        sentAt: new Date(Date.now() - (DORMANT_REPEAT_FLOOR_DAYS + 1) * 24 * 60 * 60 * 1000),
+      }),
+    );
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toContain('dormant-30');
+  });
+
+  it('respects an opt-out', async () => {
+    const user = await userAgedDays(90, { preferences: { productEmails: { enabled: false } } });
+    await session(user, { lapsedHoursAgo: 12 });
+
+    await runLifecycleSweep();
+
+    expect(enqueued).toHaveLength(0);
+  });
+
+  it('does not burn a send on a suppressed address', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lapsedHoursAgo: 12 });
+    await EmailSuppression.save(
+      EmailSuppression.create({ address: user.email.toLowerCase(), cause: 'hard_bounce', suppressedAt: new Date() }),
+    );
+
+    await runLifecycleSweep();
+
+    expect(enqueued).toHaveLength(0);
+    expect(await EmailLifecycleSend.countBy({ userId: user.id })).toBe(0);
+  });
 });
 
 describe('every lifecycle email', () => {
+  /**
+   * The denominator. `EmailLifecycleSend` knows who got what but lives in
+   * Postgres; `email.sent` is labelled by kind only so alert rules stay
+   * readable. This is the only record that lands on the same PostHog person as
+   * the reader's own pageviews, which is what makes a click a rate rather than
+   * a count.
+   */
+  it('reports the send to analytics, with the campaign that went out', async () => {
+    const user = await userAgedDays(7);
+
+    await runLifecycleSweep();
+
+    expect(captureEmailSent).toHaveBeenCalledWith({
+      userId: user.id,
+      kind: 'feedback-ask',
+      campaign: 'feedback-ask-cold',
+    });
+  });
+
+  it('reports nothing when the send was only a dry run', async () => {
+    const spy = vi.spyOn(lifecycleGate, 'mayReallySend').mockReturnValue(false);
+    await userAgedDays(7);
+
+    try {
+      await runLifecycleSweep();
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(captureEmailSent).not.toHaveBeenCalled();
+  });
+
   it('carries a one-click unsubscribe and a visible link', async () => {
     await userAgedDays(7);
 
@@ -297,8 +450,8 @@ describe('every lifecycle email', () => {
 
     await runLifecycleSweep();
 
-    expect(enqueued[0]?.campaign).toBe('onboarding-day7');
-    expect(enqueued[0]?.kind).toBe('onboarding-day7');
+    expect(enqueued[0]?.campaign).toBe('feedback-ask-cold');
+    expect(enqueued[0]?.kind).toBe('feedback-ask');
   });
 
   it('does not tag the unsubscribe link as campaign traffic', async () => {
@@ -347,14 +500,15 @@ describe('when lifecycle email is not live', () => {
     mayReallySend.mockReturnValue(true);
     await runLifecycleSweep();
 
-    expect(kindsSent()).toEqual(['onboarding-day7']);
+    expect(kindsSent()).toEqual(['feedback-ask']);
   });
 
   /**
    * The dry run has to do the real work up to the send, or it reports on a
-   * different question than the one being asked.
+   * different question than the one being asked -- here, that it resolved the
+   * day-7 split rather than counting everybody as one bucket.
    */
-  it('still resolves which variant it would have sent', async () => {
+  it('still resolves which of the two day-7 emails it would have sent', async () => {
     const user = await userAgedDays(7);
     await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
 
@@ -363,7 +517,7 @@ describe('when lifecycle email is not live', () => {
     mayReallySend.mockReturnValue(true);
     await runLifecycleSweep();
 
-    expect(enqueued[0]?.html).toContain('utm_campaign=onboarding-day7-anki');
+    expect(kindsSent()).toEqual(['feedback-ask']);
   });
 });
 
