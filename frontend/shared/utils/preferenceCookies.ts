@@ -20,7 +20,12 @@
  * lives in the URL path, so it is already part of every cache key. Verified: the
  * same page with and without that cookie renders byte-identically.
  */
-export const RENDER_FORKING_PREFERENCE_COOKIES = ['nd_lang_prefs', 'nd_hiragana', 'nd_dict_links'] as const;
+export const RENDER_FORKING_PREFERENCE_COOKIES = [
+  'nd_lang_prefs',
+  'nd_hiragana',
+  'nd_dict_links',
+  'nd-motion',
+] as const;
 
 export type RenderForkingPreferenceCookie = (typeof RENDER_FORKING_PREFERENCE_COOKIES)[number];
 
@@ -30,6 +35,29 @@ export const LANG_PREFS_COOKIE = 'nd_lang_prefs' satisfies RenderForkingPreferen
 export const HIRAGANA_COOKIE = 'nd_hiragana' satisfies RenderForkingPreferenceCookie;
 /** Which dictionaries the word card links out to (`useDictionaryLinks`). */
 export const DICT_LINKS_COOKIE = 'nd_dict_links' satisfies RenderForkingPreferenceCookie;
+/**
+ * Animation level (`useMotionPreference`).
+ *
+ * ADDED 2026-08-23, AFTER IT HAD BEEN MISSING SINCE THE COOKIE SHIPPED, and the
+ * way it was missed is the argument for this file existing. `useMotionPreference`
+ * declared its name as a bare string rather than importing a constant from here,
+ * so it never joined the list -- and the render DOES fork on it:
+ * `plugins/motion.ts` is a server plugin that stamps `<html data-motion="...">`
+ * during SSR.
+ *
+ * The consequence was live, not theoretical: `visitorCacheTier` rated a reader
+ * carrying this cookie `shared`, so the origin stamped `CDN-Cache-Control` on
+ * their page, and the search and sentence cache rules in brigadasos-infra had no
+ * bypass for it. One reader with animations off could have their HTML stored and
+ * served to every anonymous visitor on that edge node. Cosmetic rather than a
+ * data leak, which is the only reason this is a comment and not an incident.
+ *
+ * NOTE THE HYPHENS. Every other name here uses underscores, and that
+ * inconsistency is a good part of why it was overlooked in both halves of the
+ * guard. Left as-is rather than renamed: a rename orphans the cookie on every
+ * reader who has one, and the value is only meaningful to the code that reads it.
+ */
+export const MOTION_COOKIE = 'nd-motion' satisfies RenderForkingPreferenceCookie;
 
 /**
  * Preferences that no longer exist, whose cookies readers still carry.
