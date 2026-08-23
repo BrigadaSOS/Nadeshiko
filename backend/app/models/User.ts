@@ -21,19 +21,17 @@ interface AnkiProfile {
   serverAddress: string;
 }
 
-interface HiddenMediaItem {
+export interface HiddenMediaItem {
   mediaPublicId: string;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji?: string;
 }
 
-interface FavoriteMediaItem {
+export interface FavoriteMediaItem {
   mediaPublicId: string;
-  nameEn?: string;
-  nameJa?: string;
-  nameRomaji?: string;
-  /** Set by the server, unlike `HiddenMediaItem`'s client-invented `hiddenAt`. */
+  /**
+   * Set by the server, and the one thing about a starred title that is not
+   * derivable from the catalogue -- which is why it survived the slimming that
+   * took the names out of both lists.
+   */
   favoritedAt: string;
 }
 
@@ -61,7 +59,31 @@ export interface UserPreferences {
    */
   productEmails?: { enabled: boolean };
   ankiProfiles?: AnkiProfile[];
+  /**
+   * The titles the reader hid, as ids and nothing else.
+   *
+   * Entries used to carry `nameEn`, `nameJa` and `nameRomaji` too. Nothing read
+   * those names -- both list endpoints resolve them from `Media`, the search
+   * filter and the hidden-result notice need only ids -- but they rode this blob
+   * into `get-session` and from there into the `__NUXT_DATA__` of every page the
+   * reader loads. A spelled-out entry costs ~141 bytes against the 34 an id-only
+   * one costs, so hiding 200 of the ~320 titles carried ~21KB of duplicated
+   * catalogue on every single render, growing with engagement.
+   *
+   * Still an object rather than a bare id string, which would have saved another
+   * 19 bytes an entry, because kamal runs the old containers alongside the new
+   * ones across a deploy and stale browser tabs outlive both. Old code reaches
+   * for `item.mediaPublicId` and old response validation demands an object, so a
+   * bare string would empty a reader's hidden list mid-deploy -- handing them
+   * back the search results they deliberately hid -- and 500 every
+   * `GET`/`PATCH /v1/user/preferences` an old container served. The names were
+   * always optional in that schema; the wrapper is what has to stay.
+   *
+   * `normalizeMediaPreferences` still reads bare strings, so this can become one
+   * in a later release once nothing old is left to read it.
+   */
   hiddenMedia?: HiddenMediaItem[];
+  /** Same slimming as `hiddenMedia`; see `FavoriteMediaItem` for why this one kept a field. */
   favoriteMedia?: FavoriteMediaItem[];
   hiddenCategories?: CategoryType[];
   /** `ALL` (and unset) means every visible category; see `UserPreferences.yaml`. */

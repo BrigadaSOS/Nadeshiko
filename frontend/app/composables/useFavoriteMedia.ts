@@ -19,6 +19,10 @@ export const MAX_FAVORITE_MEDIA = 100;
  * can be ordered server-side and never reshuffles under the cursor after
  * hydration. A signed-out reader has no favorites and gets today's plain
  * alphabetical list.
+ *
+ * An entry is `{ mediaPublicId, favoritedAt }`; entries stored before the lists
+ * were slimmed also carry the title's names, which nothing reads. The predicate
+ * below accepts both because it only ever asks for `mediaPublicId`.
  */
 export function useFavoriteMedia() {
   const user = userStore();
@@ -39,7 +43,11 @@ export function useFavoriteMedia() {
 
   const atCap = computed<boolean>(() => items.value.length >= MAX_FAVORITE_MEDIA);
 
-  /** Returns whether the change reached the server; see `useHiddenMedia`. */
+  /**
+   * Returns whether the change reached the server; see `useHiddenMedia`. Takes
+   * the whole media row because the search filter's star has one in hand -- the
+   * names on it are no longer stored, only the id and the server's timestamp.
+   */
   const toggleFavorite = async (media: {
     publicId: string;
     nameEn?: string;
@@ -65,9 +73,6 @@ export function useFavoriteMedia() {
           ...items.value,
           {
             mediaPublicId: media.publicId,
-            nameEn: media.nameEn,
-            nameJa: media.nameJa,
-            nameRomaji: media.nameRomaji,
             // Optimistic placeholder only. The server sets the stored value, and
             // the next load replaces this with it.
             favoritedAt: new Date().toISOString(),

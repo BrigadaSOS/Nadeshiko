@@ -2023,16 +2023,28 @@ export type UserPreferences = {
      */
     hiddenCategories?: Array<Category>;
     /**
-     * Media hidden from search results by the user
+     * Media hidden from search results by the user, as IDs.
+     *
+     * Entries used to carry the title's names as well. Nothing read them back --
+     * `GET /v1/user/excluded-media` resolves names from the catalogue, where a
+     * rename actually lands, and the search filter needs only IDs -- while the
+     * whole preferences blob rides `get-session` into the hydration payload of
+     * every page the reader loads. At ~141 bytes an entry against the 34 an
+     * ID-only one costs, a reader who had hidden 200 titles carried ~21KB of
+     * duplicated catalogue on every render.
+     *
+     * Still an object wrapping the ID rather than a bare string. Dropping the
+     * optional name fields is a change every previously-valid reader already
+     * accepts; replacing the object with a string is not, and old clients
+     * reaching for `mediaPublicId` would read the list as empty and show the
+     * reader results they had hidden.
+     *
      */
     hiddenMedia?: Array<{
         /**
          * Public ID of the hidden media
          */
         mediaPublicId: string;
-        nameEn?: string;
-        nameJa?: string;
-        nameRomaji?: string;
     }>;
     /**
      * Media the reader has starred. Starred titles sort to the top of the search
@@ -2046,7 +2058,9 @@ export type UserPreferences = {
      *
      * `favoritedAt` is declared here and written by the server, unlike
      * `hiddenMedia`'s `hiddenAt` -- which the client invents and this schema has
-     * never described.
+     * never described. It is the one thing about a starred title that the
+     * catalogue cannot answer, which is why it stayed when the names went -- for
+     * the same reason they went from `hiddenMedia`.
      *
      */
     favoriteMedia?: Array<{
@@ -2054,9 +2068,6 @@ export type UserPreferences = {
          * Public ID of the starred media
          */
         mediaPublicId: string;
-        nameEn?: string;
-        nameJa?: string;
-        nameRomaji?: string;
         /**
          * When the reader starred it, set by the server.
          */
