@@ -1,0 +1,26 @@
+meta {
+  name: Change email preferences from an unsubscribe token
+  type: http
+  seq: 60
+}
+
+patch {
+  url: {{baseUrl}}/v1/email/preferences
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "token": "",
+    "enabled": false,
+    "recap": false,
+    "checkins": false,
+    "updates": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
