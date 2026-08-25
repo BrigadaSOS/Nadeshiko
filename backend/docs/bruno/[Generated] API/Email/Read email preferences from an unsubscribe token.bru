@@ -1,0 +1,20 @@
+meta {
+  name: Read email preferences from an unsubscribe token
+  type: http
+  seq: 59
+}
+
+get {
+  url: {{baseUrl}}/v1/email/preferences
+  body: none
+  auth: none
+}
+
+params:query {
+  token:
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
