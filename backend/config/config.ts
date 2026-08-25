@@ -151,8 +151,13 @@ const envSchema = z.object({
   // Any address on the ZeptoMail-verified domain works; the DKIM signature is
   // per-domain, not per-mailbox. It does still need to exist as a real inbox --
   // that is the entire point of it.
-  LIFECYCLE_FROM_EMAIL: z.string().default('dav@nadeshiko.co'),
-  LIFECYCLE_FROM_NAME: z.string().default('David from Nadeshiko'),
+  // The envelope on every lifecycle and welcome email, for every reader. It was
+  // one of the founders' own mailboxes and is a shared identity now; the body
+  // still carries the individual, taken from `senderForUser` at the call site.
+  // Replies follow the From, since these messages set no Reply-To, so this
+  // address has to be a mailbox somebody reads.
+  LIFECYCLE_FROM_EMAIL: z.string().default('hello@nadeshiko.co'),
+  LIFECYCLE_FROM_NAME: z.string().default('Nadeshiko'),
 
   // THE MASTER SWITCH FOR LIFECYCLE MAIL, and it is off.
   //

@@ -25,7 +25,7 @@ import { recordEmailBlocked, recordEmailDeliveryError, recordEmailSent } from '@
 import type { EmailKind } from '@app/services/email/metrics';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 import { catalogueSize } from '@app/services/stats/catalogueSize';
-import { SENDERS, configuredSender, fromNameFor, senderForUser } from './senders';
+import { SENDERS, configuredSender, senderForUser } from './senders';
 import { captureEmailSent } from '@app/services/analytics/posthog';
 
 const tracer = getTracer();
@@ -201,15 +201,23 @@ function isLifecycleKind(kind: EmailKind): boolean {
   return (LIFECYCLE_KINDS as readonly string[]).includes(kind);
 }
 
-function senderFor(kind: EmailKind, userId?: number): { email: string; name: string } {
-  // A PERSONAL EMAIL COMES FROM A PERSON, and which person is decided by the
-  // reader rather than by configuration -- see `senderForUser` on why it is
-  // sticky. Everything without a reader behind it falls back to the configured
-  // identity, which is what the relay has always used.
-  if (userId !== undefined && (isLifecycleKind(kind) || kind === 'welcome')) {
-    const sender = senderForUser(userId);
-    return { email: sender.email, name: fromNameFor(sender) };
-  }
+function senderFor(kind: EmailKind): { email: string; name: string } {
+  // ONE ADDRESS ON THE ENVELOPE, TWO PEOPLE INSIDE IT.
+  //
+  // This used to return `senderForUser(userId)`, so the From alternated between
+  // the two founders' own mailboxes. The envelope is now the product's single
+  // lifecycle identity (`LIFECYCLE_FROM_EMAIL`) for every reader, while the
+  // BODY still carries whichever of them the reader is stuck to -- their photo,
+  // their name in the copy, their sign-off. The builders take that from
+  // `senderForUser` directly at each call site, which is why removing the
+  // branch here does not touch what the message looks like.
+  //
+  // THE CONSEQUENCE IS WHERE REPLIES GO, and it is deliberate. These emails ask
+  // to be replied to and carry no `Reply-To`, so a reply follows the From: it
+  // now lands in the shared mailbox instead of a founder's personal one. That
+  // is the point of the change -- one inbox to watch rather than two -- but it
+  // does mean "just reply here" reaches the team rather than the person who
+  // signed. Set `Reply-To` at the two lifecycle call sites if that flips back.
 
   // WELCOME IS THE EXCEPTION, and it is a sender exception rather than a kind
   // one on purpose. It reads as a note from a person -- "Hi! I'm David" -- and
@@ -225,7 +233,7 @@ function senderFor(kind: EmailKind, userId?: number): { email: string; name: str
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const { email: fromEmail, name: fromName } = senderFor(options.kind, options.userId);
+  const { email: fromEmail, name: fromName } = senderFor(options.kind);
 
   // THE SECOND ENFORCEMENT POINT FOR THE LIFECYCLE SWITCH, and the last one.
   //
