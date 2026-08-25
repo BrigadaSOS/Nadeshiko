@@ -12,10 +12,16 @@ import { reportError } from '~/utils/reportError';
  * without answering is asked once, and the panel has no timeout so it is still
  * there when they get to it. Once they answer, `localStorage` ends it for good.
  *
- * `runWithContext` because the composables inside want a Nuxt app: `useI18n`
- * and `useCookie` both resolve through the instance, and an `app:mounted`
- * callback is not inside a component `setup()`. Without it they throw, and the
- * throw lands during hydration.
+ * `runWithContext` because the composables inside want a Nuxt app: `useCookie`
+ * resolves through it, and an `app:mounted` callback is not inside a component
+ * `setup()`. Without it that throws, and the throw lands during hydration.
+ *
+ * It does NOT cover vue-i18n. `runWithContext` restores the Nuxt context, never
+ * a component instance, so `useI18n()` still throws `MUST_BE_CALL_SETUP_TOP`
+ * from in here -- which it did, on every page load, until `useSpanishLocaleNudge`
+ * was moved onto `useNuxtApp().$i18n`. The comment there has the full story;
+ * this note exists because this file is where the wrong conclusion was written
+ * down first.
  *
  * And the whole thing is wrapped, which is the point worth keeping. This is a
  * promotion. There is no version of "we could not offer the Spanish site" that
