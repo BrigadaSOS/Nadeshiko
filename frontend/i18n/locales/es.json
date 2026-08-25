@@ -64,21 +64,21 @@
     "skipToContent": "Saltar al contenido"
   },
   "appMeta": {
-    "defaultTitle": "Nadeshiko: Buscador de oraciones de anime en Japonés",
-    "defaultPageTitle": "Buscador de oraciones de anime en Japonés",
-    "defaultDescription": "Busca más de 1,3 millones de oraciones en japonés con traducciones al español de una gran variedad de anime y J-dramas."
+    "defaultTitle": "Nadeshiko: Busca frases en japonés de anime, J-drama y YouTube",
+    "defaultPageTitle": "Busca frases en japonés de anime, J-drama y YouTube",
+    "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, J-drama y YouTube, cada una con audio, captura y traducciones en su contexto. Pensado para el sentence mining."
   },
   "home": {
     "version": "v{version}",
-    "nadeDbDescription": "Una herramienta para buscar oraciones en japonés desde multiples contextos.",
+    "nadeDbDescription": "Busca entre más de un millón de frases en japonés de anime, J-drama y YouTube, cada una con audio, captura y traducciones en su contexto. Pensado para el sentence mining.",
     "nadeDbDescriptionJpSearch": "Búsqueda en Japonés",
     "nadeDbDescriptionOtherSearch": "Búsqueda en Español",
     "nadeDbDescriptionExclusiveSearch": "Busqueda excluyente",
     "nadeDbDescriptionExactSearch": "Busqueda exacta",
     "keyFeatures": {
       "feature1": {
-        "title": "Compatible con Anki",
-        "description": "Guarda cualquier oración en Anki incluyendo imagen, audio y múltiples idiomas."
+        "title": "Exporta a Anki",
+        "description": "Guarda cualquier oración en Anki incluyendo captura, audio y múltiples idiomas."
       },
       "feature2": {
         "title": "Guarda cualquier oración",
@@ -692,6 +692,13 @@
       "motionHint_system": "Sigue la configuración de accesibilidad de tu dispositivo para reducir el movimiento.",
       "motionHint_reduced": "Mantiene los cambios de color y las transiciones suaves, y quita todo lo que se desplaza o cambia de tamaño.",
       "motionHint_none": "No se anima nada. Elige esta opción si la interfaz sigue yendo lenta.",
+      "mediaCard": "Ficha del título",
+      "mediaCardOptions": {
+        "OPEN": "Abierta al entrar",
+        "CLOSED": "Cerrada al entrar"
+      },
+      "mediaCardHint_OPEN": "La ficha sobre las frases de un título empieza abierta y muestra los nombres alternativos, el estudio, la temporada, los géneros y los enlaces al catálogo. Puedes cerrarla desde la propia ficha.",
+      "mediaCardHint_CLOSED": "La ficha empieza como una sola línea: miniatura, título y totales. Pulsa la fila para abrir los detalles cuando los necesites.",
       "defaultSearchCategoryHiddenOption": "{category} (oculta)",
       "defaultSearchCategoryHiddenNotice": "{category} está oculta en Ocultar categorías, así que las búsquedas se abren en Todo hasta que vuelvas a mostrarla.",
       "dictionaryLinks": "Integraciones de diccionario",
@@ -924,15 +931,17 @@
     },
     "emails": {
       "title": "Correos",
-      "allTitle": "Correos sobre Nadeshiko",
+      "allTitle": "Todos los correos sobre Nadeshiko",
       "recapTitle": "Resumen mensual",
       "recapDescription": "Un resumen mensual de lo que has estudiado con Nadeshiko.",
       "checkinsTitle": "Mensajes puntuales",
       "checkinsDescription": "Preguntas sobre qué tal te funciona Nadeshiko.",
       "updatesTitle": "Novedades y versiones",
       "updatesDescription": "Últimas novedades y cambios en Nadeshiko.",
-      "transactionalNote": "Los enlaces de inicio de sesión y los correos de cuenta se envían siempre, elijas lo que elijas aquí.",
-      "preferenceError": "No se pudo guardar esa preferencia. Inténtalo de nuevo."
+      "preferenceError": "No se pudo guardar esa preferencia. Inténtalo de nuevo.",
+      "allDescription": "Los enlaces de inicio de sesión y los correos de cuenta se envían siempre, elijas lo que elijas aquí.",
+      "turnedOn": "{name}: activado",
+      "turnedOff": "{name}: desactivado"
     }
   },
   "blog": {
@@ -1221,8 +1230,8 @@
   },
   "seo": {
     "home": {
-      "title": "Nadeshiko: Buscador de oraciones de anime en Japonés",
-      "description": "Busca más de 1,3 millones de oraciones en japonés con traducciones al español de una gran variedad de anime y J-dramas."
+      "title": "Nadeshiko: Busca frases en japonés de anime, J-drama y YouTube",
+      "description": "Busca entre más de un millón de frases en japonés de anime, J-drama y YouTube, cada una con audio, captura y traducciones en su contexto. Pensado para el sentence mining."
     },
     "stats": {
       "title": "Estadísticas",
@@ -1234,8 +1243,8 @@
     },
     "media": {
       "title": "Explorar Contenido",
-      "description": "Explora el anime, J-dramas y audiolibros disponibles en Nadeshiko. Busca entre miles de títulos con oraciones en japonés.",
-      "pageTitle": "{media}: oraciones japonesas con traducciones"
+      "description": "Explora el anime, los J-dramas y los audiolibros disponibles en Nadeshiko. Busca en sus subtítulos japoneses frase a frase, con audio y traducciones.",
+      "pageTitle": "{media}: subtítulos japoneses y frases de ejemplo"
     },
     "blog": {
       "title": "Blog",
@@ -1407,15 +1416,11 @@
     "errorRateLimited": "Has enviado muchos mensajes seguidos. Espera un minuto e inténtalo de nuevo."
   },
   "unsubscribe": {
-    "title": "¿Cancelar la suscripción a los correos de Nadeshiko?",
-    "detail": "Esto detiene los correos ocasionales sobre tu actividad y las novedades. Tus enlaces de inicio de sesión y los correos de la cuenta no se ven afectados.",
-    "confirm": "Cancelar suscripción",
     "cancel": "No, quiero seguir recibiéndolos",
-    "done": "Suscripción cancelada",
-    "doneDetail": "No volverás a recibir esos correos. Los enlaces de inicio de sesión y los correos de la cuenta siguen funcionando igual, y puedes volver a activarlos cuando quieras en tus ajustes.",
     "invalid": "Este enlace para cancelar la suscripción no es válido. Puedes desactivar estos correos en los ajustes de tu cuenta.",
     "failed": "No se ha podido completar. Inténtalo de nuevo o desactiva estos correos en los ajustes de tu cuenta.",
-    "goToSettings": "Ir a los ajustes"
+    "goToSettings": "Ir a los ajustes",
+    "chooseTitle": "Elige de qué quieres enterarte"
   },
   "signupNudge": {
     "action": "Crear una cuenta",
@@ -1428,6 +1433,10 @@
       "title": "¿Te está gustando Nadeshiko?",
       "message": "Con una cuenta, puedes guardar tus frases favoritas y exportarlas a Anki."
     }
+  },
+  "mediaHeader": {
+    "collapse": "Cerrar los detalles del título",
+    "expand": "Abrir los detalles del título"
   },
   "mediaPage": {
     "resultsFailed": "No hemos podido cargar las frases de este título.",

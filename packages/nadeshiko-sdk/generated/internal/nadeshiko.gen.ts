@@ -4,7 +4,7 @@ import { createClient as createApiClient, createConfig, type Client } from './cl
 import type { Auth } from './core/auth.gen';
 import type { ClientOptions } from './types.gen';
 import type * as Types from './types.gen';
-import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, createUserApiKey, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listFavoriteMedia, addFavoriteMedia, removeFavoriteMedia, listFamiliarMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, getShirabeConnection, startShirabeLink, unlinkShirabe, completeShirabeLink, getShirabeCredential, resyncShirabeStack, reportShirabeRefusal, clearFamiliarMedia, forgetFamiliarMedia, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, createFeedback, getFeedbackFormToken, unsubscribeFromEmail, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, listTiers, getAdminUserQuota, updateAdminUserQuota, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, signInWithEmailOtp, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
+import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, createUserApiKey, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listFavoriteMedia, addFavoriteMedia, removeFavoriteMedia, listFamiliarMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, getShirabeConnection, startShirabeLink, unlinkShirabe, completeShirabeLink, getShirabeCredential, resyncShirabeStack, reportShirabeRefusal, clearFamiliarMedia, forgetFamiliarMedia, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, createFeedback, getFeedbackFormToken, unsubscribeFromEmail, getEmailPreferencesByToken, updateEmailPreferencesByToken, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, listTiers, getAdminUserQuota, updateAdminUserQuota, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, signInWithEmailOtp, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
 import { withRetry, type RetryOptions } from './retry';
 import { NadeshikoError, buildNadeshikoError, isProblemDetails, type NadeshikoErrorCode, type RateLimitReason } from './errors';
 import { flatPaginate } from './paginate';
@@ -330,6 +330,14 @@ export type NadeshikoClient = {
     unsubscribeFromEmail: {
       (params: NonNullable<Types.UnsubscribeFromEmailData['query']> & { throwOnError: false }): Promise<{ data: Types.UnsubscribeFromEmailResponse; response: Response; request: Request } | { error: Types.UnsubscribeFromEmailErrors; response: Response; request: Request }>;
       (params?: NonNullable<Types.UnsubscribeFromEmailData['query']>): Promise<Types.UnsubscribeFromEmailResponse>;
+    };
+    getEmailPreferencesByToken: {
+      (params: NonNullable<Types.GetEmailPreferencesByTokenData['query']> & { throwOnError: false }): Promise<{ data: Types.GetEmailPreferencesByTokenResponse; response: Response; request: Request } | { error: Types.GetEmailPreferencesByTokenErrors; response: Response; request: Request }>;
+      (params?: NonNullable<Types.GetEmailPreferencesByTokenData['query']>): Promise<Types.GetEmailPreferencesByTokenResponse>;
+    };
+    updateEmailPreferencesByToken: {
+      (params: NonNullable<Types.UpdateEmailPreferencesByTokenData['body']> & { throwOnError: false }): Promise<{ data: Types.UpdateEmailPreferencesByTokenResponse; response: Response; request: Request } | { error: Types.UpdateEmailPreferencesByTokenErrors; response: Response; request: Request }>;
+      (params: NonNullable<Types.UpdateEmailPreferencesByTokenData['body']>): Promise<Types.UpdateEmailPreferencesByTokenResponse>;
     };
     updateCollection: {
       (id: string): Promise<Types.UpdateCollectionResponse>;
@@ -1075,6 +1083,18 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
+  const _getEmailPreferencesByToken = (params?: any) => {
+    const { throwOnError: tOE, ...query } = params ?? {};
+    const p = getEmailPreferencesByToken({ ...(Object.keys(query).length > 0 ? { query } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
+  const _updateEmailPreferencesByToken = (params?: any) => {
+    const { throwOnError: tOE, ...body } = params ?? {};
+    const p = updateEmailPreferencesByToken({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
   const _updateCollection = (paramsOrId?: any) => {
     if (typeof paramsOrId === 'string') {
       return updateCollection({ throwOnError: true, path: { collectionPublicId: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);
@@ -1383,6 +1403,8 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     createFeedback: _createFeedback,
     getFeedbackFormToken: _getFeedbackFormToken,
     unsubscribeFromEmail: _unsubscribeFromEmail,
+    getEmailPreferencesByToken: _getEmailPreferencesByToken,
+    updateEmailPreferencesByToken: _updateEmailPreferencesByToken,
     updateCollection: _updateCollection,
     updateCollectionSegment: _updateCollectionSegment,
     getCollectionStats: _getCollectionStats,

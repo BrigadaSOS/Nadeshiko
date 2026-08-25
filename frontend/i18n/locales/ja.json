@@ -64,21 +64,21 @@
     "skipToContent": "本文へスキップ"
   },
   "appMeta": {
-    "defaultTitle": "Nadeshiko：アニメの日本語文を検索",
-    "defaultPageTitle": "アニメの日本語文を検索",
-    "defaultDescription": "さまざまなアニメやJドラマから130万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+    "defaultTitle": "Nadeshiko：アニメ・ドラマ・YouTubeの日本語例文を検索",
+    "defaultPageTitle": "アニメ・ドラマ・YouTubeの日本語例文を検索",
+    "defaultDescription": "アニメ・ドラマ・YouTubeから100万件以上の日本語例文を検索。すべてに音声とスクリーンショット、文脈つきの翻訳が付いています。センテンスマイニングに最適です。"
   },
   "home": {
     "version": "v{version}",
-    "nadeDbDescription": "さまざまな文脈から日本語の文を検索できるツール。",
+    "nadeDbDescription": "アニメ・ドラマ・YouTubeから100万件以上の日本語例文を検索。すべてに音声とスクリーンショット、文脈つきの翻訳が付いています。センテンスマイニングに最適です。",
     "nadeDbDescriptionJpSearch": "日本語で検索",
     "nadeDbDescriptionOtherSearch": "英語またはスペイン語で検索",
     "nadeDbDescriptionExclusiveSearch": "限定検索",
     "nadeDbDescriptionExactSearch": "完全一致検索",
     "keyFeatures": {
       "feature1": {
-        "title": "Ankiと互換性あり",
-        "description": "画像、音声、複数の言語を含む文をAnkiに保存できます。"
+        "title": "Ankiに書き出し",
+        "description": "スクリーンショット、音声、複数の言語を含む文をAnkiに書き出せます。"
       },
       "feature2": {
         "title": "文を保存",
@@ -692,6 +692,13 @@
       "motionHint_system": "端末のアクセシビリティ設定（視差効果を減らす）に従います。",
       "motionHint_reduced": "色やフェードの変化は残し、スライドやサイズ変更を伴う動きを止めます。",
       "motionHint_none": "アニメーションを一切行いません。動作がまだ重い場合はこちらを選んでください。",
+      "mediaCard": "作品カード",
+      "mediaCardOptions": {
+        "OPEN": "開いた状態で表示",
+        "CLOSED": "閉じた状態で表示"
+      },
+      "mediaCardHint_OPEN": "作品ページの文の上のカードを開いた状態で表示し、別名・制作会社・放送時期・ジャンル・外部リンクを見せます。カード自体から閉じられます。",
+      "mediaCardHint_CLOSED": "カードを1行（サムネイル・タイトル・件数）で表示します。行をクリックすると詳細が開きます。",
       "defaultSearchCategoryHiddenOption": "{category}（非表示）",
       "defaultSearchCategoryHiddenNotice": "{category} は「カテゴリを非表示」で非表示になっているため、再表示するまで検索は「すべて」で開きます。",
       "dictionaryLinks": "辞書連携",
@@ -924,15 +931,17 @@
     },
     "emails": {
       "title": "メール",
-      "allTitle": "Nadeshikoからのメール",
+      "allTitle": "Nadeshikoからのすべてのメール",
       "recapTitle": "月次まとめ",
       "recapDescription": "Nadeshikoで学習した内容の月次まとめ。",
       "checkinsTitle": "ときどきのお知らせ",
       "checkinsDescription": "Nadeshikoの使い心地についての質問。",
       "updatesTitle": "新機能とリリース",
       "updatesDescription": "Nadeshikoの最新の更新情報と変更点。",
-      "transactionalNote": "ログインリンクとアカウント関連のメールは、ここでの設定にかかわらず必ず送信されます。",
-      "preferenceError": "設定を保存できませんでした。もう一度お試しください。"
+      "preferenceError": "設定を保存できませんでした。もう一度お試しください。",
+      "allDescription": "ログインリンクとアカウント関連のメールは、ここでの設定にかかわらず必ず送信されます。",
+      "turnedOn": "{name}：オン",
+      "turnedOff": "{name}：オフ"
     }
   },
   "blog": {
@@ -1221,8 +1230,8 @@
   },
   "seo": {
     "home": {
-      "title": "Nadeshiko：アニメの日本語文を検索",
-      "description": "さまざまなアニメやJドラマから130万以上の日本語文を、英語・スペイン語訳付きで検索できます。"
+      "title": "Nadeshiko：アニメ・ドラマ・YouTubeの日本語例文を検索",
+      "description": "アニメ・ドラマ・YouTubeから100万件以上の日本語例文を検索。すべてに音声とスクリーンショット、文脈つきの翻訳が付いています。センテンスマイニングに最適です。"
     },
     "stats": {
       "title": "統計",
@@ -1234,8 +1243,8 @@
     },
     "media": {
       "title": "メディア一覧",
-      "description": "Nadeshikoで利用可能なアニメ、Jドラマ、オーディオブックを閲覧できます。日本語文を含む数千のタイトルを検索。",
-      "pageTitle": "{media} の日本語例文"
+      "description": "Nadeshikoで利用できるアニメ・Jドラマ・オーディオブックを一覧。日本語字幕を一文ずつ、音声と翻訳つきで検索できます。",
+      "pageTitle": "{media}：日本語字幕と例文"
     },
     "blog": {
       "title": "ブログ",
@@ -1407,15 +1416,11 @@
     "errorRateLimited": "短時間に多く送信されています。1分ほど待ってからお試しください。"
   },
   "unsubscribe": {
-    "title": "Nadeshiko からのメール配信を停止しますか？",
-    "detail": "アクティビティのまとめや新機能に関するメールの配信を停止します。ログイン用リンクやアカウント関連のメールには影響しません。",
-    "confirm": "配信を停止する",
     "cancel": "いいえ、受け取り続ける",
-    "done": "配信を停止しました",
-    "doneDetail": "これらのメールは今後届きません。ログイン用リンクやアカウント関連のメールはこれまでどおり届きます。設定からいつでも再開できます。",
     "invalid": "この配信停止リンクは無効です。アカウント設定からこれらのメールをオフにできます。",
     "failed": "処理を完了できませんでした。もう一度お試しいただくか、アカウント設定からこれらのメールをオフにしてください。",
-    "goToSettings": "設定を開く"
+    "goToSettings": "設定を開く",
+    "chooseTitle": "お知らせする内容を選ぶ"
   },
   "signupNudge": {
     "action": "アカウントを作成",
@@ -1428,6 +1433,10 @@
       "title": "Nadeshikoは気に入りましたか？",
       "message": "アカウントがあれば、お気に入りの文を保存してAnkiに書き出せます。"
     }
+  },
+  "mediaHeader": {
+    "collapse": "作品情報を閉じる",
+    "expand": "作品情報を開く"
   },
   "mediaPage": {
     "resultsFailed": "この作品のセンテンスを読み込めませんでした。",

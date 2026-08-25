@@ -773,6 +773,7 @@ export const s_UserPreferences = z.object({
     )
     .optional(),
   defaultSearchCategory: z.enum(['ALL', 'ANIME', 'JDRAMA', 'YOUTUBE']).optional(),
+  mediaCardDefault: z.enum(['OPEN', 'CLOSED']).optional(),
   hiddenCategories: z.array(s_Category).optional(),
   hiddenMedia: z.array(z.object({ mediaPublicId: z.string() })).optional(),
   favoriteMedia: z
@@ -975,4 +976,12 @@ export const s_AddExcludedMediaRequestBody = z.object({
 
 export const s_AddFavoriteMediaRequestBody = z.object({
   mediaPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
+});
+
+export const s_UpdateEmailPreferencesByTokenRequestBody = z.object({
+  token: z.string().max(512),
+  enabled: PermissiveBoolean.optional(),
+  recap: PermissiveBoolean.optional(),
+  checkins: PermissiveBoolean.optional(),
+  updates: PermissiveBoolean.optional(),
 });
