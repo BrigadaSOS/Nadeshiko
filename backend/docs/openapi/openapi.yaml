@@ -197,6 +197,8 @@ paths:
   # Email endpoints
   "/v1/email/unsubscribe":
     $ref: "./paths/email/v1_email_unsubscribe.yaml"
+  "/v1/email/preferences":
+    $ref: "./paths/email/v1_email_preferences.yaml"
 
   # Collection endpoints
   "/v1/collections":
