@@ -80,7 +80,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative w-full flex flex-col flex-1 min-h-0">
+  <!-- `min-w-0` for the same reason as `min-h-0`, on the other axis: the panel
+       is a grid item in the sidebar, and a grid item refuses to be narrower
+       than its min-content width. The header's title is `truncate`, but
+       `overflow: hidden` only zeroes the AUTOMATIC minimum size -- it leaves
+       the nowrap text's min-content width intact, so a long title pushed the
+       whole card out past the sidebar column and off the page. -->
+  <div class="relative w-full min-w-0 flex flex-col flex-1 min-h-0">
     <!-- Sort is a separate action; the title search is part of the list card. -->
     <div
       v-if="$slots.before"
