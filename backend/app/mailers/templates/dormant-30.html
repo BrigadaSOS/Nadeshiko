@@ -138,7 +138,16 @@
             </a>
           </div>
 
+          <!--
+            ONLY UNDER THE NEWS OPENING. The quiet section above and this
+            closing are the same paragraph, so leaving this ungated printed it
+            twice in the quiet shape -- once above the grid, once below the
+            button. The news shape was always right, which is why it survived
+            review. Keep the two copy blocks in sync or collapse them.
+          -->
+          {{#newTitles}}
           {{{copy.news.closing}}}
+          {{/newTitles}}
 
           <!-- The same banner the welcome and day-7 emails carry. -->
           <a href="{{discordUrl}}" style="text-decoration: none; color: inherit;">

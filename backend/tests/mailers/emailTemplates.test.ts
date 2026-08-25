@@ -165,6 +165,24 @@ describe('buildDormant30Email', () => {
     expect(result.html).not.toContain('{{');
   });
 
+  /**
+   * `copy.quiet` and `copy.news.closing` are the same paragraph, and the
+   * closing used to render unconditionally -- so the quiet shape asked the
+   * reader to reply twice, once above the grid and once below the button. The
+   * news shape was always right, which is why it went unnoticed.
+   */
+  it('asks the reader to reply exactly once in the quiet shape', async () => {
+    const result = await buildDormant30Email({
+      username: 'alice',
+      sender: SENDERS[0],
+      newTitles: 0,
+      titles: [],
+      unsubscribeUrl,
+    });
+
+    expect(result.html.match(/what was missing/g)).toHaveLength(1);
+  });
+
   it('carries the unsubscribe link untagged', async () => {
     const result = await buildDormant30Email({
       username: 'alice',

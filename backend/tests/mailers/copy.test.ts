@@ -38,6 +38,20 @@ describe('renderCopyBlock', () => {
     expect(renderCopyBlock('> Small print.')).toContain('<p class="expiry-note">Small print.</p>');
   });
 
+  /**
+   * The blank marker line every Markdown editor puts above a blockquote. It
+   * used to fail the `> ` test, which made `every` false and sent the WHOLE
+   * chunk to the paragraph branch -- where the markers escape into visible
+   * `&gt;` text. That is what shipped in the verify-new-email notes.
+   */
+  it('reads a bare > as part of the quote rather than as prose', () => {
+    const html = renderCopyBlock('>\n> Small print.\n> Second line.');
+
+    expect(html).toContain('<p class="expiry-note">');
+    expect(html).not.toContain('&gt;');
+    expect(html).toContain('Small print.<br />');
+  });
+
   it('renders a list when every line is one', () => {
     const html = renderCopyBlock('- first\n- second');
 

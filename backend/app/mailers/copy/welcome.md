@@ -36,12 +36,6 @@ We add new titles every month!
 
 Ready to start using Nadeshiko?
 
-## discord
-
-### Come and meet the community
-
-Join us into our Discord server for being up to date to the latest features and improvements in Nadeshiko.
-
 ## reply
 
 Do you still have any questions or is something not working? Just reply here! Nadeshiko is run by a small team and we read every message that arrives.
