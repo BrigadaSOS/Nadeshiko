@@ -84,8 +84,20 @@ export function renderCopyBlock(markdown: string): string {
       // `> ` is a note -- the small print under a button. These templates already
       // style it as `.expiry-note`, so this emits the class rather than a fourth
       // inline style, and Markdown's blockquote is the natural mark for an aside.
-      if (lines.every((line) => line.startsWith('> '))) {
-        const note = lines.map((line) => inline(line.slice(2))).join('<br />\n            ');
+      //
+      // A BARE `>` IS PART OF THE QUOTE, not prose that happens to start with
+      // one. Requiring the trailing space read the empty marker line every
+      // Markdown editor emits above a blockquote as an ordinary line, which made
+      // `every` false and dropped the WHOLE chunk through to the paragraph
+      // branch -- where `inline` escapes each `>` into a visible `&gt;`. That is
+      // how the three notes in `verify-new-email` went out looking like a
+      // forwarded reply while `magic-link`, which happens to have no blank
+      // marker lines, rendered correctly the whole time.
+      if (lines.every((line) => line === '>' || line.startsWith('> '))) {
+        const note = lines
+          .filter((line) => line !== '>')
+          .map((line) => inline(line.slice(2)))
+          .join('<br />\n            ');
 
         return `<p class="expiry-note">${note}</p>`;
       }

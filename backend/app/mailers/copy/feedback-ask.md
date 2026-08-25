@@ -19,9 +19,3 @@ If Nadeshiko was not what you expected, or something got in the way, **what were
 ## cold.reply
 
 If you have any feedback, just reply here! Nadeshiko is run by a small team and we read every message that arrives.
-
-## discord
-
-### Come and meet the community
-
-Join our Discord to keep up with the latest features and improvements, and to meet the rest of the community.
