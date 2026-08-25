@@ -399,16 +399,16 @@ export function renderTitleGrid(titles: readonly DormantTitle[]): string {
       const cells = row
         .map((title) => {
           const name = escapeHTML(title.name);
-          return `<td style="padding: 0 ${TILE_GAP / 2}px ${TILE_GAP}px; vertical-align: top; width: ${width}px;">
+          return `<td class="tile" style="padding: 0 ${TILE_GAP / 2}px ${TILE_GAP}px; vertical-align: top; width: ${width}px;">
                 <a href="${escapeHTML(title.url)}" style="text-decoration: none; color: #a8a8a8;">
-                  <img src="${escapeHTML(title.coverUrl)}" alt="${name}" width="${width}" height="${height}" style="width: ${width}px; height: ${height}px; object-fit: cover; border-radius: 6px; display: block;" />
-                  <span style="display: block; font-size: 12px; line-height: 1.35; margin-top: 6px; color: #a8a8a8; width: ${width}px;">${name}</span>
+                  <img src="${escapeHTML(title.coverUrl)}" class="tile-img" alt="${name}" width="${width}" height="${height}" style="width: ${width}px; height: ${height}px; object-fit: cover; border-radius: 6px; display: block;" />
+                  <span class="tile-name" style="display: block; font-size: 12px; line-height: 1.35; margin-top: 6px; color: #a8a8a8; width: ${width}px;">${name}</span>
                 </a>
               </td>`;
         })
         .join('\n              ');
 
-      return `<table role="presentation" align="center" style="border-collapse: collapse; margin: 0 auto;">
+      return `<table role="presentation" align="center" class="tile-grid" style="border-collapse: collapse; margin: 0 auto;">
             <tr>
               ${cells}
             </tr>

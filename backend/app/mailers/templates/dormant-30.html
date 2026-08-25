@@ -96,6 +96,41 @@
           .card-footer a {
         color: #8a8a8a;
       }
+
+      /*
+        THE COVER GRID OVERFLOWS A PHONE WITHOUT THIS. `renderTitleGrid` sizes
+        every tile in fixed pixels off CONTENT_WIDTH (576), which is the column
+        inside a 640px card -- three tiles come out 180px each, so the row is
+        ~540px wide and the third cover is cut off on a 360px screen. The grid
+        is generated rather than slotted, so the sizes cannot be expressed as
+        percentages up front; the tiles carry classes instead and this relaxes
+        them below the card width.
+
+        `height: auto` is what stops the crop, and it costs the uniform tile
+        shape on mobile: `object-fit: cover` does nothing without a fixed
+        height, so covers render at their own aspect ratio and a row can end up
+        slightly ragged. Ragged beats clipped.
+      */
+      @media only screen and (max-width: 600px) {
+        .card-body {
+          padding: 24px 16px !important;
+        }
+        .tile-grid {
+          width: 100% !important;
+        }
+        .tile {
+          width: auto !important;
+          padding: 0 3px 8px !important;
+        }
+        .tile-img {
+          width: 100% !important;
+          height: auto !important;
+        }
+        .tile-name {
+          width: auto !important;
+          font-size: 11px !important;
+        }
+      }
     </style>
   </head>
   <body>
