@@ -139,17 +139,20 @@ describe('who a message comes from', () => {
   });
 
   /**
-   * A personal email comes from a person, and which one is decided by the reader
-   * rather than by configuration. Transactional mail keeps the one identity it
-   * has always had -- there is nobody to reply to on a sign-in link.
+   * ONE ADDRESS ON THE ENVELOPE, whoever the reader is. The From used to
+   * alternate between the two founders' own mailboxes on reader id; it is the
+   * single lifecycle identity now, and the per-reader part moved entirely into
+   * the body -- the photo, the name in the copy, the sign-off, all still chosen
+   * by `senderForUser` at the call site. Transactional mail keeps the identity
+   * it has always had; there is nobody to reply to on a sign-in link.
+   *
+   * Both ids are still exercised because they land on different people: if the
+   * envelope ever goes back to following the reader, one of these two fails.
    */
-  it.each([
-    [1, 'Natsume'],
-    [2, 'Dav'],
-  ])('sends a reader with id %i their own sender', async (userId, expected) => {
+  it.each([[1], [2]])('sends reader %i the one shared lifecycle address', async (userId) => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'feedback-ask', userId });
 
-    expect(fromOf()).toContain(expected);
+    expect(fromOf()).toBe(`${config.LIFECYCLE_FROM_NAME} <${config.LIFECYCLE_FROM_EMAIL}>`);
   });
 
   it('leaves transactional mail on the configured address whoever the reader is', async () => {
