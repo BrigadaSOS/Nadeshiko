@@ -113,6 +113,23 @@ properties:
       A value the user has since hidden (see `hiddenCategories`) is ignored and
       the search falls back to `ALL`. It is stored rather than rejected, so
       unhiding the category brings the choice back.
+  mediaCardDefault:
+    type: string
+    enum: [OPEN, CLOSED]
+    description: |
+      Whether the title card starts open or closed on a title's own page, and on
+      a search narrowed to one title.
+
+      The card is a disclosure: a single line -- thumbnail, title, sentence and
+      episode counts -- with the alternate names, studio, season, airing status,
+      genres and catalogue links folded underneath it. Anyone can open and close
+      it from the card itself; this only decides which way it starts, and
+      `OPEN` -- assumed when unset -- is that default.
+
+      It exists because the card is context for a page whose subject is the
+      sentence list underneath it. At its old fixed size on a phone it took
+      roughly a third of the viewport, so every visit to a title a reader
+      already knows began with the same scroll past the same card.
   hiddenCategories:
     type: array
     description: |

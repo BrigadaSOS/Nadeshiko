@@ -130,3 +130,93 @@ describe('POST /v1/email/unsubscribe', () => {
     expect(await preferencesOf(fixtures.users.regular.id)).toMatchObject({ productEmails: { enabled: false } });
   });
 });
+
+/**
+ * The preference page's pair.
+ *
+ * Both unauthenticated, both authenticating on the sealed token instead -- a
+ * screen that first demanded a password is the pattern that turns an opt-out
+ * into a spam complaint.
+ */
+describe('reading preferences from a token', () => {
+  it('resolves absent categories to what the master says', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id);
+
+    const response = await request(app).get('/v1/email/preferences').query({ token }).expect(200);
+
+    expect(response.body.enabled).toBe(true);
+    expect(response.body.categories).toEqual({ recap: true, checkins: true, updates: true });
+  });
+
+  /** The page highlights it, because it is the one the reader clicked about. */
+  it('names the category the email belonged to', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id, 'recap');
+
+    const response = await request(app).get('/v1/email/preferences').query({ token }).expect(200);
+
+    expect(response.body.category).toBe('recap');
+  });
+
+  it('reports no category for a token that names none', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id);
+
+    const response = await request(app).get('/v1/email/preferences').query({ token }).expect(200);
+
+    expect(response.body.category).toBeNull();
+  });
+
+  /**
+   * SAFE TO PREFETCH. Mail scanners fetch every link in a message before the
+   * recipient sees it, so the read must never be the thing that opts somebody
+   * out.
+   */
+  it('changes nothing', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id);
+    await request(app).get('/v1/email/preferences').query({ token }).expect(200);
+
+    const after = await User.findOneByOrFail({ id: fixtures.users.regular.id });
+    expect(after.preferences?.productEmails?.enabled).toBeUndefined();
+  });
+
+  it('refuses a token it cannot read', async () => {
+    await request(app).get('/v1/email/preferences').query({ token: 'not-a-token' }).expect(400);
+  });
+});
+
+describe('changing preferences from a token', () => {
+  it('turns one category off and leaves the others alone', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id);
+
+    const response = await request(app).patch('/v1/email/preferences').send({ token, recap: false }).expect(200);
+
+    expect(response.body.categories).toEqual({ recap: false, checkins: true, updates: true });
+    expect(response.body.enabled).toBe(true);
+  });
+
+  /** The blunt option: one control, everything stops. */
+  it('stops everything when the master goes off', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id);
+
+    const response = await request(app).patch('/v1/email/preferences').send({ token, enabled: false }).expect(200);
+
+    expect(response.body.enabled).toBe(false);
+    expect(response.body.categories).toEqual({ recap: false, checkins: false, updates: false });
+  });
+
+  /**
+   * A partial patch, so a reader on a page loaded ten minutes ago cannot revert
+   * a change they made somewhere else in the meantime.
+   */
+  it('leaves untouched switches untouched across two writes', async () => {
+    const token = issueUnsubscribeToken(fixtures.users.regular.id);
+
+    await request(app).patch('/v1/email/preferences').send({ token, recap: false }).expect(200);
+    const response = await request(app).patch('/v1/email/preferences').send({ token, updates: false }).expect(200);
+
+    expect(response.body.categories).toEqual({ recap: false, checkins: true, updates: false });
+  });
+
+  it('refuses a token it cannot read', async () => {
+    await request(app).patch('/v1/email/preferences').send({ token: 'not-a-token', recap: false }).expect(400);
+  });
+});

@@ -378,6 +378,30 @@ describe('the dormant win-back note', () => {
     expect(campaignOf('dormant-30')).toMatch(/^dormant-30-\d{4}-\d{2}$/);
   });
 
+  /**
+   * THE ONE THE WINDOW USED TO GIVE FOR FREE. "Has been away thirty days" stays
+   * true forever for somebody who never comes back, so without this they would
+   * get another note every time the floor expired, for as long as the account
+   * exists.
+   */
+  it('never writes twice to a reader who has not been back since', async () => {
+    const user = await userAgedDays(400);
+    await session(user, { lapsedHoursAgo: 24 * 200, lastSeenDaysAgo: 230 });
+    await EmailLifecycleSend.save(
+      EmailLifecycleSend.create({
+        userId: user.id,
+        kind: 'dormant-30',
+        campaign: 'dormant-30-2026-01',
+        // Long past the floor, and still after they were last here.
+        sentAt: new Date(Date.now() - (DORMANT_REPEAT_FLOOR_DAYS + 20) * 24 * 60 * 60 * 1000),
+      }),
+    );
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('dormant-30');
+  });
+
   it('holds off when one went out inside the repeat floor', async () => {
     const user = await userAgedDays(400);
     await session(user, { lapsedHoursAgo: 12 });
@@ -395,9 +419,10 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).not.toContain('dormant-30');
   });
 
-  it('writes again once the floor has passed', async () => {
+  /** They came back after the last note and drifted away again: a real second dormancy. */
+  it('writes again once they have been back and lapsed a second time', async () => {
     const user = await userAgedDays(400);
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lapsedHoursAgo: 12, lastSeenDaysAgo: 31 });
     await EmailLifecycleSend.save(
       EmailLifecycleSend.create({
         userId: user.id,

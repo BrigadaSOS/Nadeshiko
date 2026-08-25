@@ -77,7 +77,11 @@ import {
   bulkDeleteAdminReports,
 } from '@app/controllers/reportController';
 import { createFeedback, getFeedbackFormToken } from '@app/controllers/feedbackController';
-import { unsubscribeFromEmail } from '@app/controllers/emailController';
+import {
+  getEmailPreferencesByToken,
+  unsubscribeFromEmail,
+  updateEmailPreferencesByToken,
+} from '@app/controllers/emailController';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import {
   listUserActivity,
@@ -288,6 +292,8 @@ const FeedbackRoutes = createFeedbackRouter({
 
 const EmailRoutes = createEmailRouter({
   unsubscribeFromEmail,
+  getEmailPreferencesByToken,
+  updateEmailPreferencesByToken,
 });
 
 const StatsRoutes = createStatsRouter({
@@ -434,6 +440,11 @@ router.get('/v1/admin/announcement', setRouteTemplate('/v1/admin/announcement'))
 router.post('/v1/feedback', setRouteTemplate('/v1/feedback'), feedbackRateLimit);
 router.get('/v1/feedback/token', setRouteTemplate('/v1/feedback/token'), feedbackRateLimit);
 router.post('/v1/email/unsubscribe', setRouteTemplate('/v1/email/unsubscribe'), unsubscribeRateLimit);
+// The preference page's pair, held to the same limit as the one-click: all three
+// are unauthenticated, all three are reachable by anybody who has a link, and a
+// token is not a secret once it has been forwarded.
+router.get('/v1/email/preferences', setRouteTemplate('/v1/email/preferences'), unsubscribeRateLimit);
+router.patch('/v1/email/preferences', setRouteTemplate('/v1/email/preferences'), unsubscribeRateLimit);
 
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);
