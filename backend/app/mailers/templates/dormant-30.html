@@ -115,16 +115,37 @@
         .card-body {
           padding: 24px 16px !important;
         }
+        /*
+          `table-layout: fixed` IS THE LOAD-BEARING LINE. Each row is its own
+          table, and under the default auto layout the browser sizes columns by
+          their CONTENT -- which here is the caption, not the cover. A row
+          holding "The Irregular at Magic High School: Visitor Arc" next to
+          "One-Punch Man" gave the first column most of the width and collapsed
+          the last, so the rightmost cover rendered a fraction of the size of
+          its neighbours. Fixed layout divides the row evenly and ignores the
+          text, which is what makes every tile in a row match.
+        */
         .tile-grid {
           width: 100% !important;
+          table-layout: fixed !important;
         }
         .tile {
           width: auto !important;
           padding: 0 3px 8px !important;
         }
+        /*
+          The cells are equal now, so the covers are equal in WIDTH. Height is
+          the leftover: covers come off the CDN at a fixed width and a varying
+          height, so `height: auto` lets a row end ragged. `aspect-ratio` puts
+          the crop back where it is supported -- with `object-fit: cover` from
+          the inline style doing the filling -- and `height: auto` remains the
+          answer for clients that ignore it. Neither can clip.
+        */
         .tile-img {
           width: 100% !important;
           height: auto !important;
+          aspect-ratio: 460 / 647;
+          object-fit: cover;
         }
         .tile-name {
           width: auto !important;
