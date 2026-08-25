@@ -1,5 +1,5 @@
 import { EntityNotFoundError } from 'typeorm';
-import type { User } from '@app/models';
+import { User } from '@app/models';
 import { config } from '@config/config';
 import { encryptSecret, decryptSecret } from '@lib/secretBox';
 import { mutateUserPreferences } from '@app/controllers/preferencesController';
@@ -165,6 +165,65 @@ export function unsubscribeUrls(userId: number, category?: EmailCategory): { one
 export async function unsubscribeFromProductEmails(userId: number): Promise<boolean> {
   try {
     await mutateUserPreferences(userId, (current) => ({ ...current, productEmails: { enabled: false } }));
+    return true;
+  } catch (error) {
+    if (error instanceof EntityNotFoundError) return false;
+    throw error;
+  }
+}
+
+/**
+ * Everything the unsubscribe page needs to draw itself.
+ *
+ * RESOLVES "ABSENT MEANS FOLLOW THE MASTER" HERE, so the page never has to
+ * reason about tri-state storage. A checkbox is on or off; the rule that a
+ * missing key follows `enabled` is the server's to apply, and applying it in two
+ * places is how the two disagree.
+ */
+export async function readEmailPreferences(
+  userId: number,
+): Promise<{ enabled: boolean; categories: Record<EmailCategory, boolean> } | null> {
+  const user = await User.findOne({ where: { id: userId }, select: { id: true, preferences: true } });
+  if (!user) return null;
+
+  const enabled = acceptsProductEmails(user.preferences);
+
+  return {
+    enabled,
+    categories: Object.fromEntries(
+      EMAIL_CATEGORIES.map((category) => [category, acceptsProductEmails(user.preferences, category)]),
+    ) as Record<EmailCategory, boolean>,
+  };
+}
+
+/**
+ * Writes whichever of the switches the page sent, leaving the rest alone.
+ *
+ * A PARTIAL PATCH, because the page submits the checkbox that moved rather than
+ * the whole set. Restating everything would mean a reader on a stale page could
+ * silently revert a change they made on another device between load and save.
+ */
+export async function updateEmailPreferences(
+  userId: number,
+  patch: Partial<Record<'enabled' | EmailCategory, boolean>>,
+): Promise<boolean> {
+  try {
+    await mutateUserPreferences(userId, (current) => {
+      const productEmails: NonNullable<User['preferences']>['productEmails'] = {
+        enabled: current.productEmails?.enabled !== false,
+        ...current.productEmails,
+      };
+
+      // Named only when it is being set, so a reader who has never touched the
+      // master does not acquire an explicit one just by unticking a category.
+      if (patch.enabled !== undefined) productEmails.enabled = patch.enabled;
+
+      for (const category of EMAIL_CATEGORIES) {
+        if (patch[category] !== undefined) productEmails[category] = patch[category];
+      }
+
+      return { ...current, productEmails };
+    });
     return true;
   } catch (error) {
     if (error instanceof EntityNotFoundError) return false;

@@ -79,6 +79,13 @@ export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
   'createFeedback',
   'getFeedbackFormToken',
   'unsubscribeFromEmail',
+  // The unsubscribe page's own pair. Same reasoning as the one-click above: the
+  // reader is holding an email, not a session, and a preference screen that
+  // first demanded a password is the pattern that turns an opt-out into a spam
+  // complaint. Both authenticate on the sealed token instead, and both touch
+  // exactly one account's email preferences and nothing else.
+  'getEmailPreferencesByToken',
+  'updateEmailPreferencesByToken',
 ]);
 
 /**

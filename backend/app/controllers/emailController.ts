@@ -1,10 +1,16 @@
-import type { UnsubscribeFromEmail } from 'generated/routes/email';
+import type {
+  GetEmailPreferencesByToken,
+  UnsubscribeFromEmail,
+  UpdateEmailPreferencesByToken,
+} from 'generated/routes/email';
 import { InvalidRequestError } from '@app/errors';
 import { logger } from '@config/log';
 import {
+  readEmailPreferences,
   readUnsubscribeToken,
   setProductEmailCategory,
   unsubscribeFromProductEmails,
+  updateEmailPreferences,
 } from '@app/services/email/unsubscribe';
 
 /**
@@ -54,4 +60,55 @@ export const unsubscribeFromEmail: UnsubscribeFromEmail = async ({ query }, resp
   logger.info({ applied, category: intent.category ?? 'all' }, 'Unsubscribed from product emails');
 
   return respond.with200().body({ unsubscribed: true });
+};
+
+/**
+ * What the unsubscribe page shows before the reader touches anything.
+ *
+ * READS AND NEVER WRITES, which is the whole reason it is a separate endpoint
+ * from the one-click POST. Mail scanners fetch every link in a message before
+ * the recipient sees it, so anything reachable by GET has to be safe to fetch by
+ * a robot; the change happens on the PATCH, which no scanner will issue.
+ */
+export const getEmailPreferencesByToken: GetEmailPreferencesByToken = async ({ query }, respond) => {
+  const intent = readUnsubscribeToken(query.token);
+  if (intent === null) {
+    throw new InvalidRequestError('This unsubscribe link is not valid. You can change this in your account settings.');
+  }
+
+  const preferences = await readEmailPreferences(intent.userId);
+  if (!preferences) {
+    throw new InvalidRequestError('This unsubscribe link is not valid. You can change this in your account settings.');
+  }
+
+  return respond.with200().body({ ...preferences, category: intent.category ?? null });
+};
+
+/**
+ * The reader's choices from that page.
+ *
+ * Partial by design: the page sends the switch that moved rather than the whole
+ * set, so somebody on a page loaded ten minutes ago cannot silently revert a
+ * change they made elsewhere in the meantime.
+ */
+export const updateEmailPreferencesByToken: UpdateEmailPreferencesByToken = async ({ body }, respond) => {
+  const { token, ...patch } = body;
+  const intent = readUnsubscribeToken(token);
+  if (intent === null) {
+    throw new InvalidRequestError('This unsubscribe link is not valid. You can change this in your account settings.');
+  }
+
+  const applied = await updateEmailPreferences(intent.userId, patch);
+  const preferences = applied ? await readEmailPreferences(intent.userId) : null;
+
+  // No address and no id in the log line, for the reason the unsubscribe handler
+  // gives: this is the one moment the reader has asked for less of our
+  // attention, not more of it written down.
+  logger.info({ applied, changed: Object.keys(patch) }, 'Email preferences changed from a token');
+
+  if (!preferences) {
+    throw new InvalidRequestError('This unsubscribe link is not valid. You can change this in your account settings.');
+  }
+
+  return respond.with200().body(preferences);
 };

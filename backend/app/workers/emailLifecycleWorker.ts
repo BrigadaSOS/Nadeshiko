@@ -104,6 +104,9 @@ async function candidates(kind: LifecycleKind, ageDays: number, requireLiveSessi
  */
 const LATEST_SESSION_EXPIRY = `(SELECT MAX(s.expires_at) FROM "session" s WHERE s.user_id = user.id)`;
 
+/** When they were last actually here, as opposed to when the lease on that runs out. */
+const LATEST_SESSION_SEEN = `(SELECT MAX(s.updated_at) FROM "session" s WHERE s.user_id = user.id)`;
+
 /** How long after one win-back note the next one may go out, however often they drift away. */
 export const DORMANT_REPEAT_FLOOR_DAYS = 180;
 
@@ -146,11 +149,25 @@ async function dormantCandidates(): Promise<User[]> {
       .where('user.is_active = true')
       .andWhere(`${LATEST_SESSION_EXPIRY} < now()`)
       .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`)
+      // NOT AGAIN UNLESS THEY CAME BACK, which is two conditions and both matter.
+      //
+      // The first is what the one-night window used to enforce for free. Now
+      // that the query asks "has this account been away thirty days" rather than
+      // "did it cross thirty days last night", somebody who never returns stays
+      // a match forever -- so without this they would get another note every
+      // time the floor expired, for as long as the account exists. Comparing our
+      // last send against their last sign-in says it plainly: if we wrote more
+      // recently than they were here, they have not been back and there is
+      // nothing new to tell them.
+      //
+      // The second is the floor, for the reader who does bounce in and out.
+      // Coming back and drifting away again is a real second dormancy and worth
+      // one more note, but not more than about twice a year.
       .andWhere(
         `NOT EXISTS (
          SELECT 1 FROM "EmailLifecycleSend" s
          WHERE s.user_id = user.id AND s.kind = 'dormant-30'
-           AND s.sent_at >= now() - make_interval(days => :floor)
+           AND (s.sent_at > ${LATEST_SESSION_SEEN} OR s.sent_at >= now() - make_interval(days => :floor))
        )`,
         { floor: DORMANT_REPEAT_FLOOR_DAYS },
       )
