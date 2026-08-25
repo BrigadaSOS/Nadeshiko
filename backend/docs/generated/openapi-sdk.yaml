@@ -2902,6 +2902,197 @@ paths:
           $ref: "#/components/responses/TooManyRequests"
         "500":
           $ref: "#/components/responses/InternalServerError"
+  /v1/email/preferences:
+    get:
+      tags:
+        - Email
+      x-internal: true
+      operationId: getEmailPreferencesByToken
+      summary: Read email preferences from an unsubscribe token
+      description: >
+        What the account the token names currently receives, so the unsubscribe
+        page
+
+        can show the reader their real settings rather than a guess.
+
+
+        Unauthenticated on purpose, for the same reason the unsubscribe endpoint
+        is:
+
+        the recipient is reading an email, not a signed-in page, and a
+        preference
+
+        screen that first demanded a password is the pattern that turns an
+        opt-out
+
+        into a spam complaint.
+
+
+        SAFE TO PREFETCH. Mail scanners fetch every link in a message before the
+
+        recipient ever sees it, so this reads and never writes — the change
+        happens
+
+        on the PATCH, which a scanner will not issue.
+
+
+        Discloses only which categories the account is on, to a holder who
+        already
+
+        has the token from their own inbox.
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 512
+          description: >
+            Opaque token from the unsubscribe link in the email. Carries the
+            account
+
+            it was issued for, sealed, so it cannot be edited into a token for
+
+            somebody else. Does not expire.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - categories
+                properties:
+                  enabled:
+                    type: boolean
+                    description: The master switch. False means nothing below is sent.
+                  categories:
+                    type: object
+                    description: >
+                      Each category the reader can hold separately. Absent from
+
+                      storage means "follow the master", which is resolved here
+                      so
+
+                      the page never has to reason about it.
+                    required:
+                      - recap
+                      - checkins
+                      - updates
+                    properties:
+                      recap:
+                        type: boolean
+                      checkins:
+                        type: boolean
+                      updates:
+                        type: boolean
+                  category:
+                    type: string
+                    nullable: true
+                    enum:
+                      - recap
+                      - checkins
+                      - updates
+                    description: >
+                      Which category the email carrying this token belonged to,
+                      when
+
+                      it named one. The page highlights it, because that is the
+                      one
+
+                      the reader clicked about.
+        "400":
+          description: The token could not be read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400"
+    patch:
+      tags:
+        - Email
+      x-internal: true
+      operationId: updateEmailPreferencesByToken
+      summary: Change email preferences from an unsubscribe token
+      description: >
+        Writes the categories the reader chose on the unsubscribe page.
+
+
+        Every field is optional and only what is sent is changed, so the page
+        can
+
+        submit one checkbox without having to know or restate the rest.
+
+
+        Turning the master off stops everything, which is what the "stop all of
+        it"
+
+        control does; turning it on again restores whatever the categories say.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+              properties:
+                token:
+                  type: string
+                  maxLength: 512
+                  description: >
+                    The same token the link carries. In the BODY rather than the
+
+                    query for this one, unlike the GET: a write does not need to
+                    be
+
+                    reachable from a URL, and keeping it out of the path keeps
+                    it out
+
+                    of proxy access logs and browser history.
+                enabled:
+                  type: boolean
+                recap:
+                  type: boolean
+                checkins:
+                  type: boolean
+                updates:
+                  type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - enabled
+                  - categories
+                properties:
+                  enabled:
+                    type: boolean
+                  categories:
+                    type: object
+                    required:
+                      - recap
+                      - checkins
+                      - updates
+                    properties:
+                      recap:
+                        type: boolean
+                      checkins:
+                        type: boolean
+                      updates:
+                        type: boolean
+        "400":
+          description: The token could not be read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400"
   /v1/collections:
     get:
       tags:
@@ -9363,6 +9554,41 @@ components:
             so
 
             unhiding the category brings the choice back.
+        mediaCardDefault:
+          type: string
+          enum:
+            - OPEN
+            - CLOSED
+          description: >
+            Whether the title card starts open or closed on a title's own page,
+            and on
+
+            a search narrowed to one title.
+
+
+            The card is a disclosure: a single line -- thumbnail, title,
+            sentence and
+
+            episode counts -- with the alternate names, studio, season, airing
+            status,
+
+            genres and catalogue links folded underneath it. Anyone can open and
+            close
+
+            it from the card itself; this only decides which way it starts, and
+
+            `OPEN` -- assumed when unset -- is that default.
+
+
+            It exists because the card is context for a page whose subject is
+            the
+
+            sentence list underneath it. At its old fixed size on a phone it
+            took
+
+            roughly a third of the viewport, so every visit to a title a reader
+
+            already knows began with the same scroll past the same card.
         hiddenCategories:
           type: array
           description: >
