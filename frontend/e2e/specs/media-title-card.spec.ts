@@ -29,6 +29,10 @@ test.describe('Media title card', () => {
 
     const card = page.getByTestId('media-header');
     const toggle = page.getByTestId('media-header-toggle');
+    // Resolved through `aria-controls` rather than a second test id: the details
+    // region already has to name itself for the chevron to be announced, so
+    // reading it here asserts that wiring is intact as a side effect of using it.
+    const details = page.locator(`[id="${await toggle.getAttribute('aria-controls')}"]`);
     await expect(card).toHaveAttribute('data-open', 'true');
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
@@ -45,8 +49,24 @@ test.describe('Media title card', () => {
     }).toPass({ timeout: 5_000 });
 
     // Closed hides the details; it does not take them out of the page.
+    //
+    // NOT `toBeHidden()` on the link, which is what this asserted first and why
+    // it failed against a build with nothing wrong with it. The collapse is a
+    // `grid-template-rows` transition plus an opacity fade, and Playwright's
+    // visibility check reads neither: it looks at the element's OWN box and its
+    // OWN `visibility`, so a link clipped to nothing by an ancestor's
+    // `overflow: hidden`, inside an ancestor at `opacity: 0`, still counts as
+    // visible. Measured on staging 2026-08-25: the link kept a 22px box and
+    // `opacity: 1` of its own, while `elementFromPoint` at the centre of that box
+    // returned a different element entirely. Nobody could see it; only the
+    // assertion thought otherwise.
+    //
+    // So assert the collapse itself. `grid-rows-[0fr]` computes to `0px` closed
+    // and `84.5px` open on the same card, which is the mechanism rather than a
+    // proxy for it -- and `toHaveCSS` retries, so it rides out the 300ms.
     const anilist = page.getByTestId('media-anilist-link');
-    if (await anilist.count()) await expect(anilist).toBeHidden();
+    if (await anilist.count()) await expect(anilist).toBeAttached();
+    await expect(details).toHaveCSS('grid-template-rows', '0px');
 
     await card.getByRole('heading').click();
     await expect(card).toHaveAttribute('data-open', 'true');
