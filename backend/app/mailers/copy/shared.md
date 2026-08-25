@@ -2,4 +2,4 @@
 
 ### Come and meet the community
 
-Join our Discord to keep up with the latest features and improvements, and to meet the rest of the community. [Click here](https://discord.gg/qRak9MprUS) to come in.
+Join us into our Discord server for being up to date to the latest features and improvements in Nadeshiko.
