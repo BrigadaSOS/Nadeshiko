@@ -2014,6 +2014,23 @@ export type UserPreferences = {
      */
     defaultSearchCategory?: 'ALL' | 'ANIME' | 'JDRAMA' | 'YOUTUBE';
     /**
+     * Whether the title card starts open or closed on a title's own page, and on
+     * a search narrowed to one title.
+     *
+     * The card is a disclosure: a single line -- thumbnail, title, sentence and
+     * episode counts -- with the alternate names, studio, season, airing status,
+     * genres and catalogue links folded underneath it. Anyone can open and close
+     * it from the card itself; this only decides which way it starts, and
+     * `OPEN` -- assumed when unset -- is that default.
+     *
+     * It exists because the card is context for a page whose subject is the
+     * sentence list underneath it. At its old fixed size on a phone it took
+     * roughly a third of the viewport, so every visit to a title a reader
+     * already knows began with the same scroll past the same card.
+     *
+     */
+    mediaCardDefault?: 'OPEN' | 'CLOSED';
+    /**
      * Whole media categories hidden from search results by the user.
      *
      * An empty array means nothing is hidden. Hiding *every* category is rejected with
@@ -5587,6 +5604,107 @@ export type UnsubscribeFromEmailResponses = {
 };
 
 export type UnsubscribeFromEmailResponse = UnsubscribeFromEmailResponses[keyof UnsubscribeFromEmailResponses];
+
+export type GetEmailPreferencesByTokenData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Opaque token from the unsubscribe link in the email. Carries the account
+         * it was issued for, sealed, so it cannot be edited into a token for
+         * somebody else. Does not expire.
+         *
+         */
+        token: string;
+    };
+    url: '/v1/email/preferences';
+};
+
+export type GetEmailPreferencesByTokenErrors = {
+    /**
+     * The token could not be read
+     */
+    400: Error400;
+};
+
+export type GetEmailPreferencesByTokenError = GetEmailPreferencesByTokenErrors[keyof GetEmailPreferencesByTokenErrors];
+
+export type GetEmailPreferencesByTokenResponses = {
+    /**
+     * OK
+     */
+    200: {
+        /**
+         * The master switch. False means nothing below is sent.
+         */
+        enabled: boolean;
+        /**
+         * Each category the reader can hold separately. Absent from
+         * storage means "follow the master", which is resolved here so
+         * the page never has to reason about it.
+         *
+         */
+        categories: {
+            recap: boolean;
+            checkins: boolean;
+            updates: boolean;
+        };
+        /**
+         * Which category the email carrying this token belonged to, when
+         * it named one. The page highlights it, because that is the one
+         * the reader clicked about.
+         *
+         */
+        category?: 'recap' | 'checkins' | 'updates';
+    };
+};
+
+export type GetEmailPreferencesByTokenResponse = GetEmailPreferencesByTokenResponses[keyof GetEmailPreferencesByTokenResponses];
+
+export type UpdateEmailPreferencesByTokenData = {
+    body: {
+        /**
+         * The same token the link carries. In the BODY rather than the
+         * query for this one, unlike the GET: a write does not need to be
+         * reachable from a URL, and keeping it out of the path keeps it out
+         * of proxy access logs and browser history.
+         *
+         */
+        token: string;
+        enabled?: boolean;
+        recap?: boolean;
+        checkins?: boolean;
+        updates?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/email/preferences';
+};
+
+export type UpdateEmailPreferencesByTokenErrors = {
+    /**
+     * The token could not be read
+     */
+    400: Error400;
+};
+
+export type UpdateEmailPreferencesByTokenError = UpdateEmailPreferencesByTokenErrors[keyof UpdateEmailPreferencesByTokenErrors];
+
+export type UpdateEmailPreferencesByTokenResponses = {
+    /**
+     * OK
+     */
+    200: {
+        enabled: boolean;
+        categories: {
+            recap: boolean;
+            checkins: boolean;
+            updates: boolean;
+        };
+    };
+};
+
+export type UpdateEmailPreferencesByTokenResponse = UpdateEmailPreferencesByTokenResponses[keyof UpdateEmailPreferencesByTokenResponses];
 
 export type ListCollectionsData = {
     body?: never;

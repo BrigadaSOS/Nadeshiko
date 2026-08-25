@@ -64,21 +64,21 @@
     "skipToContent": "Skip to content"
   },
   "appMeta": {
-    "defaultTitle": "Nadeshiko: Search Japanese sentences from anime",
-    "defaultPageTitle": "Search Japanese sentences from anime",
-    "defaultDescription": "Search over 1.3 million Japanese sentences with English translations from a wide variety of anime and J-dramas."
+    "defaultTitle": "Nadeshiko: Search Japanese sentences from anime, J-drama and YouTube",
+    "defaultPageTitle": "Search Japanese sentences from anime, J-drama and YouTube",
+    "defaultDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining."
   },
   "home": {
     "version": "v{version}",
-    "nadeDbDescription": "A tool for searching Japanese sentences from multiple contexts.",
+    "nadeDbDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining.",
     "nadeDbDescriptionJpSearch": "Search in Japanese",
     "nadeDbDescriptionOtherSearch": "Search in English",
     "nadeDbDescriptionExclusiveSearch": "Exclusive search",
     "nadeDbDescriptionExactSearch": "Exact search",
     "keyFeatures": {
       "feature1": {
-        "title": "Compatible with Anki",
-        "description": "Save any sentence in Anki including image, audio, and multiple languages."
+        "title": "Export to Anki",
+        "description": "Save any sentence to Anki including screenshot, audio, and multiple languages."
       },
       "feature2": {
         "title": "Save any sentence",
@@ -692,6 +692,13 @@
       "motionHint_system": "Follows your device's accessibility setting for reduced motion.",
       "motionHint_reduced": "Keeps small color and fade effects, drops anything that slides or resizes.",
       "motionHint_none": "Nothing animates at all. Pick this if the interface still feels slow.",
+      "mediaCard": "Title card",
+      "mediaCardOptions": {
+        "OPEN": "Open by default",
+        "CLOSED": "Closed by default"
+      },
+      "mediaCardHint_OPEN": "The card above a title’s sentences starts open, showing the alternate names, studio, season, genres and catalogue links. You can close it from the card itself.",
+      "mediaCardHint_CLOSED": "The card starts as a single line — thumbnail, title and counts. Click the row to open the details when you want them.",
       "defaultSearchCategoryHiddenOption": "{category} (hidden)",
       "defaultSearchCategoryHiddenNotice": "{category} is hidden under Hide Categories, so searches open on All until you show it again.",
       "dictionaryLinks": "Dictionary integrations",
@@ -924,15 +931,17 @@
     },
     "emails": {
       "title": "Emails",
-      "allTitle": "Emails about Nadeshiko",
+      "allTitle": "All emails about Nadeshiko",
       "recapTitle": "Monthly recap",
       "recapDescription": "A monthly summary of what you have studied with Nadeshiko.",
       "checkinsTitle": "Occasional check-ins",
       "checkinsDescription": "Questions about how Nadeshiko is working for you.",
       "updatesTitle": "New features and releases",
       "updatesDescription": "Latest updates and changes in Nadeshiko.",
-      "transactionalNote": "Sign-in links and account emails are always sent, whatever you choose here.",
-      "preferenceError": "That preference could not be saved. Please try again."
+      "preferenceError": "That preference could not be saved. Please try again.",
+      "allDescription": "Sign-in links and account emails are always sent, whatever you choose here.",
+      "turnedOn": "{name}: on",
+      "turnedOff": "{name}: off"
     }
   },
   "blog": {
@@ -1221,8 +1230,8 @@
   },
   "seo": {
     "home": {
-      "title": "Nadeshiko: Search Japanese sentences from anime",
-      "description": "Search over 1.3 million Japanese sentences with English translations from a wide variety of anime and J-dramas."
+      "title": "Nadeshiko: Search Japanese sentences from anime, J-drama and YouTube",
+      "description": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining."
     },
     "stats": {
       "title": "Stats",
@@ -1234,8 +1243,8 @@
     },
     "media": {
       "title": "Browse Media",
-      "description": "Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search through thousands of media titles with Japanese sentences.",
-      "pageTitle": "{media}: Japanese sentences with translations"
+      "description": "Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search their Japanese subtitles sentence by sentence, with audio and translations.",
+      "pageTitle": "{media}: Japanese subtitles and example sentences"
     },
     "blog": {
       "title": "Blog",
@@ -1407,15 +1416,11 @@
     "errorRateLimited": "You have sent a lot just now. Give it a minute and try again."
   },
   "unsubscribe": {
-    "title": "Unsubscribe from Nadeshiko emails?",
-    "detail": "This stops the occasional emails about your activity and new features. Your sign-in links and account emails are not affected.",
-    "confirm": "Unsubscribe",
     "cancel": "No, keep them",
-    "done": "Unsubscribed",
-    "doneDetail": "You will not get those emails again. Sign-in links and account emails still work as before, and you can turn these back on any time in your settings.",
     "invalid": "This unsubscribe link is not valid. You can turn these emails off in your account settings instead.",
     "failed": "That could not be completed. Please try again, or turn these emails off in your account settings.",
-    "goToSettings": "Go to settings"
+    "goToSettings": "Go to settings",
+    "chooseTitle": "Choose what you hear about"
   },
   "signupNudge": {
     "action": "Create an account",
@@ -1428,6 +1433,10 @@
       "title": "Enjoying Nadeshiko?",
       "message": "With an account, you can save your favorite sentences and export them to Anki."
     }
+  },
+  "mediaHeader": {
+    "collapse": "Close title details",
+    "expand": "Open title details"
   },
   "mediaPage": {
     "resultsFailed": "We could not load the sentences for this title.",

@@ -965,6 +965,7 @@ export type t_UserPreferences = {
   hiddenMedia?: {
     mediaPublicId: string;
   }[];
+  mediaCardDefault?: 'OPEN' | 'CLOSED';
   mediaNameLanguage?: 'ENGLISH' | 'JAPANESE' | 'ROMAJI';
   productEmails?: {
     checkins?: boolean;
@@ -1100,6 +1101,10 @@ export type t_GetCoveredWordsQuerySchema = {
   minRank?: number;
   take?: number;
   tier: number;
+};
+
+export type t_GetEmailPreferencesByTokenQuerySchema = {
+  token: string;
 };
 
 export type t_GetEpisodeParamSchema = {
@@ -1248,6 +1253,14 @@ export type t_UpdateCollectionParamSchema = {
 export type t_UpdateCollectionSegmentParamSchema = {
   collectionPublicId: string;
   segmentPublicId: string;
+};
+
+export type t_UpdateEmailPreferencesByTokenRequestBody = {
+  checkins?: boolean;
+  enabled?: boolean;
+  recap?: boolean;
+  token: string;
+  updates?: boolean;
 };
 
 export type t_UpdateEpisodeParamSchema = {

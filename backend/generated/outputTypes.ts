@@ -119,6 +119,7 @@ export type ResyncShirabeStackRequestBodyOutput = z.output<typeof schemas.s_Resy
 export type ReportShirabeRefusalRequestBodyOutput = z.output<typeof schemas.s_ReportShirabeRefusalRequestBody>;
 export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
 export type AddFavoriteMediaRequestBodyOutput = z.output<typeof schemas.s_AddFavoriteMediaRequestBody>;
+export type UpdateEmailPreferencesByTokenRequestBodyOutput = z.output<typeof schemas.s_UpdateEmailPreferencesByTokenRequestBody>;
 
 // ============================================
 // Inline query schemas and their output types
@@ -176,6 +177,9 @@ export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySch
 
 export const unsubscribeFromEmailQuerySchema = z.object({ token: z.string().max(512) });
 export type UnsubscribeFromEmailQueryOutput = z.output<typeof unsubscribeFromEmailQuerySchema>;
+
+export const getEmailPreferencesByTokenQuerySchema = z.object({ token: z.string().max(512) });
+export type GetEmailPreferencesByTokenQueryOutput = z.output<typeof getEmailPreferencesByTokenQuerySchema>;
 
 export const listMediaQuerySchema = z.object({
     take: z.coerce.number().min(1).max(40).optional().default(20),
