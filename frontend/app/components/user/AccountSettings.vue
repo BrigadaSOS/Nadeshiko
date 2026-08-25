@@ -5,6 +5,7 @@ import type { Category, UserPreferences } from '@brigadasos/nadeshiko-sdk';
 
 import { apiErrorStatus } from '~/utils/apiError';
 import { ALL_CATEGORIES, CATEGORY_LABEL_KEYS } from '~/utils/categories';
+import { MEDIA_CARD_DEFAULTS } from '~/composables/useMediaCardDefault';
 import { MOTION_LEVELS, type MotionLevel } from '~/composables/useMotionPreference';
 import { normalizeTranslationLanguages, type TranslationLanguage } from '~/composables/useTranslationLanguages';
 
@@ -32,6 +33,14 @@ const shirabeLinked = computed(() => (user_store.shirabeGlossLanguages ?? []).le
 
 /** How large the word card prints its definitions. See `~/utils/wordPopup`. */
 const definitionTextSize = computed(() => definitionSize(user_store.preferences?.wordPopup?.definitionSize));
+
+/**
+ * Which way the title card starts above a title's sentences. Read through the
+ * composable so this select and the card cannot disagree about what the stored
+ * value means -- and note this is only a starting position: the card's own row
+ * opens and closes it without touching this.
+ */
+const { preference: mediaCardDefault } = useMediaCardDefault();
 
 const updateDefinitionSize = async (value: string) => {
   const size = definitionSize(value);
@@ -129,6 +138,13 @@ const toggleEmailCategory = async (category: EmailCategory) => {
     emailCategories[category] = newValue;
     user_store.preferences = { ...(user_store.preferences ?? {}), productEmails };
     usePostHog()?.capture('setting_changed', { setting_name: `productEmails.${category}`, value: newValue });
+    // Names what changed rather than saying "saved": with four switches on one
+    // card, "saved" leaves the reader checking which one they actually hit.
+    useToastSuccess(
+      t(newValue ? 'accountSettings.emails.turnedOn' : 'accountSettings.emails.turnedOff', {
+        name: t(`accountSettings.emails.${category}Title`),
+      }),
+    );
   } catch (error) {
     handleApiError('account:product-emails-category-failed', error, {
       toastKey: 'accountSettings.emails.preferenceError',
@@ -694,6 +710,27 @@ const logoutCurrentUser = async () => {
         </div>
       </div>
 
+      <!-- The title card above a title's own search results. A starting
+           position only -- the card's row opens and closes it either way, and
+           that is deliberately not stored. -->
+      <div class="nd-settings-row mt-4">
+        <div>
+          <p class="text-white">{{ $t('accountSettings.account.mediaCard') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t(`accountSettings.account.mediaCardHint_${mediaCardDefault}`) }}</p>
+        </div>
+        <select
+          data-testid="media-card-default"
+          :value="mediaCardDefault"
+          @change="updatePreference('mediaCardDefault', ($event.target as HTMLSelectElement).value)"
+          :disabled="savingPreferences"
+          class="nd-select"
+        >
+          <option v-for="option in MEDIA_CARD_DEFAULTS" :key="option" :value="option">
+            {{ $t(`accountSettings.account.mediaCardOptions.${option}`) }}
+          </option>
+        </select>
+      </div>
+
       <div class="nd-settings-row mt-4">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.questionableContent') }}</p>
@@ -823,6 +860,7 @@ const logoutCurrentUser = async () => {
       <div class="flex items-center justify-between gap-4">
         <div>
           <p class="text-white font-medium">{{ $t('accountSettings.emails.allTitle') }}</p>
+          <p class="text-gray-400 text-sm">{{ $t('accountSettings.emails.allDescription') }}</p>
         </div>
         <button
           data-testid="product-emails-toggle"
@@ -876,8 +914,6 @@ const logoutCurrentUser = async () => {
           </button>
         </div>
       </div>
-
-      <p class="text-gray-500 text-sm pt-2">{{ $t('accountSettings.emails.transactionalNote') }}</p>
     </div>
   </div>
 

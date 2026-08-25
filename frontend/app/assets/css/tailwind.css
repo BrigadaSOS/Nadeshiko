@@ -98,10 +98,18 @@
   /* `appearance: none` above drops the native arrow. Put a chevron back so
      a compact select does not read as a static label. Scoped to <select>
      so an input that happens to use `.nd-select` is left alone.
-     Same chrome as `.nd-btn` so a settings select matches the EN/ES chips. */
+     Same chrome as `.nd-btn` so a settings select matches the EN/ES chips.
+
+     `text-sm` and `py-1.5`, matching `.nd-btn` exactly, because the shared `h-9`
+     below is a HARD height and the two have to be solved together. This block
+     used to say `text-base` while inheriting `py-2` from `.nd-input`: 36px minus
+     16px of padding and 2px of border leaves an 18px content box for a 24px
+     line, so every descender was cut off mid-stroke -- "Japanese", "Match my
+     device" and "Open by default" all read with their tails shaved. The current
+     numbers leave 22px for a 20px line, which fits. */
   select.nd-input,
   select.nd-select {
-    @apply text-base font-medium rounded-md whitespace-nowrap;
+    @apply py-1.5 text-sm font-medium rounded-md whitespace-nowrap;
     padding-inline-end: 2.25rem;
     cursor: pointer;
     background-color: var(--control);
