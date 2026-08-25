@@ -125,15 +125,23 @@ function reportBotInstallClick(): void {
                             <div class="flex dark:text-white/80 gap-10 flex-col xl:flex-row justify-between">
                                 <div class="flex-1 md:min-w-[30rem]">
                                     <div class="flex rounded-lg flex-col first-letter:items-left">
+                                        <!--
+                                            THE PAGE'S H1, and the version beside it is a `span`.
+                                            It used to be `h2` + `h3`, with the build number as a
+                                            heading between the brand and the tagline -- so a crawler
+                                            read "Nadeshiko v2.4.9 A tool for searching..." as one
+                                            phrase and Google put the version number in the search
+                                            result. A build number is not a heading.
+                                        -->
                                         <div class="inline-flex">
-                                            <h2
+                                            <h1
                                                 class="text-3xl ml-2 mt-3 md:mt-0 underline underline-offset-8 decoration-4 decoration-header-background sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">
                                                 Nadeshiko
-                                            </h2>
-                                            <h3
+                                            </h1>
+                                            <span
                                                 class="inline-flex ml-2 rounded-full items-end text-base font-medium text-white/80">
                                                 {{ $t('home.version', { version: config.public.appVersion }) }}
-                                            </h3>
+                                            </span>
                                         </div>
 
                                         <p class="ml-2 pt-5 text-base">{{ $t('home.nadeDbDescription') }}</p>
@@ -281,10 +289,10 @@ function reportBotInstallClick(): void {
                                     <section class="w-full rounded-lg">
                                         <div class="tab-content md:mx-2 flex-grow w-full">
                                             <div class="inline-flex justify-between items-center w-full mb-4">
-                                                <h1
+                                                <h2
                                                     class="text-2xl font-bold md:text-2xl md:leading-tight dark:text-white">
                                                     {{ $t('animeList.recentlyAddedTitle') }}
-                                                </h1>
+                                                </h2>
                                                 <NuxtLink :to="localePath('/media')">
                                                     <button type="button"
                                                         class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-sm ">

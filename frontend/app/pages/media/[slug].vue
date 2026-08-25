@@ -255,8 +255,27 @@ const workSchema = computed(() => {
   // meets a declared `string | string[]` and collapses to `string & string[]` --
   // a type nothing can satisfy. Widening here keeps the intersection harmless.
   const sameAs = mediaSameAsUrls(entry);
+
+  // THE TWO NAMES THIS READER IS NOT SEEING. `name` is `mediaName`, which
+  // resolves against the reader's `mediaNameLanguage` preference and the locale
+  // -- so the entity was advertising exactly one of a title's three names, and
+  // which one depended on who was looking. Search Console for the 3 months to
+  // 2026-08-25 has readers arriving on all three forms: `kaguya-sama wa
+  // kokurasetai` and `各務原なでしこ` and `seihantaina kimi`. `alternateName` is
+  // where a work's other titles go, and it is what lets those three queries
+  // resolve to one entity instead of competing for it.
+  //
+  // Deduplicated against `name` and against each other: a title whose romaji and
+  // English forms are identical, or which carries only one name, must not claim
+  // an alternate that is the name it already gave.
+  const alternateNames = [entry.nameJa, entry.nameRomaji, entry.nameEn]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value) && value !== headline.value.trim())
+    .filter((value, index, all) => all.indexOf(value) === index);
+
   const shared: Record<string, unknown> = {
     name: headline.value,
+    ...(alternateNames.length ? { alternateName: alternateNames } : {}),
     ...(entry.genres?.length ? { genre: entry.genres } : {}),
     ...(entry.coverUrl ? { image: entry.coverUrl } : {}),
     ...(entry.startDate ? { datePublished: entry.startDate } : {}),

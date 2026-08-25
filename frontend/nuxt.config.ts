@@ -512,11 +512,25 @@ export default defineNuxtConfig({
             // No `/docs/`: the module expands an unprefixed path across the
             // locales, so one entry became Allow lines for /en/docs/, /es/docs/
             // and /ja/docs/ -- all three 404 (only /docs/api/index.html is
-            // real), and the last one contradicted the /ja disallow two lines
-            // below. The entry bought nothing either way, since nothing here
-            // disallows the docs.
+            // real). The entry bought nothing either way; `/docs/**` carries an
+            // `X-Robots-Tag: noindex` route rule instead, for the reason spelled
+            // out on that rule.
             allow: ['/en/', '/es/'],
-            disallow: ['/ja', '/ja/', ...PRIVATE_DISALLOW, '/api/', '/v1/', '/_nuxt/'],
+            // `/ja` IS NOT DISALLOWED HERE, and that is the opposite of what it
+            // looks like. `/ja/**` has always carried `robots: false`, which
+            // serves `X-Robots-Tag: noindex, nofollow` -- and a disallow on top
+            // of it made the noindex unreadable, because a crawler that is
+            // forbidden to fetch the page never sees the header telling it to
+            // drop the page. The result over the 3 months to 2026-08-25: 66 `/ja`
+            // URLs holding 7,767 impressions (17.9% of the site's total) and 3
+            // clicks, averaging position 25.2, with no route out of the index.
+            //
+            // Crawling `/ja` costs budget we would rather spend on the corpus.
+            // That cost is the price of the de-index and it is temporary: once
+            // Search Console shows the `/ja` impressions gone, put `'/ja'` and
+            // `'/ja/'` back at the front of this list and the pages stay out
+            // without being re-fetched. Removing it before then restarts this.
+            disallow: [...PRIVATE_DISALLOW, '/api/', '/v1/', '/_nuxt/'],
           },
           // SEO backlink crawlers, turned away by name.
           //
@@ -555,6 +569,10 @@ export default defineNuxtConfig({
             sources: [
               '/api/__sitemap__/media?locale=en',
               ['/api/__sitemap__/episodes?locale=en', { timeout: 60000 }],
+              // Two lookups per title rather than one, so it gets the same
+              // headroom as `episodes` and then some. See `sentences.ts` for why
+              // the corpus is sampled per title instead of enumerated.
+              ['/api/__sitemap__/sentences?locale=en', { timeout: 90000 }],
               ['/api/__sitemap__/words?locale=en', { timeout: 60000 }],
               '/api/__sitemap__/blog?locale=en',
             ],
@@ -564,6 +582,10 @@ export default defineNuxtConfig({
             sources: [
               '/api/__sitemap__/media?locale=es',
               ['/api/__sitemap__/episodes?locale=es', { timeout: 60000 }],
+              // Two lookups per title rather than one, so it gets the same
+              // headroom as `episodes` and then some. See `sentences.ts` for why
+              // the corpus is sampled per title instead of enumerated.
+              ['/api/__sitemap__/sentences?locale=es', { timeout: 90000 }],
               ['/api/__sitemap__/words?locale=es', { timeout: 60000 }],
               '/api/__sitemap__/blog?locale=es',
             ],
@@ -708,6 +730,25 @@ export default defineNuxtConfig({
   routeRules: {
     '/api/v1/docs': {
       redirect: { to: '/docs/api/index.html', statusCode: 301 },
+    },
+    // The API reference is for people integrating against the API, who arrive
+    // from the docs link in the footer -- not from Search. Google had it at
+    // position 9.5 on 273 impressions and 0 clicks over the 3 months to
+    // 2026-08-25: it ranks, nobody wants it, and every impression it takes is
+    // one the corpus did not get.
+    //
+    // `X-Robots-Tag` rather than a robots.txt disallow, and the two are not
+    // interchangeable here. Disallowing stops the crawl, and a URL that cannot
+    // be crawled cannot be read as noindex either -- it stays in the index
+    // undescribed, which is exactly how `/api/v1/docs` (disallowed under
+    // `/api/`) still holds 59 impressions. Leaving `/docs/` crawlable and
+    // marking it noindex is what actually removes it. See the robots `allow`
+    // block above for why `/docs/` is deliberately absent from it.
+    //
+    // `openapi.yaml` is served from the same directory and is covered by the
+    // same rule.
+    '/docs/**': {
+      headers: { 'X-Robots-Tag': 'noindex' },
     },
     // Caching policy: pages without an explicit rule emit no Cache-Control header.
     // Cloudflare doesn't cache HTML by default and browsers heuristically cache for
