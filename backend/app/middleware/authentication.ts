@@ -50,7 +50,7 @@ function getSessionTokenCookieName(): Promise<string> {
 /**
  * Hands the browser the session cookie better-auth just renewed.
  *
- * Sessions slide -- `expiresIn` 30 days, `updateAge` 7 (config/auth.ts) -- so a
+ * Sessions slide -- `expiresIn` 90 days, `updateAge` 7 (config/auth.ts) -- so a
  * reader who comes back inside a month should never have to sign in again. That
  * needs BOTH halves of the session to move, and until now only one of them did.
  * The `getSession` call below writes the new `expires_at` to the row, but it is
