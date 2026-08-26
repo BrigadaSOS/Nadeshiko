@@ -212,6 +212,15 @@ export function normalizePlaybackRate(value: unknown): number {
   return PLAYBACK_RATES.reduce((best, rate) => (Math.abs(rate - value) < Math.abs(best - value) ? rate : best));
 }
 
+/**
+ * What a start of the audio element should be reported as.
+ *
+ * - `play`   -- a clip the reader reached: the thing every per-play rate counts.
+ * - `repeat` -- the same clip again, from `repeat` mode or a manual restart.
+ * - `none`   -- resuming a pause, which was never a new play to begin with.
+ */
+type TrackedPlay = 'play' | 'repeat' | 'none';
+
 interface PlayerState {
   playlist: SearchResult[];
   currentIndex: number | null;
@@ -309,7 +318,7 @@ export const usePlayerStore = defineStore('player', {
 
     handleEnded() {
       if (this.repeat) {
-        this.playCurrent();
+        this.playCurrent({ repeat: true });
       } else if (this.autoplay) {
         this.next();
       } else {
@@ -334,7 +343,17 @@ export const usePlayerStore = defineStore('player', {
       this.isPlaying = false;
     },
 
-    trackPlay() {
+    /**
+     * @param isRepeat The same clip starting again rather than a new one being
+     *                 reached: a `repeat`-mode loop, or a manual restart that had
+     *                 to rebuild the element. Both are the reader hearing a
+     *                 sentence they already had, and counting them as plays
+     *                 inflated the numerator of every per-play rate we read off
+     *                 this event -- a looped clip billed a play every few
+     *                 seconds. Reported rather than suppressed: a re-listen is
+     *                 real engagement, it just is not a sentence reached.
+     */
+    trackPlay(isRepeat = false) {
       const posthog = usePostHog();
       posthog?.capture('segment_played', {
         media_id: this.currentResult?.media.publicId,
@@ -342,10 +361,17 @@ export const usePlayerStore = defineStore('player', {
         segment_id: this.currentResult?.segment.publicId,
         playlist_position: this.currentIndex,
         is_autoplay: this.autoplay,
+        is_repeat: isRepeat,
       });
 
-      // Deliberate plays only. `this.autoplay` is the same flag the event above
-      // carries, so the counter and the analytics agree on what a play is.
+      // Deliberate plays only, where deliberate means the reader chose this
+      // clip: `this.autoplay` is the same flag the event above carries, so the
+      // counter and the analytics agree on what a play is.
+      //
+      // `isRepeat` is deliberately NOT folded in here. A loop is not a sentence
+      // reached for analytics, but it is still time spent on the site, which is
+      // what the nudge counts -- so the two part company on purpose, and the
+      // event carries both flags so either definition can be recovered.
       if (!this.autoplay) useSignupNudge().recordPlay();
 
       const user = userStore();
@@ -378,14 +404,21 @@ export const usePlayerStore = defineStore('player', {
      * until the clip has buffered enough to run to its end.
      *
      * Resolves/rejects that arrive after a newer playback took over are discarded.
+     *
+     * `track` says what this start is worth reporting as, and the third state is
+     * why it is not a boolean: resuming a paused clip is not a play at all, a
+     * fresh clip is, and the same clip starting over is a play of a kind we want
+     * to be able to take back out. It is read inside `started`, so a start that
+     * loses its token reports nothing -- the answer belongs to whichever
+     * playback actually made a sound.
      */
-    startAudio(audio: HTMLAudioElement, track: boolean) {
+    startAudio(audio: HTMLAudioElement, track: TrackedPlay) {
       const token = ++playbackToken;
 
       const started = () => {
         if (token !== playbackToken) return;
         this.isPlaying = true;
-        if (track) this.trackPlay();
+        if (track !== 'none') this.trackPlay(track === 'repeat');
       };
 
       const failed = (error: unknown) => {
@@ -518,7 +551,15 @@ export const usePlayerStore = defineStore('player', {
       yt.retimeClip(clip.startMs, clip.endMs);
     },
 
-    playCurrent() {
+    /**
+     * @param repeat Whether this is the same clip starting over rather than a
+     *               new one being reached. Threaded in by the callers that know
+     *               -- `handleEnded` under `repeat` mode, and the `restart` path
+     *               that has to rebuild a stale element -- because by the time
+     *               `trackPlay` runs there is nothing left to tell them apart:
+     *               a loop rebuilds the element exactly as a fresh play does.
+     */
+    playCurrent({ repeat = false }: { repeat?: boolean } = {}) {
       this.releaseAudio();
 
       const result = this.currentResult;
@@ -546,7 +587,7 @@ export const usePlayerStore = defineStore('player', {
         yt.setVolume(this.volume);
         yt.setPlaybackRate(this.playbackRate);
         this.isPlaying = true;
-        this.trackPlay();
+        this.trackPlay(repeat);
         this.prefetchNext();
         return;
       }
@@ -574,7 +615,7 @@ export const usePlayerStore = defineStore('player', {
       // rather than degrade one feature. The retry costs ~17KB on an expansion
       // that follows a play, and fails in a way that is confined to expansion.
 
-      this.startAudio(audio, true);
+      this.startAudio(audio, repeat ? 'repeat' : 'play');
 
       audio.onended = () => this.handleEnded();
 
@@ -637,7 +678,7 @@ export const usePlayerStore = defineStore('player', {
         }
         this.isPlaying = true;
       } else if (this.currentAudio && !this.isCurrentAudioStale) {
-        this.startAudio(this.currentAudio, false);
+        this.startAudio(this.currentAudio, 'none');
         this.isPlaying = true;
       } else {
         this.playCurrent();
@@ -769,10 +810,15 @@ export const usePlayerStore = defineStore('player', {
         this.isPlaying = true;
       } else if (this.currentAudio && !this.isCurrentAudioStale) {
         this.currentAudio.currentTime = 0;
-        this.startAudio(this.currentAudio, false);
+        this.startAudio(this.currentAudio, 'none');
         this.isPlaying = true;
       } else if (this.currentResult) {
-        this.playCurrent();
+        // Rebuilt rather than rewound, because the element is gone or stale --
+        // but it is still the reader asking for the same sentence again, so it
+        // reports as a repeat. Marked here and not in the branch above because
+        // that one never reaches `trackPlay` at all: rewinding a live element
+        // was never a play to take back out.
+        this.playCurrent({ repeat: true });
       } else {
         return;
       }
