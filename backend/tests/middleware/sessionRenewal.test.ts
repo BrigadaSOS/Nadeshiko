@@ -168,10 +168,10 @@ describe('session renewal on an authenticated API call', () => {
     expect(fresh.status).toBe(200);
     expect(fresh.headers['set-cookie']).toBeUndefined();
 
-    // Sessions last 30 days and slide once they are 7 days old, so anything
-    // expiring in under 23 is due. A reader who kept visiting used to reach
+    // Sessions last 90 days and slide once they are 7 days old, so anything
+    // expiring in under 83 is due. A reader who kept visiting used to reach
     // this state and never leave it: the row slid, the cookie did not, and the
-    // browser dropped the session 30 days after sign-in regardless.
+    // browser dropped the session a lifetime after sign-in regardless.
     const stale = new Date(Date.now() + 22 * 24 * 60 * 60 * 1000);
     await ctx.adapter.update({
       model: 'session',
@@ -184,9 +184,10 @@ describe('session renewal on an authenticated API call', () => {
 
     const renewed = renewedCookie(due, cookieName);
     expect(renewed).toBeTruthy();
-    // A fresh 30 days is the point of the exercise: a cookie renewed without
-    // one would leave the browser dropping the session on the old schedule.
-    expect(renewed).toMatch(/Max-Age=2592000/i);
+    // A fresh full lifetime is the point of the exercise: a cookie renewed
+    // without one would leave the browser dropping the session on the old
+    // schedule.
+    expect(renewed).toMatch(/Max-Age=7776000/i);
 
     // And the row moved with it. Both halves of the session now slide together,
     // which is the invariant this whole change exists to restore.
@@ -201,7 +202,7 @@ describe('session renewal on an authenticated API call', () => {
     // Deliberate, and worth a test because the opposite was true for a long
     // time in the config and never once in practice: a create hook gave admins
     // eight hours and the first refresh -- about five minutes later -- handed
-    // the full thirty days back. Enforcing that cap for real would have been a
+    // the full lifetime back. Enforcing that cap for real would have been a
     // change to how the site had always actually behaved, so it was dropped
     // instead. This pins the decision: nothing special happens to an admin, and
     // a half-built cap that only moves one of the two horizons fails here.
@@ -212,10 +213,10 @@ describe('session renewal on an authenticated API call', () => {
       where: [{ field: 'token', value: sessionToken }],
     });
     const createdAt = new Date((before as { createdAt: Date }).createdAt).getTime();
-    const thirtyDays = createdAt + 30 * 24 * 60 * 60 * 1000;
-    expect(new Date((before as { expiresAt: Date }).expiresAt).getTime()).toBeCloseTo(thirtyDays, -4);
+    const fullLifetime = createdAt + 90 * 24 * 60 * 60 * 1000;
+    expect(new Date((before as { expiresAt: Date }).expiresAt).getTime()).toBeCloseTo(fullLifetime, -4);
 
-    // And with a full thirty days ahead of it, nothing is due: an admin's
+    // And with a full lifetime ahead of it, nothing is due: an admin's
     // requests cost no session write and carry no cookie, same as anyone's.
     const res = await request(createSessionApp()).get('/test').set('Cookie', cookie);
     expect(res.status).toBe(200);

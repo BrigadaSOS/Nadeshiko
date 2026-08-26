@@ -545,13 +545,29 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
         // from a caller.
         country: { type: 'string', fieldName: 'country', required: false, input: false },
       },
-      expiresIn: 30 * 24 * 60 * 60,
+      // NINETY DAYS, RAISED FROM THIRTY, and the thirty was never a security
+      // judgement -- it was better-auth's default, left alone.
+      //
+      // `updateAge` below refreshes a session on use, so this bounds nobody who
+      // visits within a quarter of a year. The only people it ever reached were
+      // readers already away a month, who came back to a sign-out they had not
+      // asked for -- the population a win-back email is aimed at, arriving to a
+      // login wall in the one message whose entire purpose is that they came
+      // back. Of the fifty accounts in the first dormant send, every one was
+      // signed out by construction, because the sweep selected on exactly this
+      // expiry.
+      //
+      // SAFE TO CHANGE ONLY BECAUSE DORMANCY NO LONGER READS IT. Until
+      // `DORMANT_AFTER_DAYS` existed, "dormant" meant "this value has elapsed",
+      // so raising it here would have quietly turned a thirty-day win-back into
+      // a ninety-day one. Check that constant before touching this again.
+      expiresIn: 90 * 24 * 60 * 60,
       updateAge: 7 * 24 * 60 * 60,
       // OFF DELIBERATELY, and it has to be off for the account page to work.
       //
       // better-auth's `freshSessionMiddleware` 403s (SESSION_NOT_FRESH) once a
       // session is older than `freshAge`, which defaults to 24h. Sessions here
-      // live 30 days, so with the default every reader who logged in yesterday
+      // live 90 days, so with the default every reader who logged in yesterday
       // got a 403 -- and the only endpoint we expose that uses that middleware
       // is `/list-sessions`, the one behind "active sessions" in settings. The
       // panel was therefore broken for essentially everyone except people who
