@@ -720,9 +720,6 @@
    */
   :root,
   .dark {
-    /* The modal scroll lock temporarily replaces this computed value with the
-       measured gutter, keeping fixed corner controls in place as it animates. */
-    --scrollbar-gutter: calc(100vw - 100%);
     --background: #1d1d1d;
     --surface: #252526;
     --surface-hover: #2c2c2c;
@@ -835,6 +832,7 @@
    */
   html {
     overscroll-behavior-y: none;
+    scrollbar-gutter: stable;
   }
 
   html.dark {
