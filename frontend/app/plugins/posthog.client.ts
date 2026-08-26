@@ -44,6 +44,25 @@ export default defineNuxtPlugin({
     // want -- the SDK would only fail against their CSP.
     if (!publicKey) return;
 
+    // A load the backend has already judged to be a machine rather than a reader
+    // -- see `classifyHit` in `services/email/returnLink`.
+    //
+    // WHY THE SUPPRESSION HAPPENS HERE AND NOT AT THE REDIRECT. Mail scanners
+    // fetch every link in a message, and these ones run a real Chrome: they
+    // follow the 302, execute this app, and each render arrives as a fresh
+    // browser profile with its own anonymous device id. Eighteen of them became
+    // eighteen PostHog people off a single night's send. Refusing them the
+    // redirect is not an option -- a misjudged reader would get a blank page
+    // from the one email whose whole purpose is that they came back -- so they
+    // are allowed through and simply never given an SDK to be counted by.
+    //
+    // Returning before `startPostHog` leaves `isAnalyticsEnabled()` false, which
+    // takes `page_engaged` out with it. That matters: this population dwells
+    // long enough to claim the engaged gate (2.4-5.2s observed), so leaving it
+    // armed would file a scanner as an engaged reader -- the exact reading that
+    // metric exists to prevent.
+    if (analyticsSuppressed()) return;
+
     // Installed before the import is even requested. `vue:error` is the hook the
     // module used to own, and it catches errors thrown during hydration --
     // exactly the window this plugin opens up. The capture goes through the
@@ -176,4 +195,24 @@ function installLoadWindowErrorBridge(): () => void {
     window.removeEventListener('error', onError);
     window.removeEventListener('unhandledrejection', onRejection);
   };
+}
+
+/**
+ * Whether this load was marked as machine traffic by the email redirect.
+ *
+ * Read straight off `location` rather than through the router, because this runs
+ * in plugin setup before a route is resolved -- and because the only thing that
+ * sets it is a server-issued `Location` header, which is a full navigation.
+ *
+ * The name is `ANALYTICS_SUPPRESSED_PARAM` on the other side of the wire
+ * (`backend/app/services/email/returnLink.ts`). Two packages, no shared
+ * constant: change one and this stops working silently, so change both.
+ */
+function analyticsSuppressed(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get('nb') === '1';
+  } catch {
+    // A `location` we cannot parse is not a reason to stop counting anybody.
+    return false;
+  }
 }

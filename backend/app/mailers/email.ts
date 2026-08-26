@@ -458,6 +458,8 @@ export async function sendDormant30Email(input: {
 }): Promise<void> {
   const { oneClick, page } = unsubscribeUrls(input.userId, 'checkins');
   const { subject, html } = await buildDormant30Email({
+    userId: input.userId,
+    campaign: input.campaign,
     username: input.username,
     sender: senderForUser(input.userId),
     newTitles: input.newTitles,
@@ -567,6 +569,10 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     // report and asks what was missing instead. A preview of only the first
     // hides the copy that is hardest to get right.
     ({ subject, html } = await buildDormant30Email({
+      userId: 1,
+      // A literal rather than `dormantCampaign()`: this is a preview, and
+      // importing it would point the mailer back at the worker that calls it.
+      campaign: 'dormant-30-preview',
       username,
       sender: SENDERS[0],
       newTitles: template === 'dormant-30' ? 57 : 0,
@@ -576,17 +582,17 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
               {
                 name: 'Frieren: Beyond Journey\u2019s End',
                 coverUrl: `${config.BASE_URL}/logo-38d6e06a.webp`,
-                url: `${config.BASE_URL}/media/frieren`,
+                path: '/media/frieren',
               },
               {
                 name: 'Violet Evergarden',
                 coverUrl: `${config.BASE_URL}/logo-38d6e06a.webp`,
-                url: `${config.BASE_URL}/media/violet-evergarden`,
+                path: '/media/violet-evergarden',
               },
               {
                 name: 'Kaguya-sama: Love Is War',
                 coverUrl: `${config.BASE_URL}/logo-38d6e06a.webp`,
-                url: `${config.BASE_URL}/media/kaguya-sama`,
+                path: '/media/kaguya-sama',
               },
             ]
           : [],

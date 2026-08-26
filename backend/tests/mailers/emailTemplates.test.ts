@@ -7,6 +7,7 @@ import {
   buildDormant30Email,
   titleRows,
 } from '@app/mailers/emailTemplates';
+import { EMAIL_LINK_PATH, readReturnToken } from '@app/services/email/returnLink';
 
 describe('renderTemplate', () => {
   it('replaces placeholders with values', async () => {
@@ -127,8 +128,14 @@ describe('buildDormant30Email', () => {
   const title = (name: string) => ({
     name,
     coverUrl: `https://cdn.test/${name}/cover.webp`,
-    url: `https://nadeshiko.co/media/${name}`,
+    path: `/media/${name}`,
   });
+
+  /**
+   * Every link in this message is now wrapped in a token naming the recipient,
+   * so the builder cannot be called without one -- see `services/email/returnLink`.
+   */
+  const recipient = { userId: 1, campaign: 'dormant-30-2026-08' };
 
   /**
    * The count decides the shape but never appears: ingest is bursty enough that
@@ -137,6 +144,7 @@ describe('buildDormant30Email', () => {
    */
   it('leads with what has been added since they left', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 57,
@@ -153,6 +161,7 @@ describe('buildDormant30Email', () => {
    */
   it('drops the line entirely when nothing has been added', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 0,
@@ -173,6 +182,7 @@ describe('buildDormant30Email', () => {
    */
   it('asks the reader to reply exactly once in the quiet shape', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 0,
@@ -183,8 +193,48 @@ describe('buildDormant30Email', () => {
     expect(result.html.match(/what was missing/g)).toHaveLength(1);
   });
 
+  /**
+   * THE POINT OF WRAPPING THE LINKS. A `utm_*` only attributes a visit if the
+   * browser carries it back, and the first dormant send arrived stripped from
+   * the one reader who returned and intact from eighteen mail scanners. The
+   * account now rides sealed inside the link instead, and the tags are put back
+   * on the destination by the redirect.
+   */
+  it('addresses every link to the redirect, with the recipient sealed inside', async () => {
+    const result = await buildDormant30Email({
+      ...recipient,
+      username: 'alice',
+      sender: SENDERS[0],
+      newTitles: 57,
+      titles: [title('frieren')],
+      unsubscribeUrl,
+    });
+
+    // Nothing in the message itself is tagged any more.
+    expect(result.html).not.toContain('utm_');
+
+    const links = [...result.html.matchAll(/href="([^"]+)"/g)]
+      .flatMap((match) => (match[1] ? [match[1].replace(/&amp;/g, '&')] : []))
+      .filter((href) => href.includes(EMAIL_LINK_PATH));
+    expect(links).toHaveLength(2);
+
+    for (const link of links) {
+      const token = new URL(link).searchParams.get('t');
+      expect(readReturnToken(token)).toEqual({
+        userId: recipient.userId,
+        kind: 'dormant-30',
+        campaign: recipient.campaign,
+      });
+    }
+
+    // The cover and the button are separable, which is the comparison this
+    // email exists to make: does showing what is here beat saying how much.
+    expect(links.map((link) => new URL(link).searchParams.get('c')).sort()).toEqual(['cta', 'title-1']);
+  });
+
   it('carries the unsubscribe link untagged', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 3,
@@ -193,7 +243,10 @@ describe('buildDormant30Email', () => {
     });
 
     expect(result.html).toContain(unsubscribeUrl);
-    expect(result.html).toContain('utm_campaign=dormant-30');
+    // Everything else in the message is wrapped; the opt-out stays a plain URL,
+    // because a click on it is somebody leaving rather than campaign traffic.
+    expect(result.html).toContain(`${EMAIL_LINK_PATH}?`);
+    expect(result.html).not.toContain(`${unsubscribeUrl}&`);
   });
 
   /**
@@ -219,6 +272,7 @@ describe('buildDormant30Email', () => {
   it('renders every cover it is given, up to the cap', async () => {
     const names = Array.from({ length: 8 }, (_, i) => `title-${i}`);
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 57,
@@ -236,6 +290,7 @@ describe('buildDormant30Email', () => {
    */
   it('sizes every tile from the widest row', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 7,
@@ -251,6 +306,7 @@ describe('buildDormant30Email', () => {
   /** One cover is a cover, not a poster. */
   it('never grows a tile past the cap, however few there are', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 1,
@@ -264,6 +320,7 @@ describe('buildDormant30Email', () => {
 
   it('drops the grid entirely when there are no covers', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 0,
@@ -278,10 +335,11 @@ describe('buildDormant30Email', () => {
   /** The raw path does no escaping, so the generator has to do its own. */
   it('escapes a title name rather than letting it become markup', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 1,
-      titles: [{ name: '<img src=x onerror=alert(1)>', coverUrl: 'https://cdn.test/a.webp', url: 'https://n.co/a' }],
+      titles: [{ name: '<img src=x onerror=alert(1)>', coverUrl: 'https://cdn.test/a.webp', path: '/a' }],
       unsubscribeUrl,
     });
 
@@ -298,6 +356,7 @@ describe('buildDormant30Email', () => {
    */
   it('keeps the grid and the button in the quiet shape too', async () => {
     const result = await buildDormant30Email({
+      ...recipient,
       username: 'alice',
       sender: SENDERS[0],
       newTitles: 0,
@@ -306,7 +365,7 @@ describe('buildDormant30Email', () => {
     });
 
     expect(result.html.match(/cover\.webp/g)).toHaveLength(3);
-    expect(result.html).toContain('utm_content=cta');
+    expect(result.html).toContain('c=cta');
     expect(result.html).not.toContain('{{');
   });
 });

@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '@config/config';
 import { loadCopy } from './copy';
-import { type Sender, senderForUser } from './senders';
+import type { Sender } from './senders';
 import type { CatalogueSize } from '@app/services/stats/catalogueSize';
+import { returnUrl, withCampaignTags } from '@app/services/email/returnLink';
 
 function escapeHTML(str: string): string {
   return str
@@ -237,22 +238,12 @@ function truncate(value: string, max: number): string {
 }
 
 /**
- * Every link in a lifecycle email is tagged, so a visit that started in the
- * inbox is attributable in PostHog -- which auto-captures `utm_*` on pageview,
- * so there is nothing to add on the frontend.
- *
- * NEVER APPLIED TO THE UNSUBSCRIBE LINK. That click is somebody leaving; filing
- * it as campaign traffic would count an opt-out as engagement and flatter
- * exactly the send that earned it.
+ * Re-exported rather than defined here, because the tags are now applied at the
+ * REDIRECT (`services/email/returnLink`) to the destination it hands back. The
+ * address that goes in a dormant message is `EMAIL_LINK_PATH`; messages that
+ * still link straight to the site keep tagging their own links with this.
  */
-export function withCampaignTags(path: string, campaign: string, content: string): string {
-  const url = new URL(path, config.BASE_URL);
-  url.searchParams.set('utm_source', 'nadeshiko');
-  url.searchParams.set('utm_medium', 'email');
-  url.searchParams.set('utm_campaign', campaign);
-  url.searchParams.set('utm_content', content);
-  return url.toString();
-}
+export { withCampaignTags };
 
 /**
  * The day-7 ask, in the only two shapes a week-old account comes in.
@@ -341,6 +332,21 @@ export async function buildFeedbackAskEmail(input: {
 export interface DormantTitle {
   name: string;
   coverUrl: string;
+  /**
+   * Where the cover goes, as a SITE PATH rather than a finished URL.
+   *
+   * The link a recipient actually gets is `EMAIL_LINK_PATH` carrying a token
+   * that names them, and only `buildDormant30Email` knows who they are -- so the
+   * sweep that finds these titles can no longer finish the address. It hands
+   * over the destination and this file turns it into a link.
+   */
+  path: string;
+}
+
+/** A `DormantTitle` once it has a recipient, and therefore a real link. */
+interface LinkedTitle {
+  name: string;
+  coverUrl: string;
   url: string;
 }
 
@@ -386,7 +392,7 @@ export function titleRows<T>(titles: readonly T[]): T[][] {
  * Escapes its own inputs. It is returned through the raw `{{{ }}}` path, which
  * does no escaping of its own -- see `renderTemplate`.
  */
-export function renderTitleGrid(titles: readonly DormantTitle[]): string {
+export function renderTitleGrid(titles: readonly LinkedTitle[]): string {
   const rows = titleRows(titles.slice(0, DORMANT_TITLE_SLOTS));
   if (rows.length === 0) return '';
 
@@ -418,6 +424,15 @@ export function renderTitleGrid(titles: readonly DormantTitle[]): string {
 }
 
 export async function buildDormant30Email(input: {
+  /**
+   * Who this copy is for. Every link in it is wrapped in a token naming them,
+   * so the message can no longer be built without knowing the recipient -- see
+   * `services/email/returnLink` for why the click has to be attributable to an
+   * account rather than to a `utm_*` the browser may or may not carry back.
+   */
+  userId: number;
+  /** Which run, sealed into every link so a click can be joined to the send. */
+  campaign: string;
   username: string;
   sender: Sender;
   newTitles: number;
@@ -439,6 +454,19 @@ export async function buildDormant30Email(input: {
   const hasNews = input.newTitles > 0;
   const subject = hasNews ? 'We added new titles since you were last here!' : 'Anything we could have done?';
 
+  // TAGGED BY POSITION, not just as "a cover". Untagged, a click on a title is
+  // indistinguishable from any other visit and the one thing this email is
+  // actually testing -- whether showing what is here beats saying how much was
+  // added -- cannot be read off.
+  const link = (path: string, content: string): string =>
+    returnUrl({ userId: input.userId, kind: 'dormant-30', campaign: input.campaign, path, content });
+
+  const titles: LinkedTitle[] = input.titles.map((title, index) => ({
+    name: title.name,
+    coverUrl: title.coverUrl,
+    url: link(title.path, `title-${index + 1}`),
+  }));
+
   const html = await renderTemplate('dormant-30', {
     ...(await loadCopy('dormant-30')),
     ...senderVariables(input.sender),
@@ -452,8 +480,8 @@ export async function buildDormant30Email(input: {
     // The grid is generated rather than slotted, because its shape depends on
     // how many covers there are -- see `renderTitleGrid`. Raw on purpose, and it
     // escapes its own inputs.
-    titleGrid: renderTitleGrid(input.titles),
-    ctaUrl: withCampaignTags('/', 'dormant-30', 'cta'),
+    titleGrid: renderTitleGrid(titles),
+    ctaUrl: link('/', 'cta'),
     unsubscribeUrl: input.unsubscribeUrl,
     logoUrl: getLogoUrl(),
     year: getCurrentYear(),

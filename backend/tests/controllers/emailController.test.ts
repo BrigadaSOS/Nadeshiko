@@ -8,6 +8,9 @@ const { buildApplication } = await import('@config/application');
 const { EmailRoutes } = await import('@config/routes');
 const { User } = await import('@app/models');
 const { issueUnsubscribeToken } = await import('@app/services/email/unsubscribe');
+const { EMAIL_LINK_PATH, LINK_BURST_CACHE, issueReturnToken } = await import('@app/services/email/returnLink');
+const { handleEmailLinkClick } = await import('@app/controllers/emailController');
+const { Cache } = await import('@lib/cache');
 const { encryptSecret } = await import('@lib/secretBox');
 const { config } = await import('@config/config');
 
@@ -218,5 +221,88 @@ describe('changing preferences from a token', () => {
 
   it('refuses a token it cannot read', async () => {
     await request(app).patch('/v1/email/preferences').send({ token: 'not-a-token', recap: false }).expect(400);
+  });
+});
+
+describe('GET /v1/email/link', () => {
+  const campaign = 'dormant-30-2026-08';
+
+  let linkApp: Application;
+
+  beforeAll(() => {
+    // Mounted directly rather than through `EmailRoutes`: this endpoint answers
+    // a browser with a 302 and is registered by hand in `config/routes.ts`, so
+    // there is no generated router carrying it.
+    linkApp = buildApplication({
+      rateLimit: false,
+      mountRoutes: (instance) => {
+        instance.get(EMAIL_LINK_PATH, handleEmailLinkClick);
+      },
+    });
+  });
+
+  beforeEach(() => {
+    Cache.invalidate(LINK_BURST_CACHE);
+  });
+
+  const token = () => issueReturnToken({ userId: fixtures.users.regular.id, kind: 'dormant-30', campaign });
+
+  const follow = (query: Record<string, string>, headers: Record<string, string> = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return request(linkApp).get(`${EMAIL_LINK_PATH}?${search}`).set(headers);
+  };
+
+  it('sends a reader to the destination, tagged', async () => {
+    const response = await follow({ t: token(), to: '/media/frieren', c: 'title-1' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toContain('/media/frieren');
+    expect(response.headers.location).toContain(`utm_campaign=${campaign}`);
+    expect(response.headers.location).toContain('utm_content=title-1');
+    expect(response.headers.location).not.toContain('nb=1');
+  });
+
+  /**
+   * A token we cannot read still has a person behind it. The home page is a
+   * better answer for somebody who just clicked a link we mailed them than a
+   * 400 about a token they never saw.
+   */
+  it('still lands somebody whose token is unreadable', async () => {
+    const response = await follow({ t: 'rubbish', to: '/media/frieren', c: 'cta' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe(config.BASE_URL);
+  });
+
+  /** Never a redirect off-site, whatever is in the query string. */
+  it('refuses to forward to another host', async () => {
+    const response = await follow({ t: token(), to: 'https://evil.example/x', c: 'cta' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location.startsWith(config.BASE_URL)).toBe(true);
+    expect(response.headers.location).not.toContain('evil.example');
+  });
+
+  it('marks a declared prefetch so the destination does not count it', async () => {
+    const response = await follow({ t: token(), to: '/media/frieren', c: 'cta' }, { 'sec-purpose': 'prefetch' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toContain('nb=1');
+  });
+
+  /**
+   * The shape that actually reached us: one message, every link fetched inside a
+   * few seconds. The reader still arrives -- they just arrive without an SDK to
+   * be counted by, so eighteen scanner renders stop becoming eighteen people.
+   */
+  it('marks a message whose links are being walked', async () => {
+    const t = token();
+    await follow({ t, to: '/media/a', c: 'title-1' });
+    await follow({ t, to: '/media/b', c: 'title-2' });
+    const response = await follow({ t, to: '/media/c', c: 'title-3' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toContain('nb=1');
+    expect(response.headers.location).toContain('/media/c');
   });
 });

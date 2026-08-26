@@ -7,6 +7,7 @@ import { invalidateUserCache, invalidateApiKeyCacheForUser } from '@app/middlewa
 import { auth } from '@config/auth';
 import { buildApplication } from '@config/application';
 import { router } from '@config/routes';
+import { EMAIL_LINK_PATH, issueReturnToken } from '@app/services/email/returnLink';
 
 let mockGetSession: Mock<any>;
 let mockVerifyApiKey: Mock<any>;
@@ -247,6 +248,26 @@ describe('route auth wiring', () => {
     const expectedTotal = SESSION_ONLY_ROUTES.length + ADMIN_SESSION_ROUTES.length + API_KEY_OR_SESSION_ROUTES.length;
 
     expect(expectedTotal).toBe(54);
+  });
+});
+
+describe('GET /v1/email/link', () => {
+  /**
+   * Registered by hand rather than generated, so nothing else asserts it
+   * resolves. It carries no security requirement and must not pick one up: the
+   * reader clicking it is by definition somebody we have not seen in a month,
+   * and quite possibly signed out.
+   */
+  it('answers a browser without a session, and is never cached', async () => {
+    const token = issueReturnToken({ userId: 1, kind: 'dormant-30', campaign: 'dormant-30-2026-08' });
+    const res = await request(createRouterTestApp()).get(
+      `${EMAIL_LINK_PATH}?t=${encodeURIComponent(token)}&to=%2Fmedia%2Ffrieren&c=cta`,
+    );
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('/media/frieren');
+    // A cached redirect would hand one recipient's destination to another.
+    expect(res.headers['cache-control']).toBe('no-store');
   });
 });
 

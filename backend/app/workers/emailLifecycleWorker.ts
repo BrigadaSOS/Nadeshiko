@@ -2,7 +2,7 @@ import { PgBoss, Job } from 'pg-boss';
 import { MoreThan, QueryFailedError } from 'typeorm';
 import { EmailLifecycleSend, Media, User } from '@app/models';
 import { getMediaCoverUrl } from '@lib/utils/storage';
-import { DORMANT_TITLE_SLOTS, type DormantTitle, withCampaignTags } from '@app/mailers/emailTemplates';
+import { DORMANT_TITLE_SLOTS, type DormantTitle } from '@app/mailers/emailTemplates';
 import type { LifecycleKind } from '@app/models';
 import { UserActivity } from '@app/models/UserActivity';
 import { logger } from '@config/log';
@@ -264,18 +264,17 @@ async function titlesAddedSinceLastVisit(userId: number): Promise<{ count: numbe
 
   return {
     count,
-    samples: media.map((title, index) => ({
+    samples: media.map((title) => ({
       // English first because the mail is English. Falling through the other two
       // matters more than it looks: a title with no English name would otherwise
       // render as an empty caption under a cover, which reads as a broken email
       // rather than as a missing translation.
       name: title.nameEn || title.nameRomaji || title.nameJa,
       coverUrl: getMediaCoverUrl(title),
-      // TAGGED BY POSITION, not just as "a cover". Untagged, a click on a title
-      // is indistinguishable from any other visit and the one thing this email
-      // is actually testing -- whether showing what is here beats saying how
-      // much was added -- cannot be read off.
-      url: withCampaignTags(`/media/${title.slug}`, 'dormant-30', `title-${index + 1}`),
+      // A PATH RATHER THAN A LINK. Every address in a dormant message now
+      // carries a token naming the recipient, and this function does not know
+      // who that is -- `buildDormant30Email` does, and finishes the job.
+      path: `/media/${title.slug}`,
     })),
   };
 }
