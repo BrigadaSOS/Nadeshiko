@@ -61,19 +61,23 @@ async function userAgedDays(days: number, overrides: DeepPartial<User> = {}): Pr
 /**
  * A better-auth session row, which is where dormancy is read from.
  *
- * `expires_at` is the field the sweeps ask about: better-auth gives a session 30
- * days and pushes the expiry out on use, so a lapsed newest session means
- * nobody has signed in for a month. Written by hand here because signing in for
- * real is a whole auth stack away from a worker test.
+ * `updated_at` IS THE FIELD THAT MATTERS, and it did not used to be. better-auth
+ * refreshes a session on use, at most weekly, so it is the closest thing to a
+ * last-seen timestamp the schema has -- and since `DORMANT_AFTER_DAYS` the sweep
+ * asks it directly. `expires_at` now says only whether somebody could still be
+ * signed in, which with a 90-day session is a different question entirely.
+ *
+ * Written by hand because signing in for real is a whole auth stack away from a
+ * worker test. Defaults describe a reader who was here yesterday on a live
+ * session, so a test that says nothing about either is not dormant.
  */
-async function session(user: User, opts: { lapsedHoursAgo?: number; lastSeenDaysAgo?: number } = {}): Promise<void> {
+async function session(user: User, opts: { lastSeenDaysAgo?: number; expiresInDays?: number } = {}): Promise<void> {
   seq += 1;
-  const lapsed = opts.lapsedHoursAgo;
 
   await User.query(
     `INSERT INTO "session" (token, user_id, expires_at, created_at, updated_at)
-     VALUES ($1, $2, now() - make_interval(hours => $3), now(), now() - make_interval(days => $4))`,
-    [`token-${seq}`, user.id, lapsed ?? -24 * 15, opts.lastSeenDaysAgo ?? 30],
+     VALUES ($1, $2, now() + make_interval(days => $3), now(), now() - make_interval(days => $4))`,
+    [`token-${seq}`, user.id, opts.expiresInDays ?? 15, opts.lastSeenDaysAgo ?? 1],
   );
 }
 
@@ -189,7 +193,7 @@ describe('the day-7 sweep', () => {
 /**
  * ONE EMAIL, TWO OPENINGS, and this is the seam. Which question a reader can
  * answer depends on whether they have used the site -- and that cannot be read
- * from sessions here, because a session lasts 30 days and so is uniformly live
+ * from sessions here, because a session lasts 90 days and so is uniformly live
  * at day 7.
  */
 describe('which question the day-7 ask leads with', () => {
@@ -282,9 +286,9 @@ describe('the day-7 ask itself', () => {
 describe('the dormant win-back note', () => {
   const campaignOf = (kind: string) => enqueued.find((job) => job.kind === kind)?.campaign;
 
-  it('mails a reader whose session lapsed last night', async () => {
+  it('mails a reader nobody has seen for a month', async () => {
     const user = await userAgedDays(90);
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lastSeenDaysAgo: 31 });
 
     await runLifecycleSweep();
 
@@ -298,9 +302,9 @@ describe('the dormant win-back note', () => {
    * -- half the account base when this shipped -- purely because their lapse
    * date fell before the feature existed.
    */
-  it.each([48, 24 * 30, 24 * 365])('still reaches an account that lapsed %i hours ago', async (hours) => {
+  it.each([31, 60, 400])('still reaches an account last seen %i days ago', async (days) => {
     const user = await userAgedDays(400);
-    await session(user, { lapsedHoursAgo: hours });
+    await session(user, { lastSeenDaysAgo: days });
 
     await runLifecycleSweep();
 
@@ -315,7 +319,7 @@ describe('the dormant win-back note', () => {
   it('sends no more than the nightly cap, however big the backlog', async () => {
     for (let i = 0; i < DORMANT_NIGHTLY_CAP + 6; i++) {
       const user = await userAgedDays(400);
-      await session(user, { lapsedHoursAgo: 24 * (i + 2) });
+      await session(user, { lastSeenDaysAgo: 31 + i });
     }
 
     await runLifecycleSweep();
@@ -323,13 +327,13 @@ describe('the dormant win-back note', () => {
     expect(kindsSent().filter((kind) => kind === 'dormant-30')).toHaveLength(DORMANT_NIGHTLY_CAP);
   });
 
-  /** Warmest first: last week's leaver is likelier to come back than last year's. */
-  it('takes the most recently lapsed first', async () => {
+  /** Warmest first: last month's leaver is likelier to come back than last year's. */
+  it('takes the most recently seen first', async () => {
     const recent = await userAgedDays(400);
-    await session(recent, { lapsedHoursAgo: 24 });
+    await session(recent, { lastSeenDaysAgo: 31 });
     for (let i = 0; i < DORMANT_NIGHTLY_CAP; i++) {
       const older = await userAgedDays(400);
-      await session(older, { lapsedHoursAgo: 24 * (i + 30) });
+      await session(older, { lastSeenDaysAgo: 60 + i });
     }
 
     await runLifecycleSweep();
@@ -337,13 +341,29 @@ describe('the dormant win-back note', () => {
     expect(enqueued.map((job) => job.to)).toContain(recent.email);
   });
 
-  it('leaves a reader who is still signed in alone', async () => {
+  it('leaves a reader who was here last week alone', async () => {
     const user = await userAgedDays(90);
-    await session(user, { lapsedHoursAgo: -24 * 10 });
+    await session(user, { lastSeenDaysAgo: 7 });
 
     await runLifecycleSweep();
 
     expect(kindsSent()).not.toContain('dormant-30');
+  });
+
+  /**
+   * THE POINT OF `DORMANT_AFTER_DAYS`. Dormancy used to mean "the session has
+   * expired", so it moved whenever `expiresIn` did -- raising sessions to ninety
+   * days would silently have turned this into a ninety-day win-back. Being away
+   * a month is now the question, and still being signed in is not an answer to
+   * it.
+   */
+  it('mails a reader who has been away a month but is still signed in', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lastSeenDaysAgo: 31, expiresInDays: 59 });
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toContain('dormant-30');
   });
 
   it('leaves an account with no session history alone', async () => {
@@ -356,7 +376,7 @@ describe('the dormant win-back note', () => {
 
   it('sends once even when the sweep runs twice the same night', async () => {
     const user = await userAgedDays(90);
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lastSeenDaysAgo: 31 });
 
     await runLifecycleSweep();
     await runLifecycleSweep();
@@ -371,7 +391,7 @@ describe('the dormant win-back note', () => {
    */
   it('names the month it noticed, so a later dormancy is a different send', async () => {
     const user = await userAgedDays(90);
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lastSeenDaysAgo: 31 });
 
     await runLifecycleSweep();
 
@@ -386,7 +406,7 @@ describe('the dormant win-back note', () => {
    */
   it('never writes twice to a reader who has not been back since', async () => {
     const user = await userAgedDays(400);
-    await session(user, { lapsedHoursAgo: 24 * 200, lastSeenDaysAgo: 230 });
+    await session(user, { lastSeenDaysAgo: 230 });
     await EmailLifecycleSend.save(
       EmailLifecycleSend.create({
         userId: user.id,
@@ -404,7 +424,7 @@ describe('the dormant win-back note', () => {
 
   it('holds off when one went out inside the repeat floor', async () => {
     const user = await userAgedDays(400);
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lastSeenDaysAgo: 31 });
     await EmailLifecycleSend.save(
       EmailLifecycleSend.create({
         userId: user.id,
@@ -422,7 +442,7 @@ describe('the dormant win-back note', () => {
   /** They came back after the last note and drifted away again: a real second dormancy. */
   it('writes again once they have been back and lapsed a second time', async () => {
     const user = await userAgedDays(400);
-    await session(user, { lapsedHoursAgo: 12, lastSeenDaysAgo: 31 });
+    await session(user, { lastSeenDaysAgo: 31 });
     await EmailLifecycleSend.save(
       EmailLifecycleSend.create({
         userId: user.id,
@@ -439,7 +459,7 @@ describe('the dormant win-back note', () => {
 
   it('respects an opt-out', async () => {
     const user = await userAgedDays(90, { preferences: { productEmails: { enabled: false } } });
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lastSeenDaysAgo: 31 });
 
     await runLifecycleSweep();
 
@@ -448,7 +468,7 @@ describe('the dormant win-back note', () => {
 
   it('does not burn a send on a suppressed address', async () => {
     const user = await userAgedDays(90);
-    await session(user, { lapsedHoursAgo: 12 });
+    await session(user, { lastSeenDaysAgo: 31 });
     await EmailSuppression.save(
       EmailSuppression.create({ address: user.email.toLowerCase(), cause: 'hard_bounce', suppressedAt: new Date() }),
     );
