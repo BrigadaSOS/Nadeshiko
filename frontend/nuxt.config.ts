@@ -555,6 +555,47 @@ export default defineNuxtConfig({
             disallow: ['/'],
             _skipI18n: true,
           },
+          // AI TRAINING CRAWLERS, turned away by name -- and NOT the AI crawlers
+          // that answer questions and send readers, which is the whole point of
+          // the split.
+          //
+          // THE POLICY THIS RESTATES lives in brigadasos-infra
+          // (`cloudflare-security.tf`, `cloudflare_bot_management.nadeshiko`) and
+          // was set on 2026-08-26: `ai_bots_protection = "disabled"` so ChatGPT,
+          // Claude and Perplexity can fetch and cite pages, plus `ai_training =
+          // "block"` so bulk training crawls cannot. Being citable sends readers;
+          // being training data returns nothing, and rule 3 of that file
+          // documents what walking this corpus looks like.
+          //
+          // WHY IT IS RESTATED HERE AT ALL, given Cloudflare already enforces it.
+          // Two reasons, and the second is the one that cannot be fixed anywhere
+          // else:
+          //
+          //   1. Cloudflare's categories apply to VERIFIED crawlers -- matched on
+          //      IP and signature, not on the User-Agent string. robots.txt is
+          //      what a compliant crawler reads before it ever gets scored, so
+          //      the two instruments cover different failure modes.
+          //   2. GOOGLE-EXTENDED HAS NO CRAWLER TO VERIFY. It is not a bot that
+          //      fetches anything; it is a robots.txt token Google honours to
+          //      decide whether already-crawled pages may train Gemini. Cloudflare
+          //      cannot block it, because there is nothing to block. This line is
+          //      the only way to say no, and it is deliberately separate from
+          //      `Googlebot` -- disallowing Googlebot would cost the site its
+          //      search ranking, which is the mistake this token exists to avoid.
+          //
+          // THE HONEST LIMIT: robots.txt is a request. A training crawler that
+          // ignores it is caught by `ai_training` at the edge if it is verified,
+          // and by nothing at all if it impersonates a browser -- which is what
+          // the crawler documented in `cloudflare-security.tf` actually did. This
+          // costs one directive and closes the compliant case; it is not a fence.
+          //
+          // `_skipI18n` for the same reason as the group above: a bare `/` covers
+          // every locale already, and expansion would print four lines saying so.
+          {
+            userAgent: ['GPTBot', 'ClaudeBot', 'CCBot', 'Google-Extended', 'Applebot-Extended', 'meta-externalagent'],
+            disallow: ['/'],
+            _skipI18n: true,
+          },
         ],
         sitemap: `${SITE_URL}/sitemap_index.xml`,
       },
