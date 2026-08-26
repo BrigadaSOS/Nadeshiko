@@ -165,7 +165,7 @@ import { deckNotesQuery, mostCommonModel } from '~/utils/ankiMining';
 import { defineStore } from 'pinia';
 import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
 import { userStore } from '@/stores/auth';
-import { handleApiError } from '~/utils/apiError';
+import { apiErrorStatus, handleApiError } from '~/utils/apiError';
 import { reportError, reportEvent } from '~/utils/reportError';
 import { buildSentencePath } from '~/utils/routes';
 
@@ -539,6 +539,24 @@ export const ankiStore = defineStore('anki', {
 
         return created.publicId;
       } catch (error) {
+        // A 401 here is not a failure to report, it is the session having ended
+        // under a client that still believes it is signed in. `isLoggedIn` is
+        // persisted, and only `getBasicInfo` ever reconciles it against the
+        // server -- so between two of those, every export the reader makes calls
+        // this, gets told the token is missing, and files it. One reader
+        // produced 49 reports in a single sitting that way on 2026-08-26, one
+        // per search they exported, while their Anki cards silently stopped
+        // being recorded in the collection.
+        //
+        // Same rule as `getBasicInfo`'s own catch, and for the same reason
+        // stated there: ONLY a 401 means the session is really gone. A 5xx, a
+        // network blip or a rate limit must not log anybody out.
+        const status = apiErrorStatus(error);
+        if (status === 401) {
+          userStore().resetAuthState();
+          return null;
+        }
+
         // Best-effort bookkeeping alongside the export the user actually asked for.
         // The caller aborts the sync quietly; the Anki card itself still lands.
         handleApiError('anki:exports-collection-resolve-failed', error, { toastKey: false });
