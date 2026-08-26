@@ -162,3 +162,55 @@ describe('withRetry', () => {
     });
   });
 });
+
+describe('a Request body survives a retry', () => {
+  /**
+   * Nadeshiko: ~70 reports from 16 readers in the week to 2026-08-26, filed as
+   * three separate error-tracking issues because Chrome and Firefox word it
+   * differently ("Cannot construct a Request with a Request object that has
+   * already been used" / "Body has already been consumed"). One bug: the retry
+   * handed the same consumed `Request` to the second attempt.
+   *
+   * These use a real `fetch`-like boundary that READS the body, because that is
+   * what consumes the stream -- a `vi.fn()` that ignores its argument cannot
+   * fail the way production did.
+   */
+  test('a retried POST sends its body again, instead of throwing', async () => {
+    const seen: string[] = [];
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      seen.push(await (input as Request).text());
+      return makeResponse(seen.length < 3 ? 503 : 200);
+    });
+
+    const request = new Request('https://example.com', { method: 'POST', body: '{"q":"ねこ"}' });
+    const result = await withRetry(fetch, { initialDelayMs: 0 })(request);
+
+    expect(result.status).toBe(200);
+    expect(seen).toEqual(['{"q":"ねこ"}', '{"q":"ねこ"}', '{"q":"ねこ"}']);
+  });
+
+  test("leaves the caller's own Request unread, so they can still use it", async () => {
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      await (input as Request).text();
+      return makeResponse(200);
+    });
+
+    const request = new Request('https://example.com', { method: 'POST', body: 'payload' });
+    await withRetry(fetch, { initialDelayMs: 0 })(request);
+
+    expect(request.bodyUsed).toBe(false);
+    await expect(request.text()).resolves.toBe('payload');
+  });
+
+  test('passes a plain URL through untouched', async () => {
+    let seen: RequestInfo | URL | undefined;
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      seen = input;
+      return makeResponse(200);
+    });
+
+    await withRetry(fetch, { initialDelayMs: 0 })('https://example.com/v1/search');
+
+    expect(seen).toBe('https://example.com/v1/search');
+  });
+});

@@ -51,6 +51,37 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * The input to hand a single attempt.
+ *
+ * A `Request` carries its body as a stream, and `fetch` consumes that stream.
+ * Handing the SAME `Request` to a second attempt therefore cannot work: the
+ * body is already gone, and the engine says so rather than sending an empty
+ * one --
+ *
+ *     Chrome:  Failed to execute 'fetch' on 'Window': Cannot construct a
+ *              Request with a Request object that has already been used.
+ *     Firefox: Window.fetch: Body has already been consumed.
+ *
+ * Those two strings are one bug wearing two coats, and both reached readers:
+ * ~70 reports from 16 people in the week to 2026-08-26, filed under three
+ * separate fingerprints because error tracking groups on the message. They
+ * cluster wherever the backend was returning a retryable status, which is
+ * exactly when this path runs.
+ *
+ * So every attempt gets its own clone and the caller's `Request` is never the
+ * one that goes on the wire -- cloning a stream you have not read is always
+ * allowed, cloning one you have is not, so the original must stay untouched.
+ * A URL or string input has no body to lose and is passed straight through.
+ *
+ * `Request` is absent in some runtimes this SDK is imported into, hence the
+ * `typeof` guard rather than a bare `instanceof`.
+ */
+function attemptInput(input: RequestInfo | URL): RequestInfo | URL {
+  if (typeof Request !== 'undefined' && input instanceof Request) return input.clone();
+  return input;
+}
+
 export function withRetry(
   fetchImpl: FetchLike = globalThis.fetch,
   options: RetryOptions = {},
@@ -79,7 +110,7 @@ export function withRetry(
 
       let response: Response;
       try {
-        response = await fetchImpl(input, fetchInit);
+        response = await fetchImpl(attemptInput(input), fetchInit);
       } catch (networkError) {
         if (timeoutId !== undefined) clearTimeout(timeoutId);
         if (attempt >= maxRetries) throw networkError;
