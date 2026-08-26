@@ -32,10 +32,8 @@ const isPlayerBarVisible = computed(() => showPlayer.value && !!currentResult.va
 </script>
 
 <template>
-  <!-- The gutter keeps the column still while a modal's scroll lock removes the
-       scrollbar underneath it. -->
   <div
-    class="fixed end-[calc(1.5rem+var(--scrollbar-gutter))] z-50 flex flex-col items-center gap-3 transition-[bottom] duration-300 ease-in-out"
+    class="fixed end-6 z-50 flex flex-col items-center gap-3 transition-[bottom] duration-300 ease-in-out"
     :class="isPlayerBarVisible ? 'bottom-40 md:bottom-24' : 'bottom-6'"
   >
     <!-- `contents` so an empty dock costs no height and no gap: a plain empty
