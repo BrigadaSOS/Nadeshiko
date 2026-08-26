@@ -25,10 +25,26 @@ const GENERATED_DIR = join(ROOT_DIR, 'generated', 'internal');
 const ROOT_PACKAGE_JSON = JSON.parse(readFileSync(join(ROOT_DIR, 'package.json'), 'utf-8'));
 const SDK_VERSION = process.env.SDK_VERSION?.trim() || ROOT_PACKAGE_JSON.version || '0.0.0';
 
-// Defaults to the backend's bundled spec in this monorepo, so codegen needs no
+// Defaults to the backend's SDK bundle in this monorepo, so codegen needs no
 // configuration. Override to generate against a published or remote spec.
+//
+// `openapi-sdk.yaml`, NOT `openapi.yaml`. The two differ by the `/v1/auth/*`
+// paths, which better-auth serves rather than our Express app: `generateAuthSpec.ts`
+// keeps them out of the main bundle on purpose (they would make the Express router
+// generator emit handlers for routes better-auth already owns, and would feed
+// sign-in routes to the classifier that decides where the master API key may be
+// injected) and writes them here instead, for this generator alone.
+//
+// The default used to be the main bundle while every real caller -- `sdk:codegen`,
+// CI, `scripts/pre-push`, `npm run build` -- passed the SDK one through
+// `OPENAPI_SPEC_PATH`. So the committed output was always correct and the default
+// was always wrong, which is the worst arrangement available: running the
+// workspace script the obvious way (`npm run codegen --workspace
+// @brigadasos/nadeshiko-sdk`) silently DELETED all 19 auth methods, `getSession`,
+// `signOut` and `deleteUser` among them, plus 1806 lines of types the frontend
+// calls -- and reported "Done!". Encountered for real on 2026-08-26.
 const OPENAPI_SPEC_SOURCE =
-  process.env.OPENAPI_SPEC_PATH?.trim() || '../../backend/docs/generated/openapi.yaml';
+  process.env.OPENAPI_SPEC_PATH?.trim() || '../../backend/docs/generated/openapi-sdk.yaml';
 
 type PaginationDetection = {
   /** The response property that holds the array of items (e.g. "segments", "media") */
