@@ -75,6 +75,44 @@ test.describe('Activity', () => {
   });
 
   test('audio play action appears in activity history', async ({ authenticatedPage }) => {
+    /**
+     * The play write, recorded INSIDE THE PAGE, because it cannot be read from
+     * the outside any more.
+     *
+     * `withRetry` in the SDK hands every attempt `input.clone()`, so a retry is
+     * never fed an already-consumed body (`packages/nadeshiko-sdk/src/retry.ts`
+     * -- it fixed ~70 reports of "Request object that has already been used").
+     * A cloned `Request` carries its body as a STREAM, and Chromium does not
+     * expose a streamed body to Playwright: `request.postData()` and
+     * `postDataBuffer()` both come back null. The predicate this replaces
+     * matched on `postData().includes('SEGMENT_PLAY')`, so from that commit on
+     * it could not match any write at all and this test could not pass however
+     * well playback worked.
+     *
+     * Wrapping `fetch` reads the body at the one point it is still a string.
+     * `addInitScript` runs before the app's own scripts, and the SDK captures
+     * `globalThis.fetch` at module init, so the wrapper is what it captures.
+     * Re-run on every navigation, which also resets the list -- the click below
+     * navigates nowhere, so the only writes here are the ones it caused.
+     */
+    await authenticatedPage.addInitScript(() => {
+      const writes: string[] = [];
+      (window as unknown as { __activityWrites: string[] }).__activityWrites = writes;
+      const original = window.fetch;
+      window.fetch = async (input, init) => {
+        try {
+          const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+          if (url.includes('/v1/user/activity')) {
+            const body = init?.body ?? (input instanceof Request ? await input.clone().text() : undefined);
+            writes.push(typeof body === 'string' ? body : '');
+          }
+        } catch {
+          // Instrumentation must never break the request it is watching.
+        }
+        return original(input, init);
+      };
+    });
+
     // Navigate to search and find results
     await authenticatedPage.goto('/search');
     const searchInput = authenticatedPage.getByTestId('search-input');
@@ -87,8 +125,19 @@ test.describe('Activity', () => {
     await expect(playButton).toBeVisible({ timeout: 15_000 });
 
     /**
-     * Armed BEFORE the click, and waiting on the write rather than polling for
-     * its result.
+     * Visible is not yet clickable, and that gap was the other half of this
+     * failure. Clicking the instant the button appears lands before the result
+     * list has settled and its handler is bound, and the click then does
+     * nothing at all -- no audio element, no request, no write, and a 45s wait
+     * for something that was never going to happen. Measured against staging on
+     * 2026-08-27: clicking on `visible` started playback in 3 runs out of 5;
+     * waiting for the list to settle first started it in 5 out of 5.
+     */
+    await authenticatedPage.waitForLoadState('networkidle').catch(() => {});
+    await expect(playButton).toBeEnabled({ timeout: 10_000 });
+
+    /**
+     * Waiting on the write rather than polling for its result.
      *
      * The activity is only recorded once `audio.play()` RESOLVES -- see
      * `startAudio` in the player store -- so this waits on a real clip being
@@ -97,26 +146,20 @@ test.describe('Activity', () => {
      * list for 15s was really a 15s budget for the network, and it ran out often
      * enough to make this the flakiest test in the suite.
      *
-     * Waiting on the request the play produces removes the guess: it arrives
-     * when playback actually started, however long that took. And when playback
-     * genuinely cannot start, this fails saying the write never happened rather
-     * than that a list was empty.
+     * Matched on the BODY, not just the endpoint: the search a few lines up
+     * posts to the same route, and a SEARCH write landing late would satisfy a
+     * waiter that only checked the URL -- passing this test without any audio
+     * having played.
      */
-    const recorded = authenticatedPage.waitForResponse(
-      (response) =>
-        response.url().includes('/v1/user/activity') &&
-        response.request().method() === 'POST' &&
-        // Matched on the BODY, not just the endpoint: the search a few lines up
-        // posts to the same route, and a SEARCH write landing late would satisfy
-        // a waiter that only checked the URL -- passing this test without any
-        // audio having played.
-        (response.request().postData() ?? '').includes('SEGMENT_PLAY') &&
-        response.ok(),
+    await playButton.click();
+    await authenticatedPage.waitForFunction(
+      () =>
+        ((window as unknown as { __activityWrites?: string[] }).__activityWrites ?? []).some((body) =>
+          body.includes('SEGMENT_PLAY'),
+        ),
+      null,
       { timeout: 45_000 },
     );
-
-    await playButton.click();
-    await recorded;
 
     // Still asked for afterwards: the write returning 200 is not the same as it
     // being readable, and the history below is rendered from the read side.
