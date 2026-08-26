@@ -79,9 +79,11 @@ import {
 import { createFeedback, getFeedbackFormToken } from '@app/controllers/feedbackController';
 import {
   getEmailPreferencesByToken,
+  handleEmailLinkClick,
   unsubscribeFromEmail,
   updateEmailPreferencesByToken,
 } from '@app/controllers/emailController';
+import { EMAIL_LINK_PATH } from '@app/services/email/returnLink';
 import { getUserPreferences, updateUserPreferences } from '@app/controllers/preferencesController';
 import {
   listUserActivity,
@@ -474,6 +476,30 @@ router.use('/', EmailRoutes);
 // volume ever changes that, this route needs its own bucket: a 429 here is a
 // bounce we never learn about, because ZeptoMail's retry behaviour is
 // undocumented.
+// Where every link in a lifecycle email points.
+//
+// Registered by hand for the same reason the webhook below is: it answers a
+// browser with a 302, not a client with JSON, so it is not part of the API
+// contract the SDK publishes and there is nothing for the generator to describe.
+//
+// `noCache` is load-bearing rather than hygiene. The response is a redirect that
+// varies by token and is followed by a shared mail scanner as often as by a
+// reader, so a cache anywhere on the path could hand one recipient's destination
+// to another.
+//
+// ON THE GLOBAL PER-IP LIMITER ONLY, and deliberately not on the unsubscribe
+// one next to it. That bucket is five a minute, and the traffic this route
+// actually sees is a mail scanner opening every link in a message -- nine inside
+// twelve seconds, observed -- so the tight bucket would 429 most of a scan and,
+// worse, spend the budget for whatever real reader shares that egress address. A
+// 429 here is an error page in a win-back email, which is the one outcome the
+// handler is written to never produce.
+//
+// There is little to abuse in any case: no write, no mail, no session, and a
+// token nobody can forge, so the most a determined caller achieves is inflating
+// their own click count. 300/min per IP is the right ceiling for that.
+router.get(EMAIL_LINK_PATH, noCache, setRouteTemplate(EMAIL_LINK_PATH), handleEmailLinkClick);
+
 router.post(WEBHOOK_ZEPTOMAIL_PATH, noCache, setRouteTemplate(WEBHOOK_ZEPTOMAIL_PATH), handleZeptomailWebhook);
 
 export function mountRoutes(app: Application): Application {
