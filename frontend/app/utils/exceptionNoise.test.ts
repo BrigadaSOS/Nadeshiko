@@ -62,6 +62,30 @@ describe('isUnactionableException', () => {
     expect(isUnactionableException(event('AbortError', 'AbortError: something the app threw'))).toBe(false);
   });
 
+  it("drops an extension's calls into its own missing globals, in either engine's wording", () => {
+    // Both seen in production from the same reader, one second apart. Safari
+    // quotes the whole call back at you; V8 does not.
+    expect(
+      isUnactionableException(
+        event(
+          'TypeError',
+          "window.migakuCoreApiReceive is not a function. (In 'window.migakuCoreApiReceive('{\"id\":\"mYR0\"}')', 'window.migakuCoreApiReceive' is undefined)",
+        ),
+      ),
+    ).toBe(true);
+    expect(isUnactionableException(event('TypeError', 'window.migakuCoreApiReceive is not a function'))).toBe(true);
+  });
+
+  it('still files a deliberate report that happens to mention the extension', () => {
+    expect(
+      isUnactionableException(
+        event('TypeError', 'window.migakuCoreApiReceive is not a function', {
+          $exception_fingerprint: 'anki:export-failed',
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it('passes through events it cannot read', () => {
     expect(isUnactionableException(undefined)).toBe(false);
     expect(isUnactionableException({})).toBe(false);

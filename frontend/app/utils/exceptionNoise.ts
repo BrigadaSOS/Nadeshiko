@@ -48,6 +48,27 @@ const RESIZE_OBSERVER_NOTICES = [
 ];
 
 /**
+ * Globals that only a browser extension's injected script ever touches.
+ *
+ * When one of these is missing the extension is talking to itself and losing the
+ * argument, on a page that happens to be ours. There is nothing on our side to
+ * fix and nothing on our side that caused it -- we cannot install the extension,
+ * uninstall it, or change what it injects.
+ *
+ * Matched on the identifier rather than the message around it, because the
+ * wording is the engine's and differs between them: Safari says
+ * `window.migakuCoreApiReceive is not a function. (In '...', '...' is
+ * undefined)`, V8 says `... is not a function`. The identifier is the part
+ * neither invents.
+ *
+ * Kept to names that cannot collide with app code. `migakuCoreApiReceive` is
+ * Migaku's, and Migaku is a Japanese-study extension whose readers overlap
+ * almost exactly with ours -- 36 of the 108 exceptions in the first 10 hours
+ * after 2.4.10 shipped were one reader with it installed.
+ */
+const EXTENSION_GLOBALS = ['migakuCoreApiReceive'];
+
+/**
  * Whether this `$exception` should be dropped instead of sent.
  *
  * Deliberate reports are never dropped, whatever they say. `reportError` sets
@@ -69,6 +90,8 @@ export function isUnactionableException(properties: Record<string, unknown> | un
   const value = typeof first?.value === 'string' ? first.value : '';
 
   if (RESIZE_OBSERVER_NOTICES.some((notice) => value.includes(notice))) return true;
+
+  if (EXTENSION_GLOBALS.some((name) => value.includes(name))) return true;
 
   // posthog-js serialises a DOMException with the class as `type` and
   // `${name}: ${message}` as `value`, so the name is a prefix of the value and
