@@ -147,6 +147,50 @@ export function captureEmailSent(input: EmailSentInput): void {
   }
 }
 
+export interface EmailLinkClickedInput {
+  userId: number | string;
+  /** The `EmailKind` the link was in, matching the `email_sent` it answers. */
+  kind: EmailKind;
+  /** Which run of it, matching the `email_sent` it answers. */
+  campaign: string;
+  /** Which link in the message -- `cta`, `title-3`. The old `utm_content`. */
+  content: string;
+}
+
+/**
+ * Records that somebody opened a link we mailed them.
+ *
+ * THE NUMERATOR `captureEmailSent` HAS BEEN MISSING, and the reason it is
+ * recorded here rather than read off `utm_*` is in `services/email/returnLink`:
+ * the tags are a claim the browser has to carry back, and the first dormant send
+ * proved they arrive stripped from readers and intact from mail scanners --
+ * exactly the wrong way round. Keying on the account id instead puts the click
+ * on the same PostHog person as the send, with nothing in between able to lose
+ * it.
+ *
+ * ONLY EVER CALLED FOR A HIT WE BELIEVE A PERSON MADE. `classifyHit` has already
+ * dropped prefetches, repeats and scanner fan-out by the time this is reached,
+ * so this event means a click rather than a fetch. That is what makes it
+ * countable without a second filter at query time.
+ *
+ * Never throws and never awaits: a reader is waiting on the redirect this sits
+ * in front of.
+ */
+export function captureEmailLinkClicked(input: EmailLinkClickedInput): void {
+  const posthog = analyticsClient();
+  if (!posthog) return;
+
+  try {
+    posthog.capture({
+      distinctId: String(input.userId),
+      event: 'email_link_clicked',
+      properties: { kind: input.kind, campaign: input.campaign, content: input.content },
+    });
+  } catch (error) {
+    logger.error({ err: error, kind: input.kind }, 'Failed to enqueue email_link_clicked analytics event');
+  }
+}
+
 export interface ApiKeyCreatedInput {
   userId: number | string;
   /** The scopes actually granted, after the role ceiling has been applied. */
