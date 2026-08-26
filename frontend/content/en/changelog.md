@@ -9,6 +9,71 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
+## 2.4.11 (2026-08-26)
+
+### Fixes
+
+- **Anything the site had to ask for twice**: when the server hiccups we quietly try the request again, but any request that carries data — saving to a collection, exporting to Anki, running a search — failed outright on that second try instead of going through. It affected around sixteen readers a week and was worst exactly when the site was already having a bad minute.
+- **Anki**: if your session had ended without the page noticing, exports stopped being added to your Anki Exports collection while still looking like they worked. The card still reached Anki, but nothing was recorded here. You are now signed out properly, so you can sign back in and have it stick.
+
+## 2.4.10 (2026-08-25)
+
+### Highlights
+
+- **Email**: Nadeshiko can now write to you — a note a week after you sign up, and one if you have been away a while. Every category is yours to turn off in your account settings, and every message carries an unsubscribe link that works without signing in. Nothing is sent to anyone who has not made an account.
+- **Titles**: the description card on a title page opens and closes, so the sentences start higher up the page. Which way it opens by default is a setting.
+- **YouTube**: sentences from titles we link to on YouTube play in place, including several in a row, instead of sending you off to the video.
+
+### Fixes
+
+- **Spanish**: the offer to switch to Spanish never appeared for Spanish speakers reading the English site — the offer itself was broken, not the detection behind it.
+- **Search**: a very long title in the filter sidebar no longer stretches the sidebar out of shape.
+- **Signing up**: the prompt to make an account now backs off. It asked again on a fixed schedule however many times you had already declined; it now waits longer after each refusal and keeps quiet for a stretch afterwards.
+- **Your account**: we record where and when it was last used, so the sessions list in your settings is worth reading.
+- **Search and language**: `/ja` and the addresses without a language prefix are no longer offered to search engines as separate pages, which was splitting the same page across several results.
+
+## 2.4.9 (2026-08-23)
+
+### Highlights
+
+- **Titles**: the catalogue links past its first page. Twenty-eight titles were reachable by link and the rest only by scrolling, which also meant search engines never found them.
+- **Stats**: the level chips are links again, so there is a way back into the word pages from the stats page.
+
+### Fixes
+
+- **Speed**: pages carry a good deal less. Your language is downloaded on its own rather than all three at once, a survey tool that was shipped to every reader is gone, and analytics no longer hold up the first paint.
+- **Prose pages**: About, Privacy, Terms, DMCA, the changelog and blog posts go back to the full page width after being squeezed into a narrow column.
+- **Your settings**: hidden and favourite titles are stored as references rather than as a copy of each title, so a title that gets renamed or re-covered stays correct in your lists instead of freezing as it was on the day you added it.
+- **Search**: the word panel no longer shows an episode breakdown for hundreds of titles the search was not about.
+- **Search**: the strip of related words below the box is gone. It was guesswork often enough to be misleading.
+- **Reduced motion**: the setting survives properly instead of occasionally being served someone else's answer from a shared cache.
+- **Signing in**: your preferences travel with your session again, rather than being re-fetched and sometimes arriving late or not at all.
+
+## 2.4.8 (2026-08-23)
+
+Nothing you can see. This release replaced how the site reports its own health to us, so we find out about a fault before you have to tell us.
+
+## 2.4.7 (2026-08-23)
+
+### Fixes
+
+- **The site staying up**: the server ran out of memory and restarted every three hours or so for two days, and every restart took searches, audio and sign-in offline for up to a minute. The cause was a cache of search statistics that had no ceiling on it and was being filled by crawlers with queries no reader would ever repeat.
+- **Account**: deleting your account works. The request was being sent without the body the server expects, so it was rejected before it got as far as checking who you were — the button could not have worked for anybody.
+- **Search engines**: each language now describes its own translations correctly, and the sitemap reaches the sentences rather than stopping at the top-level pages.
+
+## 2.4.6 (2026-08-22)
+
+### Highlights
+
+- **Audio**: the volume and speed you choose are remembered, and the next clip in a playlist is fetched before you reach it, so it starts without a gap.
+
+### Fixes
+
+- **Editing**: editing a sentence that you had expanded edited the merged version rather than the sentence itself.
+- **Audio**: a playlist starting outside its range no longer reports that it is playing when it is not. The speed menu can be reached from the keyboard, and the volume slider now asks the device whether it is allowed to move — on iOS it is not, and it used to appear to work.
+- **Signing up**: the prompt from the Add menu is now the same ask as the one from the download button, and shares its cooldown, rather than being a second prompt with a timer of its own.
+- **Japanese and Spanish**: the volume and speed controls, and the message shown when a sign-in provider refuses, were untranslated.
+
 ## 2.4.5 (2026-08-21)
 
 ### Fixes
