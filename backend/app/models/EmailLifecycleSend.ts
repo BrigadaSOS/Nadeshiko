@@ -42,11 +42,11 @@ export class EmailLifecycleSend extends BaseEntity {
    *
    * `dormant-30` is the interesting one: going quiet is a STATE rather than an
    * event, and a reader who comes back and drifts away again has genuinely gone
-   * dormant twice. So it carries the month the session lapsed
+   * dormant twice. So it carries the month the lapse was noticed
    * (`dormant-30-2026-09`) and the unique index stops being once-ever. What
-   * stops it becoming a nag is physics -- lapsing again requires signing in
-   * again, so two sends cannot be closer than the session lifetime -- plus the
-   * floor in `sweepDormant30`.
+   * stops it becoming a nag is physics -- going quiet again requires coming back
+   * first and then being gone another `DORMANT_AFTER_DAYS` -- plus the floor in
+   * `sweepDormant30`, which is what actually binds at half a year.
    */
   @Column({ type: 'varchar', length: 64 })
   campaign!: string;

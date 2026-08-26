@@ -2,7 +2,6 @@ import { PgBoss, Job } from 'pg-boss';
 import { MoreThan, QueryFailedError } from 'typeorm';
 import { EmailLifecycleSend, Media, User } from '@app/models';
 import { getMediaCoverUrl } from '@lib/utils/storage';
-import { config } from '@config/config';
 import { DORMANT_TITLE_SLOTS, type DormantTitle, withCampaignTags } from '@app/mailers/emailTemplates';
 import type { LifecycleKind } from '@app/models';
 import { UserActivity } from '@app/models/UserActivity';
@@ -94,18 +93,54 @@ async function candidates(kind: LifecycleKind, ageDays: number, requireLiveSessi
 }
 
 /**
- * When this account's newest session runs out, which is the closest thing to a
- * last-seen timestamp the schema has.
+ * When this account's newest session runs out.
  *
- * better-auth gives a session 30 days and refreshes it on use, at most weekly
- * (`expiresIn` / `updateAge` in `config/auth.ts`). So a lapsed newest session
- * means nobody has signed in for 30 days, give or take the seven-day refresh
- * granularity, and no column had to be added to learn it.
+ * ONLY ASKS WHETHER THEY COULD STILL BE SIGNED IN, which is all `candidates`
+ * wants it for. It used to stand in for last-seen as well, and that reading is
+ * gone -- see `DORMANT_AFTER_DAYS`.
  */
 const LATEST_SESSION_EXPIRY = `(SELECT MAX(s.expires_at) FROM "session" s WHERE s.user_id = user.id)`;
 
-/** When they were last actually here, as opposed to when the lease on that runs out. */
+/**
+ * When they were last actually here, as opposed to when the lease on that runs
+ * out. The closest thing to a last-seen timestamp the schema has.
+ *
+ * Accurate to within a week rather than to the minute: better-auth refreshes a
+ * session on use at most every seven days (`updateAge` in `config/auth.ts`), so
+ * `updated_at` moves in steps. Against a thirty-day threshold that is noise, not
+ * error -- it means dormancy is noticed somewhere between day 30 and day 37.
+ *
+ * NULL for an account with no session rows at all, which every comparison below
+ * reads as "not a match". An account that has never signed in, or signed out and
+ * had its row deleted, is a question we cannot answer rather than a lapse we can
+ * point at, and it is not worth mailing on a guess.
+ *
+ * HAS A KNOWN EXPIRY DATE, and it is not this file's to schedule. Sessions are
+ * never swept, which is the only reason expired rows are still here to be
+ * counted -- the `last_seen_at` migration calls that "a de-facto access log" and
+ * says a sweep is coming. `User.last_seen_at` is the replacement and is strictly
+ * better (a plain column, and it survives an explicit sign-out), but it was
+ * added with NO BACKFILL, so it is null for exactly the population this sweep
+ * exists to reach. Move to it when `scripts/backfill-session-country.ts` has
+ * seeded the history, and before any sweep deletes the rows underneath this.
+ */
 const LATEST_SESSION_SEEN = `(SELECT MAX(s.updated_at) FROM "session" s WHERE s.user_id = user.id)`;
+
+/**
+ * How long away counts as dormant.
+ *
+ * A NUMBER RATHER THAN A SIDE EFFECT OF THE SESSION LIFETIME, which is the whole
+ * point of it existing. This used to be `MAX(expires_at) < now()`: true exactly
+ * when better-auth's thirty-day session had run out, so "dormant" was not a
+ * threshold anybody had chosen -- it was `expiresIn` read through a join, and
+ * changing one silently changed the other. Extending sessions to ninety days
+ * would have turned this email into a ninety-day win-back without a line of it
+ * changing, campaign name and copy included.
+ *
+ * Now the two are independent: sessions last as long as is comfortable, and this
+ * says how long away is long enough to be worth a note.
+ */
+export const DORMANT_AFTER_DAYS = 30;
 
 /** How long after one win-back note the next one may go out, however often they drift away. */
 export const DORMANT_REPEAT_FLOOR_DAYS = 180;
@@ -128,26 +163,32 @@ export const DORMANT_REPEAT_FLOOR_DAYS = 180;
 export const DORMANT_NIGHTLY_CAP = 25;
 
 /**
- * Accounts whose last session lapsed in the past day.
+ * Accounts nobody has been seen on for `DORMANT_AFTER_DAYS`.
  *
- * A ONE-DAY WINDOW, and here it is load-bearing rather than tidy. The other two
- * sweeps window an anniversary, where the worst case of getting it wrong is a
- * late email. Dormancy is a STATE: "has not signed in for 30 days" is true of a
- * large share of every account ever created, so the un-windowed version of this
- * query mails hundreds of people the first night it runs -- through a relay that
- * is transactional-only by its own terms and also carries every magic link.
- * Asking instead for the accounts that crossed the line LAST NIGHT turns that
- * into a handful, and gives the first run nothing to backfill.
+ * ASKS THE HONEST QUESTION AND LETS THE CAP HANDLE THE CONSEQUENCE. "Has not
+ * been here for thirty days" is true of a large share of every account ever
+ * created, so this matches hundreds on any given night -- through a relay that
+ * is transactional-only by its own terms and also carries every magic link. The
+ * alternative was to ask only for the accounts that crossed the line LAST NIGHT,
+ * which is self-limiting but abandons everybody already past it. See
+ * `DORMANT_NIGHTLY_CAP` for why draining a backlog beat never mailing it.
+ *
+ * READS LAST-SEEN, NOT SESSION EXPIRY. Those were the same question while
+ * sessions lasted exactly as long as the dormancy threshold; they are not the
+ * same question, and tying this to `expiresIn` meant the definition moved
+ * whenever the session lifetime did.
  *
  * The floor on top is for the reader who returns, drifts, returns and drifts
- * again. Lapsing twice already requires signing in twice, so the physics put at
- * least a session lifetime between two sends; the floor puts half a year there.
+ * again. Going quiet a second time is a real second dormancy and worth one more
+ * note, but not more than about twice a year.
  */
 async function dormantCandidates(): Promise<User[]> {
   return (
     User.createQueryBuilder('user')
       .where('user.is_active = true')
-      .andWhere(`${LATEST_SESSION_EXPIRY} < now()`)
+      .andWhere(`${LATEST_SESSION_SEEN} < now() - make_interval(days => :dormantAfter)`, {
+        dormantAfter: DORMANT_AFTER_DAYS,
+      })
       .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`)
       // NOT AGAIN UNLESS THEY CAME BACK, which is two conditions and both matter.
       //
@@ -171,10 +212,10 @@ async function dormantCandidates(): Promise<User[]> {
        )`,
         { floor: DORMANT_REPEAT_FLOOR_DAYS },
       )
-      // Most recently lapsed first, because they are the warmest: somebody who
-      // went quiet last week is likelier to come back than somebody who left a
+      // Most recently seen first, because they are the warmest: somebody who
+      // went quiet last month is likelier to come back than somebody who left a
       // year ago, and the long tail still drains behind them.
-      .orderBy(LATEST_SESSION_EXPIRY, 'DESC')
+      .orderBy(LATEST_SESSION_SEEN, 'DESC')
       .take(DORMANT_NIGHTLY_CAP)
       .getMany()
   );
