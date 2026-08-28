@@ -142,7 +142,7 @@ describe('buildDormant30Email', () => {
    * the honest number is often small, and a padded one is disprovable from the
    * home page. The grid does the pulling instead.
    */
-  it('leads with what has been added since they left', async () => {
+  it('leads with what has been added, claiming nothing about their last visit', async () => {
     const result = await buildDormant30Email({
       ...recipient,
       username: 'alice',
@@ -152,7 +152,12 @@ describe('buildDormant30Email', () => {
       unsubscribeUrl,
     });
 
-    expect(result.subject).toBe('We added new titles since you were last here!');
+    expect(result.subject).toBe('We have added new titles to Nadeshiko');
+    // The reader may be here right now, signed out, or may never have visited at
+    // all -- dormancy is a fact about the account, not about them. See the note
+    // on `buildDormant30Email`.
+    expect(result.subject).not.toMatch(/last here|last visit|you were/i);
+    expect(result.html).not.toMatch(/since your last visit|since you were last here/i);
   });
 
   /**
