@@ -1,6 +1,6 @@
 {
   "name": "nadeshiko-discord",
-  "version": "2.4.11",
+  "version": "2.4.12",
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/bot.ts",
