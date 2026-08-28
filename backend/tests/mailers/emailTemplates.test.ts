@@ -152,7 +152,7 @@ describe('buildDormant30Email', () => {
       unsubscribeUrl,
     });
 
-    expect(result.subject).toBe('We have added new titles to Nadeshiko');
+    expect(result.subject).toBe('We have added new titles to Nadeshiko!');
     // The reader may be here right now, signed out, or may never have visited at
     // all -- dormancy is a fact about the account, not about them. See the note
     // on `buildDormant30Email`.
