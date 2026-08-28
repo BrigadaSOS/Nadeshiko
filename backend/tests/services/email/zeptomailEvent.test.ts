@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { setupTestSuite } from '../../helpers/setup';
 import { EmailEvent, EmailSuppression } from '@app/models';
 import { recordZeptomailPayload } from '@app/services/email/zeptomailEvent';
@@ -22,7 +22,12 @@ function bouncePayload(overrides: { event?: string; address?: string; requestId?
       to: [{ email_address: { address } }],
       client_reference: 'magic-link',
       email_reference: 'ref-1',
-      processed_time: '2026-08-20T10:00:00Z',
+      // RELATIVE, NEVER A LITERAL. This becomes `EmailEvent.occurredAt`, and the
+      // soft-bounce threshold only counts bounces inside a seven-day window --
+      // so a fixed date makes the suppression tests pass until the wall clock
+      // walks past it, then fail forever with no code change. That is exactly
+      // what happened to '2026-08-20T10:00:00Z'.
+      processed_time: new Date().toISOString(),
     },
     event_data: wrap
       ? [{ details: [{ bounced_recipient: address, reason: '550', diagnostic_message: 'User unknown' }] }]
