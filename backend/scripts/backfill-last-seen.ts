@@ -35,6 +35,13 @@
  *   scripts/remote-db.sh prod backfill-last-seen --allow-prod
  */
 
+// FIRST, AND BEFORE `@config/config`. Boot loads dotenv, and `config` validates
+// the whole env schema at import time -- PORT, BASE_URL, R2_BASE_URL and the
+// rest, none of which `remote-db.sh` sets. Without this the script dies on a
+// ZodError before it opens a connection. `bin/db.ts` imports it first for the
+// same reason; the local .env fills the blanks while run_with_env overrides the
+// Postgres vars to point at the remote.
+import '@config/boot';
 import { Pool } from 'pg';
 import { config } from '@config/config';
 import { logger } from '@config/log';
