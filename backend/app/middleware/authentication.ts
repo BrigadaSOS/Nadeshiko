@@ -11,6 +11,7 @@ import { auth } from '@config/auth';
 import { logger } from '@config/log';
 import { fromNodeHeaders } from 'better-auth/node';
 import { trace } from '@opentelemetry/api';
+import { recordApiLastSeen } from '@app/services/auth/lastSeen';
 import {
   getCachedApiKey,
   getCachedUser,
@@ -305,6 +306,14 @@ async function attachAuthPayloadToRequest(
 
   const span = trace.getActiveSpan();
   if (span) span.setAttribute('enduser.id', String(userId));
+
+  // ONLY FOR KEYS. A session request has already moved `last_seen_at` through
+  // better-auth's create/refresh hooks, and doing it again here would put a
+  // write on a path that is served from cache precisely so it stays cheap.
+  // `recordApiLastSeen` throttles itself to a day per account and never throws.
+  if (authType === AuthType.API_KEY) {
+    await recordApiLastSeen(userId);
+  }
 }
 
 async function loadActiveUser(userId: number): Promise<User> {

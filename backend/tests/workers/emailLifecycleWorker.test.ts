@@ -59,13 +59,16 @@ async function userAgedDays(days: number, overrides: DeepPartial<User> = {}): Pr
 }
 
 /**
- * A better-auth session row, which is where dormancy is read from.
+ * A reader being here: the better-auth session row, and the `User.last_seen_at`
+ * the session hooks move alongside it.
  *
- * `updated_at` IS THE FIELD THAT MATTERS, and it did not used to be. better-auth
- * refreshes a session on use, at most weekly, so it is the closest thing to a
- * last-seen timestamp the schema has -- and since `DORMANT_AFTER_DAYS` the sweep
- * asks it directly. `expires_at` now says only whether somebody could still be
- * signed in, which with a 90-day session is a different question entirely.
+ * BOTH, BECAUSE PRODUCTION WRITES BOTH. Dormancy reads the column now rather
+ * than the session table, but the row still has to exist -- `expires_at` is what
+ * the day-7 sweep asks about, and a fixture that set only the column would pass
+ * for a system that never wrote it. This stands in for `recordLastSeen`.
+ *
+ * `expires_at` now says only whether somebody could still be signed in, which
+ * with a 90-day session is a different question from whether they were here.
  *
  * Written by hand because signing in for real is a whole auth stack away from a
  * worker test. Defaults describe a reader who was here yesterday on a live
@@ -79,6 +82,19 @@ async function session(user: User, opts: { lastSeenDaysAgo?: number; expiresInDa
      VALUES ($1, $2, now() + make_interval(days => $3), now(), now() - make_interval(days => $4))`,
     [`token-${seq}`, user.id, opts.expiresInDays ?? 15, opts.lastSeenDaysAgo ?? 1],
   );
+
+  await User.query(`UPDATE "User" SET last_seen_at = now() - make_interval(days => $1) WHERE id = $2`, [
+    opts.lastSeenDaysAgo ?? 1,
+    user.id,
+  ]);
+}
+
+/**
+ * Signing out, which deletes the session row and leaves `last_seen_at` standing.
+ * That gap is the whole reason dormancy stopped reading the session table.
+ */
+async function signOut(user: User): Promise<void> {
+  await User.query(`DELETE FROM "session" WHERE user_id = $1`, [user.id]);
 }
 
 const kindsSent = () => enqueued.map((job) => job.kind);
@@ -366,8 +382,39 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).toContain('dormant-30');
   });
 
-  it('leaves an account with no session history alone', async () => {
+  /**
+   * THE REGRESSION THE COLUMN EXISTS FOR. Dormancy used to read the session
+   * table, and signing out deletes the row -- so `MAX(updated_at)` went NULL,
+   * `NULL < now() - 30 days` is NULL rather than true, and every reader who had
+   * ever signed out was silently exempt from the one sweep meant to reach them.
+   * `last_seen_at` lives on `User` and survives the delete.
+   */
+  it('mails a reader who lapsed and then signed out', async () => {
+    const user = await userAgedDays(90);
+    await session(user, { lastSeenDaysAgo: 31 });
+    await signOut(user);
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toContain('dormant-30');
+  });
+
+  /**
+   * Never signed in at all. A null `last_seen_at` coalesces to `created_at`,
+   * which under a rule of "has done nothing for thirty days" is an answer rather
+   * than the question it used to be treated as.
+   */
+  it('mails an account that signed up and never came back', async () => {
     await userAgedDays(90);
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).toContain('dormant-30');
+  });
+
+  /** ...but that coalesce must not reach somebody who only just arrived. */
+  it('leaves a new account that has not signed in yet alone', async () => {
+    await userAgedDays(5);
 
     await runLifecycleSweep();
 
@@ -414,6 +461,28 @@ describe('the dormant win-back note', () => {
         campaign: 'dormant-30-2026-01',
         // Long past the floor, and still after they were last here.
         sentAt: new Date(Date.now() - (DORMANT_REPEAT_FLOOR_DAYS + 20) * 24 * 60 * 60 * 1000),
+      }),
+    );
+
+    await runLifecycleSweep();
+
+    expect(kindsSent()).not.toContain('dormant-30');
+  });
+
+  /**
+   * An account that never signed in has a `LAST_SEEN` of `created_at`, which
+   * never moves -- so `sent_at > LAST_SEEN` stays true forever and the one note
+   * they get is the only one. Worth pinning: the floor alone would let a second
+   * through after 180 days, to somebody who has still never been here.
+   */
+  it('writes once only to an account that never signed in, even past the floor', async () => {
+    const user = await userAgedDays(400);
+    await EmailLifecycleSend.save(
+      EmailLifecycleSend.create({
+        userId: user.id,
+        kind: 'dormant-30',
+        campaign: 'dormant-30-2025-01',
+        sentAt: new Date(Date.now() - (DORMANT_REPEAT_FLOOR_DAYS + 1) * 24 * 60 * 60 * 1000),
       }),
     );
 
