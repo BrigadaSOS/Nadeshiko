@@ -243,7 +243,8 @@ export function classifyHit(intent: ReturnIntent, content: string, prefetch: boo
 
   const key = `${intent.userId}:${intent.campaign}`;
   const existing = Cache.get<Burst>(LINK_BURST_CACHE, key);
-  const burst: Burst = existing && now - existing.startedAt <= BURST_WINDOW_MS ? existing : { startedAt: now, contents: [] };
+  const burst: Burst =
+    existing && now - existing.startedAt <= BURST_WINDOW_MS ? existing : { startedAt: now, contents: [] };
 
   const seen = burst.contents.includes(content);
   if (!seen) burst.contents.push(content);
