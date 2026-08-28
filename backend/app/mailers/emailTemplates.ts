@@ -306,10 +306,9 @@ export async function buildFeedbackAskEmail(input: {
 /**
  * The win-back note, sent once the reader's last session has lapsed.
  *
- * `newTitles` IS THE WHOLE MESSAGE. "We miss you" is a sentence about us; a
- * count of what has been added since they were last here is a sentence about
- * them, and it is the only honest reason to think a second visit would go
- * differently from the first. It also has to be the lead rather than a question,
+ * `newTitles` IS THE WHOLE MESSAGE. "We miss you" is a sentence about us; what
+ * has been added since is a sentence about them, and it is the only honest
+ * reason to think a second visit would go differently from the first. It also has to be the lead rather than a question,
  * because this reader has already had a question -- the day-7 ask -- and did not
  * answer it. Asking again is the same email twice.
  *
@@ -452,7 +451,15 @@ export async function buildDormant30Email(input: {
   // eight either way, so it does the pulling and the sentence stays true without
   // committing to a figure.
   const hasNews = input.newTitles > 0;
-  const subject = hasNews ? 'We added new titles since you were last here!' : 'Anything we could have done?';
+  // NO CLAIM ABOUT THEIR LAST VISIT, in the subject or the body. Dormancy is a
+  // fact about the ACCOUNT -- `last_seen_at` moves on authenticated activity
+  // only -- and three different people land here: somebody who genuinely left,
+  // somebody whose session lapsed and who has been reading signed out ever
+  // since, and somebody who signed up and never came back at all. "Since you
+  // were last here" is false for the second (they are here now) and for the
+  // third (they never were), and the one it is true for does not need it. What
+  // is new is true for all three, so that is what it says.
+  const subject = hasNews ? 'We have added new titles to Nadeshiko' : 'Anything we could have done?';
 
   // TAGGED BY POSITION, not just as "a cover". Untagged, a click on a title is
   // indistinguishable from any other visit and the one thing this email is

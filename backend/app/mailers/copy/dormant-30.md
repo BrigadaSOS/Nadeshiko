@@ -6,7 +6,7 @@ We noticed your account has been quiet for about a month.
 
 ## news
 
-We have added **new titles** since your last visit. If you left because the line you wanted was not in there, it may be now.
+There are **new titles** in here now. If you left because the line you wanted was not in there, it may be now.
 
 ## news.closing
 
