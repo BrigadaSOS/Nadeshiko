@@ -459,7 +459,7 @@ export async function buildDormant30Email(input: {
   // were last here" is false for the second (they are here now) and for the
   // third (they never were), and the one it is true for does not need it. What
   // is new is true for all three, so that is what it says.
-  const subject = hasNews ? 'We have added new titles to Nadeshiko' : 'Anything we could have done?';
+  const subject = hasNews ? 'We have added new titles to Nadeshiko!' : 'Anything we could have done?';
 
   // TAGGED BY POSITION, not just as "a cover". Untagged, a click on a title is
   // indistinguishable from any other visit and the one thing this email is

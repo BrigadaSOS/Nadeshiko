@@ -2,7 +2,7 @@
 
 # Still here, {{username}}?
 
-We noticed your account has been quiet for about a month.
+We noticed your account has been quiet for a while.
 
 ## news
 
