@@ -40,6 +40,7 @@ Examples:
   scripts/remote-db.sh prod audit-wakati
   scripts/remote-db.sh prod prepare ${PROD_FLAG}
   scripts/remote-db.sh prod backfill-session-country ${PROD_FLAG} -- --db ~/GeoLite2-Country.mmdb
+  scripts/remote-db.sh prod backfill-last-seen ${PROD_FLAG}
 EOF
 }
 
@@ -62,7 +63,7 @@ case "$ENV" in
 esac
 
 case "$CMD" in
-  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati|backfill-session-country) ;;
+  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati|backfill-session-country|backfill-last-seen) ;;
   *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media, audit-wakati or backfill-session-country (got '$CMD')" >&2; exit 1 ;;
 esac
 
@@ -177,6 +178,13 @@ case "$CMD" in
     # local GeoLite2 file -- no address is sent anywhere. Arguments after `--`
     # reach the script, which is where `--db` and `--dry-run` go.
     run_with_env node --import tsx scripts/backfill-session-country.ts "${@:4}"
+    ;;
+  backfill-last-seen)
+    # One-time: seeds `User.last_seen_at` from `MAX(session.updated_at)` for the
+    # accounts that predate the column. Must run BEFORE any session sweep -- the
+    # expired rows it reads are the only record of when those accounts were last
+    # active. Only touches rows that are still null. `--dry-run` after `--`.
+    run_with_env node --import tsx scripts/backfill-last-seen.ts "${@:4}"
     ;;
   audit-wakati)
     # Read-only: ranks every media by how morpheme-segmented its subtitles look,

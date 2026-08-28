@@ -73,3 +73,65 @@ export function resolveUserId(session: SessionLike | null | undefined): number |
 
   return Number.isInteger(id) && id > 0 ? id : null;
 }
+
+/**
+ * Remembers which UTC day each account was last seen calling the API on.
+ *
+ * Bounded by the number of accounts that actually use the API, because an
+ * account's entry is REPLACED when the day rolls over rather than added to --
+ * the same shape, and for the same reason, as `apiActiveDayByUser` in
+ * `services/analytics/posthog`.
+ */
+const apiLastSeenDayByUser = new Map<number, string>();
+
+/**
+ * The same signal as `recordLastSeen`, for a request that carried an API key
+ * instead of a session.
+ *
+ * AN API KEY NEVER TOUCHES A SESSION, so neither hook above ever fires for one.
+ * A key spending five thousand requests a month leaves `last_seen_at` exactly
+ * where its owner's last browser sign-in left it, and dormancy reads that as an
+ * account nobody has used -- so the reader who uses us hardest, through the
+ * surface that has no cookie, is the one likeliest to get a win-back email.
+ * This is the only writer that closes that gap.
+ *
+ * THROTTLED TO ONE WRITE A DAY PER ACCOUNT, and it has to be. The session hooks
+ * are cheap because better-auth only refreshes past `updateAge` -- about weekly
+ * per reader. This one sits on the authenticated request path, where the
+ * natural rate is every request, and a write to `User` per API call is the
+ * exact cost the migration weighed and rejected. A day of slack against a
+ * thirty-day threshold is not error.
+ *
+ * TWO GATES, because neither alone is enough. The map skips the round trip in
+ * the common case but is process-local, and production forks three workers, so
+ * by itself it would allow three writes a day per account plus one per deploy.
+ * The `WHERE` is what actually bounds them: Postgres evaluates it against the
+ * row rather than against any one process's memory, so a busy account costs one
+ * UPDATE that matches nothing, not one that writes.
+ *
+ * NO COUNTRY, deliberately. `last_seen_country` means "the last place we could
+ * identify", and it is written from the Cloudflare header on a session hop. An
+ * API key is as likely to be a server in a datacentre as a person, and writing
+ * that would make the column mean two different things depending on which path
+ * touched it last.
+ */
+export async function recordApiLastSeen(userId: number): Promise<void> {
+  if (!Number.isInteger(userId) || userId <= 0) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (apiLastSeenDayByUser.get(userId) === today) return;
+  apiLastSeenDayByUser.set(userId, today);
+
+  try {
+    await User.createQueryBuilder()
+      .update(User)
+      .set({ lastSeenAt: () => 'now()' })
+      .where('id = :userId', { userId })
+      .andWhere(`(last_seen_at IS NULL OR last_seen_at < now() - INTERVAL '1 day')`)
+      .execute();
+  } catch (error) {
+    // Swallowed for the same reason as `recordLastSeen`: this column is a
+    // convenience and must never be why an API request reports failure.
+    logger.warn({ err: error, userId }, 'Could not record API last seen');
+  }
+}

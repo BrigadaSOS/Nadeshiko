@@ -102,29 +102,35 @@ async function candidates(kind: LifecycleKind, ageDays: number, requireLiveSessi
 const LATEST_SESSION_EXPIRY = `(SELECT MAX(s.expires_at) FROM "session" s WHERE s.user_id = user.id)`;
 
 /**
- * When they were last actually here, as opposed to when the lease on that runs
- * out. The closest thing to a last-seen timestamp the schema has.
+ * When they were last here, by any route into the site.
  *
- * Accurate to within a week rather than to the minute: better-auth refreshes a
- * session on use at most every seven days (`updateAge` in `config/auth.ts`), so
- * `updated_at` moves in steps. Against a thirty-day threshold that is noise, not
- * error -- it means dormancy is noticed somewhere between day 30 and day 37.
+ * READS `User.last_seen_at`, WHICH IS NOT WHERE THIS STARTED. It was
+ * `MAX(session.updated_at)`, and before that `MAX(session.expires_at)` -- the
+ * session table standing in for a last-seen the schema did not have. The column
+ * is strictly better on the two counts that were costing us readers:
  *
- * NULL for an account with no session rows at all, which every comparison below
- * reads as "not a match". An account that has never signed in, or signed out and
- * had its row deleted, is a question we cannot answer rather than a lapse we can
- * point at, and it is not worth mailing on a guess.
+ *   - IT SURVIVES A SIGN-OUT. Signing out deletes the session row, so the old
+ *     expression went NULL, and `NULL < now() - 30 days` is NULL rather than
+ *     true. Everybody who ever signed out was silently exempt from this sweep --
+ *     the plainest lapse there is, and the one population we never wrote to.
+ *   - IT SEES AN API KEY. A key never touches a session, so a reader living
+ *     entirely in the API read as untouched since their last browser sign-in.
+ *     `recordApiLastSeen` is the writer that closed that.
  *
- * HAS A KNOWN EXPIRY DATE, and it is not this file's to schedule. Sessions are
- * never swept, which is the only reason expired rows are still here to be
- * counted -- the `last_seen_at` migration calls that "a de-facto access log" and
- * says a sweep is coming. `User.last_seen_at` is the replacement and is strictly
- * better (a plain column, and it survives an explicit sign-out), but it was
- * added with NO BACKFILL, so it is null for exactly the population this sweep
- * exists to reach. Move to it when `scripts/backfill-session-country.ts` has
- * seeded the history, and before any sweep deletes the rows underneath this.
+ * Accurate to within a week rather than to the minute: the session hooks only
+ * fire past better-auth's seven-day `updateAge`, and the API writer throttles
+ * itself to a day. Against a thirty-day threshold that is noise, not error --
+ * dormancy is noticed somewhere between day 30 and day 37.
+ *
+ * COALESCED TO `created_at`, so a null reads as "nothing since they signed up"
+ * rather than as "not a match". Before the backfill a null meant we had no idea;
+ * after it, it means no session has ever existed for this account, and under a
+ * rule of "has done nothing for thirty days" that is a yes rather than a
+ * question. `scripts/backfill-last-seen.ts` is what makes that reading true --
+ * run it before trusting this, and before any sweep deletes the session rows it
+ * reads from.
  */
-const LATEST_SESSION_SEEN = `(SELECT MAX(s.updated_at) FROM "session" s WHERE s.user_id = user.id)`;
+const LAST_SEEN = `COALESCE(user.last_seen_at, user.created_at)`;
 
 /**
  * How long away counts as dormant.
@@ -186,7 +192,7 @@ async function dormantCandidates(): Promise<User[]> {
   return (
     User.createQueryBuilder('user')
       .where('user.is_active = true')
-      .andWhere(`${LATEST_SESSION_SEEN} < now() - make_interval(days => :dormantAfter)`, {
+      .andWhere(`${LAST_SEEN} < now() - make_interval(days => :dormantAfter)`, {
         dormantAfter: DORMANT_AFTER_DAYS,
       })
       .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`)
@@ -208,14 +214,14 @@ async function dormantCandidates(): Promise<User[]> {
         `NOT EXISTS (
          SELECT 1 FROM "EmailLifecycleSend" s
          WHERE s.user_id = user.id AND s.kind = 'dormant-30'
-           AND (s.sent_at > ${LATEST_SESSION_SEEN} OR s.sent_at >= now() - make_interval(days => :floor))
+           AND (s.sent_at > ${LAST_SEEN} OR s.sent_at >= now() - make_interval(days => :floor))
        )`,
         { floor: DORMANT_REPEAT_FLOOR_DAYS },
       )
       // Most recently seen first, because they are the warmest: somebody who
       // went quiet last month is likelier to come back than somebody who left a
       // year ago, and the long tail still drains behind them.
-      .orderBy(LATEST_SESSION_SEEN, 'DESC')
+      .orderBy(LAST_SEEN, 'DESC')
       .take(DORMANT_NIGHTLY_CAP)
       .getMany()
   );
@@ -236,11 +242,13 @@ export function dormantCampaign(now = new Date()): string {
  * a reader who left because their show was not in here can see whether that has
  * changed without clicking anything.
  *
- * Reads `updated_at` rather than `expires_at` because it wants when they were
- * last seen, not when the lease on that runs out.
+ * Reads the same `last_seen_at` the sweep selected on, so the window in the copy
+ * is the window that made them a candidate. Reading the session table here
+ * instead would reopen the gap the column closed: a reader who signed out has no
+ * row, and would be told nothing had been added since the beginning of time.
  */
 async function titlesAddedSinceLastVisit(userId: number): Promise<{ count: number; samples: DormantTitle[] }> {
-  const rows = (await User.query(`SELECT MAX(updated_at) AS last_seen FROM "session" WHERE user_id = $1`, [
+  const rows = (await User.query(`SELECT COALESCE(last_seen_at, created_at) AS last_seen FROM "User" WHERE id = $1`, [
     userId,
   ])) as Array<{ last_seen: Date | null }>;
 
