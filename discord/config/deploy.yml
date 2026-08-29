@@ -4,6 +4,8 @@ servers:
       - nadeshiko
     options:
       add-host: host.docker.internal:host-gateway
+      # See the frontend's deploy.yml: Node as PID 1 does not reap orphans.
+      init: true
     proxy: false
 
 registry:

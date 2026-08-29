@@ -8,6 +8,8 @@ servers:
       # Discord bot is lightweight, just API polling
       memory: 512m
       memory-swap: 768m
+      # Repeated from deploy.yml, which this block replaces.
+      init: true
 
 volumes:
   - nadeshiko-discord-data:/app/data
