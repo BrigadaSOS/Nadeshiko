@@ -336,16 +336,33 @@ watch(selectedModel, async (newValue, oldValue) => {
   if (newValue !== oldValue) {
     try {
       const data = await store.getAllModelFieldNames(newValue);
-      if (data) {
-        const newFields = data.map((field: string) => {
-          const existingField = fieldOptions.value.find((f) => f.key === field);
-          return {
-            key: field,
-            value: existingField ? existingField.value : '',
-          };
-        });
-        fieldOptions.value = newFields;
+
+      // NO ANSWER IS NOT AN EMPTY NOTE TYPE, and saving on this path was how the
+      // reader lost their field mapping. `executeAction` reports its failures by
+      // returning rather than throwing, so the `catch` below never ran for an
+      // Anki that was closed or an origin it refused: the lookup came back `[]`,
+      // `if (data)` waved an empty array through as truthy, the field list was
+      // rebuilt as nothing, and `debouncedSave` wrote `fields: []` over a
+      // working profile -- with no toast, because nothing had thrown.
+      //
+      // So: leave the mapping alone and show the panel that says Anki cannot be
+      // reached, which `store.connectFailure` has already diagnosed. The model
+      // stays selected but is NOT persisted, which is the honest reading of what
+      // happened; picking a different note type and coming back retries it.
+      if (!data) {
+        isSuccess.value = false;
+        isError.value = true;
+        return;
       }
+
+      const newFields = data.map((field: string) => {
+        const existingField = fieldOptions.value.find((f) => f.key === field);
+        return {
+          key: field,
+          value: existingField ? existingField.value : '',
+        };
+      });
+      fieldOptions.value = newFields;
       debouncedSave({ model: newValue, fields: fieldOptions.value });
     } catch (error) {
       handleApiError('anki:model-fields-load-failed', error, {

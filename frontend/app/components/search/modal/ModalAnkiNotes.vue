@@ -38,19 +38,38 @@ watch(hasKeyField, (hasKeyField) => {
   if (hasKeyField) {
     void getNotesFromQuery();
   } else {
+    // Bumped as well as cleared: a lookup already on its way back would
+    // otherwise refill the list the moment after it was emptied.
+    latestLookup += 1;
     notes.value = [];
   }
 });
 
+/**
+ * Which lookup the list belongs to.
+ *
+ * There is no debounce on the box, so every keystroke starts its own search
+ * against the reader's own machine and two are in flight for most of a word.
+ * Anki answers them in whatever order it finishes, and assigning in ARRIVAL
+ * order left the list belonging to whichever query happened to come back last:
+ * a reader who typed 食べ could be looking at the matches for 食. That is not
+ * cosmetic here -- the row they press is the note their sentence is written
+ * into, so a stale list writes the sentence onto the wrong card.
+ */
+let latestLookup = 0;
+
 const getNotesFromQuery = async () => {
   if (!hasKeyField.value) return;
+  const lookup = ++latestLookup;
 
   const currentKey = store.activeProfile?.key ?? '';
 
   const currentDeck = store.activeProfile?.deck ? `"deck:${store.activeProfile.deck}"` : '';
 
   const query = `${currentDeck} ${currentKey}:*${inputVal.value}*`;
-  notes.value = await store.getNotesWithCurrentKey(query);
+  const found = await store.getNotesWithCurrentKey(query);
+  if (lookup !== latestLookup) return;
+  notes.value = found;
 };
 
 const handleInput = (event: Event) => {

@@ -31,6 +31,14 @@ interface AnkiNote {
  *   origin not in the add-on's CORS list, or an extension blocking the request.
  *   These are ONE reason on purpose: the browser reports all four as the same
  *   opaque `TypeError`, and splitting them here would be invention.
+ * - `blocked_by_csp` -- `fetch` rejected the same opaque way, but our own
+ *   Content Security Policy is what refused it, which the browser DID tell us
+ *   through a `securitypolicyviolation` event. Split out of `unreachable`
+ *   because it is the one member of that set the reader cannot fix and we can:
+ *   `connect-src` in `nuxt.config.ts` allows loopback only, so a server address
+ *   pointing anywhere else -- Anki reached over the network, on a desktop or
+ *   another phone -- is refused before it ever reaches it. Told apart by
+ *   evidence rather than by guessing; see `utils/cspViolations`.
  * - `permission_denied` -- AnkiConnect answered and refused this origin.
  * - `connect_error` -- it answered with an error of its own.
  * - `http_error` -- it answered with a non-2xx status.
@@ -38,6 +46,7 @@ interface AnkiNote {
  */
 export const ANKI_CONNECT_FAILURES = [
   'unreachable',
+  'blocked_by_csp',
   'permission_denied',
   'connect_error',
   'http_error',
@@ -167,6 +176,8 @@ import { tokensToAnkiFurigana } from '~/utils/tokenEnrichment';
 import { userStore } from '@/stores/auth';
 import { apiErrorStatus, handleApiError } from '~/utils/apiError';
 import { reportError, reportEvent } from '~/utils/reportError';
+import { cspViolationLog, installCspViolationLog } from '~/utils/cspViolations';
+import { classifyAnkiAddress } from '~/utils/ankiAddress';
 import { buildSentencePath } from '~/utils/routes';
 
 /**
@@ -281,6 +292,12 @@ export const ankiStore = defineStore('anki', {
     async executeAction(action: string, params = {}, options: { silent?: boolean } = {}) {
       if (!import.meta.client) return null;
       const serverAddress = this.activeProfile?.serverAddress ?? DEFAULT_SERVER_ADDRESS;
+      // Armed before the request, because the answer it collects arrives while
+      // the request is failing and cannot be gone back for afterwards. Idempotent,
+      // so the cost is one listener for the lifetime of the tab and only for
+      // readers who have Anki set up at all.
+      installCspViolationLog();
+      const startedAt = Date.now();
       try {
         const response = await fetch(serverAddress, {
           method: 'POST',
@@ -325,12 +342,23 @@ export const ankiStore = defineStore('anki', {
         // of what we know, and the event this branch sends is built from that.
       } catch {
         this.connectReachable = false;
+        // ONE TURN OF THE EVENT LOOP before reading the violation log. The
+        // refusal and this rejection are separate tasks and the specification
+        // orders neither, so the event that explains this failure may not have
+        // been dispatched yet. Yielding once is enough in practice and costs
+        // nothing anybody waits on -- this is already the failure path, and the
+        // caller is receiving `null` either way.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const refusedByPolicy = cspViolationLog.refusedSince(serverAddress, startedAt);
         // `http_error` was set above and is more specific than what we can tell
-        // from here, so it wins. Everything else reaching this branch is `fetch`
-        // itself rejecting, which the browser reports identically whether Anki is
-        // closed, the add-on is absent, the origin is not in its CORS list, or an
-        // extension ate the request -- see `ANKI_CONNECT_FAILURES`.
-        if (this.connectFailure !== 'http_error') this.connectFailure = 'unreachable';
+        // from here, so it wins. Then `blocked_by_csp`, which is the only case
+        // in this branch we have evidence for rather than a guess. Everything
+        // else is `fetch` itself rejecting, which the browser reports identically
+        // whether Anki is closed, the add-on is absent, the origin is not in its
+        // CORS list, or an extension ate the request -- see `ANKI_CONNECT_FAILURES`.
+        if (this.connectFailure !== 'http_error') {
+          this.connectFailure = refusedByPolicy ? 'blocked_by_csp' : 'unreachable';
+        }
         // Counted, not filed. Every way this branch is reached is the reader's
         // own machine -- Anki closed, add-on absent, origin not in its CORS
         // list -- so there is no fix in the app to hang an issue on, and 132
@@ -339,10 +367,24 @@ export const ankiStore = defineStore('anki', {
         // word card's per-lookup probe from filing these; this extends the same
         // judgement to the calls the reader did ask for, which are no more
         // actionable, just rarer.
-        if (!options.silent) {
+        //
+        // `blocked_by_csp` is the exception and reports even when `silent`. The
+        // reasoning above turns on these being the reader's machine and having
+        // no fix in the app; a policy refusal is the opposite on both counts, it
+        // is rare, and it is the only one of these whose rate we would want to
+        // see move after touching `connect-src`.
+        if (!options.silent || this.connectFailure === 'blocked_by_csp') {
           reportEvent('anki_connect_request_failed', {
             'anki.action': action,
             'anki.reason': this.connectFailure ?? 'unreachable',
+            // The shape of the address, never the address. `unreachable` covers
+            // four situations that want different answers, and whether the
+            // reader was pointing at their own machine is the split that decides
+            // which -- without it the Android failure rate (11 readers failing
+            // to 1 succeeding, against 41 to 9 on Windows) has no explanation
+            // available, only guesses. See `utils/ankiAddress` for why this is a
+            // fixed label and not the value.
+            'anki.address_kind': classifyAnkiAddress(serverAddress),
           });
         }
         // AnkiConnect is unreachable (Anki closed, add-on disabled, CORS refused).
@@ -380,15 +422,31 @@ export const ankiStore = defineStore('anki', {
           );
         }
 
+        // CHECKED BETWEEN THE TWO CALLS, not after both, and that ordering is
+        // load-bearing: `executeAction` clears `connectFailure` on every call
+        // that succeeds, so asking for note types after the deck lookup failed
+        // erases the very reason we are about to report. Throwing here also
+        // spares a second request to an Anki that has already stopped answering.
         const decks = await this.getAllDeckNames();
-        const models = await this.getAllModels();
+        if (decks === null) throw this.stoppedAnswering();
 
-        if (decks && Array.isArray(decks)) {
-          this.availableDecks = decks;
-        }
-        if (models && Array.isArray(models)) {
-          this.availableModels = models;
-        }
+        const models = await this.getAllModels();
+        if (models === null) throw this.stoppedAnswering();
+
+        // ANKI STOPPING BETWEEN THE PERMISSION GRANT AND HERE is the same
+        // situation as the probe above, and gets the same answer: the reason
+        // `executeAction` established, left alone because it is the specific one.
+        //
+        // The guard here used to read `if (decks && Array.isArray(decks))`, which
+        // could not fire -- the lookups collapsed a failure into `[]`, and an
+        // empty array is both truthy and an array. So a dropped connection
+        // emptied the dropdowns the reader was working in, fell through to the
+        // `no_decks` branch below, and sent them off to create a deck: the one
+        // wrong errand of all of them, since their decks were fine and it was
+        // Anki that had gone. A note-type lookup failing did not even do that --
+        // it was reported as a SUCCESS with `model_count: 0`.
+        this.availableDecks = decks;
+        this.availableModels = models;
 
         // Granted, reachable, and nothing to export into. Rare, but it is a
         // different fix from every other branch (make a deck) and it used to be
@@ -426,27 +484,55 @@ export const ankiStore = defineStore('anki', {
       }
     },
 
+    /** The failure raised when Anki answered the permission probe and then went
+     *  quiet. Carries whatever reason `executeAction` established rather than a
+     *  guess, which is why callers must raise it before the next request. */
+    stoppedAnswering(): AnkiUnavailableError {
+      return new AnkiUnavailableError(
+        'AnkiConnect stopped answering while loading decks and note types.',
+        this.connectFailure ?? 'unreachable',
+      );
+    },
+
     async requestPermission(): Promise<string | null> {
       const response = (await this.executeAction('requestPermission')) as PermissionResponse | null;
       return response?.result?.permission ?? null;
     },
 
-    async getAllDeckNames(): Promise<string[]> {
+    /** The reader's decks, or `null` when Anki did not answer -- see
+     *  `getAllModelFieldNames` for why the two must not look the same. An empty
+     *  list is a real answer here and a meaningful one: it means make a deck. */
+    async getAllDeckNames(): Promise<string[] | null> {
       const response = (await this.executeAction('deckNames')) as DeckNamesResponse | null;
-      return response?.result ?? [];
+      return response?.result ?? null;
     },
 
-    async getAllModels(): Promise<string[]> {
+    /** The reader's note types, or `null` when Anki did not answer. */
+    async getAllModels(): Promise<string[] | null> {
       const response = (await this.executeAction('modelNames')) as ModelNamesResponse | null;
-      return response?.result ?? [];
+      return response?.result ?? null;
     },
 
-    async getAllModelFieldNames(modelName: string): Promise<string[]> {
+    /**
+     * The field names of a note type, or `null` when Anki did not answer.
+     *
+     * The null matters, and it is the whole reason this does not return `[]`.
+     * `executeAction` never throws: it returns `null` when it could not reach
+     * Anki, and hands back `{result: null, error}` when AnkiConnect refused the
+     * origin -- a 200 that no `catch` will ever see. Collapsing both of those to
+     * an empty array told the caller "this note type has no fields", which the
+     * note-type watcher in `AnkiSync.vue` then wrote to the reader's saved
+     * profile as their field mapping, wiping it with no toast and no report.
+     *
+     * A real Anki note type always has at least one field, so an empty result
+     * never meant anything but a failure in the first place.
+     */
+    async getAllModelFieldNames(modelName: string): Promise<string[] | null> {
       const response = (await this.executeAction('modelFieldNames', {
         modelName: modelName,
       })) as ModelFieldNamesResponse | null;
 
-      return response?.result ?? [];
+      return response?.result ?? null;
     },
 
     async getNotesWithCurrentKey(query: string, n: number = 5): Promise<Array<{ noteId: number; value: string }>> {
@@ -710,7 +796,27 @@ export const ankiStore = defineStore('anki', {
           queryString = queryParts.join(' ');
 
           const response = (await this.executeAction('findNotes', { query: queryString })) as FindNotesResponse | null;
-          const noteIDs = response?.result ?? [];
+
+          // NO ANSWER IS NOT AN EMPTY SEARCH, and the two used to arrive here as
+          // the same `[]`. `executeAction` reports its failures by returning --
+          // `null` when it could not reach Anki, `{result: null, error}` when
+          // AnkiConnect refused the origin with a 200 that no `catch` will see --
+          // so a reader whose Anki had quit was told "No Anki card to export to.
+          // Please add a card first", which is an errand for a problem they do
+          // not have. Every one of those was also counted as `no_card_found`,
+          // putting connection failures inside the number that is supposed to
+          // measure readers who genuinely have not made a card yet.
+          //
+          // A search that matched nothing answers `result: []`, which is truthy
+          // and passes straight through, so this separates the two exactly.
+          if (!response?.result) {
+            const reason = this.connectFailure ?? 'unreachable';
+            trackExportFailed('anki_unavailable', { 'anki.reason': reason });
+            useToastError($i18n.t(`accountSettings.anki.connectFailure.${reason}.title`));
+            return;
+          }
+
+          const noteIDs = response.result;
 
           const latestCard = noteIDs.reduce((a: number, b: number) => Math.max(a, b), -1);
 

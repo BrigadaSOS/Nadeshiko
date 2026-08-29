@@ -393,8 +393,6 @@
         "hiddenMediaBadge": "Oculto",
         "hiddenMediaBadgeTitle": "Este título está en tu lista de ocultos",
         "searchmain": "Nombre del título",
-        "searchbar": "Filtro",
-        "all": "Todo",
         "copiedcontent": "Se ha copiado el contenido al portapapeles.",
         "errorcopiedcontent": "No ha sido posible copiar el contenido al portapapeles. Inténtalo de nuevo.",
         "copiedsharingurl": "Se ha copiado la URL al portapapeles.",
@@ -512,7 +510,6 @@
       "familiarOnToast": "Ahora se recuerda qué series estudias",
       "familiarOffToast": "Ya no se recuerda qué series estudias",
       "clearHistoryToast": "Historial de actividad borrado",
-      "confirmClearFamiliar": "¿Olvidar qué series estudias? Tu historial de actividad no se verá afectado.",
       "confirmClearDay": "¿Eliminar toda la actividad de {day}? Esta acción no se puede deshacer.",
       "ranges": {
         "all": "Todo el tiempo"
@@ -731,8 +728,6 @@
       "changeEmailSending": "Enviando...",
       "changeEmailCancel": "Cancelar",
       "changeEmailSuccess": "Se ha enviado un correo de verificación a tu dirección actual. Revisa tu bandeja de entrada.",
-      "productEmailsTitle": "Correos sobre Nadeshiko",
-      "productEmailsDescription": "Correos ocasionales sobre tu actividad y las novedades. Los enlaces de inicio de sesión y los correos de la cuenta siempre se envían.",
       "productEmailsOnToast": "Recibirás correos sobre Nadeshiko",
       "productEmailsOffToast": "No recibirás correos sobre Nadeshiko",
       "changeEmailFailed": "No se pudo solicitar el cambio de correo.",
@@ -768,9 +763,6 @@
         "youtube": "Vídeos de YouTube."
       },
       "hiddenMedia": "Medios ocultos",
-      "hiddenMediaDescription": "Medios ocultos de los resultados de búsqueda. También puedes ocultar medios desde el menú en cualquier resultado.",
-      "hiddenMediaEmpty": "Sin medios ocultos. Los resultados incluirán todo el contenido disponible.",
-      "hiddenMediaListTitle": "Lista de medios ocultos",
       "hiddenMediaCount": "{count} ocultos",
       "mediaHiddenToast": "{name} oculto en los resultados",
       "mediaUnhiddenToast": "{name} vuelve a los resultados",
@@ -783,8 +775,6 @@
         "otherNames": "Otros nombres"
       },
       "favoriteMedia": "Medios favoritos",
-      "favoriteMediaDescription": "Los títulos favoritos se ordenan primero en el filtro de medios al buscar. También puedes marcarlos desde el propio filtro.",
-      "favoriteMediaEmpty": "Todavía no tienes favoritos. El filtro de medios sigue en orden alfabético.",
       "favoriteMediaCount": "{count}/{max} favoritos",
       "sessionDetails": {
         "unknownDevice": "Dispositivo desconocido",
@@ -796,7 +786,6 @@
       },
       "exportError": "No se pudieron exportar tus datos. Inténtalo de nuevo.",
       "mediaLookup": "Buscar un título",
-      "mediaLookupDescription": "Busca en el catálogo para marcar un título como favorito u ocultarlo. Los favoritos se ordenan primero en el filtro de medios; los ocultos desaparecen de los resultados.",
       "mediaLookupPlaceholder": "Busca un título...",
       "mediaLookupNoResults": "No se encontraron medios para esta búsqueda.",
       "manageMedia": "Gestionar contenido",
@@ -860,8 +849,6 @@
       "loadingMessage": "Por favor, espere mientras se establece la conexión",
       "connectionSuccess": "Conexión establecida",
       "successMessage": "La conexión con Anki se ha establecido de forma correcta",
-      "connectionError": "Algo ha fallado",
-      "errorMessage": "No se ha podido establecer conexión con Anki",
       "fieldLoadError": "Error al cargar nombres de campos del modelo:",
       "troubleshootingTips": {
         "ankiRunning": "Verifique que la aplicación de Anki este abierta y el addon Ankiconnect instalado",
@@ -910,6 +897,10 @@
         "unreachable": {
           "title": "Anki no ha respondido",
           "body": "Nadeshiko no ha podido conectar con AnkiConnect. Casi siempre se debe a uno de estos tres motivos."
+        },
+        "blocked_by_csp": {
+          "title": "La dirección del servidor de Anki no está permitida",
+          "body": "La política de seguridad de Nadeshiko solo permite AnkiConnect en este mismo ordenador, así que la dirección de abajo se rechazó antes de llegar a la red. No se puede conectar con Anki en otro equipo o en el móvil. Restablece la dirección a http://127.0.0.1:8765 y abre Anki en este ordenador."
         },
         "permission_denied": {
           "title": "Anki está abierto y te está esperando",

@@ -47,6 +47,20 @@ const ROUTE_PATTERNS = [
   [/^\/s\/[^/]+$/, '/s/:id'],
   [/^\/search\/[^/]+$/, '/search/:query'],
   [/^\/blog\/[^/]+$/, '/blog/:slug'],
+  // Media pages are addressed by slug, and a slug is not id-shaped: it carries
+  // no digit and no uppercase, so `isIdSegment` below correctly declines to
+  // template it and every title used to become its own label. Measured in
+  // production on 2026-08-29: 236 distinct `/:locale/media/<title>` series in
+  // 24h, essentially all idle, each carrying a full latency histogram -- one
+  // `histogram_quantile` over the frontend fetched 8,850 series against the
+  // backend's 1,710. It was inconsistent as well as expensive: a title whose
+  // slug happens to contain a digit DID template, so the same page was split
+  // across two labelling schemes.
+  //
+  // Templated to `:id` rather than `:slug` deliberately -- the numeric form
+  // already normalizes to `/media/:id` via the fallback, so this merges into
+  // the existing series instead of opening a second one beside it.
+  [/^\/media\/[^/]+$/, '/media/:id'],
   [/^\/admin\//, '/admin/:slug'],
   // `/user` and `/settings` are `[...slug]` catch-alls, so an unlisted page
   // under them is routed rather than 404. STATIC_PAGES is checked first and

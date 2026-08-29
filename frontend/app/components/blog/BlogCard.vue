@@ -28,7 +28,17 @@ const formattedDate = computed(() => {
   if (!dateValue) return null;
 
   try {
-    if (typeof dateValue === 'object' && !Array.isArray(dateValue) && dateValue !== null) {
+    // A real `Date` is exempt, and it has to be: the check below is looking for
+    // the empty object a JSON round-trip leaves where a date used to be, and a
+    // `Date` has no own enumerable keys either -- so it was being discarded by
+    // the guard meant to catch its corpse. `date` is declared `string | Date |
+    // null`, so this is the ordinary case, and it rendered no date at all.
+    if (
+      !(dateValue instanceof Date) &&
+      typeof dateValue === 'object' &&
+      !Array.isArray(dateValue) &&
+      dateValue !== null
+    ) {
       const keys = Object.keys(dateValue);
       if (keys.length === 0) return null;
     }

@@ -48,7 +48,48 @@ const MIGAKU_ASSET_ORIGIN = 'https://migaku-public-data.migaku.com';
 const GOOGLE_FONTS_ORIGIN = 'https://fonts.googleapis.com';
 const GOOGLE_FONTS_STATIC_ORIGIN = 'https://fonts.gstatic.com';
 const TYPEKIT_ORIGIN = 'https://use.typekit.net';
-const YOUTUBE_THUMBNAIL_ORIGIN = 'https://i.ytimg.com';
+// Wildcarded, because YouTube does not serve thumbnails from one host. The
+// canonical URL is `i.ytimg.com`, but it hands out `i1.` through `i4.` as well
+// and which one a reader gets is not ours to predict -- the URLs arrive with the
+// media record rather than being built here. Pinned to `i.ytimg.com` alone, the
+// numbered hosts were blocked: `i1.ytimg.com/vi/.../mqdefault.jpg` was still
+// being refused for readers on 2026-08-29, our own thumbnails failing on our own
+// pages. A subdomain wildcard on an image host costs nothing a fixed host does
+// not already cost -- `img-src` grants no execution -- and it is the only form
+// that survives YouTube moving between them.
+const YOUTUBE_THUMBNAIL_ORIGIN = 'https://*.ytimg.com';
+/**
+ * Chrome's built-in "Translate this page", which is the same problem as the
+ * extensions above and was being broken the same way.
+ *
+ * It is not an extension, but it is injected into the page and governed by the
+ * page's CSP exactly as one is, so it showed up in the reports as first-party:
+ * the source file is `nadeshiko.co`, which is why it read as our own code
+ * failing rather than as somebody else's tool. In the seven days to 2026-08-29
+ * it was every first-party violation we had -- 101 `img-src`, 42
+ * `style-src-elem`, 8 `connect-src`, on 100, 42 and 8 distinct readers -- and
+ * nothing of ours was being blocked at all.
+ *
+ * Worth admitting rather than tolerating. The audience is international and the
+ * interface is English and Japanese; a reader translating the page is doing the
+ * obvious thing, and what they got instead was a translate widget with no
+ * stylesheet and no icons.
+ *
+ * Passive subresources plus the one API call the feature is, matching the rule
+ * above: `www.gstatic.com` serves its stylesheet, `translate.google.com` and
+ * `fonts.gstatic.com` its icons and its `gen204` beacon, and
+ * `translate-pa.googleapis.com` is where the text actually goes to be
+ * translated. No script origin is granted -- Chrome injects the translate script
+ * through a privileged path that never consults this policy, which is why none
+ * of these reports is a `script-src` one.
+ */
+const GSTATIC_ORIGIN = 'https://www.gstatic.com';
+// Yandex Browser's built-in translate, which is the same case as Chrome's and
+// was failing the same way -- 14 blocked icon loads across 10 readers in 30
+// days. Images only; the translation itself does not route through here.
+const YANDEX_STATIC_ORIGIN = 'https://yastatic.net';
+const GOOGLE_TRANSLATE_ORIGIN = 'https://translate.google.com';
+const GOOGLE_TRANSLATE_API_ORIGIN = 'https://translate-pa.googleapis.com';
 
 /** Unique per build; see `buildId` below. */
 const BUILD_ID = randomUUID();
@@ -59,11 +100,44 @@ const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
 // than posthog.com so content blockers don't silently swallow the reports, and
 // `/report/` keeps its trailing slash -- PostHog drops the report without it.
 // Reports bypass `connect-src`, so the endpoint needs no CSP allowance.
-const CSP_REPORT_URI = `${POSTHOG_ORIGIN}/report/?token=${POSTHOG_PUBLIC_KEY}`;
+//
+// SAMPLED, because unsampled this endpoint is the largest single source of
+// persons in the project and none of them are readers. A CSP report arrives as
+// a bare POST with no distinct id, so PostHog mints one per report batch, and
+// the batches are small: in the seven days to 2026-08-29, 2,780 reports became
+// ~2,100 persons, against an all-time real user base of 5,484. Person counts
+// taken across all events -- rather than scoped to one -- are computed over
+// that, which is how ~6,000 phantom people appeared in three weeks of August.
+//
+// What those reports were, over that week and after the font fix in 0ca41f0f7
+// had already landed:
+//
+//   browser extension scripts   2,376 reports  1,967 persons   script-src-elem
+//   migaku fonts (residual)       199 reports      5 persons   font-src
+//   google translate              154 reports    150 persons   img/style/connect
+//   other / unknown                35 reports     ~30 persons
+//
+// The extension scripts are 86% of the reports and 94% of the persons, and they
+// are the one bucket that cannot be fixed: they arrive as `blocked-uri: inline`
+// from `moz-extension`, `safari-web-extension`, `blob` and `sandbox eval code`,
+// and the only directive that would admit an inline script is 'unsafe-inline',
+// which browsers ignore whenever a nonce is present. See `script-src` below.
+// Everything that COULD be fixed now has been -- the fonts in 0ca41f0f7, Google
+// Translate above -- so what is left is noise by construction, not by neglect.
+//
+// Sampling and not silence, because the value of this endpoint is catching the
+// next first-party regression, and that needs a floor rather than a rate. A
+// regression of the size the Translate one was (154/week) still reports ~15
+// times a week at a tenth, which is a visible step against a residual that will
+// otherwise sit near zero. 0.1 rather than the 0.05 the docs suggest for exactly
+// that margin.
+//
+// The better fix is a first-party collector that drops extension reports by
+// `source_file` and forwards the rest unsampled, keeping 100% of the signal
+// instead of 10%. That is a route handler and a deploy; this is a query string.
+// If the first-party rate ever matters more than it does now, build it.
+const CSP_REPORT_URI = `${POSTHOG_ORIGIN}/report/?token=${POSTHOG_PUBLIC_KEY}&sample_rate=0.1`;
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
-// The host Alloy collector. Faro used to post here; the RUM reporter
-// (app/plugins/rum.client.ts) still does, on a different path.
-const COLLECTOR_ORIGIN = 'https://o.nadeshiko.co';
 
 const frontendPackageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version?: string;
@@ -221,17 +295,6 @@ export default defineNuxtConfig({
       // failure. Without it the card still shows what the token itself knows:
       // the word, its reading, and what the form is doing.
       shirabeLookups: Boolean(env.NUXT_SHIRABE_API_KEY),
-      /**
-       * The browser-metrics receiver the RUM reporter posts web vitals to, and
-       * the name that reporter identifies itself by.
-       *
-       * DELIBERATELY NOT NAMED AFTER FARO, which these replaced on 2026-08-23.
-       * shirabe kept posting vitals to a variable called FARO_URL long after no
-       * Faro code remained anywhere in it; naming them for what they are now
-       * costs one coordinated env change today and saves that confusion.
-       */
-      browserMetricsUrl: env.NUXT_PUBLIC_BROWSER_METRICS_URL || '',
-      browserAppName: env.NUXT_PUBLIC_BROWSER_APP_NAME || '',
     },
   },
   // Only .vue files are components. The default scan also picks up .ts, which
@@ -270,7 +333,17 @@ export default defineNuxtConfig({
       contentSecurityPolicy: isLocal
         ? false
         : {
-            'default-src': ["'self'"],
+            // POSTHOG_ORIGIN is here as well as in `script-src` and `connect-src`
+            // because the remote-config script does not reach either of them.
+            // `https://t.nadeshiko.co/array/<key>/config.js` was refused against
+            // `default-src` for 5 readers in 30 days, most recently 2026-08-29:
+            // it is fetched through a path that falls back to the default rather
+            // than matching a named directive, so naming it three times is what
+            // it takes. Every directive that matters is listed explicitly below,
+            // so widening the fallback reaches only the exotic ones
+            // (`manifest-src`, `prefetch-src`) and grants nothing `script-src`
+            // has not already granted this origin.
+            'default-src': ["'self'", POSTHOG_ORIGIN],
             // Extension-injected scripts are deliberately NOT accommodated here,
             // and cannot be. Their reports arrive as `blocked-uri: inline`
             // (2,558 of 2,574 script violations in a week), and the only
@@ -320,8 +393,20 @@ export default defineNuxtConfig({
               CF_INSIGHTS_ORIGIN,
               'https://www.youtube.com',
             ],
-            'style-src': ["'self'", "'unsafe-inline'", GOOGLE_FONTS_ORIGIN],
-            'img-src': ["'self'", 'data:', CDN_ORIGIN, YOUTUBE_THUMBNAIL_ORIGIN],
+            'style-src': ["'self'", "'unsafe-inline'", GOOGLE_FONTS_ORIGIN, GSTATIC_ORIGIN],
+            'img-src': [
+              "'self'",
+              'data:',
+              CDN_ORIGIN,
+              YOUTUBE_THUMBNAIL_ORIGIN,
+              GOOGLE_FONTS_STATIC_ORIGIN,
+              GOOGLE_TRANSLATE_ORIGIN,
+              YANDEX_STATIC_ORIGIN,
+              // Canvas and object URLs. Nine readers in 30 days had an image
+              // refused for being a `blob:`, and an image cannot execute
+              // whatever its scheme.
+              'blob:',
+            ],
             // `data:` is here for the reader's extensions too, not for us: several
             // inline their fonts rather than fetching them.
             'font-src': ["'self'", 'data:', MIGAKU_ASSET_ORIGIN, GOOGLE_FONTS_STATIC_ORIGIN, TYPEKIT_ORIGIN],
@@ -330,13 +415,59 @@ export default defineNuxtConfig({
               CDN_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
-              COLLECTOR_ORIGIN,
+              // No collector origin any more. `o.nadeshiko.co` is still up and
+              // still takes backend telemetry, but nothing on a PAGE reaches it
+              // since web vitals moved to PostHog -- and a `connect-src` entry
+              // for a host the page never calls is a permission granted to
+              // anything that ends up running here.
+              GOOGLE_TRANSLATE_API_ORIGIN,
 
+              // AnkiConnect, which `stores/anki.ts` posts to directly from the
+              // page. Both spellings of loopback plus the IPv6 one: the address
+              // is a per-profile setting (`activeProfile.serverAddress`), so a
+              // reader who types `http://[::1]:8765` -- a correct thing to type,
+              // and what a v6-first machine may resolve `localhost` to -- was
+              // being refused by a policy that only knew the v4 forms. Ports are
+              // wildcarded because 8765 is only the default.
+              //
+              // A CSP refusal here is INVISIBLE to the feature. `executeAction`
+              // catches the throw and files `anki.reason: 'unreachable'`, which
+              // is the same value Anki-is-closed produces, so a blocked address
+              // reads as an absent one -- 93 of 93 failures recorded since the
+              // event shipped on 2026-08-26 carry that reason and none can be
+              // told apart. Anything added here has to be added deliberately,
+              // because nothing downstream will report its absence.
+              //
+              // NOT the LAN, and it cannot be. CSP host-sources take a wildcard
+              // only on the leftmost label of a name, so `192.168.*.*` is not
+              // expressible; reaching Anki on another machine would mean
+              // allowing the bare `http:` scheme, i.e. every plaintext origin
+              // there is, which against the `v-html` paths in
+              // `SegmentContainer.vue` is not a trade worth making. Readers
+              // pointing at a desktop over the network are not supported, and
+              // `blocked_by_csp` in `stores/anki.ts` exists so they are told
+              // that rather than left at "unreachable".
+              //
+              // How many readers that is, is NOT known. It was assumed to be
+              // most of the Android failures, on the reasoning that AnkiConnect
+              // is a desktop add-on -- and that reasoning is wrong: a loopback
+              // AnkiConnect does exist on Android, and one reader was exporting
+              // through it in the days to 2026-08-29. What the numbers actually
+              // show there is difficulty, not impossibility (1 reader
+              // succeeding against 11 failing, where Windows is 41 against 9),
+              // and difficulty has several causes this cannot distinguish
+              // between. `anki.address_kind` on the failure event is what will
+              // answer it; until it has, nothing here should be read as knowing
+              // which setups these are.
               'http://127.0.0.1:*',
               'http://localhost:*',
+              'http://[::1]:*',
             ],
             'worker-src': ["'self'", 'blob:'],
-            'media-src': ["'self'", 'blob:', CDN_ORIGIN, SHIRABE_CDN_ORIGIN],
+            // `data:` alongside `blob:` for the same reason `img-src` and
+            // `font-src` carry it: inline media is self-contained, reaches no
+            // network, and was being refused for 4 readers in 30 days.
+            'media-src': ["'self'", 'blob:', 'data:', CDN_ORIGIN, SHIRABE_CDN_ORIGIN],
             'object-src': ["'none'"],
             'frame-src': [
               "'self'",
@@ -978,7 +1109,13 @@ export default defineNuxtConfig({
   sourcemap: { client: true },
 
   nitro: {
-    preset: 'node-server',
+    // Read from the environment at BUILD time, on purpose. Production's image
+    // build passes NITRO_PRESET=node_cluster (deploy.prod.yml, builder.args) and
+    // staging leaves the Dockerfile default of node-server; a literal here won
+    // over both for months while deploy.prod.yml set NITRO_CLUSTER_WORKERS for
+    // workers that never started -- the history is under that key. This is the
+    // one line that turns clustering on, and it now says so.
+    preset: ['node_cluster', 'node-cluster'].includes(process.env.NITRO_PRESET ?? '') ? 'node-cluster' : 'node-server',
     externals: {
       external: ['@opentelemetry/api'],
     },

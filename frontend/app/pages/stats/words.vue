@@ -13,12 +13,25 @@ const router = useRouter();
 const localePath = useLocalePath();
 
 const activeTier = ref(Number(route.query.tier) || 1000);
-const activeFilter = ref<'ALL' | 'COVERED' | 'UNCOVERED'>(
-  (route.query.filter as 'ALL' | 'COVERED' | 'UNCOVERED') || 'ALL',
-);
 if (!TIERS.includes(activeTier.value as (typeof TIERS)[number])) {
   activeTier.value = 1000;
 }
+
+/**
+ * Both halves of the query string are validated HERE as well as in the watcher
+ * below, and the filter used to be the exception.
+ *
+ * `?filter=` was taken at face value on the first render, which put an
+ * unrecognised value straight into the request -- and then into the `href` of
+ * all seven tier chips, since `queryFor` carries the active filter along.  Those
+ * chips are the site's only links to most word pages, so a crawler arriving on a
+ * malformed filter propagated it across the whole tier walk. The watcher already
+ * did this; only the initial value was missed.
+ */
+const requestedFilter = route.query.filter;
+const activeFilter = ref<'ALL' | 'COVERED' | 'UNCOVERED'>(
+  requestedFilter === 'COVERED' || requestedFilter === 'UNCOVERED' ? requestedFilter : 'ALL',
+);
 
 function tierIndex(t: number): number {
   return TIERS.indexOf(t as (typeof TIERS)[number]);
