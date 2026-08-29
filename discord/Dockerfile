@@ -17,6 +17,7 @@ COPY backend/package.json backend/
 COPY frontend/package.json frontend/
 COPY discord/package.json discord/
 COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
+COPY packages/nadeshiko-shared/package.json packages/nadeshiko-shared/
 
 # better-sqlite3 13 prefers its bundled prebuild over node-gyp output, but the
 # Linux ARM64 prebuild requires glibc 2.38 while bookworm provides glibc 2.36, so

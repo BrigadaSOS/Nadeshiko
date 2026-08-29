@@ -6,7 +6,6 @@ import {
   createMockStringSelectMenu,
   type MockClient,
   type MockCollector,
-  type MockMessage,
 } from '../mocks/interaction';
 import { createCapture, extractStepResult, type ResponseCapture, type StepResult } from './types';
 
@@ -14,23 +13,23 @@ export class FlowRunner {
   private client: MockClient;
   private capture: ResponseCapture;
   private collector: MockCollector | null = null;
-  private message: MockMessage | null = null;
   private userId: string;
-  private guildId: string;
+  private guildId: string | null;
 
-  constructor(opts: { userId?: string; guildId?: string } = {}) {
-    this.client = createMockClient();
+  constructor(opts: { userId?: string; guildId?: string | null; wsPing?: number; applicationId?: string } = {}) {
+    this.client = createMockClient({ wsPing: opts.wsPing, applicationId: opts.applicationId });
     this.capture = createCapture();
     this.userId = opts.userId ?? 'user-1';
-    this.guildId = opts.guildId ?? 'guild-1';
+    this.guildId = opts.guildId === undefined ? 'guild-1' : opts.guildId;
   }
 
   async executeCommand(
     execute: (interaction: any) => Promise<void>,
     options?: Record<string, string | boolean | number | null>,
+    commandName = 'search',
   ): Promise<StepResult> {
     const interaction = createMockChatInputCommand({
-      commandName: 'search',
+      commandName,
       options,
       userId: this.userId,
       guildId: this.guildId,
@@ -41,7 +40,6 @@ export class FlowRunner {
 
     await execute(interaction);
 
-    this.message = interaction._message;
     this.collector = interaction._message.collector;
 
     return extractStepResult(this.capture);

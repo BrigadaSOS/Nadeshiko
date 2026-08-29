@@ -42,9 +42,25 @@ export function getMediaName(media?: {
   return media.nameRomaji || media.nameEn || media.nameJa || 'Unknown';
 }
 
+const ELLIPSIS = '...';
+
+/**
+ * Cut `text` down to at most `max` characters, ellipsis included.
+ *
+ * The ellipsis has to come out of the budget, not be added on top of it. It was
+ * added on top -- `slice(0, max - 1) + '...'` -- so a truncated string came back
+ * `max + 2` characters long. Both callers pass 2000, which is exactly Discord's
+ * limit on message content, so the one path that exists to keep a long sentence
+ * under the limit was the path that pushed it over: the API rejects the message
+ * and the command fails outright instead of showing a shortened reply.
+ */
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
-  return `${text.slice(0, max - 1)}...`;
+  // No room for the ellipsis itself: a hard cut is the only thing that fits.
+  // Unreachable from either caller (both pass 2000), but it keeps the promise
+  // in the name -- the result is never longer than `max`.
+  if (max < ELLIPSIS.length) return text.slice(0, Math.max(0, max));
+  return `${text.slice(0, max - ELLIPSIS.length)}${ELLIPSIS}`;
 }
 
 export function buildSegmentMessage(
@@ -80,50 +96,6 @@ export function buildSegmentMessage(
   return truncate(lines.join('\n'), 2000);
 }
 
-export function buildContextLines(
-  segments: Segment[],
-  mediaMap: Record<string, Media>,
-  selectedIndex: number,
-  opts: DisplayOptions = DEFAULT_DISPLAY,
-): string {
-  if (segments.length === 0) return 'No context segments found.';
-
-  const firstMedia = Object.values(mediaMap)[0];
-  const mediaName = getMediaName(firstMedia);
-  const ep = segments[0]?.episode;
-
-  const selectedSeg = segments[selectedIndex];
-  const mediaLink = firstMedia ? `[${mediaName}](<${mediaSearchUrl(firstMedia.publicId)}>)` : mediaName;
-  const timestamp = formatTimestamp(selectedSeg.startTimeMs);
-
-  const lines = segments.map((seg, i) => {
-    const isSelected = i === selectedIndex;
-    const jaText = stripAllHtmlTags(seg.textJa.content);
-    const diff = i - selectedIndex;
-    const prefix = isSelected ? `▶)` : `${diff})`;
-
-    const parts: string[] = [];
-    parts.push(isSelected ? `${prefix} **${jaText}**` : `${prefix} ${jaText}`);
-
-    if (seg.textEn.content && shouldShowEn(opts)) {
-      const mtTag = seg.textEn.isMachineTranslated ? ' (MT)' : '';
-      parts.push(`**EN${mtTag}**: ||${seg.textEn.content}||`);
-    }
-
-    if (seg.textEs.content && shouldShowEs(opts)) {
-      const mtTag = seg.textEs.isMachineTranslated ? ' (MT)' : '';
-      parts.push(`**ES${mtTag}**: ||${seg.textEs.content}||`);
-    }
-
-    return parts.join('\n');
-  });
-
-  const header = `**Context: ${mediaName}** -- Episode ${ep}\n`;
-  const episodeLink = firstMedia ? `[Episode ${ep}](<${mediaSearchUrl(firstMedia.publicId, ep)}>)` : `Episode ${ep}`;
-  const footer = `\n\n${mediaLink} • ${episodeLink} • ${timestamp}`;
-  return truncate(header + lines.join('\n\n') + footer, 2000);
-}
-
 export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
   const tierLines = stats.tiers
     .map((t) => {
@@ -136,6 +108,11 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
   const { translations } = stats;
   const enTotal = translations.enHuman + translations.enMachine;
   const esTotal = translations.esHuman + translations.esMachine;
+
+  // A language with no translations at all divides zero by zero, and `NaN%
+  // human` is what the embed renders. That is not hypothetical: it is the state
+  // every new locale is in on the day it is added.
+  const humanShare = (human: number, total: number) => (total === 0 ? 0 : Math.round((human / total) * 100));
 
   return new EmbedBuilder()
     .setColor(BOT_CONFIG.embedColor)
@@ -155,8 +132,8 @@ export function buildStatsEmbed(stats: StatsResponse): EmbedBuilder {
       {
         name: 'Translations',
         value: [
-          `EN: **${enTotal.toLocaleString()}** (${Math.round((translations.enHuman / enTotal) * 100)}% human)`,
-          `ES: **${esTotal.toLocaleString()}** (${Math.round((translations.esHuman / esTotal) * 100)}% human)`,
+          `EN: **${enTotal.toLocaleString()}** (${humanShare(translations.enHuman, enTotal)}% human)`,
+          `ES: **${esTotal.toLocaleString()}** (${humanShare(translations.esHuman, esTotal)}% human)`,
         ].join('\n'),
         inline: true,
       },

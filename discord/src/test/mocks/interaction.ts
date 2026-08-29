@@ -1,17 +1,33 @@
 import { createCapture, type ResponseCapture } from '../harness/types';
 
+/**
+ * A registered test-double listener.
+ *
+ * `any[]` rather than `unknown[]` on purpose: handlers are registered with
+ * their real, concrete parameter types and called back with loosely-typed
+ * fixtures, which contravariant parameter checking would otherwise reject.
+ */
+type Listener = (...args: any[]) => unknown;
+
 export type MockClient = {
-  listeners: Map<string, Function[]>;
-  on(event: string, handler: Function): MockClient;
-  off(event: string, handler: Function): MockClient;
+  listeners: Map<string, Listener[]>;
+  // `/health` reports the gateway latency and `/info` builds its install link
+  // from the application id. Both are read straight off the client, so a client
+  // double without them fails those commands at the first property access.
+  ws: { ping: number };
+  application: { id: string };
+  on(event: string, handler: Listener): MockClient;
+  off(event: string, handler: Listener): MockClient;
   emit(event: string, ...args: unknown[]): void;
 };
 
-export function createMockClient(): MockClient {
-  const listeners = new Map<string, Function[]>();
+export function createMockClient(opts: { wsPing?: number; applicationId?: string } = {}): MockClient {
+  const listeners = new Map<string, Listener[]>();
 
   const client: MockClient = {
     listeners,
+    ws: { ping: opts.wsPing ?? 42 },
+    application: { id: opts.applicationId ?? 'app-1' },
     on(event, handler) {
       const list = listeners.get(event) ?? [];
       list.push(handler);
@@ -36,8 +52,8 @@ export function createMockClient(): MockClient {
 }
 
 export type MockCollector = {
-  handlers: Map<string, Function[]>;
-  on(event: string, handler: Function): MockCollector;
+  handlers: Map<string, Listener[]>;
+  on(event: string, handler: Listener): MockCollector;
   simulateCollect(interaction: unknown): Promise<void>;
   stop(reason?: string): void;
 };
@@ -49,7 +65,7 @@ export type MockMessage = {
 };
 
 function createMockCollector(): MockCollector {
-  const handlers = new Map<string, Function[]>();
+  const handlers = new Map<string, Listener[]>();
 
   return {
     handlers,
@@ -87,7 +103,10 @@ function createMockMessage(): MockMessage {
 
 type MockInteractionOpts = {
   userId?: string;
-  guildId?: string;
+  // Explicitly nullable: `null` is a real, meaningful value here (a DM or a
+  // user-installed context), distinct from "the test did not care". Collapsing
+  // the two with `??` made a DM impossible to simulate.
+  guildId?: string | null;
   client: MockClient;
 };
 
@@ -103,7 +122,7 @@ export function createMockChatInputCommand(
 
   const interaction = {
     user: { id: opts.userId ?? 'user-1' },
-    guildId: opts.guildId ?? 'guild-1',
+    guildId: opts.guildId === undefined ? 'guild-1' : opts.guildId,
     channelId: 'channel-1',
     client: opts.client,
     replied: false,
@@ -174,7 +193,7 @@ export function createMockButton(
 
   const interaction = {
     user: { id: opts.userId ?? 'user-1' },
-    guildId: opts.guildId ?? 'guild-1',
+    guildId: opts.guildId === undefined ? 'guild-1' : opts.guildId,
     channelId: 'channel-1',
     client: opts.client,
     customId: opts.customId,
@@ -184,6 +203,11 @@ export function createMockButton(
     isButton: () => true,
     isStringSelectMenu: () => false,
     isModalSubmit: () => false,
+
+    async update(data: any) {
+      interaction.replied = true;
+      opts.capture.calls.push({ method: 'update', args: data });
+    },
 
     async deferUpdate() {
       interaction.deferred = true;
@@ -219,7 +243,7 @@ export function createMockModalSubmit(
 ) {
   const interaction = {
     user: { id: opts.userId ?? 'user-1' },
-    guildId: opts.guildId ?? 'guild-1',
+    guildId: opts.guildId === undefined ? 'guild-1' : opts.guildId,
     channelId: 'channel-1',
     client: opts.client,
     customId: opts.customId,
@@ -263,7 +287,7 @@ export function createMockStringSelectMenu(
 ) {
   const interaction = {
     user: { id: opts.userId ?? 'user-1' },
-    guildId: opts.guildId ?? 'guild-1',
+    guildId: opts.guildId === undefined ? 'guild-1' : opts.guildId,
     channelId: 'channel-1',
     client: opts.client,
     customId: opts.customId,
@@ -274,6 +298,11 @@ export function createMockStringSelectMenu(
     isButton: () => false,
     isStringSelectMenu: () => true,
     isModalSubmit: () => false,
+
+    async update(data: any) {
+      interaction.replied = true;
+      opts.capture.calls.push({ method: 'update', args: data });
+    },
 
     async deferUpdate() {
       interaction.deferred = true;

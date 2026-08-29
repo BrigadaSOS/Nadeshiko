@@ -439,7 +439,12 @@ export async function executeSearch(
       cleanupModal();
       try {
         await interaction.editReply({ components: [buildLinkOnlyRow(buildSearchUrl())] });
-      } catch {}
+      } catch (err) {
+        // Routine: the interaction token expires after 15 minutes and the
+        // message may have been deleted, so the final component swap is
+        // best-effort. Debug, not error -- this fires on healthy collectors.
+        log.debug({ err }, 'Could not swap in the link-only row after the collector ended');
+      }
     });
   } catch (error) {
     const traceId = getActiveTraceId();

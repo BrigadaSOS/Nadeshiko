@@ -28,6 +28,12 @@ export function resetApiMocks() {
 // to import it before the command handlers they exercise.
 // The real module is spread back in so that pure helpers such as `parseCategory`
 // keep working; only the network-facing calls are replaced.
+type MockSpan = {
+  setStatus: () => void;
+  recordException: () => void;
+  end: () => void;
+};
+
 vi.mock('../../api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../api')>()),
   search: mockSearch,
@@ -88,7 +94,7 @@ vi.mock('../../telemetry', () => ({
     createObservableGauge: () => ({ addCallback: () => {} }),
   }),
   getTracer: () => ({
-    startActiveSpan: (_n: string, _o: unknown, fn: Function) =>
+    startActiveSpan: (_n: string, _o: unknown, fn: (span: MockSpan) => unknown) =>
       fn({ setStatus: () => {}, recordException: () => {}, end: () => {} }),
   }),
 }));
