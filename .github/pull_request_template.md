@@ -24,7 +24,8 @@ Closes #
 ## Testing
 <!-- Describe the tests you ran and how to reproduce them -->
 - [ ] I have tested these changes locally
-- [ ] I ran `bun run check` (or documented why not)
+- [ ] I ran `npm run lint`, `npm run typecheck` and `npm run test` (or documented why not)
+<!-- `./scripts/pre-push` runs the same set minus the suites that need Postgres and Elasticsearch. -->
 <!-- Paste output snippets for lint/typecheck/build below -->
 ```text
 <paste check output>

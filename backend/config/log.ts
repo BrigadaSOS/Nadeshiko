@@ -159,6 +159,41 @@ function unwrapResponse(res: PinoResponse): Partial<Response> & { statusCode: nu
   return (res.raw ?? res) as Partial<Response> & { statusCode: number };
 }
 
+const SENSITIVE_QUERY_PARAMETERS = new Set([
+  'password',
+  'token',
+  'access_token',
+  'refresh_token',
+  'api_key',
+  'apikey',
+  'email',
+  'code',
+]);
+
+/**
+ * Keep the path and non-sensitive query context useful to operators without
+ * allowing credentials embedded in a URL to escape into any log field.
+ */
+export function sanitizeRequestUrl(url: string): string;
+export function sanitizeRequestUrl(url: undefined): undefined;
+export function sanitizeRequestUrl(url: string | undefined): string | undefined;
+export function sanitizeRequestUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+
+  try {
+    const parsed = new URL(url, 'http://localhost');
+    for (const [name] of parsed.searchParams) {
+      if (SENSITIVE_QUERY_PARAMETERS.has(name.toLowerCase())) {
+        parsed.searchParams.set(name, '[Redacted]');
+      }
+    }
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    // A malformed URL must not make logging leak its unparsed query string.
+    return url.split('?', 1)[0];
+  }
+}
+
 export function buildHttpLoggerOptions(currentLogger = logger) {
   return {
     logger: currentLogger,
@@ -167,20 +202,7 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
         // pino-http wraps the request, so we need to access req.raw for the Express request
         const rawReq = unwrapRequest(req);
         const serialized = pino.stdSerializers.req(req);
-        // Strip sensitive query params from the logged URL
-        if (serialized.url) {
-          try {
-            const parsed = new URL(serialized.url, 'http://localhost');
-            for (const param of ['token', 'access_token', 'refresh_token', 'api_key', 'apiKey', 'code']) {
-              if (parsed.searchParams.has(param)) {
-                parsed.searchParams.set(param, '[Redacted]');
-              }
-            }
-            serialized.url = `${parsed.pathname}${parsed.search}`;
-          } catch {
-            // leave url as-is if parsing fails
-          }
-        }
+        serialized.url = sanitizeRequestUrl(serialized.url);
         // requestId and rawBody are attached by our own middleware; both are
         // declared on Express's Request in lib/express_ext/express.d.ts.
         const extras: { requestId?: string; body?: unknown } = {};
@@ -213,7 +235,7 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       const rawReq = unwrapRequest(req);
       const props: Record<string, unknown> = {
         'http.method': rawReq.method,
-        'http.url': rawReq.url,
+        'http.url': sanitizeRequestUrl(rawReq.url),
         'http.status_code': res.statusCode,
         'http.response_time': res.getHeader?.('x-response-time'),
       };
@@ -262,10 +284,14 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       }
       return 'info';
     },
-    customSuccessMessage: (req: PinoRequest, res: PinoResponse) =>
-      `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} completed with ${res.statusCode}`,
-    customErrorMessage: (req: PinoRequest, res: PinoResponse, error?: Error) =>
-      `${req.method || 'UNKNOWN'} ${req.url || 'UNKNOWN'} failed with ${res.statusCode} - ${error?.message}`,
+    customSuccessMessage: (req: PinoRequest, res: PinoResponse) => {
+      const rawReq = unwrapRequest(req);
+      return `${rawReq.method || 'UNKNOWN'} ${sanitizeRequestUrl(rawReq.url) || 'UNKNOWN'} completed with ${res.statusCode}`;
+    },
+    customErrorMessage: (req: PinoRequest, res: PinoResponse, error?: Error) => {
+      const rawReq = unwrapRequest(req);
+      return `${rawReq.method || 'UNKNOWN'} ${sanitizeRequestUrl(rawReq.url) || 'UNKNOWN'} failed with ${res.statusCode} - ${error?.message}`;
+    },
   };
 }
 

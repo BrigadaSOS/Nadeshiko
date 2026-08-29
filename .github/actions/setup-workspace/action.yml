@@ -1,0 +1,38 @@
+name: Set up the workspace
+description: >-
+  Node, a cached `npm ci` across every workspace, and the Linux native bindings
+  that install leaves behind. Every checks.yml job starts this way.
+
+inputs:
+  node-version:
+    description: "Node major to install"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+
+    # Mirrors frontend/Dockerfile. Two problems compound here:
+    #
+    # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
+    # which npm runs before the tree is complete -- and which needs the very
+    # binding the next step installs, so a plain `npm ci` fails inside itself.
+    #
+    # Then the bindings: npm records a package's optional deps only for the
+    # platform that resolved them (npm/cli#4828), so a lockfile generated on
+    # macOS carries no Linux entry for the napi packages (oxc-parser,
+    # rolldown, ...) and `npm ci` on this runner cannot produce one.
+    #
+    # One install at the repository root covers every workspace.
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --ignore-scripts
+
+    - name: Install Linux native bindings
+      shell: bash
+      run: node scripts/install-linux-native-bindings.mjs

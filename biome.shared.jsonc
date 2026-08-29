@@ -1,0 +1,87 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+
+  // Shared Biome settings, extended by every workspace via
+  // `"extends": ["../biome.shared.jsonc"]`. Each keeps a biome.jsonc of its own
+  // carrying only what is genuinely its own: the file list it lints, and the
+  // rules its runtime actually needs relaxed.
+  //
+  // Formatting, quoting and the recommended preset are decided once, here.
+  // Before this file existed the three copies had already drifted -- discord's
+  // was missing the `complexity` relaxations and the bin/scripts/tests override
+  // the other two carried, so it was quietly held to a different standard than
+  // the code next to it.
+  //
+  // DELIBERATELY NOT NAMED biome.json. A biome.json at the repository root turns
+  // this into a Biome "monorepo", and in that mode the root config alone decides
+  // which files are scanned -- a nested config's `files.includes` is ignored
+  // outright. Measured: a discord config narrowed to `["package.json"]` still
+  // checked 89 files, coverage/ reports included. Extending by path instead keeps
+  // each workspace the root of its own run, so its include list still means
+  // something.
+  //
+  // .jsonc, not .json, because Biome parses its config as JSONC but lints a
+  // `.json` file as strict JSON -- these comments would fail the check.
+
+  // `useIgnoreFile` resolves the ignore file next to the config that is running,
+  // not at the repository root, so every workspace extending this needs a
+  // .gitignore of its own -- Biome fails the whole run with "couldn't find an
+  // ignore file" rather than falling back.
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always",
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noExplicitAny": "off"
+      },
+      "style": {
+        "useImportType": "off",
+        "useNodejsImportProtocol": "off"
+      }
+    }
+  },
+  "assist": {
+    "enabled": false
+  },
+  "overrides": [
+    {
+      // Test files assert against fixtures they build themselves, where a
+      // non-null assertion states something about the fixture rather than
+      // claiming anything about production data.
+      "includes": ["**/*.test.ts", "**/__tests__/**", "**/test/**", "**/tests/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noImplicitAnyLet": "off",
+            "noAssignInExpressions": "off"
+          }
+        }
+      }
+    }
+  ]
+}

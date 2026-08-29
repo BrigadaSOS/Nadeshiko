@@ -26,7 +26,7 @@ on:
         default: true
         type: boolean
       sdk:
-        description: "Run the SDK package checks"
+        description: "Run the workspace package checks (packages/*)"
         required: false
         default: true
         type: boolean
@@ -54,37 +54,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
 
-      # Mirrors frontend/Dockerfile. Two problems compound here:
-      #
-      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
-      # which npm runs before the tree is complete -- and which needs the very
-      # binding the next step installs, so a plain `npm ci` fails inside itself.
-      #
-      # Then the bindings: npm records a package's optional deps only for the
-      # platform that resolved them (npm/cli#4828), so a lockfile generated on
-      # macOS carries no Linux entry for the napi packages (oxc-parser,
-      # rolldown, ...) and `npm ci` on this runner cannot produce one.
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install Linux native bindings
-        run: node scripts/install-linux-native-bindings.mjs
-
-      # Both generators are named. This step used to run only `sdk:codegen` and
-      # inherit the backend half from a preceding `npm run typecheck --workspace
-      # backend`, which happens to be `generate:api && typecheck:app` -- so
-      # narrowing that script to `typecheck:app` would have silently reduced the
-      # check to the SDK while it kept reporting a pass.
+      # The SDK spec augments the bundled API spec with better-auth endpoints.
+      # Regenerate that intermediate bundle too: otherwise `sdk:codegen` can
+      # faithfully generate types from a stale committed SDK spec and pass.
       - name: Regenerate
         run: |
           set -euo pipefail
           npm run generate:api --workspace backend
+          npm run generate:auth-spec --workspace backend
           npm run sdk:codegen
 
       - name: Check generated code is up to date
@@ -95,7 +77,7 @@ jobs:
           git add --intent-to-add -- $paths
           # shellcheck disable=SC2086
           if ! git diff --exit-code -- $paths; then
-            echo "::error::Generated code is stale. Run 'npm run generate:api --workspace backend' and 'npm run sdk:codegen', then commit the result."
+            echo "::error::Generated code is stale. Run 'npm run generate:api --workspace backend', 'npm run generate:auth-spec --workspace backend', and 'npm run sdk:codegen', then commit the result."
             exit 1
           fi
 
@@ -150,28 +132,10 @@ jobs:
             --env ES_JAVA_OPTS="-Xms512m -Xmx512m" \
             "$ELASTICSEARCH_IMAGE"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      # One install at the repository root covers every workspace.
-      # Mirrors frontend/Dockerfile. Two problems compound here:
-      #
-      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
-      # which npm runs before the tree is complete -- and which needs the very
-      # binding the next step installs, so a plain `npm ci` fails inside itself.
-      #
-      # Then the bindings: npm records a package's optional deps only for the
-      # platform that resolved them (npm/cli#4828), so a lockfile generated on
-      # macOS carries no Linux entry for the napi packages (oxc-parser,
-      # rolldown, ...) and `npm ci` on this runner cannot produce one.
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install Linux native bindings
-        run: node scripts/install-linux-native-bindings.mjs
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -187,8 +151,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # The full `lint`, not `lint:code`: it is Biome plus `redocly lint` over
+      # docs/openapi/openapi.yaml. Running only the Biome half here left the
+      # spec linted on contributors' machines and nowhere else.
       - name: Lint
-        run: npm run lint:code --workspace backend
+        run: npm run lint --workspace backend
 
       - name: Typecheck
         run: npm run typecheck --workspace backend
@@ -228,7 +195,7 @@ jobs:
         run: npm run test:setup --workspace backend
 
       - name: Test
-        run: npm run test --workspace backend
+        run: npm run test:coverage --workspace backend
 
       - name: Stop test Elasticsearch
         if: always()
@@ -242,27 +209,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      # Mirrors frontend/Dockerfile. Two problems compound here:
-      #
-      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
-      # which npm runs before the tree is complete -- and which needs the very
-      # binding the next step installs, so a plain `npm ci` fails inside itself.
-      #
-      # Then the bindings: npm records a package's optional deps only for the
-      # platform that resolved them (npm/cli#4828), so a lockfile generated on
-      # macOS carries no Linux entry for the napi packages (oxc-parser,
-      # rolldown, ...) and `npm ci` on this runner cannot produce one.
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install Linux native bindings
-        run: node scripts/install-linux-native-bindings.mjs
 
       # `--ignore-scripts` above skipped the postinstall that normally does this.
       # vue-tsc reads Nuxt's generated types (auto-imports, components.d.ts, the
@@ -272,20 +222,20 @@ jobs:
         run: npx nuxi prepare
         working-directory: frontend
 
+      # Biome plus `lint:i18n`, the locale-parity check -- cheap, and the only
+      # thing standing between three locales and silent drift: a key added to
+      # en.json alone renders as its own dotted path on /es and /ja. It used to
+      # be a step of its own here, which meant it ran in CI and nowhere else;
+      # folding it into the workspace's own `lint` is what makes a contributor
+      # running `npm run lint` see the same failure.
       - name: Lint
         run: npm run lint --workspace frontend
 
       - name: Typecheck
         run: npm run typecheck --workspace frontend
 
-      # Cheap, and the only thing standing between three locales and silent
-      # drift: a key added to en.json alone renders as its own dotted path on
-      # /es and /ja. Parity held by hand until now, which is not a guarantee.
-      - name: Locale parity
-        run: npm run i18n:check --workspace frontend
-
       - name: Test
-        run: npm run test --workspace frontend
+        run: npm run test:coverage --workspace frontend
 
   discord:
     if: inputs.discord
@@ -295,27 +245,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      # Mirrors frontend/Dockerfile. Two problems compound here:
-      #
-      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
-      # which npm runs before the tree is complete -- and which needs the very
-      # binding the next step installs, so a plain `npm ci` fails inside itself.
-      #
-      # Then the bindings: npm records a package's optional deps only for the
-      # platform that resolved them (npm/cli#4828), so a lockfile generated on
-      # macOS carries no Linux entry for the napi packages (oxc-parser,
-      # rolldown, ...) and `npm ci` on this runner cannot produce one.
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install Linux native bindings
-        run: node scripts/install-linux-native-bindings.mjs
 
       - name: Lint
         run: npm run lint --workspace discord
@@ -324,8 +257,11 @@ jobs:
         run: npm run typecheck --workspace discord
 
       - name: Test
-        run: npm run test --workspace discord
+        run: npm run test:coverage --workspace discord
 
+  # Both workspace packages. Ungated in practice (the input defaults to true),
+  # which is right: @brigadasos/nadeshiko-shared is imported by the backend and
+  # the frontend at runtime, so it is never only a package's own problem.
   sdk:
     if: inputs.sdk
     runs-on: ubuntu-latest
@@ -334,33 +270,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      # Mirrors frontend/Dockerfile. Two problems compound here:
-      #
-      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
-      # which npm runs before the tree is complete -- and which needs the very
-      # binding the next step installs, so a plain `npm ci` fails inside itself.
-      #
-      # Then the bindings: npm records a package's optional deps only for the
-      # platform that resolved them (npm/cli#4828), so a lockfile generated on
-      # macOS carries no Linux entry for the napi packages (oxc-parser,
-      # rolldown, ...) and `npm ci` on this runner cannot produce one.
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install Linux native bindings
-        run: node scripts/install-linux-native-bindings.mjs
 
       - name: Typecheck
-        run: npm run typecheck --workspace @brigadasos/nadeshiko-sdk
+        run: |
+          set -euo pipefail
+          npm run typecheck --workspace @brigadasos/nadeshiko-sdk
+          npm run typecheck --workspace @brigadasos/nadeshiko-shared
 
       - name: Test
-        run: npm run test --workspace @brigadasos/nadeshiko-sdk
+        run: |
+          set -euo pipefail
+          npm run test --workspace @brigadasos/nadeshiko-sdk
+          npm run test --workspace @brigadasos/nadeshiko-shared
 
 
   seed-worker:
@@ -371,27 +296,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      # Mirrors frontend/Dockerfile. Two problems compound here:
-      #
-      # `--ignore-scripts` because the frontend's postinstall is `nuxt prepare`,
-      # which npm runs before the tree is complete -- and which needs the very
-      # binding the next step installs, so a plain `npm ci` fails inside itself.
-      #
-      # Then the bindings: npm records a package's optional deps only for the
-      # platform that resolved them (npm/cli#4828), so a lockfile generated on
-      # macOS carries no Linux entry for the napi packages (oxc-parser,
-      # rolldown, ...) and `npm ci` on this runner cannot produce one.
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install Linux native bindings
-        run: node scripts/install-linux-native-bindings.mjs
 
       - name: Typecheck
         run: npm run typecheck --workspace nadeshiko-seed-worker

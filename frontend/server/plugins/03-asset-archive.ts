@@ -30,7 +30,6 @@
  * first.
  */
 
-import cluster from 'node:cluster';
 import { constants, createReadStream } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, rmdir, stat, utimes, unlink } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -107,18 +106,11 @@ export default defineNitroPlugin(async (nitroApp) => {
     'asset archive: serving superseded builds',
   );
 
-  // Under the cluster preset every worker runs this plugin, and every worker
-  // must install the handler above -- but only one of them should write. Two
-  // publish passes over the same directory race each other on the expiry
-  // sweep (one unlinks what the other is about to stat) and log a failure for
-  // an archive that is, in fact, fine. The first worker is as good a choice as
-  // any; a single process (staging, dev) is not a worker at all and publishes
-  // as it always did.
-  if (cluster.isWorker && cluster.worker?.id !== 1) return;
-
   // Deliberately not awaited. Nothing in the request path needs it: a reader on
   // the current build is served by Nitro, and a reader on a previous one is
-  // served by files a previous container already wrote.
+  // served by files a previous container already wrote. Every cluster worker
+  // publishes: worker IDs are not reused after a replacement, while `publish`
+  // is deliberately idempotent and tolerates sibling filesystem races.
   void publish(assetArchiveDir, sourceDir, liveAssets, retentionMs).catch((error: unknown) => {
     logger.error({ err: error }, 'asset archive: publishing the running build failed');
   });
@@ -156,7 +148,17 @@ function install(
     return false;
   }
 
-  stack.unshift(stack.pop());
+  // Move exactly the layer `use()` just normalised. Do not use `pop()` here:
+  // it would move an unrelated layer if a future `use()` wrapper appends more
+  // than one layer. `stack` is H3's documented App surface, and preserving all
+  // existing layer order is critical because Nitro's static handler otherwise
+  // terminates missing `/_nuxt/` requests before this handler can see them.
+  const [layer] = stack.splice(before, 1);
+  if (!layer) {
+    logger.error('asset archive: could not identify its request handler, staying off');
+    return false;
+  }
+  stack.unshift(layer);
 
   return true;
 }

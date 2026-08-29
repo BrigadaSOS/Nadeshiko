@@ -11,7 +11,8 @@ set -euo pipefail
 #   --output      where to write the dump (default: infra/seed-worker/seed.dump)
 #
 # Requires SSH access to the `nadeshiko` host over Tailscale. Uploading also
-# requires wrangler plus CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID.
+# requires CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID and the repo's pinned
+# wrangler, so run `npm ci` at the repository root first.
 #
 # ---------------------------------------------------------------------------
 # The seed is downloadable by anyone holding SEED_TOKEN, and it is built from the
@@ -25,23 +26,21 @@ set -euo pipefail
 # table below is a deliberate act — check what is in it first.
 #
 # SegmentRevision is deliberately absent: it carries a user_id foreign key, so it
-# would either dangle or drag User in.
+# would either dangle or drag User in. WordFrequency is absent too — it is not
+# production content but a ranked list built locally by
+# backend/scripts/seed-word-frequency.ts.
 #
 # This list mirrors SEED_CONTENT_TABLES in backend/bin/setup.ts, which is the
 # consumer: it restores data-only with its own -t allowlist. Dumping a table that
-# side does not restore just makes the download bigger. Change both together.
+# side does not restore just makes the download bigger. Change both together,
+# and keep the two in the same order so a mismatch is visible at a glance.
 # ---------------------------------------------------------------------------
 
 TABLES=(
-  Series
   Media
-  SeriesMedia
-  MediaExternalId
   Episode
   Segment
-  Character
-  MediaCharacter
-  Seiyuu
+  MediaExternalId
 )
 
 remote=${REMOTE_HOST:-nadeshiko}
@@ -130,7 +129,18 @@ fi
 
 echo "→ Uploading to r2://${bucket}/${object}"
 cd "${repo_root}/infra/seed-worker"
-bunx wrangler r2 object put "${bucket}/${object}" --file "$output" --remote
+
+# Run the wrangler pinned in infra/seed-worker's devDependencies rather than
+# resolving one over the network: a fetched wrangler is an unpinned version
+# uploading to a production bucket. npm workspaces hoist the binary to the root
+# node_modules, so look there first and fall back to the workspace's own.
+export PATH="${repo_root}/node_modules/.bin:${repo_root}/infra/seed-worker/node_modules/.bin:${PATH}"
+if ! command -v wrangler >/dev/null 2>&1; then
+  echo "error: wrangler not found. Run 'npm ci' at the repository root first." >&2
+  exit 1
+fi
+
+wrangler r2 object put "${bucket}/${object}" --file "$output" --remote
 
 echo
 echo "Done. Contributors get the new dump on their next seed download."
