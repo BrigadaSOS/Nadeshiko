@@ -1,0 +1,8 @@
+summary: Service Overloaded
+value:
+  code: SERVICE_OVERLOADED
+  title: Service Overloaded
+  detail: The service is busy. Please retry in a moment.
+  type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+  instance: trace-id-placeholder
+  status: 503

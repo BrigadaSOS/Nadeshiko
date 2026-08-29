@@ -2,892 +2,1018 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from "@nahkies/typescript-express-runtime/errors";
 import {
-  type ExpressRuntimeResponder,
-  ExpressRuntimeResponse,
-  handleImplementationError,
-  handleResponse,
-  type Params,
-  type SkipResponse,
-  type StatusCode,
-} from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
-import { z } from 'zod/v4';
+	type ExpressRuntimeResponder,
+	ExpressRuntimeResponse,
+	handleImplementationError,
+	handleResponse,
+	type Params,
+	type SkipResponse,
+	type StatusCode,
+} from "@nahkies/typescript-express-runtime/server";
+import {
+	parseRequestInput,
+	responseValidationFactory,
+} from "@nahkies/typescript-express-runtime/zod-v4";
+import {
+	type NextFunction,
+	type Request,
+	type RequestHandler,
+	type Response,
+	Router,
+} from "express";
+import { z } from "zod/v4";
 import type {
-  t_AddSegmentToCollectionParamSchema,
-  t_AddSegmentToCollectionRequest,
-  t_Collection,
-  t_CollectionCreateRequest,
-  t_CollectionListResponse,
-  t_CollectionUpdateRequest,
-  t_DeleteCollectionParamSchema,
-  t_Error400,
-  t_Error401,
-  t_Error403,
-  t_Error404,
-  t_Error429,
-  t_Error500,
-  t_GetCollectionParamSchema,
-  t_GetCollectionStatsParamSchema,
-  t_ListCollectionsQuerySchema,
-  t_RemoveSegmentFromCollectionParamSchema,
-  t_SearchCollectionSegmentsParamSchema,
-  t_SearchRequest,
-  t_SearchResponse,
-  t_SearchStatsResponse,
-  t_UpdateCollectionParamSchema,
-  t_UpdateCollectionSegmentParamSchema,
-  t_UpdateCollectionSegmentRequest,
-} from '../models.ts';
+	t_AddSegmentToCollectionParamSchema,
+	t_AddSegmentToCollectionRequest,
+	t_Collection,
+	t_CollectionCreateRequest,
+	t_CollectionListResponse,
+	t_CollectionUpdateRequest,
+	t_DeleteCollectionParamSchema,
+	t_Error400,
+	t_Error401,
+	t_Error403,
+	t_Error404,
+	t_Error429,
+	t_Error500,
+	t_GetCollectionParamSchema,
+	t_GetCollectionStatsParamSchema,
+	t_ListCollectionsQuerySchema,
+	t_RemoveSegmentFromCollectionParamSchema,
+	t_SearchCollectionSegmentsParamSchema,
+	t_SearchRequest,
+	t_SearchResponse,
+	t_SearchStatsResponse,
+	t_UpdateCollectionParamSchema,
+	t_UpdateCollectionSegmentParamSchema,
+	t_UpdateCollectionSegmentRequest,
+} from "../models.ts";
 import type { AddSegmentToCollectionRequestOutput, CollectionCreateRequestOutput, CollectionUpdateRequestOutput, ListCollectionsQueryOutput, SearchRequestOutput, UpdateCollectionSegmentRequestOutput } from '../outputTypes.ts';
 import {
-  s_AddSegmentToCollectionRequest,
-  s_Collection,
-  s_CollectionCreateRequest,
-  s_CollectionListResponse,
-  s_CollectionUpdateRequest,
-  s_CollectionVisibility,
-  s_Error400,
-  s_Error401,
-  s_Error403,
-  s_Error404,
-  s_Error429,
-  s_Error500,
-  s_SearchRequest,
-  s_SearchResponse,
-  s_SearchStatsResponse,
-  s_UpdateCollectionSegmentRequest,
-} from '../schemas.ts';
+	s_AddSegmentToCollectionRequest,
+	s_Collection,
+	s_CollectionCreateRequest,
+	s_CollectionListResponse,
+	s_CollectionUpdateRequest,
+	s_CollectionVisibility,
+	s_Error400,
+	s_Error401,
+	s_Error403,
+	s_Error404,
+	s_Error429,
+	s_Error500,
+	s_SearchRequest,
+	s_SearchResponse,
+	s_SearchStatsResponse,
+	s_UpdateCollectionSegmentRequest,
+} from "../schemas.ts";
 
 export type ListCollectionsResponder = {
-  with200(): ExpressRuntimeResponse<t_CollectionListResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_CollectionListResponse>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListCollections = (
-  params: Params<void, ListCollectionsQueryOutput, void, void>,
-  respond: ListCollectionsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, ListCollectionsQueryOutput, void, void>,
+	respond: ListCollectionsResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type CreateCollectionResponder = {
-  with201(): ExpressRuntimeResponse<t_Collection>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with201(): ExpressRuntimeResponse<t_Collection>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type CreateCollection = (
-  params: Params<void, void, CollectionCreateRequestOutput, void>,
-  respond: CreateCollectionResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, void, CollectionCreateRequestOutput, void>,
+	respond: CreateCollectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetCollectionResponder = {
-  with200(): ExpressRuntimeResponse<t_Collection>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_Collection>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type GetCollection = (
-  params: Params<t_GetCollectionParamSchema, void, void, void>,
-  respond: GetCollectionResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<t_GetCollectionParamSchema, void, void, void>,
+	respond: GetCollectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UpdateCollectionResponder = {
-  with200(): ExpressRuntimeResponse<t_Collection>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_Collection>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type UpdateCollection = (
-  params: Params<t_UpdateCollectionParamSchema, void, CollectionUpdateRequestOutput, void>,
-  respond: UpdateCollectionResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<
+		t_UpdateCollectionParamSchema,
+		void,
+		CollectionUpdateRequestOutput,
+		void
+	>,
+	respond: UpdateCollectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type DeleteCollectionResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with204(): ExpressRuntimeResponse<void>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type DeleteCollection = (
-  params: Params<t_DeleteCollectionParamSchema, void, void, void>,
-  respond: DeleteCollectionResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<t_DeleteCollectionParamSchema, void, void, void>,
+	respond: DeleteCollectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type AddSegmentToCollectionResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with204(): ExpressRuntimeResponse<void>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type AddSegmentToCollection = (
-  params: Params<t_AddSegmentToCollectionParamSchema, void, AddSegmentToCollectionRequestOutput, void>,
-  respond: AddSegmentToCollectionResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<
+		t_AddSegmentToCollectionParamSchema,
+		void,
+		AddSegmentToCollectionRequestOutput,
+		void
+	>,
+	respond: AddSegmentToCollectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type SearchCollectionSegmentsResponder = {
-  with200(): ExpressRuntimeResponse<t_SearchResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_SearchResponse>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type SearchCollectionSegments = (
-  params: Params<t_SearchCollectionSegmentsParamSchema, void, SearchRequestOutput, void>,
-  respond: SearchCollectionSegmentsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<
+		t_SearchCollectionSegmentsParamSchema,
+		void,
+		SearchRequestOutput,
+		void
+	>,
+	respond: SearchCollectionSegmentsResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UpdateCollectionSegmentResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with204(): ExpressRuntimeResponse<void>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type UpdateCollectionSegment = (
-  params: Params<t_UpdateCollectionSegmentParamSchema, void, UpdateCollectionSegmentRequestOutput, void>,
-  respond: UpdateCollectionSegmentResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<
+		t_UpdateCollectionSegmentParamSchema,
+		void,
+		UpdateCollectionSegmentRequestOutput,
+		void
+	>,
+	respond: UpdateCollectionSegmentResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type RemoveSegmentFromCollectionResponder = {
-  with204(): ExpressRuntimeResponse<void>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with204(): ExpressRuntimeResponse<void>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type RemoveSegmentFromCollection = (
-  params: Params<t_RemoveSegmentFromCollectionParamSchema, void, void, void>,
-  respond: RemoveSegmentFromCollectionResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<t_RemoveSegmentFromCollectionParamSchema, void, void, void>,
+	respond: RemoveSegmentFromCollectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetCollectionStatsResponder = {
-  with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with404(): ExpressRuntimeResponse<t_Error404>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_SearchStatsResponse>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type GetCollectionStats = (
-  params: Params<t_GetCollectionStatsParamSchema, void, void, void>,
-  respond: GetCollectionStatsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<t_GetCollectionStatsParamSchema, void, void, void>,
+	respond: GetCollectionStatsResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type CollectionsImplementation = {
-  listCollections: ListCollections;
-  createCollection: CreateCollection;
-  getCollection: GetCollection;
-  updateCollection: UpdateCollection;
-  deleteCollection: DeleteCollection;
-  addSegmentToCollection: AddSegmentToCollection;
-  searchCollectionSegments: SearchCollectionSegments;
-  updateCollectionSegment: UpdateCollectionSegment;
-  removeSegmentFromCollection: RemoveSegmentFromCollection;
-  getCollectionStats: GetCollectionStats;
+	listCollections: ListCollections;
+	createCollection: CreateCollection;
+	getCollection: GetCollection;
+	updateCollection: UpdateCollection;
+	deleteCollection: DeleteCollection;
+	addSegmentToCollection: AddSegmentToCollection;
+	searchCollectionSegments: SearchCollectionSegments;
+	updateCollectionSegment: UpdateCollectionSegment;
+	removeSegmentFromCollection: RemoveSegmentFromCollection;
+	getCollectionStats: GetCollectionStats;
 };
 
 export function createCollectionsRouter(
-  implementation: CollectionsImplementation,
-  options: { middleware?: RequestHandler[] } = {},
+	implementation: CollectionsImplementation,
+	options: { middleware?: RequestHandler[] } = {},
 ): Router {
-  const router = Router();
+	const router = Router();
 
-  if (options.middleware?.length) {
-    router.use(...options.middleware);
-  }
+	if (options.middleware?.length) {
+		router.use(...options.middleware);
+	}
 
-  const listCollectionsQuerySchema = z.object({
-    visibility: s_CollectionVisibility.optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
+	const listCollectionsQuerySchema = z.object({
+		visibility: s_CollectionVisibility.optional(),
+		cursor: z.string().optional(),
+		take: z.coerce.number().min(1).max(100).optional().default(20),
+	});
 
-  const listCollectionsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_CollectionListResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const listCollectionsResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_CollectionListResponse],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // listCollections
-  router.get(`/v1/collections`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(listCollectionsQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// listCollections
+	router.get(
+		`/v1/collections`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						listCollectionsQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_CollectionListResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_CollectionListResponse>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .listCollections(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, listCollectionsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.listCollections(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, listCollectionsResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const createCollectionResponseBodyValidator = responseValidationFactory(
-    [
-      ['201', s_Collection],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const createCollectionResponseBodyValidator = responseValidationFactory(
+		[
+			["201", s_Collection],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // createCollection
-  router.post(`/v1/collections`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(s_CollectionCreateRequest, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+	// createCollection
+	router.post(
+		`/v1/collections`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: parseRequestInput(
+						s_CollectionCreateRequest,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-      const responder = {
-        with201() {
-          return new ExpressRuntimeResponse<t_Collection>(201);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with201() {
+						return new ExpressRuntimeResponse<t_Collection>(201);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .createCollection(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, createCollectionResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.createCollection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, createCollectionResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const getCollectionParamSchema = z.object({
-    collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  });
+	const getCollectionParamSchema = z.object({
+		collectionPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+	});
 
-  const getCollectionResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Collection],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const getCollectionResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_Collection],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["404", s_Error404],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // getCollection
-  router.get(`/v1/collections/:collectionPublicId`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(getCollectionParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+	// getCollection
+	router.get(
+		`/v1/collections/:collectionPublicId`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						getCollectionParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_Collection>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_Collection>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getCollection(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getCollectionResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getCollection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, getCollectionResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const updateCollectionParamSchema = z.object({ collectionPublicId: z.string() });
+	const updateCollectionParamSchema = z.object({
+		collectionPublicId: z.string(),
+	});
 
-  const updateCollectionResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_Collection],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const updateCollectionResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_Collection],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["404", s_Error404],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // updateCollection
-  router.patch(`/v1/collections/:collectionPublicId`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(updateCollectionParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: parseRequestInput(s_CollectionUpdateRequest, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+	// updateCollection
+	router.patch(
+		`/v1/collections/:collectionPublicId`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						updateCollectionParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: parseRequestInput(
+						s_CollectionUpdateRequest,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_Collection>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_Collection>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .updateCollection(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, updateCollectionResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.updateCollection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, updateCollectionResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const deleteCollectionParamSchema = z.object({ collectionPublicId: z.string() });
+	const deleteCollectionParamSchema = z.object({
+		collectionPublicId: z.string(),
+	});
 
-  const deleteCollectionResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const deleteCollectionResponseBodyValidator = responseValidationFactory(
+		[
+			["204", z.undefined()],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["404", s_Error404],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // deleteCollection
-  router.delete(`/v1/collections/:collectionPublicId`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(deleteCollectionParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+	// deleteCollection
+	router.delete(
+		`/v1/collections/:collectionPublicId`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						deleteCollectionParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with204() {
-          return new ExpressRuntimeResponse<void>(204);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with204() {
+						return new ExpressRuntimeResponse<void>(204);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .deleteCollection(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, deleteCollectionResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.deleteCollection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, deleteCollectionResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const addSegmentToCollectionParamSchema = z.object({
-    collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  });
+	const addSegmentToCollectionParamSchema = z.object({
+		collectionPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+	});
 
-  const addSegmentToCollectionResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const addSegmentToCollectionResponseBodyValidator = responseValidationFactory(
+		[
+			["204", z.undefined()],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["404", s_Error404],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // addSegmentToCollection
-  router.post(
-    `/v1/collections/:collectionPublicId/segments`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(addSegmentToCollectionParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: parseRequestInput(s_AddSegmentToCollectionRequest, req.body, RequestInputType.RequestBody),
-          headers: undefined,
-        };
+	// addSegmentToCollection
+	router.post(
+		`/v1/collections/:collectionPublicId/segments`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						addSegmentToCollectionParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: parseRequestInput(
+						s_AddSegmentToCollectionRequest,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-        const responder = {
-          with204() {
-            return new ExpressRuntimeResponse<void>(204);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
+				const responder = {
+					with204() {
+						return new ExpressRuntimeResponse<void>(204);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-        await implementation
-          .addSegmentToCollection(input, responder, req, res, next)
-          .catch(handleImplementationError)
-          .then(handleResponse(res, addSegmentToCollectionResponseBodyValidator));
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
+				await implementation
+					.addSegmentToCollection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, addSegmentToCollectionResponseBodyValidator),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const searchCollectionSegmentsParamSchema = z.object({
-    collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  });
+	const searchCollectionSegmentsParamSchema = z.object({
+		collectionPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+	});
 
-  const searchCollectionSegmentsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_SearchResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const searchCollectionSegmentsResponseBodyValidator =
+		responseValidationFactory(
+			[
+				["200", s_SearchResponse],
+				["400", s_Error400],
+				["401", s_Error401],
+				["403", s_Error403],
+				["404", s_Error404],
+				["429", s_Error429],
+				["500", s_Error500],
+			],
+			undefined,
+		);
 
-  // searchCollectionSegments
-  router.post(`/v1/collections/:collectionPublicId/search`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(searchCollectionSegmentsParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: parseRequestInput(s_SearchRequest, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+	// searchCollectionSegments
+	router.post(
+		`/v1/collections/:collectionPublicId/search`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						searchCollectionSegmentsParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: parseRequestInput(
+						s_SearchRequest,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_SearchResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_SearchResponse>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .searchCollectionSegments(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, searchCollectionSegmentsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.searchCollectionSegments(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, searchCollectionSegmentsResponseBodyValidator),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const updateCollectionSegmentParamSchema = z.object({
-    collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-    segmentPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  });
+	const updateCollectionSegmentParamSchema = z.object({
+		collectionPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+		segmentPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+	});
 
-  const updateCollectionSegmentResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const updateCollectionSegmentResponseBodyValidator =
+		responseValidationFactory(
+			[
+				["204", z.undefined()],
+				["400", s_Error400],
+				["401", s_Error401],
+				["403", s_Error403],
+				["404", s_Error404],
+				["429", s_Error429],
+				["500", s_Error500],
+			],
+			undefined,
+		);
 
-  // updateCollectionSegment
-  router.patch(
-    `/v1/collections/:collectionPublicId/segments/:segmentPublicId`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(updateCollectionSegmentParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: parseRequestInput(s_UpdateCollectionSegmentRequest, req.body, RequestInputType.RequestBody),
-          headers: undefined,
-        };
+	// updateCollectionSegment
+	router.patch(
+		`/v1/collections/:collectionPublicId/segments/:segmentPublicId`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						updateCollectionSegmentParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: parseRequestInput(
+						s_UpdateCollectionSegmentRequest,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-        const responder = {
-          with204() {
-            return new ExpressRuntimeResponse<void>(204);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
+				const responder = {
+					with204() {
+						return new ExpressRuntimeResponse<void>(204);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-        await implementation
-          .updateCollectionSegment(input, responder, req, res, next)
-          .catch(handleImplementationError)
-          .then(handleResponse(res, updateCollectionSegmentResponseBodyValidator));
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
+				await implementation
+					.updateCollectionSegment(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, updateCollectionSegmentResponseBodyValidator),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const removeSegmentFromCollectionParamSchema = z.object({
-    collectionPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-    segmentPublicId: z.string().regex(new RegExp('^[A-Za-z0-9_-]{12}$')),
-  });
+	const removeSegmentFromCollectionParamSchema = z.object({
+		collectionPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+		segmentPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
+	});
 
-  const removeSegmentFromCollectionResponseBodyValidator = responseValidationFactory(
-    [
-      ['204', z.undefined()],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const removeSegmentFromCollectionResponseBodyValidator =
+		responseValidationFactory(
+			[
+				["204", z.undefined()],
+				["400", s_Error400],
+				["401", s_Error401],
+				["403", s_Error403],
+				["404", s_Error404],
+				["429", s_Error429],
+				["500", s_Error500],
+			],
+			undefined,
+		);
 
-  // removeSegmentFromCollection
-  router.delete(
-    `/v1/collections/:collectionPublicId/segments/:segmentPublicId`,
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const input = {
-          params: parseRequestInput(removeSegmentFromCollectionParamSchema, req.params, RequestInputType.RouteParam),
-          query: undefined,
-          body: undefined,
-          headers: undefined,
-        };
+	// removeSegmentFromCollection
+	router.delete(
+		`/v1/collections/:collectionPublicId/segments/:segmentPublicId`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						removeSegmentFromCollectionParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
 
-        const responder = {
-          with204() {
-            return new ExpressRuntimeResponse<void>(204);
-          },
-          with400() {
-            return new ExpressRuntimeResponse<t_Error400>(400);
-          },
-          with401() {
-            return new ExpressRuntimeResponse<t_Error401>(401);
-          },
-          with403() {
-            return new ExpressRuntimeResponse<t_Error403>(403);
-          },
-          with404() {
-            return new ExpressRuntimeResponse<t_Error404>(404);
-          },
-          with429() {
-            return new ExpressRuntimeResponse<t_Error429>(429);
-          },
-          with500() {
-            return new ExpressRuntimeResponse<t_Error500>(500);
-          },
-          withStatus(status: StatusCode) {
-            return new ExpressRuntimeResponse(status);
-          },
-        };
+				const responder = {
+					with204() {
+						return new ExpressRuntimeResponse<void>(204);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-        await implementation
-          .removeSegmentFromCollection(input, responder, req, res, next)
-          .catch(handleImplementationError)
-          .then(handleResponse(res, removeSegmentFromCollectionResponseBodyValidator));
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
+				await implementation
+					.removeSegmentFromCollection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(
+							res,
+							removeSegmentFromCollectionResponseBodyValidator,
+						),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const getCollectionStatsParamSchema = z.object({ collectionPublicId: z.string() });
+	const getCollectionStatsParamSchema = z.object({
+		collectionPublicId: z.string(),
+	});
 
-  const getCollectionStatsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_SearchStatsResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['404', s_Error404],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const getCollectionStatsResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_SearchStatsResponse],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["404", s_Error404],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // getCollectionStats
-  router.get(`/v1/collections/:collectionPublicId/stats`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: parseRequestInput(getCollectionStatsParamSchema, req.params, RequestInputType.RouteParam),
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+	// getCollectionStats
+	router.get(
+		`/v1/collections/:collectionPublicId/stats`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						getCollectionStatsParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_SearchStatsResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with404() {
-          return new ExpressRuntimeResponse<t_Error404>(404);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_SearchStatsResponse>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getCollectionStats(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getCollectionStatsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getCollectionStats(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, getCollectionStatsResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  return router;
+	return router;
 }
 
 export { createCollectionsRouter as createRouter };

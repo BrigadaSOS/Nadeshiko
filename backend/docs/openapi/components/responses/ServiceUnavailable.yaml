@@ -1,0 +1,17 @@
+description: >-
+  Service Unavailable. The server is already running as many requests of this kind as it can and refused this one
+  rather than queue it. Nothing about the caller was counted -- this is not a rate limit -- so there is no budget to
+  stay inside; wait the number of seconds in the `Retry-After` header and send the same request again.
+headers:
+  Retry-After:
+    description: Seconds to wait before retrying.
+    schema:
+      type: integer
+      minimum: 1
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/Error503.yaml"
+    examples:
+      ServiceOverloaded:
+        $ref: "../examples/ServiceOverloaded.yaml"

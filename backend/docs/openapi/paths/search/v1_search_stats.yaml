@@ -37,3 +37,5 @@ post:
       $ref: "../../components/responses/TooManyRequests.yaml"
     "500":
       $ref: "../../components/responses/InternalServerError.yaml"
+    "503":
+      $ref: "../../components/responses/ServiceUnavailable.yaml"

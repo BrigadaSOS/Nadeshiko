@@ -90,8 +90,17 @@ describe('where a click is allowed to land', () => {
     expect(url.startsWith(`${config.BASE_URL}${EMAIL_LINK_PATH}?`)).toBe(true);
     expect(url).toContain('to=%2Fmedia%2Ffrieren');
     expect(url).toContain('c=title-1');
-    // The account is sealed, never spelled out.
-    expect(url).not.toContain('42');
+
+    // The account is sealed, never spelled out. Asserted over the readable
+    // surface only -- everything but `t`. `t` is ciphertext, so a chance '42'
+    // inside its base64 is not a leak, and asserting over the whole URL failed
+    // on 2.33% of runs (measured over 200k tokens): roughly one full backend
+    // suite in forty, for a reason that looks nothing like randomness.
+    const parsed = new URL(url);
+    const sealed = parsed.searchParams.get('t');
+    expect(sealed).toBeTruthy();
+    parsed.searchParams.delete('t');
+    expect(`${parsed.pathname}?${parsed.searchParams}`).not.toContain('42');
   });
 
   it('marks a destination so the frontend skips analytics', () => {

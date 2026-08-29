@@ -2,268 +2,325 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from "@nahkies/typescript-express-runtime/errors";
 import {
-  type ExpressRuntimeResponder,
-  ExpressRuntimeResponse,
-  handleImplementationError,
-  handleResponse,
-  type Params,
-  type SkipResponse,
-  type StatusCode,
-} from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
-import { z } from 'zod/v4';
+	type ExpressRuntimeResponder,
+	ExpressRuntimeResponse,
+	handleImplementationError,
+	handleResponse,
+	type Params,
+	type SkipResponse,
+	type StatusCode,
+} from "@nahkies/typescript-express-runtime/server";
+import {
+	parseRequestInput,
+	responseValidationFactory,
+} from "@nahkies/typescript-express-runtime/zod-v4";
+import {
+	type NextFunction,
+	type Request,
+	type RequestHandler,
+	type Response,
+	Router,
+} from "express";
+import { z } from "zod/v4";
 import type {
-  t_Error400,
-  t_Error429,
-  t_Error500,
-  t_GetEmailPreferencesByTokenQuerySchema,
-  t_UnsubscribeFromEmailQuerySchema,
-  t_UnsubscribeReceipt,
-  t_UpdateEmailPreferencesByTokenRequestBody,
-} from '../models.ts';
+	t_Error400,
+	t_Error429,
+	t_Error500,
+	t_GetEmailPreferencesByTokenQuerySchema,
+	t_UnsubscribeFromEmailQuerySchema,
+	t_UnsubscribeReceipt,
+	t_UpdateEmailPreferencesByTokenRequestBody,
+} from "../models.ts";
 import type { GetEmailPreferencesByTokenQueryOutput, UnsubscribeFromEmailQueryOutput, UpdateEmailPreferencesByTokenRequestBodyOutput } from '../outputTypes.ts';
 import {
-  PermissiveBoolean,
-  s_Error400,
-  s_Error429,
-  s_Error500,
-  s_UnsubscribeReceipt,
-  s_UpdateEmailPreferencesByTokenRequestBody,
-} from '../schemas.ts';
+	PermissiveBoolean,
+	s_Error400,
+	s_Error429,
+	s_Error500,
+	s_UnsubscribeReceipt,
+	s_UpdateEmailPreferencesByTokenRequestBody,
+} from "../schemas.ts";
 
 export type UnsubscribeFromEmailResponder = {
-  with200(): ExpressRuntimeResponse<t_UnsubscribeReceipt>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_UnsubscribeReceipt>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type UnsubscribeFromEmail = (
-  params: Params<void, UnsubscribeFromEmailQueryOutput, void, void>,
-  respond: UnsubscribeFromEmailResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, UnsubscribeFromEmailQueryOutput, void, void>,
+	respond: UnsubscribeFromEmailResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetEmailPreferencesByTokenResponder = {
-  with200(): ExpressRuntimeResponse<{
-    categories: {
-      checkins: boolean;
-      recap: boolean;
-      updates: boolean;
-    };
-    category?: 'recap' | 'checkins' | 'updates' | null;
-    enabled: boolean;
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
+	with200(): ExpressRuntimeResponse<{
+		categories: {
+			checkins: boolean;
+			recap: boolean;
+			updates: boolean;
+		};
+		category?: "recap" | "checkins" | "updates" | null;
+		enabled: boolean;
+	}>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
 } & ExpressRuntimeResponder;
 
 export type GetEmailPreferencesByToken = (
-  params: Params<void, GetEmailPreferencesByTokenQueryOutput, void, void>,
-  respond: GetEmailPreferencesByTokenResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, GetEmailPreferencesByTokenQueryOutput, void, void>,
+	respond: GetEmailPreferencesByTokenResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type UpdateEmailPreferencesByTokenResponder = {
-  with200(): ExpressRuntimeResponse<{
-    categories: {
-      checkins: boolean;
-      recap: boolean;
-      updates: boolean;
-    };
-    enabled: boolean;
-  }>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
+	with200(): ExpressRuntimeResponse<{
+		categories: {
+			checkins: boolean;
+			recap: boolean;
+			updates: boolean;
+		};
+		enabled: boolean;
+	}>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
 } & ExpressRuntimeResponder;
 
 export type UpdateEmailPreferencesByToken = (
-  params: Params<void, void, UpdateEmailPreferencesByTokenRequestBodyOutput, void>,
-  respond: UpdateEmailPreferencesByTokenResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, void, UpdateEmailPreferencesByTokenRequestBodyOutput, void>,
+	respond: UpdateEmailPreferencesByTokenResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type EmailImplementation = {
-  unsubscribeFromEmail: UnsubscribeFromEmail;
-  getEmailPreferencesByToken: GetEmailPreferencesByToken;
-  updateEmailPreferencesByToken: UpdateEmailPreferencesByToken;
+	unsubscribeFromEmail: UnsubscribeFromEmail;
+	getEmailPreferencesByToken: GetEmailPreferencesByToken;
+	updateEmailPreferencesByToken: UpdateEmailPreferencesByToken;
 };
 
 export function createEmailRouter(
-  implementation: EmailImplementation,
-  options: { middleware?: RequestHandler[] } = {},
+	implementation: EmailImplementation,
+	options: { middleware?: RequestHandler[] } = {},
 ): Router {
-  const router = Router();
+	const router = Router();
 
-  if (options.middleware?.length) {
-    router.use(...options.middleware);
-  }
+	if (options.middleware?.length) {
+		router.use(...options.middleware);
+	}
 
-  const unsubscribeFromEmailQuerySchema = z.object({ token: z.string().max(512) });
+	const unsubscribeFromEmailQuerySchema = z.object({
+		token: z.string().max(512),
+	});
 
-  const unsubscribeFromEmailResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_UnsubscribeReceipt],
-      ['400', s_Error400],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const unsubscribeFromEmailResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_UnsubscribeReceipt],
+			["400", s_Error400],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // unsubscribeFromEmail
-  router.post(`/v1/email/unsubscribe`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(unsubscribeFromEmailQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// unsubscribeFromEmail
+	router.post(
+		`/v1/email/unsubscribe`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						unsubscribeFromEmailQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_UnsubscribeReceipt>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_UnsubscribeReceipt>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .unsubscribeFromEmail(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, unsubscribeFromEmailResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.unsubscribeFromEmail(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, unsubscribeFromEmailResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const getEmailPreferencesByTokenQuerySchema = z.object({ token: z.string().max(512) });
+	const getEmailPreferencesByTokenQuerySchema = z.object({
+		token: z.string().max(512),
+	});
 
-  const getEmailPreferencesByTokenResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          enabled: PermissiveBoolean,
-          categories: z.object({ recap: PermissiveBoolean, checkins: PermissiveBoolean, updates: PermissiveBoolean }),
-          category: z.enum(['recap', 'checkins', 'updates']).nullable().optional(),
-        }),
-      ],
-      ['400', s_Error400],
-    ],
-    undefined,
-  );
+	const getEmailPreferencesByTokenResponseBodyValidator =
+		responseValidationFactory(
+			[
+				[
+					"200",
+					z.object({
+						enabled: PermissiveBoolean,
+						categories: z.object({
+							recap: PermissiveBoolean,
+							checkins: PermissiveBoolean,
+							updates: PermissiveBoolean,
+						}),
+						category: z
+							.enum(["recap", "checkins", "updates"])
+							.nullable()
+							.optional(),
+					}),
+				],
+				["400", s_Error400],
+			],
+			undefined,
+		);
 
-  // getEmailPreferencesByToken
-  router.get(`/v1/email/preferences`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getEmailPreferencesByTokenQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// getEmailPreferencesByToken
+	router.get(
+		`/v1/email/preferences`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						getEmailPreferencesByTokenQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            categories: {
-              checkins: boolean;
-              recap: boolean;
-              updates: boolean;
-            };
-            category?: 'recap' | 'checkins' | 'updates' | null;
-            enabled: boolean;
-          }>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							categories: {
+								checkins: boolean;
+								recap: boolean;
+								updates: boolean;
+							};
+							category?: "recap" | "checkins" | "updates" | null;
+							enabled: boolean;
+						}>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getEmailPreferencesByToken(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getEmailPreferencesByTokenResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getEmailPreferencesByToken(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(
+							res,
+							getEmailPreferencesByTokenResponseBodyValidator,
+						),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const updateEmailPreferencesByTokenResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          enabled: PermissiveBoolean,
-          categories: z.object({ recap: PermissiveBoolean, checkins: PermissiveBoolean, updates: PermissiveBoolean }),
-        }),
-      ],
-      ['400', s_Error400],
-    ],
-    undefined,
-  );
+	const updateEmailPreferencesByTokenResponseBodyValidator =
+		responseValidationFactory(
+			[
+				[
+					"200",
+					z.object({
+						enabled: PermissiveBoolean,
+						categories: z.object({
+							recap: PermissiveBoolean,
+							checkins: PermissiveBoolean,
+							updates: PermissiveBoolean,
+						}),
+					}),
+				],
+				["400", s_Error400],
+			],
+			undefined,
+		);
 
-  // updateEmailPreferencesByToken
-  router.patch(`/v1/email/preferences`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(s_UpdateEmailPreferencesByTokenRequestBody, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+	// updateEmailPreferencesByToken
+	router.patch(
+		`/v1/email/preferences`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: parseRequestInput(
+						s_UpdateEmailPreferencesByTokenRequestBody,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            categories: {
-              checkins: boolean;
-              recap: boolean;
-              updates: boolean;
-            };
-            enabled: boolean;
-          }>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							categories: {
+								checkins: boolean;
+								recap: boolean;
+								updates: boolean;
+							};
+							enabled: boolean;
+						}>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .updateEmailPreferencesByToken(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, updateEmailPreferencesByTokenResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.updateEmailPreferencesByToken(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(
+							res,
+							updateEmailPreferencesByTokenResponseBodyValidator,
+						),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  return router;
+	return router;
 }
 
 export { createEmailRouter as createRouter };

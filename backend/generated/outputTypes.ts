@@ -33,6 +33,7 @@ export type Error404Output = z.output<typeof schemas.s_Error404>;
 export type Error409Output = z.output<typeof schemas.s_Error409>;
 export type Error429Output = z.output<typeof schemas.s_Error429>;
 export type Error500Output = z.output<typeof schemas.s_Error500>;
+export type Error503Output = z.output<typeof schemas.s_Error503>;
 export type ExternalIdOutput = z.output<typeof schemas.s_ExternalId>;
 export type FeedbackFormTokenOutput = z.output<typeof schemas.s_FeedbackFormToken>;
 export type FeedbackReceiptOutput = z.output<typeof schemas.s_FeedbackReceipt>;
@@ -126,101 +127,115 @@ export type UpdateEmailPreferencesByTokenRequestBodyOutput = z.output<typeof sch
 // ============================================
 
 export const listUserActivityQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-    activityType: schemas.s_ActivityType.optional(),
-    date: z.iso.date().optional(),
-  });
+		cursor: z.string().optional(),
+		take: z.coerce.number().min(1).max(100).optional().default(20),
+		activityType: schemas.s_ActivityType.optional(),
+		date: z.iso.date().optional(),
+	});
 export type ListUserActivityQueryOutput = z.output<typeof listUserActivityQuerySchema>;
 
 export const getUserActivityHeatmapQuerySchema = z.object({
-    days: z.coerce.number().min(1).max(730).optional().default(365),
-  });
+		days: z.coerce.number().min(1).max(730).optional().default(365),
+	});
 export type GetUserActivityHeatmapQueryOutput = z.output<typeof getUserActivityHeatmapQuerySchema>;
 
-export const getUserActivityStatsQuerySchema = z.object({ since: z.iso.date().optional() });
+export const getUserActivityStatsQuerySchema = z.object({
+		since: z.iso.date().optional(),
+	});
 export type GetUserActivityStatsQueryOutput = z.output<typeof getUserActivityStatsQuerySchema>;
 
 export const listAdminReportsQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().max(100).optional().default(20),
-    status: z.string().optional(),
-    source: schemas.s_ReportSource.optional(),
-    'target.type': schemas.s_ReportTargetType.optional(),
-    'target.mediaId': z.coerce.number().optional(),
-    'target.episodeNumber': z.coerce.number().optional(),
-    'target.segmentId': z.coerce.number().optional(),
-    orphaned: schemas.PermissiveBoolean.optional(),
-  });
+		cursor: z.string().optional(),
+		take: z.coerce.number().max(100).optional().default(20),
+		status: z.string().optional(),
+		source: schemas.s_ReportSource.optional(),
+		"target.type": schemas.s_ReportTargetType.optional(),
+		"target.mediaId": z.coerce.number().optional(),
+		"target.episodeNumber": z.coerce.number().optional(),
+		"target.segmentId": z.coerce.number().optional(),
+		orphaned: schemas.PermissiveBoolean.optional(),
+	});
 export type ListAdminReportsQueryOutput = z.output<typeof listAdminReportsQuerySchema>;
 
 export const listAgentActivityQuerySchema = z.object({
-    since: z.iso.datetime({ offset: true }).optional(),
-    reportId: z.coerce.number().optional(),
-    take: z.coerce.number().min(1).max(500).optional().default(100),
-  });
+		since: z.iso.datetime({ offset: true }).optional(),
+		reportId: z.coerce.number().optional(),
+		take: z.coerce.number().min(1).max(500).optional().default(100),
+	});
 export type ListAgentActivityQueryOutput = z.output<typeof listAgentActivityQuerySchema>;
 
 export const getAdminUsersWithProvidersQuerySchema = z.object({
-    limit: z.coerce.number().min(1).max(100).optional().default(20),
-    offset: z.coerce.number().min(0).optional().default(0),
-    search: z.string().optional(),
-  });
+		limit: z.coerce.number().min(1).max(100).optional().default(20),
+		offset: z.coerce.number().min(0).optional().default(0),
+		search: z.string().optional(),
+	});
 export type GetAdminUsersWithProvidersQueryOutput = z.output<typeof getAdminUsersWithProvidersQuerySchema>;
 
 export const listCollectionsQuerySchema = z.object({
-    visibility: schemas.s_CollectionVisibility.optional(),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-  });
+		visibility: schemas.s_CollectionVisibility.optional(),
+		cursor: z.string().optional(),
+		take: z.coerce.number().min(1).max(100).optional().default(20),
+	});
 export type ListCollectionsQueryOutput = z.output<typeof listCollectionsQuerySchema>;
 
-export const unsubscribeFromEmailQuerySchema = z.object({ token: z.string().max(512) });
+export const unsubscribeFromEmailQuerySchema = z.object({
+		token: z.string().max(512),
+	});
 export type UnsubscribeFromEmailQueryOutput = z.output<typeof unsubscribeFromEmailQuerySchema>;
 
-export const getEmailPreferencesByTokenQuerySchema = z.object({ token: z.string().max(512) });
+export const getEmailPreferencesByTokenQuerySchema = z.object({
+		token: z.string().max(512),
+	});
 export type GetEmailPreferencesByTokenQueryOutput = z.output<typeof getEmailPreferencesByTokenQuerySchema>;
 
 export const listMediaQuerySchema = z.object({
-    take: z.coerce.number().min(1).max(40).optional().default(20),
-    cursor: z.string().optional(),
-    category: z.enum(['ANIME', 'JDRAMA', 'YOUTUBE']).optional(),
-    query: z.string().optional(),
-  });
+		take: z.coerce.number().min(1).max(40).optional().default(20),
+		cursor: z.string().optional(),
+		category: z.enum(["ANIME", "JDRAMA", "YOUTUBE"]).optional(),
+		query: z.string().optional(),
+	});
 export type ListMediaQueryOutput = z.output<typeof listMediaQuerySchema>;
 
 export const getSegmentContextQuerySchema = z.object({
-    take: z.coerce.number().min(1).max(30).optional().default(3),
-    contentRating: z
-      .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(schemas.s_ContentRating))
-      .optional(),
-    include: z
-      .preprocess((it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]), z.array(schemas.s_IncludeExpansion))
-      .optional()
-      .default([]),
-  });
+		take: z.coerce.number().min(1).max(30).optional().default(3),
+		contentRating: z
+			.preprocess(
+				(it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
+				z.array(schemas.s_ContentRating),
+			)
+			.optional(),
+		include: z
+			.preprocess(
+				(it: unknown) => (Array.isArray(it) || it === undefined ? it : [it]),
+				z.array(schemas.s_IncludeExpansion),
+			)
+			.optional()
+			.default([]),
+	});
 export type GetSegmentContextQueryOutput = z.output<typeof getSegmentContextQuerySchema>;
 
 export const listEpisodesQuerySchema = z.object({
-    take: z.coerce.number().min(1).max(100).optional().default(50),
-    cursor: z.string().optional(),
-  });
+		take: z.coerce.number().min(1).max(100).optional().default(50),
+		cursor: z.string().optional(),
+	});
 export type ListEpisodesQueryOutput = z.output<typeof listEpisodesQuerySchema>;
 
 export const listSegmentsQuerySchema = z.object({
-    take: z.coerce.number().min(1).max(100).optional().default(50),
-    cursor: z.string().optional(),
-  });
+		take: z.coerce.number().min(1).max(100).optional().default(50),
+		cursor: z.string().optional(),
+	});
 export type ListSegmentsQueryOutput = z.output<typeof listSegmentsQuerySchema>;
 
 export const getCoveredWordsQuerySchema = z.object({
-    tier: z.coerce.number().min(1),
-    minRank: z.coerce.number().min(0).optional().default(0),
-    filter: z.enum(['ALL', 'COVERED', 'UNCOVERED']).optional().default('ALL'),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(1000).optional().default(200),
-  });
+		tier: z.coerce.number().min(1),
+		minRank: z.coerce.number().min(0).optional().default(0),
+		filter: z.enum(["ALL", "COVERED", "UNCOVERED"]).optional().default("ALL"),
+		cursor: z.string().optional(),
+		take: z.coerce.number().min(1).max(1000).optional().default(200),
+	});
 export type GetCoveredWordsQueryOutput = z.output<typeof getCoveredWordsQuerySchema>;
 
-export const deleteUserActivityQuerySchema = z.object({ activityType: schemas.s_ActivityType.optional() });
+export const deleteUserActivityQuerySchema = z.object({
+		activityType: schemas.s_ActivityType.optional(),
+	});
 export type DeleteUserActivityQueryOutput = z.output<typeof deleteUserActivityQuerySchema>;

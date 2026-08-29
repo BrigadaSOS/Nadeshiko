@@ -44,7 +44,7 @@ const TIMEOUT_MS = 30_000;
  * `SHIRABE_PARSE_CONCURRENCY` exists so a one-off migration can be nudged without
  * a deploy, and so it can be pinned back to 1 if Shirabe is having a bad day.
  */
-const PARSE_CONCURRENCY = Math.max(1, Number(process.env.SHIRABE_PARSE_CONCURRENCY ?? 3) || 3);
+const PARSE_CONCURRENCY = config.SHIRABE_PARSE_CONCURRENCY;
 
 /**
  * How hard a chunk is retried before the run gives up on it.

@@ -20,6 +20,7 @@ import {
   signInGlobalRateLimit,
   unsubscribeRateLimit,
 } from '@app/middleware/rateLimit';
+import { createInFlightLimit } from '@app/middleware/inFlightLimit';
 import { loginCodeBinding } from '@app/middleware/loginCodeBinding';
 import { APP_ENVIRONMENT, getAppEnvironment } from '@config/environment';
 import { config } from '@config/config';
@@ -215,7 +216,11 @@ const magicLinkBanRedirect: RequestHandler = (req, res, next) => {
           res.setHeader('Location', `${callbackURL}${sep}error=banned`);
           return originalEnd('');
         }
-      } catch {}
+      } catch {
+        // The body is not JSON, or not shaped like an error. That is the common
+        // case -- every successful auth response lands here -- so it is not a
+        // failure, it just means this is not the banned-user response we rewrite.
+      }
     }
     return originalEnd.call(res, chunk, encoding, callback);
   };
@@ -447,6 +452,16 @@ router.post('/v1/email/unsubscribe', setRouteTemplate('/v1/email/unsubscribe'), 
 // token is not a secret once it has been forwarded.
 router.get('/v1/email/preferences', setRouteTemplate('/v1/email/preferences'), unsubscribeRateLimit);
 router.patch('/v1/email/preferences', setRouteTemplate('/v1/email/preferences'), unsubscribeRateLimit);
+
+// The two searches a page render fans out to, capped by how many can run at
+// once rather than by who is asking -- see inFlightLimit for the 2026-08-30
+// flood that made the distinction matter. Registered AFTER the routeAuth loop
+// above, so an unauthenticated request is refused with a 401 before it can
+// hold a slot, and BEFORE the router, so a refusal never reaches the handler.
+// Site traffic is capped a hop earlier, at the frontend's render gate; this is
+// the ceiling for direct API callers, which that gate cannot see.
+const searchInFlightLimit = createInFlightLimit({ scope: 'search', max: config.SEARCH_MAX_INFLIGHT });
+router.post(['/v1/search', '/v1/search/stats'], searchInFlightLimit);
 
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);

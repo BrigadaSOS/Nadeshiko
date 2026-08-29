@@ -1,4 +1,5 @@
 import { instrumentElasticsearchClient } from '@app/middleware/esInstrumentation';
+import { seedInFlightLimitSeries } from '@app/middleware/inFlightLimit';
 import { seedRateLimitSeries } from '@app/middleware/rateLimit';
 import { seedEmailSeries } from '@app/services/email/metrics';
 import { client as esClient } from '@config/elasticsearch';
@@ -28,7 +29,7 @@ export const telemetryInitializer: RuntimeInitializer = {
     // Observable, so there is nothing to heartbeat: the callback runs on every
     // collection and reports every namespace, including the empty ones.
     registerCacheMetrics();
-    stopHeartbeat = startSeriesHeartbeat([seedEmailSeries, seedRateLimitSeries]);
+    stopHeartbeat = startSeriesHeartbeat([seedEmailSeries, seedRateLimitSeries, seedInFlightLimitSeries]);
   },
   shutdown: () => {
     stopHeartbeat?.();

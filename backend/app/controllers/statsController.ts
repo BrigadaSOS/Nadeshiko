@@ -4,7 +4,15 @@ import { Cache, createCacheNamespace } from '@lib/cache';
 import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 import type { GetStatsOverview, GetCoveredWords, TriggerCoveredWordsUpdate } from 'generated/routes/stats';
 
-const CACHE = createCacheNamespace('stats');
+/**
+ * Exported so tests can clear it between cases, the same way `Media.ts` exports
+ * `MEDIA_INFO_CACHE`. A namespace is a fresh `Symbol` per call, so a second
+ * `createCacheNamespace('stats')` elsewhere is a DIFFERENT namespace that shares
+ * only a label -- invalidating that one would leave this cache untouched for its
+ * full week.
+ */
+export const STATS_CACHE = createCacheNamespace('stats');
+const CACHE = STATS_CACHE;
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
 
 const TIERS = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
@@ -43,7 +51,13 @@ export const getStatsOverview: GetStatsOverview = async (_params, respond) => {
 
     const ws = wordStats[0];
     const totalFrequencyWords = ws.total_words as number;
-    const allTiers = [...TIERS, totalFrequencyWords];
+    // The final entry is the frequency list's own length, which is what lets the
+    // client label it "full corpus". On a database whose word list has not been
+    // loaded yet that length is 0, and `WordCoverageTier.tier` is `minimum: 1` --
+    // so the endpoint used to build a tier the response validator rejected and
+    // answer 500. That is a public endpoint (the stats page and the Discord bot
+    // both call it) failing on a fresh deploy, for a tier describing nothing.
+    const allTiers = totalFrequencyWords > 0 ? [...TIERS, totalFrequencyWords] : [...TIERS];
 
     const tiers = allTiers.map((tier, i) => {
       const total = Number(ws[`t${i}_total`] || 0);
