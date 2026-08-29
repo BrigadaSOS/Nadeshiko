@@ -39,12 +39,38 @@ jobs:
         id: filter
         with:
           filters: |
+            # The Docker builds consume the root workspace lockfile, shared
+            # packages, setup action, and root build tooling. Include those in
+            # both deploy filters so a shared-only change is actually deployed.
             backend:
               - 'backend/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'biome.shared.jsonc'
+              - 'tsconfig*.json'
+              - '.npmrc'
+              - '.dockerignore'
+              - 'scripts/**'
+              - '.github/actions/setup-workspace/**'
+              - '.github/workflows/checks.yml'
+              - '.github/workflows/staging-release.yml'
             frontend:
               - 'frontend/**'
+              - 'packages/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'biome.shared.jsonc'
+              - 'tsconfig*.json'
+              - '.npmrc'
+              - '.dockerignore'
+              - 'scripts/**'
+              - '.github/actions/setup-workspace/**'
+              - '.github/workflows/checks.yml'
+              - '.github/workflows/staging-release.yml'
             openapi:
               - 'backend/docs/openapi/**'
+              - 'backend/docs/generated/openapi-sdk.yaml'
 
   checks:
     uses: ./.github/workflows/checks.yml

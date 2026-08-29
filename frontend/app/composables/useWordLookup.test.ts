@@ -57,6 +57,21 @@ describe('a word the page already has', () => {
     expect(await promise).toEqual({ answer: CAT, fromCache: true });
     expect(fetchWord).not.toHaveBeenCalled();
   });
+
+  test('revokes an older in-flight request before painting the cached selection', async () => {
+    const inflight = Promise.withResolvers<unknown>();
+    fetchWord.mockReturnValue(inflight.promise);
+    const l = lookup();
+
+    const stale = l.lookUp(REF);
+    const DOG = answer([{ headword: '犬' }]);
+    peekWord.mockReturnValue(DOG);
+    await l.lookUp(OTHER);
+    inflight.resolve(CAT);
+
+    expect(await stale).toBeNull();
+    expect(l.word.value).toEqual({ headword: '犬' });
+  });
 });
 
 describe('a word it has to ask for', () => {

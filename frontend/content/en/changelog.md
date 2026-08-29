@@ -9,6 +9,21 @@ What's new in Nadeshiko, newest first. The version in the footer is the release 
 
 We only list what you can see. Work behind a lab or a feature flag stays off this page until it is on for everyone, and dependency bumps, refactors and CI never appear at all. For the commit-level history, see the [releases on GitHub](https://github.com/BrigadaSOS/Nadeshiko/releases).
 
+## Unreleased
+
+### Fixes
+
+- **Site**: when too many searches or page renders arrive at once, Nadeshiko now asks the excess to retry in a moment instead of letting every request wait until the whole site times out. The searches already under way get to finish, and other pages stay usable.
+- **Site**: the files from the build you already have open stay available while the next one takes over, including after a server worker restarts, so opening a menu or navigating a page does not turn into a missing-script error.
+- **Word cards**: a reply for a word you have already moved away from can no longer replace the card you are reading.
+- **Anki**: the note list stays with what you have typed instead of arriving late from an earlier search, and an unavailable Anki no longer clears the field mapping you had saved.
+- **Search**: a batch lookup that fails returns you to the words you pasted instead of showing stale rows or `NaN%`. An empty search address reaches the search page directly.
+- **Stats**: a malformed filter no longer spreads into every level link.
+- **Stats**: the coverage levels stay in the right order and keep their correct labels while a fresh or partial word-frequency list is loading.
+- **Blog**: dates on post cards show again when the page hands the component a real date.
+- **Discord bot**: an unexpected error now leaves a useful report before the bot restarts, rather than disappearing without an explanation.
+- **API**: a search service that is at capacity responds quickly with a documented `503` and `Retry-After`, so an integration can back off instead of waiting for a timeout.
+
 ## 2.4.11 (2026-08-26)
 
 ### Fixes

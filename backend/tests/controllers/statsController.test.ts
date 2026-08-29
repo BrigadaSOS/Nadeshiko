@@ -89,24 +89,32 @@ describe('GET /v1/stats/overview', () => {
 
     const res = await request(app).get('/v1/stats/overview');
 
-    const topTier = res.body.tiers[0];
-    expect(topTier).toMatchObject({ tier: 1000, total: 2, covered: 1, percentage: 50 });
+    const fullCorpusTier = res.body.tiers[0];
+    expect(fullCorpusTier).toMatchObject({
+      tier: 2,
+      total: 2,
+      covered: 1,
+      percentage: 50,
+    });
   });
 
   it('reports each tier as a cumulative slice, not a disjoint band', async () => {
     // "Top 2000" means ranks 1..2000, which includes everything in "Top 1000".
     // Reading them as bands would make the coverage line go down as the tier
     // widens, which is not what the page claims to show.
-    await seedWords([
-      { rank: 500, word: 'a', matchCount: 1 },
-      { rank: 1500, word: 'b', matchCount: 1 },
-    ]);
+    await seedWords(
+      Array.from({ length: 2001 }, (_, i) => ({
+        rank: i + 1,
+        word: `w${i + 1}`,
+        matchCount: i === 499 || i === 1499 ? 1 : 0,
+      })),
+    );
 
     const res = await request(app).get('/v1/stats/overview');
 
     const byTier = Object.fromEntries(res.body.tiers.map((t: { tier: number; total: number }) => [t.tier, t.total]));
-    expect(byTier[1000]).toBe(1);
-    expect(byTier[2000]).toBe(2);
+    expect(byTier[1000]).toBe(1000);
+    expect(byTier[2000]).toBe(2000);
   });
 
   it('ends with a tier covering the whole list, whatever size it is', async () => {
@@ -121,6 +129,17 @@ describe('GET /v1/stats/overview', () => {
 
     expect(res.body.tiers.at(-1)).toMatchObject({ tier: 2, total: 2, covered: 1 });
     expect(res.body.totalFrequencyWords).toBe(2);
+  });
+
+  it('does not label a full-corpus aggregate as a larger fixed tier', async () => {
+    await seedWords([
+      { rank: 1, word: 'a', matchCount: 1 },
+      { rank: 2, word: 'b', matchCount: 0 },
+    ]);
+
+    const res = await request(app).get('/v1/stats/overview');
+
+    expect(res.body.tiers).toEqual([{ tier: 2, total: 2, covered: 1, percentage: 50 }]);
   });
 
   it('reports zero rather than dividing by zero on an empty tier', async () => {

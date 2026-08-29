@@ -57,11 +57,17 @@ export const getStatsOverview: GetStatsOverview = async (_params, respond) => {
     // so the endpoint used to build a tier the response validator rejected and
     // answer 500. That is a public endpoint (the stats page and the Discord bot
     // both call it) failing on a fresh deploy, for a tier describing nothing.
-    const allTiers = totalFrequencyWords > 0 ? [...TIERS, totalFrequencyWords] : [...TIERS];
+    // Do not append a low-population corpus after larger fixed tiers: that
+    // makes the response regress from e.g. "top 100,000" to "top 2" and
+    // mislabels the aggregate. Keep only tiers strictly below the corpus size,
+    // then end with exactly one full-corpus tier.
+    const allTiers =
+      totalFrequencyWords > 0 ? [...TIERS.filter((tier) => tier < totalFrequencyWords), totalFrequencyWords] : TIERS;
 
-    const tiers = allTiers.map((tier, i) => {
-      const total = Number(ws[`t${i}_total`] || 0);
-      const covered = Number(ws[`t${i}_covered`] || 0);
+    const tiers = allTiers.map((tier) => {
+      const columnIndex = tier === totalFrequencyWords && totalFrequencyWords > 0 ? TIERS.length : TIERS.indexOf(tier);
+      const total = Number(ws[`t${columnIndex}_total`] || 0);
+      const covered = Number(ws[`t${columnIndex}_covered`] || 0);
       return {
         tier,
         covered,

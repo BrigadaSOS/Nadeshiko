@@ -23,6 +23,9 @@ on:
 permissions:
   contents: read
 
+env:
+  NODE_VERSION: '24'
+
 jobs:
   refresh:
     runs-on: ubuntu-latest

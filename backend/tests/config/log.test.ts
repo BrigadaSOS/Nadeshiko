@@ -4,6 +4,7 @@ import {
   capLoggedBody,
   MAX_LOGGED_BODY_BYTES,
   safeParseJson,
+  sanitizeRequestUrl,
   shouldUsePrettyLogsForEntrypoint,
 } from '@config/log';
 
@@ -55,6 +56,20 @@ describe('capLoggedBody', () => {
     circular.self = circular;
 
     expect(capLoggedBody(circular)).toBe(circular);
+  });
+});
+
+describe('sanitizeRequestUrl', () => {
+  it('keeps routing context while redacting sensitive query values case-insensitively', () => {
+    expect(
+      sanitizeRequestUrl('/v1/auth/callback?code=oauth&state=keep&apiKey=key&TOKEN=magic&email=a@example.com'),
+    ).toBe(
+      '/v1/auth/callback?code=%5BRedacted%5D&state=keep&apiKey=%5BRedacted%5D&TOKEN=%5BRedacted%5D&email=%5BRedacted%5D',
+    );
+  });
+
+  it('drops an unparseable query string rather than logging it verbatim', () => {
+    expect(sanitizeRequestUrl('http://[?token=magic')).toBe('http://[');
   });
 });
 
@@ -148,5 +163,26 @@ describe('buildHttpLoggerOptions', () => {
 
     expect(successMessage).toBe('UNKNOWN UNKNOWN completed with 204');
     expect(errorMessage).toBe('UNKNOWN UNKNOWN failed with 500 - failed');
+  });
+
+  it('uses the sanitized URL consistently in HTTP fields and messages', () => {
+    const req = {
+      method: 'GET',
+      url: '/v1/auth/callback?token=magic&next=%2Fstats',
+      headers: {},
+      raw: {
+        method: 'GET',
+        url: '/v1/auth/callback?token=magic&next=%2Fstats',
+        headers: {},
+      },
+    };
+    const res = { statusCode: 200, getHeader: () => undefined };
+
+    expect((options as any).customProps(req, res)['http.url']).toBe(
+      '/v1/auth/callback?token=%5BRedacted%5D&next=%2Fstats',
+    );
+    expect((options as any).customSuccessMessage(req, res)).toBe(
+      'GET /v1/auth/callback?token=%5BRedacted%5D&next=%2Fstats completed with 200',
+    );
   });
 });
