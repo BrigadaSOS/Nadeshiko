@@ -13,11 +13,6 @@ const envSchema = z.object({
     (val) => (val === '' ? undefined : val),
     z.enum(['local', 'development', 'production']).default('production'),
   ),
-  // The browser-metrics receiver the RUM reporter posts web vitals to. Absent
-  // outside production and staging, which is what stops a local run from
-  // beaconing at the collector.
-  NUXT_PUBLIC_BROWSER_METRICS_URL: optionalString,
-  NUXT_PUBLIC_BROWSER_APP_NAME: optionalString,
   NUXT_BACKEND_INTERNAL_URL: z.string().trim().default(''),
   NUXT_NADESHIKO_API_KEY: z.string().trim().default(''),
   // Shirabe parses the corpus and serves the definitions behind every word. The
@@ -82,6 +77,15 @@ const envSchema = z.object({
    */
   NUXT_RATE_LIMIT_V1_FEEDBACK_MAX: z.coerce.number().int().positive().default(5),
   NUXT_RATE_LIMIT_HTML_MAX: z.coerce.number().int().positive().default(60),
+  /**
+   * Page renders ONE PROCESS holds in flight before it answers 503 to the next.
+   *
+   * Per process and not service-wide, unlike the limits above, because the thing
+   * being protected is this process's event loop: a render is CPU on this thread,
+   * and a worker cannot lend its capacity to another. How the default was chosen
+   * is in server/middleware/99-ssr-admission.ts.
+   */
+  NUXT_SSR_MAX_INFLIGHT: z.coerce.number().int().positive().default(8),
 });
 
 export const env: Readonly<z.infer<typeof envSchema>> = Object.freeze(envSchema.parse(process.env));

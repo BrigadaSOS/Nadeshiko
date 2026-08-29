@@ -18,8 +18,9 @@ function toError(value: unknown): Error {
  * carried is now collected somewhere better. PostHog was already receiving all of
  * this: 2,628 `$exception` events in the fortnight to that date, all from
  * nadeshiko.co, with `error_source` populated exactly as set below. The one thing
- * Faro uniquely had was TTFB, which `plugins/rum.client.ts` now reports as a real
- * histogram, and browser traces, which were accepted as lost.
+ * Faro uniquely had was TTFB, which `plugins/rum.client.ts` still reports -- to
+ * PostHog now, on the `$web_vitals` event beside the four PostHog autocaptures
+ * itself -- and browser traces, which were accepted as lost.
  *
  * Falls back to `console.error` on the server and on builds with no analytics.
  */

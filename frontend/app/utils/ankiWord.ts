@@ -374,7 +374,7 @@ function chips(sense: CardSense): string {
     `<span class="${CLASS}-${className}" style="${chipStyle(color)}" title="${escapeHtml(chip.title)}">` +
     `${escapeHtml(chip.label)}</span>`;
 
-  const parts = sense.partsOfSpeech.map((chip) => render(chip, 'pos', CHIP_COLOR.pos!));
+  const parts = sense.partsOfSpeech.map((chip) => render(chip, 'pos', CHIP_COLOR.pos ?? CHIP_FALLBACK));
   const tags = sense.tags.map((chip) =>
     render(chip, `tag ${CLASS}-tag--${chip.category}`, CHIP_COLOR[chip.category] ?? CHIP_FALLBACK),
   );

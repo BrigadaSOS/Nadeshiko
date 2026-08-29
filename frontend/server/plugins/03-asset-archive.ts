@@ -30,6 +30,7 @@
  * first.
  */
 
+import cluster from 'node:cluster';
 import { constants, createReadStream } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, rmdir, stat, utimes, unlink } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -105,6 +106,15 @@ export default defineNitroPlugin(async (nitroApp) => {
     { assetArchiveDir, liveAssets: liveAssets.size, retentionDays: assetArchiveDays },
     'asset archive: serving superseded builds',
   );
+
+  // Under the cluster preset every worker runs this plugin, and every worker
+  // must install the handler above -- but only one of them should write. Two
+  // publish passes over the same directory race each other on the expiry
+  // sweep (one unlinks what the other is about to stat) and log a failure for
+  // an archive that is, in fact, fine. The first worker is as good a choice as
+  // any; a single process (staging, dev) is not a worker at all and publishes
+  // as it always did.
+  if (cluster.isWorker && cluster.worker?.id !== 1) return;
 
   // Deliberately not awaited. Nothing in the request path needs it: a reader on
   // the current build is served by Nitro, and a reader on a previous one is

@@ -1,5 +1,6 @@
 import pino from 'pino';
 import { trace, context } from '@opentelemetry/api';
+import { REDACT_PATHS } from '@brigadasos/nadeshiko-shared/logRedaction';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -14,51 +15,7 @@ const baseOptions: pino.LoggerOptions = {
     }
     return {};
   },
-  redact: [
-    // Sensitive headers
-    'req.headers.cookie',
-    'req.headers.authorization',
-    'req.headers.set-cookie',
-
-    // Common PII in query params
-    'req.query.password',
-    'req.query.token',
-    'req.query.api_key',
-    'req.query.apiKey',
-    'req.query.access_token',
-    'req.query.refresh_token',
-    'req.query.email',
-    'req.query.code',
-
-    // Common PII in request body
-    'req.body.password',
-    'req.body.currentPassword',
-    'req.body.newPassword',
-    'req.body.token',
-    'req.body.accessToken',
-    'req.body.refreshToken',
-    'req.body.refresh_token',
-    'req.body.apiKey',
-    'req.body.api_key',
-    'req.body.secret',
-    'req.body.email',
-    'req.body.code',
-
-    // Sensitive data in response body
-    'res.body.token',
-    'res.body.key',
-    'res.body.apiKey',
-    'res.body.api_key',
-    'res.body.accessToken',
-    'res.body.access_token',
-    'res.body.refreshToken',
-    'res.body.refresh_token',
-
-    // General fields
-    'apiKey',
-    'token',
-    'password',
-  ],
+  redact: [...REDACT_PATHS],
   formatters: {
     level: (label) => ({ level: label }),
   },

@@ -32,23 +32,47 @@ const providerLabel = (provider: string) => {
 const statusLabel = (banned: boolean) =>
   banned ? t('accountSettings.dashboard.status.banned') : t('accountSettings.dashboard.status.active');
 
-async function fetchUsers() {
+/**
+ * Which request the table is currently showing.
+ *
+ * Every fetch here is racing the reader: the search box debounces but does not
+ * wait, and Next can be pressed again before the last page is back. Two replies
+ * were assigned in the order they ARRIVED rather than the order they were asked
+ * for, so whichever server round-trip happened to be quicker won -- a slow reply
+ * for a search the box no longer shows would overwrite the one it does.
+ */
+let latestRequest = 0;
+
+/**
+ * `offset` is the page being ASKED for, and it is only committed once the rows
+ * that go under it are in hand. It used to be written to `currentOffset` before
+ * the request, with nothing to put it back: a failed page left the reader
+ * reading "showing 21-40" over page one's rows, and pressing Next again skipped
+ * a page that had never been shown.
+ */
+async function fetchUsers(offset = currentOffset.value) {
+  const request = ++latestRequest;
   isLoading.value = true;
   try {
     const query: Record<string, string | number> = {
       limit,
-      offset: currentOffset.value,
+      offset,
     };
     if (searchQuery.value.trim()) {
       query.search = searchQuery.value.trim();
     }
     const result = await useNadeshikoSdk().getAdminUsersWithProviders(query);
+    if (request !== latestRequest) return;
     users.value = result.users ?? [];
     total.value = result.total ?? 0;
+    currentOffset.value = offset;
   } catch (error) {
+    if (request !== latestRequest) return;
     handleApiError('admin:users-fetch-failed', error, { toastKey: 'accountSettings.dashboard.loadError' });
   } finally {
-    isLoading.value = false;
+    // Only the newest request owns the spinner; an overtaken one turning it off
+    // would clear it while the request the reader is waiting for is still out.
+    if (request === latestRequest) isLoading.value = false;
   }
 }
 
@@ -57,8 +81,7 @@ async function fetchUsers() {
 // try to toast) after the admin left this tab.
 const { start: scheduleSearch } = useTimeoutFn(
   () => {
-    currentOffset.value = 0;
-    fetchUsers();
+    fetchUsers(0);
   },
   300,
   { immediate: false },
@@ -68,14 +91,12 @@ watch(searchQuery, () => scheduleSearch());
 
 function goToPrev() {
   if (currentOffset.value <= 0) return;
-  currentOffset.value = Math.max(0, currentOffset.value - limit);
-  fetchUsers();
+  fetchUsers(Math.max(0, currentOffset.value - limit));
 }
 
 function goToNext() {
   if (currentOffset.value + limit >= total.value) return;
-  currentOffset.value += limit;
-  fetchUsers();
+  fetchUsers(currentOffset.value + limit);
 }
 
 async function handleImpersonate(user: AdminUser) {

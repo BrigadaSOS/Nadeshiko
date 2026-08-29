@@ -393,8 +393,6 @@
         "hiddenMediaBadge": "Hidden",
         "hiddenMediaBadgeTitle": "This title is on your hidden list",
         "searchmain": "Search a title here...",
-        "searchbar": "Filter",
-        "all": "All",
         "copiedcontent": "The content has been copied to the clipboard.",
         "errorcopiedcontent": "Error copying content to clipboard. Try again.",
         "copiedsharingurl": "The URL has been copied to the clipboard.",
@@ -512,7 +510,6 @@
       "familiarOnToast": "Now remembering which shows you study",
       "familiarOffToast": "No longer remembering which shows you study",
       "clearHistoryToast": "Activity history cleared",
-      "confirmClearFamiliar": "Forget which shows you study? Your activity history is not affected.",
       "confirmClearDay": "Delete all activity for {day}? This cannot be undone.",
       "ranges": {
         "all": "All Time"
@@ -731,8 +728,6 @@
       "changeEmailSending": "Sending...",
       "changeEmailCancel": "Cancel",
       "changeEmailSuccess": "A verification email has been sent to your current email address. Please check your inbox.",
-      "productEmailsTitle": "Emails about Nadeshiko",
-      "productEmailsDescription": "Occasional emails about your activity and new features. Sign-in links and account emails are always sent.",
       "productEmailsOnToast": "You will get emails about Nadeshiko",
       "productEmailsOffToast": "You will not get emails about Nadeshiko",
       "changeEmailFailed": "Failed to request email change.",
@@ -768,9 +763,6 @@
         "youtube": "YouTube videos."
       },
       "hiddenMedia": "Hide Media",
-      "hiddenMediaDescription": "Media hidden from search results. You can also hide media from the overflow menu on any search result.",
-      "hiddenMediaEmpty": "No hidden media. Search results will include all available media.",
-      "hiddenMediaListTitle": "Hidden titles",
       "hiddenMediaCount": "{count} hidden",
       "mediaHiddenToast": "{name} hidden from search results",
       "mediaUnhiddenToast": "{name} back in search results",
@@ -783,8 +775,6 @@
         "otherNames": "Other Names"
       },
       "favoriteMedia": "Favorite Media",
-      "favoriteMediaDescription": "Favorited titles sort to the top of the media filter when you search. You can also favorite a title from the filter itself.",
-      "favoriteMediaEmpty": "Nothing favorited yet. The media filter stays in alphabetical order.",
       "favoriteMediaCount": "{count}/{max} favorited",
       "sessionDetails": {
         "unknownDevice": "Unknown device",
@@ -796,7 +786,6 @@
       },
       "exportError": "Couldn't export your data. Please try again.",
       "mediaLookup": "Find a title",
-      "mediaLookupDescription": "Search the catalog to favorite a title or hide it. Favorited titles sort to the top of the media filter; hidden ones drop out of search results entirely.",
       "mediaLookupPlaceholder": "Search for a title...",
       "mediaLookupNoResults": "No media found for this query.",
       "manageMedia": "Manage Media",
@@ -860,8 +849,6 @@
       "loadingMessage": "Please wait while connecting",
       "connectionSuccess": "Connection established",
       "successMessage": "Connection with Anki has been successfully established",
-      "connectionError": "Something went wrong",
-      "errorMessage": "Could not establish connection with Anki",
       "fieldLoadError": "Error loading model field names:",
       "troubleshootingTips": {
         "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
@@ -910,6 +897,10 @@
         "unreachable": {
           "title": "Anki did not answer",
           "body": "Nadeshiko could not reach AnkiConnect at all. One of the three below is almost always the reason."
+        },
+        "blocked_by_csp": {
+          "title": "Your Anki server address is not one we allow",
+          "body": "Nadeshiko's security policy only permits AnkiConnect on this same computer, so the address below was refused before it reached the network. Anki running on another machine or phone cannot be reached from here. Set the address back to http://127.0.0.1:8765 and run Anki on this computer."
         },
         "permission_denied": {
           "title": "Anki is running, and is waiting for you",

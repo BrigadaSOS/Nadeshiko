@@ -39,6 +39,27 @@ function isCatchAll(routePath: string): boolean {
   return routePath.includes('**') || routePath.includes('[...');
 }
 
+/**
+ * Attach the templated route to the active HTTP span.
+ *
+ * Called from two hooks because they cover disjoint halves of the traffic: a
+ * request that produces a response goes through `beforeResponse`, and one that
+ * throws goes through `error` instead. Setting it twice for one request is
+ * harmless -- both compute the same value and the second simply overwrites.
+ */
+function applyRoute(event?: { context?: Record<string, unknown>; path?: string; node?: { req: { url?: string } } }) {
+  if (!event || event.context?._otelIgnored) return;
+
+  const matchedPath = (event.context?.matchedRoute as { path?: string } | undefined)?.path;
+  const route =
+    matchedPath && !isCatchAll(matchedPath) ? matchedPath : normalizeRoute(event.path || event.node?.req.url || '/');
+
+  const rpcMetadata = getRPCMetadata(otelContext.active());
+  if (rpcMetadata?.type === RPCType.HTTP) {
+    rpcMetadata.route = route;
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {
     if (isIgnoredPath(event.path || event.node.req.url || '')) {
@@ -75,15 +96,24 @@ export default defineNitroPlugin((nitroApp) => {
   });
 
   nitroApp.hooks.hook('beforeResponse', (event) => {
-    if (event.context._otelIgnored) return;
+    applyRoute(event);
+  });
 
-    const matchedPath = event.context.matchedRoute?.path;
-    const route =
-      matchedPath && !isCatchAll(matchedPath) ? matchedPath : normalizeRoute(event.path || event.node.req.url || '/');
-
-    const rpcMetadata = getRPCMetadata(otelContext.active());
-    if (rpcMetadata?.type === RPCType.HTTP) {
-      rpcMetadata.route = route;
-    }
+  // `beforeResponse` never runs for a thrown error. Nitro's error handler sends
+  // the response itself, which sets `event.handled`, and h3's catch block then
+  // returns before it reaches either response hook:
+  //
+  //   if (app.options.onError) await app.options.onError(error, event);
+  //   if (event.handled) return;                    // <- both hooks skipped
+  //   if (app.options.onBeforeResponse ...
+  //
+  // So every thrown error reached the metrics with no `http.route` at all.
+  // Measured in production on 2026-08-29: 123 of 123 frontend 429s and 464 of
+  // 471 404s carried no route label, which made "which page is being rate
+  // limited" unanswerable -- the request was for a real page, refused before it
+  // matched one. This hook fires inside `onError`, before the handler sends and
+  // while the span is still active, so the route can still be attached.
+  nitroApp.hooks.hook('error', (_error, ctx) => {
+    applyRoute(ctx?.event);
   });
 });

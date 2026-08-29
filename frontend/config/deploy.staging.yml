@@ -7,6 +7,8 @@ servers:
       # Memory limit: 768MB RAM + 256MB swap for stg
       memory: 768m
       memory-swap: 1g
+      # Repeated from deploy.yml, which this block replaces -- see the note there.
+      init: true
       # Resolve Shirabe's own hostname to inari's Tailscale address, so a word
       # lookup goes straight over the tailnet instead of out to Cloudflare and
       # back for two boxes in the same city (~175ms against ~33ms of real work).
@@ -120,6 +122,5 @@ env:
     # likely to be comparing against.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
-    # Grafana Faro browser RUM → host Alloy Faro receiver (:4329, /collect) via
-    # kamal-proxy; CORS allows dev.nadeshiko.co. Re-enabled (was commented out).
-    NUXT_PUBLIC_BROWSER_METRICS_URL: "https://o.nadeshiko.co/v1/metrics"
+    # No browser-metrics URL: web vitals go to PostHog now, so nothing on a
+    # page posts to o.nadeshiko.co. See app/plugins/rum.client.ts.

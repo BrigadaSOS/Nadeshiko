@@ -1,12 +1,7 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "extends": ["../biome.shared.jsonc"],
   "files": {
-    "ignoreUnknown": true,
     "includes": [
       "app/**",
       "config/**",
@@ -22,43 +17,21 @@
       ".env.example"
     ]
   },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 120
-  },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "single",
-      "trailingCommas": "all",
-      "semicolons": "always",
-      "arrowParentheses": "always"
-    }
-  },
   "linter": {
-    "enabled": true,
     "rules": {
-      "preset": "recommended",
       "suspicious": {
         "noUnknownAtRules": "off",
-        "noExplicitAny": "off",
         "noImplicitAnyLet": "off"
-      },
-      "style": {
-        "useImportType": "off",
-        "useNodejsImportProtocol": "off"
       },
       "complexity": {
         "useLiteralKeys": "off"
       }
     }
   },
-  "assist": {
-    "enabled": false
-  },
   "overrides": [
     {
+      // Vue SFCs: the compiler consumes `defineProps`/`defineEmits` bindings,
+      // and template-only identifiers that Biome cannot see are used.
       "includes": ["**/*.vue"],
       "linter": {
         "rules": {

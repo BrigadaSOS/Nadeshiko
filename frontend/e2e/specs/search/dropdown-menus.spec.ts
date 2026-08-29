@@ -1,3 +1,5 @@
+import type { Locator, Page } from '@playwright/test';
+
 import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
@@ -21,6 +23,43 @@ import { SearchPage } from '../../pages/SearchPage';
 // happily for an element that was never there. Page-scoping is safe here for
 // the reason `useDropdownState` exists: at most one menu is open at a time, and
 // 'closed dropdown menus are not rendered at all' asserts exactly that.
+/**
+ * A Copy toggle that the open word card is not sitting on top of.
+ *
+ * This used to be `segmentCards.nth(1)`, on the reasoning that the card hangs
+ * off the sentence so a DIFFERENT result must be clear of it. The card opens
+ * BELOW its word by design -- `placeCard` picks below unless the word is too
+ * near the bottom of the viewport, because that is the side where the headword
+ * stays put as senses load -- so the next result down is precisely the one it
+ * lands on. The click then never reached the button at all: Playwright retried
+ * it for the full timeout while `.token-tooltip` intercepted every attempt, and
+ * the test failed on the click rather than on anything it meant to assert.
+ *
+ * Which result is clear depends on where the card went, so geometry is the only
+ * honest way to ask. Both boxes are read in the same coordinate space, and the
+ * card is positioned on the page rather than the viewport, so the auto-scroll
+ * before the click moves the two together and cannot invalidate the choice.
+ */
+async function uncoveredCopyToggle(page: Page, search: SearchPage): Promise<Locator> {
+  const card = await page.locator('.token-tooltip').boundingBox();
+  if (!card) throw new Error('the word card is open but has no box');
+
+  const count = await search.segmentCards.count();
+  for (let i = 0; i < count; i++) {
+    const toggle = search.segmentCards.nth(i).getByTestId('copy-dropdown').getByTestId('dropdown-toggle');
+    const box = await toggle.boundingBox();
+    if (!box) continue;
+    const overlaps =
+      box.x < card.x + card.width &&
+      card.x < box.x + box.width &&
+      box.y < card.y + card.height &&
+      card.y < box.y + box.height;
+    if (!overlaps) return toggle;
+  }
+
+  throw new Error('the word card covers every Copy toggle on the page');
+}
+
 test.describe('Dropdown menus', () => {
   let search: SearchPage;
 
@@ -149,12 +188,8 @@ test.describe('Dropdown menus', () => {
     await search.openFirstTokenCard();
     await expect(page.locator('.token-tooltip')).toBeVisible();
 
-    // Another card, so the word card (which hangs off the sentence) cannot
-    // sit on top of the button we are about to press.
-    const otherCard = search.segmentCards.nth(1);
-    await expect(otherCard).toBeVisible();
-    const copy = otherCard.getByTestId('copy-dropdown');
-    await copy.getByTestId('dropdown-toggle').click();
+    const copy = await uncoveredCopyToggle(page, search);
+    await copy.click();
 
     await expect(page.getByTestId('dropdown-menu')).toBeVisible();
     await expect(page.locator('.token-tooltip')).toBeHidden();

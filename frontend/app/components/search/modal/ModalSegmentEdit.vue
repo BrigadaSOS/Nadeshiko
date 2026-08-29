@@ -94,18 +94,38 @@ const toggleHistory = async () => {
   }
 };
 
+/**
+ * Which sentence's history the panel is showing.
+ *
+ * This modal stays MOUNTED as the moderator moves between sentences -- the
+ * `segment` prop changes underneath it -- and the history panel is open by
+ * default, so each move starts a request while the previous one may still be
+ * out. Assigned in arrival order, the older reply won and the panel listed the
+ * previous sentence's revisions under the current one. That is not a display
+ * fault: selecting a revision loads its text into the form, and the form is what
+ * gets saved, so it is a route to writing one sentence's text onto another.
+ *
+ * The failure path needs the same guard for the mirror-image reason -- clearing
+ * the list is right for the sentence that failed and wrong for the one now on
+ * screen.
+ */
+let latestRevisionRequest = 0;
+
 const fetchRevisions = async () => {
   if (!props.segment) return;
+  const request = ++latestRevisionRequest;
   isLoadingRevisions.value = true;
   try {
     const data = await sdk.listSegmentRevisions(props.segment.segment.publicId);
+    if (request !== latestRevisionRequest) return;
     revisions.value = data.revisions;
   } catch (err) {
+    if (request !== latestRevisionRequest) return;
     // The history panel renders its own empty state, so no toast on top of it.
     handleApiError('modalSegmentEdit.fetchRevisions', err, { toastKey: false });
     revisions.value = [];
   } finally {
-    isLoadingRevisions.value = false;
+    if (request === latestRevisionRequest) isLoadingRevisions.value = false;
   }
 };
 

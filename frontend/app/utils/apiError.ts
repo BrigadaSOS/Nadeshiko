@@ -9,7 +9,7 @@ export interface HandleApiErrorOptions {
    * flows that render the failure inline instead.
    */
   toastKey?: string | false;
-  /** Extra context forwarded to the error pipeline (Faro/PostHog). */
+  /** Extra context forwarded to the error pipeline (PostHog). */
   context?: Record<string, string>;
   /** Codes the caller handles itself; matching errors are rethrown untouched. */
   rethrow?: NadeshikoErrorCode[];
