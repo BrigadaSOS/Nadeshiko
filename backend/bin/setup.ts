@@ -339,7 +339,10 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
     });
     const tables = listing.split('\n').filter((l) => l.includes(' TABLE DATA '));
     for (const line of tables) printInfo(`  ${line.trim()}`);
-  } catch {}
+  } catch {
+    // Informational only. If pg_restore -l cannot read the archive the restore
+    // below fails with a real message; losing the listing is not worth aborting.
+  }
 
   printInfo('Restoring content tables...');
   const tableArgs = SEED_CONTENT_TABLES.flatMap((t) => ['-t', t]);
@@ -385,7 +388,10 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
       const [table, count] = line.split('|').map((s) => s.trim());
       if (count && count !== '0') printInfo(`  ${table}: ${count} rows`);
     }
-  } catch {}
+  } catch {
+    // Informational only -- the row counts are a courtesy after a restore that
+    // has already succeeded.
+  }
 
   printInfo('Cleaning up dump files...');
   execFileSync('docker', ['exec', 'nadeshiko-postgres', 'rm', '-f', '/tmp/seed.dump'], {
@@ -393,7 +399,9 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
   });
   try {
     unlinkSync(SEED_DUMP_PATH);
-  } catch {}
+  } catch {
+    // Best-effort cleanup of a temp file. Already gone, or not ours to remove.
+  }
 
   printSuccess('Seed database restored');
 }

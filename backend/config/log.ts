@@ -7,6 +7,7 @@ import { createRequire } from 'module';
 import { trace, context } from '@opentelemetry/api';
 import { config } from '@config/config';
 import { hashUserId } from '@lib/userLogHash';
+import { REDACT_PATHS } from '@brigadasos/nadeshiko-shared/logRedaction';
 
 const normalizedEnvironment = (config.ENVIRONMENT || '').trim().toLowerCase();
 const isDevelopment = normalizedEnvironment === 'local' || normalizedEnvironment === 'development';
@@ -81,62 +82,28 @@ export function capLoggedBody(value: unknown): unknown {
   return bytes > MAX_LOGGED_BODY_BYTES ? oversizedBodyPlaceholder(bytes) : value;
 }
 
+/**
+ * Not secrets -- response shapes that are simply too big to log. A search
+ * response carries every segment it matched, and one of those lines is worth
+ * more to the log bill than to anybody reading it.
+ *
+ * Separate from the shared `REDACT_PATHS` because these are the API's own
+ * payloads: the frontend proxies them but never names them, and a path in this
+ * list going stale costs a verbose log line, not an exposed credential.
+ */
+const VERBOSE_RESPONSE_PATHS = [
+  'res.body.segments',
+  'res.body.media',
+  'res.body.categories',
+  'res.body.results',
+  'res.body.includes',
+  'res.body.revisions',
+];
+
 const baseOptions: pino.LoggerOptions = {
   level: config.LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
   timestamp: pino.stdTimeFunctions.isoTime,
-  redact: [
-    // Sensitive headers
-    'req.headers.cookie',
-    'req.headers.authorization',
-    'req.headers.set-cookie',
-
-    // Common PII in query params
-    'req.query.password',
-    'req.query.token',
-    'req.query.api_key',
-    'req.query.apiKey',
-    'req.query.access_token',
-    'req.query.refresh_token',
-    'req.query.email',
-    'req.query.code',
-
-    // Common PII in request body
-    'req.body.password',
-    'req.body.currentPassword',
-    'req.body.newPassword',
-    'req.body.token',
-    'req.body.accessToken',
-    'req.body.refreshToken',
-    'req.body.refresh_token',
-    'req.body.apiKey',
-    'req.body.api_key',
-    'req.body.secret',
-    'req.body.email',
-    'req.body.code', // OAuth codes
-    'req.body.username', // Potential PII
-
-    // Sensitive data in response body - tokens and keys
-    'res.body.token', // Authentication tokens
-    'res.body.key', // API keys
-    'res.body.apiKey',
-    'res.body.api_key',
-    'res.body.accessToken',
-    'res.body.access_token',
-    'res.body.refreshToken',
-    'res.body.refresh_token',
-
-    // User PII in response body
-    'res.body.user.email',
-    'res.body.user.username',
-
-    // Verbose content in response body (search results, list endpoints)
-    'res.body.segments',
-    'res.body.media',
-    'res.body.categories',
-    'res.body.results',
-    'res.body.includes',
-    'res.body.revisions',
-  ],
+  redact: [...REDACT_PATHS, ...VERBOSE_RESPONSE_PATHS],
 
   mixin() {
     const span = trace.getSpan(context.active());

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { botFamily, classifyTraffic, isBot, parseTrafficHeader, trafficAttributes } from '@lib/traffic';
+import { botFamily, classifyTraffic, isBot, parseTrafficHeader, trafficAttributes } from './traffic';
 
 /**
- * The classifier itself is tested once, here. The frontend runs a byte-identical
- * copy of the same logic (frontend/shared/utils/traffic.ts), and
- * traffic.sync.test.ts over there is what guarantees the two stay identical —
- * so duplicating these cases would only mean maintaining them twice.
+ * The classifier is tested once, here, next to the only copy of it.
+ *
+ * This used to live in backend/tests/lib/ and lean on a drift test to argue that
+ * the frontend's byte-identical copy behaved the same way. There is no second
+ * copy to argue about now: both runtimes import this module, so these cases
+ * cover both of them by construction rather than by inspection.
  */
 
 const CHROME =

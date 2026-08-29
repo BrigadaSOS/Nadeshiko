@@ -12,6 +12,7 @@ COPY backend/package.json backend/
 COPY frontend/package.json frontend/
 COPY discord/package.json discord/
 COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
+COPY packages/nadeshiko-shared/package.json packages/nadeshiko-shared/
 # The image runs TypeScript directly through tsx, which is a regular dependency,
 # so --omit=dev keeps everything the runtime needs. Nothing under app/, config/,
 # db/, lib/ or generated/ imports a devDependency; the bin/ scripts that do
@@ -41,6 +42,10 @@ RUN apt-get update \
 RUN npm ci --workspace backend --include-workspace-root --omit=dev
 
 COPY backend backend
+# Imported at runtime by app/middleware/trafficClassification.ts and
+# config/log.ts, so unlike the SDK next to it -- whose manifest is present
+# only to satisfy the lockfile -- the source of this one has to ship.
+COPY packages/nadeshiko-shared packages/nadeshiko-shared
 
 # The shipped image keeps the API at /app rather than mirroring the monorepo, so
 # that `kamal app exec 'node --import tsx bin/es.ts ...'` and the other documented
@@ -53,9 +58,11 @@ RUN set -eux; \
   mkdir -p /app/node_modules; \
   cp -a node_modules/. /app/node_modules/; \
   if [ -d backend/node_modules ]; then cp -a backend/node_modules/. /app/node_modules/; fi; \
+  cp -a --parents packages/nadeshiko-shared /app/; \
   cd backend; \
   cp -a package.json tsconfig.json main.ts instrumentation.ts app config db bin lib scripts generated /app/; \
-  node -e "require.resolve('tsx',{paths:['/app']})"
+  node -e "require.resolve('tsx',{paths:['/app']})"; \
+  node -e "require.resolve('@brigadasos/nadeshiko-shared/traffic',{paths:['/app']})"
 
 FROM node:24-slim AS release
 WORKDIR /app

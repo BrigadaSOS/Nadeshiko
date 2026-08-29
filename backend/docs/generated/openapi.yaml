@@ -121,6 +121,8 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/search/stats:
     post:
       tags:
@@ -160,6 +162,8 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /v1/search/words:
     post:
       tags:
@@ -4710,6 +4714,47 @@ components:
           additionalProperties:
             type: string
           description: Optional map of field names to their error messages (for validation errors)
+    Error503:
+      type: object
+      description: Service Unavailable error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - SERVICE_OVERLOADED
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 503
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
     SearchStatsRequest:
       type: object
       description: |
@@ -7736,6 +7781,15 @@ components:
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 500
+    ServiceOverloaded:
+      summary: Service Overloaded
+      value:
+        code: SERVICE_OVERLOADED
+        title: Service Overloaded
+        detail: The service is busy. Please retry in a moment.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 503
     AccountConflict:
       summary: Account Conflict
       value:
@@ -7817,6 +7871,21 @@ components:
           examples:
             InternalServerError:
               $ref: '#/components/examples/InternalServerError'
+    ServiceUnavailable:
+      description: Service Unavailable. The server is already running as many requests of this kind as it can and refused this one rather than queue it. Nothing about the caller was counted -- this is not a rate limit -- so there is no budget to stay inside; wait the number of seconds in the `Retry-After` header and send the same request again.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error503'
+          examples:
+            ServiceOverloaded:
+              $ref: '#/components/examples/ServiceOverloaded'
     Conflict:
       description: Conflict
       content:
