@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Token } from '@brigadasos/nadeshiko-sdk';
 import { enrichTokens, type SlimToken, type EnrichedToken } from '~/utils/tokenEnrichment';
-import { placeCard } from '~/utils/cardPlacement';
 import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
   cardForms,
@@ -106,13 +105,29 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
 const { closeAllDropdowns, tokenTooltipEpoch, isTokenTooltipOpen } = useDropdownState();
 provide(NESTED_IN_TOKEN_TOOLTIP_KEY, true);
 
-const hoveredToken = ref<EnrichedToken | null>(null);
-const tooltipStyle = ref<Record<string, string>>({});
+/**
+ * The token whose card is open, held SHALLOW -- and that is load-bearing, not a
+ * micro-optimisation.
+ *
+ * A plain `ref` hands back `reactive(value)` for an object, so `.value` is a
+ * PROXY of the token while the template's `token` (out of the `enrichedTokens`
+ * computed) is the raw one. `hoveredToken.value === token` therefore compared a
+ * proxy with its own target and was false every time, which quietly cost the
+ * card its close: re-clicking the open word re-ran the open path instead of
+ * `closeTooltip`, so "a click is its own undo" was true of the code and not of
+ * the page. Escape and clicking away still worked, which is why it survived.
+ *
+ * Shallow is also simply correct here: an enriched token is immutable data the
+ * card only ever reads, so deep reactivity bought nothing to begin with.
+ */
+const hoveredToken = shallowRef<EnrichedToken | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
-// Which side of the token the card hangs off. Decided once when it opens and
-// never revisited -- see `placeTooltip`.
-const tooltipBelow = ref(false);
 let hoveredElement: HTMLElement | null = null;
+
+const { tooltipStyle, tooltipBelow, placeTooltip } = useCardPlacement(
+  () => hoveredElement,
+  () => hoveredToken.value !== null,
+);
 
 // How long a pointer has to rest on a word before it is worth asking about it.
 // Long enough that crossing a sentence costs nothing, short enough that it is
@@ -156,125 +171,47 @@ const hiddenDefinitionLanguages = computed(() =>
  * cached in `~/utils/wordLookup` -- a module, so one answer serves every segment
  * on the page rather than every segment keeping its own copy.
  */
-const candidates = ref<ShirabeCandidate[]>([]);
-const picked = ref(0);
 
-/**
- * Whether there is anything to offer at all.
- *
- * One candidate is not a choice, and a row of one is a control that asks the
- * reader to consider something already settled.
- */
-const showCandidateRows = computed(() => candidates.value.length > 1);
+const { showCandidateRows, posInitial, duplicateHeadwords, visibleCandidates, hiddenCandidateCount, isNameCandidate } =
+  useCandidateChips(
+    () => candidates.value,
+    () => picked.value,
+    () => glossLanguages.value,
+  );
 
-/**
- * How many chips the glance shows before it stops.
- *
- * Four, not six. The row is no longer the only way to reach a candidate -- what
- * it does not fit opens as a list a click away -- so it can be sized for what is
- * READABLE at the card's width rather than for what is reachable. Four chips
- * hold one line at the widths these words run to; six wrapped, and a wrapped
- * glance is not one.
- */
-const PICKER_VISIBLE = 4;
-
-/**
- * Whether a candidate is a person or a place rather than a word.
- *
- * Read off the flag Shirabe publishes, never off the dictionary slug: JMdict
- * carries ~7,300 JMnedict rows under its own name, so a slug test keeps every
- * one of them and never says so. あれ is the case that shows it -- 亜礼, 阿礼 and
- * 安礼 all arrive under `jmdict`.
- *
- * Names are normally filtered out of an answer entirely (see
- * `withoutNameEntries`), so this only has anything to mark in the one case where
- * they survive: a token that resolves to nothing BUT names. Then the tag is what
- * stops six unfamiliar spellings reading as six words the reader has never met.
- */
-const isNameCandidate = (candidate: ShirabeCandidate): boolean => candidate.name === true;
-
-/**
- * The one letter that tells two same-spelling candidates apart, with the whole
- * word on hover.
- *
- * PRONOUN and INTERJECTION spelled out cost more row than the words they were
- * disambiguating -- あれ PRONOUN / あれ INTERJECTION pushed 有れ and 我 to the
- * edge, so a tiebreak between two chips was crowding out the other four. An
- * initial is enough to tell them apart, which is the whole job; `title` carries
- * the rest for anyone who wants it, the same way the sense chips do.
- *
- * A collision (two candidates whose labels share a letter) is not worth guarding
- * against: if two spellings have the SAME part of speech then the full word
- * would not separate them either, and the list below -- where every row carries
- * its gloss -- is what answers that.
- *
- * Localized by construction: it is the first character of the label the card
- * would print, so Spanish gets P/I too and Japanese gets 代/感.
- */
-function posInitial(candidate: ShirabeCandidate): string {
-  return [...candidatePartOfSpeech(candidate, glossLanguages.value)][0] ?? '';
-}
-
-/**
- * The spellings more than one candidate answers to.
- *
- * Only these get a part of speech on their chip. あれ is two words -- the
- * pronoun and the interjection -- and without it the row shows あれ twice with
- * nothing to choose by; every other chip is already distinct, and a label on all
- * of them would be noise charged to the many for the sake of the few.
- */
-const duplicateHeadwords = computed(() => {
-  const counts = new Map<string, number>();
-  // Counted over what is PRINTED (`candidateName`), not over the headword: two
-  // chips are indistinguishable to a reader when they carry the same label, and
-  // a word shown under its kanji is no longer a duplicate of the kana it shares
-  // a headword with.
-  for (const candidate of candidates.value) {
-    const name = candidateName(candidate);
-    counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  return new Set([...counts].filter(([, n]) => n > 1).map(([name]) => name));
-});
-
-/** The chips to draw. The decision, and why the index travels with the
- *  candidate, is `pickerChips`. */
-const visibleCandidates = computed(() => pickerChips(candidates.value, picked.value, false, PICKER_VISIBLE));
-
-const hiddenCandidateCount = computed(() => Math.max(0, candidates.value.length - PICKER_VISIBLE));
-
-/**
- * Shut by default, and reset per card.
- *
- * A reader who opened the list on ここ was asking about ここ. Carrying that open
- * state to the next word they hover would answer a question they have not asked
- * yet, on a card where the alternatives are usually noise.
- */
-const othersOpen = ref(false);
-
-/**
- * The word the card renders: whichever candidate the reader has picked.
- *
- * There used to be a second ref here holding a follow-up
- * `GET /api/v1/words/{id}`, and a computed spreading it over the candidate,
- * because identify carried enough to CHOOSE but not enough to finish the card.
- * It carries both now (`include=pitch,frequency,furigana,jlpt,forms,notes`), so
- * the second call, its cache, the spread and the id-guard that kept a late
- * answer off the wrong word are all gone.
- */
-const word = computed<ShirabeWord | null>(() => candidates.value[picked.value] ?? null);
+const { candidates, picked, othersOpen, wordState, word, clearLookup, applyLookup, lookUp, cancelPending } =
+  useWordLookup(
+    () => glossLanguages.value.labels,
+    // Ask Anki again, about the word the dictionary just named. The probe fires
+    // when the card OPENS, which is before the lookup lands, so it asks about the
+    // token's own dictionary form; without this follow-up a word the reader
+    // already had read as new whenever AnkiConnect answered before Shirabe did.
+    () => void probeMined(),
+  );
 
 const headword = computed(() => cardHeadword(word.value, hoveredToken.value?.dictForm));
 
-// 'missing' is specifically "we asked and there is no entry", which the card
-// says out loud. It is not the same as "we never asked" (lookups unconfigured,
-// a token that could not be a word) -- claiming no entry for a question nobody
-// put would be a lie, so those stay 'idle' and the card simply answers from the
-// token alone, which is what it did before any of this loaded.
-const wordState = ref<'idle' | 'loading' | 'name' | 'missing' | 'unavailable'>('idle');
-// The word this card is currently waiting on, so a late answer for a word the
-// reader has moved off can be told apart from the one they are looking at.
-// Deliberately not the token object: those are rebuilt by a computed.
-let pendingLookup: string | null = null;
+const {
+  headReading,
+  headFurigana,
+  inflectionLine,
+  badges,
+  pitchPatterns,
+  senses,
+  sourceCount,
+  namesSources,
+  wordParts,
+  forms,
+  definitionsAreHidden,
+  kanjiChips,
+} = useWordCardContent(
+  () => word.value,
+  () => hoveredToken.value,
+  () => headword.value,
+  () => glossLanguages.value,
+  () => hiddenDefinitionLanguages.value,
+  () => userStore().shirabeLinked,
+);
 
 /**
  * The Anki half of the card, which is the other question a reader has about a
@@ -368,12 +305,7 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // Not configured: no key on the server, so there is nothing to ask. Leaving
   // the request out entirely beats firing one that 503s on every hover and
   // caching the failure, and the card still answers from the token alone.
-  if (!lookupsEnabled) {
-    clearLookup();
-    return;
-  }
-
-  if (!isAskable(token)) {
+  if (!lookupsEnabled || !isAskable(token)) {
     clearLookup();
     return;
   }
@@ -382,92 +314,13 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // far the previous card wandered.
   clearTrail();
 
-  const ref = token.lookupRef;
-  // Staleness below is judged on this string, so it has to be the same identity
-  // the cache uses: two tokens for the same word in the same shape are
-  // interchangeable, two spellings of it are not.
-  const asked = `${ref.lemma}|${ref.surface}|${ref.reading}|${ref.pos}`;
-  const locale = glossLanguages.value.labels;
-
-  // Already answered, from this card or any other on the page: paint it now.
-  // Synchronously, with no intermediate 'loading', so a word the reader has
-  // seen before (or that hovering prefetched a moment ago) opens filled in
-  // rather than flashing "Looking up…" for a frame first.
-  const cached = peekWord(ref, locale);
-  if (cached !== undefined) {
-    applyLookup(cached);
-    reportCardOutcome(token, cached, true);
-    return;
-  }
-
-  clearLookup();
-  wordState.value = 'loading';
-  pendingLookup = asked;
-
-  const found = await fetchWord(ref, locale);
-
-  // Staleness is judged on the WORD being looked up, not on the token object
-  // that asked for it.
-  //
-  // This compared `hoveredToken.value !== token` by identity, and that is what
-  // left cards reading "Looking up…" over a request that had already returned
-  // 200. `enrichedTokens` is a computed: any re-evaluation builds fresh token
-  // objects, so the one captured when the card opened can quietly stop being the
-  // one the ref holds, and an answer for exactly the word on screen was thrown
-  // away as belonging to something else. Nothing then cleared the loading state,
-  // because the guard that would have cleared it compared the same way.
-  //
-  // A word is a string and two tokens for the same word are interchangeable
-  // here, so this holds however often the list re-renders.
-  if (pendingLookup !== asked) return;
-  pendingLookup = null;
-
-  applyLookup(found);
-  reportCardOutcome(token, found, false);
+  const outcome = await lookUp(token.lookupRef);
+  // Null means a later word superseded this one; that is not an outcome to
+  // record, and the request that replaced it owns the card now.
+  if (outcome) reportCardOutcome(token, outcome.answer, outcome.fromCache);
   // Deliberately no re-placement here. The card has just grown from one line to
   // its full height, but where it goes was settled against its maximum size when
   // it opened, so it grows into room already reserved for it.
-}
-
-/** Empty the lookup, so nothing from the last word survives into the next one.
- *  `picked` resets with the rest: a reader who chose 黄身 on one token must not
- *  find the next one opening on its second candidate. */
-function clearLookup(): void {
-  candidates.value = [];
-  picked.value = 0;
-  othersOpen.value = false;
-  wordState.value = 'idle';
-}
-
-/** Paint an answer, whichever of the four it is. Only a dictionary that
- *  answered "no such word" reaches 'missing' and is said out loud; a lookup that
- *  could not be made leaves the card quiet, on what the token itself knows. */
-function applyLookup(answer: WordLookup): void {
-  candidates.value = answer.candidates;
-  picked.value = 0;
-  othersOpen.value = false;
-  // 'shown' becomes 'idle' here: with candidates in hand the card has something
-  // to draw and needs no state of its own. The other three are things it says.
-  const state = lookupState(answer.candidates.length, answer.reason, answer.nameOnly);
-  wordState.value = state === 'shown' ? 'idle' : state;
-
-  /**
-   * Ask Anki again, about the word the dictionary just named.
-   *
-   * The probe fires when the card OPENS, which is before the lookup lands, so it
-   * asks about the token's own dictionary form -- あんた for a token the
-   * dictionary will resolve to 手加減. `useWordMining` then discards that answer
-   * on arrival because the open word has changed under it, which is right: an
-   * answer about あんた says nothing about 手加減. What was missing is the
-   * follow-up. Nothing re-asked, so a word the reader already had read as new
-   * whenever AnkiConnect answered before Shirabe did -- a race between two
-   * services that do not wait on each other, and one the local stub wins every
-   * time.
-   *
-   * Same reason `pickCandidate` re-probes, and the same staleness guards drop
-   * whichever of the two lands late.
-   */
-  void probeMined();
 }
 
 /**
@@ -527,41 +380,6 @@ function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: 
     askable_tokens: enrichedTokens.value.filter(isAskable).length,
   });
 }
-
-/**
- * Put the card where the word is, once and for good.
- *
- * The decision itself is `placeCard`, which measures nothing: see the reasoning
- * there for why the side is settled before the card has any content, and why it
- * is never revisited when the content arrives.
- *
- * All this adds is the page scroll, because the card is placed on the PAGE
- * rather than on the screen. It therefore scrolls away with the sentence it
- * belongs to instead of following the reader down the page, and nothing has to
- * re-run on scroll to keep it honest.
- */
-function placeTooltip(): void {
-  const anchor = hoveredElement;
-  if (!anchor?.isConnected) return;
-  const tokenRect = anchor.getBoundingClientRect();
-
-  const placement = placeCard(tokenRect, { width: window.innerWidth, height: window.innerHeight });
-
-  tooltipBelow.value = placement.below;
-  tooltipStyle.value = {
-    left: `${placement.left + window.scrollX}px`,
-    top: `${placement.top + window.scrollY}px`,
-    maxHeight: `${placement.maxHeight}px`,
-  };
-}
-
-// Re-place an open card when the viewport is resized. One listener serves every
-// sentence on the page, and it fires only on a WIDTH change -- see
-// `onViewportWidthChange` for why a height-only change must not reach here.
-onViewportWidthChange(() => {
-  if (!hoveredToken.value) return;
-  placeTooltip();
-});
 
 /**
  * Open the card for a token.
@@ -682,7 +500,7 @@ const closeTooltip = () => {
   clearTrail();
   clearPicked();
   revealDefinitions.value = false;
-  pendingLookup = null;
+  cancelPending();
   clearMined();
 };
 
@@ -903,194 +721,10 @@ const POS_CLASS: Record<string, string> = {
   助動詞: 'token--auxiliary',
 };
 
-// The one word on this card that is prose rather than data, and it is keyed by
-// GLOSS language rather than by UI locale, so it cannot come from i18n: `t()`
-// answers in the interface language, while this badge sits among definitions the
-// reader chose to read in English or Spanish. Reading Nadeshiko in Japanese with
-// Spanish glosses on, "常用" over "Frecuente" would be the odd one out.
-const COMMON_LABEL: Record<GlossLanguage, string> = { en: 'Common', es: 'Frecuente' };
-
 const { furiganaMode } = useHiraganaVisibility();
 const { presets, isDictionaryEnabled } = useDictionaryLinks();
 
-// 1. Head. The reading is the dictionary's, not the surface's: 焼けた reads
-// やけた, but the word above the senses is 焼ける, and printing it over the
-// inflected reading would be a lie. `headword` itself is declared up beside
-// `word`, because the mining probe needs it too.
-const headReading = computed(() => {
-  const reading = word.value?.reading || hoveredToken.value?.readingHiragana || '';
-  // For この the reading IS この, so a second copy of it adds nothing.
-  if (reading === headword.value) return '';
-  return reading;
-});
-
-/** The clip playing right now, by URL, so that only the button that started it
- *  lights up. A word read two ways has a button per accent, and a plain boolean
- *  lit both of them over a recording of one. */
-const playingUrl = ref('');
-let headAudio: HTMLAudioElement | null = null;
-
-/** Stop whatever is playing and forget it was. The clip belongs to the word on
- *  the card, so it must not outlive it: leaving it to finish would light up the
- *  play button on the NEXT word the reader opens, over a recording of the last
- *  one. */
-const stopHeadword = () => {
-  headAudio?.pause();
-  playingUrl.value = '';
-};
-
-const playHeadword = (src: string) => {
-  if (!src) return;
-
-  // One element, reused across every word on the page: clips are under a second
-  // and a fresh Audio per click leaks one per lookup. Assigning `src` on an
-  // element that is already playing replaces the clip, which is what re-clicking
-  // should do anyway.
-  if (!headAudio) {
-    headAudio = new Audio();
-    headAudio.addEventListener('ended', () => {
-      playingUrl.value = '';
-    });
-    headAudio.addEventListener('error', () => {
-      playingUrl.value = '';
-    });
-  }
-
-  if (headAudio.src !== src) headAudio.src = src;
-  headAudio.currentTime = 0;
-  playingUrl.value = src;
-  // A clip the CDN has lost, or a browser that declines to play, must not leave
-  // the button stuck mid-play. Only if this clip is still the one playing,
-  // though: switching accents mid-clip rejects the FIRST play() with an abort,
-  // and clearing on that would darken the button of the clip that just started.
-  headAudio.play().catch(() => {
-    if (playingUrl.value === src) playingUrl.value = '';
-  });
-};
-
-onBeforeUnmount(() => {
-  stopHeadword();
-  headAudio = null;
-});
-
-// 2. What this occurrence does to the dictionary form, outermost step first:
-// 食べさせられた is "past · potential / passive · causative" rather than one name
-// that would be true of only its last step.
-// Ruby for the headword. Shirabe aligns it on the word response (`furigana`), so
-// this is the dictionary form's own ruby: the token's `f` is aligned to the
-// surface it appeared as, which is a different string (焼けた, not 焼ける).
-/**
- * Ruby for the headword: Shirabe's alignment once the card has it, and the
- * token's own until then.
- *
- * Falling back matters for more than completeness. With only Shirabe's, the head
- * had NO furigana while the lookup was in flight, so the reading rendered as a
- * separate label beside the word -- and then jumped to ruby above it the moment
- * the answer arrived. The card visibly rebuilt itself mid-read. The token was
- * carrying furigana the whole time; using it keeps the head one shape from the
- * first frame, and Shirabe's replaces it invisibly because it is the same
- * alignment of the same word.
- */
-const headFurigana = computed(() => {
-  // Guarded: Shirabe's per-candidate furigana does not always spell that
-  // candidate's headword. See `headwordFurigana`.
-  const fromWord = headwordFurigana(word.value);
-  if (fromWord.length > 0) return fromWord;
-
-  // Only when the head IS the token's own surface. An inflected token shows its
-  // dictionary form up here (食べている → 食べる), and the surface's ruby does not
-  // align with a word it does not spell.
-  const token = hoveredToken.value;
-  if (!token || token.displaySurface !== headword.value) return [];
-  return token.furigana.filter((seg) => seg.text).map((seg) => ({ text: seg.text, reading: seg.reading ?? '' }));
-});
-
-const inflectionLine = computed(() => {
-  const token = hoveredToken.value;
-  if (!token || token.inflectionLabels.length === 0) return '';
-  // The chain alone -- "progressive · te-form" -- and not "食らって → 食らう ·
-  // te-form". Both ends of that arrow are already on screen: the surface is the
-  // word the reader just pointed at in the sentence, and the dictionary form is
-  // the headword directly above this line. Spelling the conversion out again
-  // pushed the one thing this line is FOR to the far right of it.
-  //
-  // The labels are Shirabe's own, verbatim from the parse, so a form reads the
-  // same here as it does there: its wording carries the detail a bare name
-  // would lose ("potential / passive", "provisional (〜ば)").
-  return token.inflectionLabels.join(' · ');
-});
-
-// 3. Badges: how common the word is, in the three ways the dictionary knows.
-const badges = computed(() => {
-  const found = word.value;
-  if (!found) return [];
-  const items: Array<{ id: string; text: string; kind: string }> = [];
-  if (found.common) items.push({ id: 'common', text: COMMON_LABEL[glossLanguages.value.labels], kind: 'is-common' });
-  if (found.jlpt) items.push({ id: 'jlpt', text: found.jlpt, kind: 'is-jlpt' });
-  if (typeof found.frequency === 'number') items.push({ id: 'freq', text: `#${found.frequency}`, kind: 'is-freq' });
-  return items;
-});
-
-/**
- * 4. Pitch accent. Two patterns at most: a word read four ways is rare enough
- * that it must not push the senses out of a hover card.
- *
- * Each pattern carries its own clip, which Shirabe pre-generates per (reading,
- * accent) and serves off its public CDN -- there is nothing to request, nothing
- * to authorize, and no work for our own API to do. The clip is per pattern and
- * not per word on purpose: a word read two ways is two recordings, and one
- * button in front of both would play whichever happened to exist while pointing
- * at an accent it might not be. Coverage lights up batch by batch, so a pattern
- * with no recording simply has no button -- a dead speaker icon invites a click
- * that does nothing.
- */
-const pitchPatterns = computed(() => {
-  const reading = word.value?.reading;
-  if (!reading) return [];
-  return (word.value?.pitch ?? []).slice(0, 2).map((pattern) => ({
-    downstep: pattern.downstep,
-    audioUrl: pattern.audioUrl ?? '',
-    morae: pitchMorae(reading, pattern.downstep),
-  }));
-});
-
-// 5 and 6. The senses, and the kanji the headword is written with.
-const senses = computed(() => cardSenses(word.value, glossLanguages.value));
-
-/** How many dictionaries this card is made of. One for every reader who has not
- *  linked a Shirabe account, which is what decides whether the senses are worth
- *  attributing at all. */
-const sourceCount = computed(() => new Set(senses.value.map((sense) => sense.dictionary)).size);
-
-/**
- * Whether to name the dictionary above its senses.
- *
- * More than one on the card, obviously. But also whenever the reader has LINKED
- * an account, even for a single dictionary, and that second case is the useful
- * one: their stack does not have every word in it, so a word none of their
- * dictionaries carries falls back to the one that resolved it -- and unlabelled,
- * that card is an English definition appearing among Japanese ones for no
- * visible reason. Naming it answers the question before it is asked.
- *
- * A reader who linked nothing always reads one dictionary, so a label on every
- * card would be noise charged to everybody for a case they cannot be in.
- */
-const namesSources = computed(() => sourceCount.value > 1 || userStore().shirabeLinked);
-
-/**
- * The words this one is made of, when it is a merged expression.
- *
- * The row exists because a merge DELETES what it spans. 男を知っている is one
- * chip covering 男 (rank 156) and 知る (69), and the expression is the only
- * candidate the resolver returns -- so without this there is no way to reach
- * either word: not by hovering, since the chip covers them, and not through the
- * picker, since there is nothing else in it.
- *
- * Only the ones Shirabe could resolve to a word. A part with no id is a spelling
- * we cannot open, and a chip that does nothing when clicked is worse than no
- * chip.
- */
-const wordParts = computed(() => (word.value?.parts ?? []).filter((part) => part.id));
+const { playingUrl, playHeadword, stopHeadword } = useHeadwordAudio();
 
 /**
  * Open a part in the card that is showing its parent.
@@ -1127,136 +761,38 @@ const wordParts = computed(() => (word.value?.parts ?? []).filter((part) => part
  */
 /** Shared, so `pickedForExport` returns the same identity on every card that is
  *  not trimming rather than a fresh set per evaluation. */
-const NO_PICK: ReadonlySet<string> = new Set<string>();
-
-const pickedDictionaries = ref<Set<string>>(new Set());
-
-const clearPicked = () => {
-  if (pickedDictionaries.value.size > 0) pickedDictionaries.value = new Set();
-};
-
-/** Reassigned rather than mutated: a `Set` is not deeply reactive, so a card
- *  that ticked in place would not repaint. */
-const togglePick = (key: string) => {
-  const next = new Set(pickedDictionaries.value);
-  if (!next.delete(key)) next.add(key);
-  pickedDictionaries.value = next;
-};
-
-/**
- * The dictionaries on the card, in the order they are printed.
- *
- * Deduplicated on the key rather than the name for the reason `dictionaryKey`
- * exists: two of a reader's own uploads can share a title, and fusing them into
- * one toggle would hand somebody who ticked one the senses of both.
- */
-const cardDictionaries = computed(() => {
-  const seen = new Map<string, string>();
-  for (const sense of senses.value) {
-    const key = dictionaryKey(sense);
-    if (!seen.has(key)) seen.set(key, sense.dictionary);
-  }
-  return [...seen].map(([key, name]) => ({ key, name }));
-});
-
-const deselectAllDictionaries = () => {
-  pickedDictionaries.value = new Set();
-};
-
-/**
- * Tick every dictionary on the card.
- *
- * Exports the same note "Deselect all" does -- `pickedForExport` reads a full
- * pick and an empty one as the same instruction -- so this is not another way to
- * choose, it is the way BACK from a pick that went one dictionary too far.
- * Ticking three of four by hand to undo a stray untick is the tedium it removes.
- *
- * Offered only while something is left to tick, since a button that cannot
- * change the row it sits in is a button that lies about being able to.
- */
-const selectAllDictionaries = () => {
-  pickedDictionaries.value = new Set(cardDictionaries.value.map((dictionary) => dictionary.key));
-};
-
-const canSelectAllDictionaries = computed(() => pickedDictionaries.value.size < cardDictionaries.value.length);
-
-/**
- * Whether to offer the toggles at all.
- *
- * Gated on the same configuration the mine button is, because a pick with
- * nowhere to go is a control that does nothing: a reader with no Anki profile
- * would be ticking dictionaries into the void, and so would one whose profile
- * writes no definition anywhere.
- *
- * And never for a single-dictionary card, which is most of them: ticking the
- * only dictionary there is means the same thing as ticking nothing, so the
- * control would be a checkbox that cannot change the outcome.
- */
-const canPickDictionaries = computed(
-  () => canConfigureMine.value && !!props.result && mapsDefinition.value && cardDictionaries.value.length > 1,
+const {
+  pickedDictionaries,
+  cardDictionaries,
+  clearPicked,
+  togglePick,
+  selectAllDictionaries,
+  deselectAllDictionaries,
+  canSelectAllDictionaries,
+  canPickDictionaries,
+  pickedForExport,
+  pickSummary,
+} = useDictionarySelection(
+  () => senses.value,
+  // A pick with nowhere to go is a control that does nothing: a reader with no
+  // Anki profile would be ticking dictionaries into the void, and so would one
+  // whose profile writes no definition anywhere.
+  () => canConfigureMine.value && !!props.result && mapsDefinition.value,
+  (count, total) => t('tokenTooltip.pickedDictionaries', { count, total }),
 );
-
-/**
- * What actually reaches the note.
- *
- * All of them and none of them are the same instruction -- "do not trim" -- and
- * both hand `minedWord` an empty set, so `{definition}` keeps the whole stack it
- * has always held. That is what makes "Deselect all" safe: it is how a reader
- * starts a pick over, not a way to mine a card with no definition on it.
- */
-const pickedForExport = computed(() => {
-  const size = pickedDictionaries.value.size;
-  if (size === 0 || size === cardDictionaries.value.length) return NO_PICK;
-  return pickedDictionaries.value;
-});
-
-/** The card stating what it will export. */
-const pickSummary = computed(() =>
-  t('tokenTooltip.pickedDictionaries', {
-    count: pickedDictionaries.value.size,
-    total: cardDictionaries.value.length,
-  }),
-);
-
-type CardLocation = { lemma: string; surface: string; reading: string; pos: string };
-
-/**
- * Where the card is standing, relative to the token it opened on.
- *
- * `trail` is the parts the reader has opened, deepest last; empty means they are
- * on the word the card opened on, which is why the original never needs storing
- * -- `hoveredToken.lookupRef` still holds it. `forward` is what they have stepped
- * back out of, discarded the moment they walk somewhere new, which is what every
- * back/forward pair does and what stops the two disagreeing.
- */
-const trail = ref<CardLocation[]>([]);
-const forward = ref<CardLocation[]>([]);
-const canGoBack = computed(() => trail.value.length > 0);
-const canGoForward = computed(() => forward.value.length > 0);
 
 /** The card's own lookup, shared by the parts row and both history controls, so
  *  all three paint an answer the same way and guard staleness the same way. */
 async function loadLocation(location: CardLocation): Promise<void> {
-  const locale = glossLanguages.value.labels;
-
   // Before the cache hit as well as after it: walking into a part is a different
   // word whether or not we already had it, and a pick carried across would trim
   // the new word's definition to the old word's sense numbers.
   clearPicked();
 
-  const cached = peekWord(location, locale);
-  if (cached !== undefined) return applyLookup(cached);
-
-  clearLookup();
-  wordState.value = 'loading';
-  // Guarded like the hover path: a slow answer for a word the reader has since
-  // navigated away from must not paint over whatever they are looking at now.
-  const asked = `${location.lemma}|${location.surface}|${location.reading}|${location.pos}`;
-  pendingLookup = asked;
-  const found = await fetchWord(location, locale);
-  if (pendingLookup !== asked) return;
-  pendingLookup = null;
-  applyLookup(found);
+  // Guarded like the hover path, and by the same guard: a slow answer for a word
+  // the reader has since navigated away from must not paint over whatever they
+  // are looking at now.
+  await lookUp(location);
 }
 
 /** The token the card opened on, which is where an empty trail points. */
@@ -1265,56 +801,14 @@ function openedOn(): CardLocation | null {
   return ref ? { lemma: ref.lemma, surface: ref.surface, reading: ref.reading, pos: ref.pos } : null;
 }
 
-function currentLocation(): CardLocation | null {
-  return trail.value[trail.value.length - 1] ?? openedOn();
-}
-
-async function showPart(part: { lemma: string; text: string; reading?: string }): Promise<void> {
-  const location = { lemma: part.lemma, surface: part.text, reading: part.reading ?? '', pos: '' };
-  trail.value = [...trail.value, location];
-  forward.value = [];
-  await loadLocation(location);
-}
-
-async function goBack(): Promise<void> {
-  const left = trail.value[trail.value.length - 1];
-  if (!left) return;
-  trail.value = trail.value.slice(0, -1);
-  forward.value = [...forward.value, left];
-  const target = currentLocation();
-  if (target) await loadLocation(target);
-}
-
-async function goForward(): Promise<void> {
-  const next = forward.value[forward.value.length - 1];
-  if (!next) return;
-  forward.value = forward.value.slice(0, -1);
-  trail.value = [...trail.value, next];
-  await loadLocation(next);
-}
-
-/** Nothing survives the card closing or moving to another word: the trail is
- *  about one card's worth of wandering, not a page-level history. */
-function clearTrail(): void {
-  trail.value = [];
-  forward.value = [];
-}
-
-/** The other spellings this word is written with. Only from the detail call:
- *  identify carries them behind `include=forms`, which we do not send yet. */
-const forms = computed(() => cardForms(word.value));
-const definitionsAreHidden = computed(
-  () => word.value !== null && senses.value.length === 0 && hiddenDefinitionLanguages.value.length > 0,
+const { canGoBack, canGoForward, currentLocation, showPart, goBack, goForward, clearTrail } = useCardTrail(
+  loadLocation,
+  openedOn,
 );
+
 const revealHiddenDefinitions = () => {
   revealDefinitions.value = true;
 };
-const kanjiChips = computed(() =>
-  kanjiIn(headword.value).map((character) => ({
-    character,
-    href: shirabeKanjiUrl(character, glossLanguages.value.labels),
-  })),
-);
 
 // Searching Nadeshiko for a word, which is what both the headword and "More
 // sentences" do: a reader asking about 注意 wants to hear it said, and that is

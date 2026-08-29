@@ -113,11 +113,14 @@ export default defineEventHandler((event) => {
     }
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
-    return sendRedirect(
-      event,
-      `${withLocalePrefix(localePrefix, buildWordSearchPath(query))}${remaining ? `?${remaining}` : ''}`,
-      301,
-    );
+    // An EMPTY query lands on the search page, not on `/search/`, exactly as the
+    // `/search/sentence` branch above does with the same input. `?query=` is an
+    // ordinary shape for a submitted-empty form, and `buildWordSearchPath('')`
+    // is `/search/` -- a second redirect hop to reach the page this one could
+    // have sent them to, on the crawler-facing route this file exists to keep
+    // from multiplying.
+    const target = query ? buildWordSearchPath(query) : '/search';
+    return sendRedirect(event, `${withLocalePrefix(localePrefix, target)}${remaining ? `?${remaining}` : ''}`, 301);
   }
 
   // Junk `/search/:query` segments -> `/search`. Deliberately last: every branch

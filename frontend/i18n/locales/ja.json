@@ -393,8 +393,6 @@
         "hiddenMediaBadge": "非表示",
         "hiddenMediaBadgeTitle": "この作品は非表示リストに入っています",
         "searchmain": "タイトルを書いてください",
-        "searchbar": "フィルター",
-        "all": "すべて",
         "copiedcontent": "内容がクリップボードにコピーされました。",
         "errorcopiedcontent": "内容のコピーに失敗しました。再試行してください。",
         "copiedsharingurl": "URLがクリップボードにコピーされました。",
@@ -512,7 +510,6 @@
       "familiarOnToast": "学習中の作品を記憶します",
       "familiarOffToast": "学習中の作品を記憶しません",
       "clearHistoryToast": "アクティビティ履歴を削除しました",
-      "confirmClearFamiliar": "学習中の作品の記録を削除しますか？アクティビティ履歴には影響しません。",
       "confirmClearDay": "{day} のアクティビティをすべて削除しますか？この操作は取り消せません。",
       "ranges": {
         "all": "全期間"
@@ -731,8 +728,6 @@
       "changeEmailSending": "送信中...",
       "changeEmailCancel": "キャンセル",
       "changeEmailSuccess": "現在のメールアドレスに確認メールを送信しました。受信トレイを確認してください。",
-      "productEmailsTitle": "Nadeshiko からのお知らせメール",
-      "productEmailsDescription": "アクティビティのまとめや新機能についての不定期なメールです。ログイン用リンクとアカウント関連のメールは常に送信されます。",
       "productEmailsOnToast": "Nadeshiko からのお知らせメールを受け取ります",
       "productEmailsOffToast": "Nadeshiko からのお知らせメールを受け取りません",
       "changeEmailFailed": "メールアドレスの変更リクエストに失敗しました。",
@@ -768,9 +763,6 @@
         "youtube": "YouTube の動画。"
       },
       "hiddenMedia": "非表示メディア",
-      "hiddenMediaDescription": "検索結果から非表示にしたメディア。検索結果のメニューからも非表示にできます。",
-      "hiddenMediaEmpty": "非表示のメディアはありません。検索結果にはすべてのメディアが表示されます。",
-      "hiddenMediaListTitle": "非表示メディア一覧",
       "hiddenMediaCount": "{count} 件を非表示",
       "mediaHiddenToast": "{name}を検索結果から非表示にしました",
       "mediaUnhiddenToast": "{name}を検索結果に戻しました",
@@ -783,8 +775,6 @@
         "otherNames": "別名"
       },
       "favoriteMedia": "お気に入りメディア",
-      "favoriteMediaDescription": "検索時、お気に入りのタイトルがメディアフィルターの先頭に並びます。フィルターから直接お気に入りに追加することもできます。",
-      "favoriteMediaEmpty": "まだお気に入りはありません。メディアフィルターは五十音順のままです。",
       "favoriteMediaCount": "{count}/{max} 件のお気に入り",
       "sessionDetails": {
         "unknownDevice": "不明な端末",
@@ -796,7 +786,6 @@
       },
       "exportError": "データをエクスポートできませんでした。もう一度お試しください。",
       "mediaLookup": "タイトルを探す",
-      "mediaLookupDescription": "カタログを検索して、お気に入りに追加するか非表示にします。お気に入りはメディアフィルターの先頭に並び、非表示は検索結果から除外されます。",
       "mediaLookupPlaceholder": "タイトルを検索...",
       "mediaLookupNoResults": "該当するメディアが見つかりません。",
       "manageMedia": "コンテンツの管理",
@@ -860,8 +849,6 @@
       "loadingMessage": "接続中です。お待ちください",
       "connectionSuccess": "接続成功",
       "successMessage": "Ankiとの接続が正常に確立されました",
-      "connectionError": "エラーが発生しました",
-      "errorMessage": "Ankiとの接続を確立できませんでした",
       "fieldLoadError": "モデルのフィールド名の読み込みエラー:",
       "troubleshootingTips": {
         "ankiRunning": "Ankiが起動中でAnkiconnectアドオンがインストールされていることを確認してください",
@@ -910,6 +897,10 @@
         "unreachable": {
           "title": "Ankiから応答がありませんでした",
           "body": "AnkiConnectにまったく接続できませんでした。原因はほぼ以下の3つのいずれかです。"
+        },
+        "blocked_by_csp": {
+          "title": "Ankiのサーバーアドレスは許可されていません",
+          "body": "Nadeshikoのセキュリティポリシーでは、AnkiConnectへの接続はこのパソコン上のみ許可されています。そのため、下のアドレスはネットワークに到達する前に拒否されました。別のパソコンやスマートフォンで動作しているAnkiには接続できません。アドレスをhttp://127.0.0.1:8765に戻し、このパソコンでAnkiを起動してください。"
         },
         "permission_denied": {
           "title": "Ankiは起動しています。あなたの操作待ちです",

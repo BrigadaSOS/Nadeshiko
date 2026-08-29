@@ -14,6 +14,7 @@ COPY backend/package.json backend/
 COPY frontend/package.json frontend/
 COPY discord/package.json discord/
 COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
+COPY packages/nadeshiko-shared/package.json packages/nadeshiko-shared/
 # Warm npm's cache from the lockfile alone, so the download cost stays in a
 # layer that source edits do not invalidate.
 RUN npm ci --workspace frontend --include-workspace-root --ignore-scripts \
@@ -22,6 +23,7 @@ RUN npm ci --workspace frontend --include-workspace-root --ignore-scripts \
 FROM deps AS build
 COPY frontend frontend
 COPY packages/nadeshiko-sdk packages/nadeshiko-sdk
+COPY packages/nadeshiko-shared packages/nadeshiko-shared
 # Install from the lockfile, skipping lifecycle scripts: the frontend's
 # postinstall is `nuxt prepare`, which npm runs before the tree is complete.
 # `nuxt build` re-runs the same preparation, so nothing is lost.

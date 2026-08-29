@@ -17,8 +17,26 @@ servers:
       # the cgroup limit, so raising --max-old-space-size without raising this would
       # only trade V8's FATAL ERROR (which writes a report, see NODE_OPTIONS below)
       # for a silent kernel kill.
-      memory: 1.5g
-      memory-swap: 1.75g
+      #
+      # RAISED TO 2g ON 2026-08-31 for two cluster workers -- see the arithmetic
+      # under NITRO_CLUSTER_WORKERS below. Each worker's heap is pinned by
+      # --max-old-space-size in NODE_OPTIONS, so V8 fails loudly with a report
+      # before the kernel gets to choose.
+      memory: 2g
+      memory-swap: 2.25g
+      # An init as PID 1, so orphans get reaped. Node is PID 1 without it and
+      # Node does not reap: the container's own healthcheck (`node -e fetch(/up)`,
+      # 5s timeout) leaves its child re-parented to Node whenever a check times
+      # out under load, and it stays a zombie until the container dies. Counted
+      # 2026-08-31: 49 across the frontend and backend containers, every one
+      # dated to a minute the box was overloaded.
+      init: true
+      # 2.5 of the host's 4 cores. Not a performance setting -- at two workers
+      # the container cannot usefully take more -- but a fence: on 2026-08-30 the
+      # frontend's queue of doomed renders was competing with Elasticsearch and
+      # the backend for the same cores it was waiting on. This guarantees the
+      # services a render depends on a core and a half of their own.
+      cpus: "2.5"
       # Docker hands the container a core-dump limit of 0, so a segfaulting
       # worker dies leaving nothing but a one-line kernel trap. Raising it is
       # only half the job: the kernel writes the dump through the *host's*
@@ -86,6 +104,13 @@ proxy:
     path: /up
     interval: 2
     timeout: 5
+  # Ten seconds, down from kamal-proxy's default of 30. A render that has taken
+  # ten seconds is not going to be read: baseline p95 is 431ms, and on 2026-08-30
+  # 2,037 renders sat in the proxy for the full 30s before 504ing, each holding a
+  # worker slot the whole time. The admission gate (NUXT_SSR_MAX_INFLIGHT) keeps
+  # the queue short; this keeps a slow backend from turning the slots it does
+  # allow into 30-second holds.
+  response_timeout: 10
 
 env:
   secret:
@@ -201,8 +226,58 @@ env:
     #
     # What would change the answer: a bigger box, or moving Elasticsearch off
     # this one. Not a config edit.
+    #
+    # REVISITED 2026-08-31, AND THE ANSWER IS NOW TWO WORKERS. What changed is
+    # not the box; it is what a night under a distributed crawler showed about
+    # how the box was being used, and a cap that makes the memory arithmetic
+    # above stop applying.
+    #
+    # SINGLE-PROCESS WAS THE CEILING. `docker top` on the production container
+    # showed one Node process, as the paragraph above predicted. Its measured
+    # limit is ~6.4 search renders a second, and when the crawler sent 40-90/s
+    # the host was at 61-74% CPU -- more than two cores idle -- while the site
+    # served 189 successful search pages out of 60,000 requests. One event loop
+    # cannot spend the other cores, and the mitigation on the night was to
+    # start three more copies of the container by hand, which is clustering
+    # without any of its coordination.
+    #
+    # MEMORY, RE-MEASURED. The 935 MiB peak the paragraph above budgets from was
+    # one process under UNBOUNDED concurrency: every render admitted, hundreds in
+    # flight, each holding its Vue tree until it finished or timed out. The
+    # admission gate (NUXT_SSR_MAX_INFLIGHT below) bounds that at 8 per worker,
+    # and the peak with it is a different number. Over the 3 days to 2026-08-31,
+    # which include the flood, the container's working set never passed 577 MiB,
+    # and the three hand-started copies ran 400-475 MiB each for five hours side
+    # by side. Two workers x ~500 MiB + a ~100 MiB primary is ~1.1 GiB expected,
+    # 2g is the cap, and --max-old-space-size=640 per worker (NODE_OPTIONS) means
+    # the sum of heaps cannot reach it: a worker that grows past its share dies
+    # with a report and is re-forked, instead of the kernel killing the whole
+    # container. Host side, this replaces 4 x 1.5g of hand-started containers
+    # with one at 2g, so the total budget goes DOWN by 4 GiB against the state
+    # the box actually ran in.
+    #
+    # CPU, THE OTHER WAY ROUND. Two workers and not three because the host has
+    # four cores and Elasticsearch, the backend and Postgres are what a render
+    # waits on -- three workers plus those is the run-queue contention the
+    # paragraph above warned about. Two workers, fenced to 2.5 cores (`cpus`
+    # above), is 2x the ceiling with a core and a half left for everything the
+    # ceiling depends on. Human peak in the week to 2026-08-31 was 0.67 renders/s
+    # against ~12/s of capacity; the headroom is for floods, and past it the
+    # gate answers 503 rather than queueing.
+    #
+    # THE ONE LINE THAT TURNS IT ON is `nitro.preset` in nuxt.config.ts, which
+    # now reads NITRO_PRESET at build time -- this builder arg, not this env var,
+    # is what reaches it. The runtime copy below is read by `perWorkerMax` and
+    # the workers themselves. Every per-IP limit in this file divides by it.
     NITRO_PRESET: node_cluster
-    NITRO_CLUSTER_WORKERS: 3
+    NITRO_CLUSTER_WORKERS: 2
+
+    # Page renders each worker will hold in flight before answering 503 to the
+    # next -- per PROCESS, not service-wide, unlike the limits below; the reason
+    # and the arithmetic are in server/middleware/99-ssr-admission.ts. Sixteen
+    # across the two workers; a flood past that is refused in microseconds
+    # instead of queued for thirty seconds.
+    NUXT_SSR_MAX_INFLIGHT: 8
 
     # Per-IP rate limits, set here rather than left to the defaults in
     # config/env.ts because the default is not the number that gets enforced.
@@ -251,6 +326,11 @@ env:
     NUXT_RATE_LIMIT_HTML_MAX: 60
     NUXT_RATE_LIMIT_V1_API_MAX: 120
     NUXT_RATE_LIMIT_V1_AUTH_MAX: 30
+    # Set explicitly now that clustering is on, as the paragraph above asked.
+    # 6 rather than 5 so it divides evenly: ceil(5/2) = 3 per worker would have
+    # been the same floor, but 6 is the number that makes the total say what it
+    # means.
+    NUXT_RATE_LIMIT_V1_FEEDBACK_MAX: 6
 
     # Diagnostics for the recurring crash where a Nitro process dies on a
     # general protection fault at the same libc offset every time (+0x50f),
@@ -272,7 +352,15 @@ env:
     # None of these catch the GPF itself -- that is what the core dump is for.
     # They are here to rule in or out the failure modes that could be happening
     # *alongside* it, at the cost of a ~100KB JSON file when they fire.
-    NODE_OPTIONS: "--report-on-fatalerror --report-uncaught-exception --report-on-signal --report-directory=/app/diagnostics"
+    #
+    # --max-old-space-size=640 IS PER PROCESS and is what makes the 2g cap above
+    # a real ceiling rather than a kernel-kill waiting to happen: this variable
+    # replaces the Dockerfile's NODE_OPTIONS wholesale (Kamal sets the env, it
+    # does not append), so without it here the workers ran with V8's default
+    # heap, sized from the host and not from the cgroup. Two workers at 640 MiB
+    # plus the primary fit under 2g with room for off-heap; a worker that needs
+    # more dies with a report and is re-forked by the primary.
+    NODE_OPTIONS: "--max-old-space-size=640 --report-on-fatalerror --report-uncaught-exception --report-on-signal --report-directory=/app/diagnostics"
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-prod
@@ -286,17 +374,16 @@ env:
     # load. Kamal renders this at deploy time, so it cannot drift from the tag.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
-    # Grafana Faro browser RUM. o.nadeshiko.co is routed by kamal-proxy to the
-    # host Alloy's Faro receiver (:4329, /collect); its CORS already allows
-    # nadeshiko.co + dev.nadeshiko.co. Replaces the old otelcol-browser sidecar.
-    NUXT_PUBLIC_BROWSER_METRICS_URL: "https://o.nadeshiko.co/v1/metrics"
+    # No browser-metrics URL: web vitals go to PostHog now, so nothing on a
+    # page posts to o.nadeshiko.co. The host Alloy and its kamal-proxy route are
+    # still up and still take BACKEND telemetry. See app/plugins/rum.client.ts.
 
-# The otelcol-browser accessory was removed: browser RUM now goes straight to
-# the host Alloy Faro receiver. Server-side (SSR) telemetry still uses
-# OTEL_EXPORTER_OTLP_ENDPOINT → host.docker.internal:4328 (also Alloy).
+# NOTHING ON A PAGE SENDS TELEMETRY OFF-SITE ANY MORE, other than to PostHog.
+# The browser reported web vitals to the host Alloy until web vitals moved to
+# PostHog (app/plugins/rum.client.ts); before that it was Faro, and before that
+# an otelcol-browser accessory. All three are gone, and so is the kamal-proxy
+# route they needed on o.nadeshiko.co -- retiring it is an infra-side change,
+# and leaving it up costs nothing but an open door nobody uses.
 #
-# After the first deploy, point kamal-proxy at the Faro receiver:
-#   ssh nadeshiko "docker exec kamal-proxy kamal-proxy deploy \
-#     nadeshiko-frontend-prod-faro \
-#     --target 172.18.0.1:4329 --host o.nadeshiko.co --tls \
-#     --health-check-port 12345 --health-check-path /-/ready"
+# Server-side (SSR) telemetry is unaffected and still goes to the same Alloy via
+# OTEL_EXPORTER_OTLP_ENDPOINT → host.docker.internal:4328.

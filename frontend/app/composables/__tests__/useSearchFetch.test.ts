@@ -60,6 +60,9 @@ beforeEach(() => {
     mock.mockReset();
   }
   reportErrorMock.mockReset();
+  // Reset too, or a test asserting that nothing was COUNTED reads every earlier
+  // test's events and fails on history rather than on behaviour.
+  reportEventMock.mockReset();
 });
 
 describe('createRequestSequencer', () => {
@@ -594,5 +597,264 @@ describe('fetchStats scoped to one title', () => {
 
     expect(bodyOf().filters.media).toBeUndefined();
     expect(bodyOf().include).toEqual(['media']);
+  });
+});
+
+describe('a permalink to one sentence', () => {
+  const segment = { publicId: 'seg-9', mediaPublicId: 'media-1' };
+  const media = { publicId: 'media-1', nameEn: 'Oshi no Ko' };
+
+  const permalink = () => scope({ segmentPublicId: 'seg-9', query: '' });
+
+  beforeEach(() => {
+    sdkMocks.getSegment.mockResolvedValue({ data: segment, response: new Response() });
+    sdkMocks.getMedia.mockResolvedValue({ data: media, response: new Response() });
+  });
+
+  it('resolves that one segment instead of searching', async () => {
+    // `?uuid=` ignores every other filter: the reader followed a link to one
+    // sentence, and running their filters over it could answer with nothing.
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    const outcome = await fetcher.fetchSentences(permalink());
+
+    expect(sdkMocks.search).not.toHaveBeenCalled();
+    expect(sdkMocks.getSegment).toHaveBeenCalledWith(expect.objectContaining({ path: { segmentPublicId: 'seg-9' } }));
+    expect(outcome).toEqual({
+      status: 'ok',
+      data: expect.objectContaining({ results: [expect.objectContaining({ segment })] }),
+    });
+  });
+
+  it('fetches the title the segment belongs to, so the card is not nameless', async () => {
+    // The segment endpoint answers with an id, not a title; a card with no
+    // media name is the shape a permalink is most often shared as.
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    await fetcher.fetchSentences(permalink());
+
+    expect(sdkMocks.getMedia).toHaveBeenCalledWith(expect.objectContaining({ path: { mediaPublicId: 'media-1' } }));
+  });
+
+  it('a permalink to a segment that is gone is not a crash', async () => {
+    // Deleted, or a link that was mistyped. Both are ordinary.
+    sdkMocks.getSegment.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 404 }) });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    expect(await fetcher.fetchSentences(permalink())).toEqual({ status: 'error' });
+    expect(sdkMocks.getMedia).not.toHaveBeenCalled();
+  });
+
+  it('and one the reader may not see is forbidden rather than broken', async () => {
+    sdkMocks.getSegment.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 403 }) });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    expect(await fetcher.fetchSentences(permalink())).toEqual({ status: 'forbidden' });
+  });
+
+  it('still shows the sentence when only the TITLE lookup fails', async () => {
+    // The sentence is what the reader followed the link for; losing it because
+    // its title could not be fetched trades everything for a label.
+    sdkMocks.getMedia.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 500 }) });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    const outcome = await fetcher.fetchSentences(permalink());
+
+    expect(outcome).toEqual({
+      status: 'ok',
+      data: expect.objectContaining({ results: [expect.objectContaining({ segment })] }),
+    });
+  });
+
+  it('is reported stale when a newer request has already started', async () => {
+    const slow = deferred<unknown>();
+    sdkMocks.getSegment.mockReturnValueOnce(slow.promise);
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    const first = fetcher.fetchSentences(permalink());
+    await fetcher.fetchSentences(scope());
+    slow.resolve({ data: segment, response: new Response() });
+
+    expect(await first).toEqual({ status: 'stale' });
+    // And the title behind it is never fetched: the check sits between the two
+    // calls precisely so an abandoned permalink does not spend a second round
+    // trip on a card nobody is waiting for.
+    expect(sdkMocks.getMedia).not.toHaveBeenCalled();
+  });
+});
+
+describe('listing a collection', () => {
+  const collection = () => scope({ collectionId: 'col-1', query: '' });
+  const payload = {
+    segments: [{ publicId: 'seg-1', mediaPublicId: 'media-1' }],
+    includes: { media: {} },
+    pagination: { hasMore: false, cursor: '', estimatedTotalHits: 1, estimatedTotalHitsRelation: 'EXACT' },
+  };
+
+  it('asks the collection endpoint rather than the corpus one', async () => {
+    // A collection is a list the reader made; running a corpus search over it
+    // would answer with sentences that are not in it.
+    sdkMocks.searchCollectionSegments.mockResolvedValueOnce({ data: payload, response: new Response() });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    await fetcher.fetchSentences(collection());
+
+    expect(sdkMocks.search).not.toHaveBeenCalled();
+    expect(sdkMocks.searchCollectionSegments).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { collectionPublicId: 'col-1' } }),
+    );
+  });
+
+  it('uses the collection page size, which is its own number', async () => {
+    sdkMocks.searchCollectionSegments.mockResolvedValueOnce({ data: payload, response: new Response() });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    await fetcher.fetchSentences(collection());
+
+    expect(sdkMocks.searchCollectionSegments.mock.calls[0]![0].body.take).toBe(COLLECTION_PAGE_SIZE);
+    expect(COLLECTION_PAGE_SIZE).not.toBe(SEARCH_PAGE_SIZE);
+  });
+
+  it('passes the cursor through when paging further in', async () => {
+    sdkMocks.searchCollectionSegments.mockResolvedValueOnce({ data: payload, response: new Response() });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    await fetcher.fetchSentences(collection(), { cursor: 'page-2' });
+
+    expect(sdkMocks.searchCollectionSegments.mock.calls[0]![0].body.cursor).toBe('page-2');
+  });
+
+  it('omits the cursor entirely on the first page', async () => {
+    // Not `cursor: undefined`: the body is sent as-is and a null cursor is a
+    // 400 on some of these endpoints.
+    sdkMocks.searchCollectionSegments.mockResolvedValueOnce({ data: payload, response: new Response() });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    await fetcher.fetchSentences(collection());
+
+    expect(sdkMocks.searchCollectionSegments.mock.calls[0]![0].body).not.toHaveProperty('cursor');
+  });
+
+  it('a collection the reader may not read is forbidden, not broken', async () => {
+    // Someone else's private list: the page shows "you cannot see this", which
+    // is a different screen from "something went wrong".
+    sdkMocks.searchCollectionSegments.mockResolvedValueOnce({
+      error: {},
+      response: new Response(null, { status: 403 }),
+    });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'forbidden' });
+  });
+
+  it('and a throttled one is an error nobody files a bug for', async () => {
+    // 429 is the server asking for less, answered by backing off; it already
+    // counts its own throttling.
+    sdkMocks.searchCollectionSegments.mockResolvedValueOnce({
+      error: {},
+      response: new Response(null, { status: 429 }),
+    });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'error' });
+    expect(reportErrorMock).not.toHaveBeenCalled();
+    expect(reportEventMock).not.toHaveBeenCalled();
+  });
+
+  it('reports a thrown collection fetch as a collection, not as the corpus', async () => {
+    // The two fail for different reasons and the scope is how they are told
+    // apart in triage.
+    sdkMocks.searchCollectionSegments.mockRejectedValueOnce(new Error('offline'));
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'error' });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:sentences-fetch-failed',
+      expect.anything(),
+      expect.objectContaining({ 'search.scope': 'collection' }),
+    );
+  });
+});
+
+describe('a collection’s own counts', () => {
+  const collection = () => scope({ collectionId: 'col-1', query: '' });
+
+  it('come from the collection endpoint', async () => {
+    sdkMocks.getCollectionStats.mockResolvedValueOnce({
+      data: { totalSegments: 3, categories: [] },
+      response: new Response(),
+    });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    await fetcher.fetchStats(collection());
+
+    expect(sdkMocks.getSearchStats).not.toHaveBeenCalled();
+    expect(sdkMocks.getCollectionStats).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { collectionPublicId: 'col-1' } }),
+    );
+  });
+
+  it('a forbidden collection is forbidden here too', async () => {
+    sdkMocks.getCollectionStats.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 403 }) });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    expect(await fetcher.fetchStats(collection())).toEqual({ status: 'forbidden' });
+  });
+
+  it('and a superseded one is stale rather than a second answer', async () => {
+    const slow = deferred<unknown>();
+    sdkMocks.getCollectionStats.mockReturnValueOnce(slow.promise);
+    sdkMocks.getSearchStats.mockResolvedValueOnce({
+      data: { totalSegments: 1, categories: [] },
+      response: new Response(),
+    });
+    const fetcher = createSearchFetcher(fakeSdk);
+
+    const first = fetcher.fetchStats(collection());
+    await fetcher.fetchStats(scope());
+    slow.resolve({ data: { totalSegments: 3, categories: [] }, response: new Response() });
+
+    expect(await first).toEqual({ status: 'stale' });
+  });
+});
+
+describe('the sort a search is sent with', () => {
+  beforeEach(() => {
+    sdkMocks.search.mockResolvedValue({ data: searchPayload('seg-1'), response: new Response() });
+  });
+
+  const sentSort = () => sdkMocks.search.mock.calls.at(-1)![0].body.sort;
+
+  it('sends nothing at all for relevance, which is the backend’s default', async () => {
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: 'relevance' }));
+
+    expect(sentSort()).toBeUndefined();
+  });
+
+  it('sends nothing when no sort was asked for', async () => {
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: null }));
+
+    expect(sentSort()).toBeUndefined();
+  });
+
+  it('upper-cases what the URL carried, since the API takes an enum', async () => {
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: 'newest' }));
+
+    expect(sentSort()).toEqual({ mode: 'NEWEST' });
+  });
+
+  it('carries the seed for a shuffle, so a shared link is the same order', async () => {
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: 'random', randomSeed: 4242 }));
+
+    expect(sentSort()).toEqual({ mode: 'RANDOM', seed: 4242 });
+  });
+
+  it('sends a shuffle with no seed as a bare mode', async () => {
+    // The backend then derives one from the calendar day: a fine default for a
+    // shared link, and useless for reshuffling -- which is why reshuffling
+    // writes a new seed rather than asking again without one.
+    await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: 'random', randomSeed: null }));
+
+    expect(sentSort()).toEqual({ mode: 'RANDOM' });
   });
 });

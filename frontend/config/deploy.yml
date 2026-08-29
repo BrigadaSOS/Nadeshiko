@@ -4,6 +4,16 @@ servers:
       - nadeshiko
     options:
       add-host: host.docker.internal:host-gateway
+      # An init as PID 1, so orphans get reaped. Node is PID 1 without it and
+      # Node does not reap: the container's own healthcheck (`node -e fetch(/up)`,
+      # 5s timeout) leaves its child re-parented to Node whenever a check times
+      # out under load, and it stays a zombie until the container dies. Counted
+      # 2026-08-31: 49 across the four frontend and backend containers, every one
+      # dated to a minute the box was overloaded. Harmless to the app, but the
+      # process table is not infinite and a host full of defunct entries reads
+      # like a crash that never happened. NOTE: Kamal REPLACES this block from the
+      # per-destination file rather than merging it, so `init` is repeated there.
+      init: true
 
 registry:
   server: ghcr.io

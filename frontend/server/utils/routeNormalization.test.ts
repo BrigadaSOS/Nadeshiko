@@ -53,6 +53,27 @@ describe('normalizeRoute', () => {
     expect(normalizeRoute('/v1/media/segments/gFH5xlsT--zr')).toBe('/v1/media/segments/:id');
   });
 
+  it('collapses media titles onto one series, whatever the slug looks like', () => {
+    // A slug carries no digit and no uppercase, so `isIdSegment` declines to
+    // template it and each title used to be its own label -- 236 idle series in
+    // a day. `86` and `re-zero-...` are the two halves of the inconsistency
+    // this closes: one was templated by the fallback, the other was not.
+    expect(normalizeRoute('/en/media/jujutsu-kaisen')).toBe('/:locale/media/:id');
+    expect(normalizeRoute('/es/media/spy-family')).toBe('/:locale/media/:id');
+    expect(normalizeRoute('/ja/media/re-zero-kara-hajimeru-isekai-seikatsu')).toBe('/:locale/media/:id');
+    expect(normalizeRoute('/en/media/86')).toBe('/:locale/media/:id');
+    expect(normalizeRoute('/en/media/12')).toBe('/:locale/media/:id');
+  });
+
+  it('leaves the media index and the API paths beside it alone', () => {
+    // The pattern is anchored to a single segment, so nothing deeper than
+    // `/media/<slug>` is swallowed by it.
+    expect(normalizeRoute('/en/media')).toBe('/:locale/media');
+    expect(normalizeRoute('/v1/media')).toBe('/v1/media');
+    expect(normalizeRoute('/v1/media/segments/gFH5xlsT--zr')).toBe('/v1/media/segments/:id');
+    expect(normalizeRoute('/v1/media/segments/-OFOANT699SJ/context')).toBe('/v1/media/segments/:id/context');
+  });
+
   it('does not mistake real path words for ids', () => {
     expect(normalizeRoute('/v1/collections')).toBe('/v1/collections');
     expect(normalizeRoute('/v1/stats/covered-words')).toBe('/v1/stats/covered-words');
