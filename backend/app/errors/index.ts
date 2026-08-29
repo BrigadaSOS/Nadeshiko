@@ -11,4 +11,5 @@ export { InsufficientPermissionsError } from './insufficientPermissionsError';
 export { NotFoundError } from './notFoundError';
 export { RateLimitExceededError } from './rateLimitExceededError';
 export { QuotaExceededError } from './quotaExceededError';
+export { ServiceOverloadedError } from './serviceOverloadedError';
 export { InternalServerError } from './internalServerError';

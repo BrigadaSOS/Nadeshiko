@@ -8,6 +8,8 @@ servers:
       # Current ~310MB, peaks ~1.2GB under load = 1.25x headroom
       memory: 1.5g
       memory-swap: 2g
+      # Repeated from deploy.yml, which this block replaces -- see the note there.
+      init: true
 
 proxy:
   ssl: true
@@ -263,6 +265,16 @@ accessories:
       clear:
         discovery.type: single-node
         ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+        # Pin the heap in RAM. The memlock ulimit below has been there all along
+        # and is only half of it: without this setting Elasticsearch never asks
+        # for the lock, and measured 2026-08-31 the JVM had 713MB of its 1.8GB
+        # resident set out in swap -- pages of the heap it touches least, paged
+        # out during some earlier pressure and never brought back, until a
+        # search needed them at the worst possible moment. The host runs
+        # vm.swappiness=1 already; this closes the gap for the one process that
+        # must not swap. Takes effect on `kamal accessory reboot elasticsearch
+        # -d prod`, which is ~a minute without search.
+        bootstrap.memory_lock: "true"
         xpack.security.enabled: "true"
         xpack.security.http.ssl.enabled: "false"
         http.host: "0.0.0.0"

@@ -2,280 +2,311 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from "@nahkies/typescript-express-runtime/errors";
 import {
-  type ExpressRuntimeResponder,
-  ExpressRuntimeResponse,
-  handleImplementationError,
-  handleResponse,
-  type Params,
-  type SkipResponse,
-  type StatusCode,
-} from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
-import { z } from 'zod/v4';
+	type ExpressRuntimeResponder,
+	ExpressRuntimeResponse,
+	handleImplementationError,
+	handleResponse,
+	type Params,
+	type SkipResponse,
+	type StatusCode,
+} from "@nahkies/typescript-express-runtime/server";
+import {
+	parseRequestInput,
+	responseValidationFactory,
+} from "@nahkies/typescript-express-runtime/zod-v4";
+import {
+	type NextFunction,
+	type Request,
+	type RequestHandler,
+	type Response,
+	Router,
+} from "express";
+import { z } from "zod/v4";
 import type {
-  t_CoveredWordsResponse,
-  t_CoveredWordsUpdateRequest,
-  t_CoveredWordsUpdateResponse,
-  t_Error400,
-  t_Error401,
-  t_Error403,
-  t_Error429,
-  t_Error500,
-  t_GetCoveredWordsQuerySchema,
-  t_StatsOverview,
-} from '../models.ts';
+	t_CoveredWordsResponse,
+	t_CoveredWordsUpdateRequest,
+	t_CoveredWordsUpdateResponse,
+	t_Error400,
+	t_Error401,
+	t_Error403,
+	t_Error429,
+	t_Error500,
+	t_GetCoveredWordsQuerySchema,
+	t_StatsOverview,
+} from "../models.ts";
 import type { CoveredWordsUpdateRequestOutput, GetCoveredWordsQueryOutput } from '../outputTypes.ts';
 import {
-  s_CoveredWordsResponse,
-  s_CoveredWordsUpdateRequest,
-  s_CoveredWordsUpdateResponse,
-  s_Error400,
-  s_Error401,
-  s_Error403,
-  s_Error429,
-  s_Error500,
-  s_StatsOverview,
-} from '../schemas.ts';
+	s_CoveredWordsResponse,
+	s_CoveredWordsUpdateRequest,
+	s_CoveredWordsUpdateResponse,
+	s_Error400,
+	s_Error401,
+	s_Error403,
+	s_Error429,
+	s_Error500,
+	s_StatsOverview,
+} from "../schemas.ts";
 
 export type GetStatsOverviewResponder = {
-  with200(): ExpressRuntimeResponse<t_StatsOverview>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_StatsOverview>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type GetStatsOverview = (
-  params: Params<void, void, void, void>,
-  respond: GetStatsOverviewResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, void, void, void>,
+	respond: GetStatsOverviewResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetCoveredWordsResponder = {
-  with200(): ExpressRuntimeResponse<t_CoveredWordsResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_CoveredWordsResponse>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type GetCoveredWords = (
-  params: Params<void, GetCoveredWordsQueryOutput, void, void>,
-  respond: GetCoveredWordsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, GetCoveredWordsQueryOutput, void, void>,
+	respond: GetCoveredWordsResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type TriggerCoveredWordsUpdateResponder = {
-  with200(): ExpressRuntimeResponse<t_CoveredWordsUpdateResponse>;
-  with400(): ExpressRuntimeResponse<t_Error400>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_CoveredWordsUpdateResponse>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type TriggerCoveredWordsUpdate = (
-  params: Params<void, void, CoveredWordsUpdateRequestOutput, void>,
-  respond: TriggerCoveredWordsUpdateResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, void, CoveredWordsUpdateRequestOutput, void>,
+	respond: TriggerCoveredWordsUpdateResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type StatsImplementation = {
-  getStatsOverview: GetStatsOverview;
-  getCoveredWords: GetCoveredWords;
-  triggerCoveredWordsUpdate: TriggerCoveredWordsUpdate;
+	getStatsOverview: GetStatsOverview;
+	getCoveredWords: GetCoveredWords;
+	triggerCoveredWordsUpdate: TriggerCoveredWordsUpdate;
 };
 
 export function createStatsRouter(
-  implementation: StatsImplementation,
-  options: { middleware?: RequestHandler[] } = {},
+	implementation: StatsImplementation,
+	options: { middleware?: RequestHandler[] } = {},
 ): Router {
-  const router = Router();
+	const router = Router();
 
-  if (options.middleware?.length) {
-    router.use(...options.middleware);
-  }
+	if (options.middleware?.length) {
+		router.use(...options.middleware);
+	}
 
-  const getStatsOverviewResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_StatsOverview],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const getStatsOverviewResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_StatsOverview],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // getStatsOverview
-  router.get(`/v1/stats/overview`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+	// getStatsOverview
+	router.get(
+		`/v1/stats/overview`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_StatsOverview>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_StatsOverview>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getStatsOverview(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getStatsOverviewResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getStatsOverview(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, getStatsOverviewResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const getCoveredWordsQuerySchema = z.object({
-    tier: z.coerce.number().min(1),
-    minRank: z.coerce.number().min(0).optional().default(0),
-    filter: z.enum(['ALL', 'COVERED', 'UNCOVERED']).optional().default('ALL'),
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(1000).optional().default(200),
-  });
+	const getCoveredWordsQuerySchema = z.object({
+		tier: z.coerce.number().min(1),
+		minRank: z.coerce.number().min(0).optional().default(0),
+		filter: z.enum(["ALL", "COVERED", "UNCOVERED"]).optional().default("ALL"),
+		cursor: z.string().optional(),
+		take: z.coerce.number().min(1).max(1000).optional().default(200),
+	});
 
-  const getCoveredWordsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_CoveredWordsResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const getCoveredWordsResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_CoveredWordsResponse],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // getCoveredWords
-  router.get(`/v1/stats/covered-words`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getCoveredWordsQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// getCoveredWords
+	router.get(
+		`/v1/stats/covered-words`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						getCoveredWordsQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_CoveredWordsResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_CoveredWordsResponse>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getCoveredWords(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getCoveredWordsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getCoveredWords(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, getCoveredWordsResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const triggerCoveredWordsUpdateResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_CoveredWordsUpdateResponse],
-      ['400', s_Error400],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const triggerCoveredWordsUpdateResponseBodyValidator =
+		responseValidationFactory(
+			[
+				["200", s_CoveredWordsUpdateResponse],
+				["400", s_Error400],
+				["401", s_Error401],
+				["403", s_Error403],
+				["429", s_Error429],
+				["500", s_Error500],
+			],
+			undefined,
+		);
 
-  // triggerCoveredWordsUpdate
-  router.post(`/v1/stats/covered-words/update`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: parseRequestInput(s_CoveredWordsUpdateRequest, req.body, RequestInputType.RequestBody),
-        headers: undefined,
-      };
+	// triggerCoveredWordsUpdate
+	router.post(
+		`/v1/stats/covered-words/update`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: parseRequestInput(
+						s_CoveredWordsUpdateRequest,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_CoveredWordsUpdateResponse>(200);
-        },
-        with400() {
-          return new ExpressRuntimeResponse<t_Error400>(400);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_CoveredWordsUpdateResponse>(
+							200,
+						);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .triggerCoveredWordsUpdate(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, triggerCoveredWordsUpdateResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.triggerCoveredWordsUpdate(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, triggerCoveredWordsUpdateResponseBodyValidator),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  return router;
+	return router;
 }
 
 export { createStatsRouter as createRouter };

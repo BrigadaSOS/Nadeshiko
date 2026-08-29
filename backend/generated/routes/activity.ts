@@ -2,385 +2,431 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import { RequestInputType } from '@nahkies/typescript-express-runtime/errors';
+import { RequestInputType } from "@nahkies/typescript-express-runtime/errors";
 import {
-  type ExpressRuntimeResponder,
-  ExpressRuntimeResponse,
-  handleImplementationError,
-  handleResponse,
-  type Params,
-  type SkipResponse,
-  type StatusCode,
-} from '@nahkies/typescript-express-runtime/server';
-import { parseRequestInput, responseValidationFactory } from '@nahkies/typescript-express-runtime/zod-v4';
-import { type NextFunction, type Request, type RequestHandler, type Response, Router } from 'express';
-import { z } from 'zod/v4';
+	type ExpressRuntimeResponder,
+	ExpressRuntimeResponse,
+	handleImplementationError,
+	handleResponse,
+	type Params,
+	type SkipResponse,
+	type StatusCode,
+} from "@nahkies/typescript-express-runtime/server";
+import {
+	parseRequestInput,
+	responseValidationFactory,
+} from "@nahkies/typescript-express-runtime/zod-v4";
+import {
+	type NextFunction,
+	type Request,
+	type RequestHandler,
+	type Response,
+	Router,
+} from "express";
+import { z } from "zod/v4";
 import type {
-  t_CursorPagination,
-  t_Error401,
-  t_Error403,
-  t_Error429,
-  t_Error500,
-  t_GetUserActivityHeatmapQuerySchema,
-  t_GetUserActivityStatsQuerySchema,
-  t_HeatmapDayCounts,
-  t_ListUserActivityQuerySchema,
-  t_MediaSummary,
-  t_UserActivity,
-  t_UserActivityStats,
-} from '../models.ts';
+	t_CursorPagination,
+	t_Error401,
+	t_Error403,
+	t_Error429,
+	t_Error500,
+	t_GetUserActivityHeatmapQuerySchema,
+	t_GetUserActivityStatsQuerySchema,
+	t_HeatmapDayCounts,
+	t_ListUserActivityQuerySchema,
+	t_MediaSummary,
+	t_UserActivity,
+	t_UserActivityStats,
+} from "../models.ts";
 import type { GetUserActivityHeatmapQueryOutput, GetUserActivityStatsQueryOutput, ListUserActivityQueryOutput } from '../outputTypes.ts';
 import {
-  s_ActivityType,
-  s_CursorPagination,
-  s_Error401,
-  s_Error403,
-  s_Error429,
-  s_Error500,
-  s_HeatmapDayCounts,
-  s_MediaSummary,
-  s_UserActivity,
-  s_UserActivityStats,
-} from '../schemas.ts';
+	s_ActivityType,
+	s_CursorPagination,
+	s_Error401,
+	s_Error403,
+	s_Error429,
+	s_Error500,
+	s_HeatmapDayCounts,
+	s_MediaSummary,
+	s_UserActivity,
+	s_UserActivityStats,
+} from "../schemas.ts";
 
 export type ListFamiliarMediaResponder = {
-  with200(): ExpressRuntimeResponse<{
-    familiarMedia: {
-      ankiCount: number;
-      media: t_MediaSummary;
-      playCount: number;
-      score: number;
-      shareCount: number;
-    }[];
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<{
+		familiarMedia: {
+			ankiCount: number;
+			media: t_MediaSummary;
+			playCount: number;
+			score: number;
+			shareCount: number;
+		}[];
+	}>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListFamiliarMedia = (
-  params: Params<void, void, void, void>,
-  respond: ListFamiliarMediaResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, void, void, void>,
+	respond: ListFamiliarMediaResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type ListUserActivityResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activities: t_UserActivity[];
-    pagination: t_CursorPagination;
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<{
+		activities: t_UserActivity[];
+		pagination: t_CursorPagination;
+	}>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type ListUserActivity = (
-  params: Params<void, ListUserActivityQueryOutput, void, void>,
-  respond: ListUserActivityResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, ListUserActivityQueryOutput, void, void>,
+	respond: ListUserActivityResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetUserActivityHeatmapResponder = {
-  with200(): ExpressRuntimeResponse<{
-    activityByDay: Record<string, t_HeatmapDayCounts>;
-  }>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<{
+		activityByDay: Record<string, t_HeatmapDayCounts>;
+	}>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type GetUserActivityHeatmap = (
-  params: Params<void, GetUserActivityHeatmapQueryOutput, void, void>,
-  respond: GetUserActivityHeatmapResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, GetUserActivityHeatmapQueryOutput, void, void>,
+	respond: GetUserActivityHeatmapResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type GetUserActivityStatsResponder = {
-  with200(): ExpressRuntimeResponse<t_UserActivityStats>;
-  with401(): ExpressRuntimeResponse<t_Error401>;
-  with403(): ExpressRuntimeResponse<t_Error403>;
-  with429(): ExpressRuntimeResponse<t_Error429>;
-  with500(): ExpressRuntimeResponse<t_Error500>;
+	with200(): ExpressRuntimeResponse<t_UserActivityStats>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
 } & ExpressRuntimeResponder;
 
 export type GetUserActivityStats = (
-  params: Params<void, GetUserActivityStatsQueryOutput, void, void>,
-  respond: GetUserActivityStatsResponder,
-  req: Request,
-  res: Response,
-  next: NextFunction,
+	params: Params<void, GetUserActivityStatsQueryOutput, void, void>,
+	respond: GetUserActivityStatsResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
 export type ActivityImplementation = {
-  listFamiliarMedia: ListFamiliarMedia;
-  listUserActivity: ListUserActivity;
-  getUserActivityHeatmap: GetUserActivityHeatmap;
-  getUserActivityStats: GetUserActivityStats;
+	listFamiliarMedia: ListFamiliarMedia;
+	listUserActivity: ListUserActivity;
+	getUserActivityHeatmap: GetUserActivityHeatmap;
+	getUserActivityStats: GetUserActivityStats;
 };
 
 export function createActivityRouter(
-  implementation: ActivityImplementation,
-  options: { middleware?: RequestHandler[] } = {},
+	implementation: ActivityImplementation,
+	options: { middleware?: RequestHandler[] } = {},
 ): Router {
-  const router = Router();
+	const router = Router();
 
-  if (options.middleware?.length) {
-    router.use(...options.middleware);
-  }
+	if (options.middleware?.length) {
+		router.use(...options.middleware);
+	}
 
-  const listFamiliarMediaResponseBodyValidator = responseValidationFactory(
-    [
-      [
-        '200',
-        z.object({
-          familiarMedia: z.array(
-            z.object({
-              media: s_MediaSummary,
-              score: z.coerce.number(),
-              ankiCount: z.coerce.number(),
-              playCount: z.coerce.number(),
-              shareCount: z.coerce.number(),
-            }),
-          ),
-        }),
-      ],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const listFamiliarMediaResponseBodyValidator = responseValidationFactory(
+		[
+			[
+				"200",
+				z.object({
+					familiarMedia: z.array(
+						z.object({
+							media: s_MediaSummary,
+							score: z.coerce.number(),
+							ankiCount: z.coerce.number(),
+							playCount: z.coerce.number(),
+							shareCount: z.coerce.number(),
+						}),
+					),
+				}),
+			],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // listFamiliarMedia
-  router.get(`/v1/user/familiar-media`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: undefined,
-        body: undefined,
-        headers: undefined,
-      };
+	// listFamiliarMedia
+	router.get(
+		`/v1/user/familiar-media`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            familiarMedia: {
-              ankiCount: number;
-              media: t_MediaSummary;
-              playCount: number;
-              score: number;
-              shareCount: number;
-            }[];
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							familiarMedia: {
+								ankiCount: number;
+								media: t_MediaSummary;
+								playCount: number;
+								score: number;
+								shareCount: number;
+							}[];
+						}>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .listFamiliarMedia(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, listFamiliarMediaResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.listFamiliarMedia(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, listFamiliarMediaResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const listUserActivityQuerySchema = z.object({
-    cursor: z.string().optional(),
-    take: z.coerce.number().min(1).max(100).optional().default(20),
-    activityType: s_ActivityType.optional(),
-    date: z.iso.date().optional(),
-  });
+	const listUserActivityQuerySchema = z.object({
+		cursor: z.string().optional(),
+		take: z.coerce.number().min(1).max(100).optional().default(20),
+		activityType: s_ActivityType.optional(),
+		date: z.iso.date().optional(),
+	});
 
-  const listUserActivityResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ activities: z.array(s_UserActivity), pagination: s_CursorPagination })],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const listUserActivityResponseBodyValidator = responseValidationFactory(
+		[
+			[
+				"200",
+				z.object({
+					activities: z.array(s_UserActivity),
+					pagination: s_CursorPagination,
+				}),
+			],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // listUserActivity
-  router.get(`/v1/user/activity`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(listUserActivityQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// listUserActivity
+	router.get(
+		`/v1/user/activity`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						listUserActivityQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            activities: t_UserActivity[];
-            pagination: t_CursorPagination;
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							activities: t_UserActivity[];
+							pagination: t_CursorPagination;
+						}>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .listUserActivity(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, listUserActivityResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.listUserActivity(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, listUserActivityResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const getUserActivityHeatmapQuerySchema = z.object({
-    days: z.coerce.number().min(1).max(730).optional().default(365),
-  });
+	const getUserActivityHeatmapQuerySchema = z.object({
+		days: z.coerce.number().min(1).max(730).optional().default(365),
+	});
 
-  const getUserActivityHeatmapResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', z.object({ activityByDay: z.record(z.string(), s_HeatmapDayCounts) })],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const getUserActivityHeatmapResponseBodyValidator = responseValidationFactory(
+		[
+			[
+				"200",
+				z.object({ activityByDay: z.record(z.string(), s_HeatmapDayCounts) }),
+			],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // getUserActivityHeatmap
-  router.get(`/v1/user/activity/heatmap`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getUserActivityHeatmapQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// getUserActivityHeatmap
+	router.get(
+		`/v1/user/activity/heatmap`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						getUserActivityHeatmapQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<{
-            activityByDay: Record<string, t_HeatmapDayCounts>;
-          }>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							activityByDay: Record<string, t_HeatmapDayCounts>;
+						}>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getUserActivityHeatmap(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getUserActivityHeatmapResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getUserActivityHeatmap(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, getUserActivityHeatmapResponseBodyValidator),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  const getUserActivityStatsQuerySchema = z.object({ since: z.iso.date().optional() });
+	const getUserActivityStatsQuerySchema = z.object({
+		since: z.iso.date().optional(),
+	});
 
-  const getUserActivityStatsResponseBodyValidator = responseValidationFactory(
-    [
-      ['200', s_UserActivityStats],
-      ['401', s_Error401],
-      ['403', s_Error403],
-      ['429', s_Error429],
-      ['500', s_Error500],
-    ],
-    undefined,
-  );
+	const getUserActivityStatsResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_UserActivityStats],
+			["401", s_Error401],
+			["403", s_Error403],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
 
-  // getUserActivityStats
-  router.get(`/v1/user/activity/stats`, async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const input = {
-        params: undefined,
-        query: parseRequestInput(getUserActivityStatsQuerySchema, req.query, RequestInputType.QueryString),
-        body: undefined,
-        headers: undefined,
-      };
+	// getUserActivityStats
+	router.get(
+		`/v1/user/activity/stats`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: parseRequestInput(
+						getUserActivityStatsQuerySchema,
+						req.query,
+						RequestInputType.QueryString,
+					),
+					body: undefined,
+					headers: undefined,
+				};
 
-      const responder = {
-        with200() {
-          return new ExpressRuntimeResponse<t_UserActivityStats>(200);
-        },
-        with401() {
-          return new ExpressRuntimeResponse<t_Error401>(401);
-        },
-        with403() {
-          return new ExpressRuntimeResponse<t_Error403>(403);
-        },
-        with429() {
-          return new ExpressRuntimeResponse<t_Error429>(429);
-        },
-        with500() {
-          return new ExpressRuntimeResponse<t_Error500>(500);
-        },
-        withStatus(status: StatusCode) {
-          return new ExpressRuntimeResponse(status);
-        },
-      };
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_UserActivityStats>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
 
-      await implementation
-        .getUserActivityStats(input, responder, req, res, next)
-        .catch(handleImplementationError)
-        .then(handleResponse(res, getUserActivityStatsResponseBodyValidator));
-    } catch (error) {
-      next(error);
-    }
-  });
+				await implementation
+					.getUserActivityStats(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, getUserActivityStatsResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
 
-  return router;
+	return router;
 }
 
 export { createActivityRouter as createRouter };

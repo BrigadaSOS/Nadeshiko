@@ -46,6 +46,11 @@ const envSchema = z.object({
   // each word. The key is a quota-exempt service identity of ours.
   SHIRABE_API_BASE: z.string().url().default('https://shirabe.org'),
   SHIRABE_API_KEY: z.string().default(''),
+  // How many parse batches run at once. See the long note on PARSE_CONCURRENCY in
+  // app/services/shirabe/parseSegments.ts for why the default is deliberately
+  // small. Validated here rather than read raw so a typo is a boot error instead
+  // of a silent fallback to the default.
+  SHIRABE_PARSE_CONCURRENCY: z.coerce.number().int().positive().default(3),
   // A reader can also link their OWN Shirabe account, which is what makes a word
   // lookup answer from the dictionaries THEY configured rather than from the
   // service identity's empty preferences. Three separate things:
@@ -104,6 +109,14 @@ const envSchema = z.object({
   // budget than the general one. Nobody has more than a handful of things to say
   // in a minute, and anyone who does can say them in one message.
   RATE_LIMIT_FEEDBACK_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(5),
+
+  // Searches this process will run at once before answering 503 to the next
+  // one. A concurrency cap, not a rate: it is the backend's half of the
+  // admission control the frontend applies to page renders, and it exists for
+  // the callers that half cannot see -- direct API clients. Sized in
+  // app/middleware/inFlightLimit.ts, from the frontend's cap and the
+  // Elasticsearch search pool on the box.
+  SEARCH_MAX_INFLIGHT: z.coerce.number().int().positive().default(32),
 
   // Shared secret proving a request came through our own frontend Nitro proxy
   // (which already rate-limits per real client IP). When set, the per-IP
