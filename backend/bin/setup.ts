@@ -324,6 +324,19 @@ async function downloadSeedDump(token: string): Promise<boolean> {
 
 const SEED_CONTENT_TABLES = ['Media', 'Episode', 'Segment', 'MediaExternalId'];
 
+function describeCommandFailure(error: unknown): string {
+  if (!error || typeof error !== 'object') return String(error);
+  const commandError = error as {
+    message?: string;
+    stdout?: { toString(): string };
+    stderr?: { toString(): string };
+  };
+  const output = [commandError.stderr?.toString().trim(), commandError.stdout?.toString().trim()]
+    .filter(Boolean)
+    .join('\n');
+  return output || commandError.message || 'Unknown command failure';
+}
+
 function restoreSeedDump(adminUser: string, appDatabase: string): void {
   printInfo('Copying dump into PostgreSQL container...');
 
@@ -361,17 +374,17 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
         '--no-privileges',
         '--data-only',
         '--disable-triggers',
+        '--exit-on-error',
         ...tableArgs,
         '/tmp/seed.dump',
       ],
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
     );
     if (result) printInfo(result.trim());
-  } catch (error: any) {
-    const stdout = error.stdout?.toString().trim();
-    const stderr = error.stderr?.toString().trim();
-    if (stdout) printInfo(stdout.split('\n').slice(0, 10).join('\n'));
-    if (stderr) printWarning(stderr.split('\n').slice(0, 10).join('\n'));
+  } catch (error) {
+    throw new Error(`Seed restore failed; dump files were kept for diagnosis.\n${describeCommandFailure(error)}`, {
+      cause: error,
+    });
   }
 
   // Verify data was restored
@@ -388,9 +401,13 @@ function restoreSeedDump(adminUser: string, appDatabase: string): void {
       const [table, count] = line.split('|').map((s) => s.trim());
       if (count && count !== '0') printInfo(`  ${table}: ${count} rows`);
     }
-  } catch {
-    // Informational only -- the row counts are a courtesy after a restore that
-    // has already succeeded.
+  } catch (error) {
+    throw new Error(
+      `Seed restore verification failed; dump files were kept for diagnosis.\n${describeCommandFailure(error)}`,
+      {
+        cause: error,
+      },
+    );
   }
 
   printInfo('Cleaning up dump files...');

@@ -1,7 +1,11 @@
 #!/bin/sh
 
-# Block pushes to main that fail lint or typecheck.
-# Can also be run directly: ./scripts/pre-push
+# Block pushes to main that fail the checks CI enforces in
+# .github/workflows/checks.yml. Can also be run directly: ./scripts/pre-push
+#
+# Deliberately no backend/frontend/discord test suites: those need Postgres and
+# Elasticsearch running, which a push hook cannot assume. The SDK suite is here
+# because it is hermetic and takes about a second.
 
 # Git hooks run with a minimal environment, so add the usual Node locations
 # (mise shims, nvm's current symlink) ahead of the inherited PATH.
@@ -23,32 +27,48 @@ if [ -p /dev/stdin ]; then
   fi
 fi
 
-echo "Running lint and typecheck..."
+echo "Running lint, typecheck and the hermetic checks..."
 
-echo "=> Backend: lint"
-(cd backend && npm run lint:code) || { echo "Backend lint failed"; exit 1; }
+# Both fan out over every workspace that owns the script, so a workspace added
+# later is covered here the day it is added rather than the day someone
+# remembers this file. Frontend `lint` includes the locale check; backend `lint`
+# includes `redocly lint`.
+echo "=> Lint"
+npm run lint || { echo "Lint failed"; exit 1; }
 
-echo "=> Backend: typecheck"
-(cd backend && npm run typecheck) || { echo "Backend typecheck failed"; exit 1; }
+echo "=> Typecheck"
+npm run typecheck || { echo "Typecheck failed"; exit 1; }
 
-echo "=> Frontend: lint"
-(cd frontend && npm run lint) || { echo "Frontend lint failed"; exit 1; }
+# Named one by one rather than `npm run test --workspaces`, because that would
+# pull in the backend, frontend and discord suites -- see the note at the top of
+# this file. These two are hermetic and take about a second between them.
+echo "=> SDK: tests"
+(cd packages/nadeshiko-sdk && npm run test) || { echo "SDK tests failed"; exit 1; }
 
-echo "=> Frontend: typecheck"
-(cd frontend && npm run typecheck) || { echo "Frontend typecheck failed"; exit 1; }
+echo "=> Shared package: tests"
+(cd packages/nadeshiko-shared && npm run test) || { echo "Shared package tests failed"; exit 1; }
 
-echo "=> Discord: lint"
-(cd discord && npm run lint) || { echo "Discord lint failed"; exit 1; }
+# Match CI's complete generation chain. In a jj/git colocated checkout, plain
+# `git diff` sees every change in the jj working-copy commit and cannot tell
+# whether a generator changed anything. Snapshot the jj diff before and after
+# instead: identical output means generation was idempotent, including when the
+# generated files were already changed earlier in the current stack.
+echo "=> Generated code: drift check"
+generated_paths="backend/docs/generated backend/generated frontend/server/utils/generated packages/nadeshiko-sdk/generated"
+before_generation=$(mktemp)
+after_generation=$(mktemp)
+trap 'rm -f "$before_generation" "$after_generation"' EXIT HUP INT TERM
 
-echo "=> Discord: typecheck"
-(cd discord && npm run typecheck) || { echo "Discord typecheck failed"; exit 1; }
-
-# The SDK is generated from the OpenAPI spec, so a spec change that was not
-# regenerated fails CI's drift check. Catch it before the push instead.
-echo "=> SDK: drift check"
+# shellcheck disable=SC2086
+jj diff --git -- $generated_paths >"$before_generation" || exit 1
+npm run generate:api --workspace backend >/dev/null 2>&1 || { echo "Backend API generation failed"; exit 1; }
+npm run generate:auth-spec --workspace backend >/dev/null 2>&1 || { echo "SDK spec generation failed"; exit 1; }
 npm run sdk:codegen >/dev/null 2>&1 || { echo "SDK codegen failed"; exit 1; }
-git diff --quiet -- packages/nadeshiko-sdk/generated || {
-  echo "SDK generated code is stale. Review and commit packages/nadeshiko-sdk/generated."
+# shellcheck disable=SC2086
+jj diff --git -- $generated_paths >"$after_generation" || exit 1
+
+cmp -s "$before_generation" "$after_generation" || {
+  echo "Generated code is stale. Review the generated changes and run the pre-push checks again."
   exit 1
 }
 

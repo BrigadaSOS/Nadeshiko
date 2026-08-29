@@ -693,6 +693,42 @@ export type Error500 = {
 };
 
 /**
+ * Service Unavailable error response
+ */
+export type Error503 = {
+    /**
+     * Specific error code for programmatic handling
+     */
+    code: 'SERVICE_OVERLOADED';
+    /**
+     * A short, human-readable summary of the problem
+     */
+    title: string;
+    /**
+     * A human-readable explanation specific to this occurrence
+     */
+    detail: string;
+    /**
+     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     */
+    type?: string;
+    /**
+     * A URI reference that identifies the specific occurrence (e.g., trace ID)
+     */
+    instance?: string;
+    /**
+     * The HTTP status code
+     */
+    status: 503;
+    /**
+     * Optional map of field names to their error messages (for validation errors)
+     */
+    errors?: {
+        [key: string]: string;
+    };
+};
+
+/**
  * Stats request. All fields are optional — omit `query` to get filter counts for the full corpus.
  *
  */
@@ -2913,6 +2949,10 @@ export type SearchErrors = {
      * Internal Server Error
      */
     500: Error500;
+    /**
+     * Service Unavailable. The server is already running as many requests of this kind as it can and refused this one rather than queue it. Nothing about the caller was counted -- this is not a rate limit -- so there is no budget to stay inside; wait the number of seconds in the `Retry-After` header and send the same request again.
+     */
+    503: Error503;
 };
 
 export type SearchError = SearchErrors[keyof SearchErrors];
@@ -2954,6 +2994,10 @@ export type GetSearchStatsErrors = {
      * Internal Server Error
      */
     500: Error500;
+    /**
+     * Service Unavailable. The server is already running as many requests of this kind as it can and refused this one rather than queue it. Nothing about the caller was counted -- this is not a rate limit -- so there is no budget to stay inside; wait the number of seconds in the `Retry-After` header and send the same request again.
+     */
+    503: Error503;
 };
 
 export type GetSearchStatsError = GetSearchStatsErrors[keyof GetSearchStatsErrors];

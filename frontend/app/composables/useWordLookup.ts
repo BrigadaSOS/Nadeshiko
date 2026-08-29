@@ -17,12 +17,6 @@ export interface LookupRef {
  *  'idle', because claiming no entry for a question nobody put would be a lie. */
 export type WordState = 'idle' | 'loading' | 'name' | 'missing' | 'unavailable';
 
-/** Two refs to the same word are the same request. Staleness is judged on this
- *  string rather than on the token object, because `enrichedTokens` is a
- *  computed and rebuilds its tokens on any re-render -- comparing identity threw
- *  away answers for exactly the word on screen. */
-const identity = (ref: LookupRef) => `${ref.lemma}|${ref.surface}|${ref.reading}|${ref.pos}`;
-
 /**
  * The card's lookup: which words a token could be, which one is showing, and
  * how the answer got here.
@@ -55,9 +49,12 @@ export function useWordLookup(glossLabels: () => string, onApplied: () => void) 
 
   const wordState = ref<WordState>('idle');
 
-  /** The word this card is currently waiting on, so a late answer for a word the
-   *  reader has moved off can be told apart from the one they are looking at. */
-  let pendingLookup: string | null = null;
+  /**
+   * Each reader action gets a new generation. Comparing a generation rather
+   * than a word identity matters for the cache path: selecting cached B must
+   * revoke an in-flight request for A before A can paint over B.
+   */
+  let lookupGeneration = 0;
 
   /** The word the card renders: whichever candidate the reader has picked. */
   const word = computed<ShirabeWord | null>(() => candidates.value[picked.value] ?? null);
@@ -66,6 +63,7 @@ export function useWordLookup(glossLabels: () => string, onApplied: () => void) 
    *  `picked` resets with the rest: a reader who chose 黄身 on one token must not
    *  find the next one opening on its second candidate. */
   function clearLookup(): void {
+    lookupGeneration++;
     candidates.value = [];
     picked.value = 0;
     othersOpen.value = false;
@@ -99,6 +97,7 @@ export function useWordLookup(glossLabels: () => string, onApplied: () => void) 
    */
   async function lookUp(ref: LookupRef): Promise<{ answer: WordLookup; fromCache: boolean } | null> {
     const locale = glossLabels();
+    lookupGeneration++;
 
     const cached = peekWord(ref, locale);
     if (cached !== undefined) {
@@ -108,16 +107,13 @@ export function useWordLookup(glossLabels: () => string, onApplied: () => void) 
 
     clearLookup();
     wordState.value = 'loading';
-    const asked = identity(ref);
-    pendingLookup = asked;
+    const pendingGeneration = lookupGeneration;
 
     const found = await fetchWord(ref, locale);
 
-    // Judged on the WORD, not on the token object that asked for it -- see
-    // `identity`. Nothing clears `wordState` on this path, deliberately: the
-    // request that supersedes this one owns it now.
-    if (pendingLookup !== asked) return null;
-    pendingLookup = null;
+    // Nothing clears `wordState` on this path, deliberately: the reader action
+    // that superseded this one owns it now.
+    if (lookupGeneration !== pendingGeneration) return null;
 
     applyLookup(found);
     return { answer: found, fromCache: false };
@@ -127,7 +123,7 @@ export function useWordLookup(glossLabels: () => string, onApplied: () => void) 
    *  reader closed the card before it answered) would otherwise leave the next
    *  open stuck reading "Looking up…". */
   function cancelPending(): void {
-    pendingLookup = null;
+    lookupGeneration++;
   }
 
   return {

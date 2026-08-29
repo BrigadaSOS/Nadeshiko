@@ -15,3 +15,6 @@ node_modules/
 # Local analysis scratch (audio loudness survey, UI screenshots)
 /audio-loudness-*.csv
 /player-bar.png
+
+# vitest --coverage output (html report + summary), per workspace
+coverage/

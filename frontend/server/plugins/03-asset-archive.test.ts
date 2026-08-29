@@ -194,6 +194,22 @@ describe('the request handler', () => {
     expect(app.h3App.stack[1]!.handler).toBe('nitro-static');
   });
 
+  test('moves only its own layer to the front and preserves existing handler order', async () => {
+    await liveAsset('a.js');
+    const app = nitroApp();
+    app.h3App.stack.push({ route: '/', handler: 'second-existing-handler' });
+
+    await run(app);
+
+    expect(app.h3App.stack.map((layer) => layer.handler)).toEqual([
+      expect.anything(),
+      'nitro-static',
+      'second-existing-handler',
+    ]);
+    expect(app.h3App.stack[0]!.handler).not.toBe('nitro-static');
+    expect(app.h3App.stack[0]!.handler).not.toBe('second-existing-handler');
+  });
+
   test('stays off when the stack is not the shape it expects', async () => {
     // "Appended" is not a lesser version of "prepended" here, so the honest
     // outcome is the archive staying off with a line in the log.

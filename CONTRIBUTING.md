@@ -67,6 +67,75 @@ set `PORT=5050` in `backend/.env` and point the frontend at it with
 
 ## Commands
 
+From the repository root — these mirror the gates in
+`.github/workflows/checks.yml`, so passing them locally means passing CI:
+
+```bash
+npm run lint          # Biome, redocly and locale parity across every workspace
+npm run typecheck     # Backend, frontend, discord, SDK and seed worker
+npm run test          # Backend, frontend, discord and SDK suites
+npm run test:coverage # The same suites under coverage, gated (see below)
+```
+
+### Coverage
+
+CI runs the backend, frontend and discord suites under `--coverage` and fails
+when a workspace drops below the thresholds in its `vitest.config.ts`.
+
+| Workspace | Lines | Gate | Room before it fails |
+| --- | --- | --- | --- |
+| backend | 81.8% | 80% | ~128 lines |
+| discord | 42.5% | 39% | ~95 lines |
+| frontend (everything) | 17.7% | 16% | ~1100 lines |
+| frontend (`**/*.ts` only) | 38.1% | 36% | ~130 lines |
+
+**Every one of these counts all source, not just the files a test imports.**
+That distinction is the difference between a real number and a flattering one.
+Left to itself vitest reports only modules some test already loaded, so a file
+nobody tests is not 0% covered -- it is absent from the denominator entirely,
+and the percentage silently means "of the code we touch". Each config therefore
+sets an explicit `include`. It is worth knowing how much that moved things:
+backend barely budged, 83.3% -> 81.8%, because its tests genuinely reach almost
+everything. Discord went 58% -> 42%. The frontend went 74% -> 38%.
+
+The frontend has two gates because one number cannot say both things. The global
+figure includes `.vue` and is low because the component layer is barely tested
+(0.4%); it is the honest headline and the one that should climb. The group gate
+on `**/*.ts` holds the line on the layer that is actually tested, which would
+otherwise be swamped -- 10k untested component lines drown any movement in the
+TypeScript beneath them.
+
+Thresholds are a **ratchet, not a target**: each sits a point or two under what
+the suite measures, enough to absorb a change's worth of new code without
+tripping, and no more. The gate is on the workspace total, not per file: adding
+one untested file does not fail CI by itself, adding more untested code than the
+margin does. Raising a number is a deliberate edit, and worth doing whenever you
+push a workspace clear of its line.
+
+The SDK is deliberately not covered -- it is generated client code, so the
+figure would measure the generator rather than anything a person wrote.
+
+`npm run test:coverage --workspace <name>` writes an HTML report to
+`<workspace>/coverage/index.html`, which is how you find the uncovered lines.
+The directory is gitignored.
+
+### Component tests
+
+`frontend/vitest.config.ts` loads `@vitejs/plugin-vue`, so a test can import an
+SFC directly. The default environment stays `node` -- the ~1000 non-component
+tests should not pay for a DOM they never touch -- so a component test opts in
+with a docblock on line one:
+
+```ts
+// @vitest-environment happy-dom
+import { mount } from '@vue/test-utils';
+import BlogPagination from './BlogPagination.vue';
+```
+
+`app/components/blog/BlogPagination.test.ts` is the worked example: it stubs
+`NuxtLink` as a plain anchor so `to` reads as `href`, and mocks `$t` to return
+the key so a copy change never breaks a structural assertion.
+
 Backend-specific (run from `backend/`):
 
 ```bash
@@ -166,6 +235,7 @@ publish-and-bump cycle:
 ```bash
 # after editing backend/docs/openapi/**
 npm run generate:api --workspace backend   # server types, route auth, proxy allowlist
+npm run generate:auth-spec --workspace backend # SDK-only bundle, including auth routes
 npm run sdk:codegen                        # packages/nadeshiko-sdk
 ```
 
@@ -223,5 +293,7 @@ If you see a bug and want to provide a fix for it, you are free to just open a p
 ## Submitting changes
 
 1. Fork the repository and create a branch from `main`.
-2. Make your changes and make sure `npm run lint` and `npm run build` pass.
+2. Make your changes and make sure `npm run lint`, `npm run typecheck` and
+   `npm run test` pass from the repository root. `./scripts/pre-push` runs the
+   same set minus the suites that need Postgres and Elasticsearch.
 3. Open a pull request against `main` with a clear description of what you changed and why.

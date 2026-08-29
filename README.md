@@ -30,8 +30,8 @@ including how OpenAPI changes drive the internal SDK and how to cut a release.
 Quick prod release from the repository root:
 
 ```bash
-bun run release:set-version 1.2.3
-bun run release:check-version 1.2.3
+npm run release:set-version 1.2.3
+npm run release:check-version 1.2.3
 # commit the version bump to main, then:
 git tag -a v1.2.3 -m "v1.2.3"
 git push origin v1.2.3
