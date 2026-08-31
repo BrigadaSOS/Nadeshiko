@@ -28,7 +28,7 @@
     "setup": "sh scripts/setup-hooks.sh && npm run setup --workspace backend && npm run setup --workspace frontend"
   },
   "devDependencies": {
-    "portless": "^0.15.5",
+    "portless": "^0.15.6",
     "tsx": "^4.20.6"
   },
   "engines": {
