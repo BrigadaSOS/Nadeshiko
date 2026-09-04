@@ -232,7 +232,9 @@ jobs:
     # A cold npm install can consume five minutes by itself. The suite has grown
     # to 273 staging-active tests, so 15 minutes canceled healthy runs before
     # Playwright could finish or write its report.
-    timeout-minutes: 30
+    # The staging suite is serial because its authenticated specs share one
+    # account. Dependency setup plus all browser tests takes about 30 minutes.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
