@@ -65,6 +65,7 @@ const mounted: { unmount: () => void }[] = [];
 async function render() {
   const Host = defineComponent({
     components: { CollectionPage },
+    errorCaptured: () => false,
     template: '<Suspense><CollectionPage /></Suspense>',
   });
   const wrapper = mount(Host, {
