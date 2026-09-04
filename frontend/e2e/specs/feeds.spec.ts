@@ -14,6 +14,14 @@ import { test, expect } from '../fixtures';
  * except for the handful of paths that are load-bearing for indexing.
  */
 test.describe('sitemap', () => {
+  // Staging deliberately disables sitemap generation in nuxt.config.ts: it is
+  // not an indexable origin and should not spend backend capacity building a
+  // crawler inventory. Production release smoke includes this spec instead.
+  test.skip(
+    process.env.E2E_BASE_URL?.includes('stg.nadeshiko.co') ?? false,
+    'sitemaps are intentionally disabled on staging',
+  );
+
   test('the index is served as XML', async ({ request }) => {
     // A sitemap served as `text/html` is one Google fetches and discards.
     const response = await request.get('/sitemap.xml');
