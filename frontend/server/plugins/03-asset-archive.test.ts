@@ -77,14 +77,19 @@ async function run(app = nitroApp()) {
   ).default;
   await plugin(app);
 
+  // An unconfigured archive intentionally starts no background publish pass.
+  if (!config.assetArchiveDir) return app;
+
   const settled = () =>
     logger.info.mock.calls.some(([, message]) => String(message).includes('publish complete')) ||
     logger.error.mock.calls.some(([, message]) => String(message).includes('staying off')) ||
     logger.error.mock.calls.some((call) => String(call[0]).includes('staying off'));
 
-  for (let turn = 0; turn < 500 && !settled(); turn++) {
+  const deadline = Date.now() + 10_000;
+  while (!settled() && Date.now() < deadline) {
     await new Promise((resolve) => setImmediate(resolve));
   }
+  expect(settled(), 'asset archive publish did not settle within 10 seconds').toBe(true);
   return app;
 }
 

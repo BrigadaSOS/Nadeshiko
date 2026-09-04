@@ -101,6 +101,7 @@ async function render(
   getMedia.mockResolvedValue(media);
   const Host = defineComponent({
     components: { SentencePage },
+    errorCaptured: () => false,
     template: '<Suspense><SentencePage /></Suspense>',
   });
   const wrapper = mount(Host, {
