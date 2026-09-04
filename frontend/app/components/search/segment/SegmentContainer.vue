@@ -13,6 +13,7 @@ import {
   mediaBrowsePath,
   searchScopeQuery,
 } from '~/utils/routes';
+import { escapeCorpusText, safeHighlight } from '~/utils/safeHighlight';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -231,6 +232,9 @@ const segmentLangRows = computed(() =>
     })
     .filter((row) => row.mode !== 'hidden'),
 );
+
+const displaySegmentText = (content: unknown, highlight: unknown): string =>
+  highlight ? safeHighlight(highlight) : escapeCorpusText(content);
 
 const { revertActiveConcatenation, concatenatedResult, isConcatenated, isConcatenating, loadNextSegment } =
   useSegmentConcatenation();
@@ -510,10 +514,7 @@ watch(playingVideoId, (id) => {
                   class="leading-snug"
                   @token-click="handleTokenSearch"
                 />
-                <span v-else class="leading-snug" v-html="result.segment.textJa.highlight
-                  ? result.segment.textJa.highlight
-                  : result.segment.textJa.content
-                  "></span>
+                <span v-else class="leading-snug" v-html="displaySegmentText(result.segment.textJa.content, result.segment.textJa.highlight)"></span>
               </h3>
               <!-- Content Rating Badge -->
               <span v-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
@@ -561,12 +562,10 @@ watch(playingVideoId, (id) => {
                     :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang)
                       ? 'nd-translation-spoiler bg-neutral-700/85 text-transparent [@media(hover:hover)]:group-hover/translation:bg-transparent [@media(hover:hover)]:group-hover/translation:text-gray-400'
                       : 'bg-transparent text-gray-400'"
-                    v-html="row.isSpoiler
-                      ? result.segment[row.lang].content
-                      : (result.segment[row.lang].highlight
-                        ? result.segment[row.lang].highlight
-                        : result.segment[row.lang].content
-                      )"></span>
+                    v-html="row.isSpoiler || !result.segment[row.lang].highlight
+                      ? escapeCorpusText(result.segment[row.lang].content)
+                      : safeHighlight(result.segment[row.lang].highlight)
+                    "></span>
                   <div v-if="result.segment[row.lang].isMachineTranslated" class="relative inline-flex group/mt-tooltip align-middle ml-2"
                     :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang)
                       ? 'opacity-40 transition-opacity duration-200 [@media(hover:hover)]:group-hover/translation:opacity-100'
