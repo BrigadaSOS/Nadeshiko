@@ -168,12 +168,22 @@ beforeEach(() => {
   hiddenCategories.value = [];
   route.query = {};
   route.path = '/search/word';
+  route.params = { query: 'word' };
   fetchSentences.mockResolvedValue({ results: [], pagination: { cursor: null, hasMore: false } });
   fetchStats.mockResolvedValue({ media: [], categories: [] });
 });
 
 afterEach(() => {
   for (const wrapper of mounted.splice(0)) wrapper.unmount();
+});
+
+describe('a malformed search route parameter', () => {
+  test('does not throw while the container reads it', () => {
+    route.path = '/search/%E8%AD';
+    route.params = { query: '%E8%AD' };
+
+    expect(() => render()).not.toThrow();
+  });
 });
 
 describe('the media list the sidebar is built from', () => {

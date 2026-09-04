@@ -877,7 +877,10 @@ const dictionaryLinks = computed(() => {
       .filter((preset) => isDictionaryEnabled(preset.id))
       // Shirabe first: it is the dictionary this card is already showing, so it is
       // where "more than fits here" leads. The rest keep their configured order.
-      .toSorted((a, b) => Number(b.required ?? false) - Number(a.required ?? false))
+      // `filter` has already made a fresh array, so the broadly-supported
+      // mutating sort cannot alter the presets held by the composable. `toSorted`
+      // is newer than browsers we still receive reader traffic from.
+      .sort((a, b) => Number(b.required ?? false) - Number(a.required ?? false))
       .map((preset) => ({
         id: preset.id,
         label: preset.label,
