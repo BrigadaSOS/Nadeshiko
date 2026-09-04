@@ -322,6 +322,18 @@ describe('fetchSentences', () => {
     );
   });
 
+  it('counts a Cloudflare edge failure instead of filing an application issue', async () => {
+    sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 522 }) });
+
+    const fetcher = createSearchFetcher(fakeSdk);
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(reportErrorMock).not.toHaveBeenCalled();
+    expect(reportEventMock).toHaveBeenCalledWith(
+      'search_fetch_failed',
+      expect.objectContaining({ 'http.status_code': '522', 'search.kind': 'sentences' }),
+    );
+  });
+
   it('drops a 429 outright, since the server already counts its own throttling', async () => {
     const fetcher = createSearchFetcher(fakeSdk);
 

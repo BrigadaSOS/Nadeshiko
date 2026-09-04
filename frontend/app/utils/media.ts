@@ -71,9 +71,9 @@ function hostOf(url: string): string {
  * which is the only way page script can tell the possibilities apart: that
  * request skips the CORS check entirely, so it resolves whenever the object is
  * actually reachable. Resolving therefore means the object was there and the
- * ORIGINAL request was refused over CORS -- missing or mismatched headers on the
- * CDN response, which is exactly the question left open on issue #194. Rejecting
- * means the host could not be reached at all.
+ * object was reachable. It cannot inspect the opaque response or establish why
+ * the original CORS-mode request failed. Rejecting means the host could not be
+ * reached at all.
  *
  * The probe is deliberately only on the already-failed path, and its own failure
  * is never allowed to mask the original error.
@@ -107,7 +107,7 @@ export async function describeAudioFetchFailure(error: unknown): Promise<Record<
 
   try {
     await fetch(error.url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', signal });
-    attributes['audio.opaque_cause'] = 'cors';
+    attributes['audio.opaque_cause'] = 'reachable';
   } catch {
     attributes['audio.opaque_cause'] = signal?.aborted ? 'probe-timeout' : 'unreachable';
   }

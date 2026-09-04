@@ -8,7 +8,7 @@ import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
 import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
-import { splitLocalePrefix } from '~/utils/routes';
+import { decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
 import { EPISODE_HITS_LOADING, type SearchScope } from '~/composables/useSearchFetch';
 import type { Category } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
@@ -342,7 +342,9 @@ const isSingleSegmentView = computed(() => {
 
 const getSearchQuery = (r: RouteLocationNormalized): string => {
   if (r.params?.query) {
-    return decodeURIComponent(String(r.params.query));
+    // The route parameter is raw. `decodeSearchQuery` keeps a malformed escape
+    // from taking down this client-side container during setup or navigation.
+    return decodeSearchQuery(String(r.params.query));
   }
   return typeof r.query?.query === 'string' ? r.query.query : '';
 };

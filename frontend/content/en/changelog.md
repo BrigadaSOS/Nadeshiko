@@ -24,13 +24,6 @@ We only list what you can see. Work behind a lab or a feature flag stays off thi
 - **Discord bot**: an unexpected error now leaves a useful report before the bot restarts, rather than disappearing without an explanation.
 - **API**: a search service that is at capacity responds quickly with a documented `503` and `Retry-After`, so an integration can back off instead of waiting for a timeout.
 
-## 2.4.11 (2026-08-26)
-
-### Fixes
-
-- **Anything the site had to ask for twice**: when the server hiccups we quietly try the request again, but any request that carries data — saving to a collection, exporting to Anki, running a search — failed outright on that second try instead of going through. It affected around sixteen readers a week and was worst exactly when the site was already having a bad minute.
-- **Anki**: if your session had ended without the page noticing, exports stopped being added to your Anki Exports collection while still looking like they worked. The card still reached Anki, but nothing was recorded here. You are now signed out properly, so you can sign back in and have it stick.
-
 ## 2.4.10 (2026-08-25)
 
 ### Highlights
