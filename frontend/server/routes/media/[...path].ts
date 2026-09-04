@@ -1,7 +1,8 @@
-import { createReadStream, existsSync } from 'node:fs';
+import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { sendStream, setResponseHeader, createError } from 'h3';
+import { MediaPathForbiddenError, resolveMediaFilePath } from '~~/server/utils/mediaPath';
 
 const MIME_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
@@ -33,18 +34,22 @@ export default defineEventHandler(async (event) => {
 
   // Resolve the media base path relative to cwd (frontend/), so '../media' reaches the repo root media/
   const mediaBasePath = resolve(config.mediaFilesPath || '../media');
-  const filePath = resolve(mediaBasePath, path);
-
-  // Prevent directory traversal
-  if (!filePath.startsWith(mediaBasePath)) {
-    throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
-  }
-
-  if (!existsSync(filePath)) {
+  let filePath: string;
+  try {
+    filePath = await resolveMediaFilePath(mediaBasePath, path);
+  } catch (error: unknown) {
+    if (error instanceof MediaPathForbiddenError) {
+      throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
+    }
+    // `realpath` only succeeds for files that exist. Do not expose filesystem
+    // errors from a reader's guessed media URL.
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
 
   const fileStat = await stat(filePath);
+  if (!fileStat.isFile()) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+  }
   const ext = extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 

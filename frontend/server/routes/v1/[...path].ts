@@ -1,8 +1,7 @@
 import { createError, getRequestURL } from 'h3';
 import { enforceIpRateLimit, v1ApiLimit } from '~~/server/utils/v1ProxyPolicy';
 import { proxyToBackend } from '~~/server/utils/backendProxy';
-import { serverOnlyRoutes } from '~~/server/utils/generated/serverOnlyRoutes';
-import { createPublicRouteMatcher } from '#shared/utils/backendSdk';
+import { isServerOnlyProxyRoute } from '~~/server/utils/serverOnlyProxyRoute';
 
 /**
  * Routes this proxy will not carry for a browser, whoever is asking.
@@ -20,13 +19,11 @@ import { createPublicRouteMatcher } from '#shared/utils/backendSdk';
  * leak -- it is in the internal spec -- while a 404 would send anyone debugging
  * a server-side call that lands here by mistake looking for a typo instead.
  */
-const isServerOnlyRoute = createPublicRouteMatcher(serverOnlyRoutes);
-
 export default defineEventHandler(async (event) => {
   await enforceIpRateLimit(event, v1ApiLimit);
 
   const { pathname } = getRequestURL(event);
-  if (isServerOnlyRoute(event.node.req.method || 'GET', pathname)) {
+  if (isServerOnlyProxyRoute(event.node.req.method || 'GET', pathname)) {
     throw createError({
       statusCode: 403,
       statusMessage: 'This route is only callable by the Nadeshiko frontend server',
