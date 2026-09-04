@@ -26,7 +26,7 @@ Usage: scripts/remote-db.sh <env> <command> [${PROD_FLAG}]
 
   env:      staging (aliases: stg, dev) | prod
   command:  status | prepare | migrate | parse-corpus | reindex | reindex-media <publicId>
-            | audit-wakati
+            | audit-wakati | create-service-key -- --user <id|email> --name <label> --permissions <scopes>
 
 For prepare/migrate against prod, ${PROD_FLAG} is required as a safety check.
 status is read-only and never requires the flag.
@@ -38,6 +38,7 @@ Examples:
   scripts/remote-db.sh staging reindex-media BKncctxoiaJH
   scripts/remote-db.sh prod status
   scripts/remote-db.sh prod audit-wakati
+  scripts/remote-db.sh prod create-service-key ${PROD_FLAG} -- --user <id|email> --name roxy-moderation --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN
   scripts/remote-db.sh prod prepare ${PROD_FLAG}
   scripts/remote-db.sh prod backfill-session-country ${PROD_FLAG} -- --db ~/GeoLite2-Country.mmdb
   scripts/remote-db.sh prod backfill-last-seen ${PROD_FLAG}
@@ -63,8 +64,8 @@ case "$ENV" in
 esac
 
 case "$CMD" in
-  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati|backfill-session-country|backfill-last-seen) ;;
-  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media, audit-wakati or backfill-session-country (got '$CMD')" >&2; exit 1 ;;
+  status|prepare|migrate|parse-corpus|reindex|reindex-media|audit-wakati|backfill-session-country|backfill-last-seen|create-service-key) ;;
+  *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media, audit-wakati, backfill-session-country, backfill-last-seen or create-service-key (got '$CMD')" >&2; exit 1 ;;
 esac
 
 # A reindex rebuilds the whole search index from PostgreSQL, which is
@@ -196,6 +197,12 @@ case "$CMD" in
     # In place, into the live index, for a few thousand documents rather than
     # 1.3M -- what a data repair on one media needs.
     run_with_env node --import tsx scripts/reindex-media.ts --media "$FLAG"
+    ;;
+  create-service-key)
+    # Deliberately a named command rather than an arbitrary-script escape hatch:
+    # this prints a credential once, and the production flag above makes that
+    # write explicit. Arguments after `--` reach the key script unchanged.
+    run_with_env npm run create:service-key -- "${@:4}"
     ;;
   *)
     run_with_env npm run "db:$CMD"

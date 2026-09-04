@@ -149,4 +149,3 @@ env:
     # reason, and a staging build you cannot identify is the one you are most
     # likely to be comparing against.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
-
