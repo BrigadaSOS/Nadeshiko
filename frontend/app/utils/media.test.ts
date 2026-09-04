@@ -74,10 +74,9 @@ describe('describeAudioFetchFailure', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  // The distinction the probe exists for. A `no-cors` request skips the CORS
-  // check, so it resolving means the object was reachable all along and the
-  // original request was refused over CORS -- the open question on issue #194.
-  it('calls a reachable object a cors failure', async () => {
+  // A `no-cors` request skips CORS validation, so success establishes only
+  // reachability; it cannot identify the reason the original request failed.
+  it('calls a reachable object reachable', async () => {
     // A real opaque response cannot be constructed here, and does not need to
     // be: the probe only cares that the request resolved at all.
     const fetchMock = vi.fn().mockResolvedValue(new Response());
@@ -86,7 +85,7 @@ describe('describeAudioFetchFailure', () => {
 
     const attributes = await describeAudioFetchFailure(new AudioFetchError(AUDIO_URL, 'opaque'));
 
-    expect(attributes['audio.opaque_cause']).toBe('cors');
+    expect(attributes['audio.opaque_cause']).toBe('reachable');
     expect(attributes['http.status_code']).toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith(AUDIO_URL, expect.objectContaining({ method: 'HEAD', mode: 'no-cors' }));
   });

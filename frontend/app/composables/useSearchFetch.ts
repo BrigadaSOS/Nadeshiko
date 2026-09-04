@@ -317,6 +317,18 @@ const isForbidden = (response: Response | undefined): boolean => response?.statu
 const isTransportFailure = (response: Response | undefined): boolean => response === undefined || response.status === 0;
 
 /**
+ * Cloudflare's own failure pages. These have a response status, unlike a dropped
+ * connection, but still say that the edge could not reach or safely use an
+ * origin. Filing the sentences and stats requests as separate application
+ * exceptions turns one edge failure into two issues with no application fix.
+ *
+ * Keep this deliberately narrower than all 5xx responses: a 500--519 response
+ * can be ours (or an upstream our server chose), and needs to stay actionable.
+ */
+const isCloudflareEdgeFailure = (response: Response | undefined): boolean =>
+  response !== undefined && response.status >= 520 && response.status <= 526;
+
+/**
  * A response that came back without a body. 401/403 is the server telling the
  * caller "not yours" -- expected, and reporting it only buys noise: Cloudflare
  * challenges and expired sessions both land here, from clients we cannot fix.
@@ -343,11 +355,11 @@ const emptyResponseOutcome = (
     return { status: 'error' };
   }
 
-  // A transport failure is COUNTED, not filed as an exception. Two thirds of
-  // both search fingerprints were this, landing on the sentences and the stats
-  // fetch in the *same millisecond* -- one reader's network going away, filed as
-  // two faults of ours. As triaged issues they are unactionable noise, which is
-  // what buried the reports that are not.
+  // A transport failure or Cloudflare edge failure is COUNTED, not filed as an
+  // exception. Both search requests fail together when either happens, and two
+  // exceptions make one edge incident look like two application bugs. As
+  // triaged issues they are unactionable noise, which is what buried the
+  // reports that are not.
   //
   // They are still worth counting, and dropping them entirely was the wrong
   // trade: if the edge fails while the origin is healthy, server-side metrics
@@ -357,7 +369,7 @@ const emptyResponseOutcome = (
   // still a spike and the issue list stays about things with a fix.
   //
   // ~127 a week, so the event volume is negligible.
-  if (isTransportFailure(response)) {
+  if (isTransportFailure(response) || isCloudflareEdgeFailure(response)) {
     reportEvent('search_fetch_failed', {
       'search.kind': kind,
       'search.scope': scope,
