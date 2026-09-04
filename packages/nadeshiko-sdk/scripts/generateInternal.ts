@@ -625,7 +625,7 @@ export interface NadeshikoConfig {
   baseURL?: 'LOCAL' | 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' | 'PROXY' | string;
   /** @deprecated Use \`baseURL\` instead */
   baseUrl?: 'LOCAL' | 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' | 'PROXY' | string;
-  /** Retry configuration for failed requests. Retries on network errors and 408/429/5xx responses. */
+  /** Retry configuration for safe requests. GET/HEAD/OPTIONS/PUT/DELETE retry on network errors and 408/5xx; read-only POST search operations opt in. */
   retryOptions?: RetryOptions;
   /** Default headers sent with every request (e.g. User-Agent, tracing headers). */
   headers?: Record<string, string>;
@@ -668,7 +668,12 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
   const clientInstance = createApiClient(createConfig<ClientOptions>({
     baseUrl,
     headers: { 'User-Agent': 'nadeshiko-sdk-ts/${SDK_VERSION}', ...config.headers },
-    fetch: withRetry(globalThis.fetch, config.retryOptions) as typeof fetch,
+    fetch: withRetry(globalThis.fetch, {
+      ...config.retryOptions,
+      retryUnsafeRequest: (request) =>
+        config.retryOptions?.retryUnsafeRequest?.(request) === true
+        || (request.method === 'POST' && /^\\/v1\\/(?:search(?:\\/(?:stats|words|media))?|collections\\/[^/]+\\/search)$/.test(new URL(request.url).pathname)),
+    }) as typeof fetch,
     auth: (auth: Auth) => {
       if (auth.in === 'cookie') {
         return getSessionToken();

@@ -10,6 +10,17 @@ export interface RetryOptions {
    * Default: none (no timeout).
    */
   timeout?: number;
+  /**
+   * Explicitly opt a non-idempotent request into retries. The callback is only
+   * consulted for methods other than GET, HEAD, OPTIONS, PUT, and DELETE.
+   * Use this for read-only POST endpoints such as search, never for creates.
+   */
+  retryUnsafeRequest?: (request: RetryRequest) => boolean;
+}
+
+export interface RetryRequest {
+  method: string;
+  url: string;
 }
 
 /**
@@ -33,6 +44,8 @@ export interface RetryOptions {
 const RETRYABLE_STATUS = new Set([408, 500, 502, 503, 504]);
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE']);
 
 function parseRetryAfter(value: string): number {
   const seconds = Number(value);
@@ -82,17 +95,30 @@ function attemptInput(input: RequestInfo | URL): RequestInfo | URL {
   return input;
 }
 
+function retryRequest(input: RequestInfo | URL, init?: RequestInit): RetryRequest {
+  if (typeof Request !== 'undefined' && input instanceof Request) {
+    // Fetch permits `init.method` to override the Request's own method.
+    return { method: (init?.method ?? input.method).toUpperCase(), url: input.url };
+  }
+  return { method: (init?.method ?? 'GET').toUpperCase(), url: String(input) };
+}
+
 export function withRetry(
   fetchImpl: FetchLike = globalThis.fetch,
   options: RetryOptions = {},
 ): FetchLike {
-  const { maxRetries = 2, initialDelayMs = 500, maxDelayMs = 30_000, timeout } = options;
+  const { maxRetries = 2, initialDelayMs = 500, maxDelayMs = 30_000, timeout, retryUnsafeRequest } = options;
 
   return async function retryingFetch(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> {
     let attempt = 0;
+    const request = retryRequest(input, init);
+    // Retrying after a network failure is not safe for a POST merely because
+    // no response arrived: the server may have committed before the socket
+    // dropped. Only known read-only POST operations opt in.
+    const retryable = IDEMPOTENT_METHODS.has(request.method) || retryUnsafeRequest?.(request) === true;
 
     while (true) {
       // Set up per-attempt timeout if configured and caller didn't provide a signal
@@ -113,7 +139,7 @@ export function withRetry(
         response = await fetchImpl(attemptInput(input), fetchInit);
       } catch (networkError) {
         if (timeoutId !== undefined) clearTimeout(timeoutId);
-        if (attempt >= maxRetries) throw networkError;
+        if (!retryable || attempt >= maxRetries) throw networkError;
         await sleep(backoffDelay(attempt, initialDelayMs, maxDelayMs));
         attempt++;
         continue;
@@ -121,7 +147,7 @@ export function withRetry(
 
       if (timeoutId !== undefined) clearTimeout(timeoutId);
 
-      if (!RETRYABLE_STATUS.has(response.status) || attempt >= maxRetries) {
+      if (!retryable || !RETRYABLE_STATUS.has(response.status) || attempt >= maxRetries) {
         return response;
       }
 

@@ -12,6 +12,7 @@ import { createNadeshikoClient, NadeshikoError } from '../generated/internal';
 
 let server: Server;
 let baseURL: string;
+let retrySafeSearchAttempts = 0;
 
 function jsonResponse(res: ServerResponse, data: unknown, status = 200) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -43,6 +44,10 @@ beforeAll(async () => {
     // Search endpoint (POST body-only)
     if (url.pathname === '/v1/search' && req.method === 'POST') {
       const body = await readJsonBody(req);
+      if (body.query?.search === 'retry-safe') {
+        retrySafeSearchAttempts++;
+        if (retrySafeSearchAttempts === 1) return jsonResponse(res, { detail: 'temporary failure' }, 503);
+      }
       const cursor = body.cursor;
 
       if (!cursor) {
@@ -188,6 +193,15 @@ describe('flat params — body-only endpoints', () => {
 
     expect((data as any).response).toBeUndefined();
     expect((data as any).request).toBeUndefined();
+  });
+
+  test('retries the generated read-only search POST, but only after its explicit operation opt-in', async () => {
+    retrySafeSearchAttempts = 0;
+    const client = makeClient({ retryOptions: { maxRetries: 1, initialDelayMs: 0 } });
+
+    await client.search({ query: { search: 'retry-safe' } });
+
+    expect(retrySafeSearchAttempts).toBe(2);
   });
 });
 

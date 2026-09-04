@@ -40,6 +40,51 @@ describe('withRetry', () => {
     });
   });
 
+  describe('request safety', () => {
+    test('does not retry an ordinary POST after a 5xx response', async () => {
+      const fetch = vi.fn(() => Promise.resolve(makeResponse(503)));
+
+      const result = await withRetry(fetch, { initialDelayMs: 0 })('https://example.com/v1/collections', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'My collection' }),
+      });
+
+      expect(result.status).toBe(503);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not retry an ordinary POST after a network error', async () => {
+      const fetch = vi.fn(() => Promise.reject(new TypeError('fetch failed')));
+
+      await expect(withRetry(fetch, { initialDelayMs: 0 })('https://example.com/v1/collections', { method: 'POST' }))
+        .rejects.toThrow('fetch failed');
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('honors an init method that overrides a Request method', async () => {
+      const fetch = vi.fn(() => Promise.resolve(makeResponse(503)));
+      const request = new Request('https://example.com/v1/collections');
+
+      await withRetry(fetch, { initialDelayMs: 0 })(request, { method: 'POST' });
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('allows a known read-only POST to opt into retries', async () => {
+      const fetch = vi.fn()
+        .mockResolvedValueOnce(makeResponse(503))
+        .mockResolvedValue(makeResponse(200));
+
+      const result = await withRetry(fetch, {
+        initialDelayMs: 0,
+        retryUnsafeRequest: request => request.method === 'POST' && new URL(request.url).pathname === '/v1/search',
+      })('https://example.com/v1/search', { method: 'POST' });
+
+      expect(result.status).toBe(200);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('maxRetries', () => {
     test('stops after maxRetries attempts and returns the last error response', async () => {
       const fetch = vi.fn(() => Promise.resolve(makeResponse(500)));
@@ -175,15 +220,18 @@ describe('a Request body survives a retry', () => {
    * what consumes the stream -- a `vi.fn()` that ignores its argument cannot
    * fail the way production did.
    */
-  test('a retried POST sends its body again, instead of throwing', async () => {
+  test('an explicitly retryable POST sends its body again, instead of throwing', async () => {
     const seen: string[] = [];
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
       seen.push(await (input as Request).text());
       return makeResponse(seen.length < 3 ? 503 : 200);
     });
 
-    const request = new Request('https://example.com', { method: 'POST', body: '{"q":"ねこ"}' });
-    const result = await withRetry(fetch, { initialDelayMs: 0 })(request);
+    const request = new Request('https://example.com/v1/search', { method: 'POST', body: '{"q":"ねこ"}' });
+    const result = await withRetry(fetch, {
+      initialDelayMs: 0,
+      retryUnsafeRequest: ({ url }) => new URL(url).pathname === '/v1/search',
+    })(request);
 
     expect(result.status).toBe(200);
     expect(seen).toEqual(['{"q":"ねこ"}', '{"q":"ねこ"}', '{"q":"ねこ"}']);
