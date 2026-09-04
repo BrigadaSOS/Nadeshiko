@@ -61,8 +61,12 @@ async function handleBulkIndex(jobs: Job<EsSyncJobData>[], operation: 'CREATE' |
       logger.warn({ operation, segmentId: err.segmentId, error: err.error }, 'Bulk operation failed for segment');
     }
 
-    if (result.succeeded === 0 && result.failed > 0) {
-      throw new Error(`All ${result.failed} segments failed during bulk ${operation}`);
+    if (result.failed > 0) {
+      // The queue's retryLimit bounds this. The bulk operations are idempotent
+      // by segment id, so retrying a whole batch is safe. Unlike returning
+      // normally, it cannot complete a job whose Elasticsearch write failed,
+      // and worker instrumentation reports the pg-boss outcome truthfully.
+      throw new Error(`${result.failed} segment(s) failed during bulk ${operation}`);
     }
   } catch (error) {
     logger.error({ err: error, segmentIds, operation }, 'Error processing ES batch');
@@ -80,8 +84,8 @@ async function handleBulkDelete(jobs: Job<EsSyncJobData>[]): Promise<void> {
       logger.warn({ segmentId: err.segmentId, error: err.error }, 'Bulk DELETE failed for segment');
     }
 
-    if (result.succeeded === 0 && result.failed > 0) {
-      throw new Error(`All ${result.failed} segments failed during bulk DELETE`);
+    if (result.failed > 0) {
+      throw new Error(`${result.failed} segment(s) failed during bulk DELETE`);
     }
   } catch (error) {
     logger.error({ err: error, segmentIds }, 'Error processing ES DELETE batch');
