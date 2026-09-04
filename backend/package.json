@@ -21,7 +21,7 @@
     "email:lift": "node --env-file-if-exists=.env --import tsx bin/liftEmailSuppression.ts",
     "email:audience": "node --env-file-if-exists=.env --import tsx bin/exportEmailAudience.ts",
     "email:sync-unsubscribes": "node --env-file-if-exists=.env --import tsx bin/syncCampaignsUnsubscribes.ts",
-    "generate:auth-spec": "node --env-file-if-exists=.env --import tsx bin/generateAuthSpec.ts",
+    "generate:auth-spec": "node --env-file-if-exists=.env.test --env-file-if-exists=.env --import tsx bin/generateAuthSpec.ts",
     "generate:bruno": "npm run docs:bundle && node --env-file-if-exists=.env --import tsx bin/generateBrunoCollection.ts",
     "generate:all": "npm run generate:api && npm run generate:bruno && npm run docs:build",
     "docs:bundle": "redocly bundle main -o ./docs/generated/openapi.yaml --remove-unused-components",
