@@ -85,6 +85,7 @@ export const s_ApiKeyScope = z.enum([
 	"CREATE_COLLECTIONS",
 	"UPDATE_COLLECTIONS",
 	"DELETE_COLLECTIONS",
+	"READ_ADMIN",
 ]);
 
 export const s_Category = z.enum(["ANIME", "JDRAMA", "YOUTUBE"]);

@@ -23,4 +23,10 @@ export enum ApiPermission {
   CREATE_COLLECTIONS = 'CREATE_COLLECTIONS',
   UPDATE_COLLECTIONS = 'UPDATE_COLLECTIONS',
   DELETE_COLLECTIONS = 'DELETE_COLLECTIONS',
+
+  /**
+   * Read the moderation queue and agent audit log. This is deliberately absent
+   * from user-creatable keys: service provisioning is the only issuer.
+   */
+  READ_ADMIN = 'READ_ADMIN',
 }

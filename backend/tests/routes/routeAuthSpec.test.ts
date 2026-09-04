@@ -82,6 +82,7 @@ describe('OpenAPI security definitions', () => {
 
   it('only uses known ApiKey permissions', () => {
     const knownPermissions = new Set([
+      'READ_ADMIN',
       'READ_MEDIA',
       'ADD_MEDIA',
       'UPDATE_MEDIA',

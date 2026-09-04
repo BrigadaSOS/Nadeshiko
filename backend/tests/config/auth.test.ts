@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiPermission, UserRoleType } from '@app/models';
 import { config, type AppConfig } from '@config/config';
 import { logger } from '@config/log';
+import { auth } from '@config/auth';
 import {
   BETTER_AUTH_API_PERMISSION_RESOURCE,
   buildAuthOptions,
@@ -102,6 +103,13 @@ describe('resolveGrantableApiPermissions', () => {
     const result = await resolveGrantableApiPermissions(42, findUserById as any);
 
     expect(result).toContain(ApiPermission.ADD_MEDIA);
+  });
+
+  it('never lets the account key UI mint the privileged admin-read scope', async () => {
+    const findUserById = vi.fn(async () => ({ role: UserRoleType.ADMIN }) as any);
+    const result = await resolveGrantableApiPermissions(42, findUserById as any);
+
+    expect(result).not.toContain(ApiPermission.READ_ADMIN);
   });
 
   it('refuses corpus writes when the user cannot be found', async () => {
@@ -300,6 +308,99 @@ describe('session duration regression tests', () => {
 
     expect(cookieCache?.enabled).toBe(true);
     expect(cookieCache?.maxAge).toBeGreaterThanOrEqual(60); // at least 1 minute
+  });
+
+  it('keeps session listing usable while adding a delete-specific reauthentication hook', () => {
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false }) as any;
+
+    expect(options.session.freshAge).toBe(0);
+    expect(options.user.deleteUser.beforeDelete).toEqual(expect.any(Function));
+  });
+
+  it('accepts Better Auth’s already-validated email deletion callback without requiring a fresh session', async () => {
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false }) as any;
+    const callbackRequest = new Request('https://api.nadeshiko.test/v1/auth/delete-user/callback?token=verified-token');
+
+    await expect(options.user.deleteUser.beforeDelete({}, callbackRequest)).resolves.toBeUndefined();
+  });
+
+  it('does not mistake a query token on the direct delete POST for a verified callback proof', async () => {
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false }) as any;
+    const directRequest = new Request('https://api.nadeshiko.test/v1/auth/delete-user?token=attacker-value', {
+      method: 'POST',
+      body: '{}',
+    });
+
+    await expect(options.user.deleteUser.beforeDelete({}, directRequest)).rejects.toMatchObject({
+      body: { code: 'SESSION_EXPIRED' },
+    });
+  });
+
+  it('allows a freshly authenticated direct deletion and asks Better Auth for an authoritative non-refreshing session', async () => {
+    const getSession = vi.spyOn(auth.api, 'getSession').mockResolvedValue({
+      session: { createdAt: new Date() },
+    } as any);
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false }) as any;
+    const request = new Request('https://api.nadeshiko.test/v1/auth/delete-user', { method: 'POST', body: '{}' });
+    // Better Auth has already parsed direct-delete bodies before beforeDelete.
+    // The hook must not rely on a second body read to decide freshness.
+    await request.text();
+
+    try {
+      await expect(options.user.deleteUser.beforeDelete({}, request)).resolves.toBeUndefined();
+      expect(getSession).toHaveBeenCalledWith({
+        headers: request.headers,
+        query: { disableCookieCache: true, disableRefresh: true },
+      });
+    } finally {
+      getSession.mockRestore();
+    }
+  });
+
+  it('rejects a stale or missing direct-delete session', async () => {
+    const getSession = vi.spyOn(auth.api, 'getSession');
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false }) as any;
+
+    try {
+      getSession.mockResolvedValueOnce({ session: { createdAt: new Date(Date.now() - 15 * 60 * 1000) } } as any);
+      await expect(
+        options.user.deleteUser.beforeDelete(
+          {},
+          new Request('https://api.nadeshiko.test/v1/auth/delete-user', { method: 'POST' }),
+        ),
+      ).rejects.toMatchObject({ body: { code: 'SESSION_EXPIRED' } });
+
+      getSession.mockResolvedValueOnce(null as any);
+      await expect(
+        options.user.deleteUser.beforeDelete(
+          {},
+          new Request('https://api.nadeshiko.test/v1/auth/delete-user', { method: 'POST' }),
+        ),
+      ).rejects.toMatchObject({ body: { code: 'SESSION_EXPIRED' } });
+    } finally {
+      getSession.mockRestore();
+    }
+  });
+
+  it('does not accept empty password or token fields as recent authentication', async () => {
+    const getSession = vi.spyOn(auth.api, 'getSession').mockResolvedValue({
+      session: { createdAt: new Date(Date.now() - 15 * 60 * 1000) },
+    } as any);
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false }) as any;
+
+    try {
+      for (const body of ['{"password":""}', '{"token":""}']) {
+        await expect(
+          options.user.deleteUser.beforeDelete(
+            {},
+            new Request('https://api.nadeshiko.test/v1/auth/delete-user', { method: 'POST', body }),
+          ),
+        ).rejects.toMatchObject({ body: { code: 'SESSION_EXPIRED' } });
+      }
+      expect(getSession).toHaveBeenCalledTimes(2);
+    } finally {
+      getSession.mockRestore();
+    }
   });
 
   it('session configuration follows security best practices', () => {

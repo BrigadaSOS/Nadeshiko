@@ -12,13 +12,7 @@ import { logger } from '@config/log';
 import { fromNodeHeaders } from 'better-auth/node';
 import { trace } from '@opentelemetry/api';
 import { recordApiLastSeen } from '@app/services/auth/lastSeen';
-import {
-  getCachedApiKey,
-  getCachedUser,
-  invalidateUserCache,
-  setCachedApiKey,
-  setCachedUser,
-} from '@app/middleware/authCacheStore';
+import { getCachedUser, invalidateUserCache, setCachedApiKey, setCachedUser } from '@app/middleware/authCacheStore';
 
 type VerifyApiKey = (args: { body: { key: string } }) => Promise<unknown>;
 
@@ -296,7 +290,10 @@ async function attachAuthPayloadToRequest(
   authType: AuthType,
   apiKey?: { id?: string; kind?: ApiKeyKind; permissions: ApiPermission[] },
 ): Promise<void> {
-  const user = await loadActiveUser(userId);
+  // A ban revokes sessions, but API keys have no session row to revoke. Read a
+  // key owner's current state every time so a cached user cannot continue to
+  // use a banned key for the five-minute cache TTL.
+  const user = await loadActiveUser(userId, authType === AuthType.API_KEY);
 
   req.user = user;
   req.auth = {
@@ -316,15 +313,15 @@ async function attachAuthPayloadToRequest(
   }
 }
 
-async function loadActiveUser(userId: number): Promise<User> {
-  let user = getCachedUser(userId);
+async function loadActiveUser(userId: number, requireCurrentState = false): Promise<User> {
+  let user = requireCurrentState ? null : getCachedUser(userId);
   if (!user) {
     user = await User.findOne({ where: { id: userId } });
-    if (!user?.isActive) {
+    if (!isActiveAndNotBanned(user)) {
       throw new AuthCredentialsInvalidError('User is invalid or inactive.');
     }
     setCachedUser(user);
-  } else if (!user.isActive) {
+  } else if (!isActiveAndNotBanned(user)) {
     invalidateUserCache(userId);
     throw new AuthCredentialsInvalidError('User is invalid or inactive.');
   }
@@ -332,17 +329,19 @@ async function loadActiveUser(userId: number): Promise<User> {
   return user;
 }
 
+/** A lapsed temporary ban restores access; a missing expiry is a permanent ban. */
+function isActiveAndNotBanned(user: User | null | undefined): user is User {
+  if (!user?.isActive || !user.banned) return Boolean(user?.isActive);
+
+  const expiresAt = user.banExpires?.getTime();
+  return typeof expiresAt === 'number' && Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
 async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promise<void> {
-  // Check cache first to avoid better-auth DB call
-  const cached = getCachedApiKey(apiKey);
-  if (cached) {
-    await attachAuthPayloadToRequest(req, cached.userId, AuthType.API_KEY, {
-      id: cached.apiKeyId,
-      kind: cached.apiKeyKind,
-      permissions: cached.permissions,
-    });
-    return;
-  }
+  // `verifyApiKey` also advances Better Auth's per-key rate-limit counter.
+  // Do not short-circuit it from our metadata cache: doing so granted every
+  // cached key an unmetered five-minute burst. The cache remains populated for
+  // pre-router service-key classification and user lookup stays cached.
 
   let verification: {
     valid?: boolean;
