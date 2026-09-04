@@ -11,11 +11,10 @@ import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from
  * So the choice is between losing documents and retrying forever, and both
  * failure modes are silent:
  *
- * - Throwing when only SOME documents failed retries the ninety-nine that
- *   already landed, re-indexing them on every attempt.
- * - Not throwing when ALL of them failed marks a batch complete that wrote
- *   nothing, and the segments are missing from search with no job left to
- *   notice.
+ * - Returning when ANY document failed marks it complete even though its
+ *   Elasticsearch write did not land.
+ * - Throwing retries the whole bounded batch. Index and delete are idempotent
+ *   by segment id, so redoing a successful item is safe.
  *
  * The other case is a segment deleted between being enqueued and being
  * processed. That is ordinary -- the delete job is in a different queue -- and
@@ -128,15 +127,13 @@ describe.each([
     await expect(run(queue, [1])).resolves.toBeUndefined();
   });
 
-  it('does NOT retry the batch when only some documents failed', async () => {
-    // Retrying would re-index the ninety-nine that already landed on every
-    // attempt, and the one that is genuinely broken would still be broken.
+  it('retries the bounded batch when only some documents failed', async () => {
     const { boss, run } = fakeBoss();
     await registerEsSyncWorkers(boss);
     segmentFind.mockResolvedValue(found([1, 2]));
     bulkIndex.mockResolvedValue({ succeeded: 1, failed: 1, errors: [{ segmentId: 2, error: 'bad field' }] });
 
-    await expect(run(queue, [1, 2])).resolves.toBeUndefined();
+    await expect(run(queue, [1, 2])).rejects.toThrow('1 segment(s) failed during bulk');
   });
 
   it('names each failed document, so a partial failure is not silent', async () => {
@@ -145,7 +142,7 @@ describe.each([
     segmentFind.mockResolvedValue(found([1, 2]));
     bulkIndex.mockResolvedValue({ succeeded: 1, failed: 1, errors: [{ segmentId: 2, error: 'bad field' }] });
 
-    await run(queue, [1, 2]);
+    await expect(run(queue, [1, 2])).rejects.toThrow('1 segment(s) failed during bulk');
 
     expect(logWarn).toHaveBeenCalledWith(
       expect.objectContaining({ segmentId: 2, error: 'bad field' }),
@@ -161,7 +158,7 @@ describe.each([
     segmentFind.mockResolvedValue(found([1, 2]));
     bulkIndex.mockResolvedValue({ succeeded: 0, failed: 2, errors: [] });
 
-    await expect(run(queue, [1, 2])).rejects.toThrow(/All 2 segments failed/);
+    await expect(run(queue, [1, 2])).rejects.toThrow('2 segment(s) failed during bulk');
   });
 
   it('retries when the index is unreachable', async () => {
@@ -230,12 +227,12 @@ describe('the delete worker', () => {
     expect(segmentFind).not.toHaveBeenCalled();
   });
 
-  it('does not retry a partial failure', async () => {
+  it('retries a partial delete failure rather than completing the failed job', async () => {
     const { boss, run } = fakeBoss();
     await registerEsSyncWorkers(boss);
     bulkDelete.mockResolvedValue({ succeeded: 1, failed: 1, errors: [{ segmentId: 2, error: 'nope' }] });
 
-    await expect(run(ES_SYNC_DELETE_QUEUE, [1, 2])).resolves.toBeUndefined();
+    await expect(run(ES_SYNC_DELETE_QUEUE, [1, 2])).rejects.toThrow('1 segment(s) failed during bulk DELETE');
     expect(logWarn).toHaveBeenCalledWith(expect.objectContaining({ segmentId: 2 }), expect.any(String));
   });
 
@@ -244,7 +241,7 @@ describe('the delete worker', () => {
     await registerEsSyncWorkers(boss);
     bulkDelete.mockResolvedValue({ succeeded: 0, failed: 2, errors: [] });
 
-    await expect(run(ES_SYNC_DELETE_QUEUE, [1, 2])).rejects.toThrow(/All 2 segments failed/);
+    await expect(run(ES_SYNC_DELETE_QUEUE, [1, 2])).rejects.toThrow('2 segment(s) failed during bulk DELETE');
   });
 
   it('completes an empty result rather than reading it as total failure', async () => {
