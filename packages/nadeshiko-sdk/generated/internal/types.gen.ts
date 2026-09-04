@@ -1779,7 +1779,7 @@ export type UserMe = {
  * be granted by an admin; asking for one without the role is refused with `403`.
  *
  */
-export type ApiKeyScope = 'ADD_MEDIA' | 'READ_MEDIA' | 'UPDATE_MEDIA' | 'REMOVE_MEDIA' | 'READ_PROFILE' | 'WRITE_PROFILE' | 'READ_ACTIVITY' | 'WRITE_ACTIVITY' | 'READ_COLLECTIONS' | 'CREATE_COLLECTIONS' | 'UPDATE_COLLECTIONS' | 'DELETE_COLLECTIONS';
+export type ApiKeyScope = 'ADD_MEDIA' | 'READ_MEDIA' | 'UPDATE_MEDIA' | 'REMOVE_MEDIA' | 'READ_PROFILE' | 'WRITE_PROFILE' | 'READ_ACTIVITY' | 'WRITE_ACTIVITY' | 'READ_COLLECTIONS' | 'CREATE_COLLECTIONS' | 'UPDATE_COLLECTIONS' | 'DELETE_COLLECTIONS' | 'READ_ADMIN';
 
 /**
  * A reader's linked Shirabe account, as the reader is shown it.
