@@ -124,6 +124,7 @@ async function render(value: Record<string, unknown> | null = media()) {
 
   const Host = defineComponent({
     components: { MediaSlugPage },
+    errorCaptured: () => false,
     template: '<Suspense><MediaSlugPage /></Suspense>',
   });
   const wrapper = mount(Host, {

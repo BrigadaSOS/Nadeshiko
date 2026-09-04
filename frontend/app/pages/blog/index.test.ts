@@ -54,6 +54,7 @@ async function render(posts: ReturnType<typeof post>[] | null, page?: string) {
 
   const Host = defineComponent({
     components: { BlogIndex },
+    errorCaptured: () => false,
     template: '<Suspense><BlogIndex /></Suspense>',
   });
   const wrapper = mount(Host, {
