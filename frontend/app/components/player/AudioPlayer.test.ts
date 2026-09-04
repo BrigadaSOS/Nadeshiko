@@ -198,6 +198,36 @@ describe('seeking', () => {
   });
 });
 
+describe('the displayed sentence', () => {
+  test('renders corpus HTML as text but keeps the search highlight', () => {
+    playerStore.currentResult.value = {
+      ...result(),
+      segment: {
+        ...result().segment,
+        textJa: { content: '<img src=x onerror=alert(1)>', highlight: '<em>猫</em><script>alert(1)</script>' },
+      },
+    };
+    const wrapper = render();
+
+    const sentence = wrapper.find('p.font-bold');
+    expect(sentence.html()).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(sentence.find('em').text()).toBe('猫');
+    expect(sentence.find('img').exists()).toBe(false);
+  });
+
+  test('does not turn raw corpus text into a highlight', () => {
+    playerStore.currentResult.value = {
+      ...result(),
+      segment: { ...result().segment, textJa: { content: '<em>raw sentence</em>' } },
+    };
+    const wrapper = render();
+
+    const sentence = wrapper.find('p.font-bold');
+    expect(sentence.html()).toContain('&lt;em&gt;raw sentence&lt;/em&gt;');
+    expect(sentence.find('em').exists()).toBe(false);
+  });
+});
+
 describe('the keyboard, which this handler sees from the whole page', () => {
   test('an arrow key steps to the next clip', () => {
     // Arrows move between CLIPS; seeking within one is the rewind/forward pair

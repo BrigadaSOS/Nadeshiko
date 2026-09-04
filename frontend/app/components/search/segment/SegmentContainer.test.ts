@@ -155,6 +155,54 @@ describe('the card list', () => {
         .text(),
     ).toContain('日本語 a');
   });
+
+  test('renders corpus markup as text while preserving search highlights', () => {
+    const wrapper = render([
+      segment('a', {
+        segment: {
+          publicId: 'a',
+          textJa: { content: '<img src=x onerror=alert(1)>', highlight: '<em>日本語</em><script>alert(1)</script>' },
+          textEn: { content: '<img src=x onerror=alert(1)>', highlight: '<span class="highlight-tail">English</span>' },
+          textEs: { content: 'espanol a' },
+          episode: 1,
+          startTimeMs: 0,
+          endTimeMs: 1000,
+          urls: { imageUrl: 'i.png', audioUrl: 'a.mp3', videoUrl: null },
+        },
+      }),
+    ]);
+
+    expect(wrapper.find('[data-testid="segment-japanese-text"]').html()).toContain(
+      '&lt;script&gt;alert(1)&lt;/script&gt;',
+    );
+    expect(wrapper.find('[data-testid="segment-japanese-text"] em').text()).toBe('日本語');
+    expect(wrapper.find('[data-testid="translation-content"] .highlight-tail').text()).toBe('English');
+    expect(wrapper.find('[data-testid="segment-japanese-text"] img').exists()).toBe(false);
+  });
+
+  test('does not treat raw Japanese or translations as highlighter HTML', () => {
+    const wrapper = render([
+      segment('a', {
+        segment: {
+          publicId: 'a',
+          textJa: { content: '<em>raw Japanese</em>' },
+          textEn: { content: '<img src=x onerror=alert(1)>raw English' },
+          textEs: { content: 'espanol a' },
+          episode: 1,
+          startTimeMs: 0,
+          endTimeMs: 1000,
+          urls: { imageUrl: 'i.png', audioUrl: 'a.mp3', videoUrl: null },
+        },
+      }),
+    ]);
+
+    const japanese = wrapper.find('[data-testid="segment-japanese-text"]');
+    const translation = wrapper.find('[data-testid="translation-content"]');
+    expect(japanese.html()).toContain('&lt;em&gt;raw Japanese&lt;/em&gt;');
+    expect(japanese.find('em').exists()).toBe(false);
+    expect(translation.html()).toContain('&lt;img src=x onerror=alert(1)&gt;raw English');
+    expect(translation.find('img').exists()).toBe(false);
+  });
 });
 
 describe('which translation rows exist', () => {

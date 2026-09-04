@@ -22,6 +22,7 @@ import { splitLocalePrefix } from '~/utils/routes';
 import { watch, ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { onClickOutside, useMediaQuery } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
+import { escapeCorpusText, safeHighlight } from '~/utils/safeHighlight';
 
 const route = useRoute();
 
@@ -350,7 +351,9 @@ watch(ytPlayer.clipProgress, (p) => {
 
 const getJapaneseContent = (result: any) => {
   if (!result) return '';
-  return result.segment.textJa.highlight || result.segment.textJa.content || '';
+  return result.segment.textJa.highlight
+    ? safeHighlight(result.segment.textJa.highlight)
+    : escapeCorpusText(result.segment.textJa.content);
 };
 
 const getAnimeImage = (result: any) => {
