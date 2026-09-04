@@ -49,7 +49,8 @@ export const workersInitializer: RuntimeInitializer = {
         name: ES_SYNC_CREATE_QUEUE,
         options: {
           retryLimit: 5,
-          retryDelay: 1000,
+          // pg-boss measures retryDelay in seconds, not milliseconds.
+          retryDelay: 1,
           retryBackoff: true,
           expireInSeconds: 3600,
           retentionSeconds: 86400,
@@ -59,7 +60,7 @@ export const workersInitializer: RuntimeInitializer = {
         name: ES_SYNC_UPDATE_QUEUE,
         options: {
           retryLimit: 5,
-          retryDelay: 1000,
+          retryDelay: 1,
           retryBackoff: true,
           expireInSeconds: 3600,
           retentionSeconds: 86400,
@@ -67,7 +68,7 @@ export const workersInitializer: RuntimeInitializer = {
       },
       {
         name: ES_SYNC_DELETE_QUEUE,
-        options: { retryLimit: 3, retryDelay: 500, retryBackoff: true, expireInSeconds: 3600, retentionSeconds: 86400 },
+        options: { retryLimit: 3, retryDelay: 1, retryBackoff: true, expireInSeconds: 3600, retentionSeconds: 86400 },
       },
       {
         name: EMAIL_SEND_QUEUE,
@@ -149,6 +150,13 @@ export const workersInitializer: RuntimeInitializer = {
 
     for (const queue of queues) {
       await boss.createQueue(queue.name, queue.options);
+    }
+
+    // `createQueue` deliberately does not modify an existing queue. Apply the
+    // corrected delay to the three ES queues explicitly, without touching
+    // unrelated queue settings or their existing jobs.
+    for (const queueName of [ES_SYNC_CREATE_QUEUE, ES_SYNC_UPDATE_QUEUE, ES_SYNC_DELETE_QUEUE]) {
+      await boss.updateQueue(queueName, { retryDelay: 1 });
     }
 
     await boss.schedule(ACTIVITY_RETENTION_QUEUE, '0 3 * * *', {});
