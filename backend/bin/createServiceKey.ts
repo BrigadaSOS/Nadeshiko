@@ -37,7 +37,7 @@ import { ApiKeyKind, ApiPermission, User, UserRoleType } from '@app/models';
  *
  * Usage:
  *   npm run create:service-key -- --user <id|email> --name roxy-moderation \
- *     --permissions READ_MEDIA,UPDATE_MEDIA
+ *     --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN
  *
  * The key is printed once and never again — only its hash is stored.
  */
@@ -96,6 +96,9 @@ const CORPUS_WRITE_PERMISSIONS = new Set<ApiPermission>([
   ApiPermission.UPDATE_MEDIA,
   ApiPermission.REMOVE_MEDIA,
 ]);
+// No existing service key receives this scope automatically: API_KEY_MASTER is
+// a service key for anonymous corpus reads and must never inherit admin reads.
+const PRIVILEGED_SERVICE_PERMISSIONS = new Set<ApiPermission>([ApiPermission.READ_ADMIN]);
 
 async function resolveUser(identifier: string, permissions: ApiPermission[]): Promise<User> {
   const asId = Number(identifier);
@@ -127,6 +130,14 @@ async function resolveUser(identifier: string, permissions: ApiPermission[]): Pr
         `${user.id} (${user.email}, role=${user.role}).\n` +
         'The key would work, but its edits would be attributed to that account. ' +
         'Point --user at an admin, or drop the corpus-write permissions.',
+    );
+  }
+
+  const privileged = permissions.filter((p) => PRIVILEGED_SERVICE_PERMISSIONS.has(p));
+  if (privileged.length > 0 && user.role !== UserRoleType.ADMIN) {
+    throw new Error(
+      `Refusing to attach privileged service scope (${privileged.join(', ')}) to non-admin user ` +
+        `${user.id} (${user.email}, role=${user.role}).`,
     );
   }
 

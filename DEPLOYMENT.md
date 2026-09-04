@@ -277,6 +277,13 @@ out of band, use `backend/scripts/remote-db.sh <env> migrate` (that script
 reaches the host over Tailscale and sources `.kamal/secrets.<env>`; `env` is
 `dev` or `prod`, and anything that writes to prod needs `--allow-prod`).
 
+## Privileged service API keys
+
+`READ_ADMIN` grants access to the moderation report queue and agent activity
+log. It is intentionally not inherited by `API_KEY_MASTER`, which the frontend
+uses for anonymous corpus reads. Provision a moderation service key explicitly
+with `npm run create:service-key --workspace backend -- --user <admin> --name <agent> --permissions READ_MEDIA,READ_ADMIN`; capture the printed secret once and update the agent's secret store before deployment. Add any other required scopes explicitly.
+
 ## Health checks
 
 Every service answers `GET /up`, and kamal-proxy polls it during a deploy to

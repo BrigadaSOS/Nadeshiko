@@ -528,6 +528,41 @@ describe('user cache', () => {
     expect(res.status).toBe(401);
     expect(res.body).toMatchObject({ code: 'AUTH_CREDENTIALS_INVALID' });
   });
+
+  it('returns 401 for a permanently banned API-key owner even if they were previously cached', async () => {
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-banned-user',
+        referenceId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
+    });
+
+    const app = createApiKeyApp();
+    const token = 'nade_banned_user_key';
+    expect((await request(app).get('/test').set('Authorization', `Bearer ${token}`)).status).toBe(200);
+
+    await User.update({ id: fixtures.users.kevin.id }, { banned: true, banExpires: null });
+    expect((await request(app).get('/test').set('Authorization', `Bearer ${token}`)).status).toBe(401);
+  });
+
+  it('allows an API-key owner whose temporary ban has expired', async () => {
+    await User.update({ id: fixtures.users.kevin.id }, { banned: true, banExpires: new Date(Date.now() - 60_000) });
+    mockVerifyApiKey.mockResolvedValue({
+      valid: true,
+      key: {
+        id: 'ba-expired-ban-user',
+        referenceId: String(fixtures.users.kevin.id),
+        permissions: { api: ['READ_MEDIA'] },
+        metadata: null,
+      },
+    });
+
+    const res = await request(createApiKeyApp()).get('/test').set('Authorization', 'Bearer nade_expired_ban_user_key');
+    expect(res.status).toBe(200);
+  });
 });
 
 describe('user cache — expiry', () => {
@@ -577,12 +612,12 @@ describe('user cache — expiry', () => {
     vi.spyOn(Date, 'now').mockRestore();
   });
 
-  it('evicts expired API key cache entries', async () => {
+  it('verifies API keys on every request so Better Auth can atomically meter them', async () => {
     invalidateUserCache(fixtures.users.kevin.id);
     invalidateApiKeyCacheForUser(fixtures.users.kevin.id);
 
     const originalDateNow = Date.now;
-    let currentTime = originalDateNow();
+    const currentTime = originalDateNow();
     vi.spyOn(Date, 'now').mockImplementation(() => currentTime);
 
     mockVerifyApiKey.mockResolvedValue({
@@ -601,8 +636,6 @@ describe('user cache — expiry', () => {
     expect(mockVerifyApiKey).toHaveBeenCalledTimes(1);
 
     mockVerifyApiKey.mockClear();
-
-    currentTime += 6 * 60 * 1000;
 
     mockVerifyApiKey.mockResolvedValue({
       valid: true,

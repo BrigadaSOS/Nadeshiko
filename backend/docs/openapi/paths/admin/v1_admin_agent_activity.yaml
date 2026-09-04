@@ -18,7 +18,7 @@ get:
     for the revision number.
 
   security:
-    - ApiKey: [READ_MEDIA]
+    - ApiKey: [READ_ADMIN]
     - SessionCookie: [ADMIN]
   parameters:
     - name: since
