@@ -141,6 +141,16 @@ export class User extends BaseEntity {
   @Column({ name: 'role', type: 'enum', enum: UserRoleType, default: UserRoleType.USER })
   role!: UserRoleType;
 
+  // These are owned by Better Auth's admin plugin. Keep them on the application
+  // model too: API-key authentication loads this model, rather than Better
+  // Auth's session user, so omitting them would let a banned user keep using a
+  // previously issued bearer key until it expired.
+  @Column({ name: 'banned', type: 'boolean', default: false })
+  banned!: boolean;
+
+  @Column({ name: 'ban_expires', type: 'timestamptz', nullable: true })
+  banExpires?: Date | null;
+
   /**
    * Cloudflare's two-letter country for the request that opened this account.
    *

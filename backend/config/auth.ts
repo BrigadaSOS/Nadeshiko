@@ -90,8 +90,42 @@ const LOGIN_CODE_HANDOFF_MS = 60 * 1000;
  * what this reference is allowed to do.
  */
 let authInstance: {
-  api: { sendVerificationOTP: (args: { body: { email: string; type: 'sign-in' } }) => Promise<unknown> };
+  api: {
+    sendVerificationOTP: (args: { body: { email: string; type: 'sign-in' } }) => Promise<unknown>;
+    getSession: (args: {
+      headers: Headers;
+      query: { disableCookieCache: boolean; disableRefresh: boolean };
+    }) => Promise<{ session?: { createdAt?: Date | string } } | null>;
+  };
 } | null = null;
+
+// Listing sessions is harmless but Better Auth applies `freshAge` to it too.
+// Keep that global setting at zero and enforce a much shorter, explicit window
+// only at the direct destructive-account-delete endpoint.
+const DELETE_USER_FRESH_AGE_MS = 15 * 60 * 1000;
+
+async function requireRecentDeleteAuthentication(request?: Request): Promise<void> {
+  const url = request ? new URL(request.url) : null;
+  // Better Auth validates this callback token before calling beforeDelete. A
+  // query parameter on the direct POST route is never trusted: it has not been
+  // validated by Better Auth and therefore cannot bypass the freshness check.
+  if (request?.method === 'GET' && url?.pathname.endsWith('/delete-user/callback') && url.searchParams.get('token'))
+    return;
+
+  const result = request
+    ? await authInstance?.api.getSession({
+        headers: request.headers,
+        query: { disableCookieCache: true, disableRefresh: true },
+      })
+    : null;
+  const createdAt = result?.session?.createdAt ? new Date(result.session.createdAt).getTime() : NaN;
+  if (!Number.isFinite(createdAt) || Date.now() - createdAt >= DELETE_USER_FRESH_AGE_MS) {
+    throw new APIError('BAD_REQUEST', {
+      code: 'SESSION_EXPIRED',
+      message: 'Recent authentication is required to delete an account.',
+    });
+  }
+}
 
 /**
  * How long an impersonation lasts, and the reason it is a constant rather than a
@@ -525,6 +559,7 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       },
       deleteUser: {
         enabled: true,
+        beforeDelete: async (_user, request) => requireRecentDeleteAuthentication(request),
       },
     },
     session: {
@@ -576,9 +611,8 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       // The other consumer of the middleware is `/unlink-account`, which is in
       // DISABLED_PATHS above, so this setting reaches exactly one route. There
       // is nothing to protect there either: listing your own sessions is a read
-      // of your own data, not a sensitive mutation. The operations freshness is
-      // meant to gate (delete-user, change-email) do not use this middleware --
-      // check that again before raising this above 0.
+      // of your own data, not a sensitive mutation. Delete-user is additionally
+      // guarded by its own 15-minute freshness hook below.
       freshAge: 0,
       storeSessionInDatabase: true,
       cookieCache: { enabled: true, maxAge: 5 * 60 },

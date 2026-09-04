@@ -3562,7 +3562,7 @@ paths:
         auto-check findings.
       security:
         - ApiKey:
-            - READ_MEDIA
+            - READ_ADMIN
         - SessionCookie:
             - ADMIN
       parameters:
@@ -3857,7 +3857,7 @@ paths:
         for the revision number.
       security:
         - ApiKey:
-            - READ_MEDIA
+            - READ_ADMIN
         - SessionCookie:
             - ADMIN
       parameters:
@@ -9102,6 +9102,7 @@ components:
         - CREATE_COLLECTIONS
         - UPDATE_COLLECTIONS
         - DELETE_COLLECTIONS
+        - READ_ADMIN
       example: READ_MEDIA
     ShirabeConnection:
       type: object

@@ -98,7 +98,8 @@ export type t_ApiKeyScope =
 	| "READ_COLLECTIONS"
 	| "CREATE_COLLECTIONS"
 	| "UPDATE_COLLECTIONS"
-	| "DELETE_COLLECTIONS";
+	| "DELETE_COLLECTIONS"
+	| "READ_ADMIN";
 
 export type t_BatchUpdateReportsRequest = {
 	adminNotes?: string;
