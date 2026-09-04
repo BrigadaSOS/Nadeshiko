@@ -229,7 +229,10 @@ jobs:
     needs: [deploy-backend, deploy-frontend]
     if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # A cold npm install can consume five minutes by itself. The suite has grown
+    # to 273 staging-active tests, so 15 minutes canceled healthy runs before
+    # Playwright could finish or write its report.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
