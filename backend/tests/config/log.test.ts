@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import pino from 'pino';
+import { REDACT_PATHS } from '@brigadasos/nadeshiko-shared/logRedaction';
 import {
   buildHttpLoggerOptions,
   capLoggedBody,
@@ -75,6 +77,39 @@ describe('sanitizeRequestUrl', () => {
 
 describe('buildHttpLoggerOptions', () => {
   const options = buildHttpLoggerOptions({} as any);
+
+  it('redacts credentials after HTTP serialization, including successful session responses', () => {
+    const lines: string[] = [];
+    const log = pino({ redact: [...REDACT_PATHS] }, { write: (line) => lines.push(line) });
+    const req = {
+      method: 'POST',
+      url: '/v1/auth/sign-in/email-otp',
+      headers: {
+        cookie: 'session=private-cookie',
+        authorization: 'Bearer private-key',
+        'x-internal-proxy-auth': 'private-proxy-secret',
+        'x-rate-limit-bypass': 'private-bypass-secret',
+      },
+      rawBody: JSON.stringify({ email: 'private-email@example.com', otp: 'private-otp' }),
+    };
+    const res = {
+      statusCode: 200,
+      getHeaders: () => ({
+        'set-cookie': ['nadeshiko.session_token=private-session; HttpOnly'],
+        'content-type': 'application/json',
+      }),
+    };
+    log.info({ req: options.serializers.req(req as any), res: options.serializers.res(res as any) });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).not.toContain('private-');
+    const entry = JSON.parse(lines[0]!);
+    expect(entry.req.url).toBe('/v1/auth/sign-in/email-otp');
+    expect(entry.req.body.otp).toBe('[Redacted]');
+    expect(entry.res.statusCode).toBe(200);
+    expect(entry.res.headers['content-type']).toBe('application/json');
+    expect(entry.res.headers['set-cookie']).toBe('[Redacted]');
+  });
 
   it('serializes request with requestId and parsed raw body', () => {
     const req = {

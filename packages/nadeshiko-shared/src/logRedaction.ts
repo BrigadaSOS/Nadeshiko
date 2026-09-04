@@ -16,7 +16,15 @@
  */
 
 /** Credentials that ride on the request itself. */
-const HEADERS = ['req.headers.cookie', 'req.headers.authorization', 'req.headers.set-cookie'];
+const HEADERS = [
+  'req.headers.cookie',
+  'req.headers.authorization',
+  'req.headers.set-cookie',
+  'req.headers.x-internal-proxy-auth',
+  'req.headers.x-rate-limit-bypass',
+  // Session issuance and renewal return credentials even on successful responses.
+  'res.headers.set-cookie',
+];
 
 /**
  * Query strings, which are the worst place for any of this to appear and the
@@ -49,6 +57,7 @@ const REQUEST_BODY = [
   // OAuth codes. Short-lived, but exchangeable for a session by anyone holding
   // the log line before the reader finishes the round trip.
   'req.body.code',
+  'req.body.otp',
   'req.body.username',
 ];
 
