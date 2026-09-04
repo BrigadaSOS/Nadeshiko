@@ -116,9 +116,12 @@ export default defineConfig({
   // into a cascade of unrelated ones.
   retries: SMOKE ? 1 : process.env.CI ? 2 : 1,
   maxFailures: process.env.CI ? 5 : undefined,
-  // Serial in smoke for the same reason: two workers burst, and the limiter
-  // counts a burst the same as sustained load.
-  workers: SMOKE ? 1 : process.env.CI ? 2 : undefined,
+  // CI uses one shared authenticated account. Several specs deliberately
+  // mutate that account's preferences, Anki profiles, and search history, so
+  // running files on separate workers lets one spec clear state another still
+  // needs. Keep CI serial until it provisions an account per worker. Smoke also
+  // stays serial because production's limiter counts bursts like sustained load.
+  workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'html' : 'list',
   timeout: 60_000,
 
