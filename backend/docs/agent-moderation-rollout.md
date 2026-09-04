@@ -115,7 +115,7 @@ Do this against whichever environment the agent will first run in. Step 3 is the
 one that matters most.
 
 1. Mint a service key for that environment:
-   `npm run create:service-key -- --user <admin> --name roxy-moderation --permissions READ_MEDIA,UPDATE_MEDIA`
+   `npm run create:service-key -- --user <admin> --name roxy-moderation --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN`
 2. `PATCH` a segment with a `reportId`, using that key.
 3. `GET /v1/admin/agent-activity` — confirm the edit appears, with the
    before/after pair and the report link.
@@ -139,10 +139,8 @@ rewritten episode, and it has never been exercised outside unit tests.
    fails and the previous container keeps serving rather than a broken one taking
    traffic.
 2. Expect the brief report-endpoint window described above.
-3. Mint the prod service key. **Check first that `scripts/remote-db.sh` can run
-   an arbitrary bin script** — it is built for `migrate`-style commands, and if
-   it cannot, that is a one-line addition better made before you are standing at
-   the prod prompt.
+3. Mint the prod service key with the explicit guarded helper:
+   `backend/scripts/remote-db.sh prod create-service-key --allow-prod -- --user <admin> --name roxy-moderation --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN`.
 4. Store the key at `/davafons-infra/qtower/hermes/NADESHIKO_API_KEY` in SSM.
    `deploy.sh` aborts on a name it cannot resolve or a value that resolves empty.
 5. `./deploy.sh qtower deploy hermes`
