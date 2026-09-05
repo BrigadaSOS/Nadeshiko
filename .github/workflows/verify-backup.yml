@@ -15,9 +15,9 @@ name: "[Infra] Verify Postgres backup"
 # pins it to prod alone; naming the database here means a silent revert to
 # dumping everything, or prod dropping out of the list, is itself a failure.
 #
-# This does not verify a dump *restores*; that needs a scratch database and is a
-# separate job. It answers the cheaper questions that catch most of the risk: is
-# there a recent dump for prod, and is it the size we expect?
+# After freshness and size checks, restore the exact object into an isolated
+# Postgres 17 container and verify core tables. The scratch database and downloaded
+# archive are removed on completion or failure; production is never contacted.
 
 on:
   schedule:
@@ -34,8 +34,10 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
     steps:
+      - uses: actions/checkout@v7
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -96,6 +98,10 @@ jobs:
           test -n "$bucket" && test -n "$host_base"
           endpoint="https://${host_base#https://}"
 
+          restore_dir=$(mktemp -d "${RUNNER_TEMP}/nadeshiko-restore.XXXXXX")
+          cleanup() { rm -f -- "$restore_dir/backup.dmp.gz"; rmdir -- "$restore_dir"; }
+          trap cleanup EXIT
+
           failed=0
 
           for db in $EXPECTED_DATABASES; do
@@ -146,10 +152,17 @@ jobs:
               echo "::error title=Backup for ${db} is tiny::$key is $size bytes with no previous dump to compare against (floor ${MIN_BYTES})."
               failed=1
             fi
+
+            # Restore the same object whose metadata was checked above. The
+            # runner holds this file temporarily; never upload it as an artifact.
+            [ "$failed" -eq 0 ] || exit 1
+            aws s3 cp "s3://$bucket/$key" "$restore_dir/backup.dmp.gz" \
+              --endpoint-url "$endpoint" --region auto --only-show-errors
+            bash backend/scripts/verify-postgres-restore.sh "$restore_dir/backup.dmp.gz"
           done
 
           [ "$failed" -eq 0 ] || exit 1
-          echo "All expected databases have a recent, plausible backup."
+          echo "All expected databases have recent backups that restore successfully."
 
   # Not `notify-deploy-failure.yml`. That posts as "Nadeshiko deploys" into the
   # deploy channel, and a nightly backup check failing is not a deploy failing:
