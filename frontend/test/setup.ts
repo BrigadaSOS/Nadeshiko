@@ -36,7 +36,7 @@ const sessionStorageStub = createMemoryStorage();
 
 // A file that opts into `happy-dom` already has both, and overwriting the DOM's
 // own accessors there would be a worse double than the real thing.
-if (!('localStorage' in globalThis)) {
+if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.sessionStorage === 'undefined') {
   Object.assign(globalThis, { localStorage: localStorageStub, sessionStorage: sessionStorageStub });
 }
 

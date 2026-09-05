@@ -282,7 +282,7 @@ reaches the host over Tailscale and sources `.kamal/secrets.<env>`; `env` is
 `READ_ADMIN` grants access to the moderation report queue and agent activity
 log. It is intentionally not inherited by `API_KEY_MASTER`, which the frontend
 uses for anonymous corpus reads. Provision a moderation service key explicitly
-with `npm run create:service-key --workspace backend -- --user <admin> --name <agent> --permissions READ_MEDIA,READ_ADMIN`; capture the printed secret once and update the agent's secret store before deployment. Add any other required scopes explicitly.
+with `npm run create:service-key --workspace backend -- --user <admin> --name <agent> --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN`; capture the printed secret once and update the agent's secret store before deployment. Add any other required scopes explicitly.
 
 ## Health checks
 
@@ -468,9 +468,10 @@ comparison is relative rather than a fixed floor: dumps sit around 1.2 GB and
 move roughly 0.01% night to night, so a real truncation stands out, and the
 threshold keeps working as the corpus grows.
 
-This does **not** prove a dump restores. That needs a scratch database and the
-runbook below; it is worth doing by hand periodically, since an unrestored
-backup is a hypothesis.
+The nightly check also restores the exact dump it inspected into an isolated
+Postgres 17 container and verifies core tables and indexes. It does not prove
+production roles, application boot, Elasticsearch reconstruction or media
+availability; the runbook below remains the procedure for a real restore.
 
 ### Restore runbook
 
@@ -529,8 +530,10 @@ backup is a hypothesis.
    kamal app exec -d prod --reuse 'node --import tsx bin/es.ts reindex --allow-prod-destructive'
    ```
 
-This runbook has **not** been rehearsed end to end against a real dump.
-Rehearsing it (into a scratch database, not prod) is tracked as follow-up work.
+The nightly workflow rehearses the database portion into a disposable scratch
+container. A full application restore rehearsal remains separate follow-up work
+because it requires stopping writes, re-establishing grants, booting the app and
+rebuilding Elasticsearch.
 
 ## Deploy annotations (removed)
 
