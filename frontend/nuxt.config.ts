@@ -745,7 +745,6 @@ export default defineNuxtConfig({
               // headroom as `episodes` and then some. See `sentences.ts` for why
               // the corpus is sampled per title instead of enumerated.
               ['/api/__sitemap__/sentences?locale=en', { timeout: 90000 }],
-              ['/api/__sitemap__/words?locale=en', { timeout: 60000 }],
               '/api/__sitemap__/blog?locale=en',
             ],
           },
@@ -758,7 +757,6 @@ export default defineNuxtConfig({
               // headroom as `episodes` and then some. See `sentences.ts` for why
               // the corpus is sampled per title instead of enumerated.
               ['/api/__sitemap__/sentences?locale=es', { timeout: 90000 }],
-              ['/api/__sitemap__/words?locale=es', { timeout: 60000 }],
               '/api/__sitemap__/blog?locale=es',
             ],
           },
