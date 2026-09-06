@@ -4,6 +4,8 @@ import { reactive } from 'vue';
 
 import { AUTH_CALLBACK_PARAM, AUTH_INTENT_KEY, rememberAuthIntent } from '~/utils/authAnalytics';
 
+vi.mock('~/utils/reportError', () => ({ reportEvent: vi.fn() }));
+
 /**
  * (A DOM, because `authIntentStorage()` reaches for `window.localStorage` and
  * answers `undefined` without one -- which quietly turns every attribution

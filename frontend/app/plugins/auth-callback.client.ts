@@ -1,5 +1,14 @@
-import { AUTH_CALLBACK_PARAM, authEventProperties, authIntentStorage, consumeAuthIntent } from '~/utils/authAnalytics';
+import {
+  AUTH_CALLBACK_PARAM,
+  authEventProperties,
+  authIntentStorage,
+  authReturnToStorage,
+  consumeAuthIntent,
+  consumeAuthReturnTo,
+  isAuthCallbackPath,
+} from '~/utils/authAnalytics';
 import { isAccountLinkCallback } from '~/utils/accountLinks';
+import { reportEvent } from '~/utils/reportError';
 
 /**
  * Reports an auth round trip that came back rejected, tagged with the same
@@ -59,6 +68,10 @@ export default defineNuxtPlugin({
     // `route` is the live current route: once the query is stripped below there is
     // nothing left to branch on, so the outcome has to be read out first.
     const callbackError = Array.isArray(route.query.error) ? route.query.error[0] : route.query.error;
+    const isStableCallback = isAuthCallbackPath(route.path);
+    const returnTo = isStableCallback ? consumeAuthReturnTo(authReturnToStorage()) : null;
+    const locale = route.path.match(/^\/(en|es|ja)(?:\/|$)/)?.[1];
+    const fallbackPath = locale ? `/${locale}` : '/en';
 
     // Deferred to `app:mounted` for the router, not for the plugins: the initial
     // client navigation is still settling while plugins run, and it writes the
@@ -74,6 +87,7 @@ export default defineNuxtPlugin({
         // data could not say what became of any of them.
         reportFailedLogin(String(callbackError));
         useToastError($i18n.t(callbackErrorLabel(String(callbackError))));
+        await router.replace(returnTo ?? fallbackPath);
         return;
       }
 
@@ -88,7 +102,11 @@ export default defineNuxtPlugin({
         // landing, which is what lets a returning reader's login be counted; if
         // that pass already reported the transition, this one is a no-op.
         reconcileAnalyticsIdentity({ viaCallback: true });
+      } else {
+        reportEvent('auth_callback_session_failed', { 'auth.callback_path': route.path });
+        useToastError($i18n.t('modalauth.labels.errorlogin400'));
       }
+      await router.replace(returnTo ?? fallbackPath);
     });
   },
 });

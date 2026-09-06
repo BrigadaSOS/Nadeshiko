@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isUnactionableException } from './exceptionNoise';
+import { isCloudflareChallengeException, isUnactionableException } from './exceptionNoise';
 
 /** The shape posthog-js puts on the event, narrowed to what the filter reads. */
 function event(type: string, value: string, extra: Record<string, unknown> = {}) {
@@ -90,5 +90,36 @@ describe('isUnactionableException', () => {
     expect(isUnactionableException(undefined)).toBe(false);
     expect(isUnactionableException({})).toBe(false);
     expect(isUnactionableException({ $exception_list: [] })).toBe(false);
+  });
+});
+
+describe('isCloudflareChallengeException', () => {
+  it('recognises a challenged search navigation', () => {
+    expect(
+      isCloudflareChallengeException(
+        event(
+          'TypeError',
+          'HTTP error 403 while fetching: HTTP status client error (403 Forbidden) for url https://nadeshiko.co/en/search/test',
+          {
+            $current_url: 'https://nadeshiko.co/en/search/test',
+            $referrer: 'https://nadeshiko.co/en/search/other?__cf_chl_tk=token',
+          },
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not hide an application 403 without Cloudflare challenge context', () => {
+    expect(
+      isCloudflareChallengeException(
+        event(
+          'TypeError',
+          'HTTP error 403 while fetching: HTTP status client error (403 Forbidden) for url https://nadeshiko.co/en/search/test',
+          {
+            $current_url: 'https://nadeshiko.co/en/search/test',
+          },
+        ),
+      ),
+    ).toBe(false);
   });
 });

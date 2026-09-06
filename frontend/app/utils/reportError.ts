@@ -45,8 +45,19 @@ export function reportError(name: string, error: unknown, attributes?: Record<st
 
   const normalized = toError(error);
 
-  posthog.captureException(normalized, {
+  // Keep the original stack, but give PostHog a stable exception class. The
+  // fingerprint already groups deliberate reports; naming the captured Error as
+  // well makes the issue list readable without opening each event. The original
+  // browser/runtime class remains available as `error_type` for compatibility
+  // diagnosis (TypeError, DOMException, NadeshikoError, ...).
+  const originalType = normalized.name || 'Error';
+  const reported = new Error(normalized.message);
+  reported.name = name;
+  if (normalized.stack) reported.stack = normalized.stack.replace(`${originalType}:`, `${name}:`);
+
+  posthog.captureException(reported, {
     error_source: name,
+    error_type: originalType,
     // Carried over from the Faro context, which had them and PostHog did not.
     'page.path': getPagePath(),
     'browser.url': window.location.href,

@@ -201,6 +201,62 @@ export function consumeAuthIntent(storage: IntentStorage | undefined, now: numbe
  */
 export const AUTH_CALLBACK_PARAM = 'nd_auth';
 
+/** The fixed browser-facing landing path used for social OAuth. */
+export const AUTH_CALLBACK_PATH = '/auth/callback';
+
+/** The short-lived same-origin destination parked across the provider redirect. */
+export const AUTH_RETURN_TO_KEY = 'nd-auth-return-to';
+export const AUTH_RETURN_TO_TTL_MS = 15 * 60 * 1000;
+
+export function authReturnToStorage(): IntentStorage | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Store only a same-origin path, never an external redirect target. */
+export function rememberAuthReturnTo(storage: IntentStorage | undefined, url: string, origin: string): void {
+  if (!storage) return;
+  try {
+    const parsed = new URL(url, origin);
+    if (parsed.origin !== origin) return;
+    storage.setItem(
+      AUTH_RETURN_TO_KEY,
+      JSON.stringify({ path: `${parsed.pathname}${parsed.search}${parsed.hash}`, createdAt: Date.now() }),
+    );
+  } catch {
+    // A blocked or malformed storage value must not break sign-in.
+  }
+}
+
+export function consumeAuthReturnTo(storage: IntentStorage | undefined, now = Date.now()): string | null {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(AUTH_RETURN_TO_KEY);
+    storage.removeItem(AUTH_RETURN_TO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { path?: unknown; createdAt?: unknown };
+    return typeof parsed.path === 'string' &&
+      parsed.path.startsWith('/') &&
+      !parsed.path.startsWith('//') &&
+      typeof parsed.createdAt === 'number' &&
+      Number.isFinite(parsed.createdAt) &&
+      now - parsed.createdAt >= 0 &&
+      now - parsed.createdAt <= AUTH_RETURN_TO_TTL_MS
+      ? parsed.path
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isAuthCallbackPath(path: string): boolean {
+  return /^\/(?:en|es|ja)?\/?auth\/callback\/?$/.test(path);
+}
+
 /**
  * Adds the callback marker to a URL, replacing any marker already on it so a
  * second login from a callback page does not accumulate duplicates.

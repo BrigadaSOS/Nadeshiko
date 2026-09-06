@@ -21,6 +21,25 @@ interface ExceptionListEntry {
 }
 
 /**
+ * Cloudflare's managed challenge can reject a Nuxt navigation before the app's
+ * search composable receives a Response. Keep that edge interruption out of the
+ * application issue list; the API-side search path already emits
+ * `search_fetch_failed` with scope and status when it can observe the failure.
+ */
+export function isCloudflareChallengeException(properties: Record<string, unknown> | undefined): boolean {
+  if (!properties || properties.$exception_fingerprint) return false;
+
+  const list = properties.$exception_list;
+  const first = Array.isArray(list) ? (list[0] as ExceptionListEntry | undefined) : undefined;
+  const value = typeof first?.value === 'string' ? first.value : '';
+  const currentUrl = typeof properties.$current_url === 'string' ? properties.$current_url : '';
+  const referrer = typeof properties.$referrer === 'string' ? properties.$referrer : '';
+  const context = `${value} ${currentUrl} ${referrer}`;
+
+  return /HTTP error 403/i.test(value) && /(?:^|\/)search(?:\/|\?|$)/i.test(context) && /__cf_chl_tk/i.test(context);
+}
+
+/**
  * `AbortError` and `NotAllowedError` both mean the user agent declined on the
  * reader's behalf -- a load abandoned at their request, an action that needed a
  * gesture it did not get. Neither has a fix in the app.
