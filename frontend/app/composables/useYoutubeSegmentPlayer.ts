@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
 
-import { reportError } from '~/utils/reportError';
+import { reportError, reportEvent } from '~/utils/reportError';
 
 /**
  * Inline YouTube playback for YOUTUBE segments via the IFrame Player API.
@@ -366,10 +366,28 @@ function handleError(code: number) {
   // for it will report the same failure with a segment attached.
   if (!clientState?.activeSegmentId.value) return;
 
-  reportError('player:youtube-load-failed', new Error(YT_ERROR_MESSAGES[code] ?? 'The player failed to load a video'), {
+  const segmentPublicId = clientState.activeSegmentId.value;
+  const properties = {
     'youtube.error_code': String(code),
-    'segment.publicId': clientState.activeSegmentId.value,
-  });
+    'segment.publicId': segmentPublicId,
+  };
+
+  // These codes mean the indexed video is gone or no longer embeddable. That is
+  // catalog freshness, not an application fault. Keep it measurable so an
+  // offline cleanup job can review repeated failures, but do not turn every
+  // deleted/private video into an actionable exception.
+  if (code === 100 || code === 101 || code === 150) {
+    reportEvent('media_unavailable', {
+      ...properties,
+      'media.unavailable_reason': code === 100 ? 'removed_or_private' : 'embedding_disabled',
+    });
+  } else {
+    reportError(
+      'player:youtube-load-failed',
+      new Error(YT_ERROR_MESSAGES[code] ?? 'The player failed to load a video'),
+      properties,
+    );
+  }
   failClip();
 }
 

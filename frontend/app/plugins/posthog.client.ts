@@ -1,6 +1,6 @@
 import type { CaptureResult } from 'posthog-js';
 import { createExceptionDeduper, exceptionSignature } from '~/utils/exceptionDedupe';
-import { isUnactionableException } from '~/utils/exceptionNoise';
+import { isCloudflareChallengeException, isUnactionableException } from '~/utils/exceptionNoise';
 import { posthog, startPostHog } from '~/utils/posthogClient';
 
 /**
@@ -138,6 +138,13 @@ function buildBeforeSend(): (event: CaptureResult | null) => CaptureResult | nul
   return (event) => {
     if (event?.event !== '$exception') return event;
 
+    if (isCloudflareChallengeException(event.properties)) {
+      posthog.capture('cloudflare_challenge_blocked', {
+        'edge.reason': 'managed_challenge',
+        'page.path': event.properties?.$pathname ?? event.properties?.$current_url,
+      });
+      return null;
+    }
     if (isUnactionableException(event.properties)) return null;
 
     const signature = exceptionSignature(event.properties);

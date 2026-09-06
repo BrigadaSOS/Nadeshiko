@@ -8,6 +8,8 @@ import {
   rememberFirstTouch,
   ANALYTICS_SESSION_KEY,
   AUTH_CALLBACK_PARAM,
+  AUTH_RETURN_TO_KEY,
+  AUTH_RETURN_TO_TTL_MS,
   AUTH_GATE_PARAM,
   AUTH_SOURCE_PARAM,
   absorbIntentFromUrl,
@@ -16,10 +18,12 @@ import {
   NEW_ACCOUNT_WINDOW_MS,
   type IntentStorage,
   authEventProperties,
+  consumeAuthReturnTo,
   consumeAuthIntent,
   readAuthIntent,
   readStoredValue,
   rememberAuthIntent,
+  rememberAuthReturnTo,
   removeStoredValue,
   resolveAuthTransition,
   resolveLostSession,
@@ -321,6 +325,42 @@ describe('withAuthCallbackMarker', () => {
     for (const input of ['', '::::', 'not a url', 'mailto:someone@example.com']) {
       expect(() => withAuthCallbackMarker(input)).not.toThrow();
     }
+  });
+});
+
+describe('OAuth return destination', () => {
+  it('parks and consumes a same-origin path', () => {
+    const storage = fakeStorage();
+    rememberAuthReturnTo(storage, 'https://nadeshiko.co/en/search/%E7%8C%AB?sort=new#results', 'https://nadeshiko.co');
+
+    const parked = JSON.parse(storage.data[AUTH_RETURN_TO_KEY] as string) as { createdAt: number };
+    expect(consumeAuthReturnTo(storage, parked.createdAt)).toBe('/en/search/%E7%8C%AB?sort=new#results');
+    expect(storage.data[AUTH_RETURN_TO_KEY]).toBeUndefined();
+  });
+
+  it('rejects external destinations', () => {
+    const storage = fakeStorage();
+    rememberAuthReturnTo(storage, 'https://evil.example/phish', 'https://nadeshiko.co');
+
+    expect(consumeAuthReturnTo(storage)).toBeNull();
+  });
+
+  it('rejects protocol-relative destinations on consume', () => {
+    const storage = fakeStorage({
+      [AUTH_RETURN_TO_KEY]: JSON.stringify({ path: '//evil.example/phish', createdAt: Date.now() }),
+    });
+
+    expect(consumeAuthReturnTo(storage)).toBeNull();
+    expect(storage.data[AUTH_RETURN_TO_KEY]).toBeUndefined();
+  });
+
+  it('expires an abandoned OAuth attempt', () => {
+    const now = Date.now();
+    const storage = fakeStorage({
+      [AUTH_RETURN_TO_KEY]: JSON.stringify({ path: '/en/search/cat', createdAt: now - AUTH_RETURN_TO_TTL_MS - 1 }),
+    });
+
+    expect(consumeAuthReturnTo(storage, now)).toBeNull();
   });
 });
 

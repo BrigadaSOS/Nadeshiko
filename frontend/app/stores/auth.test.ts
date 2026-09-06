@@ -30,7 +30,10 @@ const toasts = { error: vi.fn(), success: vi.fn() };
 const router = { currentRoute: { value: { path: '/en/search' } }, push: vi.fn() };
 
 const handleApiError = vi.fn();
-vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
+vi.mock('~/utils/apiError', () => ({
+  handleApiError: (...a: unknown[]) => handleApiError(...a),
+  apiErrorStatus: (error: { status?: number }) => error.status,
+}));
 
 const setReaderStack = vi.fn();
 vi.mock('~/utils/wordLookup', () => ({ setReaderStack: (...a: unknown[]) => setReaderStack(...a) }));

@@ -23,7 +23,11 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
  * one test's warm player is the next test's.
  */
 const reportError = vi.fn();
-vi.mock('~/utils/reportError', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
+const reportEvent = vi.fn();
+vi.mock('~/utils/reportError', () => ({
+  reportError: (...a: unknown[]) => reportError(...a),
+  reportEvent: (...a: unknown[]) => reportEvent(...a),
+}));
 
 /** Stands in for `YT.Player`, and lets a test drive the callbacks it registers. */
 class FakePlayer {
@@ -530,12 +534,9 @@ describe('a video that will not play at all', () => {
   });
 
   test.each([
-    [100, 'removed or made private'],
-    [101, 'does not allow it to be embedded'],
-    [150, 'does not allow it to be embedded'],
     [2, 'rejected the video id'],
     [5, 'could not play the video'],
-  ])('says what code %i actually means', async (code, phrase) => {
+  ])('reports an actionable failure for code %i', async (code, phrase) => {
     // "Removed or private" and "embedding turned off" are different faults
     // with different fixes; a bare number leaves them to be looked up.
     const { yt } = await playing();
@@ -549,15 +550,33 @@ describe('a video that will not play at all', () => {
     );
   });
 
+  test.each([
+    [100, 'removed_or_private'],
+    [101, 'embedding_disabled'],
+    [150, 'embedding_disabled'],
+  ])('counts unavailable catalog media for code %i', async (code, reason) => {
+    const { yt } = await playing();
+
+    yt.fireError(code);
+
+    expect(reportError).not.toHaveBeenCalled();
+    expect(reportEvent).toHaveBeenCalledWith('media_unavailable', {
+      'youtube.error_code': String(code),
+      'segment.publicId': 'seg-1',
+      'media.unavailable_reason': reason,
+    });
+  });
+
   test('records the code and the segment, not the video id', async () => {
     // One issue per video id is what makes such a report useless.
     const { yt } = await playing();
 
     yt.fireError(101);
 
-    expect(reportError).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+    expect(reportEvent).toHaveBeenCalledWith('media_unavailable', {
       'youtube.error_code': '101',
       'segment.publicId': 'seg-1',
+      'media.unavailable_reason': 'embedding_disabled',
     });
   });
 

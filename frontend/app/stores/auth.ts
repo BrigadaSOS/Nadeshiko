@@ -3,14 +3,18 @@ import type { UserPreferences } from '@brigadasos/nadeshiko-sdk';
 import { defineStore } from 'pinia';
 import { setReaderStack } from '~/utils/wordLookup';
 import { MAGIC_LINK_HOLD_BACKS } from '~/utils/magicLinkHoldBack';
-import { handleApiError } from '~/utils/apiError';
+import { apiErrorStatus, handleApiError } from '~/utils/apiError';
+import { reportEvent } from '~/utils/reportError';
 import { splitLocalePrefix } from '~/utils/routes';
 import {
   ANALYTICS_DELIBERATE_SIGN_OUT_KEY,
+  AUTH_CALLBACK_PATH,
   AUTH_CALLBACK_PARAM,
   authIntentStorage,
+  authReturnToStorage,
+  consumeAuthReturnTo,
+  rememberAuthReturnTo,
   readAuthIntent,
-  withAuthCallbackMarker,
   withAuthIntentParams,
   writeStoredValue,
 } from '~/utils/authAnalytics';
@@ -221,15 +225,18 @@ export const userStore = defineStore('user', {
     async loginWithProvider(provider: 'google' | 'discord') {
       const { $i18n } = useNuxtApp();
 
+      reportEvent('auth_provider_attempted', { provider });
+
       try {
+        const callbackPath = useLocalePath()(`${AUTH_CALLBACK_PATH}?${AUTH_CALLBACK_PARAM}=1`);
+        rememberAuthReturnTo(authReturnToStorage(), window.location.href, window.location.origin);
         const response = await useNadeshikoSdk().socialSignIn({
-          // Marked so the landing page can tell "just signed in" from "reloaded a
-          // page while signed in". better-auth returns the reader to this URL
-          // verbatim, with none of the `code`/`state` parameters the callback
-          // plugin used to look for -- which is why no OAuth login was ever
-          // recorded before this marker existed.
-          callbackURL: withAuthCallbackMarker(window.location.href),
-          errorCallbackURL: withAuthCallbackMarker(window.location.href),
+          // Always return through one stable, Cloudflare-exempt route. The
+          // original page is parked in sessionStorage and restored after the
+          // callback, so a challenge on /search or /sentence cannot interrupt
+          // the OAuth round trip.
+          callbackURL: `${window.location.origin}${callbackPath}`,
+          errorCallbackURL: `${window.location.origin}${callbackPath}`,
           provider,
         });
 
@@ -240,14 +247,21 @@ export const userStore = defineStore('user', {
         // is kept rather than deleted on the strength of that schema.
         const declaredError = (response as { error?: { message?: string } })?.error;
         if (declaredError) {
+          consumeAuthReturnTo(authReturnToStorage());
           useToastError($i18n.t('modalauth.labels.errorlogin400'));
           return;
         }
 
         if (response?.url) {
+          reportEvent('auth_provider_redirected', { provider });
           window.location.href = response.url;
         }
       } catch (error) {
+        consumeAuthReturnTo(authReturnToStorage());
+        reportEvent('auth_provider_request_failed', {
+          provider,
+          'http.status_code': String(apiErrorStatus(error) ?? 0),
+        });
         handleApiError('auth:social-login-failed', error, {
           toastKey: 'modalauth.labels.errorlogin400',
           context: { provider },
