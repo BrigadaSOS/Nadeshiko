@@ -28,6 +28,9 @@ const STATIC_PAGES = new Set([
   '/user/admin', '/user/admin/agent-activity', '/user/admin/announcement',
   '/user/admin/reports', '/user/admin/users',
   '/settings',
+  // Stable social OAuth landing; the callback plugin restores the original
+  // page after session establishment.
+  '/auth/callback',
   // Where Shirabe returns a reader after they approve the account link. Its own
   // series rather than `/__other`: it is the one page in the flow that can fail
   // in a way nobody reports, because a reader who lands on an error here simply
