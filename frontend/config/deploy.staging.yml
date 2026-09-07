@@ -31,7 +31,6 @@ servers:
       # Cloudflare's alone and skipping Cloudflare skips it.
       add-host:
         - host.docker.internal:host-gateway
-        - www.shirabe.org:100.73.93.89
 
 # The previous builds' `/_nuxt/*` files, kept on the host so they outlive the
 # container that produced them and a deploy does not 404 the page a reader
@@ -89,8 +88,7 @@ env:
     # goes over the tailnet with a genuine hostname and certificate. Prod Shirabe
     # deliberately: staging has no Shirabe of its own, and the public URL reached
     # the same service anyway.
-    NUXT_SHIRABE_API_DIRECT: https://www.shirabe.org
-    # The APEX is the fallback, and it must not be www. Cloudflare 301s www to the
+    # The public apex is the sole Shirabe endpoint. Cloudflare 301s www to the
     # apex, and a 301 is cross-origin, so undici (Nitro's fetch) strips the
     # Authorization header when it follows -- the request arrives unauthenticated
     # and Shirabe answers 401 "API key required". Measured in node 2026-08-11:
