@@ -62,7 +62,6 @@ servers:
       # Cloudflare's alone and skipping Cloudflare skips it.
       add-host:
         - host.docker.internal:host-gateway
-        - www.shirabe.org:100.73.93.89
 
 # Diagnostic reports written by the Node flags in NODE_OPTIONS below. A bind
 # mount and not a named volume on purpose: the whole value is being able to read
@@ -141,8 +140,7 @@ env:
     #
     # www is the one mapped onto the tailnet by add-host above, so this never leaves
     # the host and never meets Cloudflare's redirect.
-    NUXT_SHIRABE_API_DIRECT: https://www.shirabe.org
-    # The APEX is the fallback, and it must not be www. Cloudflare 301s www to the
+    # The public apex is the sole Shirabe endpoint. Cloudflare 301s www to the
     # apex, and a 301 is cross-origin, so undici (Nitro's fetch) strips the
     # Authorization header when it follows -- the request arrives unauthenticated and
     # Shirabe answers 401 "API key required". Measured in node 2026-08-11:
