@@ -10,6 +10,7 @@ import {
   overEscapedSearchQuery,
   queryAndHash,
   mediaBrowsePath,
+  normalizeSearchQuery,
   searchScopeQuery,
   splitLocalePrefix,
   withLocalePrefix,
@@ -67,6 +68,40 @@ describe('decodeSearchQuery', () => {
   it.each(['%E8%AD', '%C0%80', '%25E8%AD%B2', '%'])('survives the malformed escape %s', (raw) => {
     expect(() => decodeSearchQuery(raw)).not.toThrow();
     expect(decodeSearchQuery(raw)).toBe(raw);
+  });
+});
+
+describe('normalizeSearchQuery', () => {
+  // The corpus carries straight `"`. Auto-correct (and copy-paste from most
+  // word processors) hands the reader the curly variants, so without this an
+  // exact-phrase search sent the wrong shape to the backend.
+  it('folds both curly double quotes to the straight form', () => {
+    expect(normalizeSearchQuery('\u201C\u98df\u3079\u3089\u308c\u306a\u3044\u201D')).toBe(
+      '"\u98df\u3079\u3089\u308c\u306a\u3044"',
+    );
+    // Same Japanese phrase, one curly and one straight -- only the curly half
+    // is folded, which is enough to land on the straight-quoted corpus.
+    expect(normalizeSearchQuery('\u201C\u98df\u3079\u3089\u308c\u306a\u3044')).toBe(
+      '"\u98df\u3079\u3089\u308c\u306a\u3044',
+    );
+  });
+
+  it('leaves straight quotes alone', () => {
+    expect(normalizeSearchQuery('"\u98df\u3079\u3089\u308c\u306a\u3044"')).toBe(
+      '"\u98df\u3079\u3089\u308c\u306a\u3044"',
+    );
+  });
+
+  it('leaves curly single quotes alone (out of scope)', () => {
+    // A report of a miss on single quotes is the trigger to widen the class,
+    // not this rule silently.
+    expect(normalizeSearchQuery('\u2018\u98df\u3079\u3089\u308c\u306a\u3044\u2019')).toBe(
+      '\u2018\u98df\u3079\u3089\u308c\u306a\u3044\u2019',
+    );
+  });
+
+  it('returns the empty string untouched', () => {
+    expect(normalizeSearchQuery('')).toBe('');
   });
 });
 

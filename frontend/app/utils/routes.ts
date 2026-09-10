@@ -36,6 +36,23 @@ export function buildScopedSearchPath(word: string, mediaPublicId?: string | nul
 }
 
 /**
+ * What the search box's typed text reads as when it reaches a URL.
+ *
+ * The reader quoted a phrase with `"` / `"` (U+201C / U+201D), or
+ * auto-correct did, and the exact-phrase search missed because the corpus
+ * carries straight quotes. Folding both curly variants to `"` lets the same
+ * phrase the reader typed manually and the one auto-correct rewrote land
+ * on the same backend query.
+ *
+ * Single curly quotes (`U+2018`, `U+2019`) are not in scope of this change
+ * because no one has reported a miss for them. If they ever are, extend the
+ * class here and the test, in the same commit.
+ */
+export function normalizeSearchQuery(raw: string): string {
+  return raw.replace(/[\u201C\u201D]/g, '"');
+}
+
+/**
  * The `/search/:query` segment as text, from the raw param.
  *
  * The router hands this param through RAW -- ask for `/search/%2541` and the
