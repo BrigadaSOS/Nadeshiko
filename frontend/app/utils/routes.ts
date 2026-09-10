@@ -36,6 +36,44 @@ export function buildScopedSearchPath(word: string, mediaPublicId?: string | nul
 }
 
 /**
+ * What the search box's typed text reads as when it reaches a URL.
+ *
+ * Lucene's `query_string` only treats U+0022 (straight double quote) as the
+ * phrase delimiter, so the curly-double variants `U+201C` / `U+201D` (the
+ * typographic characters auto-correct and word processors hand the reader)
+ * arrive as plain text and silently break an exact-phrase search. The
+ * reader's intent in both shapes is the same -- "this is a phrase" -- so
+ * fold them back to `"` before the URL is built and let the analyzer do
+ * the rest.
+ *
+ * SCOPE -- and why other quote-like characters are deliberately left
+ * alone:
+ *
+ *  - `U+201C` / `U+201D` (curly double): the typographic equivalent of
+ *    `"`. Folding them preserves the reader's intent to mark an exact
+ *    phrase, which is the bug the report is about.
+ *  - `U+2018` / `U+2019` (curly single), `U+201A` / `U+201B` and
+ *    `U+201E` / `U+201F` (low/high variants), `U+00AB` / `U+00BB`
+ *    (angle quotes), `U+300C` / `U+300D` and `U+300E` / `U+300F` (CJK
+ *    brackets): NOT folded. These are not search-syntax -- the reader
+ *    hasn't asked for an exact phrase, they've typed literal text that
+ *    happens to be wrapped in punctuation (often dialogue marks in a
+ *    subtitle). Folding them to `"` would invent an exact-match intent
+ *    the reader didn't have and would change the semantic of the query
+ *    from "find sentences containing this text" to "find this exact
+ *    phrase". The corpus tokenizer already treats them as punctuation
+ *    and the search works as the reader expects without any folding.
+ *
+ * If a future report names a quote character that the corpus tokenizer
+ * is mishandling, that is an analyzer fix, not an input-funnel fix -- and
+ * folding at the input side would hide the real corpus-vs-input mismatch
+ * that the analyzer change is meant to surface.
+ */
+export function normalizeSearchQuery(raw: string): string {
+  return raw.replace(/[\u201C\u201D]/g, '"');
+}
+
+/**
  * The `/search/:query` segment as text, from the raw param.
  *
  * The router hands this param through RAW -- ask for `/search/%2541` and the
