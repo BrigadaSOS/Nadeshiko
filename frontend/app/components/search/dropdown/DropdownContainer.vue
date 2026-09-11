@@ -81,6 +81,7 @@ const rootRef = ref<HTMLElement | null>(null);
 const menuRef = ref<HTMLElement | null>(null);
 const { openDropdownId, openDropdown, closeDropdown } = useDropdownState();
 const nestedInTokenTooltip = inject(NESTED_IN_TOKEN_TOOLTIP_KEY, false);
+const route = useRoute();
 
 const isOpen = computed(() => openDropdownId.value === resolvedDropdownId.value);
 
@@ -134,12 +135,37 @@ const toggle = () => {
   openDropdown(resolvedDropdownId.value, { preserveTokenTooltip: nestedInTokenTooltip });
 };
 
-// Mirrors the old plugin: any link or button inside the menu dismisses it,
-// unless it sits under [data-nd-keep-open].
+/**
+ * A link to the route already on screen is an interaction with the open menu,
+ * not navigation away from it. Keep the dropdown active in that case; links to
+ * another page still dismiss, as do action buttons (including every ellipsis
+ * menu item).
+ */
+const isCurrentPageLink = (link: HTMLAnchorElement): boolean => {
+  const href = link.getAttribute('href');
+  if (!href) return false;
+
+  try {
+    const current = new URL(route.fullPath, 'https://nadeshiko.invalid');
+    const destination = new URL(href, current);
+    return (
+      destination.origin === current.origin &&
+      destination.pathname === current.pathname &&
+      destination.search === current.search
+    );
+  } catch {
+    return false;
+  }
+};
+
+// Links that navigate and action buttons dismiss the menu unless their control
+// explicitly opts into a multi-step interaction with [data-nd-keep-open].
 const onMenuClick = (event: MouseEvent) => {
   const target = event.target as HTMLElement | null;
-  if (!target?.closest('a, button')) return;
-  if (target.closest('[data-nd-keep-open]')) return;
+  const control = target?.closest('a, button');
+  if (!control) return;
+  if (target?.closest('[data-nd-keep-open]')) return;
+  if (control instanceof HTMLAnchorElement && isCurrentPageLink(control)) return;
   close();
 };
 
@@ -222,7 +248,6 @@ onBeforeUnmount(() => {
   close();
 });
 
-const route = useRoute();
 watch(() => route.fullPath, close);
 
 provide('ndDropdownResolvedId', resolvedDropdownId);

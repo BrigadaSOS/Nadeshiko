@@ -33,7 +33,7 @@ const mounted: { unmount: () => void }[] = [];
 /** A dropdown with a real trigger and a menu holding a link and a plain span. */
 const slots = {
   default: `<button class="trigger" @click="params.toggle()">open</button>`,
-  content: `<div><a class="item" href="#">go</a><span class="inert">text</span>
+  content: `<div><a class="item" href="/other">go</a><a class="current-item" href="/search">current</a><span class="inert">text</span>
     <div data-nd-keep-open><button class="sticky">stay</button></div></div>`,
 };
 
@@ -183,6 +183,28 @@ describe('dismissing', () => {
     await wrapper.find('.trigger').trigger('click');
 
     clickOn(document.querySelector('.item')!);
+    await nextTick();
+
+    expect(menus()).toHaveLength(0);
+  });
+
+  test('a link to the page already open keeps the menu active', async () => {
+    const wrapper = render();
+    await wrapper.find('.trigger').trigger('click');
+
+    clickOn(document.querySelector('.current-item')!);
+    await nextTick();
+
+    expect(menus()).toHaveLength(1);
+  });
+
+  test('an action button still dismisses the menu for ellipsis actions', async () => {
+    const wrapper = render();
+    await wrapper.find('.trigger').trigger('click');
+
+    const action = document.createElement('button');
+    document.querySelector('[data-testid="dropdown-menu"]')!.appendChild(action);
+    clickOn(action);
     await nextTick();
 
     expect(menus()).toHaveLength(0);

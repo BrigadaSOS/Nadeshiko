@@ -38,7 +38,7 @@ describe('better-auth user creation hook', () => {
     const user = await ctx.internalAdapter.createUser({
       name: 'hooktest',
       email: 'hooktest@nadeshiko.test',
-    });
+    }, { method: 'test' });
 
     expect(sendEmailJobSpy).toHaveBeenCalledTimes(1);
     const [emailData, dedupeKey] = sendEmailJobSpy.mock.calls[0];
@@ -55,7 +55,7 @@ describe('better-auth user creation hook', () => {
     const user = await ctx.internalAdapter.createUser({
       name: 'hookfail',
       email: 'hookfail@nadeshiko.test',
-    });
+    }, { method: 'test' });
 
     expect(user.id).toBeDefined();
     expect(user.email).toBe('hookfail@nadeshiko.test');
@@ -70,7 +70,7 @@ describe('better-auth user creation hook', () => {
     const user = await ctx.internalAdapter.createUser({
       name: 'dedupetest',
       email: 'dedupetest@nadeshiko.test',
-    });
+    }, { method: 'test' });
 
     expect(sendEmailJobSpy).toHaveBeenCalledTimes(1);
     const [emailData, dedupeKey] = sendEmailJobSpy.mock.calls[0];
@@ -88,14 +88,14 @@ describe('better-auth user creation hook', () => {
     const unproven = await ctx.internalAdapter.createUser({
       name: 'unverifiedtest',
       email: 'unverified@nadeshiko.test',
-    });
+    }, { method: 'test' });
     expect(unproven.emailVerified).toBe(false);
 
     const proven = await ctx.internalAdapter.createUser({
       name: 'verifiedtest',
       email: 'verified@nadeshiko.test',
       emailVerified: true,
-    });
+    }, { method: 'test' });
     expect(proven.emailVerified).toBe(true);
   });
 });
