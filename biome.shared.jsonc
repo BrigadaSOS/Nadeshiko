@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
 
   // Shared Biome settings, extended by every workspace via
   // `"extends": ["../biome.shared.jsonc"]`. Each keeps a biome.jsonc of its own

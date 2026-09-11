@@ -541,7 +541,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
   if (template === 'welcome') {
     ({ subject, html } = await buildWelcomeEmail(username, SENDERS[0]));
   } else if (template === 'verify-new-email') {
-    ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/verify?token=test-token'));
+    ({ subject, html } = await buildVerifyNewEmailEmail('https://nadeshiko.co/v1/auth/verify-email?token=test-token'));
   } else if (template === 'feedback') {
     ({ subject, html } = await buildFeedbackEmail({
       from: 'reader@example.com',

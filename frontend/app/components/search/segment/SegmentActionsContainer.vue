@@ -372,19 +372,23 @@ const sharedMediaName = computed(() =>
     </template>
     <template #content>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.download')">
-        <SearchDropdownItem
-          @click="downloadAudioOrImage(content.segment.urls.videoUrl, content.segment.urls.videoUrl.split('/').pop()!)"
-          :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
-        <SearchDropdownItem
-          @click="downloadAudioOrImage(content.segment.urls.imageUrl, content.segment.urls.imageUrl.split('/').pop()!)"
-          :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
-        <SearchDropdownItem
-          @click="downloadAudioOrImage(content.segment.urls.audioUrl, content.segment.urls.audioUrl.split('/').pop()!)"
-          :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
-        <SearchDropdownItem
-          v-if="content.blobAudioUrl"
-          @click="downloadAudioOrImage(content.blobAudioUrl, 'expanded_'+content.segment.urls.audioUrl.split('/').pop()!, true)"
-          :text="$t('searchpage.main.buttons.dl-expanded')" :iconPath="mdiVolumeHigh" />
+        <!-- Exports are independent: a reader commonly saves both the still
+             and the clip, so leave this picker available for the next file. -->
+        <div data-nd-keep-open>
+          <SearchDropdownItem
+            @click="downloadAudioOrImage(content.segment.urls.videoUrl, content.segment.urls.videoUrl.split('/').pop()!)"
+            :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
+          <SearchDropdownItem
+            @click="downloadAudioOrImage(content.segment.urls.imageUrl, content.segment.urls.imageUrl.split('/').pop()!)"
+            :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
+          <SearchDropdownItem
+            @click="downloadAudioOrImage(content.segment.urls.audioUrl, content.segment.urls.audioUrl.split('/').pop()!)"
+            :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
+          <SearchDropdownItem
+            v-if="content.blobAudioUrl"
+            @click="downloadAudioOrImage(content.blobAudioUrl, 'expanded_'+content.segment.urls.audioUrl.split('/').pop()!, true)"
+            :text="$t('searchpage.main.buttons.dl-expanded')" :iconPath="mdiVolumeHigh" />
+        </div>
       </SearchDropdownContent>
     </template>
   </SearchDropdownContainer>

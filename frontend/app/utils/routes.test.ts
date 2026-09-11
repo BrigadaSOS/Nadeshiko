@@ -10,6 +10,7 @@ import {
   overEscapedSearchQuery,
   queryAndHash,
   mediaBrowsePath,
+  normalizeSearchQuery,
   searchScopeQuery,
   splitLocalePrefix,
   withLocalePrefix,
@@ -67,6 +68,52 @@ describe('decodeSearchQuery', () => {
   it.each(['%E8%AD', '%C0%80', '%25E8%AD%B2', '%'])('survives the malformed escape %s', (raw) => {
     expect(() => decodeSearchQuery(raw)).not.toThrow();
     expect(decodeSearchQuery(raw)).toBe(raw);
+  });
+});
+
+describe('normalizeSearchQuery', () => {
+  // Only the curly double quote (the typographic equivalent of `"`) is
+  // folded: it is what auto-correct and word processors substitute for the
+  // straight quote, and what the reader is using to mark an exact phrase.
+  // Other quote-shaped characters are deliberately left alone -- they are
+  // literal text the reader typed (often dialogue marks in a subtitle), not
+  // search syntax, and folding them to `"` would invent an exact-match
+  // intent the reader did not have.
+  it('folds both curly double quotes to the straight form', () => {
+    expect(normalizeSearchQuery('\u201C\u98df\u3079\u3089\u308c\u306a\u3044\u201D')).toBe(
+      '"\u98df\u3079\u3089\u308c\u306a\u3044"',
+    );
+    // Same Japanese phrase, one curly and one straight -- only the curly
+    // half is folded, which is enough to land on the straight-quoted corpus.
+    expect(normalizeSearchQuery('\u201C\u98df\u3079\u3089\u308c\u306a\u3044')).toBe(
+      '"\u98df\u3079\u3089\u308c\u306a\u3044',
+    );
+  });
+
+  it('leaves straight quotes alone', () => {
+    expect(normalizeSearchQuery('"\u98df\u3079\u3089\u308c\u306a\u3044"')).toBe(
+      '"\u98df\u3079\u3089\u308c\u306a\u3044"',
+    );
+  });
+
+  it.each([
+    // Curly single quotes -- literal text, not search syntax.
+    ['\u2018', '\u2019'],
+    // Low-9 / high-reversed variants -- literal text.
+    ['\u201A', '\u201B'],
+    ['\u201E', '\u201F'],
+    // French / Spanish / Russian angle quotes -- literal text.
+    ['\u00AB', '\u00BB'],
+    // CJK corner brackets -- dialogue marks in subtitles, not search syntax.
+    ['\u300C', '\u300D'],
+    ['\u300E', '\u300F'],
+  ])('leaves %s and %s alone (not search syntax)', (open, close) => {
+    const phrase = `${open}\u98df\u3079\u3089\u308c\u306a\u3044${close}`;
+    expect(normalizeSearchQuery(phrase)).toBe(phrase);
+  });
+
+  it('returns the empty string untouched', () => {
+    expect(normalizeSearchQuery('')).toBe('');
   });
 });
 

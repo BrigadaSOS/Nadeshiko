@@ -118,7 +118,7 @@ const stub = {
     return undefined;
   },
 
-  identify(distinctId?: string, setProperties?: Record<string, unknown>, setOnce?: Record<string, unknown>) {
+  identify(distinctId: string, setProperties?: Record<string, unknown>, setOnce?: Record<string, unknown>) {
     defer((posthog) => posthog.identify(distinctId, setProperties, setOnce));
   },
 

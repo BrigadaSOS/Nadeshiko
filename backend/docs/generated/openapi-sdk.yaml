@@ -4333,11 +4333,21 @@ paths:
         - bearerAuth: []
       parameters: []
       requestBody:
+        required: false
         content:
           application/json:
             schema:
               type: object
-              properties: {}
+              properties:
+                callbackURL:
+                  type: string
+                  description: The URL to redirect to after provider logout
+                disableRedirect:
+                  type: boolean
+                  description: Return the provider logout URL without redirecting
+                state:
+                  type: string
+                  description: State to pass to the provider logout endpoint
       responses:
         "200":
           description: Success
@@ -4348,6 +4358,12 @@ paths:
                 properties:
                   success:
                     type: boolean
+                  url:
+                    type: string
+                    description: Provider logout URL when RP-initiated logout is available
+                  redirect:
+                    type: boolean
+                    description: Whether the client should redirect to the provider logout URL
         "400":
           content:
             application/json:
@@ -4525,6 +4541,14 @@ paths:
                 loginHint:
                   type: string
                   description: The login hint to use for the authorization code request
+                additionalParams:
+                  type: object
+                  propertyNames:
+                    type: string
+                  additionalProperties:
+                    type: string
+                  description: Extra query parameters to append to the provider authorization URL
+                    (e.g. Cognito identity_provider, Google hd).
                 additionalData:
                   type: object
                   propertyNames:
@@ -10891,6 +10915,8 @@ components:
         id:
           type: string
           readOnly: true
+        issuer:
+          type: string
         accountId:
           type: string
         providerId:
@@ -10921,6 +10947,7 @@ components:
           format: date-time
       required:
         - id
+        - issuer
         - accountId
         - providerId
         - userId

@@ -182,6 +182,14 @@ describe('a fully configured profile', () => {
   });
 });
 
+describe('download choices', () => {
+  test('stay in the menu so more than one asset can be saved', () => {
+    const wrapper = render();
+
+    expect(wrapper.findAll('[data-testid="download-dropdown"] [data-nd-keep-open]')).toHaveLength(1);
+  });
+});
+
 describe('a profile that is not finished', () => {
   test.each([
     ['no deck', { deck: '' }],

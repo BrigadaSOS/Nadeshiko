@@ -509,9 +509,10 @@ export const userStore = defineStore('user', {
 
     async changeEmail(newEmail: string): Promise<{ success: boolean; error?: string }> {
       try {
+        const callbackPath = useLocalePath()('/user/settings');
         await useNadeshikoSdk().changeEmail({
           newEmail,
-          callbackURL: `${window.location.origin}/settings`,
+          callbackURL: `${window.location.origin}${callbackPath}`,
         });
         return { success: true };
       } catch (error: unknown) {
