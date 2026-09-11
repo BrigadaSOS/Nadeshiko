@@ -317,6 +317,14 @@ export default defineNuxtConfig({
     '@nuxtjs/critters',
     'nuxt-security',
   ],
+  // Critters' default `media` preload uses an inline `onload` attribute to turn
+  // print-only stylesheets back on. Our CSP intentionally refuses event-handler
+  // attributes, so use its nonce-bearing script strategy instead.
+  critters: {
+    config: {
+      preload: 'media-script',
+    },
+  },
   // Only when `@posthog/nuxt` is absent, so the shim can never shadow the real
   // `usePostHog()` in production.
   ...(isProd ? {} : { imports: { dirs: ['shims/posthog'] } }),
