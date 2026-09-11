@@ -30,11 +30,11 @@
  */
 
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 const OUTPUT = resolve(process.cwd(), '.output');
-const SERVER_BUNDLE = join(OUTPUT, 'server/chunks/nitro/nitro.mjs');
+const SERVER_DIR = join(OUTPUT, 'server');
 const PUBLIC_DIR = join(OUTPUT, 'public');
 
 /**
@@ -64,9 +64,22 @@ function extractHashes(source) {
   return null;
 }
 
-const bundle = await readFile(SERVER_BUNDLE, 'utf8').catch(() => null);
+// Nuxt moved its generated entry bundle from `chunks/nitro/nitro.mjs` to a
+// virtual chunk. Find the security-generated map instead of coupling this
+// safety check to that internal filename.
+async function findServerBundle() {
+  const files = await readdir(SERVER_DIR, { recursive: true }).catch(() => []);
+  for (const file of files) {
+    if (!file.endsWith('.mjs')) continue;
+    const source = await readFile(join(SERVER_DIR, file), 'utf8');
+    if (/const sriHashes\s*=\s*\{/.test(source)) return source;
+  }
+  return null;
+}
+
+const bundle = await findServerBundle();
 if (!bundle) {
-  console.error(`verify-sri: no server bundle at ${SERVER_BUNDLE}`);
+  console.error(`verify-sri: no server bundle with sriHashes under ${SERVER_DIR}`);
   process.exit(1);
 }
 
