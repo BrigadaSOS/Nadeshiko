@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "2.4.15",
+  "version": "2.4.16",
   "description": "",
   "main": "main.ts",
   "type": "module",
@@ -59,7 +59,7 @@
     "node": "^24 || >=26"
   },
   "dependencies": {
-    "@better-auth/api-key": "^1.7.2",
+    "@better-auth/api-key": "^1.7.4",
     "@brigadasos/nadeshiko-shared": "*",
     "@elastic/elasticsearch": "^9.5.1",
     "@nahkies/typescript-express-runtime": "0.26.0",
@@ -75,7 +75,7 @@
     "@opentelemetry/resources": "^2.11.0",
     "@opentelemetry/sdk-metrics": "^2.11.0",
     "@opentelemetry/sdk-node": "^0.222.0",
-    "better-auth": "^1.6.27",
+    "better-auth": "^1.7.4",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
