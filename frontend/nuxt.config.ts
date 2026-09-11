@@ -415,9 +415,9 @@ export default defineNuxtConfig({
               CDN_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
-              // No collector origin any more. `o.nadeshiko.co` is still up and
-              // still takes backend telemetry, but nothing on a PAGE reaches it
-              // since web vitals moved to PostHog -- and a `connect-src` entry
+              // No public collector origin any more. Backend telemetry uses the
+              // private host.docker.internal Alloy endpoint, while page vitals
+              // go to PostHog -- and a `connect-src` entry
               // for a host the page never calls is a permission granted to
               // anything that ends up running here.
               GOOGLE_TRANSLATE_API_ORIGIN,

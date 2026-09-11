@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiClose, mdiMagnify, mdiTextSearch } from '@mdi/js';
-import { decodeSearchQuery } from '~/utils/routes';
+import { decodeSearchQuery, normalizeSearchQuery } from '~/utils/routes';
 import { RECENTS_LISTBOX_ID, recentOptionId } from '~/utils/searchRecents';
 
 const props = withDefaults(
@@ -189,7 +189,10 @@ onClickOutside(searchBarRef, closeRecents);
  */
 const navigateSearchSentence = async (options: { scope?: string | null } = {}) => {
   const { query: _query, hideLangs: _, blurLangs: __, ...restOfQuery } = route.value.query;
-  const term = query.value?.trim();
+  // Curly double quotes fold to the straight form before the URL is built so an
+  // exact-phrase search matches the same lines as if the reader had typed them
+  // by hand. See `normalizeSearchQuery`.
+  const term = normalizeSearchQuery(query.value?.trim());
 
   let nextQuery: typeof restOfQuery = restOfQuery;
   if (options.scope !== undefined) {

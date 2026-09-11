@@ -2826,6 +2826,7 @@ export type AuthSession = {
 
 export type AuthAccount = {
     readonly id: string;
+    issuer: string;
     accountId: string;
     providerId: string;
     userId: string;
@@ -2895,6 +2896,7 @@ export type AuthSessionWritable = {
 };
 
 export type AuthAccountWritable = {
+    issuer: string;
     accountId: string;
     providerId: string;
     userId: string;
@@ -6990,7 +6992,18 @@ export type GetSessionPostResponse = GetSessionPostResponses[keyof GetSessionPos
 
 export type SignOutData = {
     body?: {
-        [key: string]: unknown;
+        /**
+         * The URL to redirect to after provider logout
+         */
+        callbackURL?: string;
+        /**
+         * Return the provider logout URL without redirecting
+         */
+        disableRedirect?: boolean;
+        /**
+         * State to pass to the provider logout endpoint
+         */
+        state?: string;
     };
     path?: never;
     query?: never;
@@ -7044,6 +7057,14 @@ export type SignOutResponses = {
      */
     200: {
         success?: boolean;
+        /**
+         * Provider logout URL when RP-initiated logout is available
+         */
+        url?: string;
+        /**
+         * Whether the client should redirect to the provider logout URL
+         */
+        redirect?: boolean;
     };
 };
 
@@ -7109,6 +7130,12 @@ export type SocialSignInData = {
          * The login hint to use for the authorization code request
          */
         loginHint?: string;
+        /**
+         * Extra query parameters to append to the provider authorization URL (e.g. Cognito identity_provider, Google hd).
+         */
+        additionalParams?: {
+            [key: string]: string;
+        };
         additionalData?: {
             [key: string]: unknown;
         };

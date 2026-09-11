@@ -20,8 +20,8 @@ import { isAnalyticsEnabled, posthog } from '~/utils/posthogClient';
  * `app/assets/javascripts/rum.js`, which made the same move first. It sent TTFB,
  * LCP, CLS and INP to the host Alloy as OTLP histograms, and PostHog was already
  * capturing three of those four: the page paid twice for them, and the collector
- * was single-homing only TTFB. `o.nadeshiko.co` and the Alloy on :4330 are still
- * up and still take backend telemetry; nothing on a page reaches them any more.
+ * was single-homing only TTFB. The public `o.nadeshiko.co` collector and Alloy
+ * browser receiver are retired; backend telemetry uses private OTLP on :4328.
  * `git log -- app/plugins/rum.client.ts` has the OTLP payload builder, the
  * frozen metric names and the bucket bounds if browser metrics ever want to go
  * back.

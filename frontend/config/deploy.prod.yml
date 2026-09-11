@@ -372,16 +372,16 @@ env:
     # load. Kamal renders this at deploy time, so it cannot drift from the tag.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
-    # No browser-metrics URL: web vitals go to PostHog now, so nothing on a
-    # page posts to o.nadeshiko.co. The host Alloy and its kamal-proxy route are
-    # still up and still take BACKEND telemetry. See app/plugins/rum.client.ts.
+    # No browser-metrics URL: web vitals go to PostHog now. Backend telemetry
+    # reaches Alloy privately through host.docker.internal:4328; no public
+    # collector hostname or kamal-proxy route is involved.
 
 # NOTHING ON A PAGE SENDS TELEMETRY OFF-SITE ANY MORE, other than to PostHog.
 # The browser reported web vitals to the host Alloy until web vitals moved to
 # PostHog (app/plugins/rum.client.ts); before that it was Faro, and before that
 # an otelcol-browser accessory. All three are gone, and so is the kamal-proxy
-# route they needed on o.nadeshiko.co -- retiring it is an infra-side change,
-# and leaving it up costs nothing but an open door nobody uses.
+# route they needed on o.nadeshiko.co. That public collector is now retired in
+# brigadasos-infra.
 #
 # Server-side (SSR) telemetry is unaffected and still goes to the same Alloy via
 # OTEL_EXPORTER_OTLP_ENDPOINT → host.docker.internal:4328.

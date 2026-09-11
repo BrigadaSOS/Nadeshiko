@@ -42,6 +42,10 @@ const STATIC_PAGES = new Set([
   // sending reputation that every sign-in link depends on. Folded into
   // `/__other` that failure would be invisible.
   '/unsubscribe',
+  // Legacy email-verification links redirect through this compatibility page.
+  // Keep it visible independently: a failure here leaves a reader unable to
+  // verify a changed address and is otherwise indistinguishable from a 404.
+  '/verify',
 ]);
 
 const ROUTE_PATTERNS = [

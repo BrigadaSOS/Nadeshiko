@@ -5,6 +5,7 @@ import {
   buildWelcomeEmail,
   buildFeedbackAskEmail,
   buildDormant30Email,
+  buildVerifyNewEmailEmail,
   titleRows,
 } from '@app/mailers/emailTemplates';
 import { EMAIL_LINK_PATH, readReturnToken } from '@app/services/email/returnLink';
@@ -67,6 +68,15 @@ describe('buildWelcomeEmail', () => {
 
     expect(result.html).not.toContain('<img src=x');
     expect(result.html).toContain('&lt;img');
+  });
+});
+
+describe('buildVerifyNewEmailEmail', () => {
+  it('renders its quoted notes without visible quote markers', async () => {
+    const result = await buildVerifyNewEmailEmail('https://nadeshiko.co/v1/auth/verify-email?token=test-token');
+
+    expect(result.html).toContain('class="expiry-note"');
+    expect(result.html).not.toContain('&gt;');
   });
 });
 
