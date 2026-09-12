@@ -59,6 +59,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@nuxtjs/critters": "^0.10.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.62.1",

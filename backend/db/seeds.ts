@@ -1,10 +1,10 @@
 import { User, ApiPermission, UserRoleType, Collection, CollectionType, CollectionVisibility } from '@app/models';
 import { AppDataSource } from '@config/database';
-import { auth } from '@config/auth';
 import { config } from '@config/config';
 import { getAppEnvironment } from '@config/environment';
 import { logger } from '@config/log';
 import { defaultKeyHasher } from '@better-auth/api-key';
+import { hashPassword } from 'better-auth/crypto';
 
 const SEEDED_MASTER_KEY_NAME = 'Local Master Key';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
@@ -128,12 +128,32 @@ export async function seed() {
   logger.info('Seed completed successfully');
 }
 
-const E2E_TEST_USERS = [
-  { username: 'e2e-user', email: 'e2e-user@nadeshiko.co', passwordEnvKey: 'E2E_USER_PASSWORD' },
-] as const;
+/**
+ * One account per Playwright worker.
+ *
+ * The browser suite mutates preferences, collections, API keys and activity.
+ * Sharing one account forced CI down to one worker and made the suite take more
+ * than twenty minutes. These users all use the same deployment-only secret,
+ * but have independent server-side state so the suite can run concurrently.
+ * Keep index zero at the historical address for production smoke and existing
+ * installations; the additional accounts are used by the staging workers.
+ */
+// Eight accounts back the parallel workers; index eight is a dedicated
+// cross-account reader so authorization tests never create/revoke sessions on
+// an account another worker is actively mutating.
+const E2E_TEST_USERS = Array.from({ length: 9 }, (_, index) => ({
+  username: index === 0 ? 'e2e-user' : `e2e-user-${index}`,
+  email: index === 0 ? 'e2e-user@nadeshiko.co' : `e2e-user-${index}@nadeshiko.co`,
+  passwordEnvKey: 'E2E_USER_PASSWORD' as const,
+}));
 
-async function seedE2ETestUsers() {
-  for (const testUser of E2E_TEST_USERS) {
+export async function seedE2ETestUsers() {
+  // Production only runs the serial account-zero smoke suite. Keep the wider
+  // pool out of the production user table; staging and local need all eight
+  // workers plus the dedicated cross-account reader.
+  const testUsers =
+    getAppEnvironment(config.ENVIRONMENT) === 'production' ? E2E_TEST_USERS.slice(0, 1) : E2E_TEST_USERS;
+  for (const testUser of testUsers) {
     const password = config[testUser.passwordEnvKey];
     if (!password) {
       logger.info({ email: testUser.email }, 'E2E password env var not set, skipping test user');
@@ -141,19 +161,60 @@ async function seedE2ETestUsers() {
     }
 
     const existing = await User.findOne({ where: { email: testUser.email } });
-    if (existing) {
-      logger.info({ email: testUser.email }, 'E2E test user already exists');
-      continue;
-    }
+    const passwordHash = await hashPassword(password);
+    await AppDataSource.transaction(async (manager) => {
+      const user =
+        existing ??
+        User.create({
+          username: testUser.username,
+          email: testUser.email,
+          isActive: true,
+          isVerified: true,
+          role: UserRoleType.USER,
+        });
+      user.username = testUser.username;
+      user.isActive = true;
+      user.isVerified = true;
+      user.role = UserRoleType.USER;
+      await manager.save(user);
 
-    await auth.api.signUpEmail({
-      body: {
-        name: testUser.username,
-        email: testUser.email,
-        password,
-      },
+      // Keep the shared deployment secret rotatable. Existing E2E accounts are
+      // updated as well as newly inserted ones; active sessions remain valid.
+      await manager.query(
+        `
+          INSERT INTO "account" (
+            "account_id", "provider_id", "issuer", "user_id", "password", "created_at", "updated_at"
+          )
+          VALUES ($1, 'credential', 'local:credential', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT ("issuer", "account_id")
+          DO UPDATE SET
+            "user_id" = EXCLUDED."user_id",
+            "password" = EXCLUDED."password",
+            "updated_at" = CURRENT_TIMESTAMP
+        `,
+        [String(user.id), user.id, passwordHash],
+      );
+
+      const defaults = [
+        { name: 'Favorites', type: CollectionType.USER },
+        { name: 'Anki Exports', type: CollectionType.ANKI_EXPORT },
+      ] as const;
+      for (const collection of defaults) {
+        const present = await manager.count(Collection, {
+          where: { userId: user.id, name: collection.name, type: collection.type },
+        });
+        if (present === 0) {
+          await manager.save(
+            Collection.create({
+              ...collection,
+              userId: user.id,
+              visibility: CollectionVisibility.PRIVATE,
+            }),
+          );
+        }
+      }
     });
 
-    logger.info({ email: testUser.email }, 'E2E test user seeded');
+    logger.info({ email: testUser.email }, 'E2E test user ensured');
   }
 }

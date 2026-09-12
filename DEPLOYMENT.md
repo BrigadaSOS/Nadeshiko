@@ -20,7 +20,8 @@ the Discord bot are separate Kamal services on that host.
 - **`main` is staging.** Any merge or direct push to `main` deploys to stg.
 - **`production` is what prod runs.** A branch that only ever moves forward:
   fast-forwarded from `main` when cutting a release, or committed to directly
-  for a hotfix. Pushing to it deploys nothing on its own.
+  for a hotfix. Pushing to it deploys nothing on its own; dispatch the staging
+  workflow against the hotfix commit before tagging it.
 
   It is not load-bearing between releases. Everything it points at is already
   reachable from `main` (that is the invariant the merge-back preserves), so
@@ -30,10 +31,12 @@ the Discord bot are separate Kamal services on that host.
   (`git push origin main:production`) or when a hotfix needs the lane. What it
   cannot be is *renamed*: the tag guard names `main` and `production`
   literally, so a tag on `hotfix/foo` is rejected however correct the commit is.
-- **A `vX.Y.Z` tag is production.** Tagging a commit deploys that commit to prod.
+- **A `vX.Y.Z` tag is production.** Tagging a commit deploys that commit to prod
+  only after the exact tagged SHA has successful staging backend and frontend
+  deploys followed by a successful E2E job, all in the same workflow run.
   The tag must sit on `main` or on `production`; `release.yml` rejects anything
-  else, so a release always points at a commit that was reviewed and, if it came
-  through `main`, exercised on stg.
+  else. `main` gets its staging run automatically; a `production` hotfix needs
+  a manually dispatched staging run first.
 - **The OpenAPI spec drives the SDK, and the SDK lives in this repo.** The
   TypeScript SDK is a workspace package at `packages/nadeshiko-sdk`, generated
   from the spec by `npm run sdk:codegen`. The frontend and the Discord bot
@@ -115,7 +118,8 @@ npm run release:check-version 1.2.3
 # 2. Commit the bump to main (push to main -> staging picks it up)
 #    ...commit and push as usual...
 
-# 3. Move production up to the commit you are releasing. This is always a
+# 3. Wait for that exact commit's staging E2E job to pass, then move production
+#    up to the commit you are releasing. This is always a
 #    fast-forward, because every hotfix is merged back into main (see below).
 git push origin main:production
 
@@ -139,7 +143,9 @@ git pull
 npm run release:set-version 1.2.4
 #    ...commit as usual...
 
-# 3. Push the branch, then tag it -> prod deploys, and only the fix goes out
+# 3. Push the branch, dispatch [Stg] Release against this commit with BOTH
+#    backend and frontend forced, and wait for E2E to pass. Then tag it ->
+#    prod deploys, and only the fix goes out
 git push origin production
 git tag -a v1.2.4 -m "v1.2.4"
 git push origin v1.2.4
@@ -161,23 +167,29 @@ least convenient moment. The merge back also carries the patch bump into `main`
 been bumped for the next minor, resolve the version files in `main`'s favour.
 
 To exercise a hotfix on stg before tagging it, run `[Stg] Release` from the
-Actions tab (`workflow_dispatch`) against the `production` ref. Two caveats:
+Actions tab (`workflow_dispatch`) against the `production` ref and force both
+backend and frontend deployments, even if the hotfix changes only one. This is
+required: both production workflows query the Actions API for the exact tagged
+SHA and refuse to deploy unless that same run deployed both apps and then passed
+E2E. Two caveats:
 stg's database already carries migrations from main's unreleased work, so you
 are testing old code against a newer schema, and stg stays on the hotfix build
 until the next push to `main`.
 
 What the prod workflow does, in order:
 
-1. Validates the tag is semver and matches `release:check-version`.
-2. Builds and deploys the **backend** to prod (`kamal deploy -d prod`).
-3. Builds and deploys the **frontend** to prod (runs after the backend).
-4. Runs E2E against `https://nadeshiko.co`.
-5. Dispatches the **stable** TypeScript SDK release ->
+1. Requires successful staging backend and frontend deploys followed by E2E for
+   the exact tagged commit, all in one workflow run.
+2. Validates the tag is semver and matches `release:check-version`.
+3. Builds and deploys the **backend** to prod (`kamal deploy -d prod`).
+4. Builds and deploys the **frontend** to prod (runs after the backend).
+5. Runs E2E against `https://nadeshiko.co`.
+6. Dispatches the **stable** TypeScript SDK release ->
    https://github.com/BrigadaSOS/nadeshiko-sdk-ts regenerates from this
    release's spec and publishes `X.Y.Z` to npm. Publishing lives there because
    npm's trusted publisher (OIDC, no token) is bound to that repository.
-6. Dispatches the **stable** Python SDK release -> public PyPI version.
-7. Creates a GitHub Release with the public OpenAPI spec attached.
+7. Dispatches the **stable** Python SDK release -> public PyPI version.
+8. Creates a GitHub Release with the public OpenAPI spec attached.
 
 > **Not part of this workflow:** the root-path locale redirect is answered by
 > Cloudflare, applied 2026-08-13 and managed as code in

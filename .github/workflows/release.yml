@@ -6,6 +6,7 @@ on:
       - 'v*'
 
 permissions:
+  actions: read
   contents: write
   packages: write
   id-token: write
@@ -14,6 +15,9 @@ env:
   NODE_VERSION: '24'
 
 jobs:
+  staging-e2e:
+    uses: ./.github/workflows/verify-staging-e2e.yml
+
   checks:
     uses: ./.github/workflows/checks.yml
 
@@ -58,7 +62,7 @@ jobs:
           echo "Cloudflare credentials OK for zone $(echo "$zone" | jq -r '.result.name')."
 
   release-backend:
-    needs: [checks, verify-purge-credentials]
+    needs: [staging-e2e, checks, verify-purge-credentials]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Runs the Elasticsearch migration write freeze, so it must not overlap the
@@ -106,11 +110,13 @@ jobs:
             exit 1
           fi
           # A release tag has to sit on a commit someone reviewed, not on an
-          # arbitrary SHA. `main` is staging, so anything tagged there has run
-          # the staging deploy and E2E. `production` is the hotfix lane: it
-          # branches off the last prod tag precisely so a fix can ship without
-          # dragging main's unreleased work with it, which means a hotfix commit
-          # is NOT an ancestor of main at tag time -- it only merges back after.
+          # arbitrary SHA. The separate staging-e2e gate proves this exact SHA
+          # passed on staging, whether it came through main automatically or
+          # through a manual staging run for a hotfix. `production` is the
+          # hotfix lane: it branches off the last prod tag precisely so a fix
+          # can ship without dragging main's unreleased work with it, which
+          # means a hotfix commit is NOT an ancestor of main at tag time -- it
+          # only merges back after.
           # Accepting just main would make that lane untaggable.
           #
           # Checked out at fetch-depth 0, so both remote-tracking refs are
@@ -431,7 +437,9 @@ jobs:
         if: always()
         with:
           name: playwright-report-prod
-          path: frontend/playwright-report/
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/e2e-results.xml
           retention-days: 14
 
   dispatch-sdk-ts:
@@ -473,6 +481,7 @@ jobs:
     needs:
       [
         checks,
+        staging-e2e,
         verify-purge-credentials,
         release-backend,
         release-frontend,

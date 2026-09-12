@@ -1,4 +1,4 @@
-import { test, expect } from '../auth';
+import { e2eAccountForWorker, loginAsE2EUser, test, expect } from '../auth';
 import { e2eBypassHeaders, getE2EBaseUrl } from '../env';
 import { CollectionsPage } from '../pages/CollectionsPage';
 
@@ -138,6 +138,39 @@ test.describe('Collections', () => {
       expect(await asStranger.text()).not.toContain(name);
     } finally {
       await anonymous.close();
+    }
+  });
+
+  test('a public collection is readable by another signed-in account', async ({
+    authenticatedPage,
+    browser,
+    e2eAccount,
+  }) => {
+    const name = `e2e-public-${Date.now()}`;
+    const createdResponse = await authenticatedPage.request.post('/v1/collections', {
+      data: { name, visibility: 'PUBLIC' },
+    });
+    expect(createdResponse, await createdResponse.text()).toBeOK();
+    const created = (await createdResponse.json()) as { publicId: string };
+
+    const visitor = await browser.newContext({
+      baseURL: getE2EBaseUrl(),
+      extraHTTPHeaders: e2eBypassHeaders(),
+    });
+    try {
+      const visitorPage = await visitor.newPage();
+      // Account 8 is seeded only for cross-account checks. Worker accounts are
+      // deliberately excluded so this login/session cannot race a stateful
+      // settings or session-management test running in parallel.
+      await loginAsE2EUser(visitorPage, e2eAccountForWorker(8));
+
+      const response = await visitorPage.goto(`/en/collection/${created.publicId}`);
+      expect(response?.status()).toBe(200);
+      await expect(visitorPage.getByRole('heading', { name })).toBeAttached();
+      await expect(visitorPage.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
+    } finally {
+      await visitor.close();
+      await authenticatedPage.request.delete(`/v1/collections/${created.publicId}`).catch(() => {});
     }
   });
 });

@@ -1,6 +1,6 @@
 import '@config/boot';
 import { AppDataSource } from '@config/database';
-import { seed } from '@db/seeds';
+import { seed, seedE2ETestUsers } from '@db/seeds';
 import { bootstrapPostgresWithOptions } from './dbBootstrap';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 import { reportFatalError } from './reportFatal';
@@ -145,6 +145,11 @@ async function prepare(): Promise<void> {
     logger.info('No pending migrations');
   }
   await setupPgBoss();
+
+  // Deploys do not run the full seed task. Keep the fixed E2E account pool in
+  // sync here so a frontend test change can safely raise Playwright's worker
+  // count as soon as the matching backend revision reaches the environment.
+  await seedE2ETestUsers();
 
   if (config.ELASTICSEARCH_ADMIN_PASSWORD) {
     await setupElasticsearchUserAndRole();
