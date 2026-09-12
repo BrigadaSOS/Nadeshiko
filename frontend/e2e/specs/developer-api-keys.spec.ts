@@ -1,5 +1,5 @@
 import { request } from '@playwright/test';
-import { test, expect } from '../auth';
+import { e2eAccountForWorker, loginAsE2EUser, test, expect } from '../auth';
 import { e2eBypassHeaders } from '../env';
 import { DeveloperPage } from '../pages/DeveloperPage';
 
@@ -106,6 +106,84 @@ test.describe('Developer API Keys', () => {
       await expect.poll(async () => (await api.get('/v1/media?take=1')).status(), { timeout: 10_000 }).toBe(401);
     } finally {
       await api.dispose();
+    }
+  });
+
+  test('uses a full-account key for collections and enforces ownership', async ({ authenticatedPage, browser }) => {
+    const developer = new DeveloperPage(authenticatedPage);
+    await developer.goto();
+    await developer.expectLoaded();
+
+    const keyName = `e2e-collection-key-${Date.now()}`;
+    const createdKey = await developer.createApiKey(keyName, 'fullAccount');
+    expect(createdKey.scopes).toEqual(
+      expect.arrayContaining(['READ_COLLECTIONS', 'CREATE_COLLECTIONS', 'UPDATE_COLLECTIONS', 'DELETE_COLLECTIONS']),
+    );
+
+    const api = await request.newContext({
+      baseURL: new URL(authenticatedPage.url()).origin,
+      extraHTTPHeaders: { ...e2eBypassHeaders(), Authorization: `Bearer ${createdKey.key}` },
+    });
+    let collectionPublicId: string | undefined;
+    const visitor = await browser.newContext({
+      baseURL: new URL(authenticatedPage.url()).origin,
+      extraHTTPHeaders: e2eBypassHeaders(),
+    });
+
+    try {
+      const segmentResponse = await authenticatedPage.request.post('/v1/search', {
+        data: { query: { search: '私' }, take: 10, include: ['media'] },
+      });
+      expect(segmentResponse, await segmentResponse.text()).toBeOK();
+      const segmentPublicId = (await segmentResponse.json()).segments?.[0]?.publicId as string | undefined;
+      expect(segmentPublicId, 'the seeded corpus must provide a segment for API-key collection tests').toBeTruthy();
+
+      const create = await api.post('/v1/collections', {
+        data: { name: `e2e-api-collection-${Date.now()}` },
+      });
+      expect(create, await create.text()).toBeOK();
+      collectionPublicId = ((await create.json()) as { publicId: string }).publicId;
+
+      const add = await api.post(`/v1/collections/${collectionPublicId}/segments`, {
+        data: { segmentPublicId },
+      });
+      expect(add.status()).toBe(204);
+
+      const read = await api.get(`/v1/collections/${collectionPublicId}`);
+      expect(read, await read.text()).toBeOK();
+      expect((await read.json()).segmentCount).toBe(1);
+
+      const search = await api.post(`/v1/collections/${collectionPublicId}/search`, { data: {} });
+      expect(search, await search.text()).toBeOK();
+      expect((await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId)).toBeTruthy();
+
+      const stats = await api.get(`/v1/collections/${collectionPublicId}/stats`);
+      expect(stats, await stats.text()).toBeOK();
+      expect(Array.isArray((await stats.json()).media)).toBeTruthy();
+
+      const visitorPage = await visitor.newPage();
+      await loginAsE2EUser(visitorPage, e2eAccountForWorker(8));
+      expect((await visitorPage.request.get(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
+      expect((await visitorPage.request.patch(`/v1/collections/${collectionPublicId}`, { data: { name: 'intruder' } })).status()).toBe(403);
+      expect((await visitorPage.request.delete(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
+
+      const publish = await api.patch(`/v1/collections/${collectionPublicId}`, { data: { visibility: 'PUBLIC' } });
+      expect(publish, await publish.text()).toBeOK();
+      expect((await visitorPage.request.get(`/v1/collections/${collectionPublicId}`)).status()).toBe(200);
+
+      const privatize = await api.patch(`/v1/collections/${collectionPublicId}`, { data: { visibility: 'PRIVATE' } });
+      expect(privatize, await privatize.text()).toBeOK();
+      expect((await visitorPage.request.get(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
+
+      await developer.deactivateApiKey(developer.apiKeyRowByName(keyName));
+      await expect(developer.apiKeyRowByName(keyName)).not.toBeVisible({ timeout: 10_000 });
+      await expect.poll(async () => (await api.get(`/v1/collections/${collectionPublicId}`)).status(), { timeout: 10_000 }).toBe(401);
+    } finally {
+      await visitor.close();
+      await api.dispose();
+      if (collectionPublicId) {
+        await authenticatedPage.request.delete(`/v1/collections/${collectionPublicId}`).catch(() => {});
+      }
     }
   });
 

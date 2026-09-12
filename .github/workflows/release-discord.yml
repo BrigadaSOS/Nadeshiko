@@ -66,6 +66,8 @@ jobs:
             ghcr.io/brigadasos/nadeshiko-discord-prod:latest
           labels: |
             service=nadeshiko-discord-prod
+          build-args: |
+            RELEASE_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -81,7 +83,15 @@ jobs:
         run: |
           set -euo pipefail
           cd discord
-          kamal deploy -d prod --skip-push
+          VERSION="$GITHUB_SHA" kamal deploy -d prod --skip-push
+
+      - name: Verify deployed Discord revision
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd discord
+          kamal app exec -d prod --reuse "node -e 'fetch(\"http://127.0.0.1:3000/up\").then(async (response) => { const body = await response.json(); if (!response.ok || body.status !== \"ok\" || body.releaseSha !== \"$GITHUB_SHA\") process.exit(1) })'"
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:

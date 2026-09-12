@@ -79,34 +79,38 @@ onMounted(async () => {
        connect that does not connect leaves the reader at a dead end on a page
        they have never seen before, and the site already has a way of looking
        sorry about that. -->
-  <div class="flex min-h-[70vh] flex-col items-center justify-center px-4">
+  <div class="flex min-h-[70vh] flex-col items-center justify-center px-4" data-testid="shirabe-callback">
     <div class="flex flex-col items-center max-w-lg mx-auto text-center">
       <template v-if="state === 'working'">
         <span class="nd-spinner" aria-hidden="true" />
-        <p class="mt-4 text-gray-400">{{ t('connections.callback.working') }}</p>
+        <p data-testid="shirabe-callback-working" class="mt-4 text-gray-400">{{ t('connections.callback.working') }}</p>
       </template>
 
       <template v-else-if="state === 'done'">
+        <div data-testid="shirabe-callback-success" class="flex flex-col items-center">
         <img src="/assets/shirabe-logo.png" alt="" aria-hidden="true" width="96" height="96" class="w-24 h-24 mb-5">
         <h1 class="flex items-center gap-2 text-2xl font-semibold text-white md:text-3xl">
           <UiBaseIcon :path="mdiCheckBold" size="22" class="text-green-400" />
           <span>{{ t('connections.callback.done') }}</span>
         </h1>
-        <p class="mt-2 text-gray-400">{{ t('connections.shirabe.linkedAs', { name: shirabeName }) }}</p>
+        <p data-testid="shirabe-linked-name" class="mt-2 text-gray-400">{{ t('connections.shirabe.linkedAs', { name: shirabeName }) }}</p>
         <NuxtLink :to="localePath('/user/settings')" class="nd-btn-accent mt-6">
           {{ t('connections.callback.goToSettings') }}
         </NuxtLink>
+        </div>
       </template>
 
       <template v-else>
+        <div data-testid="shirabe-callback-error" class="flex flex-col items-center">
         <img data-testid="error-image" class="mb-6" src="/assets/no-results.gif" :alt="t('errorPage.imageAlt')">
-        <h1 class="text-2xl font-semibold text-white md:text-3xl">{{ message }}</h1>
+        <h1 data-testid="shirabe-callback-message" class="text-2xl font-semibold text-white md:text-3xl">{{ message }}</h1>
         <NuxtLink
           :to="localePath('/user/settings')"
           class="mt-4 text-lg text-red-400 hover:text-red-300 transition-colors"
         >
           {{ t('connections.callback.back') }}
         </NuxtLink>
+        </div>
       </template>
     </div>
   </div>
