@@ -260,6 +260,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Capture assets from the currently deployed revision
+        id: old-assets
+        run: |
+          set -euo pipefail
+          html=$(curl --fail --silent --show-error --location https://stg.nadeshiko.co/en)
+          assets=$(grep -oE '/_nuxt/[^" ]+\.(js|css)' <<<"$html" | sort -u | head -20)
+          test -n "$assets" || { echo "::error::No deployed Nuxt assets found before release"; exit 1; }
+          {
+            echo 'assets<<NUXT_ASSETS'
+            echo "$assets"
+            echo 'NUXT_ASSETS'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -314,6 +327,18 @@ jobs:
           set -euo pipefail
           health=$(curl --fail --silent --show-error https://stg.nadeshiko.co/up)
           test "$(jq -r '.releaseSha' <<<"$health")" = "$GITHUB_SHA"
+
+      # A tab loaded just before the swap still references the previous build's
+      # hashed chunks. Keep those URLs alive across the deploy so readers do not
+      # get a blank page when they navigate or lazy-load after a release.
+      - name: Verify previous revision assets remain available
+        env:
+          OLD_ASSETS: ${{ steps.old-assets.outputs.assets }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r asset; do
+            test -z "$asset" || curl --fail --silent --show-error --output /dev/null "https://stg.nadeshiko.co${asset}"
+          done <<<"$OLD_ASSETS"
 
   e2e:
     needs: [deploy-backend, deploy-frontend]
@@ -402,6 +427,20 @@ jobs:
         env:
           E2E_BASE_URL: https://stg.nadeshiko.co
           E2E_EXPECTED_SHA: ${{ github.sha }}
+
+      - name: Enforce E2E skip budget
+        run: node e2e/check-junit-budget.mjs test-results/e2e-results.xml 11
+        working-directory: frontend
+
+      # Shirabe is an external dependency, so an outage there should be loud in
+      # the release report without preventing an otherwise healthy Nadeshiko
+      # revision from reaching staging.
+      - name: Probe live Shirabe lookup (advisory)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          result=$(curl --fail --silent --show-error 'https://stg.nadeshiko.co/api/shirabe/words/candidates/%E5%AD%A6%E6%A0%A1')
+          test "$(jq '.candidates | length' <<<"$result")" -gt 0
 
       - name: Upload test report
         uses: actions/upload-artifact@v7

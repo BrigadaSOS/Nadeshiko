@@ -62,7 +62,7 @@ const CHROMIUM = chromiumLauncher();
 // so `activity` does NOT cover `activity-privacy.spec.ts`. A spec that looks
 // covered but is not runs signed out and dies in `beforeEach`.
 const AUTHENTICATED_TESTS =
-  /(accessibility|activity|activity-privacy|admin-access|anki-deck-model|anki-field-placeholders|auth-callback|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
+  /(accessibility|account-lifecycle|activity|activity-privacy|admin-access|anki-deck-model|anki-field-placeholders|auth-callback|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|reporting|user-settings|word-mining)\.spec\.ts$/;
 
 /**
  * SMOKE MODE, set by the production release workflow. Staging keeps the whole
@@ -126,11 +126,14 @@ export default defineConfig({
   maxFailures: process.env.CI ? 5 : undefined,
   // Full staging runs use one seeded account per worker (see auth.ts and the
   // backend seeds), so stateful specs can run concurrently without clearing one
-  // another's preferences, collections or activity. Eight workers turns the
-  // historical 17-24 minute serial run into a measured three-minute critical path.
+  // another's preferences, collections or activity. Four workers keeps the
+  // application responsive under the state-heavy suite. Eight workers looked
+  // faster in an earlier partial run, but the first complete staging gate
+  // produced widespread navigation/hydration timeouts and 11 flaky tests from
+  // contention, so that concurrency is beyond the staging host's safe capacity.
   // Production smoke stays serial because its HTML limiter counts bursts like
   // sustained load and intentionally has no origin bypass.
-  workers: SMOKE ? 1 : process.env.CI ? 8 : 4,
+  workers: SMOKE ? 1 : 4,
   // A retry is valuable evidence, not a pass. In particular, the production
   // release gate consumes this job's conclusion, so a flaky staging test must
   // not quietly approve the release.

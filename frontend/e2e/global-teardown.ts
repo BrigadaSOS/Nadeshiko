@@ -9,7 +9,7 @@ dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../ba
 
 const BASE_URL = getE2EBaseUrl('http://localhost:3000');
 const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD || '';
-const E2E_ACCOUNTS = process.env.E2E_SMOKE ? 1 : 9;
+const E2E_ACCOUNTS = process.env.E2E_SMOKE ? 1 : 10;
 
 /**
  * Cleans up resources created by E2E tests:
