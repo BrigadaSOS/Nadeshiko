@@ -25,7 +25,7 @@ afterEach(async () => {
 
 /** Starts the server on an ephemeral port and returns its base URL. */
 async function start(): Promise<string> {
-  server = startHealthServer(0);
+  server = startHealthServer(0, 'test-release-sha');
   await new Promise<void>((resolve) => server?.once('listening', () => resolve()));
   const address = server.address();
   if (typeof address === 'string' || address === null) throw new Error('expected a TCP address');
@@ -39,7 +39,7 @@ describe('health server', () => {
     const response = await fetch(`${base}/up`);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: 'ok' });
+    expect(await response.json()).toEqual({ status: 'ok', releaseSha: 'test-release-sha' });
   });
 
   test('declares JSON, because the body is JSON', async () => {

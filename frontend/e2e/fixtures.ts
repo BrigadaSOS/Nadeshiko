@@ -17,7 +17,8 @@ export const test = base.extend({
       if (
         /^(?:\/(?:en|es|ja))?\/api$/.test(pathname) ||
         pathname === '/api/v1/docs' ||
-        pathname === '/docs/api/index.html'
+        pathname === '/docs/api/index.html' ||
+        pathname === '/v1/auth/verify-email'
       ) {
         return response;
       }

@@ -234,7 +234,7 @@ const actionLabel = computed(() => {
           >
           <div>
             <p class="text-white">{{ t('connections.shirabe.name') }}</p>
-            <p class="text-gray-400 text-sm">{{ description }}</p>
+            <p data-testid="shirabe-connection-description" class="text-gray-400 text-sm">{{ description }}</p>
           </div>
         </div>
         <button
