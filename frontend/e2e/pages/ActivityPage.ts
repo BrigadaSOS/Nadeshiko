@@ -32,7 +32,8 @@ export class ActivityPage {
   }
 
   async goto() {
-    await this.page.goto('/user/activity');
+    const response = await this.page.goto('/user/activity');
+    expect(response?.status(), 'activity navigation should return HTTP 200').toBe(200);
   }
 
   async expectLoaded() {
@@ -44,12 +45,17 @@ export class ActivityPage {
     // Toggle range to force a client-side refetch of stats,
     // since useAsyncData initial data comes from SSR (without auth cookie).
     const sevenDayButton = this.page.getByRole('button', { name: '7d' });
-    await this.allTimeButton.click();
-    await this.page.waitForLoadState('networkidle');
-    await sevenDayButton.click();
-    await this.page.waitForLoadState('networkidle');
-    await this.allTimeButton.click();
-    await this.page.waitForLoadState('networkidle');
+    const choose = async (button: Locator) => {
+      const response = this.page.waitForResponse(
+        (candidate) =>
+          candidate.request().method() === 'GET' && new URL(candidate.url()).pathname === '/v1/user/activity/stats',
+      );
+      await button.click();
+      expect(await response).toBeOK();
+    };
+    await choose(this.allTimeButton);
+    await choose(sevenDayButton);
+    await choose(this.allTimeButton);
   }
 
   async getSearchesCount(): Promise<number> {

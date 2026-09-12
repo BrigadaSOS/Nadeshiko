@@ -256,6 +256,7 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/tailwind.css'],
   runtimeConfig: {
+    releaseSha: env.NUXT_RELEASE_SHA,
     nadeshikoApiKey: env.NUXT_NADESHIKO_API_KEY,
     // Shirabe parses the corpus and serves the definitions behind every word.
     // Server-side only, deliberately: it is a service key of ours, and anything

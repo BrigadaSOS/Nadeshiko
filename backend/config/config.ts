@@ -14,6 +14,9 @@ const booleanString = z
 
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['local', 'development', 'production']),
+  // Injected by Kamal from VERSION. Exposed only through /up so release gates
+  // can prove the exact image they asked for is the one answering traffic.
+  RELEASE_SHA: z.string().trim().default('unknown'),
   PORT: z.coerce.number().int().positive(),
   UUID_NAMESPACE: z.string().uuid(),
   R2_BASE_URL: z.string().url(),

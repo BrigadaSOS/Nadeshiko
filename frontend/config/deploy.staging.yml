@@ -72,6 +72,7 @@ env:
     - NUXT_RATE_LIMIT_BYPASS_SECRET
 
   clear:
+    NUXT_RELEASE_SHA: <%= ENV.fetch("VERSION", "unknown") %>
     NUXT_PUBLIC_ENVIRONMENT: development
     # `shirabeLookups` is derived from NUXT_SHIRABE_API_KEY in nuxt.config, which
     # is evaluated during `nuxt build` -- inside the image, where the key is not

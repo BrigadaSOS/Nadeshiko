@@ -121,6 +121,7 @@ env:
     - NUXT_SHIRABE_API_KEY
 
   clear:
+    NUXT_RELEASE_SHA: <%= ENV.fetch("VERSION", "unknown") %>
     NUXT_PUBLIC_ENVIRONMENT: production
     NODE_ENV: production
 

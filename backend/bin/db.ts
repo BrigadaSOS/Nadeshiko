@@ -37,11 +37,12 @@ async function drop(): Promise<void> {
   logger.info('All tables dropped');
 }
 
-async function status(): Promise<void> {
+async function status(options: { requireCurrent?: boolean } = {}): Promise<void> {
   logger.info('Checking migration status...');
   const hasPending = await AppDataSource.showMigrations();
   if (hasPending) {
     logger.info('There are pending migrations');
+    if (options.requireCurrent) throw new Error('Database has pending migrations');
   } else {
     logger.info('All migrations are up to date');
   }
@@ -173,7 +174,7 @@ Commands:
   prepare   Non-destructive deploy task: migrate if needed + infrastructure checks
   prepare-es  Create the Elasticsearch app role/user and initialize its alias only
   drop      Drop all tables (destructive!)
-  status    Show if there are pending migrations
+  status    Show if there are pending migrations (--require-current exits non-zero)
 
 For destructive commands in prod, add: --allow-prod-destructive
 `);
@@ -231,7 +232,7 @@ async function main(): Promise<void> {
         break;
       case 'status':
         await AppDataSource.initialize();
-        await status();
+        await status({ requireCurrent: commandArgs.includes('--require-current') });
         break;
       default:
         logger.error(`Unknown command: ${command}`);
