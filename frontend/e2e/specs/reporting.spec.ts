@@ -10,7 +10,7 @@ test.describe('Reporting and moderation', () => {
 
     const card = search.segmentCards.first();
     await card.getByTestId('more-dropdown').getByTestId('dropdown-toggle').click();
-    await authenticatedPage.getByTestId('dropdown-menu').getByRole('button', { name: 'Report sentence' }).click();
+    await authenticatedPage.getByTestId('report-segment-action').getByRole('button').click();
 
     const modal = authenticatedPage.getByTestId('report-modal');
     await expect(modal).toBeVisible();

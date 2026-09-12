@@ -426,7 +426,7 @@ export const userStore = defineStore('user', {
       // same check once the locale prefix is off.
       const { localizedPath } = splitLocalePrefix(router.currentRoute.value.path);
       if (localizedPath === '/user' || localizedPath.startsWith('/user/')) {
-        router.push(localePath('/'));
+        await router.push(localePath('/'));
       }
 
       useToastSuccess(msg ? msg : $i18n.t('modalauth.labels.logout'));

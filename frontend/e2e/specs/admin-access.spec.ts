@@ -14,13 +14,15 @@ test.describe('Admin authorization', () => {
   }
 
   test('a normal account receives 403 from every admin API surface', async ({ authenticatedPage }) => {
-    for (const path of [
-      '/v1/admin/users-with-providers',
-      '/v1/admin/reports',
-      '/v1/admin/agent-activity',
-      '/v1/admin/announcement',
-    ]) {
-      const response = await authenticatedPage.request.get(path);
+    for (const [method, path] of [
+      ['get', '/v1/admin/users-with-providers'],
+      ['get', '/v1/admin/reports'],
+      ['get', '/v1/admin/agent-activity'],
+      // Reading the site-wide announcement is intentionally public; changing
+      // it is the administration boundary this test must protect.
+      ['put', '/v1/admin/announcement'],
+    ] as const) {
+      const response = await authenticatedPage.request[method](path, { data: {} });
       expect(response.status(), `${path} must reject a non-admin account`).toBe(403);
     }
   });

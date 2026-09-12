@@ -9,7 +9,7 @@ test.describe('Account lifecycle', () => {
     await settings.expectLoaded();
 
     const downloadEvent = authenticatedPage.waitForEvent('download');
-    await authenticatedPage.getByRole('button', { name: 'Export Data' }).click();
+    await authenticatedPage.getByTestId('account-export').click();
     const download = await downloadEvent;
     expect(download.suggestedFilename()).toBe('nadeshiko-data-export.json');
 
@@ -34,7 +34,7 @@ test.describe('Account lifecycle', () => {
     await settings.expectLoaded();
 
     authenticatedPage.once('dialog', (dialog) => dialog.dismiss());
-    await authenticatedPage.getByRole('button', { name: 'Delete Account' }).click();
+    await authenticatedPage.getByTestId('account-delete').click();
 
     const session = await authenticatedPage.request.get('/v1/auth/get-session');
     expect(session).toBeOK();
@@ -92,7 +92,13 @@ test.describe('Destructive account lifecycle', () => {
       await primaryPage.goto('/user/settings');
       await expect(primaryPage.getByTestId('account-email')).toHaveText(account.email);
       primaryPage.once('dialog', (dialog) => dialog.accept());
-      await primaryPage.getByRole('button', { name: 'Delete Account' }).click();
+      const deletionResponse = primaryPage.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === '/v1/auth/delete-user' && response.request().method() === 'POST',
+      );
+      await primaryPage.getByTestId('account-delete').click();
+      const deleted = await deletionResponse;
+      expect(deleted, await deleted.text()).toBeOK();
       await expect(primaryPage).toHaveURL(/\/(?:en|es|ja)\/?$/, { timeout: 15_000 });
 
       const deletedLogin = await primaryPage.request.post('/v1/auth/sign-in/email', {
