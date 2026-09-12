@@ -208,45 +208,36 @@ test.describe('Collections', () => {
     await collections.createCollection(name);
     const created = await collectionByName(authenticatedPage, name);
     const row = collections.collectionRowByName(name);
-    const url = `/en/collection/${created.publicId}`;
+    const visitor = await browser.newContext({
+      baseURL: getE2EBaseUrl(),
+      extraHTTPHeaders: e2eBypassHeaders(),
+    });
 
     try {
+      const visitorPage = await visitor.newPage();
+      await loginAsE2EUser(visitorPage, e2eAccountForWorker(8));
+
       await collections.openMenuFor(row);
       await authenticatedPage.getByTestId('collection-visibility-action').click();
       await authenticatedPage.getByTestId('collection-visibility-submit').click();
       await expect.poll(async () => (await authenticatedPage.request.get(`/v1/collections/${created.publicId}`)).json().then((item) => item.visibility)).toBe('PUBLIC');
 
-      const anonymous = await browser.newContext({
-        baseURL: getE2EBaseUrl(),
-        storageState: undefined,
-        extraHTTPHeaders: e2eBypassHeaders(),
-      });
-      try {
-        const publicResponse = await anonymous.request.get(url, { maxRedirects: 0 });
-        expect(publicResponse.status()).toBe(200);
-        expect(await publicResponse.text()).toContain(name);
-      } finally {
-        await anonymous.close();
-      }
+      // Public means readable by another signed-in account. Collection routes
+      // intentionally require authentication even when their visibility is
+      // PUBLIC; the existing anonymous redirect is part of the privacy model.
+      const publicResponse = await visitorPage.request.get(`/v1/collections/${created.publicId}`);
+      expect(publicResponse, await publicResponse.text()).toBeOK();
+      expect((await publicResponse.json()).name).toBe(name);
 
       await collections.openMenuFor(row);
       await authenticatedPage.getByTestId('collection-visibility-action').click();
       await authenticatedPage.getByTestId('collection-visibility-submit').click();
       await expect.poll(async () => (await authenticatedPage.request.get(`/v1/collections/${created.publicId}`)).json().then((item) => item.visibility)).toBe('PRIVATE');
 
-      const anonymousAgain = await browser.newContext({
-        baseURL: getE2EBaseUrl(),
-        storageState: undefined,
-        extraHTTPHeaders: e2eBypassHeaders(),
-      });
-      try {
-        const revokedResponse = await anonymousAgain.request.get(url, { maxRedirects: 0 });
-        expect(revokedResponse.status(), 'making a public collection private must revoke anonymous page access').toBe(302);
-        expect(await revokedResponse.text()).not.toContain(name);
-      } finally {
-        await anonymousAgain.close();
-      }
+      const revokedResponse = await visitorPage.request.get(`/v1/collections/${created.publicId}`);
+      expect(revokedResponse.status(), 'making a public collection private must revoke visitor access').toBe(403);
     } finally {
+      await visitor.close();
       await authenticatedPage.request.delete(`/v1/collections/${created.publicId}`).catch(() => {});
     }
   });

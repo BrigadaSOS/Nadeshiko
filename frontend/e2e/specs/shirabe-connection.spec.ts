@@ -180,9 +180,8 @@ test.describe('Shirabe connection', () => {
     await expect(toggle).toHaveText('Disconnect');
     await expect(authenticatedPage.getByTestId('shirabe-stack')).toContainText('JMdict');
 
-    const dialog = authenticatedPage.waitForEvent('dialog');
+    authenticatedPage.once('dialog', (dialog) => dialog.dismiss());
     await toggle.click();
-    await (await dialog).dismiss();
 
     expect(deleteRequests).toBe(0);
     await expect(toggle).toHaveText('Disconnect');
@@ -204,9 +203,8 @@ test.describe('Shirabe connection', () => {
     const toggle = authenticatedPage.getByTestId('shirabe-connection-toggle');
     await expect(toggle).toHaveText('Disconnect');
 
-    const dialog = authenticatedPage.waitForEvent('dialog');
+    authenticatedPage.once('dialog', (dialog) => dialog.accept());
     await toggle.click();
-    await (await dialog).accept();
 
     await expect(toggle).toHaveText('Connect');
     await expect(authenticatedPage.getByTestId('shirabe-connection-description')).toHaveText(
