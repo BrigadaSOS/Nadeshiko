@@ -80,7 +80,9 @@ async function searchFor(page: Page, query: string): Promise<void> {
   await page.goto(`/search/${encodeURIComponent(query)}`);
   await expect(page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
   const response = await tracked;
-  expect(response, await response.text()).toBeOK();
+  // A browser Response body is not guaranteed to survive a route redirect;
+  // status is all this synchronization point needs to prove.
+  expect(response.ok(), `activity tracking returned HTTP ${response.status()}`).toBe(true);
 }
 
 /**
