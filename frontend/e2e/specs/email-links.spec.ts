@@ -8,9 +8,9 @@ test.describe('Email links', () => {
 
   test('forwards a legacy verification token without allowing an external callback', async ({ page }) => {
     let forwardedUrl = '';
-    await page.route('**/v1/auth/verify-email**', async (route) => {
-      forwardedUrl = route.request().url();
-      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === '/v1/auth/verify-email') forwardedUrl = request.url();
     });
 
     const response = await page.goto(
