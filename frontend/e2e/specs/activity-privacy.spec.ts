@@ -89,7 +89,11 @@ async function searchFor(page: Page, query: string): Promise<void> {
  * Unique per run. A query left in the history by an earlier run would make the
  * "was not recorded" assertion pass for the wrong reason -- and pass forever.
  */
-const uniqueQuery = () => `${QUERY_PREFIX}${Date.now()}`;
+let uniqueQuerySequence = 0;
+// Two markers are deliberately allocated back-to-back in the off/on test.
+// `Date.now()` alone gave both the same value on CI, so the legitimate search
+// after resuming looked exactly like a forbidden write while tracking was off.
+const uniqueQuery = () => `${QUERY_PREFIX}${Date.now()}-${++uniqueQuerySequence}`;
 
 test.describe('Activity privacy', () => {
   // Serial, because every test in here changes account-wide preferences: run two
@@ -115,6 +119,7 @@ test.describe('Activity privacy', () => {
     const toggle = page.getByTestId('activity-tracking-toggle');
     const whileOff = uniqueQuery();
     const afterResuming = uniqueQuery();
+    expect(whileOff).not.toBe(afterResuming);
 
     await activity.goto();
     await activity.expectLoaded();
