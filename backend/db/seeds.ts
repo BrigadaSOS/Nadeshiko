@@ -139,12 +139,15 @@ export async function seed() {
  * installations; the additional accounts are used by the staging workers.
  */
 // Eight accounts back the parallel workers; index eight is a dedicated
-// cross-account reader so authorization tests never create/revoke sessions on
-// an account another worker is actively mutating.
-const E2E_TEST_USERS = Array.from({ length: 9 }, (_, index) => ({
+// cross-account reader, index nine is a staging-only admin, and index ten is a
+// disposable account for the destructive deletion journey. None is borrowed
+// from an active worker, so authorization tests cannot revoke or mutate another
+// spec's session. `db:prepare` recreates the disposable user before every run.
+const E2E_TEST_USERS = Array.from({ length: 11 }, (_, index) => ({
   username: index === 0 ? 'e2e-user' : `e2e-user-${index}`,
   email: index === 0 ? 'e2e-user@nadeshiko.co' : `e2e-user-${index}@nadeshiko.co`,
   passwordEnvKey: 'E2E_USER_PASSWORD' as const,
+  role: index === 9 ? UserRoleType.ADMIN : UserRoleType.USER,
 }));
 
 export async function seedE2ETestUsers() {
@@ -170,12 +173,12 @@ export async function seedE2ETestUsers() {
           email: testUser.email,
           isActive: true,
           isVerified: true,
-          role: UserRoleType.USER,
+          role: testUser.role,
         });
       user.username = testUser.username;
       user.isActive = true;
       user.isVerified = true;
-      user.role = UserRoleType.USER;
+      user.role = testUser.role;
       await manager.save(user);
 
       // Keep the shared deployment secret rotatable. Existing E2E accounts are

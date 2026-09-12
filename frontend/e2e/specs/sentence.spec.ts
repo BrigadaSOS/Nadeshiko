@@ -57,6 +57,16 @@ test.describe('Sentence page', () => {
     await gotoSentencePage(page);
     const image = page.getByTestId('segment-image').first();
     await expect(image).toBeVisible();
+    await expect
+      .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth), { timeout: 15_000 })
+      .toBeGreaterThan(0);
+
+    const src = await image.getAttribute('src');
+    expect(src).toBeTruthy();
+    const response = await page.request.get(new URL(src!, page.url()).toString());
+    expect(response.status()).toBeGreaterThanOrEqual(200);
+    expect(response.status()).toBeLessThan(300);
+    expect(response.headers()['content-type']).toMatch(/^image\//);
   });
 
   test('has the search input', async ({ page }) => {
