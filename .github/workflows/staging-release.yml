@@ -17,6 +17,7 @@ on:
         default: 'false'
         type: boolean
 permissions:
+  actions: read
   contents: read
   packages: write
   id-token: write
@@ -42,10 +43,58 @@ jobs:
       elasticsearch: ${{ steps.filter.outputs.elasticsearch }}
     steps:
       - uses: actions/checkout@v7
+
+      # A normal push diff only covers the immediately preceding commit. If
+      # that commit's release failed before deploy, its component changes would
+      # otherwise be forgotten by the next push. Diff from the last commit that
+      # actually passed staging E2E so every undeployed change is carried
+      # forward until staging has verified it.
+      - name: Find last verified staging revision
+        if: github.event_name == 'push'
+        id: verified-base
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRuns,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'staging-release.yml',
+                branch: context.ref.replace('refs/heads/', ''),
+                status: 'completed',
+                per_page: 100,
+              },
+            );
+
+            for (const run of runs) {
+              if (run.id === context.runId || run.conclusion !== 'success') continue;
+
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                  per_page: 100,
+                },
+              );
+
+              if (jobs.some((job) => job.name === 'e2e' && job.conclusion === 'success')) {
+                core.setOutput('sha', run.head_sha);
+                return;
+              }
+            }
+
+            // This is only expected for the first gated release. Keeping the
+            // push's normal base is safer than blocking that initial deploy.
+            core.setOutput('sha', context.payload.before);
+
       - uses: dorny/paths-filter@v4
         if: github.event_name == 'push'
         id: filter
         with:
+          base: ${{ steps.verified-base.outputs.sha }}
           filters: |
             # The Docker builds consume the root workspace lockfile, shared
             # packages, setup action, and root build tooling. Include those in
