@@ -77,11 +77,11 @@ test.describe('Activity privacy', () => {
   // at once and one turns tracking off while the other is proving it is on.
   test.describe.configure({ mode: 'serial' });
 
-  test('a search reaches the account while tracking is on', async ({ page }) => {
+  test('a search reaches the account while tracking is on', async ({ page, e2eAccount }) => {
     // The control for the test below. Without it, "not recorded" could equally
     // mean the search never reached the endpoint at all, and the switch would
     // look like it worked no matter what it did.
-    await loginAsE2EUser(page);
+    await loginAsE2EUser(page, e2eAccount);
     const query = uniqueQuery();
 
     await page.request.patch('/v1/user/preferences', { data: { searchHistory: { enabled: true } } });
@@ -90,8 +90,8 @@ test.describe('Activity privacy', () => {
     await expect.poll(() => searchQueries(page), { timeout: 15_000 }).toContain(query);
   });
 
-  test('turning activity tracking off stops searches reaching the account', async ({ page }) => {
-    await loginAsE2EUser(page);
+  test('turning activity tracking off stops searches reaching the account', async ({ page, e2eAccount }) => {
+    await loginAsE2EUser(page, e2eAccount);
     const activity = new ActivityPage(page);
     const toggle = page.getByTestId('activity-tracking-toggle');
     const whileOff = uniqueQuery();
@@ -120,11 +120,11 @@ test.describe('Activity privacy', () => {
     }
   });
 
-  test('the tracking switch flips back on from the page it was turned off on', async ({ page }) => {
+  test('the tracking switch flips back on from the page it was turned off on', async ({ page, e2eAccount }) => {
     // Both directions in one page load, deliberately: it is the second click
     // that a reader who changed their mind depends on, and rendering the page
     // again in between is what the SSR cache makes unreliable.
-    await loginAsE2EUser(page);
+    await loginAsE2EUser(page, e2eAccount);
     const activity = new ActivityPage(page);
     const toggle = page.getByTestId('activity-tracking-toggle');
     const afterResuming = uniqueQuery();
@@ -150,8 +150,8 @@ test.describe('Activity privacy', () => {
     }
   });
 
-  test('turning the study tally off stops it counting, and back on resumes it', async ({ page }) => {
-    await loginAsE2EUser(page);
+  test('turning the study tally off stops it counting, and back on resumes it', async ({ page, e2eAccount }) => {
+    await loginAsE2EUser(page, e2eAccount);
     const activity = new ActivityPage(page);
     const toggle = page.getByTestId('familiar-media-toggle');
     const mediaPublicId = await someMediaPublicId(page);
@@ -191,8 +191,8 @@ test.describe('Activity privacy', () => {
     }
   });
 
-  test('forgetting the study tally empties the list it is shown in', async ({ page }) => {
-    await loginAsE2EUser(page);
+  test('forgetting the study tally empties the list it is shown in', async ({ page, e2eAccount }) => {
+    await loginAsE2EUser(page, e2eAccount);
     const activity = new ActivityPage(page);
     const mediaPublicId = await someMediaPublicId(page);
 

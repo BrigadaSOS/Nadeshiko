@@ -261,7 +261,8 @@ const sharedMediaName = computed(() =>
 <template>
   <SearchDropdownContainer data-testid="save-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
-      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header" @click="openAddMenu">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header"
+        :aria-label="$t('searchpage.main.buttons.add')" @click="openAddMenu">
         <UiBaseIcon :path="mdiFileDocumentPlusOutline" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.add') }}</span>
       </SearchDropdownMainButton>
@@ -365,7 +366,8 @@ const sharedMediaName = computed(() =>
 
   <SearchDropdownContainer data-testid="download-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
-      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header"
+        :aria-label="$t('searchpage.main.buttons.download')">
         <UiBaseIcon :path="mdiTrayArrowDown" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.download') }}</span>
       </SearchDropdownMainButton>
@@ -395,7 +397,8 @@ const sharedMediaName = computed(() =>
 
   <SearchDropdownContainer data-testid="copy-dropdown" class="mr-2 my-1 text-xs" dropdownId="nd-dropdown-with-header" teleport>
     <template #default>
-      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header"
+        :aria-label="$t('searchpage.main.buttons.copyclipboard')">
         <UiBaseIcon :path="mdiContentCopy" />
         <span class="hidden min-[1250px]:inline">{{ $t('searchpage.main.buttons.copyclipboard') }}</span>
       </SearchDropdownMainButton>
@@ -441,7 +444,8 @@ const sharedMediaName = computed(() =>
     teleport teleportAlign="end"
     dropdownContainerClass="z-50 min-w-60">
     <template #default>
-      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header">
+      <SearchDropdownMainButton segment-hover-border dropdownId="nd-dropdown-with-header"
+        :aria-label="$t('searchpage.main.buttons.more')">
         <UiBaseIcon :path="mdiDotsHorizontal" />
       </SearchDropdownMainButton>
     </template>

@@ -4,11 +4,11 @@ import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 import { defineConfig, devices } from '@playwright/test';
 import { e2eBypassHeaders, getE2EBaseUrl } from './env';
-import { E2E_AUTH_STATE_PATH } from './auth-state';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../backend/.env') });
 
 const BASE_URL = getE2EBaseUrl();
+const JUNIT_OUTPUT = resolve(dirname(fileURLToPath(import.meta.url)), '../test-results/e2e-results.xml');
 
 /**
  * Which Chromium to drive.
@@ -62,7 +62,7 @@ const CHROMIUM = chromiumLauncher();
 // so `activity` does NOT cover `activity-privacy.spec.ts`. A spec that looks
 // covered but is not runs signed out and dies in `beforeEach`.
 const AUTHENTICATED_TESTS =
-  /(activity|activity-privacy|anki-deck-model|anki-field-placeholders|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
+  /(accessibility|activity|activity-privacy|admin-access|anki-deck-model|anki-field-placeholders|auth-callback|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|user-settings|word-mining)\.spec\.ts$/;
 
 /**
  * SMOKE MODE, set by the production release workflow. Staging keeps the whole
@@ -81,8 +81,8 @@ const AUTHENTICATED_TESTS =
  *
  * WHAT EARNS A SLOT: things that can only break in production. Real Postgres,
  * real Elasticsearch, real R2/CDN media, real Cloudflare in front. Application
- * logic is not re-litigated here; staging runs all 152 against the same commit
- * with the bypass, and that is where a logic regression is caught.
+ * logic is not re-litigated here; staging runs the complete matrix against the
+ * same commit with the bypass, and that is where a logic regression is caught.
  *
  *   homepage      SSR renders, real stats and recent-media come back
  *   navigation    six status-code checks -- one render each, the cheapest
@@ -93,7 +93,8 @@ const AUTHENTICATED_TESTS =
  *                 that made the panel unusable for anyone logged in over a day)
  *                 that staging can miss and prod cannot afford to.
  *
- * ~20 tests. Deliberately not `mobile` (viewport behaviour, not infrastructure)
+ * ~20 production-smoke tests. Deliberately not `mobile` (viewport behaviour,
+ * not infrastructure)
  * and not `redirects` (13 tests of pure routing that cannot differ by
  * environment, and the single largest consumer of the budget).
  */
@@ -105,6 +106,13 @@ const SMOKE = !!process.env.E2E_SMOKE;
 // fails the same silent way -- a larger run that still looks deliberate.
 const SMOKE_ANONYMOUS = /\/(feeds|homepage|navigation|sentence)\.spec\.ts$/;
 const SMOKE_AUTHENTICATED = /\/user-settings\.spec\.ts$/;
+const CROSS_BROWSER_SMOKE = /\/(homepage|release-health|user-settings|search\/search-results)\.spec\.ts$/;
+// One representative path per risk area is enough outside Chromium: SSR/CSP,
+// basic interaction, Japanese result rendering and authenticated state. The
+// complete behavior matrix still runs in Chromium; repeating every assertion
+// in two more engines added ~30 seconds without exercising another path.
+const CROSS_BROWSER_SMOKE_TITLES =
+  /loads and displays core elements|hydrates with its external stylesheets|returns results for a Japanese query|displays correct username and email/;
 
 export default defineConfig({
   testDir: './specs',
@@ -116,13 +124,23 @@ export default defineConfig({
   // into a cascade of unrelated ones.
   retries: SMOKE ? 1 : process.env.CI ? 2 : 1,
   maxFailures: process.env.CI ? 5 : undefined,
-  // CI uses one shared authenticated account. Several specs deliberately
-  // mutate that account's preferences, Anki profiles, and search history, so
-  // running files on separate workers lets one spec clear state another still
-  // needs. Keep CI serial until it provisions an account per worker. Smoke also
-  // stays serial because production's limiter counts bursts like sustained load.
-  workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'html' : 'list',
+  // Full staging runs use one seeded account per worker (see auth.ts and the
+  // backend seeds), so stateful specs can run concurrently without clearing one
+  // another's preferences, collections or activity. Eight workers turns the
+  // historical 17-24 minute serial run into a measured three-minute critical path.
+  // Production smoke stays serial because its HTML limiter counts bursts like
+  // sustained load and intentionally has no origin bypass.
+  workers: SMOKE ? 1 : process.env.CI ? 8 : 4,
+  // A retry is valuable evidence, not a pass. In particular, the production
+  // release gate consumes this job's conclusion, so a flaky staging test must
+  // not quietly approve the release.
+  failOnFlakyTests: !!process.env.CI,
+  reporter: process.env.CI
+    ? [
+        ['html'],
+        ['junit', { outputFile: JUNIT_OUTPUT }],
+      ]
+    : 'list',
   timeout: 60_000,
 
   use: {
@@ -137,17 +155,11 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts$/,
-    },
-    {
       name: 'chromium-authenticated',
-      dependencies: ['setup'],
       testMatch: SMOKE ? SMOKE_AUTHENTICATED : AUTHENTICATED_TESTS,
       use: {
         ...devices['Desktop Chrome'],
         ...CHROMIUM,
-        storageState: E2E_AUTH_STATE_PATH,
       },
     },
     {
@@ -155,7 +167,7 @@ export default defineConfig({
       // `testMatch` narrows in smoke; `testIgnore` still applies, which is what
       // keeps the authenticated specs from being picked up twice.
       ...(SMOKE ? { testMatch: SMOKE_ANONYMOUS } : {}),
-      testIgnore: [/mobile\.spec\.ts$/, /auth\.setup\.ts$/, AUTHENTICATED_TESTS],
+      testIgnore: [/mobile\.spec\.ts$/, AUTHENTICATED_TESTS],
       use: {
         ...devices['Desktop Chrome'],
         ...CHROMIUM,
@@ -176,6 +188,18 @@ export default defineConfig({
               isMobile: true,
               hasTouch: true,
             },
+          },
+          {
+            name: 'firefox-smoke',
+            testMatch: CROSS_BROWSER_SMOKE,
+            grep: CROSS_BROWSER_SMOKE_TITLES,
+            use: devices['Desktop Firefox'],
+          },
+          {
+            name: 'webkit-smoke',
+            testMatch: CROSS_BROWSER_SMOKE,
+            grep: CROSS_BROWSER_SMOKE_TITLES,
+            use: devices['Desktop Safari'],
           },
         ]),
   ],

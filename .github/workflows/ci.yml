@@ -2,8 +2,9 @@ name: CI
 
 on:
   pull_request:
-    # `production` carries hotfixes straight to a prod tag without ever passing
-    # through main, so it needs the same gate main gets.
+    # `production` carries hotfixes without passing through main, so it needs
+    # the same PR gate main gets. Before tagging, the exact hotfix commit must
+    # also pass a manually dispatched staging release and its E2E suite.
     branches: [main, production]
 
 permissions:

@@ -11,19 +11,21 @@ export const test = base.extend({
     const originalGoto = page.goto.bind(page);
     page.goto = async (url, options) => {
       const response = await originalGoto(url, { waitUntil: 'domcontentloaded', ...options });
-      await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
-      await page.waitForFunction(
-        () => {
-          if (typeof window === 'undefined') return false;
-          const nuxt = document.querySelector('#__nuxt') as any;
-          const app = nuxt?.__vue_app__;
-          if (!app) return false;
-          const isHydrating = app.config?.globalProperties?.$nuxt?.isHydrating;
-          return isHydrating === false || isHydrating === undefined;
-        },
-        null,
-        { timeout: 15_000 },
-      ).catch(() => {});
+      // The API reference is a standalone Scalar document, not a Nuxt page.
+      // Every other browser-facing route is owned by Nuxt and must hydrate.
+      const pathname = new URL(page.url()).pathname.replace(/\/$/, '');
+      if (
+        /^(?:\/(?:en|es|ja))?\/api$/.test(pathname) ||
+        pathname === '/api/v1/docs' ||
+        pathname === '/docs/api/index.html'
+      ) {
+        return response;
+      }
+      await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 });
+      // The app owns this public marker. Do not swallow the timeout: continuing
+      // from an unhydrated SSR shell turns one useful failure into an arbitrary
+      // click/layout failure several steps later.
+      await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 15_000 });
       return response;
     };
 

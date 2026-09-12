@@ -97,6 +97,10 @@ describe('which classes it wears', () => {
 });
 
 describe('what it tells a screen reader', () => {
+  test('uses the explicit accessible name', () => {
+    expect(button(render({ ariaLabel: 'Download' })).attributes('aria-label')).toBe('Download');
+  });
+
   test('that it opens a menu', () => {
     expect(button(render()).attributes('aria-haspopup')).toBe('menu');
   });

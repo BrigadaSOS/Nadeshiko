@@ -3,6 +3,7 @@
         :data-testid="testId"
         :id="resolvedDropdownId"
         type="button"
+        :aria-label="ariaLabel"
         aria-haspopup="menu"
         :aria-expanded="dropdown?.isOpen.value ?? false"
         :class="resolvedButtonClass"
@@ -34,6 +35,8 @@ const props = withDefaults(
     dropdownId?: string;
     dropdownButtonClass?: string;
     testId?: string;
+    /** Accessible name for triggers whose visible text is hidden at this viewport. */
+    ariaLabel?: string;
     /** False for icon-only triggers (row ⋮ menus) that have no labelled chevron. */
     showChevron?: boolean;
     /** Omit `border-hairline`. Ignored when `dropdownButtonClass` is set. */
@@ -45,6 +48,7 @@ const props = withDefaults(
     dropdownId: 'nd-dropdown',
     dropdownButtonClass: undefined,
     testId: 'dropdown-toggle',
+    ariaLabel: undefined,
     showChevron: true,
     borderless: false,
     segmentHoverBorder: false,

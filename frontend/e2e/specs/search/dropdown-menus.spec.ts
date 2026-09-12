@@ -41,12 +41,20 @@ import { SearchPage } from '../../pages/SearchPage';
  * before the click moves the two together and cannot invalidate the choice.
  */
 async function uncoveredCopyToggle(page: Page, search: SearchPage): Promise<Locator> {
-  const card = await page.locator('.token-tooltip').boundingBox();
-  if (!card) throw new Error('the word card is open but has no box');
-
   const count = await search.segmentCards.count();
   for (let i = 0; i < count; i++) {
     const toggle = search.segmentCards.nth(i).getByTestId('copy-dropdown').getByTestId('dropdown-toggle');
+    // Do the scroll before opening the teleported menu. Playwright otherwise
+    // scrolls an off-screen candidate as part of click(); a late scroll event
+    // can then reach DropdownContainer's placement guard after the menu mounts
+    // and immediately close the menu the test just opened.
+    await toggle.scrollIntoViewIfNeeded();
+    await page.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    );
+
+    const card = await page.locator('.token-tooltip').boundingBox();
+    if (!card) throw new Error('the word card is open but has no box');
     const box = await toggle.boundingBox();
     if (!box) continue;
     const overlaps =
@@ -179,9 +187,11 @@ test.describe('Dropdown menus', () => {
     const copy = search.segmentCards.first().getByTestId('copy-dropdown');
     await copy.getByTestId('dropdown-toggle').click();
 
+    // The visibility menu leaves through a transition, so both menus briefly
+    // exist. Narrow to one before a strict locator assertion.
+    await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
     await expect(page.getByTestId('dropdown-menu')).toBeVisible();
     await expect(search.visibilityOption('en', 'show')).toBeHidden();
-    await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
   });
 
   test('opening a result dropdown closes the word card', async ({ page }) => {
