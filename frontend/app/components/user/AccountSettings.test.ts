@@ -121,6 +121,16 @@ afterEach(() => {
   for (const wrapper of mounted.splice(0)) wrapper.unmount();
 });
 
+describe('stable account actions', () => {
+  test('identify the destructive and download controls, not adjacent session actions', async () => {
+    const wrapper = await render();
+
+    expect(wrapper.get('[data-testid="account-sign-out"]').text()).toBe('accountSettings.account.logout');
+    expect(wrapper.get('[data-testid="account-export"]').text()).toBe('accountSettings.account.exportData');
+    expect(wrapper.get('[data-testid="account-delete"]').text()).toBe('accountSettings.account.deleteAccountButton');
+  });
+});
+
 describe('the per-category email switches', () => {
   test('start ON unless the account explicitly turned one off', async () => {
     // A missing key is a reader who never touched it, and defaulting those to

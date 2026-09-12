@@ -90,6 +90,7 @@ test.describe('Destructive account lifecycle', () => {
         .toBeNull();
 
       await primaryPage.goto('/user/settings');
+      await expect(primaryPage.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 30_000 });
       await expect(primaryPage.getByTestId('account-email')).toHaveText(account.email);
       primaryPage.once('dialog', (dialog) => dialog.accept());
       const deletionResponse = primaryPage.waitForResponse(
