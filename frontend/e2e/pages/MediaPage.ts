@@ -27,7 +27,8 @@ export class MediaPage {
 
   async goto(query?: Record<string, string>) {
     const params = query ? `?${new URLSearchParams(query)}` : '';
-    await this.page.goto(`/media${params}`);
+    const response = await this.page.goto(`/media${params}`);
+    expect(response?.status(), 'media navigation should return HTTP 200').toBe(200);
   }
 
   async expectLoaded() {

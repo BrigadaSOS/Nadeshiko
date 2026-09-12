@@ -197,6 +197,7 @@ const healthCheck: RequestHandler = async (_req, res) => {
     status: database ? 'ok' : 'error',
     database: database ? 'up' : 'down',
     elasticsearch: elasticsearch ? 'up' : 'down',
+    releaseSha: config.RELEASE_SHA,
   });
 };
 

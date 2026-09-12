@@ -6,5 +6,5 @@ import { setResponseHeader } from 'h3';
 // Backend health is reported by the backend's own /up.
 export default defineEventHandler((event) => {
   setResponseHeader(event, 'Cache-Control', 'no-store');
-  return { status: 'ok' };
+  return { status: 'ok', releaseSha: String(useRuntimeConfig(event).releaseSha ?? 'unknown') };
 });

@@ -12,7 +12,7 @@ describe('buildApplication', () => {
     // The health envelope is what proves the route is mounted -- the custom
     // route mounter case below gets a 404 instead.
     expect(res.status).toBe(503);
-    expect(res.body).toMatchObject({ status: 'error', database: 'down' });
+    expect(res.body).toMatchObject({ status: 'error', database: 'down', releaseSha: 'unknown' });
   });
 
   it('uses custom route mounter when provided', async () => {

@@ -42,6 +42,7 @@
     "db:prepare": "node --import tsx bin/db.ts prepare",
     "db:drop": "node --import tsx bin/db.ts drop",
     "db:status": "node --import tsx bin/db.ts status",
+    "db:verify": "node --import tsx bin/db.ts status --require-current",
     "create:service-key": "node --env-file-if-exists=.env --import tsx bin/createServiceKey.ts",
     "email:backfill-feedback": "node --env-file-if-exists=.env --import tsx bin/backfillFeedbackAsk.ts",
     "email:test": "node --env-file-if-exists=.env --import tsx scripts/test-email.ts",

@@ -9,7 +9,14 @@ declare global {
 test.describe('Deployed application health', () => {
   test('hydrates with its external stylesheets and without CSP violations', async ({ page }) => {
     const pageErrors: string[] = [];
+    const assetFailures: Array<{ status: number; url: string }> = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
+    page.on('response', (response) => {
+      const type = response.request().resourceType();
+      if ((type === 'script' || type === 'stylesheet') && !response.ok()) {
+        assetFailures.push({ status: response.status(), url: response.url() });
+      }
+    });
     await page.addInitScript(() => {
       window.__e2eCspViolations = [];
       window.addEventListener('securitypolicyviolation', (event) => {
@@ -42,5 +49,31 @@ test.describe('Deployed application health', () => {
       .toEqual([]);
     expect(await page.evaluate(() => window.__e2eCspViolations ?? [])).toEqual([]);
     expect(pageErrors).toEqual([]);
+    expect(assetFailures).toEqual([]);
+  });
+
+  test('serves the expected frontend and healthy backend revisions', async ({ page }) => {
+    const expectedSha = process.env.E2E_EXPECTED_SHA;
+    test.skip(!expectedSha, 'exact revision verification is a deployed-release check');
+
+    const frontendHealth = await page.request.get('/up');
+    const frontendBody = await frontendHealth.json();
+    expect(frontendHealth, JSON.stringify(frontendBody)).toBeOK();
+    expect(frontendBody).toMatchObject({ status: 'ok', releaseSha: expectedSha });
+
+    const site = new URL(process.env.E2E_BASE_URL || 'http://localhost:3000');
+    site.hostname = site.hostname === 'stg.nadeshiko.co' ? 'api-stg.nadeshiko.co' : 'api.nadeshiko.co';
+    site.pathname = '/up';
+    site.search = '';
+
+    const backendHealth = await page.request.get(site.toString());
+    const backendBody = await backendHealth.json();
+    expect(backendHealth, JSON.stringify(backendBody)).toBeOK();
+    expect(backendBody).toMatchObject({
+      status: 'ok',
+      database: 'up',
+      elasticsearch: 'up',
+      releaseSha: expectedSha,
+    });
   });
 });

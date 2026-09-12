@@ -53,11 +53,18 @@ async function familiarMediaIds(page: Page): Promise<string[]> {
 
 /** A title that really exists, taken from a search rather than hard-coded. */
 async function someMediaPublicId(page: Page): Promise<string> {
+  return (await someMediaPublicIds(page, 1))[0]!;
+}
+
+async function someMediaPublicIds(page: Page, count: number): Promise<string[]> {
   await page.goto(`/search/${encodeURIComponent('学校')}`);
-  const link = page.getByTestId('segment-card').first().locator('a[href*="media="]').first();
-  await expect(link).toBeVisible({ timeout: 15_000 });
-  const href = (await link.getAttribute('href'))!;
-  return new URL(href, 'http://localhost').searchParams.get('media')!;
+  const links = page.getByTestId('segment-card').locator('a[href*="media="]');
+  await expect(links.first()).toBeVisible({ timeout: 15_000 });
+  const ids = [...new Set((await links.evaluateAll((items) => items.map((item) => (item as HTMLAnchorElement).href)))
+    .map((href) => new URL(href).searchParams.get('media'))
+    .filter((id): id is string => Boolean(id)))];
+  if (ids.length < count) throw new Error(`Expected ${count} distinct media in search fixtures, found ${ids.length}`);
+  return ids.slice(0, count);
 }
 
 /** Searches the way a reader does, so what is recorded is what the app records. */
@@ -95,6 +102,7 @@ test.describe('Activity privacy', () => {
     const activity = new ActivityPage(page);
     const toggle = page.getByTestId('activity-tracking-toggle');
     const whileOff = uniqueQuery();
+    const afterResuming = uniqueQuery();
 
     await activity.goto();
     await activity.expectLoaded();
@@ -108,12 +116,12 @@ test.describe('Activity privacy', () => {
 
       await searchFor(page, whileOff);
 
-      // A negative assertion needs a deadline of its own: the row is written
-      // asynchronously, so "not there yet" and "never" look alike for a moment.
-      // Waiting out a window a recorded search comfortably beats -- the control
-      // test above lands well inside it -- is what makes the absence mean
-      // something.
-      await page.waitForTimeout(3_000);
+      // Resume and wait for a later write through the same pipeline. Once that
+      // marker arrives, "not there yet" can no longer make the negative check
+      // pass for the event submitted while tracking was off.
+      await page.request.patch('/v1/user/preferences', { data: { searchHistory: { enabled: true } } });
+      await searchFor(page, afterResuming);
+      await expect.poll(() => searchQueries(page), { timeout: 15_000 }).toContain(afterResuming);
       expect(await searchQueries(page)).not.toContain(whileOff);
     } finally {
       await page.request.patch('/v1/user/preferences', { data: { searchHistory: { enabled: true } } });
@@ -154,7 +162,9 @@ test.describe('Activity privacy', () => {
     await loginAsE2EUser(page, e2eAccount);
     const activity = new ActivityPage(page);
     const toggle = page.getByTestId('familiar-media-toggle');
-    const mediaPublicId = await someMediaPublicId(page);
+    const mediaIds = await someMediaPublicIds(page, 2);
+    const whileOffMediaId = mediaIds[0]!;
+    const afterResumingMediaId = mediaIds[1]!;
 
     // The tally, not the history. This test owns the affinity rows and starts
     // from none, so a title showing up afterwards can only be one it counted.
@@ -172,19 +182,20 @@ test.describe('Activity privacy', () => {
         .toBe(false);
 
       const whileOffRecord = await page.request.post('/v1/user/activity', {
-        data: { activityType: 'ANKI_EXPORT', mediaPublicId },
+        data: { activityType: 'ANKI_EXPORT', mediaPublicId: whileOffMediaId },
       });
       expect(whileOffRecord, await whileOffRecord.text()).toBeOK();
-      await page.waitForTimeout(3_000);
-      expect(await familiarMediaIds(page)).not.toContain(mediaPublicId);
 
       await toggle.click();
       await expect
         .poll(async () => (await preferences(page)).familiarMedia?.enabled, { timeout: 10_000 })
         .toBe(true);
 
-      await page.request.post('/v1/user/activity', { data: { activityType: 'ANKI_EXPORT', mediaPublicId } });
-      await expect.poll(() => familiarMediaIds(page), { timeout: 15_000 }).toContain(mediaPublicId);
+      await page.request.post('/v1/user/activity', {
+        data: { activityType: 'ANKI_EXPORT', mediaPublicId: afterResumingMediaId },
+      });
+      await expect.poll(() => familiarMediaIds(page), { timeout: 15_000 }).toContain(afterResumingMediaId);
+      expect(await familiarMediaIds(page)).not.toContain(whileOffMediaId);
     } finally {
       await page.request.patch('/v1/user/preferences', { data: { familiarMedia: { enabled: true } } });
       await page.request.delete('/v1/user/familiar-media');

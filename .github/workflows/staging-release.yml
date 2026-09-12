@@ -140,7 +140,9 @@ jobs:
     if: >-
       always() &&
       needs.checks.result == 'success' &&
-      (needs.changes.outputs.backend == 'true' || inputs.force_backend == true)
+      ((github.event_name == 'push' &&
+        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+       inputs.force_backend == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Serialized against every other backend mutation on the host. Staging and
@@ -213,7 +215,7 @@ jobs:
         run: |
           set -euo pipefail
           cd backend
-          kamal deploy -d staging --skip-push
+          VERSION="$GITHUB_SHA" kamal deploy -d staging --skip-push
 
       # Boot applies migrations, but deliberately does not run deployment
       # seeds. Prepare the idempotent worker-account pool before the browser
@@ -226,13 +228,27 @@ jobs:
           cd backend
           kamal app exec -d staging --reuse 'npm run db:prepare'
 
+      - name: Verify backend revision and dependencies
+        run: |
+          set -euo pipefail
+          health=$(curl --fail --silent --show-error https://api-stg.nadeshiko.co/up)
+          test "$(jq -r '.releaseSha' <<<"$health")" = "$GITHUB_SHA"
+          test "$(jq -r '.database' <<<"$health")" = up
+          test "$(jq -r '.elasticsearch' <<<"$health")" = up
+
+          cd backend
+          kamal app exec -d staging --reuse 'npm run db:verify'
+
 
   deploy-frontend:
     # Deliberately not ordered after deploy-backend: staging is for feedback, so
     # the frontend ships as soon as it is ready rather than queueing behind (or
     # being blocked by) a backend deploy. Production does enforce that ordering.
     needs: [changes, checks]
-    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == true
+    if: >-
+      (github.event_name == 'push' &&
+       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+      inputs.force_frontend == true
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Frontend deploys are Nuxt container swaps that touch neither Elasticsearch
@@ -291,7 +307,13 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          kamal deploy -d staging --skip-push
+          VERSION="$GITHUB_SHA" kamal deploy -d staging --skip-push
+
+      - name: Verify frontend revision
+        run: |
+          set -euo pipefail
+          health=$(curl --fail --silent --show-error https://stg.nadeshiko.co/up)
+          test "$(jq -r '.releaseSha' <<<"$health")" = "$GITHUB_SHA"
 
   e2e:
     needs: [deploy-backend, deploy-frontend]
@@ -324,15 +346,10 @@ jobs:
           # masking the anonymous-access check in collections.spec.ts, which
           # expects a 302 and was being handed a 429.
           #
-          # Optional on purpose: if the parameter is absent the suite still runs,
-          # throttled, rather than the job failing on a missing secret.
           E2E_RATE_LIMIT_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/staging/RATE_LIMIT_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-          if [ -n "${E2E_RATE_LIMIT_BYPASS_SECRET}" ]; then
-            echo "::add-mask::${E2E_RATE_LIMIT_BYPASS_SECRET}"
-            echo "E2E_RATE_LIMIT_BYPASS_SECRET=${E2E_RATE_LIMIT_BYPASS_SECRET}" >> "$GITHUB_ENV"
-          else
-            echo "note: no RATE_LIMIT_BYPASS_SECRET in SSM; the suite will run throttled"
-          fi
+          test -n "${E2E_RATE_LIMIT_BYPASS_SECRET}" || { echo "::error::RATE_LIMIT_BYPASS_SECRET is required for staging E2E"; exit 1; }
+          echo "::add-mask::${E2E_RATE_LIMIT_BYPASS_SECRET}"
+          echo "E2E_RATE_LIMIT_BYPASS_SECRET=${E2E_RATE_LIMIT_BYPASS_SECRET}" >> "$GITHUB_ENV"
 
       # ONE setup-node, not two. There were two, and the second -- pinning
       # node-version to a literal '22' with no `cache` -- silently won, so the
@@ -384,6 +401,7 @@ jobs:
         working-directory: frontend
         env:
           E2E_BASE_URL: https://stg.nadeshiko.co
+          E2E_EXPECTED_SHA: ${{ github.sha }}
 
       - name: Upload test report
         uses: actions/upload-artifact@v7
