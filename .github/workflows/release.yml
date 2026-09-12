@@ -14,6 +14,12 @@ permissions:
 env:
   NODE_VERSION: '24'
 
+# A failed release may still be rolling the stack back. Keep the next tag from
+# deploying over that recovery or capturing the failed revision as its fallback.
+concurrency:
+  group: nadeshiko-production-release
+  cancel-in-progress: false
+
 jobs:
   staging-e2e:
     uses: ./.github/workflows/verify-staging-e2e.yml
@@ -63,6 +69,8 @@ jobs:
 
   release-backend:
     needs: [staging-e2e, checks, verify-purge-credentials]
+    outputs:
+      previous-version: ${{ steps.previous-version.outputs.version }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Runs the Elasticsearch migration write freeze, so it must not overlap the
@@ -184,6 +192,15 @@ jobs:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
 
+      - name: Capture current backend version for rollback
+        id: previous-version
+        run: |
+          set -euo pipefail
+          cd backend
+          version=$(kamal app version -d prod --primary --quiet | grep -Eo '[0-9a-f]{40}' | tail -1)
+          test -n "$version" || { echo "::error::Could not identify the running backend version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Deploy backend to prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -207,6 +224,8 @@ jobs:
 
   release-frontend:
     needs: release-backend
+    outputs:
+      previous-version: ${{ steps.previous-version.outputs.version }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -267,6 +286,15 @@ jobs:
         with:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Capture current frontend version for rollback
+        id: previous-version
+        run: |
+          set -euo pipefail
+          cd frontend
+          version=$(kamal app version -d prod --primary --quiet | grep -Eo '[0-9a-f]{40}' | tail -1)
+          test -n "$version" || { echo "::error::Could not identify the running frontend version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Deploy frontend to prod
         env:
@@ -361,16 +389,10 @@ jobs:
           # That one is the origin's per-IP limiter; this one is Cloudflare,
           # before the request reaches the origin at all.
           #
-          # Optional on purpose, matching the staging step: if the parameter is
-          # absent the suite still runs and is challenged, rather than the job
-          # failing on a missing secret and hiding why.
           E2E_CI_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/prod/CI_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-          if [ -n "${E2E_CI_BYPASS_SECRET}" ]; then
-            echo "::add-mask::${E2E_CI_BYPASS_SECRET}"
-            echo "E2E_CI_BYPASS_SECRET=${E2E_CI_BYPASS_SECRET}" >> "$GITHUB_ENV"
-          else
-            echo "note: no CI_BYPASS_SECRET in SSM; sentence-page tests will be challenged"
-          fi
+          test -n "${E2E_CI_BYPASS_SECRET}" || { echo "::error::CI_BYPASS_SECRET is required for production E2E"; exit 1; }
+          echo "::add-mask::${E2E_CI_BYPASS_SECRET}"
+          echo "E2E_CI_BYPASS_SECRET=${E2E_CI_BYPASS_SECRET}" >> "$GITHUB_ENV"
 
       # ONE setup-node, not two -- see the note on the same block in
       # staging-release.yml. The second one pinned a literal '22' with no cache
@@ -433,6 +455,9 @@ jobs:
           E2E_EXPECTED_SHA: ${{ github.sha }}
           E2E_SMOKE: '1'
 
+      - name: Enforce E2E skip budget
+        run: node frontend/e2e/check-junit-budget.mjs frontend/test-results/e2e-results.xml 0
+
       - name: Upload test report
         uses: actions/upload-artifact@v7
         if: always()
@@ -442,6 +467,82 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/e2e-results.xml
           retention-days: 14
+
+  # Kamal retains old containers specifically for this path. A smoke failure
+  # means the just-switched stack is not fit to serve; restore both components
+  # to the exact revisions captured before deployment and purge the HTML that
+  # names the failed frontend's chunks. The failed E2E job still keeps the
+  # release red after recovery succeeds.
+  rollback-production:
+    needs: [release-backend, release-frontend, e2e]
+    if: >-
+      always() &&
+      needs.release-backend.result == 'success' &&
+      needs.release-frontend.result == 'success' &&
+      needs.e2e.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: nadeshiko-production-rollback
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
+
+      - name: Set up Tailscale, SSH and Kamal
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Roll back frontend
+        env:
+          PREVIOUS_VERSION: ${{ needs.release-frontend.outputs.previous-version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_VERSION"
+          cd frontend
+          VERSION="$PREVIOUS_VERSION" kamal rollback "$PREVIOUS_VERSION" -d prod
+
+      - name: Roll back backend
+        env:
+          PREVIOUS_VERSION: ${{ needs.release-backend.outputs.previous-version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_VERSION"
+          cd backend
+          VERSION="$PREVIOUS_VERSION" kamal rollback "$PREVIOUS_VERSION" -d prod
+
+      - name: Purge failed frontend from the edge
+        env:
+          CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --silent --show-error -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_PURGE_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data '{"purge_everything":true}')
+          test "$(jq -r '.success' <<<"$response")" = true
+
+      - name: Verify restored revisions
+        env:
+          FRONTEND_VERSION: ${{ needs.release-frontend.outputs.previous-version }}
+          BACKEND_VERSION: ${{ needs.release-backend.outputs.previous-version }}
+        run: |
+          set -euo pipefail
+          frontend=$(curl --fail --silent --show-error https://nadeshiko.co/up)
+          backend=$(curl --fail --silent --show-error https://api.nadeshiko.co/up)
+          test "$(jq -r '.releaseSha' <<<"$frontend")" = "$FRONTEND_VERSION"
+          test "$(jq -r '.releaseSha' <<<"$backend")" = "$BACKEND_VERSION"
 
   dispatch-sdk-ts:
     needs: release-backend
@@ -487,6 +588,7 @@ jobs:
         release-backend,
         release-frontend,
         e2e,
+        rollback-production,
         dispatch-sdk-ts,
         dispatch-sdk-python,
       ]

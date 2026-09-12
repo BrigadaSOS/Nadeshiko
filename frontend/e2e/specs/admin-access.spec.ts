@@ -1,4 +1,5 @@
-import { test, expect } from '../auth';
+import { e2eAccountForWorker, loginAsE2EUser, test, expect } from '../auth';
+import { e2eBypassHeaders, getE2EBaseUrl } from '../env';
 
 const ADMIN_PAGES = ['users', 'reports', 'agent-activity', 'announcement'] as const;
 
@@ -11,4 +12,38 @@ test.describe('Admin authorization', () => {
       await expect(authenticatedPage.getByTestId('account-username')).toBeVisible();
     });
   }
+
+  test('a normal account receives 403 from every admin API surface', async ({ authenticatedPage }) => {
+    for (const path of [
+      '/v1/admin/users-with-providers',
+      '/v1/admin/reports',
+      '/v1/admin/agent-activity',
+      '/v1/admin/announcement',
+    ]) {
+      const response = await authenticatedPage.request.get(path);
+      expect(response.status(), `${path} must reject a non-admin account`).toBe(403);
+    }
+  });
+
+  test('the staging admin can load every administration surface and its live data', async ({ browser }) => {
+    const context = await browser.newContext({ baseURL: getE2EBaseUrl(), extraHTTPHeaders: e2eBypassHeaders() });
+    const page = await context.newPage();
+
+    try {
+      await loginAsE2EUser(page, e2eAccountForWorker(9));
+      for (const [path, heading] of [
+        ['/user/admin/users', 'Users'],
+        ['/user/admin/reports', 'Report Management'],
+        ['/user/admin/agent-activity', 'Agent Activity'],
+        ['/user/admin/announcement', 'Announcement'],
+      ] as const) {
+        const response = await page.goto(path);
+        expect(response?.status(), `${path} should render for an admin`).toBe(200);
+        await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible({ timeout: 15_000 });
+        await expect(page.locator('.Vue-Toastification__toast--error')).toHaveCount(0);
+      }
+    } finally {
+      await context.close();
+    }
+  });
 });

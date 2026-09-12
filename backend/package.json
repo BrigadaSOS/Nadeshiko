@@ -52,6 +52,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:setup": "node --env-file=.env.test --import tsx bin/db.ts setup",
+    "test:migrations": "node --env-file=.env.test --import tsx bin/db.ts rollback && node --env-file=.env.test --import tsx bin/db.ts migrate && node --env-file=.env.test --import tsx bin/db.ts status --require-current",
     "test:watch": "vitest watch"
   },
   "author": "",

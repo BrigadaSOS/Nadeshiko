@@ -194,6 +194,11 @@ jobs:
           LOG_LEVEL: info
         run: npm run test:setup --workspace backend
 
+      - name: Verify latest migration rollback and reapply
+        env:
+          LOG_LEVEL: info
+        run: npm run test:migrations --workspace backend
+
       - name: Test
         run: npm run test:coverage --workspace backend
 
