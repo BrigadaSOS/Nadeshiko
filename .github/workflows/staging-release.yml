@@ -215,6 +215,17 @@ jobs:
           cd backend
           kamal deploy -d staging --skip-push
 
+      # Boot applies migrations, but deliberately does not run deployment
+      # seeds. Prepare the idempotent worker-account pool before the browser
+      # suite tries to authenticate; this also rotates its shared SSM password.
+      - name: Prepare staging E2E accounts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd backend
+          kamal app exec -d staging --reuse 'npm run db:prepare'
+
 
   deploy-frontend:
     # Deliberately not ordered after deploy-backend: staging is for feedback, so
