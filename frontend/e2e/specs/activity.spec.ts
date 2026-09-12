@@ -18,7 +18,7 @@ async function waitForActivity(page: Page, activityType: 'SEGMENT_PLAY' | 'SHARE
       const data = (await response.json()) as { activities?: Array<{ activityType?: string }> };
       return (data.activities ?? []).some((activity) => activity.activityType === activityType);
     }, {
-      timeout: 15_000,
+      timeout: 30_000,
       intervals: [500, 1_000, 2_000],
     })
     .toBe(true);

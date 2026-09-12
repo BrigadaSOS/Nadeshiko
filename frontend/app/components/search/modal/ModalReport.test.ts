@@ -116,6 +116,14 @@ afterEach(() => {
 });
 
 describe('which thing is being reported', () => {
+  test('exposes stable, accessible form controls for browser journeys', async () => {
+    const wrapper = await render(segmentTarget);
+
+    expect(wrapper.get('[data-testid="report-description"]').attributes('id')).toBe('report-description');
+    expect(wrapper.get('label[for="report-description"]').text()).toBe('reports.description');
+    expect(wrapper.get('[data-testid="report-submit"]').text()).toBe('reports.submit');
+  });
+
   test('a sentence report opens on the sentence reasons', async () => {
     const wrapper = await render(segmentTarget);
 

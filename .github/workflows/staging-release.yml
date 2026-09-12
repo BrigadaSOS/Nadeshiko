@@ -347,7 +347,7 @@ jobs:
     # A cold npm install can consume five minutes by itself. The full Chromium,
     # mobile and cross-browser smoke suite has more than 300 tests, so leave
     # enough room for dependency setup and useful retries. The tests themselves
-    # run eight-way in parallel against isolated seeded accounts.
+    # run four-way in parallel against isolated seeded accounts.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7

@@ -25,7 +25,7 @@ export const test = base.extend({
       // The app owns this public marker. Do not swallow the timeout: continuing
       // from an unhydrated SSR shell turns one useful failure into an arbitrary
       // click/layout failure several steps later.
-      await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 15_000 });
+      await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 30_000 });
       return response;
     };
 

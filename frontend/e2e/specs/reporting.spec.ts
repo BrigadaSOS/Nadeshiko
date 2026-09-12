@@ -16,13 +16,13 @@ test.describe('Reporting and moderation', () => {
     await expect(modal).toBeVisible();
     await modal.getByRole('button', { name: 'Other', exact: true }).click();
     const description = `E2E moderation report ${process.env.E2E_EXPECTED_SHA ?? Date.now()}`;
-    await modal.getByRole('textbox', { name: 'Description' }).fill(description);
+    await modal.getByTestId('report-description').fill(description);
 
     const createdResponse = authenticatedPage.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === '/v1/user/reports' && response.request().method() === 'POST',
     );
-    await modal.getByRole('button', { name: 'Submit', exact: true }).click();
+    await modal.getByTestId('report-submit').click();
     const created = await createdResponse;
     expect(created.status(), await created.text()).toBe(201);
     const report = (await created.json()) as { id: number };
