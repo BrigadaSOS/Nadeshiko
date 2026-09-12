@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { test, expect } from '../auth';
+import { test, expect, loginAsE2EUser } from '../auth';
 import { SettingsPage } from '../pages/SettingsPage';
 
 test.describe('User Settings', () => {
