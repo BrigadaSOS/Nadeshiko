@@ -14,10 +14,10 @@ export class SettingsPage {
     this.page = page;
     this.username = page.getByTestId('account-username');
     this.email = page.getByTestId('account-email');
-    this.logoutButton = page.getByRole('button', { name: 'Logout' });
+    this.logoutButton = page.getByTestId('account-sign-out');
     this.sessionsCard = page.getByTestId('sessions-card');
     this.refreshSessionsButton = page.getByRole('button', { name: 'Refresh' });
-    this.logOutOtherDevicesButton = page.getByRole('button', { name: 'Log Out Other Devices' });
+    this.logOutOtherDevicesButton = page.getByRole('button', { name: 'Sign out other devices', exact: true });
     this.defaultSearchCategory = page.getByTestId('default-search-category');
   }
 

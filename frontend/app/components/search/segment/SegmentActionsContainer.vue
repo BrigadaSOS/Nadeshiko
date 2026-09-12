@@ -464,7 +464,7 @@ const sharedMediaName = computed(() =>
           :iconPath="mdiTransferRight" @click="concatSentence('forward')" />
         <div :class="{ 'hidden min-[1250px]:block': !user.isLoggedIn }">
           <div class="nd-menu-divider" />
-          <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
+          <SearchDropdownItem data-testid="report-segment-action" :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
             :isDisabled="!user.isLoggedIn"
             :tooltip="!user.isLoggedIn ? $t('reports.loginRequired') : undefined"
             :on-disabled-click="!user.isLoggedIn ? () => openLoginModal('report_segment') : undefined"

@@ -7,6 +7,7 @@ import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { loadFixtures, type LoadedFixtures } from '../fixtures/loader';
 import { ActivityType, UserActivity } from '@app/models/UserActivity';
 import { UserMediaAffinity } from '@app/models/UserMediaAffinity';
+import { User } from '@app/models/User';
 import { AccountQuotaUsage } from '@app/models/AccountQuotaUsage';
 import { assertDifference, assertNoDifference } from '../helpers/assertions';
 import { assertMatchesSchema } from '../helpers/openapiContract';
@@ -104,6 +105,33 @@ describe('GET /v1/user/activity/heatmap', () => {
 });
 
 describe('POST /v1/user/activity', () => {
+  it('honors the current privacy preference even when the authenticated user snapshot is stale', async () => {
+    const staleAuthenticatedUser = core.users.kevin;
+    staleAuthenticatedUser.preferences = { searchHistory: { enabled: true } };
+    await staleAuthenticatedUser.save();
+    signInAs(app, staleAuthenticatedUser);
+
+    // Update through a separate statement without mutating the object held by
+    // the authentication fixture. This is the production failure mode: another
+    // request/process changed the row while auth still held its five-minute copy.
+    await User.update(staleAuthenticatedUser.id, { preferences: { searchHistory: { enabled: false } } });
+
+    try {
+      await assertNoDifference(
+        () => UserActivity.countBy({ userId: staleAuthenticatedUser.id, searchQuery: 'privacy-cache-regression' }),
+        async () => {
+          const res = await request(app)
+            .post('/v1/user/activity')
+            .send({ activityType: 'SEARCH', searchQuery: 'privacy-cache-regression' });
+          expect(res.status).toBe(204);
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        },
+      );
+    } finally {
+      await User.update(staleAuthenticatedUser.id, { preferences: { searchHistory: { enabled: true } } });
+    }
+  });
+
   it('tracks a SEGMENT_PLAY and returns 204', async () => {
     await assertDifference(
       () => UserActivity.countBy({ userId: fixtures.users.kevin.id, activityType: ActivityType.SEGMENT_PLAY }),
