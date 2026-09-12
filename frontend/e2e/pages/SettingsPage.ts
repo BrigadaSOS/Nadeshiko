@@ -22,7 +22,8 @@ export class SettingsPage {
   }
 
   async goto() {
-    await this.page.goto('/user/settings');
+    const response = await this.page.goto('/user/settings');
+    expect(response?.status(), 'settings navigation should return HTTP 200').toBe(200);
   }
 
   async expectLoaded() {

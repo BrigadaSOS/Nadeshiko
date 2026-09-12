@@ -9,7 +9,8 @@ test.describe('Sentence page', () => {
     const context = await browser.newContext({ extraHTTPHeaders: e2eBypassHeaders() });
     const page = await context.newPage();
     await page.goto(`${baseUrl}/search/彼女`);
-    await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
+    await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 });
+    await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 15_000 });
     const card = page.getByTestId('segment-card').first();
     await expect(card).toBeVisible({ timeout: 15_000 });
     const uuid = await card.getAttribute('id');

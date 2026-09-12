@@ -104,7 +104,7 @@ const SMOKE = !!process.env.E2E_SMOKE;
 // `search/keyboard-navigation.spec.ts`, quietly pulling seven extra tests into
 // a budget that is counted. Same trap as `isPrivatePath` in the app, and it
 // fails the same silent way -- a larger run that still looks deliberate.
-const SMOKE_ANONYMOUS = /\/(feeds|homepage|navigation|sentence)\.spec\.ts$/;
+const SMOKE_ANONYMOUS = /\/(feeds|homepage|navigation|release-health|sentence)\.spec\.ts$/;
 const SMOKE_AUTHENTICATED = /\/user-settings\.spec\.ts$/;
 const CROSS_BROWSER_SMOKE = /\/(homepage|release-health|user-settings|search\/search-results)\.spec\.ts$/;
 // One representative path per risk area is enough outside Chromium: SSR/CSP,

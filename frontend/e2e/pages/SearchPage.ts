@@ -78,11 +78,9 @@ export class SearchPage {
    */
   async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' } = {}) {
     const prefix = options.locale ? `/${options.locale}` : '';
-    if (query) {
-      await this.page.goto(`${prefix}/search/${encodeURIComponent(query)}`);
-    } else {
-      await this.page.goto(`${prefix}/search`);
-    }
+    const path = query ? `${prefix}/search/${encodeURIComponent(query)}` : `${prefix}/search`;
+    const response = await this.page.goto(path);
+    expect(response?.status(), `search navigation to ${path} should return HTTP 200`).toBe(200);
   }
 
   /**

@@ -274,7 +274,7 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          kamal deploy -d prod --skip-push
+          VERSION="$GITHUB_SHA" kamal deploy -d prod --skip-push
 
       # Anonymous sentence and search HTML is edge-cached for an hour
       # (`cloudflare-cache.tf` in brigadasos-infra, `edge_ttl: respect_origin`,
@@ -430,6 +430,7 @@ jobs:
           npx playwright test --config=e2e/playwright.config.ts
         env:
           E2E_BASE_URL: https://nadeshiko.co
+          E2E_EXPECTED_SHA: ${{ github.sha }}
           E2E_SMOKE: '1'
 
       - name: Upload test report

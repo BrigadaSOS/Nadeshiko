@@ -174,5 +174,6 @@ test.describe('health', () => {
 
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('json');
+    await expect(response.json()).resolves.toMatchObject({ status: 'ok', releaseSha: expect.any(String) });
   });
 });

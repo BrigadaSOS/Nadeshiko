@@ -9,6 +9,7 @@ const optionalString = z
   });
 
 const envSchema = z.object({
+  NUXT_RELEASE_SHA: z.string().trim().default('unknown'),
   NUXT_PUBLIC_ENVIRONMENT: z.preprocess(
     (val) => (val === '' ? undefined : val),
     z.enum(['local', 'development', 'production']).default('production'),

@@ -118,8 +118,8 @@ export const test = base.extend<{}, WorkerFixtures>({
     { scope: 'worker' },
   ],
   workerAuthState: [
-    async ({ browser, e2eAccount }, use) => {
-      const statePath = e2eAuthStatePath(e2eAccount.workerIndex);
+    async ({ browser, e2eAccount }, use, workerInfo) => {
+      const statePath = e2eAuthStatePath(e2eAccount.workerIndex, workerInfo.project.name);
       await mkdir(dirname(statePath), { recursive: true });
 
       const context = await browser.newContext({

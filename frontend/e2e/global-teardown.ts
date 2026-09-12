@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, type APIResponse } from '@playwright/test';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -21,6 +21,18 @@ const E2E_ACCOUNTS = process.env.E2E_SMOKE ? 1 : 9;
 export default async function globalTeardown() {
   if (!E2E_USER_PASSWORD) return;
 
+  const failures: string[] = [];
+  const requireOk = async (label: string, operation: Promise<APIResponse>): Promise<APIResponse | null> => {
+    try {
+      const response = await operation;
+      if (!response.ok()) failures.push(`${label}: HTTP ${response.status()} ${await response.text()}`);
+      return response.ok() ? response : null;
+    } catch (error) {
+      failures.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  };
+
   const browser = await chromium.launch();
   try {
     await Promise.all(
@@ -28,16 +40,19 @@ export default async function globalTeardown() {
         const context = await browser.newContext({ baseURL: BASE_URL, extraHTTPHeaders: e2eBypassHeaders() });
         const request = context.request;
         try {
-          const loginRes = await request.post('/v1/auth/sign-in/email', {
-            headers: { Origin: BASE_URL },
-            data: { email: e2eAccountForWorker(workerIndex).email, password: E2E_USER_PASSWORD },
-          });
-          if (!loginRes.ok()) return;
+          const loginRes = await requireOk(
+            `worker ${workerIndex} login`,
+            request.post('/v1/auth/sign-in/email', {
+              headers: { Origin: BASE_URL },
+              data: { email: e2eAccountForWorker(workerIndex).email, password: E2E_USER_PASSWORD },
+            }),
+          );
+          if (!loginRes) return;
 
           // Delete all API keys (handles possibly-truncated responses by looping).
           for (let round = 0; round < 20; round++) {
-            const keysRes = await request.get('/v1/auth/api-key/list');
-            if (!keysRes.ok()) break;
+            const keysRes = await requireOk(`worker ${workerIndex} list API keys`, request.get('/v1/auth/api-key/list'));
+            if (!keysRes) break;
 
             const text = await keysRes.text();
             const ids = [...text.matchAll(/"id":"(\d+)"/g)].map((match) => match[1]);
@@ -45,45 +60,61 @@ export default async function globalTeardown() {
 
             await Promise.all(
               [...new Set(ids)].map((id) =>
-                request
-                  .post('/v1/auth/api-key/delete', { headers: { Origin: BASE_URL }, data: { keyId: id } })
-                  .catch(() => {}),
+                requireOk(
+                  `worker ${workerIndex} delete API key ${id}`,
+                  request.post('/v1/auth/api-key/delete', { headers: { Origin: BASE_URL }, data: { keyId: id } }),
+                ),
               ),
             );
           }
 
-          const collectionsRes = await request.get('/v1/collections?take=100');
-          if (collectionsRes.ok()) {
+          const collectionsRes = await requireOk(
+            `worker ${workerIndex} list collections`,
+            request.get('/v1/collections?take=100'),
+          );
+          if (collectionsRes) {
             const data = (await collectionsRes.json()) as {
               collections?: { publicId: string; name: string }[];
             };
             await Promise.all(
               (data.collections ?? [])
                 .filter((collection) => collection.name.startsWith('e2e-'))
-                .map((collection) => request.delete(`/v1/collections/${collection.publicId}`).catch(() => {})),
+                .map((collection) =>
+                  requireOk(
+                    `worker ${workerIndex} delete collection ${collection.publicId}`,
+                    request.delete(`/v1/collections/${collection.publicId}`),
+                  ),
+                ),
             );
           }
 
           await Promise.all([
-            request.patch('/v1/user/preferences', {
-              data: {
-                ankiProfiles: [],
-                defaultSearchCategory: 'ALL',
-                familiarMedia: { enabled: true },
-                hiddenCategories: [],
-                hiddenMedia: [],
-                mediaCardDefault: 'OPEN',
-                searchHistory: { enabled: true },
-              },
-            }).catch(() => {}),
-            request.delete('/v1/user/activity').catch(() => {}),
-            request.delete('/v1/user/familiar-media').catch(() => {}),
+            requireOk(
+              `worker ${workerIndex} reset preferences`,
+              request.patch('/v1/user/preferences', {
+                data: {
+                  ankiProfiles: [],
+                  defaultSearchCategory: 'ALL',
+                  familiarMedia: { enabled: true },
+                  hiddenCategories: [],
+                  hiddenMedia: [],
+                  mediaCardDefault: 'OPEN',
+                  searchHistory: { enabled: true },
+                },
+              }),
+            ),
+            requireOk(`worker ${workerIndex} clear activity`, request.delete('/v1/user/activity')),
+            requireOk(`worker ${workerIndex} clear familiar media`, request.delete('/v1/user/familiar-media')),
           ]);
 
-          await request
-            .post('/v1/auth/revoke-other-sessions', { headers: { Origin: BASE_URL } })
-            .catch(() => {});
-          await request.post('/v1/auth/sign-out', { headers: { Origin: BASE_URL } }).catch(() => {});
+          await requireOk(
+            `worker ${workerIndex} revoke other sessions`,
+            request.post('/v1/auth/revoke-other-sessions', { headers: { Origin: BASE_URL } }),
+          );
+          await requireOk(
+            `worker ${workerIndex} sign out`,
+            request.post('/v1/auth/sign-out', { headers: { Origin: BASE_URL } }),
+          );
         } finally {
           await context.close();
         }
@@ -91,5 +122,9 @@ export default async function globalTeardown() {
     );
   } finally {
     await browser.close();
+  }
+
+  if (failures.length > 0) {
+    throw new AggregateError(failures.map((message) => new Error(message)), 'E2E cleanup failed');
   }
 }
