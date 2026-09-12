@@ -227,6 +227,7 @@ watch(isLoginModalOpen, (open) => {
 
           <button
             type="button"
+            data-testid="auth-provider-google"
             @click="handleGoogleLogin"
             class="py-3 w-full px-4 inline-flex justify-center items-center gap-2 rounded-md font-semibold bg-white text-[#1f1f1f] hover:bg-neutral-100"
           >
@@ -241,6 +242,7 @@ watch(isLoginModalOpen, (open) => {
 
           <button
             type="button"
+            data-testid="auth-provider-discord"
             @click="handleDiscordLogin"
             class="py-3 w-full px-4 inline-flex justify-center items-center gap-2 rounded-md font-semibold bg-[#5865F2] text-white hover:bg-[#4752C4]"
           >
@@ -255,6 +257,7 @@ watch(isLoginModalOpen, (open) => {
             <div v-if="!magicLinkSent" class="flex gap-2">
               <input
                 v-model="magicLinkEmail"
+                data-testid="magic-link-email"
                 type="email"
                 :disabled="magicLinkLoading"
                 :placeholder="$t('modalauth.magiclink.placeholder')"
@@ -266,7 +269,8 @@ watch(isLoginModalOpen, (open) => {
                    sits for four to six seconds; without a spinner the reader
                    gets no acknowledgement at all and presses it again. -->
               <UiButtonPrimaryAction
-                :disabled="magicLinkLoading"
+                data-testid="magic-link-send"
+                :disabled="magicLinkLoading || !magicLinkEmail.trim()"
                 @click="handleMagicLink"
                 class="py-2 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-surface text-ink hover:bg-surface-hover disabled:opacity-50"
               >
@@ -279,7 +283,7 @@ watch(isLoginModalOpen, (open) => {
                    old copy said only "check your email", which left the code
                    field below it looking like something you might have to fill
                    in as well as opening the link. -->
-              <p class="text-sm text-green-400">{{ $t('modalauth.magiclink.sent', { email: magicLinkEmail }) }}</p>
+              <p data-testid="magic-link-sent" class="text-sm text-green-400">{{ $t('modalauth.magiclink.sent', { email: magicLinkEmail }) }}</p>
               <p class="text-sm text-gray-400">{{ $t('modalauth.magiclink.sentHint') }}</p>
 
               <!-- The code is the second way in, for when the mail is on a phone
@@ -289,6 +293,7 @@ watch(isLoginModalOpen, (open) => {
               <div class="flex gap-2">
                 <input
                   v-model="loginCode"
+                  data-testid="magic-link-code"
                   type="text"
                   inputmode="text"
                   autocomplete="one-time-code"
@@ -302,6 +307,7 @@ watch(isLoginModalOpen, (open) => {
                   @keyup.enter="handleLoginCode"
                 />
                 <UiButtonPrimaryAction
+                  data-testid="magic-link-code-submit"
                   :disabled="codeLoading || !loginCode.trim()"
                   @click="handleLoginCode"
                   class="py-2 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold bg-surface text-ink hover:bg-surface-hover disabled:opacity-50"
@@ -310,8 +316,8 @@ watch(isLoginModalOpen, (open) => {
                 </UiButtonPrimaryAction>
               </div>
 
-              <p v-if="codeError" class="text-sm text-red-300">{{ codeError }}</p>
-              <p v-if="magicLinkError" class="text-sm text-amber-300">{{ magicLinkError }}</p>
+              <p v-if="codeError" data-testid="magic-link-code-error" class="text-sm text-red-300">{{ codeError }}</p>
+              <p v-if="magicLinkError" data-testid="magic-link-error" class="text-sm text-amber-300">{{ magicLinkError }}</p>
 
               <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 <!-- The wait is shown rather than the button being merely dead,
@@ -323,13 +329,14 @@ watch(isLoginModalOpen, (open) => {
                 </span>
                 <button
                   v-else
+                  data-testid="magic-link-resend"
                   class="underline text-gray-400 hover:text-gray-300"
                   :disabled="magicLinkLoading"
                   @click="handleMagicLink"
                 >
                   {{ $t('modalauth.magiclink.resend') }}
                 </button>
-                <button class="underline text-gray-400 hover:text-gray-300" @click="resetMagicLink">
+                <button data-testid="magic-link-retry" class="underline text-gray-400 hover:text-gray-300" @click="resetMagicLink">
                   {{ $t('modalauth.magiclink.retry') }}
                 </button>
               </p>

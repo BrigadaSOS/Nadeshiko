@@ -344,7 +344,13 @@ export const userStore = defineStore('user', {
         const status =
           (error as { status?: number; response?: { status?: number } })?.status ??
           (error as { response?: { status?: number } })?.response?.status;
-        const detail = (error as { data?: { code?: string } })?.data?.code;
+        // The browser SDK normalises Better Auth's `{ code, message }` response
+        // into `NadeshikoError`, where the code lives directly on the error. The
+        // mocked store tests use the raw `{ data: { code } }` shape, so accept
+        // both; otherwise a real wrong-browser response is shown as the generic
+        // invalid-code copy and loses the advice to open the email link.
+        const authError = error as { code?: string; data?: { code?: string } };
+        const detail = authError.data?.code ?? authError.code;
 
         handleApiError('auth:login-code-failed', error, { toastKey: false });
         if (status === 400 && detail === 'LOGIN_CODE_NOT_BOUND') return 'wrong-browser';
