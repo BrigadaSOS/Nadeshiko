@@ -47,7 +47,11 @@ test.describe('Recent searches (account)', () => {
     await search.expectHydrated();
     await search.openRecents();
 
-    await search.recentsItem(QUERY).first().getByTestId('search-recents-forget').click();
+    // Delete the unscoped row established above. Other specs can leave a
+    // title-scoped search for the same query on this worker account; choosing
+    // the first text match then forgets that different row and makes this
+    // assertion fail intermittently.
+    await search.unscopedRecentsItem(QUERY).getByTestId('search-recents-forget').click();
 
     // A row deleted only on the device would come straight back on the next
     // load, since the account is what the next device reads.

@@ -1,0 +1,97 @@
+name: Verify staging E2E
+
+on:
+  workflow_call:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    # Staging is checks (up to 45m), deploy (up to 30m), then E2E (up to
+    # 45m). Leave ten minutes for this job's own setup and final API calls.
+    timeout-minutes: 130
+    steps:
+      # A production tag is a second, independent workflow trigger. `needs`
+      # cannot cross that boundary, so resolve the newest staging workflow for
+      # the exact tagged SHA through the Actions API and require both app
+      # deploys and E2E to have passed in that one run. An ancestor's result is
+      # deliberately insufficient: every commit between it and the tag is part
+      # of the release. Nor is a partial manual deploy sufficient: production
+      # always ships both apps, so staging must have exercised that exact stack.
+      #
+      # If the tag is pushed while staging is still running, wait for that run
+      # instead of making a safe release fail merely because the two triggers
+      # crossed by a few seconds. No matching run fails immediately; this also
+      # makes the manual staging pass mandatory for a production-branch hotfix.
+      - name: Require successful staging E2E for this commit
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const workflowId = 'staging-release.yml';
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: workflowId,
+              head_sha: sha,
+              per_page: 10,
+            });
+
+            let run = runs.data.workflow_runs[0];
+            if (!run) {
+              throw new Error(
+                `No staging release exists for ${sha}. Run [Stg] Release for this exact commit, ` +
+                'wait for its E2E job to pass, then re-run this production workflow.',
+              );
+            }
+
+            const deadline = Date.now() + 120 * 60 * 1000;
+            while (run.status !== 'completed') {
+              if (Date.now() >= deadline) {
+                throw new Error(`Timed out waiting for staging run ${run.html_url}.`);
+              }
+
+              core.info(`Waiting for staging run ${run.html_url} (${run.status})...`);
+              await new Promise((resolve) => setTimeout(resolve, 30_000));
+              const response = await github.rest.actions.getWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id,
+              });
+              run = response.data;
+            }
+
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner,
+              repo,
+              run_id: run.id,
+              filter: 'latest',
+              per_page: 100,
+            });
+            const requiredJobs = ['deploy-backend', 'deploy-frontend', 'e2e'];
+            const outcomes = requiredJobs.map((name) => {
+              const job = jobs.find((candidate) => candidate.name === name);
+              return {
+                name,
+                conclusion: job?.conclusion ?? 'not run',
+                url: job?.html_url ?? run.html_url,
+              };
+            });
+            const rejected = outcomes.filter((job) => job.conclusion !== 'success');
+
+            if (rejected.length > 0) {
+              const detail = rejected
+                .map((job) => `${job.name}: ${job.conclusion} (${job.url})`)
+                .join('\n');
+              throw new Error(
+                `Staging did not exercise the complete ${sha} stack successfully; production is blocked.\n${detail}`,
+              );
+            }
+
+            core.notice(`Both staging deploys and E2E passed for ${sha}: ${run.html_url}`);

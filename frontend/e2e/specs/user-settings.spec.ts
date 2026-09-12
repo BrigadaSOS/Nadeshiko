@@ -4,13 +4,13 @@ import { test, expect, loginAsE2EUser } from '../auth';
 import { SettingsPage } from '../pages/SettingsPage';
 
 test.describe('User Settings', () => {
-  test('displays correct username and email after login', async ({ authenticatedPage }) => {
+  test('displays correct username and email after login', async ({ authenticatedPage, e2eAccount }) => {
     const settings = new SettingsPage(authenticatedPage);
     await settings.goto();
     await settings.expectLoaded();
 
-    await expect(settings.username).toHaveText('e2e-user');
-    await expect(settings.email).toHaveText('e2e-user@nadeshiko.co');
+    await expect(settings.username).toHaveText(e2eAccount.username);
+    await expect(settings.email).toHaveText(e2eAccount.email);
   });
 
   test('redirects to home when not logged in', async ({ page }) => {
@@ -47,8 +47,8 @@ test.describe('User Settings', () => {
      * that follows a preference change on the same cookie can still be serving the
      * previous value. A new session has nothing cached under it.
      */
-    test('opens searches on the stored category', async ({ page }) => {
-      await loginAsE2EUser(page);
+    test('opens searches on the stored category', async ({ page, e2eAccount }) => {
+      await loginAsE2EUser(page, e2eAccount);
 
       try {
         await page.request.patch('/v1/user/preferences', { data: { defaultSearchCategory: 'ANIME' } });

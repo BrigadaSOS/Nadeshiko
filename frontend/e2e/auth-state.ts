@@ -1,4 +1,8 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const E2E_AUTH_STATE_PATH = resolve(dirname(fileURLToPath(import.meta.url)), '.auth/e2e-user.json');
+const AUTH_STATE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '.auth');
+
+export function e2eAuthStatePath(workerIndex: number): string {
+  return resolve(AUTH_STATE_DIR, `e2e-user-${workerIndex}.json`);
+}

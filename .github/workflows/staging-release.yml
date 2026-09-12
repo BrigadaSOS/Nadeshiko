@@ -24,6 +24,14 @@ permissions:
 env:
   NODE_VERSION: '24'
 
+# Keep the deployed staging revision stable until its E2E suite finishes. Job-
+# level deploy locks alone release as soon as Kamal finishes, which allowed the
+# next workflow to replace staging while the previous commit was still under
+# test. A queued run may wait; it must not invalidate the evidence prod trusts.
+concurrency:
+  group: nadeshiko-staging-release
+  cancel-in-progress: false
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -229,11 +237,10 @@ jobs:
     needs: [deploy-backend, deploy-frontend]
     if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
     runs-on: ubuntu-latest
-    # A cold npm install can consume five minutes by itself. The suite has grown
-    # to 273 staging-active tests, so 15 minutes canceled healthy runs before
-    # Playwright could finish or write its report.
-    # The staging suite is serial because its authenticated specs share one
-    # account. Dependency setup plus all browser tests takes about 30 minutes.
+    # A cold npm install can consume five minutes by itself. The full Chromium,
+    # mobile and cross-browser smoke suite has more than 300 tests, so leave
+    # enough room for dependency setup and useful retries. The tests themselves
+    # run eight-way in parallel against isolated seeded accounts.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -296,11 +303,11 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-all-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: Install the Playwright browser
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
         working-directory: frontend
 
       # The cache holds the browser, not the apt packages it links against, and
@@ -309,7 +316,7 @@ jobs:
       # would fail at launch rather than at install.
       - name: Install the Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: npx playwright install-deps chromium firefox webkit
         working-directory: frontend
 
       - name: Run E2E tests
@@ -323,7 +330,9 @@ jobs:
         if: always()
         with:
           name: playwright-report-stg
-          path: frontend/playwright-report/
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/e2e-results.xml
           retention-days: 14
 
   dispatch-sdk-python:

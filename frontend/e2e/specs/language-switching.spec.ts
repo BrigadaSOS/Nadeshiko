@@ -26,7 +26,7 @@ test.describe('Language switching', () => {
     await langSelector.getByTestId('dropdown-menu').getByText('日本語').click();
 
     await expect(page).toHaveURL(/\/ja/, { timeout: 10_000 });
-    await expect(page.locator('header').getByRole('button', { name: /日本語/ })).toBeVisible({ timeout: 10_000 });
+    await expect(langSelector.getByTestId('dropdown-toggle')).toContainText('日本語', { timeout: 10_000 });
   });
 
   test('language prefix persists across navigation', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('Language switching', () => {
     await expect(page).toHaveURL(/\/es\/media/);
 
     // Language should still be Spanish
-    await expect(page.locator('header').getByRole('button', { name: /Español/ })).toBeVisible();
+    await expect(langSelector.getByTestId('dropdown-toggle')).toContainText('Español');
   });
 
   test('search page buttons update when switching language', async ({ page }) => {

@@ -7,11 +7,15 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   packages: write
   id-token: write
 
 jobs:
+  staging-e2e:
+    uses: ./.github/workflows/verify-staging-e2e.yml
+
   checks:
     uses: ./.github/workflows/checks.yml
     with:
@@ -20,7 +24,7 @@ jobs:
       seed_worker: false
 
   deploy-discord:
-    needs: checks
+    needs: [staging-e2e, checks]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # The bot container is independent of the app services, so it gets its own
@@ -81,7 +85,7 @@ jobs:
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, deploy-discord]
+    needs: [staging-e2e, checks, deploy-discord]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit

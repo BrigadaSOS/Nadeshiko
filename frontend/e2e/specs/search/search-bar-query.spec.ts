@@ -47,7 +47,11 @@ test.describe('The search bar shows the search in the URL', () => {
 
     await page.goBack();
     await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1$/, { timeout: 15_000, waitUntil: 'commit' });
-    await expect(search.searchInput).toHaveValue('学校');
+    // History navigation can commit while the incoming Suspense page is still
+    // an empty shell. Wait for the control itself, then read it once: the
+    // instant it appears it must already agree with the URL.
+    await search.searchInput.waitFor({ state: 'attached', timeout: 15_000 });
+    expect(await search.searchInput.inputValue()).toBe('学校');
   });
 
   test('a search page with no query leaves the bar empty', async ({ page }) => {
