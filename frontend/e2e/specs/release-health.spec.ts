@@ -24,14 +24,22 @@ test.describe('Deployed application health', () => {
     expect(response?.status()).toBe(200);
     await expect(page.locator('html[data-hydrated="true"]')).toBeAttached();
 
-    const stylesheetState = await page.locator('link[rel="stylesheet"][href]').evaluateAll((links) =>
-      links.map((link) => ({
-        href: (link as HTMLLinkElement).href,
-        loaded: Boolean((link as HTMLLinkElement).sheet),
-      })),
-    );
-    expect(stylesheetState.length, 'the deployed page should load external CSS').toBeGreaterThan(0);
-    expect(stylesheetState.filter((stylesheet) => !stylesheet.loaded), 'every stylesheet should be applied').toEqual([]);
+    const stylesheets = page.locator('link[rel="stylesheet"][href]');
+    expect(await stylesheets.count(), 'the deployed page should load external CSS').toBeGreaterThan(0);
+    // Hydration can finish while route-level CSS is still downloading. Poll
+    // the live set: an immediate snapshot consistently raced those final files
+    // on CI even though they returned 200 and were applied milliseconds later.
+    await expect
+      .poll(
+        () =>
+          stylesheets.evaluateAll((links) =>
+            links
+              .filter((link) => !Boolean((link as HTMLLinkElement).sheet))
+              .map((link) => (link as HTMLLinkElement).href),
+          ),
+        { message: 'every stylesheet should be applied' },
+      )
+      .toEqual([]);
     expect(await page.evaluate(() => window.__e2eCspViolations ?? [])).toEqual([]);
     expect(pageErrors).toEqual([]);
   });
