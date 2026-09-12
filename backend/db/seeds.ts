@@ -183,10 +183,10 @@ export async function seedE2ETestUsers() {
       await manager.query(
         `
           INSERT INTO "account" (
-            "account_id", "provider_id", "issuer", "user_id", "password", "created_at", "updated_at"
+            "account_id", "provider_id", "user_id", "password", "created_at", "updated_at"
           )
-          VALUES ($1, 'credential', 'local:credential', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-          ON CONFLICT ("issuer", "account_id")
+          VALUES ($1, 'credential', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT ("provider_id", "account_id")
           DO UPDATE SET
             "user_id" = EXCLUDED."user_id",
             "password" = EXCLUDED."password",
