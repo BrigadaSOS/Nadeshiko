@@ -575,7 +575,6 @@ const logoutCurrentUser = async () => {
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.sessions.title') }}</h3>
       <div class="flex flex-wrap gap-2">
         <button
-          data-testid="account-export"
           class="nd-btn"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="refreshSessions()"
@@ -590,7 +589,6 @@ const logoutCurrentUser = async () => {
           {{ $t('accountSettings.account.sessions.logoutOtherDevices') }}
         </button>
         <button
-          data-testid="account-delete"
           class="nd-btn-accent"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeAllUserSessions"
@@ -939,6 +937,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
         </div>
         <button
+          data-testid="account-export"
           class="nd-btn"
           :disabled="exportingData"
           @click="exportData"
@@ -951,6 +950,7 @@ const logoutCurrentUser = async () => {
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
+          data-testid="account-delete"
           class="nd-btn-accent"
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"

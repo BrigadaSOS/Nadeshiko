@@ -69,8 +69,18 @@ async function someMediaPublicIds(page: Page, count: number): Promise<string[]> 
 
 /** Searches the way a reader does, so what is recorded is what the app records. */
 async function searchFor(page: Page, query: string): Promise<void> {
+  // Register before navigation: tracking is intentionally fire-and-forget and
+  // can otherwise still be queued when the test restores the preference. The
+  // server would then correctly see the restored value and record the search,
+  // making a synchronization race look like a privacy regression.
+  const tracked = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/v1/user/activity' && response.request().method() === 'POST',
+  );
   await page.goto(`/search/${encodeURIComponent(query)}`);
   await expect(page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
+  const response = await tracked;
+  expect(response, await response.text()).toBeOK();
 }
 
 /**

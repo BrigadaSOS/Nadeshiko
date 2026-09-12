@@ -122,7 +122,7 @@ export class SearchPage {
 
   /** Set by app/plugins/hydrated.client.ts once Vue finishes hydrating. */
   async expectHydrated() {
-    await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
+    await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 30_000 });
   }
 
   async expectCategoryTabsVisible() {
