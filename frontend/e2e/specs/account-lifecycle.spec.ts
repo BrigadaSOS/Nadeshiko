@@ -99,7 +99,9 @@ test.describe('Destructive account lifecycle', () => {
       );
       await primaryPage.getByTestId('account-delete').click();
       const deleted = await deletionResponse;
-      expect(deleted, await deleted.text()).toBeOK();
+      // `waitForResponse` returns a browser Response, not an APIResponse; its
+      // body can also disappear as the successful deletion navigates home.
+      expect(deleted.ok(), `account deletion returned HTTP ${deleted.status()}`).toBe(true);
       await expect(primaryPage).toHaveURL(/\/(?:en|es|ja)\/?$/, { timeout: 15_000 });
 
       const deletedLogin = await primaryPage.request.post('/v1/auth/sign-in/email', {

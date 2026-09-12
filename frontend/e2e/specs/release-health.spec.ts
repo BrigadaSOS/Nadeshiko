@@ -13,7 +13,13 @@ test.describe('Deployed application health', () => {
     page.on('pageerror', (error) => pageErrors.push(error.message));
     page.on('response', (response) => {
       const type = response.request().resourceType();
-      if ((type === 'script' || type === 'stylesheet') && !response.ok()) {
+      const url = new URL(response.url());
+      // Cloudflare injects its own challenge bootstrap under `/cdn-cgi/`. It
+      // intentionally begins with a redirect and is not a release artifact;
+      // counting it made every engine report a broken asset while every Nuxt
+      // script and stylesheet loaded successfully.
+      const isApplicationAsset = url.origin === new URL(page.url()).origin && !url.pathname.startsWith('/cdn-cgi/');
+      if ((type === 'script' || type === 'stylesheet') && isApplicationAsset && !response.ok()) {
         assetFailures.push({ status: response.status(), url: response.url() });
       }
     });
