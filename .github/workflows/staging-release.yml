@@ -265,17 +265,6 @@ jobs:
           cd backend
           VERSION="$GITHUB_SHA" kamal deploy -d staging --skip-push
 
-      # Boot applies migrations, but deliberately does not run deployment
-      # seeds. Prepare the idempotent worker-account pool before the browser
-      # suite tries to authenticate; this also rotates its shared SSM password.
-      - name: Prepare staging E2E accounts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          cd backend
-          kamal app exec -d staging --reuse 'npm run db:prepare'
-
       - name: Verify backend revision and dependencies
         run: |
           set -euo pipefail
@@ -380,6 +369,20 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
 
+      - name: Set up deployment access for disposable accounts
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Prepare disposable E2E accounts
+        id: accounts
+        working-directory: backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: kamal app exec -d staging --reuse "E2E_RUN_ID=${E2E_RUN_ID} npm run db:prepare"
+
       - name: Fetch E2E secrets from AWS SSM
         run: |
           E2E_USER_PASSWORD=$(aws ssm get-parameter --name "/nadeshiko/staging/E2E_USER_PASSWORD" --with-decryption --query 'Parameter.Value' --output text)
@@ -444,11 +447,12 @@ jobs:
         working-directory: frontend
 
       - name: Run E2E tests
-        run: npx playwright test --config=e2e/playwright.config.ts
+        run: bash scripts/run-e2e.sh staging
         working-directory: frontend
         env:
           E2E_BASE_URL: https://stg.nadeshiko.co
           E2E_EXPECTED_SHA: ${{ github.sha }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Enforce E2E skip budget
         run: node e2e/check-junit-budget.mjs test-results/e2e-results.xml 11
@@ -473,6 +477,30 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/e2e-results.xml
           retention-days: 14
+
+  cleanup-e2e:
+    needs: e2e
+    if: ${{ always() && needs.e2e.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
+          aws-region: eu-north-1
+      - name: Set up deployment access
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+      - name: Remove disposable E2E accounts
+        working-directory: backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: kamal app exec -d staging --reuse "E2E_RUN_ID=${E2E_RUN_ID} npm run db:cleanup-e2e"
 
   dispatch-sdk-python:
     needs: [changes, checks]
@@ -508,7 +536,7 @@ jobs:
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, build-backend, build-frontend, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
+    needs: [checks, build-backend, build-frontend, deploy-backend, deploy-frontend, e2e, cleanup-e2e, dispatch-sdk-python]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit

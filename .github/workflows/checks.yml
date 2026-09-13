@@ -59,6 +59,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Verify deploy configuration
+        run: scripts/verify-deploy-config
+
       - name: Set up the workspace
         uses: ./.github/actions/setup-workspace
         with:

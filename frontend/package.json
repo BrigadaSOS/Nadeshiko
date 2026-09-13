@@ -19,9 +19,10 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest watch",
     "test:e2e": "playwright test --config=e2e/playwright.config.ts",
-    "test:e2e:dev": "bash scripts/run-e2e-remote.sh dev",
-    "test:e2e:prod": "bash scripts/run-e2e-remote.sh prod",
-    "test:e2e:local": "E2E_BASE_URL=http://localhost:3000 playwright test --config=e2e/playwright.config.ts",
+    "test:e2e:staging": "bash scripts/run-e2e.sh staging",
+    "test:e2e:dev": "bash scripts/run-e2e.sh staging",
+    "test:e2e:prod": "bash scripts/run-e2e.sh prod",
+    "test:e2e:local": "bash scripts/run-e2e.sh local",
     "setup": "node --import tsx bin/setup.ts"
   },
   "dependencies": {

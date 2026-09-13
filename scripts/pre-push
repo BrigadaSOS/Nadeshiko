@@ -29,6 +29,9 @@ fi
 
 echo "Running lint, typecheck and the hermetic checks..."
 
+echo "=> Deploy configuration"
+scripts/verify-deploy-config || { echo "Deploy configuration verification failed"; exit 1; }
+
 # Both fan out over every workspace that owns the script, so a workspace added
 # later is covered here the day it is added rather than the day someone
 # remembers this file. Frontend `lint` includes the locale check; backend `lint`
