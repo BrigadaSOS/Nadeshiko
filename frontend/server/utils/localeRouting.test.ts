@@ -77,6 +77,9 @@ describe('resolveRootLocale', () => {
     expect(resolveRootLocale('en')).toBe('en');
     expect(resolveRootLocale('es')).toBe('es');
     expect(resolveRootLocale('ja')).toBe('ja');
+    expect(resolveRootLocale('zh-CN')).toBe('zh-CN');
+    expect(resolveRootLocale('id')).toBe('id');
+    expect(resolveRootLocale('pt-BR')).toBe('pt-BR');
   });
 
   it('falls back to English rather than trusting a cookie a visitor forged', () => {

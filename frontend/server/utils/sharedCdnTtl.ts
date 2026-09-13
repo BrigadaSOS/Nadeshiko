@@ -60,7 +60,7 @@ export function sharedCdnMaxAge(path: string, environment?: string): number {
 }
 
 function ttlForPath(path: string): number {
-  const withoutLocale = path.replace(/^\/(en|es|ja)(?=\/|$)/, '') || '/';
+  const withoutLocale = path.replace(/^\/(en|es|ja|zh-CN|id|pt-BR)(?=\/|$)/, '') || '/';
 
   if (withoutLocale.startsWith('/sentence/')) return SHARED_CDN_MAX_AGE_SENTENCE;
   if (withoutLocale === '/search' || withoutLocale.startsWith('/search/')) return SHARED_CDN_MAX_AGE_SEARCH;

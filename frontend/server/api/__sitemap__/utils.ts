@@ -1,10 +1,13 @@
 import type { H3Event } from 'h3';
+import { INDEXED_LOCALES, type IndexedLocale } from '~/utils/i18n';
 
-export type SitemapLocale = 'en' | 'es';
+export type SitemapLocale = IndexedLocale;
 
 export function getSitemapLocale(event: H3Event): SitemapLocale {
   const locale = getQuery(event).locale;
-  return locale === 'es' ? 'es' : 'en';
+  return typeof locale === 'string' && (INDEXED_LOCALES as readonly string[]).includes(locale)
+    ? (locale as SitemapLocale)
+    : 'en';
 }
 
 export function localizeSitemapPath(path: string, locale: SitemapLocale): string {

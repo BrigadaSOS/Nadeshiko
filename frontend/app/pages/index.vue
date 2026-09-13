@@ -151,7 +151,7 @@ function reportBotInstallClick(): void {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
-                                                >{{ locale === 'ja' ? '例文採集（センテンスマイニング）' : locale === 'es' ? 'minería de frases' : 'sentence mining' }}</a>
+                                                >{{ $t('home.sentenceMiningLabel') }}</a>
                                             </template>
                                         </i18n-t>
                                         <ul class="list-disc ml-8 py-4 text-sm font-normal">

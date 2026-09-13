@@ -1,0 +1,1494 @@
+{
+  "errors": {
+    "generic": "出了点问题，请重试。",
+    "rateLimited": "请求过于频繁，请稍后重试。"
+  },
+  "navbar": {
+    "buttons": {
+      "home": "首页",
+      "about": "关于",
+      "api": "API",
+      "login": "登录 / 注册",
+      "profile": "个人资料",
+      "privacy": "隐私政策",
+      "dmca": "版权投诉",
+      "terms": "使用条款",
+      "settings": "设置",
+      "blog": "博客",
+      "changelog": "更新日志",
+      "stats": "数据统计",
+      "media": "作品目录",
+      "collections": "例句集",
+      "activity": "学习记录",
+      "language": "语言",
+      "logout": "退出登录"
+    }
+  },
+  "announcementBanner": {
+    "titles": {
+      "INFO": "通知",
+      "WARNING": "重要通知",
+      "MAINTENANCE": "维护通知"
+    }
+  },
+  "player": {
+    "nowPlaying": "正在播放",
+    "controls": {
+      "rewind": "快退",
+      "forward": "快进",
+      "previous": "上一片段",
+      "next": "下一片段",
+      "play": "播放",
+      "pause": "暂停",
+      "autoplay": "自动播放",
+      "repeat": "循环播放",
+      "speed": "播放速度（{rate}×）",
+      "speedMenu": "播放速度",
+      "volume": "音量",
+      "enterFullscreen": "全屏",
+      "exitFullscreen": "退出全屏",
+      "close": "关闭播放器"
+    }
+  },
+  "common": {
+    "loading": "加载中…",
+    "example": "例如：{value}",
+    "cancel": "取消",
+    "search": "搜索",
+    "clearSearch": "清空搜索",
+    "close": "关闭",
+    "confirm": "确认",
+    "logoAlt": "Nadeshiko 标志",
+    "navigationMenu": "导航菜单",
+    "searchAnything": "搜索日语例句",
+    "toggleNavigation": "展开或收起导航",
+    "translationUnavailable": "此页面暂未提供中文版本，当前显示英文内容。",
+    "justNow": "刚刚",
+    "skipToContent": "跳至正文"
+  },
+  "appMeta": {
+    "defaultTitle": "Nadeshiko：搜索动画、日剧和 YouTube 中的日语例句",
+    "defaultPageTitle": "搜索动画、日剧和 YouTube 中的日语例句",
+    "defaultDescription": "搜索动画、日剧和 YouTube 中的百万余条日语例句，查看原声、截图和上下文，轻松采集例句制作学习卡片。例句译文目前提供英语和西班牙语，暂不提供中文。"
+  },
+  "home": {
+    "supportOnPatreon": "在 Patreon 上支持我们",
+    "version": "v{version}",
+    "nadeDbDescription": "搜索动画、日剧和 YouTube 中的百万余条日语例句，查看原声、截图和上下文，轻松进行{sentenceMining}。例句译文目前提供英语和西班牙语，暂不提供中文。",
+    "sentenceMiningLabel": "例句采集（Sentence Mining）",
+    "nadeDbDescriptionJpSearch": "用日语搜索",
+    "nadeDbDescriptionOtherSearch": "用英语或西班牙语搜索译文",
+    "nadeDbDescriptionExclusiveSearch": "排除指定词语",
+    "nadeDbDescriptionExactSearch": "精确搜索",
+    "keyFeatures": {
+      "feature1": {
+        "title": "导出到 Anki",
+        "description": "将例句连同截图、音频和译文一起保存到 Anki。"
+      },
+      "feature2": {
+        "title": "保存喜欢的例句",
+        "description": "下载例句对应的图片、音频或视频。"
+      },
+      "feature3": {
+        "title": "结合上下文理解例句",
+        "description": "查看例句前后的对话，了解完整语境。"
+      },
+      "feature4": {
+        "title": "丰富多样的素材",
+        "description": "从不同题材、作品和角色的声音中学习日语。"
+      },
+      "feature5": {
+        "title": "在 Discord 中直接搜索",
+        "description": "使用官方机器人，无需离开服务器即可搜索同样的 130 多万条例句。",
+        "linkText": "将机器人添加到你的 Discord 服务器"
+      }
+    },
+    "support": {
+      "title": "喜欢 Nadeshiko 吗？",
+      "description": "如果这个网站对你有帮助，欢迎在 GitHub 上参与贡献、捐款支持开发，或将它分享给其他学习者。"
+    },
+    "stats": {
+      "sentenceCount": "例句",
+      "episodeCount": "集数",
+      "mediaCount": "作品"
+    }
+  },
+  "batchSearch": {
+    "title": "批量搜索",
+    "description1": "一次搜索多个词语，查看每个词能找到多少条例句。点击结果链接即可查看对应例句。",
+    "description2": "在下方输入要搜索的词语。",
+    "description3": "每行输入一个词，或用英文逗号分隔。",
+    "description4": "每次最多可搜索",
+    "description5": "500 个词",
+    "totalWords": "词语总数",
+    "search": "搜索",
+    "close": "关闭",
+    "results": {
+      "title": "批量搜索结果",
+      "words": "搜索词数",
+      "wordsWithMatch": "找到例句的词数",
+      "percentageMatched": "有例句的词语占比",
+      "wordColumn": "词语",
+      "match": "有例句",
+      "matchesCount": "例句数量",
+      "true": "是",
+      "false": "否",
+      "searching": "搜索中…",
+      "return": "返回"
+    }
+  },
+  "animeList": {
+    "recentlyAddedTitle": "最近添加",
+    "fullListTitle": "全部作品",
+    "seeAll": "查看全部",
+    "sentenceCount": "条例句",
+    "episodes": "集数",
+    "videos": "视频",
+    "episodeCount": "{count} 集",
+    "videoCount": "{count} 个视频",
+    "sentenceCountLabel": "例句数量：",
+    "anilistButton": "AniList",
+    "tmdbButton": "TMDB",
+    "imdbButton": "IMDb",
+    "youtubeButton": "YouTube",
+    "vocabularyButton": "词汇"
+  },
+  "hiddenCategories": {
+    "updateError": "无法更新隐藏的分类，请重试。"
+  },
+  "hiddenMedia": {
+    "updateError": "无法更新隐藏的作品，请重试。"
+  },
+  "favoriteMedia": {
+    "updateError": "无法更新收藏的作品，请重试。",
+    "capReached": "最多可收藏 100 部作品。请先取消收藏一部，再添加新作品。"
+  },
+  "familiarMedia": {
+    "forgetError": "无法清除该作品的学习统计，请重试。"
+  },
+  "mediaBrowse": {
+    "nextPage": "下一页",
+    "showHiddenMedia": "显示已隐藏的作品",
+    "hideHiddenMedia": "不显示已隐藏的作品",
+    "loadError": "无法加载作品列表。",
+    "loadMoreError": "无法加载更多作品。"
+  },
+  "searchSettingsModal": {
+    "exactMatchTitle": "精确匹配",
+    "exactMatchDescription": "只查找与输入内容完全匹配的结果，不包含词形变化等相关结果。"
+  },
+  "anki": {
+    "configRequired": "请先在设置中配置 Anki，再使用此功能。",
+    "notRunning": "Anki 没有响应。请打开 Anki，确认已启用 AnkiConnect 插件，然后重试。",
+    "keyFieldRequired": "请先在 Anki 设置中选择检索字段。",
+    "modal": {
+      "title": "搜索 Anki 笔记",
+      "description": "在 Anki 中查找已有笔记，为其添加图片和音频。需先在设置中选择“检索字段”。",
+      "idColumn": "ID",
+      "keyColumn": "检索字段内容",
+      "noCardsFound": "未找到笔记",
+      "noCardsMessage": "请换个词搜索，或先将例句添加到 Anki。",
+      "validationError": "无法完成搜索",
+      "errorMessage": "尚未设置检索字段",
+      "errorTip": "请在 Nadeshiko 的 Anki 设置中选择检索字段。"
+    },
+    "toast": {
+      "noSettings": "请先在 Nadeshiko 设置中配置 Anki，再使用此功能。",
+      "miningCard": "正在导出到 Anki…",
+      "noCardToExport": "没有可导出的目标卡片，请先在 Anki 中添加一张卡片。",
+      "cardFoundInOtherDeck": "找到了卡片，但它不在“{deck}”牌组中。请确认 Yomitan 和 Nadeshiko 使用同一个牌组。",
+      "cardAdded": "已成功添加到 Anki",
+      "cardAddError": "无法添加到 Anki。错误：{error}"
+    }
+  },
+  "modalAnkiNotes": {
+    "closeSrOnly": "关闭",
+    "searchPlaceholder": "女"
+  },
+  "modalBatch": {
+    "closeSrOnly": "关闭",
+    "wordLimitExceeded": "词数超出上限：{count} / 500",
+    "inputFormatError": "输入格式有误。请使用换行或英文逗号分隔词语，不要混用。",
+    "notAvailable": "暂无数据",
+    "searchError": "未能完成词语搜索，请重试。",
+    "searchTypeLabel": "搜索方式：{type}",
+    "searchTypeExact": "精确匹配",
+    "searchTypeNormal": "普通搜索",
+    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n…\n…\n…"
+  },
+  "modalContext": {
+    "closeSrOnly": "关闭"
+  },
+  "modalMediaEdit": {
+    "title": "编辑作品",
+    "editButton": "编辑",
+    "publicId": "公开 ID",
+    "cover": "封面",
+    "banner": "横幅",
+    "nameJa": "日文名称",
+    "nameRomaji": "罗马字名称",
+    "nameEn": "英文名称",
+    "airingFormat": "作品形式",
+    "airingStatus": "播出状态",
+    "category": "分类",
+    "genres": "题材",
+    "genresPlaceholder": "喜剧, 剧情, 爱情",
+    "studio": "制作公司",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "seasonName": "播出季节",
+    "seasonYear": "年份",
+    "externalIds": "外部平台 ID",
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "取消",
+    "close": "关闭",
+    "saveSuccess": "作品已更新",
+    "saveError": "无法更新作品",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除吗？",
+    "confirmYes": "确认删除",
+    "confirmNo": "取消",
+    "deleting": "删除中…",
+    "deleteSuccess": "作品已删除",
+    "deleteError": "无法删除作品"
+  },
+  "modalSegmentEdit": {
+    "title": "编辑例句",
+    "editButton": "编辑",
+    "japanese": "日语",
+    "english": "英语",
+    "spanish": "西班牙语",
+    "machineTranslated": "机器翻译",
+    "status": "状态",
+    "contentRating": "内容分级",
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "取消",
+    "close": "关闭",
+    "saveSuccess": "例句已更新",
+    "saveError": "无法更新例句",
+    "timing": "排列位置与时间轴",
+    "position": "排列位置",
+    "startTimeMs": "开始时间（毫秒）",
+    "endTimeMs": "结束时间（毫秒）",
+    "ratingAnalysis": "分级分析",
+    "ratingAnalysisDesc": "用于判定内容分级的 WD Tagger v3 分类结果（分数和标签）。",
+    "invalidJson": "JSON 格式无效",
+    "loading": "加载中…",
+    "history": "编辑历史",
+    "historyToggle": "展开或收起编辑历史",
+    "snapshot": "历史版本",
+    "noRevisions": "暂无编辑记录",
+    "viewingSnapshot": "正在查看第 {n} 个历史版本",
+    "current": "当前版本",
+    "metadata": {
+      "media": "作品",
+      "episode": "集数",
+      "time": "时间",
+      "duration": "时长",
+      "id": "ID",
+      "position": "排列位置",
+      "publicId": "公开 ID",
+      "copyPublicId": "复制公开 ID",
+      "mediaId": "作品 ID",
+      "hashedId": "哈希 ID",
+      "storage": "存储",
+      "storagePath": "存储路径",
+      "image": "图片",
+      "audio": "音频",
+      "video": "视频"
+    },
+    "deleteEpisode": "删除本集",
+    "deleteEpisodeConfirm": "确定要删除第 {episode} 集及其全部例句吗？",
+    "deleteEpisodeYes": "删除",
+    "deleteEpisodeSuccess": "本集已删除",
+    "deleteEpisodeError": "无法删除本集"
+  },
+  "filterContent": {
+    "searchPlaceholder": "搜索作品",
+    "backToTitles": "返回作品列表"
+  },
+  "episodeFilter": {
+    "noEpisodes": "未找到剧集"
+  },
+  "segmentSidebar": {
+    "loading": "加载中…",
+    "filtersTitle": "筛选",
+    "openFilters": "打开筛选",
+    "close": "关闭"
+  },
+  "searchpage": {
+    "main": {
+      "translationPreferences": {
+        "combinedMenuButton": "译文与假名注音显示",
+        "englishMenu": "英语译文",
+        "spanishMenu": "西班牙语译文",
+        "furiganaMenu": "假名注音",
+        "languageSettingsHint": "可在账户设置中选择要显示的译文语言。目前支持英语和西班牙语。",
+        "modeShown": "始终显示",
+        "modeSpoiler": "悬停显示",
+        "modeHidden": "隐藏",
+        "englishShown": "始终显示英语译文",
+        "englishSpoiler": "悬停时显示英语译文",
+        "englishHidden": "隐藏英语译文",
+        "spanishShown": "始终显示西班牙语译文",
+        "spanishSpoiler": "悬停时显示西班牙语译文",
+        "spanishHidden": "隐藏西班牙语译文",
+        "furiganaShown": "始终显示假名注音",
+        "furiganaSpoiler": "悬停时显示假名注音",
+        "furiganaHidden": "隐藏假名注音"
+      },
+      "buttons": {
+        "addToAnkiLast": "添加到 Anki 最近添加的卡片",
+        "addToAnkiSearch": "添加到 Anki（搜索已有笔记）",
+        "download": "下载",
+        "dl-expanded": "包含上下文的音频",
+        "add": "添加",
+        "video": "图片 + 音频",
+        "image": "图片",
+        "audio": "音频",
+        "info": "剧集信息",
+        "copyclipboard": "复制",
+        "jpsentence": "日语例句",
+        "jpsentencehighlight": "日语例句（标出所选词语）",
+        "jpsentencefurigana": "日语例句（含假名注音）",
+        "ensentence": "英语译文",
+        "essentence": "西班牙语译文",
+        "word": "词语",
+        "wordreading": "词语读音",
+        "wordfurigana": "词语（含假名注音）",
+        "definition": "释义（全部词典）",
+        "definitionFirst": "释义（首部词典）",
+        "wordpitch": "声调",
+        "wordpitchnum": "声调核位置",
+        "wordaudio": "词语发音",
+        "wordinfo": "词语信息",
+        "context": "上下文",
+        "share": "分享",
+        "more": "更多",
+        "expandLeft": "包含上一条字幕",
+        "expandBoth": "包含前后字幕",
+        "expandRight": "包含下一条字幕",
+        "hideMedia": "隐藏作品",
+        "unhideMedia": "取消隐藏",
+        "favoriteMedia": "收藏作品",
+        "unfavoriteMedia": "取消收藏",
+        "addToCollection": "加入例句集",
+        "manageCollections": "管理例句集",
+        "collectionsLoading": "正在加载例句集…",
+        "collectionsEmpty": "暂无例句集",
+        "chooseCollection": "选择例句集…",
+        "sortmain": "例句排序",
+        "sortlengthnone": "默认顺序",
+        "sortlengthmin": "从短到长",
+        "sortlengthmax": "从长到短",
+        "sortasc": "从短到长",
+        "sortdesc": "从长到短",
+        "sorttime_asc": "按时间正序",
+        "sorttime_desc": "按时间倒序",
+        "sortrandom": "随机排序",
+        "wordfrequency": "词频排名",
+        "wordjlpt": "JLPT 等级",
+        "wordpitchcategories": "声调类型",
+        "sentencefurigana": "例句（含假名注音）"
+      },
+      "labels": {
+        "noresults": "未找到结果",
+        "episode": "第 {number} 集",
+        "movie": "电影",
+        "hiddenMediaBadge": "已隐藏",
+        "hiddenMediaBadgeTitle": "你已将此作品设为隐藏",
+        "searchmain": "搜索作品…",
+        "copiedcontent": "已复制到剪贴板。",
+        "errorcopiedcontent": "无法复制到剪贴板，请重试。",
+        "copiedsharingurl": "链接已复制到剪贴板。",
+        "errorcopiedsharingurl": "无法复制链接，请重试。",
+        "collectionAdded": "已加入“{name}”",
+        "collectionAddFailed": "无法加入例句集，请重试。",
+        "mtTooltip": "此译文由机器翻译生成，可能不准确。",
+        "zoomedImage": "放大的图片",
+        "collectionsLoadFailed": "无法加载你的例句集。",
+        "collectionRemoveFailed": "无法从例句集中移除此例句。",
+        "downloadFailed": "无法下载文件，请重试。"
+      }
+    },
+    "modalcontext": {
+      "labels": {
+        "context": "上下文",
+        "loadError": "无法加载上下文。"
+      }
+    }
+  },
+  "activity": {
+    "deleteDayActivity": "删除当天的学习记录",
+    "deletingDayActivity": "删除中…"
+  },
+  "accountSettings": {
+    "menu": {
+      "generalTitle": "常规",
+      "advancedTitle": "高级",
+      "adminTitle": "管理",
+      "tabsAriaLabel": "账户设置导航"
+    },
+    "tabs": {
+      "settings": "设置",
+      "sync": "Anki",
+      "collections": "例句集",
+      "activity": "学习记录",
+      "media": "作品管理",
+      "developer": "开发者",
+      "users": "用户",
+      "reports": "问题反馈",
+      "agentActivity": "自动审核记录",
+      "announcement": "公告"
+    },
+    "dashboard": {
+      "roles": {
+        "ADMIN": "管理员",
+        "MOD": "审核员",
+        "USER": "普通用户",
+        "PATREON": "Patreon 支持者"
+      },
+      "title": "用户管理",
+      "searchPlaceholder": "按邮箱搜索…",
+      "count": "{count} 位用户",
+      "empty": "未找到用户。",
+      "table": {
+        "name": "名称",
+        "email": "邮箱",
+        "role": "角色",
+        "providers": "登录方式",
+        "registered": "注册时间",
+        "lastUpdate": "更新时间",
+        "status": "状态"
+      },
+      "providers": {
+        "google": "Google",
+        "discord": "Discord",
+        "email": "邮箱"
+      },
+      "status": {
+        "active": "正常",
+        "banned": "已封禁"
+      },
+      "actions": {
+        "impersonate": "以此用户身份访问",
+        "ban": "封禁",
+        "unban": "解除封禁"
+      },
+      "pagination": {
+        "showing": "第 {start}–{end} 项，共 {total} 项",
+        "previous": "上一页",
+        "next": "下一页"
+      },
+      "loadError": "无法加载用户列表。",
+      "banSuccess": "已封禁 {name}。",
+      "banError": "无法封禁 {name}。",
+      "unbanSuccess": "已解除 {name} 的封禁。",
+      "unbanError": "无法解除 {name} 的封禁。"
+    },
+    "announcement": {
+      "title": "网站公告",
+      "description": "设置面向所有用户的网站公告横幅。",
+      "fields": {
+        "message": "公告内容",
+        "type": "类型",
+        "active": "启用",
+        "preview": "预览"
+      },
+      "placeholders": {
+        "message": "输入公告内容…"
+      },
+      "markdownHint": "支持 **粗体**、*斜体*、`代码` 和[链接](/media)。/media 等站内路径会在应用内打开。",
+      "activeDescription": "启用后，所有访客都能看到此公告。",
+      "types": {
+        "INFO": "通知",
+        "WARNING": "警告",
+        "MAINTENANCE": "维护"
+      },
+      "save": "保存",
+      "saving": "保存中…",
+      "deactivate": "停用",
+      "updated": "公告已更新",
+      "updateError": "无法更新公告",
+      "deactivated": "公告已停用",
+      "deactivateError": "无法停用公告",
+      "fallbackMessage": "暂无公告"
+    },
+    "activity": {
+      "confirmClearHistory": "确定要清空全部学习记录吗？此操作无法撤销。",
+      "trackingOnToast": "已开启学习记录",
+      "trackingOffToast": "已关闭学习记录",
+      "familiarOnToast": "已开始统计你学习的作品",
+      "familiarOffToast": "已停止统计你学习的作品",
+      "clearHistoryToast": "学习记录已清空",
+      "confirmClearDay": "确定要删除 {day} 的全部学习记录吗？此操作无法撤销。",
+      "ranges": {
+        "all": "全部时间"
+      },
+      "filters": {
+        "all": "全部"
+      },
+      "types": {
+        "SEARCH": "搜索",
+        "SEGMENT_PLAY": "音频播放",
+        "ANKI_EXPORT": "Anki 导出",
+        "SHARE": "链接分享"
+      },
+      "metrics": {
+        "searches": "搜索次数",
+        "plays": "音频播放次数",
+        "exports": "Anki 导出次数",
+        "shares": "链接分享次数"
+      },
+      "overview": {
+        "title": "学习概况",
+        "description": "查看你的搜索和学习统计。"
+      },
+      "heatmap": {
+        "title": "学习热力图",
+        "description": "最近 {days} 天的学习情况。点击日期可查看当天的记录。",
+        "loading": "正在加载热力图…",
+        "less": "少",
+        "more": "多",
+        "records": "{count} 条记录",
+        "searches": "{count} 次搜索",
+        "plays": "{count} 次播放",
+        "exports": "{count} 次导出",
+        "shares": "{count} 次分享",
+        "actions": "{count} 次操作"
+      },
+      "history": {
+        "title": "学习记录",
+        "description": "查看账户中最近的学习活动。",
+        "showing": "当前日期：{day}",
+        "clearDayFilter": "取消日期筛选",
+        "deleteDayTitle": "删除当天的全部记录",
+        "loading": "加载中…",
+        "empty": "暂无学习记录。",
+        "emptyForDay": "当天没有学习记录。",
+        "emptyForType": "暂无此类记录。",
+        "inOneTitle": "在指定作品中搜索",
+        "noDetails": "—",
+        "remove": "删除",
+        "loadMore": "加载更多",
+        "table": {
+          "type": "类型",
+          "details": "详情",
+          "date": "时间"
+        }
+      },
+      "privacy": {
+        "title": "隐私设置",
+        "trackingTitle": "记录学习活动",
+        "trackingDescription": "记录搜索、音频播放、Anki 导出和链接分享。最近的搜索会显示在搜索栏中。",
+        "clearHistoryTitle": "清空学习记录",
+        "clearHistoryDescription": "永久删除账户中的全部学习记录。",
+        "clearHistoryButton": "清空记录",
+        "clearing": "清空中…",
+        "familiarTitle": "记住我学习的作品",
+        "familiarDescription": "按月统计各作品的学习次数，让常学的作品在搜索筛选列表中优先显示。这项统计与学习记录分开保存。",
+        "familiarListTitle": "你学习过的作品",
+        "familiarListEmpty": "暂无统计。导出卡片或播放片段后，相应作品就会出现在这里。",
+        "familiarCounts": "{cards} · {plays} · {shares}",
+        "forgetTitle": "清除统计",
+        "forgetTitleHint": "清除《{title}》的学习统计",
+        "familiarCards": "{count} 次 Anki 导出",
+        "familiarPlays": "{count} 次播放",
+        "familiarShares": "{count} 次分享"
+      }
+    },
+    "developer": {
+      "apiUsageTitle": "API 用量",
+      "apiUsageRemaining": "已用请求数：{used} / {limit}",
+      "quotaResets": "重置日期：{date}",
+      "quotaTier": "{tier} 方案",
+      "burstLimit": "此外，每个密钥每分钟最多可发送 {max} 次请求。",
+      "usageLimitMessage": {
+        "prefix": "如需提高 API 用量上限，请联系我们："
+      },
+      "apiKeyManagement": "API 密钥管理",
+      "addApiKey": "添加 API 密钥",
+      "keyCreated": "密钥已创建",
+      "keyCreatedMessage": "请妥善保存此密钥，之后将无法再次查看。",
+      "copyApiKey": "复制 API 密钥",
+      "copied": "已复制",
+      "keyDeactivated": "密钥已停用",
+      "noKeysFound": "暂无 API 密钥",
+      "noKeysMessage": "为你的应用或项目创建一个密钥。",
+      "tableHeaders": {
+        "name": "名称",
+        "key": "密钥",
+        "permissions": "权限",
+        "createdAt": "创建时间",
+        "status": "状态"
+      },
+      "statusActive": "已启用",
+      "statusInactive": "已停用",
+      "options": "操作",
+      "rename": "重命名",
+      "deactivate": "停用",
+      "createApiKeyModal": {
+        "title": "创建 API 密钥",
+        "nameLabel": "名称",
+        "namePlaceholder": "输入此 API 密钥的名称",
+        "scopesLabel": "权限",
+        "scopesRequired": "请至少选择一项权限。",
+        "presets": {
+          "readOnly": {
+            "label": "只读（推荐）"
+          },
+          "fullAccount": {
+            "label": "完整账户访问权限"
+          },
+          "custom": {
+            "label": "自定义"
+          }
+        },
+        "create": "创建"
+      },
+      "renameApiKeyModal": {
+        "title": "重命名 API 密钥",
+        "nameLabel": "名称",
+        "namePlaceholder": "输入此 API 密钥的新名称",
+        "save": "保存"
+      },
+      "loadError": "无法加载你的 API 密钥。",
+      "createKeyError": "无法创建 API 密钥。",
+      "renameKeyError": "无法重命名 API 密钥。",
+      "deactivateKeyError": "无法停用 API 密钥。"
+    },
+    "account": {
+      "infoTitle": "账户信息",
+      "usernameLabel": "用户名",
+      "emailLabel": "邮箱",
+      "notAvailable": "暂无信息",
+      "logout": "退出登录",
+      "loggingOut": "正在退出…",
+      "additionalTitle": "数据与账户管理",
+      "preferencesTitle": "偏好设置",
+      "mediaNameLanguage": "作品名称语言",
+      "mediaNameLanguageDescription": "作品名称将优先以{language}显示。例如：",
+      "mediaNameLanguageOptions": {
+        "ENGLISH": "英语",
+        "JAPANESE": "日语",
+        "ROMAJI": "罗马字"
+      },
+      "translationLanguages": "译文语言",
+      "translationLanguagesDescription": "选择字幕译文和词典释义的语言，目前支持英语和西班牙语。选择两种语言时，还可调整显示顺序。",
+      "translationLanguagesLinkedDescription": "选择字幕译文的语言和显示顺序，目前支持英语和西班牙语。词典释义沿用你的 Shirabe 设置。",
+      "definitionSize": "释义字号",
+      "definitionSizeDescription": "调整词语弹窗中释义文字的大小。",
+      "definitionSizeOptions": {
+        "SMALL": "小",
+        "MEDIUM": "中",
+        "LARGE": "大"
+      },
+      "translationLanguageOptions": {
+        "EN": "仅英语",
+        "ES": "仅西班牙语",
+        "EN_ES": "英语优先，其次西班牙语",
+        "ES_EN": "西班牙语优先，其次英语"
+      },
+      "defaultSearchCategory": "默认搜索分类",
+      "defaultSearchCategoryDescription": "搜索时默认使用此分类。如果打开的链接已指定分类，则以链接为准。",
+      "motion": "动画效果",
+      "motionOptions": {
+        "system": "跟随系统",
+        "reduced": "减少动画",
+        "none": "关闭动画"
+      },
+      "motionHint_system": "遵循设备的“减少动态效果”辅助功能设置。",
+      "motionHint_reduced": "保留轻微的颜色变化和淡入淡出，关闭滑动及缩放动画。",
+      "motionHint_none": "关闭所有动画。如果界面仍显得缓慢，可以选择此项。",
+      "mediaCard": "作品信息卡片",
+      "mediaCardOptions": {
+        "OPEN": "默认展开",
+        "CLOSED": "默认收起"
+      },
+      "mediaCardHint_OPEN": "例句上方的作品卡片默认展开，显示其他名称、制作公司、播出季节、题材和外部平台链接。点击卡片即可收起。",
+      "mediaCardHint_CLOSED": "作品卡片默认只显示缩略图、名称和数量统计。需要详情时，点击这一行即可展开。",
+      "defaultSearchCategoryHiddenOption": "{category}（已隐藏）",
+      "defaultSearchCategoryHiddenNotice": "你已隐藏“{category}”分类。重新显示该分类前，搜索将默认使用“全部”。",
+      "dictionaryLinks": "词典快捷链接",
+      "dictionaryLinksDescription": "选择词语弹窗中要显示的词典查询链接。",
+      "deleteAccount": "删除账户（无法撤销）",
+      "deleteAccountButton": "删除账户",
+      "deletingAccount": "删除中…",
+      "confirmDeleteAccount": "此操作将永久删除你的账户。确定要继续吗？",
+      "deleteAccountError": "无法删除账户，请尝试重新登录后再试。",
+      "accountDeleted": "账户已删除",
+      "exportData": "导出数据",
+      "exportDataDescription": "将你的全部数据下载为 JSON 文件。",
+      "exportingData": "导出中…",
+      "questionableContent": "敏感内容",
+      "questionableContentDesc": "含明显性暗示或露骨色情的内容",
+      "contentRatingShow": "显示",
+      "contentRatingBlur": "模糊显示（默认）",
+      "contentRatingHide": "隐藏",
+      "contentRatingHint_show": "在搜索结果中正常显示，不做模糊处理。",
+      "contentRatingHint_blur": "包含在搜索结果中，但会做模糊处理。",
+      "contentRatingHint_hide": "不包含在搜索结果中。",
+      "contentRatingPreview": "被标记的内容在搜索结果中的显示效果",
+      "contentRatingPreviewAlt": "内容分级显示效果预览",
+      "contentRatingHiddenDesc": "已隐藏，不会出现在搜索结果中。",
+      "preferenceSaved": "设置已保存",
+      "preferenceError": "无法保存设置",
+      "changeEmail": "修改",
+      "changeEmailPlaceholder": "新的邮箱地址",
+      "changeEmailSend": "发送验证邮件",
+      "changeEmailSending": "发送中…",
+      "changeEmailCancel": "取消",
+      "changeEmailSuccess": "验证邮件已发送至你当前的邮箱，请查收。",
+      "productEmailsOnToast": "已开启 Nadeshiko 相关邮件",
+      "productEmailsOffToast": "已关闭 Nadeshiko 相关邮件",
+      "changeEmailFailed": "无法提交邮箱修改请求。",
+      "sessions": {
+        "title": "登录设备与会话",
+        "refresh": "刷新",
+        "logoutOtherDevices": "退出其他设备",
+        "logoutAllSessions": "退出所有设备",
+        "loading": "正在加载登录会话…",
+        "current": "当前会话",
+        "revoke": "退出登录",
+        "empty": "暂无有效的登录会话。",
+        "confirmRevokeAll": "这将退出所有设备上的登录，包括当前设备。确定要继续吗？",
+        "table": {
+          "userAgent": "设备与浏览器",
+          "created": "登录时间",
+          "expires": "到期时间"
+        },
+        "errors": {
+          "revokeSingle": "无法退出此会话，请重新登录后再试。",
+          "revokeOthers": "无法退出其他会话，请重新登录后再试。",
+          "revokeAll": "无法退出所有会话，请重新登录后再试。"
+        }
+      },
+      "hiddenCategories": "搜索中显示的分类",
+      "hiddenCategoriesDescription": "关闭某个分类后，该分类的作品将不再出现在搜索结果、分类标签页和结果数量中。",
+      "hiddenCategoriesLastVisible": "至少需要保留一个可见分类。",
+      "hiddenCategoryShown": "显示",
+      "hiddenCategoryHidden": "隐藏",
+      "hiddenCategoryDescriptions": {
+        "anime": "日本动画剧集和动画电影。",
+        "liveaction": "日本电视剧、真人剧集和电影。",
+        "youtube": "YouTube 视频。"
+      },
+      "hiddenMedia": "隐藏的作品",
+      "hiddenMediaCount": "已隐藏 {count} 部",
+      "mediaHiddenToast": "已从搜索结果中隐藏《{name}》",
+      "mediaUnhiddenToast": "《{name}》已恢复在搜索结果中显示",
+      "mediaFavoritedToast": "已收藏《{name}》",
+      "mediaUnfavoritedToast": "已取消收藏《{name}》",
+      "categoryHiddenToast": "已从搜索结果中隐藏“{name}”分类",
+      "categoryShownToast": "“{name}”分类已恢复在搜索结果中显示",
+      "hiddenMediaTable": {
+        "media": "作品",
+        "otherNames": "其他名称"
+      },
+      "favoriteMedia": "收藏的作品",
+      "favoriteMediaCount": "已收藏 {count} / {max} 部",
+      "sessionDetails": {
+        "unknownDevice": "未知设备",
+        "tablet": "平板电脑",
+        "mobile": "手机",
+        "desktop": "电脑",
+        "unknownOs": "未知操作系统",
+        "unknownBrowser": "未知浏览器"
+      },
+      "exportError": "无法导出数据，请重试。",
+      "mediaLookup": "查找作品",
+      "mediaLookupPlaceholder": "搜索作品名称…",
+      "mediaLookupNoResults": "未找到匹配的作品。",
+      "manageMedia": "作品管理",
+      "manageMediaDescription": "收藏作品后，它会优先出现在搜索筛选列表中；隐藏作品后，它将不再出现在搜索结果中。搜索作品目录以添加标记，或在下方列表中调整已有标记。",
+      "manageMediaEmpty": "暂无收藏或隐藏的作品。可使用上方的搜索栏查找作品。",
+      "manageMediaTableActions": "操作",
+      "mediaFallback": "作品 #{id}"
+    },
+    "collections": {
+      "title": "例句集",
+      "count": "{count} 个例句集",
+      "removeFromCollection": "从例句集中移除",
+      "confirmRemove": "确定移除吗？",
+      "yes": "确认",
+      "no": "取消",
+      "rename": "重命名",
+      "delete": "删除",
+      "renameTitle": "重命名例句集",
+      "renameConfirm": "保存",
+      "renameCancel": "取消",
+      "renamed": "例句集已重命名",
+      "renameError": "无法重命名例句集",
+      "deleteTitle": "删除例句集",
+      "deleteMessage": "确定要删除“{name}”吗？此操作无法撤销。",
+      "deleteConfirm": "删除",
+      "deleteCancel": "取消",
+      "deleted": "例句集已删除",
+      "deleteError": "无法删除例句集",
+      "table": {
+        "name": "名称",
+        "segments": "例句数量",
+        "visibility": "可见范围",
+        "created": "创建时间",
+        "updated": "更新时间"
+      },
+      "visibility": {
+        "PUBLIC": "公开",
+        "PRIVATE": "私密"
+      },
+      "noCollections": "暂无例句集。",
+      "makePublic": "设为公开",
+      "makePrivate": "设为私密",
+      "visibilityTitle": "更改可见范围",
+      "makePublicMessage": "将“{name}”设为公开吗？公开后，所有人都可以查看此例句集。",
+      "makePrivateMessage": "将“{name}”设为私密吗？设为私密后，只有你可以查看此例句集。",
+      "visibilityConfirm": "确认",
+      "visibilityChanged": "可见范围已更新",
+      "visibilityError": "无法更新可见范围",
+      "createButton": "新建例句集",
+      "createTitle": "创建例句集",
+      "createConfirm": "创建",
+      "createSuccess": "例句集已创建",
+      "createError": "无法创建例句集",
+      "nameLabel": "名称",
+      "namePlaceholder": "我的例句集",
+      "loadError": "无法加载你的例句集。"
+    },
+    "anki": {
+      "syncStatus": "连接状态",
+      "loading": "连接中…",
+      "loadingMessage": "正在连接，请稍候。",
+      "connectionSuccess": "连接成功",
+      "successMessage": "已成功连接到 Anki。",
+      "fieldLoadError": "无法加载笔记类型的字段：",
+      "troubleshootingTips": {
+        "ankiRunning": "确认 Anki 已打开，并且已安装 AnkiConnect 插件。",
+        "webCors": "确认 AnkiConnect 的 webCorsOriginList 设置中包含 'https://nadeshiko.co'。",
+        "adBlock": "请为此网站关闭广告拦截扩展。"
+      },
+      "ankiConfig": "Anki 设置",
+      "deckLabel": "牌组",
+      "selectDeck": "选择牌组",
+      "modelLabel": "笔记类型",
+      "selectModel": "选择笔记类型",
+      "keyFieldLabel": "检索字段",
+      "selectKeyField": "选择用于查找笔记的字段",
+      "keyFieldRequiredTitle": "尚未设置检索字段",
+      "keyFieldRequiredMessage": "不设置检索字段也可导出到最近添加的卡片。如需从词语弹窗创建卡片，或搜索并选择已有笔记，请先设置检索字段。",
+      "fieldColumn": "字段",
+      "contentColumn": "内容",
+      "fieldComposeHelp": "选择占位符后，会将其追加到字段中，保留原有内容。因此，一个字段可以组合多个占位符，例如放入两部词典的释义。可直接编辑文本框来调整它们的排列方式。",
+      "sentenceGroup": "例句",
+      "sentenceImage": "例句截图",
+      "sentenceAudio": "例句音频",
+      "selectedWordGroup": "所选词语",
+      "cardStylingTitle": "卡片样式",
+      "cardStylingHelp": "词语字段已自带样式，导出后即可呈现本站的显示效果。如需自定义外观，可将这段样式粘贴到 Anki 笔记类型的“卡片… → 样式”中，再自行修改。",
+      "noFieldsFound": "未找到字段",
+      "noFieldsMessage": "请重试，或检查 AnkiConnect 的连接。",
+      "serverAddressLabel": "AnkiConnect 服务器地址",
+      "openBrowserOnExport": "导出卡片时打开 Anki 浏览窗口",
+      "profile": "导出配置",
+      "newProfile": "新建",
+      "defaultProfile": "默认",
+      "renameProfile": "重命名",
+      "profileNamePlaceholder": "配置名称",
+      "deleteProfile": "删除",
+      "saving": "保存中…",
+      "saved": "已保存",
+      "modal": {
+        "cancel": "取消",
+        "save": "保存"
+      },
+      "profileSaveError": "无法保存 Anki 导出配置。",
+      "dictionarySubmenu": "释义（指定词典）…",
+      "dictionaryBack": "返回",
+      "dictionaryGroup": "你的词典",
+      "connectFailure": {
+        "unreachable": {
+          "title": "Anki 没有响应",
+          "body": "Nadeshiko 无法连接到 AnkiConnect。请检查下方三项常见原因。"
+        },
+        "blocked_by_csp": {
+          "title": "Anki 服务器地址不受支持",
+          "body": "Nadeshiko 的安全策略仅允许连接本机的 AnkiConnect，因此已拦截此地址。这里无法连接其他电脑或手机上的 Anki。请将地址改回 http://127.0.0.1:8765，并在当前电脑上运行 Anki。"
+        },
+        "permission_denied": {
+          "title": "请在 Anki 中允许连接",
+          "body": "AnkiConnect 已响应，正在询问是否允许本站连接。请切换到 Anki 窗口，在对话框中选择“是”，然后重试。"
+        },
+        "connect_error": {
+          "title": "AnkiConnect 拒绝了请求",
+          "body": "Anki 正在运行，但 AnkiConnect 拒绝了请求。请确认其 webCorsOriginList 设置中包含 'https://nadeshiko.co'，然后重启 Anki。"
+        },
+        "http_error": {
+          "title": "服务器有响应，但并非 AnkiConnect",
+          "body": "服务器返回了错误。请检查下方的 AnkiConnect 服务器地址，确认它与 Anki 实际使用的地址一致。"
+        },
+        "no_decks": {
+          "title": "已连接，但没有可用牌组",
+          "body": "AnkiConnect 已连接，但没有可供导出的牌组。请先在 Anki 中创建牌组，然后重试。"
+        }
+      }
+    },
+    "emails": {
+      "title": "邮件通知",
+      "allTitle": "所有 Nadeshiko 相关邮件",
+      "recapTitle": "每月学习回顾",
+      "recapDescription": "每月汇总你在 Nadeshiko 上的学习情况。",
+      "checkinsTitle": "使用体验回访",
+      "checkinsDescription": "偶尔询问你的 Nadeshiko 使用体验。",
+      "updatesTitle": "新功能与版本更新",
+      "updatesDescription": "了解 Nadeshiko 的最新功能和改进。",
+      "preferenceError": "无法保存此设置，请重试。",
+      "allDescription": "无论此处如何设置，登录链接和必要的账户邮件都会正常发送。",
+      "turnedOn": "{name}：已开启",
+      "turnedOff": "{name}：已关闭"
+    }
+  },
+  "blog": {
+    "title": "博客",
+    "empty": "暂无文章，敬请期待。",
+    "readMore": "阅读全文",
+    "backToBlog": "返回博客",
+    "pagination": {
+      "label": "博客分页",
+      "previous": "上一页",
+      "next": "下一页",
+      "previousPage": "上一页",
+      "nextPage": "下一页"
+    }
+  },
+  "errorPage": {
+    "pageNotFound": "页面不存在",
+    "somethingWentWrong": "出了点问题。",
+    "goHome": "返回首页",
+    "metaDescription": "找不到你要访问的页面。",
+    "imageAlt": "页面未找到"
+  },
+  "segment": {
+    "noResultsMessage": "试试其他搜索词，或在{link}中搜索",
+    "contentRatingShow": "显示内容",
+    "contentRatingHide": "隐藏内容",
+    "status": {
+      "ACTIVE": "正常",
+      "VERIFIED": "已核验",
+      "SUSPENDED": "已暂停使用",
+      "DELETED": "已删除",
+      "INVALID": "无效",
+      "TOO_LONG": "过长",
+      "HIDDEN": "已隐藏"
+    },
+    "contentRating": {
+      "SAFE": "无性暗示",
+      "SUGGESTIVE": "轻度性暗示",
+      "QUESTIONABLE": "明显性暗示",
+      "EXPLICIT": "露骨色情"
+    },
+    "nsfwTag": "成人内容",
+    "contentRatingDescription": {
+      "SENSITIVE": "敏感内容（明显性暗示）"
+    },
+    "revert": "还原",
+    "expandNoPrevious": "本集已没有更早的例句。",
+    "expandNoNext": "本集已没有更晚的例句。",
+    "expandFailed": "无法扩展此例句，请重试。",
+    "expandAudioFailed": "文字已扩展，但无法生成对应音频。播放和导出到 Anki 时将使用原始片段。",
+    "expandAudioFailedStreamed": "文字已扩展，但无法生成对应音频。导出到 Anki 时将使用原始片段。",
+    "expanding": "正在扩展…",
+    "playAudio": "播放音频",
+    "pitchContourToggle": "显示音高曲线",
+    "pitchContourTitle": "音频音高曲线",
+    "pitchContourLabel": "根据此例句音频估算的音高曲线",
+    "pitchContourHz": "{min}–{max} Hz",
+    "pitchContourLoading": "正在分析音频…",
+    "pitchContourUnavailable": "无法生成此片段的音高曲线，仍可正常播放音频。",
+    "pitchContourDisclaimer": "根据音频估算，无声带振动或噪声较多的部分可能被省略。",
+    "loading": "加载中",
+    "noResultsSupport": "没有找到想要的内容？欢迎到我们的{link}建议下一批收录的作品。"
+  },
+  "tokenTooltip": {
+    "lookupIn": "在词典中查询",
+    "loading": "查询中…",
+    "moreSentences": "更多例句",
+    "playAudio": "播放发音",
+    "unavailable": "无法加载释义，请稍后重试。",
+    "noEntry": "词典中没有此词的条目。",
+    "definitionsHidden": "释义已隐藏",
+    "showDefinitions": "显示",
+    "openInAnki": "在 Anki 中打开此笔记",
+    "mineContextOnly": "更新例句、音频和图片，保留现有释义",
+    "minedActions": "已在 Anki 中",
+    "alsoWritten": "其他写法",
+    "mineToNote": "替换全部内容，包括释义",
+    "mineToLastCard": "将例句、音频和图片添加到 Anki 最近添加的卡片",
+    "otherMatches": "另有 {count} 项",
+    "showLess": "收起",
+    "isName": "这个词可能是专有名词。",
+    "parts": "组成部分",
+    "nameEntry": "专有名词",
+    "back": "返回",
+    "forward": "前进",
+    "pickDictionary": "将{dictionary}的释义加入卡片",
+    "pickedDictionaries": "已选择 {count} / {total} 部词典",
+    "pickSelectAll": "全选",
+    "pickDeselectAll": "取消全选"
+  },
+  "searchContainer": {
+    "errorTitle": "出了点问题",
+    "errorMessage1": "搜索时发生错误",
+    "errorMessage2": "请点击下方按钮重新搜索。",
+    "retryButton": "重试",
+    "retrying": "重试中…",
+    "endOfResults": "已显示全部结果",
+    "loadMore": "加载更多例句",
+    "categoryAll": "全部",
+    "selectedMediaFallback": "所选作品",
+    "categoryAnime": "动画",
+    "categoryLiveaction": "真人影视",
+    "categoryYoutube": "YouTube",
+    "collectionTabPrefix": "例句集",
+    "backToCollections": "返回例句集",
+    "hiddenMediaNotice": "你已隐藏此作品",
+    "hiddenMediaDescription": "你已将此作品从搜索结果中隐藏，仍可在这里临时查看。",
+    "hiddenMediaShowAnyway": "仍然显示",
+    "hiddenResultsMaybe": "{filters}可能隐藏了部分结果",
+    "hiddenResults": "{filters}隐藏了 {count} 条结果",
+    "hiddenResultsFilters": "你的筛选设置",
+    "hiddenResultsBreakdownTitle": "本次搜索中隐藏的结果",
+    "hiddenResultsBreakdownLoading": "检查中…",
+    "hiddenResultsBreakdownEmpty": "你隐藏的内容中没有匹配结果",
+    "hiddenResultsBreakdownError": "无法加载隐藏的结果",
+    "hiddenResultsShow": "显示",
+    "hiddenResultsRevealed": "正在显示你平时隐藏的作品",
+    "hiddenResultsRestore": "重新隐藏",
+    "hiddenResultsManage": "管理",
+    "loading": "加载中…",
+    "hiddenMediaImageAlt": "作品已隐藏的提示插图",
+    "noResultsImageAlt": "未找到结果的提示插图"
+  },
+  "searchRecents": {
+    "title": "最近搜索",
+    "seeAll": "查看全部",
+    "clear": "清空",
+    "clearing": "清空中…",
+    "loading": "加载中…",
+    "forget": "删除“{query}”的搜索记录",
+    "inOneTitle": "在指定作品中搜索",
+    "clearError": "无法清空最近搜索，请重试。"
+  },
+  "reports": {
+    "modalTitle": "反馈内容问题",
+    "targetLabel": "涉及内容",
+    "reason": "问题类型",
+    "tabSegment": "例句",
+    "tabMedia": "作品",
+    "description": "补充说明（选填）",
+    "descriptionPlaceholder": "请提供更多有关此问题的信息…",
+    "submit": "提交反馈",
+    "submitting": "提交中…",
+    "submitSuccess": "反馈已提交",
+    "submitError": "无法提交反馈",
+    "cancel": "取消",
+    "reportSegment": "反馈问题",
+    "loginRequired": "请先登录，再使用此功能。",
+    "noReports": "暂无问题反馈",
+    "loading": "加载中…",
+    "loadMore": "加载更多",
+    "reasons": {
+      "WRONG_TRANSLATION": "译文错误",
+      "WRONG_TIMING": "时间轴错误",
+      "WRONG_AUDIO": "音频不对应",
+      "WRONG_JAPANESE_TEXT": "日语文本错误",
+      "LOW_QUALITY_AUDIO": "音质不佳",
+      "NSFW_NOT_TAGGED": "未标注内容分级",
+      "DUPLICATE_SEGMENT": "例句重复",
+      "WRONG_TITLE": "作品名称错误",
+      "DUPLICATE_MEDIA": "作品重复",
+      "WRONG_EPISODE_NUMBER": "集数错误",
+      "IMAGE_ISSUE": "图片问题",
+      "WRONG_METADATA": "作品信息错误",
+      "MISSING_EPISODES": "缺少剧集",
+      "WRONG_COVER_IMAGE": "封面错误",
+      "INAPPROPRIATE_CONTENT": "不适当内容",
+      "OTHER": "其他"
+    },
+    "statuses": {
+      "OPEN": "待处理",
+      "PROCESSING": "处理中",
+      "FIXED": "已修复",
+      "DISMISSED": "已忽略"
+    },
+    "table": {
+      "type": "类型",
+      "target": "涉及内容",
+      "status": "状态"
+    },
+    "admin": {
+      "title": "问题反馈管理",
+      "count": "数量",
+      "actions": "操作",
+      "filters": {
+        "all": "全部",
+        "user": "用户反馈",
+        "auto": "自动检查",
+        "orphaned": "所属作品已删除"
+      },
+      "selectedGroups": "已选择 {count} 组",
+      "dismiss": "忽略",
+      "delete": "删除",
+      "clearSelection": "取消选择",
+      "dismissingAll": "正在全部忽略…",
+      "dismissAllMatching": "忽略所有匹配项",
+      "deletingAll": "正在全部删除…",
+      "deleteAllMatching": "删除所有匹配项",
+      "save": "保存",
+      "addNote": "点击添加备注…",
+      "updateSuccess": "反馈已更新",
+      "updateError": "无法更新反馈",
+      "batchUpdated": "已更新 {count} 条反馈",
+      "batchUpdateError": "无法批量更新反馈",
+      "batchDeleted": "已删除 {count} 条反馈",
+      "batchDeleteError": "无法批量删除反馈",
+      "batchDeletePartialError": "有 {count} 条删除失败",
+      "batchDismissed": "已忽略 {count} 条反馈",
+      "batchDismissError": "无法批量忽略反馈",
+      "deleteSuccess": "反馈已删除",
+      "deleteError": "无法删除反馈",
+      "reported": "反馈时间",
+      "updated": "更新时间",
+      "episode": "第 {number} 集",
+      "deletedTarget": "已删除",
+      "reporters": "{count} 位反馈用户",
+      "sources": {
+        "USER": "用户",
+        "AUTO": "自动检查"
+      },
+      "targetTypes": {
+        "SEGMENT": "例句",
+        "EPISODE": "剧集",
+        "MEDIA": "作品"
+      },
+      "confirm": {
+        "dismissAllTitle": "忽略所有匹配的反馈？",
+        "dismissAllDescription": "这将忽略符合当前筛选条件的全部反馈。之后可逐条重新打开。",
+        "dismissAllButton": "全部忽略",
+        "deleteAllTitle": "删除所有匹配的反馈？",
+        "deleteAllDescription": "这将永久删除符合当前筛选条件的全部反馈，且无法撤销。",
+        "deleteAllButton": "全部删除",
+        "deleteGroupTitle": "删除这一组反馈？",
+        "deleteGroupDescription": "这将永久删除此反馈，以及针对同一内容、同一问题类型的全部重复反馈。"
+      }
+    }
+  },
+  "modalauth": {
+    "signingIn": "正在登录",
+    "completingSignIn": "正在完成登录…",
+    "verifyingEmail": "正在验证邮箱…",
+    "headers": {
+      "auth": "登录或注册"
+    },
+    "buttons": {
+      "google": "使用 Google 登录",
+      "discord": "使用 Discord 登录"
+    },
+    "labels": {
+      "successfullogin": "登录成功",
+      "logout": "你已退出登录。",
+      "banneduser": "你的账户已被封禁，请联系支持团队。",
+      "errorlogin400": "无法登录，请重试。",
+      "logindenied": "登录请求未获批准。请重试，或改用邮箱登录。",
+      "closeSrOnly": "关闭"
+    },
+    "magiclink": {
+      "label": "或使用邮箱登录",
+      "placeholder": "输入邮箱地址",
+      "send": "发送登录链接",
+      "sent": "登录邮件已发送至 {email}。",
+      "sentHint": "打开邮件中的链接，或在此输入邮件中的验证码：",
+      "retry": "使用其他邮箱",
+      "codeLabel": "邮件中的登录验证码",
+      "codePlaceholder": "ABC123",
+      "codeSubmit": "登录",
+      "codeInvalid": "验证码不正确。请检查邮件，或重新获取验证码。",
+      "codeWrongBrowser": "此验证码并非在当前浏览器中申请，请改用邮件中的登录链接。",
+      "resend": "重新发送",
+      "resendIn": "{seconds} 秒后可重新发送",
+      "rateLimited": "暂时已达到此邮箱的登录邮件发送上限。已发送的登录链接仍可使用。",
+      "sending": "发送中…"
+    },
+    "benefits": {
+      "anki": "将例句连同音频、截图和释义导出到 Anki",
+      "collections": "把例句保存到例句集中，方便随时查看",
+      "sync": "在不同设备间同步学习记录和偏好设置"
+    }
+  },
+  "shortcuts": {
+    "title": "键盘快捷键",
+    "navigation": "导航",
+    "navigateCards": "在搜索结果间移动",
+    "prevNextSegment": "上一条 / 下一条例句",
+    "backToSearch": "返回搜索栏",
+    "playback": "播放",
+    "playSelected": "播放所选结果",
+    "playPause": "播放 / 暂停",
+    "restart": "从头播放音频",
+    "toggleAutoplay": "开启或关闭自动播放",
+    "toggleImmersive": "切换沉浸模式",
+    "actions": "操作",
+    "openAnki": "添加到 Anki",
+    "openContext": "查看上下文",
+    "hint": "在搜索栏中输入时，快捷键不会生效。按 ? 可打开或关闭此面板。"
+  },
+  "seo": {
+    "home": {
+      "title": "Nadeshiko：搜索动画、日剧和 YouTube 中的日语例句",
+      "description": "搜索动画、日剧和 YouTube 中的百万余条日语例句，查看原声、截图和上下文，轻松采集例句制作学习卡片。例句译文目前提供英语和西班牙语，暂不提供中文。"
+    },
+    "stats": {
+      "title": "数据统计",
+      "description": "了解 Nadeshiko 收录的例句覆盖了多少常用日语词汇。统计基于 Jiten 动画词频表。"
+    },
+    "statsWords": {
+      "title": "日语词汇例句覆盖情况：词频排名 {tier}",
+      "description": "查看词频排名 {tier} 的日语词汇中，哪些词在 Nadeshiko 有对应例句。"
+    },
+    "media": {
+      "title": "作品目录",
+      "description": "浏览 Nadeshiko 收录的动画、日剧和 YouTube 视频，逐句搜索日语字幕，查看原声音频和英语、西班牙语译文。",
+      "pageTitle": "{media}：日语字幕与例句"
+    },
+    "blog": {
+      "title": "博客",
+      "description": "了解 Nadeshiko 的最新消息、功能和改进。"
+    },
+    "search": {
+      "title": "搜索",
+      "defaultDescription": "搜索众多动画和日剧中的百万余条日语例句，译文目前支持英语和西班牙语。",
+      "atLeast": "至少 ",
+      "categoryAnime": "动画",
+      "categoryJdrama": "真人影视",
+      "fromCategory": "{category} {count} 条",
+      "breakdownWrapper": "（{parts}）",
+      "descriptionWithResults": "找到 {count} 条包含“{query}”的例句{breakdown}，可查看英语或西班牙语译文。",
+      "descriptionNoResults": "在动画和日剧的百万余条日语例句中搜索“{query}”，译文目前支持英语和西班牙语。",
+      "mediaDescription": "《{media}》中的 {count} 条日语例句，可查看英语或西班牙语译文。",
+      "mediaDescriptionEpisode": "《{media}》第 {episode} 集中的 {count} 条日语例句，可查看英语或西班牙语译文。",
+      "mediaDescriptionEpisodes": "《{media}》共 {episodeCount} 集中的 {count} 条日语例句，可查看英语或西班牙语译文。",
+      "wordTitle": "{query}：日语例句"
+    },
+    "sentence": {
+      "title": "例句",
+      "defaultDescription": "搜索众多动画和日剧中的百万余条日语例句，译文目前支持英语和西班牙语。",
+      "episode": "第 {n} 集",
+      "pageTitle": "「{sentence}」（{media}）"
+    },
+    "collection": {
+      "description": "在 Nadeshiko 浏览“{name}”例句集"
+    }
+  },
+  "statsPage": {
+    "title": "Nadeshiko 数据一览",
+    "intro": {
+      "prefix": "我们的例句覆盖了多少日语词汇？统计依据为",
+      "source": "Jiten",
+      "suffix": "动画词频表，包含从数千部动画中提取的 {totalWords} 个不同词语。"
+    },
+    "loadError": "无法加载统计数据，请刷新页面重试。",
+    "summary": {
+      "sentences": "例句",
+      "uniqueWords": "不同词语",
+      "totalContent": "作品",
+      "episodes": "集数",
+      "dialogueHours": "对话时长（小时）"
+    },
+    "coverage": {
+      "title": "按词频统计的例句覆盖率",
+      "updated": "更新于 {date}",
+      "empty": "暂无覆盖率数据。",
+      "fullCorpus": "完整词表（{count} 千词）",
+      "topWordsK": "词频排名前 {count} 千词",
+      "topWords": "词频排名前 {count} 个词",
+      "updateError": "无法启动覆盖率更新。"
+    },
+    "translations": {
+      "title": "译文覆盖率",
+      "description": "每条例句都有日语字幕。我们尽力为所有内容提供英语和西班牙语译文，暂未提供中文译文。部分来源缺少可靠的西班牙语字幕，因此西班牙语的覆盖率可能较低。",
+      "translated": "有译文 {percent}",
+      "official": "人工翻译 {percent}",
+      "machine": "DeepL 翻译 {percent}",
+      "none": "无译文 {percent}",
+      "languages": {
+        "english": "英语",
+        "spanish": "西班牙语"
+      }
+    },
+    "admin": {
+      "title": "管理：更新词汇覆盖率",
+      "updating": "更新中…",
+      "fullRescan": "重新扫描全部词汇",
+      "missingOnly": "仅检查尚无例句的词汇",
+      "wordsChecked": "已检查词数",
+      "newlyCovered": "新增有例句的词数",
+      "totalCovered": "有例句的词语总数"
+    }
+  },
+  "statsWordsPage": {
+    "back": "返回统计",
+    "title": "词汇例句覆盖情况",
+    "description": {
+      "prefix": "查看",
+      "source": "Jiten",
+      "suffix": "动画词频表中的词汇，以及它们在 Nadeshiko 中是否有对应例句。"
+    },
+    "filters": {
+      "all": "全部（{count}）",
+      "covered": "有例句（{count}）",
+      "missing": "暂无例句（{count}）"
+    },
+    "missingLabel": "暂无例句",
+    "empty": "没有符合当前筛选条件的词语。",
+    "loading": "加载中…",
+    "footer": {
+      "prefix": "词频数据来自",
+      "source": "Jiten",
+      "suffix": "动画语料库。已显示 {shown} / {total} 个词。"
+    },
+    "loadError": "无法加载词语列表。"
+  },
+  "agentActivity": {
+    "title": "自动审核记录",
+    "description": "查看自动审核助手保存的修改记录。可抽查修改结果，并还原不正确的改动。",
+    "empty": "所选时间段内暂无自动审核记录",
+    "episode": "第 {number} 集",
+    "noReport": "无关联反馈",
+    "restore": "还原",
+    "restoring": "还原中…",
+    "restoreSuccess": "例句已还原",
+    "restoreError": "无法还原例句",
+    "window": {
+      "day": "最近 24 小时",
+      "week": "最近 7 天",
+      "month": "最近 30 天"
+    },
+    "table": {
+      "segment": "例句",
+      "change": "修改内容",
+      "report": "关联反馈",
+      "when": "时间",
+      "actions": "操作"
+    }
+  },
+  "connections": {
+    "title": "关联账户",
+    "shirabe": {
+      "name": "Shirabe",
+      "description": "关联 Shirabe 账户，继续使用你在那里的词典。",
+      "connect": "关联",
+      "disconnect": "取消关联",
+      "linkedAs": "已关联：{name}",
+      "dictionaries": "词典",
+      "dictionariesHint": "前往 Shirabe 修改词典设置",
+      "anonymous": "你的 Shirabe 账户",
+      "upgrade": "更新授权",
+      "reconnect": "重新关联",
+      "upgradeNeeded": "已关联：{name}。使用最新功能需要新增授权。",
+      "disconnected": "已关联 {name}，但 Shirabe 已停止接受此连接，因此当前未使用你的个人词典。重新关联即可恢复。",
+      "confirmDisconnect": "取消关联 Shirabe 账户吗？这会撤销 Shirabe 上的密钥，词语弹窗将恢复使用默认词典。"
+    },
+    "callback": {
+      "working": "正在完成账户关联…",
+      "declined": "关联请求未获批准，未关联任何账户。",
+      "failed": "无法完成账户关联。",
+      "signedOut": "你尚未登录 Nadeshiko，无法完成关联。请登录后从设置中重新发起关联。",
+      "back": "返回设置",
+      "done": "已关联 Shirabe",
+      "goToSettings": "前往设置"
+    }
+  },
+  "feedback": {
+    "open": "意见反馈",
+    "title": "发送反馈",
+    "subtitle": "发现问题或有建议？欢迎在这里告诉我们。",
+    "discord": "也可以在我们的{link}联系我们。",
+    "discordLink": "Discord 服务器",
+    "bodyLabel": "反馈内容",
+    "bodyPlaceholder": "请描述你的问题或建议…",
+    "emailLabel": "邮箱",
+    "emailOptional": "（选填）",
+    "emailPlaceholder": "you{'@'}example.com",
+    "emailHint": "如果希望收到回复，请留下邮箱。",
+    "submit": "发送",
+    "submitting": "发送中…",
+    "close": "关闭",
+    "successTitle": "感谢反馈！",
+    "successBody": "我们已收到你的消息。",
+    "error": "发送失败，请检查内容后重试。",
+    "errorRetry": "表单加载出错，请尝试重新发送。",
+    "errorRateLimited": "你刚刚发送了较多消息，请稍后再试。"
+  },
+  "unsubscribe": {
+    "cancel": "保留订阅",
+    "invalid": "此退订链接无效。你也可以在账户设置中关闭这些邮件。",
+    "failed": "无法完成退订，请重试，或在账户设置中关闭这些邮件。",
+    "goToSettings": "前往设置",
+    "chooseTitle": "选择想要接收的邮件"
+  },
+  "signupNudge": {
+    "action": "创建账户",
+    "dismiss": "暂时不用",
+    "download": {
+      "title": "想导出到 Anki？",
+      "message": "创建账户后，即可将例句直接发送到你的 Anki 牌组。"
+    },
+    "depth": {
+      "title": "喜欢 Nadeshiko 吗？",
+      "message": "创建账户后，即可保存喜欢的例句，并将其导出到 Anki。"
+    }
+  },
+  "mediaHeader": {
+    "collapse": "收起作品详情",
+    "expand": "展开作品详情"
+  },
+  "mediaPage": {
+    "resultsFailed": "无法加载此作品的例句。",
+    "resultsRetry": "重试"
+  },
+  "impersonation": {
+    "active": "正在以 {name} 的身份访问",
+    "exit": "切回我的账户"
+  },
+  "mediaMetadata": {
+    "screenshot": "《{media}》截图",
+    "screenshotFallback": "例句截图",
+    "seasonWithYear": "{year} 年{season}",
+    "seasons": {
+      "WINTER": "冬季",
+      "SPRING": "春季",
+      "SUMMER": "夏季",
+      "FALL": "秋季",
+      "NONE": "未设置"
+    },
+    "statuses": {
+      "FINISHED": "已完结",
+      "RELEASING": "连载中",
+      "NOT_YET_RELEASED": "尚未播出",
+      "CANCELLED": "已取消"
+    },
+    "formats": {
+      "TV": "电视节目",
+      "MOVIE": "电影",
+      "OVA": "OVA",
+      "ONA": "网络动画",
+      "SPECIAL": "特别篇",
+      "YOUTUBE": "YouTube"
+    },
+    "categories": {
+      "ANIME": "动画",
+      "JDRAMA": "真人影视",
+      "YOUTUBE": "YouTube"
+    }
+  }
+}

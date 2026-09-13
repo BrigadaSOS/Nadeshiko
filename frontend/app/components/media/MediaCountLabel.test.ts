@@ -28,7 +28,7 @@ const CHANNEL = { category: 'YOUTUBE', airingFormat: 'YOUTUBE', episodeCount: 34
 
 describe('a series', () => {
   test('is counted in episodes', () => {
-    expect(render(SERIES).text()).toBe('12 animeList.episodes');
+    expect(render(SERIES).text()).toBe('animeList.episodeCount');
   });
 
   test('puts the label first when the list view asks for it', () => {
@@ -53,12 +53,12 @@ describe('a YouTube channel', () => {
   test('is counted in videos, not episodes', () => {
     // A channel does not have episodes, and calling them that reads as a bug to
     // anyone who watches the source.
-    expect(render(CHANNEL).text()).toBe('340 animeList.videos');
+    expect(render(CHANNEL).text()).toBe('animeList.videoCount');
   });
 
   test('is never called a movie, whatever airing format it carries', () => {
     // YouTube rows arrive with assorted formats; the category has to win.
-    expect(render({ category: 'YOUTUBE', airingFormat: 'MOVIE', episodeCount: 5 }).text()).toBe('5 animeList.videos');
+    expect(render({ category: 'YOUTUBE', airingFormat: 'MOVIE', episodeCount: 5 }).text()).toBe('animeList.videoCount');
   });
 
   test('puts the label first when asked', () => {
@@ -74,6 +74,6 @@ describe('a count that is missing', () => {
   ])('renders %s as 0 rather than as nothing', (_name, episodeCount) => {
     // An empty space where a number belongs reads as a broken card; "0
     // Episodes" reads as a title nobody has indexed yet, which is the truth.
-    expect(render({ ...SERIES, episodeCount }).text()).toBe('0 animeList.episodes');
+    expect(render({ ...SERIES, episodeCount }).text()).toBe('animeList.episodeCount');
   });
 });

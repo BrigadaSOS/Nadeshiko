@@ -18,7 +18,7 @@ const pageSize = 9;
 const { data: posts, refresh } = await useAsyncData(
   `blog-posts-${locale.value}-${page.value}`,
   async () => {
-    const lang = locale.value.toLowerCase();
+    const lang = locale.value;
 
     const result = await $fetch<{ posts: any[]; isFallback: boolean }>('/api/blog/posts', {
       query: { locale: lang },

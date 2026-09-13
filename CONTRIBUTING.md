@@ -214,7 +214,7 @@ backend/               Node + Express + TypeScript API
 
 frontend/              Nuxt 4 + Vue 3 app
   app/                 Pages, components, composables
-  i18n/                Translations (en, es, ja)
+  i18n/                Translations (en, es, ja, zh-CN, id, pt-BR)
 
 discord/               Discord bot
 

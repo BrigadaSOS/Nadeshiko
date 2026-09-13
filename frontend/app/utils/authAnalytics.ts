@@ -254,7 +254,7 @@ export function consumeAuthReturnTo(storage: IntentStorage | undefined, now = Da
 }
 
 export function isAuthCallbackPath(path: string): boolean {
-  return /^\/(?:en|es|ja)?\/?auth\/callback\/?$/.test(path);
+  return /^\/(?:en|es|ja|zh-CN|id|pt-BR)?\/?auth\/callback\/?$/.test(path);
 }
 
 /**

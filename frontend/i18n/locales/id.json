@@ -1,0 +1,1494 @@
+{
+  "errors": {
+    "generic": "Terjadi kesalahan. Silakan coba lagi.",
+    "rateLimited": "Terlalu banyak permintaan. Tunggu sebentar, lalu coba lagi."
+  },
+  "navbar": {
+    "buttons": {
+      "home": "Beranda",
+      "about": "Tentang",
+      "api": "API",
+      "login": "Masuk / Daftar",
+      "profile": "Profil",
+      "privacy": "Privasi",
+      "dmca": "DMCA",
+      "terms": "Syarat dan ketentuan",
+      "settings": "Pengaturan",
+      "blog": "Blog",
+      "changelog": "Catatan pembaruan",
+      "stats": "Statistik",
+      "media": "Katalog",
+      "collections": "Koleksi",
+      "activity": "Aktivitas",
+      "language": "Bahasa",
+      "logout": "Keluar"
+    }
+  },
+  "announcementBanner": {
+    "titles": {
+      "INFO": "Informasi",
+      "WARNING": "Informasi penting",
+      "MAINTENANCE": "Informasi pemeliharaan"
+    }
+  },
+  "player": {
+    "nowPlaying": "Sedang diputar",
+    "controls": {
+      "rewind": "Mundur",
+      "forward": "Maju",
+      "previous": "Klip sebelumnya",
+      "next": "Klip berikutnya",
+      "play": "Putar",
+      "pause": "Jeda",
+      "autoplay": "Putar otomatis",
+      "repeat": "Ulangi",
+      "speed": "Kecepatan pemutaran ({rate}×)",
+      "speedMenu": "Kecepatan pemutaran",
+      "volume": "Volume",
+      "enterFullscreen": "Layar penuh",
+      "exitFullscreen": "Keluar dari layar penuh",
+      "close": "Tutup pemutar"
+    }
+  },
+  "common": {
+    "loading": "Memuat…",
+    "example": "Contoh: {value}",
+    "cancel": "Batal",
+    "search": "Cari",
+    "clearSearch": "Hapus pencarian",
+    "close": "Tutup",
+    "confirm": "Konfirmasi",
+    "logoAlt": "Logo Nadeshiko",
+    "navigationMenu": "Menu navigasi",
+    "searchAnything": "Cari kata atau kalimat!",
+    "toggleNavigation": "Buka atau tutup menu navigasi",
+    "translationUnavailable": "Halaman ini belum tersedia dalam bahasa Indonesia. Versi bahasa Inggris ditampilkan untuk sementara.",
+    "justNow": "Baru saja",
+    "skipToContent": "Langsung ke konten"
+  },
+  "appMeta": {
+    "defaultTitle": "Nadeshiko: Cari kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube",
+    "defaultPageTitle": "Cari kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube",
+    "defaultDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube, lengkap dengan audio dan cuplikan gambar. Terjemahan tersedia dalam bahasa Inggris dan Spanyol. Cocok untuk sentence mining."
+  },
+  "home": {
+    "supportOnPatreon": "Dukung kami di Patreon",
+    "version": "v{version}",
+    "nadeDbDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube, lengkap dengan audio dan cuplikan gambar. Terjemahan tersedia dalam bahasa Inggris dan Spanyol. Cocok untuk {sentenceMining}.",
+    "sentenceMiningLabel": "mengumpulkan contoh kalimat (sentence mining)",
+    "nadeDbDescriptionJpSearch": "Cari dalam bahasa Jepang",
+    "nadeDbDescriptionOtherSearch": "Cari dalam bahasa Inggris atau Spanyol",
+    "nadeDbDescriptionExclusiveSearch": "Kecualikan kata tertentu",
+    "nadeDbDescriptionExactSearch": "Cari kecocokan persis",
+    "keyFeatures": {
+      "feature1": {
+        "title": "Ekspor ke Anki",
+        "description": "Simpan kalimat ke Anki beserta cuplikan gambar, audio, dan terjemahan bahasa Inggris atau Spanyol yang tersedia."
+      },
+      "feature2": {
+        "title": "Simpan kalimat pilihan Anda",
+        "description": "Unduh gambar, audio, atau video dari kalimat yang Anda temukan."
+      },
+      "feature3": {
+        "title": "Pahami konteksnya",
+        "description": "Lihat dialog sebelum dan sesudah kalimat untuk memahami situasinya."
+      },
+      "feature4": {
+        "title": "Beragam bahan belajar",
+        "description": "Temukan berbagai genre, jenis tayangan, dan cara berbicara."
+      },
+      "feature5": {
+        "title": "Terhubung langsung dengan Discord",
+        "description": "Cari di koleksi yang sama, dengan lebih dari 1,3 juta kalimat, melalui bot resmi kami tanpa meninggalkan server Discord Anda.",
+        "linkText": "Tambahkan bot ke server Discord Anda!"
+      }
+    },
+    "support": {
+      "title": "Suka Nadeshiko?",
+      "description": "Jika situs ini bermanfaat, Anda dapat mendukung pengembangannya dengan berkontribusi di GitHub, berdonasi, atau membagikannya kepada orang lain."
+    },
+    "stats": {
+      "sentenceCount": "Kalimat",
+      "episodeCount": "Episode",
+      "mediaCount": "Judul"
+    }
+  },
+  "batchSearch": {
+    "title": "Cari beberapa kata sekaligus",
+    "description1": "Cari beberapa kata sekaligus untuk melihat jumlah kalimat yang cocok dengan setiap kata. Buka tautan hasilnya untuk melihat contoh kalimat.",
+    "description2": "Masukkan kata-kata pada kotak di bawah untuk memulai.",
+    "description3": "Masukkan satu kata per baris, atau pisahkan kata dengan koma.",
+    "description4": "Anda dapat mencari hingga ",
+    "description5": "500 kata sekaligus",
+    "totalWords": "Jumlah kata",
+    "search": "Cari",
+    "close": "Tutup",
+    "results": {
+      "title": "Hasil pencarian beberapa kata",
+      "words": "Kata yang dicari",
+      "wordsWithMatch": "Kata dengan hasil",
+      "percentageMatched": "Persentase kata dengan hasil",
+      "wordColumn": "Kata",
+      "match": "Ada hasil?",
+      "matchesCount": "Jumlah hasil",
+      "true": "Ya",
+      "false": "Tidak",
+      "searching": "Mencari…",
+      "return": "Kembali"
+    }
+  },
+  "animeList": {
+    "recentlyAddedTitle": "Baru ditambahkan",
+    "fullListTitle": "Semua judul",
+    "seeAll": "Lihat semua",
+    "sentenceCount": "kalimat",
+    "episodes": "Episode",
+    "videos": "Video",
+    "episodeCount": "{count} episode",
+    "videoCount": "{count} video",
+    "sentenceCountLabel": "Jumlah kalimat:",
+    "anilistButton": "AniList",
+    "tmdbButton": "TMDB",
+    "imdbButton": "IMDb",
+    "youtubeButton": "YouTube",
+    "vocabularyButton": "Kosakata"
+  },
+  "hiddenCategories": {
+    "updateError": "Gagal memperbarui kategori yang disembunyikan. Silakan coba lagi."
+  },
+  "hiddenMedia": {
+    "updateError": "Gagal memperbarui judul yang disembunyikan. Silakan coba lagi."
+  },
+  "favoriteMedia": {
+    "updateError": "Gagal memperbarui judul favorit. Silakan coba lagi.",
+    "capReached": "Batas 100 judul favorit sudah tercapai. Hapus satu judul dari favorit untuk menambahkan judul lain."
+  },
+  "familiarMedia": {
+    "forgetError": "Gagal melupakan judul ini. Silakan coba lagi."
+  },
+  "mediaBrowse": {
+    "nextPage": "Halaman berikutnya",
+    "showHiddenMedia": "Tampilkan judul tersembunyi",
+    "hideHiddenMedia": "Sembunyikan kembali judul",
+    "loadError": "Gagal memuat katalog.",
+    "loadMoreError": "Gagal memuat judul lainnya."
+  },
+  "searchSettingsModal": {
+    "exactMatchTitle": "Kecocokan persis",
+    "exactMatchDescription": "Cari teks yang persis sama, tanpa menyertakan bentuk konjugasi atau hasil lainnya."
+  },
+  "anki": {
+    "configRequired": "Atur Anki di Pengaturan untuk menggunakan fitur ini.",
+    "notRunning": "Anki tidak merespons. Buka Anki dengan add-on AnkiConnect aktif, lalu coba lagi.",
+    "keyFieldRequired": "Pilih bidang pencarian di pengaturan Anki untuk menggunakan fitur ini.",
+    "modal": {
+      "title": "Cari di koleksi Anki",
+      "description": "Cari catatan di koleksi Anki Anda untuk menambahkan gambar dan audio. Pilih bidang pencarian di pengaturan terlebih dahulu.",
+      "idColumn": "ID",
+      "keyColumn": "Isi bidang pencarian",
+      "noCardsFound": "Tidak ada catatan yang ditemukan",
+      "noCardsMessage": "Coba kata pencarian lain atau ekspor kalimat ini ke Anki terlebih dahulu.",
+      "validationError": "Terjadi kesalahan",
+      "errorMessage": "Bidang pencarian belum dipilih",
+      "errorTip": "Pastikan bidang pencarian sudah dipilih di pengaturan Nadeshiko."
+    },
+    "toast": {
+      "noSettings": "Atur Anki di pengaturan Nadeshiko untuk menggunakan fitur ini.",
+      "miningCard": "Mengekspor ke Anki…",
+      "noCardToExport": "Belum ada kartu Anki untuk tujuan ekspor. Tambahkan kartu terlebih dahulu.",
+      "cardFoundInOtherDeck": "Kartu ditemukan, tetapi bukan di dek \"{deck}\". Pastikan Yomitan dan Nadeshiko menggunakan dek yang sama.",
+      "cardAdded": "Kartu berhasil ditambahkan ke Anki",
+      "cardAddError": "Gagal menambahkan kartu ke Anki. Kesalahan: {error}"
+    }
+  },
+  "modalAnkiNotes": {
+    "closeSrOnly": "Tutup",
+    "searchPlaceholder": "女"
+  },
+  "modalBatch": {
+    "closeSrOnly": "Tutup",
+    "wordLimitExceeded": "Jumlah kata melebihi batas: {count} / 500",
+    "inputFormatError": "Format masukan tidak sesuai. Gunakan koma atau baris baru sebagai pemisah, jangan keduanya sekaligus.",
+    "notAvailable": "Tidak tersedia",
+    "searchError": "Pencarian kata gagal diselesaikan. Silakan coba lagi.",
+    "searchTypeLabel": "Jenis pencarian: {type}",
+    "searchTypeExact": "Persis",
+    "searchTypeNormal": "Biasa",
+    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n…\n…\n…"
+  },
+  "modalContext": {
+    "closeSrOnly": "Tutup"
+  },
+  "modalMediaEdit": {
+    "title": "Edit data judul",
+    "editButton": "Edit",
+    "publicId": "ID publik",
+    "cover": "Gambar sampul",
+    "banner": "Gambar banner",
+    "nameJa": "Judul bahasa Jepang",
+    "nameRomaji": "Judul romaji",
+    "nameEn": "Judul bahasa Inggris",
+    "airingFormat": "Format",
+    "airingStatus": "Status penayangan",
+    "category": "Kategori",
+    "genres": "Genre",
+    "genresPlaceholder": "Komedi, Drama, Romansa",
+    "studio": "Studio",
+    "startDate": "Tanggal mulai",
+    "endDate": "Tanggal selesai",
+    "seasonName": "Musim penayangan",
+    "seasonYear": "Tahun",
+    "externalIds": "ID eksternal",
+    "save": "Simpan",
+    "saving": "Menyimpan…",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "saveSuccess": "Data judul berhasil diperbarui",
+    "saveError": "Gagal memperbarui data judul",
+    "delete": "Hapus",
+    "deleteConfirm": "Yakin ingin menghapus judul ini?",
+    "confirmYes": "Ya, hapus",
+    "confirmNo": "Tidak",
+    "deleting": "Menghapus…",
+    "deleteSuccess": "Judul berhasil dihapus",
+    "deleteError": "Gagal menghapus judul"
+  },
+  "modalSegmentEdit": {
+    "title": "Edit kalimat",
+    "editButton": "Edit",
+    "japanese": "Bahasa Jepang",
+    "english": "Bahasa Inggris",
+    "spanish": "Bahasa Spanyol",
+    "machineTranslated": "Terjemahan mesin",
+    "status": "Status",
+    "contentRating": "Klasifikasi konten",
+    "save": "Simpan",
+    "saving": "Menyimpan…",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "saveSuccess": "Kalimat diperbarui",
+    "saveError": "Gagal memperbarui kalimat",
+    "timing": "Urutan dan waktu",
+    "position": "Urutan",
+    "startTimeMs": "Mulai (ms)",
+    "endTimeMs": "Selesai (ms)",
+    "ratingAnalysis": "Analisis klasifikasi",
+    "ratingAnalysisDesc": "Hasil klasifikasi WD Tagger v3 (skor dan tag) yang digunakan untuk menentukan klasifikasi konten.",
+    "invalidJson": "JSON tidak valid",
+    "loading": "Memuat…",
+    "history": "Riwayat",
+    "historyToggle": "Buka atau tutup riwayat",
+    "snapshot": "Versi tersimpan",
+    "noRevisions": "Belum ada riwayat perubahan",
+    "viewingSnapshot": "Menampilkan versi {n}",
+    "current": "Saat ini",
+    "metadata": {
+      "media": "Judul",
+      "episode": "Ep.",
+      "time": "Waktu",
+      "duration": "Durasi",
+      "id": "ID",
+      "position": "Urutan",
+      "publicId": "ID publik",
+      "copyPublicId": "Salin ID publik",
+      "mediaId": "ID judul",
+      "hashedId": "ID hash",
+      "storage": "Penyimpanan",
+      "storagePath": "Lokasi penyimpanan",
+      "image": "Gambar",
+      "audio": "Audio",
+      "video": "Video"
+    },
+    "deleteEpisode": "Hapus episode",
+    "deleteEpisodeConfirm": "Hapus episode {episode} beserta semua kalimatnya?",
+    "deleteEpisodeYes": "Hapus",
+    "deleteEpisodeSuccess": "Episode berhasil dihapus",
+    "deleteEpisodeError": "Gagal menghapus episode"
+  },
+  "filterContent": {
+    "searchPlaceholder": "Cari judul",
+    "backToTitles": "Kembali ke daftar judul"
+  },
+  "episodeFilter": {
+    "noEpisodes": "Tidak ada episode yang ditemukan"
+  },
+  "segmentSidebar": {
+    "loading": "Memuat…",
+    "filtersTitle": "Filter",
+    "openFilters": "Buka filter",
+    "close": "Tutup"
+  },
+  "searchpage": {
+    "main": {
+      "translationPreferences": {
+        "combinedMenuButton": "Tampilan terjemahan dan furigana",
+        "englishMenu": "Terjemahan bahasa Inggris",
+        "spanishMenu": "Terjemahan bahasa Spanyol",
+        "furiganaMenu": "Furigana (cara baca)",
+        "languageSettingsHint": "Pilih bahasa terjemahan yang ingin ditampilkan di pengaturan akun.",
+        "modeShown": "Tampilkan",
+        "modeSpoiler": "Saat diarahkan",
+        "modeHidden": "Sembunyikan",
+        "englishShown": "Terjemahan bahasa Inggris ditampilkan",
+        "englishSpoiler": "Terjemahan bahasa Inggris ditampilkan saat kursor diarahkan",
+        "englishHidden": "Terjemahan bahasa Inggris disembunyikan",
+        "spanishShown": "Terjemahan bahasa Spanyol ditampilkan",
+        "spanishSpoiler": "Terjemahan bahasa Spanyol ditampilkan saat kursor diarahkan",
+        "spanishHidden": "Terjemahan bahasa Spanyol disembunyikan",
+        "furiganaShown": "Furigana (cara baca) ditampilkan",
+        "furiganaSpoiler": "Furigana (cara baca) ditampilkan saat kursor diarahkan",
+        "furiganaHidden": "Furigana (cara baca) disembunyikan"
+      },
+      "buttons": {
+        "addToAnkiLast": "Ekspor ke kartu Anki yang terakhir ditambahkan",
+        "addToAnkiSearch": "Ekspor ke Anki (cari di koleksi)",
+        "download": "Unduh",
+        "dl-expanded": "Audio gabungan",
+        "add": "Tambahkan",
+        "video": "Video (gambar + audio)",
+        "image": "Gambar",
+        "audio": "Audio",
+        "info": "Info episode",
+        "copyclipboard": "Salin",
+        "jpsentence": "Kalimat bahasa Jepang",
+        "jpsentencehighlight": "Kalimat bahasa Jepang (kata ditandai)",
+        "jpsentencefurigana": "Kalimat bahasa Jepang (dengan furigana)",
+        "ensentence": "Terjemahan bahasa Inggris",
+        "essentence": "Terjemahan bahasa Spanyol",
+        "word": "Kata",
+        "wordreading": "Cara baca kata",
+        "wordfurigana": "Kata (dengan furigana)",
+        "definition": "Definisi (semua kamus)",
+        "definitionFirst": "Definisi (kamus pertama)",
+        "wordpitch": "Aksen nada",
+        "wordpitchnum": "Posisi aksen nada",
+        "wordaudio": "Audio kata",
+        "wordinfo": "Info kata",
+        "context": "Konteks",
+        "share": "Bagikan",
+        "more": "Lainnya",
+        "expandLeft": "Sertakan subtitle sebelumnya",
+        "expandBoth": "Sertakan subtitle sebelum dan sesudah",
+        "expandRight": "Sertakan subtitle berikutnya",
+        "hideMedia": "Sembunyikan",
+        "unhideMedia": "Tampilkan kembali",
+        "favoriteMedia": "Tambahkan ke favorit",
+        "unfavoriteMedia": "Hapus dari favorit",
+        "addToCollection": "Tambahkan ke koleksi",
+        "manageCollections": "Kelola koleksi",
+        "collectionsLoading": "Memuat koleksi…",
+        "collectionsEmpty": "Belum ada koleksi",
+        "chooseCollection": "Pilih koleksi…",
+        "sortmain": "Urutkan kalimat",
+        "sortlengthnone": "Tanpa urutan",
+        "sortlengthmin": "Terpendek",
+        "sortlengthmax": "Terpanjang",
+        "sortasc": "Terpendek",
+        "sortdesc": "Terpanjang",
+        "sorttime_asc": "Dari awal episode",
+        "sorttime_desc": "Dari akhir episode",
+        "sortrandom": "Acak",
+        "wordfrequency": "Peringkat frekuensi",
+        "wordjlpt": "Level JLPT",
+        "wordpitchcategories": "Pola aksen nada",
+        "sentencefurigana": "Kalimat (dengan furigana)"
+      },
+      "labels": {
+        "noresults": "Tidak ada hasil yang ditemukan",
+        "episode": "Episode {number}",
+        "movie": "Film",
+        "hiddenMediaBadge": "Disembunyikan",
+        "hiddenMediaBadgeTitle": "Judul ini ada dalam daftar yang Anda sembunyikan",
+        "searchmain": "Cari judul…",
+        "copiedcontent": "Konten disalin ke papan klip.",
+        "errorcopiedcontent": "Gagal menyalin konten. Silakan coba lagi.",
+        "copiedsharingurl": "Tautan disalin ke papan klip.",
+        "errorcopiedsharingurl": "Gagal menyalin tautan. Silakan coba lagi.",
+        "collectionAdded": "Ditambahkan ke \"{name}\"",
+        "collectionAddFailed": "Gagal menambahkan ke koleksi. Silakan coba lagi.",
+        "mtTooltip": "Kalimat ini diterjemahkan oleh mesin dan mungkin kurang akurat.",
+        "zoomedImage": "Gambar yang diperbesar",
+        "collectionsLoadFailed": "Gagal memuat koleksi Anda.",
+        "collectionRemoveFailed": "Gagal menghapus kalimat ini dari koleksi.",
+        "downloadFailed": "Gagal mengunduh berkas. Silakan coba lagi."
+      }
+    },
+    "modalcontext": {
+      "labels": {
+        "context": "Konteks",
+        "loadError": "Gagal memuat dialog di sekitar kalimat ini."
+      }
+    }
+  },
+  "activity": {
+    "deleteDayActivity": "Hapus aktivitas pada hari ini",
+    "deletingDayActivity": "Menghapus…"
+  },
+  "accountSettings": {
+    "menu": {
+      "generalTitle": "Umum",
+      "advancedTitle": "Lanjutan",
+      "adminTitle": "Admin",
+      "tabsAriaLabel": "Bagian pengaturan akun"
+    },
+    "tabs": {
+      "settings": "Pengaturan",
+      "sync": "Anki",
+      "collections": "Koleksi",
+      "activity": "Aktivitas",
+      "media": "Judul",
+      "developer": "Pengembang",
+      "users": "Pengguna",
+      "reports": "Laporan",
+      "agentActivity": "Aktivitas agen",
+      "announcement": "Pengumuman"
+    },
+    "dashboard": {
+      "roles": {
+        "ADMIN": "Administrator",
+        "MOD": "Moderator",
+        "USER": "Pengguna",
+        "PATREON": "Pendukung Patreon"
+      },
+      "title": "Pengguna",
+      "searchPlaceholder": "Cari berdasarkan email…",
+      "count": "{count} pengguna",
+      "empty": "Tidak ada pengguna yang ditemukan.",
+      "table": {
+        "name": "Nama",
+        "email": "Email",
+        "role": "Peran",
+        "providers": "Metode masuk",
+        "registered": "Terdaftar",
+        "lastUpdate": "Terakhir diperbarui",
+        "status": "Status"
+      },
+      "providers": {
+        "google": "Google",
+        "discord": "Discord",
+        "email": "Email"
+      },
+      "status": {
+        "active": "Aktif",
+        "banned": "Diblokir"
+      },
+      "actions": {
+        "impersonate": "Akses sebagai pengguna",
+        "ban": "Blokir",
+        "unban": "Buka blokir"
+      },
+      "pagination": {
+        "showing": "Menampilkan {start}–{end} dari {total}",
+        "previous": "Sebelumnya",
+        "next": "Berikutnya"
+      },
+      "loadError": "Gagal memuat daftar pengguna.",
+      "banSuccess": "{name} telah diblokir.",
+      "banError": "Gagal memblokir {name}.",
+      "unbanSuccess": "Blokir {name} telah dibuka.",
+      "unbanError": "Gagal membuka blokir {name}."
+    },
+    "announcement": {
+      "title": "Pengumuman",
+      "description": "Buat pengumuman yang ditampilkan kepada semua pengguna di seluruh situs.",
+      "fields": {
+        "message": "Pesan",
+        "type": "Jenis",
+        "active": "Aktif",
+        "preview": "Pratinjau"
+      },
+      "placeholders": {
+        "message": "Tulis pengumuman…"
+      },
+      "markdownHint": "Mendukung **tebal**, *miring*, `kode`, dan [tautan](/media). Tautan seperti /media tetap dibuka di dalam aplikasi.",
+      "activeDescription": "Jika aktif, pengumuman ditampilkan kepada semua pengunjung.",
+      "types": {
+        "INFO": "Informasi",
+        "WARNING": "Peringatan",
+        "MAINTENANCE": "Pemeliharaan"
+      },
+      "save": "Simpan",
+      "saving": "Menyimpan…",
+      "deactivate": "Nonaktifkan",
+      "updated": "Pengumuman diperbarui",
+      "updateError": "Gagal memperbarui pengumuman",
+      "deactivated": "Pengumuman dinonaktifkan",
+      "deactivateError": "Gagal menonaktifkan pengumuman",
+      "fallbackMessage": "Tidak ada pengumuman"
+    },
+    "activity": {
+      "confirmClearHistory": "Hapus seluruh riwayat aktivitas? Tindakan ini tidak dapat dibatalkan.",
+      "trackingOnToast": "Pencatatan aktivitas diaktifkan",
+      "trackingOffToast": "Pencatatan aktivitas dinonaktifkan",
+      "familiarOnToast": "Judul yang Anda gunakan untuk belajar akan diingat",
+      "familiarOffToast": "Judul yang Anda gunakan untuk belajar tidak lagi diingat",
+      "clearHistoryToast": "Riwayat aktivitas dihapus",
+      "confirmClearDay": "Hapus semua aktivitas pada {day}? Tindakan ini tidak dapat dibatalkan.",
+      "ranges": {
+        "all": "Sepanjang waktu"
+      },
+      "filters": {
+        "all": "Semua"
+      },
+      "types": {
+        "SEARCH": "Pencarian",
+        "SEGMENT_PLAY": "Pemutaran audio",
+        "ANKI_EXPORT": "Ekspor ke Anki",
+        "SHARE": "Berbagi tautan"
+      },
+      "metrics": {
+        "searches": "Pencarian",
+        "plays": "Pemutaran audio",
+        "exports": "Ekspor ke Anki",
+        "shares": "Tautan dibagikan"
+      },
+      "overview": {
+        "title": "Ringkasan aktivitas",
+        "description": "Lihat ringkasan pencarian dan kegiatan belajar Anda."
+      },
+      "heatmap": {
+        "title": "Kalender aktivitas",
+        "description": "Aktivitas selama {days} hari terakhir. Pilih tanggal untuk melihat riwayat hari tersebut.",
+        "loading": "Memuat kalender aktivitas…",
+        "less": "Sedikit",
+        "more": "Banyak",
+        "records": "{count} catatan aktivitas",
+        "searches": "{count} pencarian",
+        "plays": "{count} pemutaran",
+        "exports": "{count} ekspor",
+        "shares": "{count} kali berbagi",
+        "actions": "{count} aktivitas"
+      },
+      "history": {
+        "title": "Riwayat aktivitas",
+        "description": "Aktivitas terbaru dari akun Anda.",
+        "showing": "Menampilkan: {day}",
+        "clearDayFilter": "Hapus filter tanggal",
+        "deleteDayTitle": "Hapus semua aktivitas pada hari ini",
+        "loading": "Memuat…",
+        "empty": "Belum ada aktivitas yang tercatat.",
+        "emptyForDay": "Tidak ada aktivitas yang tercatat pada hari ini.",
+        "emptyForType": "Belum ada aktivitas jenis ini yang tercatat.",
+        "inOneTitle": "Dalam satu judul",
+        "noDetails": "-",
+        "remove": "Hapus",
+        "loadMore": "Muat lainnya",
+        "table": {
+          "type": "Jenis",
+          "details": "Detail",
+          "date": "Tanggal"
+        }
+      },
+      "privacy": {
+        "title": "Privasi",
+        "trackingTitle": "Catat aktivitas",
+        "trackingDescription": "Catat pencarian, pemutaran audio, ekspor ke Anki, dan tautan yang dibagikan. Pencarian terbaru Anda akan muncul di kolom pencarian.",
+        "clearHistoryTitle": "Hapus riwayat",
+        "clearHistoryDescription": "Hapus semua data aktivitas dari akun Anda secara permanen.",
+        "clearHistoryButton": "Hapus riwayat",
+        "clearing": "Menghapus…",
+        "familiarTitle": "Ingat judul yang saya gunakan untuk belajar",
+        "familiarDescription": "Catat aktivitas bulanan untuk setiap judul agar judul yang Anda gunakan untuk belajar muncul di bagian atas filter judul. Catatan ini terpisah dari riwayat aktivitas.",
+        "familiarListTitle": "Judul yang Anda gunakan untuk belajar",
+        "familiarListEmpty": "Belum ada data. Ekspor kartu atau putar klip agar judulnya muncul di sini.",
+        "familiarCounts": "{cards} · {plays} · {shares}",
+        "forgetTitle": "Lupakan",
+        "forgetTitleHint": "Lupakan {title}",
+        "familiarCards": "{count} ekspor ke Anki",
+        "familiarPlays": "{count} pemutaran",
+        "familiarShares": "{count} kali berbagi"
+      }
+    },
+    "developer": {
+      "apiUsageTitle": "Penggunaan API",
+      "apiUsageRemaining": "Permintaan terpakai: {used} / {limit}",
+      "quotaResets": "Direset pada {date}",
+      "quotaTier": "Paket {tier}",
+      "burstLimit": "Selain batas ini, setiap kunci dibatasi hingga {max} permintaan per menit.",
+      "usageLimitMessage": {
+        "prefix": "Untuk meningkatkan batas penggunaan API, hubungi kami di"
+      },
+      "apiKeyManagement": "Kelola kunci API",
+      "addApiKey": "Tambahkan kunci API",
+      "keyCreated": "Kunci dibuat",
+      "keyCreatedMessage": "Simpan kunci ini sekarang. Kunci tidak akan ditampilkan lagi.",
+      "copyApiKey": "Salin kunci API",
+      "copied": "Disalin!",
+      "keyDeactivated": "Kunci dinonaktifkan",
+      "noKeysFound": "Belum ada kunci API",
+      "noKeysMessage": "Buat kunci baru untuk aplikasi atau proyek Anda.",
+      "tableHeaders": {
+        "name": "Nama",
+        "key": "Kunci",
+        "permissions": "Izin",
+        "createdAt": "Dibuat",
+        "status": "Status"
+      },
+      "statusActive": "Aktif",
+      "statusInactive": "Tidak aktif",
+      "options": "Opsi",
+      "rename": "Ganti nama",
+      "deactivate": "Nonaktifkan",
+      "createApiKeyModal": {
+        "title": "Buat kunci API",
+        "nameLabel": "Nama",
+        "namePlaceholder": "Masukkan nama untuk kunci API ini",
+        "scopesLabel": "Izin",
+        "scopesRequired": "Pilih setidaknya satu izin.",
+        "presets": {
+          "readOnly": {
+            "label": "Hanya baca (disarankan)"
+          },
+          "fullAccount": {
+            "label": "Akses akun penuh"
+          },
+          "custom": {
+            "label": "Kustom"
+          }
+        },
+        "create": "Buat"
+      },
+      "renameApiKeyModal": {
+        "title": "Ganti nama kunci API",
+        "nameLabel": "Nama",
+        "namePlaceholder": "Masukkan nama baru untuk kunci API ini",
+        "save": "Simpan"
+      },
+      "loadError": "Gagal memuat kunci API Anda.",
+      "createKeyError": "Gagal membuat kunci API.",
+      "renameKeyError": "Gagal mengganti nama kunci API.",
+      "deactivateKeyError": "Gagal menonaktifkan kunci API."
+    },
+    "account": {
+      "infoTitle": "Informasi akun",
+      "usernameLabel": "Nama pengguna",
+      "emailLabel": "Email",
+      "notAvailable": "Tidak tersedia",
+      "logout": "Keluar",
+      "loggingOut": "Keluar…",
+      "additionalTitle": "Data dan akun",
+      "preferencesTitle": "Preferensi",
+      "mediaNameLanguage": "Bahasa judul",
+      "mediaNameLanguageDescription": "Judul akan ditampilkan dalam {language} jika tersedia. Contoh:",
+      "mediaNameLanguageOptions": {
+        "ENGLISH": "bahasa Inggris",
+        "JAPANESE": "bahasa Jepang",
+        "ROMAJI": "romaji"
+      },
+      "translationLanguages": "Bahasa terjemahan",
+      "translationLanguagesDescription": "Pilih bahasa untuk terjemahan subtitle dan definisi kamus: Inggris, Spanyol, atau keduanya. Jika memilih keduanya, Anda juga dapat mengatur urutan tampilannya. Terjemahan subtitle bahasa Indonesia belum tersedia.",
+      "translationLanguagesLinkedDescription": "Pilih bahasa dan urutan tampilan terjemahan subtitle: Inggris, Spanyol, atau keduanya. Definisi kamus mengikuti pengaturan Shirabe Anda. Terjemahan subtitle bahasa Indonesia belum tersedia.",
+      "definitionSize": "Ukuran teks definisi",
+      "definitionSizeDescription": "Atur ukuran teks definisi pada panel kata.",
+      "definitionSizeOptions": {
+        "SMALL": "Kecil",
+        "MEDIUM": "Sedang",
+        "LARGE": "Besar"
+      },
+      "translationLanguageOptions": {
+        "EN": "Hanya Inggris",
+        "ES": "Hanya Spanyol",
+        "EN_ES": "Inggris, lalu Spanyol",
+        "ES_EN": "Spanyol, lalu Inggris"
+      },
+      "defaultSearchCategory": "Kategori pencarian awal",
+      "defaultSearchCategoryDescription": "Pencarian akan dibuka pada kategori ini, kecuali tautan yang Anda buka sudah menentukan kategori lain.",
+      "motion": "Animasi",
+      "motionOptions": {
+        "system": "Ikuti perangkat",
+        "reduced": "Kurangi",
+        "none": "Nonaktifkan"
+      },
+      "motionHint_system": "Ikuti pengaturan aksesibilitas perangkat Anda untuk mengurangi gerakan.",
+      "motionHint_reduced": "Pertahankan perubahan warna dan efek memudar yang ringan, tanpa gerakan geser atau perubahan ukuran.",
+      "motionHint_none": "Nonaktifkan semua animasi. Pilih ini jika antarmuka masih terasa lambat.",
+      "mediaCard": "Panel info judul",
+      "mediaCardOptions": {
+        "OPEN": "Terbuka saat dimuat",
+        "CLOSED": "Tertutup saat dimuat"
+      },
+      "mediaCardHint_OPEN": "Panel di atas daftar kalimat langsung menampilkan judul alternatif, studio, musim penayangan, genre, dan tautan katalog. Anda dapat menutup detailnya dari panel tersebut.",
+      "mediaCardHint_CLOSED": "Panel awalnya hanya menampilkan gambar kecil, judul, dan jumlah episode serta kalimat dalam satu baris. Klik baris tersebut untuk melihat detailnya.",
+      "defaultSearchCategoryHiddenOption": "{category} (disembunyikan)",
+      "defaultSearchCategoryHiddenNotice": "Kategori {category} sedang disembunyikan. Pencarian akan dibuka pada Semua hingga kategori tersebut ditampilkan kembali.",
+      "dictionaryLinks": "Tautan kamus",
+      "dictionaryLinksDescription": "Pilih kamus yang ditampilkan sebagai tautan pencarian cepat pada panel kata.",
+      "deleteAccount": "Hapus akun (tidak dapat dibatalkan)",
+      "deleteAccountButton": "Hapus akun",
+      "deletingAccount": "Menghapus…",
+      "confirmDeleteAccount": "Tindakan ini akan menghapus akun Anda secara permanen. Lanjutkan?",
+      "deleteAccountError": "Gagal menghapus akun. Coba masuk kembali, lalu ulangi.",
+      "accountDeleted": "Akun dihapus",
+      "exportData": "Ekspor data",
+      "exportDataDescription": "Unduh semua data Anda sebagai berkas JSON.",
+      "exportingData": "Mengekspor…",
+      "questionableContent": "Konten sensitif",
+      "questionableContentDesc": "Konten dengan unsur seksual yang kuat atau eksplisit",
+      "contentRatingShow": "Tampilkan",
+      "contentRatingBlur": "Buramkan (bawaan)",
+      "contentRatingHide": "Sembunyikan",
+      "contentRatingHint_show": "Konten disertakan dalam hasil pencarian tanpa diburamkan.",
+      "contentRatingHint_blur": "Konten disertakan dalam hasil pencarian, tetapi diburamkan.",
+      "contentRatingHint_hide": "Konten tidak disertakan dalam hasil pencarian.",
+      "contentRatingPreview": "Pratinjau tampilan konten sensitif dalam hasil pencarian",
+      "contentRatingPreviewAlt": "Contoh gambar untuk pengaturan konten sensitif",
+      "contentRatingHiddenDesc": "Disembunyikan dan tidak disertakan dalam hasil pencarian",
+      "preferenceSaved": "Preferensi disimpan",
+      "preferenceError": "Gagal menyimpan preferensi",
+      "changeEmail": "Ubah",
+      "changeEmailPlaceholder": "Alamat email baru",
+      "changeEmailSend": "Kirim verifikasi",
+      "changeEmailSending": "Mengirim…",
+      "changeEmailCancel": "Batal",
+      "changeEmailSuccess": "Email verifikasi telah dikirim ke alamat email Anda saat ini. Silakan periksa kotak masuk.",
+      "productEmailsOnToast": "Anda akan menerima email tentang Nadeshiko",
+      "productEmailsOffToast": "Anda tidak akan menerima email tentang Nadeshiko",
+      "changeEmailFailed": "Gagal mengajukan perubahan email.",
+      "sessions": {
+        "title": "Sesi aktif",
+        "refresh": "Muat ulang",
+        "logoutOtherDevices": "Keluar dari perangkat lain",
+        "logoutAllSessions": "Keluar dari semua sesi",
+        "loading": "Memuat sesi…",
+        "current": "Sesi ini",
+        "revoke": "Keluar",
+        "empty": "Tidak ada sesi aktif.",
+        "confirmRevokeAll": "Anda akan keluar dari semua sesi, termasuk sesi ini. Lanjutkan?",
+        "table": {
+          "userAgent": "Perangkat dan browser",
+          "created": "Dimulai",
+          "expires": "Berakhir"
+        },
+        "errors": {
+          "revokeSingle": "Gagal mengakhiri sesi ini. Silakan masuk kembali, lalu coba lagi.",
+          "revokeOthers": "Gagal mengakhiri sesi lain. Silakan masuk kembali, lalu coba lagi.",
+          "revokeAll": "Gagal mengakhiri semua sesi. Silakan masuk kembali, lalu coba lagi."
+        }
+      },
+      "hiddenCategories": "Kategori yang disertakan dalam pencarian",
+      "hiddenCategoriesDescription": "Nonaktifkan kategori untuk menyembunyikannya dari pencarian. Judul dalam kategori tersebut tidak akan muncul dalam hasil, tab kategori, maupun jumlah hasil.",
+      "hiddenCategoriesLastVisible": "Setidaknya satu kategori harus tetap ditampilkan.",
+      "hiddenCategoryShown": "Ditampilkan",
+      "hiddenCategoryHidden": "Disembunyikan",
+      "hiddenCategoryDescriptions": {
+        "anime": "Serial dan film anime.",
+        "liveaction": "Drama Jepang, serial, dan film live action.",
+        "youtube": "Video YouTube."
+      },
+      "hiddenMedia": "Judul tersembunyi",
+      "hiddenMediaCount": "{count} judul disembunyikan",
+      "mediaHiddenToast": "{name} disembunyikan dari hasil pencarian",
+      "mediaUnhiddenToast": "{name} ditampilkan kembali dalam hasil pencarian",
+      "mediaFavoritedToast": "{name} ditambahkan ke favorit",
+      "mediaUnfavoritedToast": "{name} dihapus dari favorit",
+      "categoryHiddenToast": "{name} disembunyikan dari hasil pencarian",
+      "categoryShownToast": "{name} ditampilkan kembali dalam hasil pencarian",
+      "hiddenMediaTable": {
+        "media": "Judul",
+        "otherNames": "Judul lain"
+      },
+      "favoriteMedia": "Judul favorit",
+      "favoriteMediaCount": "{count}/{max} judul favorit",
+      "sessionDetails": {
+        "unknownDevice": "Perangkat tidak dikenal",
+        "tablet": "Tablet",
+        "mobile": "Ponsel",
+        "desktop": "Komputer",
+        "unknownOs": "Sistem operasi tidak dikenal",
+        "unknownBrowser": "Browser tidak dikenal"
+      },
+      "exportError": "Gagal mengekspor data Anda. Silakan coba lagi.",
+      "mediaLookup": "Temukan judul",
+      "mediaLookupPlaceholder": "Cari judul…",
+      "mediaLookupNoResults": "Tidak ada judul yang cocok dengan pencarian ini.",
+      "manageMedia": "Kelola judul",
+      "manageMediaDescription": "Tambahkan judul ke favorit agar muncul di bagian atas filter judul, atau sembunyikan agar tidak muncul dalam hasil pencarian. Cari judul di katalog, atau gunakan daftar di bawah untuk mengubah pilihan yang sudah ada.",
+      "manageMediaEmpty": "Belum ada judul favorit atau tersembunyi. Gunakan pencarian di atas untuk menemukan judul.",
+      "manageMediaTableActions": "Tindakan",
+      "mediaFallback": "Judul #{id}"
+    },
+    "collections": {
+      "title": "Koleksi",
+      "count": "{count} koleksi",
+      "removeFromCollection": "Hapus dari koleksi",
+      "confirmRemove": "Hapus dari koleksi?",
+      "yes": "Ya",
+      "no": "Tidak",
+      "rename": "Ganti nama",
+      "delete": "Hapus",
+      "renameTitle": "Ganti nama koleksi",
+      "renameConfirm": "Simpan",
+      "renameCancel": "Batal",
+      "renamed": "Nama koleksi diubah",
+      "renameError": "Gagal mengganti nama koleksi",
+      "deleteTitle": "Hapus koleksi",
+      "deleteMessage": "Hapus koleksi \"{name}\"? Tindakan ini tidak dapat dibatalkan.",
+      "deleteConfirm": "Hapus",
+      "deleteCancel": "Batal",
+      "deleted": "Koleksi dihapus",
+      "deleteError": "Gagal menghapus koleksi",
+      "table": {
+        "name": "Nama",
+        "segments": "Kalimat",
+        "visibility": "Akses",
+        "created": "Dibuat",
+        "updated": "Diperbarui"
+      },
+      "visibility": {
+        "PUBLIC": "Publik",
+        "PRIVATE": "Pribadi"
+      },
+      "noCollections": "Belum ada koleksi.",
+      "makePublic": "Jadikan publik",
+      "makePrivate": "Jadikan pribadi",
+      "visibilityTitle": "Ubah akses koleksi",
+      "makePublicMessage": "Jadikan \"{name}\" publik? Siapa pun akan dapat melihat koleksi ini.",
+      "makePrivateMessage": "Jadikan \"{name}\" pribadi? Hanya Anda yang dapat melihat koleksi ini.",
+      "visibilityConfirm": "Konfirmasi",
+      "visibilityChanged": "Akses koleksi diperbarui",
+      "visibilityError": "Gagal memperbarui akses koleksi",
+      "createButton": "Koleksi baru",
+      "createTitle": "Buat koleksi",
+      "createConfirm": "Buat",
+      "createSuccess": "Koleksi dibuat",
+      "createError": "Gagal membuat koleksi",
+      "nameLabel": "Nama",
+      "namePlaceholder": "Koleksi saya",
+      "loadError": "Gagal memuat koleksi Anda."
+    },
+    "anki": {
+      "syncStatus": "Status koneksi",
+      "loading": "Menghubungkan…",
+      "loadingMessage": "Tunggu sebentar selagi menghubungkan ke Anki.",
+      "connectionSuccess": "Berhasil terhubung",
+      "successMessage": "Nadeshiko berhasil terhubung ke Anki.",
+      "fieldLoadError": "Gagal memuat bidang jenis catatan:",
+      "troubleshootingTips": {
+        "ankiRunning": "Pastikan Anki sedang berjalan dan add-on AnkiConnect sudah terpasang.",
+        "webCors": "Pastikan 'https://nadeshiko.co' tercantum dalam pengaturan webCorsOriginList di AnkiConnect.",
+        "adBlock": "Nonaktifkan ekstensi pemblokir iklan untuk situs ini."
+      },
+      "ankiConfig": "Pengaturan Anki",
+      "deckLabel": "Dek",
+      "selectDeck": "Pilih dek",
+      "modelLabel": "Jenis catatan",
+      "selectModel": "Pilih jenis catatan",
+      "keyFieldLabel": "Bidang pencarian",
+      "selectKeyField": "Pilih bidang untuk mencari catatan",
+      "keyFieldRequiredTitle": "Bidang pencarian belum dipilih",
+      "keyFieldRequiredMessage": "Anda tetap dapat mengekspor ke kartu yang terakhir ditambahkan tanpa bidang ini. Pilih bidang pencarian untuk mengekspor dari panel kata atau memilih catatan dengan mencari di koleksi Anki.",
+      "fieldColumn": "Bidang",
+      "contentColumn": "Isi",
+      "fieldComposeHelp": "Setiap penanda yang Anda pilih ditambahkan ke bidang tanpa mengganti isi sebelumnya. Satu bidang dapat memuat beberapa penanda, misalnya definisi dari dua kamus. Edit kotaknya langsung untuk mengatur pemisah di antaranya.",
+      "sentenceGroup": "Kalimat",
+      "sentenceImage": "Gambar kalimat",
+      "sentenceAudio": "Audio kalimat",
+      "selectedWordGroup": "Kata yang dipilih",
+      "cardStylingTitle": "Tampilan kartu",
+      "cardStylingHelp": "Bidang kata sudah menyertakan gaya tampilannya, sehingga tampil seperti di sini setelah diekspor. Jika ingin mengubahnya, tempel kode ini di bagian Styling pada jenis catatan Anda di Anki (Cards… → Styling), lalu sesuaikan.",
+      "noFieldsFound": "Tidak ada bidang yang ditemukan",
+      "noFieldsMessage": "Silakan coba lagi atau periksa koneksi AnkiConnect.",
+      "serverAddressLabel": "Alamat server AnkiConnect",
+      "openBrowserOnExport": "Buka penjelajah kartu Anki saat mengekspor",
+      "profile": "Profil ekspor",
+      "newProfile": "Baru",
+      "defaultProfile": "Bawaan",
+      "renameProfile": "Ganti nama",
+      "profileNamePlaceholder": "Nama profil",
+      "deleteProfile": "Hapus",
+      "saving": "Menyimpan…",
+      "saved": "Disimpan",
+      "modal": {
+        "cancel": "Batal",
+        "save": "Simpan"
+      },
+      "profileSaveError": "Gagal menyimpan profil ekspor Anki Anda.",
+      "dictionarySubmenu": "Definisi (satu kamus)…",
+      "dictionaryBack": "Kembali",
+      "dictionaryGroup": "KAMUS ANDA",
+      "connectFailure": {
+        "unreachable": {
+          "title": "Anki tidak merespons",
+          "body": "Nadeshiko tidak dapat menghubungi AnkiConnect. Biasanya penyebabnya adalah salah satu dari tiga hal di bawah."
+        },
+        "blocked_by_csp": {
+          "title": "Alamat server Anki ini tidak diizinkan",
+          "body": "Kebijakan keamanan Nadeshiko hanya mengizinkan koneksi ke AnkiConnect di komputer yang sama. Alamat di bawah ditolak sebelum koneksi dibuat. Anki di komputer lain atau ponsel tidak dapat diakses dari sini. Kembalikan alamat ke http://127.0.0.1:8765 dan jalankan Anki di komputer ini."
+        },
+        "permission_denied": {
+          "title": "Anki menunggu izin Anda",
+          "body": "AnkiConnect merespons dan meminta izin untuk menghubungkan situs ini. Buka jendela Anki, klik Yes pada dialog tersebut, lalu coba lagi."
+        },
+        "connect_error": {
+          "title": "AnkiConnect menolak permintaan",
+          "body": "Anki sedang berjalan, tetapi AnkiConnect menolak permintaan. Pastikan 'https://nadeshiko.co' tercantum dalam pengaturan webCorsOriginList, lalu mulai ulang Anki."
+        },
+        "http_error": {
+          "title": "Server merespons, tetapi bukan AnkiConnect",
+          "body": "Server mengembalikan pesan kesalahan. Periksa apakah alamat server AnkiConnect di bawah sesuai dengan alamat yang digunakan Anki."
+        },
+        "no_decks": {
+          "title": "Terhubung, tetapi belum ada dek",
+          "body": "Nadeshiko berhasil terhubung ke AnkiConnect, tetapi belum ada dek untuk tujuan ekspor. Buat dek di Anki, lalu coba lagi."
+        }
+      }
+    },
+    "emails": {
+      "title": "Email",
+      "allTitle": "Semua email tentang Nadeshiko",
+      "recapTitle": "Ringkasan bulanan",
+      "recapDescription": "Ringkasan bulanan tentang hal yang Anda pelajari dengan Nadeshiko.",
+      "checkinsTitle": "Pertanyaan sesekali",
+      "checkinsDescription": "Pertanyaan tentang pengalaman Anda menggunakan Nadeshiko.",
+      "updatesTitle": "Fitur dan rilis baru",
+      "updatesDescription": "Pembaruan dan perubahan terbaru di Nadeshiko.",
+      "preferenceError": "Gagal menyimpan preferensi ini. Silakan coba lagi.",
+      "allDescription": "Email tautan masuk dan email terkait akun tetap dikirim, apa pun pilihan Anda di sini.",
+      "turnedOn": "{name}: aktif",
+      "turnedOff": "{name}: nonaktif"
+    }
+  },
+  "blog": {
+    "title": "Blog",
+    "empty": "Belum ada artikel. Nantikan kabar selanjutnya!",
+    "readMore": "Baca selengkapnya",
+    "backToBlog": "Kembali ke blog",
+    "pagination": {
+      "label": "Navigasi halaman blog",
+      "previous": "Sebelumnya",
+      "next": "Berikutnya",
+      "previousPage": "Halaman sebelumnya",
+      "nextPage": "Halaman berikutnya"
+    }
+  },
+  "errorPage": {
+    "pageNotFound": "Halaman tidak ditemukan",
+    "somethingWentWrong": "Terjadi kesalahan.",
+    "goHome": "Ke beranda",
+    "metaDescription": "Halaman yang Anda cari tidak ditemukan.",
+    "imageAlt": "Halaman tidak ditemukan"
+  },
+  "segment": {
+    "noResultsMessage": "Coba pencarian lain atau cari di {link}",
+    "contentRatingShow": "Tampilkan",
+    "contentRatingHide": "Sembunyikan",
+    "status": {
+      "ACTIVE": "Aktif",
+      "VERIFIED": "Terverifikasi",
+      "SUSPENDED": "Ditangguhkan",
+      "DELETED": "Dihapus",
+      "INVALID": "Tidak valid",
+      "TOO_LONG": "Terlalu panjang",
+      "HIDDEN": "Disembunyikan"
+    },
+    "contentRating": {
+      "SAFE": "Tanpa unsur seksual",
+      "SUGGESTIVE": "Unsur seksual ringan",
+      "QUESTIONABLE": "Unsur seksual kuat",
+      "EXPLICIT": "Seksual eksplisit"
+    },
+    "nsfwTag": "NSFW",
+    "contentRatingDescription": {
+      "SENSITIVE": "Konten sensitif (unsur seksual kuat)"
+    },
+    "revert": "Kembalikan",
+    "expandNoPrevious": "Tidak ada kalimat sebelumnya dalam episode ini.",
+    "expandNoNext": "Tidak ada kalimat berikutnya dalam episode ini.",
+    "expandFailed": "Gagal menggabungkan kalimat. Silakan coba lagi.",
+    "expandAudioFailed": "Teks berhasil digabungkan, tetapi audio gabungan gagal dibuat. Pemutaran dan ekspor ke Anki akan menggunakan klip asli.",
+    "expandAudioFailedStreamed": "Teks berhasil digabungkan, tetapi audio gabungan gagal dibuat. Ekspor ke Anki akan menggunakan klip asli.",
+    "expanding": "Menggabungkan…",
+    "playAudio": "Putar audio",
+    "pitchContourToggle": "Tampilkan grafik nada",
+    "pitchContourTitle": "Grafik nada audio",
+    "pitchContourLabel": "Perkiraan perubahan nada pada audio kalimat ini",
+    "pitchContourHz": "{min}–{max} Hz",
+    "pitchContourLoading": "Menganalisis audio…",
+    "pitchContourUnavailable": "Grafik nada untuk klip ini tidak dapat dibuat. Audio tetap dapat diputar.",
+    "pitchContourDisclaimer": "Perkiraan berdasarkan audio. Bagian tanpa suara bernada atau dengan banyak derau mungkin tidak ditampilkan.",
+    "loading": "Memuat",
+    "noResultsSupport": "Belum menemukan yang Anda cari? Usulkan konten untuk ditambahkan melalui {link} kami."
+  },
+  "tokenTooltip": {
+    "lookupIn": "Cari di",
+    "loading": "Mencari…",
+    "moreSentences": "Kalimat lainnya",
+    "playAudio": "Putar pelafalan",
+    "unavailable": "Gagal memuat definisi. Tunggu sebentar, lalu coba lagi.",
+    "noEntry": "Tidak ada entri kamus untuk kata ini.",
+    "definitionsHidden": "Definisi disembunyikan",
+    "showDefinitions": "Tampilkan",
+    "openInAnki": "Buka catatan di Anki",
+    "mineContextOnly": "Perbarui kalimat, audio, dan gambar (pertahankan definisi)",
+    "minedActions": "Sudah ada di Anki",
+    "alsoWritten": "juga ditulis",
+    "mineToNote": "Ganti semua isi, termasuk definisi",
+    "mineToLastCard": "Tambahkan kalimat, audio, dan gambar ini ke kartu Anki yang terakhir ditambahkan",
+    "otherMatches": "{count} lainnya",
+    "showLess": "Tampilkan lebih sedikit",
+    "isName": "Kata ini tampaknya merupakan nama.",
+    "parts": "Bagian kata",
+    "nameEntry": "Nama",
+    "back": "Kembali",
+    "forward": "Maju",
+    "pickDictionary": "Sertakan definisi dari {dictionary} pada kartu",
+    "pickedDictionaries": "{count} dari {total} kamus dipilih",
+    "pickSelectAll": "Pilih semua",
+    "pickDeselectAll": "Batalkan semua pilihan"
+  },
+  "searchContainer": {
+    "errorTitle": "Terjadi kesalahan",
+    "errorMessage1": "Pencarian gagal dimuat",
+    "errorMessage2": "Gunakan tombol di bawah untuk mencoba lagi.",
+    "retryButton": "Coba lagi",
+    "retrying": "Mencoba lagi…",
+    "endOfResults": "Semua hasil sudah ditampilkan",
+    "loadMore": "Muat kalimat lainnya",
+    "categoryAll": "Semua",
+    "selectedMediaFallback": "Judul yang dipilih",
+    "categoryAnime": "Anime",
+    "categoryLiveaction": "Live action",
+    "categoryYoutube": "YouTube",
+    "collectionTabPrefix": "Koleksi",
+    "backToCollections": "Koleksi",
+    "hiddenMediaNotice": "Judul ini ada dalam daftar yang Anda sembunyikan",
+    "hiddenMediaDescription": "Anda telah menyembunyikan judul ini dari hasil pencarian. Anda tetap dapat melihatnya untuk sementara.",
+    "hiddenMediaShowAnyway": "Tetap tampilkan",
+    "hiddenResultsMaybe": "Beberapa hasil mungkin disembunyikan oleh {filters}",
+    "hiddenResults": "{count} hasil disembunyikan oleh {filters}",
+    "hiddenResultsFilters": "filter Anda",
+    "hiddenResultsBreakdownTitle": "Disembunyikan dari pencarian ini",
+    "hiddenResultsBreakdownLoading": "Memeriksa…",
+    "hiddenResultsBreakdownEmpty": "Tidak ada judul tersembunyi yang cocok dengan pencarian ini",
+    "hiddenResultsBreakdownError": "Gagal memuat hasil yang disembunyikan",
+    "hiddenResultsShow": "Tampilkan",
+    "hiddenResultsRevealed": "Judul yang biasanya Anda sembunyikan sedang ditampilkan",
+    "hiddenResultsRestore": "Sembunyikan kembali",
+    "hiddenResultsManage": "Kelola",
+    "loading": "Memuat…",
+    "hiddenMediaImageAlt": "Ilustrasi judul tersembunyi",
+    "noResultsImageAlt": "Ilustrasi hasil pencarian kosong"
+  },
+  "searchRecents": {
+    "title": "Pencarian terbaru",
+    "seeAll": "Lihat semua",
+    "clear": "Hapus",
+    "clearing": "Menghapus…",
+    "loading": "Memuat…",
+    "forget": "Hapus pencarian \"{query}\"",
+    "inOneTitle": "Dalam satu judul",
+    "clearError": "Gagal menghapus pencarian terbaru Anda. Silakan coba lagi."
+  },
+  "reports": {
+    "modalTitle": "Laporkan masalah",
+    "targetLabel": "Konten yang dilaporkan",
+    "reason": "Alasan",
+    "tabSegment": "Kalimat",
+    "tabMedia": "Judul",
+    "description": "Penjelasan (opsional)",
+    "descriptionPlaceholder": "Tambahkan detail tentang masalah ini…",
+    "submit": "Kirim laporan",
+    "submitting": "Mengirim…",
+    "submitSuccess": "Laporan berhasil dikirim",
+    "submitError": "Gagal mengirim laporan",
+    "cancel": "Batal",
+    "reportSegment": "Laporkan",
+    "loginRequired": "Silakan masuk untuk menggunakan fitur ini",
+    "noReports": "Tidak ada laporan yang ditemukan",
+    "loading": "Memuat…",
+    "loadMore": "Muat lainnya",
+    "reasons": {
+      "WRONG_TRANSLATION": "Terjemahan salah",
+      "WRONG_TIMING": "Waktu subtitle tidak sesuai",
+      "WRONG_AUDIO": "Audio tidak sesuai",
+      "WRONG_JAPANESE_TEXT": "Teks bahasa Jepang salah",
+      "LOW_QUALITY_AUDIO": "Kualitas audio rendah",
+      "NSFW_NOT_TAGGED": "Klasifikasi konten belum ditandai",
+      "DUPLICATE_SEGMENT": "Kalimat duplikat",
+      "WRONG_TITLE": "Judul salah",
+      "DUPLICATE_MEDIA": "Judul duplikat",
+      "WRONG_EPISODE_NUMBER": "Nomor episode salah",
+      "IMAGE_ISSUE": "Masalah pada gambar",
+      "WRONG_METADATA": "Metadata salah",
+      "MISSING_EPISODES": "Episode belum lengkap",
+      "WRONG_COVER_IMAGE": "Gambar sampul salah",
+      "INAPPROPRIATE_CONTENT": "Konten tidak pantas",
+      "OTHER": "Lainnya"
+    },
+    "statuses": {
+      "OPEN": "Terbuka",
+      "PROCESSING": "Sedang diproses",
+      "FIXED": "Diperbaiki",
+      "DISMISSED": "Ditutup tanpa perbaikan"
+    },
+    "table": {
+      "type": "Jenis",
+      "target": "Konten",
+      "status": "Status"
+    },
+    "admin": {
+      "title": "Kelola laporan",
+      "count": "Jumlah",
+      "actions": "Tindakan",
+      "filters": {
+        "all": "Semua",
+        "user": "Laporan pengguna",
+        "auto": "Pemeriksaan otomatis",
+        "orphaned": "Judul sudah dihapus"
+      },
+      "selectedGroups": "{count} grup dipilih",
+      "dismiss": "Tutup tanpa perbaikan",
+      "delete": "Hapus",
+      "clearSelection": "Batalkan pilihan",
+      "dismissingAll": "Menutup semua…",
+      "dismissAllMatching": "Tutup semua hasil",
+      "deletingAll": "Menghapus semua…",
+      "deleteAllMatching": "Hapus semua hasil",
+      "save": "Simpan",
+      "addNote": "Klik untuk menambahkan catatan…",
+      "updateSuccess": "Laporan diperbarui",
+      "updateError": "Gagal memperbarui laporan",
+      "batchUpdated": "{count} laporan diperbarui",
+      "batchUpdateError": "Gagal memperbarui laporan",
+      "batchDeleted": "{count} laporan dihapus",
+      "batchDeleteError": "Gagal menghapus laporan",
+      "batchDeletePartialError": "{count} laporan gagal dihapus",
+      "batchDismissed": "{count} laporan ditutup tanpa perbaikan",
+      "batchDismissError": "Gagal menutup laporan",
+      "deleteSuccess": "Laporan dihapus",
+      "deleteError": "Gagal menghapus laporan",
+      "reported": "Dilaporkan",
+      "updated": "Diperbarui",
+      "episode": "Ep. {number}",
+      "deletedTarget": "dihapus",
+      "reporters": "{count} pelapor",
+      "sources": {
+        "USER": "Pengguna",
+        "AUTO": "Otomatis"
+      },
+      "targetTypes": {
+        "SEGMENT": "Kalimat",
+        "EPISODE": "Episode",
+        "MEDIA": "Judul"
+      },
+      "confirm": {
+        "dismissAllTitle": "Tutup semua laporan yang sesuai filter?",
+        "dismissAllDescription": "Semua laporan yang sesuai dengan filter saat ini akan ditutup tanpa perbaikan. Anda dapat membatalkan tindakan ini dengan membuka kembali setiap laporan.",
+        "dismissAllButton": "Tutup semua",
+        "deleteAllTitle": "Hapus semua laporan yang sesuai filter?",
+        "deleteAllDescription": "Semua laporan yang sesuai dengan filter saat ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.",
+        "deleteAllButton": "Hapus semua",
+        "deleteGroupTitle": "Hapus grup laporan ini?",
+        "deleteGroupDescription": "Laporan ini dan semua duplikat dengan konten serta alasan yang sama akan dihapus secara permanen."
+      }
+    }
+  },
+  "modalauth": {
+    "signingIn": "Sedang masuk",
+    "completingSignIn": "Menyelesaikan proses masuk…",
+    "verifyingEmail": "Memverifikasi email Anda…",
+    "headers": {
+      "auth": "Masuk atau daftar"
+    },
+    "buttons": {
+      "google": "Masuk dengan Google",
+      "discord": "Masuk dengan Discord"
+    },
+    "labels": {
+      "successfullogin": "Berhasil masuk",
+      "logout": "Anda sudah keluar.",
+      "banneduser": "Akun Anda ditangguhkan. Silakan hubungi tim dukungan.",
+      "errorlogin400": "Gagal masuk. Silakan coba lagi.",
+      "logindenied": "Permintaan masuk tidak disetujui. Coba lagi atau masuk dengan email.",
+      "closeSrOnly": "Tutup"
+    },
+    "magiclink": {
+      "label": "Atau masuk dengan email",
+      "placeholder": "Masukkan email Anda",
+      "send": "Kirim tautan",
+      "sent": "Email untuk masuk telah dikirim ke {email}.",
+      "sentHint": "Buka tautan di email tersebut, atau masukkan kodenya di sini:",
+      "retry": "Gunakan email lain",
+      "codeLabel": "Kode masuk dari email",
+      "codePlaceholder": "ABC123",
+      "codeSubmit": "Masuk",
+      "codeInvalid": "Kode tidak cocok. Periksa email Anda atau minta kode baru.",
+      "codeWrongBrowser": "Kode ini tidak diminta dari browser ini. Gunakan tautan di email untuk masuk.",
+      "resend": "Kirim ulang",
+      "resendIn": "Anda dapat meminta kode baru dalam {seconds} detik",
+      "rateLimited": "Batas pengiriman email masuk ke alamat ini sudah tercapai untuk sementara. Tautan yang sudah dikirim masih dapat digunakan.",
+      "sending": "Mengirim…"
+    },
+    "benefits": {
+      "anki": "Ekspor kalimat ke Anki beserta audio, cuplikan gambar, dan definisi",
+      "collections": "Simpan kalimat dalam koleksi untuk dipelajari kembali",
+      "sync": "Akses riwayat dan preferensi Anda di semua perangkat"
+    }
+  },
+  "shortcuts": {
+    "title": "Pintasan keyboard",
+    "navigation": "Navigasi",
+    "navigateCards": "Berpindah antarhasil",
+    "prevNextSegment": "Kalimat sebelumnya / berikutnya",
+    "backToSearch": "Kembali ke kolom pencarian",
+    "playback": "Pemutaran",
+    "playSelected": "Putar hasil yang dipilih",
+    "playPause": "Putar / Jeda",
+    "restart": "Putar audio dari awal",
+    "toggleAutoplay": "Aktifkan / nonaktifkan pemutaran otomatis",
+    "toggleImmersive": "Aktifkan / nonaktifkan mode imersif",
+    "actions": "Tindakan",
+    "openAnki": "Ekspor ke Anki",
+    "openContext": "Buka konteks",
+    "hint": "Pintasan tidak aktif saat Anda mengetik di kolom pencarian. Tekan ? untuk membuka atau menutup panel ini."
+  },
+  "seo": {
+    "home": {
+      "title": "Nadeshiko: Cari kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube",
+      "description": "Cari lebih dari satu juta kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube, lengkap dengan audio dan cuplikan gambar. Terjemahan tersedia dalam bahasa Inggris dan Spanyol. Cocok untuk sentence mining."
+    },
+    "stats": {
+      "title": "Statistik",
+      "description": "Lihat ketersediaan contoh kalimat untuk kata bahasa Jepang yang paling umum di Nadeshiko, berdasarkan daftar frekuensi kata anime dari Jiten."
+    },
+    "statsWords": {
+      "title": "Contoh kata bahasa Jepang: peringkat frekuensi {tier}",
+      "description": "Lihat kata bahasa Jepang pada peringkat frekuensi {tier} yang memiliki contoh kalimat di Nadeshiko."
+    },
+    "media": {
+      "title": "Jelajahi katalog",
+      "description": "Jelajahi anime, drama Jepang, dan video YouTube di Nadeshiko. Cari kalimat dalam subtitle bahasa Jepang, lengkap dengan audio dan terjemahan bahasa Inggris atau Spanyol yang tersedia.",
+      "pageTitle": "{media}: subtitle bahasa Jepang dan contoh kalimat"
+    },
+    "blog": {
+      "title": "Blog",
+      "description": "Ikuti kabar, fitur, dan peningkatan terbaru di Nadeshiko."
+    },
+    "search": {
+      "title": "Pencarian",
+      "defaultDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari berbagai anime dan drama Jepang. Terjemahan tersedia dalam bahasa Inggris dan Spanyol.",
+      "atLeast": "Setidaknya ",
+      "categoryAnime": "anime",
+      "categoryJdrama": "live action",
+      "fromCategory": "{count} dari {category}",
+      "breakdownWrapper": " ({parts})",
+      "descriptionWithResults": "{count} contoh kalimat yang memuat \"{query}\"{breakdown}, dengan terjemahan bahasa Inggris dan Spanyol yang tersedia.",
+      "descriptionNoResults": "Cari \"{query}\" di lebih dari satu juta kalimat bahasa Jepang dari anime dan drama Jepang, dengan terjemahan bahasa Inggris dan Spanyol yang tersedia.",
+      "mediaDescription": "{count} kalimat bahasa Jepang dari {media}, dengan terjemahan bahasa Inggris dan Spanyol yang tersedia.",
+      "mediaDescriptionEpisode": "{count} kalimat bahasa Jepang dari {media} episode {episode}, dengan terjemahan bahasa Inggris dan Spanyol yang tersedia.",
+      "mediaDescriptionEpisodes": "{count} kalimat bahasa Jepang dari {media} dalam {episodeCount} episode, dengan terjemahan bahasa Inggris dan Spanyol yang tersedia.",
+      "wordTitle": "{query}: contoh kalimat bahasa Jepang"
+    },
+    "sentence": {
+      "title": "Kalimat",
+      "defaultDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari berbagai anime dan drama Jepang. Terjemahan tersedia dalam bahasa Inggris dan Spanyol.",
+      "episode": "Episode {n}",
+      "pageTitle": "「{sentence}」 ({media})"
+    },
+    "collection": {
+      "description": "Jelajahi koleksi \"{name}\" di Nadeshiko"
+    }
+  },
+  "statsPage": {
+    "title": "Nadeshiko dalam angka",
+    "intro": {
+      "prefix": "Seberapa lengkap contoh kosakata bahasa Jepang di Nadeshiko? Kami membandingkannya dengan daftar frekuensi kata anime dari",
+      "source": "Jiten",
+      "suffix": "yang mencakup {totalWords} kata unik dari ribuan anime."
+    },
+    "loadError": "Gagal memuat statistik. Coba muat ulang halaman.",
+    "summary": {
+      "sentences": "Kalimat",
+      "uniqueWords": "Kata unik",
+      "totalContent": "Judul",
+      "episodes": "Episode",
+      "dialogueHours": "Jam dialog"
+    },
+    "coverage": {
+      "title": "Ketersediaan contoh berdasarkan frekuensi",
+      "updated": "Diperbarui {date}",
+      "empty": "Data ketersediaan contoh belum tersedia.",
+      "fullCorpus": "Seluruh korpus ({count} ribu kata)",
+      "topWordsK": "{count} ribu kata paling umum",
+      "topWords": "{count} kata paling umum",
+      "updateError": "Gagal memulai pembaruan data ketersediaan contoh."
+    },
+    "translations": {
+      "title": "Ketersediaan terjemahan",
+      "description": "Setiap kalimat memiliki subtitle bahasa Jepang. Kami berupaya menyediakan terjemahan bahasa Inggris dan Spanyol untuk semua konten. Beberapa sumber tidak memiliki subtitle bahasa Spanyol yang andal, sehingga ketersediaannya mungkin lebih rendah. Terjemahan kalimat bahasa Indonesia belum tersedia.",
+      "translated": "{percent} diterjemahkan",
+      "official": "Terjemahan manusia {percent}",
+      "machine": "DeepL {percent}",
+      "none": "Tanpa terjemahan {percent}",
+      "languages": {
+        "english": "Bahasa Inggris",
+        "spanish": "Bahasa Spanyol"
+      }
+    },
+    "admin": {
+      "title": "Admin: perbarui data ketersediaan contoh",
+      "updating": "Memperbarui…",
+      "fullRescan": "Periksa ulang semua kata",
+      "missingOnly": "Periksa kata yang belum memiliki contoh",
+      "wordsChecked": "Kata diperiksa",
+      "newlyCovered": "Kata yang baru memiliki contoh",
+      "totalCovered": "Total kata dengan contoh"
+    }
+  },
+  "statsWordsPage": {
+    "back": "Kembali ke statistik",
+    "title": "Ketersediaan contoh kata",
+    "description": {
+      "prefix": "Jelajahi kata dalam daftar frekuensi anime dari",
+      "source": "Jiten",
+      "suffix": "dan lihat ketersediaan contoh kalimatnya di Nadeshiko."
+    },
+    "filters": {
+      "all": "Semua ({count})",
+      "covered": "Ada contoh ({count})",
+      "missing": "Belum ada contoh ({count})"
+    },
+    "missingLabel": "belum ada contoh",
+    "empty": "Tidak ada kata yang sesuai dengan filter saat ini.",
+    "loading": "Memuat…",
+    "footer": {
+      "prefix": "Data frekuensi berasal dari korpus anime",
+      "source": "Jiten",
+      "suffix": "— menampilkan {shown} dari {total} kata."
+    },
+    "loadError": "Gagal memuat daftar kata."
+  },
+  "agentActivity": {
+    "title": "Aktivitas agen",
+    "description": "Perubahan yang dibuat oleh agen moderasi, berdasarkan riwayat revisinya. Tinjau beberapa hasil dan pulihkan versi sebelumnya jika ada yang keliru.",
+    "empty": "Tidak ada aktivitas agen dalam rentang waktu ini",
+    "episode": "Ep. {number}",
+    "noReport": "tanpa laporan",
+    "restore": "Pulihkan",
+    "restoring": "Memulihkan…",
+    "restoreSuccess": "Kalimat dipulihkan",
+    "restoreError": "Gagal memulihkan kalimat",
+    "window": {
+      "day": "24 jam terakhir",
+      "week": "7 hari terakhir",
+      "month": "30 hari terakhir"
+    },
+    "table": {
+      "segment": "Kalimat",
+      "change": "Perubahan",
+      "report": "Laporan",
+      "when": "Waktu",
+      "actions": "Tindakan"
+    }
+  },
+  "connections": {
+    "title": "Akun terhubung",
+    "shirabe": {
+      "name": "Shirabe",
+      "description": "Hubungkan akun Shirabe untuk menggunakan kamus pilihan Anda di sini.",
+      "connect": "Hubungkan",
+      "disconnect": "Putuskan",
+      "linkedAs": "Terhubung sebagai {name}",
+      "dictionaries": "Kamus",
+      "dictionariesHint": "Buka Shirabe untuk mengubahnya",
+      "anonymous": "akun Shirabe Anda",
+      "upgrade": "Perbarui izin",
+      "reconnect": "Hubungkan kembali",
+      "upgradeNeeded": "Terhubung sebagai {name}. Izin baru diperlukan untuk fitur terbaru.",
+      "disconnected": "Terhubung sebagai {name}, tetapi Shirabe tidak lagi menerima koneksi ini sehingga kamus Anda tidak digunakan. Hubungkan kembali untuk menggunakannya lagi.",
+      "confirmDisconnect": "Putuskan koneksi akun Shirabe? Kunci akses akan dicabut di Shirabe, dan panel kata akan kembali menggunakan kamus bawaan."
+    },
+    "callback": {
+      "working": "Menyelesaikan koneksi…",
+      "declined": "Koneksi tidak disetujui, sehingga akun belum dihubungkan.",
+      "failed": "Koneksi gagal diselesaikan.",
+      "signedOut": "Anda belum masuk ke Nadeshiko, sehingga koneksi tidak dapat diselesaikan. Masuk, lalu mulai lagi dari pengaturan.",
+      "back": "Kembali ke pengaturan",
+      "done": "Shirabe terhubung",
+      "goToSettings": "Buka pengaturan"
+    }
+  },
+  "feedback": {
+    "open": "Masukan",
+    "title": "Kirim masukan",
+    "subtitle": "Menemukan masalah atau punya saran? Kirim pesan kepada kami di sini.",
+    "discord": "Anda juga dapat menghubungi kami di {link}.",
+    "discordLink": "server Discord",
+    "bodyLabel": "Pesan Anda",
+    "bodyPlaceholder": "Tulis pesan Anda…",
+    "emailLabel": "Email",
+    "emailOptional": "(opsional)",
+    "emailPlaceholder": "anda{'@'}contoh.com",
+    "emailHint": "Isi jika Anda ingin menerima balasan.",
+    "submit": "Kirim",
+    "submitting": "Mengirim…",
+    "close": "Tutup",
+    "successTitle": "Terima kasih!",
+    "successBody": "Pesan Anda sudah kami terima.",
+    "error": "Pesan gagal dikirim. Periksa isinya, lalu coba lagi.",
+    "errorRetry": "Terjadi kesalahan saat menyiapkan formulir. Silakan coba kirim lagi.",
+    "errorRateLimited": "Anda baru saja mengirim beberapa pesan. Tunggu sebentar, lalu coba lagi."
+  },
+  "unsubscribe": {
+    "cancel": "Tetap kirim email",
+    "invalid": "Tautan berhenti berlangganan ini tidak valid. Anda dapat menonaktifkan email tersebut di pengaturan akun.",
+    "failed": "Permintaan gagal diselesaikan. Silakan coba lagi atau nonaktifkan email tersebut di pengaturan akun.",
+    "goToSettings": "Buka pengaturan",
+    "chooseTitle": "Pilih email yang ingin Anda terima"
+  },
+  "signupNudge": {
+    "action": "Buat akun",
+    "dismiss": "Nanti saja",
+    "download": {
+      "title": "Ingin mengekspor ke Anki?",
+      "message": "Dengan akun, Anda dapat mengirim kalimat langsung ke dek Anki."
+    },
+    "depth": {
+      "title": "Suka belajar dengan Nadeshiko?",
+      "message": "Dengan akun, Anda dapat menyimpan kalimat favorit dan mengekspornya ke Anki."
+    }
+  },
+  "mediaHeader": {
+    "collapse": "Tutup detail judul",
+    "expand": "Buka detail judul"
+  },
+  "mediaPage": {
+    "resultsFailed": "Gagal memuat kalimat untuk judul ini.",
+    "resultsRetry": "Coba lagi"
+  },
+  "impersonation": {
+    "active": "Mengakses akun sebagai {name}",
+    "exit": "Kembali ke akun admin"
+  },
+  "mediaMetadata": {
+    "screenshot": "Cuplikan gambar dari {media}",
+    "screenshotFallback": "Cuplikan gambar kalimat",
+    "seasonWithYear": "{season} {year}",
+    "seasons": {
+      "WINTER": "Musim dingin",
+      "SPRING": "Musim semi",
+      "SUMMER": "Musim panas",
+      "FALL": "Musim gugur",
+      "NONE": "Belum diatur"
+    },
+    "statuses": {
+      "FINISHED": "Selesai tayang",
+      "RELEASING": "Sedang tayang",
+      "NOT_YET_RELEASED": "Belum tayang",
+      "CANCELLED": "Dibatalkan"
+    },
+    "formats": {
+      "TV": "TV",
+      "MOVIE": "Film",
+      "OVA": "OVA",
+      "ONA": "ONA",
+      "SPECIAL": "Spesial",
+      "YOUTUBE": "YouTube"
+    },
+    "categories": {
+      "ANIME": "Anime",
+      "JDRAMA": "Live action",
+      "YOUTUBE": "YouTube"
+    }
+  }
+}

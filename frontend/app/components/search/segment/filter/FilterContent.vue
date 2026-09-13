@@ -281,10 +281,10 @@ const applyPendingFocus = () => {
                 v-for="episode in episodesList"
                 :key="episode.episode"
                 truncate
-                :label="`${$t('searchpage.main.labels.episode')} ${episode.episode}`"
+                :label="$t('searchpage.main.labels.episode', { number: episode.episode })"
                 :count="episode.count"
                 :selected="selectedEpisode === episode.episode"
-                :title="`${$t('searchpage.main.labels.episode')} ${episode.episode}: ${episode.count}`"
+                :title="`${$t('searchpage.main.labels.episode', { number: episode.episode })}: ${episode.count}`"
                 @select="toggleEpisode(episode.episode)">
                 <!-- An episode is not a thing you star, but the title above it is:
                      the empty star column keeps these counts under that one. -->

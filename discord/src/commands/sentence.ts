@@ -28,7 +28,7 @@ export const data = anywhere(
 );
 
 export function parseSegmentId(input: string): string {
-  const urlMatch = input.match(/nadeshiko\.co\/(?:(?:en|es|ja)\/)?sentence\/([A-Za-z0-9_-]+)/);
+  const urlMatch = input.match(/nadeshiko\.co\/(?:(?:en|es|ja|zh-CN|id|pt-BR)\/)?sentence\/([A-Za-z0-9_-]+)/);
   if (urlMatch) return urlMatch[1];
   return input.trim();
 }
