@@ -31,6 +31,15 @@ npm run dev
 
 App will be available at: `http://localhost:3000`
 
+## Sentence audio pitch contours
+
+Sentence cards can estimate and display a pitch contour from the clip's audio
+using the browser's Web Audio API. Analysis is local: the clip is fetched and
+decoded in the browser, reduced to a mono 8 kHz signal, and discarded after
+the estimate is produced. The contour is an educational visual aid rather
+than a phonetic accent annotation; unvoiced, noisy, or unsupported clips show
+a recoverable message and retain normal audio playback.
+
 ## Deployment (Kamal)
 
 Run Kamal from the `frontend` directory.
