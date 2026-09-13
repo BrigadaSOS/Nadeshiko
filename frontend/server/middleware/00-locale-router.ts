@@ -8,6 +8,11 @@ export default defineEventHandler((event) => {
   if (isReservedLocalePath(path)) return;
   if (getLocalePrefix(path)) return;
 
+  // A locale-shaped prefix that is not in our supported set is an invalid
+  // localized URL, not an unprefixed English route. Let Nuxt answer it with a
+  // 404 instead of turning `/zh-CN/about` into `/en/zh-CN/about`.
+  if (/^\/[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})+(?=\/|$)/.test(path)) return;
+
   const search = url.search;
 
   // Cookie in, locale out -- see `resolveRootLocale` for why this reads nothing
