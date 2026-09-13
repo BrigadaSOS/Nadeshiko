@@ -131,15 +131,90 @@ jobs:
 
   checks:
     uses: ./.github/workflows/checks.yml
+    with:
+      # The release build below exercises the same Dockerfile and gates deploy.
+      # Avoid building it twice in one staging pipeline.
+      backend_image: false
+
+  # Build immutable release images while the test suite runs. Building is safe
+  # before checks finish; only deployment mutates staging and remains strictly
+  # gated on both a successful build and the complete checks workflow.
+  build-backend:
+    needs: changes
+    if: >-
+      (github.event_name == 'push' &&
+       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+      inputs.force_backend == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          # Kamal deploys this immutable revision with VERSION=$GITHUB_SHA.
+          # Do not advance :latest before checks and staging E2E have passed.
+          tags: ghcr.io/brigadasos/nadeshiko-backend-stg:${{ github.sha }}
+          labels: service=nadeshiko-backend-stg
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend:
+    needs: changes
+    if: >-
+      (github.event_name == 'push' &&
+       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+      inputs.force_frontend == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ github.sha }}
+          labels: service=nadeshiko-frontend-stg
+          build-args: NUXT_PUBLIC_ENVIRONMENT=development
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # An Elasticsearch-gated push skips deploy-backend, which on its own reads as a
   # green run. Fail the workflow instead so the skipped deploy is not missed.
 
   deploy-backend:
-    needs: [changes, checks]
+    needs: [changes, checks, build-backend]
     if: >-
       always() &&
       needs.checks.result == 'success' &&
+      needs.build-backend.result == 'success' &&
       ((github.event_name == 'push' &&
         (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
        inputs.force_backend == true)
@@ -159,33 +234,6 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v7
-        with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
-          context: .
-          file: backend/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-backend-stg:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-backend-stg:latest
-          labels: |
-            service=nadeshiko-backend-stg
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
@@ -244,11 +292,14 @@ jobs:
     # Deliberately not ordered after deploy-backend: staging is for feedback, so
     # the frontend ships as soon as it is ready rather than queueing behind (or
     # being blocked by) a backend deploy. Production does enforce that ordering.
-    needs: [changes, checks]
+    needs: [changes, checks, build-frontend]
     if: >-
-      (github.event_name == 'push' &&
-       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
-      inputs.force_frontend == true
+      always() &&
+      needs.checks.result == 'success' &&
+      needs.build-frontend.result == 'success' &&
+      ((github.event_name == 'push' &&
+        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+       inputs.force_frontend == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Frontend deploys are Nuxt container swaps that touch neither Elasticsearch
@@ -278,35 +329,6 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v7
-        with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
-          context: .
-          file: frontend/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-frontend-stg:latest
-          labels: |
-            service=nadeshiko-frontend-stg
-          build-args: |
-            NUXT_PUBLIC_ENVIRONMENT=development
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
@@ -486,7 +508,7 @@ jobs:
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
+    needs: [checks, build-backend, build-frontend, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit
