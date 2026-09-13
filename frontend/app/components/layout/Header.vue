@@ -94,7 +94,7 @@ watch(() => route.fullPath, closeNavSidebar);
 
             <div class="hidden md:flex md:flex-1 md:items-center md:ps-5">
                 <div class="gap-6 flex md:flex-row md:mr-auto">
-                    <NuxtLink :to="localePath('/media')"
+                    <NuxtLink :to="localePath('/media')" data-testid="nav-catalog"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.media") }}
                     </NuxtLink>
@@ -106,7 +106,7 @@ watch(() => route.fullPath, closeNavSidebar);
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.stats") }}
                     </NuxtLink>
-                    <NuxtLink :to="localePath('/about')"
+                    <NuxtLink :to="localePath('/about')" data-testid="nav-about"
                         class="text-sm font-semibold text-white transition-all duration-200 hover:text-opacity-80">
                         {{ $t("navbar.buttons.about") }}
                     </NuxtLink>

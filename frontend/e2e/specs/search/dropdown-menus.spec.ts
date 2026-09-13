@@ -138,9 +138,9 @@ test.describe('Dropdown menus', () => {
     await dropdown.getByTestId('dropdown-toggle').click();
 
     await expect(menu).toBeVisible();
-    await expect(menu.getByText('Expand (left)')).toBeVisible();
-    await expect(menu.getByText('Expand (both)')).toBeVisible();
-    await expect(menu.getByText('Expand (right)')).toBeVisible();
+    await expect(menu.getByTestId('expand-previous-action').getByRole('button')).toHaveText('Include previous subtitle');
+    await expect(menu.getByTestId('expand-both-action').getByRole('button')).toHaveText('Include previous and next subtitles');
+    await expect(menu.getByTestId('expand-next-action').getByRole('button')).toHaveText('Include next subtitle');
   });
 
   test('clicking outside closes an open dropdown', async ({ page }) => {
