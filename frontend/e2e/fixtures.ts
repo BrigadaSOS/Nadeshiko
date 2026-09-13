@@ -15,7 +15,7 @@ export const test = base.extend({
       // Every other browser-facing route is owned by Nuxt and must hydrate.
       const pathname = new URL(page.url()).pathname.replace(/\/$/, '');
       if (
-        /^(?:\/(?:en|es|ja|zh|id|pt-BR))?\/api$/.test(pathname) ||
+        /^(?:\/(?:en|es|ja|zh|zh-hant|id|pt-BR))?\/api$/.test(pathname) ||
         pathname === '/api/v1/docs' ||
         pathname === '/docs/api/index.html' ||
         pathname === '/v1/auth/verify-email'

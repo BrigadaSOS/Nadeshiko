@@ -27,6 +27,8 @@ const locales = ref([
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Español' },
   { code: 'ja', name: '日本語' },
+  { code: 'zh', name: '简体中文' },
+  { code: 'zh-hant', name: '繁體中文' },
 ]);
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ locale, locales, setLocale, t: (k: string) => k }) }));
@@ -89,7 +91,13 @@ describe('the options', () => {
     // can still find theirs.
     const wrapper = render();
 
-    expect(options(wrapper).map((n) => n.attributes('data-text'))).toEqual(['English', 'Español', '日本語']);
+    expect(options(wrapper).map((n) => n.attributes('data-text'))).toEqual([
+      'English',
+      'Español',
+      '日本語',
+      '简体中文',
+      '繁體中文',
+    ]);
   });
 });
 

@@ -70,7 +70,7 @@ export default defineNuxtPlugin({
     const callbackError = Array.isArray(route.query.error) ? route.query.error[0] : route.query.error;
     const isStableCallback = isAuthCallbackPath(route.path);
     const returnTo = isStableCallback ? consumeAuthReturnTo(authReturnToStorage()) : null;
-    const locale = route.path.match(/^\/(en|es|ja|zh|id|pt-BR)(?:\/|$)/)?.[1];
+    const locale = route.path.match(/^\/(en|es|ja|zh|zh-hant|id|pt-BR)(?:\/|$)/)?.[1];
     const fallbackPath = locale ? `/${locale}` : '/en';
 
     // Deferred to `app:mounted` for the router, not for the plugins: the initial

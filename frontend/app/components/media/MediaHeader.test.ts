@@ -9,6 +9,7 @@ import ja from '../../../i18n/locales/ja.json';
 import id from '../../../i18n/locales/id.json';
 import ptBR from '../../../i18n/locales/pt-BR.json';
 import zhCN from '../../../i18n/locales/zh-CN.json';
+import zhHant from '../../../i18n/locales/zh-Hant.json';
 
 import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/utils/media';
 
@@ -32,7 +33,7 @@ const language = ref<'ENGLISH' | 'JAPANESE' | 'ROMAJI'>('ENGLISH');
 const metadataI18n: any = createI18n({
   legacy: false,
   locale: 'en',
-  messages: { en, es, ja, id, 'pt-BR': ptBR, zh: zhCN },
+  messages: { en, es, ja, id, 'pt-BR': ptBR, zh: zhCN, 'zh-hant': zhHant },
 });
 vi.stubGlobal('useI18n', () => ({
   t: (key: string, values: Record<string, string | number> = {}) =>

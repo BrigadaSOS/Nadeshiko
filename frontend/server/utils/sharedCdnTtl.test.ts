@@ -17,11 +17,14 @@ const prod = (path: string) => sharedCdnMaxAge(path, 'production');
  * that page to the short default, which looks like nothing at all.
  */
 describe('sharedCdnMaxAge', () => {
-  it.each(['en', 'es', 'ja', 'zh', 'id', 'pt-BR'])('gives sentence permalinks the long TTL under /%s', (locale) => {
-    expect(prod(`/${locale}/sentence/wy1hTtMJg6Jf`)).toBe(SHARED_CDN_MAX_AGE_SENTENCE);
-  });
+  it.each(['en', 'es', 'ja', 'zh', 'zh-hant', 'id', 'pt-BR'])(
+    'gives sentence permalinks the long TTL under /%s',
+    (locale) => {
+      expect(prod(`/${locale}/sentence/wy1hTtMJg6Jf`)).toBe(SHARED_CDN_MAX_AGE_SENTENCE);
+    },
+  );
 
-  it.each(['en', 'es', 'ja', 'zh', 'id', 'pt-BR'])('gives search the long TTL under /%s', (locale) => {
+  it.each(['en', 'es', 'ja', 'zh', 'zh-hant', 'id', 'pt-BR'])('gives search the long TTL under /%s', (locale) => {
     expect(prod(`/${locale}/search/%E7%8C%AB`)).toBe(SHARED_CDN_MAX_AGE_SEARCH);
   });
 
