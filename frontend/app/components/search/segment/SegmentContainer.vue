@@ -445,7 +445,7 @@ watch(playingVideoId, (id) => {
         <img
           v-if="!(playingVideoId === result.segment.publicId && result.segment.externalVideoId)"
           loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
-          :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
+          :alt="mediaName(result.media) ? $t('mediaMetadata.screenshot', { media: mediaName(result.media) }) : $t('mediaMetadata.screenshotFallback')"
           @click="onImageClick(result)"
           class="absolute inset-0 z-10 w-full h-full object-cover object-center filter transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"

@@ -815,6 +815,12 @@ export default defineNuxtConfig({
         file: 'zh-CN.json',
       },
       {
+        code: 'zh-hant',
+        language: 'zh-Hant',
+        name: '繁體中文',
+        file: 'zh-Hant.json',
+      },
+      {
         code: 'id',
         language: 'id',
         name: 'Bahasa Indonesia',
