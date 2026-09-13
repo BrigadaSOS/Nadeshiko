@@ -8,7 +8,7 @@ if [[ "$channel" != staging && "$channel" != prod ]]; then
 fi
 
 sha=${2:-$(jj log -r @- --no-graph -T 'commit_id')}
-jj log -r "$sha" --no-graph -T 'commit_id' >/dev/null
+sha=$(jj log -r "$sha" --no-graph -T 'commit_id')
 if [[ "$channel" == staging ]]; then
   event_type=staging_release
 else
