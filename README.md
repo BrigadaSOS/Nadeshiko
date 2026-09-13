@@ -31,9 +31,9 @@ Quick prod release from the repository root:
 
 ```bash
 # use the exact reviewed commit; no version bump is needed for frontend/E2E fixes
-scripts/release staging HEAD
+scripts/release staging
 # after staging E2E passes:
-scripts/release prod HEAD
+scripts/release prod
 ```
 
 ## Projects Using Nadeshiko
