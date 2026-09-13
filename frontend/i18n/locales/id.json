@@ -999,13 +999,6 @@
     "expandAudioFailedStreamed": "Teks berhasil digabungkan, tetapi audio gabungan gagal dibuat. Ekspor ke Anki akan menggunakan klip asli.",
     "expanding": "Menggabungkan…",
     "playAudio": "Putar audio",
-    "pitchContourToggle": "Tampilkan grafik nada",
-    "pitchContourTitle": "Grafik nada audio",
-    "pitchContourLabel": "Perkiraan perubahan nada pada audio kalimat ini",
-    "pitchContourHz": "{min}–{max} Hz",
-    "pitchContourLoading": "Menganalisis audio…",
-    "pitchContourUnavailable": "Grafik nada untuk klip ini tidak dapat dibuat. Audio tetap dapat diputar.",
-    "pitchContourDisclaimer": "Perkiraan berdasarkan audio. Bagian tanpa suara bernada atau dengan banyak derau mungkin tidak ditampilkan.",
     "loading": "Memuat",
     "noResultsSupport": "Belum menemukan yang Anda cari? Usulkan konten untuk ditambahkan melalui {link} kami."
   },

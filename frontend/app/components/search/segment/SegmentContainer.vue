@@ -1,14 +1,5 @@
 <script setup lang="ts">
-import {
-  mdiVolumeHigh,
-  mdiChartLine,
-  mdiTranslate,
-  mdiEyeOff,
-  mdiEye,
-  mdiClose,
-  mdiPatreon,
-  mdiOpenInNew,
-} from '@mdi/js';
+import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose, mdiPatreon, mdiOpenInNew } from '@mdi/js';
 
 import { PATREON_URL } from '#shared/utils/socialLinks';
 import { usePlayerStore } from '~/stores/player';
@@ -23,8 +14,6 @@ import {
   searchScopeQuery,
 } from '~/utils/routes';
 import { escapeCorpusText, safeHighlight } from '~/utils/safeHighlight';
-import { loadPitchContour } from '~/utils/pitchContourAudio';
-import type { PitchContour } from '~/utils/pitchContour';
 
 type Props = {
   searchData: SearchResponse | null;
@@ -250,57 +239,6 @@ const displaySegmentText = (content: unknown, highlight: unknown): string =>
 const { revertActiveConcatenation, concatenatedResult, isConcatenated, isConcatenating, loadNextSegment } =
   useSegmentConcatenation();
 
-type PitchState =
-  | { status: 'loading' }
-  | { status: 'ready'; contour: PitchContour; source: string }
-  | { status: 'error'; source: string };
-
-const pitchStates = reactive<Record<string, PitchState | undefined>>({});
-const visiblePitchIds = reactive(new Set<string>());
-const pitchRequestIds = new Map<string, number>();
-let nextPitchRequestId = 0;
-let pitchComponentMounted = true;
-
-const pitchSource = (result: SearchResult): string | null =>
-  result.blobAudioUrl ?? result.segment.urls.audioUrl ?? null;
-
-const togglePitchContour = async (result: SearchResult) => {
-  const publicId = result.segment.publicId;
-  const source = pitchSource(result);
-  if (!source) return;
-
-  const previous = pitchStates[publicId];
-  if (visiblePitchIds.has(publicId) && previous?.status === 'ready' && previous.source === source) {
-    visiblePitchIds.delete(publicId);
-    return;
-  }
-  visiblePitchIds.add(publicId);
-
-  if (previous?.status === 'loading' || (previous?.status === 'ready' && previous.source === source)) return;
-
-  const requestId = ++nextPitchRequestId;
-  pitchRequestIds.set(publicId, requestId);
-  pitchStates[publicId] = { status: 'loading' };
-  try {
-    const contour = await loadPitchContour(source);
-    if (!pitchComponentMounted || pitchRequestIds.get(publicId) !== requestId) return;
-    pitchStates[publicId] = { status: 'ready', contour, source };
-  } catch {
-    // A browser decode/CORS/network failure should not affect sentence audio;
-    // the card keeps its normal play button and offers a retry on the graph.
-    if (!pitchComponentMounted || pitchRequestIds.get(publicId) !== requestId) return;
-    pitchStates[publicId] = { status: 'error', source };
-  }
-};
-
-onBeforeUnmount(() => {
-  // Analysis is deliberately lazy and may still be awaiting fetch/decode when
-  // a search is replaced. Ignore its completion rather than mutating state
-  // for a destroyed card or letting an older source win a newer request.
-  pitchComponentMounted = false;
-  pitchRequestIds.clear();
-});
-
 const openModal = (content: SearchResult) => {
   selectedResult.value = content;
 };
@@ -507,7 +445,7 @@ watch(playingVideoId, (id) => {
         <img
           v-if="!(playingVideoId === result.segment.publicId && result.segment.externalVideoId)"
           loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
-          :alt="mediaName(result.media) ? $t('mediaMetadata.screenshot', { media: mediaName(result.media) }) : $t('mediaMetadata.screenshotFallback')"
+          :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
           @click="onImageClick(result)"
           class="absolute inset-0 z-10 w-full h-full object-cover object-center filter transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
@@ -565,19 +503,6 @@ watch(playingVideoId, (id) => {
               <span v-else
                 class="animate-spin inline-block w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
                 role="status" :aria-label="$t('segment.loading')"></span>
-            </button>
-            <button
-              v-if="pitchSource(result)"
-              data-testid="pitch-contour-toggle"
-              :aria-label="$t('segment.pitchContourToggle')"
-              :aria-expanded="visiblePitchIds.has(result.segment.publicId)"
-              :disabled="pitchStates[result.segment.publicId]?.status === 'loading'"
-              :title="$t('segment.pitchContourToggle')"
-              @click="togglePitchContour(result)"
-              class="py-2 px-2 mr-1 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-hairline bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300"
-            >
-              <UiBaseIcon :path="mdiChartLine" w="w-5" h="h-5" size="24" />
-              <span v-if="pitchStates[result.segment.publicId]?.status === 'loading'" class="sr-only">{{ $t('segment.pitchContourLoading') }}</span>
             </button>
 
             <!-- Japanese Sentence -->
@@ -664,23 +589,6 @@ watch(playingVideoId, (id) => {
           </div>
 
           <div>
-            <div v-if="visiblePitchIds.has(result.segment.publicId)" class="mb-2">
-              <SearchSearchSegmentPitchContour
-                v-if="pitchStates[result.segment.publicId]?.status === 'ready'"
-                :contour="(pitchStates[result.segment.publicId] as { status: 'ready'; contour: PitchContour }).contour"
-              />
-              <p
-                v-else-if="pitchStates[result.segment.publicId]?.status === 'error'"
-                data-testid="sentence-pitch-contour-error"
-                class="m-0 rounded-md border border-hairline px-3 py-2 text-xs text-white/60"
-              >{{ $t('segment.pitchContourUnavailable') }}</p>
-              <p
-                v-else
-                data-testid="sentence-pitch-contour-loading"
-                class="m-0 px-3 py-2 text-xs text-white/60"
-                role="status"
-              >{{ $t('segment.pitchContourLoading') }}</p>
-            </div>
             <!-- Fourth Row -->
             <!-- Buttons  -->
             <div class="pt-2 pb-2">

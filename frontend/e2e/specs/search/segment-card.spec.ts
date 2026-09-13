@@ -74,22 +74,4 @@ test.describe('Segment card', () => {
     const audioButton = search.segmentCards.first().getByTestId('audio-play-button');
     await expect(audioButton).toBeVisible();
   });
-
-  test('offers an audio pitch contour without taking down playback on analysis failure', async ({ page }) => {
-    await page.route('**/*', async (route) => {
-      const pathname = new URL(route.request().url()).pathname;
-      if (/\.(?:mp3|ogg|wav)$/i.test(pathname)) {
-        await route.fulfill({ status: 503, body: 'audio unavailable' });
-      } else {
-        await route.continue();
-      }
-    });
-
-    const card = search.segmentCards.first();
-    const pitchButton = card.getByTestId('pitch-contour-toggle');
-    await expect(pitchButton).toBeVisible();
-    await pitchButton.click();
-    await expect(card.getByTestId('sentence-pitch-contour-error')).toBeVisible();
-    await expect(card.getByTestId('audio-play-button')).toBeEnabled();
-  });
 });

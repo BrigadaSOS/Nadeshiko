@@ -999,13 +999,6 @@
     "expandAudioFailedStreamed": "Expanded the text, but the audio could not be built. The Anki export will use the original clip.",
     "expanding": "Expanding…",
     "playAudio": "Play audio",
-    "pitchContourToggle": "Show pitch contour",
-    "pitchContourTitle": "Audio pitch contour",
-    "pitchContourLabel": "Estimated pitch contour for this sentence audio",
-    "pitchContourHz": "{min}–{max} Hz",
-    "pitchContourLoading": "Analyzing audio…",
-    "pitchContourUnavailable": "A pitch contour could not be generated for this clip. Audio playback is still available.",
-    "pitchContourDisclaimer": "Estimated from the audio; unvoiced or noisy sections may be omitted.",
     "loading": "Loading",
     "noResultsSupport": "Looking for something we don't have yet? Suggest what we add next on our {link}"
   },

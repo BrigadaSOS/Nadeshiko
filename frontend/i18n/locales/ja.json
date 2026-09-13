@@ -999,13 +999,6 @@
     "expandAudioFailedStreamed": "字幕はつなげましたが、音声を生成できませんでした。Ankiへの書き出し時には、元の音声を使用します。",
     "expanding": "字幕をつなげています…",
     "playAudio": "音声を再生",
-    "pitchContourToggle": "音声のピッチを表示",
-    "pitchContourTitle": "音声のピッチ推移",
-    "pitchContourLabel": "この字幕音声から推定したピッチ推移",
-    "pitchContourHz": "{min}–{max} Hz",
-    "pitchContourLoading": "音声を解析中…",
-    "pitchContourUnavailable": "この音声のピッチ推移を生成できませんでした。音声は引き続き再生できます。",
-    "pitchContourDisclaimer": "音声からの推定値です。無声音や雑音の部分は省略される場合があります。",
     "loading": "読み込み中",
     "noResultsSupport": "まだ収録されていない作品をお探しですか？次に追加する作品を {link} で提案できます。"
   },

@@ -999,13 +999,6 @@
     "expandAudioFailedStreamed": "Se añadieron los subtítulos, pero no se pudo generar el audio. La exportación a Anki usará el audio original.",
     "expanding": "Uniendo subtítulos…",
     "playAudio": "Reproducir audio",
-    "pitchContourToggle": "Mostrar contorno de tono",
-    "pitchContourTitle": "Contorno del tono del audio",
-    "pitchContourLabel": "Contorno estimado del tono de este audio",
-    "pitchContourHz": "{min}–{max} Hz",
-    "pitchContourLoading": "Analizando audio…",
-    "pitchContourUnavailable": "No se pudo generar un contorno de tono para este audio. La reproducción sigue disponible.",
-    "pitchContourDisclaimer": "Estimado a partir del audio. Es posible que se omitan tramos sin voz o con mucho ruido.",
     "loading": "Cargando",
     "noResultsSupport": "¿Buscas un título que aún no tenemos? Puedes proponerlo en {link}."
   },
