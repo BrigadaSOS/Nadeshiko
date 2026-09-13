@@ -26,6 +26,8 @@ const locale = ref('en');
 const locales = ref([
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Español' },
+  { code: 'id', name: 'Bahasa Indonesia' },
+  { code: 'pt-BR', name: 'Português (Brasil)' },
   { code: 'ja', name: '日本語' },
   { code: 'zh', name: '简体中文' },
   { code: 'zh-hant', name: '繁體中文' },
@@ -94,6 +96,8 @@ describe('the options', () => {
     expect(options(wrapper).map((n) => n.attributes('data-text'))).toEqual([
       'English',
       'Español',
+      'Bahasa Indonesia',
+      'Português (Brasil)',
       '日本語',
       '简体中文',
       '繁體中文',
