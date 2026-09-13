@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -64,6 +64,19 @@ vi.stubGlobal('useRouter', () => ({ push: vi.fn() }));
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
 vi.stubGlobal('useNadeshikoSdk', () => ({}));
 
+const { loadPitchContour } = vi.hoisted(() => ({
+  loadPitchContour: vi.fn(async () => ({
+    durationSeconds: 1,
+    frameCount: 2,
+    voicedFrameCount: 2,
+    points: [
+      { timeSeconds: 0.2, frequencyHz: 180 },
+      { timeSeconds: 0.7, frequencyHz: 220 },
+    ],
+  })),
+}));
+vi.mock('~/utils/pitchContourAudio', () => ({ loadPitchContour }));
+
 // The REAL `storeToRefs`, because `usePlayerStore`, `userStore` and `ankiStore`
 // are imported directly rather than auto-imported -- a `stubGlobal` for them
 // never applies, the genuine Pinia stores are used (the suite activates a fresh
@@ -113,6 +126,7 @@ function render(results: unknown[]) {
         SearchModalReport: true,
         SearchModalAnkiNotes: true,
         SearchSegmentAudioButton: true,
+        SearchSegmentPitchContour: true,
       },
       config: { warnHandler: () => {} },
     },
@@ -133,6 +147,7 @@ beforeEach(() => {
   englishMode.value = 'visible';
   spanishMode.value = 'visible';
   translationLanguages.value = ['EN', 'ES'];
+  loadPitchContour.mockClear();
 });
 
 afterEach(() => {
@@ -154,6 +169,22 @@ describe('the card list', () => {
         .get('[data-testid="segment-japanese-text"]')
         .text(),
     ).toContain('日本語 a');
+  });
+
+  test('caches a loaded contour across hide and show toggles', async () => {
+    const wrapper = render([segment('a')]);
+    const button = wrapper.get('[data-testid="pitch-contour-toggle"]');
+
+    await button.trigger('click');
+    await flushPromises();
+    expect(loadPitchContour).toHaveBeenCalledTimes(1);
+    expect(button.attributes('aria-expanded')).toBe('true');
+
+    await button.trigger('click');
+    expect(button.attributes('aria-expanded')).toBe('false');
+    await button.trigger('click');
+    await flushPromises();
+    expect(loadPitchContour).toHaveBeenCalledTimes(1);
   });
 
   test('renders corpus markup as text while preserving search highlights', () => {
