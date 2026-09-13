@@ -12,7 +12,7 @@ const localeToLanguage: Record<string, MediaNameLanguage> = {
   ja: 'JAPANESE',
   en: 'ENGLISH',
   es: 'ROMAJI',
-  'zh-CN': 'JAPANESE',
+  'zh': 'JAPANESE',
   id: 'ROMAJI',
   'pt-BR': 'ROMAJI',
 };

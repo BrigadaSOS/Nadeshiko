@@ -5,6 +5,13 @@ export default defineEventHandler((event) => {
   const url = getRequestURL(event);
   const path = url.pathname;
 
+  // `zh-CN` was briefly exposed on staging before the Simplified Chinese
+  // locale shipped. Keep it as a permanent compatibility alias while making
+  // `/zh` the only canonical public spelling.
+  if (path === '/zh-CN' || path.startsWith('/zh-CN/')) {
+    return sendRedirect(event, `/zh${path.slice('/zh-CN'.length)}${url.search}`, 301);
+  }
+
   if (isReservedLocalePath(path)) return;
   if (getLocalePrefix(path)) return;
 

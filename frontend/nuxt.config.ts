@@ -807,8 +807,10 @@ export default defineNuxtConfig({
         file: 'ja.json',
       },
       {
-        code: 'zh-CN',
-        language: 'zh-CN',
+        // Keep the public path compact (`/zh`) while describing the writing
+        // system precisely to browsers and crawlers.
+        code: 'zh',
+        language: 'zh-Hans',
         name: '简体中文',
         file: 'zh-CN.json',
       },
