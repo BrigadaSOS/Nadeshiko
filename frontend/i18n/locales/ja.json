@@ -77,7 +77,7 @@
     "nadeDbDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。音声や画像、翻訳で使い方を確認し、Ankiの学習カードに取り込めます。{sentenceMining}に最適です。",
     "sentenceMiningLabel": "例文採集（センテンスマイニング）",
     "nadeDbDescriptionJpSearch": "日本語で検索",
-    "nadeDbDescriptionOtherSearch": "英語またはスペイン語で検索",
+    "nadeDbDescriptionOtherSearch": "英語で検索",
     "nadeDbDescriptionExclusiveSearch": "特定の単語を除外して検索",
     "nadeDbDescriptionExactSearch": "完全一致検索",
     "keyFeatures": {

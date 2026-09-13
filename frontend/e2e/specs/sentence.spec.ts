@@ -41,7 +41,7 @@ test.describe('Sentence page', () => {
   // until a reader saves an override (`defaultTranslationLanguages`) and this
   // suite runs signed out in `en`. The ES badge this used to assert belongs to
   // a reader who has both, which `translation-visibility.spec.ts` covers by
-  // running in the `ja` locale.
+  // running in the `pt-BR` locale.
   test('displays translations', async ({ page }) => {
     const card = await gotoSentencePage(page);
     await expect(card.getByTestId('translation-badge-EN')).toBeVisible();

@@ -73,8 +73,9 @@ export class SearchPage {
    *
    * It is how a spec asks for a reader with two translation languages without
    * signing in: the interface language picks the default set until a reader
-   * saves an override, and only `ja` defaults to both EN and ES — `en` gets
-   * English alone, `es` Spanish alone. See `defaultTranslationLanguages`.
+   * saves an override, and only `pt-BR` defaults to both EN and ES — `en` gets
+   * English alone, `es` Spanish alone, and other locales default to English.
+   * See `defaultTranslationLanguages`.
    */
   async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' | 'zh' | 'zh-hant' | 'id' | 'pt-BR' } = {}) {
     const prefix = options.locale ? `/${options.locale}` : '';
