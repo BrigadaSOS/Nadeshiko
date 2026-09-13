@@ -2826,7 +2826,6 @@ export type AuthSession = {
 
 export type AuthAccount = {
     readonly id: string;
-    issuer: string;
     accountId: string;
     providerId: string;
     userId: string;
@@ -2896,7 +2895,6 @@ export type AuthSessionWritable = {
 };
 
 export type AuthAccountWritable = {
-    issuer: string;
     accountId: string;
     providerId: string;
     userId: string;
@@ -7081,7 +7079,7 @@ export type SocialSignInData = {
          * Callback URL to redirect to if an error happens
          */
         errorCallbackURL?: string;
-        provider: 'apple' | 'atlassian' | 'cognito' | 'discord' | 'facebook' | 'figma' | 'github' | 'microsoft' | 'google' | 'huggingface' | 'slack' | 'spotify' | 'twitch' | 'twitter' | 'dropbox' | 'kick' | 'linear' | 'linkedin' | 'gitlab' | 'tiktok' | 'reddit' | 'roblox' | 'salesforce' | 'vk' | 'zoom' | 'notion' | 'kakao' | 'naver' | 'line' | 'paybin' | 'paypal' | 'polar' | 'railway' | 'vercel' | 'wechat' | string;
+        provider: 'apple' | 'atlassian' | 'cloudflare' | 'cognito' | 'discord' | 'facebook' | 'figma' | 'github' | 'microsoft' | 'google' | 'huggingface' | 'slack' | 'spotify' | 'twitch' | 'twitter' | 'dropbox' | 'kick' | 'linear' | 'linkedin' | 'gitlab' | 'tiktok' | 'reddit' | 'roblox' | 'salesforce' | 'vk' | 'zoom' | 'notion' | 'kakao' | 'naver' | 'line' | 'paybin' | 'paypal' | 'polar' | 'railway' | 'vercel' | 'wechat' | string;
         /**
          * Disable automatic redirection to the provider. Useful for handling the redirection yourself
          */
