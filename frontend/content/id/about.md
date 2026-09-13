@@ -1,5 +1,5 @@
 ---
-title: "Tentang Nadeshiko"
+title: "Tentang"
 description: "Kenali Nadeshiko, tim pengembang, dan para kontributor yang mendukungnya."
 ---
 
