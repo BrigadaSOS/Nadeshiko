@@ -14,7 +14,7 @@ jobs:
     # 45m). Leave ten minutes for this job's own setup and final API calls.
     timeout-minutes: 130
     steps:
-      # A production tag is a second, independent workflow trigger. `needs`
+      # A production dispatch is a second, independent workflow trigger. `needs`
       # cannot cross that boundary, so resolve the newest staging workflow for
       # the exact tagged SHA through the Actions API and require both app
       # deploys and E2E to have passed in that one run. An ancestor's result is
@@ -33,7 +33,7 @@ jobs:
             const workflowId = 'staging-release.yml';
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const sha = context.sha;
+            const sha = context.payload.client_payload?.release_sha ?? context.sha;
 
             const runs = await github.rest.actions.listWorkflowRuns({
               owner,
@@ -46,8 +46,8 @@ jobs:
             let run = runs.data.workflow_runs[0];
             if (!run) {
               throw new Error(
-                `No staging release exists for ${sha}. Run [Stg] Release for this exact commit, ` +
-                'wait for its E2E job to pass, then re-run this production workflow.',
+                `No staging release exists for ${sha}. Run scripts/release staging ${sha}, ` +
+                'wait for its E2E job to pass, then dispatch production again.',
               );
             }
 

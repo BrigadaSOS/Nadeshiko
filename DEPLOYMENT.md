@@ -1,15 +1,15 @@
 # Deployment
 
 This repo deploys itself through GitHub Actions. You normally never run
-`kamal` by hand: you push code (or a tag) and the right workflow builds the
+`kamal` by hand: push code, then explicitly dispatch the commit you want and the right workflow builds the
 image, ships it to the server over Tailscale, and runs the post-deploy checks.
 
 There are two environments:
 
 | Environment | URL | Triggered by |
 | --- | --- | --- |
-| Staging (stg) | https://stg.nadeshiko.co | every push to `main` |
-| Production (prod) | https://nadeshiko.co | pushing a `vX.Y.Z` tag on `main` or `production` |
+| Staging (stg) | https://stg.nadeshiko.co | `scripts/release staging <sha>` |
+| Production (prod) | https://nadeshiko.co | `scripts/release prod <sha>` after staging passes |
 
 Everything is a single host (`nadeshiko`, reached over Tailscale) running
 [Kamal](https://kamal-deploy.org/) with `kamal-proxy`. Backend, frontend and
@@ -17,7 +17,8 @@ the Discord bot are separate Kamal services on that host.
 
 ## Mental model
 
-- **`main` is staging.** Any merge or direct push to `main` deploys to stg.
+- **`main` is the normal integration branch.** Pushing it does not deploy by
+  itself; dispatch the exact commit you want to test.
 - **`production` is what prod runs.** A branch that only ever moves forward:
   fast-forwarded from `main` when cutting a release, or committed to directly
   for a hotfix. Pushing to it deploys nothing on its own; dispatch the staging
@@ -31,12 +32,14 @@ the Discord bot are separate Kamal services on that host.
   (`git push origin main:production`) or when a hotfix needs the lane. What it
   cannot be is *renamed*: the tag guard names `main` and `production`
   literally, so a tag on `hotfix/foo` is rejected however correct the commit is.
-- **A `vX.Y.Z` tag is production.** Tagging a commit deploys that commit to prod
-  only after the exact tagged SHA has successful staging backend and frontend
-  deploys followed by a successful E2E job, all in the same workflow run.
-  The tag must sit on `main` or on `production`; `release.yml` rejects anything
-  else. `main` gets its staging run automatically; a `production` hotfix needs
-  a manually dispatched staging run first.
+- **A commit SHA is production.** The production workflow deploys only the SHA
+  supplied in the dispatch payload, and only after that exact SHA has successful
+  staging backend/frontend deploys followed by E2E. Images and rollback remain
+  immutable SHA references.
+- **Semver is API metadata, not a deployment trigger.** Use
+  `release:set-version` only when the backend/OpenAPI contract changes. E2E,
+  frontend, infrastructure and release fixes can ship under the same API
+  version and are grouped in the dated changelog.
 - **The OpenAPI spec drives the SDK, and the SDK lives in this repo.** The
   TypeScript SDK is a workspace package at `packages/nadeshiko-sdk`, generated
   from the spec by `npm run sdk:codegen`. The frontend and the Discord bot
@@ -88,16 +91,16 @@ CI fails the build if any generated output is stale, so a spec change that was
 not regenerated cannot merge. External consumers get the SDK on the next
 production release (see below); internal consumers never wait on npm.
 
-## Production: tagging a release
+## Production: dispatching a release
 
 Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml)
-(`[Prod] Release`), triggered by pushing a tag matching `v*`.
+(`[Prod] Release`), triggered by `scripts/release prod <sha>`.
 
 A prod release deploys backend, frontend and the Discord bot to prod, publishes
 the **stable** (public) SDKs, and creates a GitHub Release.
 
-The tag version must match the version recorded in the package files, so bump
-the version first, then tag the resulting commit.
+The release identity is the commit SHA. No version bump or tag is required for
+frontend, E2E, infrastructure, or documentation fixes.
 
 "The resulting commit" is the bump commit only if nothing landed after it. The
 check is `release:check-version` against the *tagged* commit's package files,
@@ -111,21 +114,11 @@ tagging the older one.
 From the repository root:
 
 ```bash
-# 1. Bump version across backend, frontend, discord, the SDK package and the spec
-npm run release:set-version 1.2.3
-npm run release:check-version 1.2.3
-
-# 2. Commit the bump to main (push to main -> staging picks it up)
-#    ...commit and push as usual...
-
-# 3. Wait for that exact commit's staging E2E job to pass, then move production
-#    up to the commit you are releasing. This is always a
-#    fast-forward, because every hotfix is merged back into main (see below).
-git push origin main:production
-
-# 4. Tag that commit and push the tag -> triggers the prod release
-git tag -a v1.2.3 -m "v1.2.3"
-git push origin v1.2.3
+# 1. Push the reviewed commit to main or production.
+# 2. Run the exact same SHA through staging and wait for E2E.
+scripts/release staging HEAD
+# 3. After staging is green, deploy that same SHA to production.
+scripts/release prod HEAD
 ```
 
 ### Hotfixing prod without shipping main
