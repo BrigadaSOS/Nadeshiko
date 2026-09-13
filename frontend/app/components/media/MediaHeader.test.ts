@@ -32,7 +32,7 @@ const language = ref<'ENGLISH' | 'JAPANESE' | 'ROMAJI'>('ENGLISH');
 const metadataI18n: any = createI18n({
   legacy: false,
   locale: 'en',
-  messages: { en, es, ja, id, 'pt-BR': ptBR, 'zh-CN': zhCN },
+  messages: { en, es, ja, id, 'pt-BR': ptBR, zh: zhCN },
 });
 vi.stubGlobal('useI18n', () => ({
   t: (key: string, values: Record<string, string | number> = {}) =>

@@ -191,7 +191,7 @@ describe('the hreflang set', () => {
     at('/en/media');
 
     const { alternates } = await render();
-    expect(alternates.map((link) => link.hreflang)).toEqual(['en', 'es', 'zh-CN', 'id', 'pt-BR', 'x-default']);
+    expect(alternates.map((link) => link.hreflang)).toEqual(['en', 'es', 'zh-Hans', 'id', 'pt-BR', 'x-default']);
   });
 
   test('leaves out the one that is noindex everywhere', async () => {
@@ -242,7 +242,7 @@ describe('the hreflang set', () => {
     expect((await render()).alternates.map((link) => link.id)).toEqual([
       'i18n-alt-en',
       'i18n-alt-es',
-      'i18n-alt-zh-CN',
+      'i18n-alt-zh',
       'i18n-alt-id',
       'i18n-alt-pt-BR',
       'i18n-xd',

@@ -6,7 +6,7 @@ describe('tagLanguage', () => {
     expect(tagLanguage('en')).toBe('en');
     expect(tagLanguage('es')).toBe('es');
     expect(tagLanguage('ja')).toBe('ja');
-    expect(tagLanguage('zh-CN')).toBe('zh-CN');
+    expect(tagLanguage('zh')).toBe('zh-CN');
     expect(tagLanguage('id')).toBe('id');
     expect(tagLanguage('pt-BR')).toBe('pt-BR');
   });

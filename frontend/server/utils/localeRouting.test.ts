@@ -48,6 +48,7 @@ describe('getLocalePrefix', () => {
     expect(getLocalePrefix('/es')).toBe('es');
     expect(getLocalePrefix('/es/search/hello')).toBe('es');
     expect(getLocalePrefix('/ja')).toBe('ja');
+    expect(getLocalePrefix('/zh/search/学校')).toBe('zh');
   });
 
   it('does not treat a longer word starting with a locale code as prefixed', () => {
@@ -77,7 +78,7 @@ describe('resolveRootLocale', () => {
     expect(resolveRootLocale('en')).toBe('en');
     expect(resolveRootLocale('es')).toBe('es');
     expect(resolveRootLocale('ja')).toBe('ja');
-    expect(resolveRootLocale('zh-CN')).toBe('zh-CN');
+    expect(resolveRootLocale('zh')).toBe('zh');
     expect(resolveRootLocale('id')).toBe('id');
     expect(resolveRootLocale('pt-BR')).toBe('pt-BR');
   });

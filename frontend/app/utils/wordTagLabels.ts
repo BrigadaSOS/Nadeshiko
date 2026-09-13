@@ -41,7 +41,7 @@ export type TagLanguage = 'en' | 'es' | 'ja' | 'zh-CN' | 'id' | 'pt-BR';
 export function tagLanguage(uiLocale: string): TagLanguage {
   if (uiLocale === 'es') return 'es';
   if (uiLocale === 'ja') return 'ja';
-  if (uiLocale === 'zh-CN') return 'zh-CN';
+  if (uiLocale === 'zh') return 'zh-CN';
   if (uiLocale === 'id') return 'id';
   if (uiLocale === 'pt-BR') return 'pt-BR';
   return 'en';
