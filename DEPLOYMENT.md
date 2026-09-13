@@ -116,9 +116,9 @@ From the repository root:
 ```bash
 # 1. Push the reviewed commit to main or production.
 # 2. Run the exact same SHA through staging and wait for E2E.
-scripts/release staging HEAD
+scripts/release staging
 # 3. After staging is green, deploy that same SHA to production.
-scripts/release prod HEAD
+scripts/release prod
 ```
 
 ### Hotfixing prod without shipping main
