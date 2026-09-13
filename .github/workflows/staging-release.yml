@@ -381,7 +381,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: kamal app exec -d staging --reuse "E2E_RUN_ID=${E2E_RUN_ID} npm run db:prepare"
+        # Kamal passes this command directly to `docker exec`, which does not
+        # understand shell-style leading assignments. Use `env` as the actual
+        # executable so the run-scoped account namespace reaches Node.
+        run: kamal app exec -d staging --reuse "env E2E_RUN_ID=${E2E_RUN_ID} npm run db:prepare"
 
       - name: Fetch E2E secrets from AWS SSM
         run: |
@@ -500,7 +503,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
-        run: kamal app exec -d staging --reuse "E2E_RUN_ID=${E2E_RUN_ID} npm run db:cleanup-e2e"
+        run: kamal app exec -d staging --reuse "env E2E_RUN_ID=${E2E_RUN_ID} npm run db:cleanup-e2e"
 
   dispatch-sdk-python:
     needs: [changes, checks]
