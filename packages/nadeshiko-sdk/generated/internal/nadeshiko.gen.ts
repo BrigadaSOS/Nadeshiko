@@ -511,7 +511,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
 
   const clientInstance = createApiClient(createConfig<ClientOptions>({
     baseUrl,
-    headers: { 'User-Agent': 'nadeshiko-sdk-ts/2.4.18', ...config.headers },
+    headers: { 'User-Agent': 'nadeshiko-sdk-ts/2.4.19', ...config.headers },
     fetch: withRetry(globalThis.fetch, {
       ...config.retryOptions,
       retryUnsafeRequest: (request) =>
