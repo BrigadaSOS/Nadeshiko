@@ -293,7 +293,7 @@ const submitDelete = async () => {
               :class="pillClasses(form.category === opt)"
               @click="form.category = opt"
             >
-              {{ opt }}
+              {{ t(`mediaMetadata.categories.${opt}`) }}
             </button>
           </div>
         </div>
@@ -308,7 +308,7 @@ const submitDelete = async () => {
               :class="pillClasses(form.airingStatus === opt)"
               @click="form.airingStatus = opt"
             >
-              {{ opt }}
+              {{ t(`mediaMetadata.statuses.${opt}`) }}
             </button>
           </div>
         </div>
@@ -323,7 +323,7 @@ const submitDelete = async () => {
               :class="pillClasses(form.airingFormat === opt)"
               @click="form.airingFormat = opt"
             >
-              {{ opt }}
+              {{ t(`mediaMetadata.formats.${opt}`) }}
             </button>
           </div>
         </div>
@@ -355,7 +355,7 @@ const submitDelete = async () => {
                 :class="pillClasses(form.seasonName === opt)"
                 @click="form.seasonName = opt"
               >
-                {{ opt }}
+                {{ t(`mediaMetadata.seasons.${opt}`) }}
               </button>
             </div>
           </div>
@@ -379,7 +379,7 @@ const submitDelete = async () => {
               <input
                 v-model="form.anilistId"
                 type="text"
-                placeholder="e.g. 21459"
+                :placeholder="t('common.example', { value: '21459' })"
                 class="nd-input font-mono"
               />
             </div>
@@ -388,7 +388,7 @@ const submitDelete = async () => {
               <input
                 v-model="form.imdbId"
                 type="text"
-                placeholder="e.g. tt1234567"
+                :placeholder="t('common.example', { value: 'tt1234567' })"
                 class="nd-input font-mono"
               />
             </div>
@@ -397,7 +397,7 @@ const submitDelete = async () => {
               <input
                 v-model="form.tvdbId"
                 type="text"
-                placeholder="e.g. 12345"
+                :placeholder="t('common.example', { value: '12345' })"
                 class="nd-input font-mono"
               />
             </div>
@@ -406,7 +406,7 @@ const submitDelete = async () => {
               <input
                 v-model="form.tmdbId"
                 type="text"
-                placeholder="e.g. 90955"
+                :placeholder="t('common.example', { value: '90955' })"
                 class="nd-input font-mono"
               />
             </div>
@@ -415,7 +415,7 @@ const submitDelete = async () => {
               <input
                 v-model="form.youtubeId"
                 type="text"
-                placeholder="e.g. UCxxxxxxxxxxxxxxxx"
+                :placeholder="t('common.example', { value: 'UCxxxxxxxxxxxxxxxx' })"
                 class="nd-input font-mono"
               />
             </div>

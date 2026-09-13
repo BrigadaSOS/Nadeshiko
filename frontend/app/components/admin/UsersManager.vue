@@ -15,6 +15,21 @@ const searchQuery = ref('');
 const currentOffset = ref(0);
 const limit = 20;
 
+function roleLabel(role: string | undefined): string {
+  switch (role) {
+    case 'ADMIN':
+      return t('accountSettings.dashboard.roles.ADMIN');
+    case 'MOD':
+      return t('accountSettings.dashboard.roles.MOD');
+    case 'USER':
+      return t('accountSettings.dashboard.roles.USER');
+    case 'PATREON':
+      return t('accountSettings.dashboard.roles.PATREON');
+    default:
+      return role || '—';
+  }
+}
+
 const providerLabel = (provider: string) => {
   switch (provider) {
     case 'google':
@@ -181,7 +196,9 @@ onMounted(() => {
             >
               <td class="px-4 py-3 text-gray-200">{{ user.name || '—' }}</td>
               <td class="px-4 py-3 text-gray-300">{{ user.email }}</td>
-              <td class="px-4 py-3 text-gray-400 capitalize">{{ user.role }}</td>
+              <td class="px-4 py-3 text-gray-400 capitalize">
+                {{ roleLabel(user.role) }}
+              </td>
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   <template v-if="!user.providers || user.providers.length === 0">
