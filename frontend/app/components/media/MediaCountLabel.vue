@@ -16,10 +16,11 @@ const isYoutube = computed(() => props.media?.category === 'YOUTUBE');
 const isMovie = computed(() => !isYoutube.value && props.media?.airingFormat === 'MOVIE');
 const count = computed(() => props.media?.episodeCount || 0);
 const wordKey = computed(() => (isYoutube.value ? 'animeList.videos' : 'animeList.episodes'));
+const countKey = computed(() => (isYoutube.value ? 'animeList.videoCount' : 'animeList.episodeCount'));
 </script>
 
 <template>
   <template v-if="isMovie">{{ $t('searchpage.main.labels.movie') }}</template>
   <template v-else-if="labelFirst">{{ $t(wordKey) }}: {{ count }}</template>
-  <template v-else>{{ count }} {{ $t(wordKey) }}</template>
+  <template v-else>{{ $t(countKey, { count }) }}</template>
 </template>

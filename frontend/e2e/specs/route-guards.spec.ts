@@ -19,7 +19,7 @@ test.describe('Private route guards', () => {
       const response = await page.goto(route);
 
       expect(response?.status(), `${route} should resolve to a healthy redirect destination`).toBe(200);
-      await expect(page).toHaveURL(/\/(?:en|es|ja)\/?$/);
+      await expect(page).toHaveURL(/\/(?:en|es|ja|zh-CN|id|pt-BR)\/?$/);
       await expect(page.locator('[data-testid^="account-"]')).toHaveCount(0);
       await expect(page.locator('[data-testid^="admin-"]')).toHaveCount(0);
     });

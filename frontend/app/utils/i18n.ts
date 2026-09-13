@@ -1,5 +1,5 @@
 export const LOCALE_PREFERENCE_COOKIE_NAME = 'nd-locale-preference';
-export const SUPPORTED_LOCALES = ['en', 'es', 'ja'] as const;
+export const SUPPORTED_LOCALES = ['en', 'es', 'ja', 'zh-CN', 'id', 'pt-BR'] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -22,6 +22,6 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
  * `nuxt.config.ts` imports this directly (it is a plain constant module with no
  * Nuxt runtime imports, so it evaluates fine in the config's Node context).
  */
-export const INDEXED_LOCALES = ['en', 'es'] as const satisfies readonly SupportedLocale[];
+export const INDEXED_LOCALES = ['en', 'es', 'zh-CN', 'id', 'pt-BR'] as const satisfies readonly SupportedLocale[];
 
 export type IndexedLocale = (typeof INDEXED_LOCALES)[number];

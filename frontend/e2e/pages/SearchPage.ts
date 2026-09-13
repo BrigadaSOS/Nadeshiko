@@ -76,7 +76,7 @@ export class SearchPage {
    * saves an override, and only `ja` defaults to both EN and ES — `en` gets
    * English alone, `es` Spanish alone. See `defaultTranslationLanguages`.
    */
-  async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' } = {}) {
+  async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' | 'zh-CN' | 'id' | 'pt-BR' } = {}) {
     const prefix = options.locale ? `/${options.locale}` : '';
     const path = query ? `${prefix}/search/${encodeURIComponent(query)}` : `${prefix}/search`;
     const response = await this.page.goto(path);

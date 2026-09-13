@@ -161,8 +161,10 @@ const SITEMAP_STATIC_PATHS = [
   // have asked it to ignore. `canonical.ts` allowlists both params.
   ...[1000, 2000, 5000, 10000, 20000, 50000, 100000].map((tier) => `/stats/words?tier=${tier}&filter=COVERED`),
 ];
-const SITEMAP_STATIC_URLS_EN = ['/en', ...SITEMAP_STATIC_PATHS.map((path) => `/en${path}`)];
-const SITEMAP_STATIC_URLS_ES = ['/es', ...SITEMAP_STATIC_PATHS.map((path) => `/es${path}`)];
+const sitemapStaticUrls = (locale: string) => [
+  `/${locale}`,
+  ...SITEMAP_STATIC_PATHS.map((path) => `/${locale}${path}`),
+];
 
 // The locales robots is given rules for. `ja` is disallowed wholesale below, so
 // only the two indexed locales need per-path entries. Imported rather than
@@ -170,6 +172,18 @@ const SITEMAP_STATIC_URLS_ES = ['/es', ...SITEMAP_STATIC_PATHS.map((path) => `/e
 // alternates it may advertise, and the two disagreeing is how `/ja` ended up
 // named as an indexable alternate of pages that are `robots: false`.
 const INDEXED_LOCALES = APP_INDEXED_LOCALES;
+
+const sitemapSources = (
+  locale: (typeof INDEXED_LOCALES)[number],
+): [string, [string, { timeout: number }], [string, { timeout: number }], string] => [
+  `/api/__sitemap__/media?locale=${locale}`,
+  [`/api/__sitemap__/episodes?locale=${locale}`, { timeout: 60000 }],
+  // Two lookups per title rather than one, so it gets the same headroom as
+  // `episodes` and then some. See `sentences.ts` for why the corpus is sampled
+  // per title instead of enumerated.
+  [`/api/__sitemap__/sentences?locale=${locale}`, { timeout: 90000 }],
+  `/api/__sitemap__/blog?locale=${locale}`,
+];
 
 // Both spellings of every private area, in both indexed locales, from the one
 // list in shared/utils/privatePaths.ts. This used to be twenty hand-written
@@ -744,32 +758,12 @@ export default defineNuxtConfig({
     : {
         cacheMaxAgeSeconds: 86400,
         autoI18n: false,
-        sitemaps: {
-          en: {
-            urls: SITEMAP_STATIC_URLS_EN,
-            sources: [
-              '/api/__sitemap__/media?locale=en',
-              ['/api/__sitemap__/episodes?locale=en', { timeout: 60000 }],
-              // Two lookups per title rather than one, so it gets the same
-              // headroom as `episodes` and then some. See `sentences.ts` for why
-              // the corpus is sampled per title instead of enumerated.
-              ['/api/__sitemap__/sentences?locale=en', { timeout: 90000 }],
-              '/api/__sitemap__/blog?locale=en',
-            ],
-          },
-          es: {
-            urls: SITEMAP_STATIC_URLS_ES,
-            sources: [
-              '/api/__sitemap__/media?locale=es',
-              ['/api/__sitemap__/episodes?locale=es', { timeout: 60000 }],
-              // Two lookups per title rather than one, so it gets the same
-              // headroom as `episodes` and then some. See `sentences.ts` for why
-              // the corpus is sampled per title instead of enumerated.
-              ['/api/__sitemap__/sentences?locale=es', { timeout: 90000 }],
-              '/api/__sitemap__/blog?locale=es',
-            ],
-          },
-        },
+        sitemaps: Object.fromEntries(
+          INDEXED_LOCALES.map((locale) => [
+            locale,
+            { urls: sitemapStaticUrls(locale), sources: sitemapSources(locale) },
+          ]),
+        ),
       },
   ogImage: {
     enabled: false,
@@ -811,6 +805,24 @@ export default defineNuxtConfig({
         language: 'ja',
         name: '日本語',
         file: 'ja.json',
+      },
+      {
+        code: 'zh-CN',
+        language: 'zh-CN',
+        name: '简体中文',
+        file: 'zh-CN.json',
+      },
+      {
+        code: 'id',
+        language: 'id',
+        name: 'Bahasa Indonesia',
+        file: 'id.json',
+      },
+      {
+        code: 'pt-BR',
+        language: 'pt-BR',
+        name: 'Português (Brasil)',
+        file: 'pt-BR.json',
       },
     ],
     defaultLocale: 'en',

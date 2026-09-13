@@ -735,7 +735,7 @@ watch(playingVideoId, (id) => {
                     data-testid="segment-episode-link"
                     :to="mediaFilterLink(result.media, result.segment.episode)"
                     class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
-                    {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
+                    {{ $t('searchpage.main.labels.episode', { number: result.segment.episode }) }}
                   </NuxtLink>
                 </template>
                 &bull;

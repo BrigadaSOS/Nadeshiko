@@ -6,6 +6,9 @@ import { createI18n } from 'vue-i18n';
 import en from '../../../i18n/locales/en.json';
 import es from '../../../i18n/locales/es.json';
 import ja from '../../../i18n/locales/ja.json';
+import id from '../../../i18n/locales/id.json';
+import ptBR from '../../../i18n/locales/pt-BR.json';
+import zhCN from '../../../i18n/locales/zh-CN.json';
 
 import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/utils/media';
 
@@ -24,7 +27,13 @@ import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/uti
 const startsOpen = ref(true);
 const language = ref<'ENGLISH' | 'JAPANESE' | 'ROMAJI'>('ENGLISH');
 
-const metadataI18n = createI18n({ legacy: false, locale: 'en', messages: { en, es, ja } });
+// Keep this small real-i18n fixture in lockstep with the configured locale
+// union; otherwise adding a shipped locale makes its inferred test type lie.
+const metadataI18n: any = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: { en, es, ja, id, 'pt-BR': ptBR, 'zh-CN': zhCN },
+});
 vi.stubGlobal('useI18n', () => ({
   t: (key: string, values: Record<string, string | number> = {}) =>
     key.startsWith('mediaMetadata.') ? metadataI18n.global.t(key, values) : key,

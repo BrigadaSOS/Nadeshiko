@@ -54,7 +54,7 @@ test.describe('Account lifecycle', () => {
       await settings.expectLoaded();
 
       await settings.logoutButton.click();
-      await expect(page).toHaveURL(/\/(?:en|es|ja)\/?$/, { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/(?:en|es|ja|zh-CN|id|pt-BR)\/?$/, { timeout: 10_000 });
 
       const session = await page.request.get('/v1/auth/get-session');
       expect(session.status()).toBe(200);
@@ -102,7 +102,7 @@ test.describe('Destructive account lifecycle', () => {
       // `waitForResponse` returns a browser Response, not an APIResponse; its
       // body can also disappear as the successful deletion navigates home.
       expect(deleted.ok(), `account deletion returned HTTP ${deleted.status()}`).toBe(true);
-      await expect(primaryPage).toHaveURL(/\/(?:en|es|ja)\/?$/, { timeout: 15_000 });
+      await expect(primaryPage).toHaveURL(/\/(?:en|es|ja|zh-CN|id|pt-BR)\/?$/, { timeout: 15_000 });
 
       const deletedLogin = await primaryPage.request.post('/v1/auth/sign-in/email', {
         headers: { Origin: getE2EBaseUrl() },

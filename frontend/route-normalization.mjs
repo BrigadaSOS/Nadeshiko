@@ -10,7 +10,7 @@ const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 // Exported only so server/utils/routeNormalization.test.ts can assert it still
 // matches nuxt.config.ts -- a locale added there and forgotten here would send
 // that locale's entire traffic back into `/__other`, silently.
-export const LOCALES = new Set(['en', 'es', 'ja']);
+export const LOCALES = new Set(['en', 'es', 'ja', 'zh-CN', 'id', 'pt-BR']);
 
 const STATIC_PAGES = new Set([
   '/', '/blog', '/media', '/stats', '/stats/words',
