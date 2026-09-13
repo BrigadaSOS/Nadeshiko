@@ -38,4 +38,8 @@ describe('locale router', () => {
   test('does not redirect the canonical compact Chinese slug', () => {
     expect(visit('/zh/search/学校')).toBeNull();
   });
+
+  test('does not reinterpret an unsupported locale tag as an English path', () => {
+    expect(visit('/zh-CN/about')).toBeNull();
+  });
 });
