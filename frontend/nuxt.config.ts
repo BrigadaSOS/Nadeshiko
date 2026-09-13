@@ -801,6 +801,18 @@ export default defineNuxtConfig({
         file: 'es.json',
       },
       {
+        code: 'id',
+        language: 'id',
+        name: 'Bahasa Indonesia',
+        file: 'id.json',
+      },
+      {
+        code: 'pt-BR',
+        language: 'pt-BR',
+        name: 'Português (Brasil)',
+        file: 'pt-BR.json',
+      },
+      {
         code: 'ja',
         language: 'ja',
         name: '日本語',
@@ -819,18 +831,6 @@ export default defineNuxtConfig({
         language: 'zh-Hant',
         name: '繁體中文',
         file: 'zh-Hant.json',
-      },
-      {
-        code: 'id',
-        language: 'id',
-        name: 'Bahasa Indonesia',
-        file: 'id.json',
-      },
-      {
-        code: 'pt-BR',
-        language: 'pt-BR',
-        name: 'Português (Brasil)',
-        file: 'pt-BR.json',
       },
     ],
     defaultLocale: 'en',
