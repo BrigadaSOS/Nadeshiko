@@ -63,6 +63,7 @@ async function render() {
         NuxtLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
         NuxtImg: true,
         UiBaseIcon: true,
+        'i18n-t': { template: '<span><slot name="sentenceMining" /></span>' },
         MediaCountLabel: true,
         SearchBaseInputSegment: true,
         CommonBaseModal: true,
@@ -111,6 +112,17 @@ describe('the example searches', () => {
 
     expect(wrapper.text()).toContain('School');
     expect(wrapper.text()).toContain('Escuela');
+  });
+});
+
+describe('the sentence-mining reference', () => {
+  test('opens the external guide safely in a new tab', async () => {
+    const wrapper = await render();
+    const link = wrapper.find('a[href="https://unseen-japan.com/sentence-mining-japanese-how-to/"]');
+
+    expect(link.exists()).toBe(true);
+    expect(link.attributes('target')).toBe('_blank');
+    expect(link.attributes('rel')).toBe('noopener noreferrer');
   });
 });
 

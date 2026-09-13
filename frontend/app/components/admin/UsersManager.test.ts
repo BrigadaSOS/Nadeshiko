@@ -121,6 +121,24 @@ afterEach(() => {
 });
 
 describe('loading the table', () => {
+  test('localizes the API role values and preserves unknown roles', async () => {
+    const roles = ['ADMIN', 'MOD', 'USER', 'PATREON', 'CUSTOM'];
+    const result = page('roles', roles.length, roles.length);
+    getAdminUsersWithProviders.mockResolvedValue({
+      ...result,
+      users: result.users.map((user, index) => ({ ...user, role: roles[index] })),
+    });
+    const wrapper = await render();
+    const labels = wrapper.findAll('tbody tr').map((row) => row.findAll('td')[2]?.text());
+    expect(labels).toEqual([
+      'accountSettings.dashboard.roles.ADMIN',
+      'accountSettings.dashboard.roles.MOD',
+      'accountSettings.dashboard.roles.USER',
+      'accountSettings.dashboard.roles.PATREON',
+      'CUSTOM',
+    ]);
+  });
+
   test('fetches the first page on mount', async () => {
     const wrapper = await render();
 

@@ -257,8 +257,8 @@ watch(inputText, (newValue) => {
               <div v-else-if="isLoading" class="p-1.5 min-w-full inline-block align-middle">
                 <span
                   class="animate-spin text-center inline-block mt-1 mr-2 w-5 h-5 border-[3px] border-current border-t-transparent text-white rounded-full"
-                  role="status" aria-label="loading">
-                  <span class="sr-only">Loading...</span>
+                  role="status" :aria-label="t('common.loading')">
+                  <span class="sr-only">{{ t('common.loading') }}</span>
                 </span>
                 {{ t("batchSearch.results.searching") }}
               </div>

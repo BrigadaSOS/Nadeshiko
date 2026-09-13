@@ -36,6 +36,6 @@ await navigateTo(verificationUrl.toString(), { external: true, redirectCode: 302
 
 <template>
   <main class="flex min-h-screen items-center justify-center" aria-live="polite">
-    <p>Verifying your email…</p>
+    <p>{{ $t('modalauth.verifyingEmail') }}</p>
   </main>
 </template>
