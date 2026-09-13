@@ -6,6 +6,9 @@ describe('tagLanguage', () => {
     expect(tagLanguage('en')).toBe('en');
     expect(tagLanguage('es')).toBe('es');
     expect(tagLanguage('ja')).toBe('ja');
+    expect(tagLanguage('zh-CN')).toBe('zh-CN');
+    expect(tagLanguage('id')).toBe('id');
+    expect(tagLanguage('pt-BR')).toBe('pt-BR');
   });
 
   it('falls back to English for a locale we ship no chips in', () => {
@@ -43,6 +46,9 @@ describe('tagLabel', () => {
     expect(tagLabel('partOfSpeech', 'n', 'noun (common) (futsuumeishi)', 'en')).toBe('Noun');
     expect(tagLabel('partOfSpeech', 'n', 'noun (common) (futsuumeishi)', 'es')).toBe('Sustantivo');
     expect(tagLabel('partOfSpeech', 'n', 'noun (common) (futsuumeishi)', 'ja')).toBe('名詞');
+    expect(tagLabel('partOfSpeech', 'n', 'noun (common) (futsuumeishi)', 'zh-CN')).toBe('名词');
+    expect(tagLabel('partOfSpeech', 'n', 'noun (common) (futsuumeishi)', 'id')).toBe('Kata benda');
+    expect(tagLabel('partOfSpeech', 'n', 'noun (common) (futsuumeishi)', 'pt-BR')).toBe('Substantivo');
   });
 
   it('writes a usage qualifier in the reader language', () => {
