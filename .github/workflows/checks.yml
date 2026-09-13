@@ -142,22 +142,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up Docker Buildx
-        if: inputs.backend_image
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build backend image
-        if: inputs.backend_image
-        uses: docker/build-push-action@v7
-        with:
-          # The image installs the whole workspace, so the build context is the
-          # repository root rather than backend/.
-          context: .
-          file: ./backend/Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       # The full `lint`, not `lint:code`: it is Biome plus `redocly lint` over
       # docs/openapi/openapi.yaml. Running only the Biome half here left the
       # spec linted on contributors' machines and nowhere else.
@@ -212,6 +196,30 @@ jobs:
       - name: Stop test Elasticsearch
         if: always()
         run: docker rm --force nadeshiko-ci-elasticsearch || true
+
+  # Building the deployable container validates a different boundary than the
+  # Node test suite, but it does not depend on Postgres or Elasticsearch. Keep
+  # it as a parallel job so a healthy Dockerfile does not add its full build
+  # time to every backend PR's critical path.
+  backend-image:
+    if: inputs.backend && inputs.backend_image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
   frontend:
     if: inputs.frontend
