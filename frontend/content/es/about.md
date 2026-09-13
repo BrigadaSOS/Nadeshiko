@@ -1,5 +1,5 @@
 ---
-title: "Sobre Nadeshiko"
+title: "Sobre el proyecto"
 description: "Conoce al equipo de Nadeshiko, a sus colaboradores y las fuentes de datos del proyecto."
 ---
 
