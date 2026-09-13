@@ -148,6 +148,19 @@ describe('what gets reported to PostHog', () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
+  test('a handled Shirabe outage stays in metrics and logs without becoming a PostHog issue', async () => {
+    const fire = await loadPlugin();
+
+    await fire('error', httpError(503), {
+      event: makeEvent({ url: '/api/shirabe/words/candidates/%E5%85%84' }),
+      tags: ['request'],
+    });
+
+    expect(counterAdds).toHaveLength(1);
+    expect(logLines.some((line) => line.level === 'error')).toBe(true);
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
   test.each(['bot', 'monitor'] as const)('a 5xx from %s traffic is not captured', async (kind) => {
     // Bots outnumber readers on exactly the URL shapes that throw.
     traffic = kind;
