@@ -4456,6 +4456,7 @@ paths:
                       enum:
                         - apple
                         - atlassian
+                        - cloudflare
                         - cognito
                         - discord
                         - facebook
@@ -10915,8 +10916,6 @@ components:
         id:
           type: string
           readOnly: true
-        issuer:
-          type: string
         accountId:
           type: string
         providerId:
@@ -10947,7 +10946,6 @@ components:
           format: date-time
       required:
         - id
-        - issuer
         - accountId
         - providerId
         - userId
