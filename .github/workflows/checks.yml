@@ -10,6 +10,11 @@ on:
         required: false
         default: true
         type: boolean
+      backend_image:
+        description: "Build the backend Docker image as part of backend checks"
+        required: false
+        default: true
+        type: boolean
       frontend:
         description: "Run the frontend checks"
         required: false
@@ -138,9 +143,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Docker Buildx
+        if: inputs.backend_image
         uses: docker/setup-buildx-action@v4
 
       - name: Build backend image
+        if: inputs.backend_image
         uses: docker/build-push-action@v7
         with:
           # The image installs the whole workspace, so the build context is the
