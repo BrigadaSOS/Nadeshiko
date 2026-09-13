@@ -14,6 +14,12 @@ permissions:
 env:
   NODE_VERSION: '24'
 
+# A newer commit on the same pull request makes the old result obsolete. Stop
+# spending runners on it and surface feedback for the current head sooner.
+concurrency:
+  group: nadeshiko-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   changes:
     runs-on: ubuntu-latest

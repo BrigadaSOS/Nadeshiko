@@ -170,8 +170,8 @@ jobs:
           # Do not advance :latest before checks and staging E2E have passed.
           tags: ghcr.io/brigadasos/nadeshiko-backend-stg:${{ github.sha }}
           labels: service=nadeshiko-backend-stg
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
   build-frontend:
     needs: changes
@@ -203,8 +203,8 @@ jobs:
           tags: ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ github.sha }}
           labels: service=nadeshiko-frontend-stg
           build-args: NUXT_PUBLIC_ENVIRONMENT=development
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
   # An Elasticsearch-gated push skips deploy-backend, which on its own reads as a
   # green run. Fail the workflow instead so the skipped deploy is not missed.
