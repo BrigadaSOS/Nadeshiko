@@ -1,4 +1,4 @@
-import { INDEXED_LOCALES } from '~/utils/i18n';
+import { INDEXED_LOCALES, LOCALE_LANGUAGE_TAGS } from '~/utils/i18n';
 import { buildSentencePath, canonicalPath, splitLocalePrefix, withLocalePrefix } from '~/utils/routes';
 
 const CANONICAL_REWRITES: Record<string, (query: Record<string, string>) => string> = {
@@ -123,7 +123,7 @@ function alternates(siteUrl: string, localePrefix: string, localizedPath: string
   const links = INDEXED_LOCALES.map((locale) => ({
     id: `i18n-alt-${locale}`,
     rel: 'alternate' as const,
-    hreflang: locale,
+    hreflang: LOCALE_LANGUAGE_TAGS[locale],
     href: `${siteUrl}${withLocalePrefix(`/${locale}`, localizedPath)}${suffix}`,
   }));
 
