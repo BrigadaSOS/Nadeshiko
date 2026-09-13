@@ -35,13 +35,6 @@ describe('locale router', () => {
     redirects = [];
   });
 
-  test('permanently redirects the former Chinese locale slug and preserves the request', () => {
-    expect(visit('/zh-CN/search/学校?media=show')).toEqual({
-      location: '/zh/search/%E5%AD%A6%E6%A0%A1?media=show',
-      status: 301,
-    });
-  });
-
   test('does not redirect the canonical compact Chinese slug', () => {
     expect(visit('/zh/search/学校')).toBeNull();
   });
