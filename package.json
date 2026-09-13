@@ -28,6 +28,7 @@
     "sdk:sync": "npm run docs:bundle --workspace backend && npm run generate:auth-spec --workspace backend && npm run sdk:codegen",
     "release:set-version": "bash -c 'node --import tsx scripts/releaseVersion.ts set \"$1\" && npm run generate:all --workspace backend && npm run sdk:codegen && node --import tsx scripts/releaseVersion.ts check \"$1\"' --",
     "release:check-version": "node --import tsx scripts/releaseVersion.ts check",
+    "verify:deploy": "scripts/verify-deploy-config",
     "setup": "sh scripts/setup-hooks.sh && npm run setup --workspace backend && npm run setup --workspace frontend"
   },
   "devDependencies": {

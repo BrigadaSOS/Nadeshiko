@@ -5,6 +5,7 @@ import { getAppEnvironment } from '@config/environment';
 import { logger } from '@config/log';
 import { defaultKeyHasher } from '@better-auth/api-key';
 import { hashPassword } from 'better-auth/crypto';
+import { In } from 'typeorm';
 
 const SEEDED_MASTER_KEY_NAME = 'Local Master Key';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
@@ -135,17 +136,29 @@ export async function seed() {
  * Sharing one account forced CI down to one worker and made the suite take more
  * than twenty minutes. These users all use the same deployment-only secret,
  * but have independent server-side state so the suite can run concurrently.
- * Keep index zero at the historical address for production smoke and existing
- * installations; the additional accounts are used by the staging workers.
+ * Without E2E_RUN_ID, keep index zero at the historical address for production
+ * smoke and local development. Staging gives every workflow attempt a run id.
  */
 // Eight accounts back the parallel workers; index eight is a dedicated
 // cross-account reader, index nine is a staging-only admin, and index ten is a
-// disposable account for the destructive deletion journey. None is borrowed
+// deletion account for the destructive journey. None is borrowed
 // from an active worker, so authorization tests cannot revoke or mutate another
-// spec's session. `db:prepare` recreates the disposable user before every run.
+// spec's session. Run-scoped users are removed by the cleanup-e2e CI job.
+function e2eRunId(): string | null {
+  const runId = process.env.E2E_RUN_ID;
+  if (!runId) return null;
+  if (!/^[a-z0-9-]{1,48}$/i.test(runId)) throw new Error('E2E_RUN_ID must contain only letters, digits, and hyphens');
+  return runId;
+}
+
+const runId = e2eRunId();
 const E2E_TEST_USERS = Array.from({ length: 11 }, (_, index) => ({
-  username: index === 0 ? 'e2e-user' : `e2e-user-${index}`,
-  email: index === 0 ? 'e2e-user@nadeshiko.co' : `e2e-user-${index}@nadeshiko.co`,
+  username: runId ? `e2e-${runId}-${index}` : index === 0 ? 'e2e-user' : `e2e-user-${index}`,
+  email: runId
+    ? `e2e-${runId}-${index}@nadeshiko.co`
+    : index === 0
+      ? 'e2e-user@nadeshiko.co'
+      : `e2e-user-${index}@nadeshiko.co`,
   passwordEnvKey: 'E2E_USER_PASSWORD' as const,
   role: index === 9 ? UserRoleType.ADMIN : UserRoleType.USER,
 }));
@@ -220,4 +233,13 @@ export async function seedE2ETestUsers() {
 
     logger.info({ email: testUser.email }, 'E2E test user ensured');
   }
+}
+
+export async function cleanupE2ETestUsers() {
+  const disposableRunId = e2eRunId();
+  if (!disposableRunId) throw new Error('E2E_RUN_ID is required to remove disposable E2E accounts');
+
+  const emails = Array.from({ length: 11 }, (_, index) => `e2e-${disposableRunId}-${index}@nadeshiko.co`);
+  const result = await User.delete({ email: In(emails) });
+  logger.info({ runId: disposableRunId, removed: result.affected ?? 0 }, 'Removed disposable E2E users');
 }
