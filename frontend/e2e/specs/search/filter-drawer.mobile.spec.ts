@@ -221,7 +221,7 @@ test.describe('Media filter drawer (mobile)', () => {
 
     await openDrawer(page);
     await drawer(page).getByTestId('dropdown-toggle').click();
-    await sortMenu(page).getByRole('button', { name: 'Largest' }).click();
+    await sortMenu(page).getByRole('button', { name: 'Longest' }).click();
 
     await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
     await expect(page).toHaveURL(/sort=desc/, { timeout: 10_000 });
@@ -232,7 +232,7 @@ test.describe('Media filter drawer (mobile)', () => {
     // copy that remounted mid-navigation came back reading "Sort sentences"
     // with no sort named -- while sorted results sat underneath it.
     await openDrawer(page);
-    await expect(drawer(page).getByTestId('sort-active-label')).toHaveText('(Largest)');
+    await expect(drawer(page).getByTestId('sort-active-label')).toHaveText('(Longest)');
   });
 
   test('a search that matched no titles offers no filter drawer', async ({ page }) => {

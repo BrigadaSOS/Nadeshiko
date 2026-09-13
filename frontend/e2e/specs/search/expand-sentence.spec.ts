@@ -154,7 +154,7 @@ test.describe('Expand sentence', () => {
     const jaText = card.getByTestId('segment-japanese-text');
     const original = (await jaText.innerText()).trim();
 
-    await expand(card, 'Expand (right)');
+    await expand(card, 'expand-next-action');
     await expect.poll(async () => (await jaText.innerText()).trim() !== original, { timeout: 10_000 }).toBe(true);
 
     const menu = await openMenu(card);
@@ -195,7 +195,7 @@ test.describe('Expand sentence', () => {
     const [firstPlayed] = await playedSources(page);
     expect(firstPlayed).not.toMatch(/^blob:/);
 
-    await expand(card, 'Expand (right)');
+    await expand(card, 'expand-next-action');
 
     // Wait for the audio to actually exist.
     //
