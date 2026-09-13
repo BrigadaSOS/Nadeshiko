@@ -999,13 +999,6 @@
     "expandAudioFailedStreamed": "文字已扩展，但无法生成对应音频。导出到 Anki 时将使用原始片段。",
     "expanding": "正在扩展…",
     "playAudio": "播放音频",
-    "pitchContourToggle": "显示音高曲线",
-    "pitchContourTitle": "音频音高曲线",
-    "pitchContourLabel": "根据此例句音频估算的音高曲线",
-    "pitchContourHz": "{min}–{max} Hz",
-    "pitchContourLoading": "正在分析音频…",
-    "pitchContourUnavailable": "无法生成此片段的音高曲线，仍可正常播放音频。",
-    "pitchContourDisclaimer": "根据音频估算，无声带振动或噪声较多的部分可能被省略。",
     "loading": "加载中",
     "noResultsSupport": "没有找到想要的内容？欢迎到我们的{link}建议下一批收录的作品。"
   },

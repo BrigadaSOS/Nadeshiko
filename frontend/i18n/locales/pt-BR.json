@@ -999,13 +999,6 @@
     "expandAudioFailedStreamed": "O texto foi ampliado, mas não foi possível gerar o áudio correspondente. A exportação para o Anki usará o trecho original.",
     "expanding": "Ampliando trecho…",
     "playAudio": "Reproduzir áudio",
-    "pitchContourToggle": "Mostrar curva de altura tonal",
-    "pitchContourTitle": "Curva de altura tonal do áudio",
-    "pitchContourLabel": "Curva estimada da altura tonal no áudio desta frase",
-    "pitchContourHz": "{min}–{max} Hz",
-    "pitchContourLoading": "Analisando áudio…",
-    "pitchContourUnavailable": "Não foi possível gerar a curva de altura tonal deste trecho. O áudio continua disponível para reprodução.",
-    "pitchContourDisclaimer": "Estimativa baseada no áudio. Partes sem voz ou com muito ruído podem ser omitidas.",
     "loading": "Carregando",
     "noResultsSupport": "Não encontrou o que procurava? Sugira o próximo conteúdo no nosso {link}."
   },
