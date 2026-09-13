@@ -39,7 +39,7 @@ const { data, error } = await useAsyncData(
   () => `content-${locale.value}-${route.path}`,
   () =>
     $fetch<MarkdownPagePayload>(`/api/_site/page/${slug.value}`, {
-      query: { locale: locale.value.toLowerCase() },
+      query: { locale: locale.value },
     }).catch((fetchError: { statusCode?: number; status?: number }) => {
       // A missing page is a genuine 404; anything else is our content route failing
       // and must not be dressed up as "this page does not exist".

@@ -1,6 +1,6 @@
 import '@config/boot';
 import { AppDataSource } from '@config/database';
-import { seed, seedE2ETestUsers } from '@db/seeds';
+import { cleanupE2ETestUsers, seed, seedE2ETestUsers } from '@db/seeds';
 import { bootstrapPostgresWithOptions } from './dbBootstrap';
 import { ensureDestructiveAllowed } from './destructiveGuard';
 import { reportFatalError } from './reportFatal';
@@ -147,9 +147,8 @@ async function prepare(): Promise<void> {
   }
   await setupPgBoss();
 
-  // Deploys do not run the full seed task. Keep the fixed E2E account pool in
-  // sync here so a frontend test change can safely raise Playwright's worker
-  // count as soon as the matching backend revision reaches the environment.
+  // Deploys do not run the full seed task. A normal deploy maintains the fixed
+  // smoke account; staging E2E passes E2E_RUN_ID to create a disposable pool.
   await seedE2ETestUsers();
 
   if (config.ELASTICSEARCH_ADMIN_PASSWORD) {
@@ -172,6 +171,7 @@ Commands:
   setup     Reset target database tables + ES role/user/index + migrate + seed (destructive)
   reset     Alias for setup (destructive)
   prepare   Non-destructive deploy task: migrate if needed + infrastructure checks
+  cleanup-e2e  Remove only the account pool named by E2E_RUN_ID
   prepare-es  Create the Elasticsearch app role/user and initialize its alias only
   drop      Drop all tables (destructive!)
   status    Show if there are pending migrations (--require-current exits non-zero)
@@ -224,6 +224,10 @@ async function main(): Promise<void> {
         break;
       case 'prepare-es':
         await setupElasticsearchUserAndRole();
+        break;
+      case 'cleanup-e2e':
+        await AppDataSource.initialize();
+        await cleanupE2ETestUsers();
         break;
       case 'drop':
         ensureDestructiveAllowed('db:drop', commandArgs);

@@ -450,7 +450,7 @@ jobs:
       - name: Run E2E smoke tests
         run: |
           cd frontend
-          npx playwright test --config=e2e/playwright.config.ts
+          bash scripts/run-e2e.sh prod
         env:
           E2E_BASE_URL: https://nadeshiko.co
           E2E_EXPECTED_SHA: ${{ github.sha }}
