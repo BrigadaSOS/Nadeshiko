@@ -154,9 +154,15 @@ export default defineNitroPlugin((nitroApp) => {
    * `uncaughtException` and `unhandledRejection` through this same hook -- and
    * those always matter, because the whole render process is now suspect.
    */
-  const shouldCapture = (event: any, statusCode: number): boolean => {
+  const shouldCapture = (event: any, statusCode: number, url: string): boolean => {
     if (!event) return true;
     if (statusCode < 500) return false;
+    // A word lookup is optional enrichment and its client handles this exact
+    // response by keeping the token usable and showing "temporarily
+    // unavailable". Keep it in the exception metric and server logs so an
+    // upstream outage remains observable, but do not manufacture a PostHog
+    // error-tracking issue for a failure the product recovered from.
+    if (statusCode === 503 && url.startsWith('/api/shirabe/words/candidates/')) return false;
     return resolveEventTraffic(event).traffic === 'reader';
   };
 
@@ -166,7 +172,7 @@ export default defineNitroPlugin((nitroApp) => {
     details: { fingerprint: string; statusCode: number; method: string; url: string; tags: string[] },
   ): void => {
     if (!posthog || !posthogPublicKey) return;
-    if (!shouldCapture(event, details.statusCode)) return;
+    if (!shouldCapture(event, details.statusCode, details.url)) return;
 
     // Capturing must never be able to break error handling: whatever happens in
     // here, the log line and the counter above have already been emitted.

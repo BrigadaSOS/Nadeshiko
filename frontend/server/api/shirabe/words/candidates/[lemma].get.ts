@@ -39,6 +39,7 @@ import { distinctNameAnswers, withoutNameEntries } from '~~/server/utils/shirabe
  */
 
 const CACHE_SECONDS = 60 * 60 * 24;
+const RETRY_AFTER_SECONDS = 5;
 
 // `locale` resolves the part-of-speech and misc labels into ONE language, and it
 // is the only thing about this response that varies by reader: the definitions
@@ -281,7 +282,15 @@ const handler = defineEventHandler(async (event) => {
     // since a token that resolves to nothing comes back 200. Treat it as a
     // failure, not as an answer about the word.
     logger.warn({ lemma, status, err: error }, 'Shirabe identify failed');
-    throw createError({ statusCode: 502, statusMessage: 'Dictionary lookup failed' });
+    // This route is enrichment for an already-rendered search result. The
+    // browser deliberately keeps the token usable and says the dictionary is
+    // temporarily unavailable, so describe an unavailable dependency rather
+    // than a broken Nadeshiko gateway. `no-store` prevents an intermediary from
+    // turning one upstream outage into a day-long blank card, and Retry-After
+    // lets callers distinguish a transient answer from a missing word.
+    setResponseHeader(event, 'cache-control', 'no-store');
+    setResponseHeader(event, 'retry-after', RETRY_AFTER_SECONDS);
+    throw createError({ statusCode: 503, statusMessage: 'Dictionary temporarily unavailable' });
   }
 });
 
