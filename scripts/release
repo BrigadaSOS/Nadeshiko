@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+channel=${1:-}
+if [[ "$channel" != staging && "$channel" != prod ]]; then
+  echo "usage: scripts/release staging|prod [commit-ish]" >&2
+  exit 2
+fi
+
+sha=${2:-$(jj log -r @ --no-graph -T 'commit_id')}
+jj log -r "$sha" --no-graph -T 'commit_id' >/dev/null
+if [[ "$channel" == staging ]]; then
+  event_type=staging_release
+else
+  event_type=production_release
+fi
+
+repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+gh api --method POST "repos/${repo}/dispatches" -f "event_type=${event_type}" -f "client_payload[release_sha]=${sha}"
+echo "Queued ${channel} release for ${sha}."
