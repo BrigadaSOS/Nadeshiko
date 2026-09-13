@@ -1,5 +1,5 @@
 ---
-title: "Nadeshikoについて"
+title: "このサイトについて"
 description: "Nadeshikoの開発チーム、協力者、使用しているデータをご紹介します。"
 ---
 
