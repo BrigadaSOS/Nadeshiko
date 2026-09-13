@@ -39,19 +39,19 @@ const { formatNumber } = useFormat();
     </div>
 
     <div class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div class="rounded-lg border border-red-400/20 bg-red-500/5 p-4">
+      <div data-testid="activity-stat-searches" class="rounded-lg border border-red-400/20 bg-red-500/5 p-4">
         <p class="text-xs uppercase tracking-wide text-red-300/70">{{ t('accountSettings.activity.metrics.searches') }}</p>
         <p class="mt-2 text-2xl font-semibold text-red-200">{{ formatNumber(stats?.totalSearches ?? 0) }}</p>
       </div>
-      <div class="rounded-lg border border-emerald-400/20 bg-emerald-500/5 p-4">
+      <div data-testid="activity-stat-plays" class="rounded-lg border border-emerald-400/20 bg-emerald-500/5 p-4">
         <p class="text-xs uppercase tracking-wide text-emerald-300/70">{{ t('accountSettings.activity.metrics.plays') }}</p>
         <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ formatNumber(stats?.totalPlays ?? 0) }}</p>
       </div>
-      <div class="rounded-lg border border-blue-400/20 bg-blue-500/5 p-4">
+      <div data-testid="activity-stat-exports" class="rounded-lg border border-blue-400/20 bg-blue-500/5 p-4">
         <p class="text-xs uppercase tracking-wide text-blue-300/70">{{ t('accountSettings.activity.metrics.exports') }}</p>
         <p class="mt-2 text-2xl font-semibold text-blue-200">{{ formatNumber(stats?.totalExports ?? 0) }}</p>
       </div>
-      <div class="rounded-lg border border-purple-400/20 bg-purple-500/5 p-4">
+      <div data-testid="activity-stat-shares" class="rounded-lg border border-purple-400/20 bg-purple-500/5 p-4">
         <p class="text-xs uppercase tracking-wide text-purple-300/70">{{ t('accountSettings.activity.metrics.shares') }}</p>
         <p class="mt-2 text-2xl font-semibold text-purple-200">{{ formatNumber(stats?.totalShares ?? 0) }}</p>
       </div>
