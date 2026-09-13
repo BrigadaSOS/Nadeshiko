@@ -142,6 +142,23 @@ cannot say what the calls were.
 nd-logs query 'http.route:"/v1/search" user.hash:"a1b2c3d4e5f60718"' start=… end=…
 ```
 
+## Search database diagnostics
+
+Production enables `pg_stat_statements`. When search latency or proxy 504s
+spike, capture its accumulated `Media` query statistics before restarting the
+database or application:
+
+```sh
+npm run diagnose:search-db > search-db-diagnostics.json
+```
+
+The command is read-only. It reports calls, mean/max/total execution time,
+shared-block reads and temporary writes for normalized statements touching
+`Media`, plus vacuum/analyze posture for the three metadata tables. Use the
+highest `total_ms` or `max_ms` statement as the input to a parameter-safe
+`EXPLAIN (ANALYZE, BUFFERS)` in staging; do not run an unbounded `EXPLAIN
+ANALYZE` against production during an incident.
+
 **Do not put an unhashed user id, an email, or a username on the request line.**
 An access log is a much wider dataset than the database — shipped off-box,
 retained on its own schedule, read by anyone debugging anything — and a hash of
@@ -154,3 +171,21 @@ lookup table anyone can build in a second, so the choice is a salted field or
 none. Rotating the salt invalidates every prior join — that is the intended
 lever for retiring the ability to ask about older lines, and it leaves those
 lines fine for aggregate questions.
+
+## Rate-limit operator triage
+
+`http.server.rate_limited` is exported with `scope`, `source`, and `client_ip`.
+The last label is the exact limiter key (IPv6 addresses are grouped to the
+configured `/56`), so an operator can identify the noisy bucket without
+joining against logs:
+
+```promql
+sum by (client_ip, scope) (
+  increase(http_server_rate_limited_total{deployment_environment="production"}[5m])
+)
+```
+
+This is an operator-only view. `client_ip` is real client data and must not be
+shown in public dashboards, user-facing URLs, or embedded in alert messages
+that leave the monitoring system. The existing aggregate rate-limit alerts
+continue to sum across this additional label.

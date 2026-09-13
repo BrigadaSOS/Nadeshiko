@@ -3,7 +3,7 @@ import { type Server } from 'node:http';
 import { type Application } from 'express';
 import { request } from '../helpers/http';
 import type { Response as SupertestResponse } from 'supertest';
-import { authRateLimit, isPrivateAddress } from '@app/middleware/rateLimit';
+import { authRateLimit, isPrivateAddress, resolveClientIp } from '@app/middleware/rateLimit';
 import { setCachedApiKey } from '@app/middleware/authCacheStore';
 import { buildApplication } from '@config/application';
 import { config } from '@config/config';
@@ -342,5 +342,16 @@ describe('isPrivateAddress', () => {
     for (const ip of ['8.8.8.8', '203.0.113.7', '172.32.0.1', '172.15.0.1', undefined]) {
       expect(isPrivateAddress(ip)).toBe(false);
     }
+  });
+});
+
+describe('rate-limit client identity', () => {
+  it('uses the Cloudflare visitor address rather than the rotating edge', () => {
+    const req = {
+      get: (name: string) => (name.toLowerCase() === 'cf-connecting-ip' ? '2001:db8:abcd:1200::1' : undefined),
+      ip: '172.68.23.139',
+    } as any;
+
+    expect(resolveClientIp(req)).toBe('2001:db8:abcd:1200::1');
   });
 });
