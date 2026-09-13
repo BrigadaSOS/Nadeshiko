@@ -530,7 +530,7 @@ jobs:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
 
-      - name: Roll back frontend
+      - name: Redeploy previous frontend image
         env:
           PREVIOUS_VERSION: ${{ needs.release-frontend.outputs.previous-version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -538,7 +538,13 @@ jobs:
           set -euo pipefail
           test -n "$PREVIOUS_VERSION"
           cd frontend
-          VERSION="$PREVIOUS_VERSION" kamal rollback "$PREVIOUS_VERSION" -d prod
+          # `kamal rollback` only works while the old container is still
+          # retained on the host. A failed smoke test can happen after Kamal
+          # has already pruned that container, which previously left the new
+          # frontend serving while the backend rolled back. Redeploy the
+          # immutable previous image instead; it is retained in GHCR for the
+          # exact revision captured before this release.
+          VERSION="$PREVIOUS_VERSION" kamal deploy -d prod --skip-push
 
       - name: Roll back backend
         env:
