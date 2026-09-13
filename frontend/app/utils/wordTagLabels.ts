@@ -32,23 +32,33 @@
 import indonesianLabels from '../../i18n/word-tags/id.json';
 import brazilianPortugueseLabels from '../../i18n/word-tags/pt-BR.json';
 import chineseLabels from '../../i18n/word-tags/zh-CN.json';
+import traditionalChineseLabels from '../../i18n/word-tags/zh-Hant.json';
 
 /** The languages a chip can be written in. Wider than `GlossLanguage`: this is
  *  the interface language, and Nadeshiko ships a Japanese one even though no
  *  dictionary writes definitions in Japanese. */
-export type TagLanguage = 'en' | 'es' | 'ja' | 'zh-CN' | 'id' | 'pt-BR';
+export type TagLanguage = 'en' | 'es' | 'ja' | 'zh-CN' | 'zh-Hant' | 'id' | 'pt-BR';
 
 export function tagLanguage(uiLocale: string): TagLanguage {
   if (uiLocale === 'es') return 'es';
   if (uiLocale === 'ja') return 'ja';
   if (uiLocale === 'zh') return 'zh-CN';
+  if (uiLocale === 'zh-hant') return 'zh-Hant';
   if (uiLocale === 'id') return 'id';
   if (uiLocale === 'pt-BR') return 'pt-BR';
   return 'en';
 }
 
 /** en / es / ja for one Legend slug. `ja` omitted where Shirabe has no term. */
-type LegendLabel = { en: string; es: string; ja?: string; 'zh-CN'?: string; id?: string; 'pt-BR'?: string };
+type LegendLabel = {
+  en: string;
+  es: string;
+  ja?: string;
+  'zh-CN'?: string;
+  'zh-Hant'?: string;
+  id?: string;
+  'pt-BR'?: string;
+};
 
 const LEGEND_LABELS: Record<string, LegendLabel> = {
   // Parts of speech.
@@ -128,6 +138,11 @@ for (const [slug, label] of Object.entries(indonesianLabels)) {
 for (const [slug, label] of Object.entries(chineseLabels)) {
   const entry = LEGEND_LABELS[slug];
   if (entry) entry['zh-CN'] = label;
+}
+
+for (const [slug, label] of Object.entries(traditionalChineseLabels)) {
+  const entry = LEGEND_LABELS[slug];
+  if (entry) entry['zh-Hant'] = label;
 }
 
 for (const [slug, label] of Object.entries(brazilianPortugueseLabels)) {
