@@ -9,6 +9,7 @@ import {
   authIntentStorage,
   consumeAuthIntent,
   firstTouchSetOnce,
+  readFirstTouch,
   readStoredValue,
   rememberFirstTouch,
   removeStoredValue,
@@ -176,9 +177,38 @@ function reconcile(
     // engagement question be broken down by acquisition gate later, without
     // re-deriving it from the event stream every time.
     ...(transition === 'signup_completed'
-      ? mergeSetOnce(acquisitionSetOnce(properties), firstTouchSetOnce(storage))
+      ? {
+          ...signupOriginProperties(readFirstTouch(storage), arrival.pathname),
+          ...mergeSetOnce(acquisitionSetOnce(properties), firstTouchSetOnce(storage)),
+        }
       : {}),
   });
+}
+
+/**
+ * Keeps the signup event's origin separate from the OAuth return page.
+ *
+ * PostHog automatically stamps the current pathname on an event, which is the
+ * callback URL at the moment this event is captured. That is useful for
+ * debugging the auth flow, but it is not the page that acquired the reader.
+ * Override the standard pathname for this attribution event and retain the
+ * callback path under its own name so both questions remain answerable.
+ */
+function signupOriginProperties(
+  firstTouch: ReturnType<typeof readFirstTouch>,
+  callbackPath: string,
+): Record<string, string> {
+  if (!firstTouch) return { auth_callback_path: callbackPath };
+
+  return {
+    $pathname: firstTouch.landing,
+    signup_origin_path: firstTouch.landing,
+    signup_origin_referrer: firstTouch.referrer,
+    auth_callback_path: callbackPath,
+    ...(firstTouch.utmSource ? { signup_origin_utm_source: firstTouch.utmSource } : {}),
+    ...(firstTouch.utmMedium ? { signup_origin_utm_medium: firstTouch.utmMedium } : {}),
+    ...(firstTouch.utmCampaign ? { signup_origin_utm_campaign: firstTouch.utmCampaign } : {}),
+  };
 }
 
 /**

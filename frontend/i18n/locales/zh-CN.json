@@ -77,7 +77,7 @@
     "nadeDbDescription": "搜索动画、日剧和 YouTube 中的百万余条日语例句，查看原声、截图和上下文，轻松进行{sentenceMining}。例句译文目前提供英语和西班牙语，暂不提供中文。",
     "sentenceMiningLabel": "例句采集（Sentence Mining）",
     "nadeDbDescriptionJpSearch": "用日语搜索",
-    "nadeDbDescriptionOtherSearch": "用英语或西班牙语搜索译文",
+    "nadeDbDescriptionOtherSearch": "用英语搜索译文",
     "nadeDbDescriptionExclusiveSearch": "排除指定词语",
     "nadeDbDescriptionExactSearch": "精确搜索",
     "keyFeatures": {

@@ -56,6 +56,7 @@ import {
   ANALYTICS_IDENTITY_KEY,
   ANALYTICS_SESSION_KEY,
   ANALYTICS_SESSION_STARTED_KEY,
+  FIRST_TOUCH_KEY,
 } from '~/utils/authAnalytics';
 
 /** Re-imports, because a "reported this page load" guard lives at module scope. */
@@ -65,10 +66,10 @@ async function loadComposable() {
 }
 
 /** Puts the browser on a page, which is where the arrival details are read from. */
-function arriveAt({ search = '', referrer = '' } = {}) {
+function arriveAt({ search = '', referrer = '', pathname = '/en' } = {}) {
   vi.stubGlobal('document', { referrer });
   vi.stubGlobal('window', {
-    location: { search, pathname: '/en', hostname: 'nadeshiko.co', href: `https://nadeshiko.co/en${search}` },
+    location: { search, pathname, hostname: 'nadeshiko.co', href: `https://nadeshiko.co${pathname}${search}` },
     localStorage,
   });
 }
@@ -149,6 +150,33 @@ describe('a signed-in reader', () => {
     (await loadComposable())({ viaCallback: true });
 
     expect(captured()).toContain('signup_completed');
+  });
+
+  test('labels signup origin with the pre-auth visit, not the OAuth callback', async () => {
+    localStorage.setItem(
+      FIRST_TOUCH_KEY,
+      JSON.stringify({
+        referrer: 'www.google.com',
+        landing: '/pt-BR/search/juventud',
+        utmSource: 'google',
+        utmMedium: 'organic',
+        at: Date.now(),
+      }),
+    );
+    arriveAt({ pathname: '/pt-BR/auth/callback', referrer: 'https://accounts.google.com/' });
+    signedIn({ userCreatedAt: new Date().toISOString() });
+
+    (await loadComposable())({ viaCallback: true });
+
+    const [, properties] = posthog.capture.mock.calls.find(([name]) => name === 'signup_completed')!;
+    expect(properties).toMatchObject({
+      $pathname: '/pt-BR/search/juventud',
+      signup_origin_path: '/pt-BR/search/juventud',
+      signup_origin_referrer: 'www.google.com',
+      signup_origin_utm_source: 'google',
+      signup_origin_utm_medium: 'organic',
+      auth_callback_path: '/pt-BR/auth/callback',
+    });
   });
 
   test('remembers who it reported, so the next load is quiet', async () => {

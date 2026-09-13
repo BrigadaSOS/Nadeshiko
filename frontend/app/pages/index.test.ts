@@ -6,10 +6,9 @@ import { defineComponent, ref } from 'vue';
 /**
  * The home page.
  *
- * The example searches are language-aware on purpose: showing an English and a
- * Spanish example to a reader already on one of those was a hint that the OTHER
- * language is searchable, which nobody needs on the page they landed on in their
- * own. Japanese is not one of the two, so its copy still offers both.
+ * The example searches mirror the translation-language defaults: English and
+ * Spanish readers see their own language, Portuguese readers see both, and
+ * other locales see English.
  *
  * The Discord install link is the only step of that funnel on our side, and
  * `autocapture` is off -- so without an explicit event, a visitor who clicked and
@@ -106,12 +105,20 @@ describe('the example searches', () => {
     expect(wrapper.text()).not.toContain('School');
   });
 
-  test('but a Japanese reader gets both, being on neither', async () => {
-    locale.value = 'ja';
+  test('but a Portuguese reader gets both', async () => {
+    locale.value = 'pt-BR';
     const wrapper = await render();
 
     expect(wrapper.text()).toContain('School');
     expect(wrapper.text()).toContain('Escuela');
+  });
+
+  test('and a Chinese reader gets only the English one', async () => {
+    locale.value = 'zh';
+    const wrapper = await render();
+
+    expect(wrapper.text()).toContain('School');
+    expect(wrapper.text()).not.toContain('Escuela');
   });
 });
 
