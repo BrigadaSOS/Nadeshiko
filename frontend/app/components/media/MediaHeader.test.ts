@@ -2,6 +2,10 @@
 import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
+import { createI18n } from 'vue-i18n';
+import en from '../../../i18n/locales/en.json';
+import es from '../../../i18n/locales/es.json';
+import ja from '../../../i18n/locales/ja.json';
 
 import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/utils/media';
 
@@ -20,7 +24,11 @@ import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/uti
 const startsOpen = ref(true);
 const language = ref<'ENGLISH' | 'JAPANESE' | 'ROMAJI'>('ENGLISH');
 
-vi.stubGlobal('useI18n', () => ({ t: (key: string) => key }));
+const metadataI18n = createI18n({ legacy: false, locale: 'en', messages: { en, es, ja } });
+vi.stubGlobal('useI18n', () => ({
+  t: (key: string, values: Record<string, string | number> = {}) =>
+    key.startsWith('mediaMetadata.') ? metadataI18n.global.t(key, values) : key,
+}));
 vi.stubGlobal('useFormat', () => ({ formatNumber: (n: number) => String(n) }));
 vi.stubGlobal('useMediaCardDefault', () => ({ startsOpen }));
 vi.stubGlobal('useMediaName', () => ({
@@ -64,6 +72,7 @@ function render(over: Record<string, unknown> = {}, props: Record<string, unknow
 }
 
 beforeEach(() => {
+  metadataI18n.global.locale.value = 'en';
   startsOpen.value = true;
   language.value = 'ENGLISH';
 });
@@ -140,6 +149,23 @@ describe('the season line', () => {
     expect(render({ seasonName: 'Fall' }).text()).toContain('Fall');
   });
 
+  test('renders Japanese metadata and year order when the locale changes', async () => {
+    const wrapper = render({ seasonName: 'FALL', seasonYear: 2022, airingStatus: 'FINISHED' });
+    expect(wrapper.text()).toContain('Fall 2022');
+
+    metadataI18n.global.locale.value = 'ja';
+    await nextTick();
+
+    expect(wrapper.text()).toContain('2022年秋');
+    expect(wrapper.text()).toContain('放送・配信終了');
+    expect(wrapper.text()).not.toContain('FINISHED');
+  });
+
+  test('treats NONE as an absent season while retaining the year', () => {
+    expect(render({ seasonName: 'NONE', seasonYear: 2022 }).text()).toContain('2022');
+    expect(render({ seasonName: 'NONE' }).text()).not.toContain('modalMediaEdit.seasonName');
+  });
+
   test('says nothing at all when the payload has neither', () => {
     expect(render().text()).not.toContain('modalMediaEdit.seasonName');
   });
@@ -150,7 +176,7 @@ describe('the facts row', () => {
     const wrapper = render({ studio: 'CloverWorks', airingStatus: 'FINISHED' });
 
     expect(wrapper.text()).toContain('CloverWorks');
-    expect(wrapper.text()).toContain('FINISHED');
+    expect(wrapper.text()).toContain('Finished');
     // No studio label for a work with no studio.
     expect(render().text()).not.toContain('modalMediaEdit.studio');
   });

@@ -32,6 +32,7 @@
     }
   },
   "player": {
+    "nowPlaying": "Now playing",
     "controls": {
       "rewind": "Rewind",
       "forward": "Forward",
@@ -50,6 +51,8 @@
     }
   },
   "common": {
+    "loading": "Loading…",
+    "example": "e.g. {value}",
     "cancel": "Cancel",
     "search": "Search",
     "clearSearch": "Clear search",
@@ -69,11 +72,12 @@
     "defaultDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining."
   },
   "home": {
+    "supportOnPatreon": "Support us on Patreon",
     "version": "v{version}",
-    "nadeDbDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining.",
+    "nadeDbDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for {sentenceMining}.",
     "nadeDbDescriptionJpSearch": "Search in Japanese",
     "nadeDbDescriptionOtherSearch": "Search in English",
-    "nadeDbDescriptionExclusiveSearch": "Exclusive search",
+    "nadeDbDescriptionExclusiveSearch": "Exclude words",
     "nadeDbDescriptionExactSearch": "Exact search",
     "keyFeatures": {
       "feature1": {
@@ -110,9 +114,9 @@
   },
   "batchSearch": {
     "title": "Simultaneous Search",
-    "description1": "This feature can be used to search multiple words at once. A list will be returned with the words that have been found in the database, and a link to that specific search",
-    "description2": "To start, add some words on the box below",
-    "description3": "Add one word per line, or a coma separated list of words",
+    "description1": "Search multiple words at once to see how many sentences match each word. Follow the result links to view their examples.",
+    "description2": "To start, enter words in the box below.",
+    "description3": "Enter one word per line, or separate words with commas.",
     "description4": "You can only search up to ",
     "description5": "500 words at once",
     "totalWords": "Total words",
@@ -121,7 +125,7 @@
     "results": {
       "title": "Simultaneous Search - Results",
       "words": "Searched words",
-      "wordsWithMatch": "Words with match",
+      "wordsWithMatch": "Words with matches",
       "percentageMatched": "Percentage matched",
       "wordColumn": "word",
       "match": "Match?",
@@ -186,7 +190,7 @@
       "errorTip": "Verify the key field is defined in Nadeshiko settings"
     },
     "toast": {
-      "noSettings": "No settings found. Please go to settings page and configure the extension.",
+      "noSettings": "Set up Anki in your Nadeshiko settings to use this feature.",
       "miningCard": "Mining the card...",
       "noCardToExport": "No Anki card to export to. Please add a card first.",
       "cardFoundInOtherDeck": "Card found but not in deck \"{deck}\". Check that Yomitan and Nadeshiko are using the same deck.",
@@ -315,7 +319,7 @@
     "main": {
       "translationPreferences": {
         "combinedMenuButton": "Translation and furigana display",
-        "englishMenu": "English",
+        "englishMenu": "English translations",
         "spanishMenu": "Spanish translations",
         "furiganaMenu": "Furigana (Reading)",
         "languageSettingsHint": "Choose which translation languages are available in Account Settings.",
@@ -323,10 +327,10 @@
         "modeSpoiler": "On hover",
         "modeHidden": "Hidden",
         "englishShown": "English translations shown",
-        "englishSpoiler": "English translations in spoiler mode",
+        "englishSpoiler": "English translations shown on hover",
         "englishHidden": "English translations hidden",
         "spanishShown": "Spanish translations shown",
-        "spanishSpoiler": "Spanish translations in spoiler mode",
+        "spanishSpoiler": "Spanish translations shown on hover",
         "spanishHidden": "Spanish translations hidden",
         "furiganaShown": "Furigana (Reading) shown",
         "furiganaSpoiler": "Furigana (Reading) shown on hover",
@@ -360,9 +364,9 @@
         "context": "Context",
         "share": "Share",
         "more": "More",
-        "expandLeft": "Expand (left)",
-        "expandBoth": "Expand (both)",
-        "expandRight": "Expand (right)",
+        "expandLeft": "Include previous subtitle",
+        "expandBoth": "Include previous and next subtitles",
+        "expandRight": "Include next subtitle",
         "hideMedia": "Hide",
         "unhideMedia": "Unhide",
         "favoriteMedia": "Favorite",
@@ -375,9 +379,9 @@
         "sortmain": "Sort sentences",
         "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
-        "sortlengthmax": "Largest",
+        "sortlengthmax": "Longest",
         "sortasc": "Shortest",
-        "sortdesc": "Largest",
+        "sortdesc": "Longest",
         "sorttime_asc": "Chronological",
         "sorttime_desc": "Reverse",
         "sortrandom": "Random",
@@ -437,6 +441,12 @@
       "announcement": "Announcement"
     },
     "dashboard": {
+      "roles": {
+        "ADMIN": "Administrator",
+        "MOD": "Moderator",
+        "USER": "User",
+        "PATREON": "Patreon supporter"
+      },
       "title": "Users",
       "searchPlaceholder": "Search by email...",
       "count": "{count} users",
@@ -524,7 +534,7 @@
         "SHARE": "Share"
       },
       "metrics": {
-        "searches": "Sentences Searched",
+        "searches": "Searches",
         "plays": "Audio Played",
         "exports": "Anki Exports",
         "shares": "Links Shared"
@@ -569,7 +579,7 @@
       "privacy": {
         "title": "Privacy",
         "trackingTitle": "Activity Tracking",
-        "trackingDescription": "Track searches, exports, and listening history. Your recent searches are what the search bar offers back to you.",
+        "trackingDescription": "Record searches, audio plays, Anki exports, and shared links. Your recent searches appear in the search bar.",
         "clearHistoryTitle": "Clear History",
         "clearHistoryDescription": "Permanently delete all activity data from your account.",
         "clearHistoryButton": "Clear History",
@@ -588,7 +598,7 @@
     },
     "developer": {
       "apiUsageTitle": "API Usage",
-      "apiUsageRemaining": "Remaining requests: {used} / {limit}",
+      "apiUsageRemaining": "Requests used: {used} / {limit}",
       "quotaResets": "Resets on {date}",
       "quotaTier": "{tier} plan",
       "burstLimit": "Separately, each key is limited to {max} requests per minute.",
@@ -662,9 +672,9 @@
         "JAPANESE": "Japanese",
         "ROMAJI": "Romaji"
       },
-      "translationLanguages": "Dictionary Languages",
-      "translationLanguagesDescription": "Choose the translation languages you want in dictionary content. When both are selected, this also sets their display order.",
-      "translationLanguagesLinkedDescription": "Dictionary definitions now follow your Shirabe stack. This still sets the sentence translations you see, and their order.",
+      "translationLanguages": "Translation languages",
+      "translationLanguagesDescription": "Choose the languages for subtitle translations and dictionary definitions. If you select both, you can also choose their display order.",
+      "translationLanguagesLinkedDescription": "Choose the languages and display order for subtitle translations. Dictionary definitions follow your Shirabe settings.",
       "definitionSize": "Definition text size",
       "definitionSizeDescription": "How large the word popup prints its definitions.",
       "definitionSizeOptions": {
@@ -849,19 +859,19 @@
       "loadingMessage": "Please wait while connecting",
       "connectionSuccess": "Connection established",
       "successMessage": "Connection with Anki has been successfully established",
-      "fieldLoadError": "Error loading model field names:",
+      "fieldLoadError": "Could not load note type fields:",
       "troubleshootingTips": {
-        "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
+        "ankiRunning": "Make sure Anki is running and the AnkiConnect add-on is installed",
         "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
         "adBlock": "Disable any AdBlock extensions for this domain"
       },
       "ankiConfig": "Anki Configuration",
       "deckLabel": "Deck",
       "selectDeck": "Select a deck",
-      "modelLabel": "Model",
-      "selectModel": "Select a model",
+      "modelLabel": "Note type",
+      "selectModel": "Select a note type",
       "keyFieldLabel": "Key field",
-      "selectKeyField": "Select the field that corresponds to your deck ID",
+      "selectKeyField": "Select the field used to look up notes",
       "keyFieldRequiredTitle": "No key field set",
       "keyFieldRequiredMessage": "Adding to your last added card works without one. Set a Key Field to mine words from a word card, and to choose a note by searching your collection.",
       "fieldColumn": "Field",
@@ -986,6 +996,13 @@
     "expandAudioFailedStreamed": "Expanded the text, but the audio could not be built. The Anki export will use the original clip.",
     "expanding": "Expanding…",
     "playAudio": "Play audio",
+    "pitchContourToggle": "Show pitch contour",
+    "pitchContourTitle": "Audio pitch contour",
+    "pitchContourLabel": "Estimated pitch contour for this sentence audio",
+    "pitchContourHz": "{min}–{max} Hz",
+    "pitchContourLoading": "Analyzing audio…",
+    "pitchContourUnavailable": "A pitch contour could not be generated for this clip. Audio playback is still available.",
+    "pitchContourDisclaimer": "Estimated from the audio; unvoiced or noisy sections may be omitted.",
     "loading": "Loading",
     "noResultsSupport": "Looking for something we don't have yet? Suggest what we add next on our {link}"
   },
@@ -1164,6 +1181,9 @@
     }
   },
   "modalauth": {
+    "signingIn": "Signing in",
+    "completingSignIn": "Completing sign-in…",
+    "verifyingEmail": "Verifying your email…",
     "headers": {
       "auth": "Authentication"
     },
@@ -1229,12 +1249,12 @@
       "description": "See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list."
     },
     "statsWords": {
-      "title": "{tier} Japanese Words Coverage",
-      "description": "See which of the {tier} most common Japanese words are covered by Nadeshiko's sentence corpus."
+      "title": "Japanese word coverage: frequency ranks {tier}",
+      "description": "See which Japanese words in frequency ranks {tier} have example sentences in Nadeshiko."
     },
     "media": {
       "title": "Browse Media",
-      "description": "Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search their Japanese subtitles sentence by sentence, with audio and translations.",
+      "description": "Browse anime, J-dramas, and YouTube videos available on Nadeshiko. Search their Japanese subtitles sentence by sentence, with audio and translations.",
       "pageTitle": "{media}: Japanese subtitles and example sentences"
     },
     "blog": {
@@ -1294,7 +1314,7 @@
       "title": "Translation Availability",
       "description": "Every sentence has Japanese subtitles. We aim to include English and Spanish translations for all content. Some sources lack reliable Spanish subtitles, so coverage may be lower for that language.",
       "translated": "{percent} translated",
-      "official": "Official {percent}",
+      "official": "Human-translated {percent}",
       "machine": "DeepL {percent}",
       "none": "None {percent}",
       "languages": {
@@ -1432,5 +1452,40 @@
   "mediaPage": {
     "resultsFailed": "We could not load the sentences for this title.",
     "resultsRetry": "Try again"
+  },
+  "impersonation": {
+    "active": "Impersonating {name}",
+    "exit": "Exit impersonation"
+  },
+  "mediaMetadata": {
+    "screenshot": "Screenshot from {media}",
+    "screenshotFallback": "Sentence screenshot",
+    "seasonWithYear": "{season} {year}",
+    "seasons": {
+      "WINTER": "Winter",
+      "SPRING": "Spring",
+      "SUMMER": "Summer",
+      "FALL": "Fall",
+      "NONE": "Not set"
+    },
+    "statuses": {
+      "FINISHED": "Finished",
+      "RELEASING": "Releasing",
+      "NOT_YET_RELEASED": "Not yet released",
+      "CANCELLED": "Cancelled"
+    },
+    "formats": {
+      "TV": "TV",
+      "MOVIE": "Movie",
+      "OVA": "OVA",
+      "ONA": "ONA",
+      "SPECIAL": "Special",
+      "YOUTUBE": "YouTube"
+    },
+    "categories": {
+      "ANIME": "Anime",
+      "JDRAMA": "Live action",
+      "YOUTUBE": "YouTube"
+    }
   }
 }
