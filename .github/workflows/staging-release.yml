@@ -1,9 +1,8 @@
 name: "[Stg] Release"
 
 on:
-  push:
-    branches:
-      - main
+  repository_dispatch:
+    types: [staging_release]
   workflow_dispatch:
     inputs:
       force_backend:
@@ -24,6 +23,7 @@ permissions:
 
 env:
   NODE_VERSION: '24'
+  RELEASE_SHA: ${{ github.event.client_payload.release_sha || github.sha }}
 
 # Keep the deployed staging revision stable until its E2E suite finishes. Job-
 # level deploy locks alone release as soon as Kamal finishes, which allowed the
@@ -43,6 +43,8 @@ jobs:
       elasticsearch: ${{ steps.filter.outputs.elasticsearch }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       # A normal push diff only covers the immediately preceding commit. If
       # that commit's release failed before deploy, its component changes would
@@ -132,6 +134,7 @@ jobs:
   checks:
     uses: ./.github/workflows/checks.yml
     with:
+      ref: ${{ github.event.client_payload.release_sha || github.sha }}
       # The release build below exercises the same Dockerfile and gates deploy.
       # Avoid building it twice in one staging pipeline.
       backend_image: false
@@ -142,13 +145,15 @@ jobs:
   build-backend:
     needs: changes
     if: >-
-      (github.event_name == 'push' &&
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
-      inputs.force_backend == true
+      inputs.force_backend == true)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -168,7 +173,7 @@ jobs:
           push: true
           # Kamal deploys this immutable revision with VERSION=$GITHUB_SHA.
           # Do not advance :latest before checks and staging E2E have passed.
-          tags: ghcr.io/brigadasos/nadeshiko-backend-stg:${{ github.sha }}
+          tags: ghcr.io/brigadasos/nadeshiko-backend-stg:${{ env.RELEASE_SHA }}
           labels: service=nadeshiko-backend-stg
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
@@ -176,13 +181,15 @@ jobs:
   build-frontend:
     needs: changes
     if: >-
-      (github.event_name == 'push' &&
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
-      inputs.force_frontend == true
+      inputs.force_frontend == true)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -200,7 +207,7 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: true
-          tags: ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ github.sha }}
+          tags: ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ env.RELEASE_SHA }}
           labels: service=nadeshiko-frontend-stg
           build-args: NUXT_PUBLIC_ENVIRONMENT=development
           cache-from: type=gha,scope=frontend
@@ -215,7 +222,7 @@ jobs:
       always() &&
       needs.checks.result == 'success' &&
       needs.build-backend.result == 'success' &&
-      ((github.event_name == 'push' &&
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
         (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
        inputs.force_backend == true)
     runs-on: ubuntu-latest
@@ -228,6 +235,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -263,13 +272,13 @@ jobs:
         run: |
           set -euo pipefail
           cd backend
-          VERSION="$GITHUB_SHA" kamal deploy -d staging --skip-push
+          VERSION="$RELEASE_SHA" kamal deploy -d staging --skip-push
 
       - name: Verify backend revision and dependencies
         run: |
           set -euo pipefail
           health=$(curl --fail --silent --show-error https://api-stg.nadeshiko.co/up)
-          test "$(jq -r '.releaseSha' <<<"$health")" = "$GITHUB_SHA"
+          test "$(jq -r '.releaseSha' <<<"$health")" = "$RELEASE_SHA"
           test "$(jq -r '.database' <<<"$health")" = up
           test "$(jq -r '.elasticsearch' <<<"$health")" = up
 
@@ -286,7 +295,7 @@ jobs:
       always() &&
       needs.checks.result == 'success' &&
       needs.build-frontend.result == 'success' &&
-      ((github.event_name == 'push' &&
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
         (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
        inputs.force_frontend == true)
     runs-on: ubuntu-latest
@@ -299,6 +308,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Capture assets from the currently deployed revision
         id: old-assets
@@ -331,13 +342,13 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          VERSION="$GITHUB_SHA" kamal deploy -d staging --skip-push
+          VERSION="$RELEASE_SHA" kamal deploy -d staging --skip-push
 
       - name: Verify frontend revision
         run: |
           set -euo pipefail
           health=$(curl --fail --silent --show-error https://stg.nadeshiko.co/up)
-          test "$(jq -r '.releaseSha' <<<"$health")" = "$GITHUB_SHA"
+          test "$(jq -r '.releaseSha' <<<"$health")" = "$RELEASE_SHA"
 
       # A tab loaded just before the swap still references the previous build's
       # hashed chunks. Keep those URLs alive across the deploy so readers do not
@@ -362,6 +373,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -454,7 +467,7 @@ jobs:
         working-directory: frontend
         env:
           E2E_BASE_URL: https://stg.nadeshiko.co
-          E2E_EXPECTED_SHA: ${{ github.sha }}
+          E2E_EXPECTED_SHA: ${{ env.RELEASE_SHA }}
           E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Enforce E2E skip budget
@@ -488,6 +501,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -511,6 +526,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -535,7 +552,7 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
             -f 'client_payload[release_channel]=internal' \
-            -f "client_payload[backend_sha]=${GITHUB_SHA}"
+            -f "client_payload[backend_sha]=${RELEASE_SHA}"
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
