@@ -4,15 +4,9 @@ import { SearchPage } from '../../pages/SearchPage';
 async function clickFirstMediaFilter(search: SearchPage) {
   const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
   await mediaLink.scrollIntoViewIfNeeded();
+  const urlChange = search.page.waitForURL((url) => url.searchParams.has('media'), { timeout: 15_000 });
   await mediaLink.click({ force: true });
-  await expect
-    .poll(() => {
-      const url = new URL(search.page.url());
-      return url.searchParams.get('media');
-    }, {
-      timeout: 10_000,
-    })
-    .not.toBeNull();
+  await urlChange;
 
   return new URL(search.page.url()).searchParams.get('media')!;
 }
