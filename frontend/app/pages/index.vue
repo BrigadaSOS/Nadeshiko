@@ -73,17 +73,16 @@ const {
   default: () => null,
 });
 
-// The "search in your own language" example only shows the reader's own
-// language: an English reader gets `school`, a Spanish one `escuela`. Naming
-// both was a hint that the OTHER language is also searchable, which nobody needs
-// on the page they landed on in their own. Japanese is not one of the two, so
-// its copy still names both.
+// The example searches mirror the default translation-language setting:
+// English readers get `school`, Spanish readers get `escuela`, Portuguese
+// readers get both, and every other locale gets the English example.
 const otherLanguageExamples = computed(() => {
   const english = { query: 'school', label: 'School' };
   const spanish = { query: 'escuela', label: 'Escuela' };
   if (locale.value === 'en') return [english];
   if (locale.value === 'es') return [spanish];
-  return [english, spanish];
+  if (locale.value === 'pt-BR') return [english, spanish];
+  return [english];
 });
 
 const filteredRecentMedia = computed(() => media.value?.media ?? []);

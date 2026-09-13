@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
 /**
- * Driven from the Japanese locale, and that is load-bearing rather than
+ * Driven from the Portuguese locale, and that is load-bearing rather than
  * incidental.
  *
  * This feature is per-language: half of it is that the EN and ES menus move
@@ -12,16 +12,16 @@ import { SearchPage } from '../../pages/SearchPage';
  * badge to assert, and five of these tests were asserting a two-language page
  * that reader never sees.
  *
- * `ja` is the locale that defaults to both (`defaultTranslationLanguages`), so
+ * `pt-BR` is the locale that defaults to both (`defaultTranslationLanguages`), so
  * it is the one that exercises the whole feature without an account. Every
- * locator here is a test id, so the Japanese interface changes nothing else.
+ * locator here is a test id, so the Portuguese interface changes nothing else.
  */
 test.describe('Translation visibility', () => {
   let search: SearchPage;
 
   test.beforeEach(async ({ page }) => {
     search = new SearchPage(page);
-    await search.goto('彼女', { locale: 'ja' });
+    await search.goto('彼女', { locale: 'pt-BR' });
     await search.expectResultsVisible();
   });
 

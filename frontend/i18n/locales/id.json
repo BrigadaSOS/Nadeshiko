@@ -77,7 +77,7 @@
     "nadeDbDescription": "Cari lebih dari satu juta kalimat bahasa Jepang dari anime, drama Jepang, dan YouTube, lengkap dengan audio dan cuplikan gambar. Terjemahan tersedia dalam bahasa Inggris dan Spanyol. Cocok untuk {sentenceMining}.",
     "sentenceMiningLabel": "mengumpulkan contoh kalimat (sentence mining)",
     "nadeDbDescriptionJpSearch": "Cari dalam bahasa Jepang",
-    "nadeDbDescriptionOtherSearch": "Cari dalam bahasa Inggris atau Spanyol",
+    "nadeDbDescriptionOtherSearch": "Cari dalam bahasa Inggris",
     "nadeDbDescriptionExclusiveSearch": "Kecualikan kata tertentu",
     "nadeDbDescriptionExactSearch": "Cari kecocokan persis",
     "keyFeatures": {
