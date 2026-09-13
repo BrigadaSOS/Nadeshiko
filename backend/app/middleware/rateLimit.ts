@@ -93,7 +93,7 @@ export type RateLimitScope = (typeof RATE_LIMIT_SCOPES)[number];
 const RATE_LIMIT_SOURCES = ['internal', 'external'] as const;
 
 const rateLimitedCount = getMeter().createCounter('http.server.rate_limited', {
-  description: 'Requests rejected by the per-IP rate limiter, by caller class',
+  description: 'Requests rejected by the per-IP rate limiter, by caller class and limiter key',
   unit: '{request}',
 });
 
@@ -183,7 +183,11 @@ function buildHandler(scope: RateLimitScope, detail: string): RequestHandler {
       'Rate limit exceeded',
     );
 
-    rateLimitedCount.add(1, { scope, source });
+    // `client_ip` is the exact limiter key, including the /56 normalization for
+    // IPv6. This is intentionally on the operator-only metric (not a response
+    // header): it makes a burst attributable in one PromQL query while keeping
+    // the aggregate alert contract (`scope` + `source`) unchanged.
+    rateLimitedCount.add(1, { scope, source, client_ip: clientKey(req) });
 
     // express-rate-limit augments the request with timing info for this hit.
     const resetTime = (req as Request & { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime;

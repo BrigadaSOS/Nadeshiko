@@ -136,7 +136,7 @@ export class Media extends BaseEntity {
 
   /**
    * Shared while the map is being built. A cache miss is not one query, it is a `Media.find`
-   * across two relations, and every concurrent search wants the same answer -- without this
+   * with the external-id relation, and every concurrent search wants the same answer -- without this
    * the moment the entry expires is the moment every in-flight request runs that query for
    * itself. The promise is dropped once settled so a failure does not stick.
    */
@@ -155,7 +155,6 @@ export class Media extends BaseEntity {
     Media.inFlightInfoMap = Cache.getOrCompute(MEDIA_INFO_CACHE, 'all', MEDIA_INFO_TTL_MS, async () => {
       const allMedia = await Media.find({
         relations: {
-          episodes: true,
           externalIds: true,
         },
         order: { createdAt: 'DESC' },
