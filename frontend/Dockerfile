@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 # Build from the repository root, not from frontend/: npm workspaces resolve the
 # app's dependencies (including the vendored @brigadasos/nadeshiko-sdk, whose
 # TypeScript sources Nuxt compiles into the bundle) against the root
@@ -59,12 +61,15 @@ ARG NUXT_PUBLIC_ENVIRONMENT
 ARG NITRO_PRESET=node-server
 ENV NUXT_PUBLIC_ENVIRONMENT=${NUXT_PUBLIC_ENVIRONMENT}
 ENV NITRO_PRESET=${NITRO_PRESET}
-# PostHog source map upload: POSTHOG_CLI_API_KEY must be passed as a build arg
-# so @posthog/nuxt can inject and upload source maps during the build.
+# PostHog source map upload: production mounts the API key as a BuildKit secret
+# for this instruction only. It must never be recorded in an ARG, ENV, layer or
+# final image. Staging does not upload source maps, so the mount is optional.
 # POSTHOG_CLI_PROJECT_ID and POSTHOG_CLI_HOST are baked into nuxt.config.ts.
-ARG POSTHOG_CLI_API_KEY
-ENV POSTHOG_CLI_API_KEY=${POSTHOG_CLI_API_KEY}
-RUN npm run build --workspace frontend
+RUN --mount=type=secret,id=posthog_cli_api_key \
+  if [ -f /run/secrets/posthog_cli_api_key ]; then \
+    export POSTHOG_CLI_API_KEY="$(cat /run/secrets/posthog_cli_api_key)"; \
+  fi; \
+  npm run build --workspace frontend
 
 # THE LAST THING THAT TOUCHES .output MUST STILL AGREE WITH ITS HASHES.
 #
