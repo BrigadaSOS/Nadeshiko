@@ -13,6 +13,10 @@ export type RoadmapItem = {
     sourceUrl: string | null;
     coverUrl: string | null;
     targetDate: string | null;
+    /**
+     * Nadeshiko version that introduced this feature.
+     */
+    introducedInVersion: string | null;
     sortOrder: number;
     createdAt: string;
     /**
@@ -2834,6 +2838,7 @@ export type RoadmapItemWrite = {
     sourceUrl?: string | null;
     coverUrl?: string | null;
     targetDate?: string | null;
+    introducedInVersion?: string | null;
     sortOrder?: number;
     proposerName?: string | null;
 };
@@ -7214,6 +7219,7 @@ export type UpdateAdminRoadmapItemData = {
         sourceUrl?: string | null;
         coverUrl?: string | null;
         targetDate?: string | null;
+        introducedInVersion?: string | null;
         sortOrder?: number;
         proposerName?: string | null;
     };
