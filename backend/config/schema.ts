@@ -26,6 +26,8 @@ import {
   SegmentRevision,
   Announcement,
   WordFrequency,
+  PatreonConnection,
+  RoadmapItem,
 } from '@app/models';
 import { SegmentSubscriber } from '@app/subscribers';
 
@@ -50,6 +52,8 @@ export const APP_ENTITIES = [
   SegmentRevision,
   Announcement,
   WordFrequency,
+  PatreonConnection,
+  RoadmapItem,
 ];
 
 export const APP_SUBSCRIBERS = [SegmentSubscriber];

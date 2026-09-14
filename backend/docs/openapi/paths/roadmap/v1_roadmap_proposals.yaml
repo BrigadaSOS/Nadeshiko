@@ -1,0 +1,31 @@
+post:
+  tags: [Roadmap]
+  x-internal: true
+  operationId: createRoadmapProposal
+  summary: Propose content for Nadeshiko
+  description: Creates a private proposal after verifying the signed-in reader's active Nadeshiko Patreon membership.
+  security:
+    - SessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required: [sourceUrl]
+          properties:
+            sourceUrl: { type: string, format: uri, maxLength: 1000 }
+            title: { type: string, minLength: 1, maxLength: 180 }
+            note: { type: string, maxLength: 2000 }
+            proposerName: { type: string, maxLength: 80, description: Optional name to show publicly if the proposal is approved. }
+  responses:
+    "201":
+      description: Submitted for review
+      content:
+        application/json:
+          schema: { $ref: "../../components/schemas/RoadmapItem.yaml" }
+    "400": { $ref: "../../components/responses/BadRequest.yaml" }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "403": { $ref: "../../components/responses/Forbidden.yaml" }
+    "429": { $ref: "../../components/responses/TooManyRequests.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }

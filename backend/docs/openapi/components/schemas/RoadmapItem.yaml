@@ -1,0 +1,16 @@
+type: object
+required: [id, kind, status, title, description, sourceUrl, coverUrl, targetDate, introducedInVersion, sortOrder, createdAt, proposerName]
+properties:
+  id: { type: string, format: uuid }
+  kind: { type: string, enum: [CONTENT, FEATURE] }
+  status: { type: string, enum: [PROPOSED, CONSIDERING, PLANNED, IN_PROGRESS, RELEASED, DECLINED] }
+  title: { type: string, maxLength: 180 }
+  description: { type: string, maxLength: 2000 }
+  sourceUrl: { type: [string, "null"], format: uri }
+  coverUrl: { type: [string, "null"], format: uri }
+  targetDate: { type: [string, "null"], format: date }
+  introducedInVersion: { type: [string, "null"], maxLength: 32, description: Nadeshiko version that introduced this feature. }
+  sortOrder: { type: integer }
+  createdAt: { type: string, format: date-time }
+  proposerName: { type: [string, "null"], maxLength: 80, description: Optional public credit chosen by the proposer or an admin. }
+  requesterUserId: { type: [integer, "null"], description: Present on admin responses only. }

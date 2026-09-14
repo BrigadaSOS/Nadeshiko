@@ -29,6 +29,7 @@ import type {
 	t_AddFavoriteMediaRequestBody,
 	t_AffectedCountResponse,
 	t_ApiKeyScope,
+	t_CompletePatreonLinkRequestBody,
 	t_CompleteShirabeLinkRequestBody,
 	t_CreateReportRequest,
 	t_CreateUserApiKeyRequestBody,
@@ -43,6 +44,7 @@ import type {
 	t_Error500,
 	t_ForgetFamiliarMediaParamSchema,
 	t_MediaSummary,
+	t_PatreonConnection,
 	t_RemoveExcludedMediaParamSchema,
 	t_RemoveFavoriteMediaParamSchema,
 	t_Report,
@@ -54,13 +56,14 @@ import type {
 	t_UserMe,
 	t_UserPreferences,
 } from "../models.ts";
-import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, ReportShirabeRefusalRequestBodyOutput, ResyncShirabeStackRequestBodyOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
+import type { AddExcludedMediaRequestBodyOutput, AddFavoriteMediaRequestBodyOutput, CompletePatreonLinkRequestBodyOutput, CompleteShirabeLinkRequestBodyOutput, CreateReportRequestOutput, CreateUserApiKeyRequestBodyOutput, DeleteUserActivityQueryOutput, ReportShirabeRefusalRequestBodyOutput, ResyncShirabeStackRequestBodyOutput, UserActivityRequestOutput, UserPreferencesOutput } from '../outputTypes.ts';
 import {
 	s_ActivityType,
 	s_AddExcludedMediaRequestBody,
 	s_AddFavoriteMediaRequestBody,
 	s_AffectedCountResponse,
 	s_ApiKeyScope,
+	s_CompletePatreonLinkRequestBody,
 	s_CompleteShirabeLinkRequestBody,
 	s_CreateReportRequest,
 	s_CreateUserApiKeyRequestBody,
@@ -71,6 +74,7 @@ import {
 	s_Error429,
 	s_Error500,
 	s_MediaSummary,
+	s_PatreonConnection,
 	s_Report,
 	s_ReportShirabeRefusalRequestBody,
 	s_ResyncShirabeStackRequestBody,
@@ -236,6 +240,74 @@ export type ReportShirabeRefusalResponder = {
 export type ReportShirabeRefusal = (
 	params: Params<void, void, ReportShirabeRefusalRequestBodyOutput, void>,
 	respond: ReportShirabeRefusalResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type GetPatreonConnectionResponder = {
+	with200(): ExpressRuntimeResponse<{
+		connection: t_PatreonConnection | null;
+		patreonUrl: string;
+	}>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with429(): ExpressRuntimeResponse<t_Error429>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetPatreonConnection = (
+	params: Params<void, void, void, void>,
+	respond: GetPatreonConnectionResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type StartPatreonLinkResponder = {
+	with201(): ExpressRuntimeResponse<{
+		authorizeUrl: string;
+		state: string;
+	}>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type StartPatreonLink = (
+	params: Params<void, void, void, void>,
+	respond: StartPatreonLinkResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UnlinkPatreonResponder = {
+	with204(): ExpressRuntimeResponse<void>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UnlinkPatreon = (
+	params: Params<void, void, void, void>,
+	respond: UnlinkPatreonResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type CompletePatreonLinkResponder = {
+	with200(): ExpressRuntimeResponse<{
+		connection: t_PatreonConnection;
+	}>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CompletePatreonLink = (
+	params: Params<void, void, CompletePatreonLinkRequestBodyOutput, void>,
+	respond: CompletePatreonLinkResponder,
 	req: Request,
 	res: Response,
 	next: NextFunction,
@@ -521,6 +593,10 @@ export type UserImplementation = {
 	getShirabeCredential: GetShirabeCredential;
 	resyncShirabeStack: ResyncShirabeStack;
 	reportShirabeRefusal: ReportShirabeRefusal;
+	getPatreonConnection: GetPatreonConnection;
+	startPatreonLink: StartPatreonLink;
+	unlinkPatreon: UnlinkPatreon;
+	completePatreonLink: CompletePatreonLink;
 	listExcludedMedia: ListExcludedMedia;
 	addExcludedMedia: AddExcludedMedia;
 	removeExcludedMedia: RemoveExcludedMedia;
@@ -1073,6 +1149,224 @@ export function createUserRouter(
 					.reportShirabeRefusal(input, responder, req, res, next)
 					.catch(handleImplementationError)
 					.then(handleResponse(res, reportShirabeRefusalResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const getPatreonConnectionResponseBodyValidator = responseValidationFactory(
+		[
+			[
+				"200",
+				z.object({
+					connection: s_PatreonConnection.nullable(),
+					patreonUrl: z.string(),
+				}),
+			],
+			["401", s_Error401],
+			["429", s_Error429],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// getPatreonConnection
+	router.get(
+		`/v1/user/connections/patreon`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
+
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							connection: t_PatreonConnection | null;
+							patreonUrl: string;
+						}>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with429() {
+						return new ExpressRuntimeResponse<t_Error429>(429);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.getPatreonConnection(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, getPatreonConnectionResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const startPatreonLinkResponseBodyValidator = responseValidationFactory(
+		[
+			["201", z.object({ authorizeUrl: z.string(), state: z.string() })],
+			["400", s_Error400],
+			["401", s_Error401],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// startPatreonLink
+	router.post(
+		`/v1/user/connections/patreon`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
+
+				const responder = {
+					with201() {
+						return new ExpressRuntimeResponse<{
+							authorizeUrl: string;
+							state: string;
+						}>(201);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.startPatreonLink(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, startPatreonLinkResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const unlinkPatreonResponseBodyValidator = responseValidationFactory(
+		[
+			["204", z.undefined()],
+			["401", s_Error401],
+			["404", s_Error404],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// unlinkPatreon
+	router.delete(
+		`/v1/user/connections/patreon`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
+
+				const responder = {
+					with204() {
+						return new ExpressRuntimeResponse<void>(204);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.unlinkPatreon(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, unlinkPatreonResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const completePatreonLinkResponseBodyValidator = responseValidationFactory(
+		[
+			["200", z.object({ connection: s_PatreonConnection })],
+			["400", s_Error400],
+			["401", s_Error401],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// completePatreonLink
+	router.post(
+		`/v1/user/connections/patreon/callback`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: parseRequestInput(
+						s_CompletePatreonLinkRequestBody,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
+
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							connection: t_PatreonConnection;
+						}>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.completePatreonLink(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, completePatreonLinkResponseBodyValidator));
 			} catch (error) {
 				next(error);
 			}

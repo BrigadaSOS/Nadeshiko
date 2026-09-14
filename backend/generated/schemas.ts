@@ -298,6 +298,16 @@ export const s_MediaSearchStats = z.object({
 	),
 });
 
+export const s_PatreonConnection = z.object({
+	linked: PermissiveBoolean,
+	fullName: z.string().nullable(),
+	active: PermissiveBoolean,
+	patronStatus: z.string().nullable(),
+	entitledAmountCents: z.coerce.number().min(0),
+	membershipCheckedAt: z.iso.datetime({ offset: true }),
+	linkedAt: z.iso.datetime({ offset: true }),
+});
+
 export const s_ReportReason = z.enum([
 	"WRONG_TRANSLATION",
 	"WRONG_TIMING",
@@ -360,6 +370,42 @@ export const s_ReportTargetSegmentInput = z.object({
 });
 
 export const s_ReportTargetType = z.enum(["SEGMENT", "EPISODE", "MEDIA"]);
+
+export const s_RoadmapItem = z.object({
+	id: z.string(),
+	kind: z.enum(["CONTENT", "FEATURE"]),
+	status: z.enum([
+		"PROPOSED",
+		"CONSIDERING",
+		"PLANNED",
+		"IN_PROGRESS",
+		"RELEASED",
+		"DECLINED",
+	]),
+	title: z.string().max(180),
+	description: z.string().max(2000),
+	sourceUrl: z.string().nullable(),
+	coverUrl: z.string().nullable(),
+	targetDate: z.iso.date().nullable(),
+	introducedInVersion: z.string().max(32).nullable(),
+	sortOrder: z.coerce.number(),
+	createdAt: z.iso.datetime({ offset: true }),
+	proposerName: z.string().max(80).nullable(),
+	requesterUserId: z.coerce.number().nullable().optional(),
+});
+
+export const s_RoadmapItemWrite = z.object({
+	kind: z.enum(["CONTENT", "FEATURE"]),
+	status: z.enum(["CONSIDERING", "PLANNED", "IN_PROGRESS", "RELEASED"]),
+	title: z.string().min(1).max(180),
+	description: z.string().max(2000).optional(),
+	sourceUrl: z.string().max(1000).nullable().optional(),
+	coverUrl: z.string().max(1000).nullable().optional(),
+	targetDate: z.iso.date().nullable().optional(),
+	introducedInVersion: z.string().max(32).nullable().optional(),
+	sortOrder: z.coerce.number().optional(),
+	proposerName: z.string().max(80).nullable().optional(),
+});
 
 export const s_SearchMultipleQuery = z.object({
 	words: z.array(z.string().min(1).max(100)).min(1).max(100),
@@ -1129,6 +1175,13 @@ export const s_UserExportResponse = z.object({
 	),
 });
 
+export const s_CreateRoadmapProposalRequestBody = z.object({
+	sourceUrl: z.string().max(1000),
+	title: z.string().min(1).max(180).optional(),
+	note: z.string().max(2000).optional(),
+	proposerName: z.string().max(80).optional(),
+});
+
 export const s_CreateUserApiKeyRequestBody = z.object({
 	name: z.string().min(1).max(100),
 	scopes: z.array(s_ApiKeyScope).min(1).max(12),
@@ -1147,6 +1200,11 @@ export const s_ReportShirabeRefusalRequestBody = z.object({
 	status: z.coerce.number().min(100).max(599),
 });
 
+export const s_CompletePatreonLinkRequestBody = z.object({
+	code: z.string().min(1),
+	state: z.string().min(1),
+});
+
 export const s_AddExcludedMediaRequestBody = z.object({
 	mediaPublicId: z.string().regex(new RegExp("^[A-Za-z0-9_-]{12}$")),
 });
@@ -1161,4 +1219,26 @@ export const s_UpdateEmailPreferencesByTokenRequestBody = z.object({
 	recap: PermissiveBoolean.optional(),
 	checkins: PermissiveBoolean.optional(),
 	updates: PermissiveBoolean.optional(),
+});
+
+export const s_UpdateAdminRoadmapItemRequestBody = z.object({
+	kind: z.enum(["CONTENT", "FEATURE"]).optional(),
+	status: z
+		.enum([
+			"PROPOSED",
+			"CONSIDERING",
+			"PLANNED",
+			"IN_PROGRESS",
+			"RELEASED",
+			"DECLINED",
+		])
+		.optional(),
+	title: z.string().min(1).max(180).optional(),
+	description: z.string().max(2000).optional(),
+	sourceUrl: z.string().max(1000).nullable().optional(),
+	coverUrl: z.string().max(1000).nullable().optional(),
+	targetDate: z.iso.date().nullable().optional(),
+	introducedInVersion: z.string().max(32).nullable().optional(),
+	sortOrder: z.coerce.number().optional(),
+	proposerName: z.string().max(80).nullable().optional(),
 });

@@ -46,13 +46,17 @@ import type {
 	t_ListAdminReportsQuerySchema,
 	t_ListAgentActivityQuerySchema,
 	t_Report,
+	t_RoadmapItem,
+	t_RoadmapItemWrite,
 	t_Tier,
 	t_UpdateAccountQuotaRequest,
 	t_UpdateAdminReportParamSchema,
+	t_UpdateAdminRoadmapItemParamSchema,
+	t_UpdateAdminRoadmapItemRequestBody,
 	t_UpdateAdminUserQuotaParamSchema,
 	t_UpdateReportRequest,
 } from "../models.ts";
-import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminReportsQueryOutput, ListAgentActivityQueryOutput, UpdateAccountQuotaRequestOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
+import type { AnnouncementOutput, BatchUpdateReportsRequestOutput, BulkDeleteReportsRequestOutput, BulkUpdateReportsRequestOutput, GetAdminUsersWithProvidersQueryOutput, ListAdminReportsQueryOutput, ListAgentActivityQueryOutput, RoadmapItemWriteOutput, UpdateAccountQuotaRequestOutput, UpdateAdminRoadmapItemRequestBodyOutput, UpdateReportRequestOutput } from '../outputTypes.ts';
 import {
 	PermissiveBoolean,
 	s_AccountQuotaState,
@@ -73,8 +77,11 @@ import {
 	s_Report,
 	s_ReportSource,
 	s_ReportTargetType,
+	s_RoadmapItem,
+	s_RoadmapItemWrite,
 	s_Tier,
 	s_UpdateAccountQuotaRequest,
+	s_UpdateAdminRoadmapItemRequestBody,
 	s_UpdateReportRequest,
 } from "../schemas.ts";
 
@@ -311,6 +318,61 @@ export type UpdateAdminUserQuota = (
 	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type ListAdminRoadmapResponder = {
+	with200(): ExpressRuntimeResponse<{
+		items: t_RoadmapItem[];
+	}>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type ListAdminRoadmap = (
+	params: Params<void, void, void, void>,
+	respond: ListAdminRoadmapResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type CreateAdminRoadmapItemResponder = {
+	with201(): ExpressRuntimeResponse<t_RoadmapItem>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type CreateAdminRoadmapItem = (
+	params: Params<void, void, RoadmapItemWriteOutput, void>,
+	respond: CreateAdminRoadmapItemResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
+export type UpdateAdminRoadmapItemResponder = {
+	with200(): ExpressRuntimeResponse<t_RoadmapItem>;
+	with400(): ExpressRuntimeResponse<t_Error400>;
+	with401(): ExpressRuntimeResponse<t_Error401>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with404(): ExpressRuntimeResponse<t_Error404>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type UpdateAdminRoadmapItem = (
+	params: Params<
+		t_UpdateAdminRoadmapItemParamSchema,
+		void,
+		UpdateAdminRoadmapItemRequestBodyOutput,
+		void
+	>,
+	respond: UpdateAdminRoadmapItemResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type AdminImplementation = {
 	listAdminReports: ListAdminReports;
 	batchUpdateAdminReports: BatchUpdateAdminReports;
@@ -325,6 +387,9 @@ export type AdminImplementation = {
 	listTiers: ListTiers;
 	getAdminUserQuota: GetAdminUserQuota;
 	updateAdminUserQuota: UpdateAdminUserQuota;
+	listAdminRoadmap: ListAdminRoadmap;
+	createAdminRoadmapItem: CreateAdminRoadmapItem;
+	updateAdminRoadmapItem: UpdateAdminRoadmapItem;
 };
 
 export function createAdminRouter(
@@ -1187,6 +1252,188 @@ export function createAdminRouter(
 					.updateAdminUserQuota(input, responder, req, res, next)
 					.catch(handleImplementationError)
 					.then(handleResponse(res, updateAdminUserQuotaResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const listAdminRoadmapResponseBodyValidator = responseValidationFactory(
+		[
+			["200", z.object({ items: z.array(s_RoadmapItem) })],
+			["401", s_Error401],
+			["403", s_Error403],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// listAdminRoadmap
+	router.get(
+		`/v1/admin/roadmap`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
+
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							items: t_RoadmapItem[];
+						}>(200);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.listAdminRoadmap(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(handleResponse(res, listAdminRoadmapResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const createAdminRoadmapItemResponseBodyValidator = responseValidationFactory(
+		[
+			["201", s_RoadmapItem],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// createAdminRoadmapItem
+	router.post(
+		`/v1/admin/roadmap`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: parseRequestInput(
+						s_RoadmapItemWrite,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
+
+				const responder = {
+					with201() {
+						return new ExpressRuntimeResponse<t_RoadmapItem>(201);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.createAdminRoadmapItem(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, createAdminRoadmapItemResponseBodyValidator),
+					);
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const updateAdminRoadmapItemParamSchema = z.object({ itemId: z.string() });
+
+	const updateAdminRoadmapItemResponseBodyValidator = responseValidationFactory(
+		[
+			["200", s_RoadmapItem],
+			["400", s_Error400],
+			["401", s_Error401],
+			["403", s_Error403],
+			["404", s_Error404],
+			["500", s_Error500],
+		],
+		undefined,
+	);
+
+	// updateAdminRoadmapItem
+	router.patch(
+		`/v1/admin/roadmap/:itemId`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: parseRequestInput(
+						updateAdminRoadmapItemParamSchema,
+						req.params,
+						RequestInputType.RouteParam,
+					),
+					query: undefined,
+					body: parseRequestInput(
+						s_UpdateAdminRoadmapItemRequestBody,
+						req.body,
+						RequestInputType.RequestBody,
+					),
+					headers: undefined,
+				};
+
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<t_RoadmapItem>(200);
+					},
+					with400() {
+						return new ExpressRuntimeResponse<t_Error400>(400);
+					},
+					with401() {
+						return new ExpressRuntimeResponse<t_Error401>(401);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with404() {
+						return new ExpressRuntimeResponse<t_Error404>(404);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.updateAdminRoadmapItem(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(res, updateAdminRoadmapItemResponseBodyValidator),
+					);
 			} catch (error) {
 				next(error);
 			}

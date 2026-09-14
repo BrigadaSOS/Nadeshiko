@@ -1,0 +1,31 @@
+post:
+  tags: [User]
+  x-internal: true
+  operationId: completePatreonLink
+  summary: Complete Patreon OAuth linking
+  description: Exchanges a one-time OAuth code and verifies membership in the configured Nadeshiko campaign.
+  security:
+    - SessionCookie: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required: [code, state]
+          properties:
+            code: { type: string, minLength: 1 }
+            state: { type: string, minLength: 1 }
+  responses:
+    "200":
+      description: Linked
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [connection]
+            properties:
+              connection: { $ref: "../../components/schemas/PatreonConnection.yaml" }
+    "400": { $ref: "../../components/responses/BadRequest.yaml" }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }
