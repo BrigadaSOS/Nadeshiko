@@ -13,7 +13,7 @@ const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 export const LOCALES = new Set(['en', 'es', 'ja', 'zh', 'zh-hant', 'id', 'pt-BR']);
 
 const STATIC_PAGES = new Set([
-  '/', '/blog', '/media', '/roadmap', '/stats', '/stats/words',
+  '/', '/blog', '/changelog', '/media', '/roadmap', '/stats', '/stats/words',
   '/about', '/privacy', '/terms-and-conditions', '/dmca',
   '/search', '/api/v1/docs',
   // The signed-in area. Peeling the locale prefix rescued the public pages but
