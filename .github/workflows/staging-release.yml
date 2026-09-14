@@ -1,6 +1,8 @@
 name: "[Stg] Release"
 
 on:
+  push:
+    branches: [main, production]
   repository_dispatch:
     types: [staging_release]
   workflow_dispatch:
@@ -103,6 +105,7 @@ jobs:
             # both deploy filters so a shared-only change is actually deployed.
             backend:
               - 'backend/**'
+              - 'discord/**'
               - 'packages/**'
               - 'package.json'
               - 'package-lock.json'
@@ -116,6 +119,7 @@ jobs:
               - '.github/workflows/staging-release.yml'
             frontend:
               - 'frontend/**'
+              - 'discord/**'
               - 'packages/**'
               - 'package.json'
               - 'package-lock.json'

@@ -1428,7 +1428,7 @@
     "titleInProgress": "In progress",
     "titleDone": "Done",
     "proposedBy": "Proposed by {name}",
-    "anonymousPatron": "a Patreon member",
+    "patronCommunity": "Nadeshiko patrons",
     "emptyTitles": "No titles are scheduled yet.",
     "emptyFeatures": "No feature milestones yet.",
     "viewSource": "View source",
@@ -1469,6 +1469,48 @@
       "note": "Why this one? (optional)",
       "notePlaceholder": "Tell us what makes it a good fit for Nadeshiko",
       "submit": "Send for review"
+    },
+    "features": {
+      "patreonProposals": {
+        "title": "Patreon title proposals",
+        "description": "Patrons can link their membership, propose a title, and follow approved additions on the public roadmap."
+      },
+      "searchFilters": {
+        "title": "Better search filters",
+        "description": "Search directly by media name, tags, and other focused filters."
+      },
+      "publicRoadmap": {
+        "title": "Public roadmap",
+        "description": "See upcoming and released titles and features together in one place."
+      },
+      "interfaceLanguages": {
+        "title": "Seven interface languages",
+        "description": "Nadeshiko expanded beyond English, Spanish, and Japanese with Portuguese, Indonesian, Simplified Chinese, and Traditional Chinese."
+      },
+      "youtubePlayback": {
+        "title": "YouTube playback in search",
+        "description": "YouTube sentences play directly inside results and continue through playlists without leaving Nadeshiko."
+      },
+      "wordCards": {
+        "title": "Word cards",
+        "description": "Click a word in any sentence for readings, definitions, pitch accent, audio, and frequency badges."
+      },
+      "ownDictionaries": {
+        "title": "Your own dictionaries",
+        "description": "Link Shirabe and Nadeshiko uses your ordered dictionary stack, including monolingual and uploaded dictionaries."
+      },
+      "ankiMining": {
+        "title": "Rich Anki mining",
+        "description": "Create or update notes with the word, sentence, audio, image, furigana, definitions, and pitch accent."
+      },
+      "searchHistory": {
+        "title": "Search history and familiar titles",
+        "description": "Recent searches follow signed-in readers across devices, while favorite and studied titles influence ranking."
+      },
+      "apiKeys": {
+        "title": "Granular API keys",
+        "description": "API keys can be read-only, full access, or restricted to explicitly selected permissions."
+      }
     },
     "callbackDeclined": "The Patreon connection was not approved.",
     "callbackFailed": "That Patreon connection could not be completed.",

@@ -1,15 +1,15 @@
 # Deployment
 
 This repo deploys itself through GitHub Actions. You normally never run
-`kamal` by hand: push code, then explicitly dispatch the commit you want and the right workflow builds the
-image, ships it to the server over Tailscale, and runs the post-deploy checks.
+`kamal` by hand: push code to the appropriate branch and the right workflow
+builds the image, ships it to the server over Tailscale, and runs the post-deploy checks.
 
 There are two environments:
 
 | Environment | URL | Triggered by |
 | --- | --- | --- |
-| Staging (stg) | https://stg.nadeshiko.co | `scripts/release staging <sha>` |
-| Production (prod) | https://nadeshiko.co | `scripts/release prod <sha>` after staging passes |
+| Staging (stg) | https://stg.nadeshiko.co | Push to `main` |
+| Production (prod) | https://nadeshiko.co | Push/merge `main` into `production` after staging passes |
 
 Everything is a single host (`nadeshiko`, reached over Tailscale) running
 [Kamal](https://kamal-deploy.org/) with `kamal-proxy`. Backend, frontend and
@@ -17,12 +17,12 @@ the Discord bot are separate Kamal services on that host.
 
 ## Mental model
 
-- **`main` is the normal integration branch.** Pushing it does not deploy by
-  itself; dispatch the exact commit you want to test.
+- **`main` is the normal integration branch.** Every push deploys that exact
+  commit to staging, followed by the staging E2E suite.
 - **`production` is what prod runs.** A branch that only ever moves forward:
   fast-forwarded from `main` when cutting a release, or committed to directly
-  for a hotfix. Pushing to it deploys nothing on its own; dispatch the staging
-  workflow against the hotfix commit before tagging it.
+  for a hotfix. Pushing a reviewed commit to it starts the production release,
+  after the exact commit has passed staging.
 
   It is not load-bearing between releases. Everything it points at is already
   reachable from `main` (that is the invariant the merge-back preserves), so
@@ -62,6 +62,7 @@ relevant work:
 | --- | --- |
 | `backend/**` | Build + deploy backend to stg (`kamal deploy -d staging`) |
 | `frontend/**` | Build + deploy frontend to stg |
+| `discord/**` | Redeploy both web apps so the bot commit receives exact-SHA staging E2E evidence |
 | `backend/docs/openapi/**` | Dispatch a **Python** SDK rebuild (the TS SDK is in-repo) |
 
 After the backend and/or frontend deploy, the E2E suite runs against
@@ -91,10 +92,11 @@ CI fails the build if any generated output is stale, so a spec change that was
 not regenerated cannot merge. External consumers get the SDK on the next
 production release (see below); internal consumers never wait on npm.
 
-## Production: dispatching a release
+## Production: promoting `production`
 
 Workflow: [`.github/workflows/release.yml`](.github/workflows/release.yml)
-(`[Prod] Release`), triggered by `scripts/release prod <sha>`.
+(`[Prod] Release`), triggered by a push to `production`. The repository
+dispatch path remains available for hotfixes and explicit re-runs.
 
 A prod release deploys backend, frontend and the Discord bot to prod, publishes
 the **stable** (public) SDKs, and creates a GitHub Release.
@@ -111,15 +113,19 @@ version names the release, not the commit that typed the number. If the bump is
 stale enough that the extra work deserves its own number, bump again rather than
 tagging the older one.
 
-From the repository root:
+Normal promotion is now:
 
 ```bash
-# 1. Push the reviewed commit to main or production.
-# 2. Run the exact same SHA through staging and wait for E2E.
-scripts/release staging
-# 3. After staging is green, deploy that same SHA to production.
-scripts/release prod
+# 1. Push to main. GitHub Actions deploys that SHA to staging and runs E2E.
+# 2. After staging is green, fast-forward production to the same main SHA.
+jj bookmark set production -r main
+jj git push --bookmark production
 ```
+
+The production workflow requires a successful staging deploy and E2E run for
+that exact SHA. A fast-forward reuses the successful run from `main`. A merge
+commit has a new SHA, so the `production` push also stages and tests that commit
+automatically while the production workflow waits.
 
 ### Hotfixing prod without shipping main
 
@@ -127,53 +133,43 @@ scripts/release prod
 go out yet. `production` exists so a fix can reach prod without dragging that
 work along: it sits at the last released commit, not at main's tip.
 
-```bash
-# 1. Start from what prod runs, not from main
-git checkout production
-git pull
+Push the hotfix commit to `production`. That one push starts both workflows:
 
-# 2. Write the fix, bump the patch version, commit
-npm run release:set-version 1.2.4
-#    ...commit as usual...
+1. Staging deploys the exact hotfix SHA and runs its full E2E suite.
+2. Production waits for that staging run to appear and pass.
+3. Production deploys the same SHA and runs its smoke tests.
 
-# 3. Push the branch, dispatch [Stg] Release against this commit with BOTH
-#    backend and frontend forced, and wait for E2E to pass. Then tag it ->
-#    prod deploys, and only the fix goes out
-git push origin production
-git tag -a v1.2.4 -m "v1.2.4"
-git push origin v1.2.4
+The production workflow prefers an already-successful staging run for the SHA,
+so promoting a commit previously tested from `main` does not wait for the
+duplicate `production`-branch staging run. A new hotfix SHA does wait. After the
+incident, merge the hotfix back into `main` so the two lines do not diverge.
 
-# 4. Merge production back into main. Do not skip this.
-git checkout main
-git merge production
-git push origin main
-```
+Non-trivial fixes should still go through a PR into `production`; direct pushes
+are for urgent, reviewed fixes. Protect `production` against force-pushes and
+deletion, and restrict direct pushes to release maintainers. The workflows also
+reject forced `production` updates before any build or deployment begins.
 
-Non-trivial fixes should go through a PR into `production` rather than a direct
-commit — `ci.yml` runs on PRs targeting `production` for exactly that.
+### Emergency release without staging
 
-Step 4 is what keeps the scheme working. `main` containing `production` is the
-invariant that makes step 3 of a normal release a fast-forward; skip it once and
-the next release turns into a three-way merge over the six version files, at the
-least convenient moment. The merge back also carries the patch bump into `main`
-— harmless when `main` is still on the old version, but if `main` has already
-been bumped for the next minor, resolve the version files in `main`'s favour.
+If staging itself is unavailable and production must be repaired immediately,
+manually run `[Prod] Release` from the Actions tab:
 
-To exercise a hotfix on stg before tagging it, run `[Stg] Release` from the
-Actions tab (`workflow_dispatch`) against the `production` ref and force both
-backend and frontend deployments, even if the hotfix changes only one. This is
-required: both production workflows query the Actions API for the exact tagged
-SHA and refuse to deploy unless that same run deployed both apps and then passed
-E2E. Two caveats:
-stg's database already carries migrations from main's unreleased work, so you
-are testing old code against a newer schema, and stg stays on the hotfix build
-until the next push to `main`.
+1. Select the `production` ref and, if needed, enter the exact `release_sha`.
+2. Enable **INCIDENT ONLY: skip staging deploy and E2E**.
+3. Enter an incident reason.
+4. Type `SKIP STAGING` exactly in the confirmation field.
+
+This bypass is accepted only from `workflow_dispatch`. It still runs checks,
+builds immutable images, verifies the target commit belongs to `main` or
+`production`, deploys both applications, runs production smoke tests, and keeps
+the rollback path. The reason is written to the workflow summary for audit.
 
 What the prod workflow does, in order:
 
 1. Requires successful staging backend and frontend deploys followed by E2E for
-   the exact tagged commit, all in one workflow run.
-2. Validates the tag is semver and matches `release:check-version`.
+   the exact release commit, unless the audited incident bypass is active.
+2. Runs the repository checks and validates that the release commit belongs to
+   `main` or `production`.
 3. Builds and deploys the **backend** to prod (`kamal deploy -d prod`).
 4. Builds and deploys the **frontend** to prod (runs after the backend).
 5. Runs E2E against `https://nadeshiko.co`.
@@ -194,19 +190,21 @@ What the prod workflow does, in order:
 
 Workflow: [`.github/workflows/release-discord.yml`](.github/workflows/release-discord.yml).
 
-The Discord bot deploys to **prod** on a `vX.Y.Z` tag, alongside the backend and
-frontend. There is no staging bot.
+The Discord bot deploys to **prod** on every push to `production`, alongside the
+backend and frontend. There is no staging bot, but its release still requires
+the same exact-SHA staging evidence from the web stack.
 
 It used to deploy on any push to `main` touching `discord/**`, which was fine
 while `main` and prod were never far apart. Once `main` started carrying a
 release's worth of unreleased work, that path shipped bot changes to prod ahead
-of everything they were written against. Every release now redeploys the bot,
-whether or not `discord/**` changed — a rebuild of an unchanged bot is cheap, and
-it keeps one rule ("a tag ships the stack") instead of two.
+of everything they were written against. Every production promotion now
+redeploys the bot, whether or not `discord/**` changed — a rebuild of an
+unchanged bot is cheap, and one branch promotion ships the whole stack.
 
-To ship a bot-only fix without waiting for a release, commit it to `production`
-and cut a patch tag, or run the workflow by hand from the Actions tab
-(`workflow_dispatch`, pick the ref).
+To ship a bot-only hotfix, commit it to `production`; the normal exact-SHA
+staging gate still applies. If staging is unavailable during an incident, the
+Discord workflow exposes the same manual skip, reason, and typed confirmation
+as the web-stack release.
 
 ### Slash command definitions are not deployed
 
