@@ -123,8 +123,31 @@ const featureIcons: Record<string, string> = {
   'Granular API keys': mdiKeyOutline,
 };
 
+const featureTranslationKeys: Record<string, string> = {
+  'Patreon title proposals': 'patreonProposals',
+  'Better search filters': 'searchFilters',
+  'Public roadmap': 'publicRoadmap',
+  'Seven interface languages': 'interfaceLanguages',
+  'YouTube playback in search': 'youtubePlayback',
+  'Word cards': 'wordCards',
+  'Your own dictionaries': 'ownDictionaries',
+  'Rich Anki mining': 'ankiMining',
+  'Search history and familiar titles': 'searchHistory',
+  'Granular API keys': 'apiKeys',
+};
+
 function featureIcon(item: RoadmapItem) {
   return featureIcons[item.title] ?? mdiTools;
+}
+
+function featureTitle(item: RoadmapItem) {
+  const key = featureTranslationKeys[item.title];
+  return key ? t(`roadmap.features.${key}.title`) : item.title;
+}
+
+function featureDescription(item: RoadmapItem) {
+  const key = featureTranslationKeys[item.title];
+  return key ? t(`roadmap.features.${key}.description`) : item.description;
 }
 
 async function loadConnection(force = false) {
@@ -279,7 +302,7 @@ function featureDate(item: RoadmapItem) {
               <div v-else class="flex aspect-[46/65] w-28 items-center justify-center border-r border-[var(--line)] bg-[var(--surface-hover)] text-white/25 sm:w-32"><UiBaseIcon :path="mdiMovieOpenOutline" size="34" /></div>
               <div class="flex min-h-full min-w-0 flex-col p-5">
                 <h2 class="text-xl font-bold leading-tight">{{ item.title }}</h2>
-                <p class="mt-3 flex items-center gap-1.5 text-sm text-white/50"><UiBaseIcon :path="mdiPatreon" size="15" />{{ t('roadmap.proposedBy', { name: 'Nadeshiko patrons' }) }}</p>
+                <p class="mt-3 flex items-center gap-1.5 text-sm text-white/50"><UiBaseIcon :path="mdiPatreon" size="15" />{{ t('roadmap.proposedBy', { name: t('roadmap.patronCommunity') }) }}</p>
                 <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noopener noreferrer" class="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-semibold text-red-300 hover:text-red-200">
                   {{ t('roadmap.viewSource') }} <UiBaseIcon :path="mdiArrowRight" size="14" />
                 </a>
@@ -299,8 +322,8 @@ function featureDate(item: RoadmapItem) {
             </div>
             <span class="hidden md:block" aria-hidden="true" />
             <article class="feature-roadmap-content relative">
-              <h2 class="flex items-center gap-2 text-xl font-bold"><UiBaseIcon :path="featureIcon(item)" size="21" class="shrink-0 text-white/55" />{{ item.title }}</h2>
-              <p v-if="item.description" class="mt-2 max-w-2xl leading-relaxed text-white/55">{{ item.description }}</p>
+              <h2 class="flex items-center gap-2 text-xl font-bold"><UiBaseIcon :path="featureIcon(item)" size="21" class="shrink-0 text-white/55" />{{ featureTitle(item) }}</h2>
+              <p v-if="item.description" class="mt-2 max-w-2xl leading-relaxed text-white/55">{{ featureDescription(item) }}</p>
               <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-red-300 hover:text-red-200">{{ t('roadmap.viewSource') }} <UiBaseIcon :path="mdiArrowRight" size="14" /></a>
             </article>
           </li>

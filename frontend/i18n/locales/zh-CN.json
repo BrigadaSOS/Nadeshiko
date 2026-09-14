@@ -1414,68 +1414,101 @@
     }
   },
   "roadmap": {
-    "seoTitle": "Roadmap | Nadeshiko",
-    "seoDescription": "See which anime titles are joining Nadeshiko next, what we’re building, and what we’ve shipped.",
-    "title": "Roadmap",
-    "intro": "Request which titles and features are joining Nadeshiko next by joining our Patreon!",
-    "support": "Support Nadeshiko",
-    "proposeCta": "Propose a show",
-    "filterLabel": "Filter roadmap",
-    "filters": { "content": "Titles", "feature": "Features" },
-    "dateFlexible": "Timing open",
-    "featureSoon": "Soon™",
-    "featureReleased": "Released",
-    "titleInProgress": "In progress",
-    "titleDone": "Done",
-    "proposedBy": "Proposed by {name}",
-    "anonymousPatron": "a Patreon member",
-    "emptyTitles": "No titles are scheduled yet.",
-    "emptyFeatures": "No feature milestones yet.",
-    "viewSource": "View source",
-    "loadError": "The roadmap could not be loaded right now.",
-    "proposalTitle": "Request your favorite show!",
-    "proposalIntro": "Active Nadeshiko patrons can request up to four titles to be added each month. Check your access below!",
+    "seoTitle": "路线图 | Nadeshiko",
+    "seoDescription": "查看即将加入 Nadeshiko 的动画、我们正在开发的功能以及已经发布的内容。",
+    "title": "路线图",
+    "intro": "加入我们的 Patreon，申请你希望接下来加入 Nadeshiko 的作品和功能！",
+    "support": "支持 Nadeshiko",
+    "proposeCta": "推荐作品",
+    "filterLabel": "筛选路线图",
+    "filters": { "content": "作品", "feature": "功能" },
+    "dateFlexible": "时间待定",
+    "featureSoon": "即将推出™",
+    "featureReleased": "已发布",
+    "titleInProgress": "进行中",
+    "titleDone": "已完成",
+    "proposedBy": "由 {name} 推荐",
+    "patronCommunity": "Nadeshiko 赞助会员",
+    "emptyTitles": "目前还没有安排作品。",
+    "emptyFeatures": "目前还没有功能里程碑。",
+    "viewSource": "查看来源",
+    "loadError": "目前无法加载路线图。",
+    "proposalTitle": "申请你最喜欢的作品！",
+    "proposalIntro": "Nadeshiko 的活跃赞助会员每月最多可以申请添加四部作品。请在下方检查你的资格！",
     "steps": {
-      "signIn": "Sign in to Nadeshiko",
-      "patreon": "Link or join Patreon",
-      "propose": "Send your proposal"
+      "signIn": "登录 Nadeshiko",
+      "patreon": "关联或加入 Patreon",
+      "propose": "提交申请"
     },
     "states": {
-      "anonymousTitle": "Sign in to propose a show",
-      "anonymousBody": "The roadmap is public. Proposals are available to patrons with a linked Nadeshiko account.",
-      "unlinkedTitle": "Link your Patreon account",
-      "unlinkedBody": "We’ll securely verify your Nadeshiko membership. Patreon is never used to sign in.",
-      "inactiveTitle": "Become an active patron",
-      "inactiveBody": "Your Patreon account is linked, but it does not currently have an active paid Nadeshiko membership.",
-      "activeTitle": "Your proposal",
-      "submittedTitle": "Proposal received",
-      "submittedBody": "It’s in the private review queue. If approved, it will appear on this timeline."
+      "anonymousTitle": "登录后推荐作品",
+      "anonymousBody": "路线图对所有人公开。已关联 Nadeshiko 账号的赞助会员可以提交申请。",
+      "unlinkedTitle": "关联你的 Patreon 账号",
+      "unlinkedBody": "我们会安全验证你的 Nadeshiko 会员资格。Patreon 绝不会用于登录。",
+      "inactiveTitle": "成为活跃赞助会员",
+      "inactiveBody": "你的 Patreon 账号已关联，但目前没有有效的 Nadeshiko 付费会员资格。",
+      "activeTitle": "你的申请",
+      "submittedTitle": "已收到申请",
+      "submittedBody": "申请已进入非公开审核队列。通过后会显示在此时间线上。"
     },
-    "signIn": "Sign in",
-    "linkPatreon": "Link Patreon",
-    "becomePatron": "Join on Patreon",
-    "checkAgain": "Check again",
-    "submitAnother": "Propose another",
-    "patreonMember": "Patreon member",
-    "activeBadge": "Active patron",
+    "signIn": "登录",
+    "linkPatreon": "关联 Patreon",
+    "becomePatron": "在 Patreon 加入",
+    "checkAgain": "重新检查",
+    "submitAnother": "继续推荐",
+    "patreonMember": "Patreon 会员",
+    "activeBadge": "活跃赞助会员",
     "form": {
-      "url": "Show link",
+      "url": "作品链接",
       "urlPlaceholder": "https://anilist.co/anime/…",
-      "title": "Title (optional)",
-      "titlePlaceholder": "We’ll infer it from the link",
-      "credit": "Public credit (optional)",
-      "creditPlaceholder": "Your name or Patreon handle",
-      "creditHint": "Leave this blank to be credited as an anonymous Patreon member.",
-      "note": "Why this one? (optional)",
-      "notePlaceholder": "Tell us what makes it a good fit for Nadeshiko",
-      "submit": "Send for review"
+      "title": "标题（选填）",
+      "titlePlaceholder": "我们会从链接中获取",
+      "credit": "公开署名（选填）",
+      "creditPlaceholder": "你的姓名或 Patreon 用户名",
+      "creditHint": "留空将以匿名 Patreon 会员的身份署名。",
+      "note": "为什么推荐它？（选填）",
+      "notePlaceholder": "请告诉我们它为什么适合 Nadeshiko",
+      "submit": "提交审核"
     },
-    "callbackDeclined": "The Patreon connection was not approved.",
-    "callbackFailed": "That Patreon connection could not be completed.",
-    "callbackDone": "Patreon connected",
-    "callbackDoneBody": "Your membership has been checked. You can now return to the roadmap.",
-    "backToRoadmap": "Back to the roadmap",
-    "admin": { "tab": "Roadmap", "title": "Roadmap queue" }
+    "features": {
+      "patreonProposals": {
+        "title": "Patreon 作品推荐",
+        "description": "赞助会员可以关联会员资格、推荐作品，并在公开路线图中跟踪已批准的新增内容。"
+      },
+      "searchFilters": { "title": "更好用的搜索筛选", "description": "可直接按作品名称、标签及其他精确条件进行搜索。" },
+      "publicRoadmap": { "title": "公开路线图", "description": "集中查看即将加入和已经发布的作品与功能。" },
+      "interfaceLanguages": {
+        "title": "七种界面语言",
+        "description": "除英语、西班牙语和日语外，Nadeshiko 现已支持葡萄牙语、印度尼西亚语、简体中文和繁体中文。"
+      },
+      "youtubePlayback": {
+        "title": "在搜索中播放 YouTube",
+        "description": "YouTube 例句可直接在搜索结果中播放，并能连续播放列表，无需离开 Nadeshiko。"
+      },
+      "wordCards": {
+        "title": "单词卡片",
+        "description": "点击句子中的任意单词，即可查看读音、释义、音调、音频和词频标记。"
+      },
+      "ownDictionaries": {
+        "title": "使用你自己的词典",
+        "description": "关联 Shirabe 后，Nadeshiko 会按你设定的顺序使用词典，包括单语词典和自行上传的词典。"
+      },
+      "ankiMining": {
+        "title": "丰富的 Anki 制卡",
+        "description": "创建或更新包含单词、句子、音频、图片、振假名、释义和音调的笔记。"
+      },
+      "searchHistory": {
+        "title": "搜索历史与熟悉的作品",
+        "description": "登录用户可跨设备查看最近搜索，收藏和学过的作品也会影响排序。"
+      },
+      "apiKeys": { "title": "细粒度 API 密钥", "description": "API 密钥可设为只读、完全访问，或仅限明确选择的权限。" }
+    },
+    "callbackDeclined": "Patreon 关联未获批准。",
+    "callbackFailed": "无法完成 Patreon 关联。",
+    "callbackDone": "已关联 Patreon",
+    "callbackDoneBody": "会员资格已检查。现在可以返回路线图。",
+    "backToRoadmap": "返回路线图",
+    "admin": { "tab": "路线图", "title": "路线图队列" }
   },
   "feedback": {
     "open": "意见反馈",

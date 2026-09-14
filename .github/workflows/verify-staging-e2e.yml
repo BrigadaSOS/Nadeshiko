@@ -2,6 +2,22 @@ name: Verify staging E2E
 
 on:
   workflow_call:
+    inputs:
+      release_sha:
+        required: true
+        type: string
+      skip_staging:
+        required: false
+        default: false
+        type: boolean
+      emergency_reason:
+        required: false
+        default: ''
+        type: string
+      emergency_confirmation:
+        required: false
+        default: ''
+        type: string
 
 permissions:
   actions: read
@@ -14,41 +30,75 @@ jobs:
     # 45m). Leave ten minutes for this job's own setup and final API calls.
     timeout-minutes: 130
     steps:
-      # A production dispatch is a second, independent workflow trigger. `needs`
+      - name: Validate emergency staging bypass
+        if: inputs.skip_staging
+        env:
+          EMERGENCY_REASON: ${{ inputs.emergency_reason }}
+          EMERGENCY_CONFIRMATION: ${{ inputs.emergency_confirmation }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch || {
+            echo "::error::Skipping staging is only available from a manual workflow dispatch."
+            exit 1
+          }
+          test -n "$EMERGENCY_REASON" || {
+            echo "::error::An incident reason is required to skip staging."
+            exit 1
+          }
+          test "$EMERGENCY_CONFIRMATION" = "SKIP STAGING" || {
+            echo "::error::Type SKIP STAGING exactly to confirm the emergency bypass."
+            exit 1
+          }
+          echo "::warning::Staging was bypassed for an incident: $EMERGENCY_REASON"
+          {
+            echo "## Emergency staging bypass"
+            echo
+            echo "$EMERGENCY_REASON"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A production workflow is a second, independent workflow trigger. `needs`
       # cannot cross that boundary, so resolve the newest staging workflow for
-      # the exact tagged SHA through the Actions API and require both app
+      # the exact release SHA through the Actions API and require both app
       # deploys and E2E to have passed in that one run. An ancestor's result is
-      # deliberately insufficient: every commit between it and the tag is part
+      # deliberately insufficient: every commit in the promoted revision is part
       # of the release. Nor is a partial manual deploy sufficient: production
       # always ships both apps, so staging must have exercised that exact stack.
       #
-      # If the tag is pushed while staging is still running, wait for that run
-      # instead of making a safe release fail merely because the two triggers
-      # crossed by a few seconds. No matching run fails immediately; this also
-      # makes the manual staging pass mandatory for a production-branch hotfix.
+      # A push to production starts staging and production independently. Poll
+      # briefly for the staging run to appear, then wait for it to complete.
       - name: Require successful staging E2E for this commit
+        if: ${{ !inputs.skip_staging }}
         uses: actions/github-script@v8
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
         with:
           script: |
             const workflowId = 'staging-release.yml';
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const sha = context.payload.client_payload?.release_sha ?? context.sha;
+            const sha = process.env.RELEASE_SHA;
+            const appearanceDeadline = Date.now() + 5 * 60 * 1000;
+            let run;
 
-            const runs = await github.rest.actions.listWorkflowRuns({
-              owner,
-              repo,
-              workflow_id: workflowId,
-              head_sha: sha,
-              per_page: 10,
-            });
+            while (!run) {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowId,
+                head_sha: sha,
+                per_page: 10,
+              });
 
-            let run = runs.data.workflow_runs[0];
-            if (!run) {
-              throw new Error(
-                `No staging release exists for ${sha}. Run scripts/release staging ${sha}, ` +
-                'wait for its E2E job to pass, then dispatch production again.',
-              );
+              run =
+                runs.data.workflow_runs.find(
+                  (candidate) => candidate.status === 'completed' && candidate.conclusion === 'success',
+                ) ?? runs.data.workflow_runs[0];
+              if (run) break;
+              if (Date.now() >= appearanceDeadline) {
+                throw new Error(`No staging release appeared for ${sha} within five minutes.`);
+              }
+              core.info(`Waiting for the staging workflow for ${sha} to start...`);
+              await new Promise((resolve) => setTimeout(resolve, 15_000));
             }
 
             const deadline = Date.now() + 120 * 60 * 1000;

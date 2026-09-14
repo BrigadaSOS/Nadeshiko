@@ -1414,68 +1414,110 @@
     }
   },
   "roadmap": {
-    "seoTitle": "Roadmap | Nadeshiko",
-    "seoDescription": "See which anime titles are joining Nadeshiko next, what we’re building, and what we’ve shipped.",
-    "title": "Roadmap",
-    "intro": "Request which titles and features are joining Nadeshiko next by joining our Patreon!",
-    "support": "Support Nadeshiko",
-    "proposeCta": "Propose a show",
-    "filterLabel": "Filter roadmap",
-    "filters": { "content": "Titles", "feature": "Features" },
-    "dateFlexible": "Timing open",
-    "featureSoon": "Soon™",
-    "featureReleased": "Released",
-    "titleInProgress": "In progress",
-    "titleDone": "Done",
-    "proposedBy": "Proposed by {name}",
-    "anonymousPatron": "a Patreon member",
-    "emptyTitles": "No titles are scheduled yet.",
-    "emptyFeatures": "No feature milestones yet.",
-    "viewSource": "View source",
-    "loadError": "The roadmap could not be loaded right now.",
-    "proposalTitle": "Request your favorite show!",
-    "proposalIntro": "Active Nadeshiko patrons can request up to four titles to be added each month. Check your access below!",
+    "seoTitle": "Peta Jalan | Nadeshiko",
+    "seoDescription": "Lihat judul anime yang akan hadir di Nadeshiko, fitur yang sedang kami buat, dan yang sudah kami rilis.",
+    "title": "Peta Jalan",
+    "intro": "Bergabunglah dengan Patreon kami untuk mengusulkan judul dan fitur yang akan hadir berikutnya di Nadeshiko!",
+    "support": "Dukung Nadeshiko",
+    "proposeCta": "Usulkan anime",
+    "filterLabel": "Saring peta jalan",
+    "filters": { "content": "Judul", "feature": "Fitur" },
+    "dateFlexible": "Waktu belum ditentukan",
+    "featureSoon": "Segera™",
+    "featureReleased": "Telah dirilis",
+    "titleInProgress": "Sedang dikerjakan",
+    "titleDone": "Selesai",
+    "proposedBy": "Diusulkan oleh {name}",
+    "patronCommunity": "patron Nadeshiko",
+    "emptyTitles": "Belum ada judul yang dijadwalkan.",
+    "emptyFeatures": "Belum ada pencapaian fitur.",
+    "viewSource": "Lihat sumber",
+    "loadError": "Peta jalan tidak dapat dimuat saat ini.",
+    "proposalTitle": "Minta anime favorit Anda!",
+    "proposalIntro": "Patron aktif Nadeshiko dapat meminta hingga empat judul untuk ditambahkan setiap bulan. Periksa akses Anda di bawah ini!",
     "steps": {
-      "signIn": "Sign in to Nadeshiko",
-      "patreon": "Link or join Patreon",
-      "propose": "Send your proposal"
+      "signIn": "Masuk ke Nadeshiko",
+      "patreon": "Hubungkan atau bergabung di Patreon",
+      "propose": "Kirim usulan Anda"
     },
     "states": {
-      "anonymousTitle": "Sign in to propose a show",
-      "anonymousBody": "The roadmap is public. Proposals are available to patrons with a linked Nadeshiko account.",
-      "unlinkedTitle": "Link your Patreon account",
-      "unlinkedBody": "We’ll securely verify your Nadeshiko membership. Patreon is never used to sign in.",
-      "inactiveTitle": "Become an active patron",
-      "inactiveBody": "Your Patreon account is linked, but it does not currently have an active paid Nadeshiko membership.",
-      "activeTitle": "Your proposal",
-      "submittedTitle": "Proposal received",
-      "submittedBody": "It’s in the private review queue. If approved, it will appear on this timeline."
+      "anonymousTitle": "Masuk untuk mengusulkan anime",
+      "anonymousBody": "Peta jalan dapat dilihat oleh siapa saja. Patron dengan akun Nadeshiko yang terhubung dapat mengirim usulan.",
+      "unlinkedTitle": "Hubungkan akun Patreon Anda",
+      "unlinkedBody": "Kami akan memverifikasi keanggotaan Nadeshiko Anda dengan aman. Patreon tidak pernah digunakan untuk masuk.",
+      "inactiveTitle": "Jadilah patron aktif",
+      "inactiveBody": "Akun Patreon Anda sudah terhubung, tetapi saat ini tidak memiliki keanggotaan berbayar Nadeshiko yang aktif.",
+      "activeTitle": "Usulan Anda",
+      "submittedTitle": "Usulan diterima",
+      "submittedBody": "Usulan Anda berada dalam antrean tinjauan privat. Jika disetujui, usulan akan muncul di linimasa ini."
     },
-    "signIn": "Sign in",
-    "linkPatreon": "Link Patreon",
-    "becomePatron": "Join on Patreon",
-    "checkAgain": "Check again",
-    "submitAnother": "Propose another",
-    "patreonMember": "Patreon member",
-    "activeBadge": "Active patron",
+    "signIn": "Masuk",
+    "linkPatreon": "Hubungkan Patreon",
+    "becomePatron": "Bergabung di Patreon",
+    "checkAgain": "Periksa lagi",
+    "submitAnother": "Usulkan yang lain",
+    "patreonMember": "Anggota Patreon",
+    "activeBadge": "Patron aktif",
     "form": {
-      "url": "Show link",
+      "url": "Tautan anime",
       "urlPlaceholder": "https://anilist.co/anime/…",
-      "title": "Title (optional)",
-      "titlePlaceholder": "We’ll infer it from the link",
-      "credit": "Public credit (optional)",
-      "creditPlaceholder": "Your name or Patreon handle",
-      "creditHint": "Leave this blank to be credited as an anonymous Patreon member.",
-      "note": "Why this one? (optional)",
-      "notePlaceholder": "Tell us what makes it a good fit for Nadeshiko",
-      "submit": "Send for review"
+      "title": "Judul (opsional)",
+      "titlePlaceholder": "Kami akan mengambilnya dari tautan",
+      "credit": "Nama publik (opsional)",
+      "creditPlaceholder": "Nama atau akun Patreon Anda",
+      "creditHint": "Biarkan kosong agar dicantumkan sebagai anggota Patreon anonim.",
+      "note": "Mengapa memilih ini? (opsional)",
+      "notePlaceholder": "Ceritakan mengapa judul ini cocok untuk Nadeshiko",
+      "submit": "Kirim untuk ditinjau"
     },
-    "callbackDeclined": "The Patreon connection was not approved.",
-    "callbackFailed": "That Patreon connection could not be completed.",
-    "callbackDone": "Patreon connected",
-    "callbackDoneBody": "Your membership has been checked. You can now return to the roadmap.",
-    "backToRoadmap": "Back to the roadmap",
-    "admin": { "tab": "Roadmap", "title": "Roadmap queue" }
+    "features": {
+      "patreonProposals": {
+        "title": "Usulan judul dari Patreon",
+        "description": "Patron dapat menghubungkan keanggotaan, mengusulkan judul, dan mengikuti penambahan yang disetujui di peta jalan publik."
+      },
+      "searchFilters": {
+        "title": "Filter pencarian yang lebih baik",
+        "description": "Cari langsung berdasarkan nama media, tag, dan filter khusus lainnya."
+      },
+      "publicRoadmap": {
+        "title": "Peta jalan publik",
+        "description": "Lihat judul dan fitur yang akan hadir maupun yang sudah dirilis dalam satu tempat."
+      },
+      "interfaceLanguages": {
+        "title": "Tujuh bahasa antarmuka",
+        "description": "Selain Inggris, Spanyol, dan Jepang, Nadeshiko kini mendukung Portugis, Indonesia, Tionghoa Sederhana, dan Tionghoa Tradisional."
+      },
+      "youtubePlayback": {
+        "title": "Pemutaran YouTube dalam pencarian",
+        "description": "Kalimat YouTube diputar langsung di hasil dan berlanjut dalam daftar putar tanpa meninggalkan Nadeshiko."
+      },
+      "wordCards": {
+        "title": "Kartu kata",
+        "description": "Klik kata dalam kalimat untuk melihat cara baca, definisi, aksen nada, audio, dan penanda frekuensi."
+      },
+      "ownDictionaries": {
+        "title": "Kamus Anda sendiri",
+        "description": "Hubungkan Shirabe agar Nadeshiko memakai susunan kamus pilihan Anda, termasuk kamus ekabahasa dan kamus yang Anda unggah."
+      },
+      "ankiMining": {
+        "title": "Pembuatan kartu Anki yang lengkap",
+        "description": "Buat atau perbarui catatan dengan kata, kalimat, audio, gambar, furigana, definisi, dan aksen nada."
+      },
+      "searchHistory": {
+        "title": "Riwayat pencarian dan judul yang dikenal",
+        "description": "Pencarian terbaru mengikuti pengguna yang masuk di berbagai perangkat, sementara judul favorit dan yang dipelajari memengaruhi peringkat."
+      },
+      "apiKeys": {
+        "title": "Kunci API dengan izin terperinci",
+        "description": "Kunci API dapat bersifat hanya-baca, akses penuh, atau dibatasi pada izin yang dipilih secara khusus."
+      }
+    },
+    "callbackDeclined": "Koneksi Patreon tidak disetujui.",
+    "callbackFailed": "Koneksi Patreon tidak dapat diselesaikan.",
+    "callbackDone": "Patreon terhubung",
+    "callbackDoneBody": "Keanggotaan Anda telah diperiksa. Anda sekarang dapat kembali ke peta jalan.",
+    "backToRoadmap": "Kembali ke peta jalan",
+    "admin": { "tab": "Peta Jalan", "title": "Antrean peta jalan" }
   },
   "feedback": {
     "open": "Masukan",

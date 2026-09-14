@@ -1414,68 +1414,110 @@
     }
   },
   "roadmap": {
-    "seoTitle": "Roadmap | Nadeshiko",
-    "seoDescription": "See which anime titles are joining Nadeshiko next, what we’re building, and what we’ve shipped.",
-    "title": "Roadmap",
-    "intro": "Request which titles and features are joining Nadeshiko next by joining our Patreon!",
-    "support": "Support Nadeshiko",
-    "proposeCta": "Propose a show",
-    "filterLabel": "Filter roadmap",
-    "filters": { "content": "Titles", "feature": "Features" },
-    "dateFlexible": "Timing open",
-    "featureSoon": "Soon™",
-    "featureReleased": "Released",
-    "titleInProgress": "In progress",
-    "titleDone": "Done",
-    "proposedBy": "Proposed by {name}",
-    "anonymousPatron": "a Patreon member",
-    "emptyTitles": "No titles are scheduled yet.",
-    "emptyFeatures": "No feature milestones yet.",
-    "viewSource": "View source",
-    "loadError": "The roadmap could not be loaded right now.",
-    "proposalTitle": "Request your favorite show!",
-    "proposalIntro": "Active Nadeshiko patrons can request up to four titles to be added each month. Check your access below!",
+    "seoTitle": "ロードマップ | Nadeshiko",
+    "seoDescription": "今後Nadeshikoに追加されるアニメ、開発中の機能、リリース済みの内容をご覧いただけます。",
+    "title": "ロードマップ",
+    "intro": "Patreonに参加して、次にNadeshikoへ追加してほしい作品や機能をリクエストしよう！",
+    "support": "Nadeshikoを支援する",
+    "proposeCta": "作品を提案する",
+    "filterLabel": "ロードマップを絞り込む",
+    "filters": { "content": "作品", "feature": "機能" },
+    "dateFlexible": "時期未定",
+    "featureSoon": "近日公開™",
+    "featureReleased": "リリース済み",
+    "titleInProgress": "対応中",
+    "titleDone": "完了",
+    "proposedBy": "提案者：{name}",
+    "patronCommunity": "NadeshikoのPatreonメンバー",
+    "emptyTitles": "予定されている作品はまだありません。",
+    "emptyFeatures": "機能のマイルストーンはまだありません。",
+    "viewSource": "参照元を見る",
+    "loadError": "現在ロードマップを読み込めません。",
+    "proposalTitle": "お気に入りの作品をリクエスト！",
+    "proposalIntro": "NadeshikoのアクティブなPatreonメンバーは、毎月最大4作品を追加候補としてリクエストできます。以下で利用資格をご確認ください。",
     "steps": {
-      "signIn": "Sign in to Nadeshiko",
-      "patreon": "Link or join Patreon",
-      "propose": "Send your proposal"
+      "signIn": "Nadeshikoにログイン",
+      "patreon": "Patreonを連携または参加",
+      "propose": "リクエストを送信"
     },
     "states": {
-      "anonymousTitle": "Sign in to propose a show",
-      "anonymousBody": "The roadmap is public. Proposals are available to patrons with a linked Nadeshiko account.",
-      "unlinkedTitle": "Link your Patreon account",
-      "unlinkedBody": "We’ll securely verify your Nadeshiko membership. Patreon is never used to sign in.",
-      "inactiveTitle": "Become an active patron",
-      "inactiveBody": "Your Patreon account is linked, but it does not currently have an active paid Nadeshiko membership.",
-      "activeTitle": "Your proposal",
-      "submittedTitle": "Proposal received",
-      "submittedBody": "It’s in the private review queue. If approved, it will appear on this timeline."
+      "anonymousTitle": "作品を提案するにはログインしてください",
+      "anonymousBody": "ロードマップは公開されています。Nadeshikoアカウントを連携したPatreonメンバーは作品を提案できます。",
+      "unlinkedTitle": "Patreonアカウントを連携",
+      "unlinkedBody": "Nadeshikoのメンバー資格を安全に確認します。Patreonをログインに使用することはありません。",
+      "inactiveTitle": "アクティブなPatreonメンバーになる",
+      "inactiveBody": "Patreonアカウントは連携されていますが、現在Nadeshikoの有効な有料メンバーシップがありません。",
+      "activeTitle": "あなたの提案",
+      "submittedTitle": "提案を受け付けました",
+      "submittedBody": "非公開の審査待ちリストに追加されました。承認されると、このタイムラインに表示されます。"
     },
-    "signIn": "Sign in",
-    "linkPatreon": "Link Patreon",
-    "becomePatron": "Join on Patreon",
-    "checkAgain": "Check again",
-    "submitAnother": "Propose another",
-    "patreonMember": "Patreon member",
-    "activeBadge": "Active patron",
+    "signIn": "ログイン",
+    "linkPatreon": "Patreonを連携",
+    "becomePatron": "Patreonに参加",
+    "checkAgain": "再確認",
+    "submitAnother": "別の作品を提案",
+    "patreonMember": "Patreonメンバー",
+    "activeBadge": "有効なメンバー",
     "form": {
-      "url": "Show link",
+      "url": "作品のリンク",
       "urlPlaceholder": "https://anilist.co/anime/…",
-      "title": "Title (optional)",
-      "titlePlaceholder": "We’ll infer it from the link",
-      "credit": "Public credit (optional)",
-      "creditPlaceholder": "Your name or Patreon handle",
-      "creditHint": "Leave this blank to be credited as an anonymous Patreon member.",
-      "note": "Why this one? (optional)",
-      "notePlaceholder": "Tell us what makes it a good fit for Nadeshiko",
-      "submit": "Send for review"
+      "title": "タイトル（任意）",
+      "titlePlaceholder": "リンクから自動取得します",
+      "credit": "公開するお名前（任意）",
+      "creditPlaceholder": "お名前またはPatreonのユーザー名",
+      "creditHint": "空欄の場合は匿名のPatreonメンバーとして表示されます。",
+      "note": "この作品を選んだ理由（任意）",
+      "notePlaceholder": "Nadeshikoに合うと思う理由を教えてください",
+      "submit": "審査に送る"
     },
-    "callbackDeclined": "The Patreon connection was not approved.",
-    "callbackFailed": "That Patreon connection could not be completed.",
-    "callbackDone": "Patreon connected",
-    "callbackDoneBody": "Your membership has been checked. You can now return to the roadmap.",
-    "backToRoadmap": "Back to the roadmap",
-    "admin": { "tab": "Roadmap", "title": "Roadmap queue" }
+    "features": {
+      "patreonProposals": {
+        "title": "Patreonからの作品提案",
+        "description": "メンバーシップを連携して作品を提案し、承認された追加作品を公開ロードマップで確認できます。"
+      },
+      "searchFilters": {
+        "title": "検索フィルターの強化",
+        "description": "作品名やタグなど、目的に合った条件で直接検索できます。"
+      },
+      "publicRoadmap": {
+        "title": "公開ロードマップ",
+        "description": "追加予定とリリース済みの作品・機能を一か所で確認できます。"
+      },
+      "interfaceLanguages": {
+        "title": "7言語のインターフェース",
+        "description": "英語、スペイン語、日本語に加え、ポルトガル語、インドネシア語、簡体字中国語、繁体字中国語に対応しました。"
+      },
+      "youtubePlayback": {
+        "title": "検索結果でYouTubeを再生",
+        "description": "YouTubeの例文を検索結果内で再生し、Nadeshikoを離れずにプレイリストを続けて視聴できます。"
+      },
+      "wordCards": {
+        "title": "単語カード",
+        "description": "例文内の単語をクリックすると、読み方、定義、ピッチアクセント、音声、頻度バッジを確認できます。"
+      },
+      "ownDictionaries": {
+        "title": "自分の辞書を利用",
+        "description": "Shirabeを連携すると、国語辞典やアップロードした辞書を含む、設定した順序の辞書をNadeshikoで利用できます。"
+      },
+      "ankiMining": {
+        "title": "充実したAnkiマイニング",
+        "description": "単語、例文、音声、画像、ふりがな、定義、ピッチアクセントを含むノートを作成・更新できます。"
+      },
+      "searchHistory": {
+        "title": "検索履歴と学習中の作品",
+        "description": "ログイン中は端末をまたいで最近の検索を確認でき、お気に入りや学習済みの作品が検索順位に反映されます。"
+      },
+      "apiKeys": {
+        "title": "詳細な権限を設定できるAPIキー",
+        "description": "APIキーを読み取り専用、フルアクセス、または明示的に選択した権限のみに制限できます。"
+      }
+    },
+    "callbackDeclined": "Patreonとの連携が承認されませんでした。",
+    "callbackFailed": "Patreonとの連携を完了できませんでした。",
+    "callbackDone": "Patreonと連携しました",
+    "callbackDoneBody": "メンバーシップを確認しました。ロードマップに戻れます。",
+    "backToRoadmap": "ロードマップに戻る",
+    "admin": { "tab": "ロードマップ", "title": "ロードマップのキュー" }
   },
   "feedback": {
     "open": "フィードバック",
