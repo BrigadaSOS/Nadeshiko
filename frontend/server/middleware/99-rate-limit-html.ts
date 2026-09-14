@@ -29,11 +29,22 @@ export default defineEventHandler(async (event) => {
   if (presentsBypassSecret(getRequestHeader(event, RATE_LIMIT_BYPASS_HEADER), env.NUXT_RATE_LIMIT_BYPASS_SECRET)) {
     return;
   }
-  // Same placement, and for the same reason: a search crawler that has proved
-  // itself should not consume a slot either, or it would still exhaust the
-  // budget for a visitor sharing its address. Proof is forward-confirmed reverse
-  // DNS, never the User-Agent -- see verifiedCrawler.ts.
-  if (isVerifiedCrawler(getClientIp(event), getRequestHeader(event, 'user-agent'))) {
+  // Verified crawlers may crawl sentence permalinks without consuming the
+  // limiter: those pages are the corpus' long-tail index and are edge-cached.
+  // Search renders are different. Each novel query is an SSR render that fans
+  // out to the backend and Elasticsearch, and verified crawlers can still send
+  // thousands of those requests from a small set of addresses. Letting them
+  // bypass this limit was the root cause of the current incident: Cloudflare's
+  // verified-bot exemption correctly let the requests through, while this
+  // exemption admitted every expensive search render to the origin.
+  //
+  // Proof remains forward-confirmed reverse DNS, never the User-Agent -- see
+  // verifiedCrawler.ts.
+  const isSentencePermalink = /^\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?sentence\//.test(path);
+  if (
+    isSentencePermalink &&
+    isVerifiedCrawler(getClientIp(event), getRequestHeader(event, 'user-agent'))
+  ) {
     return;
   }
 
