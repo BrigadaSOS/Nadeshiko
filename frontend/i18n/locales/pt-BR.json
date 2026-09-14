@@ -1414,68 +1414,110 @@
     }
   },
   "roadmap": {
-    "seoTitle": "Roadmap | Nadeshiko",
-    "seoDescription": "See which anime titles are joining Nadeshiko next, what we’re building, and what we’ve shipped.",
+    "seoTitle": "Roteiro | Nadeshiko",
+    "seoDescription": "Veja quais animes chegarão ao Nadeshiko, o que estamos desenvolvendo e o que já lançamos.",
     "title": "Roadmap",
-    "intro": "Request which titles and features are joining Nadeshiko next by joining our Patreon!",
-    "support": "Support Nadeshiko",
-    "proposeCta": "Propose a show",
-    "filterLabel": "Filter roadmap",
-    "filters": { "content": "Titles", "feature": "Features" },
-    "dateFlexible": "Timing open",
-    "featureSoon": "Soon™",
-    "featureReleased": "Released",
-    "titleInProgress": "In progress",
-    "titleDone": "Done",
-    "proposedBy": "Proposed by {name}",
-    "anonymousPatron": "a Patreon member",
-    "emptyTitles": "No titles are scheduled yet.",
-    "emptyFeatures": "No feature milestones yet.",
-    "viewSource": "View source",
-    "loadError": "The roadmap could not be loaded right now.",
-    "proposalTitle": "Request your favorite show!",
-    "proposalIntro": "Active Nadeshiko patrons can request up to four titles to be added each month. Check your access below!",
+    "intro": "Junte-se ao nosso Patreon e peça os próximos títulos e recursos do Nadeshiko!",
+    "support": "Apoiar o Nadeshiko",
+    "proposeCta": "Sugerir um anime",
+    "filterLabel": "Filtrar o roadmap",
+    "filters": { "content": "Títulos", "feature": "Recursos" },
+    "dateFlexible": "Data a definir",
+    "featureSoon": "Em breve™",
+    "featureReleased": "Lançado",
+    "titleInProgress": "Em andamento",
+    "titleDone": "Concluído",
+    "proposedBy": "Sugerido por {name}",
+    "patronCommunity": "apoiadores do Nadeshiko",
+    "emptyTitles": "Ainda não há títulos programados.",
+    "emptyFeatures": "Ainda não há marcos de recursos.",
+    "viewSource": "Ver fonte",
+    "loadError": "Não foi possível carregar o roadmap agora.",
+    "proposalTitle": "Peça seu anime favorito!",
+    "proposalIntro": "Apoiadores ativos do Nadeshiko podem pedir a adição de até quatro títulos por mês. Confira seu acesso abaixo!",
     "steps": {
-      "signIn": "Sign in to Nadeshiko",
-      "patreon": "Link or join Patreon",
-      "propose": "Send your proposal"
+      "signIn": "Entre no Nadeshiko",
+      "patreon": "Vincule ou participe do Patreon",
+      "propose": "Envie sua sugestão"
     },
     "states": {
-      "anonymousTitle": "Sign in to propose a show",
-      "anonymousBody": "The roadmap is public. Proposals are available to patrons with a linked Nadeshiko account.",
-      "unlinkedTitle": "Link your Patreon account",
-      "unlinkedBody": "We’ll securely verify your Nadeshiko membership. Patreon is never used to sign in.",
-      "inactiveTitle": "Become an active patron",
-      "inactiveBody": "Your Patreon account is linked, but it does not currently have an active paid Nadeshiko membership.",
-      "activeTitle": "Your proposal",
-      "submittedTitle": "Proposal received",
-      "submittedBody": "It’s in the private review queue. If approved, it will appear on this timeline."
+      "anonymousTitle": "Entre para sugerir um anime",
+      "anonymousBody": "O roadmap é público. Apoiadores com uma conta Nadeshiko vinculada podem enviar sugestões.",
+      "unlinkedTitle": "Vincule sua conta do Patreon",
+      "unlinkedBody": "Verificaremos sua assinatura do Nadeshiko com segurança. O Patreon nunca é usado para entrar na conta.",
+      "inactiveTitle": "Torne-se um apoiador ativo",
+      "inactiveBody": "Sua conta do Patreon está vinculada, mas não possui uma assinatura paga ativa do Nadeshiko no momento.",
+      "activeTitle": "Sua sugestão",
+      "submittedTitle": "Sugestão recebida",
+      "submittedBody": "Ela está na fila privada de análise. Se for aprovada, aparecerá nesta linha do tempo."
     },
-    "signIn": "Sign in",
-    "linkPatreon": "Link Patreon",
-    "becomePatron": "Join on Patreon",
-    "checkAgain": "Check again",
-    "submitAnother": "Propose another",
-    "patreonMember": "Patreon member",
-    "activeBadge": "Active patron",
+    "signIn": "Entrar",
+    "linkPatreon": "Vincular Patreon",
+    "becomePatron": "Participar no Patreon",
+    "checkAgain": "Verificar novamente",
+    "submitAnother": "Sugerir outro",
+    "patreonMember": "Membro do Patreon",
+    "activeBadge": "Apoiador ativo",
     "form": {
-      "url": "Show link",
+      "url": "Link do anime",
       "urlPlaceholder": "https://anilist.co/anime/…",
-      "title": "Title (optional)",
-      "titlePlaceholder": "We’ll infer it from the link",
-      "credit": "Public credit (optional)",
-      "creditPlaceholder": "Your name or Patreon handle",
-      "creditHint": "Leave this blank to be credited as an anonymous Patreon member.",
-      "note": "Why this one? (optional)",
-      "notePlaceholder": "Tell us what makes it a good fit for Nadeshiko",
-      "submit": "Send for review"
+      "title": "Título (opcional)",
+      "titlePlaceholder": "Vamos identificá-lo pelo link",
+      "credit": "Crédito público (opcional)",
+      "creditPlaceholder": "Seu nome ou usuário do Patreon",
+      "creditHint": "Deixe em branco para aparecer como membro anônimo do Patreon.",
+      "note": "Por que este anime? (opcional)",
+      "notePlaceholder": "Conte por que ele combina com o Nadeshiko",
+      "submit": "Enviar para análise"
     },
-    "callbackDeclined": "The Patreon connection was not approved.",
-    "callbackFailed": "That Patreon connection could not be completed.",
-    "callbackDone": "Patreon connected",
-    "callbackDoneBody": "Your membership has been checked. You can now return to the roadmap.",
-    "backToRoadmap": "Back to the roadmap",
-    "admin": { "tab": "Roadmap", "title": "Roadmap queue" }
+    "features": {
+      "patreonProposals": {
+        "title": "Sugestões de títulos pelo Patreon",
+        "description": "Apoiadores podem vincular a assinatura, sugerir um título e acompanhar as adições aprovadas no roadmap público."
+      },
+      "searchFilters": {
+        "title": "Filtros de busca melhores",
+        "description": "Pesquise diretamente pelo nome da mídia, por etiquetas e por outros filtros específicos."
+      },
+      "publicRoadmap": {
+        "title": "Roadmap público",
+        "description": "Veja em um só lugar quais títulos e recursos estão a caminho e quais já foram lançados."
+      },
+      "interfaceLanguages": {
+        "title": "Sete idiomas de interface",
+        "description": "Além de inglês, espanhol e japonês, o Nadeshiko passou a oferecer português, indonésio, chinês simplificado e chinês tradicional."
+      },
+      "youtubePlayback": {
+        "title": "Reprodução do YouTube na busca",
+        "description": "Frases do YouTube são reproduzidas diretamente nos resultados e continuam pelas playlists sem sair do Nadeshiko."
+      },
+      "wordCards": {
+        "title": "Cartões de palavras",
+        "description": "Clique em uma palavra de qualquer frase para ver leituras, definições, acento tonal, áudio e indicadores de frequência."
+      },
+      "ownDictionaries": {
+        "title": "Seus próprios dicionários",
+        "description": "Vincule o Shirabe para o Nadeshiko usar sua coleção ordenada de dicionários, inclusive dicionários monolíngues e enviados por você."
+      },
+      "ankiMining": {
+        "title": "Criação completa de cartões no Anki",
+        "description": "Crie ou atualize notas com palavra, frase, áudio, imagem, furigana, definições e acento tonal."
+      },
+      "searchHistory": {
+        "title": "Histórico de busca e títulos conhecidos",
+        "description": "As buscas recentes acompanham usuários conectados entre dispositivos, enquanto títulos favoritos e estudados influenciam a ordenação."
+      },
+      "apiKeys": {
+        "title": "Chaves de API com permissões detalhadas",
+        "description": "As chaves de API podem ser somente leitura, ter acesso total ou ficar limitadas às permissões selecionadas explicitamente."
+      }
+    },
+    "callbackDeclined": "A conexão com o Patreon não foi aprovada.",
+    "callbackFailed": "Não foi possível concluir a conexão com o Patreon.",
+    "callbackDone": "Patreon vinculado",
+    "callbackDoneBody": "Sua assinatura foi verificada. Agora você pode voltar ao roadmap.",
+    "backToRoadmap": "Voltar ao roadmap",
+    "admin": { "tab": "Roadmap", "title": "Fila do roadmap" }
   },
   "feedback": {
     "open": "Feedback",

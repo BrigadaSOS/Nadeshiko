@@ -36,6 +36,7 @@ assert!(Array(frontend_staging.dig("env", "secret")).include?("NUXT_RATE_LIMIT_B
 
 staging_workflow = File.read(File.join(ROOT, ".github/workflows/staging-release.yml"))
 production_workflow = File.read(File.join(ROOT, ".github/workflows/release.yml"))
+discord_workflow = File.read(File.join(ROOT, ".github/workflows/release-discord.yml"))
 frontend_dockerfile = File.read(File.join(ROOT, "frontend/Dockerfile"))
 known_hosts = File.read(File.join(ROOT, ".github/known_hosts"))
 nadeshiko_host_keys = known_hosts.lines.count { |line| line.match?(/^nadeshiko ssh-ed25519 [A-Za-z0-9+\/=]+$/) }
@@ -52,7 +53,14 @@ assert!(staging_workflow.include?("bash scripts/run-e2e.sh staging"), "staging C
 assert!(production_workflow.include?("bash scripts/run-e2e.sh prod"), "production CI must use the shared E2E entry point")
 assert!(staging_workflow.include?("types: [staging_release]"), "staging must be explicitly dispatched")
 assert!(production_workflow.include?("types: [production_release]"), "production must be explicitly dispatched")
-assert!(production_workflow.include?("RELEASE_SHA: ${{ github.event.client_payload.release_sha || github.sha }}"), "production must deploy the dispatched commit")
+assert!(staging_workflow.include?("branches: [main, production]"), "main and production pushes must automatically stage their exact commit")
+assert!(production_workflow.include?("branches: [production]"), "production pushes must automatically release")
+assert!(discord_workflow.include?("branches: [production]"), "production pushes must automatically release Discord")
+assert!(production_workflow.include?("RELEASE_SHA: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}"), "production must deploy the selected commit")
+assert!(production_workflow.include?("Type SKIP STAGING to confirm the emergency bypass"), "the emergency staging bypass must require typed confirmation")
+assert!(discord_workflow.include?("Type SKIP STAGING to confirm the emergency bypass"), "the Discord emergency bypass must require typed confirmation")
+assert!(production_workflow.include?("Reject forced production updates"), "forced production updates must not release")
+assert!(discord_workflow.include?("Reject forced production updates"), "forced production updates must not release Discord")
 assert!(production_workflow.match?(/promote-images:\n\s+needs: e2e/), "production images must only be promoted after E2E")
 backend_accounts = File.read(File.join(ROOT, "backend/db/seeds.ts"))
 frontend_accounts = File.read(File.join(ROOT, "frontend/e2e/auth.ts"))

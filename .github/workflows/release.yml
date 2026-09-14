@@ -1,8 +1,29 @@
 name: "[Prod] Release"
 
 on:
+  push:
+    branches: [production]
   repository_dispatch:
     types: [production_release]
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: 'Commit SHA to release (defaults to the selected ref)'
+        required: false
+        type: string
+      skip_staging:
+        description: 'INCIDENT ONLY: skip staging deploy and E2E'
+        required: false
+        default: false
+        type: boolean
+      emergency_reason:
+        description: 'Incident reason (required when skipping staging)'
+        required: false
+        type: string
+      emergency_confirmation:
+        description: 'Type SKIP STAGING to confirm the emergency bypass'
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -15,7 +36,7 @@ env:
   # Releases are identified by the immutable commit SHA supplied by the
   # dispatcher. This deliberately decouples deployment from package semver:
   # frontend, E2E and infrastructure fixes do not need a fake version bump.
-  RELEASE_SHA: ${{ github.event.client_payload.release_sha || github.sha }}
+  RELEASE_SHA: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
 
 # A failed release may still be rolling the stack back. Keep the next tag from
 # deploying over that recovery or capturing the failed revision as its fallback.
@@ -24,13 +45,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject forced production updates
+        if: github.event_name == 'push' && github.event.forced
+        run: |
+          echo "::error::Force-pushing production cannot trigger a release. Use the manual incident workflow instead."
+          exit 1
+
   staging-e2e:
+    needs: release-policy
     uses: ./.github/workflows/verify-staging-e2e.yml
+    with:
+      release_sha: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+      skip_staging: ${{ inputs.skip_staging || false }}
+      emergency_reason: ${{ inputs.emergency_reason || '' }}
+      emergency_confirmation: ${{ inputs.emergency_confirmation || '' }}
 
   checks:
+    needs: release-policy
     uses: ./.github/workflows/checks.yml
     with:
-      ref: ${{ github.event.client_payload.release_sha || github.sha }}
+      ref: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
       # build-backend below validates and publishes this exact Dockerfile in
       # parallel. Do not repeat the same image build inside the checks job.
       backend_image: false
@@ -294,7 +331,7 @@ jobs:
       # drops `/v1/media/*` and the fingerprinted assets, which is harmless --
       # they are immutable and simply refill from origin.
       #
-      # SAFE ONLY BECAUSE THIS WORKFLOW IS TAG-TRIGGERED. Prod and staging share
+      # SAFE ONLY BECAUSE THIS WORKFLOW IS PRODUCTION-ONLY. Prod and staging share
       # one zone, so the same call from `staging-release.yml` (which runs on
       # every push to main) would throw away production's edge cache. Do not
       # copy this step there.
@@ -592,6 +629,7 @@ jobs:
   notify-failure:
     needs:
       [
+        release-policy,
         checks,
         staging-e2e,
         verify-purge-credentials,

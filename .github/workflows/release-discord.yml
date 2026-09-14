@@ -2,9 +2,22 @@ name: "[Prod] Release Discord"
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [production]
   workflow_dispatch:
+    inputs:
+      skip_staging:
+        description: 'INCIDENT ONLY: skip staging deploy and E2E'
+        required: false
+        default: false
+        type: boolean
+      emergency_reason:
+        description: 'Incident reason (required when skipping staging)'
+        required: false
+        type: string
+      emergency_confirmation:
+        description: 'Type SKIP STAGING to confirm the emergency bypass'
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -13,10 +26,26 @@ permissions:
   id-token: write
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject forced production updates
+        if: github.event_name == 'push' && github.event.forced
+        run: |
+          echo "::error::Force-pushing production cannot trigger a release. Use the manual incident workflow instead."
+          exit 1
+
   staging-e2e:
+    needs: release-policy
     uses: ./.github/workflows/verify-staging-e2e.yml
+    with:
+      release_sha: ${{ github.sha }}
+      skip_staging: ${{ inputs.skip_staging || false }}
+      emergency_reason: ${{ inputs.emergency_reason || '' }}
+      emergency_confirmation: ${{ inputs.emergency_confirmation || '' }}
 
   checks:
+    needs: release-policy
     uses: ./.github/workflows/checks.yml
     with:
       backend: false
@@ -119,7 +148,7 @@ jobs:
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [staging-e2e, checks, build-discord, deploy-discord, promote-discord]
+    needs: [release-policy, staging-e2e, checks, build-discord, deploy-discord, promote-discord]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit
