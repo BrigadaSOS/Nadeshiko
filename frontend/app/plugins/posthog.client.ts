@@ -38,6 +38,7 @@ export default defineNuxtPlugin({
     const common = publicConfig.posthog as { publicKey?: string; host?: string; debug?: boolean } | undefined;
     const clientConfig = (publicConfig.posthogClientConfig ?? {}) as Record<string, unknown>;
     const publicKey = common?.publicKey;
+    const appVersion = typeof publicConfig.appVersion === 'string' ? publicConfig.appVersion : undefined;
 
     // No module, no key, nothing to load. `isAnalyticsEnabled()` stays false and
     // every capture in the app is a cheap no-op, which is what dev and staging
@@ -99,7 +100,7 @@ export default defineNuxtPlugin({
            * autocaptured ones that were never faults (see
            * `~/utils/exceptionNoise`).
            */
-          before_send: buildBeforeSend(),
+          before_send: buildBeforeSend(appVersion),
         });
 
         if (common?.debug) client.debug(true);
@@ -132,10 +133,17 @@ export default defineNuxtPlugin({
  * a later real one -- and composing them here states that, where an array leaves
  * it to the SDK's iteration order.
  */
-function buildBeforeSend(): (event: CaptureResult | null) => CaptureResult | null {
+function buildBeforeSend(appVersion?: string): (event: CaptureResult | null) => CaptureResult | null {
   const isDuplicate = createExceptionDeduper();
 
   return (event) => {
+    // Enrich inside `before_send`, which also sees the automatic pageview
+    // emitted by `init`. Calling `register` after init would leave that first
+    // event without the deploy anchor used during regression triage.
+    if (event && appVersion) {
+      event.properties = { ...event.properties, $app_version: appVersion };
+    }
+
     if (event?.event !== '$exception') return event;
 
     if (isCloudflareChallengeException(event.properties)) {

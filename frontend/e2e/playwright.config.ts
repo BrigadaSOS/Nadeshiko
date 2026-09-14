@@ -134,10 +134,12 @@ export default defineConfig({
   // Production smoke stays serial because its HTML limiter counts bursts like
   // sustained load and intentionally has no origin bypass.
   workers: SMOKE ? 1 : 4,
-  // A retry is valuable evidence, not a pass. In particular, the production
-  // release gate consumes this job's conclusion, so a flaky staging test must
-  // not quietly approve the release.
-  failOnFlakyTests: !!process.env.CI,
+  // A retry is valuable evidence in the full staging gate, which must remain
+  // clean before production can be promoted. Production smoke runs against
+  // live edge infrastructure after that exact SHA has passed staging, so a
+  // transient edge failure that passes its retry should not roll back a sound
+  // release. A failed retry still exits non-zero and triggers rollback.
+  failOnFlakyTests: !!process.env.CI && !SMOKE,
   reporter: process.env.CI
     ? [
         ['html'],
