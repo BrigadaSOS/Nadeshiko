@@ -68,7 +68,7 @@ jobs:
       # briefly for the staging run to appear, then wait for it to complete.
       - name: Require successful staging E2E for this commit
         if: ${{ !inputs.skip_staging }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           RELEASE_SHA: ${{ inputs.release_sha }}
         with:
