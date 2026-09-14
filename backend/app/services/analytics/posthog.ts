@@ -64,6 +64,17 @@ function analyticsClient(): PostHog | null {
 export interface AccountCreatedInput {
   userId: number | string;
   createdAt?: Date | string;
+  /**
+   * The reader's display name as captured at signup -- null for signups that
+   * arrived without one (API-key self-serve currently, but more callers over
+   * time). Optional so callers without it can keep passing a 2-arg shape.
+   */
+  name?: string | null;
+  /**
+   * The reader's email as captured at signup -- null where the signup flow
+   * did not collect one. Optional for the same reason as `name`.
+   */
+  email?: string | null;
 }
 
 /**
@@ -88,6 +99,17 @@ export function captureAccountCreated(input: AccountCreatedInput): void {
         // events never arrive still has a dated person rather than a blank one.
         $set_once: {
           account_created_at: toIsoString(input.createdAt) ?? new Date().toISOString(),
+        },
+        // Names the person server-side, so an account whose first touch is an
+        // API key, a CLI, or a content-blocked browser still shows up under a
+        // human-readable label in PostHog instead of `(unknown)`. `$name` is the
+        // special key posthog-js treats as the display name; `$set` (not
+        // `$set_once`) so a later rename actually renames the person. `name`
+        // and `email` are mirrored as plain fields so a SQL-style query can
+        // select them without knowing the `$` convention.
+        $set: {
+          ...(input.name ? { $name: input.name, name: input.name } : {}),
+          ...(input.email ? { email: input.email } : {}),
         },
       },
     });

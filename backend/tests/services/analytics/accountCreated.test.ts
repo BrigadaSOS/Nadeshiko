@@ -30,6 +30,48 @@ describe('captureAccountCreatedAfterUserCreate', () => {
     expect(capture).toHaveBeenCalledWith({
       userId: '42',
       createdAt: completeUser.createdAt,
+      name: 'someone',
+      email: 'someone@example.test',
+    });
+  });
+
+  it.each([
+    ['an empty string', '', '  '],
+    ['whitespace only', '   ', ''],
+    ['a non-string value', 0 as unknown as string, true as unknown as string],
+  ])('drops name and email when either is %s, so a partial signup cannot blank the person', (_label, name, email) => {
+    // Better-auth can hand the hook an empty/blank value when a field is
+    // collected but not filled in. Shipping either as the empty string would
+    // overwrite the name a later browser identify had already set, leaving the
+    // person with `""` -- which renders as `(unknown)` just the same.
+    const capture = vi.fn();
+
+    captureAccountCreatedAfterUserCreate({ ...completeUser, name, email }, capture);
+
+    expect(capture.mock.calls[0]?.[0]).toEqual({
+      userId: '42',
+      createdAt: completeUser.createdAt,
+      name: null,
+      email: null,
+    });
+  });
+
+  it('only forwards name and email when they are present, so existing call sites stay narrow', () => {
+    // The capture is also reached from paths that do not have a name/email
+    // (tests, older hooks). They must keep working with a 2-arg payload rather
+    // than silently shipping `name: null` everywhere.
+    const capture = vi.fn();
+
+    captureAccountCreatedAfterUserCreate(
+      { id: completeUser.id, name: undefined, email: undefined, createdAt: completeUser.createdAt },
+      capture,
+    );
+
+    expect(capture.mock.calls[0]?.[0]).toEqual({
+      userId: '42',
+      createdAt: completeUser.createdAt,
+      name: null,
+      email: null,
     });
   });
 
