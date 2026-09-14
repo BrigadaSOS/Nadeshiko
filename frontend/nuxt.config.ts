@@ -58,6 +58,10 @@ const TYPEKIT_ORIGIN = 'https://use.typekit.net';
 // not already cost -- `img-src` grants no execution -- and it is the only form
 // that survives YouTube moving between them.
 const YOUTUBE_THUMBNAIL_ORIGIN = 'https://*.ytimg.com';
+// Roadmap cover art returned by AniList's public GraphQL API. This trusts only
+// the dedicated image CDN host, not AniList scripts or API responses.
+const ANILIST_IMAGE_ORIGIN = 'https://s4.anilist.co';
+const MYANIMELIST_IMAGE_ORIGIN = 'https://cdn.myanimelist.net';
 /**
  * Chrome's built-in "Translate this page", which is the same problem as the
  * extensions above and was being broken the same way.
@@ -422,6 +426,8 @@ export default defineNuxtConfig({
               'data:',
               CDN_ORIGIN,
               YOUTUBE_THUMBNAIL_ORIGIN,
+              ANILIST_IMAGE_ORIGIN,
+              MYANIMELIST_IMAGE_ORIGIN,
               GOOGLE_FONTS_STATIC_ORIGIN,
               GOOGLE_TRANSLATE_ORIGIN,
               YANDEX_STATIC_ORIGIN,

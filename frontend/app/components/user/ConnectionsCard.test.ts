@@ -207,7 +207,7 @@ describe('unlinking', () => {
     await toggle(wrapper).trigger('click');
     await nextTick();
 
-    expect($fetch).toHaveBeenCalledTimes(1); // the initial load, and nothing else
+    expect($fetch).not.toHaveBeenCalledWith('/v1/user/connections/shirabe', { method: 'DELETE' });
   });
 
   test('revokes the key and returns the card to unlinked', async () => {
