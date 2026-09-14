@@ -498,10 +498,22 @@ export function captureAccountCreatedAfterUserCreate(
   // ever neither, the capture falls back to the current time instead of throwing
   // inside a sign-up.
   const createdAt = user.createdAt;
+  // `name` and `email` are read off the same hook object, so they go through the
+  // same narrowing: any value that is not a non-empty string is treated as "not
+  // provided" rather than shipped as-is. An empty or whitespace-only string here
+  // would otherwise overwrite a name the browser identify already set -- and the
+  // empty string `""` is exactly what makes PostHog render `(unknown)` in the
+  // first place.
+  const trimmedName = typeof user.name === 'string' ? user.name.trim() : '';
+  const trimmedEmail = typeof user.email === 'string' ? user.email.trim() : '';
+  const name = trimmedName.length > 0 ? trimmedName : null;
+  const email = trimmedEmail.length > 0 ? trimmedEmail : null;
 
   captureFn({
     userId: String(user.id),
     createdAt: createdAt instanceof Date || typeof createdAt === 'string' ? createdAt : undefined,
+    name,
+    email,
   });
 }
 

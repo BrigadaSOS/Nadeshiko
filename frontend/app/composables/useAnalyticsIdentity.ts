@@ -311,6 +311,12 @@ function releaseLegacyIdentity(
 function currentPersonProperties(store: ReturnType<typeof userStore>) {
   return {
     user_id: store.userId ?? undefined,
+    // `$name` is the posthog-js display-name key, set so a person who
+    // identifies from the browser shows up under a human-readable label
+    // rather than the `(unknown)` placeholder -- and so a later rename
+    // updates the same person. `$set` semantics (not `$set_once`): an
+    // account whose name changes should be searchable by the new name.
+    $name: store.userName ?? undefined,
     email_category: emailCategory(store.userEmail),
     role: store.userInfo?.role ?? undefined,
     content_rating: store.preferences?.contentRatingPreferences,
