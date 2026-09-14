@@ -605,6 +605,7 @@ export {
   MediaRoutes,
   SearchRoutes,
   StatsRoutes,
+  RoadmapRoutes,
   ActivityRoutes,
   CollectionsRoutes,
   AdminRoutes,

@@ -39,5 +39,14 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "overrides": {
+    "js-yaml": "^4.3.2",
+    "@usebruno/converters": {
+      "nanoid": "^3.3.18"
+    },
+    "@usebruno/schema": {
+      "nanoid": "^3.3.18"
+    }
   }
 }

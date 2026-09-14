@@ -4466,6 +4466,11 @@ paths:
                 - string
                 - "null"
               format: date
+            introducedInVersion:
+              type:
+                - string
+                - "null"
+              maxLength: 32
             sortOrder:
               type: integer
             proposerName:
@@ -4539,6 +4544,11 @@ paths:
                     - string
                     - "null"
                   format: date
+                introducedInVersion:
+                  type:
+                    - string
+                    - "null"
+                  maxLength: 32
                 sortOrder:
                   type: integer
                 proposerName:
@@ -6913,6 +6923,7 @@ components:
         - sourceUrl
         - coverUrl
         - targetDate
+        - introducedInVersion
         - sortOrder
         - createdAt
         - proposerName
@@ -6955,6 +6966,12 @@ components:
             - string
             - "null"
           format: date
+        introducedInVersion:
+          type:
+            - string
+            - "null"
+          maxLength: 32
+          description: Nadeshiko version that introduced this feature.
         sortOrder:
           type: integer
         createdAt:
@@ -11391,6 +11408,11 @@ components:
             - string
             - "null"
           format: date
+        introducedInVersion:
+          type:
+            - string
+            - "null"
+          maxLength: 32
         sortOrder:
           type: integer
         proposerName:
