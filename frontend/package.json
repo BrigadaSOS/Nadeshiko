@@ -47,6 +47,7 @@
     "@posthog/nuxt": "^1.7.89",
     "@vue/devtools-api": "^8.1.5",
     "gray-matter": "^4.0.3",
+    "js-yaml": "3.15.2",
     "marked": "^18.0.12",
     "nuxt-security": "^2.6.0",
     "nuxt-og-image": "^6.7.8",
