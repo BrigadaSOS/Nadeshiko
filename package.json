@@ -41,8 +41,17 @@
     "node": ">=24"
   },
   "overrides": {
-    "js-yaml": "^4.3.2",
+    "@hey-api/json-schema-ref-parser": {
+      "js-yaml": "^4.3.2"
+    },
+    "@nahkies/openapi-code-generator": {
+      "js-yaml": "^4.3.2"
+    },
+    "@rollup/plugin-yaml": {
+      "js-yaml": "^4.3.2"
+    },
     "@usebruno/converters": {
+      "js-yaml": "^4.3.2",
       "nanoid": "^3.3.18"
     },
     "@usebruno/schema": {
