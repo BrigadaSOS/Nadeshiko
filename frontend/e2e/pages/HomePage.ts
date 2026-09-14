@@ -18,7 +18,8 @@ export class HomePage {
   }
 
   async goto() {
-    await this.page.goto('/');
+    const response = await this.page.goto('/');
+    expect(response?.status(), 'home navigation should return HTTP 200').toBe(200);
   }
 
   async search(query: string) {

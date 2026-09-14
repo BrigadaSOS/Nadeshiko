@@ -481,6 +481,34 @@ describe('clearing the list', () => {
     release({});
     await first;
   });
+
+  test('waits for an older account read before deleting and emptying the list', async () => {
+    user.isLoggedIn = true;
+    const order: string[] = [];
+    let finishLoad: (value: { activities: ReturnType<typeof activity>[] }) => void = () => {};
+    sdk.listUserActivity.mockReturnValue(
+      new Promise((resolve) => {
+        finishLoad = resolve;
+      }).then((data) => {
+        order.push('load');
+        return data;
+      }),
+    );
+    sdk.deleteUserActivity.mockImplementation(async () => void order.push('delete'));
+    const recents = (await loadComposable())();
+
+    const loading = recents.load();
+    const clearing = recents.clear();
+    await Promise.resolve();
+
+    expect(sdk.deleteUserActivity).not.toHaveBeenCalled();
+    finishLoad({ activities: [activity(7, 'stale')] });
+    await loading;
+    await clearing;
+
+    expect(order).toEqual(['load', 'delete']);
+    expect(recents.recents.value).toEqual([]);
+  });
 });
 
 describe('narrowing to what is in the box', () => {

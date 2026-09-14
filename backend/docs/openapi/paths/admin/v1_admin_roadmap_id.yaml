@@ -1,0 +1,43 @@
+patch:
+  tags: [Admin]
+  x-internal: true
+  operationId: updateAdminRoadmapItem
+  summary: Approve, reject, edit, or reorder a roadmap item
+  description: Updates one proposal or roadmap item; moving a proposal to a public stage publishes it.
+  security:
+    - SessionCookie: [ADMIN]
+  parameters:
+    - in: path
+      name: itemId
+      description: Public UUID of the roadmap item.
+      required: true
+      schema: { type: string, format: uuid }
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          minProperties: 1
+          properties:
+            kind: { type: string, enum: [CONTENT, FEATURE] }
+            status: { type: string, enum: [PROPOSED, CONSIDERING, PLANNED, IN_PROGRESS, RELEASED, DECLINED] }
+            title: { type: string, minLength: 1, maxLength: 180 }
+            description: { type: string, maxLength: 2000 }
+            sourceUrl: { type: [string, "null"], format: uri, maxLength: 1000 }
+            coverUrl: { type: [string, "null"], format: uri, maxLength: 1000 }
+            targetDate: { type: [string, "null"], format: date }
+            introducedInVersion: { type: [string, "null"], maxLength: 32 }
+            sortOrder: { type: integer }
+            proposerName: { type: [string, "null"], maxLength: 80 }
+  responses:
+    "200":
+      description: Updated
+      content:
+        application/json:
+          schema: { $ref: "../../components/schemas/RoadmapItem.yaml" }
+    "400": { $ref: "../../components/responses/BadRequest.yaml" }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "403": { $ref: "../../components/responses/Forbidden.yaml" }
+    "404": { $ref: "../../components/responses/NotFound.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }

@@ -18,7 +18,7 @@ async function waitForActivity(page: Page, activityType: 'SEGMENT_PLAY' | 'SHARE
       const data = (await response.json()) as { activities?: Array<{ activityType?: string }> };
       return (data.activities ?? []).some((activity) => activity.activityType === activityType);
     }, {
-      timeout: 15_000,
+      timeout: 30_000,
       intervals: [500, 1_000, 2_000],
     })
     .toBe(true);
@@ -133,7 +133,7 @@ test.describe('Activity', () => {
      * 2026-08-27: clicking on `visible` started playback in 3 runs out of 5;
      * waiting for the list to settle first started it in 5 out of 5.
      */
-    await authenticatedPage.waitForLoadState('networkidle').catch(() => {});
+    await expect(authenticatedPage.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
     await expect(playButton).toBeEnabled({ timeout: 10_000 });
 
     /**

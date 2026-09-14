@@ -29,19 +29,36 @@
  * does.
  */
 
+import indonesianLabels from '../../i18n/word-tags/id.json';
+import brazilianPortugueseLabels from '../../i18n/word-tags/pt-BR.json';
+import chineseLabels from '../../i18n/word-tags/zh-CN.json';
+import traditionalChineseLabels from '../../i18n/word-tags/zh-Hant.json';
+
 /** The languages a chip can be written in. Wider than `GlossLanguage`: this is
  *  the interface language, and Nadeshiko ships a Japanese one even though no
  *  dictionary writes definitions in Japanese. */
-export type TagLanguage = 'en' | 'es' | 'ja';
+export type TagLanguage = 'en' | 'es' | 'ja' | 'zh-CN' | 'zh-Hant' | 'id' | 'pt-BR';
 
 export function tagLanguage(uiLocale: string): TagLanguage {
   if (uiLocale === 'es') return 'es';
   if (uiLocale === 'ja') return 'ja';
+  if (uiLocale === 'zh') return 'zh-CN';
+  if (uiLocale === 'zh-hant') return 'zh-Hant';
+  if (uiLocale === 'id') return 'id';
+  if (uiLocale === 'pt-BR') return 'pt-BR';
   return 'en';
 }
 
 /** en / es / ja for one Legend slug. `ja` omitted where Shirabe has no term. */
-type LegendLabel = { en: string; es: string; ja?: string };
+type LegendLabel = {
+  en: string;
+  es: string;
+  ja?: string;
+  'zh-CN'?: string;
+  'zh-Hant'?: string;
+  id?: string;
+  'pt-BR'?: string;
+};
 
 const LEGEND_LABELS: Record<string, LegendLabel> = {
   // Parts of speech.
@@ -112,6 +129,26 @@ const LEGEND_LABELS: Record<string, LegendLabel> = {
   // Legend: the chips keep their own labels, the class is explained once.
   'name-entity': { en: 'Name / entity', es: 'Nombre / entidad', ja: '固有名詞' },
 };
+
+for (const [slug, label] of Object.entries(indonesianLabels)) {
+  const entry = LEGEND_LABELS[slug];
+  if (entry) entry.id = label;
+}
+
+for (const [slug, label] of Object.entries(chineseLabels)) {
+  const entry = LEGEND_LABELS[slug];
+  if (entry) entry['zh-CN'] = label;
+}
+
+for (const [slug, label] of Object.entries(traditionalChineseLabels)) {
+  const entry = LEGEND_LABELS[slug];
+  if (entry) entry['zh-Hant'] = label;
+}
+
+for (const [slug, label] of Object.entries(brazilianPortugueseLabels)) {
+  const entry = LEGEND_LABELS[slug];
+  if (entry) entry['pt-BR'] = label;
+}
 
 /** JMdict part-of-speech code → slug, for the codes that map exactly. The verb
  *  and adjective families are matched by prefix in `posSlug` instead, because
@@ -265,5 +302,5 @@ export function tagLabel(category: string, code: string, full: string, lang: Tag
   // Japanese falls back to English, not to Spanish: the Legend leaves a few
   // terms without a Japanese word, and English is the language the rest of a
   // Japanese-interface reader's card is already in.
-  return (lang === 'ja' ? entry.ja : entry[lang]) ?? entry.en;
+  return entry[lang] ?? entry.en;
 }

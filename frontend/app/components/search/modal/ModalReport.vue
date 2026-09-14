@@ -273,10 +273,12 @@ const submitReport = async () => {
 
         <!-- Description -->
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">
+          <label for="report-description" class="block text-sm font-medium text-gray-300 mb-1">
             {{ t('reports.description') }}
           </label>
           <textarea
+            id="report-description"
+            data-testid="report-description"
             v-model="form.description"
             maxlength="1000"
             rows="3"
@@ -296,6 +298,7 @@ const submitReport = async () => {
           {{ t('reports.cancel') }}
         </button>
         <button
+          data-testid="report-submit"
           type="button"
           :disabled="isSubmitting || !form.reason"
           class="nd-btn-accent"

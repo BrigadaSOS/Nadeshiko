@@ -1,0 +1,62 @@
+get:
+  tags: [Admin]
+  x-internal: true
+  operationId: listAdminRoadmap
+  summary: List every roadmap item, including pending proposals
+  description: Returns the moderation queue and public items, including requester ids for administrative review.
+  security:
+    - SessionCookie: [ADMIN]
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items]
+            properties:
+              items:
+                type: array
+                items: { $ref: "../../components/schemas/RoadmapItem.yaml" }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "403": { $ref: "../../components/responses/Forbidden.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }
+post:
+  tags: [Admin]
+  x-internal: true
+  operationId: createAdminRoadmapItem
+  summary: Add content or a feature to the roadmap
+  description: Creates a team-authored item directly in a public roadmap stage.
+  security:
+    - SessionCookie: [ADMIN]
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "#/components/schemas/RoadmapItemWrite" }
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema: { $ref: "../../components/schemas/RoadmapItem.yaml" }
+    "400": { $ref: "../../components/responses/BadRequest.yaml" }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "403": { $ref: "../../components/responses/Forbidden.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }
+components:
+  schemas:
+    RoadmapItemWrite:
+      type: object
+      required: [kind, status, title]
+      properties:
+        kind: { type: string, enum: [CONTENT, FEATURE] }
+        status: { type: string, enum: [CONSIDERING, PLANNED, IN_PROGRESS, RELEASED] }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string, maxLength: 2000 }
+        sourceUrl: { type: [string, "null"], format: uri, maxLength: 1000 }
+        coverUrl: { type: [string, "null"], format: uri, maxLength: 1000 }
+        targetDate: { type: [string, "null"], format: date }
+        introducedInVersion: { type: [string, "null"], maxLength: 32 }
+        sortOrder: { type: integer }
+        proposerName: { type: [string, "null"], maxLength: 80 }

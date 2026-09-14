@@ -13,3 +13,4 @@
 # you learned over the same untrusted channel proves nothing.
 #
 # Replace the keys here whenever the host is rebuilt or its keys are rotated.
+nadeshiko ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIRH7yWpSYXLu/3P1tdK7GlUNf4l7un/AtqU7hF9uQem

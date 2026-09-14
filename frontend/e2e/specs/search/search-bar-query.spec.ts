@@ -47,7 +47,11 @@ test.describe('The search bar shows the search in the URL', () => {
 
     await page.goBack();
     await page.waitForURL(/\/search\/%E5%AD%A6%E6%A0%A1$/, { timeout: 15_000, waitUntil: 'commit' });
-    await expect(search.searchInput).toHaveValue('学校');
+    // History navigation can commit while the incoming Suspense page is still
+    // an empty shell. The search input is mounted immediately, but its route
+    // watcher updates the value as the incoming page becomes active. Wait for
+    // that observable contract instead of racing the watcher at mount time.
+    await expect(search.searchInput).toHaveValue('学校', { timeout: 15_000 });
   });
 
   test('a search page with no query leaves the bar empty', async ({ page }) => {

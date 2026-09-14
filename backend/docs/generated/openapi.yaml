@@ -22,7 +22,7 @@ info:
     ### Quota
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
-  version: 2.4.15
+  version: 2.4.19
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -56,6 +56,8 @@ tags:
   - name: Stats
     description: |
       Statistics endpoints for corpus coverage and word frequency data.
+  - name: Roadmap
+    description: Public content queue and feature roadmap.
   - name: Admin
     x-internal: true
     description: |
@@ -70,6 +72,88 @@ tags:
       Recipient-facing controls for the mail we send. Reachable without a session
       because they are used from an email client, not from the site.
 paths:
+  /v1/roadmap:
+    get:
+      tags:
+        - Roadmap
+      x-internal: true
+      operationId: listRoadmap
+      summary: List the public content and feature roadmap
+      description: Returns published roadmap stages only; private proposals and requester identities never appear.
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - patreonUrl
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoadmapItem'
+                  patreonUrl:
+                    type: string
+                    format: uri
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/roadmap/proposals:
+    post:
+      tags:
+        - Roadmap
+      x-internal: true
+      operationId: createRoadmapProposal
+      summary: Propose content for Nadeshiko
+      description: Creates a private proposal after verifying the signed-in reader's active Nadeshiko Patreon membership.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sourceUrl
+              properties:
+                sourceUrl:
+                  type: string
+                  format: uri
+                  maxLength: 1000
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 180
+                note:
+                  type: string
+                  maxLength: 2000
+                proposerName:
+                  type: string
+                  maxLength: 80
+                  description: Optional name to show publicly if the proposal is approved.
+      responses:
+        '201':
+          description: Submitted for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /v1/search:
     post:
       tags:
@@ -1728,6 +1812,133 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/patreon:
+    get:
+      tags:
+        - User
+      x-internal: true
+      operationId: getPatreonConnection
+      summary: Read the linked Patreon account and current membership
+      description: Refreshes and returns the safe, displayable state of the reader's Patreon connection.
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                  - patreonUrl
+                properties:
+                  connection:
+                    anyOf:
+                      - $ref: '#/components/schemas/PatreonConnection'
+                      - type: 'null'
+                  patreonUrl:
+                    type: string
+                    format: uri
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: startPatreonLink
+      summary: Begin Patreon OAuth linking
+      description: Returns Patreon's authorization URL with sealed state bound to the signed-in reader.
+      security:
+        - SessionCookie: []
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authorizeUrl
+                  - state
+                properties:
+                  authorizeUrl:
+                    type: string
+                    format: uri
+                  state:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - User
+      x-internal: true
+      operationId: unlinkPatreon
+      summary: Forget the linked Patreon account
+      description: Deletes the local encrypted Patreon credentials and membership snapshot.
+      security:
+        - SessionCookie: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /v1/user/connections/patreon/callback:
+    post:
+      tags:
+        - User
+      x-internal: true
+      operationId: completePatreonLink
+      summary: Complete Patreon OAuth linking
+      description: Exchanges a one-time OAuth code and verifies membership in the configured Nadeshiko campaign.
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - state
+              properties:
+                code:
+                  type: string
+                  minLength: 1
+                state:
+                  type: string
+                  minLength: 1
+      responses:
+        '200':
+          description: Linked
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connection
+                properties:
+                  connection:
+                    $ref: '#/components/schemas/PatreonConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /v1/user/excluded-media:
@@ -3735,6 +3946,219 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /v1/admin/roadmap:
+    get:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: listAdminRoadmap
+      summary: List every roadmap item, including pending proposals
+      description: Returns the moderation queue and public items, including requester ids for administrative review.
+      security:
+        - SessionCookie:
+            - ADMIN
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoadmapItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: createAdminRoadmapItem
+      summary: Add content or a feature to the roadmap
+      description: Creates a team-authored item directly in a public roadmap stage.
+      security:
+        - SessionCookie:
+            - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoadmapItemWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    components:
+      schemas:
+        RoadmapItemWrite:
+          type: object
+          required:
+            - kind
+            - status
+            - title
+          properties:
+            kind:
+              type: string
+              enum:
+                - CONTENT
+                - FEATURE
+            status:
+              type: string
+              enum:
+                - CONSIDERING
+                - PLANNED
+                - IN_PROGRESS
+                - RELEASED
+            title:
+              type: string
+              minLength: 1
+              maxLength: 180
+            description:
+              type: string
+              maxLength: 2000
+            sourceUrl:
+              type:
+                - string
+                - 'null'
+              format: uri
+              maxLength: 1000
+            coverUrl:
+              type:
+                - string
+                - 'null'
+              format: uri
+              maxLength: 1000
+            targetDate:
+              type:
+                - string
+                - 'null'
+              format: date
+            introducedInVersion:
+              type:
+                - string
+                - 'null'
+              maxLength: 32
+            sortOrder:
+              type: integer
+            proposerName:
+              type:
+                - string
+                - 'null'
+              maxLength: 80
+  /v1/admin/roadmap/{itemId}:
+    patch:
+      tags:
+        - Admin
+      x-internal: true
+      operationId: updateAdminRoadmapItem
+      summary: Approve, reject, edit, or reorder a roadmap item
+      description: Updates one proposal or roadmap item; moving a proposal to a public stage publishes it.
+      security:
+        - SessionCookie:
+            - ADMIN
+      parameters:
+        - in: path
+          name: itemId
+          description: Public UUID of the roadmap item.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - CONTENT
+                    - FEATURE
+                status:
+                  type: string
+                  enum:
+                    - PROPOSED
+                    - CONSIDERING
+                    - PLANNED
+                    - IN_PROGRESS
+                    - RELEASED
+                    - DECLINED
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 180
+                description:
+                  type: string
+                  maxLength: 2000
+                sourceUrl:
+                  type:
+                    - string
+                    - 'null'
+                  format: uri
+                  maxLength: 1000
+                coverUrl:
+                  type:
+                    - string
+                    - 'null'
+                  format: uri
+                  maxLength: 1000
+                targetDate:
+                  type:
+                    - string
+                    - 'null'
+                  format: date
+                introducedInVersion:
+                  type:
+                    - string
+                    - 'null'
+                  maxLength: 32
+                sortOrder:
+                  type: integer
+                proposerName:
+                  type:
+                    - string
+                    - 'null'
+                  maxLength: 80
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 components:
   securitySchemes:
     ApiKey:
@@ -3748,6 +4172,293 @@ components:
       name: nadeshiko.session_token
       description: Session authentication via cookie
   schemas:
+    RoadmapItem:
+      type: object
+      required:
+        - id
+        - kind
+        - status
+        - title
+        - description
+        - sourceUrl
+        - coverUrl
+        - targetDate
+        - introducedInVersion
+        - sortOrder
+        - createdAt
+        - proposerName
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+            - CONTENT
+            - FEATURE
+        status:
+          type: string
+          enum:
+            - PROPOSED
+            - CONSIDERING
+            - PLANNED
+            - IN_PROGRESS
+            - RELEASED
+            - DECLINED
+        title:
+          type: string
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 2000
+        sourceUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+        coverUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+        targetDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        introducedInVersion:
+          type:
+            - string
+            - 'null'
+          maxLength: 32
+          description: Nadeshiko version that introduced this feature.
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        proposerName:
+          type:
+            - string
+            - 'null'
+          maxLength: 80
+          description: Optional public credit chosen by the proposer or an admin.
+        requesterUserId:
+          type:
+            - integer
+            - 'null'
+          description: Present on admin responses only.
+    Error429:
+      type: object
+      description: Too Many Requests error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - RATE_LIMIT_EXCEEDED
+            - QUOTA_EXCEEDED
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 429
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error500:
+      type: object
+      description: Internal Server Error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - INTERNAL_SERVER_EXCEPTION
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 500
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error400:
+      type: object
+      description: Bad Request error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - VALIDATION_FAILED
+            - INVALID_JSON
+            - INVALID_REQUEST
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 400
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error401:
+      type: object
+      description: Unauthorized error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - AUTH_CREDENTIALS_REQUIRED
+            - AUTH_CREDENTIALS_INVALID
+            - AUTH_CREDENTIALS_EXPIRED
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 401
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
+    Error403:
+      type: object
+      description: Forbidden error response
+      required:
+        - code
+        - title
+        - detail
+        - status
+      properties:
+        code:
+          type: string
+          description: Specific error code for programmatic handling
+          enum:
+            - ACCESS_DENIED
+            - INSUFFICIENT_PERMISSIONS
+        title:
+          type: string
+          minLength: 1
+          description: A short, human-readable summary of the problem
+        detail:
+          type: string
+          minLength: 1
+          description: A human-readable explanation specific to this occurrence
+        type:
+          type: string
+          format: uri
+          minLength: 1
+          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
+        instance:
+          type: string
+          minLength: 1
+          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
+        status:
+          type: integer
+          description: The HTTP status code
+          enum:
+            - 403
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Optional map of field names to their error messages (for validation errors)
     SearchQuery:
       type: object
       description: What to search for (omit for queryless browse/stats)
@@ -4503,217 +5214,6 @@ components:
               description: Media objects keyed by publicId. Present only when `include[]=media` is requested.
         pagination:
           $ref: '#/components/schemas/SearchPagination'
-    Error400:
-      type: object
-      description: Bad Request error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - VALIDATION_FAILED
-            - INVALID_JSON
-            - INVALID_REQUEST
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 400
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error401:
-      type: object
-      description: Unauthorized error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - AUTH_CREDENTIALS_REQUIRED
-            - AUTH_CREDENTIALS_INVALID
-            - AUTH_CREDENTIALS_EXPIRED
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 401
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error403:
-      type: object
-      description: Forbidden error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - ACCESS_DENIED
-            - INSUFFICIENT_PERMISSIONS
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 403
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error429:
-      type: object
-      description: Too Many Requests error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - RATE_LIMIT_EXCEEDED
-            - QUOTA_EXCEEDED
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 429
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
-    Error500:
-      type: object
-      description: Internal Server Error response
-      required:
-        - code
-        - title
-        - detail
-        - status
-      properties:
-        code:
-          type: string
-          description: Specific error code for programmatic handling
-          enum:
-            - INTERNAL_SERVER_EXCEPTION
-        title:
-          type: string
-          minLength: 1
-          description: A short, human-readable summary of the problem
-        detail:
-          type: string
-          minLength: 1
-          description: A human-readable explanation specific to this occurrence
-        type:
-          type: string
-          format: uri
-          minLength: 1
-          description: A URI reference that identifies the problem type (e.g., GitHub issues link)
-        instance:
-          type: string
-          minLength: 1
-          description: A URI reference that identifies the specific occurrence (e.g., trace ID)
-        status:
-          type: integer
-          description: The HTTP status code
-          enum:
-            - 500
-        errors:
-          type: object
-          additionalProperties:
-            type: string
-          description: Optional map of field names to their error messages (for validation errors)
     Error503:
       type: object
       description: Service Unavailable error response
@@ -6289,6 +6789,39 @@ components:
           format: date-time
           nullable: true
           description: When the stack was last re-read from Shirabe.
+    PatreonConnection:
+      type: object
+      required:
+        - linked
+        - fullName
+        - active
+        - patronStatus
+        - entitledAmountCents
+        - membershipCheckedAt
+        - linkedAt
+      properties:
+        linked:
+          type: boolean
+          const: true
+        fullName:
+          type:
+            - string
+            - 'null'
+        active:
+          type: boolean
+        patronStatus:
+          type:
+            - string
+            - 'null'
+        entitledAmountCents:
+          type: integer
+          minimum: 0
+        membershipCheckedAt:
+          type: string
+          format: date-time
+        linkedAt:
+          type: string
+          format: date-time
     ReportTargetMedia:
       type: object
       required:
@@ -7696,7 +8229,89 @@ components:
             is reviewable later; the old model's whole problem was that a raised limit
             carried no record of the decision behind it.
           example: 'Support ticket #412 - open-source dictionary integration'
+    RoadmapItemWrite:
+      type: object
+      required:
+        - kind
+        - status
+        - title
+      properties:
+        kind:
+          type: string
+          enum:
+            - CONTENT
+            - FEATURE
+        status:
+          type: string
+          enum:
+            - CONSIDERING
+            - PLANNED
+            - IN_PROGRESS
+            - RELEASED
+        title:
+          type: string
+          minLength: 1
+          maxLength: 180
+        description:
+          type: string
+          maxLength: 2000
+        sourceUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+          maxLength: 1000
+        coverUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+          maxLength: 1000
+        targetDate:
+          type:
+            - string
+            - 'null'
+          format: date
+        introducedInVersion:
+          type:
+            - string
+            - 'null'
+          maxLength: 32
+        sortOrder:
+          type: integer
+        proposerName:
+          type:
+            - string
+            - 'null'
+          maxLength: 80
   examples:
+    RateLimitExceeded:
+      summary: Rate Limit Exceeded
+      value:
+        code: RATE_LIMIT_EXCEEDED
+        title: Rate Limit Exceeded
+        detail: You have made too many requests. Please slow down and try again later.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 429
+    QuotaExceeded:
+      summary: Quota Exceeded
+      value:
+        code: QUOTA_EXCEEDED
+        title: Quota Exceeded
+        detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 429
+    InternalServerError:
+      summary: Internal Server Error
+      value:
+        code: INTERNAL_SERVER_EXCEPTION
+        title: Internal Server Error
+        detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
+        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
+        instance: trace-id-placeholder
+        status: 500
     ValidationFailed:
       summary: Validation Failed
       value:
@@ -7755,33 +8370,6 @@ components:
         type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
         instance: trace-id-placeholder
         status: 403
-    RateLimitExceeded:
-      summary: Rate Limit Exceeded
-      value:
-        code: RATE_LIMIT_EXCEEDED
-        title: Rate Limit Exceeded
-        detail: You have made too many requests. Please slow down and try again later.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
-        instance: trace-id-placeholder
-        status: 429
-    QuotaExceeded:
-      summary: Quota Exceeded
-      value:
-        code: QUOTA_EXCEEDED
-        title: Quota Exceeded
-        detail: You have exceeded your monthly API quota. Please upgrade your plan or wait until next month.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
-        instance: trace-id-placeholder
-        status: 429
-    InternalServerError:
-      summary: Internal Server Error
-      value:
-        code: INTERNAL_SERVER_EXCEPTION
-        title: Internal Server Error
-        detail: An unexpected error occurred on our end. Please try again later. If the problem persists, please report this issue.
-        type: https://github.com/BrigadaSOS/Nadeshiko/issues/new?template=bug_report.yml
-        instance: trace-id-placeholder
-        status: 500
     ServiceOverloaded:
       summary: Service Overloaded
       value:
@@ -7819,6 +8407,26 @@ components:
         instance: trace-id-placeholder
         status: 404
   responses:
+    TooManyRequests:
+      description: Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error429'
+          examples:
+            RateLimitExceeded:
+              $ref: '#/components/examples/RateLimitExceeded'
+            QuotaExceeded:
+              $ref: '#/components/examples/QuotaExceeded'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error500'
+          examples:
+            InternalServerError:
+              $ref: '#/components/examples/InternalServerError'
     BadRequest:
       description: Bad Request
       content:
@@ -7852,26 +8460,6 @@ components:
           examples:
             InsufficientPermissions:
               $ref: '#/components/examples/InsufficientPermissions'
-    TooManyRequests:
-      description: Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error429'
-          examples:
-            RateLimitExceeded:
-              $ref: '#/components/examples/RateLimitExceeded'
-            QuotaExceeded:
-              $ref: '#/components/examples/QuotaExceeded'
-    InternalServerError:
-      description: Internal Server Error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error500'
-          examples:
-            InternalServerError:
-              $ref: '#/components/examples/InternalServerError'
     ServiceUnavailable:
       description: Service Unavailable. The server is already running as many requests of this kind as it can and refused this one rather than queue it. Nothing about the caller was counted -- this is not a rate limit -- so there is no budget to stay inside; wait the number of seconds in the `Retry-After` header and send the same request again.
       headers:

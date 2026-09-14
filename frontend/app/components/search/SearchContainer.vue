@@ -319,7 +319,7 @@ const animeTabName = computed(() => {
     if (mediaSource) {
       let name = mediaName(mediaSource);
       if (episode.value !== null) {
-        name += `, ${t('searchpage.main.labels.episode')} ${episode.value}`;
+        name += `, ${t('searchpage.main.labels.episode', { number: episode.value })}`;
       }
       return name;
     }
@@ -781,7 +781,7 @@ const selectedMediaTabName = computed(() => {
   const stat = (searchData.value?.media || []).find((item) => item.mediaPublicId === media.value);
   const source = stat || searchData.value?.results?.[0]?.media || null;
   const name = source ? mediaName(source) : props.mediaDisplayName || t('searchContainer.selectedMediaFallback');
-  return episode.value !== null ? `${name}, ${t('searchpage.main.labels.episode')} ${episode.value}` : name;
+  return episode.value !== null ? `${name}, ${t('searchpage.main.labels.episode', { number: episode.value })}` : name;
 });
 
 const categoryFilter = (categoryKey: string) => {

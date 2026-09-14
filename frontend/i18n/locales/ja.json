@@ -8,18 +8,19 @@
       "home": "ホーム",
       "about": "Nadeshikoについて",
       "api": "API",
-      "login": "ログイン / サインアップ",
+      "login": "ログイン・新規登録",
       "profile": "プロフィール",
-      "privacy": "プライバシー",
+      "privacy": "プライバシーポリシー",
       "dmca": "DMCA",
       "terms": "利用規約",
       "settings": "設定",
       "blog": "ブログ",
       "changelog": "更新履歴",
       "stats": "統計",
-      "media": "メディア",
+      "media": "作品一覧",
+      "roadmap": "Roadmap",
       "collections": "コレクション",
-      "activity": "アクティビティ",
+      "activity": "利用履歴",
       "language": "言語",
       "logout": "ログアウト"
     }
@@ -32,9 +33,10 @@
     }
   },
   "player": {
+    "nowPlaying": "再生中",
     "controls": {
-      "rewind": "巻き戻し",
-      "forward": "早送り",
+      "rewind": "1秒戻る",
+      "forward": "1秒進む",
       "previous": "前のクリップ",
       "next": "次のクリップ",
       "play": "再生",
@@ -50,6 +52,8 @@
     }
   },
   "common": {
+    "loading": "読み込み中…",
+    "example": "例：{value}",
     "cancel": "キャンセル",
     "search": "検索",
     "clearSearch": "検索をクリア",
@@ -57,8 +61,8 @@
     "confirm": "確認",
     "logoAlt": "Nadeshikoのロゴ",
     "navigationMenu": "ナビゲーションメニュー",
-    "searchAnything": "何でも検索",
-    "toggleNavigation": "ナビゲーションを切り替え",
+    "searchAnything": "単語やフレーズを検索",
+    "toggleNavigation": "メニューを開く・閉じる",
     "translationUnavailable": "このページはまだお使いの言語に翻訳されていないため、英語版を表示しています。",
     "justNow": "たった今",
     "skipToContent": "本文へスキップ"
@@ -66,80 +70,84 @@
   "appMeta": {
     "defaultTitle": "Nadeshiko：アニメ・ドラマ・YouTubeの日本語例文を検索",
     "defaultPageTitle": "アニメ・ドラマ・YouTubeの日本語例文を検索",
-    "defaultDescription": "アニメ・ドラマ・YouTubeから100万件以上の日本語例文を検索。すべてに音声とスクリーンショット、文脈つきの翻訳が付いています。センテンスマイニングに最適です。"
+    "defaultDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。音声や画像、翻訳で使い方を確認し、Ankiの学習カードに取り込めます。"
   },
   "home": {
+    "supportOnPatreon": "Patreonで支援する",
     "version": "v{version}",
-    "nadeDbDescription": "アニメ・ドラマ・YouTubeから100万件以上の日本語例文を検索。すべてに音声とスクリーンショット、文脈つきの翻訳が付いています。センテンスマイニングに最適です。",
+    "nadeDbDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。音声や画像、翻訳で使い方を確認し、Ankiの学習カードに取り込めます。{sentenceMining}に最適です。",
+    "sentenceMiningLabel": "例文採集（センテンスマイニング）",
     "nadeDbDescriptionJpSearch": "日本語で検索",
-    "nadeDbDescriptionOtherSearch": "英語またはスペイン語で検索",
-    "nadeDbDescriptionExclusiveSearch": "限定検索",
+    "nadeDbDescriptionOtherSearch": "英語で検索",
+    "nadeDbDescriptionExclusiveSearch": "特定の単語を除外して検索",
     "nadeDbDescriptionExactSearch": "完全一致検索",
     "keyFeatures": {
       "feature1": {
         "title": "Ankiに書き出し",
-        "description": "スクリーンショット、音声、複数の言語を含む文をAnkiに書き出せます。"
+        "description": "例文を画像・音声・翻訳と一緒にAnkiに書き出せます。"
       },
       "feature2": {
-        "title": "文を保存",
-        "description": "画像、音声、動画などの形式で文を保存できます。"
+        "title": "画像・音声・動画を保存",
+        "description": "例文の画像や音声、動画をダウンロードできます。"
       },
       "feature3": {
-        "title": "文の前後の文脈を確認",
-        "description": "文の前後の流れを確認できます。"
+        "title": "前後の会話を確認",
+        "description": "前後の字幕や音声から、どんな場面で使われているかを確認できます。"
       },
       "feature4": {
-        "title": "多様で豊富なコンテンツ",
-        "description": "さまざまなジャンル、メディア、声を楽しめます。"
+        "title": "さまざまな作品から学ぶ",
+        "description": "幅広いジャンルの作品で、さまざまな話し方や表現に触れられます。"
       },
       "feature5": {
-        "title": "Discordとの直接連携",
-        "description": "公式ボットで、サーバーを離れずに130万件以上の同じ例文を検索できます。",
-        "linkText": "ボットをDiscordサーバーに追加しよう！"
+        "title": "Discordからも検索",
+        "description": "公式ボットを使えば、Discord内で130万件以上の例文を検索できます。",
+        "linkText": "ボットをDiscordサーバーに追加"
       }
     },
     "support": {
       "title": "Nadeshikoを応援しませんか？",
-      "description": "このサイトが役に立った場合は、GitHubでの支援、寄付、またはこのサイトを共有することで、今後の開発をサポートできます。"
+      "description": "Nadeshikoが役に立ったら、GitHubでの開発への参加や寄付、サイトの紹介で応援していただけるとうれしいです。"
     },
     "stats": {
-      "sentenceCount": "文",
-      "episodeCount": "エピソード",
+      "sentenceCount": "例文数",
+      "episodeCount": "エピソード数",
       "mediaCount": "作品数"
     }
   },
   "batchSearch": {
-    "title": "同時検索",
-    "description1": "この機能を使うと、複数の単語を一度に検索できます。データベース内で見つかった単語のリストと、その検索へのリンクが表示されます。",
-    "description2": "まずは下のボックスに単語を入力してください。",
+    "title": "まとめて検索",
+    "description1": "複数の単語をまとめて検索し、それぞれの例文の有無と件数を確認できます。結果のリンクから例文を開けます。",
+    "description2": "下の入力欄に調べたい単語を入力してください。",
     "description3": "1行に1単語、またはカンマ区切りで入力してください。",
-    "description4": "最大検索数：",
-    "description5": "500単語まで",
-    "totalWords": "合計単語数",
+    "description4": "一度に検索できるのは",
+    "description5": "500語までです。",
+    "totalWords": "入力した単語数",
     "search": "検索",
     "close": "閉じる",
     "results": {
-      "title": "同時検索 - 結果",
+      "title": "まとめて検索の結果",
       "words": "検索した単語",
-      "wordsWithMatch": "一致した単語",
-      "percentageMatched": "一致率",
+      "wordsWithMatch": "例文が見つかった単語",
+      "percentageMatched": "例文が見つかった割合",
       "wordColumn": "単語",
-      "match": "一致？",
-      "matchesCount": "一致数",
-      "true": "はい",
-      "false": "いいえ",
+      "match": "例文の有無",
+      "matchesCount": "例文数",
+      "true": "あり",
+      "false": "なし",
       "searching": "検索中...",
       "return": "戻る"
     }
   },
   "animeList": {
-    "recentlyAddedTitle": "最近追加されたもの",
+    "recentlyAddedTitle": "最近追加された作品",
     "fullListTitle": "作品一覧",
     "seeAll": "すべて見る",
     "sentenceCount": "文",
     "episodes": "エピソード",
     "videos": "動画",
-    "sentenceCountLabel": "文:",
+    "episodeCount": "{count}話",
+    "videoCount": "{count}本",
+    "sentenceCountLabel": "例文数：",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
@@ -150,61 +158,61 @@
     "updateError": "非表示カテゴリを更新できませんでした。もう一度お試しください。"
   },
   "hiddenMedia": {
-    "updateError": "非表示メディアを更新できませんでした。もう一度お試しください。"
+    "updateError": "作品の非表示設定を更新できませんでした。もう一度お試しください。"
   },
   "favoriteMedia": {
-    "updateError": "お気に入りメディアを更新できませんでした。もう一度お試しください。",
-    "capReached": "お気に入りは最大100件です。追加するには一つ解除してください。"
+    "updateError": "お気に入りを更新できませんでした。もう一度お試しください。",
+    "capReached": "お気に入りに登録できるのは100件までです。追加するには、登録済みの作品を1件外してください。"
   },
   "familiarMedia": {
-    "forgetError": "このタイトルを削除できませんでした。もう一度お試しください。"
+    "forgetError": "この作品の利用記録を削除できませんでした。もう一度お試しください。"
   },
   "mediaBrowse": {
     "nextPage": "次のページ",
     "showHiddenMedia": "非表示の作品を表示",
     "hideHiddenMedia": "非表示の作品を隠す",
-    "loadError": "メディア一覧を読み込めませんでした。",
-    "loadMoreError": "これ以上のメディアを読み込めませんでした。"
+    "loadError": "作品一覧を読み込めませんでした。",
+    "loadMoreError": "続きの作品を読み込めませんでした。"
   },
   "searchSettingsModal": {
     "exactMatchTitle": "完全一致検索",
-    "exactMatchDescription": "活用形やその他の結果を含めずに、完全一致の検索を行います。"
+    "exactMatchDescription": "入力した表現と完全に一致する例文を検索します。別の活用形は含めません。"
   },
   "anki": {
-    "configRequired": "この機能を使用するには、設定でAnkiを設定してください",
+    "configRequired": "この機能を使うには、設定画面でAnkiとの連携を設定してください。",
     "notRunning": "Ankiが応答していません。AnkiConnectアドオンを有効にしたAnkiを起動してから、もう一度お試しください。",
     "keyFieldRequired": "この機能を使うには、Anki設定でキーフィールドを設定してください。",
     "modal": {
-      "title": "コレクション内を検索",
-      "description": "Ankiにあるカードを検索し、画像や音声を追加できます。「キーフィールド」が設定タブで設定されている必要があります。",
+      "title": "Ankiのノートを検索",
+      "description": "Ankiのノートを検索し、例文・画像・音声を書き出すノートを選びます。事前にAnki連携設定で「キーフィールド」を指定してください。",
       "idColumn": "ID",
-      "keyColumn": "キー",
-      "noCardsFound": "カードが見つかりません",
-      "noCardsMessage": "別のクエリを試すか、まず文をマイニングしてください",
-      "validationError": "エラーが発生しました",
-      "errorMessage": "キーフィールドが定義されていません",
-      "errorTip": "Nadeshikoの設定でキーフィールドが定義されていることを確認してください"
+      "keyColumn": "キーフィールドの内容",
+      "noCardsFound": "ノートが見つかりません",
+      "noCardsMessage": "別の単語で検索するか、先にAnkiにノートを追加してください。",
+      "validationError": "Anki連携の設定が必要です",
+      "errorMessage": "キーフィールドが設定されていません。",
+      "errorTip": "NadeshikoのAnki連携設定でキーフィールドを指定してください。"
     },
     "toast": {
-      "noSettings": "設定が見つかりません。設定ページで拡張機能を設定してください。",
-      "miningCard": "カードを処理中...",
+      "noSettings": "Ankiの連携設定が見つかりません。設定画面でAnkiとの連携を設定してください。",
+      "miningCard": "Ankiに書き出し中…",
       "noCardToExport": "エクスポート先のAnkiカードがありません。まずカードを追加してください。",
       "cardFoundInOtherDeck": "カードが見つかりましたが、デッキ「{deck}」にありません。YomitanとNadeshikoが同じデッキを使用しているか確認してください。",
-      "cardAdded": "カードがAnkiに正常に追加されました",
+      "cardAdded": "Ankiに書き出しました",
       "cardAddError": "Ankiにカードを追加できませんでした。エラー: {error}"
     }
   },
   "modalAnkiNotes": {
     "closeSrOnly": "閉じる",
-    "searchPlaceholder": "女"
+    "searchPlaceholder": "検索する単語（例：彼女）"
   },
   "modalBatch": {
     "closeSrOnly": "閉じる",
-    "wordLimitExceeded": "単語数の上限を超えました: {count} / 500",
+    "wordLimitExceeded": "単語数の上限を超えています：{count}語（上限500語）",
     "inputFormatError": "入力形式が正しくありません。カンマと改行が同時に含まれていないか確認してください。",
     "notAvailable": "利用不可",
     "searchError": "単語検索を完了できませんでした。もう一度お試しください。",
-    "searchTypeLabel": "検索タイプ: {type}",
+    "searchTypeLabel": "検索方法：{type}",
     "searchTypeExact": "完全一致",
     "searchTypeNormal": "通常",
     "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n...\n...\n..."
@@ -213,20 +221,20 @@
     "closeSrOnly": "閉じる"
   },
   "modalMediaEdit": {
-    "title": "メディア編集",
+    "title": "作品情報の編集",
     "editButton": "編集",
     "publicId": "公開ID",
     "cover": "カバー画像",
     "banner": "バナー画像",
-    "nameJa": "日本語名",
-    "nameRomaji": "ローマ字名",
-    "nameEn": "英語名",
+    "nameJa": "日本語タイトル",
+    "nameRomaji": "ローマ字タイトル",
+    "nameEn": "英語タイトル",
     "airingFormat": "形式",
     "airingStatus": "放送状況",
     "category": "カテゴリ",
     "genres": "ジャンル",
     "genresPlaceholder": "コメディ, ドラマ, ロマンス",
-    "studio": "スタジオ",
+    "studio": "制作会社",
     "startDate": "開始日",
     "endDate": "終了日",
     "seasonName": "シーズン",
@@ -236,15 +244,15 @@
     "saving": "保存中...",
     "cancel": "キャンセル",
     "close": "閉じる",
-    "saveSuccess": "メディアを更新しました",
-    "saveError": "メディアの更新に失敗しました",
+    "saveSuccess": "作品情報を更新しました",
+    "saveError": "作品情報の更新に失敗しました",
     "delete": "削除",
-    "deleteConfirm": "本当に削除しますか？",
-    "confirmYes": "はい、削除",
-    "confirmNo": "いいえ",
+    "deleteConfirm": "この作品を削除しますか？",
+    "confirmYes": "削除する",
+    "confirmNo": "キャンセル",
     "deleting": "削除中...",
-    "deleteSuccess": "メディアを削除しました",
-    "deleteError": "メディアの削除に失敗しました"
+    "deleteSuccess": "作品を削除しました",
+    "deleteError": "作品の削除に失敗しました"
   },
   "modalSegmentEdit": {
     "title": "例文の編集",
@@ -254,37 +262,37 @@
     "spanish": "スペイン語",
     "machineTranslated": "機械翻訳",
     "status": "ステータス",
-    "contentRating": "コンテンツレーティング",
+    "contentRating": "性的表現の区分",
     "save": "保存",
     "saving": "保存中...",
     "cancel": "キャンセル",
     "close": "閉じる",
     "saveSuccess": "例文を更新しました",
     "saveError": "例文の更新に失敗しました",
-    "timing": "位置とタイミング",
-    "position": "位置",
-    "startTimeMs": "開始 (ms)",
-    "endTimeMs": "終了 (ms)",
-    "ratingAnalysis": "レーティング分析",
-    "ratingAnalysisDesc": "コンテンツレーティングの導出に使用されたWD Tagger v3分類器の出力（スコア/タグ）",
-    "invalidJson": "無効なJSON",
+    "timing": "字幕の順序と表示時間",
+    "position": "字幕番号",
+    "startTimeMs": "開始時間（ミリ秒）",
+    "endTimeMs": "終了時間（ミリ秒）",
+    "ratingAnalysis": "自動判定の詳細",
+    "ratingAnalysisDesc": "性的表現の区分の判定に使用したWD Tagger v3のスコアとタグです。",
+    "invalidJson": "JSONの形式が正しくありません",
     "loading": "読み込み中...",
     "history": "履歴",
-    "historyToggle": "履歴の切り替え",
+    "historyToggle": "編集履歴を開く・閉じる",
     "snapshot": "スナップショット",
     "noRevisions": "編集履歴はまだありません",
     "viewingSnapshot": "スナップショット {n} を表示中",
     "current": "現在",
     "metadata": {
-      "media": "メディア",
-      "episode": "話",
-      "time": "時間",
-      "duration": "長さ",
+      "media": "作品",
+      "episode": "エピソード",
+      "time": "再生位置",
+      "duration": "再生時間",
       "id": "ID",
-      "position": "位置",
+      "position": "字幕番号",
       "publicId": "公開ID",
       "copyPublicId": "公開IDをコピー",
-      "mediaId": "メディアID",
+      "mediaId": "作品ID",
       "hashedId": "ハッシュID",
       "storage": "ストレージ",
       "storagePath": "ストレージパス",
@@ -299,8 +307,8 @@
     "deleteEpisodeError": "エピソードの削除に失敗しました"
   },
   "filterContent": {
-    "searchPlaceholder": "ここで検索",
-    "backToTitles": "タイトル一覧に戻る"
+    "searchPlaceholder": "作品を検索",
+    "backToTitles": "作品一覧に戻る"
   },
   "episodeFilter": {
     "noEpisodes": "エピソードが見つかりませんでした"
@@ -315,30 +323,30 @@
     "main": {
       "translationPreferences": {
         "combinedMenuButton": "翻訳とふりがなの表示",
-        "englishMenu": "英語",
-        "spanishMenu": "スペイン語翻訳",
-        "furiganaMenu": "ふりがな（読み）",
+        "englishMenu": "英語訳",
+        "spanishMenu": "スペイン語訳",
+        "furiganaMenu": "ふりがな",
         "languageSettingsHint": "利用する翻訳言語はアカウント設定で選べます。",
         "modeShown": "表示",
         "modeSpoiler": "ホバーで表示",
         "modeHidden": "非表示",
-        "englishShown": "英語翻訳を表示しました",
-        "englishSpoiler": "英語翻訳をスポイラーモードにしました",
-        "englishHidden": "英語翻訳を非表示にしました",
-        "spanishShown": "スペイン語翻訳を表示しました",
-        "spanishSpoiler": "スペイン語翻訳をスポイラーモードにしました",
-        "spanishHidden": "スペイン語翻訳を非表示にしました",
-        "furiganaShown": "ふりがな（読み）を表示しました",
-        "furiganaSpoiler": "ふりがな（読み）をホバーで表示にしました",
-        "furiganaHidden": "ふりがな（読み）を非表示にしました"
+        "englishShown": "英語訳：表示",
+        "englishSpoiler": "英語訳：ホバーで表示",
+        "englishHidden": "英語訳：非表示",
+        "spanishShown": "スペイン語訳：表示",
+        "spanishSpoiler": "スペイン語訳：ホバーで表示",
+        "spanishHidden": "スペイン語訳：非表示",
+        "furiganaShown": "ふりがな：表示",
+        "furiganaSpoiler": "ふりがな：ホバーで表示",
+        "furiganaHidden": "ふりがな：非表示"
       },
       "buttons": {
-        "addToAnkiLast": "Ankiに追加（最後に追加したカード）",
-        "addToAnkiSearch": "Ankiに追加（コレクションを検索）",
-        "download": "保存",
-        "dl-expanded": "コンテクストオーディオ",
+        "addToAnkiLast": "最後に追加したAnkiカードに書き出す",
+        "addToAnkiSearch": "Ankiのノートを検索して書き出す",
+        "download": "ダウンロード",
+        "dl-expanded": "前後の字幕を含む音声",
         "add": "追加",
-        "video": "画像 + 音声",
+        "video": "動画",
         "image": "画像",
         "audio": "音声",
         "info": "エピソード情報",
@@ -346,8 +354,8 @@
         "jpsentence": "日本語の文",
         "jpsentencehighlight": "日本語の文（単語を強調）",
         "jpsentencefurigana": "日本語の文（ふりがな付き）",
-        "ensentence": "英語の文",
-        "essentence": "スペイン語の文",
+        "ensentence": "英語訳",
+        "essentence": "スペイン語訳",
         "word": "単語",
         "wordreading": "単語の読み",
         "wordfurigana": "単語（ふりがな付き）",
@@ -357,95 +365,101 @@
         "wordpitchnum": "アクセント位置（数字）",
         "wordaudio": "単語の音声",
         "wordinfo": "単語情報",
-        "context": "文脈",
+        "context": "前後の会話",
         "share": "共有",
         "more": "その他",
-        "expandLeft": "左に展開",
-        "expandBoth": "両側に展開",
-        "expandRight": "右に展開",
+        "expandLeft": "前の字幕をつなげる",
+        "expandBoth": "前後の字幕をつなげる",
+        "expandRight": "次の字幕をつなげる",
         "hideMedia": "非表示",
         "unhideMedia": "表示",
-        "favoriteMedia": "お気に入り",
-        "unfavoriteMedia": "お気に入り解除",
+        "favoriteMedia": "お気に入りに追加",
+        "unfavoriteMedia": "お気に入りから外す",
         "addToCollection": "コレクションに追加",
         "manageCollections": "コレクションを管理",
         "collectionsLoading": "コレクションを読み込み中...",
         "collectionsEmpty": "コレクションがまだありません",
         "chooseCollection": "コレクションを選択...",
-        "sortmain": "文を並び替え",
-        "sortlengthnone": "なし",
-        "sortlengthmin": "最短",
-        "sortlengthmax": "最長",
-        "sortasc": "最短",
-        "sortdesc": "最長",
+        "sortmain": "例文の並べ替え",
+        "sortlengthnone": "標準",
+        "sortlengthmin": "短い順",
+        "sortlengthmax": "長い順",
+        "sortasc": "短い順",
+        "sortdesc": "長い順",
         "sorttime_asc": "時系列順",
-        "sorttime_desc": "逆順",
+        "sorttime_desc": "逆時系列順",
         "sortrandom": "ランダム",
-        "wordfrequency": "頻度順位",
+        "wordfrequency": "出現頻度の順位",
         "wordjlpt": "JLPTレベル",
         "wordpitchcategories": "アクセント型",
         "sentencefurigana": "文（ふりがな付き）"
       },
       "labels": {
-        "noresults": "結果が見つかりませんでした...",
-        "episode": "エピソード",
+        "noresults": "例文が見つかりませんでした",
+        "episode": "第{number}話",
         "movie": "映画",
         "hiddenMediaBadge": "非表示",
         "hiddenMediaBadgeTitle": "この作品は非表示リストに入っています",
-        "searchmain": "タイトルを書いてください",
-        "copiedcontent": "内容がクリップボードにコピーされました。",
-        "errorcopiedcontent": "内容のコピーに失敗しました。再試行してください。",
-        "copiedsharingurl": "URLがクリップボードにコピーされました。",
-        "errorcopiedsharingurl": "URLのコピーに失敗しました。再試行してください。",
-        "collectionAdded": "\"{name}\" に追加しました",
-        "collectionAddFailed": "コレクションへの追加に失敗しました。再試行してください。",
-        "mtTooltip": "この文は機械翻訳されたため、正確ではない可能性があります",
+        "searchmain": "作品のタイトルを検索",
+        "copiedcontent": "クリップボードにコピーしました",
+        "errorcopiedcontent": "コピーできませんでした。もう一度お試しください。",
+        "copiedsharingurl": "共有リンクをコピーしました",
+        "errorcopiedsharingurl": "共有リンクをコピーできませんでした。もう一度お試しください。",
+        "collectionAdded": "「{name}」に追加しました",
+        "collectionAddFailed": "コレクションに追加できませんでした。もう一度お試しください。",
+        "mtTooltip": "この訳文は機械翻訳のため、誤りが含まれる場合があります。",
         "zoomedImage": "拡大画像",
         "collectionsLoadFailed": "コレクションを読み込めませんでした。",
-        "collectionRemoveFailed": "この文をコレクションから削除できませんでした。",
+        "collectionRemoveFailed": "この例文をコレクションから削除できませんでした。",
         "downloadFailed": "ファイルをダウンロードできませんでした。もう一度お試しください。"
       }
     },
     "modalcontext": {
       "labels": {
-        "context": "文脈",
-        "loadError": "前後の文脈を読み込めませんでした。"
+        "context": "前後の会話",
+        "loadError": "前後の会話を読み込めませんでした。"
       }
     }
   },
   "activity": {
-    "deleteDayActivity": "この日のアクティビティを削除",
+    "deleteDayActivity": "この日の利用履歴を削除",
     "deletingDayActivity": "削除中..."
   },
   "accountSettings": {
     "menu": {
-      "generalTitle": "一般",
-      "advancedTitle": "高度な設定",
+      "generalTitle": "基本設定",
+      "advancedTitle": "詳細設定",
       "adminTitle": "管理者",
       "tabsAriaLabel": "アカウント設定のセクション"
     },
     "tabs": {
       "settings": "設定",
-      "sync": "Anki同期",
+      "sync": "Anki連携",
       "collections": "コレクション",
-      "activity": "アクティビティ",
-      "media": "メディア",
-      "developer": "開発者",
+      "activity": "利用履歴",
+      "media": "作品の管理",
+      "developer": "開発者向け",
       "users": "ユーザー",
-      "reports": "レポート",
-      "agentActivity": "エージェント履歴",
+      "reports": "問題の報告",
+      "agentActivity": "エージェントの編集履歴",
       "announcement": "お知らせ"
     },
     "dashboard": {
+      "roles": {
+        "ADMIN": "管理者",
+        "MOD": "モデレーター",
+        "USER": "一般ユーザー",
+        "PATREON": "Patreon支援者"
+      },
       "title": "ユーザー",
-      "searchPlaceholder": "メールで検索...",
-      "count": "{count} 人のユーザー",
+      "searchPlaceholder": "メールアドレスで検索…",
+      "count": "ユーザー{count}人",
       "empty": "ユーザーが見つかりません。",
       "table": {
         "name": "名前",
-        "email": "メール",
+        "email": "メールアドレス",
         "role": "権限",
-        "providers": "連携",
+        "providers": "ログイン方法",
         "registered": "登録日",
         "lastUpdate": "最終更新",
         "status": "状態"
@@ -470,10 +484,10 @@
         "next": "次へ"
       },
       "loadError": "ユーザー一覧を読み込めませんでした。",
-      "banSuccess": "{name} を停止しました。",
-      "banError": "{name} を停止できませんでした。",
-      "unbanSuccess": "{name} の停止を解除しました。",
-      "unbanError": "{name} の停止を解除できませんでした。"
+      "banSuccess": "{name}のアカウントを停止しました",
+      "banError": "{name}のアカウントを停止できませんでした。",
+      "unbanSuccess": "{name}のアカウント停止を解除しました",
+      "unbanError": "{name}のアカウント停止を解除できませんでした。"
     },
     "announcement": {
       "title": "お知らせ",
@@ -490,27 +504,27 @@
       "markdownHint": "**太字**、*斜体*、`コード`、[リンク](/media) が使えます。/media のようなサイト内パスはアプリ内で開きます。",
       "activeDescription": "有効にすると、すべての訪問者にバナーが表示されます。",
       "types": {
-        "INFO": "情報",
-        "WARNING": "警告",
+        "INFO": "お知らせ",
+        "WARNING": "重要なお知らせ",
         "MAINTENANCE": "メンテナンス"
       },
       "save": "保存",
       "saving": "保存中...",
-      "deactivate": "無効化",
+      "deactivate": "掲載を停止",
       "updated": "お知らせを更新しました",
       "updateError": "お知らせの更新に失敗しました",
-      "deactivated": "お知らせを無効化しました",
-      "deactivateError": "お知らせの無効化に失敗しました",
+      "deactivated": "お知らせの掲載を停止しました",
+      "deactivateError": "お知らせの掲載を停止できませんでした",
       "fallbackMessage": "お知らせはありません"
     },
     "activity": {
-      "confirmClearHistory": "すべてのアクティビティ履歴を削除しますか？この操作は取り消せません。",
-      "trackingOnToast": "アクティビティ追跡をオンにしました",
-      "trackingOffToast": "アクティビティ追跡をオフにしました",
-      "familiarOnToast": "学習中の作品を記憶します",
-      "familiarOffToast": "学習中の作品を記憶しません",
-      "clearHistoryToast": "アクティビティ履歴を削除しました",
-      "confirmClearDay": "{day} のアクティビティをすべて削除しますか？この操作は取り消せません。",
+      "confirmClearHistory": "すべての利用履歴を削除しますか？この操作は取り消せません。",
+      "trackingOnToast": "利用履歴の記録をオンにしました",
+      "trackingOffToast": "利用履歴の記録をオフにしました",
+      "familiarOnToast": "学習に使った作品の記録をオンにしました",
+      "familiarOffToast": "学習に使った作品の記録をオフにしました",
+      "clearHistoryToast": "利用履歴を削除しました",
+      "confirmClearDay": "{day}の利用履歴をすべて削除しますか？この操作は取り消せません。",
       "ranges": {
         "all": "全期間"
       },
@@ -524,39 +538,39 @@
         "SHARE": "共有"
       },
       "metrics": {
-        "searches": "検索した文",
-        "plays": "再生した音声",
-        "exports": "Anki書き出し",
-        "shares": "共有したリンク"
+        "searches": "検索回数",
+        "plays": "音声再生回数",
+        "exports": "Anki書き出し回数",
+        "shares": "共有回数"
       },
       "overview": {
-        "title": "アクティビティ概要",
-        "description": "検索や学習行動に関する便利な指標です。"
+        "title": "利用状況",
+        "description": "検索・音声再生・Ankiへの書き出し・共有の回数を確認できます。"
       },
       "heatmap": {
-        "title": "アクティビティヒートマップ",
-        "description": "過去 {days} 日間のアクティビティです。日付をクリックすると履歴を絞り込めます。",
+        "title": "日ごとの利用状況",
+        "description": "過去{days}日間の利用状況です。日付をクリックすると、その日の履歴を表示できます。",
         "loading": "ヒートマップを読み込み中...",
         "less": "少",
         "more": "多",
         "records": "{count} 件の記録",
-        "searches": "{count} 件の検索",
-        "plays": "{count} 件の再生",
-        "exports": "{count} 件の書き出し",
-        "shares": "{count} 件の共有",
-        "actions": "{count} 件の操作"
+        "searches": "検索{count}回",
+        "plays": "再生{count}回",
+        "exports": "書き出し{count}回",
+        "shares": "共有{count}回",
+        "actions": "操作{count}回"
       },
       "history": {
-        "title": "アクティビティ履歴",
-        "description": "アカウントの最新イベントです。",
-        "showing": "表示中: {day}",
+        "title": "利用履歴",
+        "description": "最近の検索・再生・書き出し・共有の履歴です。",
+        "showing": "{day}の履歴を表示中",
         "clearDayFilter": "日付フィルターをクリア",
-        "deleteDayTitle": "この日のアクティビティをすべて削除",
+        "deleteDayTitle": "この日の利用履歴をすべて削除",
         "loading": "読み込み中...",
-        "empty": "まだアクティビティは記録されていません。",
-        "emptyForDay": "この日に記録されたアクティビティはありません。",
-        "emptyForType": "この種類のアクティビティは記録されていません。",
-        "inOneTitle": "特定の作品内",
+        "empty": "利用履歴はまだありません。",
+        "emptyForDay": "この日の利用履歴はありません。",
+        "emptyForType": "この種類の利用履歴はありません。",
+        "inOneTitle": "作品を指定した検索",
         "noDetails": "-",
         "remove": "削除",
         "loadMore": "もっと見る",
@@ -568,42 +582,42 @@
       },
       "privacy": {
         "title": "プライバシー",
-        "trackingTitle": "アクティビティ追跡",
-        "trackingDescription": "検索、書き出し、視聴履歴を記録します。最近の検索は検索バーにも表示されます。",
+        "trackingTitle": "利用履歴を記録する",
+        "trackingDescription": "検索・音声再生・Ankiへの書き出し・共有の履歴を記録します。最近の検索は検索バーにも表示されます。",
         "clearHistoryTitle": "履歴を削除",
-        "clearHistoryDescription": "アカウントのアクティビティデータをすべて完全に削除します。",
+        "clearHistoryDescription": "このアカウントの利用履歴をすべて完全に削除します。",
         "clearHistoryButton": "履歴を削除",
         "clearing": "削除中...",
-        "familiarTitle": "学習中の作品を記憶する",
-        "familiarDescription": "作品ごとの月間カウントを保存します。学習中の作品が検索のメディアフィルター上部に表示されます。アクティビティ履歴とは別の設定です。",
-        "familiarListTitle": "気に入っていそうな作品",
+        "familiarTitle": "学習に使った作品を記録する",
+        "familiarDescription": "作品ごとに書き出し・再生・共有の回数を月単位で記録します。学習に使った作品は、検索時の作品フィルターの上部に表示されます。利用履歴の記録とは別に設定できます。",
+        "familiarListTitle": "学習に使った作品",
         "familiarListEmpty": "まだ記録がありません。カードを書き出したりクリップを再生すると、ここに表示されます。",
         "familiarCounts": "{cards}・{plays}・{shares}",
         "forgetTitle": "削除",
-        "forgetTitleHint": "{title} を削除",
-        "familiarCards": "Anki書き出し {count}件",
+        "forgetTitleHint": "「{title}」の利用記録を削除",
+        "familiarCards": "Anki書き出し{count}回",
         "familiarPlays": "再生{count}回",
         "familiarShares": "共有{count}回"
       }
     },
     "developer": {
       "apiUsageTitle": "API使用量",
-      "apiUsageRemaining": "残りリクエスト: {used} / {limit}",
+      "apiUsageRemaining": "使用済みリクエスト数：{used} / {limit}",
       "quotaResets": "{date} にリセットされます",
       "quotaTier": "{tier} プラン",
-      "burstLimit": "これとは別に、各キーは1分あたり{max}リクエストまでです。",
+      "burstLimit": "各APIキーには、別途1分あたり{max}件のリクエスト上限があります。",
       "usageLimitMessage": {
-        "prefix": "API使用上限を増やしたい場合は、以下までご連絡ください"
+        "prefix": "APIの利用上限の引き上げをご希望の場合は、こちらまでご連絡ください："
       },
       "apiKeyManagement": "APIキー管理",
       "addApiKey": "APIキーを追加",
-      "keyCreated": "キー作成完了",
-      "keyCreatedMessage": "このキーを保存してください。再度表示されません。",
+      "keyCreated": "APIキーを作成しました",
+      "keyCreatedMessage": "このキーは一度しか表示されません。コピーして安全な場所に保管してください。",
       "copyApiKey": "APIキーをコピー",
       "copied": "コピーしました",
-      "keyDeactivated": "キー無効化完了",
-      "noKeysFound": "APIキーが見つかりません",
-      "noKeysMessage": "アプリやプロジェクト用に新しいキーを作成しましょう！",
+      "keyDeactivated": "APIキーを無効化しました",
+      "noKeysFound": "APIキーはまだありません",
+      "noKeysMessage": "アプリやプロジェクトからAPIを利用するには、キーを作成してください。",
       "tableHeaders": {
         "name": "名前",
         "key": "キー",
@@ -614,10 +628,10 @@
       "statusActive": "有効",
       "statusInactive": "無効",
       "options": "オプション",
-      "rename": "名前変更",
+      "rename": "名前を変更",
       "deactivate": "無効化",
       "createApiKeyModal": {
-        "title": "APIキー作成",
+        "title": "APIキーの作成",
         "nameLabel": "名前",
         "namePlaceholder": "このAPIキーの名前を入力してください",
         "scopesLabel": "権限",
@@ -636,7 +650,7 @@
         "create": "作成"
       },
       "renameApiKeyModal": {
-        "title": "APIキーの名前変更",
+        "title": "APIキーの名前を変更",
         "nameLabel": "名前",
         "namePlaceholder": "このAPIキーの新しい名前を入力してください",
         "save": "保存"
@@ -647,26 +661,26 @@
       "deactivateKeyError": "APIキーを無効化できませんでした。"
     },
     "account": {
-      "infoTitle": "情報",
+      "infoTitle": "アカウント情報",
       "usernameLabel": "ユーザー名",
-      "emailLabel": "メール",
-      "notAvailable": "利用不可",
+      "emailLabel": "メールアドレス",
+      "notAvailable": "未設定",
       "logout": "ログアウト",
       "loggingOut": "ログアウト中...",
-      "additionalTitle": "エキストラ",
-      "preferencesTitle": "設定",
-      "mediaNameLanguage": "メディア名の表示言語",
-      "mediaNameLanguageDescription": "可能な場合、メディア名は {language} で表示されます。例:",
+      "additionalTitle": "データとアカウントの管理",
+      "preferencesTitle": "表示・検索の設定",
+      "mediaNameLanguage": "作品タイトルの表示言語",
+      "mediaNameLanguageDescription": "対応するタイトルがある場合は、{language}で表示します。例：",
       "mediaNameLanguageOptions": {
         "ENGLISH": "英語",
         "JAPANESE": "日本語",
         "ROMAJI": "ローマ字"
       },
-      "translationLanguages": "辞書の翻訳言語",
-      "translationLanguagesDescription": "辞書コンテンツに表示する翻訳言語を選びます。両方を選ぶと、表示順もここで決まります。",
-      "translationLanguagesLinkedDescription": "辞書の語義は Shirabe の設定に従います。ここでは字幕の翻訳と、その並び順を決めます。",
+      "translationLanguages": "翻訳の表示言語",
+      "translationLanguagesDescription": "字幕の翻訳と辞書の語義を表示する言語を選びます。両方を選ぶ場合は、表示順も指定できます。",
+      "translationLanguagesLinkedDescription": "字幕の翻訳を表示する言語と順序を選びます。辞書の語義はShirabeの設定に従います。",
       "definitionSize": "語義の文字サイズ",
-      "definitionSizeDescription": "単語ポップアップの語義を表示する文字の大きさ。",
+      "definitionSizeDescription": "単語を選ぶと開くポップアップで、語義の文字サイズを変更します。",
       "definitionSizeOptions": {
         "SMALL": "小",
         "MEDIUM": "中",
@@ -678,8 +692,8 @@
         "EN_ES": "英語、スペイン語の順",
         "ES_EN": "スペイン語、英語の順"
       },
-      "defaultSearchCategory": "デフォルトの検索カテゴリ",
-      "defaultSearchCategoryDescription": "検索はこのカテゴリで開きます。カテゴリを指定したリンクが優先されます。",
+      "defaultSearchCategory": "検索時の初期カテゴリ",
+      "defaultSearchCategoryDescription": "検索時に最初に表示するカテゴリを選びます。リンクにカテゴリが指定されている場合は、そちらが優先されます。",
       "motion": "アニメーション",
       "motionOptions": {
         "system": "端末の設定に従う",
@@ -689,17 +703,17 @@
       "motionHint_system": "端末のアクセシビリティ設定（視差効果を減らす）に従います。",
       "motionHint_reduced": "色やフェードの変化は残し、スライドやサイズ変更を伴う動きを止めます。",
       "motionHint_none": "アニメーションを一切行いません。動作がまだ重い場合はこちらを選んでください。",
-      "mediaCard": "作品カード",
+      "mediaCard": "作品情報の表示",
       "mediaCardOptions": {
         "OPEN": "開いた状態で表示",
         "CLOSED": "閉じた状態で表示"
       },
-      "mediaCardHint_OPEN": "作品ページの文の上のカードを開いた状態で表示し、別名・制作会社・放送時期・ジャンル・外部リンクを見せます。カード自体から閉じられます。",
-      "mediaCardHint_CLOSED": "カードを1行（サムネイル・タイトル・件数）で表示します。行をクリックすると詳細が開きます。",
+      "mediaCardHint_OPEN": "作品ページの上部に、別名・制作会社・放送時期・ジャンル・外部リンクを表示します。クリックすると折りたためます。",
+      "mediaCardHint_CLOSED": "作品情報を折りたたみ、画像・タイトル・件数のみを表示します。クリックすると詳細を開けます。",
       "defaultSearchCategoryHiddenOption": "{category}（非表示）",
-      "defaultSearchCategoryHiddenNotice": "{category} は「カテゴリを非表示」で非表示になっているため、再表示するまで検索は「すべて」で開きます。",
-      "dictionaryLinks": "辞書連携",
-      "dictionaryLinksDescription": "トークンのポップアップに表示する辞書リンクを選択します。",
+      "defaultSearchCategoryHiddenNotice": "{category}は非表示に設定されています。表示をオンにするまで、検索時には「すべて」が選択されます。",
+      "dictionaryLinks": "外部辞書へのリンク",
+      "dictionaryLinksDescription": "単語を選ぶと開くポップアップに、どの辞書へのリンクを表示するか選びます。",
       "deleteAccount": "アカウント削除（取り消し不可）",
       "deleteAccountButton": "アカウントを削除",
       "deletingAccount": "削除中...",
@@ -709,8 +723,8 @@
       "exportData": "データをエクスポート",
       "exportDataDescription": "すべてのデータをJSONファイルとしてダウンロードします。",
       "exportingData": "エクスポート中...",
-      "questionableContent": "センシティブコンテンツ",
-      "questionableContentDesc": "きわどいまたは露骨なコンテンツ",
+      "questionableContent": "センシティブな内容の表示",
+      "questionableContentDesc": "性的・露骨な表現を含む画像の扱いを選びます。",
       "contentRatingShow": "表示",
       "contentRatingBlur": "ぼかし（デフォルト）",
       "contentRatingHide": "非表示",
@@ -718,7 +732,7 @@
       "contentRatingHint_blur": "検索結果に含まれますが、ぼかして表示されます",
       "contentRatingHint_hide": "検索結果に含まれません",
       "contentRatingPreview": "検索結果での表示プレビュー",
-      "contentRatingPreviewAlt": "コンテンツ評価サンプルのプレビュー画像",
+      "contentRatingPreviewAlt": "センシティブな画像の表示例",
       "contentRatingHiddenDesc": "非表示。検索結果に含まれません",
       "preferenceSaved": "設定を保存しました",
       "preferenceError": "設定の保存に失敗しました",
@@ -732,37 +746,37 @@
       "productEmailsOffToast": "Nadeshiko からのお知らせメールを受け取りません",
       "changeEmailFailed": "メールアドレスの変更リクエストに失敗しました。",
       "sessions": {
-        "title": "セッション",
+        "title": "ログイン中の端末",
         "refresh": "更新",
-        "logoutOtherDevices": "他の端末をログアウト",
-        "logoutAllSessions": "すべてのセッションをログアウト",
-        "loading": "セッションを読み込み中...",
-        "current": "現在",
-        "revoke": "取り消す",
-        "empty": "有効なセッションがありません。",
-        "confirmRevokeAll": "このセッションを含むすべてのセッションを取り消します。続行しますか？",
+        "logoutOtherDevices": "他の端末からログアウト",
+        "logoutAllSessions": "すべての端末からログアウト",
+        "loading": "ログイン情報を読み込み中…",
+        "current": "この端末",
+        "revoke": "ログアウト",
+        "empty": "ログイン中の端末はありません。",
+        "confirmRevokeAll": "この端末を含むすべての端末からログアウトしますか？",
         "table": {
-          "userAgent": "ユーザーエージェント",
-          "created": "作成日",
+          "userAgent": "端末・ブラウザ",
+          "created": "ログイン日時",
           "expires": "有効期限"
         },
         "errors": {
-          "revokeSingle": "このセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。",
-          "revokeOthers": "他のセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。",
-          "revokeAll": "すべてのセッションを取り消せませんでした。再度ログインしてからもう一度お試しください。"
+          "revokeSingle": "選択した端末からログアウトできませんでした。再度ログインしてからもう一度お試しください。",
+          "revokeOthers": "他の端末からログアウトできませんでした。再度ログインしてからもう一度お試しください。",
+          "revokeAll": "すべての端末からログアウトできませんでした。再度ログインしてからもう一度お試しください。"
         }
       },
-      "hiddenCategories": "カテゴリを非表示",
-      "hiddenCategoriesDescription": "カテゴリをオフにすると、検索から完全に除外されます。その作品は検索結果・カテゴリタブ・件数のいずれにも表示されなくなります。",
+      "hiddenCategories": "検索に含めるカテゴリ",
+      "hiddenCategoriesDescription": "オフにしたカテゴリは検索対象から除外されます。カテゴリタブが非表示になり、そのカテゴリの作品は検索結果や件数にも含まれなくなります。",
       "hiddenCategoriesLastVisible": "少なくとも1つのカテゴリは表示したままにする必要があります。",
       "hiddenCategoryShown": "表示中",
       "hiddenCategoryHidden": "非表示",
       "hiddenCategoryDescriptions": {
-        "anime": "アニメのシリーズと映画。",
-        "liveaction": "日本のドラマ、実写のシリーズと映画。",
-        "youtube": "YouTube の動画。"
+        "anime": "テレビアニメや劇場版アニメなど。",
+        "liveaction": "日本のドラマや実写映画など。",
+        "youtube": "YouTubeの動画。"
       },
-      "hiddenMedia": "非表示メディア",
+      "hiddenMedia": "非表示の作品",
       "hiddenMediaCount": "{count} 件を非表示",
       "mediaHiddenToast": "{name}を検索結果から非表示にしました",
       "mediaUnhiddenToast": "{name}を検索結果に戻しました",
@@ -771,11 +785,11 @@
       "categoryHiddenToast": "{name}を検索結果から非表示にしました",
       "categoryShownToast": "{name}を検索結果に戻しました",
       "hiddenMediaTable": {
-        "media": "メディア",
+        "media": "作品",
         "otherNames": "別名"
       },
-      "favoriteMedia": "お気に入りメディア",
-      "favoriteMediaCount": "{count}/{max} 件のお気に入り",
+      "favoriteMedia": "お気に入りの作品",
+      "favoriteMediaCount": "お気に入り{count}件（上限{max}件）",
       "sessionDetails": {
         "unknownDevice": "不明な端末",
         "tablet": "タブレット",
@@ -785,20 +799,20 @@
         "unknownBrowser": "不明なブラウザ"
       },
       "exportError": "データをエクスポートできませんでした。もう一度お試しください。",
-      "mediaLookup": "タイトルを探す",
-      "mediaLookupPlaceholder": "タイトルを検索...",
-      "mediaLookupNoResults": "該当するメディアが見つかりません。",
-      "manageMedia": "コンテンツの管理",
-      "manageMediaDescription": "お気に入りに追加するとその作品が検索時のコンテンツフィルターの上部に表示され、非表示にすると検索結果から除外されます。カタログを検索して作品を探すか、下の一覧で設定済みの作品を変更できます。",
+      "mediaLookup": "作品を探す",
+      "mediaLookupPlaceholder": "作品のタイトルを検索…",
+      "mediaLookupNoResults": "該当する作品が見つかりません。",
+      "manageMedia": "作品の管理",
+      "manageMediaDescription": "お気に入りに追加した作品は、検索時の作品フィルターの上部に表示されます。非表示にした作品は検索結果から除外されます。検索して作品を追加するか、下の一覧で設定を変更できます。",
       "manageMediaEmpty": "お気に入りまたは非表示に設定した作品はまだありません。上の検索から作品を探してください。",
       "manageMediaTableActions": "操作",
-      "mediaFallback": "メディア #{id}"
+      "mediaFallback": "作品 #{id}"
     },
     "collections": {
       "title": "コレクション",
       "count": "{count} 件のコレクション",
       "removeFromCollection": "コレクションから削除",
-      "confirmRemove": "削除しますか？",
+      "confirmRemove": "この例文をコレクションから削除しますか？",
       "yes": "はい",
       "no": "いいえ",
       "rename": "名前を変更",
@@ -831,10 +845,10 @@
       "visibilityTitle": "公開設定を変更",
       "makePublicMessage": "「{name}」を公開にしますか？誰でもこのコレクションを閲覧できるようになります。",
       "makePrivateMessage": "「{name}」を非公開にしますか？あなただけがこのコレクションを閲覧できます。",
-      "visibilityConfirm": "確認",
+      "visibilityConfirm": "変更する",
       "visibilityChanged": "公開設定を更新しました",
       "visibilityError": "公開設定の更新に失敗しました",
-      "createButton": "新規コレクション",
+      "createButton": "コレクションを作成",
       "createTitle": "コレクションを作成",
       "createConfirm": "作成",
       "createSuccess": "コレクションを作成しました",
@@ -844,45 +858,45 @@
       "loadError": "コレクションを読み込めませんでした。"
     },
     "anki": {
-      "syncStatus": "同期状態",
+      "syncStatus": "接続状況",
       "loading": "読み込み中...",
-      "loadingMessage": "接続中です。お待ちください",
-      "connectionSuccess": "接続成功",
-      "successMessage": "Ankiとの接続が正常に確立されました",
-      "fieldLoadError": "モデルのフィールド名の読み込みエラー:",
+      "loadingMessage": "Ankiに接続しています。しばらくお待ちください。",
+      "connectionSuccess": "Ankiに接続しました",
+      "successMessage": "Ankiへの書き出しを利用できます。",
+      "fieldLoadError": "ノートタイプのフィールドを読み込めませんでした：",
       "troubleshootingTips": {
-        "ankiRunning": "Ankiが起動中でAnkiconnectアドオンがインストールされていることを確認してください",
+        "ankiRunning": "AnkiConnectアドオンがインストールされ、Ankiが起動していることを確認してください。",
         "webCors": "AnkiConnectのwebCorsOriginList設定に'https://nadeshiko.co'が含まれていることを確認してください",
-        "adBlock": "このドメインに対するAdBlock拡張機能を無効にしてください"
+        "adBlock": "このサイトで広告ブロック拡張機能を無効にしてください。"
       },
-      "ankiConfig": "Anki設定",
+      "ankiConfig": "Anki連携設定",
       "deckLabel": "デッキ",
       "selectDeck": "デッキを選択",
-      "modelLabel": "モデル",
-      "selectModel": "モデルを選択",
+      "modelLabel": "ノートタイプ",
+      "selectModel": "ノートタイプを選択",
       "keyFieldLabel": "キーフィールド",
-      "selectKeyField": "デッキIDに対応するフィールドを選択",
+      "selectKeyField": "単語など、ノートの検索に使うフィールドを選択",
       "keyFieldRequiredTitle": "キーフィールドが未設定です",
-      "keyFieldRequiredMessage": "最後に追加したカードへの書き出しは未設定でも使えます。単語カードから単語をマイニングする場合と、コレクションを検索してノートを選ぶ場合はキーフィールドを設定してください。",
+      "keyFieldRequiredMessage": "単語のポップアップからAnkiに書き出す場合や、Ankiのノートを検索して書き出し先を選ぶ場合は、キーフィールドを指定してください。最後に追加したカードへの書き出しは、未設定でも使えます。",
       "fieldColumn": "フィールド",
       "contentColumn": "内容",
-      "fieldComposeHelp": "選んだプレースホルダーは、すでに入っている内容を置き換えるのではなく追加されるため、1つのフィールドに複数を入れられます（辞書を2つ並べる、など）。つなぎ方を変えたい場合は、入力欄を直接編集してください。",
+      "fieldComposeHelp": "メニューで選んだ項目は入力欄の末尾に追加されます。1つのフィールドに複数の項目を指定できるので、辞書の語義を2つ並べることもできます。順序や区切りは入力欄で直接編集できます。",
       "sentenceGroup": "例文",
       "sentenceImage": "例文の画像",
       "sentenceAudio": "例文の音声",
       "selectedWordGroup": "選択中の単語",
       "cardStylingTitle": "カードのスタイル",
-      "cardStylingHelp": "単語のフィールドにはスタイルが埋め込まれているため、書き出した時点でここと同じ見た目になります。設定は不要です。見た目を変えたい場合のみ、Ankiのノートタイプの「カード…」→「スタイル」に貼り付けて自由に編集してください。",
+      "cardStylingHelp": "単語のフィールドには表示スタイルが含まれており、そのまま書き出すとNadeshikoと同じ見た目になります。変更したい場合は、下のCSSをAnkiのノートタイプの「カード…」→「スタイル」に貼り付けて編集してください。",
       "noFieldsFound": "フィールドが見つかりません",
       "noFieldsMessage": "再度お試しいただくか、AnkiConnectの接続を確認してください",
       "serverAddressLabel": "AnkiConnectサーバーアドレス",
-      "profile": "プロフィール",
+      "profile": "設定プロファイル",
       "newProfile": "新規",
       "defaultProfile": "デフォルト",
-      "renameProfile": "名前変更",
-      "profileNamePlaceholder": "プロフィール名",
+      "renameProfile": "名前を変更",
+      "profileNamePlaceholder": "プロファイル名",
       "deleteProfile": "削除",
-      "openBrowserOnExport": "カードをエクスポート時にAnkiブラウザを開く",
+      "openBrowserOnExport": "書き出し時にAnkiのカード一覧を開く",
       "saving": "保存中...",
       "saved": "保存しました",
       "modal": {
@@ -892,18 +906,18 @@
       "profileSaveError": "Ankiプロファイルを保存できませんでした。",
       "dictionarySubmenu": "語義（辞書を指定）…",
       "dictionaryBack": "戻る",
-      "dictionaryGroup": "あなたの辞書",
+      "dictionaryGroup": "利用中の辞書",
       "connectFailure": {
         "unreachable": {
           "title": "Ankiから応答がありませんでした",
-          "body": "AnkiConnectにまったく接続できませんでした。原因はほぼ以下の3つのいずれかです。"
+          "body": "AnkiConnectに接続できませんでした。以下の項目を確認してください。"
         },
         "blocked_by_csp": {
-          "title": "Ankiのサーバーアドレスは許可されていません",
-          "body": "Nadeshikoのセキュリティポリシーでは、AnkiConnectへの接続はこのパソコン上のみ許可されています。そのため、下のアドレスはネットワークに到達する前に拒否されました。別のパソコンやスマートフォンで動作しているAnkiには接続できません。アドレスをhttp://127.0.0.1:8765に戻し、このパソコンでAnkiを起動してください。"
+          "title": "このAnkiConnectアドレスには接続できません",
+          "body": "Nadeshikoから接続できるのは、このパソコン上で動作するAnkiConnectのみです。別のパソコンやスマートフォンのAnkiには接続できません。サーバーアドレスをhttp://127.0.0.1:8765に戻し、このパソコンでAnkiを起動してください。"
         },
         "permission_denied": {
-          "title": "Ankiは起動しています。あなたの操作待ちです",
+          "title": "Ankiで接続を許可してください",
           "body": "AnkiConnectが応答し、このサイトの接続を許可するか確認しています。Ankiのウィンドウに切り替えてダイアログで「はい」を選び、もう一度お試しください。"
         },
         "connect_error": {
@@ -911,24 +925,24 @@
           "body": "Ankiは起動していますが、AnkiConnectがリクエストを拒否しました。webCorsOriginList設定に'https://nadeshiko.co'が含まれているか確認し、Ankiを再起動してください。"
         },
         "http_error": {
-          "title": "応答はありましたが、AnkiConnectではありませんでした",
-          "body": "サーバーアドレスがエラーを返しました。下のAnkiConnectサーバーアドレスが、Ankiが待ち受けているものと同じか確認してください。"
+          "title": "接続先のサーバーからエラーが返されました",
+          "body": "AnkiConnectから正常な応答を受け取れませんでした。下のサーバーアドレスが、AnkiConnectの接続先と一致しているか確認してください。"
         },
         "no_decks": {
           "title": "接続できましたが、デッキがありません",
-          "body": "AnkiConnectは接続を許可しましたが、書き出せるデッキがありませんでした。Ankiでデッキを作成してから、もう一度お試しください。"
+          "body": "Ankiに接続できましたが、書き出し先のデッキがありません。Ankiでデッキを作成してから、もう一度お試しください。"
         }
       }
     },
     "emails": {
-      "title": "メール",
-      "allTitle": "Nadeshikoからのすべてのメール",
-      "recapTitle": "月次まとめ",
-      "recapDescription": "Nadeshikoで学習した内容の月次まとめ。",
-      "checkinsTitle": "ときどきのお知らせ",
-      "checkinsDescription": "Nadeshikoの使い心地についての質問。",
-      "updatesTitle": "新機能とリリース",
-      "updatesDescription": "Nadeshikoの最新の更新情報と変更点。",
+      "title": "メール配信設定",
+      "allTitle": "Nadeshikoからのお知らせメール",
+      "recapTitle": "毎月の学習の振り返り",
+      "recapDescription": "Nadeshikoでの1か月の学習内容をまとめてお届けします。",
+      "checkinsTitle": "ご利用状況のお伺い",
+      "checkinsDescription": "Nadeshikoの使い心地について、ときどきご意見を伺います。",
+      "updatesTitle": "新機能・アップデート情報",
+      "updatesDescription": "新機能や改善点をお知らせします。",
       "preferenceError": "設定を保存できませんでした。もう一度お試しください。",
       "allDescription": "ログインリンクとアカウント関連のメールは、ここでの設定にかかわらず必ず送信されます。",
       "turnedOn": "{name}：オン",
@@ -961,7 +975,7 @@
     "contentRatingHide": "非表示",
     "status": {
       "ACTIVE": "有効",
-      "VERIFIED": "検証済み",
+      "VERIFIED": "確認済み",
       "SUSPENDED": "停止中",
       "DELETED": "削除済み",
       "INVALID": "無効",
@@ -969,22 +983,22 @@
       "HIDDEN": "非表示"
     },
     "contentRating": {
-      "SAFE": "安全",
-      "SUGGESTIVE": "示唆的",
-      "QUESTIONABLE": "問題あり",
-      "EXPLICIT": "露骨"
+      "SAFE": "性的表現なし",
+      "SUGGESTIVE": "軽度の性的表現",
+      "QUESTIONABLE": "強い性的表現",
+      "EXPLICIT": "露骨な性的表現"
     },
     "nsfwTag": "NSFW",
     "contentRatingDescription": {
-      "SENSITIVE": "センシティブコンテンツ（きわどい）"
+      "SENSITIVE": "センシティブな内容（性的表現を含む）"
     },
-    "revert": "元に戻す",
-    "expandNoPrevious": "このエピソードにはこれより前の文がありません。",
-    "expandNoNext": "このエピソードにはこれより後の文がありません。",
-    "expandFailed": "文を展開できませんでした。もう一度お試しください。",
-    "expandAudioFailed": "テキストは展開しましたが、音声を生成できませんでした。再生と Anki への書き出しには元の音声が使われます。",
-    "expandAudioFailedStreamed": "テキストは展開しましたが、音声を生成できませんでした。Anki への書き出しには元の音声が使われます。",
-    "expanding": "展開中…",
+    "revert": "元の字幕に戻す",
+    "expandNoPrevious": "このエピソードには、これより前の字幕がありません。",
+    "expandNoNext": "このエピソードには、これより後の字幕がありません。",
+    "expandFailed": "字幕をつなげられませんでした。もう一度お試しください。",
+    "expandAudioFailed": "字幕はつなげましたが、音声を生成できませんでした。再生時とAnkiへの書き出し時には、元の音声を使用します。",
+    "expandAudioFailedStreamed": "字幕はつなげましたが、音声を生成できませんでした。Ankiへの書き出し時には、元の音声を使用します。",
+    "expanding": "字幕をつなげています…",
     "playAudio": "音声を再生",
     "loading": "読み込み中",
     "noResultsSupport": "まだ収録されていない作品をお探しですか？次に追加する作品を {link} で提案できます。"
@@ -992,26 +1006,26 @@
   "tokenTooltip": {
     "lookupIn": "辞書で調べる",
     "loading": "検索中…",
-    "moreSentences": "他の例文",
+    "moreSentences": "この単語の例文を検索",
     "playAudio": "発音を再生",
     "unavailable": "辞書を読み込めませんでした。少し経ってからもう一度お試しください。",
-    "noEntry": "この語の辞書項目は見つかりませんでした。",
+    "noEntry": "この単語は辞書に見つかりませんでした。",
     "definitionsHidden": "語義は非表示です",
     "showDefinitions": "表示",
-    "openInAnki": "Anki でノートを開く",
-    "mineContextOnly": "この文・音声・画像を追加（既存の語義はそのまま）",
-    "minedActions": "コレクションにあります",
+    "openInAnki": "Ankiでノートを開く",
+    "mineContextOnly": "例文・音声・画像を更新（語義は保持）",
+    "minedActions": "Ankiに登録済み",
     "alsoWritten": "他の表記",
     "mineToNote": "ノート全体を置き換える（語義も含む）",
-    "mineToLastCard": "この文・音声・画像を最後に追加した Anki カードに追加",
-    "otherMatches": "他 {count} 件",
+    "mineToLastCard": "例文・音声・画像を最後に追加したAnkiカードに書き出す",
+    "otherMatches": "ほか{count}件",
     "showLess": "折りたたむ",
     "isName": "これは固有名詞のようです。",
-    "parts": "構成",
-    "nameEntry": "名前",
+    "parts": "語の構成",
+    "nameEntry": "固有名詞",
     "back": "戻る",
     "forward": "進む",
-    "pickDictionary": "{dictionary}をカードに入れる",
+    "pickDictionary": "{dictionary}の語義をカードに含める",
     "pickedDictionaries": "辞書{total}件中{count}件を選択",
     "pickSelectAll": "すべて選択",
     "pickDeselectAll": "すべて解除"
@@ -1020,12 +1034,12 @@
     "errorTitle": "エラーが発生しました",
     "errorMessage1": "エラーが発生しました",
     "errorMessage2": "下のボタンで再試行してください。",
-    "retryButton": "接続を再試行",
+    "retryButton": "もう一度読み込む",
     "retrying": "再試行中...",
-    "endOfResults": "最後まで到達しました！",
-    "loadMore": "さらに文を読み込む",
+    "endOfResults": "すべての検索結果を表示しました",
+    "loadMore": "例文をもっと見る",
     "categoryAll": "すべて",
-    "selectedMediaFallback": "選択したタイトル",
+    "selectedMediaFallback": "選択した作品",
     "categoryAnime": "アニメ",
     "categoryLiveaction": "実写",
     "categoryYoutube": "YouTube",
@@ -1037,7 +1051,7 @@
     "hiddenResultsMaybe": "{filters}により一部の結果が非表示になっている可能性があります",
     "hiddenResults": "{filters}により{count}件の結果が非表示です",
     "hiddenResultsFilters": "フィルター",
-    "hiddenResultsBreakdownTitle": "この検索で非表示になっているもの",
+    "hiddenResultsBreakdownTitle": "この検索で非表示になっている作品",
     "hiddenResultsBreakdownLoading": "確認中...",
     "hiddenResultsBreakdownEmpty": "非表示にしている作品はこの検索に含まれていません",
     "hiddenResultsBreakdownError": "非表示の内容を読み込めませんでした",
@@ -1056,7 +1070,7 @@
     "clearing": "クリア中...",
     "loading": "読み込み中...",
     "forget": "「{query}」を削除",
-    "inOneTitle": "特定の作品内",
+    "inOneTitle": "作品を指定した検索",
     "clearError": "最近の検索を削除できませんでした。もう一度お試しください。"
   },
   "reports": {
@@ -1064,34 +1078,34 @@
     "targetLabel": "対象",
     "reason": "理由",
     "tabSegment": "例文",
-    "tabMedia": "メディア",
+    "tabMedia": "作品",
     "description": "説明（任意）",
     "descriptionPlaceholder": "問題の詳細を入力してください...",
     "submit": "報告を送信",
     "submitting": "送信中...",
-    "submitSuccess": "報告が送信されました",
+    "submitSuccess": "報告を送信しました",
     "submitError": "報告の送信に失敗しました",
     "cancel": "キャンセル",
     "reportSegment": "報告",
     "loginRequired": "この機能を使用するにはログインしてください",
-    "noReports": "レポートが見つかりません",
+    "noReports": "報告はありません",
     "loading": "読み込み中...",
     "loadMore": "もっと読み込む",
     "reasons": {
-      "WRONG_TRANSLATION": "翻訳が間違っている",
-      "WRONG_TIMING": "タイミングが間違っている",
-      "WRONG_AUDIO": "音声が間違っている",
-      "WRONG_JAPANESE_TEXT": "日本語テキストが間違っている",
-      "LOW_QUALITY_AUDIO": "音声の品質が低い",
-      "NSFW_NOT_TAGGED": "コンテンツ未分類",
+      "WRONG_TRANSLATION": "翻訳の誤り",
+      "WRONG_TIMING": "字幕と音声のずれ",
+      "WRONG_AUDIO": "音声の取り違え",
+      "WRONG_JAPANESE_TEXT": "日本語字幕の誤り",
+      "LOW_QUALITY_AUDIO": "音質が悪い",
+      "NSFW_NOT_TAGGED": "センシティブな内容に表示がない",
       "DUPLICATE_SEGMENT": "例文の重複",
-      "WRONG_TITLE": "タイトルが間違っている",
-      "DUPLICATE_MEDIA": "重複メディア",
-      "WRONG_EPISODE_NUMBER": "エピソード番号が間違っている",
+      "WRONG_TITLE": "作品タイトルの誤り",
+      "DUPLICATE_MEDIA": "作品の重複",
+      "WRONG_EPISODE_NUMBER": "エピソード番号の誤り",
       "IMAGE_ISSUE": "画像の問題",
-      "WRONG_METADATA": "メタデータが間違っている",
-      "MISSING_EPISODES": "エピソードが不足している",
-      "WRONG_COVER_IMAGE": "カバー画像が間違っている",
+      "WRONG_METADATA": "作品情報の誤り",
+      "MISSING_EPISODES": "未収録のエピソードがある",
+      "WRONG_COVER_IMAGE": "カバー画像の取り違え",
       "INAPPROPRIATE_CONTENT": "不適切なコンテンツ",
       "OTHER": "その他"
     },
@@ -1102,44 +1116,44 @@
       "DISMISSED": "却下"
     },
     "table": {
-      "type": "タイプ",
+      "type": "種類",
       "target": "対象",
       "status": "ステータス"
     },
     "admin": {
-      "title": "レポート管理",
+      "title": "報告の管理",
       "count": "件数",
-      "actions": "アクション",
+      "actions": "操作",
       "filters": {
         "all": "すべて",
-        "user": "ユーザーレポート",
+        "user": "ユーザーからの報告",
         "auto": "自動チェック",
-        "orphaned": "孤立"
+        "orphaned": "対象作品が削除済み"
       },
       "selectedGroups": "{count} 件のグループを選択中",
       "dismiss": "却下",
       "delete": "削除",
-      "clearSelection": "クリア",
+      "clearSelection": "選択を解除",
       "dismissingAll": "すべて却下中...",
-      "dismissAllMatching": "一致するものをすべて却下",
+      "dismissAllMatching": "絞り込み結果をすべて却下",
       "deletingAll": "すべて削除中...",
-      "deleteAllMatching": "一致するものをすべて削除",
+      "deleteAllMatching": "絞り込み結果をすべて削除",
       "save": "保存",
       "addNote": "クリックしてメモを追加...",
-      "updateSuccess": "レポートが更新されました",
-      "updateError": "レポートの更新に失敗しました",
-      "batchUpdated": "{count} 件のレポートを更新しました",
-      "batchUpdateError": "レポートの更新に失敗しました",
-      "batchDeleted": "{count} 件のレポートを削除しました",
-      "batchDeleteError": "レポートの削除に失敗しました",
+      "updateSuccess": "報告を更新しました",
+      "updateError": "報告の更新に失敗しました",
+      "batchUpdated": "報告を{count}件更新しました",
+      "batchUpdateError": "報告の更新に失敗しました",
+      "batchDeleted": "報告を{count}件削除しました",
+      "batchDeleteError": "報告の削除に失敗しました",
       "batchDeletePartialError": "{count} 件の削除に失敗しました",
-      "batchDismissed": "{count} 件のレポートを却下しました",
-      "batchDismissError": "レポートの却下に失敗しました",
-      "deleteSuccess": "レポートを削除しました",
-      "deleteError": "レポートの削除に失敗しました",
+      "batchDismissed": "報告を{count}件却下しました",
+      "batchDismissError": "報告の却下に失敗しました",
+      "deleteSuccess": "報告を削除しました",
+      "deleteError": "報告の削除に失敗しました",
       "reported": "報告日時",
       "updated": "更新日時",
-      "episode": "EP{number}",
+      "episode": "第{number}話",
       "deletedTarget": "削除済み",
       "reporters": "{count} 人の報告者",
       "sources": {
@@ -1149,92 +1163,95 @@
       "targetTypes": {
         "SEGMENT": "例文",
         "EPISODE": "エピソード",
-        "MEDIA": "メディア"
+        "MEDIA": "作品"
       },
       "confirm": {
-        "dismissAllTitle": "一致するレポートをすべて却下しますか？",
-        "dismissAllDescription": "現在のフィルターに一致するすべてのレポートを却下します。個別に再オープンすることで元に戻せます。",
+        "dismissAllTitle": "絞り込み条件に一致する報告をすべて却下しますか？",
+        "dismissAllDescription": "現在の絞り込み条件に一致する報告をすべて却下します。各報告を「未対応」に戻すことで取り消せます。",
         "dismissAllButton": "すべて却下",
-        "deleteAllTitle": "一致するレポートをすべて削除しますか？",
-        "deleteAllDescription": "現在のフィルターに一致するすべてのレポートを完全に削除します。この操作は元に戻せません。",
+        "deleteAllTitle": "絞り込み条件に一致する報告をすべて削除しますか？",
+        "deleteAllDescription": "現在の絞り込み条件に一致する報告をすべて完全に削除します。この操作は取り消せません。",
         "deleteAllButton": "すべて削除",
-        "deleteGroupTitle": "このレポートグループを削除しますか？",
-        "deleteGroupDescription": "このレポートと、同じ対象および理由を持つ重複レポートをすべて完全に削除します。"
+        "deleteGroupTitle": "このグループの報告を削除しますか？",
+        "deleteGroupDescription": "この報告と、対象・理由が同じ報告をすべて完全に削除します。"
       }
     }
   },
   "modalauth": {
+    "signingIn": "ログイン中",
+    "completingSignIn": "ログインしています…",
+    "verifyingEmail": "メールアドレスを確認しています…",
     "headers": {
-      "auth": "認証"
+      "auth": "ログイン・新規登録"
     },
     "buttons": {
       "google": "Googleでログイン",
       "discord": "Discordでログイン"
     },
     "labels": {
-      "successfullogin": "ログイン成功！",
+      "successfullogin": "ログインしました",
       "logout": "ログアウトしました。",
       "banneduser": "アカウントが停止されています。サポートにお問い合わせください。",
-      "errorlogin400": "サインインできませんでした。もう一度お試しください。",
-      "logindenied": "サインインが承認されませんでした。もう一度お試しいただくか、メールでサインインしてください。",
+      "errorlogin400": "ログインできませんでした。もう一度お試しください。",
+      "logindenied": "ログインが許可されませんでした。もう一度お試しいただくか、メールアドレスでログインしてください。",
       "closeSrOnly": "閉じる"
     },
     "magiclink": {
       "label": "またはメールアドレスでログイン",
       "placeholder": "メールアドレス",
-      "send": "リンクを送信",
-      "sent": "{email} にサインイン用メールを送信しました。",
+      "send": "ログイン用メールを送信",
+      "sent": "{email}にログイン用メールを送信しました。",
       "sentHint": "メール内のリンクを開くか、記載のコードをここに入力してください：",
       "retry": "別のメールアドレスで試す",
-      "codeLabel": "メールに記載のサインインコード",
+      "codeLabel": "メールに記載のログインコード",
       "codePlaceholder": "ABC123",
-      "codeSubmit": "サインイン",
+      "codeSubmit": "ログイン",
       "codeInvalid": "コードが正しくありません。メールを確認するか、新しいコードをリクエストしてください。",
       "codeWrongBrowser": "このコードはこのブラウザからリクエストされたものではありません。メール内のリンクをお使いください。",
       "resend": "もう一度送信する",
-      "resendIn": "{seconds}秒後にもう一度リクエストできます",
-      "rateLimited": "このアドレスに送れるサインイン用メールは現時点で上限に達しました。すでに送信済みのリンクは引き続きご利用いただけます。",
+      "resendIn": "{seconds}秒後に再送信できます",
+      "rateLimited": "このメールアドレスへの送信回数が上限に達しました。しばらく待ってからお試しください。送信済みのリンクは引き続きご利用いただけます。",
       "sending": "送信中…"
     },
     "benefits": {
-      "anki": "音声・スクリーンショット・語義付きで Anki に書き出せます",
-      "collections": "あとで見返せるコレクションに文を保存できます",
+      "anki": "例文を音声・画像・語義と一緒にAnkiに書き出せます",
+      "collections": "例文をコレクションに保存して、あとから見返せます",
       "sync": "履歴と設定がどの端末でも引き継がれます"
     }
   },
   "shortcuts": {
     "title": "キーボードショートカット",
     "navigation": "ナビゲーション",
-    "navigateCards": "結果間を移動",
+    "navigateCards": "検索結果を移動",
     "prevNextSegment": "前 / 次の例文",
     "backToSearch": "検索バーに戻る",
     "playback": "再生",
-    "playSelected": "選択した結果を再生",
+    "playSelected": "選択した例文の音声を再生",
     "playPause": "再生 / 一時停止",
-    "restart": "音声をリスタート",
+    "restart": "音声を最初から再生",
     "toggleAutoplay": "自動再生の切り替え",
-    "toggleImmersive": "没入モードの切り替え",
-    "actions": "アクション",
+    "toggleImmersive": "全画面表示の切り替え",
+    "actions": "操作",
     "openAnki": "Ankiに追加",
-    "openContext": "文脈を開く",
-    "hint": "検索バーに入力中はショートカットが無効になります。?キーでこのパネルを表示/非表示できます。"
+    "openContext": "前後の会話を表示",
+    "hint": "検索バーへの入力中はショートカットを使えません。「?」キーでこの一覧を開いたり閉じたりできます。"
   },
   "seo": {
     "home": {
       "title": "Nadeshiko：アニメ・ドラマ・YouTubeの日本語例文を検索",
-      "description": "アニメ・ドラマ・YouTubeから100万件以上の日本語例文を検索。すべてに音声とスクリーンショット、文脈つきの翻訳が付いています。センテンスマイニングに最適です。"
+      "description": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。音声や画像、翻訳で使い方を確認し、Ankiの学習カードに取り込めます。"
     },
     "stats": {
       "title": "統計",
-      "description": "Nadeshikoが最も一般的な日本語単語をどれだけカバーしているか確認できます。Jitenアニメ頻度リストに基づくカバレッジ統計。"
+      "description": "よく使われる日本語の単語が、Nadeshikoの例文にどれだけ含まれているかを確認できます。Jitenのアニメ単語頻度リストに基づく統計です。"
     },
     "statsWords": {
-      "title": "上位{tier}語の日本語カバレッジ",
-      "description": "Nadeshikoのコーパスで上位{tier}語の日本語単語のカバレッジを確認できます。"
+      "title": "日本語頻出語（{tier}位）の例文収録状況",
+      "description": "日本語の出現頻度ランキングで{tier}位の単語について、Nadeshikoに例文が収録されているかを確認できます。"
     },
     "media": {
-      "title": "メディア一覧",
-      "description": "Nadeshikoで利用できるアニメ・Jドラマ・オーディオブックを一覧。日本語字幕を一文ずつ、音声と翻訳つきで検索できます。",
+      "title": "作品一覧",
+      "description": "Nadeshikoに収録されているアニメ・ドラマ・YouTubeの作品一覧。日本語字幕を例文として検索し、音声や翻訳を確認できます。",
       "pageTitle": "{media}：日本語字幕と例文"
     },
     "blog": {
@@ -1243,22 +1260,22 @@
     },
     "search": {
       "title": "検索",
-      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。",
+      "defaultDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。単語やフレーズで検索し、音声や英語・スペイン語の翻訳を確認できます。",
       "atLeast": "少なくとも",
       "categoryAnime": "アニメ",
       "categoryJdrama": "実写",
       "fromCategory": "{category}から{count}件",
       "breakdownWrapper": "（{parts}）",
       "descriptionWithResults": "「{query}」を含む例文が{count}件{breakdown}あります。英語・スペイン語訳付き。",
-      "descriptionNoResults": "「{query}」でアニメや実写の日本語文100万件以上を検索。英語・スペイン語訳付き。",
-      "mediaDescription": "{media}の日本語文{count}件。英語・スペイン語訳付き。",
-      "mediaDescriptionEpisode": "{media}第{episode}話の日本語文{count}件。英語・スペイン語訳付き。",
-      "mediaDescriptionEpisodes": "{media}全{episodeCount}話の日本語文{count}件。英語・スペイン語訳付き。",
-      "wordTitle": "{query} の例文"
+      "descriptionNoResults": "「{query}」でアニメ・ドラマ・YouTubeの日本語例文100万件以上を検索。英語・スペイン語の翻訳も確認できます。",
+      "mediaDescription": "「{media}」の日本語例文{count}件。英語・スペイン語の翻訳も確認できます。",
+      "mediaDescriptionEpisode": "「{media}」第{episode}話の日本語例文{count}件。英語・スペイン語の翻訳も確認できます。",
+      "mediaDescriptionEpisodes": "「{media}」全{episodeCount}話の日本語例文{count}件。英語・スペイン語の翻訳も確認できます。",
+      "wordTitle": "「{query}」の例文"
     },
     "sentence": {
-      "title": "文章",
-      "defaultDescription": "さまざまなアニメやJドラマから100万以上の日本語文を、英語・スペイン語訳付きで検索できます。",
+      "title": "例文",
+      "defaultDescription": "アニメ・ドラマ・YouTubeの日本語例文を100万件以上収録。単語やフレーズで検索し、音声や英語・スペイン語の翻訳を確認できます。",
       "episode": "第{n}話",
       "pageTitle": "「{sentence}」（{media}）"
     },
@@ -1269,76 +1286,76 @@
   "statsPage": {
     "title": "数字で見るNadeshiko",
     "intro": {
-      "prefix": "コーパスが日本語をどれだけカバーしているかを、",
+      "prefix": "Nadeshikoの例文にどれだけの単語が含まれているかを、",
       "source": "Jiten",
-      "suffix": "のアニメ頻度リストを基準に測定しています。このリストは数千本のアニメから集めた{totalWords}語のユニーク単語で構成されています。"
+      "suffix": "のアニメ単語頻度リストを基準に集計しています。このリストは、数千本のアニメから集めた{totalWords}種類の単語で構成されています。"
     },
     "loadError": "統計の読み込みに失敗しました。ページを再読み込みしてください。",
     "summary": {
-      "sentences": "文数",
-      "uniqueWords": "ユニーク単語",
+      "sentences": "例文数",
+      "uniqueWords": "単語の種類数",
       "totalContent": "作品数",
       "episodes": "エピソード数",
-      "dialogueHours": "会話時間"
+      "dialogueHours": "会話の総時間"
     },
     "coverage": {
-      "title": "頻度カバレッジ",
-      "updated": "更新日 {date}",
-      "empty": "まだカバレッジデータがありません。",
-      "fullCorpus": "コーパス全体（{count}k語）",
-      "topWordsK": "上位{count}k語",
-      "topWords": "上位{count}語",
-      "updateError": "カバレッジ更新を開始できませんでした。"
+      "title": "頻出単語の例文収録率",
+      "updated": "更新日：{date}",
+      "empty": "例文の収録率はまだ集計されていません。",
+      "fullCorpus": "頻度リスト全体（{count}千語）",
+      "topWordsK": "頻出上位{count}千語",
+      "topWords": "頻出上位{count}語",
+      "updateError": "例文収録率の更新を開始できませんでした。"
     },
     "translations": {
       "title": "翻訳の対応状況",
-      "description": "すべての文に日本語字幕があります。すべてのコンテンツに英語とスペイン語の翻訳を付けることを目指しています。ソースによっては信頼できるスペイン語字幕がないため、その言語のカバレッジは低くなる場合があります。",
+      "description": "すべての例文に日本語字幕があり、英語訳とスペイン語訳も順次追加しています。作品によっては信頼できるスペイン語字幕がなく、翻訳の収録率が低くなる場合があります。",
       "translated": "{percent} 翻訳済み",
-      "official": "公式 {percent}",
+      "official": "人手による翻訳 {percent}",
       "machine": "DeepL {percent}",
-      "none": "なし {percent}",
+      "none": "未翻訳 {percent}",
       "languages": {
         "english": "英語",
         "spanish": "スペイン語"
       }
     },
     "admin": {
-      "title": "管理者: カバレッジ更新",
+      "title": "管理者向け：例文収録率の更新",
       "updating": "更新中...",
-      "fullRescan": "フル再走査",
-      "missingOnly": "未対応のみ確認",
-      "wordsChecked": "確認単語数",
-      "newlyCovered": "新規対応",
-      "totalCovered": "対応済み合計"
+      "fullRescan": "すべての単語を再確認",
+      "missingOnly": "例文がない単語のみ確認",
+      "wordsChecked": "確認した単語数",
+      "newlyCovered": "新たに例文が見つかった単語数",
+      "totalCovered": "例文がある単語の総数"
     }
   },
   "statsWordsPage": {
     "back": "統計に戻る",
-    "title": "単語カバレッジ",
+    "title": "単語ごとの例文収録状況",
     "description": {
       "prefix": "",
       "source": "Jiten",
-      "suffix": "のアニメ頻度リストにある単語と、Nadeshikoコーパスでのカバレッジを確認できます。"
+      "suffix": "のアニメ単語頻度リストにある各単語について、Nadeshikoに例文があるかを確認できます。"
     },
     "filters": {
-      "all": "すべて ({count})",
-      "covered": "対応済み ({count})",
-      "missing": "未対応 ({count})"
+      "all": "すべて（{count}語）",
+      "covered": "例文あり（{count}語）",
+      "missing": "例文なし（{count}語）"
     },
-    "missingLabel": "未対応",
+    "missingLabel": "例文なし",
     "empty": "現在のフィルターに一致する単語はありません。",
     "loading": "読み込み中...",
     "footer": {
       "prefix": "",
       "source": "Jiten",
-      "suffix": "のアニメコーパス頻度データを使用。{shown} / {total}語を表示中。"
+      "suffix": "のアニメ単語頻度データを使用。全{total}語のうち{shown}語を表示中。"
     },
     "loadError": "単語リストを読み込めませんでした。"
   },
   "agentActivity": {
-    "title": "エージェント履歴",
-    "description": "モデレーションエージェントによる編集を、実際に書き込まれたリビジョンから表示します。抜き取りで確認し、問題があれば復元してください。",
-    "empty": "この期間のエージェント履歴はありません",
+    "title": "エージェントの編集履歴",
+    "description": "モデレーションエージェントが行った変更を、保存された編集履歴から確認できます。内容を確認し、問題があれば元の状態に復元してください。",
+    "empty": "この期間にエージェントが行った編集はありません",
     "episode": "第{number}話",
     "noReport": "報告なし",
     "restore": "復元",
@@ -1359,31 +1376,148 @@
     }
   },
   "connections": {
-    "title": "連携",
+    "title": "外部サービスとの連携",
     "shirabe": {
       "name": "Shirabe",
-      "description": "Shirabe アカウントを連携して、自分の辞書をそのまま使いましょう",
+      "description": "Shirabeアカウントを連携すると、Shirabeで設定した辞書をNadeshikoでも使えます。",
       "connect": "連携する",
-      "disconnect": "解除",
+      "disconnect": "連携を解除",
       "linkedAs": "{name} として連携中",
       "dictionaries": "辞書",
       "dictionariesHint": "Shirabe で変更する",
       "anonymous": "Shirabe アカウント",
       "upgrade": "権限を更新",
       "reconnect": "再接続",
-      "upgradeNeeded": "{name} として連携中。新しい機能には追加の権限が必要です",
-      "disconnected": "{name} として連携していましたが、Shirabe側で接続が無効になりました。現在あなたの辞書は使われていません。再接続すると元に戻ります。",
-      "confirmDisconnect": "Shirabe との連携を解除しますか？Shirabe 側のキーは無効化され、単語カードは既定の辞書に戻ります。"
+      "upgradeNeeded": "{name}として連携中です。新機能を使うには、追加の権限を許可してください。",
+      "disconnected": "{name}として連携していましたが、Shirabe側で接続が無効になりました。Shirabeの辞書を再び使うには、再接続してください。",
+      "confirmDisconnect": "Shirabeとの連携を解除しますか？連携用のAPIキーが無効になり、単語のポップアップには標準の辞書が表示されるようになります。"
+    },
+    "patreon": {
+      "name": "Patreon",
+      "description": "Link Patreon to verify your membership and propose shows",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "active": "Linked as {name} — active member",
+      "inactive": "Linked as {name} — no active paid membership",
+      "member": "your Patreon account",
+      "join": "Join",
+      "confirmDisconnect": "Disconnect your Patreon account from Nadeshiko?"
     },
     "callback": {
-      "working": "連携を完了しています…",
-      "declined": "連携が承認されなかったため、何も連携されていません。",
+      "working": "Shirabeと連携しています…",
+      "declined": "連携が許可されなかったため、処理を中止しました。",
       "failed": "連携を完了できませんでした。",
-      "signedOut": "こちらではログアウト状態のため、連携を完了できませんでした。ログインしてから設定でやり直してください。",
+      "signedOut": "Nadeshikoにログインしていないため、連携できませんでした。ログイン後、設定画面からもう一度お試しください。",
       "back": "設定に戻る",
-      "done": "Shirabe と連携しました",
+      "done": "Shirabeと連携しました",
       "goToSettings": "設定へ"
     }
+  },
+  "roadmap": {
+    "seoTitle": "ロードマップ | Nadeshiko",
+    "seoDescription": "今後Nadeshikoに追加されるアニメ、開発中の機能、リリース済みの内容をご覧いただけます。",
+    "title": "ロードマップ",
+    "intro": "Patreonに参加して、次にNadeshikoへ追加してほしい作品や機能をリクエストしよう！",
+    "support": "Nadeshikoを支援する",
+    "proposeCta": "作品を提案する",
+    "filterLabel": "ロードマップを絞り込む",
+    "filters": { "content": "作品", "feature": "機能" },
+    "dateFlexible": "時期未定",
+    "featureSoon": "近日公開™",
+    "featureReleased": "リリース済み",
+    "titleInProgress": "対応中",
+    "titleDone": "完了",
+    "proposedBy": "提案者：{name}",
+    "patronCommunity": "NadeshikoのPatreonメンバー",
+    "emptyTitles": "予定されている作品はまだありません。",
+    "emptyFeatures": "機能のマイルストーンはまだありません。",
+    "viewSource": "参照元を見る",
+    "loadError": "現在ロードマップを読み込めません。",
+    "proposalTitle": "お気に入りの作品をリクエスト！",
+    "proposalIntro": "NadeshikoのアクティブなPatreonメンバーは、毎月最大4作品を追加候補としてリクエストできます。以下で利用資格をご確認ください。",
+    "steps": {
+      "signIn": "Nadeshikoにログイン",
+      "patreon": "Patreonを連携または参加",
+      "propose": "リクエストを送信"
+    },
+    "states": {
+      "anonymousTitle": "作品を提案するにはログインしてください",
+      "anonymousBody": "ロードマップは公開されています。Nadeshikoアカウントを連携したPatreonメンバーは作品を提案できます。",
+      "unlinkedTitle": "Patreonアカウントを連携",
+      "unlinkedBody": "Nadeshikoのメンバー資格を安全に確認します。Patreonをログインに使用することはありません。",
+      "inactiveTitle": "アクティブなPatreonメンバーになる",
+      "inactiveBody": "Patreonアカウントは連携されていますが、現在Nadeshikoの有効な有料メンバーシップがありません。",
+      "activeTitle": "あなたの提案",
+      "submittedTitle": "提案を受け付けました",
+      "submittedBody": "非公開の審査待ちリストに追加されました。承認されると、このタイムラインに表示されます。"
+    },
+    "signIn": "ログイン",
+    "linkPatreon": "Patreonを連携",
+    "becomePatron": "Patreonに参加",
+    "checkAgain": "再確認",
+    "submitAnother": "別の作品を提案",
+    "patreonMember": "Patreonメンバー",
+    "activeBadge": "有効なメンバー",
+    "form": {
+      "url": "作品のリンク",
+      "urlPlaceholder": "https://anilist.co/anime/…",
+      "title": "タイトル（任意）",
+      "titlePlaceholder": "リンクから自動取得します",
+      "credit": "公開するお名前（任意）",
+      "creditPlaceholder": "お名前またはPatreonのユーザー名",
+      "creditHint": "空欄の場合は匿名のPatreonメンバーとして表示されます。",
+      "note": "この作品を選んだ理由（任意）",
+      "notePlaceholder": "Nadeshikoに合うと思う理由を教えてください",
+      "submit": "審査に送る"
+    },
+    "features": {
+      "patreonProposals": {
+        "title": "Patreonからの作品提案",
+        "description": "メンバーシップを連携して作品を提案し、承認された追加作品を公開ロードマップで確認できます。"
+      },
+      "searchFilters": {
+        "title": "検索フィルターの強化",
+        "description": "作品名やタグなど、目的に合った条件で直接検索できます。"
+      },
+      "publicRoadmap": {
+        "title": "公開ロードマップ",
+        "description": "追加予定とリリース済みの作品・機能を一か所で確認できます。"
+      },
+      "interfaceLanguages": {
+        "title": "7言語のインターフェース",
+        "description": "英語、スペイン語、日本語に加え、ポルトガル語、インドネシア語、簡体字中国語、繁体字中国語に対応しました。"
+      },
+      "youtubePlayback": {
+        "title": "検索結果でYouTubeを再生",
+        "description": "YouTubeの例文を検索結果内で再生し、Nadeshikoを離れずにプレイリストを続けて視聴できます。"
+      },
+      "wordCards": {
+        "title": "単語カード",
+        "description": "例文内の単語をクリックすると、読み方、定義、ピッチアクセント、音声、頻度バッジを確認できます。"
+      },
+      "ownDictionaries": {
+        "title": "自分の辞書を利用",
+        "description": "Shirabeを連携すると、国語辞典やアップロードした辞書を含む、設定した順序の辞書をNadeshikoで利用できます。"
+      },
+      "ankiMining": {
+        "title": "充実したAnkiマイニング",
+        "description": "単語、例文、音声、画像、ふりがな、定義、ピッチアクセントを含むノートを作成・更新できます。"
+      },
+      "searchHistory": {
+        "title": "検索履歴と学習中の作品",
+        "description": "ログイン中は端末をまたいで最近の検索を確認でき、お気に入りや学習済みの作品が検索順位に反映されます。"
+      },
+      "apiKeys": {
+        "title": "詳細な権限を設定できるAPIキー",
+        "description": "APIキーを読み取り専用、フルアクセス、または明示的に選択した権限のみに制限できます。"
+      }
+    },
+    "callbackDeclined": "Patreonとの連携が承認されませんでした。",
+    "callbackFailed": "Patreonとの連携を完了できませんでした。",
+    "callbackDone": "Patreonと連携しました",
+    "callbackDoneBody": "メンバーシップを確認しました。ロードマップに戻れます。",
+    "backToRoadmap": "ロードマップに戻る",
+    "admin": { "tab": "ロードマップ", "title": "ロードマップのキュー" }
   },
   "feedback": {
     "open": "フィードバック",
@@ -1411,18 +1545,18 @@
     "invalid": "この配信停止リンクは無効です。アカウント設定からこれらのメールをオフにできます。",
     "failed": "処理を完了できませんでした。もう一度お試しいただくか、アカウント設定からこれらのメールをオフにしてください。",
     "goToSettings": "設定を開く",
-    "chooseTitle": "お知らせする内容を選ぶ"
+    "chooseTitle": "受け取るメールを選ぶ"
   },
   "signupNudge": {
     "action": "アカウントを作成",
     "dismiss": "今はしない",
     "download": {
       "title": "Ankiに書き出しますか？",
-      "message": "アカウントがあれば、文をそのままAnkiのデッキに送れます。"
+      "message": "アカウントを作成すると、例文をAnkiのデッキに書き出せます。"
     },
     "depth": {
       "title": "Nadeshikoは気に入りましたか？",
-      "message": "アカウントがあれば、お気に入りの文を保存してAnkiに書き出せます。"
+      "message": "アカウントを作成すると、お気に入りの例文を保存したり、Ankiに書き出したりできます。"
     }
   },
   "mediaHeader": {
@@ -1430,7 +1564,42 @@
     "expand": "作品情報を開く"
   },
   "mediaPage": {
-    "resultsFailed": "この作品のセンテンスを読み込めませんでした。",
+    "resultsFailed": "この作品の例文を読み込めませんでした。",
     "resultsRetry": "再試行"
+  },
+  "impersonation": {
+    "active": "{name}として代理ログイン中",
+    "exit": "代理ログインを終了"
+  },
+  "mediaMetadata": {
+    "screenshot": "「{media}」の場面画像",
+    "screenshotFallback": "例文の場面画像",
+    "seasonWithYear": "{year}年{season}",
+    "seasons": {
+      "WINTER": "冬",
+      "SPRING": "春",
+      "SUMMER": "夏",
+      "FALL": "秋",
+      "NONE": "未設定"
+    },
+    "statuses": {
+      "FINISHED": "放送・配信終了",
+      "RELEASING": "放送・配信中",
+      "NOT_YET_RELEASED": "放送・配信予定",
+      "CANCELLED": "中止"
+    },
+    "formats": {
+      "TV": "テレビ",
+      "MOVIE": "映画",
+      "OVA": "OVA",
+      "ONA": "Webアニメ",
+      "SPECIAL": "特別編",
+      "YOUTUBE": "YouTube"
+    },
+    "categories": {
+      "ANIME": "アニメ",
+      "JDRAMA": "実写",
+      "YOUTUBE": "YouTube"
+    }
   }
 }

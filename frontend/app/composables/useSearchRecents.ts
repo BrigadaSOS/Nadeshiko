@@ -245,6 +245,10 @@ export function useSearchRecents() {
     if (user.isLoggedIn) {
       clearing.value = true;
       try {
+        // Opening the menu starts load() without blocking the input. Let that
+        // older read finish before deleting, or it can land after the delete
+        // and paint the just-cleared account rows back into this device.
+        await inFlight;
         await useNadeshikoSdk().deleteUserActivity({ activityType: 'SEARCH' });
       } catch (error) {
         handleApiError('search-recents:clear-failed', error, { toastKey: 'searchRecents.clearError' });

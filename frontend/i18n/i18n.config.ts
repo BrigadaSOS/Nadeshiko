@@ -41,10 +41,18 @@ export default {
     en: datetimeFormats,
     es: datetimeFormats,
     ja: datetimeFormats,
+    zh: datetimeFormats,
+    'zh-hant': datetimeFormats,
+    id: datetimeFormats,
+    'pt-BR': datetimeFormats,
   },
   numberFormats: {
     en: numberFormats,
     es: numberFormats,
     ja: numberFormats,
+    zh: numberFormats,
+    'zh-hant': numberFormats,
+    id: numberFormats,
+    'pt-BR': numberFormats,
   },
 };

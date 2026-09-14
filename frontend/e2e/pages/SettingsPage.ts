@@ -14,18 +14,23 @@ export class SettingsPage {
     this.page = page;
     this.username = page.getByTestId('account-username');
     this.email = page.getByTestId('account-email');
-    this.logoutButton = page.getByRole('button', { name: 'Logout' });
+    this.logoutButton = page.getByTestId('account-sign-out');
     this.sessionsCard = page.getByTestId('sessions-card');
     this.refreshSessionsButton = page.getByRole('button', { name: 'Refresh' });
-    this.logOutOtherDevicesButton = page.getByRole('button', { name: 'Log Out Other Devices' });
+    this.logOutOtherDevicesButton = page.getByRole('button', { name: 'Sign out other devices', exact: true });
     this.defaultSearchCategory = page.getByTestId('default-search-category');
   }
 
   async goto() {
-    await this.page.goto('/user/settings');
+    const response = await this.page.goto('/user/settings');
+    expect(response?.status(), 'settings navigation should return HTTP 200').toBe(200);
   }
 
   async expectLoaded() {
+    // SSR makes the controls visible before Vue has attached their handlers.
+    // Waiting for the app-owned marker prevents a successful-looking click on
+    // inert server markup in fresh browser contexts.
+    await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 30_000 });
     await expect(this.username).toBeVisible({ timeout: 10_000 });
     await expect(this.email).toBeVisible({ timeout: 10_000 });
   }

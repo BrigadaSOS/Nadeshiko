@@ -7,6 +7,9 @@ import {
   AggregationTemporality,
 } from '@opentelemetry/sdk-metrics';
 import type { ResourceMetrics } from '@opentelemetry/sdk-metrics';
+import type { Server } from 'node:http';
+import { request } from '../helpers/http';
+import { config } from '@config/config';
 
 /**
  * The regression these cover is invisible from inside the process: the seeding
@@ -23,6 +26,7 @@ const exporter = new InMemoryMetricExporter(AggregationTemporality.DELTA);
 let reader: PeriodicExportingMetricReader;
 let telemetry: typeof import('@config/telemetry');
 let rateLimit: typeof import('@app/middleware/rateLimit');
+let buildApplication: typeof import('@config/application').buildApplication;
 
 beforeAll(async () => {
   reader = new PeriodicExportingMetricReader({ exporter, exportIntervalMillis: 600_000 });
@@ -34,6 +38,7 @@ beforeAll(async () => {
   // at load time, so a static import would bind to the no-op provider.
   telemetry = await import('@config/telemetry');
   rateLimit = await import('@app/middleware/rateLimit');
+  ({ buildApplication } = await import('@config/application'));
 });
 
 afterEach(() => {
@@ -133,4 +138,32 @@ describe('the rate-limit metric contract', () => {
       .sort();
     expect(internalScopes).toEqual([...rateLimit.RATE_LIMIT_SCOPES].sort());
   });
+
+  it('records the exact IPv6 /56 limiter key for operator-only triage', async () => {
+    const app = buildApplication({
+      mountRoutes: (application) => {
+        application.get('/metric-rate-limit-probe', (_req, res) => res.json({ ok: true }));
+      },
+    });
+    const server: Server = app.listen(0);
+
+    try {
+      const max = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
+      for (let i = 0; i <= max; i += 1) {
+        await request(server).get('/metric-rate-limit-probe').set('CF-Connecting-IP', '2001:db8:abcd:12ff::2');
+      }
+
+      const points = pointsFor(await collect(), 'http.server.rate_limited');
+      const rejected = points.find(
+        (point) =>
+          point.attributes.scope === 'global' &&
+          point.attributes.source === 'external' &&
+          point.attributes.client_ip === '2001:db8:abcd:1200::/56',
+      );
+
+      expect(rejected?.value).toBeGreaterThan(0);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  }, 20_000);
 });

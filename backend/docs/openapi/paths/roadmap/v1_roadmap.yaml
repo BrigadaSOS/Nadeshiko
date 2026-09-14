@@ -1,0 +1,22 @@
+get:
+  tags: [Roadmap]
+  x-internal: true
+  operationId: listRoadmap
+  summary: List the public content and feature roadmap
+  description: Returns published roadmap stages only; private proposals and requester identities never appear.
+  security: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [items, patreonUrl]
+            properties:
+              items:
+                type: array
+                items: { $ref: "../../components/schemas/RoadmapItem.yaml" }
+              patreonUrl: { type: string, format: uri }
+    "429": { $ref: "../../components/responses/TooManyRequests.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }

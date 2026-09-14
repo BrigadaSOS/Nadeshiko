@@ -1,7 +1,8 @@
 import type { estypes } from '@elastic/elasticsearch';
 import { client, INDEX_NAME } from '@config/elasticsearch';
-import { Media } from '@app/models';
+import { Media, Segment, SegmentStatus } from '@app/models';
 import { InvalidRequestError } from '@app/errors';
+import { logger } from '@config/log';
 import { Cache, createCacheNamespace } from '@lib/cache';
 import { decodeKeysetCursor } from '@lib/cursor';
 import { excludedSearchLanguages } from '@lib/searchLanguages';
@@ -66,6 +67,62 @@ type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categor
  * pagination behave exactly as they do without an id filter.
  */
 const SEARCH_IN_IDS_CHUNK_SIZE = 1000;
+// A normal opening-line page converges in one pass. Keep adversarial/broad pages
+// from turning duplicate discovery into an unbounded series of DB + ES calls.
+const MAX_DUPLICATE_SEARCH_PASSES = 5;
+const MIN_REPEATED_EPISODES = 3;
+
+type SearchCandidate = Pick<SegmentDocumentShape, 'mediaId' | 'textJa' | 'episode'>;
+
+/**
+ * Finds later active copies of exact candidate subtitles that recur across at
+ * least three episodes. This threshold avoids hiding ordinary dialogue such as
+ * a short acknowledgement that happens to occur in two episodes. This is deliberately
+ * resolved against Postgres rather than carried in a search cursor: the ES
+ * page can contain a later episode before a subsequent page contains episode
+ * one, and cursor state would grow with every ordinary result. A single
+ * candidate query gives every page the same global first-episode rule.
+ */
+async function findLaterDuplicateSegmentIds(candidates: SearchCandidate[]): Promise<number[]> {
+  const pairs = new Map<string, { mediaId: number; textJa: string }>();
+  for (const candidate of candidates) {
+    if (!candidate.textJa) continue;
+    pairs.set(`${candidate.mediaId}\u0000${candidate.textJa}`, {
+      mediaId: candidate.mediaId,
+      textJa: candidate.textJa,
+    });
+  }
+  if (pairs.size === 0) return [];
+
+  const rows = await Segment.find({
+    select: { id: true, mediaId: true, contentJa: true, episode: true },
+    where: [...pairs.values()].map((pair) => ({
+      mediaId: pair.mediaId,
+      contentJa: pair.textJa,
+      status: SegmentStatus.ACTIVE,
+    })),
+    order: { episode: 'ASC' },
+  });
+
+  const episodesByKey = new Map<string, Set<number>>();
+  const firstEpisode = new Map<string, number>();
+  for (const row of rows) {
+    const key = `${row.mediaId}\u0000${row.contentJa}`;
+    const episodes = episodesByKey.get(key) ?? new Set<number>();
+    episodes.add(row.episode);
+    episodesByKey.set(key, episodes);
+    const first = firstEpisode.get(key);
+    if (first === undefined || row.episode < first) firstEpisode.set(key, row.episode);
+  }
+
+  return rows
+    .filter((row) => {
+      const episodes = episodesByKey.get(`${row.mediaId}\u0000${row.contentJa}`);
+      if (!episodes || episodes.size < MIN_REPEATED_EPISODES) return false;
+      return row.episode > (firstEpisode.get(`${row.mediaId}\u0000${row.contentJa}`) ?? row.episode);
+    })
+    .map((row) => row.id);
+}
 
 export class SegmentDocument {
   /**
@@ -193,24 +250,60 @@ export class SegmentDocument {
     // reported segment is not that.
     const excludedByReport = reports.segmentIds.size > 0 ? [buildIdsFilter([...reports.segmentIds])] : [];
 
-    const esResponse = client.search({
-      size: request.take,
-      sort,
-      index: INDEX_NAME,
-      highlight: { fields: highlightFields },
-      query: SegmentQuery.applyMediaScoreWeights(
-        { bool: { filter: [...filter, ...extraFilters], must, must_not: [...must_not, ...excludedByReport] } },
-        { demoted: reports.mediaWeights, preferred: preferredMediaIds },
-      ),
-      search_after: searchAfter,
-    });
+    const dedupeOpeningLines =
+      filters.status?.length === 1 &&
+      filters.status[0] === SegmentStatus.ACTIVE &&
+      !filters.media?.include?.some((item) => item.episodes && item.episodes.length > 0);
+    const baseQuery = SegmentQuery.applyMediaScoreWeights(
+      { bool: { filter: [...filter, ...extraFilters], must, must_not: [...must_not, ...excludedByReport] } },
+      { demoted: reports.mediaWeights, preferred: preferredMediaIds },
+    );
 
     const mediaInfo = Media.getMediaInfoMap();
 
     return withSafeQueryFallback(
       async () => {
-        const [esResult, mediaResult] = await Promise.all([esResponse, mediaInfo]);
-        return SegmentResponse.buildSearch(esResult, mediaResult);
+        const searchPage = (excludedDuplicateIds: number[] = []) =>
+          client.search({
+            size: request.take,
+            sort,
+            index: INDEX_NAME,
+            highlight: { fields: highlightFields },
+            query:
+              excludedDuplicateIds.length === 0
+                ? baseQuery
+                : {
+                    bool: {
+                      must: [baseQuery],
+                      must_not: [buildIdsFilter(excludedDuplicateIds)],
+                    },
+                  },
+            search_after: searchAfter,
+          });
+        const [initialResponse, mediaResult] = await Promise.all([searchPage(), mediaInfo]);
+        let finalResponse = initialResponse;
+        if (dedupeOpeningLines) {
+          const excludedDuplicateIds = new Set<number>();
+          for (let pass = 0; pass < MAX_DUPLICATE_SEARCH_PASSES; pass += 1) {
+            const hits = finalResponse.hits.hits as estypes.SearchHit<SegmentDocumentShape>[];
+            let duplicateIds: number[];
+            try {
+              duplicateIds = await findLaterDuplicateSegmentIds(
+                hits.flatMap((hit) => (hit._source ? [hit._source] : [])),
+              );
+            } catch (error) {
+              // Filtering is an enhancement; an unavailable database must not
+              // turn an otherwise healthy Elasticsearch search into a failure.
+              logger.warn({ error }, 'Skipping duplicate subtitle filtering after database lookup failure');
+              break;
+            }
+            const newDuplicateIds = duplicateIds.filter((id) => !excludedDuplicateIds.has(id));
+            if (newDuplicateIds.length === 0) break;
+            for (const id of newDuplicateIds) excludedDuplicateIds.add(id);
+            finalResponse = await searchPage([...excludedDuplicateIds]);
+          }
+        }
+        return SegmentResponse.buildSearch(finalResponse as estypes.SearchResponse, mediaResult);
       },
       () => SegmentDocument.executeSearch(request, 'safe', extraFilters, preferredMediaIds),
       {

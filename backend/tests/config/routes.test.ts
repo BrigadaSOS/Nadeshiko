@@ -31,7 +31,7 @@ describe('mountRoutes', () => {
     // Elasticsearch is reported as a field and never affects the status code.
     const upRes = await request(app).get('/up');
     expect(upRes.status).toBe(503);
-    expect(upRes.body).toMatchObject({ status: 'error', database: 'down' });
+    expect(upRes.body).toMatchObject({ status: 'error', database: 'down', releaseSha: 'unknown' });
     expect(upRes.body).toHaveProperty('elasticsearch');
     expect(upRes.headers['cache-control']).toBe('no-store');
 

@@ -508,6 +508,7 @@ const logoutCurrentUser = async () => {
     <div class="flex items-center justify-between gap-2">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.infoTitle') }}</h3>
       <button
+        data-testid="account-sign-out"
         class="nd-btn-accent"
         :disabled="loggingOut"
         @click="logoutCurrentUser"
@@ -655,6 +656,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.mediaNameLanguageDescription', { language: mediaNameLanguageLabel }) }} <span lang="ja" class="text-white/80 italic">{{ mediaNameExample }}</span></p>
         </div>
         <select
+          :aria-label="$t('accountSettings.account.mediaNameLanguage')"
           :value="user_store.preferences?.mediaNameLanguage || 'ENGLISH'"
           @change="updateMediaNameLanguage(($event.target as HTMLSelectElement).value)"
           :disabled="savingPreferences"
@@ -672,6 +674,7 @@ const logoutCurrentUser = async () => {
             <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.defaultSearchCategoryDescription') }}</p>
           </div>
           <select
+            :aria-label="$t('accountSettings.account.defaultSearchCategory')"
             data-testid="default-search-category"
             :value="defaultSearchCategory"
             @change="updateDefaultSearchCategory(($event.target as HTMLSelectElement).value)"
@@ -698,6 +701,7 @@ const logoutCurrentUser = async () => {
             <p class="text-gray-400 text-sm">{{ $t(`accountSettings.account.motionHint_${motionPreference}`) }}</p>
           </div>
           <select
+            :aria-label="$t('accountSettings.account.motion')"
             data-testid="motion-preference"
             :value="motionPreference"
             @change="setMotionPreference(($event.target as HTMLSelectElement).value as MotionLevel)"
@@ -719,6 +723,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t(`accountSettings.account.mediaCardHint_${mediaCardDefault}`) }}</p>
         </div>
         <select
+          :aria-label="$t('accountSettings.account.mediaCard')"
           data-testid="media-card-default"
           :value="mediaCardDefault"
           @change="updatePreference('mediaCardDefault', ($event.target as HTMLSelectElement).value)"
@@ -737,6 +742,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.questionableContentDesc') }}. {{ contentRatingDescription() }}</p>
         </div>
         <select
+          :aria-label="$t('accountSettings.account.questionableContent')"
           :value="user_store.preferences?.contentRatingPreferences?.nsfw || 'BLUR'"
           @change="updateContentRatingPreference(($event.target as HTMLSelectElement).value as NsfwMode)"
           :disabled="savingPreferences"
@@ -806,6 +812,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.definitionSizeDescription') }}</p>
         </div>
         <select
+          :aria-label="$t('accountSettings.account.definitionSize')"
           data-testid="definition-size"
           :value="definitionTextSize"
           :disabled="savingPreferences"
@@ -830,6 +837,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t(shirabeLinked ? 'accountSettings.account.translationLanguagesLinkedDescription' : 'accountSettings.account.translationLanguagesDescription') }}</p>
         </div>
         <select
+          :aria-label="$t('accountSettings.account.translationLanguages')"
           data-testid="translation-languages"
           :value="translationLanguageSelection"
           :disabled="savingPreferences"
@@ -864,6 +872,7 @@ const logoutCurrentUser = async () => {
         </div>
         <button
           data-testid="product-emails-toggle"
+          :aria-label="$t('accountSettings.emails.allTitle')"
           :disabled="togglingProductEmails"
           :aria-pressed="productEmailsEnabled"
           :class="[
@@ -896,6 +905,7 @@ const logoutCurrentUser = async () => {
           </div>
           <button
             :data-testid="`email-category-${category}`"
+            :aria-label="$t(`accountSettings.emails.${category}Title`)"
             :disabled="!productEmailsEnabled || togglingCategory !== null"
             :aria-pressed="productEmailsEnabled && emailCategories[category]"
             :class="[
@@ -927,6 +937,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
         </div>
         <button
+          data-testid="account-export"
           class="nd-btn"
           :disabled="exportingData"
           @click="exportData"
@@ -939,6 +950,7 @@ const logoutCurrentUser = async () => {
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
+          data-testid="account-delete"
           class="nd-btn-accent"
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"

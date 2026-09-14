@@ -1,11 +1,11 @@
 ---
-title: "Acerca de"
-description: "Conoce Nadeshiko, el equipo detrás del proyecto y los contribuidores que lo hacen posible."
+title: "Sobre el proyecto"
+description: "Conoce al equipo de Nadeshiko, a sus colaboradores y las fuentes de datos del proyecto."
 ---
 
-# Acerca de
+# Sobre Nadeshiko
 
-## Contribución y Atribución
+## Equipo y colaboradores
 
 <div data-testid="contributors-grid" class="about-contributors-grid grid grid-cols-1 md:grid-cols-3 gap-4">
   <div data-testid="contributor-card" class="about-contributor-card border dark:bg-neutral-800 dark:border-neutral-700 overflow-hidden">
@@ -26,7 +26,7 @@ description: "Conoce Nadeshiko, el equipo detrás del proyecto y los contribuido
       </div>
     </div>
     <div class="px-4 pt-2 pb-2">
-      <p class="text-xs text-gray-500 dark:text-neutral-400">Desarrollador encargado de la parte visual y backend como el mantenimiento.</p>
+      <p class="text-xs text-gray-500 dark:text-neutral-400">Responsable del diseño de la interfaz, el desarrollo del backend y el mantenimiento.</p>
     </div>
   </div>
 
@@ -48,7 +48,7 @@ description: "Conoce Nadeshiko, el equipo detrás del proyecto y los contribuido
       </div>
     </div>
     <div class="px-4 pt-2 pb-2">
-      <p class="text-xs text-gray-500 dark:text-neutral-400">Desarrollador encargado del despliegue de Nadeshiko y de la configuración con Elasticsearch.</p>
+      <p class="text-xs text-gray-500 dark:text-neutral-400">Responsable del despliegue de Nadeshiko y de la configuración de Elasticsearch.</p>
     </div>
   </div>
 
@@ -61,7 +61,7 @@ description: "Conoce Nadeshiko, el equipo detrás del proyecto y los contribuido
       />
       <div>
         <div class="text-xl font-bold text-gray-800 dark:text-white">Xyaman</div>
-        <div class="text-xs text-gray-500 dark:text-neutral-500 mt-0.5">Colaborador Principal</div>
+        <div class="text-xs text-gray-500 dark:text-neutral-500 mt-0.5">Colaborador principal</div>
         <a href="https://github.com/xyaman" class="mt-2 inline-flex text-gray-400 hover:text-gray-500">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
@@ -70,24 +70,24 @@ description: "Conoce Nadeshiko, el equipo detrás del proyecto y los contribuido
       </div>
     </div>
     <div class="px-4 pt-2 pb-2">
-      <p class="text-xs text-gray-500 dark:text-neutral-400">Contribuidor en la implementación de Anki con Nadeshiko.</p>
+      <p class="text-xs text-gray-500 dark:text-neutral-400">Colaboró en la implementación de la conexión con Anki.</p>
     </div>
   </div>
 </div>
 
 <br/>
 
-## Créditos y Fuentes de Datos
+## Créditos y fuentes de datos
 
-Este sitio hace uso de materiales y referencias que son propiedad intelectual de sus respectivos autores y poseedores de derechos. [Consulte aquí](https://nadeshiko.co/media) para obtener el listado de contenido utilizado como sus respectivos autores.
+Este sitio utiliza materiales y referencias que pertenecen a sus respectivos autores y titulares de derechos. Consulta el [catálogo](/media) para ver el contenido utilizado y sus autores.
 <br/><br/>
-Para obtener información sobre derechos de autor y DMCA, consulte nuestra [Política DMCA](/dmca).
+Encontrarás más información sobre derechos de autor en nuestra [política DMCA](/dmca).
 
 ## Contacto
 
-Si desea ponerse en contacto ya sea para dejar algún comentario, sugerencia, contribución o alguna otra cosa, puede hacerlo a través de:
+Si tienes alguna pregunta o sugerencia, o quieres colaborar con el proyecto, puedes contactar con nosotros por estas vías:
 
 - **Correo electrónico**: contact@nadeshiko.co
 - **Discord**: [Nadeshiko](https://discord.gg/qRak9MprUS)
 
-Este sitio web está bajo la Licencia AGPL-3.0.
+El código fuente del sitio está publicado bajo la licencia AGPL-3.0.

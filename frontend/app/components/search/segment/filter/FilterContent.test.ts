@@ -78,7 +78,10 @@ function render(rows: Row[], props: Record<string, unknown> = {}, loadingEpisode
     props: { searchData: { media: rows } as never, ...props },
     global: {
       provide: { [EPISODE_HITS_LOADING]: ref(loadingEpisodes) },
-      mocks: { $t: (key: string) => key },
+      mocks: {
+        $t: (key: string, values?: { number?: number }) =>
+          values?.number === undefined ? key : `${key} ${values.number}`,
+      },
       stubs: {
         SearchSegmentFilterPanelShell: PanelShell,
         SearchSegmentFilterRow: FilterRow,

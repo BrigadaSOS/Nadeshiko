@@ -10,6 +10,7 @@ export interface RouteAuth {
 }
 
 export const routeAuth: RouteAuth[] = [
+  { method: 'post', path: '/v1/roadmap/proposals', middleware: requireSession() },
   { method: 'post', path: '/v1/search', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
   { method: 'post', path: '/v1/search/stats', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
   { method: 'post', path: '/v1/search/words', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_MEDIA)) },
@@ -45,6 +46,10 @@ export const routeAuth: RouteAuth[] = [
   { method: 'get', path: '/v1/user/connections/shirabe/credential', middleware: requireSession() },
   { method: 'post', path: '/v1/user/connections/shirabe/resync', middleware: requireSession() },
   { method: 'post', path: '/v1/user/connections/shirabe/refused', middleware: requireSession() },
+  { method: 'get', path: '/v1/user/connections/patreon', middleware: requireSession() },
+  { method: 'post', path: '/v1/user/connections/patreon', middleware: requireSession() },
+  { method: 'delete', path: '/v1/user/connections/patreon', middleware: requireSession() },
+  { method: 'post', path: '/v1/user/connections/patreon/callback', middleware: requireSession() },
   { method: 'get', path: '/v1/user/excluded-media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.READ_PROFILE)) },
   { method: 'post', path: '/v1/user/excluded-media', middleware: requireAuth(enforceApiKeyScope(ApiPermission.WRITE_PROFILE)) },
   { method: 'delete', path: '/v1/user/excluded-media/:mediaPublicId', middleware: requireAuth(enforceApiKeyScope(ApiPermission.WRITE_PROFILE)) },
@@ -87,4 +92,7 @@ export const routeAuth: RouteAuth[] = [
   { method: 'get', path: '/v1/admin/tiers', middleware: requireSession(enforceAdminAccess) },
   { method: 'get', path: '/v1/admin/users/:userId/quota', middleware: requireSession(enforceAdminAccess) },
   { method: 'patch', path: '/v1/admin/users/:userId/quota', middleware: requireSession(enforceAdminAccess) },
+  { method: 'get', path: '/v1/admin/roadmap', middleware: requireSession(enforceAdminAccess) },
+  { method: 'post', path: '/v1/admin/roadmap', middleware: requireSession(enforceAdminAccess) },
+  { method: 'patch', path: '/v1/admin/roadmap/:itemId', middleware: requireSession(enforceAdminAccess) },
 ];

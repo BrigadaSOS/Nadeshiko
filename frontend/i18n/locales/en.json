@@ -18,6 +18,7 @@
       "changelog": "Changelog",
       "stats": "Stats",
       "media": "Media",
+      "roadmap": "Roadmap",
       "collections": "Collections",
       "activity": "Activity",
       "language": "Language",
@@ -32,6 +33,7 @@
     }
   },
   "player": {
+    "nowPlaying": "Now playing",
     "controls": {
       "rewind": "Rewind",
       "forward": "Forward",
@@ -50,6 +52,8 @@
     }
   },
   "common": {
+    "loading": "Loading…",
+    "example": "e.g. {value}",
     "cancel": "Cancel",
     "search": "Search",
     "clearSearch": "Clear search",
@@ -69,11 +73,13 @@
     "defaultDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining."
   },
   "home": {
+    "supportOnPatreon": "Support us on Patreon",
     "version": "v{version}",
-    "nadeDbDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for sentence mining.",
+    "nadeDbDescription": "Search over a million Japanese sentences from anime, J-drama and YouTube, each with audio, screenshot and translations in context. Built for {sentenceMining}.",
+    "sentenceMiningLabel": "sentence mining",
     "nadeDbDescriptionJpSearch": "Search in Japanese",
     "nadeDbDescriptionOtherSearch": "Search in English",
-    "nadeDbDescriptionExclusiveSearch": "Exclusive search",
+    "nadeDbDescriptionExclusiveSearch": "Exclude words",
     "nadeDbDescriptionExactSearch": "Exact search",
     "keyFeatures": {
       "feature1": {
@@ -110,9 +116,9 @@
   },
   "batchSearch": {
     "title": "Simultaneous Search",
-    "description1": "This feature can be used to search multiple words at once. A list will be returned with the words that have been found in the database, and a link to that specific search",
-    "description2": "To start, add some words on the box below",
-    "description3": "Add one word per line, or a coma separated list of words",
+    "description1": "Search multiple words at once to see how many sentences match each word. Follow the result links to view their examples.",
+    "description2": "To start, enter words in the box below.",
+    "description3": "Enter one word per line, or separate words with commas.",
     "description4": "You can only search up to ",
     "description5": "500 words at once",
     "totalWords": "Total words",
@@ -121,7 +127,7 @@
     "results": {
       "title": "Simultaneous Search - Results",
       "words": "Searched words",
-      "wordsWithMatch": "Words with match",
+      "wordsWithMatch": "Words with matches",
       "percentageMatched": "Percentage matched",
       "wordColumn": "word",
       "match": "Match?",
@@ -139,6 +145,8 @@
     "sentenceCount": "sentences",
     "episodes": "Episodes",
     "videos": "Videos",
+    "episodeCount": "{count} Episodes",
+    "videoCount": "{count} Videos",
     "sentenceCountLabel": "Sentence Count:",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
@@ -186,7 +194,7 @@
       "errorTip": "Verify the key field is defined in Nadeshiko settings"
     },
     "toast": {
-      "noSettings": "No settings found. Please go to settings page and configure the extension.",
+      "noSettings": "Set up Anki in your Nadeshiko settings to use this feature.",
       "miningCard": "Mining the card...",
       "noCardToExport": "No Anki card to export to. Please add a card first.",
       "cardFoundInOtherDeck": "Card found but not in deck \"{deck}\". Check that Yomitan and Nadeshiko are using the same deck.",
@@ -315,7 +323,7 @@
     "main": {
       "translationPreferences": {
         "combinedMenuButton": "Translation and furigana display",
-        "englishMenu": "English",
+        "englishMenu": "English translations",
         "spanishMenu": "Spanish translations",
         "furiganaMenu": "Furigana (Reading)",
         "languageSettingsHint": "Choose which translation languages are available in Account Settings.",
@@ -323,10 +331,10 @@
         "modeSpoiler": "On hover",
         "modeHidden": "Hidden",
         "englishShown": "English translations shown",
-        "englishSpoiler": "English translations in spoiler mode",
+        "englishSpoiler": "English translations shown on hover",
         "englishHidden": "English translations hidden",
         "spanishShown": "Spanish translations shown",
-        "spanishSpoiler": "Spanish translations in spoiler mode",
+        "spanishSpoiler": "Spanish translations shown on hover",
         "spanishHidden": "Spanish translations hidden",
         "furiganaShown": "Furigana (Reading) shown",
         "furiganaSpoiler": "Furigana (Reading) shown on hover",
@@ -360,9 +368,9 @@
         "context": "Context",
         "share": "Share",
         "more": "More",
-        "expandLeft": "Expand (left)",
-        "expandBoth": "Expand (both)",
-        "expandRight": "Expand (right)",
+        "expandLeft": "Include previous subtitle",
+        "expandBoth": "Include previous and next subtitles",
+        "expandRight": "Include next subtitle",
         "hideMedia": "Hide",
         "unhideMedia": "Unhide",
         "favoriteMedia": "Favorite",
@@ -375,9 +383,9 @@
         "sortmain": "Sort sentences",
         "sortlengthnone": "None",
         "sortlengthmin": "Shortest",
-        "sortlengthmax": "Largest",
+        "sortlengthmax": "Longest",
         "sortasc": "Shortest",
-        "sortdesc": "Largest",
+        "sortdesc": "Longest",
         "sorttime_asc": "Chronological",
         "sorttime_desc": "Reverse",
         "sortrandom": "Random",
@@ -388,7 +396,7 @@
       },
       "labels": {
         "noresults": "No results found...",
-        "episode": "Episode",
+        "episode": "Episode {number}",
         "movie": "Movie",
         "hiddenMediaBadge": "Hidden",
         "hiddenMediaBadgeTitle": "This title is on your hidden list",
@@ -437,6 +445,12 @@
       "announcement": "Announcement"
     },
     "dashboard": {
+      "roles": {
+        "ADMIN": "Administrator",
+        "MOD": "Moderator",
+        "USER": "User",
+        "PATREON": "Patreon supporter"
+      },
       "title": "Users",
       "searchPlaceholder": "Search by email...",
       "count": "{count} users",
@@ -524,7 +538,7 @@
         "SHARE": "Share"
       },
       "metrics": {
-        "searches": "Sentences Searched",
+        "searches": "Searches",
         "plays": "Audio Played",
         "exports": "Anki Exports",
         "shares": "Links Shared"
@@ -569,7 +583,7 @@
       "privacy": {
         "title": "Privacy",
         "trackingTitle": "Activity Tracking",
-        "trackingDescription": "Track searches, exports, and listening history. Your recent searches are what the search bar offers back to you.",
+        "trackingDescription": "Record searches, audio plays, Anki exports, and shared links. Your recent searches appear in the search bar.",
         "clearHistoryTitle": "Clear History",
         "clearHistoryDescription": "Permanently delete all activity data from your account.",
         "clearHistoryButton": "Clear History",
@@ -588,7 +602,7 @@
     },
     "developer": {
       "apiUsageTitle": "API Usage",
-      "apiUsageRemaining": "Remaining requests: {used} / {limit}",
+      "apiUsageRemaining": "Requests used: {used} / {limit}",
       "quotaResets": "Resets on {date}",
       "quotaTier": "{tier} plan",
       "burstLimit": "Separately, each key is limited to {max} requests per minute.",
@@ -662,9 +676,9 @@
         "JAPANESE": "Japanese",
         "ROMAJI": "Romaji"
       },
-      "translationLanguages": "Dictionary Languages",
-      "translationLanguagesDescription": "Choose the translation languages you want in dictionary content. When both are selected, this also sets their display order.",
-      "translationLanguagesLinkedDescription": "Dictionary definitions now follow your Shirabe stack. This still sets the sentence translations you see, and their order.",
+      "translationLanguages": "Translation languages",
+      "translationLanguagesDescription": "Choose the languages for subtitle translations and dictionary definitions. If you select both, you can also choose their display order.",
+      "translationLanguagesLinkedDescription": "Choose the languages and display order for subtitle translations. Dictionary definitions follow your Shirabe settings.",
       "definitionSize": "Definition text size",
       "definitionSizeDescription": "How large the word popup prints its definitions.",
       "definitionSizeOptions": {
@@ -849,19 +863,19 @@
       "loadingMessage": "Please wait while connecting",
       "connectionSuccess": "Connection established",
       "successMessage": "Connection with Anki has been successfully established",
-      "fieldLoadError": "Error loading model field names:",
+      "fieldLoadError": "Could not load note type fields:",
       "troubleshootingTips": {
-        "ankiRunning": "Make sure Anki is running and the Ankiconnect addon is installed",
+        "ankiRunning": "Make sure Anki is running and the AnkiConnect add-on is installed",
         "webCors": "Make sure 'https://nadeshiko.co' is in AnkiConnect's webCorsOriginList settings",
         "adBlock": "Disable any AdBlock extensions for this domain"
       },
       "ankiConfig": "Anki Configuration",
       "deckLabel": "Deck",
       "selectDeck": "Select a deck",
-      "modelLabel": "Model",
-      "selectModel": "Select a model",
+      "modelLabel": "Note type",
+      "selectModel": "Select a note type",
       "keyFieldLabel": "Key field",
-      "selectKeyField": "Select the field that corresponds to your deck ID",
+      "selectKeyField": "Select the field used to look up notes",
       "keyFieldRequiredTitle": "No key field set",
       "keyFieldRequiredMessage": "Adding to your last added card works without one. Set a Key Field to mine words from a word card, and to choose a note by searching your collection.",
       "fieldColumn": "Field",
@@ -1164,6 +1178,9 @@
     }
   },
   "modalauth": {
+    "signingIn": "Signing in",
+    "completingSignIn": "Completing sign-in…",
+    "verifyingEmail": "Verifying your email…",
     "headers": {
       "auth": "Authentication"
     },
@@ -1229,12 +1246,12 @@
       "description": "See how well Nadeshiko covers the most common Japanese words. Coverage statistics based on the Jiten anime frequency list."
     },
     "statsWords": {
-      "title": "{tier} Japanese Words Coverage",
-      "description": "See which of the {tier} most common Japanese words are covered by Nadeshiko's sentence corpus."
+      "title": "Japanese word coverage: frequency ranks {tier}",
+      "description": "See which Japanese words in frequency ranks {tier} have example sentences in Nadeshiko."
     },
     "media": {
       "title": "Browse Media",
-      "description": "Browse anime, J-dramas, and audiobooks available on Nadeshiko. Search their Japanese subtitles sentence by sentence, with audio and translations.",
+      "description": "Browse anime, J-dramas, and YouTube videos available on Nadeshiko. Search their Japanese subtitles sentence by sentence, with audio and translations.",
       "pageTitle": "{media}: Japanese subtitles and example sentences"
     },
     "blog": {
@@ -1294,7 +1311,7 @@
       "title": "Translation Availability",
       "description": "Every sentence has Japanese subtitles. We aim to include English and Spanish translations for all content. Some sources lack reliable Spanish subtitles, so coverage may be lower for that language.",
       "translated": "{percent} translated",
-      "official": "Official {percent}",
+      "official": "Human-translated {percent}",
       "machine": "DeepL {percent}",
       "none": "None {percent}",
       "languages": {
@@ -1375,6 +1392,17 @@
       "disconnected": "Linked as {name}, but Shirabe has stopped accepting the connection, so your own dictionaries are not being used. Reconnect to bring them back.",
       "confirmDisconnect": "Disconnect your Shirabe account? The key is revoked on Shirabe, and word cards go back to the default dictionaries."
     },
+    "patreon": {
+      "name": "Patreon",
+      "description": "Link Patreon to verify your membership and propose shows",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "active": "Linked as {name} — active member",
+      "inactive": "Linked as {name} — no active paid membership",
+      "member": "your Patreon account",
+      "join": "Join",
+      "confirmDisconnect": "Disconnect your Patreon account from Nadeshiko?"
+    },
     "callback": {
       "working": "Finishing the connection…",
       "declined": "The connection was not approved, so nothing was linked.",
@@ -1384,6 +1412,112 @@
       "done": "Shirabe connected",
       "goToSettings": "Go to settings"
     }
+  },
+  "roadmap": {
+    "seoTitle": "Roadmap | Nadeshiko",
+    "seoDescription": "See which anime titles are joining Nadeshiko next, what we’re building, and what we’ve shipped.",
+    "title": "Roadmap",
+    "intro": "Request which titles and features are joining Nadeshiko next by joining our Patreon!",
+    "support": "Support Nadeshiko",
+    "proposeCta": "Propose a show",
+    "filterLabel": "Filter roadmap",
+    "filters": { "content": "Titles", "feature": "Features" },
+    "dateFlexible": "Timing open",
+    "featureSoon": "Soon™",
+    "featureReleased": "Released",
+    "titleInProgress": "In progress",
+    "titleDone": "Done",
+    "proposedBy": "Proposed by {name}",
+    "patronCommunity": "Nadeshiko patrons",
+    "emptyTitles": "No titles are scheduled yet.",
+    "emptyFeatures": "No feature milestones yet.",
+    "viewSource": "View source",
+    "loadError": "The roadmap could not be loaded right now.",
+    "proposalTitle": "Request your favorite show!",
+    "proposalIntro": "Active Nadeshiko patrons can request up to four titles to be added each month. Check your access below!",
+    "steps": {
+      "signIn": "Sign in to Nadeshiko",
+      "patreon": "Link or join Patreon",
+      "propose": "Send your proposal"
+    },
+    "states": {
+      "anonymousTitle": "Sign in to propose a show",
+      "anonymousBody": "The roadmap is public. Proposals are available to patrons with a linked Nadeshiko account.",
+      "unlinkedTitle": "Link your Patreon account",
+      "unlinkedBody": "We’ll securely verify your Nadeshiko membership. Patreon is never used to sign in.",
+      "inactiveTitle": "Become an active patron",
+      "inactiveBody": "Your Patreon account is linked, but it does not currently have an active paid Nadeshiko membership.",
+      "activeTitle": "Your proposal",
+      "submittedTitle": "Proposal received",
+      "submittedBody": "It’s in the private review queue. If approved, it will appear on this timeline."
+    },
+    "signIn": "Sign in",
+    "linkPatreon": "Link Patreon",
+    "becomePatron": "Join on Patreon",
+    "checkAgain": "Check again",
+    "submitAnother": "Propose another",
+    "patreonMember": "Patreon member",
+    "activeBadge": "Active patron",
+    "form": {
+      "url": "Show link",
+      "urlPlaceholder": "https://anilist.co/anime/…",
+      "title": "Title (optional)",
+      "titlePlaceholder": "We’ll infer it from the link",
+      "credit": "Public credit (optional)",
+      "creditPlaceholder": "Your name or Patreon handle",
+      "creditHint": "Leave this blank to be credited as an anonymous Patreon member.",
+      "note": "Why this one? (optional)",
+      "notePlaceholder": "Tell us what makes it a good fit for Nadeshiko",
+      "submit": "Send for review"
+    },
+    "features": {
+      "patreonProposals": {
+        "title": "Patreon title proposals",
+        "description": "Patrons can link their membership, propose a title, and follow approved additions on the public roadmap."
+      },
+      "searchFilters": {
+        "title": "Better search filters",
+        "description": "Search directly by media name, tags, and other focused filters."
+      },
+      "publicRoadmap": {
+        "title": "Public roadmap",
+        "description": "See upcoming and released titles and features together in one place."
+      },
+      "interfaceLanguages": {
+        "title": "Seven interface languages",
+        "description": "Nadeshiko expanded beyond English, Spanish, and Japanese with Portuguese, Indonesian, Simplified Chinese, and Traditional Chinese."
+      },
+      "youtubePlayback": {
+        "title": "YouTube playback in search",
+        "description": "YouTube sentences play directly inside results and continue through playlists without leaving Nadeshiko."
+      },
+      "wordCards": {
+        "title": "Word cards",
+        "description": "Click a word in any sentence for readings, definitions, pitch accent, audio, and frequency badges."
+      },
+      "ownDictionaries": {
+        "title": "Your own dictionaries",
+        "description": "Link Shirabe and Nadeshiko uses your ordered dictionary stack, including monolingual and uploaded dictionaries."
+      },
+      "ankiMining": {
+        "title": "Rich Anki mining",
+        "description": "Create or update notes with the word, sentence, audio, image, furigana, definitions, and pitch accent."
+      },
+      "searchHistory": {
+        "title": "Search history and familiar titles",
+        "description": "Recent searches follow signed-in readers across devices, while favorite and studied titles influence ranking."
+      },
+      "apiKeys": {
+        "title": "Granular API keys",
+        "description": "API keys can be read-only, full access, or restricted to explicitly selected permissions."
+      }
+    },
+    "callbackDeclined": "The Patreon connection was not approved.",
+    "callbackFailed": "That Patreon connection could not be completed.",
+    "callbackDone": "Patreon connected",
+    "callbackDoneBody": "Your membership has been checked. You can now return to the roadmap.",
+    "backToRoadmap": "Back to the roadmap",
+    "admin": { "tab": "Roadmap", "title": "Roadmap queue" }
   },
   "feedback": {
     "open": "Feedback",
@@ -1432,5 +1566,40 @@
   "mediaPage": {
     "resultsFailed": "We could not load the sentences for this title.",
     "resultsRetry": "Try again"
+  },
+  "impersonation": {
+    "active": "Impersonating {name}",
+    "exit": "Exit impersonation"
+  },
+  "mediaMetadata": {
+    "screenshot": "Screenshot from {media}",
+    "screenshotFallback": "Sentence screenshot",
+    "seasonWithYear": "{season} {year}",
+    "seasons": {
+      "WINTER": "Winter",
+      "SPRING": "Spring",
+      "SUMMER": "Summer",
+      "FALL": "Fall",
+      "NONE": "Not set"
+    },
+    "statuses": {
+      "FINISHED": "Finished",
+      "RELEASING": "Releasing",
+      "NOT_YET_RELEASED": "Not yet released",
+      "CANCELLED": "Cancelled"
+    },
+    "formats": {
+      "TV": "TV",
+      "MOVIE": "Movie",
+      "OVA": "OVA",
+      "ONA": "ONA",
+      "SPECIAL": "Special",
+      "YOUTUBE": "YouTube"
+    },
+    "categories": {
+      "ANIME": "Anime",
+      "JDRAMA": "Live action",
+      "YOUTUBE": "YouTube"
+    }
   }
 }

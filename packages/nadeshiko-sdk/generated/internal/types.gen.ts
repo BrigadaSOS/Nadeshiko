@@ -4,6 +4,207 @@ export type ClientOptions = {
     baseUrl: 'https://api.nadeshiko.co' | (string & {});
 };
 
+export type RoadmapItem = {
+    id: string;
+    kind: 'CONTENT' | 'FEATURE';
+    status: 'PROPOSED' | 'CONSIDERING' | 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'DECLINED';
+    title: string;
+    description: string;
+    sourceUrl: string | null;
+    coverUrl: string | null;
+    targetDate: string | null;
+    sortOrder: number;
+    createdAt: string;
+    /**
+     * Optional public credit chosen by the proposer or an admin.
+     */
+    proposerName: string | null;
+    /**
+     * Present on admin responses only.
+     */
+    requesterUserId?: number | null;
+};
+
+/**
+ * Too Many Requests error response
+ */
+export type Error429 = {
+    /**
+     * Specific error code for programmatic handling
+     */
+    code: 'RATE_LIMIT_EXCEEDED' | 'QUOTA_EXCEEDED';
+    /**
+     * A short, human-readable summary of the problem
+     */
+    title: string;
+    /**
+     * A human-readable explanation specific to this occurrence
+     */
+    detail: string;
+    /**
+     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     */
+    type?: string;
+    /**
+     * A URI reference that identifies the specific occurrence (e.g., trace ID)
+     */
+    instance?: string;
+    /**
+     * The HTTP status code
+     */
+    status: 429;
+    /**
+     * Optional map of field names to their error messages (for validation errors)
+     */
+    errors?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * Internal Server Error response
+ */
+export type Error500 = {
+    /**
+     * Specific error code for programmatic handling
+     */
+    code: 'INTERNAL_SERVER_EXCEPTION';
+    /**
+     * A short, human-readable summary of the problem
+     */
+    title: string;
+    /**
+     * A human-readable explanation specific to this occurrence
+     */
+    detail: string;
+    /**
+     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     */
+    type?: string;
+    /**
+     * A URI reference that identifies the specific occurrence (e.g., trace ID)
+     */
+    instance?: string;
+    /**
+     * The HTTP status code
+     */
+    status: 500;
+    /**
+     * Optional map of field names to their error messages (for validation errors)
+     */
+    errors?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * Bad Request error response
+ */
+export type Error400 = {
+    /**
+     * Specific error code for programmatic handling
+     */
+    code: 'VALIDATION_FAILED' | 'INVALID_JSON' | 'INVALID_REQUEST';
+    /**
+     * A short, human-readable summary of the problem
+     */
+    title: string;
+    /**
+     * A human-readable explanation specific to this occurrence
+     */
+    detail: string;
+    /**
+     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     */
+    type?: string;
+    /**
+     * A URI reference that identifies the specific occurrence (e.g., trace ID)
+     */
+    instance?: string;
+    /**
+     * The HTTP status code
+     */
+    status: 400;
+    /**
+     * Optional map of field names to their error messages (for validation errors)
+     */
+    errors?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * Unauthorized error response
+ */
+export type Error401 = {
+    /**
+     * Specific error code for programmatic handling
+     */
+    code: 'AUTH_CREDENTIALS_REQUIRED' | 'AUTH_CREDENTIALS_INVALID' | 'AUTH_CREDENTIALS_EXPIRED';
+    /**
+     * A short, human-readable summary of the problem
+     */
+    title: string;
+    /**
+     * A human-readable explanation specific to this occurrence
+     */
+    detail: string;
+    /**
+     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     */
+    type?: string;
+    /**
+     * A URI reference that identifies the specific occurrence (e.g., trace ID)
+     */
+    instance?: string;
+    /**
+     * The HTTP status code
+     */
+    status: 401;
+    /**
+     * Optional map of field names to their error messages (for validation errors)
+     */
+    errors?: {
+        [key: string]: string;
+    };
+};
+
+/**
+ * Forbidden error response
+ */
+export type Error403 = {
+    /**
+     * Specific error code for programmatic handling
+     */
+    code: 'ACCESS_DENIED' | 'INSUFFICIENT_PERMISSIONS';
+    /**
+     * A short, human-readable summary of the problem
+     */
+    title: string;
+    /**
+     * A human-readable explanation specific to this occurrence
+     */
+    detail: string;
+    /**
+     * A URI reference that identifies the problem type (e.g., GitHub issues link)
+     */
+    type?: string;
+    /**
+     * A URI reference that identifies the specific occurrence (e.g., trace ID)
+     */
+    instance?: string;
+    /**
+     * The HTTP status code
+     */
+    status: 403;
+    /**
+     * Optional map of field names to their error messages (for validation errors)
+     */
+    errors?: {
+        [key: string]: string;
+    };
+};
+
 /**
  * What to search for (omit for queryless browse/stats)
  */
@@ -510,186 +711,6 @@ export type SearchResponse = {
         };
     };
     pagination: SearchPagination;
-};
-
-/**
- * Bad Request error response
- */
-export type Error400 = {
-    /**
-     * Specific error code for programmatic handling
-     */
-    code: 'VALIDATION_FAILED' | 'INVALID_JSON' | 'INVALID_REQUEST';
-    /**
-     * A short, human-readable summary of the problem
-     */
-    title: string;
-    /**
-     * A human-readable explanation specific to this occurrence
-     */
-    detail: string;
-    /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
-     */
-    type?: string;
-    /**
-     * A URI reference that identifies the specific occurrence (e.g., trace ID)
-     */
-    instance?: string;
-    /**
-     * The HTTP status code
-     */
-    status: 400;
-    /**
-     * Optional map of field names to their error messages (for validation errors)
-     */
-    errors?: {
-        [key: string]: string;
-    };
-};
-
-/**
- * Unauthorized error response
- */
-export type Error401 = {
-    /**
-     * Specific error code for programmatic handling
-     */
-    code: 'AUTH_CREDENTIALS_REQUIRED' | 'AUTH_CREDENTIALS_INVALID' | 'AUTH_CREDENTIALS_EXPIRED';
-    /**
-     * A short, human-readable summary of the problem
-     */
-    title: string;
-    /**
-     * A human-readable explanation specific to this occurrence
-     */
-    detail: string;
-    /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
-     */
-    type?: string;
-    /**
-     * A URI reference that identifies the specific occurrence (e.g., trace ID)
-     */
-    instance?: string;
-    /**
-     * The HTTP status code
-     */
-    status: 401;
-    /**
-     * Optional map of field names to their error messages (for validation errors)
-     */
-    errors?: {
-        [key: string]: string;
-    };
-};
-
-/**
- * Forbidden error response
- */
-export type Error403 = {
-    /**
-     * Specific error code for programmatic handling
-     */
-    code: 'ACCESS_DENIED' | 'INSUFFICIENT_PERMISSIONS';
-    /**
-     * A short, human-readable summary of the problem
-     */
-    title: string;
-    /**
-     * A human-readable explanation specific to this occurrence
-     */
-    detail: string;
-    /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
-     */
-    type?: string;
-    /**
-     * A URI reference that identifies the specific occurrence (e.g., trace ID)
-     */
-    instance?: string;
-    /**
-     * The HTTP status code
-     */
-    status: 403;
-    /**
-     * Optional map of field names to their error messages (for validation errors)
-     */
-    errors?: {
-        [key: string]: string;
-    };
-};
-
-/**
- * Too Many Requests error response
- */
-export type Error429 = {
-    /**
-     * Specific error code for programmatic handling
-     */
-    code: 'RATE_LIMIT_EXCEEDED' | 'QUOTA_EXCEEDED';
-    /**
-     * A short, human-readable summary of the problem
-     */
-    title: string;
-    /**
-     * A human-readable explanation specific to this occurrence
-     */
-    detail: string;
-    /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
-     */
-    type?: string;
-    /**
-     * A URI reference that identifies the specific occurrence (e.g., trace ID)
-     */
-    instance?: string;
-    /**
-     * The HTTP status code
-     */
-    status: 429;
-    /**
-     * Optional map of field names to their error messages (for validation errors)
-     */
-    errors?: {
-        [key: string]: string;
-    };
-};
-
-/**
- * Internal Server Error response
- */
-export type Error500 = {
-    /**
-     * Specific error code for programmatic handling
-     */
-    code: 'INTERNAL_SERVER_EXCEPTION';
-    /**
-     * A short, human-readable summary of the problem
-     */
-    title: string;
-    /**
-     * A human-readable explanation specific to this occurrence
-     */
-    detail: string;
-    /**
-     * A URI reference that identifies the problem type (e.g., GitHub issues link)
-     */
-    type?: string;
-    /**
-     * A URI reference that identifies the specific occurrence (e.g., trace ID)
-     */
-    instance?: string;
-    /**
-     * The HTTP status code
-     */
-    status: 500;
-    /**
-     * Optional map of field names to their error messages (for validation errors)
-     */
-    errors?: {
-        [key: string]: string;
-    };
 };
 
 /**
@@ -1830,6 +1851,16 @@ export type ShirabeConnection = {
     syncedAt?: string;
 };
 
+export type PatreonConnection = {
+    linked: true;
+    fullName: string | null;
+    active: boolean;
+    patronStatus: string | null;
+    entitledAmountCents: number;
+    membershipCheckedAt: string;
+    linkedAt: string;
+};
+
 export type ReportTargetMedia = {
     /**
      * Report target type
@@ -2795,6 +2826,18 @@ export type UpdateAccountQuotaRequest = {
     reason?: string;
 };
 
+export type RoadmapItemWrite = {
+    kind: 'CONTENT' | 'FEATURE';
+    status: 'CONSIDERING' | 'PLANNED' | 'IN_PROGRESS' | 'RELEASED';
+    title: string;
+    description?: string;
+    sourceUrl?: string | null;
+    coverUrl?: string | null;
+    targetDate?: string | null;
+    sortOrder?: number;
+    proposerName?: string | null;
+};
+
 export type AuthUser = {
     readonly id: string;
     name: string;
@@ -2826,7 +2869,6 @@ export type AuthSession = {
 
 export type AuthAccount = {
     readonly id: string;
-    issuer: string;
     accountId: string;
     providerId: string;
     userId: string;
@@ -2896,7 +2938,6 @@ export type AuthSessionWritable = {
 };
 
 export type AuthAccountWritable = {
-    issuer: string;
     accountId: string;
     providerId: string;
     userId: string;
@@ -2922,6 +2963,87 @@ export type AuthVerificationWritable = {
 export type AuthApikeyWritable = {
     metadata?: string;
 };
+
+export type ListRoadmapData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/roadmap';
+};
+
+export type ListRoadmapErrors = {
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type ListRoadmapError = ListRoadmapErrors[keyof ListRoadmapErrors];
+
+export type ListRoadmapResponses = {
+    /**
+     * OK
+     */
+    200: {
+        items: Array<RoadmapItem>;
+        patreonUrl: string;
+    };
+};
+
+export type ListRoadmapResponse = ListRoadmapResponses[keyof ListRoadmapResponses];
+
+export type CreateRoadmapProposalData = {
+    body: {
+        sourceUrl: string;
+        title?: string;
+        note?: string;
+        /**
+         * Optional name to show publicly if the proposal is approved.
+         */
+        proposerName?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/roadmap/proposals';
+};
+
+export type CreateRoadmapProposalErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type CreateRoadmapProposalError = CreateRoadmapProposalErrors[keyof CreateRoadmapProposalErrors];
+
+export type CreateRoadmapProposalResponses = {
+    /**
+     * Submitted for review
+     */
+    201: RoadmapItem;
+};
+
+export type CreateRoadmapProposalResponse = CreateRoadmapProposalResponses[keyof CreateRoadmapProposalResponses];
 
 export type SearchData = {
     body: SearchRequest;
@@ -4673,6 +4795,149 @@ export type ReportShirabeRefusalResponses = {
 };
 
 export type ReportShirabeRefusalResponse = ReportShirabeRefusalResponses[keyof ReportShirabeRefusalResponses];
+
+export type UnlinkPatreonData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/patreon';
+};
+
+export type UnlinkPatreonErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Not Found
+     */
+    404: Error404;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type UnlinkPatreonError = UnlinkPatreonErrors[keyof UnlinkPatreonErrors];
+
+export type UnlinkPatreonResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type UnlinkPatreonResponse = UnlinkPatreonResponses[keyof UnlinkPatreonResponses];
+
+export type GetPatreonConnectionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/patreon';
+};
+
+export type GetPatreonConnectionErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Too Many Requests. The response body indicates whether the request was rejected due to per-minute rate limiting or monthly quota exhaustion.
+     */
+    429: Error429;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type GetPatreonConnectionError = GetPatreonConnectionErrors[keyof GetPatreonConnectionErrors];
+
+export type GetPatreonConnectionResponses = {
+    /**
+     * OK
+     */
+    200: {
+        connection: PatreonConnection | null;
+        patreonUrl: string;
+    };
+};
+
+export type GetPatreonConnectionResponse = GetPatreonConnectionResponses[keyof GetPatreonConnectionResponses];
+
+export type StartPatreonLinkData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/patreon';
+};
+
+export type StartPatreonLinkErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type StartPatreonLinkError = StartPatreonLinkErrors[keyof StartPatreonLinkErrors];
+
+export type StartPatreonLinkResponses = {
+    /**
+     * Created
+     */
+    201: {
+        authorizeUrl: string;
+        state: string;
+    };
+};
+
+export type StartPatreonLinkResponse = StartPatreonLinkResponses[keyof StartPatreonLinkResponses];
+
+export type CompletePatreonLinkData = {
+    body: {
+        code: string;
+        state: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/patreon/callback';
+};
+
+export type CompletePatreonLinkErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type CompletePatreonLinkError = CompletePatreonLinkErrors[keyof CompletePatreonLinkErrors];
+
+export type CompletePatreonLinkResponses = {
+    /**
+     * Linked
+     */
+    200: {
+        connection: PatreonConnection;
+    };
+};
+
+export type CompletePatreonLinkResponse = CompletePatreonLinkResponses[keyof CompletePatreonLinkResponses];
 
 export type ListExcludedMediaData = {
     body?: never;
@@ -6868,6 +7133,134 @@ export type UpdateAdminUserQuotaResponses = {
 
 export type UpdateAdminUserQuotaResponse = UpdateAdminUserQuotaResponses[keyof UpdateAdminUserQuotaResponses];
 
+export type ListAdminRoadmapData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/admin/roadmap';
+};
+
+export type ListAdminRoadmapErrors = {
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type ListAdminRoadmapError = ListAdminRoadmapErrors[keyof ListAdminRoadmapErrors];
+
+export type ListAdminRoadmapResponses = {
+    /**
+     * OK
+     */
+    200: {
+        items: Array<RoadmapItem>;
+    };
+};
+
+export type ListAdminRoadmapResponse = ListAdminRoadmapResponses[keyof ListAdminRoadmapResponses];
+
+export type CreateAdminRoadmapItemData = {
+    body: RoadmapItemWrite;
+    path?: never;
+    query?: never;
+    url: '/v1/admin/roadmap';
+};
+
+export type CreateAdminRoadmapItemErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type CreateAdminRoadmapItemError = CreateAdminRoadmapItemErrors[keyof CreateAdminRoadmapItemErrors];
+
+export type CreateAdminRoadmapItemResponses = {
+    /**
+     * Created
+     */
+    201: RoadmapItem;
+};
+
+export type CreateAdminRoadmapItemResponse = CreateAdminRoadmapItemResponses[keyof CreateAdminRoadmapItemResponses];
+
+export type UpdateAdminRoadmapItemData = {
+    body: {
+        kind?: 'CONTENT' | 'FEATURE';
+        status?: 'PROPOSED' | 'CONSIDERING' | 'PLANNED' | 'IN_PROGRESS' | 'RELEASED' | 'DECLINED';
+        title?: string;
+        description?: string;
+        sourceUrl?: string | null;
+        coverUrl?: string | null;
+        targetDate?: string | null;
+        sortOrder?: number;
+        proposerName?: string | null;
+    };
+    path: {
+        /**
+         * Public UUID of the roadmap item.
+         */
+        itemId: string;
+    };
+    query?: never;
+    url: '/v1/admin/roadmap/{itemId}';
+};
+
+export type UpdateAdminRoadmapItemErrors = {
+    /**
+     * Bad Request
+     */
+    400: Error400;
+    /**
+     * Unauthorized
+     */
+    401: Error401;
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Not Found
+     */
+    404: Error404;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type UpdateAdminRoadmapItemError = UpdateAdminRoadmapItemErrors[keyof UpdateAdminRoadmapItemErrors];
+
+export type UpdateAdminRoadmapItemResponses = {
+    /**
+     * Updated
+     */
+    200: RoadmapItem;
+};
+
+export type UpdateAdminRoadmapItemResponse = UpdateAdminRoadmapItemResponses[keyof UpdateAdminRoadmapItemResponses];
+
 export type GetSessionData = {
     body?: never;
     path?: never;
@@ -7081,7 +7474,7 @@ export type SocialSignInData = {
          * Callback URL to redirect to if an error happens
          */
         errorCallbackURL?: string;
-        provider: 'apple' | 'atlassian' | 'cognito' | 'discord' | 'facebook' | 'figma' | 'github' | 'microsoft' | 'google' | 'huggingface' | 'slack' | 'spotify' | 'twitch' | 'twitter' | 'dropbox' | 'kick' | 'linear' | 'linkedin' | 'gitlab' | 'tiktok' | 'reddit' | 'roblox' | 'salesforce' | 'vk' | 'zoom' | 'notion' | 'kakao' | 'naver' | 'line' | 'paybin' | 'paypal' | 'polar' | 'railway' | 'vercel' | 'wechat' | string;
+        provider: 'apple' | 'atlassian' | 'cloudflare' | 'cognito' | 'discord' | 'facebook' | 'figma' | 'github' | 'microsoft' | 'google' | 'huggingface' | 'slack' | 'spotify' | 'twitch' | 'twitter' | 'dropbox' | 'kick' | 'linear' | 'linkedin' | 'gitlab' | 'tiktok' | 'reddit' | 'roblox' | 'salesforce' | 'vk' | 'zoom' | 'notion' | 'kakao' | 'naver' | 'line' | 'paybin' | 'paypal' | 'polar' | 'railway' | 'vercel' | 'wechat' | string;
         /**
          * Disable automatic redirection to the provider. Useful for handling the redirection yourself
          */

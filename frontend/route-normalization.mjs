@@ -10,10 +10,10 @@ const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 // Exported only so server/utils/routeNormalization.test.ts can assert it still
 // matches nuxt.config.ts -- a locale added there and forgotten here would send
 // that locale's entire traffic back into `/__other`, silently.
-export const LOCALES = new Set(['en', 'es', 'ja']);
+export const LOCALES = new Set(['en', 'es', 'ja', 'zh', 'zh-hant', 'id', 'pt-BR']);
 
 const STATIC_PAGES = new Set([
-  '/', '/blog', '/media', '/stats', '/stats/words',
+  '/', '/blog', '/media', '/roadmap', '/stats', '/stats/words',
   '/about', '/privacy', '/terms-and-conditions', '/dmca',
   '/search', '/api/v1/docs',
   // The signed-in area. Peeling the locale prefix rescued the public pages but
@@ -27,6 +27,7 @@ const STATIC_PAGES = new Set([
   '/user/media', '/user/favorites', '/user/hide-media', '/user/settings', '/user/sync',
   '/user/admin', '/user/admin/agent-activity', '/user/admin/announcement',
   '/user/admin/reports', '/user/admin/users',
+  '/user/admin/roadmap',
   '/settings',
   // Stable social OAuth landing; the callback plugin restores the original
   // page after session establishment.
@@ -36,6 +37,7 @@ const STATIC_PAGES = new Set([
   // in a way nobody reports, because a reader who lands on an error here simply
   // gives up on connecting.
   '/link/shirabe/callback',
+  '/link/patreon/callback',
   // The unsubscribe confirmation. Its own series for the same reason as the
   // Shirabe callback: a reader who lands here and cannot complete it does not
   // write in to say so, they press the spam button instead -- which costs the

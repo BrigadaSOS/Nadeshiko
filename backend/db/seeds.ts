@@ -1,10 +1,11 @@
 import { User, ApiPermission, UserRoleType, Collection, CollectionType, CollectionVisibility } from '@app/models';
 import { AppDataSource } from '@config/database';
-import { auth } from '@config/auth';
 import { config } from '@config/config';
 import { getAppEnvironment } from '@config/environment';
 import { logger } from '@config/log';
 import { defaultKeyHasher } from '@better-auth/api-key';
+import { hashPassword } from 'better-auth/crypto';
+import { In } from 'typeorm';
 
 const SEEDED_MASTER_KEY_NAME = 'Local Master Key';
 const BETTER_AUTH_PERMISSION_RESOURCE = 'api';
@@ -128,12 +129,47 @@ export async function seed() {
   logger.info('Seed completed successfully');
 }
 
-const E2E_TEST_USERS = [
-  { username: 'e2e-user', email: 'e2e-user@nadeshiko.co', passwordEnvKey: 'E2E_USER_PASSWORD' },
-] as const;
+/**
+ * One account per Playwright worker.
+ *
+ * The browser suite mutates preferences, collections, API keys and activity.
+ * Sharing one account forced CI down to one worker and made the suite take more
+ * than twenty minutes. These users all use the same deployment-only secret,
+ * but have independent server-side state so the suite can run concurrently.
+ * Without E2E_RUN_ID, keep index zero at the historical address for production
+ * smoke and local development. Staging gives every workflow attempt a run id.
+ */
+// Eight accounts back the parallel workers; index eight is a dedicated
+// cross-account reader, index nine is a staging-only admin, and index ten is a
+// deletion account for the destructive journey. None is borrowed
+// from an active worker, so authorization tests cannot revoke or mutate another
+// spec's session. Run-scoped users are removed by the cleanup-e2e CI job.
+function e2eRunId(): string | null {
+  const runId = process.env.E2E_RUN_ID;
+  if (!runId) return null;
+  if (!/^[a-z0-9-]{1,48}$/i.test(runId)) throw new Error('E2E_RUN_ID must contain only letters, digits, and hyphens');
+  return runId;
+}
 
-async function seedE2ETestUsers() {
-  for (const testUser of E2E_TEST_USERS) {
+const runId = e2eRunId();
+const E2E_TEST_USERS = Array.from({ length: 11 }, (_, index) => ({
+  username: runId ? `e2e-${runId}-${index}` : index === 0 ? 'e2e-user' : `e2e-user-${index}`,
+  email: runId
+    ? `e2e-${runId}-${index}@nadeshiko.co`
+    : index === 0
+      ? 'e2e-user@nadeshiko.co'
+      : `e2e-user-${index}@nadeshiko.co`,
+  passwordEnvKey: 'E2E_USER_PASSWORD' as const,
+  role: index === 9 ? UserRoleType.ADMIN : UserRoleType.USER,
+}));
+
+export async function seedE2ETestUsers() {
+  // Production only runs the serial account-zero smoke suite. Keep the wider
+  // pool out of the production user table; staging and local need all eight
+  // workers plus the dedicated cross-account reader.
+  const testUsers =
+    getAppEnvironment(config.ENVIRONMENT) === 'production' ? E2E_TEST_USERS.slice(0, 1) : E2E_TEST_USERS;
+  for (const testUser of testUsers) {
     const password = config[testUser.passwordEnvKey];
     if (!password) {
       logger.info({ email: testUser.email }, 'E2E password env var not set, skipping test user');
@@ -141,19 +177,69 @@ async function seedE2ETestUsers() {
     }
 
     const existing = await User.findOne({ where: { email: testUser.email } });
-    if (existing) {
-      logger.info({ email: testUser.email }, 'E2E test user already exists');
-      continue;
-    }
+    const passwordHash = await hashPassword(password);
+    await AppDataSource.transaction(async (manager) => {
+      const user =
+        existing ??
+        User.create({
+          username: testUser.username,
+          email: testUser.email,
+          isActive: true,
+          isVerified: true,
+          role: testUser.role,
+        });
+      user.username = testUser.username;
+      user.isActive = true;
+      user.isVerified = true;
+      user.role = testUser.role;
+      await manager.save(user);
 
-    await auth.api.signUpEmail({
-      body: {
-        name: testUser.username,
-        email: testUser.email,
-        password,
-      },
+      // Keep the shared deployment secret rotatable. Existing E2E accounts are
+      // updated as well as newly inserted ones; active sessions remain valid.
+      await manager.query(
+        `
+          INSERT INTO "account" (
+            "account_id", "provider_id", "user_id", "password", "created_at", "updated_at"
+          )
+          VALUES ($1, 'credential', $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ON CONFLICT ("provider_id", "account_id")
+          DO UPDATE SET
+            "user_id" = EXCLUDED."user_id",
+            "password" = EXCLUDED."password",
+            "updated_at" = CURRENT_TIMESTAMP
+        `,
+        [String(user.id), user.id, passwordHash],
+      );
+
+      const defaults = [
+        { name: 'Favorites', type: CollectionType.USER },
+        { name: 'Anki Exports', type: CollectionType.ANKI_EXPORT },
+      ] as const;
+      for (const collection of defaults) {
+        const present = await manager.count(Collection, {
+          where: { userId: user.id, name: collection.name, type: collection.type },
+        });
+        if (present === 0) {
+          await manager.save(
+            Collection.create({
+              ...collection,
+              userId: user.id,
+              visibility: CollectionVisibility.PRIVATE,
+            }),
+          );
+        }
+      }
     });
 
-    logger.info({ email: testUser.email }, 'E2E test user seeded');
+    logger.info({ email: testUser.email }, 'E2E test user ensured');
   }
+}
+
+export async function cleanupE2ETestUsers() {
+  const disposableRunId = e2eRunId();
+  if (!disposableRunId) throw new Error('E2E_RUN_ID is required to remove disposable E2E accounts');
+
+  const emails = Array.from({ length: 11 }, (_, index) => `e2e-${disposableRunId}-${index}@nadeshiko.co`);
+  const result = await User.delete({ email: In(emails) });
+  logger.info({ runId: disposableRunId, removed: result.affected ?? 0 }, 'Removed disposable E2E users');
 }

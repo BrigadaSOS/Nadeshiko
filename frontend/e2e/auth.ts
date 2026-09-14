@@ -1,9 +1,11 @@
+import { mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { test as base } from './fixtures';
 import type { APIResponse, Page } from '@playwright/test';
-import { getE2EBaseUrl } from './env';
+import { e2eAuthStatePath } from './auth-state';
+import { e2eBypassHeaders, getE2EBaseUrl } from './env';
 
 const E2E_BASE_URL = getE2EBaseUrl();
-const E2E_USER_EMAIL = 'e2e-user@nadeshiko.co';
 const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD || '';
 const LOCAL_E2E_LOGIN_RETRIES = 8;
 const LOCAL_E2E_LOGIN_RETRY_DELAY_MS = 1_500;
@@ -36,7 +38,31 @@ async function waitForRetryDelay(page: Page) {
   await page.waitForTimeout(LOCAL_E2E_LOGIN_RETRY_DELAY_MS);
 }
 
-export async function loginAsE2EUser(page: Page) {
+export interface E2EAccount {
+  email: string;
+  username: string;
+  workerIndex: number;
+}
+
+function currentWorkerAccount(): E2EAccount {
+  const parallelIndex = Number.parseInt(process.env.TEST_PARALLEL_INDEX ?? '0', 10);
+  return e2eAccountForWorker(Number.isInteger(parallelIndex) && parallelIndex >= 0 ? parallelIndex : 0);
+}
+
+export function e2eAccountForWorker(workerIndex: number): E2EAccount {
+  const runId = process.env.E2E_RUN_ID;
+  return {
+    workerIndex,
+    username: runId ? `e2e-${runId}-${workerIndex}` : workerIndex === 0 ? 'e2e-user' : `e2e-user-${workerIndex}`,
+    email: runId
+      ? `e2e-${runId}-${workerIndex}@nadeshiko.co`
+      : workerIndex === 0
+        ? 'e2e-user@nadeshiko.co'
+        : `e2e-user-${workerIndex}@nadeshiko.co`,
+  };
+}
+
+export async function loginAsE2EUser(page: Page, account: E2EAccount = currentWorkerAccount()) {
   if (!E2E_USER_PASSWORD) {
     throw new Error('E2E_USER_PASSWORD env var is not set');
   }
@@ -52,7 +78,7 @@ export async function loginAsE2EUser(page: Page) {
           Origin: E2E_BASE_URL,
         },
         data: {
-          email: E2E_USER_EMAIL,
+          email: account.email,
           password: E2E_USER_PASSWORD,
         },
       });
@@ -84,7 +110,42 @@ export async function loginAsE2EUser(page: Page) {
   }
 }
 
-export const test = base.extend({
+type WorkerFixtures = {
+  e2eAccount: E2EAccount;
+  workerAuthState: string;
+};
+
+export const test = base.extend<{}, WorkerFixtures>({
+  e2eAccount: [
+    async ({}, use, workerInfo) => {
+      await use(e2eAccountForWorker(workerInfo.parallelIndex));
+    },
+    { scope: 'worker' },
+  ],
+  workerAuthState: [
+    async ({ browser, e2eAccount }, use, workerInfo) => {
+      const statePath = e2eAuthStatePath(e2eAccount.workerIndex, workerInfo.project.name);
+      await mkdir(dirname(statePath), { recursive: true });
+
+      const context = await browser.newContext({
+        baseURL: E2E_BASE_URL,
+        extraHTTPHeaders: e2eBypassHeaders(),
+      });
+      const page = await context.newPage();
+      try {
+        await loginAsE2EUser(page, e2eAccount);
+        await context.storageState({ path: statePath });
+      } finally {
+        await context.close();
+      }
+
+      await use(statePath);
+    },
+    { scope: 'worker' },
+  ],
+  storageState: async ({ workerAuthState }, use) => {
+    await use(workerAuthState);
+  },
   authenticatedPage: async ({ page }, use) => {
     await use(page);
   },

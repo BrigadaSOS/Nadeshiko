@@ -12,6 +12,7 @@ import {
   mdiShieldCrownOutline,
   mdiBullhornOutline,
   mdiRobotOutline,
+  mdiTimelineClockOutline,
 } from '@mdi/js';
 import { useDragScroll } from '~/composables/useDragScroll';
 import { splitLocalePrefix } from '~/utils/routes';
@@ -42,6 +43,7 @@ const tabsAdmin = computed(() => [
   { name: t('accountSettings.tabs.reports'), icon: mdiShieldCrownOutline, route: '/user/admin/reports' },
   { name: t('accountSettings.tabs.agentActivity'), icon: mdiRobotOutline, route: '/user/admin/agent-activity' },
   { name: t('accountSettings.tabs.announcement'), icon: mdiBullhornOutline, route: '/user/admin/announcement' },
+  { name: t('roadmap.admin.tab'), icon: mdiTimelineClockOutline, route: '/user/admin/roadmap' },
 ]);
 
 const allTabs = computed(() => [

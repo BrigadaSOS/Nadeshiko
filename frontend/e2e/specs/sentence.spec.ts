@@ -9,7 +9,8 @@ test.describe('Sentence page', () => {
     const context = await browser.newContext({ extraHTTPHeaders: e2eBypassHeaders() });
     const page = await context.newPage();
     await page.goto(`${baseUrl}/search/彼女`);
-    await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 }).catch(() => {});
+    await page.locator('#__nuxt').waitFor({ state: 'attached', timeout: 10_000 });
+    await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 15_000 });
     const card = page.getByTestId('segment-card').first();
     await expect(card).toBeVisible({ timeout: 15_000 });
     const uuid = await card.getAttribute('id');
@@ -40,7 +41,7 @@ test.describe('Sentence page', () => {
   // until a reader saves an override (`defaultTranslationLanguages`) and this
   // suite runs signed out in `en`. The ES badge this used to assert belongs to
   // a reader who has both, which `translation-visibility.spec.ts` covers by
-  // running in the `ja` locale.
+  // running in the `pt-BR` locale.
   test('displays translations', async ({ page }) => {
     const card = await gotoSentencePage(page);
     await expect(card.getByTestId('translation-badge-EN')).toBeVisible();
@@ -56,6 +57,16 @@ test.describe('Sentence page', () => {
     await gotoSentencePage(page);
     const image = page.getByTestId('segment-image').first();
     await expect(image).toBeVisible();
+    await expect
+      .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth), { timeout: 15_000 })
+      .toBeGreaterThan(0);
+
+    const src = await image.getAttribute('src');
+    expect(src).toBeTruthy();
+    const response = await page.request.get(new URL(src!, page.url()).toString());
+    expect(response.status()).toBeGreaterThanOrEqual(200);
+    expect(response.status()).toBeLessThan(300);
+    expect(response.headers()['content-type']).toMatch(/^image\//);
   });
 
   test('has the search input', async ({ page }) => {

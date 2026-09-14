@@ -15,7 +15,7 @@ test.describe('Language switching', () => {
     await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
 
     // Verify navbar text changed to Spanish
-    await expect(page.locator('header').getByRole('link', { name: 'Acerca de' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('header').getByTestId('nav-about')).toHaveText('Sobre Nadeshiko', { timeout: 10_000 });
   });
 
   test('switching to Japanese navigates to /ja and updates UI text', async ({ page }) => {
@@ -26,7 +26,7 @@ test.describe('Language switching', () => {
     await langSelector.getByTestId('dropdown-menu').getByText('日本語').click();
 
     await expect(page).toHaveURL(/\/ja/, { timeout: 10_000 });
-    await expect(page.locator('header').getByRole('button', { name: /日本語/ })).toBeVisible({ timeout: 10_000 });
+    await expect(langSelector.getByTestId('dropdown-toggle')).toContainText('日本語', { timeout: 10_000 });
   });
 
   test('language prefix persists across navigation', async ({ page }) => {
@@ -38,17 +38,13 @@ test.describe('Language switching', () => {
     await langSelector.getByTestId('dropdown-menu').getByText('Español').click();
 
     await expect(page).toHaveURL(/\/es/, { timeout: 10_000 });
-    await expect(page.locator('header').getByRole('link', { name: 'Acerca de' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('header').getByTestId('nav-about')).toHaveText('Sobre Nadeshiko', { timeout: 10_000 });
 
-    // 'Medios', not 'Media': the nav link is localized, and this asserted the
-    // English name until the Spanish header stopped using it. The point of the
-    // step is that the SPANISH nav keeps the reader in Spanish, so the localized
-    // name is the thing worth matching on.
-    await page.locator('header').getByRole('link', { name: 'Medios', exact: true }).click();
+    await page.locator('header').getByTestId('nav-catalog').click();
     await expect(page).toHaveURL(/\/es\/media/);
 
     // Language should still be Spanish
-    await expect(page.locator('header').getByRole('button', { name: /Español/ })).toBeVisible();
+    await expect(langSelector.getByTestId('dropdown-toggle')).toContainText('Español');
   });
 
   test('search page buttons update when switching language', async ({ page }) => {

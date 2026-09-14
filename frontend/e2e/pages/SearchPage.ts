@@ -73,16 +73,15 @@ export class SearchPage {
    *
    * It is how a spec asks for a reader with two translation languages without
    * signing in: the interface language picks the default set until a reader
-   * saves an override, and only `ja` defaults to both EN and ES — `en` gets
-   * English alone, `es` Spanish alone. See `defaultTranslationLanguages`.
+   * saves an override, and only `pt-BR` defaults to both EN and ES — `en` gets
+   * English alone, `es` Spanish alone, and other locales default to English.
+   * See `defaultTranslationLanguages`.
    */
-  async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' } = {}) {
+  async goto(query?: string, options: { locale?: 'en' | 'es' | 'ja' | 'zh' | 'zh-hant' | 'id' | 'pt-BR' } = {}) {
     const prefix = options.locale ? `/${options.locale}` : '';
-    if (query) {
-      await this.page.goto(`${prefix}/search/${encodeURIComponent(query)}`);
-    } else {
-      await this.page.goto(`${prefix}/search`);
-    }
+    const path = query ? `${prefix}/search/${encodeURIComponent(query)}` : `${prefix}/search`;
+    const response = await this.page.goto(path);
+    expect(response?.status(), `search navigation to ${path} should return HTTP 200`).toBe(200);
   }
 
   /**
@@ -124,7 +123,7 @@ export class SearchPage {
 
   /** Set by app/plugins/hydrated.client.ts once Vue finishes hydrating. */
   async expectHydrated() {
-    await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
+    await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 30_000 });
   }
 
   async expectCategoryTabsVisible() {

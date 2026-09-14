@@ -2,8 +2,9 @@ name: CI
 
 on:
   pull_request:
-    # `production` carries hotfixes straight to a prod tag without ever passing
-    # through main, so it needs the same gate main gets.
+    # `production` carries hotfixes without passing through main, so it needs
+    # the same PR gate main gets. Before tagging, the exact hotfix commit must
+    # also pass a manually dispatched staging release and its E2E suite.
     branches: [main, production]
 
 permissions:
@@ -12,6 +13,12 @@ permissions:
 
 env:
   NODE_VERSION: '24'
+
+# A newer commit on the same pull request makes the old result obsolete. Stop
+# spending runners on it and surface feedback for the current head sooner.
+concurrency:
+  group: nadeshiko-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   changes:

@@ -86,12 +86,19 @@ env:
     # every token exchange, renewal and revocation. Unset, Shirabe refuses us as
     # a client and linking is off.
     - SHIRABE_OAUTH_CLIENT_SECRET
+    - PATREON_OAUTH_CLIENT_ID
+    - PATREON_OAUTH_CLIENT_SECRET
+    - PATREON_CONNECTION_SECRET
+    - PATREON_CAMPAIGN_ID
 
   clear:
     ENVIRONMENT: development
+    RELEASE_SHA: <%= ENV.fetch("VERSION", "unknown") %>
     PORT: 80
     RUN_MIGRATIONS_ON_BOOT: "true"
     BASE_URL: https://stg.nadeshiko.co
+    PATREON_OAUTH_REDIRECT_URI: https://stg.nadeshiko.co/link/patreon/callback
+    PATREON_CAMPAIGN_URL: https://www.patreon.com/c/BrigadaSOS
 
     # ZeptoMail is the only transport. `MAIL_TRANSPORT` is gone with the SES
     # branch it used to select, and so are the SES_AWS_* credentials -- the last

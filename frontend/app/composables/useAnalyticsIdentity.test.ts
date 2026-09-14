@@ -56,6 +56,7 @@ import {
   ANALYTICS_IDENTITY_KEY,
   ANALYTICS_SESSION_KEY,
   ANALYTICS_SESSION_STARTED_KEY,
+  FIRST_TOUCH_KEY,
 } from '~/utils/authAnalytics';
 
 /** Re-imports, because a "reported this page load" guard lives at module scope. */
@@ -65,10 +66,10 @@ async function loadComposable() {
 }
 
 /** Puts the browser on a page, which is where the arrival details are read from. */
-function arriveAt({ search = '', referrer = '' } = {}) {
+function arriveAt({ search = '', referrer = '', pathname = '/en' } = {}) {
   vi.stubGlobal('document', { referrer });
   vi.stubGlobal('window', {
-    location: { search, pathname: '/en', hostname: 'nadeshiko.co', href: `https://nadeshiko.co/en${search}` },
+    location: { search, pathname, hostname: 'nadeshiko.co', href: `https://nadeshiko.co${pathname}${search}` },
     localStorage,
   });
 }
@@ -122,6 +123,32 @@ describe('a signed-in reader', () => {
     expect(posthog.identify).toHaveBeenCalledWith('user-1', expect.any(Object), expect.any(Object));
   });
 
+  test('names the person from the user store so PostHog shows a label, not (unknown)', async () => {
+    // Without `$name`, a person identified from the browser would still render
+    // as `(unknown)` until they appeared on the server's `account_created`
+    // capture. Setting it here covers the case where a reader was already
+    // signed in when the server capture was added.
+    signedIn({ userName: 'Reader' });
+
+    (await loadComposable())({ viaCallback: false });
+
+    const props = posthog.identify.mock.calls[0]?.[1] as Record<string, unknown> | undefined;
+    expect(props?.$name).toBe('Reader');
+  });
+
+  test('omits $name when the store has no display name, rather than clearing an existing one', async () => {
+    // `$name: undefined` in posthog-js's person-properties payload is "leave
+    // unchanged", not "clear to empty". Sending `undefined` here is the
+    // documented way to avoid overwriting a name the server capture set.
+    signedIn({ userName: null });
+
+    (await loadComposable())({ viaCallback: false });
+
+    const props = posthog.identify.mock.calls[0]?.[1] as Record<string, unknown> | undefined;
+    expect('$name' in (props ?? {})).toBe(true);
+    expect(props?.$name).toBeUndefined();
+  });
+
   test('is identified BEFORE anything is captured', async () => {
     // So the events land on the identified person and this browser's anonymous
     // history merges into it rather than being stranded.
@@ -149,6 +176,33 @@ describe('a signed-in reader', () => {
     (await loadComposable())({ viaCallback: true });
 
     expect(captured()).toContain('signup_completed');
+  });
+
+  test('labels signup origin with the pre-auth visit, not the OAuth callback', async () => {
+    localStorage.setItem(
+      FIRST_TOUCH_KEY,
+      JSON.stringify({
+        referrer: 'www.google.com',
+        landing: '/pt-BR/search/juventud',
+        utmSource: 'google',
+        utmMedium: 'organic',
+        at: Date.now(),
+      }),
+    );
+    arriveAt({ pathname: '/pt-BR/auth/callback', referrer: 'https://accounts.google.com/' });
+    signedIn({ userCreatedAt: new Date().toISOString() });
+
+    (await loadComposable())({ viaCallback: true });
+
+    const [, properties] = posthog.capture.mock.calls.find(([name]) => name === 'signup_completed')!;
+    expect(properties).toMatchObject({
+      $pathname: '/pt-BR/search/juventud',
+      signup_origin_path: '/pt-BR/search/juventud',
+      signup_origin_referrer: 'www.google.com',
+      signup_origin_utm_source: 'google',
+      signup_origin_utm_medium: 'organic',
+      auth_callback_path: '/pt-BR/auth/callback',
+    });
   });
 
   test('remembers who it reported, so the next load is quiet', async () => {

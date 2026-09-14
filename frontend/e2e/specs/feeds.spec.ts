@@ -1,3 +1,4 @@
+import type { APIRequestContext } from '@playwright/test';
 import { test, expect } from '../fixtures';
 
 /**
@@ -22,9 +23,23 @@ test.describe('sitemap', () => {
     'sitemaps are intentionally disabled on staging',
   );
 
+  // A freshly swapped production stack can briefly return a gateway timeout
+  // while the sitemap's dynamic sources warm up. Retry only gateway/server
+  // failures; a 4xx or a malformed successful response must still fail
+  // immediately. This keeps the smoke test focused on a real sitemap outage
+  // without turning a transient deploy hand-off into a false rollback.
+  const getSitemap = async (request: APIRequestContext, path: string) => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await request.get(path);
+      if (![502, 503, 504].includes(response.status()) || attempt === 2) return response;
+      await new Promise((resolve) => setTimeout(resolve, 2_000 * (attempt + 1)));
+    }
+    throw new Error(`Unable to fetch sitemap ${path}`);
+  };
+
   test('the index is served as XML', async ({ request }) => {
     // A sitemap served as `text/html` is one Google fetches and discards.
-    const response = await request.get('/sitemap.xml');
+    const response = await getSitemap(request, '/sitemap.xml');
 
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('xml');
@@ -33,7 +48,7 @@ test.describe('sitemap', () => {
   test('the index lists a sitemap per indexed locale', async ({ request }) => {
     // The per-locale split is what keeps the English and Spanish trees from
     // being advertised as one, which is what the hreflang pairs depend on.
-    const body = await (await request.get('/sitemap.xml')).text();
+    const body = await (await getSitemap(request, '/sitemap.xml')).text();
 
     expect(body).toContain('<sitemapindex');
     expect(body).toContain('/__sitemap__/en.xml');
@@ -42,7 +57,7 @@ test.describe('sitemap', () => {
 
   for (const locale of ['en', 'es']) {
     test(`the ${locale} sitemap is well-formed XML with entries in it`, async ({ request }) => {
-      const response = await request.get(`/__sitemap__/${locale}.xml`);
+      const response = await getSitemap(request, `/__sitemap__/${locale}.xml`);
       const body = await response.text();
 
       expect(response.status()).toBe(200);
@@ -54,7 +69,7 @@ test.describe('sitemap', () => {
     test(`every url in the ${locale} sitemap is inside that locale`, async ({ request }) => {
       // A cross-locale entry advertises a URL that redirects, which spends a
       // crawl on a hop and splits the ranking between the two.
-      const body = await (await request.get(`/__sitemap__/${locale}.xml`)).text();
+      const body = await (await getSitemap(request, `/__sitemap__/${locale}.xml`)).text();
       const paths = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
 
       expect(paths.length).toBeGreaterThan(0);
@@ -66,7 +81,7 @@ test.describe('sitemap', () => {
     test(`the ${locale} sitemap has no duplicate urls`, async ({ request }) => {
       // A duplicated entry is how a generated sitemap says a page is twice as
       // important as it is, and it is invisible by inspection.
-      const body = await (await request.get(`/__sitemap__/${locale}.xml`)).text();
+      const body = await (await getSitemap(request, `/__sitemap__/${locale}.xml`)).text();
       const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 
       expect(new Set(locs).size).toBe(locs.length);
@@ -76,7 +91,7 @@ test.describe('sitemap', () => {
   test('the sitemap advertises the pages the site is found by', async ({ request }) => {
     // The entry points a crawler is meant to start from. Everything else is
     // reached from these.
-    const body = await (await request.get('/__sitemap__/en.xml')).text();
+    const body = await (await getSitemap(request, '/__sitemap__/en.xml')).text();
 
     const paths = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
     expect(paths).toEqual(expect.arrayContaining(['/en', '/en/media', '/en/about', '/en/blog', '/en/stats']));
@@ -88,7 +103,7 @@ test.describe('sitemap', () => {
     // anyone types, and inviting a crawler into it is what produced the 14k
     // requests a day that middleware exists to stop. Asserted so that adding
     // the route back to the sitemap has to be a decision rather than a default.
-    const body = await (await request.get('/__sitemap__/en.xml')).text();
+    const body = await (await getSitemap(request, '/__sitemap__/en.xml')).text();
 
     const paths = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
     expect(paths.some((path) => path === '/en/search' || path.startsWith('/en/search/'))).toBe(false);
@@ -174,5 +189,6 @@ test.describe('health', () => {
 
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toContain('json');
+    await expect(response.json()).resolves.toMatchObject({ status: 'ok', releaseSha: expect.any(String) });
   });
 });
