@@ -508,6 +508,7 @@ const logoutCurrentUser = async () => {
     <div class="flex items-center justify-between gap-2">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.infoTitle') }}</h3>
       <button
+        data-testid="account-sign-out"
         class="nd-btn-accent"
         :disabled="loggingOut"
         @click="logoutCurrentUser"
@@ -936,6 +937,7 @@ const logoutCurrentUser = async () => {
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
         </div>
         <button
+          data-testid="account-export"
           class="nd-btn"
           :disabled="exportingData"
           @click="exportData"
@@ -948,6 +950,7 @@ const logoutCurrentUser = async () => {
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
         <button
+          data-testid="account-delete"
           class="nd-btn-accent"
           :disabled="deletingAccount"
           @click="deleteCurrentAccount"

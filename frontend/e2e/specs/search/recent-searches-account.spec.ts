@@ -5,7 +5,9 @@ const QUERY = '学校';
 
 async function accountSearchQueries(page: import('@playwright/test').Page): Promise<string[]> {
   const response = await page.request.get('/v1/user/activity?activityType=SEARCH&take=100');
-  if (!response.ok()) return [];
+  if (!response.ok()) {
+    throw new Error(`Could not read account search history: ${response.status()} ${await response.text()}`);
+  }
   const data = (await response.json()) as { activities?: Array<{ searchQuery?: string }> };
   return (data.activities ?? []).map((activity) => activity.searchQuery ?? '');
 }

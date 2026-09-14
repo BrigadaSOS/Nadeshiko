@@ -195,7 +195,7 @@ describe('multiply-escaped queries', () => {
 });
 
 describe('locale prefixes', () => {
-  test.each(['en', 'es', 'ja'])('a /%s redirect stays in that locale', (locale) => {
+  test.each(['en', 'es', 'ja', 'zh', 'zh-hant', 'id', 'pt-BR'])('a /%s redirect stays in that locale', (locale) => {
     // Dropping the prefix sends a Spanish reader to the English page and, for
     // a crawler, turns one indexed URL into a cross-locale redirect.
     expect(locationOf(`/${locale}/search/sentence?query=neko`)).toBe(`/${locale}/search/neko`);

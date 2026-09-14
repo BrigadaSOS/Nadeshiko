@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddExcludedMediaData, AddExcludedMediaErrors, AddExcludedMediaResponses, AddFavoriteMediaData, AddFavoriteMediaErrors, AddFavoriteMediaResponses, AddSegmentToCollectionData, AddSegmentToCollectionErrors, AddSegmentToCollectionResponses, AuthAdminStopImpersonatingData, AuthAdminStopImpersonatingErrors, AuthAdminStopImpersonatingResponses, AuthApiKeyCreateData, AuthApiKeyCreateErrors, AuthApiKeyCreateResponses, AuthApiKeyListData, AuthApiKeyListErrors, AuthApiKeyListResponses, AuthApiKeyUpdateData, AuthApiKeyUpdateErrors, AuthApiKeyUpdateResponses, AuthRevokeOtherSessionsData, AuthRevokeOtherSessionsErrors, AuthRevokeOtherSessionsResponses, AuthRevokeSessionData, AuthRevokeSessionErrors, AuthRevokeSessionResponses, AuthRevokeSessionsData, AuthRevokeSessionsErrors, AuthRevokeSessionsResponses, BanUserData, BanUserErrors, BanUserResponses, BatchUpdateAdminReportsData, BatchUpdateAdminReportsErrors, BatchUpdateAdminReportsResponses, BulkDeleteAdminReportsData, BulkDeleteAdminReportsErrors, BulkDeleteAdminReportsResponses, BulkUpdateAdminReportsData, BulkUpdateAdminReportsErrors, BulkUpdateAdminReportsResponses, ChangeEmailData, ChangeEmailErrors, ChangeEmailResponses, ClearFamiliarMediaData, ClearFamiliarMediaErrors, ClearFamiliarMediaResponses, CompleteShirabeLinkData, CompleteShirabeLinkErrors, CompleteShirabeLinkResponses, CreateCollectionData, CreateCollectionErrors, CreateCollectionResponses, CreateEpisodeData, CreateEpisodeErrors, CreateEpisodeResponses, CreateFeedbackData, CreateFeedbackErrors, CreateFeedbackResponses, CreateMediaData, CreateMediaErrors, CreateMediaResponses, CreateSegmentData, CreateSegmentErrors, CreateSegmentResponses, CreateSegmentsBatchData, CreateSegmentsBatchErrors, CreateSegmentsBatchResponses, CreateUserApiKeyData, CreateUserApiKeyErrors, CreateUserApiKeyResponses, CreateUserReportData, CreateUserReportErrors, CreateUserReportResponses, DeleteAdminReportData, DeleteAdminReportErrors, DeleteAdminReportResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DeleteUserActivityByDateData, DeleteUserActivityByDateErrors, DeleteUserActivityByDateResponses, DeleteUserActivityByIdData, DeleteUserActivityByIdErrors, DeleteUserActivityByIdResponses, DeleteUserActivityData, DeleteUserActivityErrors, DeleteUserActivityResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, ExportUserDataData, ExportUserDataErrors, ExportUserDataResponses, ForgetFamiliarMediaData, ForgetFamiliarMediaErrors, ForgetFamiliarMediaResponses, GetAdminUserQuotaData, GetAdminUserQuotaErrors, GetAdminUserQuotaResponses, GetAdminUsersWithProvidersData, GetAdminUsersWithProvidersErrors, GetAdminUsersWithProvidersResponses, GetAnnouncementData, GetAnnouncementErrors, GetAnnouncementResponses, GetCollectionData, GetCollectionErrors, GetCollectionResponses, GetCollectionStatsData, GetCollectionStatsErrors, GetCollectionStatsResponses, GetCoveredWordsData, GetCoveredWordsErrors, GetCoveredWordsResponses, GetEmailPreferencesByTokenData, GetEmailPreferencesByTokenErrors, GetEmailPreferencesByTokenResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetFeedbackFormTokenData, GetFeedbackFormTokenErrors, GetFeedbackFormTokenResponses, GetMeData, GetMediaData, GetMediaErrors, GetMediaResponses, GetMeErrors, GetMeResponses, GetSearchStatsData, GetSearchStatsErrors, GetSearchStatsResponses, GetSegmentContextData, GetSegmentContextErrors, GetSegmentContextResponses, GetSegmentData, GetSegmentErrors, GetSegmentResponses, GetSessionData, GetSessionErrors, GetSessionPostData, GetSessionPostErrors, GetSessionPostResponses, GetSessionResponses, GetShirabeConnectionData, GetShirabeConnectionErrors, GetShirabeConnectionResponses, GetShirabeCredentialData, GetShirabeCredentialErrors, GetShirabeCredentialResponses, GetStatsOverviewData, GetStatsOverviewErrors, GetStatsOverviewResponses, GetUserActivityHeatmapData, GetUserActivityHeatmapErrors, GetUserActivityHeatmapResponses, GetUserActivityStatsData, GetUserActivityStatsErrors, GetUserActivityStatsResponses, GetUserPreferencesData, GetUserPreferencesErrors, GetUserPreferencesResponses, ImpersonateUserData, ImpersonateUserErrors, ImpersonateUserResponses, ListAdminReportsData, ListAdminReportsErrors, ListAdminReportsResponses, ListAgentActivityData, ListAgentActivityErrors, ListAgentActivityResponses, ListCollectionsData, ListCollectionsErrors, ListCollectionsResponses, ListEpisodesData, ListEpisodesErrors, ListEpisodesResponses, ListExcludedMediaData, ListExcludedMediaErrors, ListExcludedMediaResponses, ListFamiliarMediaData, ListFamiliarMediaErrors, ListFamiliarMediaResponses, ListFavoriteMediaData, ListFavoriteMediaErrors, ListFavoriteMediaResponses, ListMediaData, ListMediaErrors, ListMediaResponses, ListSegmentRevisionsData, ListSegmentRevisionsErrors, ListSegmentRevisionsResponses, ListSegmentsData, ListSegmentsErrors, ListSegmentsResponses, ListTiersData, ListTiersErrors, ListTiersResponses, ListUserActivityData, ListUserActivityErrors, ListUserActivityResponses, ListUserSessionsData, ListUserSessionsErrors, ListUserSessionsResponses, ModerateEpisodeSegmentsData, ModerateEpisodeSegmentsErrors, ModerateEpisodeSegmentsResponses, RemoveExcludedMediaData, RemoveExcludedMediaErrors, RemoveExcludedMediaResponses, RemoveFavoriteMediaData, RemoveFavoriteMediaErrors, RemoveFavoriteMediaResponses, RemoveSegmentFromCollectionData, RemoveSegmentFromCollectionErrors, RemoveSegmentFromCollectionResponses, ReportShirabeRefusalData, ReportShirabeRefusalErrors, ReportShirabeRefusalResponses, RestoreSegmentRevisionData, RestoreSegmentRevisionErrors, RestoreSegmentRevisionResponses, ResyncShirabeStackData, ResyncShirabeStackErrors, ResyncShirabeStackResponses, SearchCollectionSegmentsData, SearchCollectionSegmentsErrors, SearchCollectionSegmentsResponses, SearchData, SearchErrors, SearchMediaData, SearchMediaErrors, SearchMediaResponses, SearchResponses, SearchWordsData, SearchWordsErrors, SearchWordsResponses, SignInWithEmailOtpData, SignInWithEmailOtpErrors, SignInWithEmailOtpResponses, SignInWithMagicLinkData, SignInWithMagicLinkErrors, SignInWithMagicLinkResponses, SignOutData, SignOutErrors, SignOutResponses, SocialSignInData, SocialSignInErrors, SocialSignInResponses, StartShirabeLinkData, StartShirabeLinkErrors, StartShirabeLinkResponses, TrackUserActivityData, TrackUserActivityErrors, TrackUserActivityResponses, TriggerCoveredWordsUpdateData, TriggerCoveredWordsUpdateErrors, TriggerCoveredWordsUpdateResponses, UnbanUserData, UnbanUserErrors, UnbanUserResponses, UnlinkShirabeData, UnlinkShirabeErrors, UnlinkShirabeResponses, UnsubscribeFromEmailData, UnsubscribeFromEmailErrors, UnsubscribeFromEmailResponses, UpdateAdminReportData, UpdateAdminReportErrors, UpdateAdminReportResponses, UpdateAdminUserQuotaData, UpdateAdminUserQuotaErrors, UpdateAdminUserQuotaResponses, UpdateAnnouncementData, UpdateAnnouncementErrors, UpdateAnnouncementResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UpdateCollectionSegmentData, UpdateCollectionSegmentErrors, UpdateCollectionSegmentResponses, UpdateEmailPreferencesByTokenData, UpdateEmailPreferencesByTokenErrors, UpdateEmailPreferencesByTokenResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateMediaData, UpdateMediaErrors, UpdateMediaResponses, UpdateSegmentData, UpdateSegmentErrors, UpdateSegmentResponses, UpdateUserPreferencesData, UpdateUserPreferencesErrors, UpdateUserPreferencesResponses } from './types.gen';
+import type { AddExcludedMediaData, AddExcludedMediaErrors, AddExcludedMediaResponses, AddFavoriteMediaData, AddFavoriteMediaErrors, AddFavoriteMediaResponses, AddSegmentToCollectionData, AddSegmentToCollectionErrors, AddSegmentToCollectionResponses, AuthAdminStopImpersonatingData, AuthAdminStopImpersonatingErrors, AuthAdminStopImpersonatingResponses, AuthApiKeyCreateData, AuthApiKeyCreateErrors, AuthApiKeyCreateResponses, AuthApiKeyListData, AuthApiKeyListErrors, AuthApiKeyListResponses, AuthApiKeyUpdateData, AuthApiKeyUpdateErrors, AuthApiKeyUpdateResponses, AuthRevokeOtherSessionsData, AuthRevokeOtherSessionsErrors, AuthRevokeOtherSessionsResponses, AuthRevokeSessionData, AuthRevokeSessionErrors, AuthRevokeSessionResponses, AuthRevokeSessionsData, AuthRevokeSessionsErrors, AuthRevokeSessionsResponses, BanUserData, BanUserErrors, BanUserResponses, BatchUpdateAdminReportsData, BatchUpdateAdminReportsErrors, BatchUpdateAdminReportsResponses, BulkDeleteAdminReportsData, BulkDeleteAdminReportsErrors, BulkDeleteAdminReportsResponses, BulkUpdateAdminReportsData, BulkUpdateAdminReportsErrors, BulkUpdateAdminReportsResponses, ChangeEmailData, ChangeEmailErrors, ChangeEmailResponses, ClearFamiliarMediaData, ClearFamiliarMediaErrors, ClearFamiliarMediaResponses, CompletePatreonLinkData, CompletePatreonLinkErrors, CompletePatreonLinkResponses, CompleteShirabeLinkData, CompleteShirabeLinkErrors, CompleteShirabeLinkResponses, CreateAdminRoadmapItemData, CreateAdminRoadmapItemErrors, CreateAdminRoadmapItemResponses, CreateCollectionData, CreateCollectionErrors, CreateCollectionResponses, CreateEpisodeData, CreateEpisodeErrors, CreateEpisodeResponses, CreateFeedbackData, CreateFeedbackErrors, CreateFeedbackResponses, CreateMediaData, CreateMediaErrors, CreateMediaResponses, CreateRoadmapProposalData, CreateRoadmapProposalErrors, CreateRoadmapProposalResponses, CreateSegmentData, CreateSegmentErrors, CreateSegmentResponses, CreateSegmentsBatchData, CreateSegmentsBatchErrors, CreateSegmentsBatchResponses, CreateUserApiKeyData, CreateUserApiKeyErrors, CreateUserApiKeyResponses, CreateUserReportData, CreateUserReportErrors, CreateUserReportResponses, DeleteAdminReportData, DeleteAdminReportErrors, DeleteAdminReportResponses, DeleteCollectionData, DeleteCollectionErrors, DeleteCollectionResponses, DeleteEpisodeData, DeleteEpisodeErrors, DeleteEpisodeResponses, DeleteMediaData, DeleteMediaErrors, DeleteMediaResponses, DeleteUserActivityByDateData, DeleteUserActivityByDateErrors, DeleteUserActivityByDateResponses, DeleteUserActivityByIdData, DeleteUserActivityByIdErrors, DeleteUserActivityByIdResponses, DeleteUserActivityData, DeleteUserActivityErrors, DeleteUserActivityResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, ExportUserDataData, ExportUserDataErrors, ExportUserDataResponses, ForgetFamiliarMediaData, ForgetFamiliarMediaErrors, ForgetFamiliarMediaResponses, GetAdminUserQuotaData, GetAdminUserQuotaErrors, GetAdminUserQuotaResponses, GetAdminUsersWithProvidersData, GetAdminUsersWithProvidersErrors, GetAdminUsersWithProvidersResponses, GetAnnouncementData, GetAnnouncementErrors, GetAnnouncementResponses, GetCollectionData, GetCollectionErrors, GetCollectionResponses, GetCollectionStatsData, GetCollectionStatsErrors, GetCollectionStatsResponses, GetCoveredWordsData, GetCoveredWordsErrors, GetCoveredWordsResponses, GetEmailPreferencesByTokenData, GetEmailPreferencesByTokenErrors, GetEmailPreferencesByTokenResponses, GetEpisodeData, GetEpisodeErrors, GetEpisodeResponses, GetFeedbackFormTokenData, GetFeedbackFormTokenErrors, GetFeedbackFormTokenResponses, GetMeData, GetMediaData, GetMediaErrors, GetMediaResponses, GetMeErrors, GetMeResponses, GetPatreonConnectionData, GetPatreonConnectionErrors, GetPatreonConnectionResponses, GetSearchStatsData, GetSearchStatsErrors, GetSearchStatsResponses, GetSegmentContextData, GetSegmentContextErrors, GetSegmentContextResponses, GetSegmentData, GetSegmentErrors, GetSegmentResponses, GetSessionData, GetSessionErrors, GetSessionPostData, GetSessionPostErrors, GetSessionPostResponses, GetSessionResponses, GetShirabeConnectionData, GetShirabeConnectionErrors, GetShirabeConnectionResponses, GetShirabeCredentialData, GetShirabeCredentialErrors, GetShirabeCredentialResponses, GetStatsOverviewData, GetStatsOverviewErrors, GetStatsOverviewResponses, GetUserActivityHeatmapData, GetUserActivityHeatmapErrors, GetUserActivityHeatmapResponses, GetUserActivityStatsData, GetUserActivityStatsErrors, GetUserActivityStatsResponses, GetUserPreferencesData, GetUserPreferencesErrors, GetUserPreferencesResponses, ImpersonateUserData, ImpersonateUserErrors, ImpersonateUserResponses, ListAdminReportsData, ListAdminReportsErrors, ListAdminReportsResponses, ListAdminRoadmapData, ListAdminRoadmapErrors, ListAdminRoadmapResponses, ListAgentActivityData, ListAgentActivityErrors, ListAgentActivityResponses, ListCollectionsData, ListCollectionsErrors, ListCollectionsResponses, ListEpisodesData, ListEpisodesErrors, ListEpisodesResponses, ListExcludedMediaData, ListExcludedMediaErrors, ListExcludedMediaResponses, ListFamiliarMediaData, ListFamiliarMediaErrors, ListFamiliarMediaResponses, ListFavoriteMediaData, ListFavoriteMediaErrors, ListFavoriteMediaResponses, ListMediaData, ListMediaErrors, ListMediaResponses, ListRoadmapData, ListRoadmapErrors, ListRoadmapResponses, ListSegmentRevisionsData, ListSegmentRevisionsErrors, ListSegmentRevisionsResponses, ListSegmentsData, ListSegmentsErrors, ListSegmentsResponses, ListTiersData, ListTiersErrors, ListTiersResponses, ListUserActivityData, ListUserActivityErrors, ListUserActivityResponses, ListUserSessionsData, ListUserSessionsErrors, ListUserSessionsResponses, ModerateEpisodeSegmentsData, ModerateEpisodeSegmentsErrors, ModerateEpisodeSegmentsResponses, RemoveExcludedMediaData, RemoveExcludedMediaErrors, RemoveExcludedMediaResponses, RemoveFavoriteMediaData, RemoveFavoriteMediaErrors, RemoveFavoriteMediaResponses, RemoveSegmentFromCollectionData, RemoveSegmentFromCollectionErrors, RemoveSegmentFromCollectionResponses, ReportShirabeRefusalData, ReportShirabeRefusalErrors, ReportShirabeRefusalResponses, RestoreSegmentRevisionData, RestoreSegmentRevisionErrors, RestoreSegmentRevisionResponses, ResyncShirabeStackData, ResyncShirabeStackErrors, ResyncShirabeStackResponses, SearchCollectionSegmentsData, SearchCollectionSegmentsErrors, SearchCollectionSegmentsResponses, SearchData, SearchErrors, SearchMediaData, SearchMediaErrors, SearchMediaResponses, SearchResponses, SearchWordsData, SearchWordsErrors, SearchWordsResponses, SignInWithEmailOtpData, SignInWithEmailOtpErrors, SignInWithEmailOtpResponses, SignInWithMagicLinkData, SignInWithMagicLinkErrors, SignInWithMagicLinkResponses, SignOutData, SignOutErrors, SignOutResponses, SocialSignInData, SocialSignInErrors, SocialSignInResponses, StartPatreonLinkData, StartPatreonLinkErrors, StartPatreonLinkResponses, StartShirabeLinkData, StartShirabeLinkErrors, StartShirabeLinkResponses, TrackUserActivityData, TrackUserActivityErrors, TrackUserActivityResponses, TriggerCoveredWordsUpdateData, TriggerCoveredWordsUpdateErrors, TriggerCoveredWordsUpdateResponses, UnbanUserData, UnbanUserErrors, UnbanUserResponses, UnlinkPatreonData, UnlinkPatreonErrors, UnlinkPatreonResponses, UnlinkShirabeData, UnlinkShirabeErrors, UnlinkShirabeResponses, UnsubscribeFromEmailData, UnsubscribeFromEmailErrors, UnsubscribeFromEmailResponses, UpdateAdminReportData, UpdateAdminReportErrors, UpdateAdminReportResponses, UpdateAdminRoadmapItemData, UpdateAdminRoadmapItemErrors, UpdateAdminRoadmapItemResponses, UpdateAdminUserQuotaData, UpdateAdminUserQuotaErrors, UpdateAdminUserQuotaResponses, UpdateAnnouncementData, UpdateAnnouncementErrors, UpdateAnnouncementResponses, UpdateCollectionData, UpdateCollectionErrors, UpdateCollectionResponses, UpdateCollectionSegmentData, UpdateCollectionSegmentErrors, UpdateCollectionSegmentResponses, UpdateEmailPreferencesByTokenData, UpdateEmailPreferencesByTokenErrors, UpdateEmailPreferencesByTokenResponses, UpdateEpisodeData, UpdateEpisodeErrors, UpdateEpisodeResponses, UpdateMediaData, UpdateMediaErrors, UpdateMediaResponses, UpdateSegmentData, UpdateSegmentErrors, UpdateSegmentResponses, UpdateUserPreferencesData, UpdateUserPreferencesErrors, UpdateUserPreferencesResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,6 +17,32 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta;
 };
+
+/**
+ * List the public content and feature roadmap
+ *
+ * Returns published roadmap stages only; private proposals and requester identities never appear.
+ */
+export const listRoadmap = <ThrowOnError extends boolean = false>(options?: Options<ListRoadmapData, ThrowOnError>): RequestResult<ListRoadmapResponses, ListRoadmapErrors, ThrowOnError> => (options?.client ?? client).get<ListRoadmapResponses, ListRoadmapErrors, ThrowOnError>({ url: '/v1/roadmap', ...options });
+
+/**
+ * Propose content for Nadeshiko
+ *
+ * Creates a private proposal after verifying the signed-in reader's active Nadeshiko Patreon membership.
+ */
+export const createRoadmapProposal = <ThrowOnError extends boolean = false>(options: Options<CreateRoadmapProposalData, ThrowOnError>): RequestResult<CreateRoadmapProposalResponses, CreateRoadmapProposalErrors, ThrowOnError> => (options.client ?? client).post<CreateRoadmapProposalResponses, CreateRoadmapProposalErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/roadmap/proposals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Search segments by query
@@ -671,6 +697,70 @@ export const reportShirabeRefusal = <ThrowOnError extends boolean = false>(optio
             type: 'apiKey'
         }],
     url: '/v1/user/connections/shirabe/refused',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Forget the linked Patreon account
+ *
+ * Deletes the local encrypted Patreon credentials and membership snapshot.
+ */
+export const unlinkPatreon = <ThrowOnError extends boolean = false>(options?: Options<UnlinkPatreonData, ThrowOnError>): RequestResult<UnlinkPatreonResponses, UnlinkPatreonErrors, ThrowOnError> => (options?.client ?? client).delete<UnlinkPatreonResponses, UnlinkPatreonErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/connections/patreon',
+    ...options
+});
+
+/**
+ * Read the linked Patreon account and current membership
+ *
+ * Refreshes and returns the safe, displayable state of the reader's Patreon connection.
+ */
+export const getPatreonConnection = <ThrowOnError extends boolean = false>(options?: Options<GetPatreonConnectionData, ThrowOnError>): RequestResult<GetPatreonConnectionResponses, GetPatreonConnectionErrors, ThrowOnError> => (options?.client ?? client).get<GetPatreonConnectionResponses, GetPatreonConnectionErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/connections/patreon',
+    ...options
+});
+
+/**
+ * Begin Patreon OAuth linking
+ *
+ * Returns Patreon's authorization URL with sealed state bound to the signed-in reader.
+ */
+export const startPatreonLink = <ThrowOnError extends boolean = false>(options?: Options<StartPatreonLinkData, ThrowOnError>): RequestResult<StartPatreonLinkResponses, StartPatreonLinkErrors, ThrowOnError> => (options?.client ?? client).post<StartPatreonLinkResponses, StartPatreonLinkErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/connections/patreon',
+    ...options
+});
+
+/**
+ * Complete Patreon OAuth linking
+ *
+ * Exchanges a one-time OAuth code and verifies membership in the configured Nadeshiko campaign.
+ */
+export const completePatreonLink = <ThrowOnError extends boolean = false>(options: Options<CompletePatreonLinkData, ThrowOnError>): RequestResult<CompletePatreonLinkResponses, CompletePatreonLinkErrors, ThrowOnError> => (options.client ?? client).post<CompletePatreonLinkResponses, CompletePatreonLinkErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/user/connections/patreon/callback',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1506,6 +1596,59 @@ export const updateAdminUserQuota = <ThrowOnError extends boolean = false>(optio
             type: 'apiKey'
         }],
     url: '/v1/admin/users/{userId}/quota',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List every roadmap item, including pending proposals
+ *
+ * Returns the moderation queue and public items, including requester ids for administrative review.
+ */
+export const listAdminRoadmap = <ThrowOnError extends boolean = false>(options?: Options<ListAdminRoadmapData, ThrowOnError>): RequestResult<ListAdminRoadmapResponses, ListAdminRoadmapErrors, ThrowOnError> => (options?.client ?? client).get<ListAdminRoadmapResponses, ListAdminRoadmapErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/admin/roadmap',
+    ...options
+});
+
+/**
+ * Add content or a feature to the roadmap
+ *
+ * Creates a team-authored item directly in a public roadmap stage.
+ */
+export const createAdminRoadmapItem = <ThrowOnError extends boolean = false>(options: Options<CreateAdminRoadmapItemData, ThrowOnError>): RequestResult<CreateAdminRoadmapItemResponses, CreateAdminRoadmapItemErrors, ThrowOnError> => (options.client ?? client).post<CreateAdminRoadmapItemResponses, CreateAdminRoadmapItemErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/admin/roadmap',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Approve, reject, edit, or reorder a roadmap item
+ *
+ * Updates one proposal or roadmap item; moving a proposal to a public stage publishes it.
+ */
+export const updateAdminRoadmapItem = <ThrowOnError extends boolean = false>(options: Options<UpdateAdminRoadmapItemData, ThrowOnError>): RequestResult<UpdateAdminRoadmapItemResponses, UpdateAdminRoadmapItemErrors, ThrowOnError> => (options.client ?? client).patch<UpdateAdminRoadmapItemResponses, UpdateAdminRoadmapItemErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'nadeshiko.session_token',
+            type: 'apiKey'
+        }],
+    url: '/v1/admin/roadmap/{itemId}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

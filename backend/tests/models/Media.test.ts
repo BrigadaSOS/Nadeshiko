@@ -27,7 +27,18 @@ describe('Media.getMediaInfoMap', () => {
     expect(second).toBe(first);
   });
 
-  // Every search asks for this map, and building it is a `Media.find` across two relations.
+  it('does not join episodes when building search metadata', async () => {
+    const find = vi.spyOn(Media, 'find');
+
+    await Media.getMediaInfoMap();
+
+    expect(find).toHaveBeenCalledWith({
+      relations: { externalIds: true },
+      order: { createdAt: 'DESC' },
+    });
+  });
+
+  // Every search asks for this map, and building it is a `Media.find` with its external IDs.
   // Without a shared promise, the instant the entry expires is the instant every in-flight
   // request runs that query for itself -- exactly when the server can least afford it.
   it('runs one query when several callers miss the cache at once', async () => {

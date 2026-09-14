@@ -73,17 +73,16 @@ const {
   default: () => null,
 });
 
-// The "search in your own language" example only shows the reader's own
-// language: an English reader gets `school`, a Spanish one `escuela`. Naming
-// both was a hint that the OTHER language is also searchable, which nobody needs
-// on the page they landed on in their own. Japanese is not one of the two, so
-// its copy still names both.
+// The example searches mirror the default translation-language setting:
+// English readers get `school`, Spanish readers get `escuela`, Portuguese
+// readers get both, and every other locale gets the English example.
 const otherLanguageExamples = computed(() => {
   const english = { query: 'school', label: 'School' };
   const spanish = { query: 'escuela', label: 'Escuela' };
   if (locale.value === 'en') return [english];
   if (locale.value === 'es') return [spanish];
-  return [english, spanish];
+  if (locale.value === 'pt-BR') return [english, spanish];
+  return [english];
 });
 
 const filteredRecentMedia = computed(() => media.value?.media ?? []);
@@ -144,7 +143,16 @@ function reportBotInstallClick(): void {
                                             </span>
                                         </div>
 
-                                        <p class="ml-2 pt-5 text-base">{{ $t('home.nadeDbDescription') }}</p>
+                                        <i18n-t keypath="home.nadeDbDescription" tag="p" scope="global" class="ml-2 pt-5 text-base">
+                                            <template #sentenceMining>
+                                                <a
+                                                    href="https://unseen-japan.com/sentence-mining-japanese-how-to/"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="underline underline-offset-4 text-red-400 hover:text-red-300 transition-colors"
+                                                >{{ $t('home.sentenceMiningLabel') }}</a>
+                                            </template>
+                                        </i18n-t>
                                         <ul class="list-disc ml-8 py-4 text-sm font-normal">
                                             <li class="mb-4">
                                                 {{ $t('home.nadeDbDescriptionJpSearch') }}:
@@ -357,7 +365,7 @@ function reportBotInstallClick(): void {
                                                                             d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
                                                                             fill="currentFill" />
                                                                     </svg>
-                                                                    <span class="sr-only">Loading...</span>
+                                                                    <span class="sr-only">{{ $t('common.loading') }}</span>
                                                                 </div>
                                                             </template>
                                                             <template v-else>
@@ -431,7 +439,7 @@ function reportBotInstallClick(): void {
                                     <div class="mt-5 w-auto">
                                         <a :href="PATREON_URL">
                                             <img class="h-12 object-contain rounded-md" src="/patreon-0c68395a.png"
-                                                alt="Become a Patron" height="48" loading="lazy" />
+                                                :alt="$t('home.supportOnPatreon')" height="48" loading="lazy" />
                                         </a>
                                     </div>
                                 </div>

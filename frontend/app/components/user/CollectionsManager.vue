@@ -272,6 +272,7 @@ const submitDelete = async () => {
                     @click="openRename(collection)"
                   />
                   <SearchDropdownItem
+                    data-testid="collection-visibility-action"
                     :text="collection.visibility === 'PUBLIC'
                       ? t('accountSettings.collections.makePrivate')
                       : t('accountSettings.collections.makePublic')"
@@ -429,6 +430,7 @@ const submitDelete = async () => {
         <button
           type="button"
           :disabled="isTogglingVisibility"
+          data-testid="collection-visibility-submit"
           class="nd-btn-accent"
           @click="submitToggleVisibility"
         >

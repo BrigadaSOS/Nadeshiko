@@ -18,7 +18,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const LOCALES = ['en', 'es', 'ja'] as const;
+const LOCALE_FILES = ['en', 'es', 'ja', 'zh-CN', 'zh-Hant', 'id', 'pt-BR'] as const;
 const root = fileURLToPath(new URL('../', import.meta.url));
 const localesDir = join(root, 'i18n/locales/');
 
@@ -35,12 +35,12 @@ function flatten(value: unknown, prefix = ''): string[] {
 }
 
 const keysByLocale = new Map<string, Set<string>>();
-for (const locale of LOCALES) {
+for (const locale of LOCALE_FILES) {
   const raw = readFileSync(`${localesDir}${locale}.json`, 'utf8');
   keysByLocale.set(locale, new Set(flatten(JSON.parse(raw))));
 }
 
-const [reference, ...others] = LOCALES;
+const [reference, ...others] = LOCALE_FILES;
 const referenceKeys = keysByLocale.get(reference) as Set<string>;
 
 let failed = false;
@@ -108,7 +108,7 @@ if (unused.length) {
   console.error('A key built at runtime is recognised by its literal prefix, so `t(`a.b.${x}`)` covers all of a.b.*.');
 }
 
-for (const locale of LOCALES) {
+for (const locale of LOCALE_FILES) {
   console.log(`${locale}.json: ${(keysByLocale.get(locale) as Set<string>).size} keys`);
 }
 console.log(`${dynamicPrefixes.size} runtime-assembled key prefixes recognised`);

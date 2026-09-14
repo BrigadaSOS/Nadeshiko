@@ -56,8 +56,8 @@ vi.mock('h3', async (importOriginal) => {
     ...actual,
     getRouterParam: (event: FakeEvent, name: string) => event.params[name],
     getQuery: (event: FakeEvent) => event.query,
-    setResponseHeader: (event: FakeEvent, name: string, value: string) => {
-      event.headers[name] = value;
+    setResponseHeader: (event: FakeEvent, name: string, value: string | number) => {
+      event.headers[name] = String(value);
     },
   };
 });
@@ -87,11 +87,13 @@ function httpError(status: number, contentType = 'application/json') {
 }
 
 let handler: (event: FakeEvent) => Promise<Record<string, unknown>>;
+let lastEvent: FakeEvent | undefined;
 
 /** Asks for one lemma, returning the response body and the headers set on it. */
 async function lookup(lemma: string | undefined, query: Record<string, unknown> = {}) {
   handler ??= ((await import('./[lemma].get')) as unknown as { default: typeof handler }).default;
   const event: FakeEvent = { params: lemma === undefined ? {} : { lemma }, query, headers: {} };
+  lastEvent = event;
   const body = await handler(event);
   return { body, headers: event.headers };
 }
@@ -106,6 +108,7 @@ const asked = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  lastEvent = undefined;
   readerStack.mockResolvedValue({ linked: false, fingerprint: null });
   readerToken.mockResolvedValue(null);
   callShirabe.mockResolvedValue(identified([candidate()]));
@@ -301,7 +304,7 @@ describe('a reader key the other end refuses', () => {
     // costs the reader another timeout for the same failure.
     callShirabe.mockRejectedValue(httpError(500));
 
-    await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 502 });
+    await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 503 });
     expect(callShirabe).toHaveBeenCalledTimes(1);
   });
 });
@@ -428,19 +431,38 @@ describe('when the dictionary itself fails', () => {
     // route is gone.
     callShirabe.mockRejectedValue(httpError(404, 'application/json'));
 
-    await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 502 });
+    await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 503 });
   });
 
   test.each([[500], [502], [503]])('a %i is reported as a lookup failure', async (status) => {
     callShirabe.mockRejectedValue(httpError(status));
 
-    await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 502 });
+    const result = lookup('兄');
+
+    await expect(result).rejects.toMatchObject({
+      statusCode: 503,
+      statusMessage: 'Dictionary temporarily unavailable',
+    });
     expect(logger.warn).toHaveBeenCalled();
   });
 
   test('a timeout is too', async () => {
     callShirabe.mockRejectedValue(new Error('ETIMEDOUT'));
 
-    await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 502 });
+    const result = lookup('兄');
+
+    await expect(result).rejects.toMatchObject({ statusCode: 503 });
+  });
+
+  test('a transient failure is retryable and cannot be cached', async () => {
+    callShirabe.mockRejectedValue(httpError(503));
+
+    const result = lookup('兄');
+
+    await expect(result).rejects.toMatchObject({ statusCode: 503 });
+    expect(lastEvent?.headers).toMatchObject({
+      'cache-control': 'no-store',
+      'retry-after': '5',
+    });
   });
 });

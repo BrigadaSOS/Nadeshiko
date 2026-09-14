@@ -453,18 +453,18 @@ const sharedMediaName = computed(() =>
       <SearchDropdownContent :header="$t('searchpage.main.buttons.more')">
         <SearchDropdownItem v-if="isExpanded" :is-disabled="isExpanding" :text="$t('segment.revert')"
           :iconPath="mdiClose" @click="revertConcat" />
-        <SearchDropdownItem :is-disabled="isExpanding"
+        <SearchDropdownItem data-testid="expand-previous-action" :is-disabled="isExpanding"
           :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandLeft')"
           :iconPath="mdiTransferLeft" @click="concatSentence('backward')" />
-        <SearchDropdownItem :is-disabled="isExpanding"
+        <SearchDropdownItem data-testid="expand-both-action" :is-disabled="isExpanding"
           :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandBoth')"
           :iconPath="mdiArrowExpandHorizontal" @click="concatSentence('both')" />
-        <SearchDropdownItem :is-disabled="isExpanding"
+        <SearchDropdownItem data-testid="expand-next-action" :is-disabled="isExpanding"
           :text="isExpanding ? $t('segment.expanding') : $t('searchpage.main.buttons.expandRight')"
           :iconPath="mdiTransferRight" @click="concatSentence('forward')" />
         <div :class="{ 'hidden min-[1250px]:block': !user.isLoggedIn }">
           <div class="nd-menu-divider" />
-          <SearchDropdownItem :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
+          <SearchDropdownItem data-testid="report-segment-action" :text="$t('reports.reportSegment')" :iconPath="mdiFlagOutline"
             :isDisabled="!user.isLoggedIn"
             :tooltip="!user.isLoggedIn ? $t('reports.loginRequired') : undefined"
             :on-disabled-click="!user.isLoggedIn ? () => openLoginModal('report_segment') : undefined"

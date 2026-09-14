@@ -78,22 +78,26 @@ test.describe('Expand sentence', () => {
     return menu;
   };
 
-  const expand = async (card: import('@playwright/test').Locator, label: string) => {
+  const expand = async (card: import('@playwright/test').Locator, actionTestId: string) => {
     const menu = await openMenu(card);
-    const item = menu.locator('button', { hasText: label }).first();
+    const item = menu.getByTestId(actionTestId).getByRole('button');
     await expect(item).toBeEnabled();
     const context = card.page().waitForResponse((r) => r.url().includes('/context'), { timeout: 15_000 });
     await item.click();
     await context;
   };
 
-  for (const direction of ['Expand (right)', 'Expand (left)', 'Expand (both)']) {
-    test(`${direction} pulls the neighbouring text in`, async () => {
+  for (const { name, actionTestId } of [
+    { name: 'next', actionTestId: 'expand-next-action' },
+    { name: 'previous', actionTestId: 'expand-previous-action' },
+    { name: 'both', actionTestId: 'expand-both-action' },
+  ]) {
+    test(`including ${name} pulls the neighbouring text in`, async () => {
       const card = search.segmentCards.first();
       const jaText = card.getByTestId('segment-japanese-text');
       const before = await jaText.innerText();
 
-      await expand(card, direction);
+      await expand(card, actionTestId);
 
       // Either the text grew, or the segment sits at an episode boundary — in
       // which case the reader is told so rather than left with a dead button.
@@ -115,13 +119,13 @@ test.describe('Expand sentence', () => {
     const jaText = card.getByTestId('segment-japanese-text');
     const original = (await jaText.innerText()).trim();
 
-    await expand(card, 'Expand (right)');
+    await expand(card, 'expand-next-action');
     const afterRight = await jaText.innerText();
 
     // The controls must come back before the next click is accepted; while this
     // went unwired, a click landing during the audio build was silently dropped
     // and the menu item looked dead.
-    await expand(card, 'Expand (left)');
+    await expand(card, 'expand-previous-action');
 
     await expect.poll(async () => await jaText.innerText(), { timeout: 10_000 }).not.toBe(afterRight);
     // The right-hand expansion was reverted, not stacked on top of: the sentence
@@ -150,7 +154,7 @@ test.describe('Expand sentence', () => {
     const jaText = card.getByTestId('segment-japanese-text');
     const original = (await jaText.innerText()).trim();
 
-    await expand(card, 'Expand (right)');
+    await expand(card, 'expand-next-action');
     await expect.poll(async () => (await jaText.innerText()).trim() !== original, { timeout: 10_000 }).toBe(true);
 
     const menu = await openMenu(card);
@@ -191,7 +195,7 @@ test.describe('Expand sentence', () => {
     const [firstPlayed] = await playedSources(page);
     expect(firstPlayed).not.toMatch(/^blob:/);
 
-    await expand(card, 'Expand (right)');
+    await expand(card, 'expand-next-action');
 
     // Wait for the audio to actually exist.
     //

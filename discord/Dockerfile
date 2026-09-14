@@ -85,6 +85,11 @@ FROM node:24-slim AS release
 WORKDIR /app
 COPY --from=build /app /app
 
+# Expose the immutable source revision through /up so a successful container
+# swap cannot be mistaken for a successful deployment of the requested image.
+ARG RELEASE_SHA=unknown
+ENV RELEASE_SHA=$RELEASE_SHA
+
 # The bot serves /up from src/health.ts on HEALTH_PORT (3000 by default). The
 # role has `proxy: false`, so this is the only liveness signal Docker gets.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

@@ -23,7 +23,7 @@ info:
     Each account has a monthly quota of **5,000 requests**. Once exceeded, further requests will be rejected until the next month.
     To request a quota increase, reach out via the [contact page](https://nadeshiko.co/about).
 
-  version: 2.4.16
+  version: 2.4.19
   contact:
     name: Nadeshiko Team
     url: https://nadeshiko.co
@@ -64,6 +64,8 @@ tags:
   - name: Stats
     description: |
       Statistics endpoints for corpus coverage and word frequency data.
+  - name: Roadmap
+    description: Public content queue and feature roadmap.
 
   - name: Admin
     x-internal: true
@@ -96,6 +98,10 @@ x-tagGroups:
       - Stats
 
 paths:
+  "/v1/roadmap":
+    $ref: "./paths/roadmap/v1_roadmap.yaml"
+  "/v1/roadmap/proposals":
+    $ref: "./paths/roadmap/v1_roadmap_proposals.yaml"
   # Search endpoints
   "/v1/search":
     $ref: "./paths/search/v1_search.yaml"
@@ -159,6 +165,10 @@ paths:
     $ref: "./paths/user/v1_user_connections_shirabe_resync.yaml"
   "/v1/user/connections/shirabe/refused":
     $ref: "./paths/user/v1_user_connections_shirabe_refused.yaml"
+  "/v1/user/connections/patreon":
+    $ref: "./paths/user/v1_user_connections_patreon.yaml"
+  "/v1/user/connections/patreon/callback":
+    $ref: "./paths/user/v1_user_connections_patreon_callback.yaml"
   "/v1/user/excluded-media":
     $ref: "./paths/user/v1_user_excluded_media.yaml"
   "/v1/user/excluded-media/{mediaPublicId}":
@@ -233,6 +243,10 @@ paths:
     $ref: "./paths/admin/v1_admin_tiers.yaml"
   "/v1/admin/users/{userId}/quota":
     $ref: "./paths/admin/v1_admin_users_id_quota.yaml"
+  "/v1/admin/roadmap":
+    $ref: "./paths/admin/v1_admin_roadmap.yaml"
+  "/v1/admin/roadmap/{itemId}":
+    $ref: "./paths/admin/v1_admin_roadmap_id.yaml"
 
 components:
   securitySchemes:
@@ -247,6 +261,8 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
+
+
 
 
 

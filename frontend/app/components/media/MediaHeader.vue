@@ -104,15 +104,20 @@ const secondaryNames = computed(() => {
 /** The season a title belongs to, as one string -- either half can be missing. */
 const season = computed(() => {
   const { seasonName, seasonYear } = props.media;
-  if (seasonName && seasonYear) return `${seasonName} ${seasonYear}`;
-  return seasonName || (seasonYear ? `${seasonYear}` : null);
+  const name =
+    seasonName && seasonName.toUpperCase() !== 'NONE' ? t(`mediaMetadata.seasons.${seasonName.toUpperCase()}`) : null;
+  if (name && seasonYear) return t('mediaMetadata.seasonWithYear', { season: name, year: seasonYear });
+  return name || (seasonYear ? `${seasonYear}` : null);
 });
 
 const facts = computed(() =>
   [
     { label: 'modalMediaEdit.studio', value: props.media.studio },
     { label: 'modalMediaEdit.seasonName', value: season.value },
-    { label: 'modalMediaEdit.airingStatus', value: props.media.airingStatus },
+    {
+      label: 'modalMediaEdit.airingStatus',
+      value: props.media.airingStatus ? t(`mediaMetadata.statuses.${props.media.airingStatus}`) : null,
+    },
   ].filter((fact): fact is { label: string; value: string } => Boolean(fact.value)),
 );
 

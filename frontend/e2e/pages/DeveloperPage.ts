@@ -76,8 +76,9 @@ export class DeveloperPage {
     }
     const keyCreated = this.waitForApiResponse('/v1/user/api-keys', 'POST');
     await this.createModalSubmit.click();
-    await keyCreated;
+    const response = await keyCreated;
     await expect(this.keyCreatedAlert).toBeVisible({ timeout: 10_000 });
+    return (await response.json()) as { id: string; key: string; name: string; scopes: string[] };
   }
 
   async openOptionsMenu(row: Locator) {

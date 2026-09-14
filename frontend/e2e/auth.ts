@@ -50,10 +50,15 @@ function currentWorkerAccount(): E2EAccount {
 }
 
 export function e2eAccountForWorker(workerIndex: number): E2EAccount {
+  const runId = process.env.E2E_RUN_ID;
   return {
     workerIndex,
-    username: workerIndex === 0 ? 'e2e-user' : `e2e-user-${workerIndex}`,
-    email: workerIndex === 0 ? 'e2e-user@nadeshiko.co' : `e2e-user-${workerIndex}@nadeshiko.co`,
+    username: runId ? `e2e-${runId}-${workerIndex}` : workerIndex === 0 ? 'e2e-user' : `e2e-user-${workerIndex}`,
+    email: runId
+      ? `e2e-${runId}-${workerIndex}@nadeshiko.co`
+      : workerIndex === 0
+        ? 'e2e-user@nadeshiko.co'
+        : `e2e-user-${workerIndex}@nadeshiko.co`,
   };
 }
 
@@ -118,8 +123,8 @@ export const test = base.extend<{}, WorkerFixtures>({
     { scope: 'worker' },
   ],
   workerAuthState: [
-    async ({ browser, e2eAccount }, use) => {
-      const statePath = e2eAuthStatePath(e2eAccount.workerIndex);
+    async ({ browser, e2eAccount }, use, workerInfo) => {
+      const statePath = e2eAuthStatePath(e2eAccount.workerIndex, workerInfo.project.name);
       await mkdir(dirname(statePath), { recursive: true });
 
       const context = await browser.newContext({

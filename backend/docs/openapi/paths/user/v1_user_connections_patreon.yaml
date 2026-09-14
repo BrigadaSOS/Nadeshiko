@@ -1,0 +1,60 @@
+get:
+  tags: [User]
+  x-internal: true
+  operationId: getPatreonConnection
+  summary: Read the linked Patreon account and current membership
+  description: Refreshes and returns the safe, displayable state of the reader's Patreon connection.
+  security:
+    - SessionCookie: []
+  responses:
+    "200":
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [connection, patreonUrl]
+            properties:
+              connection:
+                anyOf:
+                  - { $ref: "../../components/schemas/PatreonConnection.yaml" }
+                  - { type: "null" }
+              patreonUrl: { type: string, format: uri }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "429": { $ref: "../../components/responses/TooManyRequests.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }
+post:
+  tags: [User]
+  x-internal: true
+  operationId: startPatreonLink
+  summary: Begin Patreon OAuth linking
+  description: Returns Patreon's authorization URL with sealed state bound to the signed-in reader.
+  security:
+    - SessionCookie: []
+  responses:
+    "201":
+      description: Created
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [authorizeUrl, state]
+            properties:
+              authorizeUrl: { type: string, format: uri }
+              state: { type: string }
+    "400": { $ref: "../../components/responses/BadRequest.yaml" }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }
+delete:
+  tags: [User]
+  x-internal: true
+  operationId: unlinkPatreon
+  summary: Forget the linked Patreon account
+  description: Deletes the local encrypted Patreon credentials and membership snapshot.
+  security:
+    - SessionCookie: []
+  responses:
+    "204": { description: No Content }
+    "401": { $ref: "../../components/responses/Unauthorized.yaml" }
+    "404": { $ref: "../../components/responses/NotFound.yaml" }
+    "500": { $ref: "../../components/responses/InternalServerError.yaml" }

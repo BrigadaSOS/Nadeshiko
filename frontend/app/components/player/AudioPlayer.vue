@@ -568,7 +568,7 @@ const selectPlaybackRate = (rate: number) => {
 
                     <div class="relative z-20 w-full flex justify-between items-start p-6 md:p-8">
                         <div class="flex flex-col gap-1 opacity-80">
-                            <span class="text-xs font-bold tracking-widest uppercase text-white/60">Now Playing</span>
+                            <span class="text-xs font-bold tracking-widest uppercase text-white/60">{{ t('player.nowPlaying') }}</span>
                             <span lang="ja" class="text-sm font-semibold truncate max-w-[180px] md:max-w-sm">{{
                                 mediaName(currentResult.media) }}</span>
                         </div>

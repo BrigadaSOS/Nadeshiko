@@ -2,8 +2,28 @@ name: "[Prod] Release"
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [production]
+  repository_dispatch:
+    types: [production_release]
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: 'Commit SHA to release (defaults to the selected ref)'
+        required: false
+        type: string
+      skip_staging:
+        description: 'INCIDENT ONLY: skip staging deploy and E2E'
+        required: false
+        default: false
+        type: boolean
+      emergency_reason:
+        description: 'Incident reason (required when skipping staging)'
+        required: false
+        type: string
+      emergency_confirmation:
+        description: 'Type SKIP STAGING to confirm the emergency bypass'
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -13,13 +33,111 @@ permissions:
 
 env:
   NODE_VERSION: '24'
+  # Releases are identified by the immutable commit SHA supplied by the
+  # dispatcher. This deliberately decouples deployment from package semver:
+  # frontend, E2E and infrastructure fixes do not need a fake version bump.
+  RELEASE_SHA: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+
+# A failed release may still be rolling the stack back. Keep the next tag from
+# deploying over that recovery or capturing the failed revision as its fallback.
+concurrency:
+  group: nadeshiko-production-release
+  cancel-in-progress: false
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject forced production updates
+        if: github.event_name == 'push' && github.event.forced
+        run: |
+          echo "::error::Force-pushing production cannot trigger a release. Use the manual incident workflow instead."
+          exit 1
+
   staging-e2e:
+    needs: release-policy
     uses: ./.github/workflows/verify-staging-e2e.yml
+    with:
+      release_sha: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+      skip_staging: ${{ inputs.skip_staging || false }}
+      emergency_reason: ${{ inputs.emergency_reason || '' }}
+      emergency_confirmation: ${{ inputs.emergency_confirmation || '' }}
 
   checks:
+    needs: release-policy
     uses: ./.github/workflows/checks.yml
+    with:
+      ref: ${{ inputs.release_sha || github.event.client_payload.release_sha || github.sha }}
+      # build-backend below validates and publishes this exact Dockerfile in
+      # parallel. Do not repeat the same image build inside the checks job.
+      backend_image: false
+
+  # Producing immutable SHA images does not mutate production. Start both as
+  # soon as the exact SHA's staging evidence is known, in parallel with checks,
+  # rather than compiling them serially inside the deployment jobs.
+  build-backend:
+    needs: staging-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ghcr.io/brigadasos/nadeshiko-backend-prod:${{ env.RELEASE_SHA }}
+          labels: service=nadeshiko-backend-prod
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  build-frontend:
+    needs: staging-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: ghcr.io/brigadasos/nadeshiko-frontend-prod:${{ env.RELEASE_SHA }}
+          labels: service=nadeshiko-frontend-prod
+          build-args: |
+            NUXT_PUBLIC_ENVIRONMENT=production
+          secrets: |
+            posthog_cli_api_key=${{ secrets.POSTHOG_CLI_API_KEY }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
   # Gates the deploys rather than living beside them. The purge at the end of
   # `release-frontend` is not optional (see it for why), and a missing or
@@ -62,7 +180,12 @@ jobs:
           echo "Cloudflare credentials OK for zone $(echo "$zone" | jq -r '.result.name')."
 
   release-backend:
-    needs: [staging-e2e, checks, verify-purge-credentials]
+    # Require both images before the first production mutation. A frontend
+    # build failure must not leave a newly deployed backend paired with the old
+    # frontend.
+    needs: [staging-e2e, checks, verify-purge-credentials, build-backend, build-frontend]
+    outputs:
+      previous-version: ${{ steps.previous-version.outputs.version }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     # Runs the Elasticsearch migration write freeze, so it must not overlap the
@@ -74,6 +197,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -90,49 +214,17 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Read triggering release tag
-        id: get-tag
+      - name: Validate release commit
         run: |
           set -euo pipefail
-          RELEASE_TAG=${GITHUB_REF_NAME:?tag ref is required}
-          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          VERSION="${RELEASE_TAG#v}"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Validate release tag
-        env:
-          RELEASE_TAG: ${{ steps.get-tag.outputs.tag }}
-        run: |
-          set -euo pipefail
-          VERSION="${RELEASE_TAG#v}"
-          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid semver tag: ${RELEASE_TAG}"
-            exit 1
-          fi
-          # A release tag has to sit on a commit someone reviewed, not on an
-          # arbitrary SHA. The separate staging-e2e gate proves this exact SHA
-          # passed on staging, whether it came through main automatically or
-          # through a manual staging run for a hotfix. `production` is the
-          # hotfix lane: it branches off the last prod tag precisely so a fix
-          # can ship without dragging main's unreleased work with it, which
-          # means a hotfix commit is NOT an ancestor of main at tag time -- it
-          # only merges back after.
-          # Accepting just main would make that lane untaggable.
-          #
-          # Checked out at fetch-depth 0, so both remote-tracking refs are
-          # already here; the fetch just guards against a stale one. `production`
-          # is fetched separately and allowed to fail, so a repo that has not
-          # cut the branch yet still releases off main.
           git fetch origin main
           git fetch origin production || true
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+          if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/main \
             && ! { git rev-parse --verify -q origin/production >/dev/null \
-                   && git merge-base --is-ancestor "$GITHUB_SHA" origin/production; }; then
-            echo "::error::${RELEASE_TAG} is not on main or production. Tag a" \
-                 "commit that is on one of them; see DEPLOYMENT.md."
+                   && git merge-base --is-ancestor "$RELEASE_SHA" origin/production; }; then
+            echo "::error::${RELEASE_SHA} is not on main or production."
             exit 1
           fi
-          npm run release:check-version "${VERSION}"
 
       - name: Generate OpenAPI specs
         run: |
@@ -142,47 +234,20 @@ jobs:
           npm run docs:bundle:public
           test -f docs/generated/openapi-public.yaml
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.get-tag.outputs.tag }}
-          name: ${{ steps.get-tag.outputs.tag }}
-          prerelease: false
-          generate_release_notes: true
-          files: backend/docs/generated/openapi-public.yaml
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v7
-        with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
-          context: .
-          file: backend/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-backend-prod:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-backend-prod:latest
-          labels: |
-            service=nadeshiko-backend-prod
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Capture current backend version for rollback
+        id: previous-version
+        run: |
+          set -euo pipefail
+          cd backend
+          version=$(kamal app version -d prod --primary --quiet | grep -Eo '[0-9a-f]{40}' | tail -1)
+          test -n "$version" || { echo "::error::Could not identify the running backend version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Deploy backend to prod
         env:
@@ -203,10 +268,12 @@ jobs:
           # keeping an 8-to-9 migration path for a migration that has happened.
 
           cd backend
-          VERSION="$GITHUB_SHA" kamal deploy -d prod --skip-push
+          VERSION="$RELEASE_SHA" kamal deploy -d prod --skip-push
 
   release-frontend:
-    needs: release-backend
+    needs: [release-backend, build-frontend]
+    outputs:
+      previous-version: ${{ steps.previous-version.outputs.version }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
@@ -215,7 +282,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -223,50 +290,20 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
           aws-region: eu-north-1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v7
-        with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
-          context: .
-          file: frontend/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-frontend-prod:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-frontend-prod:latest
-          labels: |
-            service=nadeshiko-frontend-prod
-          build-args: |
-            NUXT_PUBLIC_ENVIRONMENT=production
-            POSTHOG_CLI_API_KEY=${{ secrets.POSTHOG_CLI_API_KEY }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Capture current frontend version for rollback
+        id: previous-version
+        run: |
+          set -euo pipefail
+          cd frontend
+          version=$(kamal app version -d prod --primary --quiet | grep -Eo '[0-9a-f]{40}' | tail -1)
+          test -n "$version" || { echo "::error::Could not identify the running frontend version"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Deploy frontend to prod
         env:
@@ -274,7 +311,7 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          kamal deploy -d prod --skip-push
+          VERSION="$RELEASE_SHA" kamal deploy -d prod --skip-push
 
       # Anonymous sentence and search HTML is edge-cached for an hour
       # (`cloudflare-cache.tf` in brigadasos-infra, `edge_ttl: respect_origin`,
@@ -294,7 +331,7 @@ jobs:
       # drops `/v1/media/*` and the fingerprinted assets, which is harmless --
       # they are immutable and simply refill from origin.
       #
-      # SAFE ONLY BECAUSE THIS WORKFLOW IS TAG-TRIGGERED. Prod and staging share
+      # SAFE ONLY BECAUSE THIS WORKFLOW IS PRODUCTION-ONLY. Prod and staging share
       # one zone, so the same call from `staging-release.yml` (which runs on
       # every push to main) would throw away production's edge cache. Do not
       # copy this step there.
@@ -337,6 +374,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -361,16 +400,10 @@ jobs:
           # That one is the origin's per-IP limiter; this one is Cloudflare,
           # before the request reaches the origin at all.
           #
-          # Optional on purpose, matching the staging step: if the parameter is
-          # absent the suite still runs and is challenged, rather than the job
-          # failing on a missing secret and hiding why.
           E2E_CI_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/prod/CI_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-          if [ -n "${E2E_CI_BYPASS_SECRET}" ]; then
-            echo "::add-mask::${E2E_CI_BYPASS_SECRET}"
-            echo "E2E_CI_BYPASS_SECRET=${E2E_CI_BYPASS_SECRET}" >> "$GITHUB_ENV"
-          else
-            echo "note: no CI_BYPASS_SECRET in SSM; sentence-page tests will be challenged"
-          fi
+          test -n "${E2E_CI_BYPASS_SECRET}" || { echo "::error::CI_BYPASS_SECRET is required for production E2E"; exit 1; }
+          echo "::add-mask::${E2E_CI_BYPASS_SECRET}"
+          echo "E2E_CI_BYPASS_SECRET=${E2E_CI_BYPASS_SECRET}" >> "$GITHUB_ENV"
 
       # ONE setup-node, not two -- see the note on the same block in
       # staging-release.yml. The second one pinned a literal '22' with no cache
@@ -427,10 +460,14 @@ jobs:
       - name: Run E2E smoke tests
         run: |
           cd frontend
-          npx playwright test --config=e2e/playwright.config.ts
+          bash scripts/run-e2e.sh prod
         env:
           E2E_BASE_URL: https://nadeshiko.co
+          E2E_EXPECTED_SHA: ${{ env.RELEASE_SHA }}
           E2E_SMOKE: '1'
+
+      - name: Enforce E2E skip budget
+        run: node frontend/e2e/check-junit-budget.mjs frontend/test-results/e2e-results.xml 0
 
       - name: Upload test report
         uses: actions/upload-artifact@v7
@@ -441,6 +478,118 @@ jobs:
             frontend/playwright-report/
             frontend/test-results/e2e-results.xml
           retention-days: 14
+
+  # Floating tags are convenience pointers, not deployment inputs. Advance
+  # them only after production smoke tests pass, so a failed check, deploy or
+  # rolled-back release can never become `latest`.
+  promote-images:
+    needs: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote verified images to latest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag ghcr.io/brigadasos/nadeshiko-backend-prod:latest \
+            "ghcr.io/brigadasos/nadeshiko-backend-prod:${RELEASE_SHA}"
+          docker buildx imagetools create \
+            --tag ghcr.io/brigadasos/nadeshiko-frontend-prod:latest \
+            "ghcr.io/brigadasos/nadeshiko-frontend-prod:${RELEASE_SHA}"
+
+  # Kamal retains old containers specifically for this path. A smoke failure
+  # means the just-switched stack is not fit to serve; restore both components
+  # to the exact revisions captured before deployment and purge the HTML that
+  # names the failed frontend's chunks. The failed E2E job still keeps the
+  # release red after recovery succeeds.
+  rollback-production:
+    needs: [release-backend, release-frontend, e2e]
+    if: >-
+      always() &&
+      needs.release-backend.result == 'success' &&
+      needs.release-frontend.result == 'success' &&
+      needs.e2e.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: nadeshiko-production-rollback
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
+          aws-region: eu-north-1
+
+      - name: Set up Tailscale, SSH and Kamal
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Redeploy previous frontend image
+        env:
+          PREVIOUS_VERSION: ${{ needs.release-frontend.outputs.previous-version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_VERSION"
+          cd frontend
+          # `kamal rollback` only works while the old container is still
+          # retained on the host. A failed smoke test can happen after Kamal
+          # has already pruned that container, which previously left the new
+          # frontend serving while the backend rolled back. Redeploy the
+          # immutable previous image instead; it is retained in GHCR for the
+          # exact revision captured before this release.
+          VERSION="$PREVIOUS_VERSION" kamal deploy -d prod --skip-push
+
+      - name: Roll back backend
+        env:
+          PREVIOUS_VERSION: ${{ needs.release-backend.outputs.previous-version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PREVIOUS_VERSION"
+          cd backend
+          VERSION="$PREVIOUS_VERSION" kamal rollback "$PREVIOUS_VERSION" -d prod
+
+      - name: Purge failed frontend from the edge
+        env:
+          CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          response=$(curl --silent --show-error -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_PURGE_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data '{"purge_everything":true}')
+          test "$(jq -r '.success' <<<"$response")" = true
+
+      - name: Verify restored revisions
+        env:
+          FRONTEND_VERSION: ${{ needs.release-frontend.outputs.previous-version }}
+          BACKEND_VERSION: ${{ needs.release-backend.outputs.previous-version }}
+        run: |
+          set -euo pipefail
+          frontend=$(curl --fail --silent --show-error https://nadeshiko.co/up)
+          backend=$(curl --fail --silent --show-error https://api.nadeshiko.co/up)
+          test "$(jq -r '.releaseSha' <<<"$frontend")" = "$FRONTEND_VERSION"
+          test "$(jq -r '.releaseSha' <<<"$backend")" = "$BACKEND_VERSION"
 
   dispatch-sdk-ts:
     needs: release-backend
@@ -459,7 +608,7 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-ts/dispatches \
             -f event_type='backend_release' \
             -f 'client_payload[release_channel]=stable' \
-            -f "client_payload[backend_sha]=${GITHUB_SHA}"
+            -f "client_payload[backend_sha]=${RELEASE_SHA}"
 
   dispatch-sdk-python:
     needs: release-backend
@@ -473,19 +622,24 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
             -f 'client_payload[release_channel]=stable' \
-            -f "client_payload[backend_sha]=${GITHUB_SHA}"
+            -f "client_payload[backend_sha]=${RELEASE_SHA}"
 
   # A failed production release is the one thing nobody should have to notice by
   # checking the Actions tab. No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
     needs:
       [
+        release-policy,
         checks,
         staging-e2e,
         verify-purge-credentials,
+        build-backend,
+        build-frontend,
         release-backend,
         release-frontend,
         e2e,
+        promote-images,
+        rollback-production,
         dispatch-sdk-ts,
         dispatch-sdk-python,
       ]

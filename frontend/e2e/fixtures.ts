@@ -15,9 +15,10 @@ export const test = base.extend({
       // Every other browser-facing route is owned by Nuxt and must hydrate.
       const pathname = new URL(page.url()).pathname.replace(/\/$/, '');
       if (
-        /^(?:\/(?:en|es|ja))?\/api$/.test(pathname) ||
+        /^(?:\/(?:en|es|ja|zh|zh-hant|id|pt-BR))?\/api$/.test(pathname) ||
         pathname === '/api/v1/docs' ||
-        pathname === '/docs/api/index.html'
+        pathname === '/docs/api/index.html' ||
+        pathname === '/v1/auth/verify-email'
       ) {
         return response;
       }
@@ -25,7 +26,7 @@ export const test = base.extend({
       // The app owns this public marker. Do not swallow the timeout: continuing
       // from an unhydrated SSR shell turns one useful failure into an arbitrary
       // click/layout failure several steps later.
-      await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 15_000 });
+      await page.locator('html[data-hydrated="true"]').waitFor({ state: 'attached', timeout: 30_000 });
       return response;
     };
 

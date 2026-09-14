@@ -445,7 +445,7 @@ watch(playingVideoId, (id) => {
         <img
           v-if="!(playingVideoId === result.segment.publicId && result.segment.externalVideoId)"
           loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
-          :alt="`Screenshot for ${result.media.nameEn || result.media.nameRomaji || result.media.nameJa || 'media segment'}`"
+          :alt="mediaName(result.media) ? $t('mediaMetadata.screenshot', { media: mediaName(result.media) }) : $t('mediaMetadata.screenshotFallback')"
           @click="onImageClick(result)"
           class="absolute inset-0 z-10 w-full h-full object-cover object-center filter transition-all duration-300 text-transparent"
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
@@ -467,6 +467,7 @@ watch(playingVideoId, (id) => {
       <div v-if="collectionId" class="absolute top-2 right-2 z-10">
         <button
           v-if="confirmingRemoveId !== result.segment.publicId"
+          data-testid="remove-from-collection"
           @click.stop="confirmRemove(result.segment.publicId)"
           class="opacity-0 group-hover:opacity-100 transition-opacity p-2 aspect-square flex items-center justify-center rounded-md bg-surface hover:bg-button-accent-main text-white/70 hover:text-white"
           :title="$t('accountSettings.collections.removeFromCollection')"
@@ -476,6 +477,7 @@ watch(playingVideoId, (id) => {
         <div v-else class="flex items-center gap-2 bg-surface rounded-md px-3 py-2">
           <span class="text-sm text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
           <button
+            data-testid="remove-from-collection-confirm"
             @click.stop="executeRemove(result.segment.publicId)"
             class="px-3 py-1.5 rounded text-sm bg-button-accent-main hover:bg-button-accent-hover text-white font-medium"
           >{{ $t('accountSettings.collections.yes') }}</button>
@@ -641,7 +643,7 @@ watch(playingVideoId, (id) => {
                     data-testid="segment-episode-link"
                     :to="mediaFilterLink(result.media, result.segment.episode)"
                     class="select-text hover:text-white hover:underline transition-colors cursor-pointer">
-                    {{ $t('searchpage.main.labels.episode') }} {{ result.segment.episode }}
+                    {{ $t('searchpage.main.labels.episode', { number: result.segment.episode }) }}
                   </NuxtLink>
                 </template>
                 &bull;

@@ -86,6 +86,9 @@ export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
   // exactly one account's email preferences and nothing else.
   'getEmailPreferencesByToken',
   'updateEmailPreferencesByToken',
+  // The roadmap is the public promise this feature exists to make: proposals
+  // and requester identities are filtered out by its controller.
+  'listRoadmap',
 ]);
 
 /**

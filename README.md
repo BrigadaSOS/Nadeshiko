@@ -22,19 +22,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, available command
 
 ## Deployment
 
-Pushing to `main` deploys to staging (https://stg.nadeshiko.co). Pushing a
-`vX.Y.Z` tag deploys to production (https://nadeshiko.co) and publishes the
-public SDKs. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full workflow,
-including how OpenAPI changes drive the internal SDK and how to cut a release.
+Pushes are reviewed normally, then an explicit commit-SHA dispatch deploys to
+staging (https://stg.nadeshiko.co) and, after its E2E gate, to production
+(https://nadeshiko.co). This avoids random semver bumps for frontend or test
+fixes. See [DEPLOYMENT.md](DEPLOYMENT.md) for the full workflow.
 
 Quick prod release from the repository root:
 
 ```bash
-npm run release:set-version 1.2.3
-npm run release:check-version 1.2.3
-# commit the version bump to main, then:
-git tag -a v1.2.3 -m "v1.2.3"
-git push origin v1.2.3
+# use the exact reviewed commit; no version bump is needed for frontend/E2E fixes
+scripts/release staging
+# after staging E2E passes:
+scripts/release prod
 ```
 
 ## Projects Using Nadeshiko

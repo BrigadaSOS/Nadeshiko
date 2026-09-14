@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "2.4.16",
+  "version": "2.4.19",
   "description": "",
   "main": "main.ts",
   "type": "module",
@@ -40,8 +40,11 @@
     "db:setup": "node --import tsx bin/db.ts setup",
     "db:reset": "node --import tsx bin/db.ts reset",
     "db:prepare": "node --import tsx bin/db.ts prepare",
+    "db:cleanup-e2e": "node --import tsx bin/db.ts cleanup-e2e",
     "db:drop": "node --import tsx bin/db.ts drop",
     "db:status": "node --import tsx bin/db.ts status",
+    "db:verify": "node --import tsx bin/db.ts status --require-current",
+    "diagnose:search-db": "node --env-file-if-exists=.env --import tsx bin/searchDbDiagnostics.ts",
     "create:service-key": "node --env-file-if-exists=.env --import tsx bin/createServiceKey.ts",
     "email:backfill-feedback": "node --env-file-if-exists=.env --import tsx bin/backfillFeedbackAsk.ts",
     "email:test": "node --env-file-if-exists=.env --import tsx scripts/test-email.ts",
@@ -51,6 +54,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:setup": "node --env-file=.env.test --import tsx bin/db.ts setup",
+    "test:migrations": "node --env-file=.env.test --import tsx bin/db.ts rollback && node --env-file=.env.test --import tsx bin/db.ts migrate && node --env-file=.env.test --import tsx bin/db.ts status --require-current",
     "test:watch": "vitest watch"
   },
   "author": "",

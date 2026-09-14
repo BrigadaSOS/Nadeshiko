@@ -14,6 +14,9 @@ const booleanString = z
 
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['local', 'development', 'production']),
+  // Injected by Kamal from VERSION. Exposed only through /up so release gates
+  // can prove the exact image they asked for is the one answering traffic.
+  RELEASE_SHA: z.string().trim().default('unknown'),
   PORT: z.coerce.number().int().positive(),
   UUID_NAMESPACE: z.string().uuid(),
   R2_BASE_URL: z.string().url(),
@@ -98,6 +101,20 @@ const envSchema = z.object({
    * Empty the rest of the time, which is almost always.
    */
   SHIRABE_CONNECTION_SECRET_PREVIOUS: z.string().default(''),
+
+  // Patreon is a connected account, not a sign-in provider. Its membership is
+  // what unlocks roadmap proposals, so tokens stay server-side and encrypted.
+  PATREON_OAUTH_CLIENT_ID: z.string().default(''),
+  PATREON_OAUTH_CLIENT_SECRET: z.string().default(''),
+  PATREON_OAUTH_REDIRECT_URI: z.string().default(''),
+  PATREON_CAMPAIGN_ID: z.string().default(''),
+  PATREON_CAMPAIGN_URL: z.string().url().default('https://www.patreon.com/c/BrigadaSOS'),
+  PATREON_CONNECTION_SECRET: z
+    .string()
+    .default('')
+    .refine((value) => value === '' || value.length >= 32, {
+      message: 'PATREON_CONNECTION_SECRET must be at least 32 characters (or empty to disable linking)',
+    }),
 
   API_KEY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   API_KEY_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(150),

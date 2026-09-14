@@ -2,8 +2,9 @@ name: "[Stg] Release"
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, production]
+  repository_dispatch:
+    types: [staging_release]
   workflow_dispatch:
     inputs:
       force_backend:
@@ -17,12 +18,14 @@ on:
         default: 'false'
         type: boolean
 permissions:
+  actions: read
   contents: read
   packages: write
   id-token: write
 
 env:
   NODE_VERSION: '24'
+  RELEASE_SHA: ${{ github.event.client_payload.release_sha || github.sha }}
 
 # Keep the deployed staging revision stable until its E2E suite finishes. Job-
 # level deploy locks alone release as soon as Kamal finishes, which allowed the
@@ -42,16 +45,67 @@ jobs:
       elasticsearch: ${{ steps.filter.outputs.elasticsearch }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      # A normal push diff only covers the immediately preceding commit. If
+      # that commit's release failed before deploy, its component changes would
+      # otherwise be forgotten by the next push. Diff from the last commit that
+      # actually passed staging E2E so every undeployed change is carried
+      # forward until staging has verified it.
+      - name: Find last verified staging revision
+        if: github.event_name == 'push'
+        id: verified-base
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const runs = await github.paginate(
+              github.rest.actions.listWorkflowRuns,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'staging-release.yml',
+                branch: context.ref.replace('refs/heads/', ''),
+                status: 'completed',
+                per_page: 100,
+              },
+            );
+
+            for (const run of runs) {
+              if (run.id === context.runId || run.conclusion !== 'success') continue;
+
+              const jobs = await github.paginate(
+                github.rest.actions.listJobsForWorkflowRun,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                  per_page: 100,
+                },
+              );
+
+              if (jobs.some((job) => job.name === 'e2e' && job.conclusion === 'success')) {
+                core.setOutput('sha', run.head_sha);
+                return;
+              }
+            }
+
+            // This is only expected for the first gated release. Keeping the
+            // push's normal base is safer than blocking that initial deploy.
+            core.setOutput('sha', context.payload.before);
+
       - uses: dorny/paths-filter@v4
         if: github.event_name == 'push'
         id: filter
         with:
+          base: ${{ steps.verified-base.outputs.sha }}
           filters: |
             # The Docker builds consume the root workspace lockfile, shared
             # packages, setup action, and root build tooling. Include those in
             # both deploy filters so a shared-only change is actually deployed.
             backend:
               - 'backend/**'
+              - 'discord/**'
               - 'packages/**'
               - 'package.json'
               - 'package-lock.json'
@@ -65,6 +119,7 @@ jobs:
               - '.github/workflows/staging-release.yml'
             frontend:
               - 'frontend/**'
+              - 'discord/**'
               - 'packages/**'
               - 'package.json'
               - 'package-lock.json'
@@ -82,32 +137,27 @@ jobs:
 
   checks:
     uses: ./.github/workflows/checks.yml
+    with:
+      ref: ${{ github.event.client_payload.release_sha || github.sha }}
+      # The release build below exercises the same Dockerfile and gates deploy.
+      # Avoid building it twice in one staging pipeline.
+      backend_image: false
 
-  # An Elasticsearch-gated push skips deploy-backend, which on its own reads as a
-  # green run. Fail the workflow instead so the skipped deploy is not missed.
-
-  deploy-backend:
-    needs: [changes, checks]
+  # Build immutable release images while the test suite runs. Building is safe
+  # before checks finish; only deployment mutates staging and remains strictly
+  # gated on both a successful build and the complete checks workflow.
+  build-backend:
+    needs: changes
     if: >-
-      always() &&
-      needs.checks.result == 'success' &&
-      (needs.changes.outputs.backend == 'true' || inputs.force_backend == true)
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+      inputs.force_backend == true)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    # Serialized against every other backend mutation on the host. Staging and
-    # production now share one Elasticsearch server, so a staging deploy and a
-    # production release must not reindex across each other.
-    concurrency:
-      group: nadeshiko-host-deploy
-      cancel-in-progress: false
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
-          aws-region: eu-north-1
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -122,19 +172,81 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v7
         with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
           context: .
           file: backend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-backend-stg:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-backend-stg:latest
-          labels: |
-            service=nadeshiko-backend-stg
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Kamal deploys this immutable revision with VERSION=$GITHUB_SHA.
+          # Do not advance :latest before checks and staging E2E have passed.
+          tags: ghcr.io/brigadasos/nadeshiko-backend-stg:${{ env.RELEASE_SHA }}
+          labels: service=nadeshiko-backend-stg
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  build-frontend:
+    needs: changes
+    if: >-
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+      inputs.force_frontend == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ env.RELEASE_SHA }}
+          labels: service=nadeshiko-frontend-stg
+          build-args: NUXT_PUBLIC_ENVIRONMENT=development
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  # An Elasticsearch-gated push skips deploy-backend, which on its own reads as a
+  # green run. Fail the workflow instead so the skipped deploy is not missed.
+
+  deploy-backend:
+    needs: [changes, checks, build-backend]
+    if: >-
+      always() &&
+      needs.checks.result == 'success' &&
+      needs.build-backend.result == 'success' &&
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+       inputs.force_backend == true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Serialized against every other backend mutation on the host. Staging and
+    # production now share one Elasticsearch server, so a staging deploy and a
+    # production release must not reindex across each other.
+    concurrency:
+      group: nadeshiko-host-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
+          aws-region: eu-north-1
 
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
@@ -164,15 +276,32 @@ jobs:
         run: |
           set -euo pipefail
           cd backend
-          kamal deploy -d staging --skip-push
+          VERSION="$RELEASE_SHA" kamal deploy -d staging --skip-push
+
+      - name: Verify backend revision and dependencies
+        run: |
+          set -euo pipefail
+          health=$(curl --fail --silent --show-error https://api-stg.nadeshiko.co/up)
+          test "$(jq -r '.releaseSha' <<<"$health")" = "$RELEASE_SHA"
+          test "$(jq -r '.database' <<<"$health")" = up
+          test "$(jq -r '.elasticsearch' <<<"$health")" = up
+
+          cd backend
+          kamal app exec -d staging --reuse 'npm run db:verify'
 
 
   deploy-frontend:
     # Deliberately not ordered after deploy-backend: staging is for feedback, so
     # the frontend ships as soon as it is ready rather than queueing behind (or
     # being blocked by) a backend deploy. Production does enforce that ordering.
-    needs: [changes, checks]
-    if: needs.changes.outputs.frontend == 'true' || inputs.force_frontend == true
+    needs: [changes, checks, build-frontend]
+    if: >-
+      always() &&
+      needs.checks.result == 'success' &&
+      needs.build-frontend.result == 'success' &&
+      (github.event_name == 'repository_dispatch' || (github.event_name == 'push' &&
+        (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')) ||
+       inputs.force_frontend == true)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # Frontend deploys are Nuxt container swaps that touch neither Elasticsearch
@@ -183,41 +312,27 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Capture assets from the currently deployed revision
+        id: old-assets
+        run: |
+          set -euo pipefail
+          html=$(curl --fail --silent --show-error --location https://stg.nadeshiko.co/en)
+          assets=$(grep -oE '/_nuxt/[^" ]+\.(js|css)' <<<"$html" | sort -u | head -20)
+          test -n "$assets" || { echo "::error::No deployed Nuxt assets found before release"; exit 1; }
+          {
+            echo 'assets<<NUXT_ASSETS'
+            echo "$assets"
+            echo 'NUXT_ASSETS'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v7
-        with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
-          context: .
-          file: frontend/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-frontend-stg:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-frontend-stg:latest
-          labels: |
-            service=nadeshiko-frontend-stg
-          build-args: |
-            NUXT_PUBLIC_ENVIRONMENT=development
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
@@ -231,7 +346,25 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          kamal deploy -d staging --skip-push
+          VERSION="$RELEASE_SHA" kamal deploy -d staging --skip-push
+
+      - name: Verify frontend revision
+        run: |
+          set -euo pipefail
+          health=$(curl --fail --silent --show-error https://stg.nadeshiko.co/up)
+          test "$(jq -r '.releaseSha' <<<"$health")" = "$RELEASE_SHA"
+
+      # A tab loaded just before the swap still references the previous build's
+      # hashed chunks. Keep those URLs alive across the deploy so readers do not
+      # get a blank page when they navigate or lazy-load after a release.
+      - name: Verify previous revision assets remain available
+        env:
+          OLD_ASSETS: ${{ steps.old-assets.outputs.assets }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r asset; do
+            test -z "$asset" || curl --fail --silent --show-error --output /dev/null "https://stg.nadeshiko.co${asset}"
+          done <<<"$OLD_ASSETS"
 
   e2e:
     needs: [deploy-backend, deploy-frontend]
@@ -240,16 +373,35 @@ jobs:
     # A cold npm install can consume five minutes by itself. The full Chromium,
     # mobile and cross-browser smoke suite has more than 300 tests, so leave
     # enough room for dependency setup and useful retries. The tests themselves
-    # run eight-way in parallel against isolated seeded accounts.
+    # run four-way in parallel against isolated seeded accounts.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
           aws-region: eu-north-1
+
+      - name: Set up deployment access for disposable accounts
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Prepare disposable E2E accounts
+        id: accounts
+        working-directory: backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        # Kamal passes this command directly to `docker exec`, which does not
+        # understand shell-style leading assignments. Use `env` as the actual
+        # executable so the run-scoped account namespace reaches Node.
+        run: kamal app exec -d staging --reuse "env E2E_RUN_ID=${E2E_RUN_ID} npm run db:prepare"
 
       - name: Fetch E2E secrets from AWS SSM
         run: |
@@ -264,15 +416,10 @@ jobs:
           # masking the anonymous-access check in collections.spec.ts, which
           # expects a 302 and was being handed a 429.
           #
-          # Optional on purpose: if the parameter is absent the suite still runs,
-          # throttled, rather than the job failing on a missing secret.
           E2E_RATE_LIMIT_BYPASS_SECRET=$(aws ssm get-parameter --name "/nadeshiko/staging/RATE_LIMIT_BYPASS_SECRET" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo "")
-          if [ -n "${E2E_RATE_LIMIT_BYPASS_SECRET}" ]; then
-            echo "::add-mask::${E2E_RATE_LIMIT_BYPASS_SECRET}"
-            echo "E2E_RATE_LIMIT_BYPASS_SECRET=${E2E_RATE_LIMIT_BYPASS_SECRET}" >> "$GITHUB_ENV"
-          else
-            echo "note: no RATE_LIMIT_BYPASS_SECRET in SSM; the suite will run throttled"
-          fi
+          test -n "${E2E_RATE_LIMIT_BYPASS_SECRET}" || { echo "::error::RATE_LIMIT_BYPASS_SECRET is required for staging E2E"; exit 1; }
+          echo "::add-mask::${E2E_RATE_LIMIT_BYPASS_SECRET}"
+          echo "E2E_RATE_LIMIT_BYPASS_SECRET=${E2E_RATE_LIMIT_BYPASS_SECRET}" >> "$GITHUB_ENV"
 
       # ONE setup-node, not two. There were two, and the second -- pinning
       # node-version to a literal '22' with no `cache` -- silently won, so the
@@ -320,10 +467,26 @@ jobs:
         working-directory: frontend
 
       - name: Run E2E tests
-        run: npx playwright test --config=e2e/playwright.config.ts
+        run: bash scripts/run-e2e.sh staging
         working-directory: frontend
         env:
           E2E_BASE_URL: https://stg.nadeshiko.co
+          E2E_EXPECTED_SHA: ${{ env.RELEASE_SHA }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Enforce E2E skip budget
+        run: node e2e/check-junit-budget.mjs test-results/e2e-results.xml 11
+        working-directory: frontend
+
+      # Shirabe is an external dependency, so an outage there should be loud in
+      # the release report without preventing an otherwise healthy Nadeshiko
+      # revision from reaching staging.
+      - name: Probe live Shirabe lookup (advisory)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          result=$(curl --fail --silent --show-error 'https://stg.nadeshiko.co/api/shirabe/words/candidates/%E5%AD%A6%E6%A0%A1')
+          test "$(jq '.candidates | length' <<<"$result")" -gt 0
 
       - name: Upload test report
         uses: actions/upload-artifact@v7
@@ -335,12 +498,40 @@ jobs:
             frontend/test-results/e2e-results.xml
           retention-days: 14
 
+  cleanup-e2e:
+    needs: e2e
+    if: ${{ always() && needs.e2e.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-staging
+          aws-region: eu-north-1
+      - name: Set up deployment access
+        uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+      - name: Remove disposable E2E accounts
+        working-directory: backend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: kamal app exec -d staging --reuse "env E2E_RUN_ID=${E2E_RUN_ID} npm run db:cleanup-e2e"
+
   dispatch-sdk-python:
     needs: [changes, checks]
     if: needs.changes.outputs.openapi == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -365,11 +556,11 @@ jobs:
           gh api repos/BrigadaSOS/nadeshiko-sdk-python/dispatches \
             -f event_type='backend_release' \
             -f 'client_payload[release_channel]=internal' \
-            -f "client_payload[backend_sha]=${GITHUB_SHA}"
+            -f "client_payload[backend_sha]=${RELEASE_SHA}"
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [checks, deploy-backend, deploy-frontend, e2e, dispatch-sdk-python]
+    needs: [checks, build-backend, build-frontend, deploy-backend, deploy-frontend, e2e, cleanup-e2e, dispatch-sdk-python]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit

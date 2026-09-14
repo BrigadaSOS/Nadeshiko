@@ -16,14 +16,10 @@ export class ActivityPage {
   constructor(page: Page) {
     this.page = page;
     this.overviewHeading = page.getByRole('heading', { name: 'Activity Overview' });
-    this.searchesCount = page.locator('text=Sentences Searched').locator('..').locator('p.text-2xl');
-    // 'Audio Played', not 'Audios Played': the card was renamed with the rest of
-    // the terminology pass and this locator was not, so it matched nothing. The
-    // failure stayed hidden until the teleported-dropdown fix stopped
-    // `maxFailures` aborting the run before this spec was reached.
-    this.playsCount = page.locator('text=Audio Played').locator('..').locator('p.text-2xl');
-    this.exportsCount = page.locator('text=Anki Exports').locator('..').locator('p.text-2xl');
-    this.sharesCount = page.locator('text=Links Shared').locator('..').locator('p.text-2xl');
+    this.searchesCount = page.getByTestId('activity-stat-searches').locator('p.text-2xl');
+    this.playsCount = page.getByTestId('activity-stat-plays').locator('p.text-2xl');
+    this.exportsCount = page.getByTestId('activity-stat-exports').locator('p.text-2xl');
+    this.sharesCount = page.getByTestId('activity-stat-shares').locator('p.text-2xl');
     this.historyHeading = page.getByRole('heading', { name: 'Activity History' });
     this.heatmapHeading = page.getByRole('heading', { name: 'Activity Heatmap' });
     this.noActivityMessage = page.getByText('No activity recorded yet.');
@@ -32,7 +28,8 @@ export class ActivityPage {
   }
 
   async goto() {
-    await this.page.goto('/user/activity');
+    const response = await this.page.goto('/user/activity');
+    expect(response?.status(), 'activity navigation should return HTTP 200').toBe(200);
   }
 
   async expectLoaded() {
@@ -44,12 +41,17 @@ export class ActivityPage {
     // Toggle range to force a client-side refetch of stats,
     // since useAsyncData initial data comes from SSR (without auth cookie).
     const sevenDayButton = this.page.getByRole('button', { name: '7d' });
-    await this.allTimeButton.click();
-    await this.page.waitForLoadState('networkidle');
-    await sevenDayButton.click();
-    await this.page.waitForLoadState('networkidle');
-    await this.allTimeButton.click();
-    await this.page.waitForLoadState('networkidle');
+    const choose = async (button: Locator) => {
+      const response = this.page.waitForResponse(
+        (candidate) =>
+          candidate.request().method() === 'GET' && new URL(candidate.url()).pathname === '/v1/user/activity/stats',
+      );
+      await button.click();
+      expect(await response).toBeOK();
+    };
+    await choose(this.allTimeButton);
+    await choose(sevenDayButton);
+    await choose(this.allTimeButton);
   }
 
   async getSearchesCount(): Promise<number> {

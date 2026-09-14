@@ -1,7 +1,7 @@
 import { test, expect } from '../fixtures';
 
 test.describe('Feedback', () => {
-  test('opens, obtains a deployed form token, and submits the browser payload', async ({ page }) => {
+  test('opens, obtains a deployed form token, and persists the browser payload', async ({ page }) => {
     await page.goto('/');
 
     const tokenResponse = page.waitForResponse(
@@ -11,20 +11,20 @@ test.describe('Feedback', () => {
     await tokenResponse;
     await expect(page.getByTestId('feedback-modal')).toBeVisible();
 
-    let submitted: Record<string, unknown> | null = null;
-    await page.route('**/v1/feedback', async (route) => {
-      submitted = route.request().postDataJSON() as Record<string, unknown>;
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ accepted: true }) });
-    });
-
-    await page.getByRole('textbox', { name: /feedback|message/i }).fill('E2E feedback payload');
+    const message = `E2E staging feedback ${process.env.E2E_EXPECTED_SHA ?? Date.now()}`;
+    const textbox = page.getByRole('textbox', { name: /feedback|message/i });
+    // The real backend rejects implausibly fast submissions as bots. Typing is
+    // intentional here: a valid, aged form token makes 201 prove the controller
+    // crossed its anti-automation checks and saved the row before responding.
+    await textbox.pressSequentially(message, { delay: 80 });
+    const submittedResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/v1/feedback' && response.request().method() === 'POST',
+    );
     await page.getByTestId('feedback-modal').getByRole('button', { name: /send|submit/i }).click();
+    const response = await submittedResponse;
 
     await expect(page.getByTestId('feedback-modal')).toContainText(/thank/i);
-    expect(submitted).toMatchObject({
-      body: 'E2E feedback payload',
-      pagePath: expect.stringMatching(/^\/(?:en\/?)?$/),
-    });
-    expect(typeof submitted?.formToken).toBe('string');
+    expect(response.status(), await response.text()).toBe(201);
   });
 });

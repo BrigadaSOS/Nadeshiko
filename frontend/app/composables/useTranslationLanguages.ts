@@ -1,12 +1,13 @@
 export type TranslationLanguage = 'EN' | 'ES';
 export type GlossLanguage = Lowercase<TranslationLanguage>;
 
-const DEFAULT_TRANSLATION_LANGUAGES: readonly TranslationLanguage[] = ['EN', 'ES'];
+const DEFAULT_TRANSLATION_LANGUAGES: readonly TranslationLanguage[] = ['EN'];
 
 /** The useful default before a reader makes an explicit global choice. */
 export function defaultTranslationLanguages(locale: string): TranslationLanguage[] {
   if (locale === 'en') return ['EN'];
   if (locale === 'es') return ['ES'];
+  if (locale === 'pt-BR') return ['EN', 'ES'];
   return [...DEFAULT_TRANSLATION_LANGUAGES];
 }
 

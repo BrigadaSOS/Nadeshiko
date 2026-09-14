@@ -6,18 +6,19 @@
   "navbar": {
     "buttons": {
       "home": "Inicio",
-      "about": "Acerca de",
+      "about": "Sobre Nadeshiko",
       "api": "API",
-      "login": "Iniciar sesión / Registrarse",
+      "login": "Iniciar sesión / Crear cuenta",
       "profile": "Perfil",
-      "privacy": "Privacidad",
+      "privacy": "Política de privacidad",
       "dmca": "DMCA",
-      "terms": "Términos y Condiciones",
+      "terms": "Términos y condiciones",
       "settings": "Ajustes",
       "blog": "Blog",
-      "changelog": "Novedades",
+      "changelog": "Historial de cambios",
       "stats": "Estadísticas",
-      "media": "Medios",
+      "media": "Catálogo",
+      "roadmap": "Roadmap",
       "collections": "Colecciones",
       "activity": "Actividad",
       "language": "Idioma",
@@ -32,9 +33,10 @@
     }
   },
   "player": {
+    "nowPlaying": "Reproduciendo",
     "controls": {
-      "rewind": "Retroceder",
-      "forward": "Avanzar",
+      "rewind": "Retroceder 1 segundo",
+      "forward": "Avanzar 1 segundo",
       "previous": "Clip anterior",
       "next": "Clip siguiente",
       "play": "Reproducir",
@@ -50,6 +52,8 @@
     }
   },
   "common": {
+    "loading": "Cargando…",
+    "example": "p. ej., {value}",
     "cancel": "Cancelar",
     "search": "Buscar",
     "clearSearch": "Borrar búsqueda",
@@ -57,89 +61,93 @@
     "confirm": "Confirmar",
     "logoAlt": "Logotipo de Nadeshiko",
     "navigationMenu": "Menú de navegación",
-    "searchAnything": "Buscar cualquier cosa",
-    "toggleNavigation": "Alternar navegación",
+    "searchAnything": "Buscar palabras o frases",
+    "toggleNavigation": "Abrir o cerrar el menú",
     "translationUnavailable": "Esta página aún no está disponible en tu idioma, por lo que se muestra la versión en inglés.",
-    "justNow": "Justo ahora",
+    "justNow": "Ahora mismo",
     "skipToContent": "Saltar al contenido"
   },
   "appMeta": {
-    "defaultTitle": "Nadeshiko: Busca frases en japonés de anime, J-drama y YouTube",
-    "defaultPageTitle": "Busca frases en japonés de anime, J-drama y YouTube",
-    "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, J-drama y YouTube, cada una con audio, captura y traducciones en su contexto. Pensado para el sentence mining."
+    "defaultTitle": "Nadeshiko: Frases en japonés de anime, series y YouTube",
+    "defaultPageTitle": "Frases en japonés de anime, series y YouTube",
+    "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta el audio, las imágenes y las traducciones al español, y crea tarjetas de estudio en Anki."
   },
   "home": {
+    "supportOnPatreon": "Apóyanos en Patreon",
     "version": "v{version}",
-    "nadeDbDescription": "Busca entre más de un millón de frases en japonés de anime, J-drama y YouTube, cada una con audio, captura y traducciones en su contexto. Pensado para el sentence mining.",
-    "nadeDbDescriptionJpSearch": "Búsqueda en Japonés",
-    "nadeDbDescriptionOtherSearch": "Búsqueda en Español",
-    "nadeDbDescriptionExclusiveSearch": "Busqueda excluyente",
-    "nadeDbDescriptionExactSearch": "Busqueda exacta",
+    "nadeDbDescription": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta el audio, las imágenes y las traducciones al español, y crea tarjetas de estudio en Anki: ideal para la {sentenceMining}.",
+    "sentenceMiningLabel": "minería de frases",
+    "nadeDbDescriptionJpSearch": "Buscar en japonés",
+    "nadeDbDescriptionOtherSearch": "Buscar en español",
+    "nadeDbDescriptionExclusiveSearch": "Excluir palabras",
+    "nadeDbDescriptionExactSearch": "Buscar una coincidencia exacta",
     "keyFeatures": {
       "feature1": {
         "title": "Exporta a Anki",
-        "description": "Guarda cualquier oración en Anki incluyendo captura, audio y múltiples idiomas."
+        "description": "Exporta frases a Anki con su imagen, audio y traducción al español."
       },
       "feature2": {
-        "title": "Guarda cualquier oración",
-        "description": "Guarda las oraciones en múltiples formatos como imágenes, audios y videos."
+        "title": "Descarga imágenes, audio y vídeos",
+        "description": "Guarda la imagen, el audio o el vídeo de una frase en tu dispositivo."
       },
       "feature3": {
-        "title": "Visualiza el contexto de lo que encuentres",
-        "description": "Mira lo que ocurrió antes o después de una oración."
+        "title": "Consulta el diálogo completo",
+        "description": "Lee y escucha lo que se dice antes y después para entender mejor la escena."
       },
       "feature4": {
-        "title": "Contenido variado",
-        "description": "Disfruta de diferentes generos, diferentes medios, diferentes voces."
+        "title": "Aprende con contenido variado",
+        "description": "Descubre expresiones y formas de hablar en títulos de distintos géneros."
       },
       "feature5": {
-        "title": "Integración directa con Discord",
-        "description": "Busca entre los mismos 1,3 millones de oraciones sin salir de tu servidor con nuestro bot oficial.",
-        "linkText": "¡Añade el bot a tu servidor de Discord!"
+        "title": "Busca desde Discord",
+        "description": "Usa nuestro bot oficial para buscar entre más de 1,3 millones de frases sin salir de Discord.",
+        "linkText": "Añade el bot a tu servidor de Discord"
       }
     },
     "support": {
       "title": "¿Te gusta Nadeshiko?",
-      "description": " Si encuentras este sitio útil, puedes apoyar nuestro trabajo y su futuro desarrollo con una contribución en nuestro Github, una donación o compartiendo este sitio con otras personas."
+      "description": "Si Nadeshiko te resulta útil, puedes apoyar su desarrollo colaborando en GitHub, haciendo una donación o compartiendo el sitio."
     },
     "stats": {
-      "sentenceCount": "Oraciones",
+      "sentenceCount": "Frases",
       "episodeCount": "Episodios",
       "mediaCount": "Títulos"
     }
   },
   "batchSearch": {
-    "title": "Búsqueda simultánea",
-    "description1": "Esta función le ofrece la posibilidad de realizar una búsqueda en la base de datos introduciendo múltiples palabras clave. Esto le devolverá una lista con las palabras que se encuentran disponibles con un hipervínculo que lo redireccionará a la búsqueda",
-    "description2": "Para empezar, puede añadir el listado de palabras abajo en el cuadro de texto",
-    "description3": "Puede añadir una palabra por línea o separadas por comas",
-    "description4": "Solo se permite un total de ",
-    "description5": "500 palabras por búsqueda",
+    "title": "Búsqueda de varias palabras",
+    "description1": "Busca varias palabras a la vez y comprueba cuántas frases hay para cada una. Los enlaces de los resultados te llevan a sus ejemplos.",
+    "description2": "Escribe las palabras que quieras buscar en el cuadro de abajo.",
+    "description3": "Escribe una palabra por línea o sepáralas con comas.",
+    "description4": "Puedes buscar hasta ",
+    "description5": "500 palabras a la vez.",
     "totalWords": "Total de palabras",
-    "search": "Realizar búsqueda",
+    "search": "Buscar",
     "close": "Cerrar",
     "results": {
-      "title": "Búsqueda simultánea - Resultados",
+      "title": "Resultados de la búsqueda de palabras",
       "words": "Palabras buscadas",
       "wordsWithMatch": "Palabras con resultados",
-      "percentageMatched": "Porcentaje de coincidencia",
+      "percentageMatched": "Porcentaje de palabras con ejemplos",
       "wordColumn": "Palabra",
-      "match": "¿Existe?",
-      "matchesCount": "Coincidencias",
-      "true": "Si",
+      "match": "¿Hay ejemplos?",
+      "matchesCount": "Frases encontradas",
+      "true": "Sí",
       "false": "No",
-      "searching": "Realizando búsqueda...",
-      "return": "Regresar"
+      "searching": "Buscando…",
+      "return": "Volver"
     }
   },
   "animeList": {
-    "recentlyAddedTitle": "Recién añadidos",
-    "fullListTitle": "Todos los títulos",
+    "recentlyAddedTitle": "Últimos títulos añadidos",
+    "fullListTitle": "Catálogo",
     "seeAll": "Ver todos",
-    "sentenceCount": "oraciones",
-    "episodes": "Episodios",
-    "videos": "Videos",
-    "sentenceCountLabel": "Cantidad de Oraciones:",
+    "sentenceCount": "frases",
+    "episodes": "episodios",
+    "videos": "vídeos",
+    "episodeCount": "{count} episodios",
+    "videoCount": "{count} vídeos",
+    "sentenceCountLabel": "Frases:",
     "anilistButton": "AniList",
     "tmdbButton": "TMDB",
     "imdbButton": "IMDb",
@@ -150,163 +158,163 @@
     "updateError": "No se pudieron actualizar tus categorías ocultas. Inténtalo de nuevo."
   },
   "hiddenMedia": {
-    "updateError": "No se pudo actualizar tu lista de medios ocultos. Inténtalo de nuevo."
+    "updateError": "No se pudo actualizar la lista de títulos ocultos. Inténtalo de nuevo."
   },
   "favoriteMedia": {
-    "updateError": "No se pudieron actualizar tus medios favoritos. Inténtalo de nuevo.",
+    "updateError": "No se pudieron actualizar tus títulos favoritos. Inténtalo de nuevo.",
     "capReached": "Has alcanzado el máximo de 100 títulos favoritos. Quita uno para añadir otro."
   },
   "familiarMedia": {
-    "forgetError": "No se pudo olvidar ese título. Inténtalo de nuevo."
+    "forgetError": "No se pudo borrar el registro de ese título. Inténtalo de nuevo."
   },
   "mediaBrowse": {
     "nextPage": "Página siguiente",
-    "showHiddenMedia": "Mostrar contenido oculto",
-    "hideHiddenMedia": "Ocultar contenido oculto",
-    "loadError": "No se pudo cargar la lista de medios.",
-    "loadMoreError": "No se pudieron cargar más medios."
+    "showHiddenMedia": "Mostrar títulos ocultos",
+    "hideHiddenMedia": "Volver a ocultar títulos",
+    "loadError": "No se pudo cargar el catálogo.",
+    "loadMoreError": "No se pudieron cargar más títulos."
   },
   "searchSettingsModal": {
-    "exactMatchTitle": "Habilitar búsqueda exacta",
-    "exactMatchDescription": "Permite realizar una búsqueda sin variaciones o conjugaciones adicionales"
+    "exactMatchTitle": "Búsqueda exacta",
+    "exactMatchDescription": "Busca la expresión tal como la escribes, sin incluir otras formas o conjugaciones."
   },
   "anki": {
-    "configRequired": "Configura Anki en Ajustes para usar esta función",
+    "configRequired": "Configura la conexión con Anki en Ajustes para usar esta función.",
     "notRunning": "Anki no responde. Abre Anki con el complemento AnkiConnect activado e inténtalo de nuevo.",
-    "keyFieldRequired": "Configura un campo clave en tus ajustes de Anki para usar esto.",
+    "keyFieldRequired": "Selecciona un campo clave en los ajustes de Anki para usar esta función.",
     "modal": {
-      "title": "Busca en tu colección",
-      "description": "Busca una carta en tu colección de Anki y añádele imagen/audio. Requiere que el 'Key Field' esté configurado en ajustes.",
+      "title": "Buscar notas en Anki",
+      "description": "Busca una nota de Anki y selecciónala para exportar la frase, la imagen y el audio. Primero debes elegir un campo clave en los ajustes de Anki.",
       "idColumn": "ID",
-      "keyColumn": "Clave",
-      "noCardsFound": "No se encontraron cartas",
-      "noCardsMessage": "Prueba con otro query o mina la oración primero",
-      "validationError": "Algo ha fallado",
-      "errorMessage": "No se ha definido un keyfield",
-      "errorTip": "Verifique que el keyfield esté definido en los ajustes de Nadeshiko"
+      "keyColumn": "Contenido del campo clave",
+      "noCardsFound": "No se encontraron notas",
+      "noCardsMessage": "Prueba con otra palabra o añade primero una nota en Anki.",
+      "validationError": "Falta configurar Anki",
+      "errorMessage": "No has seleccionado un campo clave.",
+      "errorTip": "Selecciona un campo clave en los ajustes de Anki de Nadeshiko."
     },
     "toast": {
-      "noSettings": "No se han encontrado ajustes. Por favor, vaya a la página de ajustes y configure la extensión.",
-      "miningCard": "Minando la carta...",
-      "noCardToExport": "No hay carta de Anki para exportar. Por favor, añada una carta primero.",
-      "cardFoundInOtherDeck": "Se encontro la carta pero no en el mazo \"{deck}\". Verifica que Yomitan y Nadeshiko usen el mismo mazo.",
-      "cardAdded": "La tarjeta ha sido añadida en Anki exitosamente",
-      "cardAddError": "No se ha podido añadir la tarjeta en Anki. Error: {error}"
+      "noSettings": "No se encontró la configuración de Anki. Configura la conexión en Ajustes.",
+      "miningCard": "Exportando a Anki…",
+      "noCardToExport": "No hay ninguna tarjeta de Anki a la que exportar. Añade una primero.",
+      "cardFoundInOtherDeck": "Se encontró la tarjeta, pero no está en el mazo «{deck}». Comprueba que Yomitan y Nadeshiko usen el mismo mazo.",
+      "cardAdded": "Exportado a Anki",
+      "cardAddError": "No se pudo exportar a Anki. Error: {error}"
     }
   },
   "modalAnkiNotes": {
     "closeSrOnly": "Cerrar",
-    "searchPlaceholder": "女"
+    "searchPlaceholder": "Palabra que quieres buscar (p. ej., 彼女)"
   },
   "modalBatch": {
     "closeSrOnly": "Cerrar",
-    "wordLimitExceeded": "Se ha excedido el límite de palabras permitidas: {count} / 500",
-    "inputFormatError": "El formato de entrada es incorrecto. Verifique si hay comas y saltos de línea simultáneamente.",
+    "wordLimitExceeded": "Has superado el límite de palabras: {count} / 500",
+    "inputFormatError": "Usa comas o saltos de línea para separar las palabras, pero no mezcles ambos formatos.",
     "notAvailable": "No disponible",
     "searchError": "No se ha podido completar la búsqueda de palabras. Inténtalo de nuevo.",
     "searchTypeLabel": "Tipo de búsqueda: {type}",
     "searchTypeExact": "Exacta",
     "searchTypeNormal": "Normal",
-    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n...\n...\n..."
+    "examplePlaceholder": "彼女\n彼氏\n走る\n恋人\n…\n…\n…"
   },
   "modalContext": {
     "closeSrOnly": "Cerrar"
   },
   "modalMediaEdit": {
-    "title": "Editar medio",
+    "title": "Editar título",
     "editButton": "Editar",
     "publicId": "ID público",
     "cover": "Portada",
     "banner": "Banner",
-    "nameJa": "Nombre en Japonés",
-    "nameRomaji": "Nombre en Romaji",
-    "nameEn": "Nombre en Inglés",
+    "nameJa": "Título en japonés",
+    "nameRomaji": "Título en romaji",
+    "nameEn": "Título en inglés",
     "airingFormat": "Formato",
     "airingStatus": "Estado de emisión",
     "category": "Categoría",
     "genres": "Géneros",
-    "genresPlaceholder": "Comedia, Drama, Romance",
+    "genresPlaceholder": "Comedia, drama, romance",
     "studio": "Estudio",
     "startDate": "Fecha de inicio",
-    "endDate": "Fecha de fin",
-    "seasonName": "Temporada",
+    "endDate": "Fecha de finalización",
+    "seasonName": "Temporada de estreno",
     "seasonYear": "Año",
     "externalIds": "IDs externos",
     "save": "Guardar",
-    "saving": "Guardando...",
+    "saving": "Guardando…",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "saveSuccess": "Media actualizado correctamente",
-    "saveError": "Error al actualizar media",
+    "saveSuccess": "Datos del título actualizados",
+    "saveError": "No se pudieron actualizar los datos del título",
     "delete": "Eliminar",
-    "deleteConfirm": "¿Estás seguro?",
+    "deleteConfirm": "¿Quieres eliminar este título?",
     "confirmYes": "Sí, eliminar",
-    "confirmNo": "No",
-    "deleting": "Eliminando...",
-    "deleteSuccess": "Media eliminado correctamente",
-    "deleteError": "Error al eliminar media"
+    "confirmNo": "Cancelar",
+    "deleting": "Eliminando…",
+    "deleteSuccess": "Título eliminado",
+    "deleteError": "No se pudo eliminar el título"
   },
   "modalSegmentEdit": {
-    "title": "Editar oración",
+    "title": "Editar frase",
     "editButton": "Editar",
     "japanese": "Japonés",
     "english": "Inglés",
     "spanish": "Español",
     "machineTranslated": "Traducción automática",
     "status": "Estado",
-    "contentRating": "Clasificación de contenido",
+    "contentRating": "Contenido sexual",
     "save": "Guardar",
-    "saving": "Guardando...",
+    "saving": "Guardando…",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "saveSuccess": "Oración actualizada",
-    "saveError": "Error al actualizar la oración",
-    "timing": "Posición y Tiempos",
-    "position": "Posición",
+    "saveSuccess": "Frase actualizada",
+    "saveError": "Error al actualizar la frase",
+    "timing": "Orden y duración del subtítulo",
+    "position": "Número de subtítulo",
     "startTimeMs": "Inicio (ms)",
     "endTimeMs": "Fin (ms)",
-    "ratingAnalysis": "Análisis de Clasificación",
-    "ratingAnalysisDesc": "Resultado del clasificador WD Tagger v3 (puntuaciones/etiquetas) usado para derivar la clasificación de contenido",
-    "invalidJson": "JSON inválido",
-    "loading": "Cargando...",
+    "ratingAnalysis": "Detalles de la clasificación",
+    "ratingAnalysisDesc": "Puntuaciones y etiquetas de WD Tagger v3 utilizadas para clasificar el contenido sexual.",
+    "invalidJson": "El formato JSON no es válido",
+    "loading": "Cargando…",
     "history": "Historial",
-    "historyToggle": "Alternar historial",
-    "snapshot": "Snapshot",
+    "historyToggle": "Mostrar u ocultar el historial",
+    "snapshot": "Versión",
     "noRevisions": "Sin historial de ediciones",
-    "viewingSnapshot": "Viendo Snapshot {n}",
+    "viewingSnapshot": "Viendo la versión {n}",
     "current": "Actual",
     "metadata": {
-      "media": "Medio",
+      "media": "Título",
       "episode": "Ep.",
-      "time": "Tiempo",
+      "time": "Posición de reproducción",
       "duration": "Duración",
       "id": "ID",
-      "position": "Posición",
-      "publicId": "ID Público",
-      "copyPublicId": "Copiar ID Público",
-      "mediaId": "ID de Media",
-      "hashedId": "ID Hash",
+      "position": "Número de subtítulo",
+      "publicId": "ID público",
+      "copyPublicId": "Copiar ID público",
+      "mediaId": "ID del título",
+      "hashedId": "ID hash",
       "storage": "Almacenamiento",
-      "storagePath": "Ruta de Almacenamiento",
+      "storagePath": "Ruta de almacenamiento",
       "image": "Imagen",
       "audio": "Audio",
-      "video": "Video"
+      "video": "Vídeo"
     },
     "deleteEpisode": "Eliminar episodio",
-    "deleteEpisodeConfirm": "¿Eliminar el episodio {episode} y todas sus oraciones?",
+    "deleteEpisodeConfirm": "¿Eliminar el episodio {episode} y todas sus frases?",
     "deleteEpisodeYes": "Eliminar",
     "deleteEpisodeSuccess": "Episodio eliminado correctamente",
     "deleteEpisodeError": "Error al eliminar el episodio"
   },
   "filterContent": {
-    "searchPlaceholder": "Buscar aquí",
-    "backToTitles": "Volver a los títulos"
+    "searchPlaceholder": "Buscar títulos",
+    "backToTitles": "Volver a la lista de títulos"
   },
   "episodeFilter": {
     "noEpisodes": "No se encontraron episodios"
   },
   "segmentSidebar": {
-    "loading": "Cargando...",
+    "loading": "Cargando…",
     "filtersTitle": "Filtros",
     "openFilters": "Abrir filtros",
     "close": "Cerrar"
@@ -314,40 +322,40 @@
   "searchpage": {
     "main": {
       "translationPreferences": {
-        "combinedMenuButton": "Visualización de traducciones y furigana",
-        "englishMenu": "Inglés",
-        "spanishMenu": "Traducciones en español",
-        "furiganaMenu": "Furigana (Lectura)",
-        "languageSettingsHint": "Elige los idiomas de traducción disponibles en los ajustes de tu cuenta.",
+        "combinedMenuButton": "Traducciones y furigana",
+        "englishMenu": "Traducción al inglés",
+        "spanishMenu": "Traducción al español",
+        "furiganaMenu": "Furigana",
+        "languageSettingsHint": "Elige los idiomas de traducción en los ajustes de tu cuenta.",
         "modeShown": "Visible",
         "modeSpoiler": "Al pasar el cursor",
         "modeHidden": "Oculto",
-        "englishShown": "Traducciones en inglés visibles",
-        "englishSpoiler": "Traducciones en inglés en modo spoiler",
-        "englishHidden": "Traducciones en inglés ocultas",
-        "spanishShown": "Traducciones en español visibles",
-        "spanishSpoiler": "Traducciones en español en modo spoiler",
-        "spanishHidden": "Traducciones en español ocultas",
-        "furiganaShown": "Furigana (Lectura) visible",
-        "furiganaSpoiler": "Furigana (Lectura) visible al pasar el cursor",
-        "furiganaHidden": "Furigana (Lectura) oculta"
+        "englishShown": "Traducción al inglés: visible",
+        "englishSpoiler": "Traducción al inglés: al pasar el cursor",
+        "englishHidden": "Traducción al inglés: oculta",
+        "spanishShown": "Traducción al español: visible",
+        "spanishSpoiler": "Traducción al español: al pasar el cursor",
+        "spanishHidden": "Traducción al español: oculta",
+        "furiganaShown": "Furigana: visible",
+        "furiganaSpoiler": "Furigana: al pasar el cursor",
+        "furiganaHidden": "Furigana: oculto"
       },
       "buttons": {
-        "addToAnkiLast": "Añadir a Anki (Ultima carta añadida)",
-        "addToAnkiSearch": "Añadir a Anki (Busca en tu colección)",
-        "download": "Guardar",
-        "dl-expanded": "Audio expandido",
+        "addToAnkiLast": "Exportar a la última tarjeta añadida en Anki",
+        "addToAnkiSearch": "Buscar una nota de Anki para exportar",
+        "download": "Descargar",
+        "dl-expanded": "Audio con los subtítulos añadidos",
         "add": "Añadir",
-        "video": "Imagen + Audio",
+        "video": "Vídeo",
         "image": "Imagen",
         "audio": "Audio",
         "info": "Información del episodio",
         "copyclipboard": "Copiar",
-        "jpsentence": "Oración en japonés",
-        "jpsentencehighlight": "Frase en japonés (palabra marcada)",
-        "jpsentencefurigana": "Oración en japonés (con furigana)",
-        "ensentence": "Oración en inglés",
-        "essentence": "Oración en español",
+        "jpsentence": "Frase en japonés",
+        "jpsentencehighlight": "Frase en japonés (palabra resaltada)",
+        "jpsentencefurigana": "Frase en japonés (con furigana)",
+        "ensentence": "Traducción al inglés",
+        "essentence": "Traducción al español",
         "word": "Palabra",
         "wordreading": "Lectura de la palabra",
         "wordfurigana": "Palabra (con furigana)",
@@ -360,46 +368,46 @@
         "context": "Contexto",
         "share": "Compartir",
         "more": "Más",
-        "expandLeft": "Expandir (izquierda)",
-        "expandBoth": "Expandir (ambos lados)",
-        "expandRight": "Expandir (derecha)",
+        "expandLeft": "Añadir el subtítulo anterior",
+        "expandBoth": "Añadir los subtítulos de ambos lados",
+        "expandRight": "Añadir el subtítulo siguiente",
         "hideMedia": "Ocultar",
         "unhideMedia": "Mostrar",
-        "favoriteMedia": "Favorito",
-        "unfavoriteMedia": "Quitar favorito",
-        "addToCollection": "Añadir a colección",
+        "favoriteMedia": "Añadir a favoritos",
+        "unfavoriteMedia": "Quitar de favoritos",
+        "addToCollection": "Añadir a una colección",
         "manageCollections": "Gestionar colecciones",
-        "collectionsLoading": "Cargando colecciones...",
+        "collectionsLoading": "Cargando colecciones…",
         "collectionsEmpty": "Todavía no hay colecciones",
-        "chooseCollection": "Elegir colección...",
-        "sortmain": "Ordenar oraciones",
-        "sortlengthnone": "Ninguno",
-        "sortlengthmin": "Más cortas",
-        "sortlengthmax": "Más largas",
-        "sortasc": "Más cortas",
-        "sortdesc": "Más largas",
+        "chooseCollection": "Elegir colección…",
+        "sortmain": "Ordenar frases",
+        "sortlengthnone": "Predeterminado",
+        "sortlengthmin": "De más cortas a más largas",
+        "sortlengthmax": "De más largas a más cortas",
+        "sortasc": "De más cortas a más largas",
+        "sortdesc": "De más largas a más cortas",
         "sortrandom": "Aleatorio",
         "sorttime_asc": "Cronológico",
-        "sorttime_desc": "Inverso",
-        "wordfrequency": "Rango de frecuencia",
+        "sorttime_desc": "Cronológico inverso",
+        "wordfrequency": "Posición en la lista de frecuencia",
         "wordjlpt": "Nivel JLPT",
         "wordpitchcategories": "Patrón de acento tonal",
-        "sentencefurigana": "Oración (con furigana)"
+        "sentencefurigana": "Frase (con furigana)"
       },
       "labels": {
-        "noresults": "No hay resultados...",
-        "episode": "Episodio",
+        "noresults": "No se encontraron frases",
+        "episode": "Episodio {number}",
         "movie": "Película",
         "hiddenMediaBadge": "Oculto",
         "hiddenMediaBadgeTitle": "Este título está en tu lista de ocultos",
-        "searchmain": "Nombre del título",
-        "copiedcontent": "Se ha copiado el contenido al portapapeles.",
-        "errorcopiedcontent": "No ha sido posible copiar el contenido al portapapeles. Inténtalo de nuevo.",
-        "copiedsharingurl": "Se ha copiado la URL al portapapeles.",
-        "errorcopiedsharingurl": "No ha sido posible copiar la URL al portapapeles. Inténtalo de nuevo.",
-        "collectionAdded": "Añadido a \"{name}\"",
+        "searchmain": "Buscar títulos",
+        "copiedcontent": "Copiado al portapapeles",
+        "errorcopiedcontent": "No se pudo copiar. Inténtalo de nuevo.",
+        "copiedsharingurl": "Enlace copiado al portapapeles",
+        "errorcopiedsharingurl": "No se pudo copiar el enlace. Inténtalo de nuevo.",
+        "collectionAdded": "Añadido a «{name}»",
         "collectionAddFailed": "No se pudo añadir a la colección. Inténtalo de nuevo.",
-        "mtTooltip": "Esta frase ha sido traducida automáticamente, puede que el contenido no sea exacto",
+        "mtTooltip": "Esta traducción es automática y puede contener errores.",
         "zoomedImage": "Imagen ampliada",
         "collectionsLoadFailed": "No se pudieron cargar tus colecciones.",
         "collectionRemoveFailed": "No se pudo quitar esa frase de la colección.",
@@ -415,38 +423,44 @@
   },
   "activity": {
     "deleteDayActivity": "Eliminar actividad de este día",
-    "deletingDayActivity": "Eliminando..."
+    "deletingDayActivity": "Eliminando…"
   },
   "accountSettings": {
     "menu": {
       "generalTitle": "General",
       "advancedTitle": "Avanzado",
-      "adminTitle": "Admin",
+      "adminTitle": "Administración",
       "tabsAriaLabel": "Secciones de ajustes de la cuenta"
     },
     "tabs": {
       "settings": "Ajustes",
-      "sync": "Sincronización Anki",
+      "sync": "Conexión con Anki",
       "collections": "Colecciones",
       "activity": "Actividad",
-      "media": "Medios",
-      "developer": "Desarrollador",
+      "media": "Gestionar títulos",
+      "developer": "Desarrolladores",
       "users": "Usuarios",
       "reports": "Reportes",
-      "agentActivity": "Actividad del agente",
-      "announcement": "Anuncios"
+      "agentActivity": "Ediciones del agente",
+      "announcement": "Avisos"
     },
     "dashboard": {
+      "roles": {
+        "ADMIN": "Administrador",
+        "MOD": "Moderador",
+        "USER": "Usuario",
+        "PATREON": "Colaborador de Patreon"
+      },
       "title": "Usuarios",
-      "searchPlaceholder": "Buscar por correo...",
-      "count": "{count} usuarios",
+      "searchPlaceholder": "Buscar por correo…",
+      "count": "Usuarios: {count}",
       "empty": "No se encontraron usuarios.",
       "table": {
         "name": "Nombre",
-        "email": "Correo",
+        "email": "Correo electrónico",
         "role": "Rol",
-        "providers": "Proveedores",
-        "registered": "Registro",
+        "providers": "Métodos de acceso",
+        "registered": "Fecha de registro",
         "lastUpdate": "Última actualización",
         "status": "Estado"
       },
@@ -460,7 +474,7 @@
         "banned": "Bloqueado"
       },
       "actions": {
-        "impersonate": "Suplantar",
+        "impersonate": "Acceder como este usuario",
         "ban": "Bloquear",
         "unban": "Desbloquear"
       },
@@ -470,14 +484,14 @@
         "next": "Siguiente"
       },
       "loadError": "No se pudo cargar la lista de usuarios.",
-      "banSuccess": "{name} ha sido bloqueado.",
-      "banError": "No se pudo bloquear a {name}.",
-      "unbanSuccess": "{name} ha sido desbloqueado.",
-      "unbanError": "No se pudo desbloquear a {name}."
+      "banSuccess": "Se ha bloqueado la cuenta de {name}.",
+      "banError": "No se pudo bloquear la cuenta de {name}.",
+      "unbanSuccess": "Se ha desbloqueado la cuenta de {name}.",
+      "unbanError": "No se pudo desbloquear la cuenta de {name}."
     },
     "announcement": {
-      "title": "Anuncio",
-      "description": "Configura un banner global visible para todos los usuarios.",
+      "title": "Aviso del sitio",
+      "description": "Configura el aviso que se muestra a todos los visitantes del sitio.",
       "fields": {
         "message": "Mensaje",
         "type": "Tipo",
@@ -485,34 +499,34 @@
         "preview": "Vista previa"
       },
       "placeholders": {
-        "message": "Escribe un mensaje para el anuncio..."
+        "message": "Escribe el aviso…"
       },
-      "markdownHint": "Admite **negrita**, *cursiva*, `código` y [enlaces](/media). Las rutas del sitio como /media no salen de la app.",
+      "markdownHint": "Puedes usar **negrita**, *cursiva*, `código` y [enlaces](/media). Las rutas como /media abren páginas dentro del sitio.",
       "activeDescription": "Cuando está activo, el banner se muestra a todos los visitantes.",
       "types": {
-        "INFO": "Información",
-        "WARNING": "Advertencia",
+        "INFO": "Aviso",
+        "WARNING": "Aviso importante",
         "MAINTENANCE": "Mantenimiento"
       },
       "save": "Guardar",
-      "saving": "Guardando...",
-      "deactivate": "Desactivar",
-      "updated": "Anuncio actualizado",
-      "updateError": "No se pudo actualizar el anuncio",
-      "deactivated": "Anuncio desactivado",
-      "deactivateError": "No se pudo desactivar el anuncio",
-      "fallbackMessage": "Sin anuncio"
+      "saving": "Guardando…",
+      "deactivate": "Retirar aviso",
+      "updated": "Aviso actualizado",
+      "updateError": "No se pudo actualizar el aviso",
+      "deactivated": "Aviso retirado",
+      "deactivateError": "No se pudo retirar el aviso",
+      "fallbackMessage": "No hay ningún aviso"
     },
     "activity": {
       "confirmClearHistory": "¿Seguro que quieres borrar todo el historial de actividad? Esta acción no se puede deshacer.",
-      "trackingOnToast": "Seguimiento de actividad activado",
-      "trackingOffToast": "Seguimiento de actividad desactivado",
-      "familiarOnToast": "Ahora se recuerda qué series estudias",
-      "familiarOffToast": "Ya no se recuerda qué series estudias",
+      "trackingOnToast": "Registro de actividad activado",
+      "trackingOffToast": "Registro de actividad desactivado",
+      "familiarOnToast": "Se registrarán los títulos con los que estudias",
+      "familiarOffToast": "Ya no se registrarán los títulos con los que estudias",
       "clearHistoryToast": "Historial de actividad borrado",
       "confirmClearDay": "¿Eliminar toda la actividad de {day}? Esta acción no se puede deshacer.",
       "ranges": {
-        "all": "Todo el tiempo"
+        "all": "Todo el historial"
       },
       "filters": {
         "all": "Todo"
@@ -521,42 +535,42 @@
         "SEARCH": "Búsqueda",
         "SEGMENT_PLAY": "Reproducción",
         "ANKI_EXPORT": "Exportación a Anki",
-        "SHARE": "Compartido"
+        "SHARE": "Enlace compartido"
       },
       "metrics": {
-        "searches": "Oraciones buscadas",
-        "plays": "Audios reproducidos",
+        "searches": "Búsquedas",
+        "plays": "Reproducciones de audio",
         "exports": "Exportaciones a Anki",
         "shares": "Enlaces compartidos"
       },
       "overview": {
         "title": "Resumen de actividad",
-        "description": "Métricas útiles de tu comportamiento de búsqueda y estudio."
+        "description": "Consulta tus búsquedas, reproducciones, exportaciones a Anki y enlaces compartidos."
       },
       "heatmap": {
-        "title": "Mapa de calor de actividad",
+        "title": "Actividad por día",
         "description": "Actividad de los últimos {days} días. Haz clic en un día para filtrar el historial.",
-        "loading": "Cargando mapa de calor...",
+        "loading": "Cargando mapa de calor…",
         "less": "Menos",
         "more": "Más",
         "records": "{count} registro | {count} registros",
         "searches": "{count} búsqueda | {count} búsquedas",
         "plays": "{count} reproducción | {count} reproducciones",
         "exports": "{count} exportación | {count} exportaciones",
-        "shares": "{count} compartido | {count} compartidos",
+        "shares": "{count} enlace compartido | {count} enlaces compartidos",
         "actions": "{count} acción | {count} acciones"
       },
       "history": {
         "title": "Historial de actividad",
-        "description": "Eventos recientes de tu cuenta.",
+        "description": "Tus búsquedas, reproducciones, exportaciones y enlaces compartidos más recientes.",
         "showing": "Mostrando: {day}",
-        "clearDayFilter": "Limpiar filtro de día",
+        "clearDayFilter": "Quitar el filtro de fecha",
         "deleteDayTitle": "Eliminar toda la actividad de este día",
-        "loading": "Cargando...",
+        "loading": "Cargando…",
         "empty": "Todavía no hay actividad registrada.",
         "emptyForDay": "No hay actividad registrada para este día.",
         "emptyForType": "No hay actividad registrada para este tipo.",
-        "inOneTitle": "En un título",
+        "inOneTitle": "En un título concreto",
         "noDetails": "-",
         "remove": "Eliminar",
         "loadMore": "Cargar más",
@@ -568,42 +582,42 @@
       },
       "privacy": {
         "title": "Privacidad",
-        "trackingTitle": "Seguimiento de actividad",
-        "trackingDescription": "Registrar búsquedas, exportaciones e historial de escucha. Tus búsquedas recientes son las que te ofrece la barra de búsqueda.",
+        "trackingTitle": "Registrar actividad",
+        "trackingDescription": "Guarda tus búsquedas, reproducciones de audio, exportaciones a Anki y enlaces compartidos. Las búsquedas recientes también aparecen en la barra de búsqueda.",
         "clearHistoryTitle": "Borrar historial",
         "clearHistoryDescription": "Elimina permanentemente todos los datos de actividad de tu cuenta.",
         "clearHistoryButton": "Borrar historial",
-        "clearing": "Borrando...",
-        "familiarTitle": "Recordar qué títulos estudio",
-        "familiarDescription": "Guarda un recuento mensual por título para que los títulos que estudias aparezcan primero en el filtro de medios. Independiente de tu historial de actividad.",
-        "familiarListTitle": "Títulos que creemos que te gustan",
-        "familiarListEmpty": "Todavía no hay recuento. Exporta una tarjeta o reproduce un clip y los títulos aparecerán aquí.",
+        "clearing": "Borrando…",
+        "familiarTitle": "Recordar los títulos con los que estudio",
+        "familiarDescription": "Guarda un recuento mensual de exportaciones, reproducciones y enlaces compartidos por título. Los títulos con los que estudias aparecerán primero en el filtro de títulos. Esta opción es independiente del historial de actividad.",
+        "familiarListTitle": "Títulos con los que estudias",
+        "familiarListEmpty": "Todavía no hay títulos registrados. Exporta una tarjeta o reproduce un clip para que aparezcan aquí.",
         "familiarCounts": "{cards} · {plays} · {shares}",
-        "forgetTitle": "Olvidar",
-        "forgetTitleHint": "Olvidar {title}",
-        "familiarCards": "{count} tarjeta exportada a Anki | {count} tarjetas exportadas a Anki",
+        "forgetTitle": "Borrar registro",
+        "forgetTitleHint": "Borrar el registro de «{title}»",
+        "familiarCards": "{count} exportación a Anki | {count} exportaciones a Anki",
         "familiarPlays": "{count} reproducción | {count} reproducciones",
-        "familiarShares": "{count} compartido | {count} compartidos"
+        "familiarShares": "{count} enlace compartido | {count} enlaces compartidos"
       }
     },
     "developer": {
-      "apiUsageTitle": "Consumo API",
-      "apiUsageRemaining": "Peticiones restantes: {used} / {limit}",
+      "apiUsageTitle": "Uso de la API",
+      "apiUsageRemaining": "Solicitudes utilizadas: {used} / {limit}",
       "quotaResets": "Se reinicia el {date}",
       "quotaTier": "Plan {tier}",
-      "burstLimit": "Aparte, cada clave está limitada a {max} solicitudes por minuto.",
+      "burstLimit": "Cada clave de API tiene además un límite de {max} solicitudes por minuto.",
       "usageLimitMessage": {
         "prefix": "Si necesitas aumentar tu límite de uso de la API, contáctanos en"
       },
-      "apiKeyManagement": "Gestión de llaves API",
-      "addApiKey": "Añadir llave API",
-      "keyCreated": "Llave creada",
-      "keyCreatedMessage": "Guarda la llave, no se volverá a mostrar.",
-      "copyApiKey": "Copiar llave API",
+      "apiKeyManagement": "Claves de API",
+      "addApiKey": "Crear clave de API",
+      "keyCreated": "Clave de API creada",
+      "keyCreatedMessage": "Esta clave solo se muestra una vez. Cópiala y guárdala en un lugar seguro.",
+      "copyApiKey": "Copiar clave de API",
       "copied": "¡Copiado!",
-      "keyDeactivated": "Llave desactivada",
-      "noKeysFound": "No se han encontrado llaves API",
-      "noKeysMessage": "¡Crea una nueva para tus aplicaciones o proyectos!",
+      "keyDeactivated": "Clave de API desactivada",
+      "noKeysFound": "Todavía no hay claves de API",
+      "noKeysMessage": "Crea una clave para usar la API desde tus aplicaciones o proyectos.",
       "tableHeaders": {
         "name": "Nombre",
         "key": "Clave",
@@ -614,12 +628,12 @@
       "statusActive": "Activa",
       "statusInactive": "Inactiva",
       "options": "Opciones",
-      "rename": "Renombrar",
+      "rename": "Cambiar nombre",
       "deactivate": "Desactivar",
       "createApiKeyModal": {
-        "title": "Crear llave API",
+        "title": "Crear clave de API",
         "nameLabel": "Nombre",
-        "namePlaceholder": "Introduce un nombre para esta llave API",
+        "namePlaceholder": "Escribe un nombre para esta clave",
         "scopesLabel": "Permisos",
         "scopesRequired": "Selecciona al menos un permiso.",
         "presets": {
@@ -636,37 +650,37 @@
         "create": "Crear"
       },
       "renameApiKeyModal": {
-        "title": "Renombrar llave API",
+        "title": "Cambiar el nombre de la clave",
         "nameLabel": "Nombre",
-        "namePlaceholder": "Introduce un nuevo nombre para esta llave API",
+        "namePlaceholder": "Escribe el nuevo nombre de la clave",
         "save": "Guardar"
       },
       "loadError": "No se pudieron cargar tus claves de API.",
       "createKeyError": "No se pudo crear la clave de API.",
-      "renameKeyError": "No se pudo renombrar la clave de API.",
+      "renameKeyError": "No se pudo cambiar el nombre de la clave de API.",
       "deactivateKeyError": "No se pudo desactivar la clave de API."
     },
     "account": {
-      "infoTitle": "Información",
-      "usernameLabel": "Usuario",
-      "emailLabel": "Correo",
+      "infoTitle": "Información de la cuenta",
+      "usernameLabel": "Nombre de usuario",
+      "emailLabel": "Correo electrónico",
       "notAvailable": "No disponible",
       "logout": "Cerrar sesión",
-      "loggingOut": "Cerrando sesión...",
-      "additionalTitle": "Adicional",
+      "loggingOut": "Cerrando sesión…",
+      "additionalTitle": "Datos y cuenta",
       "preferencesTitle": "Preferencias",
-      "mediaNameLanguage": "Idioma del nombre del contenido",
-      "mediaNameLanguageDescription": "Los nombres del contenido se mostrarán en {language} cuando sea posible. Ejemplo:",
+      "mediaNameLanguage": "Idioma de los títulos",
+      "mediaNameLanguageDescription": "Los títulos se mostrarán en el idioma seleccionado cuando estén disponibles ({language}). Ejemplo:",
       "mediaNameLanguageOptions": {
         "ENGLISH": "Inglés",
         "JAPANESE": "Japonés",
         "ROMAJI": "Romaji"
       },
-      "translationLanguages": "Idiomas del diccionario",
-      "translationLanguagesDescription": "Elige los idiomas de traducción que quieres en el contenido del diccionario. Cuando eliges ambos, también define el orden en pantalla.",
-      "translationLanguagesLinkedDescription": "Las definiciones del diccionario ahora siguen tu configuración de Shirabe. Esto sigue definiendo las traducciones de las frases que ves, y su orden.",
+      "translationLanguages": "Idiomas de las traducciones",
+      "translationLanguagesDescription": "Elige los idiomas de las traducciones de los subtítulos y de las definiciones del diccionario. Si eliges ambos, también puedes indicar el orden.",
+      "translationLanguagesLinkedDescription": "Elige los idiomas y el orden de las traducciones de los subtítulos. Las definiciones del diccionario siguen tus ajustes de Shirabe.",
       "definitionSize": "Tamaño del texto de las definiciones",
-      "definitionSizeDescription": "Qué tamaño usa la ventana de palabras para las definiciones.",
+      "definitionSizeDescription": "Cambia el tamaño del texto de las definiciones en la ventana de cada palabra.",
       "definitionSizeOptions": {
         "SMALL": "Pequeño",
         "MEDIUM": "Mediano",
@@ -678,82 +692,82 @@
         "EN_ES": "Inglés, luego español",
         "ES_EN": "Español, luego inglés"
       },
-      "defaultSearchCategory": "Categoría de búsqueda por defecto",
-      "defaultSearchCategoryDescription": "Las búsquedas se abren en esta categoría. Un enlace que indique una categoría sigue teniendo prioridad.",
+      "defaultSearchCategory": "Categoría inicial de búsqueda",
+      "defaultSearchCategoryDescription": "Elige la categoría que se abre al buscar. Si el enlace especifica una categoría, se usará esa.",
       "motion": "Animaciones",
       "motionOptions": {
-        "system": "Seguir mi dispositivo",
+        "system": "Usar los ajustes del dispositivo",
         "reduced": "Reducidas",
         "none": "Ninguna"
       },
       "motionHint_system": "Sigue la configuración de accesibilidad de tu dispositivo para reducir el movimiento.",
       "motionHint_reduced": "Mantiene los cambios de color y las transiciones suaves, y quita todo lo que se desplaza o cambia de tamaño.",
-      "motionHint_none": "No se anima nada. Elige esta opción si la interfaz sigue yendo lenta.",
+      "motionHint_none": "Desactiva todas las animaciones. Elige esta opción si la interfaz sigue funcionando con lentitud.",
       "mediaCard": "Ficha del título",
       "mediaCardOptions": {
         "OPEN": "Abierta al entrar",
         "CLOSED": "Cerrada al entrar"
       },
-      "mediaCardHint_OPEN": "La ficha sobre las frases de un título empieza abierta y muestra los nombres alternativos, el estudio, la temporada, los géneros y los enlaces al catálogo. Puedes cerrarla desde la propia ficha.",
-      "mediaCardHint_CLOSED": "La ficha empieza como una sola línea: miniatura, título y totales. Pulsa la fila para abrir los detalles cuando los necesites.",
+      "mediaCardHint_OPEN": "Muestra los detalles al abrir la página de un título: nombres alternativos, estudio, temporada, géneros y enlaces externos. Puedes plegarlos desde la propia ficha.",
+      "mediaCardHint_CLOSED": "Muestra solo la miniatura, el título y los recuentos. Pulsa la fila para ver los detalles.",
       "defaultSearchCategoryHiddenOption": "{category} (oculta)",
-      "defaultSearchCategoryHiddenNotice": "{category} está oculta en Ocultar categorías, así que las búsquedas se abren en Todo hasta que vuelvas a mostrarla.",
-      "dictionaryLinks": "Integraciones de diccionario",
-      "dictionaryLinksDescription": "Elige qué diccionarios aparecen como enlaces rápidos en el popup de tokens.",
-      "deleteAccount": "Eliminar cuenta (Acción irreversible)",
+      "defaultSearchCategoryHiddenNotice": "Has ocultado {category}. Las búsquedas se abrirán en «Todo» hasta que vuelvas a activar esa categoría.",
+      "dictionaryLinks": "Enlaces a diccionarios",
+      "dictionaryLinksDescription": "Elige qué enlaces a diccionarios aparecen al seleccionar una palabra.",
+      "deleteAccount": "Eliminar cuenta (irreversible)",
       "deleteAccountButton": "Eliminar cuenta",
-      "deletingAccount": "Eliminando...",
+      "deletingAccount": "Eliminando…",
       "confirmDeleteAccount": "Esta acción elimina tu cuenta de forma permanente. ¿Continuar?",
       "deleteAccountError": "No se pudo eliminar la cuenta. Puede que necesites iniciar sesión otra vez e intentarlo de nuevo.",
       "accountDeleted": "Cuenta eliminada",
       "exportData": "Exportar datos",
       "exportDataDescription": "Descarga todos tus datos en un archivo JSON.",
-      "exportingData": "Exportando...",
-      "questionableContent": "Contenido Sensible",
-      "questionableContentDesc": "Contenido cuestionable o explícito",
+      "exportingData": "Exportando…",
+      "questionableContent": "Contenido sensible",
+      "questionableContentDesc": "Elige cómo se muestran los resultados con imágenes de contenido sexual.",
       "contentRatingShow": "Mostrar",
       "contentRatingBlur": "Difuminar (predeterminado)",
       "contentRatingHide": "Ocultar",
       "contentRatingHint_show": "Los resultados se incluirán en la búsqueda sin difuminar",
       "contentRatingHint_blur": "Los resultados se incluirán en la búsqueda pero difuminados",
       "contentRatingHint_hide": "Los resultados no se incluirán en la búsqueda",
-      "contentRatingPreview": "Vista previa de cómo aparecerán los resultados marcados en la búsqueda",
-      "contentRatingPreviewAlt": "Imagen de vista previa para la muestra de clasificación de contenido",
+      "contentRatingPreview": "Vista previa en los resultados de búsqueda",
+      "contentRatingPreviewAlt": "Ejemplo de visualización de contenido sensible",
       "contentRatingHiddenDesc": "Oculto. No se incluirá en los resultados de búsqueda",
       "preferenceSaved": "Preferencia guardada",
       "preferenceError": "Error al guardar la preferencia",
       "changeEmail": "Cambiar",
       "changeEmailPlaceholder": "Nueva dirección de correo",
-      "changeEmailSend": "Enviar verificación",
-      "changeEmailSending": "Enviando...",
+      "changeEmailSend": "Enviar correo de verificación",
+      "changeEmailSending": "Enviando…",
       "changeEmailCancel": "Cancelar",
       "changeEmailSuccess": "Se ha enviado un correo de verificación a tu dirección actual. Revisa tu bandeja de entrada.",
       "productEmailsOnToast": "Recibirás correos sobre Nadeshiko",
       "productEmailsOffToast": "No recibirás correos sobre Nadeshiko",
       "changeEmailFailed": "No se pudo solicitar el cambio de correo.",
       "sessions": {
-        "title": "Sesiones",
+        "title": "Sesiones activas",
         "refresh": "Actualizar",
         "logoutOtherDevices": "Cerrar sesión en otros dispositivos",
         "logoutAllSessions": "Cerrar todas las sesiones",
-        "loading": "Cargando sesiones...",
-        "current": "Actual",
-        "revoke": "Revocar",
+        "loading": "Cargando sesiones…",
+        "current": "Esta sesión",
+        "revoke": "Cerrar sesión",
         "empty": "No se encontraron sesiones activas.",
-        "confirmRevokeAll": "Esto revocará todas tus sesiones, incluida esta. ¿Continuar?",
+        "confirmRevokeAll": "¿Cerrar todas las sesiones, incluida esta?",
         "table": {
-          "userAgent": "Agente de usuario",
-          "created": "Creada",
-          "expires": "Expira"
+          "userAgent": "Dispositivo y navegador",
+          "created": "Inicio",
+          "expires": "Caducidad"
         },
         "errors": {
-          "revokeSingle": "No se pudo revocar esta sesión. Inicia sesión otra vez e inténtalo de nuevo.",
-          "revokeOthers": "No se pudieron revocar las otras sesiones. Inicia sesión otra vez e inténtalo de nuevo.",
-          "revokeAll": "No se pudieron revocar todas las sesiones. Inicia sesión otra vez e inténtalo de nuevo."
+          "revokeSingle": "No se pudo cerrar esta sesión. Vuelve a iniciar sesión e inténtalo de nuevo.",
+          "revokeOthers": "No se pudieron cerrar las otras sesiones. Vuelve a iniciar sesión e inténtalo de nuevo.",
+          "revokeAll": "No se pudieron cerrar todas las sesiones. Vuelve a iniciar sesión e inténtalo de nuevo."
         }
       },
-      "hiddenCategories": "Ocultar categorías",
-      "hiddenCategoriesDescription": "Desactiva una categoría para quitarla por completo de la búsqueda. Sus medios dejan de aparecer en los resultados, en las pestañas de categoría y en los recuentos.",
+      "hiddenCategories": "Categorías incluidas en la búsqueda",
+      "hiddenCategoriesDescription": "Desactiva una categoría para excluirla de la búsqueda. Su pestaña dejará de mostrarse y sus títulos no aparecerán en los resultados ni en los recuentos.",
       "hiddenCategoriesLastVisible": "Al menos una categoría debe permanecer visible.",
       "hiddenCategoryShown": "Visible",
       "hiddenCategoryHidden": "Oculta",
@@ -762,19 +776,19 @@
         "liveaction": "Dramas japoneses, series y películas de imagen real.",
         "youtube": "Vídeos de YouTube."
       },
-      "hiddenMedia": "Medios ocultos",
+      "hiddenMedia": "Títulos ocultos",
       "hiddenMediaCount": "{count} ocultos",
       "mediaHiddenToast": "{name} oculto en los resultados",
       "mediaUnhiddenToast": "{name} vuelve a los resultados",
       "mediaFavoritedToast": "{name} marcado como favorito",
       "mediaUnfavoritedToast": "{name} ya no es favorito",
-      "categoryHiddenToast": "{name} oculto en los resultados",
-      "categoryShownToast": "{name} vuelve a los resultados",
+      "categoryHiddenToast": "Categoría oculta: {name}",
+      "categoryShownToast": "Categoría visible: {name}",
       "hiddenMediaTable": {
-        "media": "Contenido",
-        "otherNames": "Otros nombres"
+        "media": "Título",
+        "otherNames": "Títulos alternativos"
       },
-      "favoriteMedia": "Medios favoritos",
+      "favoriteMedia": "Títulos favoritos",
       "favoriteMediaCount": "{count}/{max} favoritos",
       "sessionDetails": {
         "unknownDevice": "Dispositivo desconocido",
@@ -786,37 +800,37 @@
       },
       "exportError": "No se pudieron exportar tus datos. Inténtalo de nuevo.",
       "mediaLookup": "Buscar un título",
-      "mediaLookupPlaceholder": "Busca un título...",
-      "mediaLookupNoResults": "No se encontraron medios para esta búsqueda.",
-      "manageMedia": "Gestionar contenido",
-      "manageMediaDescription": "Marca un título como favorito para que aparezca primero en el filtro de contenido al buscar, u ocúltalo para que no aparezca en los resultados. Busca en el catálogo para encontrar un título, o usa la lista de abajo para cambiar uno que ya hayas marcado.",
+      "mediaLookupPlaceholder": "Busca un título…",
+      "mediaLookupNoResults": "No se encontraron títulos para esta búsqueda.",
+      "manageMedia": "Gestionar títulos",
+      "manageMediaDescription": "Añade un título a favoritos para que aparezca primero en el filtro de títulos, u ocúltalo para excluirlo de las búsquedas. Usa el buscador para añadir títulos o cambia los ajustes de los que aparecen en la lista.",
       "manageMediaEmpty": "Todavía no has marcado ningún título como favorito ni oculto. Busca arriba para encontrar uno.",
       "manageMediaTableActions": "Acciones",
-      "mediaFallback": "Medio #{id}"
+      "mediaFallback": "Título #{id}"
     },
     "collections": {
       "title": "Colecciones",
-      "count": "{count} colecciones",
+      "count": "Colecciones: {count}",
       "removeFromCollection": "Eliminar de la colección",
-      "confirmRemove": "¿Eliminar?",
+      "confirmRemove": "¿Quitar esta frase de la colección?",
       "yes": "Sí",
       "no": "No",
-      "rename": "Renombrar",
+      "rename": "Cambiar nombre",
       "delete": "Eliminar",
-      "renameTitle": "Renombrar colección",
+      "renameTitle": "Cambiar el nombre de la colección",
       "renameConfirm": "Guardar",
       "renameCancel": "Cancelar",
-      "renamed": "Colección renombrada",
-      "renameError": "Error al renombrar la colección",
+      "renamed": "Nombre de la colección actualizado",
+      "renameError": "No se pudo cambiar el nombre de la colección",
       "deleteTitle": "Eliminar colección",
-      "deleteMessage": "¿Estás seguro de que quieres eliminar \"{name}\"? Esta acción no se puede deshacer.",
+      "deleteMessage": "¿Eliminar la colección «{name}»? Esta acción no se puede deshacer.",
       "deleteConfirm": "Eliminar",
       "deleteCancel": "Cancelar",
       "deleted": "Colección eliminada",
       "deleteError": "Error al eliminar la colección",
       "table": {
         "name": "Nombre",
-        "segments": "Oraciones",
+        "segments": "Frases",
         "visibility": "Visibilidad",
         "created": "Creada",
         "updated": "Actualizada"
@@ -829,8 +843,8 @@
       "makePublic": "Hacer pública",
       "makePrivate": "Hacer privada",
       "visibilityTitle": "Cambiar visibilidad",
-      "makePublicMessage": "¿Hacer \"{name}\" pública? Cualquier persona podrá ver esta colección.",
-      "makePrivateMessage": "¿Hacer \"{name}\" privada? Solo tú podrás ver esta colección.",
+      "makePublicMessage": "¿Hacer pública la colección «{name}»? Cualquier persona podrá verla.",
+      "makePrivateMessage": "¿Hacer privada la colección «{name}»? Solo tú podrás verla.",
       "visibilityConfirm": "Confirmar",
       "visibilityChanged": "Visibilidad actualizada",
       "visibilityError": "Error al actualizar la visibilidad",
@@ -844,46 +858,46 @@
       "loadError": "No se pudieron cargar tus colecciones."
     },
     "anki": {
-      "syncStatus": "Estado Sincronización",
-      "loading": "Cargando...",
-      "loadingMessage": "Por favor, espere mientras se establece la conexión",
+      "syncStatus": "Estado de la conexión",
+      "loading": "Cargando…",
+      "loadingMessage": "Conectando con Anki. Espera un momento.",
       "connectionSuccess": "Conexión establecida",
-      "successMessage": "La conexión con Anki se ha establecido de forma correcta",
-      "fieldLoadError": "Error al cargar nombres de campos del modelo:",
+      "successMessage": "Ya puedes exportar a Anki.",
+      "fieldLoadError": "No se pudieron cargar los campos del tipo de nota:",
       "troubleshootingTips": {
-        "ankiRunning": "Verifique que la aplicación de Anki este abierta y el addon Ankiconnect instalado",
-        "webCors": "Verifique que 'https://nadeshiko.co' este en el webCorsOriginList de las configuraciones de AnkiConnect",
-        "adBlock": "Deshabilite cualquier Adblock que tenga instalado en su navegador para este dominio"
+        "ankiRunning": "Comprueba que Anki esté abierto y tenga instalado el complemento AnkiConnect.",
+        "webCors": "Comprueba que 'https://nadeshiko.co' esté incluido en webCorsOriginList en los ajustes de AnkiConnect.",
+        "adBlock": "Desactiva el bloqueador de anuncios para este sitio."
       },
-      "ankiConfig": "Configuración Anki",
+      "ankiConfig": "Configuración de Anki",
       "deckLabel": "Mazo",
-      "selectDeck": "Selecciona un deck",
-      "modelLabel": "Modelo",
-      "selectModel": "Selecciona un modelo",
+      "selectDeck": "Selecciona un mazo",
+      "modelLabel": "Tipo de nota",
+      "selectModel": "Selecciona un tipo de nota",
       "keyFieldLabel": "Campo clave",
-      "selectKeyField": "Selecciona el campo que corresponde al ID de tu mazo",
-      "keyFieldRequiredTitle": "Sin campo clave",
-      "keyFieldRequiredMessage": "Añadir a la última tarjeta creada funciona sin él. Elige un campo clave para minar palabras desde una tarjeta de palabra y para elegir una nota buscando en tu colección.",
+      "selectKeyField": "Selecciona el campo para buscar las notas",
+      "keyFieldRequiredTitle": "No has seleccionado un campo clave",
+      "keyFieldRequiredMessage": "Selecciona un campo clave para exportar desde la ventana de una palabra o buscar una nota de Anki a la que exportar. No es necesario para exportar a la última tarjeta añadida.",
       "fieldColumn": "Campo",
       "contentColumn": "Contenido",
-      "fieldComposeHelp": "Cada marcador que eliges se añade al campo en lugar de reemplazar lo que ya hay, así que un campo puede contener varios: dos diccionarios uno debajo del otro, por ejemplo. Edita la caja directamente para cambiar cómo se unen.",
+      "fieldComposeHelp": "Los marcadores que elijas se añaden al final del campo. Puedes combinar varios, como las definiciones de dos diccionarios. Edita el texto del campo para cambiar su orden o separación.",
       "sentenceGroup": "Frase",
       "sentenceImage": "Imagen de la frase",
       "sentenceAudio": "Audio de la frase",
       "selectedWordGroup": "Palabra seleccionada",
       "cardStylingTitle": "Estilo de la tarjeta",
-      "cardStylingHelp": "Los campos de la palabra ya incluyen sus propios estilos, así que se ven como aquí en cuanto llegan: no hay nada que configurar. Esto es solo si quieres otro aspecto: pégalo en la sección Estilo de tu tipo de nota en Anki (Tarjetas… → Estilo) y edítalo libremente.",
+      "cardStylingHelp": "Los campos de la palabra incluyen sus estilos y mantienen el aspecto que ves aquí al exportarlos. Para personalizarlos, copia el CSS de abajo en la sección «Estilo» del tipo de nota en Anki («Tarjetas…» → «Estilo»).",
       "noFieldsFound": "No se han encontrado campos",
-      "noFieldsMessage": "Por favor, intenta de nuevo o verifica tu conexión con AnkiConnect",
+      "noFieldsMessage": "Inténtalo de nuevo o comprueba la conexión con AnkiConnect.",
       "serverAddressLabel": "Dirección del servidor de AnkiConnect",
-      "openBrowserOnExport": "Abrir el navegador de Anki al exportar una carta",
-      "profile": "Perfil",
+      "openBrowserOnExport": "Abrir el explorador de Anki al exportar",
+      "profile": "Perfil de exportación",
       "newProfile": "Nuevo",
       "defaultProfile": "Predeterminado",
-      "renameProfile": "Renombrar",
+      "renameProfile": "Cambiar nombre",
       "profileNamePlaceholder": "Nombre del perfil",
       "deleteProfile": "Eliminar",
-      "saving": "Guardando...",
+      "saving": "Guardando…",
       "saved": "Guardado",
       "modal": {
         "cancel": "Cancelar",
@@ -892,27 +906,27 @@
       "profileSaveError": "No se pudo guardar tu perfil de Anki.",
       "dictionarySubmenu": "Definición (un diccionario)…",
       "dictionaryBack": "Volver",
-      "dictionaryGroup": "TUS DICCIONARIOS",
+      "dictionaryGroup": "Tus diccionarios",
       "connectFailure": {
         "unreachable": {
           "title": "Anki no ha respondido",
-          "body": "Nadeshiko no ha podido conectar con AnkiConnect. Casi siempre se debe a uno de estos tres motivos."
+          "body": "No se pudo conectar con AnkiConnect. Comprueba los siguientes puntos."
         },
         "blocked_by_csp": {
-          "title": "La dirección del servidor de Anki no está permitida",
-          "body": "La política de seguridad de Nadeshiko solo permite AnkiConnect en este mismo ordenador, así que la dirección de abajo se rechazó antes de llegar a la red. No se puede conectar con Anki en otro equipo o en el móvil. Restablece la dirección a http://127.0.0.1:8765 y abre Anki en este ordenador."
+          "title": "No se permite esta dirección de AnkiConnect",
+          "body": "Nadeshiko solo puede conectarse a AnkiConnect en este mismo equipo. No puede acceder a Anki en otro ordenador o en un móvil. Usa http://127.0.0.1:8765 como dirección del servidor y abre Anki en este equipo."
         },
         "permission_denied": {
-          "title": "Anki está abierto y te está esperando",
-          "body": "AnkiConnect ha respondido y ha preguntado si este sitio puede conectarse. Ve a la ventana de Anki, pulsa Sí en ese diálogo y vuelve a intentarlo."
+          "title": "Autoriza la conexión en Anki",
+          "body": "AnkiConnect está esperando tu autorización. Ve a la ventana de Anki, pulsa «Sí» en el diálogo y vuelve a intentarlo."
         },
         "connect_error": {
           "title": "AnkiConnect ha rechazado la petición",
           "body": "Anki está abierto pero AnkiConnect ha rechazado la petición. Verifica que 'https://nadeshiko.co' esté en su ajuste webCorsOriginList y reinicia Anki."
         },
         "http_error": {
-          "title": "Ha respondido algo, pero no era AnkiConnect",
-          "body": "La dirección del servidor ha respondido con un error. Verifica que la dirección de AnkiConnect de abajo sea la que Anki está escuchando."
+          "title": "El servidor ha devuelto un error",
+          "body": "No se recibió una respuesta válida de AnkiConnect. Comprueba que la dirección del servidor coincida con la que usa AnkiConnect."
         },
         "no_decks": {
           "title": "Conectado, pero no hay mazos",
@@ -921,18 +935,18 @@
       }
     },
     "emails": {
-      "title": "Correos",
+      "title": "Preferencias de correo",
       "allTitle": "Todos los correos sobre Nadeshiko",
       "recapTitle": "Resumen mensual",
       "recapDescription": "Un resumen mensual de lo que has estudiado con Nadeshiko.",
-      "checkinsTitle": "Mensajes puntuales",
-      "checkinsDescription": "Preguntas sobre qué tal te funciona Nadeshiko.",
+      "checkinsTitle": "Consultas sobre tu experiencia",
+      "checkinsDescription": "De vez en cuando te preguntaremos qué tal te va con Nadeshiko.",
       "updatesTitle": "Novedades y versiones",
       "updatesDescription": "Últimas novedades y cambios en Nadeshiko.",
       "preferenceError": "No se pudo guardar esa preferencia. Inténtalo de nuevo.",
-      "allDescription": "Los enlaces de inicio de sesión y los correos de cuenta se envían siempre, elijas lo que elijas aquí.",
-      "turnedOn": "{name}: activado",
-      "turnedOff": "{name}: desactivado"
+      "allDescription": "Los correos de acceso y los relacionados con tu cuenta se envían independientemente de estas preferencias.",
+      "turnedOn": "Recibirás: {name}",
+      "turnedOff": "No recibirás: {name}"
     }
   },
   "blog": {
@@ -960,92 +974,92 @@
     "contentRatingShow": "Mostrar",
     "contentRatingHide": "Ocultar",
     "status": {
-      "ACTIVE": "Activo",
-      "VERIFIED": "Verificado",
-      "SUSPENDED": "Suspendido",
-      "DELETED": "Eliminado",
-      "INVALID": "Inválido",
-      "TOO_LONG": "Muy largo",
-      "HIDDEN": "Oculto"
+      "ACTIVE": "Activa",
+      "VERIFIED": "Verificada",
+      "SUSPENDED": "Suspendida",
+      "DELETED": "Eliminada",
+      "INVALID": "No válida",
+      "TOO_LONG": "Demasiado larga",
+      "HIDDEN": "Oculta"
     },
     "contentRating": {
-      "SAFE": "Seguro",
-      "SUGGESTIVE": "Sugestivo",
-      "QUESTIONABLE": "Cuestionable",
-      "EXPLICIT": "Explícito"
+      "SAFE": "Sin contenido sexual",
+      "SUGGESTIVE": "Contenido sexual leve",
+      "QUESTIONABLE": "Contenido sexual marcado",
+      "EXPLICIT": "Contenido sexual explícito"
     },
     "nsfwTag": "NSFW",
     "contentRatingDescription": {
-      "SENSITIVE": "Contenido Sensible (Cuestionable)"
+      "SENSITIVE": "Contenido sensible (incluye contenido sexual)"
     },
-    "revert": "Revertir",
-    "expandNoPrevious": "No hay ninguna frase anterior en este episodio.",
-    "expandNoNext": "No hay ninguna frase posterior en este episodio.",
-    "expandFailed": "No se pudo expandir esta frase. Inténtalo de nuevo.",
-    "expandAudioFailed": "Se expandió el texto, pero no se pudo generar el audio: la reproducción y la exportación a Anki usarán el audio original.",
-    "expandAudioFailedStreamed": "Se expandió el texto, pero no se pudo generar el audio: la exportación a Anki usará el audio original.",
-    "expanding": "Expandiendo…",
+    "revert": "Volver al subtítulo original",
+    "expandNoPrevious": "No hay subtítulos anteriores en este episodio.",
+    "expandNoNext": "No hay subtítulos posteriores en este episodio.",
+    "expandFailed": "No se pudieron unir los subtítulos. Inténtalo de nuevo.",
+    "expandAudioFailed": "Se añadieron los subtítulos, pero no se pudo generar el audio. La reproducción y la exportación a Anki usarán el audio original.",
+    "expandAudioFailedStreamed": "Se añadieron los subtítulos, pero no se pudo generar el audio. La exportación a Anki usará el audio original.",
+    "expanding": "Uniendo subtítulos…",
     "playAudio": "Reproducir audio",
     "loading": "Cargando",
-    "noResultsSupport": "¿Buscas algo que todavía no tenemos? Propón lo próximo que añadimos en nuestro {link}"
+    "noResultsSupport": "¿Buscas un título que aún no tenemos? Puedes proponerlo en {link}."
   },
   "tokenTooltip": {
     "lookupIn": "Buscar en",
     "loading": "Buscando…",
-    "moreSentences": "Más frases",
+    "moreSentences": "Buscar ejemplos de esta palabra",
     "playAudio": "Reproducir pronunciación",
-    "unavailable": "No se pudieron cargar las definiciones. Inténtalo en un momento.",
+    "unavailable": "No se pudieron cargar las definiciones. Espera un momento e inténtalo de nuevo.",
     "noEntry": "No hay ninguna entrada de diccionario para esta palabra.",
     "definitionsHidden": "Definiciones ocultas",
     "showDefinitions": "Mostrar",
     "openInAnki": "Abrir la nota en Anki",
-    "mineContextOnly": "Añadir esta frase, audio e imagen, conservando tus definiciones",
-    "minedActions": "En tu colección",
+    "mineContextOnly": "Actualizar frase, audio e imagen (conservar definiciones)",
+    "minedActions": "Ya está en Anki",
     "alsoWritten": "también se escribe",
-    "mineToNote": "Reemplazar todo, incluidas las definiciones",
-    "mineToLastCard": "Añadir esta frase, audio e imagen a la última tarjeta añadida en Anki",
+    "mineToNote": "Reemplazar la nota, incluidas las definiciones",
+    "mineToLastCard": "Exportar frase, audio e imagen a la última tarjeta añadida en Anki",
     "otherMatches": "{count} más",
     "showLess": "Ver menos",
     "isName": "Esto parece ser un nombre propio.",
-    "parts": "Partes",
-    "nameEntry": "Nombre",
+    "parts": "Componentes",
+    "nameEntry": "Nombre propio",
     "back": "Atrás",
     "forward": "Adelante",
-    "pickDictionary": "Poner {dictionary} en la tarjeta",
-    "pickedDictionaries": "Seleccionados {count} de {total} diccionarios",
+    "pickDictionary": "Incluir las definiciones de {dictionary} en la tarjeta",
+    "pickedDictionaries": "Diccionarios seleccionados: {count} de {total}",
     "pickSelectAll": "Seleccionar todo",
-    "pickDeselectAll": "Deseleccionar todo"
+    "pickDeselectAll": "Quitar la selección"
   },
   "searchContainer": {
     "errorTitle": "Algo salió mal",
     "errorMessage1": "Se produjo un error",
     "errorMessage2": "Reintenta la búsqueda con el botón de abajo.",
-    "retryButton": "Reintentar conexión",
-    "retrying": "Reintentando...",
-    "endOfResults": "¡Has llegado al final!",
-    "loadMore": "Cargar más oraciones",
+    "retryButton": "Volver a cargar",
+    "retrying": "Reintentando…",
+    "endOfResults": "No hay más resultados",
+    "loadMore": "Cargar más frases",
     "categoryAll": "Todo",
     "selectedMediaFallback": "Título seleccionado",
     "categoryAnime": "Anime",
-    "categoryLiveaction": "Live Action",
+    "categoryLiveaction": "Acción real",
     "categoryYoutube": "YouTube",
     "collectionTabPrefix": "Colección",
-    "backToCollections": "Colecciones",
-    "hiddenMediaNotice": "Este contenido está en tu lista de ocultos",
-    "hiddenMediaDescription": "Has ocultado este contenido de los resultados de búsqueda. Aún puedes verlo temporalmente.",
+    "backToCollections": "Volver a las colecciones",
+    "hiddenMediaNotice": "Este título está en tu lista de ocultos",
+    "hiddenMediaDescription": "Has excluido este título de las búsquedas. Puedes verlo temporalmente sin cambiar tus ajustes.",
     "hiddenMediaShowAnyway": "Mostrar de todas formas",
     "hiddenResultsMaybe": "Puede que {filters} estén ocultando algunos resultados",
     "hiddenResults": "{count} resultado oculto por {filters} | {count} resultados ocultos por {filters}",
     "hiddenResultsFilters": "tus filtros",
-    "hiddenResultsBreakdownTitle": "Oculto en esta búsqueda",
-    "hiddenResultsBreakdownLoading": "Comprobando...",
-    "hiddenResultsBreakdownEmpty": "Nada de lo que ocultas coincide con esta búsqueda",
-    "hiddenResultsBreakdownError": "No se pudo cargar lo que está oculto",
+    "hiddenResultsBreakdownTitle": "Títulos ocultos en esta búsqueda",
+    "hiddenResultsBreakdownLoading": "Comprobando…",
+    "hiddenResultsBreakdownEmpty": "Ningún título oculto coincide con esta búsqueda",
+    "hiddenResultsBreakdownError": "No se pudo cargar la lista de títulos ocultos",
     "hiddenResultsShow": "Mostrar",
-    "hiddenResultsRevealed": "Mostrando títulos que sueles ocultar",
+    "hiddenResultsRevealed": "Mostrando los títulos ocultos",
     "hiddenResultsRestore": "Volver a ocultar",
     "hiddenResultsManage": "Gestionar",
-    "loading": "Cargando...",
+    "loading": "Cargando…",
     "hiddenMediaImageAlt": "Ilustración de contenido oculto",
     "noResultsImageAlt": "Ilustración de búsqueda sin resultados"
   },
@@ -1053,43 +1067,43 @@
     "title": "Búsquedas recientes",
     "seeAll": "Ver todo",
     "clear": "Borrar",
-    "clearing": "Borrando...",
-    "loading": "Cargando...",
-    "forget": "Olvidar «{query}»",
-    "inOneTitle": "En un título",
+    "clearing": "Borrando…",
+    "loading": "Cargando…",
+    "forget": "Borrar «{query}»",
+    "inOneTitle": "En un título concreto",
     "clearError": "No se pudieron borrar tus búsquedas recientes. Inténtalo de nuevo."
   },
   "reports": {
-    "modalTitle": "Reportar un problema",
-    "targetLabel": "Objetivo",
-    "reason": "Razón",
-    "tabSegment": "Oración",
-    "tabMedia": "Contenido",
+    "modalTitle": "Informar de un problema",
+    "targetLabel": "Contenido afectado",
+    "reason": "Motivo",
+    "tabSegment": "Frase",
+    "tabMedia": "Título",
     "description": "Descripción (opcional)",
-    "descriptionPlaceholder": "Proporciona detalles adicionales sobre el problema...",
+    "descriptionPlaceholder": "Describe el problema…",
     "submit": "Enviar reporte",
-    "submitting": "Enviando...",
+    "submitting": "Enviando…",
     "submitSuccess": "Reporte enviado correctamente",
     "submitError": "Error al enviar el reporte",
     "cancel": "Cancelar",
-    "reportSegment": "Reportar",
+    "reportSegment": "Informar de un problema",
     "loginRequired": "Inicia sesión para usar esta función",
     "noReports": "No se encontraron reportes",
-    "loading": "Cargando...",
+    "loading": "Cargando…",
     "loadMore": "Cargar más",
     "reasons": {
       "WRONG_TRANSLATION": "Traducción incorrecta",
-      "WRONG_TIMING": "Temporización incorrecta",
+      "WRONG_TIMING": "Desfase entre subtítulos y audio",
       "WRONG_AUDIO": "Audio incorrecto",
-      "WRONG_JAPANESE_TEXT": "Texto japonés incorrecto",
+      "WRONG_JAPANESE_TEXT": "Subtítulos japoneses incorrectos",
       "LOW_QUALITY_AUDIO": "Audio de baja calidad",
-      "NSFW_NOT_TAGGED": "Contenido sin clasificar",
-      "DUPLICATE_SEGMENT": "Oración duplicada",
+      "NSFW_NOT_TAGGED": "Contenido sensible sin marcar",
+      "DUPLICATE_SEGMENT": "Frase duplicada",
       "WRONG_TITLE": "Título incorrecto",
       "DUPLICATE_MEDIA": "Contenido duplicado",
       "WRONG_EPISODE_NUMBER": "Número de episodio incorrecto",
-      "IMAGE_ISSUE": "Problema con imagen",
-      "WRONG_METADATA": "Metadatos incorrectos",
+      "IMAGE_ISSUE": "Problema con la imagen",
+      "WRONG_METADATA": "Datos del título incorrectos",
       "MISSING_EPISODES": "Episodios faltantes",
       "WRONG_COVER_IMAGE": "Imagen de portada incorrecta",
       "INAPPROPRIATE_CONTENT": "Contenido inapropiado",
@@ -1103,117 +1117,120 @@
     },
     "table": {
       "type": "Tipo",
-      "target": "Objetivo",
+      "target": "Contenido afectado",
       "status": "Estado"
     },
     "admin": {
-      "title": "Gestión de Reportes",
+      "title": "Gestión de reportes",
       "count": "Cantidad",
       "actions": "Acciones",
       "filters": {
         "all": "Todos",
         "user": "Reportes de usuarios",
         "auto": "Comprobaciones automáticas",
-        "orphaned": "Huérfanos"
+        "orphaned": "Título eliminado"
       },
-      "selectedGroups": "{count} grupo(s) seleccionados",
+      "selectedGroups": "Grupos seleccionados: {count}",
       "dismiss": "Descartar",
       "delete": "Eliminar",
-      "clearSelection": "Limpiar",
-      "dismissingAll": "Descartando todo...",
-      "dismissAllMatching": "Descartar todos los coincidentes",
-      "deletingAll": "Eliminando todo...",
-      "deleteAllMatching": "Eliminar todos los coincidentes",
+      "clearSelection": "Quitar selección",
+      "dismissingAll": "Descartando todo…",
+      "dismissAllMatching": "Descartar todos los resultados",
+      "deletingAll": "Eliminando todo…",
+      "deleteAllMatching": "Eliminar todos los resultados",
       "save": "Guardar",
-      "addNote": "Haz clic para añadir nota...",
+      "addNote": "Haz clic para añadir una nota…",
       "updateSuccess": "Reporte actualizado",
       "updateError": "No se pudo actualizar el reporte",
-      "batchUpdated": "{count} reporte(s) actualizados",
+      "batchUpdated": "Reportes actualizados: {count}",
       "batchUpdateError": "No se pudieron actualizar los reportes",
-      "batchDeleted": "{count} reporte(s) eliminados",
+      "batchDeleted": "Reportes eliminados: {count}",
       "batchDeleteError": "No se pudieron eliminar los reportes",
-      "batchDeletePartialError": "{count} eliminación(es) fallidas",
-      "batchDismissed": "{count} reporte(s) descartados",
+      "batchDeletePartialError": "No se pudieron eliminar {count} reportes",
+      "batchDismissed": "Reportes descartados: {count}",
       "batchDismissError": "No se pudieron descartar los reportes",
       "deleteSuccess": "Reporte eliminado",
       "deleteError": "No se pudo eliminar el reporte",
-      "reported": "Reportado",
-      "updated": "Actualizado",
-      "episode": "EP{number}",
-      "deletedTarget": "eliminado",
-      "reporters": "{count} reportadores",
+      "reported": "Fecha del reporte",
+      "updated": "Última actualización",
+      "episode": "Ep. {number}",
+      "deletedTarget": "Eliminado",
+      "reporters": "Usuarios que lo han reportado: {count}",
       "sources": {
         "USER": "Usuario",
-        "AUTO": "Auto"
+        "AUTO": "Automático"
       },
       "targetTypes": {
-        "SEGMENT": "Oración",
+        "SEGMENT": "Frase",
         "EPISODE": "Episodio",
-        "MEDIA": "Contenido"
+        "MEDIA": "Título"
       },
       "confirm": {
-        "dismissAllTitle": "¿Descartar todos los reportes coincidentes?",
+        "dismissAllTitle": "¿Descartar todos los reportes filtrados?",
         "dismissAllDescription": "Esto descartará todos los reportes que coincidan con los filtros actuales. Esta acción se puede deshacer reabriendo reportes individuales.",
         "dismissAllButton": "Descartar todo",
-        "deleteAllTitle": "¿Eliminar todos los reportes coincidentes?",
+        "deleteAllTitle": "¿Eliminar todos los reportes filtrados?",
         "deleteAllDescription": "Esto eliminará permanentemente todos los reportes que coincidan con los filtros actuales. Esta acción no se puede deshacer.",
         "deleteAllButton": "Eliminar todo",
         "deleteGroupTitle": "¿Eliminar este grupo de reportes?",
-        "deleteGroupDescription": "Esto eliminará permanentemente este reporte y todos los duplicados con el mismo objetivo y motivo."
+        "deleteGroupDescription": "Se eliminarán permanentemente este reporte y sus duplicados sobre el mismo contenido y por el mismo motivo."
       }
     }
   },
   "modalauth": {
+    "signingIn": "Iniciando sesión",
+    "completingSignIn": "Completando el inicio de sesión…",
+    "verifyingEmail": "Verificando tu correo electrónico…",
     "headers": {
-      "auth": "Autenticación"
+      "auth": "Iniciar sesión o crear una cuenta"
     },
     "buttons": {
-      "google": "Iniciar con Google",
-      "discord": "Iniciar con Discord"
+      "google": "Continuar con Google",
+      "discord": "Continuar con Discord"
     },
     "labels": {
-      "successfullogin": "Inicio de sesión exitoso!",
+      "successfullogin": "Sesión iniciada",
       "logout": "Se ha cerrado la sesión.",
-      "banneduser": "Tu cuenta ha sido suspendida. Por favor contacta a soporte.",
+      "banneduser": "Tu cuenta está suspendida. Ponte en contacto con el equipo de soporte.",
       "errorlogin400": "No hemos podido iniciar tu sesión. Inténtalo de nuevo.",
-      "logindenied": "No se aprobó el inicio de sesión. Inténtalo de nuevo o entra con tu correo.",
+      "logindenied": "No se autorizó el inicio de sesión. Inténtalo de nuevo o accede con tu correo electrónico.",
       "closeSrOnly": "Cerrar"
     },
     "magiclink": {
-      "label": "O inicia sesión con tu email",
+      "label": "O accede con tu correo electrónico",
       "placeholder": "Correo electrónico",
-      "send": "Enviar enlace",
-      "sent": "Correo de acceso enviado a {email}.",
-      "sentHint": "Abre el enlace que contiene o escribe aquí el código de ese correo:",
-      "retry": "Intentar con otro correo",
+      "send": "Enviar correo de acceso",
+      "sent": "Hemos enviado un correo de acceso a {email}.",
+      "sentHint": "Abre el enlace del correo o introduce aquí el código que contiene:",
+      "retry": "Usar otro correo electrónico",
       "codeLabel": "Código de acceso del correo",
       "codePlaceholder": "ABC123",
-      "codeSubmit": "Entrar",
+      "codeSubmit": "Iniciar sesión",
       "codeInvalid": "Ese código no es correcto. Revisa el correo o pide uno nuevo.",
       "codeWrongBrowser": "Este código no se ha pedido desde este navegador. Abre el enlace del correo en su lugar.",
-      "resend": "Enviarlo de nuevo",
-      "resendIn": "Puedes pedir otro en {seconds}s",
-      "rateLimited": "Hemos enviado ya todos los correos de acceso que podemos a esta dirección por ahora. Un enlace enviado antes sigue funcionando.",
+      "resend": "Reenviar correo",
+      "resendIn": "Puedes reenviarlo en {seconds} segundos",
+      "rateLimited": "Has alcanzado el límite de correos de acceso para esta dirección. Espera antes de pedir otro. Los enlaces ya enviados siguen siendo válidos.",
       "sending": "Enviando…"
     },
     "benefits": {
       "anki": "Exporta frases a Anki con audio, captura y definiciones",
-      "collections": "Guarda frases en colecciones a las que puedes volver",
-      "sync": "Tu historial y tus preferencias te siguen en cualquier dispositivo"
+      "collections": "Guarda frases en colecciones para repasarlas más tarde",
+      "sync": "Accede a tu historial y tus preferencias desde cualquier dispositivo"
     }
   },
   "shortcuts": {
     "title": "Atajos de teclado",
     "navigation": "Navegación",
     "navigateCards": "Navegar entre resultados",
-    "prevNextSegment": "Oración anterior / siguiente",
+    "prevNextSegment": "Frase anterior / siguiente",
     "backToSearch": "Volver a la barra de búsqueda",
     "playback": "Reproducción",
-    "playSelected": "Reproducir resultado seleccionado",
-    "playPause": "Reproducir / Pausar",
-    "restart": "Reiniciar audio",
+    "playSelected": "Reproducir el audio seleccionado",
+    "playPause": "Reproducir / pausar",
+    "restart": "Reproducir el audio desde el principio",
     "toggleAutoplay": "Alternar reproducción automática",
-    "toggleImmersive": "Alternar modo inmersivo",
+    "toggleImmersive": "Activar o salir de pantalla completa",
     "actions": "Acciones",
     "openAnki": "Añadir a Anki",
     "openContext": "Abrir contexto",
@@ -1221,20 +1238,20 @@
   },
   "seo": {
     "home": {
-      "title": "Nadeshiko: Busca frases en japonés de anime, J-drama y YouTube",
-      "description": "Busca entre más de un millón de frases en japonés de anime, J-drama y YouTube, cada una con audio, captura y traducciones en su contexto. Pensado para el sentence mining."
+      "title": "Nadeshiko: Frases en japonés de anime, series y YouTube",
+      "description": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta el audio, las imágenes y las traducciones al español, y crea tarjetas de estudio en Anki."
     },
     "stats": {
       "title": "Estadísticas",
-      "description": "Consulta qué tan bien Nadeshiko cubre las palabras japonesas más comunes. Estadísticas basadas en la lista de frecuencias de anime Jiten."
+      "description": "Consulta cuántas palabras de la lista de frecuencias de anime de Jiten tienen frases de ejemplo en Nadeshiko."
     },
     "statsWords": {
-      "title": "Cobertura de las {tier} palabras japonesas más comunes",
-      "description": "Consulta cuáles de las {tier} palabras japonesas más comunes están cubiertas en el corpus de oraciones de Nadeshiko."
+      "title": "Ejemplos de palabras japonesas: puestos {tier} por frecuencia",
+      "description": "Consulta qué palabras japonesas en los puestos {tier} de la lista de frecuencias tienen ejemplos en Nadeshiko."
     },
     "media": {
-      "title": "Explorar Contenido",
-      "description": "Explora el anime, los J-dramas y los audiolibros disponibles en Nadeshiko. Busca en sus subtítulos japoneses frase a frase, con audio y traducciones.",
+      "title": "Catálogo",
+      "description": "Explora el anime, las series y los vídeos de YouTube de Nadeshiko. Busca frases en sus subtítulos japoneses y consulta el audio y las traducciones al español.",
       "pageTitle": "{media}: subtítulos japoneses y frases de ejemplo"
     },
     "blog": {
@@ -1243,91 +1260,91 @@
     },
     "search": {
       "title": "Buscar",
-      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al español de una gran variedad de anime y J-dramas.",
+      "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta sus traducciones al español.",
       "atLeast": "Al menos ",
       "categoryAnime": "anime",
-      "categoryJdrama": "live-action",
+      "categoryJdrama": "acción real",
       "fromCategory": "{count} de {category}",
       "breakdownWrapper": " ({parts})",
-      "descriptionWithResults": "{count} oraciones con \"{query}\"{breakdown} con traducciones al español.",
-      "descriptionNoResults": "Busca \"{query}\" en más de 1 millón de oraciones japonesas de anime y J-dramas, con traducciones al español.",
-      "mediaDescription": "{count} oraciones japonesas de {media} con traducciones al español.",
-      "mediaDescriptionEpisode": "{count} oraciones japonesas del episodio {episode} de {media} con traducciones al español.",
-      "mediaDescriptionEpisodes": "{count} oraciones japonesas de {media} en {episodeCount} episodios con traducciones al español.",
-      "wordTitle": "{query}: oraciones de ejemplo en japonés"
+      "descriptionWithResults": "Frases que contienen «{query}»: {count}{breakdown}. Consulta sus traducciones al español.",
+      "descriptionNoResults": "Busca «{query}» entre más de un millón de frases en japonés de anime, series y YouTube, con traducciones al español.",
+      "mediaDescription": "Frases en japonés de «{media}»: {count}. Consulta sus traducciones al español.",
+      "mediaDescriptionEpisode": "Frases en japonés del episodio {episode} de «{media}»: {count}. Consulta sus traducciones al español.",
+      "mediaDescriptionEpisodes": "Frases en japonés de «{media}»: {count}, repartidas en {episodeCount} episodios. Consulta sus traducciones al español.",
+      "wordTitle": "«{query}»: frases de ejemplo en japonés"
     },
     "sentence": {
-      "title": "Oración",
-      "defaultDescription": "Busca más de 1 millón de oraciones en japonés con traducciones al español de una gran variedad de anime y J-dramas.",
+      "title": "Frase",
+      "defaultDescription": "Busca entre más de un millón de frases en japonés de anime, series y YouTube. Consulta sus traducciones al español.",
       "episode": "Episodio {n}",
       "pageTitle": "「{sentence}」 ({media})"
     },
     "collection": {
-      "description": "Explora la colección \"{name}\" en Nadeshiko"
+      "description": "Explora la colección «{name}» en Nadeshiko"
     }
   },
   "statsPage": {
     "title": "Nadeshiko en cifras",
     "intro": {
-      "prefix": "¿Qué tan bien cubre nuestro corpus el idioma japonés? Lo medimos con la lista de frecuencia de anime de",
+      "prefix": "Comprobamos cuántas palabras tienen ejemplos en Nadeshiko usando la lista de frecuencias de anime de",
       "source": "Jiten",
-      "suffix": ", creada a partir de {totalWords} palabras únicas en miles de anime."
+      "suffix": ", elaborada con {totalWords} palabras distintas de miles de títulos de anime."
     },
     "loadError": "No se pudieron cargar las estadísticas. Intenta recargar la página.",
     "summary": {
-      "sentences": "Oraciones",
-      "uniqueWords": "Palabras únicas",
+      "sentences": "Frases",
+      "uniqueWords": "Palabras distintas",
       "totalContent": "Títulos",
       "episodes": "Episodios",
       "dialogueHours": "Horas de diálogo"
     },
     "coverage": {
-      "title": "Cobertura de frecuencia",
+      "title": "Palabras con ejemplos por frecuencia",
       "updated": "Actualizado el {date}",
-      "empty": "Todavía no hay datos de cobertura.",
-      "fullCorpus": "Corpus completo ({count} mil palabras)",
-      "topWordsK": "Top {count} mil palabras",
-      "topWords": "Top {count} palabras",
+      "empty": "Todavía no hay datos sobre las palabras con ejemplos.",
+      "fullCorpus": "Lista completa ({count} mil palabras)",
+      "topWordsK": "{count} mil palabras más frecuentes",
+      "topWords": "Las {count} palabras más frecuentes",
       "updateError": "No se pudo iniciar la actualización de cobertura."
     },
     "translations": {
       "title": "Disponibilidad de traducciones",
-      "description": "Todas las oraciones tienen subtítulos en japonés. Queremos incluir traducciones al inglés y al español para todo el contenido. Algunas fuentes no tienen subtítulos fiables en español, así que la cobertura puede ser menor en ese idioma.",
-      "translated": "{percent} traducido",
-      "official": "Oficial {percent}",
-      "machine": "DeepL {percent}",
-      "none": "Sin traducción {percent}",
+      "description": "Todas las frases tienen subtítulos en japonés. Queremos ofrecer traducciones al español para todo el contenido, aunque algunas fuentes todavía no tienen subtítulos fiables en español.",
+      "translated": "Traducido: {percent}",
+      "official": "Traducción humana: {percent}",
+      "machine": "DeepL: {percent}",
+      "none": "Sin traducción: {percent}",
       "languages": {
         "english": "Inglés",
         "spanish": "Español"
       }
     },
     "admin": {
-      "title": "Admin: actualizar cobertura",
-      "updating": "Actualizando...",
-      "fullRescan": "Reescaneo completo",
-      "missingOnly": "Solo faltantes",
+      "title": "Administración: actualizar la cobertura",
+      "updating": "Actualizando…",
+      "fullRescan": "Revisar todas las palabras",
+      "missingOnly": "Revisar solo las palabras sin ejemplos",
       "wordsChecked": "Palabras revisadas",
-      "newlyCovered": "Nuevas cubiertas",
-      "totalCovered": "Total cubiertas"
+      "newlyCovered": "Palabras con nuevos ejemplos",
+      "totalCovered": "Total de palabras con ejemplos"
     }
   },
   "statsWordsPage": {
-    "back": "Volver a Estadísticas",
-    "title": "Cobertura de palabras",
+    "back": "Volver a las estadísticas",
+    "title": "Palabras con frases de ejemplo",
     "description": {
-      "prefix": "Explora palabras de la lista de frecuencia de anime de",
+      "prefix": "Consulta las palabras de la lista de frecuencias de anime de",
       "source": "Jiten",
-      "suffix": "y su cobertura dentro del corpus de Nadeshiko."
+      "suffix": "y comprueba cuáles tienen ejemplos en Nadeshiko."
     },
     "filters": {
       "all": "Todas ({count})",
-      "covered": "Cubiertas ({count})",
-      "missing": "Faltantes ({count})"
+      "covered": "Con ejemplos ({count})",
+      "missing": "Sin ejemplos ({count})"
     },
-    "missingLabel": "faltante",
+    "missingLabel": "Sin ejemplos",
     "empty": "Ninguna palabra coincide con el filtro actual.",
-    "loading": "Cargando...",
+    "loading": "Cargando…",
     "footer": {
       "prefix": "Datos de frecuencia del corpus de anime de",
       "source": "Jiten",
@@ -1336,54 +1353,171 @@
     "loadError": "No se pudo cargar la lista de palabras."
   },
   "agentActivity": {
-    "title": "Actividad del agente",
-    "description": "Ediciones hechas por el agente de moderación, leídas de las revisiones que escribió. Revisa algunas al azar y restaura lo que no cuadre.",
-    "empty": "Sin actividad del agente en este periodo",
-    "episode": "EP{number}",
-    "noReport": "sin reporte",
+    "title": "Ediciones del agente",
+    "description": "Consulta los cambios guardados por el agente de moderación. Revisa las ediciones y restaura la versión anterior si encuentras algún problema.",
+    "empty": "No hay ediciones del agente en este periodo",
+    "episode": "Ep. {number}",
+    "noReport": "Sin reporte",
     "restore": "Restaurar",
-    "restoring": "Restaurando...",
-    "restoreSuccess": "Oración restaurada",
-    "restoreError": "No se pudo restaurar la oración",
+    "restoring": "Restaurando…",
+    "restoreSuccess": "Frase restaurada",
+    "restoreError": "No se pudo restaurar la frase",
     "window": {
       "day": "Últimas 24 horas",
       "week": "Últimos 7 días",
       "month": "Últimos 30 días"
     },
     "table": {
-      "segment": "Oración",
+      "segment": "Frase",
       "change": "Cambio",
       "report": "Reporte",
-      "when": "Cuándo",
+      "when": "Fecha",
       "actions": "Acciones"
     }
   },
   "connections": {
-    "title": "Conexiones",
+    "title": "Servicios conectados",
     "shirabe": {
       "name": "Shirabe",
-      "description": "Conecta tu cuenta de Shirabe para seguir usando tus diccionarios",
+      "description": "Conecta tu cuenta de Shirabe para usar tus diccionarios también en Nadeshiko.",
       "connect": "Conectar",
       "disconnect": "Desconectar",
-      "linkedAs": "Vinculada como {name}",
+      "linkedAs": "Cuenta vinculada: {name}",
       "dictionaries": "Diccionarios",
-      "dictionariesHint": "Ve a Shirabe para cambiarlos",
-      "anonymous": "tu cuenta de Shirabe",
+      "dictionariesHint": "Gestionar en Shirabe",
+      "anonymous": "Cuenta de Shirabe",
       "upgrade": "Actualizar permisos",
       "reconnect": "Volver a conectar",
-      "upgradeNeeded": "Vinculada como {name}. Hace falta un permiso nuevo para las últimas funciones",
-      "disconnected": "Vinculado como {name}, pero Shirabe ha dejado de aceptar la conexión: tus propios diccionarios no se están usando. Vuelve a conectar para recuperarlos.",
-      "confirmDisconnect": "¿Desconectar tu cuenta de Shirabe? Se revocará la clave en Shirabe y las tarjetas de palabra volverán a los diccionarios por defecto."
+      "upgradeNeeded": "Cuenta vinculada: {name}. Autoriza los permisos adicionales para usar las nuevas funciones.",
+      "disconnected": "La conexión de la cuenta {name} se ha desactivado en Shirabe. Vuelve a conectarla para usar tus diccionarios.",
+      "confirmDisconnect": "¿Desconectar tu cuenta de Shirabe? Se revocará la clave de conexión y la ventana de palabras volverá a usar los diccionarios predeterminados."
+    },
+    "patreon": {
+      "name": "Patreon",
+      "description": "Link Patreon to verify your membership and propose shows",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "active": "Linked as {name} — active member",
+      "inactive": "Linked as {name} — no active paid membership",
+      "member": "your Patreon account",
+      "join": "Join",
+      "confirmDisconnect": "Disconnect your Patreon account from Nadeshiko?"
     },
     "callback": {
-      "working": "Terminando la conexión…",
-      "declined": "No se aprobó la conexión, así que no se vinculó nada.",
+      "working": "Conectando con Shirabe…",
+      "declined": "La conexión no se autorizó y se ha cancelado.",
       "failed": "No se pudo completar la conexión.",
-      "signedOut": "Aquí no has iniciado sesión, así que no se pudo terminar la conexión. Inicia sesión y vuelve a empezar desde tus ajustes.",
+      "signedOut": "Debes iniciar sesión en Nadeshiko para conectar la cuenta. Después, vuelve a intentarlo desde Ajustes.",
       "back": "Volver a ajustes",
-      "done": "Shirabe conectado",
+      "done": "Cuenta de Shirabe conectada",
       "goToSettings": "Ir a ajustes"
     }
+  },
+  "roadmap": {
+    "seoTitle": "Roadmap | Nadeshiko",
+    "seoDescription": "Descubre qué animes llegarán próximamente a Nadeshiko, qué estamos creando y qué hemos publicado.",
+    "title": "Roadmap",
+    "intro": "¡Únete a nuestro Patreon y solicita los próximos títulos y funciones de Nadeshiko!",
+    "support": "Apoyar a Nadeshiko",
+    "proposeCta": "Proponer un anime",
+    "filterLabel": "Filtrar el roadmap",
+    "filters": { "content": "Títulos", "feature": "Funciones" },
+    "dateFlexible": "Fecha por definir",
+    "featureSoon": "Próximamente™",
+    "featureReleased": "Publicado",
+    "titleInProgress": "En curso",
+    "titleDone": "Completado",
+    "proposedBy": "Propuesto por {name}",
+    "patronCommunity": "mecenas de Nadeshiko",
+    "emptyTitles": "Aún no hay títulos programados.",
+    "emptyFeatures": "Aún no hay hitos de funciones.",
+    "viewSource": "Ver fuente",
+    "loadError": "No se ha podido cargar el roadmap.",
+    "proposalTitle": "¡Solicita tu anime favorito!",
+    "proposalIntro": "Los mecenas activos de Nadeshiko pueden solicitar hasta cuatro títulos al mes. ¡Comprueba tu acceso a continuación!",
+    "steps": {
+      "signIn": "Inicia sesión en Nadeshiko",
+      "patreon": "Vincula tu cuenta o únete a Patreon",
+      "propose": "Envía tu propuesta"
+    },
+    "states": {
+      "anonymousTitle": "Inicia sesión para proponer un anime",
+      "anonymousBody": "El roadmap es público. Las propuestas están disponibles para los mecenas que hayan vinculado su cuenta de Nadeshiko.",
+      "unlinkedTitle": "Vincula tu cuenta de Patreon",
+      "unlinkedBody": "Verificaremos de forma segura tu membresía de Nadeshiko. Patreon nunca se utiliza para iniciar sesión.",
+      "inactiveTitle": "Hazte mecenas activo",
+      "inactiveBody": "Tu cuenta de Patreon está vinculada, pero ahora mismo no tiene una membresía de pago activa de Nadeshiko.",
+      "activeTitle": "Tu propuesta",
+      "submittedTitle": "Propuesta recibida",
+      "submittedBody": "Está en la cola privada de revisión. Si se aprueba, aparecerá en esta cronología."
+    },
+    "signIn": "Iniciar sesión",
+    "linkPatreon": "Vincular Patreon",
+    "becomePatron": "Unirse en Patreon",
+    "checkAgain": "Comprobar de nuevo",
+    "submitAnother": "Proponer otro",
+    "patreonMember": "Miembro de Patreon",
+    "activeBadge": "Mecenas activo",
+    "form": {
+      "url": "Enlace del anime",
+      "urlPlaceholder": "https://anilist.co/anime/…",
+      "title": "Título (opcional)",
+      "titlePlaceholder": "Lo deduciremos a partir del enlace",
+      "credit": "Crédito público (opcional)",
+      "creditPlaceholder": "Tu nombre o usuario de Patreon",
+      "creditHint": "Déjalo en blanco para aparecer como miembro anónimo de Patreon.",
+      "note": "¿Por qué este? (opcional)",
+      "notePlaceholder": "Cuéntanos por qué encaja bien en Nadeshiko",
+      "submit": "Enviar para revisión"
+    },
+    "features": {
+      "patreonProposals": {
+        "title": "Propuestas de títulos en Patreon",
+        "description": "Los mecenas pueden vincular su membresía, proponer un título y seguir las incorporaciones aprobadas en el roadmap público."
+      },
+      "searchFilters": {
+        "title": "Mejores filtros de búsqueda",
+        "description": "Busca directamente por nombre del contenido, etiquetas y otros filtros específicos."
+      },
+      "publicRoadmap": {
+        "title": "Roadmap público",
+        "description": "Consulta en un solo lugar qué títulos y funciones están en camino y cuáles ya se han publicado."
+      },
+      "interfaceLanguages": {
+        "title": "Siete idiomas de interfaz",
+        "description": "Nadeshiko se amplió más allá del inglés, español y japonés con portugués, indonesio, chino simplificado y chino tradicional."
+      },
+      "youtubePlayback": {
+        "title": "Reproducción de YouTube en la búsqueda",
+        "description": "Las frases de YouTube se reproducen directamente en los resultados y continúan por las listas sin salir de Nadeshiko."
+      },
+      "wordCards": {
+        "title": "Fichas de palabras",
+        "description": "Pulsa una palabra de cualquier frase para ver lecturas, definiciones, acento tonal, audio e indicadores de frecuencia."
+      },
+      "ownDictionaries": {
+        "title": "Tus propios diccionarios",
+        "description": "Vincula Shirabe y Nadeshiko usará tu conjunto ordenado de diccionarios, incluidos diccionarios monolingües y subidos por ti."
+      },
+      "ankiMining": {
+        "title": "Minería enriquecida para Anki",
+        "description": "Crea o actualiza notas con la palabra, frase, audio, imagen, furigana, definiciones y acento tonal."
+      },
+      "searchHistory": {
+        "title": "Historial de búsqueda y títulos conocidos",
+        "description": "Las búsquedas recientes acompañan a los usuarios conectados entre dispositivos, mientras que sus títulos favoritos y estudiados influyen en el orden."
+      },
+      "apiKeys": {
+        "title": "Claves de API con permisos detallados",
+        "description": "Las claves de API pueden ser de solo lectura, de acceso completo o limitarse a permisos seleccionados expresamente."
+      }
+    },
+    "callbackDeclined": "No se ha aprobado la conexión con Patreon.",
+    "callbackFailed": "No se ha podido completar la conexión con Patreon.",
+    "callbackDone": "Patreon conectado",
+    "callbackDoneBody": "Hemos comprobado tu membresía. Ya puedes volver al roadmap.",
+    "backToRoadmap": "Volver al roadmap",
+    "admin": { "tab": "Roadmap", "title": "Cola del roadmap" }
   },
   "feedback": {
     "open": "Comentarios",
@@ -1409,9 +1543,9 @@
   "unsubscribe": {
     "cancel": "No, quiero seguir recibiéndolos",
     "invalid": "Este enlace para cancelar la suscripción no es válido. Puedes desactivar estos correos en los ajustes de tu cuenta.",
-    "failed": "No se ha podido completar. Inténtalo de nuevo o desactiva estos correos en los ajustes de tu cuenta.",
+    "failed": "No se pudo completar la solicitud. Inténtalo de nuevo o desactiva estos correos en los ajustes de tu cuenta.",
     "goToSettings": "Ir a los ajustes",
-    "chooseTitle": "Elige de qué quieres enterarte"
+    "chooseTitle": "Elige qué correos quieres recibir"
   },
   "signupNudge": {
     "action": "Crear una cuenta",
@@ -1426,11 +1560,46 @@
     }
   },
   "mediaHeader": {
-    "collapse": "Cerrar los detalles del título",
-    "expand": "Abrir los detalles del título"
+    "collapse": "Ocultar detalles del título",
+    "expand": "Mostrar detalles del título"
   },
   "mediaPage": {
     "resultsFailed": "No hemos podido cargar las frases de este título.",
     "resultsRetry": "Reintentar"
+  },
+  "impersonation": {
+    "active": "Sesión iniciada como {name}",
+    "exit": "Volver a mi cuenta"
+  },
+  "mediaMetadata": {
+    "screenshot": "Captura de {media}",
+    "screenshotFallback": "Captura de la frase",
+    "seasonWithYear": "{season} de {year}",
+    "seasons": {
+      "WINTER": "Invierno",
+      "SPRING": "Primavera",
+      "SUMMER": "Verano",
+      "FALL": "Otoño",
+      "NONE": "Sin especificar"
+    },
+    "statuses": {
+      "FINISHED": "Finalizado",
+      "RELEASING": "En emisión",
+      "NOT_YET_RELEASED": "Próximamente",
+      "CANCELLED": "Cancelado"
+    },
+    "formats": {
+      "TV": "TV",
+      "MOVIE": "Película",
+      "OVA": "OVA",
+      "ONA": "ONA",
+      "SPECIAL": "Especial",
+      "YOUTUBE": "YouTube"
+    },
+    "categories": {
+      "ANIME": "Anime",
+      "JDRAMA": "Acción real",
+      "YOUTUBE": "YouTube"
+    }
   }
 }

@@ -28,6 +28,6 @@ export const PRIVATE_PATH_SEGMENTS = ['/user', '/admin', '/settings', '/reports'
  * forever.
  */
 export function isPrivatePath(path: string): boolean {
-  const withoutLocale = path.replace(/^\/(en|es|ja)(?=\/|$)/, '') || '/';
+  const withoutLocale = path.replace(/^\/(en|es|ja|zh|zh-hant|id|pt-BR)(?=\/|$)/, '') || '/';
   return PRIVATE_PATH_SEGMENTS.some((segment) => withoutLocale === segment || withoutLocale.startsWith(`${segment}/`));
 }

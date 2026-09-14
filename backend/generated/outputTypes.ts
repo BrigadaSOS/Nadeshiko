@@ -42,6 +42,7 @@ export type IncludeExpansionOutput = z.output<typeof schemas.s_IncludeExpansion>
 export type MediaFilterItemOutput = z.output<typeof schemas.s_MediaFilterItem>;
 export type MediaGlobalStatsOutput = z.output<typeof schemas.s_MediaGlobalStats>;
 export type MediaSearchStatsOutput = z.output<typeof schemas.s_MediaSearchStats>;
+export type PatreonConnectionOutput = z.output<typeof schemas.s_PatreonConnection>;
 export type ReportReasonOutput = z.output<typeof schemas.s_ReportReason>;
 export type ReportSourceOutput = z.output<typeof schemas.s_ReportSource>;
 export type ReportStatusOutput = z.output<typeof schemas.s_ReportStatus>;
@@ -50,6 +51,8 @@ export type ReportTargetMediaOutput = z.output<typeof schemas.s_ReportTargetMedi
 export type ReportTargetSegmentOutput = z.output<typeof schemas.s_ReportTargetSegment>;
 export type ReportTargetSegmentInputOutput = z.output<typeof schemas.s_ReportTargetSegmentInput>;
 export type ReportTargetTypeOutput = z.output<typeof schemas.s_ReportTargetType>;
+export type RoadmapItemOutput = z.output<typeof schemas.s_RoadmapItem>;
+export type RoadmapItemWriteOutput = z.output<typeof schemas.s_RoadmapItemWrite>;
 export type SearchMultipleQueryOutput = z.output<typeof schemas.s_SearchMultipleQuery>;
 export type SearchPaginationOutput = z.output<typeof schemas.s_SearchPagination>;
 export type SearchQueryOutput = z.output<typeof schemas.s_SearchQuery>;
@@ -114,13 +117,16 @@ export type SegmentListResponseOutput = z.output<typeof schemas.s_SegmentListRes
 export type UserExportCollectionOutput = z.output<typeof schemas.s_UserExportCollection>;
 export type AdminReportListResponseOutput = z.output<typeof schemas.s_AdminReportListResponse>;
 export type UserExportResponseOutput = z.output<typeof schemas.s_UserExportResponse>;
+export type CreateRoadmapProposalRequestBodyOutput = z.output<typeof schemas.s_CreateRoadmapProposalRequestBody>;
 export type CreateUserApiKeyRequestBodyOutput = z.output<typeof schemas.s_CreateUserApiKeyRequestBody>;
 export type CompleteShirabeLinkRequestBodyOutput = z.output<typeof schemas.s_CompleteShirabeLinkRequestBody>;
 export type ResyncShirabeStackRequestBodyOutput = z.output<typeof schemas.s_ResyncShirabeStackRequestBody>;
 export type ReportShirabeRefusalRequestBodyOutput = z.output<typeof schemas.s_ReportShirabeRefusalRequestBody>;
+export type CompletePatreonLinkRequestBodyOutput = z.output<typeof schemas.s_CompletePatreonLinkRequestBody>;
 export type AddExcludedMediaRequestBodyOutput = z.output<typeof schemas.s_AddExcludedMediaRequestBody>;
 export type AddFavoriteMediaRequestBodyOutput = z.output<typeof schemas.s_AddFavoriteMediaRequestBody>;
 export type UpdateEmailPreferencesByTokenRequestBodyOutput = z.output<typeof schemas.s_UpdateEmailPreferencesByTokenRequestBody>;
+export type UpdateAdminRoadmapItemRequestBodyOutput = z.output<typeof schemas.s_UpdateAdminRoadmapItemRequestBody>;
 
 // ============================================
 // Inline query schemas and their output types

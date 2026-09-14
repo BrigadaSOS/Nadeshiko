@@ -2,9 +2,22 @@ name: "[Prod] Release Discord"
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [production]
   workflow_dispatch:
+    inputs:
+      skip_staging:
+        description: 'INCIDENT ONLY: skip staging deploy and E2E'
+        required: false
+        default: false
+        type: boolean
+      emergency_reason:
+        description: 'Incident reason (required when skipping staging)'
+        required: false
+        type: string
+      emergency_confirmation:
+        description: 'Type SKIP STAGING to confirm the emergency bypass'
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -13,18 +26,65 @@ permissions:
   id-token: write
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject forced production updates
+        if: github.event_name == 'push' && github.event.forced
+        run: |
+          echo "::error::Force-pushing production cannot trigger a release. Use the manual incident workflow instead."
+          exit 1
+
   staging-e2e:
+    needs: release-policy
     uses: ./.github/workflows/verify-staging-e2e.yml
+    with:
+      release_sha: ${{ github.sha }}
+      skip_staging: ${{ inputs.skip_staging || false }}
+      emergency_reason: ${{ inputs.emergency_reason || '' }}
+      emergency_confirmation: ${{ inputs.emergency_confirmation || '' }}
 
   checks:
+    needs: release-policy
     uses: ./.github/workflows/checks.yml
     with:
       backend: false
       frontend: false
       seed_worker: false
 
+  # Building an immutable image is safe to overlap with checks and staging
+  # verification. The deployment below still waits for every gate.
+  build-discord:
+    needs: staging-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push discord image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: discord/Dockerfile
+          push: true
+          tags: ghcr.io/brigadasos/nadeshiko-discord-prod:${{ github.sha }}
+          labels: service=nadeshiko-discord-prod
+          build-args: RELEASE_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=discord
+          cache-to: type=gha,mode=max,scope=discord
+
   deploy-discord:
-    needs: [staging-e2e, checks]
+    needs: [staging-e2e, checks, build-discord]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # The bot container is independent of the app services, so it gets its own
@@ -42,33 +102,6 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-nadeshiko-prod
           aws-region: eu-north-1
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push discord image
-        uses: docker/build-push-action@v7
-        with:
-          # Root context: every image installs from the workspace lockfile, so the
-          # build needs the root package.json/package-lock.json and the sibling
-          # workspace manifests. See .dockerignore.
-          context: .
-          file: discord/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/brigadasos/nadeshiko-discord-prod:${{ github.sha }}
-            ghcr.io/brigadasos/nadeshiko-discord-prod:latest
-          labels: |
-            service=nadeshiko-discord-prod
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
@@ -81,11 +114,41 @@ jobs:
         run: |
           set -euo pipefail
           cd discord
-          kamal deploy -d prod --skip-push
+          VERSION="$GITHUB_SHA" kamal deploy -d prod --skip-push
+
+      - name: Verify deployed Discord revision
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd discord
+          kamal app exec -d prod --reuse "node -e 'fetch(\"http://127.0.0.1:3000/up\").then(async (response) => { const body = await response.json(); if (!response.ok || body.status !== \"ok\" || body.releaseSha !== \"$GITHUB_SHA\") process.exit(1) })'"
+
+  promote-discord:
+    needs: deploy-discord
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote verified image to latest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag ghcr.io/brigadasos/nadeshiko-discord-prod:latest \
+            "ghcr.io/brigadasos/nadeshiko-discord-prod:${GITHUB_SHA}"
 
   # No-ops when DISCORD_DEPLOY_WEBHOOK is unset.
   notify-failure:
-    needs: [staging-e2e, checks, deploy-discord]
+    needs: [release-policy, staging-e2e, checks, build-discord, deploy-discord, promote-discord]
     if: failure()
     uses: ./.github/workflows/notify-deploy-failure.yml
     secrets: inherit

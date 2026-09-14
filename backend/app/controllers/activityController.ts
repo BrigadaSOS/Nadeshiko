@@ -6,7 +6,7 @@ import type {
   DeleteUserActivityById,
 } from 'generated/routes/user';
 import { assertUser } from '@app/middleware/authentication';
-import { Media } from '@app/models';
+import { Media, User } from '@app/models';
 import { ActivityType, UserActivity } from '@app/models/UserActivity';
 import { UserMediaAffinity } from '@app/models/UserMediaAffinity';
 import { toUserActivityListDTO, toTopMediaDTO } from '@app/controllers/mappers/activityMapper';
@@ -69,7 +69,13 @@ export const deleteUserActivity: DeleteUserActivity = async ({ query }, respond,
 export const trackUserActivity: TrackUserActivity = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
-  UserActivity.trackForUser(user, body.activityType as ActivityType, {
+  // Preferences are privacy controls, so the five-minute authentication cache
+  // must never be authoritative here. A request can land on a process that
+  // cached the user before another request disabled history or the study tally.
+  // Read the current row before deciding whether either write is allowed.
+  const currentUser = await User.findOneByOrFail({ id: user.id });
+
+  UserActivity.trackForUser(currentUser, body.activityType as ActivityType, {
     segmentId: body.segmentPublicId,
     mediaPublicId: body.mediaPublicId,
     searchQuery: body.searchQuery,
@@ -88,7 +94,7 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
   // media id -- scoped searches have carried one before and may again.
   const isAutoplayedSegment = body.activityType === 'SEGMENT_PLAY' && body.autoplay === true;
   const shouldRecordAffinity =
-    user.preferences?.familiarMedia?.enabled !== false &&
+    currentUser.preferences?.familiarMedia?.enabled !== false &&
     body.activityType !== 'SEARCH' &&
     !isAutoplayedSegment &&
     !!body.mediaPublicId;

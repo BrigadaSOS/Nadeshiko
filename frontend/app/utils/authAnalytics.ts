@@ -48,6 +48,7 @@ export const AUTH_GATES = [
   'download_nudge',
   'add_nudge',
   'depth_nudge',
+  'roadmap_proposal',
 ] as const;
 
 export type AuthGate = (typeof AUTH_GATES)[number];
@@ -254,7 +255,7 @@ export function consumeAuthReturnTo(storage: IntentStorage | undefined, now = Da
 }
 
 export function isAuthCallbackPath(path: string): boolean {
-  return /^\/(?:en|es|ja)?\/?auth\/callback\/?$/.test(path);
+  return /^\/(?:en|es|ja|zh|zh-hant|id|pt-BR)?\/?auth\/callback\/?$/.test(path);
 }
 
 /**
