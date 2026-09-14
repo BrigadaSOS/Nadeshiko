@@ -6,6 +6,8 @@ export { User, UserRoleType } from './User';
 export type { UserPreferences } from './User';
 export { AccountQuotaUsage } from './AccountQuotaUsage';
 export { ShirabeConnection } from './ShirabeConnection';
+export { PatreonConnection } from './PatreonConnection';
+export { RoadmapItem, RoadmapItemKind, RoadmapItemStatus } from './RoadmapItem';
 export { Tier } from './Tier';
 export { resolveQuotaLimit } from './quota';
 export type { QuotaSource, ResolvedQuota } from './quota';

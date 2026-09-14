@@ -501,6 +501,16 @@ export type t_ModerateEpisodeSegmentsRequest = {
 	status?: t_SegmentStatus;
 };
 
+export type t_PatreonConnection = {
+	active: boolean;
+	entitledAmountCents: number;
+	fullName: string | null;
+	linked: boolean;
+	linkedAt: string;
+	membershipCheckedAt: string;
+	patronStatus: string | null;
+};
+
 export type t_Report = {
 	adminNotes: string | null;
 	createdAt: string;
@@ -576,6 +586,41 @@ export type t_ReportTargetSegmentInput = {
 };
 
 export type t_ReportTargetType = "SEGMENT" | "EPISODE" | "MEDIA";
+
+export type t_RoadmapItem = {
+	coverUrl: string | null;
+	createdAt: string;
+	description: string;
+	id: string;
+	introducedInVersion: string | null;
+	kind: "CONTENT" | "FEATURE";
+	proposerName: string | null;
+	requesterUserId?: number | null;
+	sortOrder: number;
+	sourceUrl: string | null;
+	status:
+		| "PROPOSED"
+		| "CONSIDERING"
+		| "PLANNED"
+		| "IN_PROGRESS"
+		| "RELEASED"
+		| "DECLINED";
+	targetDate: string | null;
+	title: string;
+};
+
+export type t_RoadmapItemWrite = {
+	coverUrl?: string | null;
+	description?: string;
+	introducedInVersion?: string | null;
+	kind: "CONTENT" | "FEATURE";
+	proposerName?: string | null;
+	sortOrder?: number;
+	sourceUrl?: string | null;
+	status: "CONSIDERING" | "PLANNED" | "IN_PROGRESS" | "RELEASED";
+	targetDate?: string | null;
+	title: string;
+};
 
 export type t_SearchFilters = {
 	category?: t_Category[];
@@ -1054,6 +1099,11 @@ export type t_AddSegmentToCollectionParamSchema = {
 	collectionPublicId: string;
 };
 
+export type t_CompletePatreonLinkRequestBody = {
+	code: string;
+	state: string;
+};
+
 export type t_CompleteShirabeLinkRequestBody = {
 	code: string;
 	state: string;
@@ -1061,6 +1111,13 @@ export type t_CompleteShirabeLinkRequestBody = {
 
 export type t_CreateEpisodeParamSchema = {
 	mediaPublicId: string;
+};
+
+export type t_CreateRoadmapProposalRequestBody = {
+	note?: string;
+	proposerName?: string;
+	sourceUrl: string;
+	title?: string;
 };
 
 export type t_CreateSegmentParamSchema = {
@@ -1274,6 +1331,29 @@ export type t_UnsubscribeFromEmailQuerySchema = {
 
 export type t_UpdateAdminReportParamSchema = {
 	reportId: number;
+};
+
+export type t_UpdateAdminRoadmapItemParamSchema = {
+	itemId: string;
+};
+
+export type t_UpdateAdminRoadmapItemRequestBody = {
+	coverUrl?: string | null;
+	description?: string;
+	introducedInVersion?: string | null;
+	kind?: "CONTENT" | "FEATURE";
+	proposerName?: string | null;
+	sortOrder?: number;
+	sourceUrl?: string | null;
+	status?:
+		| "PROPOSED"
+		| "CONSIDERING"
+		| "PLANNED"
+		| "IN_PROGRESS"
+		| "RELEASED"
+		| "DECLINED";
+	targetDate?: string | null;
+	title?: string;
 };
 
 export type t_UpdateAdminUserQuotaParamSchema = {

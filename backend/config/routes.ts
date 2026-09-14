@@ -116,6 +116,19 @@ import {
 } from '@app/controllers/shirabeConnectionController';
 import { listFamiliarMedia, clearFamiliarMedia, forgetFamiliarMedia } from '@app/controllers/familiarMediaController';
 import { exportUserData } from '@app/controllers/userExportController';
+import {
+  completePatreonLink,
+  getPatreonConnection,
+  startPatreonLink,
+  unlinkPatreon,
+} from '@app/controllers/patreonConnectionController';
+import {
+  createAdminRoadmapItem,
+  createRoadmapProposal,
+  listAdminRoadmap,
+  listRoadmap,
+  updateAdminRoadmapItem,
+} from '@app/controllers/roadmapController';
 import { getStatsOverview, getCoveredWords, triggerCoveredWordsUpdate } from '@app/controllers/statsController';
 import { createRouter as createSearchRouter } from 'generated/routes/search';
 import { createRouter as createMediaRouter } from 'generated/routes/media';
@@ -126,6 +139,7 @@ import { createRouter as createUserRouter } from 'generated/routes/user';
 import { createRouter as createFeedbackRouter } from 'generated/routes/feedback';
 import { createRouter as createEmailRouter } from 'generated/routes/email';
 import { createRouter as createStatsRouter } from 'generated/routes/stats';
+import { createRouter as createRoadmapRouter } from 'generated/routes/roadmap';
 
 export const noCache = (_req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -291,6 +305,9 @@ const AdminRoutes = createAdminRouter({
   listTiers,
   getAdminUserQuota,
   updateAdminUserQuota,
+  listAdminRoadmap,
+  createAdminRoadmapItem,
+  updateAdminRoadmapItem,
 });
 
 const FeedbackRoutes = createFeedbackRouter({
@@ -310,6 +327,8 @@ const StatsRoutes = createStatsRouter({
   triggerCoveredWordsUpdate,
 });
 
+const RoadmapRoutes = createRoadmapRouter({ listRoadmap, createRoadmapProposal });
+
 const UserRoutes = createUserRouter({
   getMe,
   createUserApiKey,
@@ -320,6 +339,10 @@ const UserRoutes = createUserRouter({
   getShirabeCredential,
   resyncShirabeStack,
   reportShirabeRefusal,
+  getPatreonConnection,
+  startPatreonLink,
+  completePatreonLink,
+  unlinkPatreon,
   listExcludedMedia,
   addExcludedMedia,
   removeExcludedMedia,
@@ -445,6 +468,7 @@ for (const { method, path, middleware } of routeAuth) {
 // direct callers to `api.nadeshiko.co` arrive at. Site traffic is limited a hop
 // earlier, at the Nitro proxy — see the note on `feedbackRateLimit`.
 router.get('/v1/admin/announcement', setRouteTemplate('/v1/admin/announcement'));
+router.get('/v1/roadmap', setRouteTemplate('/v1/roadmap'));
 router.post('/v1/feedback', setRouteTemplate('/v1/feedback'), feedbackRateLimit);
 router.get('/v1/feedback/token', setRouteTemplate('/v1/feedback/token'), feedbackRateLimit);
 router.post('/v1/email/unsubscribe', setRouteTemplate('/v1/email/unsubscribe'), unsubscribeRateLimit);
@@ -466,6 +490,7 @@ router.post(['/v1/search', '/v1/search/stats'], searchInFlightLimit);
 
 router.use('/', SearchRoutes);
 router.use('/', StatsRoutes);
+router.use('/', RoadmapRoutes);
 router.use('/', MediaRoutes);
 router.use('/', ActivityRoutes);
 router.use('/', CollectionsRoutes);
