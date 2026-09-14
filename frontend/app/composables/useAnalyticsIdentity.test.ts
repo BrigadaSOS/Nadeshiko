@@ -123,6 +123,32 @@ describe('a signed-in reader', () => {
     expect(posthog.identify).toHaveBeenCalledWith('user-1', expect.any(Object), expect.any(Object));
   });
 
+  test('names the person from the user store so PostHog shows a label, not (unknown)', async () => {
+    // Without `$name`, a person identified from the browser would still render
+    // as `(unknown)` until they appeared on the server's `account_created`
+    // capture. Setting it here covers the case where a reader was already
+    // signed in when the server capture was added.
+    signedIn({ userName: 'Reader' });
+
+    (await loadComposable())({ viaCallback: false });
+
+    const props = posthog.identify.mock.calls[0]?.[1] as Record<string, unknown> | undefined;
+    expect(props?.$name).toBe('Reader');
+  });
+
+  test('omits $name when the store has no display name, rather than clearing an existing one', async () => {
+    // `$name: undefined` in posthog-js's person-properties payload is "leave
+    // unchanged", not "clear to empty". Sending `undefined` here is the
+    // documented way to avoid overwriting a name the server capture set.
+    signedIn({ userName: null });
+
+    (await loadComposable())({ viaCallback: false });
+
+    const props = posthog.identify.mock.calls[0]?.[1] as Record<string, unknown> | undefined;
+    expect('$name' in (props ?? {})).toBe(true);
+    expect(props?.$name).toBeUndefined();
+  });
+
   test('is identified BEFORE anything is captured', async () => {
     // So the events land on the identified person and this browser's anonymous
     // history merges into it rather than being stranded.
