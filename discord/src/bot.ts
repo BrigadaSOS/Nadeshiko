@@ -14,6 +14,7 @@ import { startHealthServer } from './health';
 import { initSdk } from './api';
 import { initSettings } from './settings';
 import { allCommands, type Command } from './commands';
+import { startOauthRedirectMonitor } from './oauthRedirectMonitor';
 
 const log = createLogger('bot');
 
@@ -76,8 +77,9 @@ async function main() {
   await client.login(BOT_CONFIG.token);
 
   const healthServer = startHealthServer(Number(process.env.HEALTH_PORT) || 3000);
+  const oauthRedirectMonitor = startOauthRedirectMonitor();
 
-  const shutdown = createShutdown({ healthServer, client });
+  const shutdown = createShutdown({ healthServer, client, oauthRedirectMonitor });
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);

@@ -109,6 +109,7 @@ export function createReadyHandler(invitePermissions: InvitePermissions) {
 type ShutdownTargets = {
   healthServer: { close(): unknown };
   client: { destroy(): unknown };
+  oauthRedirectMonitor?: { stop(): unknown };
   exit?: (code: number) => void;
 };
 
@@ -119,9 +120,10 @@ type ShutdownTargets = {
  * flush is the one that loses a whole batch if the process exits first, and a
  * deploy is exactly when the last few minutes of events matter most.
  */
-export function createShutdown({ healthServer, client, exit = process.exit }: ShutdownTargets) {
+export function createShutdown({ healthServer, client, oauthRedirectMonitor, exit = process.exit }: ShutdownTargets) {
   return async function shutdown(): Promise<void> {
     log.info('Shutting down');
+    oauthRedirectMonitor?.stop();
     // Stop answering the health probe before the gateway connection goes, so
     // the orchestrator takes this container out of rotation rather than
     // routing to a bot that is already halfway gone.

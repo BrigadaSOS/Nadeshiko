@@ -16,6 +16,12 @@ registry:
 
 builder:
   arch: amd64
+  # The Dockerfile copies the workspace lockfile, SDK, shared package and
+  # discord app, so the build context must be the monorepo root. This also
+  # makes manual deploys include the working tree being deployed instead of
+  # cloning the app subdirectory as an incomplete build context.
+  context: ..
+  dockerfile: Dockerfile
 
 ssh:
   user: docker
