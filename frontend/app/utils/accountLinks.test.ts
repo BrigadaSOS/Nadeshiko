@@ -11,6 +11,8 @@ describe('isAccountLinkCallback', () => {
     expect(isAccountLinkCallback('/en/link/shirabe/callback')).toBe(true);
     expect(isAccountLinkCallback('/es/link/shirabe/callback')).toBe(true);
     expect(isAccountLinkCallback('/ja/link/shirabe/callback')).toBe(true);
+    expect(isAccountLinkCallback('/link/patreon/callback')).toBe(true);
+    expect(isAccountLinkCallback('/es/link/patreon/callback')).toBe(true);
   });
 
   it('leaves a real auth callback alone', () => {
