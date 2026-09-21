@@ -14,6 +14,7 @@ import {
 
 const { t, locale } = useI18n();
 const sdk = useNadeshikoSdk();
+const user = userStore();
 
 // Each panel renders its own empty state when its slice of the initial load
 // fails, so the failure is reported without stacking four toasts on the user.
@@ -47,7 +48,7 @@ const { data: initialData } = await useAsyncData(
     // fourth request here re-fetched what hydration had just delivered. An
     // absent value reads as enabled, which is the same default the failed fetch
     // used to produce.
-    const prefs = userStore().preferences as Record<string, any> | undefined;
+    const prefs = user.preferences as Record<string, any> | undefined;
 
     return {
       // Whether the server pass came back with answers, not merely whether it
