@@ -261,9 +261,14 @@ test.describe('Media filter drawer (mobile)', () => {
     const pickRandom = async () => {
       await openDrawer(page);
       await drawer(page).getByTestId('dropdown-toggle').click();
+      const searched = page.waitForResponse(
+        (response) => response.request().method() === 'POST' && new URL(response.url()).pathname === '/v1/search',
+      );
       await sortMenu(page).getByRole('button', { name: 'Random' }).click();
       await expect(drawer(page)).toBeHidden({ timeout: 10_000 });
       await expect(page).toHaveURL(/sort=random&seed=\d+/, { timeout: 10_000 });
+      const response = await searched;
+      expect(response.ok(), `random search returned HTTP ${response.status()}`).toBe(true);
       await search.expectResultsVisible();
     };
 
