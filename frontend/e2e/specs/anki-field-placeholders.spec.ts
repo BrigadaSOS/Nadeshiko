@@ -83,8 +83,12 @@ const openFieldTable = async (page: Page) => {
 
   const model = page.getByTestId('anki-model-select');
   // Until the store has been round the connect handshake the select holds
-  // nothing but its own "select..." placeholder option.
-  await expect(model.locator('option')).not.toHaveCount(1, { timeout: 20_000 });
+  // nothing but its own "select..." placeholder option. Checking only that the
+  // option count was not one also accepted zero while the whole select was
+  // temporarily absent, which made the following selectOption wait for the
+  // remainder of the test timeout.
+  await expect(model).toBeVisible({ timeout: 20_000 });
+  await expect(model.locator('option[value="Lapis"]')).toHaveCount(1, { timeout: 20_000 });
   await model.selectOption('Lapis');
 
   // `data-field` is on the row itself rather than on a cell inside it, so this

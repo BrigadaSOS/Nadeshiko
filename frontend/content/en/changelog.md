@@ -16,6 +16,7 @@ We only list what you can see. Work behind a lab or a feature flag stays off thi
 - **Site**: when too many searches or page renders arrive at once, Nadeshiko now asks the excess to retry in a moment instead of letting every request wait until the whole site times out. The searches already under way get to finish, and other pages stay usable.
 - **Site**: the files from the build you already have open stay available while the next one takes over, including after a server worker restarts, so opening a menu or navigating a page does not turn into a missing-script error.
 - **Word cards**: a reply for a word you have already moved away from can no longer replace the card you are reading.
+- **Word cards**: Nadeshiko's default word cards now open the dictionary entry matching the reading in the sentence, rather than an encyclopedia or a different JMdict homograph.
 - **Anki**: the note list stays with what you have typed instead of arriving late from an earlier search, and an unavailable Anki no longer clears the field mapping you had saved.
 - **Search**: a batch lookup that fails returns you to the words you pasted instead of showing stale rows or `NaN%`. An empty search address reaches the search page directly.
 - **Stats**: a malformed filter no longer spreads into every level link.
