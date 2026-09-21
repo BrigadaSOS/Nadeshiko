@@ -362,12 +362,16 @@ describe('the exception counter', () => {
     expect(counterAdds[0].attrs['error.fingerprint']).toBe('Error:unknown');
   });
 
-  test('caps the group label, so a long message cannot become its own series', async () => {
+  test('groups metrics by bounded fingerprint rather than the exception message', async () => {
     const fire = await loadPlugin();
 
-    await fire('error', new Error('x'.repeat(400)), { event: makeEvent(), tags: [] });
+    await fire('error', new Error(`Page not found: /asset.js?${crypto.randomUUID()}`), {
+      event: makeEvent(),
+      tags: [],
+    });
 
-    expect(String(counterAdds[0].attrs['error.group'])).toHaveLength(120);
+    expect(counterAdds[0].attrs['error.group']).toBe(counterAdds[0].attrs['error.fingerprint']);
+    expect(counterAdds[0].attrs['error.group']).not.toContain('Page not found');
   });
 });
 
