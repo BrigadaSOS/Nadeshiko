@@ -111,6 +111,7 @@ COPY --from=build /build/frontend/.output ./.output
 RUN rm -rf .output/server/node_modules/@opentelemetry/api
 COPY --from=otel-deps /deps/node_modules ./node_modules
 COPY frontend/instrumentation.mjs frontend/route-normalization.mjs ./
+COPY frontend/scripts/warm-sitemaps.mjs ./warm-sitemaps.mjs
 COPY frontend/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENV HOST=0.0.0.0
