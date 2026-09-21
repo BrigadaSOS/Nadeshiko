@@ -18,6 +18,11 @@ export const AppDataSource = new DataSource({
   entities: APP_ENTITIES,
   subscribers: APP_SUBSCRIBERS,
   migrations: ['./db/migrations/**/*.ts'],
+  // Run each migration in its own transaction unless it explicitly opts out.
+  // PostgreSQL cannot build a CONCURRENT index inside a transaction, and the
+  // Segment table is large enough that a blocking index build would stop writes
+  // during a deploy. Individual migrations retain atomic rollback by default.
+  migrationsTransactionMode: 'each',
   synchronize: false, // Use migrations instead!
   logging: true,
   // TypeORM only calls `logQuerySlow` when this is truthy and exceeded, and that

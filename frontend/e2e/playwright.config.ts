@@ -65,24 +65,10 @@ const AUTHENTICATED_TESTS =
   /(accessibility|account-lifecycle|activity|activity-privacy|admin-access|anki-deck-model|anki-field-placeholders|auth-callback|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|reporting|shirabe-connection|user-settings|word-mining)\.spec\.ts$/;
 
 /**
- * SMOKE MODE, set by the production release workflow. Staging keeps the whole
- * suite; production runs a subset, and the reason is a hard limit rather than a
- * preference.
- *
- * Production throttles HTML renders to `NUXT_RATE_LIMIT_HTML_MAX: 20` per minute
- * per IP, and deliberately has no bypass -- see the note in
- * frontend/config/deploy.staging.yml, where the staging-only bypass secret says
- * so explicitly. A CI run is one runner address, so all 152 tests cannot fit:
- * measured on prod, request 23 in a minute returns 429. The suite did not fail
- * honestly when it hit that. It 429d at whatever assertion happened to be next,
- * so each run blamed a different innocent test -- collections and hidden-media
- * in v2.3.1, media and redirects in v2.3.3 -- and prod E2E had been red since
- * 2026-08-10 for a reason that was never in the application.
- *
- * WHAT EARNS A SLOT: things that can only break in production. Real Postgres,
- * real Elasticsearch, real R2/CDN media, real Cloudflare in front. Application
- * logic is not re-litigated here; staging runs the complete matrix against the
- * same commit with the bypass, and that is where a logic regression is caught.
+ * Release workflows use this serial smoke suite. It covers the boundaries that
+ * only a deployed environment can prove: SSR, authentication, Cloudflare, R2,
+ * PostgreSQL and Elasticsearch. The component and API checks cover application
+ * behaviour without loading the database shared by staging and production.
  *
  *   homepage      SSR renders, real stats and recent-media come back
  *   navigation    six status-code checks -- one render each, the cheapest
@@ -93,10 +79,8 @@ const AUTHENTICATED_TESTS =
  *                 that made the panel unusable for anyone logged in over a day)
  *                 that staging can miss and prod cannot afford to.
  *
- * ~20 production-smoke tests. Deliberately not `mobile` (viewport behaviour,
- * not infrastructure)
- * and not `redirects` (13 tests of pure routing that cannot differ by
- * environment, and the single largest consumer of the budget).
+ * Mobile and pure routing stay outside this suite because they do not depend on
+ * deployed infrastructure.
  */
 const SMOKE = !!process.env.E2E_SMOKE;
 // The leading `/` is load-bearing: without it `sentence` also matches
@@ -124,7 +108,7 @@ export default defineConfig({
   // into a cascade of unrelated ones.
   retries: SMOKE ? 1 : process.env.CI ? 2 : 1,
   maxFailures: process.env.CI ? 5 : undefined,
-  // Full staging runs use one seeded account per worker (see auth.ts and the
+  // Full local runs use one seeded account per worker (see auth.ts and the
   // backend seeds), so stateful specs can run concurrently without clearing one
   // another's preferences, collections or activity. Four workers keeps the
   // application responsive under the state-heavy suite. Eight workers looked
@@ -134,11 +118,8 @@ export default defineConfig({
   // Production smoke stays serial because its HTML limiter counts bursts like
   // sustained load and intentionally has no origin bypass.
   workers: SMOKE ? 1 : 4,
-  // A retry is valuable evidence in the full staging gate, which must remain
-  // clean before production can be promoted. Production smoke runs against
-  // live edge infrastructure after that exact SHA has passed staging, so a
-  // transient edge failure that passes its retry should not roll back a sound
-  // release. A failed retry still exits non-zero and triggers rollback.
+  // A release smoke retry may tolerate a transient edge failure, but a full CI
+  // run reports it as flaky.
   failOnFlakyTests: !!process.env.CI && !SMOKE,
   reporter: process.env.CI
     ? [

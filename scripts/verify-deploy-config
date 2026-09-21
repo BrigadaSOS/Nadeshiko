@@ -18,6 +18,7 @@ backend_prod = load_yaml("backend/config/deploy.prod.yml")
 backend_staging = load_yaml("backend/config/deploy.staging.yml")
 frontend_prod = load_yaml("frontend/config/deploy.prod.yml")
 frontend_staging = load_yaml("frontend/config/deploy.staging.yml")
+discord_prod = load_yaml("discord/config/deploy.prod.yml")
 
 [[backend_prod, backend_staging, "backend"], [frontend_prod, frontend_staging, "frontend"]].each do |prod, staging, name|
   assert!(prod.fetch("service") != staging.fetch("service"), "#{name} staging and production services must differ")
@@ -26,6 +27,11 @@ end
 
 assert!(backend_prod.dig("env", "clear", "ELASTICSEARCH_INDEX") == "nadedb_prod", "production backend must use nadedb_prod")
 assert!(backend_staging.dig("env", "clear", "ELASTICSEARCH_INDEX") == "nadedb_dev", "staging backend must use nadedb_dev")
+assert!(backend_prod.dig("accessories", "postgres", "options", "memory") == "1.5g", "production Postgres memory limit must remain explicit")
+assert!(backend_prod.dig("accessories", "postgres", "options", "shm-size") == "256m", "production Postgres must not use Docker's 64MB /dev/shm default")
+assert!(Array(frontend_prod.dig("servers", "web", "options", "add-host")).include?("api.nadeshiko.co:host-gateway"), "production frontend must route the API through the stable host gateway")
+assert!(Array(frontend_staging.dig("servers", "web", "options", "add-host")).include?("api-stg.nadeshiko.co:host-gateway"), "staging frontend must route the API through the stable host gateway")
+assert!(Array(discord_prod.dig("servers", "web", "options", "add-host")).include?("api.nadeshiko.co:host-gateway"), "production Discord must route the API through the stable host gateway")
 assert!(backend_staging.dig("proxy", "host") == "api-stg.nadeshiko.co", "staging API host must remain isolated")
 assert!(frontend_prod.dig("proxy", "host") == "nadeshiko.co", "production frontend host must be nadeshiko.co")
 assert!(frontend_staging.dig("proxy", "host") == "stg.nadeshiko.co", "staging frontend host must be stg.nadeshiko.co")
