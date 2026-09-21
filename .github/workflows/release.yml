@@ -318,6 +318,20 @@ jobs:
           cd frontend
           VERSION="$RELEASE_SHA" kamal deploy -d prod --skip-push
 
+      # Locale sitemaps fan out over the catalogue on their first request and
+      # can take longer than Kamal Proxy's deliberate ten-second reader timeout.
+      # Warm them through the container's own listener before the edge purge
+      # makes the new process authoritative. Twice covers both Nitro cluster
+      # workers; a non-200 response fails the release before cached traffic is
+      # discarded.
+      - name: Warm production sitemaps before exposing the cold process
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd frontend
+          kamal app exec -d prod --reuse "node -e 'const locales = [\"en\", \"es\", \"zh\", \"zh-hant\", \"id\", \"pt-BR\"]; for (let pass = 0; pass < 2; pass++) for (const locale of locales) { const response = await fetch(\`http://127.0.0.1:3000/__sitemap__/\${locale}.xml\`); if (!response.ok) throw new Error(\`\${locale}: HTTP \${response.status}\`); await response.arrayBuffer(); }'"
+
       # Anonymous sentence and search HTML is edge-cached for an hour
       # (`cloudflare-cache.tf` in brigadasos-infra, `edge_ttl: respect_origin`,
       # against `CDN-Cache-Control: public, max-age=3600` from
