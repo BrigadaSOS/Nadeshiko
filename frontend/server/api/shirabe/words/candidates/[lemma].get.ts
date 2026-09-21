@@ -134,7 +134,7 @@ const handler = defineEventHandler(async (event) => {
     callShirabe<IdentifyResponse>({
       path: '/words/identify',
       method: 'POST',
-      query: { locale },
+      query: { locale, ...(key ? {} : { 'dictionaries[]': 'jmdict' }) },
       // Everything the card draws, in one call. Without this a client renders
       // the picked candidate from identify and then has to fetch
       // `GET /api/v1/words/{id}` purely for the pitch diagram, the badges, the
@@ -223,12 +223,6 @@ const handler = defineEventHandler(async (event) => {
     const words = withoutNameEntries(all);
     const candidates = words.length > 0 ? words : all;
     if (!candidates.length) throw createError({ statusCode: 404, statusMessage: 'No entry for this word' });
-    const orderedCandidates = answeredAsReader
-      ? candidates
-      : [
-          ...candidates.filter((candidate) => candidate.dictionary !== 'wikipedia'),
-          ...candidates.filter((candidate) => candidate.dictionary === 'wikipedia'),
-        ];
 
     // ...but only when being a name is genuinely all there is to say.
     //
@@ -268,7 +262,7 @@ const handler = defineEventHandler(async (event) => {
     // shared, cached one, so it would be the same string for everybody.
     return {
       ...found,
-      candidates: orderedCandidates,
+      candidates,
       nameOnly,
       ...(answeredAsReader && answer?.stackFingerprint ? { stackFingerprint: answer.stackFingerprint } : {}),
     };
