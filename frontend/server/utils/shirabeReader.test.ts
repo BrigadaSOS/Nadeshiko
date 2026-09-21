@@ -13,7 +13,7 @@ vi.mock('~~/server/utils/internalBackend', () => ({
   buildInternalBackendHeaders: (_config: unknown, headers: Record<string, string>) => headers,
 }));
 
-const { readerHasOwnStack, readerStack, readerToken, reportStackFingerprint } = await import('./shirabeReader');
+const { readerStack, readerToken, reportStackFingerprint } = await import('./shirabeReader');
 const { _resetSsrAuthCacheForTests } = await import('./ssrAuthCache');
 
 function fakeEvent(cookieHeader?: string) {
@@ -32,7 +32,7 @@ const SIGNED_IN = 'nadeshiko.session_token=tok1';
  * matter most are the ones about where the answer comes from and what happens
  * when it cannot be found.
  */
-describe('readerHasOwnStack', () => {
+describe('readerStack cache selection', () => {
   beforeEach(() => {
     $fetch.mockReset();
     _resetSsrAuthCacheForTests();
@@ -42,14 +42,14 @@ describe('readerHasOwnStack', () => {
   // reader. It must not cost a round trip to establish something the missing
   // cookie already settled.
   it('answers for a reader with no session without asking anybody', async () => {
-    expect(await readerHasOwnStack(fakeEvent())).toBe(false);
+    expect((await readerStack(fakeEvent())).linked).toBe(false);
     expect($fetch).not.toHaveBeenCalled();
   });
 
   it('reads the link off the session', async () => {
     $fetch.mockResolvedValue({ user: { shirabe: { linked: true } } });
 
-    expect(await readerHasOwnStack(fakeEvent(SIGNED_IN))).toBe(true);
+    expect((await readerStack(fakeEvent(SIGNED_IN))).linked).toBe(true);
     // Never slides the session: a lookup answer can be stored in the shared
     // cache, so the renewed cookie that a refresh returns could not be passed
     // on from here even if it arrived. `identity-auth` is the path that can.
@@ -59,7 +59,7 @@ describe('readerHasOwnStack', () => {
   it('treats a signed-in reader who linked nothing as having no stack', async () => {
     $fetch.mockResolvedValue({ user: { id: 1 } });
 
-    expect(await readerHasOwnStack(fakeEvent(SIGNED_IN))).toBe(false);
+    expect((await readerStack(fakeEvent(SIGNED_IN))).linked).toBe(false);
   });
 
   // The backend being unreachable is not a reason to fail a word card. The
@@ -68,7 +68,7 @@ describe('readerHasOwnStack', () => {
   it('falls back to the default dictionaries when the session cannot be read', async () => {
     $fetch.mockRejectedValue(new Error('backend is down'));
 
-    expect(await readerHasOwnStack(fakeEvent(SIGNED_IN))).toBe(false);
+    expect((await readerStack(fakeEvent(SIGNED_IN))).linked).toBe(false);
   });
 
   // The cache decision and the handler both ask. Two session reads per lookup
@@ -77,8 +77,8 @@ describe('readerHasOwnStack', () => {
     $fetch.mockResolvedValue({ user: { shirabe: { linked: true } } });
     const event = fakeEvent(SIGNED_IN);
 
-    await readerHasOwnStack(event);
-    await readerHasOwnStack(event);
+    await readerStack(event);
+    await readerStack(event);
 
     expect($fetch).toHaveBeenCalledTimes(1);
   });
@@ -170,49 +170,5 @@ describe('readerToken', () => {
     $fetch.mockRejectedValue(Object.assign(new Error('not found'), { statusCode: 404 }));
 
     expect(await readerToken(fakeEvent(SIGNED_IN))).toBeNull();
-  });
-});
-
-/**
- * The bug that made the whole feature a no-op, and the reason it survived so
- * long: nothing threw and nothing logged.
- *
- * `defineCachedEventHandler` does not run the handler on the request it arrived
- * on. It builds a fresh event, copies `context` and drops the headers -- so
- * inside the handler there is no cookie to read, `readerToken` returns null at
- * its own guard, and every lookup quietly answers on the service key. A reader
- * who linked their account got the default dictionaries forever.
- */
-describe('a handler that has lost its headers', () => {
-  beforeEach(() => {
-    $fetch.mockReset();
-    _resetSsrAuthCacheForTests();
-  });
-
-  /** What Nitro hands the handler: the same context object, no headers. */
-  const stripped = (event: { context: Record<string, unknown> }) =>
-    ({ context: event.context, node: { req: { headers: {} } }, headers: {} }) as never;
-
-  it('still fetches the reader key when the cache layer has stripped the cookie', async () => {
-    const event = fakeEvent(SIGNED_IN) as unknown as { context: Record<string, unknown> };
-    $fetch.mockResolvedValue({ user: { shirabe: { linked: true, stackFingerprint: 'abc123' } } });
-
-    // The cache decision runs on the real request, which is the last moment the
-    // cookie exists.
-    await readerStack(event as never);
-
-    $fetch.mockResolvedValue({ token: 'shra_reader_access' });
-    expect(await readerToken(stripped(event))).toBe('shra_reader_access');
-  });
-
-  // And the reader who never signed in must not acquire a cookie from anywhere:
-  // an empty stash is still no session.
-  it('answers null when there was no cookie to stash', async () => {
-    const event = fakeEvent() as unknown as { context: Record<string, unknown> };
-
-    await readerStack(event as never);
-
-    expect(await readerToken(stripped(event))).toBeNull();
-    expect($fetch).not.toHaveBeenCalled();
   });
 });

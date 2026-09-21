@@ -28,6 +28,7 @@ const shirabeName = ref('');
 onMounted(async () => {
   const code = String(route.query.code ?? '');
   const sealed = String(route.query.state ?? '');
+  const issuer = typeof route.query.iss === 'string' ? route.query.iss : undefined;
   // Shirabe reports a refusal on the redirect, the way the spec says. The
   // ordinary one is `access_denied`: the reader looked at the consent screen and
   // said no, which is an answer rather than a failure.
@@ -42,7 +43,7 @@ onMounted(async () => {
   try {
     const { connection } = await $fetch<{ connection: { shirabeName: string | null } }>(
       '/v1/user/connections/shirabe/callback',
-      { method: 'POST', body: { code, state: sealed } },
+      { method: 'POST', body: { code, state: sealed, issuer } },
     );
     shirabeName.value = connection?.shirabeName || t('connections.shirabe.anonymous');
     // The code is spent and the state has done its job; neither belongs in the

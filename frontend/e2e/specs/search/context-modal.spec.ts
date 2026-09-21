@@ -101,7 +101,7 @@ test.describe('Context modal', () => {
     await expect(tokens.first()).toBeVisible();
     await tokens.first().click();
 
-    const card = page.locator('.token-tooltip');
+    const card = page.locator('.sb-host .sb-popup.sb-visible');
     await expect(card).toBeVisible({ timeout: 5_000 });
 
     const onTop = await card.evaluate((el) => {

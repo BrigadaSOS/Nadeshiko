@@ -1,10 +1,11 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import { ShirabeConnection } from '@app/models/ShirabeConnection';
 import { InvalidRequestError, ValidationFailedError } from '@app/errors';
 import { currentKeyId, decryptSecret, encryptSecret, keyIdOf } from '@lib/secretBox';
 import { Cache, createCacheNamespace } from '@lib/cache';
+import { createShirabeClient, type OauthTokenResponse, type ShirabeScope } from '@shirabe-org/api';
+import { createShirabeClient as createShirabeServerClient, ShirabeOAuthError } from '@shirabe-org/api/server';
 
 /**
  * Linking a reader's Shirabe account to their Nadeshiko one: OAuth 2.0
@@ -22,16 +23,12 @@ import { Cache, createCacheNamespace } from '@lib/cache';
  * choose, and it has already changed once (an hour, until renewals turned out
  * to be the only moment a link can be lost).
  *
- * Scopes: READ_DICTIONARY and READ_ACCOUNT. The consent screen is the moment a
+ * Scopes: `user:dictionary:read` and `user:preferences:read`. The consent screen is the moment a
  * reader decides, and a permission with no feature behind it is the one that
  * makes them say no -- so we do not ask for the SRS scopes until something here
  * writes to their study data.
  */
 
-const AUTHORIZE_PATH = '/oauth/authorize';
-const TOKEN_PATH = '/api/v1/oauth/token';
-const REVOKE_PATH = '/api/v1/oauth/revoke';
-const ME_PATH = '/api/v1/me';
 /**
  * What this deployment needs from a linked account, and the single place that
  * decides it.
@@ -40,16 +37,13 @@ const ME_PATH = '/api/v1/me';
  * carries (`missingScopes`), which is what makes adding one a change here rather
  * than a migration.
  *
- * BOTH scopes are load-bearing, and it took a wrong version of this list to see
- * why. `READ_ACCOUNT` reads the reader's dictionary stack off `GET /api/v1/me`.
- * `READ_DICTIONARY` is what lets the key ASK: every endpoint on Shirabe's API
- * defaults to requiring it (their `Api::BaseController.required_scope`), and
- * `POST /api/v1/words/identify` does not override that. A link carrying
- * READ_ACCOUNT alone therefore reads the stack it is never allowed to use.
+ * It reads the stack and lets `identify` resolve against that stack. It also
+ * satisfies an API endpoint's base `dictionary:read` requirement. We do not
+ * request profile access merely to render an account name in settings.
  *
  * That failure is silent, which is the reason for this paragraph. `identify`
  * answers 403, our lookup route treats 403 as "this reader's key was refused"
- * and retries on the service key, and the reader gets the DEFAULT dictionaries
+ * and retries with the shared service bearer, and the reader gets the DEFAULT dictionaries
  * with no error anywhere: linking succeeds, reports success, and changes
  * nothing. Anything added here in future wants the same question asked of it,
  * namely which call fails and how loudly, before it is assumed to be enough.
@@ -66,12 +60,14 @@ const ME_PATH = '/api/v1/me';
  * up with a key that cannot do the thing. `completeLink` refuses that outcome
  * loudly rather than storing it; see `assertGranted`.
  */
-export const REQUIRED_SCOPES = ['READ_DICTIONARY', 'READ_ACCOUNT'] as const;
+export const REQUIRED_SCOPES = [
+  'user:dictionary:read',
+  'user:preferences:read',
+] as const satisfies readonly ShirabeScope[];
 
 /** How long a started link has to finish. Long enough to sign in over there
  *  (including a magic link in another tab), short enough that an abandoned one
  *  is not still redeemable tomorrow. */
-const FLOW_TTL_MS = 15 * 60 * 1000;
 const TIMEOUT_MS = 10_000;
 
 /**
@@ -84,13 +80,11 @@ const TIMEOUT_MS = 10_000;
  */
 const USER_AGENT = 'Nadeshiko (+https://nadeshiko.co)';
 
-/**
- * Renew the access token this long before it actually expires, so a lookup
- * never goes out on a token that dies in flight. The reader's key is fetched on
- * a cache miss and used moments later, but the clocks are two machines' and the
- * network is real, so a minute of headroom is cheap insurance.
- */
+/** Legacy links without a stored refresh deadline keep their previous margin. */
 const ACCESS_TOKEN_RENEW_AHEAD_MS = 60 * 1000;
+const TOKEN_RENEW_RETRY_MS = 5 * 60 * 1000;
+const TOKEN_RENEW_RETRY_CACHE = createCacheNamespace('shirabeTokenRenewRetry');
+export const __testing = { resetTokenRenewRetries: () => Cache.invalidate(TOKEN_RENEW_RETRY_CACHE) };
 
 /**
  * How old a stack copy may get before a reader's PRESENCE refreshes it.
@@ -103,7 +97,7 @@ const ACCESS_TOKEN_RENEW_AHEAD_MS = 60 * 1000;
  * happens when we need a new access token, which is when a lookup misses cache.
  * A reader here every day whose lookups all hit their browser cache would renew
  * nothing and, in 90 days, lose a link they are relying on. This refresh reads
- * `/me` through `refreshStack`, which renews the token when it is due -- so it
+ * the dictionary stack through `refreshStack`, which renews the token when it is due -- so it
  * re-copies the stack AND keeps an active reader's grant from ever reaching the
  * idle horizon.
  *
@@ -119,61 +113,12 @@ export const STACK_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_INFLIGHT_CACHE = createCacheNamespace('shirabeStackRefresh', 10_000);
 const REFRESH_INFLIGHT_MS = 60 * 60 * 1000;
 
-interface PendingFlow {
-  userId: number;
-  verifier: string;
-  expiresAt: number;
-}
-
-/**
- * The `state` is the whole pending flow, encrypted, rather than a key into
- * something we stored.
- *
- * The obvious implementation keeps `{state -> verifier}` in the process cache,
- * and it is wrong here for a reason that only shows up in production: the
- * request that STARTS the flow and the request that finishes it are two separate
- * HTTP calls minutes apart, and nothing routes them to the same process. The
- * reader would link successfully or not depending on which container answered,
- * which is the kind of bug that never reproduces locally.
- *
- * So nothing is stored. The state carries the verifier and who it belongs to,
- * sealed with our own key (AES-GCM, so it cannot be forged or edited), and the
- * callback opens it. Shirabe sees an opaque string; the browser carries a blob
- * only we can read.
- */
-/** Its own key, derived from the same root as the stored tokens but unrelated to
- *  it: a `state` handed around in a browser URL should not share key material
- *  with credentials sitting in the database. */
-const STATE_CONTEXT = { purpose: 'shirabe.oauth-state' } as const;
-
 /** Bound to the reader, so a ciphertext lifted into another reader's row fails
  *  to open rather than handing them someone else's Shirabe token. A purpose per
  *  half, so an access ciphertext cannot be opened as a refresh one even in the
  *  same row. */
 const accessTokenContext = (userId: number) => ({ purpose: 'shirabe.access-token', aad: String(userId) });
 const refreshTokenContext = (userId: number) => ({ purpose: 'shirabe.refresh-token', aad: String(userId) });
-
-function sealFlow(flow: PendingFlow): string {
-  return encryptSecret(JSON.stringify(flow), connectionSecret(), STATE_CONTEXT);
-}
-
-function openFlow(state: string): PendingFlow {
-  let flow: PendingFlow;
-  try {
-    flow = JSON.parse(decryptSecret(state, connectionSecrets(), STATE_CONTEXT)) as PendingFlow;
-  } catch {
-    // Deliberately the same message for a forged state, a corrupt one, and one
-    // sealed under a rotated secret: a caller cannot use the difference to
-    // learn which of those it produced.
-    throw new InvalidRequestError('This link request is not valid. Start again from your settings.');
-  }
-
-  if (!flow?.verifier || !flow.userId || flow.expiresAt < Date.now()) {
-    throw new InvalidRequestError('This link request has expired. Start again from your settings.');
-  }
-
-  return flow;
-}
 
 /**
  * Every key a stored value might have been sealed with: the current one first,
@@ -194,10 +139,19 @@ function connectionSecret(): string {
   return secret;
 }
 
-/** PKCE S256: the challenge is what Shirabe stores, the verifier is what proves
- *  the redemption came from whoever started the flow. */
-function challengeFor(verifier: string): string {
-  return createHash('sha256').update(verifier).digest('base64url');
+function shirabeOAuth() {
+  return createShirabeServerClient({
+    baseUrl: config.SHIRABE_API_BASE,
+    clientId: config.SHIRABE_OAUTH_CLIENT_ID,
+    clientSecret: config.SHIRABE_OAUTH_CLIENT_SECRET,
+    scopes: ['dictionary:read', ...REQUIRED_SCOPES],
+    link: {
+      redirectUri: config.SHIRABE_OAUTH_REDIRECT_URI,
+      stateSecret: connectionSecret(),
+      previousStateSecret: config.SHIRABE_CONNECTION_SECRET_PREVIOUS,
+      userAgent: USER_AGENT,
+    },
+  }).link;
 }
 
 /**
@@ -212,21 +166,7 @@ export function startLink(userId: number): { authorizeUrl: string; state: string
     });
   }
 
-  const verifier = randomBytes(48).toString('base64url');
-  const state = sealFlow({ userId, verifier, expiresAt: Date.now() + FLOW_TTL_MS });
-
-  const url = new URL(AUTHORIZE_PATH, config.SHIRABE_API_BASE);
-  url.search = new URLSearchParams({
-    response_type: 'code',
-    client_id: config.SHIRABE_OAUTH_CLIENT_ID,
-    redirect_uri: redirectUri,
-    scope: REQUIRED_SCOPES.join(' '),
-    state,
-    code_challenge: challengeFor(verifier),
-    code_challenge_method: 'S256',
-  }).toString();
-
-  return { authorizeUrl: url.toString(), state };
+  return shirabeOAuth().begin(String(userId));
 }
 
 /** The token endpoint's answer (RFC 6749 §5.1). One shape for the first
@@ -240,11 +180,7 @@ interface TokenResponse {
   scope?: string;
 }
 
-interface MeResponse {
-  user?: { name?: string; displayName?: string };
-  /** What the token we just used actually carries, which is not always what we
-   *  asked for: Shirabe narrows a request to what the client is registered for. */
-  credential?: { scopes?: string[] };
+interface StackProfile {
   preferences?: {
     dictionaries?: string[];
     stackFingerprint?: string;
@@ -252,29 +188,25 @@ interface MeResponse {
     /** Slug => display name, for the stack. Only Shirabe can name a reader's own
      *  uploads, which are filed under content hashes. */
     dictionaryNames?: Record<string, string>;
+    dictionaryReveal?: Record<string, 'show' | 'hover'>;
   };
 }
 
 /**
- * Step two: swap the one-time code for a key, then immediately ask Shirabe who
- * we just linked and what their stack is. Both, before anything is stored:
+ * Step two: swap the one-time code for a token pair, then immediately read
+ * its dictionary stack before anything is stored:
  * a row holding a token we have never successfully used is a link that looks
  * fine on the settings page and fails on the first lookup.
  */
-export async function completeLink(userId: number, code: string, state: string): Promise<ShirabeConnection> {
-  const flow = openFlow(state);
-
-  // The state proves the flow was started HERE; this proves it was started by
-  // the person finishing it. Without it, an attacker who completes their own
-  // authorization at Shirabe could hand the resulting callback URL to a
-  // logged-in victim and attach their account to the victim's -- after which
-  // every word the victim looks up is shaped by, and visible to, the attacker's
-  // dictionary stack.
-  if (flow.userId !== userId) {
-    throw new InvalidRequestError('This link request belongs to a different account.');
-  }
-
-  const token = await exchangeCode(bodyForCode(code, flow.verifier));
+export async function completeLink(
+  userId: number,
+  code: string,
+  state: string,
+  issuer?: string,
+): Promise<ShirabeConnection> {
+  const token = await requestToken(() =>
+    shirabeOAuth().complete({ code, state, subject: String(userId), issuer, signal: AbortSignal.timeout(TIMEOUT_MS) }),
+  );
 
   // From here on a grant EXISTS on the reader's Shirabe access list, approved
   // for us, and only we hold its tokens. Anything that stops the link being
@@ -282,10 +214,10 @@ export async function completeLink(userId: number, code: string, state: string):
   // live "Nadeshiko" row over there that nothing on this side will ever use.
   try {
     // The cheap check first: the token response already says what the grant
-    // carries, and a token missing READ_ACCOUNT cannot even read `/me` -- so
-    // asking `/me` first would turn the one misconfiguration `assertGranted`
+    // carries, and a token missing dictionary access cannot read its stack -- so
+    // asking for the stack first would turn the one misconfiguration `assertGranted`
     // exists to name into a generic 403 that names nothing.
-    assertGranted(token, {});
+    assertGranted(token);
 
     // Any refusal here is the same outcome for the reader -- the link did not
     // happen, start again -- so the status `fetchProfile` now carries is only
@@ -297,10 +229,6 @@ export async function completeLink(userId: number, code: string, state: string):
       }
       throw error;
     });
-    // Again, on what `/me` reports: it is the authority on the token that made
-    // the call, and the token response is only what Shirabe meant to grant.
-    assertGranted(token, profile);
-
     return await saveConnection(userId, token, profile);
   } catch (error) {
     await revokeGrant(token.refresh_token, userId);
@@ -321,8 +249,8 @@ export async function completeLink(userId: number, code: string, state: string):
  * Loud instead: the operator sees which scope is missing, and the reader is told
  * plainly that the feature is unavailable rather than that they did it wrong.
  */
-function assertGranted(token: TokenResponse, profile: MeResponse): void {
-  const granted = new Set(grantedScopes(token, profile));
+function assertGranted(token: TokenResponse): void {
+  const granted = new Set(grantedScopes(token));
   const missing = REQUIRED_SCOPES.filter((scope) => !granted.has(scope));
   if (missing.length === 0) return;
 
@@ -334,27 +262,6 @@ function assertGranted(token: TokenResponse, profile: MeResponse): void {
   throw new InvalidRequestError(
     'Shirabe could not grant everything this connection needs. Nothing was linked; this is being looked into.',
   );
-}
-
-/** The token-endpoint body for the first exchange: the code, its PKCE verifier,
- *  and our client identity. */
-function bodyForCode(code: string, verifier: string): Record<string, string> {
-  return {
-    grant_type: 'authorization_code',
-    code,
-    code_verifier: verifier,
-    redirect_uri: config.SHIRABE_OAUTH_REDIRECT_URI,
-    ...clientCredentials(),
-  };
-}
-
-/** Who we are to the token endpoint. A confidential client, so the secret rides
- *  on every call: the exchange, the renewal, the revoke. */
-function clientCredentials(): Record<string, string> {
-  return {
-    client_id: config.SHIRABE_OAUTH_CLIENT_ID,
-    client_secret: config.SHIRABE_OAUTH_CLIENT_SECRET,
-  };
 }
 
 /**
@@ -377,41 +284,38 @@ export class ShirabeGrantOverError extends Error {
  * 500. The exchange path treats both the same (any failure means "start again")
  * and translates at its own call site.
  */
-async function exchangeCode(body: Record<string, string>): Promise<TokenResponse> {
-  const response = await fetch(new URL(TOKEN_PATH, config.SHIRABE_API_BASE), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'user-agent': USER_AGENT },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-
-  if (!response.ok) {
-    // The body carries Shirabe's own reason (an expired code, a redirect
-    // mismatch, an `error`), worth logging and NOT worth showing: it is about
-    // our two servers, and a reader can do nothing with it but try again.
-    const detail = await response.text().catch(() => '');
-    logger.warn({ status: response.status, detail }, 'Shirabe rejected a token request');
-    if (body.grant_type === 'refresh_token' && isInvalidGrant(detail)) throw new ShirabeGrantOverError();
-    throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
+async function requestToken(request: () => Promise<OauthTokenResponse>, refreshing = false): Promise<TokenResponse> {
+  let token: OauthTokenResponse;
+  try {
+    token = await request();
+  } catch (error) {
+    if (error instanceof ShirabeOAuthError) {
+      if (error.code === 'subject_mismatch') {
+        throw new InvalidRequestError('This link request belongs to a different account.');
+      }
+      if (error.code === 'state_expired') {
+        throw new InvalidRequestError('This link request has expired. Start again from your settings.');
+      }
+      if (error.code === 'invalid_state' || error.code === 'invalid_issuer') {
+        throw new InvalidRequestError('This link request is not valid. Start again from your settings.');
+      }
+      logger.warn({ status: error.status, detail: error.detail }, 'Shirabe rejected a token request');
+      if (refreshing && error.code === 'invalid_grant') throw new ShirabeGrantOverError();
+      throw new InvalidRequestError('Shirabe would not complete the link. Start again from your settings.');
+    }
+    throw error;
   }
 
-  const token = (await response.json()) as TokenResponse;
   if (!token?.access_token || !token?.refresh_token) {
     throw new InvalidRequestError('Shirabe returned no tokens for this link.');
   }
 
-  return token;
-}
-
-/** Shirabe answers a dead refresh token with `error: "invalid_grant"` (RFC 6749
- *  §5.2). That is the one refusal that means the link is over rather than that
- *  Shirabe is briefly unwell. */
-function isInvalidGrant(detail: string): boolean {
-  try {
-    return (JSON.parse(detail) as { error?: string }).error === 'invalid_grant';
-  } catch {
-    return false;
-  }
+  return {
+    access_token: token.access_token,
+    refresh_token: token.refresh_token,
+    expires_in: token.expires_in,
+    scope: token.scope,
+  };
 }
 
 /**
@@ -421,7 +325,7 @@ function isInvalidGrant(detail: string): boolean {
  * `InvalidRequestError`, which read fine at the only call site it had -- the
  * link flow, where any failure means "start again" -- and erased the one thing
  * `refreshStack` needs to tell a dead link from a bad minute. Shirabe is precise
- * about this and we were throwing the precision away: 401 is `API_KEY_INVALID`
+ * about this and we were throwing the precision away: 401 is an invalid token
  * (invalid, expired, or revoked), 403 is `INSUFFICIENT_SCOPE`, and everything
  * else is not an answer about the key at all.
  */
@@ -432,21 +336,48 @@ export class ShirabeRefusedError extends Error {
   }
 }
 
-async function fetchProfile(apiKey: string): Promise<MeResponse> {
-  const response = await fetch(new URL(ME_PATH, config.SHIRABE_API_BASE), {
-    headers: { authorization: `Bearer ${apiKey}`, 'user-agent': USER_AGENT },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-
-  if (!response.ok) {
-    logger.warn({ status: response.status }, 'Shirabe would not answer /me');
-    throw new ShirabeRefusedError(response.status);
+async function fetchProfile(accessToken: string): Promise<StackProfile> {
+  const client = shirabeClient(accessToken);
+  const [stack, dictionaries] = await Promise.all([
+    client.getDictionaryStack({ signal: AbortSignal.timeout(TIMEOUT_MS) }),
+    client.listDictionaries({ signal: AbortSignal.timeout(TIMEOUT_MS) }),
+  ]);
+  const failed = [stack, dictionaries].find((result) => result.error);
+  if (failed?.error || !stack.data || !dictionaries.data) {
+    const status = failed?.response?.status ?? 500;
+    logger.warn({ status }, 'Shirabe would not answer its linked-account profile endpoints');
+    throw new ShirabeRefusedError(status);
   }
 
-  return (await response.json()) as MeResponse;
+  const names = Object.fromEntries(
+    dictionaries.data.dictionaries.map((dictionary) => [dictionary.slug, dictionary.name]),
+  );
+  const personal = new Set(
+    dictionaries.data.dictionaries
+      .filter((dictionary) => dictionary.visibility === 'personal')
+      .map((dictionary) => dictionary.slug),
+  );
+  const sources = stack.data.dictionaryStack.sources;
+  return {
+    preferences: {
+      dictionaries: sources.flatMap((source) => source.languages.map((language) => `${source.dictionary}:${language}`)),
+      stackFingerprint: stack.data.dictionaryStack.fingerprint,
+      stackIsPrivate: sources.some((source) => personal.has(source.dictionary)),
+      dictionaryNames: names,
+      dictionaryReveal: Object.fromEntries(sources.map((source) => [source.dictionary, source.reveal])),
+    },
+  };
 }
 
-async function saveConnection(userId: number, token: TokenResponse, profile: MeResponse): Promise<ShirabeConnection> {
+function shirabeClient(accessToken?: string) {
+  return createShirabeClient({
+    baseUrl: config.SHIRABE_API_BASE,
+    accessToken,
+    headers: { 'user-agent': USER_AGENT },
+  });
+}
+
+async function saveConnection(userId: number, token: TokenResponse, profile: StackProfile): Promise<ShirabeConnection> {
   // Linking again REPLACES the link rather than adding a second one: a reader
   // with two stacks gives a lookup no way to say which one it meant.
   const connection = (await ShirabeConnection.findOne({ where: { userId } })) ?? ShirabeConnection.create({ userId });
@@ -456,10 +387,10 @@ async function saveConnection(userId: number, token: TokenResponse, profile: MeR
   const replaced = connection.refreshTokenCiphertext ? readRefreshTokenIfPossible(connection) : null;
 
   applyTokens(connection, token);
-  connection.scopes = grantedScopes(token, profile);
-  connection.shirabeName = profile.user?.displayName || profile.user?.name || null;
+  connection.scopes = grantedScopes(token);
+  connection.shirabeName = null;
   // Whatever ended the last link is over: this grant was approved seconds ago
-  // and has already answered `/me`. Cleared here rather than left to the next
+  // and has already answered the stack endpoints. Cleared here rather than left to the next
   // refresh so the settings page the reader lands back on is right immediately.
   connection.disconnectedAt = null;
   applyProfile(connection, profile);
@@ -492,16 +423,18 @@ function applyTokens(connection: ShirabeConnection, token: TokenResponse): void 
     connectionSecret(),
     refreshTokenContext(userId),
   );
-  connection.accessTokenExpiresAt = new Date(Date.now() + token.expires_in * 1000);
+  const issuedAt = Date.now();
+  connection.accessTokenExpiresAt = new Date(issuedAt + token.expires_in * 1000);
+  connection.accessTokenRefreshAt = new Date(issuedAt + token.expires_in * 1000 * 0.7);
 }
 
 /**
- * What the grant really carries. `/api/v1/me` is the authority -- it reports the
- * scopes of the token that made the call -- and the token response's `scope`
- * string is the fallback when `/me` was not read (a renewal).
+ * What the grant really carries. The token response's `scope` is issued by
+ * Shirabe for this exact grant; stack reads intentionally do not request the
+ * unrelated profile scope, so it is the authority we retain on renewal.
  */
-function grantedScopes(token: TokenResponse, profile: MeResponse): string[] {
-  return profile.credential?.scopes ?? token.scope?.split(' ').filter(Boolean) ?? [...REQUIRED_SCOPES];
+function grantedScopes(token: TokenResponse): string[] {
+  return token.scope?.split(' ').filter(Boolean) ?? [];
 }
 
 /** What this deployment needs that a link does not carry. Empty means good. */
@@ -511,7 +444,7 @@ export function missingScopes(connection: ShirabeConnection): string[] {
 }
 
 /**
- * What a `/me` read changes about a stored link, as a PATCH rather than as a
+ * What a stack read changes about a stored link, as a PATCH rather than as a
  * mutated entity.
  *
  * The distinction is not style, it is the whole reason links kept dying
@@ -527,13 +460,11 @@ export function missingScopes(connection: ShirabeConnection): string[] {
  * exactly two writers -- the first exchange in `saveConnection` and the renewal
  * under its row lock -- and neither of them is a caller holding an entity.
  */
-function profilePatch(profile: MeResponse) {
+function profilePatch(profile: StackProfile) {
   return {
-    // Absent from the patch rather than defaulted: a `/me` that reports no
-    // scopes is not a link that carries none.
-    ...(profile.credential?.scopes ? { scopes: profile.credential.scopes } : {}),
     stack: profile.preferences?.dictionaries ?? [],
     stackNames: profile.preferences?.dictionaryNames ?? {},
+    stackReveal: profile.preferences?.dictionaryReveal ?? {},
     stackFingerprint: profile.preferences?.stackFingerprint ?? null,
     stackIsPrivate: profile.preferences?.stackIsPrivate ?? false,
     syncedAt: new Date(),
@@ -542,7 +473,7 @@ function profilePatch(profile: MeResponse) {
 
 /** The patch above, applied in place. For `saveConnection`, which is writing the
  *  whole row anyway because it is the row's first writer. */
-function applyProfile(connection: ShirabeConnection, profile: MeResponse): void {
+function applyProfile(connection: ShirabeConnection, profile: StackProfile): void {
   Object.assign(connection, profilePatch(profile));
 }
 
@@ -584,10 +515,11 @@ function readRefreshTokenIfPossible(connection: ShirabeConnection): string | nul
   }
 }
 
-/** Due for renewal: expired, or close enough that a lookup made with it might
- *  arrive after it dies. */
+/** Try renewal with time to recover from an outage, using Shirabe's lifetime. */
 function accessTokenIsDue(connection: ShirabeConnection, now: number = Date.now()): boolean {
-  return connection.accessTokenExpiresAt.getTime() <= now + ACCESS_TOKEN_RENEW_AHEAD_MS;
+  const refreshAt = connection.accessTokenRefreshAt?.getTime() ??
+    connection.accessTokenExpiresAt.getTime() - ACCESS_TOKEN_RENEW_AHEAD_MS;
+  return refreshAt <= now;
 }
 
 /**
@@ -595,7 +527,7 @@ function accessTokenIsDue(connection: ShirabeConnection, now: number = Date.now(
  * when there is nothing to hand out.
  *
  * The credential route calls this and nothing else. Null covers every reason a
- * lookup should quietly fall back to the service key: no link, a link Shirabe
+ * lookup should quietly fall back to the shared service bearer: no link, a link Shirabe
  * has refused, or a renewal that found the grant over (which marks it so, so the
  * next lookup does not try again).
  */
@@ -603,20 +535,25 @@ export async function getReaderAccessToken(userId: number): Promise<string | nul
   const connection = await findConnection(userId);
   if (!connection || connection.disconnectedAt) return null;
   if (!accessTokenIsDue(connection)) return readAccessToken(connection);
+  if (Cache.get<true>(TOKEN_RENEW_RETRY_CACHE, String(userId))) {
+    return connection.accessTokenExpiresAt.getTime() > Date.now() ? readAccessToken(connection) : null;
+  }
 
   try {
     const renewed = await renewAccessToken(userId);
+    Cache.delete(TOKEN_RENEW_RETRY_CACHE, String(userId));
     return renewed && readAccessToken(renewed);
   } catch (error) {
     if (error instanceof ShirabeGrantOverError) {
       await markDisconnected(connection);
       return null;
     }
-    // A transient failure while renewing: the token we hold may already be past
-    // its minute of headroom but is likely still good for the lookup about to
-    // use it, and a bad minute at Shirabe must not read as a dead link.
-    logger.warn({ err: error, userId }, 'Could not renew a Shirabe access token; using the one we hold');
-    return readAccessToken(connection);
+    // A transient renewal failure is not a dead link. Use the old token only
+    // while it is still valid; sending an expired one would get a 401 and make
+    // the lookup path incorrectly mark the link disconnected.
+    logger.warn({ err: error, userId }, 'Could not renew a Shirabe access token');
+    Cache.set(TOKEN_RENEW_RETRY_CACHE, String(userId), true, TOKEN_RENEW_RETRY_MS);
+    return connection.accessTokenExpiresAt.getTime() > Date.now() ? readAccessToken(connection) : null;
   }
 }
 
@@ -648,11 +585,7 @@ async function renewAccessToken(userId: number): Promise<ShirabeConnection | nul
     if (!accessTokenIsDue(connection)) return connection;
 
     const refreshToken = readRefreshToken(connection);
-    const token = await exchangeCode({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      ...clientCredentials(),
-    });
+    const token = await requestToken(() => shirabeOAuth().refresh(refreshToken, AbortSignal.timeout(TIMEOUT_MS)), true);
 
     applyTokens(connection, token);
     if (token.scope) connection.scopes = token.scope.split(' ').filter(Boolean);
@@ -706,7 +639,7 @@ export async function reencryptTokens(connection: ShirabeConnection): Promise<bo
  *
  * A successful read also CLEARS the mark. The commonest way a link comes back is
  * not a re-consent but the reader undoing whatever ended it, and a row that
- * answers `/me` is by definition not refused.
+ * answers the stack endpoints is by definition not refused.
  */
 export async function refreshStack(connection: ShirabeConnection): Promise<ShirabeConnection> {
   try {
@@ -896,12 +829,7 @@ export async function unlink(userId: number): Promise<boolean> {
  */
 async function revokeGrant(refreshToken: string, userId: number): Promise<void> {
   try {
-    await fetch(new URL(REVOKE_PATH, config.SHIRABE_API_BASE), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'user-agent': USER_AGENT },
-      body: JSON.stringify({ token: refreshToken, ...clientCredentials() }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
+    await shirabeOAuth().revoke(refreshToken, AbortSignal.timeout(TIMEOUT_MS));
   } catch (error) {
     logger.warn({ err: error, userId }, 'Could not revoke a Shirabe grant; dropping it on this side anyway');
   }

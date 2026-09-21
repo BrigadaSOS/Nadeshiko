@@ -1,96 +1,23 @@
-import { createError, getQuery, getRouterParam, setResponseHeader } from 'h3';
+import { createError, defineEventHandler, getQuery, getRouterParam, setResponseHeader } from 'h3';
+import { type IdentifyRequest, type IdentifyWordResponse } from '@shirabe-org/api';
 import { logger } from '~~/server/utils/logger';
-import { callShirabe, describeFailure } from '~~/server/utils/shirabeCall';
-import {
-  readerHasOwnStack,
-  readerStack,
-  readerToken,
-  reportShirabeRefusal,
-  reportStackFingerprint,
-} from '~~/server/utils/shirabeReader';
-import { distinctNameAnswers, withoutNameEntries } from '~~/server/utils/shirabeNames';
+import { callShirabe } from '~~/server/utils/shirabeCall';
+import { readerStack, readerToken, reportShirabeRefusal, reportStackFingerprint } from '~~/server/utils/shirabeReader';
 
 /**
- * Which words a token could be, ranked, with their definitions.
+ * Which words the selected span could be, ranked, with their definitions.
  *
- * `POST /api/v1/words/identify` is the question this asks: tokens in, ranked
- * candidates out, and nothing stored anywhere. It replaces a lookup by lemma
- * that used to narrow itself with `?surface=&reading=&pos=` -- a mode Shirabe
- * removed in 0.8.0, because one path segment meaning either a slug or a lemma
- * depending on the query string is how two resources drift apart.
- *
- * That removal is why this exists rather than being a tidy-up. `GET
- * /api/v1/words/{id}` still answers a bare lemma, and a lemma is almost always
- * its own headword, so the old call kept working for nearly every word -- while
- * SILENTLY ignoring the reading. A homograph then fell to Shirabe's
- * commonest-writing tiebreak instead of to how the sentence actually read it:
- * 開いた reads ヒライタ and means ひらく, and the card would confidently print
- * あく. Nothing alerted, because a wrong definition is not an error.
- *
- * A LIST rather than one word, because one answer is a claim that often cannot
- * be supported: きみ can be 君, 黄身 or 黍, and only the reader knows which they
- * meant. `candidates[0]` is Shirabe's best reading of the sentence; the popup
- * offers the rest.
- *
- * Still a GET, and that is deliberate. The upstream call is a POST because its
- * inputs are structured, but a POST from the BROWSER would make the
- * `cache-control` below inert -- and that day-long cache is what keeps a page of
- * twenty segments from spending twenty round trips on the same word.
+ * The browser sends the sentence and UTF-16 target span. Shirabe parses that
+ * text and supplies ranked matches. This GET can use the day-long HTTP cache;
+ * the structured upstream identify request is a POST.
  */
 
 const CACHE_SECONDS = 60 * 60 * 24;
 const RETRY_AFTER_SECONDS = 5;
 
-// `locale` resolves the part-of-speech and misc labels into ONE language, and it
-// is the only thing about this response that varies by reader: the definitions
-// come back in every language the entry has and the caller picks. Clamped to
-// what Shirabe ships a UI in, so an arbitrary query string cannot multiply the
-// cached copies of a word that is the same for everyone.
+// `locale` resolves part-of-speech and misc labels. Clamped to what Shirabe
+// ships a UI in, so arbitrary query strings cannot multiply cached responses.
 const LABEL_LOCALES = new Set(['en', 'es']);
-
-/* Names are dropped before the answer leaves this route -- see
- * `withoutNameEntries` for why, and why an all-names result reads as no entry.
- * Here rather than in the card so the cached response carries no candidate
- * anybody will render, and one place decides. */
-
-/** One candidate as Shirabe serves it. Narrowed to what the card reads. */
-interface ShirabeCandidate {
-  id: string;
-  headword: string;
-  /** What to call this candidate when its headword is a kana form the reader
-   *  never typed (あなた finding 彼方, which is called かなた). A label; the card
-   *  keeps using `id` and `headword` for everything else. */
-  matchedHeadword?: string | null;
-  reading?: string | null;
-  common?: boolean;
-  /** The dictionary's own id, stable across re-imports. Travels with
-   *  `dictionary` as the identity behind the derived `id` handle. */
-  sourceId?: string;
-  dictionary?: string;
-  /** Shirabe's own answer to "is this a person rather than a word", which a
-   *  client cannot derive: see `withoutNameEntries`. */
-  name?: boolean;
-  /** The words a multi-word expression is made of, each with an id that opens
-   *  it. Absent for an ordinary word and for grammar. */
-  parts?: unknown[];
-  entries?: unknown[];
-  // Only with the `include` below, and the reason the card needs no second call.
-  pitch?: unknown[];
-  furigana?: unknown[];
-  forms?: unknown[];
-  frequency?: number | null;
-  jlpt?: string | null;
-}
-
-interface IdentifyResponse {
-  /** Index-aligned with the tokens sent. `null` wherever nothing resolves, which
-   *  is ordinary for names, numbers, coined words and most symbols. */
-  words: Array<{ candidates: ShirabeCandidate[] } | null>;
-  /** Which dictionary stack the calling key's answers came out of. The same
-   *  digest `/api/v1/me` reports, echoed here so a client notices its cached
-   *  answers have gone stale without polling for it. */
-  stackFingerprint?: string | null;
-}
 
 const handler = defineEventHandler(async (event) => {
   const lemma = getRouterParam(event, 'lemma');
@@ -100,24 +27,19 @@ const handler = defineEventHandler(async (event) => {
   const requested = String(query.locale ?? '');
   const locale = LABEL_LOCALES.has(requested) ? requested : 'en';
 
-  // Optional, and each one only narrows: Shirabe ranks a bare lemma without
-  // them, which is what a token carrying no reading or POS needs. Empty strings
-  // are dropped rather than sent, so a blank never reads as "no reading".
-  //
-  // `pos` must be Shirabe's SHORT tag (`verb`, `prt`, `pron`), not a UniDic one.
-  // The caller owes that; see `shortPos` in ~/utils/tokenEnrichment.
-  //
-  // Sent raw it does not merely skip the rung of the ranking that a closed word
-  // class decides -- the rung きみ needs to answer 君 over the grain 黍. An
-  // unrecognised category makes the lookup answer with NO candidates, and 分かる
-  // comes back as missing as readily as a coined word does. That was live until
-  // 2.4.1 and cost about nine points of lookup success; `word_card_opened`
-  // measures it, so a regression here shows up as the `missing` rate climbing.
-  const token: Record<string, string> = { lemma };
-  for (const key of ['surface', 'reading', 'pos'] as const) {
-    const value = String(query[key] ?? '').trim();
-    if (value) token[key] = value;
-  }
+  // A direct request without context identifies its path word as a one-span
+  // text. The card normally supplies the full sentence and target offsets.
+  const text = typeof query.text === 'string' && query.text ? query.text : lemma;
+  const startOffset = query.startOffset === undefined ? 0 : Number(query.startOffset);
+  const rawEndOffset = query.endOffset === undefined ? undefined : Number(query.endOffset);
+  const validTarget =
+    text.length <= 200 &&
+    Number.isInteger(startOffset) &&
+    startOffset >= 0 &&
+    startOffset < text.length &&
+    (rawEndOffset === undefined ||
+      (Number.isInteger(rawEndOffset) && rawEndOffset > startOffset && rawEndOffset <= text.length));
+  if (!validTarget) throw createError({ statusCode: 400, statusMessage: 'Invalid word target' });
 
   // The reader's own key, when they have linked a Shirabe account. This is the
   // only thing that makes the answer theirs rather than everybody's, and it is
@@ -125,47 +47,38 @@ const handler = defineEventHandler(async (event) => {
   // miss: a cached word costs no backend round trip at all.
   const reader = await readerStack(event);
   const hasOwnStack = reader.linked;
-  const apiKey = hasOwnStack ? ((await readerToken(event)) ?? undefined) : undefined;
+  const readerAccessToken = hasOwnStack ? ((await readerToken(event)) ?? undefined) : undefined;
 
-  const ask = (key?: string) =>
-    // `locale` rides in the QUERY STRING, not the body. `WordIdentifyRequest` is
-    // `additionalProperties: false` with `tokens` as its only property, so a
-    // body `locale` is rejected as a 400 before the action runs.
-    callShirabe<IdentifyResponse>({
-      path: '/words/identify',
-      method: 'POST',
-      query: { locale, ...(key ? {} : { 'dictionaries[]': 'jmdict' }) },
-      // Everything the card draws, in one call. Without this a client renders
-      // the picked candidate from identify and then has to fetch
-      // `GET /api/v1/words/{id}` purely for the pitch diagram, the badges, the
-      // dictionary-aligned ruby and the forms row -- two round trips on one tap,
-      // and a card that visibly rebuilds itself when the second lands.
-      // `parts` is what a merged expression is made of. Without it 男を知っている
-      // is a dead end: the chip spans 男 and 知る, the expression is the only
-      // candidate, and neither word can be reached at all.
-      body: {
-        tokens: [token],
-        include: ['pitch', 'frequency', 'furigana', 'jlpt', 'forms', 'notes', 'parts'],
-      },
+  const ask = (key?: string): Promise<IdentifyWordResponse> =>
+    callShirabe<IdentifyWordResponse>({
       subject: lemma,
-      apiKey: key,
+      accessToken: key,
+      event,
+      clientCall: (client) =>
+        client.identifyWord(
+          {
+            text,
+            target: { startOffset, ...(rawEndOffset !== undefined ? { endOffset: rawEndOffset } : {}) },
+          } satisfies IdentifyRequest,
+          { headers: { 'accept-language': locale } },
+        ),
     });
 
   try {
-    let answer: IdentifyResponse;
+    let answer: IdentifyWordResponse;
     // Whether the answer below is really THEIRS. The fallback path drops to the
-    // service key, and reporting that stack as the reader's would tell the
+    // shared service bearer, and reporting that stack as the reader's would tell the
     // backend their dictionaries had changed to ours.
-    let answeredAsReader = Boolean(apiKey);
+    let answeredAsReader = Boolean(readerAccessToken);
     try {
-      answer = await ask(apiKey);
+      answer = await ask(readerAccessToken);
     } catch (readerError: unknown) {
       // A reader's key can fail in ways ours cannot: revoked at the other end,
       // or over its own per-minute budget, which is much smaller than a service
       // identity's. Neither is a reason to show a broken card -- the default
       // dictionaries are a worse answer than theirs and a far better one than
       // none -- so retry as ourselves before giving up.
-      if (!apiKey) throw readerError;
+      if (!readerAccessToken) throw readerError;
 
       const status = (readerError as { response?: { status?: number } })?.response?.status;
       if (status !== 401 && status !== 403 && status !== 429) throw readerError;
@@ -199,47 +112,9 @@ const handler = defineEventHandler(async (event) => {
       void reportStackFingerprint(event, answer.stackFingerprint);
     }
 
-    // Identify answers 200 with `words: [null]` for a token that resolves to
-    // nothing, so "no entry" now comes from the BODY rather than from a status.
-    // A word can be parsed out of a subtitle and still have none -- a name, a
-    // coinage, a typo the corpus preserved -- so say so plainly rather than as a
-    // failure, and the popup shows the word unlinked.
-    const found = answer?.words?.[0];
-    // Names are dropped while there is a real word to show, and ARE the answer
-    // when there is not.
-    //
-    // The two cases are different questions. ここ is a reading ten people happen
-    // to share, so their entries compete with the pronoun the reader actually
-    // met -- six rows all glossing "Koko", none of them what was asked. 明日香 is
-    // nobody's reading but its own: there is no word to compete with, and
-    // answering "no dictionary entry" would be false as well as useless. The
-    // reader's real question at a name is "is this vocabulary or a person?", and
-    // the useful answer is the second one.
-    //
-    // 一 is the case that shows why this is a rule and not a preference: it is
-    // both Hajime and "one". A word exists, so the names go, and a learner
-    // reading a subtitle gets "one".
-    const all = found?.candidates ?? [];
-    const words = withoutNameEntries(all);
-    const candidates = words.length > 0 ? words : all;
+    // Identify can answer successfully without a match for this span.
+    const candidates = answer.spans.find((span) => span.startOffset === startOffset)?.matches ?? [];
     if (!candidates.length) throw createError({ statusCode: 404, statusMessage: 'No entry for this word' });
-
-    // ...but only when being a name is genuinely all there is to say.
-    //
-    // The paragraph above is right about 明日香 and wrong about ドラえもん, and the
-    // difference is not names, it is repetition. 明日香 is four people and four
-    // glosses, so one line beats a picker of strangers. ドラえもん is two
-    // candidates saying the same sentence -- "Doraemon (manga by Fujiko F. Fujio;
-    // media franchise)" -- and 織田信長 is one. Answering those with "this looks
-    // like a name" throws away the definition the reader came for, in a corpus
-    // made of anime subtitles where that definition is often the whole point.
-    //
-    // So the one-liner is kept for the many-answers case and dropped for the
-    // single-answer one, where the card renders the entry as it would any other.
-    // The candidates still carry `name: true`, so the card keeps tagging them --
-    // the reader is told it is a name AND what it is, rather than one instead of
-    // the other.
-    const nameOnly = words.length === 0 && distinctNameAnswers(all) > 1;
 
     // A dictionary entry changes when a dictionary is reimported, so it caches
     // hard. `public` only while the answer is the one everybody gets: a reader
@@ -251,19 +126,13 @@ const handler = defineEventHandler(async (event) => {
       'cache-control',
       hasOwnStack ? `private, max-age=${CACHE_SECONDS}` : `public, max-age=${CACHE_SECONDS}`,
     );
-    // Said by the route rather than re-derived downstream: the fallback for a
-    // Shirabe that does not send `name` is a slug test the client has no business
-    // repeating, and this is the one place that already knows the answer.
-    //
     // The fingerprint goes to the browser ONLY when the answer is really the
     // reader's, and that gate is the whole safety of it. The client re-keys its
     // cache on this value, so handing an unlinked reader the SERVICE key's
     // fingerprint would put it in their lookup URLs -- and this response is the
     // shared, cached one, so it would be the same string for everybody.
     return {
-      ...found,
       candidates,
-      nameOnly,
       ...(answeredAsReader && answer?.stackFingerprint ? { stackFingerprint: answer.stackFingerprint } : {}),
     };
   } catch (error: unknown) {
@@ -271,15 +140,15 @@ const handler = defineEventHandler(async (event) => {
     // through the upstream classification, which would read it as a failure.
     if ((error as { statusCode?: number })?.statusCode === 404) throw error;
 
-    const { kind, status } = describeFailure(error);
-
-    if (kind === 'bad-path') {
+    const response = (error as { response?: Response })?.response;
+    const status = response?.status;
+    if (status === 404 && response?.headers.get('content-type')?.includes('html')) {
       logger.error({ lemma }, 'Shirabe returned an HTML 404 -- the API path is wrong, not the word missing');
       throw createError({ statusCode: 502, statusMessage: 'Dictionary lookup failed' });
     }
 
-    // A JSON 404 from identify itself would be Shirabe saying the ROUTE is gone,
-    // since a token that resolves to nothing comes back 200. Treat it as a
+    // A JSON 404 from identify itself means the route is gone; an unmatched
+    // span comes back 200. Treat it as a
     // failure, not as an answer about the word.
     logger.warn({ lemma, status, err: error }, 'Shirabe identify failed');
     // This route is enrichment for an already-rendered search result. The
@@ -321,8 +190,12 @@ const handler = defineEventHandler(async (event) => {
  * `swr` keeps serving the stale copy while it refreshes, so a reader never waits
  * on a revalidation.
  */
-export default defineCachedEventHandler(handler, {
+const sharedHandler = defineCachedEventHandler(handler, {
   swr: true,
   maxAge: CACHE_SECONDS,
-  shouldBypassCache: readerHasOwnStack,
+});
+
+export default defineEventHandler(async (event) => {
+  const reader = await readerStack(event);
+  return reader.linked ? handler(event) : sharedHandler(event);
 });

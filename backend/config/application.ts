@@ -128,7 +128,14 @@ function configureMiddleware(
     // read off the request again on finish.
     const attributes = { 'http.request.method': req.method, ...trafficAttributesFor(req) };
     activeRequests.add(1, attributes);
-    res.on('finish', () => activeRequests.add(-1, attributes));
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      activeRequests.add(-1, attributes);
+    };
+    res.once('finish', release);
+    res.once('close', release);
     next();
   });
 

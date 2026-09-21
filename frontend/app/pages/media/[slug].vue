@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Media } from '@brigadasos/nadeshiko-sdk';
-import { stripEpisodeHits, stripUnreadTokenFields, type SearchScope } from '~/composables/useSearchFetch';
+import { stripEpisodeHits, type SearchScope } from '~/composables/useSearchFetch';
 import {
   DEFAULT_OG_IMAGE_PATH,
   DEFAULT_OG_IMAGE_SIZE,
@@ -140,9 +140,7 @@ const [{ data: initialSentenceData, refresh: refreshSentences }, { data: initial
       async () => {
         const outcome = await fetchSentences(searchScope.value);
         sentencesFailed.value = outcome.status !== 'ok';
-        // Slimmed before it is handed back, because what this returns IS the
-        // hydration payload: see `stripUnreadTokenFields`.
-        return outcome.status === 'ok' ? stripUnreadTokenFields(outcome.data) : null;
+        return outcome.status === 'ok' ? outcome.data : null;
       },
       { server: true, lazy: false, watch: [] },
     ),

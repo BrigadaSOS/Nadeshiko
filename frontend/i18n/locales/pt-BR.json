@@ -679,6 +679,8 @@
       "translationLanguages": "Idiomas das traduções",
       "translationLanguagesDescription": "Escolha os idiomas das traduções de legendas e das definições dos dicionários. As traduções de legendas estão disponíveis em inglês e espanhol. Se selecionar os dois, escolha também a ordem de exibição.",
       "translationLanguagesLinkedDescription": "Escolha entre inglês e espanhol para as traduções de legendas e defina a ordem de exibição. As definições dos dicionários seguem suas configurações no Shirabe.",
+      "dictionaryLinks": "Links para dicionários",
+      "dictionaryLinksDescription": "Escolha quais dicionários aparecem como links de consulta no painel da palavra.",
       "definitionSize": "Tamanho do texto das definições",
       "definitionSizeDescription": "Escolha o tamanho das definições no painel da palavra.",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "O painel começa em uma única linha, com miniatura, título e contagens. Clique na linha para abrir os detalhes.",
       "defaultSearchCategoryHiddenOption": "{category} (oculta)",
       "defaultSearchCategoryHiddenNotice": "{category} está desativada em Categorias incluídas na busca. Até você reativá-la, as buscas começarão em Todas.",
-      "dictionaryLinks": "Links para dicionários",
-      "dictionaryLinksDescription": "Escolha quais dicionários aparecem como links de consulta no painel da palavra.",
       "deleteAccount": "Excluir conta (ação irreversível)",
       "deleteAccountButton": "Excluir conta",
       "deletingAccount": "Excluindo…",
@@ -1002,33 +1002,6 @@
     "playAudio": "Reproduzir áudio",
     "loading": "Carregando",
     "noResultsSupport": "Não encontrou o que procurava? Sugira o próximo conteúdo no nosso {link}."
-  },
-  "tokenTooltip": {
-    "lookupIn": "Consultar em",
-    "loading": "Consultando…",
-    "moreSentences": "Mais frases",
-    "playAudio": "Ouvir pronúncia",
-    "unavailable": "Não foi possível carregar as definições. Tente novamente em instantes.",
-    "noEntry": "Nenhum verbete encontrado para esta palavra.",
-    "definitionsHidden": "Definições ocultas",
-    "showDefinitions": "Mostrar",
-    "openInAnki": "Abrir nota no Anki",
-    "mineContextOnly": "Adicionar frase, áudio e imagem, mantendo suas definições",
-    "minedActions": "Já está no Anki",
-    "alsoWritten": "Também escrito como",
-    "mineToNote": "Substituir tudo, incluindo as definições",
-    "mineToLastCard": "Adicionar frase, áudio e imagem ao último cartão adicionado ao Anki",
-    "otherMatches": "Mais {count}",
-    "showLess": "Mostrar menos",
-    "isName": "Isto parece ser um nome.",
-    "parts": "Partes",
-    "nameEntry": "Nome",
-    "back": "Voltar",
-    "forward": "Avançar",
-    "pickDictionary": "Incluir {dictionary} no cartão",
-    "pickedDictionaries": "Dicionários selecionados: {count} de {total}",
-    "pickSelectAll": "Selecionar todos",
-    "pickDeselectAll": "Desmarcar todos"
   },
   "searchContainer": {
     "errorTitle": "Algo deu errado",
@@ -1385,6 +1358,8 @@
       "linkedAs": "Conectado como {name}",
       "dictionaries": "Dicionários",
       "dictionariesHint": "Altere seus dicionários no Shirabe",
+      "shownByDefault": "Exibido por padrão",
+      "collapsedByDefault": "Recolhido por padrão",
       "anonymous": "sua conta do Shirabe",
       "upgrade": "Atualizar permissões",
       "reconnect": "Reconectar",
@@ -1601,5 +1576,17 @@
       "JDRAMA": "Live-action",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "Incluir {dictionary} no cartão",
+    "pickedDictionaries": "Dicionários selecionados: {count} de {total}",
+    "lookupIn": "Consultar em",
+    "parts": "Partes",
+    "openInAnki": "Abrir nota no Anki",
+    "mineContextOnly": "Adicionar frase, áudio e imagem, mantendo suas definições",
+    "mineToNote": "Substituir tudo, incluindo as definições"
+  },
+  "wordCardActions": {
+    "moreSentences": "Mais frases"
   }
 }

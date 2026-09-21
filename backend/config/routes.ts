@@ -111,6 +111,7 @@ import {
   completeShirabeLink,
   unlinkShirabe,
   getShirabeCredential,
+  getShirabeServiceCredential,
   resyncShirabeStack,
   reportShirabeRefusal,
 } from '@app/controllers/shirabeConnectionController';
@@ -337,6 +338,7 @@ const UserRoutes = createUserRouter({
   completeShirabeLink,
   unlinkShirabe,
   getShirabeCredential,
+  getShirabeServiceCredential,
   resyncShirabeStack,
   reportShirabeRefusal,
   getPatreonConnection,

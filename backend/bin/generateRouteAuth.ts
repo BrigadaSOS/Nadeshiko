@@ -92,6 +92,14 @@ export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
 ]);
 
 /**
+ * Routes whose authentication is the internal-proxy proof checked in their
+ * controller, rather than a browser session or Nadeshiko API key. They are
+ * server-only in the frontend proxy as well; keeping this separate from the
+ * genuinely public list makes an accidental exposure visible in review.
+ */
+export const INTERNAL_PROXY_GUARDED_OPERATIONS = new Set<string>(['getShirabeServiceCredential']);
+
+/**
  * A scheme key present with no scope list means the bundled spec is malformed.
  * Deriving middleware from it would silently emit a weaker guard than the route
  * is meant to have, so refuse to generate instead.
@@ -174,12 +182,13 @@ export function buildRouteAuthEntries(paths: Record<string, PathItem>): RouteEnt
     const security = op.security;
 
     if (!security || security.length === 0) {
-      if (INTENTIONALLY_PUBLIC_OPERATIONS.has(operationId)) continue;
+      if (INTENTIONALLY_PUBLIC_OPERATIONS.has(operationId) || INTERNAL_PROXY_GUARDED_OPERATIONS.has(operationId))
+        continue;
 
       throw new Error(
         `Missing security block: ${op.method.toUpperCase()} ${op.path} ("${operationId}") would ship as a ` +
           'fully public route. Give it a `security:` block, or — if it is meant to be public — add its ' +
-          'operationId to INTENTIONALLY_PUBLIC_OPERATIONS in bin/generateRouteAuth.ts.',
+          'operationId to INTENTIONALLY_PUBLIC_OPERATIONS or INTERNAL_PROXY_GUARDED_OPERATIONS in bin/generateRouteAuth.ts.',
       );
     }
 

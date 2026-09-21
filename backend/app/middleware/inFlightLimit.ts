@@ -77,7 +77,13 @@ export function createInFlightLimit({ scope, max, retryAfterSeconds = 2 }: InFli
 
   let inFlight = 0;
 
-  const handler = (_req: Request, res: Response, next: NextFunction): void => {
+  const handler = (req: Request, res: Response, next: NextFunction): void => {
+    // Authentication runs before this gate and can await a database lookup.
+    // A disconnect during that await has already emitted `close` by the time
+    // we arrive here. Taking a slot now would attach its release listener too
+    // late and permanently reduce capacity, even if the handler later settles.
+    if (req.aborted || res.destroyed || res.writableEnded) return;
+
     if (inFlight >= max) {
       overloadedCount.add(1, { scope });
       res.setHeader('Retry-After', String(retryAfterSeconds));

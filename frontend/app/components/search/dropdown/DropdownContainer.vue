@@ -41,11 +41,7 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, provide, useId, type StyleValue } from 'vue';
-import {
-  DROPDOWN_INJECTION_KEY,
-  NESTED_IN_TOKEN_TOOLTIP_KEY,
-  type DropdownContext,
-} from '~/composables/useDropdownState';
+import { DROPDOWN_INJECTION_KEY, type DropdownContext } from '~/composables/useDropdownState';
 import { DROPDOWN_MARGIN, placeDropdownMenu, type DropdownAlign } from '~/utils/dropdownPlacement';
 
 const props = withDefaults(
@@ -80,7 +76,6 @@ const resolvedDropdownId = computed(
 const rootRef = ref<HTMLElement | null>(null);
 const menuRef = ref<HTMLElement | null>(null);
 const { openDropdownId, openDropdown, closeDropdown } = useDropdownState();
-const nestedInTokenTooltip = inject(NESTED_IN_TOKEN_TOOLTIP_KEY, false);
 const route = useRoute();
 
 const isOpen = computed(() => openDropdownId.value === resolvedDropdownId.value);
@@ -132,7 +127,7 @@ const toggle = () => {
   }
   // Pin before the menu mounts so a teleported panel does not flash at 0,0.
   if (props.teleport) placeMenu({ width: 176, height: 0 });
-  openDropdown(resolvedDropdownId.value, { preserveTokenTooltip: nestedInTokenTooltip });
+  openDropdown(resolvedDropdownId.value);
 };
 
 /**

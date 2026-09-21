@@ -4,6 +4,7 @@ import type {
   CompleteShirabeLink,
   UnlinkShirabe,
   GetShirabeCredential,
+  GetShirabeServiceCredential,
   ResyncShirabeStack,
   ReportShirabeRefusal,
 } from 'generated/routes/user';
@@ -21,6 +22,7 @@ import {
   startLink,
   unlink,
 } from '@app/services/shirabe/connection';
+import { shirabeServiceCredential } from '@app/services/shirabe/serviceClient';
 
 /**
  * Linking a reader's own Shirabe account.
@@ -68,7 +70,7 @@ export const startShirabeLink: StartShirabeLink = async (_params, respond, req) 
 
 export const completeShirabeLink: CompleteShirabeLink = async ({ body }, respond, req) => {
   const user = assertUser(req);
-  const connection = await completeLink(user.id, body.code, body.state);
+  const connection = await completeLink(user.id, body.code, body.state, body.issuer);
 
   // Empty by construction -- `completeLink` refuses a grant that falls short --
   // but computed rather than hardcoded, so the two cannot drift.
@@ -112,15 +114,32 @@ export const getShirabeCredential: GetShirabeCredential = async (_params, respon
     throw new AccessDeniedError('This credential is only readable by the Nadeshiko frontend server');
   }
 
-  // A VALID access token, renewed under a row lock if the hour is nearly up
-  // (`getReaderAccessToken`), so the frontend never sends one about to expire.
+  // A valid reader access token, renewed under a row lock after 70% of its
+  // lifetime (`getReaderAccessToken`). A temporarily unavailable Shirabe may leave a
+  // still-valid token to use until its actual expiry.
   // Null means there is nothing to hand out -- no link, or one Shirabe has
-  // refused -- and the lookup falls back to the service key, which is a 404 here
+  // refused -- and the lookup falls back to the shared service bearer, which is a 404 here
   // exactly as an unlinked reader always was.
   const token = await getReaderAccessToken(user.id);
   if (!token) throw new NotFoundError('No Shirabe account is linked');
 
   return respond.with200().body({ token });
+};
+
+/**
+ * The shared-dictionary OAuth bearer, for Nitro only.
+ *
+ * Unlike `getShirabeCredential`, this deliberately has no session requirement:
+ * signed-out readers also need the default dictionary. The internal-proxy proof
+ * is the entire authorization boundary, and the generated server-only route
+ * prevents a browser from being proxied to it in the first place.
+ */
+export const getShirabeServiceCredential: GetShirabeServiceCredential = async (_params, respond, req) => {
+  if (!isInternalProxyRequest(req)) {
+    throw new AccessDeniedError('This credential is only readable by the Nadeshiko frontend server');
+  }
+
+  return respond.with200().body(await shirabeServiceCredential());
 };
 
 /**

@@ -679,6 +679,8 @@
       "translationLanguages": "Idiomas de las traducciones",
       "translationLanguagesDescription": "Elige los idiomas de las traducciones de los subtítulos y de las definiciones del diccionario. Si eliges ambos, también puedes indicar el orden.",
       "translationLanguagesLinkedDescription": "Elige los idiomas y el orden de las traducciones de los subtítulos. Las definiciones del diccionario siguen tus ajustes de Shirabe.",
+      "dictionaryLinks": "Enlaces a diccionarios",
+      "dictionaryLinksDescription": "Elige qué enlaces a diccionarios aparecen al seleccionar una palabra.",
       "definitionSize": "Tamaño del texto de las definiciones",
       "definitionSizeDescription": "Cambia el tamaño del texto de las definiciones en la ventana de cada palabra.",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "Muestra solo la miniatura, el título y los recuentos. Pulsa la fila para ver los detalles.",
       "defaultSearchCategoryHiddenOption": "{category} (oculta)",
       "defaultSearchCategoryHiddenNotice": "Has ocultado {category}. Las búsquedas se abrirán en «Todo» hasta que vuelvas a activar esa categoría.",
-      "dictionaryLinks": "Enlaces a diccionarios",
-      "dictionaryLinksDescription": "Elige qué enlaces a diccionarios aparecen al seleccionar una palabra.",
       "deleteAccount": "Eliminar cuenta (irreversible)",
       "deleteAccountButton": "Eliminar cuenta",
       "deletingAccount": "Eliminando…",
@@ -1002,33 +1002,6 @@
     "playAudio": "Reproducir audio",
     "loading": "Cargando",
     "noResultsSupport": "¿Buscas un título que aún no tenemos? Puedes proponerlo en {link}."
-  },
-  "tokenTooltip": {
-    "lookupIn": "Buscar en",
-    "loading": "Buscando…",
-    "moreSentences": "Buscar ejemplos de esta palabra",
-    "playAudio": "Reproducir pronunciación",
-    "unavailable": "No se pudieron cargar las definiciones. Espera un momento e inténtalo de nuevo.",
-    "noEntry": "No hay ninguna entrada de diccionario para esta palabra.",
-    "definitionsHidden": "Definiciones ocultas",
-    "showDefinitions": "Mostrar",
-    "openInAnki": "Abrir la nota en Anki",
-    "mineContextOnly": "Actualizar frase, audio e imagen (conservar definiciones)",
-    "minedActions": "Ya está en Anki",
-    "alsoWritten": "también se escribe",
-    "mineToNote": "Reemplazar la nota, incluidas las definiciones",
-    "mineToLastCard": "Exportar frase, audio e imagen a la última tarjeta añadida en Anki",
-    "otherMatches": "{count} más",
-    "showLess": "Ver menos",
-    "isName": "Esto parece ser un nombre propio.",
-    "parts": "Componentes",
-    "nameEntry": "Nombre propio",
-    "back": "Atrás",
-    "forward": "Adelante",
-    "pickDictionary": "Incluir las definiciones de {dictionary} en la tarjeta",
-    "pickedDictionaries": "Diccionarios seleccionados: {count} de {total}",
-    "pickSelectAll": "Seleccionar todo",
-    "pickDeselectAll": "Quitar la selección"
   },
   "searchContainer": {
     "errorTitle": "Algo salió mal",
@@ -1385,6 +1358,8 @@
       "linkedAs": "Cuenta vinculada: {name}",
       "dictionaries": "Diccionarios",
       "dictionariesHint": "Gestionar en Shirabe",
+      "shownByDefault": "Visible por defecto",
+      "collapsedByDefault": "Plegado por defecto",
       "anonymous": "Cuenta de Shirabe",
       "upgrade": "Actualizar permisos",
       "reconnect": "Volver a conectar",
@@ -1601,5 +1576,17 @@
       "JDRAMA": "Acción real",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "Incluir las definiciones de {dictionary} en la tarjeta",
+    "pickedDictionaries": "Diccionarios seleccionados: {count} de {total}",
+    "lookupIn": "Buscar en",
+    "parts": "Componentes",
+    "openInAnki": "Abrir la nota en Anki",
+    "mineContextOnly": "Actualizar frase, audio e imagen (conservar definiciones)",
+    "mineToNote": "Reemplazar la nota, incluidas las definiciones"
+  },
+  "wordCardActions": {
+    "moreSentences": "Buscar ejemplos de esta palabra"
   }
 }

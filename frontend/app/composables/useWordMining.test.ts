@@ -318,6 +318,33 @@ describe('what the probe reports', () => {
 });
 
 describe('whether a new note could ever be found again', () => {
+  test('does not create a note when Anki failed to answer the lookup', async () => {
+    anki.executeAction.mockResolvedValue(null);
+    const m = await mining();
+
+    await m.mineSentence();
+
+    expect(anki.addResultToAnki.mock.calls[0]![1]).toMatchObject({ create: false, method: 'word_card_last' });
+  });
+
+  test('does not create a note when AnkiConnect refuses the lookup in a successful HTTP response', async () => {
+    anki.executeAction.mockResolvedValue({ result: null, error: 'permission denied' });
+    const m = await mining();
+
+    await m.mineSentence();
+
+    expect(anki.addResultToAnki.mock.calls[0]![1]).toMatchObject({ create: false, method: 'word_card_last' });
+  });
+
+  test('checks for an existing note when mining starts before the popup probe finishes', async () => {
+    anki.executeAction.mockResolvedValue(found([42]));
+    const m = await mining();
+
+    await m.mineSentence();
+
+    expect(anki.addResultToAnki.mock.calls[0]![1]).toMatchObject({ noteId: 42, create: false });
+  });
+
   test('can create when the profile writes the word into the field the probe reads', async () => {
     anki.activeProfile = profile({ key: 'Expression', fields: [{ key: 'Expression', value: '{word}' }] });
     const m = await mining();
@@ -389,6 +416,7 @@ describe('mining a sentence', () => {
     let release: (value: unknown) => void = () => {};
     anki.addResultToAnki.mockReturnValue(new Promise((resolve) => (release = resolve)));
     const m = await mining();
+    await m.probeMined();
 
     const first = m.mineSentence();
     await m.mineSentence();
@@ -450,6 +478,7 @@ describe('mining a sentence', () => {
     // long enough for the reader to have opened another word, and re-probing
     // then would answer the new card with the previous word's collection.
     const m = await mining('手加減');
+    await m.probeMined();
     anki.addResultToAnki.mockImplementation(async () => m.moveTo('別の言葉'));
     anki.executeAction.mockClear();
 

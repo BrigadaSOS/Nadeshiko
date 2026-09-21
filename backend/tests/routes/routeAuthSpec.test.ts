@@ -14,6 +14,7 @@ interface SecurityRequirement {
 interface Operation {
   operationId?: string;
   security?: SecurityRequirement[];
+  'x-server-only'?: boolean;
 }
 
 interface PathItem {
@@ -32,7 +33,13 @@ function openApiPathToExpress(path: string): string {
 
 describe('OpenAPI security definitions', () => {
   const spec = loadSpec();
-  const allOperations: { path: string; method: string; operationId: string; security: SecurityRequirement[] }[] = [];
+  const allOperations: {
+    path: string;
+    method: string;
+    operationId: string;
+    security: SecurityRequirement[];
+    serverOnly: boolean;
+  }[] = [];
 
   for (const [path, pathItem] of Object.entries(spec.paths)) {
     for (const [method, operation] of Object.entries(pathItem)) {
@@ -43,11 +50,17 @@ describe('OpenAPI security definitions', () => {
         method,
         operationId: operation.operationId ?? 'unknown',
         security: operation.security ?? [],
+        serverOnly: operation['x-server-only'] === true,
       });
     }
   }
 
-  const publicOperations = allOperations.filter((op) => op.security.length === 0);
+  // A server-only operation authenticates with the internal proxy proof, which
+  // deliberately is not a browser-visible OpenAPI security scheme. It has an
+  // empty OpenAPI `security` array so generated route middleware does not demand
+  // a session or API key before the controller verifies that proof. It is not a
+  // public operation: `x-server-only` generates Nitro's deny-list as well.
+  const publicOperations = allOperations.filter((op) => op.security.length === 0 && !op.serverOnly);
   // Every test below asserts the shape of a security requirement, so they run
   // over the guarded operations only. Which operations are allowed to have no
   // requirement at all is the separate invariant asserted immediately below.
@@ -66,6 +79,15 @@ describe('OpenAPI security definitions', () => {
     const stale = [...INTENTIONALLY_PUBLIC_OPERATIONS].filter((operationId) => !publicIds.has(operationId));
 
     expect(stale).toEqual([]);
+  });
+
+  it('does not mistake an internal-proxy route for a public route', () => {
+    const serverOnly = allOperations.filter((op) => op.serverOnly);
+    const proxyOnly = serverOnly.filter((op) => op.security.length === 0);
+
+    expect(serverOnly).not.toEqual([]);
+    expect(proxyOnly).not.toEqual([]);
+    expect(proxyOnly.every((op) => !INTENTIONALLY_PUBLIC_OPERATIONS.has(op.operationId))).toBe(true);
   });
 
   it('only uses known security schemes', () => {

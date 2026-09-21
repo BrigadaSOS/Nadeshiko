@@ -6,13 +6,7 @@ import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import type { SearchResult, SearchResponse } from '~/types/search';
 import type { UserReportTarget } from '@brigadasos/nadeshiko-sdk';
-import {
-  buildMediaSearchPath,
-  buildSentencePath,
-  decodeSearchQuery,
-  mediaBrowsePath,
-  searchScopeQuery,
-} from '~/utils/routes';
+import { buildMediaSearchPath, buildSentencePath, decodeSearchQuery, mediaBrowsePath } from '~/utils/routes';
 import { escapeCorpusText, safeHighlight } from '~/utils/safeHighlight';
 
 type Props = {
@@ -305,16 +299,11 @@ watch(resultList, (list) => {
 
 // Filter navigation method
 const localePath = useLocalePath();
-const router = useRouter();
 const route = useRoute();
+const router = useRouter();
 
-/**
- * A word picked out of a sentence, searched for. Keeps the scope the reader is
- * already in -- see `searchScopeQuery`; typing the same word in the box has
- * always kept it, and the two have to agree.
- */
 const handleTokenSearch = (dictionaryForm: string) => {
-  router.push({
+  void router.push({
     path: localePath(`/search/${encodeURIComponent(dictionaryForm)}`),
     query: searchScopeQuery(route.query),
   });
@@ -513,8 +502,8 @@ watch(playingVideoId, (id) => {
                   :tokens="(result.segment.textJa as any).tokens"
                   :highlight="result.segment.textJa.highlight"
                   :result="result"
-                  class="leading-snug"
                   @token-click="handleTokenSearch"
+                  class="leading-snug"
                 />
                 <span v-else class="leading-snug" v-html="displaySegmentText(result.segment.textJa.content, result.segment.textJa.highlight)"></span>
               </h3>

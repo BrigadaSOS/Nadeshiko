@@ -1,10 +1,7 @@
 /**
  * How the word card is drawn, as far as the reader gets to decide it.
  *
- * One module because two places need the same answer and must not drift: the
- * card, which renders at this size, and the settings control, which offers the
- * choices. A component holding its own copy of the sizes is how a "Large" that
- * is no longer large happens.
+ * Both the settings control and the Shirabe card use this stored preference.
  */
 
 export type DefinitionSize = 'SMALL' | 'MEDIUM' | 'LARGE';
@@ -20,12 +17,6 @@ export const DEFINITION_SIZES: readonly DefinitionSize[] = ['SMALL', 'MEDIUM', '
  * SMALL is exactly what the card printed before this existed, for anyone who
  * preferred it.
  */
-const SIZES: Record<DefinitionSize, string> = {
-  SMALL: '13px',
-  MEDIUM: '14px',
-  LARGE: '16px',
-};
-
 export const DEFAULT_DEFINITION_SIZE: DefinitionSize = 'MEDIUM';
 
 /** Whatever was stored, narrowed to something we can actually render. An
@@ -33,9 +24,4 @@ export const DEFAULT_DEFINITION_SIZE: DefinitionSize = 'MEDIUM';
  *  either way the default is a better answer than an invalid font size. */
 export function definitionSize(raw: unknown): DefinitionSize {
   return DEFINITION_SIZES.includes(raw as DefinitionSize) ? (raw as DefinitionSize) : DEFAULT_DEFINITION_SIZE;
-}
-
-/** The CSS length for a stored preference, for `--definition-size`. */
-export function definitionFontSize(raw: unknown): string {
-  return SIZES[definitionSize(raw)];
 }

@@ -33,6 +33,7 @@ const shirabeLinked = computed(() => (user_store.shirabeGlossLanguages ?? []).le
 
 /** How large the word card prints its definitions. See `~/utils/wordPopup`. */
 const definitionTextSize = computed(() => definitionSize(user_store.preferences?.wordPopup?.definitionSize));
+const { presets: dictionaryPresets, isDictionaryEnabled, setDictionaryEnabled } = useDictionaryLinks();
 
 /**
  * Which way the title card starts above a title's sentences. Read through the
@@ -313,8 +314,6 @@ const hiddenDefaultCategoryNotice = computed(() => {
 });
 
 const updateDefaultSearchCategory = (value: string) => updatePreference('defaultSearchCategory', value);
-
-const { presets: dictionaryPresets, isDictionaryEnabled, setDictionaryEnabled } = useDictionaryLinks();
 
 type NsfwMode = NonNullable<NonNullable<UserPreferences['contentRatingPreferences']>['nsfw']>;
 
@@ -775,37 +774,22 @@ const logoutCurrentUser = async () => {
         </div>
       </div>
 
-      <!-- The two dictionary rows sit last, together, and directly above the
-           Shirabe card below: all three are about where a word's definitions
-           come from, and they were scattered through the list with unrelated
-           settings between them. -->
       <div class="mt-4">
         <p class="text-white">{{ $t('accountSettings.account.dictionaryLinks') }}</p>
         <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.dictionaryLinksDescription') }}</p>
         <div class="mt-3 flex flex-wrap gap-2">
-          <label
-            v-for="preset in dictionaryPresets"
-            :key="preset.id"
+          <label v-for="preset in dictionaryPresets" :key="preset.id"
             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-control border border-hairline text-sm text-ink-faint"
-            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-control-hover hover:text-ink'"
-          >
-            <input
-              type="checkbox"
-              :checked="isDictionaryEnabled(preset.id)"
-              :disabled="preset.required"
+            :class="preset.required ? 'opacity-70 cursor-default' : 'cursor-pointer hover:bg-control-hover hover:text-ink'">
+            <input type="checkbox" :checked="isDictionaryEnabled(preset.id)" :disabled="preset.required"
               class="accent-button-primary-main"
-              @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)"
-            />
-            <!-- A required dictionary is a checked, disabled box and nothing
-                 else: the control already says it cannot be turned off, and the
-                 label spelled out in words what the disabled state shows. -->
+              @change="setDictionaryEnabled(preset.id, ($event.target as HTMLInputElement).checked)" />
             <span>{{ preset.label }}</span>
           </label>
         </div>
       </div>
 
-      <!-- The word card's own settings, beside the two dictionary rows: all of
-           it is about what happens when a reader taps a word. -->
+      <!-- The word card’s definition size. -->
       <div class="mt-4 nd-settings-row">
         <div>
           <p class="text-white">{{ $t('accountSettings.account.definitionSize') }}</p>

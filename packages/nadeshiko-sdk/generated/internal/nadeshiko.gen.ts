@@ -4,7 +4,7 @@ import { createClient as createApiClient, createConfig, type Client } from './cl
 import type { Auth } from './core/auth.gen';
 import type { ClientOptions } from './types.gen';
 import type * as Types from './types.gen';
-import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, createUserApiKey, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listFavoriteMedia, addFavoriteMedia, removeFavoriteMedia, listFamiliarMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, listRoadmap, createRoadmapProposal, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, getShirabeConnection, startShirabeLink, unlinkShirabe, completeShirabeLink, getShirabeCredential, resyncShirabeStack, reportShirabeRefusal, getPatreonConnection, startPatreonLink, unlinkPatreon, completePatreonLink, clearFamiliarMedia, forgetFamiliarMedia, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, createFeedback, getFeedbackFormToken, unsubscribeFromEmail, getEmailPreferencesByToken, updateEmailPreferencesByToken, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, listTiers, getAdminUserQuota, updateAdminUserQuota, listAdminRoadmap, createAdminRoadmapItem, updateAdminRoadmapItem, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, signInWithEmailOtp, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
+import { search, getSearchStats, searchWords, searchMedia, getStatsOverview, listMedia, getSegment, getSegmentContext, getMedia, listEpisodes, getEpisode, getMe, createUserApiKey, listExcludedMedia, addExcludedMedia, removeExcludedMedia, listFavoriteMedia, addFavoriteMedia, removeFavoriteMedia, listFamiliarMedia, listUserActivity, getUserActivityHeatmap, getUserActivityStats, listCollections, createCollection, getCollection, deleteCollection, addSegmentToCollection, searchCollectionSegments, removeSegmentFromCollection, listRoadmap, createRoadmapProposal, getCoveredWords, triggerCoveredWordsUpdate, createMedia, updateSegment, listSegmentRevisions, restoreSegmentRevision, updateMedia, deleteMedia, createEpisode, updateEpisode, deleteEpisode, listSegments, createSegment, createSegmentsBatch, moderateEpisodeSegments, getShirabeConnection, startShirabeLink, unlinkShirabe, completeShirabeLink, getShirabeCredential, getShirabeServiceCredential, resyncShirabeStack, reportShirabeRefusal, getPatreonConnection, startPatreonLink, unlinkPatreon, completePatreonLink, clearFamiliarMedia, forgetFamiliarMedia, createUserReport, getUserPreferences, updateUserPreferences, trackUserActivity, deleteUserActivity, deleteUserActivityByDate, deleteUserActivityById, exportUserData, createFeedback, getFeedbackFormToken, unsubscribeFromEmail, getEmailPreferencesByToken, updateEmailPreferencesByToken, updateCollection, updateCollectionSegment, getCollectionStats, listAdminReports, batchUpdateAdminReports, bulkUpdateAdminReports, bulkDeleteAdminReports, updateAdminReport, deleteAdminReport, listAgentActivity, getAnnouncement, updateAnnouncement, getAdminUsersWithProviders, listTiers, getAdminUserQuota, updateAdminUserQuota, listAdminRoadmap, createAdminRoadmapItem, updateAdminRoadmapItem, getSession, getSessionPost, signOut, socialSignIn, signInWithMagicLink, signInWithEmailOtp, listUserSessions, authRevokeSession, authRevokeSessions, authRevokeOtherSessions, deleteUser, changeEmail, authApiKeyCreate, authApiKeyList, authApiKeyUpdate, banUser, unbanUser, impersonateUser, authAdminStopImpersonating, type Options } from './sdk.gen';
 import { withRetry, type RetryOptions } from './retry';
 import { NadeshikoError, buildNadeshikoError, isProblemDetails, type NadeshikoErrorCode, type RateLimitReason } from './errors';
 import { flatPaginate } from './paginate';
@@ -275,6 +275,10 @@ export type NadeshikoClient = {
     getShirabeCredential: {
       (params: { throwOnError: false }): Promise<{ data: Types.GetShirabeCredentialResponse; response: Response; request: Request } | { error: Types.GetShirabeCredentialErrors; response: Response; request: Request }>;
       (): Promise<Types.GetShirabeCredentialResponse>;
+    };
+    getShirabeServiceCredential: {
+      (params: { throwOnError: false }): Promise<{ data: Types.GetShirabeServiceCredentialResponse; response: Response; request: Request } | { error: Types.GetShirabeServiceCredentialErrors; response: Response; request: Request }>;
+      (): Promise<Types.GetShirabeServiceCredentialResponse>;
     };
     resyncShirabeStack: {
       (params: NonNullable<Types.ResyncShirabeStackData['body']> & { throwOnError: false }): Promise<{ data: Types.ResyncShirabeStackResponse; response: Response; request: Request } | { error: Types.ResyncShirabeStackErrors; response: Response; request: Request }>;
@@ -1035,6 +1039,12 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     return tOE === false ? p : p.then((r: any) => r.data);
   };
 
+  const _getShirabeServiceCredential = (params?: any) => {
+    const tOE = params?.throwOnError;
+    const p = getShirabeServiceCredential({ client: clientInstance, throwOnError: tOE === false ? false : true } as any);
+    return tOE === false ? p : p.then((r: any) => r.data);
+  };
+
   const _resyncShirabeStack = (params?: any) => {
     const { throwOnError: tOE, ...body } = params ?? {};
     const p = resyncShirabeStack({ body, client: clientInstance, throwOnError: tOE === false ? false : true } as any);
@@ -1490,6 +1500,7 @@ export function createNadeshikoClient(config: NadeshikoConfig): NadeshikoClient 
     unlinkShirabe: _unlinkShirabe,
     completeShirabeLink: _completeShirabeLink,
     getShirabeCredential: _getShirabeCredential,
+    getShirabeServiceCredential: _getShirabeServiceCredential,
     resyncShirabeStack: _resyncShirabeStack,
     reportShirabeRefusal: _reportShirabeRefusal,
     getPatreonConnection: _getPatreonConnection,

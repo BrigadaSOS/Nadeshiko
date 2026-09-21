@@ -7,8 +7,7 @@
  * would pay for every one. So the sentence takes ONE tab stop and the arrow keys
  * move within it -- the roving-tabindex pattern.
  *
- * The decisions live here rather than in the component for the same reason
- * `cardPlacement` does: they are the part that can quietly go wrong (a run that
+ * The decisions live here rather than in the component because they can quietly go wrong (a run that
  * skips a word, an edge that wraps when it should stop) and the part worth
  * testing on its own. The component keeps the DOM half -- moving focus, painting
  * the ring -- which is all it should have.

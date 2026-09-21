@@ -15,6 +15,7 @@ export interface ServerOnlyRoute {
 
 export const serverOnlyRoutes: ServerOnlyRoute[] = [
   { method: 'GET', path: '/v1/user/connections/shirabe/credential' },
+  { method: 'GET', path: '/v1/user/connections/shirabe/service-credential' },
   { method: 'POST', path: '/v1/user/connections/shirabe/resync' },
   { method: 'POST', path: '/v1/user/connections/shirabe/refused' },
 ];

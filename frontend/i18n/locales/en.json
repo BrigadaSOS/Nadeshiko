@@ -679,6 +679,8 @@
       "translationLanguages": "Translation languages",
       "translationLanguagesDescription": "Choose the languages for subtitle translations and dictionary definitions. If you select both, you can also choose their display order.",
       "translationLanguagesLinkedDescription": "Choose the languages and display order for subtitle translations. Dictionary definitions follow your Shirabe settings.",
+      "dictionaryLinks": "Dictionary integrations",
+      "dictionaryLinksDescription": "Choose which dictionaries appear as quick lookup links in the token popup.",
       "definitionSize": "Definition text size",
       "definitionSizeDescription": "How large the word popup prints its definitions.",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "The card starts as a single line — thumbnail, title and counts. Click the row to open the details when you want them.",
       "defaultSearchCategoryHiddenOption": "{category} (hidden)",
       "defaultSearchCategoryHiddenNotice": "{category} is hidden under Hide Categories, so searches open on All until you show it again.",
-      "dictionaryLinks": "Dictionary integrations",
-      "dictionaryLinksDescription": "Choose which dictionaries appear as quick lookup links in the token popup.",
       "deleteAccount": "Delete account (Irreversible action)",
       "deleteAccountButton": "Delete account",
       "deletingAccount": "Deleting...",
@@ -1002,33 +1002,6 @@
     "playAudio": "Play audio",
     "loading": "Loading",
     "noResultsSupport": "Looking for something we don't have yet? Suggest what we add next on our {link}"
-  },
-  "tokenTooltip": {
-    "lookupIn": "Look up in",
-    "loading": "Looking up…",
-    "moreSentences": "More sentences",
-    "playAudio": "Play pronunciation",
-    "unavailable": "Definitions couldn't be loaded. Try again in a moment.",
-    "noEntry": "No dictionary entry for this word.",
-    "definitionsHidden": "Definitions hidden",
-    "showDefinitions": "Show",
-    "openInAnki": "Open the note in Anki",
-    "mineContextOnly": "Add this sentence, audio and image, keeping your definitions",
-    "minedActions": "In your collection",
-    "alsoWritten": "also written",
-    "mineToNote": "Replace everything, including the definitions",
-    "mineToLastCard": "Add this sentence, audio and image to your last added Anki card",
-    "otherMatches": "{count} more",
-    "showLess": "Show fewer",
-    "isName": "This looks like a name.",
-    "parts": "Parts",
-    "nameEntry": "Name",
-    "back": "Back",
-    "forward": "Forward",
-    "pickDictionary": "Put {dictionary} on the card",
-    "pickedDictionaries": "Selected {count} of {total} dictionaries",
-    "pickSelectAll": "Select all",
-    "pickDeselectAll": "Deselect all"
   },
   "searchContainer": {
     "errorTitle": "Something went wrong",
@@ -1385,6 +1358,8 @@
       "linkedAs": "Linked as {name}",
       "dictionaries": "Dictionaries",
       "dictionariesHint": "Go to Shirabe to change them",
+      "shownByDefault": "Shown by default",
+      "collapsedByDefault": "Collapsed by default",
       "anonymous": "your Shirabe account",
       "upgrade": "Update permissions",
       "reconnect": "Reconnect",
@@ -1601,5 +1576,17 @@
       "JDRAMA": "Live action",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "Put {dictionary} on the card",
+    "pickedDictionaries": "Selected {count} of {total} dictionaries",
+    "lookupIn": "Look up in",
+    "parts": "Parts",
+    "openInAnki": "Open the note in Anki",
+    "mineContextOnly": "Add this sentence, audio and image, keeping your definitions",
+    "mineToNote": "Replace everything, including the definitions"
+  },
+  "wordCardActions": {
+    "moreSentences": "More sentences"
   }
 }

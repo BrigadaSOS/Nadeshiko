@@ -42,14 +42,14 @@ properties:
   shirabeName:
     type: string
     nullable: true
-    description: Who they are on Shirabe, for the settings page to name the link.
-    example: Lumi
+    description: Legacy account name if previously obtained; new links do not request profile access.
+    example: null
   scopes:
     type: array
-    description: What the reader granted. Today that is READ_ACCOUNT and nothing else.
+    description: What the reader granted. Today that is user:dictionary:read.
     items:
       type: string
-    example: [READ_ACCOUNT]
+    example: ["user:dictionary:read"]
   dictionaries:
     type: array
     description: >-
@@ -68,6 +68,12 @@ properties:
       the stack without this prints a list of hashes. Empty for a link made
       before Shirabe published the names; fall back to the slug.
     example: { jmdict: JMdict, "yomitan-c89af12122021a8a": 三省堂国語辞典 }
+  dictionaryReveal:
+    type: object
+    additionalProperties:
+      type: string
+      enum: [show, hover]
+    description: Shirabe's reveal choice for each dictionary, keyed by slug.
   stackIsPrivate:
     type: boolean
     description: >-

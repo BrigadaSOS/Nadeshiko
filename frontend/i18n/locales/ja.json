@@ -679,6 +679,8 @@
       "translationLanguages": "翻訳の表示言語",
       "translationLanguagesDescription": "字幕の翻訳と辞書の語義を表示する言語を選びます。両方を選ぶ場合は、表示順も指定できます。",
       "translationLanguagesLinkedDescription": "字幕の翻訳を表示する言語と順序を選びます。辞書の語義はShirabeの設定に従います。",
+      "dictionaryLinks": "外部辞書へのリンク",
+      "dictionaryLinksDescription": "単語を選ぶと開くポップアップに、どの辞書へのリンクを表示するか選びます。",
       "definitionSize": "語義の文字サイズ",
       "definitionSizeDescription": "単語を選ぶと開くポップアップで、語義の文字サイズを変更します。",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "作品情報を折りたたみ、画像・タイトル・件数のみを表示します。クリックすると詳細を開けます。",
       "defaultSearchCategoryHiddenOption": "{category}（非表示）",
       "defaultSearchCategoryHiddenNotice": "{category}は非表示に設定されています。表示をオンにするまで、検索時には「すべて」が選択されます。",
-      "dictionaryLinks": "外部辞書へのリンク",
-      "dictionaryLinksDescription": "単語を選ぶと開くポップアップに、どの辞書へのリンクを表示するか選びます。",
       "deleteAccount": "アカウント削除（取り消し不可）",
       "deleteAccountButton": "アカウントを削除",
       "deletingAccount": "削除中...",
@@ -1002,33 +1002,6 @@
     "playAudio": "音声を再生",
     "loading": "読み込み中",
     "noResultsSupport": "まだ収録されていない作品をお探しですか？次に追加する作品を {link} で提案できます。"
-  },
-  "tokenTooltip": {
-    "lookupIn": "辞書で調べる",
-    "loading": "検索中…",
-    "moreSentences": "この単語の例文を検索",
-    "playAudio": "発音を再生",
-    "unavailable": "辞書を読み込めませんでした。少し経ってからもう一度お試しください。",
-    "noEntry": "この単語は辞書に見つかりませんでした。",
-    "definitionsHidden": "語義は非表示です",
-    "showDefinitions": "表示",
-    "openInAnki": "Ankiでノートを開く",
-    "mineContextOnly": "例文・音声・画像を更新（語義は保持）",
-    "minedActions": "Ankiに登録済み",
-    "alsoWritten": "他の表記",
-    "mineToNote": "ノート全体を置き換える（語義も含む）",
-    "mineToLastCard": "例文・音声・画像を最後に追加したAnkiカードに書き出す",
-    "otherMatches": "ほか{count}件",
-    "showLess": "折りたたむ",
-    "isName": "これは固有名詞のようです。",
-    "parts": "語の構成",
-    "nameEntry": "固有名詞",
-    "back": "戻る",
-    "forward": "進む",
-    "pickDictionary": "{dictionary}の語義をカードに含める",
-    "pickedDictionaries": "辞書{total}件中{count}件を選択",
-    "pickSelectAll": "すべて選択",
-    "pickDeselectAll": "すべて解除"
   },
   "searchContainer": {
     "errorTitle": "エラーが発生しました",
@@ -1385,6 +1358,8 @@
       "linkedAs": "{name} として連携中",
       "dictionaries": "辞書",
       "dictionariesHint": "Shirabe で変更する",
+      "shownByDefault": "初期状態で表示",
+      "collapsedByDefault": "初期状態で折りたたむ",
       "anonymous": "Shirabe アカウント",
       "upgrade": "権限を更新",
       "reconnect": "再接続",
@@ -1601,5 +1576,17 @@
       "JDRAMA": "実写",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "{dictionary}の語義をカードに含める",
+    "pickedDictionaries": "辞書{total}件中{count}件を選択",
+    "lookupIn": "辞書で調べる",
+    "parts": "語の構成",
+    "openInAnki": "Ankiでノートを開く",
+    "mineContextOnly": "例文・音声・画像を更新（語義は保持）",
+    "mineToNote": "ノート全体を置き換える（語義も含む）"
+  },
+  "wordCardActions": {
+    "moreSentences": "この単語の例文を検索"
   }
 }

@@ -46,14 +46,18 @@ const envSchema = z.object({
   EMAIL_API_NADEDB: requiredString,
   API_KEY_MASTER: requiredString,
   // Shirabe parses every segment we serve and supplies the definitions behind
-  // each word. The key is a quota-exempt service identity of ours.
+  // each word. Calls authenticate as our confidential OAuth client, minting a
+  // short-lived `dictionary:read` machine token per process as needed.
   SHIRABE_API_BASE: z.string().url().default('https://shirabe.org'),
-  SHIRABE_API_KEY: z.string().default(''),
   // How many parse batches run at once. See the long note on PARSE_CONCURRENCY in
   // app/services/shirabe/parseSegments.ts for why the default is deliberately
   // small. Validated here rather than read raw so a typo is a boot error instead
   // of a silent fallback to the default.
   SHIRABE_PARSE_CONCURRENCY: z.coerce.number().int().positive().default(3),
+  // Kept below Shirabe's 10,000-character request ceiling. A batch is bounded
+  // by both item count and this value, so an episode with unusually long lines
+  // cannot turn a routine ingest into a non-retryable 413.
+  SHIRABE_PARSE_MAX_CHARS_PER_REQUEST: z.coerce.number().int().positive().default(8_000),
   // A reader can also link their OWN Shirabe account, which is what makes a word
   // lookup answer from the dictionaries THEY configured rather than from the
   // service identity's empty preferences. Three separate things:

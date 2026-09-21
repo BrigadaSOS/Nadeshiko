@@ -679,6 +679,8 @@
       "translationLanguages": "Bahasa terjemahan",
       "translationLanguagesDescription": "Pilih bahasa untuk terjemahan subtitle dan definisi kamus: Inggris, Spanyol, atau keduanya. Jika memilih keduanya, Anda juga dapat mengatur urutan tampilannya. Terjemahan subtitle bahasa Indonesia belum tersedia.",
       "translationLanguagesLinkedDescription": "Pilih bahasa dan urutan tampilan terjemahan subtitle: Inggris, Spanyol, atau keduanya. Definisi kamus mengikuti pengaturan Shirabe Anda. Terjemahan subtitle bahasa Indonesia belum tersedia.",
+      "dictionaryLinks": "Tautan kamus",
+      "dictionaryLinksDescription": "Pilih kamus yang ditampilkan sebagai tautan pencarian cepat pada panel kata.",
       "definitionSize": "Ukuran teks definisi",
       "definitionSizeDescription": "Atur ukuran teks definisi pada panel kata.",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "Panel awalnya hanya menampilkan gambar kecil, judul, dan jumlah episode serta kalimat dalam satu baris. Klik baris tersebut untuk melihat detailnya.",
       "defaultSearchCategoryHiddenOption": "{category} (disembunyikan)",
       "defaultSearchCategoryHiddenNotice": "Kategori {category} sedang disembunyikan. Pencarian akan dibuka pada Semua hingga kategori tersebut ditampilkan kembali.",
-      "dictionaryLinks": "Tautan kamus",
-      "dictionaryLinksDescription": "Pilih kamus yang ditampilkan sebagai tautan pencarian cepat pada panel kata.",
       "deleteAccount": "Hapus akun (tidak dapat dibatalkan)",
       "deleteAccountButton": "Hapus akun",
       "deletingAccount": "Menghapus…",
@@ -1002,33 +1002,6 @@
     "playAudio": "Putar audio",
     "loading": "Memuat",
     "noResultsSupport": "Belum menemukan yang Anda cari? Usulkan konten untuk ditambahkan melalui {link} kami."
-  },
-  "tokenTooltip": {
-    "lookupIn": "Cari di",
-    "loading": "Mencari…",
-    "moreSentences": "Kalimat lainnya",
-    "playAudio": "Putar pelafalan",
-    "unavailable": "Gagal memuat definisi. Tunggu sebentar, lalu coba lagi.",
-    "noEntry": "Tidak ada entri kamus untuk kata ini.",
-    "definitionsHidden": "Definisi disembunyikan",
-    "showDefinitions": "Tampilkan",
-    "openInAnki": "Buka catatan di Anki",
-    "mineContextOnly": "Perbarui kalimat, audio, dan gambar (pertahankan definisi)",
-    "minedActions": "Sudah ada di Anki",
-    "alsoWritten": "juga ditulis",
-    "mineToNote": "Ganti semua isi, termasuk definisi",
-    "mineToLastCard": "Tambahkan kalimat, audio, dan gambar ini ke kartu Anki yang terakhir ditambahkan",
-    "otherMatches": "{count} lainnya",
-    "showLess": "Tampilkan lebih sedikit",
-    "isName": "Kata ini tampaknya merupakan nama.",
-    "parts": "Bagian kata",
-    "nameEntry": "Nama",
-    "back": "Kembali",
-    "forward": "Maju",
-    "pickDictionary": "Sertakan definisi dari {dictionary} pada kartu",
-    "pickedDictionaries": "{count} dari {total} kamus dipilih",
-    "pickSelectAll": "Pilih semua",
-    "pickDeselectAll": "Batalkan semua pilihan"
   },
   "searchContainer": {
     "errorTitle": "Terjadi kesalahan",
@@ -1385,6 +1358,8 @@
       "linkedAs": "Terhubung sebagai {name}",
       "dictionaries": "Kamus",
       "dictionariesHint": "Buka Shirabe untuk mengubahnya",
+      "shownByDefault": "Ditampilkan secara default",
+      "collapsedByDefault": "Diciutkan secara default",
       "anonymous": "akun Shirabe Anda",
       "upgrade": "Perbarui izin",
       "reconnect": "Hubungkan kembali",
@@ -1601,5 +1576,17 @@
       "JDRAMA": "Live action",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "Sertakan definisi dari {dictionary} pada kartu",
+    "pickedDictionaries": "{count} dari {total} kamus dipilih",
+    "lookupIn": "Cari di",
+    "parts": "Bagian kata",
+    "openInAnki": "Buka catatan di Anki",
+    "mineContextOnly": "Perbarui kalimat, audio, dan gambar (pertahankan definisi)",
+    "mineToNote": "Ganti semua isi, termasuk definisi"
+  },
+  "wordCardActions": {
+    "moreSentences": "Kalimat lainnya"
   }
 }

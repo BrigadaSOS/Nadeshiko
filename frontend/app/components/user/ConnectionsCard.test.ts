@@ -2,6 +2,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
+import { mdiEye, mdiEyeClosed } from '@mdi/js';
 
 /**
  * The Shirabe link on the settings page.
@@ -29,6 +30,7 @@ vi.stubGlobal('useI18n', () => ({
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { shirabeSite: 'https://shirabe.test' } }));
 
 import ConnectionsCard from './ConnectionsCard.vue';
+import UiBaseIcon from '~/components/ui/BaseIcon.vue';
 
 type Connection = Record<string, unknown>;
 
@@ -43,6 +45,7 @@ function connection(over: Connection = {}): Connection {
     scopes: ['read'],
     dictionaries: [],
     dictionaryNames: {},
+    dictionaryReveal: {},
     stackIsPrivate: false,
     syncedAt: null,
     ...over,
@@ -53,7 +56,9 @@ const mounted: { unmount: () => void }[] = [];
 
 async function render(conn: Connection | null) {
   $fetch.mockResolvedValueOnce({ connection: conn });
-  const wrapper = mount(ConnectionsCard, { global: { mocks: { $t: (k: string) => k } } });
+  const wrapper = mount(ConnectionsCard, {
+    global: { mocks: { $t: (k: string) => k }, components: { UiBaseIcon } },
+  });
   mounted.push(wrapper);
   for (let i = 0; i < 5; i++) await nextTick();
   return wrapper;
@@ -61,6 +66,14 @@ async function render(conn: Connection | null) {
 
 const toggle = (w: ReturnType<typeof mount>) => w.get('[data-testid="shirabe-connection-toggle"]');
 const stackRows = (w: ReturnType<typeof mount>) => w.findAll('[data-testid="shirabe-stack"] li');
+const stackLabels = (w: ReturnType<typeof mount>) =>
+  stackRows(w).map((row) =>
+    [
+      row.get('span.tabular-nums').text(),
+      row.get('span.text-gray-200').text(),
+      ...row.findAll('[data-testid="shirabe-language-pill"]').map((pill) => pill.text()),
+    ].join(''),
+  );
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -76,6 +89,13 @@ afterEach(() => {
 });
 
 describe('which of the four states the card is in', () => {
+  test('does not show or request the disabled Patreon connection', async () => {
+    const wrapper = await render(null);
+
+    expect(wrapper.find('[data-testid="patreon-connection-toggle"]').exists()).toBe(false);
+    expect($fetch).not.toHaveBeenCalledWith('/v1/user/connections/patreon');
+  });
+
   test('no connection at all offers to connect', async () => {
     const wrapper = await render(null);
 
@@ -128,7 +148,80 @@ describe('the dictionary stack', () => {
       connection({ dictionaries: ['jmdict:en', 'daijirin:ja'], dictionaryNames: { jmdict: 'JMdict' } }),
     );
 
-    expect(stackRows(wrapper).map((r) => r.text())).toEqual(['1JMdictEN', '2daijirinJA']);
+    expect(stackLabels(wrapper)).toEqual(['1JMdictEN', '2daijirinJA']);
+  });
+
+  test('combines adjacent languages of one dictionary in their Shirabe order and shows its reveal mode', async () => {
+    const wrapper = await render(
+      connection({
+        dictionaries: ['shirabe:en', 'shirabe:es', 'jmdict:ja'],
+        dictionaryNames: { shirabe: 'Shirabe', jmdict: 'JMdict' },
+        dictionaryReveal: { shirabe: 'hover', jmdict: 'show' },
+      }),
+    );
+
+    expect(stackRows(wrapper)).toHaveLength(2);
+    expect(
+      stackRows(wrapper)[0]!
+        .findAll('[data-testid="shirabe-language-pill"]')
+        .map((pill) => pill.text()),
+    ).toEqual(['EN', 'ES']);
+    expect(
+      stackRows(wrapper)[0]!
+        .findAll('[data-testid="shirabe-language-pill"]')
+        .map((pill) => pill.attributes('aria-label')),
+    ).toEqual(['modalSegmentEdit.english', 'modalSegmentEdit.spanish']);
+    expect(stackRows(wrapper)[0]!.get('span.text-gray-200').text()).toBe('Shirabe');
+    expect(stackRows(wrapper)[0]!.get('[data-testid="shirabe-reveal-icon"]').attributes('aria-label')).toBe(
+      'connections.shirabe.collapsedByDefault',
+    );
+    expect(stackRows(wrapper)[1]!.get('[data-testid="shirabe-reveal-icon"]').attributes('aria-label')).toBe(
+      'connections.shirabe.shownByDefault',
+    );
+    expect(stackRows(wrapper)[0]!.get('[data-testid="shirabe-reveal-icon"] path').attributes('d')).toBe(mdiEyeClosed);
+    expect(stackRows(wrapper)[1]!.get('[data-testid="shirabe-reveal-icon"] path').attributes('d')).toBe(mdiEye);
+  });
+
+  test('shows the reveal hint on click and hides it after a second click or blur', async () => {
+    const wrapper = await render(connection({ dictionaries: ['shirabe:en'], dictionaryReveal: { shirabe: 'hover' } }));
+    const icon = stackRows(wrapper)[0]!.get('[data-testid="shirabe-reveal-icon"]');
+    const hint = stackRows(wrapper)[0]!.get('[role="tooltip"]');
+
+    expect(icon.attributes('aria-expanded')).toBe('false');
+    expect(hint.classes()).toContain('invisible');
+    await icon.trigger('click');
+    expect(icon.attributes('aria-expanded')).toBe('true');
+    expect(hint.classes()).toContain('visible');
+    expect(hint.text()).toBe('connections.shirabe.collapsedByDefault');
+    await icon.trigger('click');
+    expect(icon.attributes('aria-expanded')).toBe('false');
+    await icon.trigger('click');
+    await icon.trigger('blur');
+    expect(icon.attributes('aria-expanded')).toBe('false');
+  });
+
+  test('shows a language name in the same popup on hover or click without a pointer cursor', async () => {
+    const wrapper = await render(connection({ dictionaries: ['shirabe:en'] }));
+    const pill = stackRows(wrapper)[0]!.get('[data-testid="shirabe-language-pill"]');
+    const hint = stackRows(wrapper)[0]!.get('[role="tooltip"]');
+
+    expect(pill.classes()).toContain('cursor-default');
+    expect(pill.attributes('title')).toBeUndefined();
+    expect(pill.attributes('aria-label')).toBe('modalSegmentEdit.english');
+    expect(hint.classes()).toContain('group-hover/language:visible');
+    expect(hint.classes()).toContain('invisible');
+    await pill.trigger('click');
+    expect(pill.attributes('aria-expanded')).toBe('true');
+    expect(hint.classes()).toContain('visible');
+    expect(hint.text()).toBe('modalSegmentEdit.english');
+    await pill.trigger('blur');
+    expect(pill.attributes('aria-expanded')).toBe('false');
+  });
+
+  test('keeps separate positions if the same dictionary appears again later', async () => {
+    const wrapper = await render(connection({ dictionaries: ['shirabe:en', 'jmdict:ja', 'shirabe:es'] }));
+
+    expect(stackLabels(wrapper)).toEqual(['1shirabeEN', '2jmdictJA', '3shirabeES']);
   });
 
   test('prefers the name Shirabe published over the slug', async () => {
@@ -155,13 +248,13 @@ describe('the dictionary stack', () => {
     // languages, so both halves have to come out right.
     const wrapper = await render(connection({ dictionaries: ['weird:slug:en'] }));
 
-    expect(stackRows(wrapper)[0]!.text()).toBe('1weird:slugEN');
+    expect(stackLabels(wrapper)[0]).toBe('1weird:slugEN');
   });
 
   test('an entry with no language at all still renders', async () => {
     const wrapper = await render(connection({ dictionaries: ['jmdict'] }));
 
-    expect(stackRows(wrapper)[0]!.text()).toBe('1jmdict');
+    expect(stackLabels(wrapper)[0]).toBe('1jmdict');
   });
 
   test('is hidden for a dead link, whose dictionaries are NOT being used', async () => {
@@ -182,6 +275,24 @@ describe('linking', () => {
     await nextTick();
 
     expect($fetch).toHaveBeenLastCalledWith('/v1/user/connections/shirabe', { method: 'POST' });
+  });
+
+  test('updating permissions starts a new approval without disconnecting the existing link', async () => {
+    const wrapper = await render(
+      connection({
+        needsUpgrade: true,
+        scopes: ['user:dictionary:read'],
+        missingScopes: ['user:preferences:read'],
+      }),
+    );
+    $fetch.mockResolvedValueOnce({ authorizeUrl: 'https://shirabe.test/oauth/authorize' });
+
+    expect(toggle(wrapper).text()).toBe('connections.shirabe.upgrade');
+    await toggle(wrapper).trigger('click');
+    await nextTick();
+
+    expect($fetch).toHaveBeenLastCalledWith('/v1/user/connections/shirabe', { method: 'POST' });
+    expect($fetch).not.toHaveBeenCalledWith('/v1/user/connections/shirabe', { method: 'DELETE' });
   });
 
   test('a failure to start is reported and the button comes back', async () => {

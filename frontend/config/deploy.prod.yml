@@ -119,23 +119,12 @@ env:
   secret:
     - NUXT_NADESHIKO_API_KEY
     - NUXT_INTERNAL_PROXY_SECRET
-    # Word lookups. Its own key, not staging's and not the backend's: the backend's
-    # SHIRABE_API_KEY parses the corpus, this one reads definitions for a reader, and
-    # sharing one credential would mean neither could be revoked on its own.
-    - NUXT_SHIRABE_API_KEY
 
   clear:
     NUXT_RELEASE_SHA: <%= ENV.fetch("VERSION", "unknown") %>
     NUXT_PUBLIC_ENVIRONMENT: production
     NODE_ENV: production
 
-    # `shirabeLookups` is derived from NUXT_SHIRABE_API_KEY in nuxt.config, which is
-    # evaluated during `nuxt build` -- inside the image, where the key is not present
-    # and must not be. The boolean therefore bakes in as false however the key is set
-    # at runtime, so the public flag is set here instead. Only valid where the key IS
-    # configured: turning it on without one is exactly the doomed per-hover request
-    # the flag exists to prevent.
-    NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
     #
     # The fast path and the fallback are the same service under two of its own
     # hostnames, which is what lets one skip Cloudflare while the other keeps working

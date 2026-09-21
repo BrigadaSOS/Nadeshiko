@@ -46,6 +46,7 @@ const service = {
   resyncStack: vi.fn(),
   markDisconnected: vi.fn(),
   missingScopes: vi.fn(() => [] as string[]),
+  shirabeServiceCredential: vi.fn(),
 };
 vi.mock('@app/services/shirabe/connection', () => ({
   findConnection: (...a: unknown[]) => service.findConnection(...a),
@@ -57,6 +58,9 @@ vi.mock('@app/services/shirabe/connection', () => ({
   resyncStack: (...a: unknown[]) => service.resyncStack(...a),
   markDisconnected: (...a: unknown[]) => service.markDisconnected(...a),
   missingScopes: (...a: unknown[]) => service.missingScopes(...(a as [])),
+}));
+vi.mock('@app/services/shirabe/serviceClient', () => ({
+  shirabeServiceCredential: (...a: unknown[]) => service.shirabeServiceCredential(...a),
 }));
 
 /** Whether the request looks like it came through our own frontend proxy. */
@@ -172,6 +176,20 @@ describe('GET /v1/user/connections/shirabe', () => {
   });
 });
 
+describe('GET /v1/user/connections/shirabe/service-credential', () => {
+  it('hands only the frontend proxy the short-lived shared OAuth bearer', async () => {
+    service.shirabeServiceCredential.mockResolvedValue({ token: 'shared-oauth-bearer', expiresAt: 1_700_000_000_000, refreshAt: 1_699_999_000_000 });
+
+    const denied = await request(app).get('/v1/user/connections/shirabe/service-credential');
+    expect(denied.status).toBe(403);
+
+    fromInternalProxy = true;
+    const allowed = await request(app).get('/v1/user/connections/shirabe/service-credential');
+    expect(allowed.status).toBe(200);
+    expect(allowed.body).toEqual({ token: 'shared-oauth-bearer', expiresAt: 1_700_000_000_000, refreshAt: 1_699_999_000_000 });
+  });
+});
+
 describe('POST /v1/user/connections/shirabe', () => {
   it('hands back somewhere to send the reader', async () => {
     service.startLink.mockReturnValue({ authorizeUrl: 'https://shirabe.test/oauth?state=abc', state: 'abc' });
@@ -208,9 +226,16 @@ describe('POST /v1/user/connections/shirabe/callback', () => {
   it('passes the grant through with the reader it belongs to', async () => {
     service.completeLink.mockResolvedValue(connectionRow());
 
-    await request(app).post('/v1/user/connections/shirabe/callback').send({ code: 'auth-code', state: 'state-1' });
+    await request(app)
+      .post('/v1/user/connections/shirabe/callback')
+      .send({ code: 'auth-code', state: 'state-1', issuer: 'https://shirabe.test' });
 
-    expect(service.completeLink).toHaveBeenCalledWith(core.users.regular.id, 'auth-code', 'state-1');
+    expect(service.completeLink).toHaveBeenCalledWith(
+      core.users.regular.id,
+      'auth-code',
+      'state-1',
+      'https://shirabe.test',
+    );
   });
 
   it('computes the missing scopes rather than assuming none', async () => {

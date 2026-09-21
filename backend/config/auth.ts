@@ -416,7 +416,14 @@ async function sessionShirabe(userId: number) {
     // per render.
     const connection = await ShirabeConnection.findOne({
       where: { userId },
-      select: { id: true, stackFingerprint: true, stack: true, disconnectedAt: true, syncedAt: true },
+      select: {
+        id: true,
+        stackFingerprint: true,
+        stack: true,
+        stackReveal: true,
+        disconnectedAt: true,
+        syncedAt: true,
+      },
     });
     if (!connection) return null;
 
@@ -450,6 +457,7 @@ async function sessionShirabe(userId: number) {
       linked: true,
       stackFingerprint: connection.stackFingerprint ?? null,
       glossLanguages: glossLanguagesFrom(connection.stack),
+      dictionaryReveal: connection.stackReveal ?? {},
     };
   } catch (error) {
     logger.warn({ err: error, userId }, 'Could not read the Shirabe connection for a session');

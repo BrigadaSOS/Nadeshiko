@@ -50,6 +50,10 @@ export class ShirabeConnection extends BaseEntity {
   @Column({ name: 'access_token_expires_at', type: 'timestamptz' })
   accessTokenExpiresAt!: Date;
 
+  /** When to try renewal; the access token remains usable until its actual expiry. */
+  @Column({ name: 'access_token_refresh_at', type: 'timestamptz', nullable: true })
+  accessTokenRefreshAt?: Date | null;
+
   @Column({ name: 'refresh_token_ciphertext', type: 'text' })
   refreshTokenCiphertext!: string;
 
@@ -92,6 +96,10 @@ export class ShirabeConnection extends BaseEntity {
    */
   @Column({ name: 'stack_names', type: 'jsonb', default: () => "'{}'::jsonb" })
   stackNames!: Record<string, string>;
+
+  /** Shirabe's per-dictionary show/hover choice, keyed by dictionary slug. */
+  @Column({ name: 'stack_reveal', type: 'jsonb', default: () => "'{}'::jsonb" })
+  stackReveal!: Record<string, 'show' | 'hover'>;
 
   /** When we last re-read the stack from Shirabe. */
   @Column({ name: 'synced_at', type: 'timestamptz', nullable: true })
@@ -152,6 +160,7 @@ export class ShirabeConnection extends BaseEntity {
       /** Slug => display name, for the stack above. Absent for a link made
        *  before Shirabe published the names, so a client falls back to the slug. */
       dictionaryNames: this.stackNames ?? {},
+      dictionaryReveal: this.stackReveal ?? {},
       stackIsPrivate: this.stackIsPrivate,
       syncedAt: this.syncedAt?.toISOString() ?? null,
     };

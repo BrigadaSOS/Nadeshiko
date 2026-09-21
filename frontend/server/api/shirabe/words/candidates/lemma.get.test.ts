@@ -1,15 +1,9 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 
 /**
- * "Which words could this token be?", with the definitions attached.
+ * "Which words match this span?", with the definitions attached.
  *
- * It asks `POST /words/identify` rather than the old lookup-by-lemma, and that
- * is the whole reason it exists. `GET /words/{id}` answers a bare lemma, and a
- * lemma is almost always its own headword -- so the old call kept working for
- * nearly every word while SILENTLY ignoring the reading. A homograph then fell
- * to Shirabe's commonest-writing tiebreak instead of to how the sentence read
- * it: 開いた reads ヒライタ and means ひらく, and the card confidently printed
- * あく. Nothing alerted, because a wrong definition is not an error.
+ * It sends source text and UTF-16 target offsets to Shirabe's identify API.
  *
  * Two other things here are load-bearing and invisible:
  *
@@ -32,12 +26,10 @@ const { logger, callShirabe, readerStack, readerToken, reportShirabeRefusal, rep
     reportStackFingerprint: vi.fn(),
   }),
 );
+const sharedCache = vi.hoisted(() => ({ calls: 0 }));
 
 vi.mock('~~/server/utils/logger', () => ({ logger }));
-vi.mock('~~/server/utils/shirabeCall', async (importOriginal) => ({
-  // The real `describeFailure`: it is the shared half of the decision this
-  // route makes about a 404, and a double would let the two drift apart.
-  ...(await importOriginal<typeof import('~~/server/utils/shirabeCall')>()),
+vi.mock('~~/server/utils/shirabeCall', () => ({
   callShirabe: (...a: unknown[]) => callShirabe(...a),
 }));
 vi.mock('~~/server/utils/shirabeReader', () => ({
@@ -63,8 +55,10 @@ vi.mock('h3', async (importOriginal) => {
 });
 
 vi.stubGlobal('defineEventHandler', (handler: unknown) => handler);
-// The cache wrapper is Nitro's; what is under test is the handler it wraps.
-vi.stubGlobal('defineCachedEventHandler', (handler: unknown) => handler);
+vi.stubGlobal('defineCachedEventHandler', (handler: (event: FakeEvent) => unknown) => (event: FakeEvent) => {
+  sharedCache.calls += 1;
+  return handler(event);
+});
 
 const candidate = (over: Record<string, unknown> = {}) => ({
   id: 'jmdict:1',
@@ -73,9 +67,9 @@ const candidate = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** An identify answer with these candidates for the single token asked about. */
+/** An identify answer with these candidates for the selected span. */
 const identified = (candidates: unknown[], stackFingerprint?: string) => ({
-  words: [{ candidates }],
+  spans: [{ startOffset: 0, matches: candidates }],
   ...(stackFingerprint ? { stackFingerprint } : {}),
 });
 
@@ -89,10 +83,14 @@ function httpError(status: number, contentType = 'application/json') {
 let handler: (event: FakeEvent) => Promise<Record<string, unknown>>;
 let lastEvent: FakeEvent | undefined;
 
-/** Asks for one lemma, returning the response body and the headers set on it. */
+/** Asks for one span, returning the response body and headers set on it. */
 async function lookup(lemma: string | undefined, query: Record<string, unknown> = {}) {
   handler ??= ((await import('./[lemma].get')) as unknown as { default: typeof handler }).default;
-  const event: FakeEvent = { params: lemma === undefined ? {} : { lemma }, query, headers: {} };
+  const event: FakeEvent = {
+    params: lemma === undefined ? {} : { lemma },
+    query: lemma === undefined ? query : { text: lemma, startOffset: 0, endOffset: lemma.length, ...query },
+    headers: {},
+  };
   lastEvent = event;
   const body = await handler(event);
   return { body, headers: event.headers };
@@ -100,18 +98,32 @@ async function lookup(lemma: string | undefined, query: Record<string, unknown> 
 
 /** The body of the identify request that was sent upstream. */
 const asked = () =>
-  callShirabe.mock.calls[0]![0] as {
-    query: Record<string, string>;
-    body: { tokens: Record<string, string>[]; include: string[] };
-    apiKey?: string;
+  ({
+    ...(callShirabe.mock.calls[0]![0] as { accessToken?: string }),
+    ...(sdkPost.mock.calls[0]![0] as {
+      headers: Record<string, string>;
+      body: { text: string; target: { startOffset: number; endOffset?: number }; dictionaries?: string[] };
+    }),
+  }) as {
+    headers: Record<string, string>;
+    body: { text: string; target: { startOffset: number; endOffset?: number }; dictionaries?: string[] };
+    accessToken?: string;
   };
+
+const sdkPost = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sharedCache.calls = 0;
   lastEvent = undefined;
   readerStack.mockResolvedValue({ linked: false, fingerprint: null });
   readerToken.mockResolvedValue(null);
-  callShirabe.mockResolvedValue(identified([candidate()]));
+  sdkPost.mockResolvedValue(identified([candidate()]));
+  callShirabe.mockImplementation(async (request) => {
+    const identify = (body: unknown, options?: { headers?: Record<string, string> }) =>
+      sdkPost({ body, headers: options?.headers });
+    return await request.clientCall({ identifyWord: identify } as never);
+  });
 });
 
 describe('the question it asks', () => {
@@ -119,53 +131,29 @@ describe('the question it asks', () => {
     await expect(lookup(undefined)).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  test('sends the lemma as the token to identify', async () => {
+  test('sends the selected span to identify', async () => {
     await lookup('兄');
 
-    expect(asked().body.tokens).toEqual([{ lemma: '兄' }]);
+    expect(asked().body).toEqual({ text: '兄', target: { startOffset: 0, endOffset: 1 } });
   });
 
-  test('sends the reading, which is the whole reason this route replaced the old one', async () => {
-    // Without it 開いた falls to the commonest-writing tiebreak and the card
-    // prints あく for a sentence that reads ヒライタ.
-    await lookup('開く', { surface: '開いた', reading: 'ヒライタ', pos: 'verb' });
+  test('uses sentence context and offsets without POS hints', async () => {
+    sdkPost.mockResolvedValue({ spans: [{ startOffset: 2, matches: [candidate()] }] });
+    await lookup('開いた', { text: '窓を開いた。', startOffset: 2, endOffset: 5, pos: 'verb' });
 
-    expect(asked().body.tokens[0]).toEqual({ lemma: '開く', surface: '開いた', reading: 'ヒライタ', pos: 'verb' });
+    expect(asked().body).toEqual({ text: '窓を開いた。', target: { startOffset: 2, endOffset: 5 } });
   });
 
-  test('drops an EMPTY hint rather than sending it', async () => {
-    // A blank would read as "no reading", which is a different claim from "I do
-    // not know the reading" -- and an unrecognised `pos` makes the lookup answer
-    // with no candidates at all.
-    await lookup('兄', { surface: '', reading: '   ', pos: '' });
-
-    expect(asked().body.tokens).toEqual([{ lemma: '兄' }]);
+  test('rejects an invalid span before calling Shirabe', async () => {
+    await expect(lookup('兄', { startOffset: 3 })).rejects.toMatchObject({ statusCode: 400 });
+    expect(callShirabe).not.toHaveBeenCalled();
   });
 
-  test('asks for everything the card draws, in ONE call', async () => {
-    // Otherwise the card renders and then visibly rebuilds itself when a second
-    // request lands purely for the pitch diagram and the badges.
-    await lookup('兄');
-
-    expect(asked().body.include).toEqual(
-      expect.arrayContaining(['pitch', 'frequency', 'furigana', 'jlpt', 'forms', 'parts']),
-    );
-  });
-
-  test('asks for the PARTS of an expression, or a merged chip is a dead end', async () => {
-    // 男を知っている spans 男 and 知る, the expression is the only candidate, and
-    // without `parts` neither word can be reached at all.
-    await lookup('男を知っている');
-
-    expect(asked().body.include).toContain('parts');
-  });
-
-  test('sends the label locale in the query string, not the body', async () => {
-    // `WordIdentifyRequest` is `additionalProperties: false`, so a body
-    // `locale` is a 400 before the action runs.
+  test('sends the label locale in Accept-Language, not the body', async () => {
     await lookup('兄', { locale: 'es' });
 
-    expect(asked().query).toEqual({ locale: 'es', 'dictionaries[]': 'jmdict' });
+    expect(asked().headers).toEqual(expect.objectContaining({ 'accept-language': 'es' }));
+    expect(asked().body.dictionaries).toBeUndefined();
     expect(asked().body).not.toHaveProperty('locale');
   });
 
@@ -174,7 +162,7 @@ describe('the question it asks', () => {
     // word that is the same for everyone.
     await lookup('兄', { locale });
 
-    expect(asked().query).toEqual({ locale: 'en', 'dictionaries[]': 'jmdict' });
+    expect(asked().headers).toEqual(expect.objectContaining({ 'accept-language': 'en' }));
   });
 });
 
@@ -187,8 +175,9 @@ describe('a reader with dictionaries of their own', () => {
   test('is asked for with their key, which is what makes the answer theirs', async () => {
     await lookup('兄');
 
-    expect(asked().apiKey).toBe('reader-key');
-    expect(asked().query).toEqual({ locale: 'en' });
+    expect(asked().accessToken).toBe('reader-key');
+    expect(asked().headers).toEqual(expect.objectContaining({ 'accept-language': 'en' }));
+    expect(asked().body.dictionaries).toBeUndefined();
   });
 
   test('gets a PRIVATE cache header, since the card is built from their stack', async () => {
@@ -197,6 +186,7 @@ describe('a reader with dictionaries of their own', () => {
     const { headers } = await lookup('兄');
 
     expect(headers['cache-control']).toContain('private');
+    expect(sharedCache.calls).toBe(0);
   });
 
   test('is told the stack their answer came from, so their client can re-key its cache', async () => {
@@ -246,16 +236,17 @@ describe('a reader with no linked account', () => {
   test('is asked for with no key of their own', async () => {
     await lookup('兄');
 
-    expect(asked().apiKey).toBeUndefined();
+    expect(asked().accessToken).toBeUndefined();
   });
 
   test('gets the PUBLIC answer, which is nearly all the traffic', async () => {
     const { headers } = await lookup('兄');
 
     expect(headers['cache-control']).toContain('public');
+    expect(sharedCache.calls).toBe(1);
   });
 
-  test('is never handed the service key’s fingerprint', async () => {
+  test('is never handed the shared service bearer’s fingerprint', async () => {
     // The client re-keys its cache on this value, and this response is the
     // shared cached one -- so it would end up in everybody's lookup URLs.
     callShirabe.mockResolvedValue(identified([candidate()], 'service-fp'));
@@ -265,8 +256,8 @@ describe('a reader with no linked account', () => {
     expect(body).not.toHaveProperty('stackFingerprint');
   });
 
-  test('asks Shirabe for the lexical default, rather than trying to reorder its mixed result', async () => {
-    callShirabe.mockResolvedValue(
+  test('uses Shirabe’s default source stack in the order it returns', async () => {
+    sdkPost.mockResolvedValue(
       identified([
         candidate({ id: 'wikipedia:Q575', dictionary: 'wikipedia' }),
         candidate({ id: 'jmdict:123', dictionary: 'jmdict' }),
@@ -275,7 +266,7 @@ describe('a reader with no linked account', () => {
 
     await lookup('夜');
 
-    expect(asked().query).toEqual({ locale: 'en', 'dictionaries[]': 'jmdict' });
+    expect(asked().body.dictionaries).toBeUndefined();
   });
 });
 
@@ -299,7 +290,7 @@ describe('a reader key the other end refuses', () => {
 
     expect(body.candidates).toHaveLength(1);
     expect(callShirabe).toHaveBeenCalledTimes(2);
-    expect((callShirabe.mock.calls[1]![0] as { apiKey?: string }).apiKey).toBeUndefined();
+    expect((callShirabe.mock.calls[1]![0] as { accessToken?: string }).accessToken).toBeUndefined();
   });
 
   test.each([[401], [403]])('%i is reported, so the broken LINK is discoverable', async (status) => {
@@ -341,10 +332,10 @@ describe('a reader key the other end refuses', () => {
 
 describe('a token with no entry', () => {
   test('is a plain 404, not a failure', async () => {
-    // Identify answers 200 with `words: [null]`: a word can be parsed out of a
+    // Identify answers 200 with no matching span: a word can be parsed out of a
     // subtitle and still have no entry -- a name, a coinage, a typo the corpus
     // preserved.
-    callShirabe.mockResolvedValue({ words: [null] });
+    callShirabe.mockResolvedValue({ spans: [] });
 
     await expect(lookup('ドラミちゃん')).rejects.toMatchObject({ statusCode: 404 });
   });
@@ -358,7 +349,7 @@ describe('a token with no entry', () => {
   test('and is never re-read as an upstream failure', async () => {
     // Running our own 404 back through the upstream classification would turn
     // "no entry for this word" into "the dictionary is broken".
-    callShirabe.mockResolvedValue({ words: [null] });
+    callShirabe.mockResolvedValue({ spans: [] });
 
     await expect(lookup('ドラミちゃん')).rejects.toMatchObject({ statusCode: 404 });
     expect(logger.error).not.toHaveBeenCalled();
@@ -366,14 +357,7 @@ describe('a token with no entry', () => {
 });
 
 describe('names', () => {
-  /**
-   * A name candidate WITH its gloss.
-   *
-   * The gloss is not decoration here: a candidate carrying nothing readable
-   * counts as an unknown answer rather than a repeated one, so a fixture
-   * without one makes every name list look like many distinct people and the
-   * single-name branch below is never reached.
-   */
+  /** A name candidate with the meaning the SDK will display. */
   const person = (id: string, headword: string, gloss = headword) =>
     candidate({
       id,
@@ -382,20 +366,17 @@ describe('names', () => {
       entries: [{ senses: [{ definitions: [{ lang: 'en', text: gloss }] }] }],
     });
 
-  test('are dropped while there is a real word to show', async () => {
-    // 一 is both Hajime and "one". A word exists, so the names go, and a learner
-    // reading a subtitle gets "one".
+  test('remain ranked after real words', async () => {
     callShirabe.mockResolvedValue(identified([candidate({ id: 'w', headword: '一' }), person('n1', '一', 'Hajime')]));
 
     const { body } = await lookup('一');
 
-    expect(body.candidates).toHaveLength(1);
+    expect(body.candidates).toHaveLength(2);
     expect((body.candidates as { id: string }[])[0]!.id).toBe('w');
+    expect((body.candidates as { id: string }[])[1]!.id).toBe('n1');
   });
 
-  test('ARE the answer when there is no word to compete with', async () => {
-    // 明日香 is nobody's reading but its own, and "no dictionary entry" would be
-    // false as well as useless.
+  test('retains every name when the result contains only names', async () => {
     callShirabe.mockResolvedValue(identified([person('n1', '明日香', 'Asuka'), person('n2', '飛鳥', 'Asuka (place)')]));
 
     const { body } = await lookup('明日香');
@@ -403,43 +384,12 @@ describe('names', () => {
     expect(body.candidates).toHaveLength(2);
   });
 
-  test('and many of them are answered with the one-liner instead of a picker', async () => {
-    // Four people and four glosses beats a picker of strangers.
-    callShirabe.mockResolvedValue(identified([person('n1', '明日香', 'Asuka'), person('n2', '飛鳥', 'Asuka (place)')]));
-
-    const { body } = await lookup('明日香');
-
-    expect(body.nameOnly).toBe(true);
-  });
-
-  test('and several saying the SAME thing are not many answers', async () => {
-    // ドラえもん is two candidates with one sentence between them --
-    // "Doraemon (manga by Fujiko F. Fujio; media franchise)" -- and answering
-    // that with "this looks like a name" throws away what the reader came for.
-    const gloss = 'Doraemon (manga by Fujiko F. Fujio; media franchise)';
-    callShirabe.mockResolvedValue(identified([person('n1', 'ドラえもん', gloss), person('n2', 'ドラエモン', gloss)]));
-
-    const { body } = await lookup('ドラえもん');
-
-    expect(body.nameOnly).toBe(false);
-  });
-
-  test('but a single name keeps its definition, which is often the whole point', async () => {
-    // ドラえもん is two candidates saying the same sentence and 織田信長 is one.
-    // Answering those with "this looks like a name" throws away the definition
-    // the reader came for, in a corpus made of anime subtitles.
+  test('a single name keeps its definition', async () => {
     callShirabe.mockResolvedValue(identified([person('n1', '織田信長', 'Oda Nobunaga (1534-1582)')]));
 
     const { body } = await lookup('織田信長');
 
-    expect(body.nameOnly).toBe(false);
     expect(body.candidates).toHaveLength(1);
-  });
-
-  test('a real word is never flagged as a name', async () => {
-    const { body } = await lookup('兄');
-
-    expect(body.nameOnly).toBe(false);
   });
 });
 

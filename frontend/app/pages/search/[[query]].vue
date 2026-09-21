@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { stripEpisodeHits, stripUnreadTokenFields, type SearchScope } from '~/composables/useSearchFetch';
+import { stripEpisodeHits, type SearchScope } from '~/composables/useSearchFetch';
 import {
   DEFAULT_OG_IMAGE_PATH,
   DEFAULT_OG_IMAGE_SIZE,
@@ -124,9 +124,7 @@ const searchScope = computed<SearchScope>(() => ({
 
 const fetchSentenceData = async () => {
   const outcome = await fetchSentences(searchScope.value);
-  // Slimmed before it is handed back, because what this returns IS the hydration
-  // payload: see `stripUnreadTokenFields`.
-  return outcome.status === 'ok' ? stripUnreadTokenFields(outcome.data) : null;
+  return outcome.status === 'ok' ? outcome.data : null;
 };
 
 const fetchStatsData = async () => {

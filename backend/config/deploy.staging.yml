@@ -79,8 +79,6 @@ env:
 
     - E2E_USER_PASSWORD
 
-    - SHIRABE_API_KEY
-
     # Account linking (see deploy.prod.yml). Staging needs its OWN registration
     # over on Shirabe -- the redirect URI is exact-matched, so production's does
     # not cover stg.nadeshiko.co -- and its own secret, so a dump of one

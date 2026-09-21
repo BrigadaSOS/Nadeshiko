@@ -19,7 +19,6 @@ const envSchema = z.object({
   // Shirabe parses the corpus and serves the definitions behind every word. The
   // key is a service identity of ours, so it is read server-side only (see
   // server/api/shirabe/words/[wid].get.ts) and never lands in runtimeConfig.public.
-  NUXT_SHIRABE_API_KEY: z.string().trim().default(''),
   NUXT_SHIRABE_API_BASE: z.string().trim().default('https://shirabe.org'),
   // Where a READER is sent to change their Shirabe settings, which is not the
   // same address our server calls: that one may be a tailnet host nobody can
