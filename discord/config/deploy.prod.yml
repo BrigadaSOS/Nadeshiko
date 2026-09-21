@@ -10,6 +10,10 @@ servers:
       memory-swap: 768m
       # Repeated from deploy.yml, which this block replaces.
       init: true
+      add-host:
+        - host.docker.internal:host-gateway
+        # Keep the bot's API route valid when kamal-proxy is replaced.
+        - api.nadeshiko.co:host-gateway
 
 volumes:
   - nadeshiko-discord-data:/app/data

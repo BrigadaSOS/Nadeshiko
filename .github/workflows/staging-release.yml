@@ -370,11 +370,10 @@ jobs:
     needs: [deploy-backend, deploy-frontend]
     if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
     runs-on: ubuntu-latest
-    # A cold npm install can consume five minutes by itself. The full Chromium,
-    # mobile and cross-browser smoke suite has more than 300 tests, so leave
-    # enough room for dependency setup and useful retries. The tests themselves
-    # run four-way in parallel against isolated seeded accounts.
-    timeout-minutes: 45
+    # This reaches the staging API, whose Postgres process is shared with prod.
+    # Keep it to the serial infrastructure smoke suite; application behaviour
+    # belongs in the isolated component and API checks above.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -450,11 +449,11 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-all-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: Install the Playwright browser
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium firefox webkit
+        run: npx playwright install --with-deps chromium
         working-directory: frontend
 
       # The cache holds the browser, not the apt packages it links against, and
@@ -463,7 +462,7 @@ jobs:
       # would fail at launch rather than at install.
       - name: Install the Playwright system dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium firefox webkit
+        run: npx playwright install-deps chromium
         working-directory: frontend
 
       - name: Run E2E tests
@@ -473,6 +472,7 @@ jobs:
           E2E_BASE_URL: https://stg.nadeshiko.co
           E2E_EXPECTED_SHA: ${{ env.RELEASE_SHA }}
           E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          E2E_SMOKE: 'true'
 
       - name: Enforce E2E skip budget
         run: node e2e/check-junit-budget.mjs test-results/e2e-results.xml 11
