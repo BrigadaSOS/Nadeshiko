@@ -18,12 +18,14 @@ export class IndexActiveSegmentDuplicates1789970000000 implements MigrationInter
   transaction = false;
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('SET max_parallel_maintenance_workers = 0');
     await queryRunner.query(`
       CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_Segment_active_media_content"
       ON "Segment" ("media_id", "content")
       INCLUDE ("id", "episode")
       WHERE "status" = 'ACTIVE'
     `);
+    await queryRunner.query('RESET max_parallel_maintenance_workers');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
