@@ -7,6 +7,10 @@ servers:
       # Memory limit: 768MB RAM + 256MB swap for stg
       memory: 768m
       memory-swap: 1g
+      # Staging shares the four-core production host. Keep deploys and E2E from
+      # stealing the CPU that production SSR, the backend, Postgres and
+      # Elasticsearch need during traffic bursts.
+      cpus: "0.5"
       # Repeated from deploy.yml, which this block replaces -- see the note there.
       init: true
       # Resolve Shirabe's own hostname to inari's Tailscale address, so a word

@@ -21,6 +21,10 @@ servers:
       # 768MB of paper reservation buys real headroom against it.
       memory: 768m
       memory-swap: 1g
+      # Staging shares this four-core host and production's database/search
+      # accessories. Bound deploy and E2E load so staging cannot starve the
+      # production request path it depends on.
+      cpus: "0.5"
 
 proxy:
   ssl: true
