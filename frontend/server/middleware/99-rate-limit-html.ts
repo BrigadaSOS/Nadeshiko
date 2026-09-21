@@ -1,6 +1,6 @@
 import { env } from '~~/config/env';
 import { ipRateLimit, type IpRateLimitOptions } from '~~/server/utils/ipRateLimit';
-import { RESERVED_EXACT, RESERVED_PREFIXES } from '~~/server/utils/localeRouting';
+import { getLocalePrefix, RESERVED_EXACT, RESERVED_PREFIXES } from '~~/server/utils/localeRouting';
 import { presentsBypassSecret, RATE_LIMIT_BYPASS_HEADER } from '~~/server/utils/rateLimitBypass';
 import { getClientIp } from '~~/server/utils/clientIp';
 import { isVerifiedCrawler } from '~~/server/utils/verifiedCrawler';
@@ -40,11 +40,10 @@ export default defineEventHandler(async (event) => {
   //
   // Proof remains forward-confirmed reverse DNS, never the User-Agent -- see
   // verifiedCrawler.ts.
-  const isSentencePermalink = /^\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?sentence\//.test(path);
-  if (
-    isSentencePermalink &&
-    isVerifiedCrawler(getClientIp(event), getRequestHeader(event, 'user-agent'))
-  ) {
+  const locale = getLocalePrefix(path);
+  const pathWithoutLocale = locale ? path.slice(locale.length + 1) : path;
+  const isSentencePermalink = pathWithoutLocale.startsWith('/sentence/');
+  if (isSentencePermalink && isVerifiedCrawler(getClientIp(event), getRequestHeader(event, 'user-agent'))) {
     return;
   }
 

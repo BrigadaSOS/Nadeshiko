@@ -14,7 +14,7 @@ vi.mock('../../config', () => ({
 }));
 vi.mock('../../logger', () => ({ createLogger: () => ({ warn: vi.fn() }) }));
 
-import { checkOauthRedirects } from '../../oauthRedirectMonitor';
+import { checkOauthRedirects, startOauthRedirectMonitor } from '../../oauthRedirectMonitor';
 
 const callbacks = {
   production: {
@@ -36,6 +36,24 @@ function metricValues() {
 beforeEach(() => vi.restoreAllMocks());
 
 describe('OAuth redirect monitoring', () => {
+  test('checks immediately and stops its periodic timer', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchFn = vi.fn(async () => {
+        throw new Error('offline');
+      });
+
+      const monitor = startOauthRedirectMonitor(fetchFn as typeof fetch);
+      await vi.waitFor(() => expect(fetchFn).toHaveBeenCalled());
+      expect(vi.getTimerCount()).toBe(1);
+
+      monitor.stop();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('reports each provider and environment independently', async () => {
     const fetchFn = vi.fn(async (input: string | URL, init?: RequestInit) => {
       const url = input.toString();
