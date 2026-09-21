@@ -216,6 +216,22 @@ describe('a reader with dictionaries of their own', () => {
     expect(reportStackFingerprint).toHaveBeenCalledWith(expect.anything(), 'fp-new');
   });
 
+  test('keeps the reader’s own dictionary order', async () => {
+    callShirabe.mockResolvedValue(
+      identified([
+        candidate({ id: 'wikipedia:Q575', dictionary: 'wikipedia' }),
+        candidate({ id: 'jmdict:123', dictionary: 'jmdict' }),
+      ]),
+    );
+
+    const { body } = await lookup('夜');
+
+    expect((body.candidates as { dictionary?: string }[]).map(({ dictionary }) => dictionary)).toEqual([
+      'wikipedia',
+      'jmdict',
+    ]);
+  });
+
   test('and an unchanged one is not reported at all', async () => {
     callShirabe.mockResolvedValue(identified([candidate()], 'abc'));
 
@@ -246,6 +262,22 @@ describe('a reader with no linked account', () => {
     const { body } = await lookup('兄');
 
     expect(body).not.toHaveProperty('stackFingerprint');
+  });
+
+  test('puts Wikipedia after lexical dictionary candidates', async () => {
+    callShirabe.mockResolvedValue(
+      identified([
+        candidate({ id: 'wikipedia:Q575', dictionary: 'wikipedia' }),
+        candidate({ id: 'jmdict:123', dictionary: 'jmdict' }),
+      ]),
+    );
+
+    const { body } = await lookup('夜');
+
+    expect((body.candidates as { dictionary?: string }[]).map(({ dictionary }) => dictionary)).toEqual([
+      'jmdict',
+      'wikipedia',
+    ]);
   });
 });
 
