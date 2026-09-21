@@ -245,7 +245,10 @@ jobs:
         run: |
           set -euo pipefail
           cd backend
-          version=$(kamal app version -d prod --primary --quiet | grep -Eo '[0-9a-f]{40}' | tail -1)
+          # Normal releases use immutable Git SHAs. During an incident we may
+          # deliberately run a named emergency image; it is still a valid
+          # rollback target and must not prevent the corrective deploy.
+          version=$(kamal app version -d prod --primary --quiet | grep -Eo '([0-9a-f]{40}|incident-[A-Za-z0-9._-]+)' | tail -1)
           test -n "$version" || { echo "::error::Could not identify the running backend version"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -301,7 +304,9 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          version=$(kamal app version -d prod --primary --quiet | grep -Eo '[0-9a-f]{40}' | tail -1)
+          # See the backend capture above: an explicit incident image is a
+          # valid rollback target even though its tag is not a Git SHA.
+          version=$(kamal app version -d prod --primary --quiet | grep -Eo '([0-9a-f]{40}|incident-[A-Za-z0-9._-]+)' | tail -1)
           test -n "$version" || { echo "::error::Could not identify the running frontend version"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
