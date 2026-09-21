@@ -426,6 +426,49 @@ The backend container still carries the *application* role's password in its own
 environment. Same disclosure class, different credential, and not addressed here
 — it needs the app to read a file rather than an env var.
 
+### Coordinated PostgreSQL accessory maintenance
+
+The PostgreSQL container is shared by production and staging. Rebooting it is
+one maintenance event for both environments, even though the command is issued
+from the production configuration. Never run the accessory reboot from a normal
+application release or while either environment is running migrations.
+
+Before the window:
+
+1. Confirm the latest R2 PostgreSQL backup metric is fresh and no database
+   migration or deploy job is active.
+2. Record `https://api.nadeshiko.co/up` and
+   `https://api-stg.nadeshiko.co/up`; both must be healthy.
+3. Confirm the intended rendered accessory configuration with
+   `kamal accessory details postgres -d prod`. For the shared-memory change it
+   must contain `--shm-size 256m`.
+4. Announce one interruption covering both production and staging.
+
+Apply the configuration with:
+
+```bash
+cd backend
+kamal accessory reboot postgres -d prod
+```
+
+Then verify all of the following before ending the window:
+
+```bash
+ssh nadeshiko 'docker inspect nadeshiko-backend-prod-postgres \
+  --format "{{.HostConfig.ShmSize}}"' # 268435456
+
+curl -fsS https://api.nadeshiko.co/up | jq .
+curl -fsS https://api-stg.nadeshiko.co/up | jq .
+
+ssh nadeshiko 'docker logs --since 10m nadeshiko-backend-prod-postgres 2>&1 \
+  | grep -E "No space left on device|could not resize shared memory" && exit 1 || exit 0'
+```
+
+Run one real search through each frontend and confirm the public synthetic is
+still reporting 200. A failed post-check keeps the maintenance window open: use
+the database logs and Kamal accessory details first; do not repeatedly reboot a
+shared database hoping pooled connections recover.
+
 ## Postgres backups and restore
 
 The `pg-backup` accessory in `backend/config/deploy.prod.yml` runs
