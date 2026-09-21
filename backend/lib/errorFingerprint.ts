@@ -28,14 +28,14 @@ function extractFirstAppFrame(stack: string | undefined): string {
 }
 
 export function computeFingerprint(error: Error | string, errorType: string): { fingerprint: string; group: string } {
-  const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
   const frame = extractFirstAppFrame(stack);
+  const fingerprint = `${errorType}:${frame}`;
 
-  return {
-    fingerprint: `${errorType}:${frame}`,
-    group: message.length > 120 ? message.slice(0, 120) : message,
-  };
+  // Keep metric dimensions bounded. Messages may contain IDs, paths, query
+  // strings or user input and therefore cannot safely be labels. The complete
+  // message is still present in the structured log and recorded exception.
+  return { fingerprint, group: fingerprint };
 }
 
 export function recordError(
