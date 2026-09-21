@@ -32,7 +32,7 @@
     "setup": "sh scripts/setup-hooks.sh && npm run setup --workspace backend && npm run setup --workspace frontend"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.12",
+    "@biomejs/biome": "^2.5.14",
     "@vitest/coverage-v8": "^4.1.11",
     "portless": "^0.15.6",
     "tsx": "^4.23.13"
