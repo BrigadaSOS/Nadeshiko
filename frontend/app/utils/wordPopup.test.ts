@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_DEFINITION_SIZE, definitionFontSize, definitionSize } from './wordPopup';
+import { DEFAULT_DEFINITION_SIZE, definitionSize } from './wordPopup';
 
 /**
  * The card holds a reader's own monolingual dictionaries now, which is Japanese
@@ -16,13 +16,5 @@ describe('definition size', () => {
   // written by a newer version, or by hand, must not reach CSS as a font size.
   it('falls back rather than passing an unknown value through', () => {
     expect(definitionSize('ENORMOUS')).toBe('MEDIUM');
-    expect(definitionFontSize('ENORMOUS')).toBe(definitionFontSize('MEDIUM'));
-  });
-
-  it('gets larger in the direction it says', () => {
-    const px = (size: string) => Number.parseInt(definitionFontSize(size), 10);
-
-    expect(px('SMALL')).toBeLessThan(px('MEDIUM'));
-    expect(px('MEDIUM')).toBeLessThan(px('LARGE'));
   });
 });

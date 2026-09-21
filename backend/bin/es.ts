@@ -38,6 +38,16 @@ async function status(): Promise<void> {
   logger.info(`Checking Elasticsearch alias '${INDEX_NAME}'...`);
 
   const dbSegmentCount = await Segment.count();
+  // Elasticsearch intentionally stores the token array as a disabled object:
+  // it is returned verbatim to the reader but is not searchable field-by-field.
+  // Count its source of truth here, where progress can be measured accurately.
+  const [tokenCoverage] = await AppDataSource.query<[{ total: string; parsed: string }]>(
+    `SELECT COUNT(*)::text AS total,
+            COUNT(*) FILTER (WHERE tokens IS NOT NULL)::text AS parsed
+       FROM "Segment"`,
+  );
+  const parsedDbCount = Number(tokenCoverage?.parsed ?? 0);
+  const parsedTotal = Number(tokenCoverage?.total ?? dbSegmentCount);
   const physical = await resolvePhysicalIndex();
 
   if (!physical) {
@@ -48,10 +58,12 @@ async function status(): Promise<void> {
       );
       const countResponse = await client.count({ index: INDEX_NAME });
       logger.info(`DB segments: ${dbSegmentCount}`);
+      logger.info(`DB parsed segments: ${parsedDbCount}/${parsedTotal}`);
       logger.info(`ES documents: ${countResponse.count}`);
     } else {
       logger.warn(`Neither alias nor index '${INDEX_NAME}' exists`);
       logger.info(`DB segments: ${dbSegmentCount}`);
+      logger.info(`DB parsed segments: ${parsedDbCount}/${parsedTotal}`);
       logger.info(`ES documents: 0`);
     }
     return;
@@ -72,6 +84,7 @@ async function status(): Promise<void> {
   const delta = esDocumentCount - dbSegmentCount;
 
   logger.info(`DB segments: ${dbSegmentCount}`);
+  logger.info(`DB parsed segments: ${parsedDbCount}/${parsedTotal}`);
   logger.info(`ES documents: ${esDocumentCount}`);
 
   if (delta === 0) {
@@ -120,7 +133,7 @@ Usage: node --import tsx bin/es.ts <command>
 
 Commands:
   reindex      Zero-downtime reindex: creates new versioned index, populates from DB, swaps alias
-  status       Show alias info, versioned indices, and DB vs ES document count
+  status       Show alias info, tokenization progress, versioned indices, and DB vs ES document count
   rollback     Swap alias back to the previous versioned index (instant)
   cleanup      Delete old versioned indices no longer pointed to by the alias
   migrate      One-time migration from concrete index to alias-based setup

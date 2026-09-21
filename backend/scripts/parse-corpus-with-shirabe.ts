@@ -34,17 +34,9 @@
  * and has to be re-exported every time the resolver improves. What does not go
  * stale is the parse.
  *
- * So a reader tapping a word resolves it live, from the token this script wrote:
- * `POST /api/v1/words/identify` takes `lemma`, `surface`, `reading` and `pos`
- * and answers a ranked list of candidates WITH their definitions. That reaches
- * what no stored slug can -- 食べました resolves to 食べる, which no slug spells,
- * and 開いた answers ひらく or あく by how the sentence read it -- and it is
- * always current.
- *
- * `pos` there is Shirabe's SHORT tag (`verb`, `prt`), which is why `pt` is
- * stored alongside the UniDic `p`: see `toSlimToken`. Rows parsed before `pt`
- * existed have only `p`, and the frontend derives from it (`shortPos` in
- * ~/utils/tokenEnrichment) until a re-run of this script fills them in.
+ * A reader tapping a word sends its sentence and target span to Shirabe's
+ * identify endpoint. Shirabe resolves that span live; no dictionary id or
+ * lookup-specific part-of-speech tag is stored with the corpus.
  *
  * (Superseded, in case you remember them: `include=wordIds`, `include=meanings`,
  * `POST /api/v1/words/resolve`, `resolvedWith`, and the `?surface=` mode of

@@ -256,43 +256,6 @@ export const stripEpisodeHits = (
 });
 
 /**
- * Token fields nothing renders, off the SSR payload.
- *
- * `posLabel` is the part of speech in words ("Verb", "Particle"). It is on all
- * but a handful of the tokens a page of results carries -- 389 of them on the
- * title page measured above, 247 on the search -- and no component has read it
- * since `enrichTokens` dropped its `pos` alias: the colouring keys off `p`
- * (`POS_CLASS`), the dictionary lookup off `pt` with `p` as its fallback
- * (`shortPos`), and the inflection line off `inflection`. Worth 5,914 bytes raw
- * and 392 brotli on that page: small next to the counts above, and the cheapest
- * bytes on the page to stop sending.
- *
- * `b`/`e` are deliberately NOT touched and must not be: they are the character
- * offsets `enrichTokens` intersects with the `<em>` ranges to decide what is
- * highlighted, the offsets `tokensToAnkiFurigana` slices the sentence on, and the
- * offsets `segmentConcatenation` shifts when it merges neighbours. `kind` is read
- * by `isAskable`, and `f`, `inflection` and `parts` all address the same text.
- */
-export const stripUnreadTokenFields = (response: SearchResponse): SearchResponse => ({
-  ...response,
-  results: response.results.map((result) => {
-    const tokens = result.segment.textJa?.tokens;
-    if (!tokens?.length) return result;
-
-    return {
-      ...result,
-      segment: {
-        ...result.segment,
-        textJa: {
-          ...result.segment.textJa,
-          tokens: tokens.map(({ posLabel: _posLabel, ...rest }) => rest),
-        },
-      },
-    };
-  }),
-});
-
-/**
  * Whether the episode drawer is waiting on the counts it no longer gets for
  * free.
  *

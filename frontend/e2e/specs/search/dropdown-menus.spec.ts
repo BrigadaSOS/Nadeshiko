@@ -23,23 +23,7 @@ import { SearchPage } from '../../pages/SearchPage';
 // happily for an element that was never there. Page-scoping is safe here for
 // the reason `useDropdownState` exists: at most one menu is open at a time, and
 // 'closed dropdown menus are not rendered at all' asserts exactly that.
-/**
- * A Copy toggle that the open word card is not sitting on top of.
- *
- * This used to be `segmentCards.nth(1)`, on the reasoning that the card hangs
- * off the sentence so a DIFFERENT result must be clear of it. The card opens
- * BELOW its word by design -- `placeCard` picks below unless the word is too
- * near the bottom of the viewport, because that is the side where the headword
- * stays put as senses load -- so the next result down is precisely the one it
- * lands on. The click then never reached the button at all: Playwright retried
- * it for the full timeout while `.token-tooltip` intercepted every attempt, and
- * the test failed on the click rather than on anything it meant to assert.
- *
- * Which result is clear depends on where the card went, so geometry is the only
- * honest way to ask. Both boxes are read in the same coordinate space, and the
- * card is positioned on the page rather than the viewport, so the auto-scroll
- * before the click moves the two together and cannot invalidate the choice.
- */
+/** Find a Copy toggle outside the shared card's bounds. */
 async function uncoveredCopyToggle(page: Page, search: SearchPage): Promise<Locator> {
   const count = await search.segmentCards.count();
   for (let i = 0; i < count; i++) {
@@ -53,7 +37,7 @@ async function uncoveredCopyToggle(page: Page, search: SearchPage): Promise<Loca
       () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
     );
 
-    const card = await page.locator('.token-tooltip').boundingBox();
+    const card = await page.locator('.sb-host .sb-popup.sb-visible').boundingBox();
     if (!card) throw new Error('the word card is open but has no box');
     const box = await toggle.boundingBox();
     if (!box) continue;
@@ -196,24 +180,24 @@ test.describe('Dropdown menus', () => {
 
   test('opening a result dropdown closes the word card', async ({ page }) => {
     await search.openFirstTokenCard();
-    await expect(page.locator('.token-tooltip')).toBeVisible();
+    await expect(page.locator('.sb-host .sb-popup.sb-visible')).toBeVisible();
 
     const copy = await uncoveredCopyToggle(page, search);
     await copy.click();
 
     await expect(page.getByTestId('dropdown-menu')).toBeVisible();
-    await expect(page.locator('.token-tooltip')).toBeHidden();
+    await expect(page.locator('.sb-host .sb-popup.sb-visible')).toBeHidden();
     await expect(page.getByTestId('dropdown-menu')).toHaveCount(1);
   });
 
   test('opening the shortcuts modal closes the word card', async ({ page }) => {
     await search.openFirstTokenCard();
-    await expect(page.locator('.token-tooltip')).toBeVisible();
+    await expect(page.locator('.sb-host .sb-popup.sb-visible')).toBeVisible();
 
     await page.keyboard.press('?');
 
     await expect(page.getByTestId('shortcuts-modal')).toBeVisible();
-    await expect(page.locator('.token-tooltip')).toBeHidden();
+    await expect(page.locator('.sb-host .sb-popup.sb-visible')).toBeHidden();
   });
 
   test('opening the shortcuts modal closes an open result dropdown', async ({ page }) => {
@@ -234,7 +218,7 @@ test.describe('Dropdown menus', () => {
 
     await search.openFirstTokenCard();
 
-    await expect(page.locator('.token-tooltip')).toBeVisible();
+    await expect(page.locator('.sb-host .sb-popup.sb-visible')).toBeVisible();
     // The count is the assertion that means anything here: a menu on `body` is
     // gone or it is not, and `toBeHidden()` on a scoped locator would have
     // passed whether or not the dropdown ever closed.

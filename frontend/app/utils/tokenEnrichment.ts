@@ -5,25 +5,11 @@ export interface SlimToken {
   b: number;
   e: number;
   p: string;
-  /**
-   * Shirabe's short part-of-speech tag (`verb`, `prt`, `exp`), which is what
-   * `POST /api/v1/words/identify` ranks by.
-   *
-   * Optional because it is newer than the corpus: tokens parsed before it was
-   * stored have only `p`, and `shortPos` below derives one from that. Prefer
-   * this when it is here -- the derivation is a copy of Shirabe's own table and
-   * a copy is a thing that can drift, while this is the value itself.
-   */
-  pt?: string;
   /** word | compound | inflected | counter | function | expression | symbol. */
   kind?: string;
   /** Ruby, already aligned to this surface. Absent when there is none to show,
    *  which is the ordinary case for an all-kana word. */
   f?: Array<{ t: string; r?: string }>;
-  /** The part of speech in words ("Verb", "Particle", "Expression"). Shirabe
-   *  resolves it, so there is no UniDic table to keep here and no gap when it
-   *  emits a category a hand-written table never had. */
-  posLabel?: string;
   /** What this surface does to its dictionary form, outermost step first:
    *  食べました is ["past", "polite"]. Japanese stacks, so it is a chain rather
    *  than one name, and an ambiguous step says so ("potential / passive")
@@ -43,58 +29,12 @@ export interface SlimToken {
   origin?: 'before' | 'current' | 'after';
 }
 
-/**
- * How a token addresses its dictionary entry.
- *
- * Built here, once, so no caller assembles it by hand out of single-letter
- * fields -- which is where it used to go wrong. `reading` is KATAKANA and `pos`
- * is Shirabe's SHORT tag (`verb`, `prt`), which is what `words/identify` ranks
- * by; the display forms of both are different values living on the same object,
- * and sending those instead returns 200 for the wrong word rather than failing.
- *
- * `pos` carried the raw UniDic tag (動詞) until 2.4.1, and that was not the
- * harmless mismatch the comment here used to claim: the ranker does not
- * recognise the category, so it resolves with no part of speech at all and
- * ordinary words come back with no candidates. It cost about nine points of
- * lookup success -- 10.5% of cards missing before the fix shipped, 1.7% after.
- */
-export interface WordRef {
-  /** Dictionary form. */
-  lemma: string;
-  /** How it was written here. */
-  surface: string;
-  /** Katakana, as the analyzer read THIS surface. Not `readingHiragana`. */
-  reading: string;
-  /**
-   * Shirabe's SHORT part-of-speech tag (`verb`, `prt`, `pron`), never the raw
-   * UniDic one (動詞) and never the printable `posLabel`.
-   *
-   * This used to carry the UniDic tag, back when the lookup was a word page that
-   * ignored it. `POST /api/v1/words/identify` reads it, and reads it against a
-   * closed vocabulary: a tag outside that vocabulary is not an error, it just
-   * skips the rung of the ranking that a closed word class decides. That is the
-   * rung きみ needs -- read as a pronoun it is 君, and without the tag the
-   * spelling alone answers the grain 黍.
-   */
-  pos: string;
-}
-
 export interface EnrichedToken extends SlimToken {
   matchType: 'match' | 'partial' | 'none';
   displaySurface: string;
   dictForm: string;
-  /**
-   * Hiragana, for showing to a reader and for the external dictionary links.
-   *
-   * NAMED FOR ITS SCRIPT on purpose. This used to be `reading`, one letter from
-   * the `r` it is derived from and a different script -- so the two sat on the
-   * same object looking interchangeable, and a lookup handed the hiragana one
-   * resolves a homograph by a reading Shirabe does not key on. `lookupRef`
-   * carries the katakana; this is only ever for display.
-   */
+  /** Hiragana for display and external dictionary links. */
   readingHiragana: string;
-  /** Everything the dictionary lookup asks by, assembled once. */
-  lookupRef: WordRef;
   /** The inflection chain to print, already ordered and localized. Empty when
    *  the token is not an inflected word. */
   inflectionLabels: string[];
@@ -230,66 +170,6 @@ function highlightRanges(highlight: string): Array<{ start: number; end: number 
  * offending ranges in token-local characters, so a caller can emphasize the part
  * that matched instead of lighting up a whole word the reader did not search for.
  */
-/**
- * UniDic's top-level part of speech, in Shirabe's short vocabulary.
- *
- * A deliberate copy of `Tokenizer::POS_LABELS` on their side, and the only table
- * of its kind left here -- `POS_LABELS`, `POS_SUB_LABELS`, `CONJ_FORM_LABELS`,
- * `CONJ_CLASS_LABELS` and the 55-entry `AUX_LABELS` all went when Shirabe took
- * over the parsing, and none of them is coming back.
- *
- * It is the FALLBACK now, not the source. `pt` carries the parser's own short
- * tag and the corpus has been re-tokenized to fill it, so this runs only for a
- * token that predates the field -- and for one arriving from a cache or a
- * client older than the API that started serving it.
- *
- * Kept rather than deleted, and not only for those. It is seventeen entries
- * over a closed set of UniDic categories, and the alternative to a stale
- * mapping here is no tag at all: `identify` answers an unrecognised category
- * with no candidates rather than with a worse ranking, so a token that reaches
- * the lookup with an empty `pos` loses the word outright. A copy that can drift
- * beats nothing to fall back to, as long as `pt` is what gets sent when it is
- * there. Drop it once no token can arrive without `pt`.
- *
- * `連語` is the entry that is not in their table. It is a merged grammatical
- * expression (について, けれども) with no single morpheme to take a POS from, so
- * Shirabe assigns `exp` when it builds the chip rather than when it maps the
- * morpheme. The three that map to an empty string are punctuation, symbols and
- * whitespace -- nothing identify could rank, and `isAskable` filters them out
- * before it ever gets here.
- */
-const SHORT_POS: Record<string, string> = {
-  名詞: 'noun',
-  動詞: 'verb',
-  形容詞: 'adj',
-  形状詞: 'adj',
-  副詞: 'adv',
-  助詞: 'prt',
-  助動詞: 'aux',
-  代名詞: 'pron',
-  連体詞: 'det',
-  接続詞: 'conj',
-  感動詞: 'intj',
-  接頭辞: 'pref',
-  接尾辞: 'suf',
-  連語: 'exp',
-  補助記号: '',
-  記号: '',
-  空白: '',
-};
-
-/**
- * The tag to send `identify`: the token's own when it has one, ours otherwise.
- *
- * An unknown category answers '' rather than passing the raw Japanese through.
- * Shirabe treats an unrecognised tag as no tag, so the two are the same answer
- * to the ranker -- but only one of them can end up printed somewhere by a caller
- * that assumed this was a label.
- */
-export function shortPos(token: SlimToken): string {
-  return token.pt ?? SHORT_POS[token.p] ?? '';
-}
-
 export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedToken[] {
   if (tokens.length === 0) return [];
 
@@ -312,13 +192,7 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
       displaySurface: token.s,
       dictForm: token.d,
       readingHiragana: katakanaToHiragana(token.r),
-      lookupRef: { lemma: token.d, surface: token.s, reading: token.r, pos: shortPos(token) },
       furigana: furiganaOf(token),
-      // No `pos` alias here any more. It was `posLabel ?? p` -- a printable label
-      // falling back to a raw UniDic tag -- sitting one letter from `p` on the
-      // same object while meaning something else, and nothing ever read it.
-      // `posLabel` is already on the token for display; `lookupRef.pos` carries
-      // the raw tag for resolution.
       inflectionLabels: token.inflection?.labels ?? [],
     };
   });

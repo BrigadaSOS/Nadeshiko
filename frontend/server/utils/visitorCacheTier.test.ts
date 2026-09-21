@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RENDER_FORKING_PREFERENCE_COOKIES } from '#shared/utils/preferenceCookies';
+import { RENDER_FORKING_PREFERENCE_COOKIES, RETIRED_PREFERENCE_COOKIES } from '#shared/utils/preferenceCookies';
 import { htmlPathIsShareable, visitorCacheTier } from './visitorCacheTier';
 
 function fakeEvent(cookieHeader?: string) {
@@ -10,6 +10,12 @@ function fakeEvent(cookieHeader?: string) {
 }
 
 describe('visitorCacheTier', () => {
+  it('does not retire a preference that still changes the render', () => {
+    for (const name of RENDER_FORKING_PREFERENCE_COOKIES) {
+      expect(RETIRED_PREFERENCE_COOKIES, name).not.toContain(name);
+    }
+  });
+
   it('is shared for a request with no cookies', () => {
     expect(visitorCacheTier(fakeEvent(undefined))).toBe('shared');
   });

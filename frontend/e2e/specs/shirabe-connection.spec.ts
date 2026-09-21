@@ -22,8 +22,8 @@ const linkedConnection: Connection = {
   missingScopes: [],
   disconnected: false,
   linkedAt: '2026-09-13T00:00:00.000Z',
-  shirabeName: 'Lumi',
-  scopes: ['READ_DICTIONARY'],
+  shirabeName: null,
+  scopes: ['user:dictionary:read'],
   dictionaries: ['jmdict:en', 'jmdict:ja'],
   dictionaryNames: { jmdict: 'JMdict' },
   stackIsPrivate: false,
@@ -80,19 +80,19 @@ async function mockCallback(page: Page, response: { status?: number; connection?
       });
     }
 
-    return route.fulfill({ json: { connection: response.connection ?? { shirabeName: 'Lumi' } } });
+    return route.fulfill({ json: { connection: response.connection ?? { shirabeName: null } } });
   });
   return () => body;
 }
 
 test.describe('Shirabe connection', () => {
   test('completes the consent journey and scrubs the one-time callback query', async ({ authenticatedPage }) => {
-    const callbackUrl = new URL('/link/shirabe/callback?code=oauth-code&state=sealed-state', getE2EBaseUrl());
+    const callbackUrl = new URL('/link/shirabe/callback?code=oauth-code&state=sealed-state&iss=https%3A%2F%2Fshirabe.example.test', getE2EBaseUrl());
     await mockConnectionEndpoint(authenticatedPage, {
       connection: null,
       authorizeUrl: callbackUrl.toString(),
     });
-    const callbackBody = await mockCallback(authenticatedPage, { connection: { shirabeName: 'Lumi' } });
+    const callbackBody = await mockCallback(authenticatedPage, { connection: { shirabeName: null } });
 
     const settings = new SettingsPage(authenticatedPage);
     await settings.goto();
@@ -103,11 +103,11 @@ test.describe('Shirabe connection', () => {
     await toggle.click();
 
     await expect(authenticatedPage.getByTestId('shirabe-callback-success')).toBeVisible({ timeout: 15_000 });
-    await expect(authenticatedPage.getByTestId('shirabe-linked-name')).toHaveText('Linked as Lumi');
+    await expect(authenticatedPage.getByTestId('shirabe-linked-name')).toHaveText('Linked as your Shirabe account');
     await expect(authenticatedPage).toHaveURL(/\/link\/shirabe\/callback\/?$/);
     expect(authenticatedPage.url()).not.toContain('oauth-code');
     expect(authenticatedPage.url()).not.toContain('sealed-state');
-    expect(callbackBody()).toEqual({ code: 'oauth-code', state: 'sealed-state' });
+    expect(callbackBody()).toEqual({ code: 'oauth-code', state: 'sealed-state', issuer: 'https://shirabe.example.test' });
   });
 
   test('shows a provider denial without attempting an exchange', async ({ authenticatedPage }) => {
@@ -185,7 +185,7 @@ test.describe('Shirabe connection', () => {
 
     expect(deleteRequests).toBe(0);
     await expect(toggle).toHaveText('Disconnect');
-    await expect(authenticatedPage.getByTestId('shirabe-connection-description')).toHaveText('Linked as Lumi');
+    await expect(authenticatedPage.getByTestId('shirabe-connection-description')).toHaveText('Linked as your Shirabe account');
   });
 
   test('disconnects a linked account only after confirmation', async ({ authenticatedPage }) => {

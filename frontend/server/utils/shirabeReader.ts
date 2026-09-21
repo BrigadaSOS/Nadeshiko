@@ -29,37 +29,6 @@ import { logger } from '~~/server/utils/logger';
  *  and the handler both ask, and without this that is two session reads. */
 const CONTEXT_KEY = 'shirabeReaderStack';
 
-/**
- * The request's own cookie header, kept where the handler can still reach it.
- *
- * `defineCachedEventHandler` does not hand the handler the request it arrived
- * on. It builds a fresh event and copies `context` but NOT the headers, which is
- * correct of it -- a cached response must not silently depend on a header nobody
- * declared -- and it means `getRequestHeader(event, 'cookie')` is empty inside
- * the handler however the reader is signed in.
- *
- * That is not a small detail here, it is the whole feature: `readerToken` needs
- * the session cookie to fetch the reader's Shirabe key, found none, returned
- * null at its own guard without a word in the log, and every lookup fell back to
- * the service key. A linked reader saw the default dictionaries forever.
- *
- * `shouldBypassCache` runs on the REAL event, before any of that, and the
- * context it writes does survive. So the cookie is stashed there on the way past
- * and read back out afterwards.
- */
-const COOKIE_KEY = 'shirabeReaderCookie';
-
-function stashCookie(event: H3Event): string {
-  const cookie = getRequestHeader(event, 'cookie') || '';
-  if (cookie) event.context[COOKIE_KEY] = cookie;
-  return cookie;
-}
-
-/** The cookie header, from wherever it still exists on this event. */
-function readerCookie(event: H3Event): string {
-  return (event.context[COOKIE_KEY] as string | undefined) || getRequestHeader(event, 'cookie') || '';
-}
-
 interface SessionResponse {
   user?: {
     shirabe?: { linked?: boolean; stackFingerprint?: string | null } | null;
@@ -99,15 +68,7 @@ export async function readerStack(event: H3Event): Promise<ReaderStack> {
   return resolved;
 }
 
-/** The cache decision on its own, in the shape `defineCachedEventHandler` wants. */
-export async function readerHasOwnStack(event: H3Event): Promise<boolean> {
-  return (await readerStack(event)).linked;
-}
-
 async function resolveStack(event: H3Event): Promise<ReaderStack> {
-  // Kept for the handler, which will not be able to see it: `COOKIE_KEY`.
-  stashCookie(event);
-
   // No cookie, no session, and the answer is not in doubt. This is most of the
   // traffic -- every crawler, every share link, every signed-out reader -- and
   // it costs nothing.
@@ -162,8 +123,7 @@ export async function reportStackFingerprint(event: H3Event, fingerprint: string
     const config = useRuntimeConfig();
     await $fetch(internalBackendUrl(config, '/v1/user/connections/shirabe/resync'), {
       method: 'POST',
-      // Same stash, same reason: this runs inside the cached handler too.
-      headers: buildInternalBackendHeaders(config, { cookie: readerCookie(event) }, event),
+      headers: buildInternalBackendHeaders(config, { cookie: getRequestHeader(event, 'cookie') || '' }, event),
       body: { stackFingerprint: fingerprint },
       timeout: 2000,
     });
@@ -191,7 +151,7 @@ export async function reportShirabeRefusal(event: H3Event, status: number): Prom
     const config = useRuntimeConfig();
     await $fetch(internalBackendUrl(config, '/v1/user/connections/shirabe/refused'), {
       method: 'POST',
-      headers: buildInternalBackendHeaders(config, { cookie: readerCookie(event) }, event),
+      headers: buildInternalBackendHeaders(config, { cookie: getRequestHeader(event, 'cookie') || '' }, event),
       body: { status },
       timeout: 2000,
     });
@@ -211,9 +171,7 @@ export async function reportShirabeRefusal(event: H3Event, status: number): Prom
  * dropped. Same reasoning as `nadeshikoApiKey` in backendProxy.ts.
  */
 export async function readerToken(event: H3Event): Promise<string | null> {
-  // From the stash, not from the request: inside a cached handler there are no
-  // headers left to read. See `COOKIE_KEY`.
-  const cookie = readerCookie(event);
+  const cookie = getRequestHeader(event, 'cookie') || '';
   if (!cookie.includes(SESSION_COOKIE)) return null;
 
   try {
@@ -229,10 +187,10 @@ export async function readerToken(event: H3Event): Promise<string | null> {
     return credential?.token ?? null;
   } catch (error) {
     // Including the ordinary case: a reader who never linked anything answers
-    // 404 here. Falling back to the service key is the right move for every
+    // 404 here. Falling back to the shared service bearer is the right move for every
     // reason this can fail -- an unlinked reader, a revoked key, a backend
     // blip -- so none of them is worth more than a line in the log.
-    logger.warn({ err: error }, 'No Shirabe credential for this reader; falling back to the service key');
+    logger.warn({ err: error }, 'No Shirabe credential for this reader; falling back to the shared service bearer');
     return null;
   }
 }

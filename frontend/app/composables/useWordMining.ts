@@ -37,7 +37,7 @@ import { posthog } from '~/utils/posthogClient';
  */
 let ankiUnreachable = false;
 
-type FindNotesResponse = { result?: number[] } | null;
+type FindNotesResponse = { result?: number[] | null } | null;
 
 /**
  * @param currentResult The segment the open card belongs to -- what a mine sends.
@@ -64,6 +64,8 @@ export function useWordMining(
    *  are several. Null means "asked, and there is none" or "not asked". */
   const minedNoteId = ref<number | null>(null);
   const mining = ref(false);
+  // A missing note is safe to create only after Anki actually answered for this word.
+  const probedWord = ref<string | null>(null);
 
   // Profiles live in user preferences, so a signed-out reader has none and every
   // control below stays hidden -- which is the same gate the segment's own Anki
@@ -162,6 +164,7 @@ export function useWordMining(
   async function probeMined({ report = true }: { report?: boolean } = {}): Promise<void> {
     const word = currentWord();
     minedNoteId.value = null;
+    probedWord.value = null;
 
     if (!import.meta.client || !word || !canCheckMined.value || ankiUnreachable) return;
 
@@ -172,7 +175,7 @@ export function useWordMining(
       const response = (await anki.executeAction('findNotes', { query }, { silent: true })) as FindNotesResponse;
       // Null is the transport failing rather than the collection answering
       // "none": Anki is closed, the add-on is off, or CORS refused us.
-      return response === null ? null : (response.result ?? []);
+      return Array.isArray(response?.result) ? response.result : null;
     };
 
     let ids = await ask(profile.value?.deck);
@@ -217,6 +220,7 @@ export function useWordMining(
     // with a duplicate wants the card they just made, not the one from a year
     // ago. Same reduction the last-added-card export uses.
     minedNoteId.value = ids.length > 0 ? Math.max(...ids) : null;
+    probedWord.value = word;
 
     if (report) reportProbe(word, minedNoteId.value !== null);
   }
@@ -257,6 +261,7 @@ export function useWordMining(
    *  `currentWord` no longer answers what it was asked about. */
   function clearMined(): void {
     minedNoteId.value = null;
+    probedWord.value = null;
   }
 
   /** Bring Anki's browser forward on the note this word is already in. */
@@ -300,8 +305,12 @@ export function useWordMining(
     // the rest of the session once Anki is finally running.
     ankiUnreachable = false;
     mining.value = true;
-    const creating = minedNoteId.value === null && canCreate.value;
     try {
+      if (probedWord.value !== word && canCheckMined.value) {
+        await probeMined({ report: false });
+        if (currentWord() !== word) return;
+      }
+      const creating = minedNoteId.value === null && probedWord.value === word && canCreate.value;
       await anki.addResultToAnki(sentence, {
         noteId: minedNoteId.value ?? undefined,
         method:
@@ -348,6 +357,8 @@ export function useWordMining(
     canMine,
     mineBlockedReason,
     mineReady,
+    canCreate,
+    probedWord,
     mapsDefinition,
     probeMined,
     clearMined,

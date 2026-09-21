@@ -1,11 +1,16 @@
 /**
  * Watch-mode entry. `main.ts` statically imports `generated/*`, so a missing
- * tree is an uncaught ERR_MODULE_NOT_FOUND and Node --watch gives up: the
+ * tree is an uncaught ERR_MODULE_NOT_FOUND and the watcher gives up: the
  * files that will reappear were never added to the watch set.
  *
  * This file has no generated import. It waits for the marker `generate:api`
  * writes last, then loads the app. Deleting generated/ becomes a pause
  * instead of a dead process you have to Ctrl-C.
+ *
+ * The dev script excludes the linked Shirabe API's `dist/` output from the
+ * watch set. Its build briefly removes those files; restarting in that gap
+ * would fail the import and strand the backend on port 5050. Shirabe writes
+ * `dist-ready` after a successful build, which triggers the safe restart.
  */
 import { defaultGeneratedDir, waitForGenerated } from './lib/generatedReady';
 

@@ -17,15 +17,13 @@ import BaseModal from './BaseModal.vue';
  * nobody writes a bug report about and no screenshot catches.
  *
  * `useModalState` and `useDropdownState` are the REAL implementations. The
- * conditions being asserted -- "only the top modal answers Escape", "a word card
- * inside the dialog takes Escape first" -- are agreements between this component
+ * conditions being asserted -- "only the top modal answers Escape" -- are agreements between this component
  * and those registries, and stubbing them would assert the stub.
  */
 const dismissAllOverlays = vi.fn();
-/** Whether a dropdown or word card is open "inside" the dialog. */
+/** Whether a dropdown is open inside the dialog. */
 const dropdownState = {
   openDropdownId: { value: null as string | null },
-  isTokenTooltipOpen: { value: false },
   dismissAllOverlays,
 };
 vi.stubGlobal('useDropdownState', () => dropdownState);
@@ -108,7 +106,6 @@ function press(key: string, init: KeyboardEventInit = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   dropdownState.openDropdownId.value = null;
-  dropdownState.isTokenTooltipOpen.value = false;
   document.documentElement.style.overflow = '';
 });
 
@@ -213,16 +210,6 @@ describe('Escape', () => {
     const wrapper = openModal();
     await nextTick();
     dropdownState.openDropdownId.value = 'a-menu';
-
-    press('Escape');
-
-    expect(wrapper.emitted('close')).toBeUndefined();
-  });
-
-  test('lets an open word card take it first too', async () => {
-    const wrapper = openModal();
-    await nextTick();
-    dropdownState.isTokenTooltipOpen.value = true;
 
     press('Escape');
 
@@ -429,8 +416,8 @@ describe('the backdrop', () => {
 
 describe('overlays left over from before it opened', () => {
   test('are dismissed, so nothing sits above the dialog taking clicks', async () => {
-    // The word card is z-70 and most modals are z-60, and a keyboard opener
-    // never produces the outside click that would have dismissed it.
+    // A keyboard opener never produces the outside click that would dismiss
+    // a word card already open on the page.
     openModal();
     await nextTick();
 

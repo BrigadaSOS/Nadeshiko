@@ -6,31 +6,27 @@ import type { ComputedRef } from 'vue';
  * recents), plus a generation that word cards watch so a newly opened menu can
  * dismiss them.
  *
- * Word cards are not ids in `openDropdownId` because one of them hosts a
- * dropdown of its own (the Anki menu on a mined word). That nested menu has to
- * open without collapsing the card it lives in, so the card stays local state
- * and menus opt out of dismissing it via `preserveTokenTooltip`.
+ * The Shirabe card lives outside Vue's dropdown registry and watches the
+ * generation so menus and modals can dismiss it.
  *
  * Modals call `dismissAllOverlays` on open so a leftover menu or word card
- * cannot sit above the dialog. `BaseModal` also lets Escape dismiss a word
- * card or dropdown inside the dialog before closing the dialog itself.
+ * cannot sit above the dialog. `BaseModal` lets Escape dismiss a dropdown
+ * inside the dialog before closing the dialog itself.
  *
  * `DropdownContainer` owns dropdown registration; consumers reach the
  * surrounding dropdown through `injectDropdown()`.
  */
 export function useDropdownState() {
   const openDropdownId = useState<string | null>('nd-open-dropdown', () => null);
-  const tokenTooltipEpoch = useState('nd-token-tooltip-epoch', () => 0);
-  const isTokenTooltipOpen = useState('nd-token-tooltip-open', () => false);
+  const wordCardEpoch = useState('nd-word-card-epoch', () => 0);
 
-  const dismissTokenTooltips = () => {
-    tokenTooltipEpoch.value += 1;
-    isTokenTooltipOpen.value = false;
+  const dismissWordCards = () => {
+    wordCardEpoch.value += 1;
   };
 
-  const openDropdown = (id: string, options?: { preserveTokenTooltip?: boolean }) => {
+  const openDropdown = (id: string) => {
     openDropdownId.value = id;
-    if (!options?.preserveTokenTooltip) dismissTokenTooltips();
+    dismissWordCards();
   };
 
   const closeDropdown = (id: string) => {
@@ -43,17 +39,16 @@ export function useDropdownState() {
 
   const dismissAllOverlays = () => {
     closeAllDropdowns();
-    dismissTokenTooltips();
+    dismissWordCards();
   };
 
   return {
     openDropdownId,
-    tokenTooltipEpoch,
-    isTokenTooltipOpen,
+    wordCardEpoch,
     openDropdown,
     closeDropdown,
     closeAllDropdowns,
-    dismissTokenTooltips,
+    dismissWordCards,
     dismissAllOverlays,
   };
 }
@@ -66,12 +61,6 @@ export type DropdownContext = {
 };
 
 export const DROPDOWN_INJECTION_KEY = 'ndDropdown' as const;
-
-/**
- * Provided by the word card so a dropdown rendered inside it (the Anki menu
- * on a mined word) can open without collapsing the card.
- */
-export const NESTED_IN_TOKEN_TOOLTIP_KEY = 'ndNestedInTokenTooltip' as const;
 
 export function injectDropdown(): DropdownContext | null {
   return inject<DropdownContext | null>(DROPDOWN_INJECTION_KEY, null);

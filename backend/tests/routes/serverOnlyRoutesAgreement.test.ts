@@ -22,6 +22,7 @@ const CONTROLLERS_DIR = resolve(import.meta.dirname, '../../app/controllers');
 const spec = loadBundledSpec();
 const operations = listOperations(spec);
 const serverOnlyOperations = operations.filter(isServerOnly);
+const INTERNAL_PROXY_ONLY_OPERATIONS = new Set(['getShirabeServiceCredential']);
 
 function describeOperation(op: (typeof operations)[number]): string {
   return `${op.method.toUpperCase()} ${op.path} (${op.operationId ?? 'unknown'})`;
@@ -55,12 +56,17 @@ describe('server-only routes agree with the controllers and the proxy', () => {
     expect(serverOnlyOperations.length).toBeGreaterThan(0);
   });
 
-  it('every marked route is internal and session-gated', () => {
+  it('every marked route is internal and session-gated unless its only credential is the proxy proof', () => {
     // Server-only is a stricter claim than internal: a route the proxy will not
     // forward has no business in the public spec, and it is reached with the
     // reader's cookie relayed by our own server, so a session is what it takes.
     const offenders = serverOnlyOperations
-      .filter((op) => !op.isInternal || !op.security?.some((requirement) => 'SessionCookie' in requirement))
+      .filter(
+        (op) =>
+          !op.isInternal ||
+          (!INTERNAL_PROXY_ONLY_OPERATIONS.has(op.operationId ?? '') &&
+            !op.security?.some((requirement) => 'SessionCookie' in requirement)),
+      )
       .map(describeOperation);
 
     expect(offenders).toEqual([]);

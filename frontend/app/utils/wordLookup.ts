@@ -1,75 +1,51 @@
 import type { ShirabeCandidate } from '~/utils/wordCard';
-// Defined beside the tokens that produce it: assembling one by hand is exactly
-// the mistake the named type exists to prevent.
-import type { WordRef } from '~/utils/tokenEnrichment';
-
-export type { WordRef };
 
 /**
  * One shared cache of Shirabe word lookups for the whole page.
  *
- * This used to be a `Map` declared inside `SegmentTokenText`'s `<script setup>`,
- * which runs per component instance -- and there is one instance per segment. So
- * the same word on three results was three private caches and three requests,
- * which is exactly what a reader sees when they check the same word in a few
- * sentences. Living in a module, one entry serves every segment on the page.
+ * Identical sentence spans share a pending request and a completed answer,
+ * even when the same result appears in more than one component. Different
+ * sentences remain separate because Shirabe identifies the word from context.
  *
- * The cache holds the PROMISE, not the resolved word. A page of twenty segments
- * asking about the same word in the same tick would otherwise all miss (nothing
- * has resolved yet) and each fire its own request; keyed on the promise, the
- * first asker makes the request and the rest await it. That matters more now
- * that hovering prefetches, since a pointer crossing a sentence can start
- * several lookups in quick succession.
+ * Missing words are cached; failed requests can retry. The server route sets a
+ * day-long `cache-control` so evicted entries can still hit the HTTP cache.
  *
- * A word with no entry is cached like any other answer: it is a normal thing for
- * the dictionary to say, and asking again on every hover would spend a request
- * each time to be told it again. A lookup that FAILED is not cached, which is a
- * distinction the catch below explains. The server route sets a day-long
- * `cache-control`, so a reload is still served from the HTTP cache rather than
- * from Shirabe.
- *
- * ONE cache, keyed by the token. There used to be a second, keyed by slug, for
- * a follow-up call to `GET /api/v1/words/{id}` that fetched the pitch, badges
- * and forms identify did not carry. Identify carries them now behind
- * `include=`, so the second call, its cache, and the merge that spread one over
- * the other are all gone.
+ * The key includes the sentence and clicked span because identify resolves
+ * the word from that context.
  */
 
 /**
  * What a candidate lookup came back with.
  *
- * The two empty answers are kept apart because the card now says which one it
- * got. "There is no entry" is a fact about the WORD -- a name, a coinage, a
- * spelling the corpus preserved -- and worth telling the reader, since it is the
- * end of the search rather than a hitch in it. "We could not ask" is a fact
- * about us, and printing it as the dictionary's verdict would be a lie about a
- * word that may well be in there.
+ * Missing is a dictionary answer; failed means the request could not complete.
  */
 export type WordLookup =
-  | { candidates: ShirabeCandidate[]; nameOnly?: boolean; reason?: undefined }
-  | { candidates: []; nameOnly?: undefined; reason: 'missing' | 'failed' };
+  | { candidates: ShirabeCandidate[]; reason?: undefined }
+  | { candidates: []; reason: 'missing' | 'failed' };
+
+/** Shirabe parses the bounded source text and identifies the clicked span. */
+export type WordLookupTarget = { text: string; startOffset: number; endOffset?: number };
 
 const inFlight = new Map<string, Promise<WordLookup>>();
 
 /**
- * Keyed by label language as well as by the token, because Shirabe resolves tag
+ * Keyed by label language as well as by the span, because Shirabe resolves tag
  * labels into a single language and that is the one thing about the response
  * that varies by reader.
  *
- * Worth keeping even though the card now writes its own part-of-speech and misc
- * chips (`~/utils/wordTagLabels`): the field and dialect tags have no Legend
- * entry to translate from, so they still print Shirabe's label, and it really is
+ * Field and dialect tags still print Shirabe's label, and it really is
  * translated -- `food` comes back "food, cooking" in English and "gastronomía"
  * in Spanish. Dropping the parameter would put those chips, and every chip's
  * full-wording tooltip, back into English for Spanish readers.
  *
  * It costs less than it looks. A reader's locale is fixed for their session, so
- * no browser ever holds two copies of a word: only the shared caches (ours at
+ * no browser normally holds two language copies of a span: only the shared caches (ours at
  * the edge, Shirabe's) carry a variant per language, which is what shared caches
  * are for.
  */
-function cacheKey(ref: WordRef, locale: string, stack: string): string {
-  return `${ref.lemma}\u0000${ref.surface}\u0000${ref.reading}\u0000${ref.pos}:${locale}:${stack}`;
+/** `/identify` is context-sensitive, so cache the text and UTF-16 span. */
+function positionedCacheKey(target: WordLookupTarget, locale: string, stack: string): string {
+  return `identify\u0000${target.text}\u0000${target.startOffset}\u0000${target.endOffset ?? ''}:${locale}:${stack}`;
 }
 
 /**
@@ -144,121 +120,86 @@ function remember<T>(store: Map<string, T>, key: string, answer: T): T {
   return answer;
 }
 
-/** The answer if it is already here, so a card can open filled in rather than
- *  flashing a loading state for a word the page has seen. `undefined` means it
- *  has not been asked. */
-export function peekWord(ref: WordRef, locale: string): WordLookup | undefined {
-  return recall(resolved, cacheKey(ref, locale, readerStack()));
-}
+type CandidateResponse = {
+  candidates: ShirabeCandidate[];
+  stackFingerprint?: string;
+};
 
-/**
- * Which words this token could be, ranked, from cache when we have it.
- *
- * Never rejects. An empty answer comes back as a `reason` rather than as a
- * throw, because both kinds of empty are ordinary here and every caller has to
- * handle them anyway -- rejecting would mean each one repeating the same catch
- * to arrive at the same two cases.
- */
-export function fetchWord(ref: WordRef, locale: string): Promise<WordLookup> {
+function fetchCandidates(
+  keyForStack: (stack: string) => string,
+  request: (stack: string) => Promise<CandidateResponse>,
+): Promise<WordLookup> {
   const stack = readerStack();
-  const key = cacheKey(ref, locale, stack);
-
+  const key = keyForStack(stack);
   const answered = recall(resolved, key);
   if (answered) return Promise.resolve(answered);
 
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const request = $fetch<{ candidates: ShirabeCandidate[]; nameOnly?: boolean; stackFingerprint?: string }>(
-    `/api/shirabe/words/candidates/${encodeURIComponent(ref.lemma)}`,
-    {
-      // `stack` is a cache key and nothing else: the route ignores it when
-      // calling Shirabe, which resolves the stack from the reader's own key.
-      // Sent only for a linked reader, so every other URL is unchanged.
-      query: { locale, surface: ref.surface, reading: ref.reading, pos: ref.pos, ...(stack ? { stack } : {}) },
-      // The server route already bounds its own calls (1.5s direct, 5s public), so
-      // anything past this is not the dictionary being slow -- it is a request
-      // that is never coming back, and without a bound the card waits on it
-      // forever. Giving up at least lets the card fall back to what the token
-      // itself knows.
-      timeout: 8000,
-    },
-  )
+  const lookup = request(stack)
     .then((answer): WordLookup => {
-      // Shirabe named the stack it actually answered from, and it disagrees with
-      // the one this request was keyed under: the reader has reconfigured their
-      // dictionaries since this page loaded.
-      //
-      // Re-key here rather than waiting for the session to say so. The session is
-      // read once per page load (`plugins/identity-auth.ts`), so without this the
-      // reader would keep being served every word they had already hovered from a
-      // day-old copy until they reloaded -- on the very page where we found out.
-      // The server route has already told the backend, so the next load agrees;
-      // this is the same correction applied where the reader can see it.
-      //
-      // Everything in `resolved` was keyed under the old stack, so all of it is
-      // answers from dictionaries that may no longer be theirs. Dropped rather
-      // than left to age out: they are unreachable under the new key anyway, and
-      // holding a few hundred dead entries to prove it helps nobody.
       let answerKey = key;
       const observed = answer?.stackFingerprint;
       if (observed && observed !== stack) {
         setReaderStack(observed);
         resolved.clear();
-        answerKey = cacheKey(ref, locale, observed);
+        answerKey = keyForStack(observed);
       }
-
-      const found = answer?.candidates ?? [];
-      // An empty list is the same answer as the 404 below, and has to carry the
-      // same reason. The server route turns identify's `words: [null]` into a
-      // 404, so this is the belt to that braces -- but without it a response
-      // that arrives empty reads as a successful lookup with no reason, and the
-      // card reports an `undefined` outcome rather than "no entry".
-      if (found.length === 0) return remember(resolved, answerKey, { candidates: [], reason: 'missing' });
-      return remember(resolved, answerKey, { candidates: found, nameOnly: answer?.nameOnly === true });
+      const candidates = answer?.candidates ?? [];
+      return candidates.length
+        ? remember(resolved, answerKey, { candidates })
+        : remember(resolved, answerKey, { candidates: [], reason: 'missing' });
     })
     .catch((error: unknown): WordLookup => {
-      // 404 is the server route saying Shirabe resolved this token to nothing.
-      // Anything else -- a 502 from a dictionary that would not answer, a
-      // request that timed out -- is about the trip rather than the word.
-      //
-      // Both places ofetch puts the status, because reading only one and finding
-      // it undefined would file a plain "no entry" under "could not ask", and
-      // the card would go quiet on the answer it most often has to give.
       const failure = error as { response?: { status?: number }; statusCode?: number };
       const status = failure?.response?.status ?? failure?.statusCode;
-
-      // A 404 is an answer and is worth keeping: this word has no entry today
-      // and will have none on the next hover either.
-      if (status === 404) return remember(resolved, key, { candidates: [], reason: 'missing' });
-
-      // A failure is NOT an answer, and caching it was a bug worth the paragraph.
-      // The old code stored every empty result alike, from back when the card
-      // could not tell them apart. The effect is that one bad moment -- a
-      // dictionary restarting, a dropped connection, a request that timed out --
-      // pins that word blank for the rest of the session, and the only way back
-      // is a page reload. It is exactly what happened while this was being
-      // tested against a local Shirabe that was still warming up: the word
-      // stayed empty long after the service was answering perfectly well.
-      //
-      // Left uncached, the next hover simply asks again and the word fills in.
-      // The cost of being wrong here is one request; the cost of the other
-      // choice is a word the reader cannot recover without reloading.
-      return { candidates: [], reason: 'failed' };
+      // A missing word is a stable answer. A transport failure must retry.
+      return status === 404
+        ? remember(resolved, key, { candidates: [], reason: 'missing' })
+        : { candidates: [], reason: 'failed' };
     })
     .finally(() => {
-      // Only the in-flight entry is cleared; `resolved` keeps the answer.
       inFlight.delete(key);
     });
-
-  inFlight.set(key, request);
-  return request;
+  inFlight.set(key, lookup);
+  return lookup;
 }
 
-// `cacheKey` decides which two questions are the same question, and getting that
-// wrong is silent in both directions: too loose and two homographs share one
-// answer, too tight and every card refetches a word the page already has.
+// The source-complete API response replaces an older cached shape. Include a
+// version in the HTTP URL so existing day-long browser caches refresh once.
+const LOOKUP_RESPONSE_VERSION = 2;
+
+/** Position-based identify keeps the source and UTF-16 span in its cache key. */
+export function fetchWordAt(target: WordLookupTarget, locale: string): Promise<WordLookup> {
+  return fetchCandidates(
+    (stack) => positionedCacheKey(target, locale, stack),
+    (stack) =>
+      $fetch<CandidateResponse>(
+        `/api/shirabe/words/candidates/${encodeURIComponent(target.text.slice(target.startOffset, target.endOffset))}`,
+        {
+          query: {
+            v: LOOKUP_RESPONSE_VERSION,
+            locale,
+            text: target.text,
+            startOffset: target.startOffset,
+            ...(target.endOffset !== undefined ? { endOffset: target.endOffset } : {}),
+            ...(stack ? { stack } : {}),
+          },
+          timeout: 8000,
+        },
+      ),
+  );
+}
+
+/** Internal probe for cache tests. */
+function peekWordAt(target: WordLookupTarget, locale: string): WordLookup | undefined {
+  return recall(resolved, positionedCacheKey(target, locale, readerStack()));
+}
+
+// The positioned key decides which two requests can share an answer. The text,
+// span, locale, and reader stack must all match.
 // `CACHE_LIMIT` is here so the eviction test can fill the map exactly to its
 // edge rather than hardcoding 600 in two places and silently testing nothing
 // the day the bound changes.
-export const __testing = { cacheKey, CACHE_LIMIT };
+export const __testing = { positionedCacheKey, CACHE_LIMIT, peekWordAt };

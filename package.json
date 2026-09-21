@@ -18,6 +18,7 @@
     "dev:ports": "trap 'kill 0' INT TERM EXIT; npm run dev:backend & npm run dev:frontend & wait",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
+    "watch:shirabe": "node scripts/watchLinkedShirabe.mjs",
     "build": "npm run build --workspace backend && npm run sdk:codegen && npm run build --workspace frontend",
     "lint": "npm run lint --workspaces --if-present",
     "lint:fix": "npm run lint:fix --workspaces --if-present",

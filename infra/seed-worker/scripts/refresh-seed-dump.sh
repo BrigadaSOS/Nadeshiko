@@ -63,7 +63,9 @@ done
 
 table_args=""
 for table in "${TABLES[@]}"; do
-  table_args+=" --table='public.\"${table}\"'"
+  # Preserve the quotes around mixed-case PostgreSQL table names through SSH
+  # and the container's bash -c parsing.
+  table_args+=" --table=public.\\\"${table}\\\""
 done
 
 echo "→ Dumping ${#TABLES[@]} content tables from ${remote}:${pg_container}"

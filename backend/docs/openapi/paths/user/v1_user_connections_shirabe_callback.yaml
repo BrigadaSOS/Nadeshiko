@@ -31,6 +31,9 @@ post:
             state:
               type: string
               description: The sealed state from the redirect, unchanged.
+            issuer:
+              type: string
+              description: The OAuth issuer (`iss`) from the redirect, when provided.
   responses:
     "200":
       description: OK

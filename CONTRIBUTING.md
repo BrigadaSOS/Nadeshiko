@@ -60,6 +60,17 @@ runs them on bare ports instead, for a machine where binding 443 is not on offer
 It does not fail fast: if one server dies the other keeps running, so watch the
 output for a process that has dropped out.
 
+If Shirabe SDK packages are linked to a local checkout, start their source
+watchers from the Nadeshiko root while developing the integration:
+
+```bash
+npm run watch:shirabe
+```
+
+This command watches linked card and API packages and skips packages installed
+from npm. Successful card builds restart Nadeshiko's frontend; API builds
+restart both the backend and frontend.
+
 On macOS, the AirPlay Receiver listens on port 5000 and the backend will fail to
 bind. Either turn it off under System Settings → General → AirDrop & Handoff, or
 set `PORT=5050` in `backend/.env` and point the frontend at it with

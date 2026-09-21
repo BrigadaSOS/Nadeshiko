@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiPatreon } from '@mdi/js';
+import { mdiEye, mdiEyeClosed, mdiPatreon } from '@mdi/js';
 import { handleApiError } from '~/utils/apiError';
 
 /**
@@ -37,6 +37,8 @@ interface Connection {
   /** Slug => display name, as Shirabe names them. Empty for a link made before
    *  Shirabe published the names, so a slug is the fallback. */
   dictionaryNames?: Record<string, string>;
+  /** Shirabe's default reveal mode, keyed by dictionary slug. */
+  dictionaryReveal?: Record<string, 'show' | 'hover'>;
   stackIsPrivate: boolean;
   syncedAt: string | null;
 }
@@ -53,6 +55,9 @@ const { t, locale } = useI18n();
 const connection = ref<Connection | null>(null);
 const isLoading = ref(true);
 const isWorking = ref(false);
+const openRevealTooltip = ref<number | null>(null);
+const openLanguageTooltip = ref<string | null>(null);
+const PATREON_CONNECTIONS_ENABLED = false;
 const patreonConnection = ref<PatreonConnection | null>(null);
 const patreonWorking = ref(false);
 const patreonUrl = ref('https://www.patreon.com/c/BrigadaSOS');
@@ -66,6 +71,7 @@ async function load() {
   } finally {
     isLoading.value = false;
   }
+  if (!PATREON_CONNECTIONS_ENABLED) return;
   try {
     const data = await $fetch<{ connection: PatreonConnection | null; patreonUrl: string }>(
       '/v1/user/connections/patreon',
@@ -156,9 +162,28 @@ const state = computed<'unlinked' | 'linked' | 'upgrade' | 'disconnected'>(() =>
  * time it renders -- and a button that refreshes something invisible is one
  * people press twice and then distrust.
  */
-const dictionaries = computed(() =>
-  (connection.value?.dictionaries ?? []).map((source, index) => ({ ...dictionaryLabel(source), position: index + 1 })),
-);
+const dictionaries = computed(() => {
+  const rows: { slug: string; name: string; languages: string[]; position: number; reveal: 'show' | 'hover' | null }[] =
+    [];
+  for (const source of connection.value?.dictionaries ?? []) {
+    const { slug, name, language } = dictionaryLabel(source);
+    // A Shirabe source can have several languages. Keep adjacent languages in
+    // their stack order, and do not merge a later occurrence across another source.
+    const previous = rows[rows.length - 1];
+    if (previous?.slug === slug) {
+      if (language) previous.languages.push(language);
+    } else {
+      rows.push({
+        slug,
+        name,
+        languages: language ? [language] : [],
+        position: rows.length + 1,
+        reveal: connection.value?.dictionaryReveal?.[slug] ?? null,
+      });
+    }
+  }
+  return rows;
+});
 
 /**
  * A stack entry is `slug:language` -- `jmdict:en`, `yomitan-c89af12122021a8a:ja`
@@ -172,11 +197,17 @@ const dictionaries = computed(() =>
  * the name is theirs. The slug survives as the fallback for a link made before
  * Shirabe published the names, which is what the reader saw anyway.
  */
-function dictionaryLabel(source: string): { name: string; language: string | null } {
+function dictionaryLabel(source: string): { slug: string; name: string; language: string | null } {
   const separator = source.lastIndexOf(':');
   const slug = separator === -1 ? source : source.slice(0, separator);
   const language = separator === -1 ? null : source.slice(separator + 1);
-  return { name: connection.value?.dictionaryNames?.[slug] || slug, language: language?.toUpperCase() ?? null };
+  return { slug, name: connection.value?.dictionaryNames?.[slug] || slug, language: language?.toUpperCase() ?? null };
+}
+
+function languageLabel(language: string): string {
+  const keys: Record<string, string> = { EN: 'english', ES: 'spanish', JA: 'japanese' };
+  const key = keys[language];
+  return key ? t(`modalSegmentEdit.${key}`) : language;
 }
 
 /**
@@ -258,27 +289,27 @@ async function disconnectPatreon() {
     <h3 class="nd-settings-title">{{ t('connections.title') }}</h3>
 
     <div class="mt-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div class="flex items-center gap-3">
-          <div class="flex size-10 shrink-0 items-center justify-center rounded bg-[#ff424d] text-white" aria-hidden="true"><UiBaseIcon :path="mdiPatreon" size="22" /></div>
-          <div>
-            <p class="text-white">{{ t('connections.patreon.name') }}</p>
-            <p class="text-sm text-gray-400" data-testid="patreon-connection-description">
-              {{ patreonConnection
-                ? t(patreonConnection.active ? 'connections.patreon.active' : 'connections.patreon.inactive', { name: patreonConnection.fullName || t('connections.patreon.member') })
-                : t('connections.patreon.description') }}
-            </p>
+      <div v-if="PATREON_CONNECTIONS_ENABLED" class="mb-5 border-b border-white/10 pb-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div class="flex items-center gap-3">
+            <div class="flex size-10 shrink-0 items-center justify-center rounded bg-[#ff424d] text-white" aria-hidden="true"><UiBaseIcon :path="mdiPatreon" size="22" /></div>
+            <div>
+              <p class="text-white">{{ t('connections.patreon.name') }}</p>
+              <p class="text-sm text-gray-400" data-testid="patreon-connection-description">
+                {{ patreonConnection
+                  ? t(patreonConnection.active ? 'connections.patreon.active' : 'connections.patreon.inactive', { name: patreonConnection.fullName || t('connections.patreon.member') })
+                  : t('connections.patreon.description') }}
+              </p>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <a v-if="patreonConnection && !patreonConnection.active" :href="patreonUrl" target="_blank" rel="noopener" class="nd-btn-accent">{{ t('connections.patreon.join') }}</a>
+            <button type="button" class="nd-btn grow sm:grow-0" :disabled="patreonWorking" data-testid="patreon-connection-toggle" @click="patreonConnection ? disconnectPatreon() : connectPatreon()">
+              {{ t(patreonConnection ? 'connections.patreon.disconnect' : 'connections.patreon.connect') }}
+            </button>
           </div>
         </div>
-        <div class="flex gap-2">
-          <a v-if="patreonConnection && !patreonConnection.active" :href="patreonUrl" target="_blank" rel="noopener" class="nd-btn-accent">{{ t('connections.patreon.join') }}</a>
-          <button type="button" class="nd-btn grow sm:grow-0" :disabled="patreonWorking" data-testid="patreon-connection-toggle" @click="patreonConnection ? disconnectPatreon() : connectPatreon()">
-            {{ t(patreonConnection ? 'connections.patreon.disconnect' : 'connections.patreon.connect') }}
-          </button>
-        </div>
       </div>
-
-      <div class="mt-5 border-t border-white/10 pt-5">
       <!-- The button drops to its own line below `sm`. Beside the text it was
            competing with a description that wraps to five lines on a phone, so
            both got squeezed: the description into a narrow column and the button
@@ -322,19 +353,54 @@ async function disconnectPatreon() {
            one thing on this card that would keep implying the link works. -->
       <div v-if="dictionaries.length && state !== 'disconnected'" class="mt-4 pt-4 border-t border-white/10">
         <p class="text-gray-300 text-sm">{{ t('connections.shirabe.dictionaries') }}</p>
-        <!-- A LIST rather than a row of pills. A stack is ordered and can run to
-             twenty entries, and pills wrapped over five lines read as a bag of
-             tags: nothing about them says the first one is consulted first. A
-             numbered column says it without a word of explanation. -->
+        <!-- Each Shirabe source gets one numbered row, with its languages in
+             stack order and its default reveal mode alongside it. -->
         <ol class="mt-2 flex flex-col" data-testid="shirabe-stack">
           <li
             v-for="dictionary in dictionaries"
-            :key="`${dictionary.name}-${dictionary.position}`"
-            class="flex items-baseline gap-2 border-white/5 border-b py-1.5 last:border-b-0"
+            :key="`${dictionary.slug}-${dictionary.position}`"
+            class="flex items-center gap-2 border-white/5 border-b py-1.5 last:border-b-0"
           >
             <span class="w-5 shrink-0 text-right text-gray-500 text-xs tabular-nums">{{ dictionary.position }}</span>
-            <span class="text-gray-200 text-sm">{{ dictionary.name }}</span>
-            <span v-if="dictionary.language" class="text-gray-500 text-xs">{{ dictionary.language }}</span>
+            <span v-if="dictionary.reveal" class="relative group/reveal shrink-0 inline-flex">
+              <button
+                type="button"
+                class="inline-flex cursor-default items-center justify-center text-gray-500 focus-visible:text-gray-200"
+                :aria-label="t(dictionary.reveal === 'hover' ? 'connections.shirabe.collapsedByDefault' : 'connections.shirabe.shownByDefault')"
+                :aria-expanded="openRevealTooltip === dictionary.position"
+                data-testid="shirabe-reveal-icon"
+                @click="openRevealTooltip = openRevealTooltip === dictionary.position ? null : dictionary.position"
+                @blur="openRevealTooltip = null"
+              >
+                <UiBaseIcon :path="dictionary.reveal === 'hover' ? mdiEyeClosed : mdiEye" size="16" aria-hidden="true" />
+              </button>
+              <span
+                role="tooltip"
+                class="pointer-events-none absolute left-0 bottom-full z-20 mb-2 whitespace-nowrap rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs text-ink shadow-lg transition-opacity duration-150 group-hover/reveal:visible group-hover/reveal:opacity-100"
+                :class="openRevealTooltip === dictionary.position ? 'visible opacity-100' : 'invisible opacity-0'"
+              >{{ t(dictionary.reveal === 'hover' ? 'connections.shirabe.collapsedByDefault' : 'connections.shirabe.shownByDefault') }}</span>
+            </span>
+            <span class="shrink-0 text-gray-200 text-sm whitespace-nowrap">{{ dictionary.name }}</span>
+            <span
+              v-for="language in dictionary.languages"
+              :key="language"
+              class="relative group/language shrink-0 inline-flex"
+            >
+              <button
+                type="button"
+                class="cursor-default rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-gray-400 text-xs"
+                :aria-label="languageLabel(language)"
+                :aria-expanded="openLanguageTooltip === `${dictionary.position}:${language}`"
+                data-testid="shirabe-language-pill"
+                @click="openLanguageTooltip = openLanguageTooltip === `${dictionary.position}:${language}` ? null : `${dictionary.position}:${language}`"
+                @blur="openLanguageTooltip = null"
+              >{{ language }}</button>
+              <span
+                role="tooltip"
+                class="pointer-events-none absolute left-0 bottom-full z-20 mb-2 whitespace-nowrap rounded-lg border border-hairline bg-surface px-3 py-1.5 text-xs text-ink shadow-lg transition-opacity duration-150 group-hover/language:visible group-hover/language:opacity-100"
+                :class="openLanguageTooltip === `${dictionary.position}:${language}` ? 'visible opacity-100' : 'invisible opacity-0'"
+              >{{ languageLabel(language) }}</span>
+            </span>
           </li>
         </ol>
         <!-- The setting lives over there, so the hint is a door rather than an
@@ -347,8 +413,6 @@ async function disconnectPatreon() {
             class="text-gray-400 underline underline-offset-2 hover:text-white"
           >{{ t('connections.shirabe.dictionariesHint') }}</a>
         </p>
-      </div>
-
       </div>
     </div>
   </div>

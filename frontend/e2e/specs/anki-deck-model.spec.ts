@@ -13,9 +13,9 @@ const ANKI_ADDRESS = 'http://127.0.0.1:8765';
  * when they change deck, because selecting a model reloads the field list and
  * any field whose name does not survive loses its mapping.
  *
- * AnkiConnect is a service on the reader's own machine, so it is mocked here the
- * same way word-mining.spec.ts mocks it: by routing the address the store posts
- * to. The mock answers per deck, which is what makes the vote meaningful rather
+ * AnkiConnect is a service on the reader's own machine, so it is mocked here
+ * by routing the address the store posts to. The mock answers per deck, which
+ * is what makes the vote meaningful rather
  * than a fixed string handed back.
  */
 const DECK_NOTES: Record<string, string[]> = {

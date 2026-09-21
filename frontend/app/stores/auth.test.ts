@@ -190,6 +190,14 @@ describe('applySession', () => {
     expect(store.shirabeGlossLanguages).toEqual(['es', 'en']);
   });
 
+  test('keeps the linked reader’s dictionary reveal preferences for cards', () => {
+    const store = userStore();
+    store.applySession(session({ user: { shirabe: { linked: true, dictionaryReveal: { sanseido: 'hover' } } } }));
+    expect(store.shirabeDictionaryReveal).toEqual({ sanseido: 'hover' });
+    store.resetAuthState();
+    expect(store.shirabeDictionaryReveal).toEqual({});
+  });
+
   test('an impersonated session is marked as one, naming who is being impersonated', () => {
     const store = userStore();
 

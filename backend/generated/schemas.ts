@@ -453,6 +453,7 @@ export const s_ShirabeConnection = z.object({
 	scopes: z.array(z.string()),
 	dictionaries: z.array(z.string()),
 	dictionaryNames: z.record(z.string(), z.string()).optional(),
+	dictionaryReveal: z.record(z.string(), z.enum(["show", "hover"])).optional(),
 	stackIsPrivate: PermissiveBoolean,
 	syncedAt: z.iso.datetime({ offset: true }).nullable().optional(),
 });
@@ -473,8 +474,6 @@ export const s_Token = z.object({
 	b: z.coerce.number(),
 	e: z.coerce.number(),
 	p: z.string(),
-	posLabel: z.string().optional(),
-	pt: z.string().optional(),
 	kind: z
 		.enum([
 			"word",
@@ -1190,6 +1189,7 @@ export const s_CreateUserApiKeyRequestBody = z.object({
 export const s_CompleteShirabeLinkRequestBody = z.object({
 	code: z.string(),
 	state: z.string(),
+	issuer: z.string().optional(),
 });
 
 export const s_ResyncShirabeStackRequestBody = z.object({

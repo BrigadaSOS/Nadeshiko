@@ -1,28 +1,47 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { ParseToken } from '@shirabe-org/api';
+import { createShirabeClient } from '@shirabe-org/api';
+
+// OAuth issuance has its own contract suite. Keep these parser tests about
+// batching and token mapping: a static generated client makes every mocked
+// request below the parse request it intends to describe, not a prior token
+// exchange.
+vi.mock('@app/services/shirabe/serviceClient', () => ({
+  shirabeServiceClient: () => createShirabeClient({ baseUrl: 'https://shirabe.test', accessToken: 'test-token' }),
+}));
+
 import { __testing, parseSegments } from '@app/services/shirabe/parseSegments';
 
 const { toSlimToken } = __testing;
+const requestBody = async (request: RequestInfo | URL, init?: RequestInit): Promise<string> =>
+  request instanceof Request ? request.clone().text() : String(init?.body);
 
 // This mapping is the only place Shirabe's answer becomes one of our tokens, and
 // both the corpus backfill and every new episode come through it. The ten short
 // fields are our published contract (OpenAPI, npm and PyPI SDKs, third-party Anki
 // note types), so what is tested here is that they keep meaning what they say.
 
-const INFLECTED = {
-  position: 11,
-  length: 5,
+const INFLECTED: ParseToken = {
+  startOffset: 11,
+  endOffset: 16,
   surface: '食べました',
   lemma: '食べる',
   reading: 'タベマシタ',
-  posFull: ['動詞', '一般', '*', '*', '下一段-バ行', '連用形-一般'],
+  partOfSpeech: 'verb',
   kind: 'inflected',
-  posLabel: 'Verb',
+  morphology: { partOfSpeech: ['動詞', '一般'], label: 'Verb' },
   furigana: [{ text: '食', ruby: 'た' }, { text: 'べました' }],
-  inflection: { labels: ['past', 'polite'], base: '食べる' },
+  inflection: {
+    forms: [
+      { code: 'past', label: 'past' },
+      { code: 'polite', label: 'polite' },
+    ],
+    base: '食べる',
+  },
   components: [
-    { surface: '食べ', offset: 0, length: 2 },
-    { surface: 'まし', offset: 2, length: 2 },
-    { surface: 'た', offset: 4, length: 1 },
+    { surface: '食べ', startOffset: 11, endOffset: 13 },
+    { surface: 'まし', startOffset: 13, endOffset: 15 },
+    { surface: 'た', startOffset: 15, endOffset: 16 },
   ],
 };
 
@@ -38,10 +57,7 @@ describe('toSlimToken', () => {
     expect(token.p).toBe('動詞');
   });
 
-  // p1/p2/p4/cf are gone. They were named for UniDic array indices -- with no p3,
-  // and pos[5] called `cf` -- which is Sudachi's internal shape leaking into a
-  // published contract, and nothing read them: `posLabel` says what they were
-  // kept to say, in words, without a UniDic table at the other end.
+  // These finer UniDic slots are not used for highlight expansion.
   it('keeps no UniDic slot beyond the primary tag', () => {
     const token = toSlimToken(INFLECTED);
 
@@ -50,7 +66,7 @@ describe('toSlimToken', () => {
     }
   });
 
-  // `p` comes off posFull, and /api/v1/parse did not always return it: every
+  // `p` comes off morphology, and /api/v1/parse does not return it unless asked:
   // stored token had an empty `p`, a field the schema calls required. Nothing
   // caught it until real rows were written, so it is asserted non-blank rather
   // than merely present.
@@ -59,7 +75,6 @@ describe('toSlimToken', () => {
 
     expect(token.p).toBe('動詞');
     expect(token.p).not.toBe('');
-    expect(token.posLabel).toBe('Verb');
   });
 
   it('positions parts against the sentence, not against the token', () => {
@@ -92,10 +107,7 @@ describe('toSlimToken', () => {
     expect(toSlimToken(INFLECTED)).not.toHaveProperty('wid');
   });
 
-  // Everything the live resolve needs has to survive the mapping, or the card
-  // cannot ask about an inflected word (食べました reaches 食べる, which no slug
-  // spells) or tell one homograph from another (開く by reading).
-  it('keeps what a live lookup resolves from', () => {
+  it('keeps the surface, reading, and highlight category', () => {
     const token = toSlimToken(INFLECTED);
 
     expect(token.d).toBe('食べる');
@@ -104,26 +116,22 @@ describe('toSlimToken', () => {
     expect(token.p).toBe('動詞');
   });
 
-  // Three readings of the part of speech, and only one of them is the vocabulary
-  // `POST /api/v1/words/identify` ranks by. `p` is UniDic's own category and
-  // `posLabel` is the printable wording; neither is a tag Shirabe will rank on,
-  // so dropping `pt` would leave every lookup resolving by spelling alone.
-  it('stores the short part-of-speech tag alongside the UniDic one', () => {
-    const token = toSlimToken({ ...INFLECTED, pos: 'verb' });
-
-    expect(token.pt).toBe('verb');
-    expect(token.p).toBe('動詞');
-    expect(token.posLabel).toBe('Verb');
-  });
-
-  it('leaves the short tag off a token that carries none', () => {
-    expect(toSlimToken(INFLECTED)).not.toHaveProperty('pt');
+  it('does not store lookup-only part-of-speech fields', () => {
+    const token = toSlimToken(INFLECTED);
+    expect(token).not.toHaveProperty('pt');
+    expect(token).not.toHaveProperty('posLabel');
   });
 
   // A symbol reads as itself and `r` is a required string, so the surface stands
   // in. A token with no ruby and no parts carries neither key.
   it('handles a bare symbol', () => {
-    const token = toSlimToken({ position: 16, length: 1, surface: '。', posFull: ['補助記号'] });
+    const token = toSlimToken({
+      startOffset: 16,
+      endOffset: 17,
+      surface: '。',
+      kind: 'symbol',
+      morphology: { partOfSpeech: ['補助記号'] },
+    });
 
     expect(token.r).toBe('。');
     expect(token.d).toBe('。');
@@ -149,22 +157,25 @@ describe('parseSegments batching', () => {
 
   /** A response whose single token's surface is the text that was sent. */
   const echoResponse = (texts: string[]) => ({
-    tokens: texts.map((text) => [{ position: 0, length: text.length, surface: text, pos: 'noun' }]),
+    stackFingerprint: 'test',
+    results: texts.map((text) => ({
+      text,
+      tokens: [{ startOffset: 0, endOffset: text.length, surface: text, kind: 'word', partOfSpeech: 'noun' }],
+    })),
   });
 
   /**
    * The morphology has to be asked for, and forgetting to is silent.
    *
-   * Shirabe moved `posFull` and `posLabel` behind `include=` in 0.8.0 -- they
-   * were ~27% of every parse response and almost nobody read them. A run without
-   * this does not fail: it writes tokens with an empty `p` and no `posLabel`,
+   * Shirabe keeps furigana and morphology behind `include=`. A run without
+   * this does not fail: it writes tokens with an empty `p`,
    * which reads downstream as a corpus that lost its morphology on whatever date
    * the run happened. Cheap to assert, and there is no other signal.
    */
   it('asks for the morphology it stores', async () => {
     const bodies: string[] = [];
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
-      const body = String((init as RequestInit).body);
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, init) => {
+      const body = await requestBody(request, init);
       bodies.push(body);
       return new Response(JSON.stringify(echoResponse(JSON.parse(body).texts)), {
         status: 200,
@@ -174,7 +185,7 @@ describe('parseSegments batching', () => {
 
     await parseSegments(['猫が好き']);
 
-    expect(JSON.parse(bodies[0] ?? '{}').include).toEqual(['posFull', 'posLabel']);
+    expect(JSON.parse(bodies[0] ?? '{}').include).toEqual(['furigana', 'morphology']);
   });
 
   it('returns one entry per input, in input order, when later batches answer first', async () => {
@@ -183,8 +194,8 @@ describe('parseSegments batching', () => {
     const texts = Array.from({ length: PARSE_BATCH * 2 + 5 }, (_, i) => `文${i}`);
 
     let call = 0;
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
-      const sent = JSON.parse(String((init as RequestInit).body)).texts as string[];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, init) => {
+      const sent = JSON.parse(await requestBody(request, init)).texts as string[];
       // Invert the delay: the last batch dispatched resolves first. With results
       // appended as they arrive rather than placed by index, this reorders.
       const delay = Math.max(0, 30 - call++ * 10);
@@ -206,8 +217,8 @@ describe('parseSegments batching', () => {
     const texts = Array.from({ length: PARSE_BATCH + 1 }, (_, i) => `文${i}`);
     const seen: string[] = [];
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
-      const sent = JSON.parse(String((init as RequestInit).body)).texts as string[];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, init) => {
+      const sent = JSON.parse(await requestBody(request, init)).texts as string[];
       seen.push(...sent);
       return new Response(JSON.stringify(echoResponse(sent)), {
         status: 200,
@@ -219,6 +230,23 @@ describe('parseSegments batching', () => {
 
     expect(seen).toHaveLength(texts.length);
     expect(new Set(seen).size).toBe(texts.length);
+  });
+
+  it("splits a batch before it exceeds Shirabe's character payload limit", async () => {
+    const { PARSE_MAX_CHARS } = __testing;
+    const batches: string[][] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, init) => {
+      const texts = JSON.parse(await requestBody(request, init)).texts as string[];
+      batches.push(texts);
+      return new Response(JSON.stringify(echoResponse(texts)), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    await parseSegments(['猫'.repeat(PARSE_MAX_CHARS), '犬']);
+
+    expect(batches).toEqual([['猫'.repeat(PARSE_MAX_CHARS)], ['犬']]);
   });
 
   it('answers an empty input without calling Shirabe', async () => {
@@ -241,7 +269,11 @@ describe('parseSegments resilience', () => {
   });
 
   const echo = (texts: string[]) => ({
-    tokens: texts.map((text) => [{ position: 0, length: text.length, surface: text, pos: 'noun' }]),
+    stackFingerprint: 'test',
+    results: texts.map((text) => ({
+      text,
+      tokens: [{ startOffset: 0, endOffset: text.length, surface: text, kind: 'word', partOfSpeech: 'noun' }],
+    })),
   });
   const ok = (texts: string[]) =>
     new Response(JSON.stringify(echo(texts)), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -249,8 +281,8 @@ describe('parseSegments resilience', () => {
   it('retries a 502 and keeps the answer', async () => {
     vi.useFakeTimers();
     let calls = 0;
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
-      const texts = JSON.parse(String((init as RequestInit).body)).texts as string[];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, init) => {
+      const texts = JSON.parse(await requestBody(request, init)).texts as string[];
       calls += 1;
       if (calls === 1) return new Response('<html>502</html>', { status: 502 });
       return ok(texts);

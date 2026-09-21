@@ -160,13 +160,18 @@ export class SegmentResponse {
       return null;
     }
 
-    // p1/p2/p4/cf used to be filled in here, nullable, because the published
-    // schema required them even when Sudachi had nothing to put in the slot.
-    // The fields are gone from the schema, so there is nothing to pad.
-    return tokens.map((token) => ({
-      ...token,
-      kind: SegmentResponse.toTokenKind(token.kind),
-    }));
+    return tokens.map((token) => {
+      // Older indexed rows can still carry these unused lookup-era fields.
+      const {
+        pt: _pt,
+        posLabel: _posLabel,
+        ...current
+      } = token as SlimToken & {
+        pt?: string;
+        posLabel?: string;
+      };
+      return { ...current, kind: SegmentResponse.toTokenKind(token.kind) };
+    });
   }
 
   static buildMedia(mediaInfo: MediaInfo): MediaOutput {

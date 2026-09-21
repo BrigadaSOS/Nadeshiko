@@ -57,6 +57,7 @@ export interface SessionUser {
      *  Shirabe stack says (`jmdict:es` above `jmdict:en` means Spanish first).
      *  Empty when the stack names no gloss language. */
     glossLanguages?: string[] | null;
+    dictionaryReveal?: Record<string, 'show' | 'hover'> | null;
   } | null;
 }
 
@@ -99,6 +100,7 @@ function defaultAuthState() {
     /** The gloss language order their Shirabe stack implies. Empty when they have
      *  linked nothing, or when the stack names no gloss language at all. */
     shirabeGlossLanguages: [] as string[],
+    shirabeDictionaryReveal: {} as Record<string, 'show' | 'hover'>,
     /** Whether a Shirabe account is linked at all. Not the same question as the
      *  two above: a reader can be linked and have neither a fingerprint copied
      *  yet nor a gloss language in their stack. */
@@ -178,6 +180,7 @@ export const userStore = defineStore('user', {
   actions: {
     resetAuthState() {
       this.$patch(defaultAuthState());
+      this.shirabeDictionaryReveal = {};
       setReaderStack(null);
     },
 
@@ -210,10 +213,14 @@ export const userStore = defineStore('user', {
         userInfo: { role: (sessionUser?.role as UserRole) ?? 'USER' },
         shirabeStackFingerprint: sessionUser?.shirabe?.stackFingerprint ?? null,
         shirabeGlossLanguages: sessionUser?.shirabe?.glossLanguages ?? [],
+        shirabeDictionaryReveal: sessionUser?.shirabe?.dictionaryReveal ?? {},
         shirabeLinked: sessionUser?.shirabe?.linked === true,
         isImpersonating: impersonating,
         impersonatedUsername: impersonating ? (sessionUser?.name ?? null) : null,
       });
+      // Pinia merges plain objects in $patch; replace this map so a removed
+      // dictionary setting cannot survive a session change.
+      this.shirabeDictionaryReveal = { ...sessionUser?.shirabe?.dictionaryReveal };
 
       // The word-lookup cache keys on this, and cannot reach in for it: see
       // `setReaderStack`. Pushed from the one place that knows a session landed.

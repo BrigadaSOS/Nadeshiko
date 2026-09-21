@@ -25,10 +25,9 @@ import {
   createRequestSequencer,
   createSearchFetcher,
   stripEpisodeHits,
-  stripUnreadTokenFields,
   type SearchScope,
 } from '../useSearchFetch';
-import type { SearchResponse, SearchStatsResponse } from '~/types/search';
+import type { SearchStatsResponse } from '~/types/search';
 
 const fakeSdk = { client: { id: 'test-client' } } as never;
 
@@ -522,46 +521,6 @@ describe('SSR payload slimming', () => {
     stripEpisodeHits(original, 'keep-me');
 
     expect(original.media[1]?.episodeHits).toHaveLength(2);
-  });
-
-  const token = () => ({
-    s: '焼けた',
-    d: '焼ける',
-    r: 'ヤケタ',
-    b: 0,
-    e: 3,
-    p: '動詞',
-    pt: 'verb',
-    kind: 'inflected',
-    posLabel: 'Verb',
-    f: [{ t: '焼', r: 'や' }, { t: 'けた' }],
-    inflection: { labels: ['past'], base: '焼ける' },
-  });
-
-  const response = (): SearchResponse =>
-    ({
-      results: [{ segment: { textJa: { content: '焼けた', highlight: '', tokens: [token(), token()] } } }],
-    }) as unknown as SearchResponse;
-
-  it('drops the token label nothing renders and keeps everything that addresses the text', () => {
-    const slim = stripUnreadTokenFields(response());
-    const [first] = slim.results[0]!.segment.textJa.tokens;
-
-    expect(first).not.toHaveProperty('posLabel');
-    // `b`/`e` decide the highlight and the Anki furigana slicing, `p`/`pt` the
-    // dictionary lookup, `kind` whether the token is askable at all.
-    expect(first).toMatchObject({ s: '焼けた', d: '焼ける', r: 'ヤケタ', b: 0, e: 3, p: '動詞', pt: 'verb' });
-    expect(first).toHaveProperty('kind', 'inflected');
-    expect(first).toHaveProperty('f');
-    expect(first).toHaveProperty('inflection');
-  });
-
-  it('leaves a result with no tokens alone', () => {
-    const untokenized = {
-      results: [{ segment: { textJa: { content: 'ねこ', highlight: '', tokens: [] } } }],
-    } as unknown as SearchResponse;
-
-    expect(stripUnreadTokenFields(untokenized).results[0]).toBe(untokenized.results[0]);
   });
 });
 

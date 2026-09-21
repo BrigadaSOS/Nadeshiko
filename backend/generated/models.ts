@@ -837,6 +837,7 @@ export type t_SegmentUpdateRequest = {
 export type t_ShirabeConnection = {
 	dictionaries: string[];
 	dictionaryNames?: Record<string, string>;
+	dictionaryReveal?: Record<string, "show" | "hover">;
 	disconnected: boolean;
 	linkedAt: string;
 	missingScopes: string[];
@@ -899,8 +900,6 @@ export type t_Token = {
 		e: number;
 		s: string;
 	}[];
-	posLabel?: string;
-	pt?: string;
 	r: string;
 	s: string;
 };
@@ -1106,6 +1105,7 @@ export type t_CompletePatreonLinkRequestBody = {
 
 export type t_CompleteShirabeLinkRequestBody = {
 	code: string;
+	issuer?: string;
 	state: string;
 };
 

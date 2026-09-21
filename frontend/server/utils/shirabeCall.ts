@@ -1,19 +1,15 @@
-import { createError } from 'h3';
+import type { H3Event } from 'h3';
+import { createShirabeClient } from '@shirabe-org/api';
 import { logger } from '~~/server/utils/logger';
+import { shirabeServiceToken } from '~~/server/utils/shirabeService';
 
 /**
  * One way to reach Shirabe, for every route that needs it.
  *
- * This used to live inside the word lookup, which was fine while there was one
- * of them. There are two now -- the candidates a token resolves to, and the full
- * detail of the one the reader settled on -- and the circuit breaker below is
- * state: a second copy would be a second breaker, each learning about an outage
- * on its own and each paying its own timeout to find out.
+ * The circuit breaker below is process state shared by every lookup request.
  *
- * It is a server util and not a browser fetch because of the key. Shirabe
- * authenticates with a service key that is ours, not the visitor's, and a key
- * that reaches the browser is a key that has been given away. Same reasoning as
- * `nadeshikoApiKey` in server/utils/backendProxy.ts.
+ * It is a server util and not a browser fetch because of the bearer. Shirabe
+ * authenticates with a short-lived OAuth bearer that never reaches the visitor.
  */
 
 /**
@@ -64,19 +60,16 @@ const DIRECT_TIMEOUT_MS = 1500;
 const PUBLIC_TIMEOUT_MS = 5000;
 
 export interface ShirabeRequest {
-  /** Path under Shirabe's API, WITHOUT the `/api/v1` prefix (`/words/identify`). */
-  path: string;
-  method?: 'GET' | 'POST';
-  query?: Record<string, string>;
-  body?: unknown;
   /** For the log line when the direct path is parked. */
   subject: string;
+  /** The original server event, used only when the shared OAuth bearer is needed. */
+  event?: H3Event;
   /**
    * Ask as a READER rather than as us.
    *
-   * A reader who linked their Shirabe account has a key of their own, and
-   * Shirabe shapes a lookup by the dictionary stack of whoever's key made the
-   * call -- which is the entire point of linking. Omitted means the service key,
+   * A reader who linked their Shirabe account has a bearer of their own, and
+   * Shirabe shapes a lookup by the dictionary stack of whoever's bearer made the
+   * call -- which is the entire point of linking. Omitted means the shared bearer,
    * which is every anonymous lookup and the fallback for every failed one.
    *
    * It rides through here rather than through a second HTTP client so both kinds
@@ -84,26 +77,30 @@ export interface ShirabeRequest {
    * below: two clients would each have to learn about an outage separately, and
    * each would pay its own timeout finding out.
    */
-  apiKey?: string;
+  accessToken?: string;
+  /**
+   * A generated SDK endpoint invocation. It owns the endpoint path, request
+   * serialization and response/error shape.
+   */
+  clientCall: (client: ReturnType<typeof createShirabeClient>) => Promise<{
+    data?: unknown;
+    error?: unknown;
+    response?: Response;
+  }>;
 }
 
 /**
  * Call Shirabe, preferring the tailnet and falling back to the public host.
  *
- * Throws whatever `$fetch` threw, so a caller can read `response.status` and
- * decide what a 404 means for its own endpoint -- which differs: a missing word
- * is an ordinary answer, a missing route is a bug. `describeFailure` below is
- * the shared half of that decision.
+ * Throws an SDK-shaped failure with its `response`, so the caller can read
+ * the status and content type when a request fails.
  */
 export async function callShirabe<T>(request: ShirabeRequest): Promise<T> {
   const config = useRuntimeConfig();
   const base = String(config.shirabeApiBase || 'https://shirabe.org').replace(/\/$/, '');
-  // A reader's own key when one was passed, ours otherwise. The service key is
-  // still required either way: it is what answers when a reader is not linked,
-  // and what the fallback in every caller lands on.
-  const serviceKey = String(config.shirabeApiKey || '').trim();
-  if (!serviceKey) throw createError({ statusCode: 503, statusMessage: 'Shirabe lookups are not configured' });
-  const apiKey = request.apiKey?.trim() || serviceKey;
+  // A reader's delegated bearer when one was passed, shared client-credentials
+  // bearer otherwise. The latter is minted by the backend, where the OAuth
+  // client secret lives; neither bearer reaches the browser.
 
   // Shirabe sits on another Hetzner box in the same city, and the public name
   // resolves to Cloudflare -- so left alone this call goes Helsinki → Cloudflare
@@ -118,90 +115,83 @@ export async function callShirabe<T>(request: ShirabeRequest): Promise<T> {
     .trim()
     .replace(/\/$/, '');
 
-  // `/api/v1`, not `/v1`. Shirabe mounts its JSON API under `scope "/api/v1"`
-  // (config/routes.rb), and this was once missing the prefix -- so every lookup
-  // hit Rails' catch-all and came back 404.
-  //
-  // That failed convincingly rather than loudly: a 404 reads as "this word has
-  // no entry", which is a real and common case, so the word card rendered empty
-  // for EVERY word and looked like thin dictionary coverage. Nothing alerted,
-  // because an empty card is not an error.
-  const path = `/api/v1${request.path}`;
-
-  // Note for anyone tempted to send `Host: shirabe.org` on the direct call so
-  // Rails' host authorization accepts it: it does not work. Node's fetch treats
-  // Host as a forbidden header and drops it silently, so the request still
-  // arrives claiming the bare IP and still 403s. Shirabe lists the tailnet
-  // address in APP_HOSTS instead -- the fix belongs on the side that decides
-  // which hosts are legitimate.
-  const call = (origin: string, timeout: number): Promise<T> =>
-    $fetch<T>(`${origin}${path}`, {
-      method: request.method ?? 'GET',
-      headers: { authorization: `Bearer ${apiKey}` },
-      query: request.query,
-      body: request.body as Record<string, unknown> | undefined,
-      timeout,
+  const serviceClient = createShirabeClient({
+    baseUrl: base,
+    accessToken: () => shirabeServiceToken(request.event),
+    fetch: sdkFetchWithFallback({ direct, base, subject: request.subject }),
+  });
+  const client = request.accessToken?.trim() ? serviceClient.asUser(request.accessToken.trim()) : serviceClient;
+  const result = await request.clientCall(client);
+  if (result.error || result.data === undefined) {
+    const error = Object.assign(new Error('Shirabe SDK request failed'), {
+      response: result.response,
+      detail: result.error,
     });
-
-  const now = Date.now();
-
-  if (direct && !directIsParked(now)) {
-    try {
-      const answer = await call(direct, DIRECT_TIMEOUT_MS);
-      recordDirectSuccess();
-      return answer;
-    } catch (directError: unknown) {
-      // A 404 is Shirabe answering about the SUBJECT -- the path is healthy and
-      // the public host would say the same thing a round trip later, so rethrow
-      // it and leave the breaker closed.
-      //
-      // Only 404. Every other status is about this path rather than the
-      // subject: a 403 is Shirabe rejecting the Host header, a 401 a key it will
-      // not take. Treating those as authoritative is what turned a misconfigured
-      // shortcut into 502s for readers when the public host would have answered
-      // perfectly well -- the fallback has to cover a direct path that is
-      // reachable but wrong, not just one that is down.
-      const directStatus = (directError as { response?: { status?: number } })?.response?.status;
-      if (directStatus === 404) throw directError;
-
-      const cooldown = recordDirectFailure(now);
-      logger.warn(
-        { err: directError, subject: request.subject, cooldownMs: cooldown, failures: breaker.consecutiveFailures },
-        'Shirabe direct call failed, parking the tailnet path and using the public host',
-      );
-      return await call(base, PUBLIC_TIMEOUT_MS);
-    }
+    throw error;
   }
-
-  // Either no direct path configured, or the breaker is open and this request
-  // skips the timeout entirely. Once the cooldown lapses the next request probes
-  // the direct path again -- that attempt IS the half-open probe, so no separate
-  // health check is needed.
-  return await call(base, PUBLIC_TIMEOUT_MS);
+  return result.data as T;
 }
 
 /**
- * What a thrown Shirabe call actually means.
- *
- * A 404 means one of two very different things, and the status code alone cannot
- * tell them apart:
- *
- *   Shirabe's API answering about the SUBJECT -> JSON, and an ordinary result
- *   Rails' catch-all answering about the URL  -> an HTML error page
- *
- * Reading the second as the first is exactly how a wrong API path hid for as
- * long as it did: every card rendered empty and every response said "no entry",
- * which is indistinguishable from a corpus full of proper nouns. Content type is
- * what separates them, so trust it rather than the status.
+ * The generated SDK owns serialization, authentication and response parsing.
+ * This adapter owns only the network topology: try the tailnet origin first,
+ * then transparently use the public endpoint for any route-level failure.
  */
-export function describeFailure(error: unknown): { kind: 'missing' | 'bad-path' | 'failed'; status?: number } {
-  const response = (error as { response?: { status?: number; headers?: { get?: (k: string) => string | null } } })
-    ?.response;
-  const status = response?.status;
-  if (status !== 404) return { kind: 'failed', status };
+function sdkFetchWithFallback({
+  direct,
+  base,
+  subject,
+}: {
+  direct: string;
+  base: string;
+  subject: string;
+}): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const request = input instanceof Request && init === undefined ? input : new Request(input, init);
+    const relative = new URL(request.url);
+    const call = async (origin: string, timeout: number): Promise<Response> => {
+      const url = new URL(`${relative.pathname}${relative.search}`, origin);
+      const copy = request.clone();
+      // Node's Request constructor requires `duplex: "half"` when handed a
+      // ReadableStream body.  Replaying bytes instead makes this adapter work
+      // in Nitro and in the SDK transport tests without relying on that
+      // Node-specific escape hatch.  The generated client already encoded the
+      // body and its content type; we preserve both exactly.
+      const body = copy.method === 'GET' || copy.method === 'HEAD' ? undefined : await copy.arrayBuffer();
+      return await fetch(
+        new Request(url, {
+          method: copy.method,
+          headers: copy.headers,
+          body,
+          signal: AbortSignal.timeout(timeout),
+        }),
+      );
+    };
 
-  const contentType = response?.headers?.get?.('content-type') ?? '';
-  return { kind: contentType.includes('html') ? 'bad-path' : 'missing', status };
+    const now = Date.now();
+    if (direct && !directIsParked(now)) {
+      try {
+        const response = await call(direct, DIRECT_TIMEOUT_MS);
+        if (response.status === 404) return response;
+        if (response.ok) {
+          recordDirectSuccess();
+          return response;
+        }
+        const cooldown = recordDirectFailure(now);
+        logger.warn(
+          { status: response.status, subject, cooldownMs: cooldown, failures: breaker.consecutiveFailures },
+          'Shirabe direct SDK call failed, parking the tailnet path and using the public host',
+        );
+      } catch (error) {
+        const cooldown = recordDirectFailure(now);
+        logger.warn(
+          { err: error, subject, cooldownMs: cooldown, failures: breaker.consecutiveFailures },
+          'Shirabe direct SDK call failed, parking the tailnet path and using the public host',
+        );
+      }
+    }
+    return await call(base, PUBLIC_TIMEOUT_MS);
+  };
 }
 
 export const __testing = { BREAKER_BASE_MS, BREAKER_MAX_MS, breaker };

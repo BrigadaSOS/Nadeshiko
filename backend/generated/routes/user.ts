@@ -213,6 +213,24 @@ export type GetShirabeCredential = (
 	next: NextFunction,
 ) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
 
+export type GetShirabeServiceCredentialResponder = {
+	with200(): ExpressRuntimeResponse<{
+		expiresAt: number;
+		refreshAt: number;
+		token: string;
+	}>;
+	with403(): ExpressRuntimeResponse<t_Error403>;
+	with500(): ExpressRuntimeResponse<t_Error500>;
+} & ExpressRuntimeResponder;
+
+export type GetShirabeServiceCredential = (
+	params: Params<void, void, void, void>,
+	respond: GetShirabeServiceCredentialResponder,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => Promise<ExpressRuntimeResponse<unknown> | typeof SkipResponse>;
+
 export type ResyncShirabeStackResponder = {
 	with204(): ExpressRuntimeResponse<void>;
 	with401(): ExpressRuntimeResponse<t_Error401>;
@@ -591,6 +609,7 @@ export type UserImplementation = {
 	unlinkShirabe: UnlinkShirabe;
 	completeShirabeLink: CompleteShirabeLink;
 	getShirabeCredential: GetShirabeCredential;
+	getShirabeServiceCredential: GetShirabeServiceCredential;
 	resyncShirabeStack: ResyncShirabeStack;
 	reportShirabeRefusal: ReportShirabeRefusal;
 	getPatreonConnection: GetPatreonConnection;
@@ -1033,6 +1052,69 @@ export function createUserRouter(
 					.getShirabeCredential(input, responder, req, res, next)
 					.catch(handleImplementationError)
 					.then(handleResponse(res, getShirabeCredentialResponseBodyValidator));
+			} catch (error) {
+				next(error);
+			}
+		},
+	);
+
+	const getShirabeServiceCredentialResponseBodyValidator =
+		responseValidationFactory(
+			[
+				[
+					"200",
+					z.object({
+						token: z.string(),
+						expiresAt: z.coerce.number(),
+						refreshAt: z.coerce.number(),
+					}),
+				],
+				["403", s_Error403],
+				["500", s_Error500],
+			],
+			undefined,
+		);
+
+	// getShirabeServiceCredential
+	router.get(
+		`/v1/user/connections/shirabe/service-credential`,
+		async (req: Request, res: Response, next: NextFunction) => {
+			try {
+				const input = {
+					params: undefined,
+					query: undefined,
+					body: undefined,
+					headers: undefined,
+				};
+
+				const responder = {
+					with200() {
+						return new ExpressRuntimeResponse<{
+							expiresAt: number;
+							refreshAt: number;
+							token: string;
+						}>(200);
+					},
+					with403() {
+						return new ExpressRuntimeResponse<t_Error403>(403);
+					},
+					with500() {
+						return new ExpressRuntimeResponse<t_Error500>(500);
+					},
+					withStatus(status: StatusCode) {
+						return new ExpressRuntimeResponse(status);
+					},
+				};
+
+				await implementation
+					.getShirabeServiceCredential(input, responder, req, res, next)
+					.catch(handleImplementationError)
+					.then(
+						handleResponse(
+							res,
+							getShirabeServiceCredentialResponseBodyValidator,
+						),
+					);
 			} catch (error) {
 				next(error);
 			}

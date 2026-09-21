@@ -1,5 +1,5 @@
 import { DICT_LINKS_COOKIE } from '#shared/utils/preferenceCookies';
-import { shirabeWordUrl, type GlossLanguage } from '~/utils/wordCard';
+import type { GlossLanguage } from '~/utils/wordCard';
 
 export type DictionaryId = 'jisho' | 'jpdb' | 'shirabe' | 'weblio' | 'takoboto' | 'jiten';
 
@@ -40,10 +40,8 @@ export const DICTIONARY_PRESETS: DictionaryPreset[] = [
     // installed fails silently, and the card is already on the web.
     id: 'shirabe',
     label: 'shirabe.org',
-    // Through `shirabeWordUrl` rather than spelled out again here. There were two
-    // builders for this one destination and they disagreed: this one omitted the
-    // locale, so a Spanish reader was redirected to the English page.
-    buildUrl: (word, _reading, slug, locale) => shirabeWordUrl(slug ?? word, locale),
+    buildUrl: (word, _reading, slug, locale) =>
+      `https://shirabe.org/${locale}/word/${encodeURIComponent(slug ?? word)}`,
     defaultEnabled: true,
     required: true,
   },

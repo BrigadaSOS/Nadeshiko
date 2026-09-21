@@ -679,6 +679,8 @@
       "translationLanguages": "译文语言",
       "translationLanguagesDescription": "选择字幕译文和词典释义的语言，目前支持英语和西班牙语。选择两种语言时，还可调整显示顺序。",
       "translationLanguagesLinkedDescription": "选择字幕译文的语言和显示顺序，目前支持英语和西班牙语。词典释义沿用你的 Shirabe 设置。",
+      "dictionaryLinks": "词典快捷链接",
+      "dictionaryLinksDescription": "选择词语弹窗中要显示的词典查询链接。",
       "definitionSize": "释义字号",
       "definitionSizeDescription": "调整词语弹窗中释义文字的大小。",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "作品卡片默认只显示缩略图、名称和数量统计。需要详情时，点击这一行即可展开。",
       "defaultSearchCategoryHiddenOption": "{category}（已隐藏）",
       "defaultSearchCategoryHiddenNotice": "你已隐藏“{category}”分类。重新显示该分类前，搜索将默认使用“全部”。",
-      "dictionaryLinks": "词典快捷链接",
-      "dictionaryLinksDescription": "选择词语弹窗中要显示的词典查询链接。",
       "deleteAccount": "删除账户（无法撤销）",
       "deleteAccountButton": "删除账户",
       "deletingAccount": "删除中…",
@@ -1002,33 +1002,6 @@
     "playAudio": "播放音频",
     "loading": "加载中",
     "noResultsSupport": "没有找到想要的内容？欢迎到我们的{link}建议下一批收录的作品。"
-  },
-  "tokenTooltip": {
-    "lookupIn": "在词典中查询",
-    "loading": "查询中…",
-    "moreSentences": "更多例句",
-    "playAudio": "播放发音",
-    "unavailable": "无法加载释义，请稍后重试。",
-    "noEntry": "词典中没有此词的条目。",
-    "definitionsHidden": "释义已隐藏",
-    "showDefinitions": "显示",
-    "openInAnki": "在 Anki 中打开此笔记",
-    "mineContextOnly": "更新例句、音频和图片，保留现有释义",
-    "minedActions": "已在 Anki 中",
-    "alsoWritten": "其他写法",
-    "mineToNote": "替换全部内容，包括释义",
-    "mineToLastCard": "将例句、音频和图片添加到 Anki 最近添加的卡片",
-    "otherMatches": "另有 {count} 项",
-    "showLess": "收起",
-    "isName": "这个词可能是专有名词。",
-    "parts": "组成部分",
-    "nameEntry": "专有名词",
-    "back": "返回",
-    "forward": "前进",
-    "pickDictionary": "将{dictionary}的释义加入卡片",
-    "pickedDictionaries": "已选择 {count} / {total} 部词典",
-    "pickSelectAll": "全选",
-    "pickDeselectAll": "取消全选"
   },
   "searchContainer": {
     "errorTitle": "出了点问题",
@@ -1385,6 +1358,8 @@
       "linkedAs": "已关联：{name}",
       "dictionaries": "词典",
       "dictionariesHint": "前往 Shirabe 修改词典设置",
+      "shownByDefault": "默认显示",
+      "collapsedByDefault": "默认折叠",
       "anonymous": "你的 Shirabe 账户",
       "upgrade": "更新授权",
       "reconnect": "重新关联",
@@ -1592,5 +1567,17 @@
       "JDRAMA": "真人影视",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "将{dictionary}的释义加入卡片",
+    "pickedDictionaries": "已选择 {count} / {total} 部词典",
+    "lookupIn": "在词典中查询",
+    "parts": "组成部分",
+    "openInAnki": "在 Anki 中打开此笔记",
+    "mineContextOnly": "更新例句、音频和图片，保留现有释义",
+    "mineToNote": "替换全部内容，包括释义"
+  },
+  "wordCardActions": {
+    "moreSentences": "更多例句"
   }
 }

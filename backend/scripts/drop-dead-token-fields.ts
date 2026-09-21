@@ -4,19 +4,15 @@
  * `wid` was Shirabe's slug for a dictionary entry, and their spec is explicit
  * that it is what a client LINKS with and never what a corpus STORES -- it is
  * derived from dictionary content, so it moves whenever a headword, a
- * commonness flag or a resolution rule moves. A reader tapping a word resolves
- * it live from the lemma, surface, reading and POS the token still carries, and
- * that reaches answers no stored slug could: 食べました finds 食べる, and 開く
- * answers あく or ひらく by reading. The mapping stopped writing it; this is the
- * rows that already had one.
+ * commonness flag or a resolution rule moves. A reader tapping a word sends
+ * its sentence and target span to Shirabe for live identification. The mapping
+ * stopped writing ids; this script cleans rows that already had one.
  *
  * The other four were never a naming scheme. They are UniDic array indices
  * wearing them as names -- pos[1], pos[2], pos[4] -- which is why there is no
  * `p3` and why pos[5] is called `cf` instead of `p5`: Sudachi's internal shape,
  * from when this repo ran Sudachi itself, leaking into a contract we published.
- * Nothing read them.
- * `posLabel` says what they were kept to say, in words, and needs no UniDic table
- * at the far end. They cost ~11.9% of a 1069 MB column, against 57 MB of the
+ * Nothing read them. They cost ~11.9% of a 1069 MB column, against 57 MB of the
  * sentences they annotate.
  *
  * A SCRIPT AND NOT A MIGRATION, which was the first draft and was wrong twice.

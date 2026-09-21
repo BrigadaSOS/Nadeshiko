@@ -109,6 +109,14 @@ describe('SegmentResponse', () => {
       expect(segments[0].textJa.tokens).toEqual([{ ...tokens[0] }]);
     });
 
+    it('drops lookup-only POS fields from older indexed tokens', () => {
+      const tokens = [{ ...token('テスト', 'テスト', 0, 3, '名詞'), pt: 'noun', posLabel: 'Noun' }];
+      const hit = makeEsHit('1', { tokens });
+      const { segments } = SegmentResponse.buildSearchResultSegments(makeEsResponse([hit]), makeMediaInfoMap(1));
+
+      expect(segments[0].textJa.tokens).toEqual([token('テスト', 'テスト', 0, 3, '名詞')]);
+    });
+
     it('omits tokens from textJa when not present in source', () => {
       const hit = makeEsHit('1', {});
       const esResponse = makeEsResponse([hit]);

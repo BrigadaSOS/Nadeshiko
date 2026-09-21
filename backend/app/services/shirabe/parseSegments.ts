@@ -1,6 +1,8 @@
 import { config } from '@config/config';
 import { logger } from '@config/log';
 import type { SlimToken } from '@app/models/Segment';
+import { type ParseToken } from '@shirabe-org/api';
+import { shirabeServiceClient } from './serviceClient';
 
 /**
  * Shirabe parses our Japanese. This is the only place that talks to it, and the
@@ -18,14 +20,14 @@ import type { SlimToken } from '@app/models/Segment';
  * and its 3,816 sentences sat with `tokens = NULL` in both environments because
  * nothing on the ingest path had ever called this. See `tokenParseWorker`.
  *
- * What Shirabe returns is its own shape, built for a reader: a `tokens` array
- * per input with positions and grouping, plus a deduplicated `vocabulary` pool
- * carrying dictionary identity. We read the tokens and ignore the pool: what we
- * store is the sentence and its morphology, never a dictionary address. See
- * `parseChunk` for why. `toSlimToken` is that translation.
+ * What Shirabe returns is its own shape, built for a reader: an index-aligned
+ * `results` array whose token offsets are relative to each submitted text. We
+ * persist the sentence morphology, never a dictionary address. `toSlimToken`
+ * is that translation.
  */
 
 const PARSE_BATCH = 200; // measured sweet spot: throughput falls off past this
+const PARSE_MAX_CHARS = config.SHIRABE_PARSE_MAX_CHARS_PER_REQUEST;
 const TIMEOUT_MS = 30_000;
 
 /**
@@ -145,52 +147,33 @@ function isTransient(status: number | null): boolean {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** One token as Shirabe serves it. Narrowed to what the mapping reads. */
-interface ShirabeToken {
-  position: number;
-  length: number;
-  surface: string;
-  lemma?: string;
-  reading?: string;
-  posFull?: string[];
-  posLabel?: string;
-  /** Shirabe's short part-of-speech tag (`verb`, `prt`, `exp`). Distinct from
-   *  `posFull[0]`, which is UniDic's own Japanese category, and from `posLabel`,
-   *  which is the printable wording. This is the one `words/identify` ranks by. */
-  pos?: string;
-  kind?: string;
-  furigana?: Array<{ text: string; ruby?: string }>;
-  inflection?: { labels: string[]; base: string };
-  components?: Array<{ surface: string; offset: number; length: number }>;
-}
-
-interface ShirabeParseResponse {
-  tokens: ShirabeToken[][];
-}
-
-function toSlimToken(token: ShirabeToken): SlimToken {
-  const pos = token.posFull ?? [];
+/**
+ * This maps the generated SDK's public ParseToken directly into Nadeshiko's
+ * persisted, intentionally smaller token contract. Do not duplicate Shirabe's
+ * request or response interfaces here: the SDK is the compatibility boundary.
+ */
+function toSlimToken(token: ParseToken): SlimToken {
+  const morphology = token.morphology;
+  const pos = morphology?.partOfSpeech ?? [];
   const slim: SlimToken = {
     s: token.surface,
     d: token.lemma || token.surface,
     // Sudachi reads a symbol as itself (。 reads 。) and `r` is a required
     // string, so the surface stands in where there is no reading to give.
     r: token.reading || token.surface,
-    b: token.position,
-    e: token.position + token.length,
+    b: token.startOffset,
+    e: token.endOffset,
     p: pos[0] ?? '',
   };
 
-  if (token.kind) slim.kind = token.kind;
-  if (token.posLabel) slim.posLabel = token.posLabel;
-  // The tag `POST /api/v1/words/identify` ranks by, stored rather than derived.
-  // The frontend can map `p` onto it (`shortPos` in ~/utils/tokenEnrichment),
-  // but that map is a copy of Shirabe's table and a copy is a thing that drifts;
-  // this is the value itself. Optional on the token because the corpus predates
-  // it, so the derivation stays until a reparse has filled every row.
-  if (token.pos) slim.pt = token.pos;
+  slim.kind = token.kind;
   if (token.furigana?.length) slim.f = token.furigana.map((seg) => ({ t: seg.text, r: seg.ruby }));
-  if (token.inflection) slim.inflection = token.inflection;
+  if (token.inflection) {
+    slim.inflection = {
+      base: token.inflection.base,
+      labels: token.inflection.forms.map((form) => form.label),
+    };
+  }
 
   // Shirabe groups more coarsely than a morpheme: 食べました is one token where a
   // raw analyzer gives 食べ + まし + た. Elasticsearch highlights with its own
@@ -199,8 +182,8 @@ function toSlimToken(token: ShirabeToken): SlimToken {
   if (token.components?.length) {
     slim.parts = token.components.map((part) => ({
       s: part.surface,
-      b: token.position + part.offset,
-      e: token.position + part.offset + part.length,
+      b: part.startOffset,
+      e: part.endOffset,
     }));
   }
 
@@ -216,12 +199,27 @@ function toSlimToken(token: ShirabeToken): SlimToken {
  */
 export async function parseSegments(texts: string[]): Promise<SlimToken[][]> {
   if (texts.length === 0) return [];
-  if (!config.SHIRABE_API_KEY) throw new Error('SHIRABE_API_KEY is not set: nothing can be parsed without it');
-
   const chunks: string[][] = [];
-  for (let i = 0; i < texts.length; i += PARSE_BATCH) {
-    chunks.push(texts.slice(i, i + PARSE_BATCH));
+  let chunk: string[] = [];
+  let characters = 0;
+  for (const text of texts) {
+    // Segment content is capped at 500 characters today, but preserve the API
+    // error semantics if that model invariant changes rather than silently
+    // splitting one sentence and invalidating its offsets.
+    if (text.length > PARSE_MAX_CHARS) {
+      throw new Error(
+        `Segment is ${text.length} characters; Shirabe accepts at most ${PARSE_MAX_CHARS} per parse request`,
+      );
+    }
+    if (chunk.length > 0 && (chunk.length === PARSE_BATCH || characters + text.length > PARSE_MAX_CHARS)) {
+      chunks.push(chunk);
+      chunk = [];
+      characters = 0;
+    }
+    chunk.push(text);
+    characters += text.length;
   }
+  if (chunk.length > 0) chunks.push(chunk);
 
   // Results are placed by chunk index, not appended, so concurrency cannot
   // reorder them: the contract is one token array per input, in input order.
@@ -281,7 +279,7 @@ async function parseChunk(chunk: string[]): Promise<SlimToken[][]> {
 
 class ShirabeParseError extends Error {
   constructor(
-    readonly status: number,
+    readonly status: number | null,
     readonly retryAfterMs: number | null,
   ) {
     super(`Shirabe parse failed: ${status}`);
@@ -290,53 +288,33 @@ class ShirabeParseError extends Error {
 }
 
 async function requestChunk(chunk: string[]): Promise<SlimToken[][]> {
-  // `/api/v1`, not `/v1`. Shirabe is a Rails app and mounts its API under /api;
-  // `/v1/parse` reaches the HTML 404 page, so the failure arrives as a 404 with
-  // a body full of markup rather than as anything resembling a routing error.
-  // The frontend's word lookup had the same path wrong for the same reason.
-  const response = await fetch(`${config.SHIRABE_API_BASE.replace(/\/$/, '')}/api/v1/parse`, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${config.SHIRABE_API_KEY}`,
-      'content-type': 'application/json',
-    },
-    // `include` is not optional for us, whatever its name suggests. Shirabe moved
-    // `posFull` and `posLabel` behind it in 0.8.0 -- they were 27% of every parse
-    // response and almost nobody read them -- so without this `p`, `posLabel` and
-    // every field the indexer derives from them come back EMPTY. We are the
-    // consumer they were kept for.
-    //
-    // A parse run that forgets this does not fail. It writes tokens with no part
-    // of speech, which reads downstream as a corpus that lost its morphology on
-    // whatever date the run happened.
-    body: JSON.stringify({ texts: chunk, include: ['posFull', 'posLabel'] }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
+  const result = await shirabeServiceClient().parse(
+    { texts: chunk, include: ['furigana', 'morphology'] },
+    { signal: AbortSignal.timeout(TIMEOUT_MS) },
+  );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    logger.error({ status: response.status, body: body.slice(0, 500) }, 'Shirabe parse failed');
-    const retryAfter = Number(response.headers.get('retry-after'));
-    throw new ShirabeParseError(
-      response.status,
-      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null,
-    );
+  if (result.error) {
+    const status = result.response?.status ?? null;
+    logger.error({ status, body: JSON.stringify(result.error).slice(0, 500) }, 'Shirabe parse failed');
+    const retryAfter = Number(result.response?.headers.get('retry-after'));
+    throw new ShirabeParseError(status, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : null);
   }
 
-  const parsed = (await response.json()) as ShirabeParseResponse;
-  // No word id is read off the pool, and none is asked for. Shirabe resolves ids
-  // only for `include=wordIds` because it costs 2.6x the parse, and the id is
-  // derived from dictionary content -- it moves when a headword, a commonness
-  // flag or a resolution rule moves. It is what a client LINKS with, not what a
-  // corpus STORES. A reader tapping a word resolves it live from the lemma,
-  // surface, reading and POS below, which also reaches what no stored slug can:
-  // 食べました resolves to 食べる, and 開く answers あく or ひらく by reading.
-  return parsed.tokens.map((tokens) => tokens.map((token) => toSlimToken(token)));
+  const parsed = result.data;
+  if (!('results' in parsed)) {
+    throw new ShirabeParseError(202, null);
+  }
+  // No dictionary identity is stored. It moves as dictionaries are re-imported
+  // and resolution rules improve, so it is what a client links with, not what a
+  // corpus stores. A reader tapping a word resolves it live from surrounding
+  // text and UTF-16 offsets through `/api/v1/identify`.
+  return parsed.results.map(({ tokens }) => tokens.map(toSlimToken));
 }
 
 export const __testing = {
   toSlimToken,
   PARSE_BATCH,
+  PARSE_MAX_CHARS,
   PARSE_CONCURRENCY,
   RETRY_ATTEMPTS,
   recordChunkTiming,

@@ -276,10 +276,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     releaseSha: env.NUXT_RELEASE_SHA,
     nadeshikoApiKey: env.NUXT_NADESHIKO_API_KEY,
-    // Shirabe parses the corpus and serves the definitions behind every word.
-    // Server-side only, deliberately: it is a service key of ours, and anything
-    // under `public` below is shipped to the browser.
-    shirabeApiKey: env.NUXT_SHIRABE_API_KEY,
+    // Shirabe serves the definitions behind every word. The OAuth client secret
+    // stays in the backend; Nitro asks it for a short-lived bearer only on a
+    // cache miss, and anything under `public` below is shipped to the browser.
     shirabeApiBase: env.NUXT_SHIRABE_API_BASE || 'https://shirabe.org',
     // Optional fast path to Shirabe over the tailnet, skipping the round trip
     // out to Cloudflare and back for two boxes in the same city. Unset means
@@ -308,12 +307,6 @@ export default defineNuxtConfig({
       // to), while this is a URL that goes in front of a person. Public because
       // the link is rendered in the browser; no key is involved.
       shirabeSite: env.NUXT_PUBLIC_SHIRABE_SITE || 'https://shirabe.org',
-      // Whether word lookups are configured at all. The KEY stays server-side;
-      // this is only the boolean, so the browser can leave the feature alone
-      // instead of firing a doomed request on every hover and cacheing the
-      // failure. Without it the card still shows what the token itself knows:
-      // the word, its reading, and what the form is doing.
-      shirabeLookups: Boolean(env.NUXT_SHIRABE_API_KEY),
     },
   },
   // Only .vue files are components. The default scan also picks up .ts, which

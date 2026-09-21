@@ -421,18 +421,9 @@ export type Token = {
      */
     e: number;
     /**
-     * Primary part-of-speech tag
+     * Primary part-of-speech tag used for search highlight expansion
      */
     p: string;
-    /**
-     * The part of speech in words, so a client needs no UniDic table.
-     */
-    posLabel?: string;
-    /**
-     * The short part-of-speech tag the dictionary lookup ranks by (`verb`, `prt`, `exp`), where `p` is UniDic's Japanese category and `posLabel` is the printable wording. A client resolving a word should send this rather than mapping `p` itself: the mapping is the parser's to make, and a category it grows that a hand-written table lacks would otherwise silently resolve to no tag at all. Empty for punctuation, symbols and whitespace, which are nothing to look up. Absent on anything parsed before it was stored.
-     *
-     */
-    pt?: string;
     /**
      * How this token was grouped: a plain word, a compound, an inflected form, a counter, a function word, a merged grammatical expression, or a symbol.
      *
@@ -1828,11 +1819,11 @@ export type ShirabeConnection = {
     disconnected: boolean;
     linkedAt: string;
     /**
-     * Who they are on Shirabe, for the settings page to name the link.
+     * Legacy account name if previously obtained; new links do not request profile access.
      */
     shirabeName?: string;
     /**
-     * What the reader granted. Today that is READ_ACCOUNT and nothing else.
+     * What the reader granted. Today that is user:dictionary:read.
      */
     scopes: Array<string>;
     /**
@@ -1844,6 +1835,12 @@ export type ShirabeConnection = {
      */
     dictionaryNames?: {
         [key: string]: string;
+    };
+    /**
+     * Shirabe's reveal choice for each dictionary, keyed by slug.
+     */
+    dictionaryReveal?: {
+        [key: string]: 'show' | 'hover';
     };
     /**
      * True when their stack names one of their own uploads, which makes its answers theirs alone and stops a lookup being cached for anyone else.
@@ -4633,6 +4630,10 @@ export type CompleteShirabeLinkData = {
          * The sealed state from the redirect, unchanged.
          */
         state: string;
+        /**
+         * The OAuth issuer (`iss`) from the redirect, when provided.
+         */
+        issuer?: string;
     };
     path?: never;
     query?: never;
@@ -4716,6 +4717,48 @@ export type GetShirabeCredentialResponses = {
 };
 
 export type GetShirabeCredentialResponse = GetShirabeCredentialResponses[keyof GetShirabeCredentialResponses];
+
+export type GetShirabeServiceCredentialData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/user/connections/shirabe/service-credential';
+};
+
+export type GetShirabeServiceCredentialErrors = {
+    /**
+     * Forbidden
+     */
+    403: Error403;
+    /**
+     * Internal Server Error
+     */
+    500: Error500;
+};
+
+export type GetShirabeServiceCredentialError = GetShirabeServiceCredentialErrors[keyof GetShirabeServiceCredentialErrors];
+
+export type GetShirabeServiceCredentialResponses = {
+    /**
+     * OK
+     */
+    200: {
+        /**
+         * Short-lived OAuth bearer with dictionary:read.
+         */
+        token: string;
+        /**
+         * Unix epoch milliseconds when the bearer actually expires.
+         */
+        expiresAt: number;
+        /**
+         * Unix epoch milliseconds when Nitro should request an updated bearer.
+         */
+        refreshAt: number;
+    };
+};
+
+export type GetShirabeServiceCredentialResponse = GetShirabeServiceCredentialResponses[keyof GetShirabeServiceCredentialResponses];
 
 export type ResyncShirabeStackData = {
     body: {

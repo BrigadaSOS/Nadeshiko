@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enrichTokens, furiganaOf, shortPos, tokensToAnkiFurigana, type SlimToken } from './tokenEnrichment';
+import { enrichTokens, furiganaOf, tokensToAnkiFurigana, type SlimToken } from './tokenEnrichment';
 
 // This file used to be mostly grouping tests: fifteen cases proving the frontend
 // could rejoin 焼け + た into 焼けた, and 待っ + て + い + た into 待っていた, out of
@@ -22,7 +22,6 @@ const INFLECTED: SlimToken = {
   e: 3,
   p: '動詞',
   kind: 'inflected',
-  posLabel: 'Verb',
   inflection: { labels: ['past'], base: '焼ける' },
   f: [{ t: '焼', r: 'や' }, { t: 'けた' }],
   parts: [
@@ -37,7 +36,6 @@ const FRYPAN: SlimToken = {
   b: 3,
   e: 8,
   p: '名詞',
-  posLabel: 'Noun',
   kind: 'word',
 };
 const NI: SlimToken = { s: 'に', d: 'に', r: 'ニ', b: 8, e: 9, p: '助詞', kind: 'function' };
@@ -56,40 +54,10 @@ describe('enrichTokens', () => {
     expect(yaketa?.readingHiragana).toBe('やけた');
   });
 
-  // The reason the display reading is named for its script. `readingHiragana` is
-  // for the reader; the lookup carries the katakana the analyzer produced, and
-  // handing the wrong one to Shirabe resolves a homograph by a reading it does
-  // not key on -- which answers 200 for a different word rather than failing.
-  it('keeps the display reading and the lookup reading apart', () => {
+  it('uses a hiragana reading for display', () => {
     const [yaketa] = enrichTokens(YAKETA);
 
     expect(yaketa?.readingHiragana).toBe('やけた');
-    expect(yaketa?.lookupRef.reading).toBe('ヤケタ');
-  });
-
-  // Assembled once, here, so no caller builds one out of single-letter fields.
-  // `pos` is Shirabe's SHORT tag -- what `words/identify` ranks by -- and not the
-  // raw UniDic category it is derived from, nor the printable label beside it on
-  // the same token. All three are on this object and only one of them resolves.
-  it('assembles everything the dictionary lookup asks by', () => {
-    const [yaketa] = enrichTokens(YAKETA);
-
-    expect(yaketa?.lookupRef).toEqual({
-      lemma: '焼ける',
-      surface: '焼けた',
-      reading: 'ヤケタ',
-      pos: 'verb',
-    });
-    expect(yaketa?.posLabel).toBe('Verb');
-  });
-
-  // Printed as Shirabe worded it. There used to be four tables here mapping
-  // UniDic to English, and they had no entry for a category Shirabe emits.
-  it('prints the part of speech the token carries', () => {
-    const [yaketa, frypan] = enrichTokens(YAKETA);
-
-    expect(yaketa?.posLabel).toBe('Verb');
-    expect(frypan?.posLabel).toBe('Noun');
   });
 
   // The chain, not one name: calling 食べさせられた a past tense would be true of
@@ -168,60 +136,5 @@ describe('highlight matching', () => {
 
     expect(enriched[0]?.matchType).toBe('partial');
     expect(enriched[0]?.highlightRanges).toEqual([{ start: 0, end: 2 }]);
-  });
-});
-
-/**
- * The tag `POST /api/v1/words/identify` ranks by.
- *
- * Worth its own tests because getting it wrong is silent: an unrecognised tag is
- * not an error to Shirabe, it just drops the rung of the ranking that a closed
- * word class decides. The card still opens, still shows a word, and shows the
- * wrong one for exactly the homographs the endpoint exists to settle.
- */
-describe('shortPos', () => {
-  const token = (p: string, pt?: string): SlimToken =>
-    ({ s: 'x', d: 'x', r: 'x', b: 0, e: 1, p, ...(pt ? { pt } : {}) }) as SlimToken;
-
-  it('maps the UniDic categories onto Shirabe short tags', () => {
-    expect(shortPos(token('動詞'))).toBe('verb');
-    expect(shortPos(token('名詞'))).toBe('noun');
-    expect(shortPos(token('助詞'))).toBe('prt');
-    expect(shortPos(token('代名詞'))).toBe('pron');
-  });
-
-  // Both UniDic adjective categories are `adj` to Shirabe. 形状詞 is the
-  // na-adjective, and it is real UniDic that hand-written tables routinely lack.
-  it('folds both adjective categories together', () => {
-    expect(shortPos(token('形容詞'))).toBe('adj');
-    expect(shortPos(token('形状詞'))).toBe('adj');
-  });
-
-  // The entry that is not in Shirabe's own morpheme table. 連語 is a merged
-  // grammatical expression (について, けれども) with no single morpheme to take a
-  // POS from, so their tokenizer assigns `exp` when it builds the chip.
-  it('answers exp for a merged expression', () => {
-    expect(shortPos(token('連語'))).toBe('exp');
-  });
-
-  // Nothing identify could rank. `isAskable` filters these out before a lookup,
-  // so the empty string is belt and braces rather than a live path.
-  it('answers nothing for punctuation, symbols and whitespace', () => {
-    expect(shortPos(token('補助記号'))).toBe('');
-    expect(shortPos(token('記号'))).toBe('');
-    expect(shortPos(token('空白'))).toBe('');
-  });
-
-  // An unknown category answers '' rather than passing the raw Japanese through:
-  // Shirabe reads both the same way, but only one of them can end up printed by
-  // a caller that assumed this was a label.
-  it('does not pass an unknown category through', () => {
-    expect(shortPos(token('感嘆詞'))).toBe('');
-  });
-
-  // The stored tag wins over the derived one. The table here is a copy of
-  // Shirabe's and a copy is a thing that drifts; `pt` is the value itself.
-  it('prefers the tag the token carries over the derivation', () => {
-    expect(shortPos(token('名詞', 'pron'))).toBe('pron');
   });
 });

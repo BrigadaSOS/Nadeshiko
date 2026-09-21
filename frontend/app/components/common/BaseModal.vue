@@ -59,7 +59,7 @@ const FOCUSABLE_SELECTOR = [
 const modalId = useId();
 const dialogRef = ref<HTMLElement | null>(null);
 const { registerModal, unregisterModal, isTopModal } = useModalState();
-const { openDropdownId, isTokenTooltipOpen, dismissAllOverlays } = useDropdownState();
+const { openDropdownId, dismissAllOverlays } = useDropdownState();
 
 let previouslyFocused: HTMLElement | null = null;
 
@@ -81,8 +81,8 @@ const focusInitial = () => {
 const onKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
     if (!props.closeOnEscape || !isTopModal(modalId)) return;
-    // A dropdown or word card is "inside" this modal — let Escape dismiss that first.
-    if (openDropdownId.value || isTokenTooltipOpen.value) return;
+    // Let Escape dismiss a dropdown inside this modal first.
+    if (openDropdownId.value) return;
     event.preventDefault();
     event.stopPropagation();
     emit('close');

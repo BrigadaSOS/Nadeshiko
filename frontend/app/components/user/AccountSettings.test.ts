@@ -64,12 +64,6 @@ vi.stubGlobal('useHiddenCategories', () => ({
   canToggleCategory: () => true,
   toggleCategory: vi.fn(),
 }));
-vi.stubGlobal('useDictionaryLinks', () => ({
-  presets: [],
-  enabledDictionaries: ref([]),
-  isDictionaryEnabled: () => false,
-  setDictionaryEnabled: vi.fn(),
-}));
 
 import AccountSettings from './AccountSettings.vue';
 

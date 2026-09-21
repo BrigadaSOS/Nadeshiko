@@ -679,6 +679,8 @@
       "translationLanguages": "譯文語言",
       "translationLanguagesDescription": "選擇字幕譯文和詞典釋義的語言，目前支援英語和西班牙語。選擇兩種語言時，還可調整顯示順序。",
       "translationLanguagesLinkedDescription": "選擇字幕譯文的語言和顯示順序，目前支援英語和西班牙語。詞典釋義沿用你的 Shirabe 設定。",
+      "dictionaryLinks": "詞典快捷連結",
+      "dictionaryLinksDescription": "選擇詞語彈窗中要顯示的詞典查詢連結。",
       "definitionSize": "釋義字號",
       "definitionSizeDescription": "調整詞語彈窗中釋義文字的大小。",
       "definitionSizeOptions": {
@@ -712,8 +714,6 @@
       "mediaCardHint_CLOSED": "作品卡片預設只顯示縮圖、名稱和數量統計。需要詳情時，點選這一行即可展開。",
       "defaultSearchCategoryHiddenOption": "{category}（已隱藏）",
       "defaultSearchCategoryHiddenNotice": "你已隱藏“{category}”分類。重新顯示該分類前，搜尋將預設使用“全部”。",
-      "dictionaryLinks": "詞典快捷連結",
-      "dictionaryLinksDescription": "選擇詞語彈窗中要顯示的詞典查詢連結。",
       "deleteAccount": "刪除賬戶（無法撤銷）",
       "deleteAccountButton": "刪除賬戶",
       "deletingAccount": "刪除中…",
@@ -1002,33 +1002,6 @@
     "playAudio": "播放音訊",
     "loading": "載入中",
     "noResultsSupport": "沒有找到想要的內容？歡迎到我們的{link}建議下一批收錄的作品。"
-  },
-  "tokenTooltip": {
-    "lookupIn": "在詞典中查詢",
-    "loading": "查詢中…",
-    "moreSentences": "更多例句",
-    "playAudio": "播放發音",
-    "unavailable": "無法載入釋義，請稍後重試。",
-    "noEntry": "詞典中沒有此詞的條目。",
-    "definitionsHidden": "釋義已隱藏",
-    "showDefinitions": "顯示",
-    "openInAnki": "在 Anki 中開啟此筆記",
-    "mineContextOnly": "更新例句、音訊和圖片，保留現有釋義",
-    "minedActions": "已在 Anki 中",
-    "alsoWritten": "其他寫法",
-    "mineToNote": "替換全部內容，包括釋義",
-    "mineToLastCard": "將例句、音訊和圖片新增到 Anki 最近新增的卡片",
-    "otherMatches": "另有 {count} 項",
-    "showLess": "收起",
-    "isName": "這個詞可能是專有名詞。",
-    "parts": "組成部分",
-    "nameEntry": "專有名詞",
-    "back": "返回",
-    "forward": "前進",
-    "pickDictionary": "將{dictionary}的釋義加入卡片",
-    "pickedDictionaries": "已選擇 {count} / {total} 部詞典",
-    "pickSelectAll": "全選",
-    "pickDeselectAll": "取消全選"
   },
   "searchContainer": {
     "errorTitle": "出了點問題",
@@ -1385,6 +1358,8 @@
       "linkedAs": "已關聯：{name}",
       "dictionaries": "詞典",
       "dictionariesHint": "前往 Shirabe 修改詞典設定",
+      "shownByDefault": "預設顯示",
+      "collapsedByDefault": "預設收合",
       "anonymous": "你的 Shirabe 賬戶",
       "upgrade": "更新授權",
       "reconnect": "重新關聯",
@@ -1595,5 +1570,17 @@
       "JDRAMA": "真人影視",
       "YOUTUBE": "YouTube"
     }
+  },
+  "tokenTooltip": {
+    "pickDictionary": "將{dictionary}的釋義加入卡片",
+    "pickedDictionaries": "已選擇 {count} / {total} 部詞典",
+    "lookupIn": "在詞典中查詢",
+    "parts": "組成部分",
+    "openInAnki": "在 Anki 中開啟此筆記",
+    "mineContextOnly": "更新例句、音訊和圖片，保留現有釋義",
+    "mineToNote": "替換全部內容，包括釋義"
+  },
+  "wordCardActions": {
+    "moreSentences": "更多例句"
   }
 }

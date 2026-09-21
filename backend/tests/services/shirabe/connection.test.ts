@@ -7,7 +7,7 @@ const CONFIG = {
   SHIRABE_OAUTH_CLIENT_ID: 'nadeshiko',
   SHIRABE_OAUTH_CLIENT_SECRET: 'a-test-client-secret',
   SHIRABE_OAUTH_REDIRECT_URI: 'https://nadeshiko.co/link/shirabe/callback',
-  SHIRABE_CONNECTION_SECRET: 'a-test-connection-secret',
+  SHIRABE_CONNECTION_SECRET: 'a-test-connection-secret-with-32-characters',
 };
 
 vi.mock('@config/config', () => ({ config: CONFIG }));
@@ -77,6 +77,7 @@ const {
   unlink,
   REQUIRED_SCOPES,
   STACK_STALE_MS,
+  __testing,
 } = await import('@app/services/shirabe/connection');
 
 /** The reader every stored row here belongs to. Each ciphertext is bound to it,
@@ -102,6 +103,7 @@ function storedConnection(overrides: Record<string, unknown> = {}) {
     accessTokenCiphertext: sealAccess('shra_reader_access', userId),
     refreshTokenCiphertext: sealRefresh('shrr_reader_refresh', userId),
     accessTokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    accessTokenRefreshAt: undefined as Date | undefined,
     stack: ['jmdict:en'],
     stackFingerprint: 'abc123',
     syncedAt: new Date('2026-01-01T00:00:00Z'),
@@ -116,14 +118,13 @@ function storedConnection(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** Shirabe answering the calls a link makes: the token exchange, /me, the
- *  renewal, and the revoke a relink or unlink fires. `granted` shapes the
- *  scopes both the token response and /me report. */
-function mockShirabe(granted: string[] = ['READ_DICTIONARY', 'READ_ACCOUNT']) {
+/** Shirabe answering the SDK calls a link makes. */
+function mockShirabe(granted: string[] = ['user:dictionary:read', 'user:preferences:read']) {
   const fetchMock = vi.fn(async (url: URL | string, init?: ShirabeRequest) => {
-    const target = String(url);
+    const request = url instanceof Request ? url : null;
+    const target = request?.url ?? String(url);
     if (target.includes('/oauth/token')) {
-      const body = JSON.parse(init?.body ?? '{}') as { grant_type?: string };
+      const body = JSON.parse(request ? await request.clone().text() : (init?.body ?? '{}')) as { grant_type?: string };
       return Response.json({
         access_token: body.grant_type === 'refresh_token' ? 'shra_renewed_access' : 'shra_the_access',
         refresh_token: body.grant_type === 'refresh_token' ? 'shrr_renewed_refresh' : 'shrr_the_refresh',
@@ -132,14 +133,40 @@ function mockShirabe(granted: string[] = ['READ_DICTIONARY', 'READ_ACCOUNT']) {
       });
     }
     if (target.includes('/oauth/revoke')) return new Response(null, { status: 200 });
+    if (target.includes('/dictionary-stack')) {
+      return Response.json({
+        dictionaryStack: {
+          fingerprint: '9f2c1b7d4a0e6835',
+          sources: [
+            { dictionary: 'sanseido', languages: ['ja'], reveal: 'hover' },
+            { dictionary: 'jmdict', languages: ['en'], reveal: 'show' },
+          ],
+        },
+      });
+    }
     return Response.json({
-      user: { name: 'lumi', displayName: 'Lumi' },
-      credential: { scopes: granted },
-      preferences: {
-        dictionaries: ['sanseido:ja', 'jmdict:en'],
-        stackFingerprint: '9f2c1b7d4a0e6835',
-        stackIsPrivate: false,
-      },
+      dictionaries: [
+        {
+          slug: 'sanseido',
+          name: 'Sanseido',
+          kind: 'definition',
+          visibility: 'official',
+          languages: ['ja'],
+          entryCount: 1,
+          capabilities: [],
+          attribution: null,
+        },
+        {
+          slug: 'jmdict',
+          name: 'JMdict',
+          kind: 'definition',
+          visibility: 'official',
+          languages: ['en'],
+          entryCount: 1,
+          capabilities: [],
+          attribution: null,
+        },
+      ],
     });
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -147,6 +174,17 @@ function mockShirabe(granted: string[] = ['READ_DICTIONARY', 'READ_ACCOUNT']) {
 }
 
 type ShirabeRequest = { method: string; body: string; headers: Record<string, string> };
+
+function requestUrl(input: unknown): string {
+  return input instanceof Request ? input.url : String(input);
+}
+
+async function requestBody(call: unknown[] | undefined): Promise<Record<string, unknown>> {
+  const [input, init] = call ?? [];
+  const text =
+    input instanceof Request ? await input.clone().text() : ((init as ShirabeRequest | undefined)?.body ?? '{}');
+  return JSON.parse(text) as Record<string, unknown>;
+}
 
 describe('shirabe connection', () => {
   beforeEach(() => {
@@ -169,13 +207,14 @@ describe('shirabe connection', () => {
       expect(url.searchParams.get('response_type')).toBe('code');
       expect(url.searchParams.get('client_id')).toBe('nadeshiko');
       expect(url.searchParams.get('redirect_uri')).toBe(CONFIG.SHIRABE_OAUTH_REDIRECT_URI);
+      expect(url.searchParams.get('resource')).toBe('https://shirabe.test/api/v1');
       expect(url.searchParams.get('code_challenge_method')).toBe('S256');
       expect(url.searchParams.get('code_challenge')).toBeTruthy();
     });
 
-    it('asks for exactly the two scopes a dictionary stack needs', () => {
+    it('asks for both permissions needed to read a linked dictionary stack', () => {
       const { authorizeUrl } = startLink(42);
-      expect(new URL(authorizeUrl).searchParams.get('scope')).toBe('READ_DICTIONARY READ_ACCOUNT');
+      expect(new URL(authorizeUrl).searchParams.get('scope')).toBe('user:dictionary:read user:preferences:read');
     });
 
     it('seals a different state every time', () => {
@@ -189,6 +228,7 @@ describe('shirabe connection', () => {
     });
     it('names what a link granted before a scope was added does not carry', () => {
       expect(missingScopes({ scopes: [] } as never)).toEqual([...REQUIRED_SCOPES]);
+      expect(missingScopes({ scopes: ['user:dictionary:read'] } as never)).toEqual(['user:preferences:read']);
     });
     it('ignores scopes granted beyond what is required', () => {
       expect(missingScopes({ scopes: [...REQUIRED_SCOPES, 'WRITE_SRS'] } as never)).toEqual([]);
@@ -203,11 +243,12 @@ describe('shirabe connection', () => {
 
       await completeLink(42, 'the-code', state);
 
-      const body = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body ?? '{}');
+      const body = await requestBody(fetchMock.mock.calls[0]);
       expect(body.code).toBe('the-code');
-      expect(createHash('sha256').update(body.code_verifier).digest('base64url')).toBe(challenge);
+      expect(createHash('sha256').update(String(body.code_verifier)).digest('base64url')).toBe(challenge);
       // A confidential client proves itself on the exchange.
       expect(body.client_secret).toBe(CONFIG.SHIRABE_OAUTH_CLIENT_SECRET);
+      expect(body.resource).toBe('https://shirabe.test/api/v1');
     });
 
     it('stores both tokens encrypted, never in the clear', async () => {
@@ -233,7 +274,8 @@ describe('shirabe connection', () => {
       const [connection] = saved;
       expect(connection.stack).toEqual(['sanseido:ja', 'jmdict:en']);
       expect(connection.stackFingerprint).toBe('9f2c1b7d4a0e6835');
-      expect(connection.shirabeName).toBe('Lumi');
+      expect(connection.stackReveal).toEqual({ sanseido: 'hover', jmdict: 'show' });
+      expect(connection.shirabeName).toBeNull();
     });
 
     it('refuses a state that belongs to a different account', async () => {
@@ -265,27 +307,27 @@ describe('shirabe connection', () => {
 
     it('refuses a grant that came back missing a required scope', async () => {
       const { state } = startLink(42);
-      const fetchMock = mockShirabe(['READ_DICTIONARY']);
+      const fetchMock = mockShirabe([]);
 
       await expect(completeLink(42, 'the-code', state)).rejects.toThrow(/could not grant everything/);
       expect(saved).toHaveLength(0);
-      // Named from the token response's `scope` alone, before /me is read: a
-      // token without READ_ACCOUNT cannot read /me, so asking first would erase
+      // Named from the token response's `scope` alone, before the stack is read.
+      // A token without dictionary access cannot read the stack, so asking first would erase
       // the one misconfiguration this exists to name.
-      expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/v1/me'))).toBe(false);
+      expect(fetchMock.mock.calls.some(([url]) => requestUrl(url).endsWith('/api/v1/dictionary-stack'))).toBe(false);
     });
 
     // From the exchange on, a grant exists on the reader's Shirabe access list.
     // Every way the link can then fail to be stored has to hand it back.
     it('revokes the grant it just got when the link cannot be completed', async () => {
       const { state } = startLink(42);
-      const fetchMock = mockShirabe(['READ_DICTIONARY']);
+      const fetchMock = mockShirabe([]);
 
       await expect(completeLink(42, 'the-code', state)).rejects.toThrow();
 
-      const revoke = fetchMock.mock.calls.find(([url]) => String(url).includes('/oauth/revoke'));
+      const revoke = fetchMock.mock.calls.find(([url]) => requestUrl(url).includes('/oauth/revoke'));
       expect(revoke, 'the new grant is handed back to Shirabe').toBeTruthy();
-      expect(JSON.parse(revoke?.[1]?.body ?? '{}').token).toBe('shrr_the_refresh');
+      expect((await requestBody(revoke)).token).toBe('shrr_the_refresh');
     });
 
     it('revokes the grant it just got when storing the link fails', async () => {
@@ -299,8 +341,8 @@ describe('shirabe connection', () => {
 
       await expect(completeLink(42, 'the-code', state)).rejects.toThrow('the database is away');
 
-      const revoke = fetchMock.mock.calls.find(([url]) => String(url).includes('/oauth/revoke'));
-      expect(JSON.parse(revoke?.[1]?.body ?? '{}').token).toBe('shrr_the_refresh');
+      const revoke = fetchMock.mock.calls.find(([url]) => requestUrl(url).includes('/oauth/revoke'));
+      expect((await requestBody(revoke)).token).toBe('shrr_the_refresh');
     });
 
     // Re-consent is how a scope upgrade happens, and it goes through this path
@@ -310,6 +352,7 @@ describe('shirabe connection', () => {
       const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
       const existing = {
         userId: 42,
+        scopes: ['user:dictionary:read'],
         refreshTokenCiphertext: sealRefresh('shrr_old_refresh'),
         save: () => Promise.resolve(existing),
       };
@@ -319,8 +362,10 @@ describe('shirabe connection', () => {
 
       await completeLink(42, 'the-code', state);
 
-      const revoke = fetchMock.mock.calls.find(([url]) => String(url).includes('/oauth/revoke'));
-      expect(JSON.parse(revoke?.[1]?.body ?? '{}').token).toBe('shrr_old_refresh');
+      expect(existing.scopes).toEqual([...REQUIRED_SCOPES]);
+      expect(missingScopes(existing as never)).toEqual([]);
+      const revoke = fetchMock.mock.calls.find(([url]) => requestUrl(url).includes('/oauth/revoke'));
+      expect((await requestBody(revoke)).token).toBe('shrr_old_refresh');
     });
 
     // Best effort, and after the new pair is in hand: a reader whose old grant
@@ -338,17 +383,19 @@ describe('shirabe connection', () => {
       vi.mocked(ShirabeConnection.findOne).mockResolvedValueOnce(existing as never);
       vi.stubGlobal(
         'fetch',
-        vi.fn(async (url: URL | string) => {
-          if (String(url).includes('/oauth/revoke')) throw new Error('shirabe is down');
-          if (String(url).includes('/oauth/token')) {
+        vi.fn(async (url: URL | string | Request) => {
+          if (requestUrl(url).includes('/oauth/revoke')) throw new Error('shirabe is down');
+          if (requestUrl(url).includes('/oauth/token')) {
             return Response.json({
               access_token: 'shra_the_access',
               refresh_token: 'shrr_the_refresh',
               expires_in: 3600,
-              scope: 'READ_DICTIONARY READ_ACCOUNT',
+              scope: 'user:dictionary:read user:preferences:read',
             });
           }
-          return Response.json({ credential: { scopes: ['READ_DICTIONARY', 'READ_ACCOUNT'] }, preferences: {} });
+          if (requestUrl(url).includes('/dictionary-stack'))
+            return Response.json({ dictionaryStack: { fingerprint: 'test', sources: [] } });
+          return Response.json({ dictionaries: [] });
         }),
       );
       const { state } = startLink(42);
@@ -372,20 +419,23 @@ describe('shirabe connection', () => {
       };
       vi.mocked(ShirabeConnection.findOne).mockResolvedValueOnce(existing as never);
       const fetchMock = mockShirabe();
-      fetchMock.mockImplementation(async (url: URL | string, init?: ShirabeRequest) => {
-        if (String(url).includes('/oauth/revoke')) {
-          order.push(`revoke ${JSON.parse(init?.body ?? '{}').token}`);
+      fetchMock.mockImplementation(async (url: URL | string | Request, init?: ShirabeRequest) => {
+        if (requestUrl(url).includes('/oauth/revoke')) {
+          const text = url instanceof Request ? await url.clone().text() : (init?.body ?? '{}');
+          order.push(`revoke ${JSON.parse(text).token}`);
           return new Response(null, { status: 200 });
         }
-        if (String(url).includes('/oauth/token')) {
+        if (requestUrl(url).includes('/oauth/token')) {
           return Response.json({
             access_token: 'shra_the_access',
             refresh_token: 'shrr_the_refresh',
             expires_in: 3600,
-            scope: 'READ_DICTIONARY READ_ACCOUNT',
+            scope: 'user:dictionary:read user:preferences:read',
           });
         }
-        return Response.json({ credential: { scopes: ['READ_DICTIONARY', 'READ_ACCOUNT'] }, preferences: {} });
+        if (requestUrl(url).includes('/dictionary-stack'))
+          return Response.json({ dictionaryStack: { fingerprint: 'test', sources: [] } });
+        return Response.json({ dictionaries: [] });
       });
       const { state } = startLink(42);
 
@@ -399,12 +449,12 @@ describe('shirabe connection', () => {
       vi.stubGlobal(
         'fetch',
         vi.fn(async (url: URL | string) =>
-          String(url).includes('/oauth/token')
+          requestUrl(url).includes('/oauth/token')
             ? Response.json({
                 access_token: 'shra_the_access',
                 refresh_token: 'shrr_the_refresh',
                 expires_in: 3600,
-                scope: 'READ_DICTIONARY READ_ACCOUNT',
+                scope: 'user:dictionary:read user:preferences:read',
               })
             : new Response('nope', { status: 403 }),
         ),
@@ -418,6 +468,7 @@ describe('shirabe connection', () => {
 
 describe('getReaderAccessToken', () => {
   beforeEach(() => {
+    __testing.resetTokenRenewRetries();
     saved.length = 0;
     updates.length = 0;
     lockedConnection = null;
@@ -444,13 +495,29 @@ describe('getReaderAccessToken', () => {
 
     expect(await getReaderAccessToken(STORED_USER_ID)).toBe('shra_renewed_access');
 
-    const refresh = fetchMock.mock.calls.find(([url]) => String(url).includes('/oauth/token'));
-    const body = JSON.parse(refresh?.[1]?.body ?? '{}');
+    const refresh = fetchMock.mock.calls.find(([url]) => requestUrl(url).includes('/oauth/token'));
+    const body = await requestBody(refresh);
     expect(body.grant_type).toBe('refresh_token');
     expect(body.refresh_token).toBe('shrr_reader_refresh');
+    expect(body.resource).toBe('https://shirabe.test/api/v1');
     // The renewed refresh token replaces the old one on the row.
     expect(String(connection.refreshTokenCiphertext)).not.toEqual(sealRefresh('shrr_reader_refresh'));
     expect(saved).toContain(connection);
+    expect((connection.accessTokenRefreshAt as Date).getTime()).toBeLessThan(connection.accessTokenExpiresAt.getTime());
+  });
+
+  it('renews after 70% of the issued lifetime while the access token is still valid', async () => {
+    const connection = storedConnection({
+      accessTokenExpiresAt: new Date(Date.now() + 9 * 24 * 60 * 60 * 1000),
+      accessTokenRefreshAt: new Date(Date.now() - 1000),
+    });
+    lockedConnection = connection;
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
+    const fetchMock = mockShirabe();
+
+    expect(await getReaderAccessToken(STORED_USER_ID)).toBe('shra_renewed_access');
+    expect(fetchMock).toHaveBeenCalled();
   });
 
   it('marks the link disconnected and hands out nothing when Shirabe will not renew', async () => {
@@ -472,13 +539,25 @@ describe('getReaderAccessToken', () => {
     lockedConnection = connection;
     const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
     vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('nope', { status: 503 })),
-    );
+    const fetchMock = vi.fn(async () => new Response('nope', { status: 503 }));
+    vi.stubGlobal('fetch', fetchMock);
 
     // A bad minute at Shirabe is not a dead link: use what we have, do not mark.
     expect(await getReaderAccessToken(STORED_USER_ID)).toBe('shra_reader_access');
+    expect(connection.disconnectedAt).toBeNull();
+    // A temporary outage must not trigger a refresh request on every lookup.
+    expect(await getReaderAccessToken(STORED_USER_ID)).toBe('shra_reader_access');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not hand out an expired token after a transient renewal failure', async () => {
+    const connection = storedConnection({ accessTokenExpiresAt: new Date(Date.now() - 1000) });
+    lockedConnection = connection;
+    const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
+    vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 503 })));
+
+    expect(await getReaderAccessToken(STORED_USER_ID)).toBeNull();
     expect(connection.disconnectedAt).toBeNull();
   });
 
@@ -524,8 +603,28 @@ describe('resyncStack', () => {
     const connection = storedConnection();
     const { ShirabeConnection } = await import('@app/models/ShirabeConnection');
     vi.mocked(ShirabeConnection.findOne).mockResolvedValue(connection as never);
-    const fetchMock = vi.fn(async () =>
-      Response.json({ preferences: { dictionaries: ['sanseido:ja'], stackFingerprint: 'def456' } }),
+    const fetchMock = vi.fn(async (url: URL | string | Request) =>
+      requestUrl(url).includes('/dictionary-stack')
+        ? Response.json({
+            dictionaryStack: {
+              fingerprint: 'def456',
+              sources: [{ dictionary: 'sanseido', languages: ['ja'], reveal: 'show' }],
+            },
+          })
+        : Response.json({
+            dictionaries: [
+              {
+                slug: 'sanseido',
+                name: 'Sanseido',
+                kind: 'definition',
+                visibility: 'official',
+                languages: ['ja'],
+                entryCount: 1,
+                capabilities: [],
+                attribution: null,
+              },
+            ],
+          }),
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -659,8 +758,8 @@ describe('refreshStack', () => {
     vi.mocked(ShirabeConnection.findOne).mockResolvedValue(held as never);
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (url: URL | string) => {
-        if (String(url).includes('/oauth/token')) {
+      vi.fn(async (url: URL | string | Request) => {
+        if (requestUrl(url).includes('/oauth/token')) {
           return Response.json({
             access_token: 'shra_renewed_access',
             refresh_token: 'shrr_renewed_refresh',
@@ -745,8 +844,8 @@ describe('unlink', () => {
     expect(await unlink(STORED_USER_ID)).toBe(true);
 
     const call = fetchMock.mock.calls[0];
-    expect(String(call?.[0])).toContain('/oauth/revoke');
-    expect(JSON.parse(call?.[1].body).token).toBe('shrr_reader_refresh');
+    expect(requestUrl(call?.[0])).toContain('/oauth/revoke');
+    expect((await requestBody(call)).token).toBe('shrr_reader_refresh');
     expect(removed).toHaveBeenCalledOnce();
   });
 
@@ -800,8 +899,8 @@ describe('refreshIfStale', () => {
     await refreshIfStale(7002);
     await refreshIfStale(7002);
 
-    const meCalls = fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/v1/me'));
-    expect(meCalls).toHaveLength(1);
+    const stackCalls = fetchMock.mock.calls.filter(([url]) => requestUrl(url).endsWith('/api/v1/dictionary-stack'));
+    expect(stackCalls).toHaveLength(1);
   });
 
   it('leaves a fresh copy alone', async () => {

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev | pino-pretty",
+    "dev": "node bin/devWatch.mjs | pino-pretty",
     "lint": "npm run lint:code && npm run lint:i18n",
     "lint:code": "biome check .",
     "typecheck": "vue-tsc --noEmit",
@@ -45,6 +45,8 @@
     "@opentelemetry/sdk-trace-node": "^2.10.0",
     "@pinia/nuxt": "^1.0.2",
     "@posthog/nuxt": "^1.7.89",
+    "@shirabe-org/api": "0.6.1",
+    "@shirabe-org/card": "0.1.2",
     "@vue/devtools-api": "^8.1.5",
     "gray-matter": "^4.0.3",
     "js-yaml": "3.15.2",

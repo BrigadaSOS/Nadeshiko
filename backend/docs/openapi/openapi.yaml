@@ -161,6 +161,8 @@ paths:
     $ref: "./paths/user/v1_user_connections_shirabe_callback.yaml"
   "/v1/user/connections/shirabe/credential":
     $ref: "./paths/user/v1_user_connections_shirabe_credential.yaml"
+  "/v1/user/connections/shirabe/service-credential":
+    $ref: "./paths/user/v1_user_connections_shirabe_service_credential.yaml"
   "/v1/user/connections/shirabe/resync":
     $ref: "./paths/user/v1_user_connections_shirabe_resync.yaml"
   "/v1/user/connections/shirabe/refused":
@@ -261,7 +263,6 @@ components:
       in: cookie
       name: nadeshiko.session_token
       description: Session authentication via cookie
-
 
 
 

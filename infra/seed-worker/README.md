@@ -12,12 +12,24 @@ npm install   # from the repository root
 ## Deploy
 
 ```bash
-# Set the shared download token
-npx wrangler secret put SEED_TOKEN
+# Restore the shared download token from its AWS backup
+token_file=$(mktemp)
+chmod 600 "$token_file"
+aws ssm get-parameter \
+  --profile nadeshiko-prod --region eu-north-1 \
+  --name /nadeshiko/prod/SEED_TOKEN --with-decryption \
+  --query Parameter.Value --output text > "$token_file" && \
+  npx wrangler secret put SEED_TOKEN < "$token_file"
+rm -f "$token_file"
 
 # Deploy the worker
 npm run deploy
 ```
+
+The download token is stored as a `SecureString` in AWS SSM Parameter Store at
+`/nadeshiko/prod/SEED_TOKEN` in `eu-north-1`, alongside the production secrets.
+Use that value when `npm run setup` prompts for the seed token. When rotating it,
+save the new value in SSM before updating the Worker's `SEED_TOKEN` secret.
 
 ## Refreshing the seed dump
 

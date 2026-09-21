@@ -6,7 +6,7 @@
  * cookie in this list is read by `useCookiePreference` on the server pass, so it
  * changes what the render produces: measured on `/en/search/猫`, `nd_lang_prefs`
  * moves ~31KB of translations and `nd_hiragana` ~9KB of furigana in or out of the
- * page, and `nd_dict_links` flips a couple of attributes.
+ * page.
  *
  * **Adding a `useCookiePreference` cookie means adding it here.** A shared cache
  * that does not know about a cookie will happily store one reader's copy and
@@ -23,8 +23,8 @@
 export const RENDER_FORKING_PREFERENCE_COOKIES = [
   'nd_lang_prefs',
   'nd_hiragana',
-  'nd_dict_links',
   'nd-motion',
+  'nd_dict_links',
 ] as const;
 
 export type RenderForkingPreferenceCookie = (typeof RENDER_FORKING_PREFERENCE_COOKIES)[number];
@@ -33,7 +33,6 @@ export type RenderForkingPreferenceCookie = (typeof RENDER_FORKING_PREFERENCE_CO
 export const LANG_PREFS_COOKIE = 'nd_lang_prefs' satisfies RenderForkingPreferenceCookie;
 /** Furigana show / spoiler / hidden (`useHiraganaVisibility`). */
 export const HIRAGANA_COOKIE = 'nd_hiragana' satisfies RenderForkingPreferenceCookie;
-/** Which dictionaries the word card links out to (`useDictionaryLinks`). */
 export const DICT_LINKS_COOKIE = 'nd_dict_links' satisfies RenderForkingPreferenceCookie;
 /**
  * Animation level (`useMotionPreference`).

@@ -105,8 +105,9 @@ jobs:
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+          ssh-private-key: ${{ secrets.NADESHIKO_CI_SSH_KEY }}
 
       - name: Deploy discord to prod
         env:
