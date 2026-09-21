@@ -33,6 +33,8 @@ const deleteUserActivityById = vi.fn();
 const deleteUserActivityByDate = vi.fn();
 const capture = vi.fn();
 const preferences = ref<Record<string, unknown>>({});
+let loadingInitialActivity = false;
+let rejectStoreInsideInitialActivity = false;
 const store = {
   get preferences() {
     return preferences.value;
@@ -45,7 +47,11 @@ const store = {
 };
 
 vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
-vi.stubGlobal('userStore', () => store);
+vi.stubGlobal('userStore', () => {
+  if (loadingInitialActivity && rejectStoreInsideInitialActivity)
+    throw new Error('getActivePinia() was called but there was no active Pinia');
+  return store;
+});
 vi.stubGlobal('usePostHog', () => ({ capture }));
 vi.stubGlobal('useToastSuccess', toastSuccess);
 vi.stubGlobal('useNadeshikoSdk', () => ({
@@ -69,7 +75,12 @@ vi.stubGlobal(
   async (_k: string, handler: () => Promise<unknown>, opts?: { default?: () => unknown }) => {
     const data = ref<unknown>(opts?.default?.() ?? null);
     const refresh = async () => {
-      data.value = await handler();
+      loadingInitialActivity = true;
+      try {
+        data.value = await handler();
+      } finally {
+        loadingInitialActivity = false;
+      }
     };
     await refresh();
     return { data, refresh, pending: ref(false), error: ref(null) };
@@ -127,6 +138,7 @@ const act = (w: ReturnType<typeof mount>, name: string) => w.get(`[data-act="${n
 
 beforeEach(() => {
   vi.clearAllMocks();
+  rejectStoreInsideInitialActivity = false;
   updateUserPreferences.mockResolvedValue({});
 });
 
@@ -135,6 +147,12 @@ afterEach(() => {
 });
 
 describe('the tracking switch', () => {
+  test('resolves its store before the SSR loader runs', async () => {
+    rejectStoreInsideInitialActivity = true;
+
+    await expect(render({})).resolves.toBeDefined();
+  });
+
   test('is ON unless the account turned it off', async () => {
     // A missing preference is a reader who never touched it, and defaulting
     // those to off would silently stop recording for everyone.
