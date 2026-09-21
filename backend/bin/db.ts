@@ -20,7 +20,7 @@ async function migrate(): Promise<void> {
 
 async function rollback(): Promise<void> {
   logger.info('Reverting last migration...');
-  await AppDataSource.undoLastMigration();
+  await AppDataSource.undoLastMigration({ transaction: 'none' });
   logger.info('Last migration reverted');
 }
 
