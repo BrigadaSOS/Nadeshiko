@@ -55,7 +55,7 @@ test.describe('sitemap', () => {
     expect(body).toContain('/__sitemap__/es.xml');
   });
 
-  for (const locale of ['en', 'es']) {
+  for (const locale of ['en', 'es', 'zh', 'zh-hant', 'id', 'pt-BR']) {
     test(`the ${locale} sitemap is well-formed XML with entries in it`, async ({ request }) => {
       const response = await getSitemap(request, `/__sitemap__/${locale}.xml`);
       const body = await response.text();
