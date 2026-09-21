@@ -15,7 +15,6 @@ const SKIP_PATTERNS = [/node_modules\//, /node:internal\//, /<anonymous>/];
 const FRAME_RE = /at .+?\((.+?):\d+:\d+\)|at (.+?):\d+:\d+/;
 
 function computeFingerprint(error: Error | string, errorType: string): { fingerprint: string; group: string } {
-  const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
 
   let frame = 'unknown';
@@ -33,10 +32,14 @@ function computeFingerprint(error: Error | string, errorType: string): { fingerp
     }
   }
 
-  return {
-    fingerprint: `${errorType}:${frame}`,
-    group: message.length > 120 ? message.slice(0, 120) : message,
-  };
+  const fingerprint = `${errorType}:${frame}`;
+
+  // Metric attributes must have bounded cardinality. Error messages routinely
+  // contain request paths, cache-busting timestamps, UUIDs and user input; even
+  // truncating them creates one time series per distinct value. The source
+  // fingerprint is stable across occurrences while the full message remains in
+  // logs and PostHog for diagnosis.
+  return { fingerprint, group: fingerprint };
 }
 
 const REDACTED = '[REDACTED]';
