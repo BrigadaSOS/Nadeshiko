@@ -170,6 +170,10 @@ accessories:
   postgres:
     image: postgres:17
     host: nadeshiko
+    # SHARED BY PRODUCTION AND STAGING. deploy.staging.yml deliberately points
+    # at this accessory rather than declaring a second database. Rebooting or
+    # changing it interrupts both environments and must use the coordinated
+    # database maintenance procedure in DEPLOYMENT.md.
     # Tailnet address of the `nadeshiko` host. This is a moving target: it was
     # 100.95.40.11 when written and the host now answers on 100.114.126.96, with
     # dockerd left holding a socket bound to an address the box no longer had.
@@ -195,6 +199,15 @@ accessories:
       # and the checkpoint/backup shape that produces it is not something we
       # control from here.
       memory: 1.5g
+      # Docker otherwise gives every container a fixed 64MB /dev/shm, regardless
+      # of its memory limit. PostgreSQL's parallel workers allocate POSIX dynamic
+      # shared-memory segments there; production exhausted the default during
+      # broad duplicate-suppression lookups on 2026-09-21. 256MB is bounded
+      # inside the 1.5GB container budget and leaves headroom for the configured
+      # two workers per Gather. The matching index migration removes the full
+      # table scan that triggered the pressure; this limit is defense in depth,
+      # not a substitute for that query fix.
+      shm-size: 256m
       publish:
         # Loopback as well as the tailnet address above. This is the only reason
         # the Alloy Postgres exporter kept working through the IP change, and it

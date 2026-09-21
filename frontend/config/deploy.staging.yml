@@ -35,6 +35,8 @@ servers:
       # Cloudflare's alone and skipping Cloudflare skips it.
       add-host:
         - host.docker.internal:host-gateway
+        # Stable across kamal-proxy replacement; see deploy.prod.yml.
+        - api-stg.nadeshiko.co:host-gateway
 
 # The previous builds' `/_nuxt/*` files, kept on the host so they outlive the
 # container that produced them and a deploy does not 404 the page a reader

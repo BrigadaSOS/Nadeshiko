@@ -62,6 +62,10 @@ servers:
       # Cloudflare's alone and skipping Cloudflare skips it.
       add-host:
         - host.docker.internal:host-gateway
+        # Stable across kamal-proxy replacement. TLS and Host still use the real
+        # API name, while Docker routes the connection to the host-published
+        # proxy port instead of pinning the proxy container's ephemeral IP.
+        - api.nadeshiko.co:host-gateway
 
 # Diagnostic reports written by the Node flags in NODE_OPTIONS below. A bind
 # mount and not a named volume on purpose: the whole value is being able to read
