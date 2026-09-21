@@ -165,7 +165,7 @@ describe('the question it asks', () => {
     // `locale` is a 400 before the action runs.
     await lookup('兄', { locale: 'es' });
 
-    expect(asked().query).toEqual({ locale: 'es' });
+    expect(asked().query).toEqual({ locale: 'es', 'dictionaries[]': 'jmdict' });
     expect(asked().body).not.toHaveProperty('locale');
   });
 
@@ -174,7 +174,7 @@ describe('the question it asks', () => {
     // word that is the same for everyone.
     await lookup('兄', { locale });
 
-    expect(asked().query).toEqual({ locale: 'en' });
+    expect(asked().query).toEqual({ locale: 'en', 'dictionaries[]': 'jmdict' });
   });
 });
 
@@ -188,6 +188,7 @@ describe('a reader with dictionaries of their own', () => {
     await lookup('兄');
 
     expect(asked().apiKey).toBe('reader-key');
+    expect(asked().query).toEqual({ locale: 'en' });
   });
 
   test('gets a PRIVATE cache header, since the card is built from their stack', async () => {
@@ -264,7 +265,7 @@ describe('a reader with no linked account', () => {
     expect(body).not.toHaveProperty('stackFingerprint');
   });
 
-  test('puts Wikipedia after lexical dictionary candidates', async () => {
+  test('asks Shirabe for the lexical default, rather than trying to reorder its mixed result', async () => {
     callShirabe.mockResolvedValue(
       identified([
         candidate({ id: 'wikipedia:Q575', dictionary: 'wikipedia' }),
@@ -272,12 +273,9 @@ describe('a reader with no linked account', () => {
       ]),
     );
 
-    const { body } = await lookup('夜');
+    await lookup('夜');
 
-    expect((body.candidates as { dictionary?: string }[]).map(({ dictionary }) => dictionary)).toEqual([
-      'jmdict',
-      'wikipedia',
-    ]);
+    expect(asked().query).toEqual({ locale: 'en', 'dictionaries[]': 'jmdict' });
   });
 });
 
