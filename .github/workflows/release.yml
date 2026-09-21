@@ -330,7 +330,7 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
-          kamal app exec -d prod --reuse "node -e 'const locales = [\"en\", \"es\", \"zh\", \"zh-hant\", \"id\", \"pt-BR\"]; for (let pass = 0; pass < 2; pass++) for (const locale of locales) { const response = await fetch(\`http://127.0.0.1:3000/__sitemap__/\${locale}.xml\`); if (!response.ok) throw new Error(\`\${locale}: HTTP \${response.status}\`); await response.arrayBuffer(); }'"
+          kamal app exec -d prod --reuse "node warm-sitemaps.mjs"
 
       # Anonymous sentence and search HTML is edge-cached for an hour
       # (`cloudflare-cache.tf` in brigadasos-infra, `edge_ttl: respect_origin`,
