@@ -18,10 +18,10 @@ on:
   # schedule:
   #   - cron: '0 4 1 * *'   # 04:00 UTC on the 1st of each month
 
-# Nothing here assumes an AWS role, so no id-token. Tailscale authenticates with
-# its OAuth client secret and Cloudflare with an API token.
+# Tailscale uses GitHub OIDC; Cloudflare uses an API token.
 permissions:
   contents: read
+  id-token: write
 
 env:
   NODE_VERSION: '24'
@@ -64,8 +64,9 @@ jobs:
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+          ssh-private-key: ${{ secrets.NADESHIKO_CI_SSH_KEY }}
 
       - name: Refresh the seed dump
         env:

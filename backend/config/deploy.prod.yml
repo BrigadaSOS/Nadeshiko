@@ -175,11 +175,11 @@ accessories:
     # changing it interrupts both environments and must use the coordinated
     # database maintenance procedure in DEPLOYMENT.md.
     # Tailnet address of the `nadeshiko` host. This is a moving target: it was
-    # 100.95.40.11 when written and the host now answers on 100.114.126.96, with
+    # 100.95.40.11 when written and the host now answers on 100.127.97.67, with
     # dockerd left holding a socket bound to an address the box no longer had.
     # Nothing here broke only because of the loopback publish below, which is
     # what the Alloy exporter actually dials. Keep both.
-    port: "100.114.126.96:5432:5432"
+    port: "100.127.97.67:5432:5432"
     options:
       # Memory limit: 1.5GB. Postgres persists to disk, so it is safe to
       # OOM-kill and restart -- but a restart drops every pooled connection, so
@@ -275,7 +275,7 @@ accessories:
     # every scrape failing, no elasticsearch_* series, and nothing alerting
     # because a target that never reports looks the same as one that does not
     # exist. ES itself was fine the whole time; only the door was.
-    port: "100.114.126.96:9200:9200"
+    port: "100.127.97.67:9200:9200"
     env:
       secret:
         - ELASTICSEARCH_ADMIN_PASSWORD

@@ -251,8 +251,9 @@ jobs:
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+          ssh-private-key: ${{ secrets.NADESHIKO_CI_SSH_KEY }}
 
       # Checks the PRODUCTION container: staging shares it and keeps only its own
       # index (`nadedb_dev`). Still worth running before a staging deploy -- a
@@ -337,8 +338,9 @@ jobs:
       - name: Set up Tailscale, SSH and Kamal
         uses: ./.github/actions/kamal-deploy-setup
         with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+          ssh-private-key: ${{ secrets.NADESHIKO_CI_SSH_KEY }}
 
       - name: Deploy frontend to stg
         env:
@@ -388,8 +390,9 @@ jobs:
       - name: Set up deployment access for disposable accounts
         uses: ./.github/actions/kamal-deploy-setup
         with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+          ssh-private-key: ${{ secrets.NADESHIKO_CI_SSH_KEY }}
 
       - name: Prepare disposable E2E accounts
         id: accounts
@@ -518,8 +521,9 @@ jobs:
       - name: Set up deployment access
         uses: ./.github/actions/kamal-deploy-setup
         with:
-          tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+          ssh-private-key: ${{ secrets.NADESHIKO_CI_SSH_KEY }}
       - name: Remove disposable E2E accounts
         working-directory: backend
         env:
