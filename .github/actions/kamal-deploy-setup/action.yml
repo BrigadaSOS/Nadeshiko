@@ -2,11 +2,14 @@ name: "Kamal deploy setup"
 description: "Join the Tailscale network, configure SSH to the deploy host, and install Ruby + Kamal."
 
 inputs:
-  tailscale-oauth-client-id:
-    description: "Tailscale OAuth client id"
+  tailscale-client-id:
+    description: "Tailscale federated identity client ID"
     required: true
-  tailscale-oauth-secret:
-    description: "Tailscale OAuth client secret"
+  tailscale-audience:
+    description: "Tailscale federated identity audience"
+    required: true
+  ssh-private-key:
+    description: "OpenSSH private key paired with docker@nadeshiko authorized_keys"
     required: true
   host:
     description: "SSH host alias reachable over Tailscale"
@@ -45,8 +48,8 @@ runs:
     - name: Connect to Tailscale
       uses: tailscale/github-action@v4
       with:
-        oauth-client-id: ${{ inputs.tailscale-oauth-client-id }}
-        oauth-secret: ${{ inputs.tailscale-oauth-secret }}
+        oauth-client-id: ${{ inputs.tailscale-client-id }}
+        audience: ${{ inputs.tailscale-audience }}
         tags: tag:ci
 
     - name: Configure SSH over Tailscale
@@ -55,11 +58,14 @@ runs:
         SSH_HOST: ${{ inputs.host }}
         SSH_USER: ${{ inputs.ssh-user }}
         KNOWN_HOSTS_FILE: ${{ inputs.known-hosts-file }}
+        SSH_PRIVATE_KEY: ${{ inputs.ssh-private-key }}
       run: |
         set -euo pipefail
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         touch ~/.ssh/known_hosts
+        printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/nadeshiko_deploy
+        chmod 600 ~/.ssh/nadeshiko_deploy
 
         # Pinned keys live in the repo so a hijacked Tailscale name cannot hand
         # a runner its own host key. Only fall back to trust-on-first-use when
@@ -82,6 +88,8 @@ runs:
           User ${SSH_USER}
           StrictHostKeyChecking ${strict}
           ProxyCommand tailscale nc %h %p
+          IdentityFile ~/.ssh/nadeshiko_deploy
+          IdentitiesOnly yes
         EOF
         chmod 600 ~/.ssh/config ~/.ssh/known_hosts
 
@@ -118,7 +126,7 @@ runs:
         tailscale status | grep -E "(^|\s)${SSH_HOST}(\s|$|\.)" \
           || echo "${SSH_HOST} is absent from this runner's netmap."
         echo "::endgroup::"
-        echo "::error title=SSH unreachable::Could not SSH to ${SSH_HOST} over Tailscale. If the host shows as offline or on a different tailnet above, the TS_OAUTH_* secrets point at the wrong tailnet."
+        echo "::error title=SSH unreachable::Could not SSH to ${SSH_HOST} over Tailscale. Check Tailscale OIDC, the native sshd, and NADESHIKO_CI_SSH_KEY."
         exit 1
 
     - name: Set up Ruby
