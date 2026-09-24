@@ -63,7 +63,7 @@
     "node": "^24 || >=26"
   },
   "dependencies": {
-    "@better-auth/api-key": "^1.7.4",
+    "@better-auth/api-key": "^1.7.5",
     "@brigadasos/nadeshiko-shared": "*",
     "@elastic/elasticsearch": "^9.5.1",
     "@nahkies/typescript-express-runtime": "0.26.0",
@@ -88,21 +88,21 @@
     "nanoid": "^6.0.1",
     "nodemailer": "^9.0.5",
     "pg": "^8.23.0",
-    "pg-boss": "^12.30.0",
+    "pg-boss": "^12.33.3",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
-    "posthog-node": "^5.51.7",
-    "tsx": "^4.23.13",
+    "posthog-node": "^5.52.4",
+    "tsx": "^4.23.15",
     "typeorm": "^1.1.1",
     "uuid": "^14.0.2",
-    "zod": "^4.5.4"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@nahkies/openapi-code-generator": "0.26.0",
-    "@redocly/cli": "^2.51.2",
+    "@redocly/cli": "^2.53.3",
     "@types/express": "^5.0.6",
     "@types/express-serve-static-core": "^5.1.3",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.2",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.23.1",
     "@types/supertest": "7.2.1",
@@ -113,6 +113,6 @@
     "supertest": "^7.2.2",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   }
 }
