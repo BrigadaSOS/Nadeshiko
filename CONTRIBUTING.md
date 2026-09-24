@@ -223,9 +223,10 @@ packages/
                        Consumed by frontend and discord as a workspace
                        dependency; published to npm on release.
 
-infra/                 Infrastructure tooling
-  seed-worker/         Cloudflare Worker serving the seed database
 ```
+
+Infrastructure services, including the contributor seed Worker, live in
+`BrigadaSOS/brigadasos-infra`.
 
 ### Changing the API
 

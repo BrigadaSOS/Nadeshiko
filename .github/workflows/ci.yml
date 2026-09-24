@@ -28,7 +28,6 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       discord: ${{ steps.filter.outputs.discord }}
       openapi: ${{ steps.filter.outputs.openapi }}
-      seed_worker: ${{ steps.filter.outputs.seed_worker }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -92,8 +91,6 @@ jobs:
               # for months because nothing exercised it until a PR happened to
               # touch the spec; editing the workflow now runs it.
               - '.github/workflows/ci.yml'
-            seed_worker:
-              - 'infra/seed-worker/**'
 
   checks:
     needs: changes
@@ -102,7 +99,6 @@ jobs:
       backend: ${{ needs.changes.outputs.backend == 'true' }}
       frontend: ${{ needs.changes.outputs.frontend == 'true' }}
       discord: ${{ needs.changes.outputs.discord == 'true' }}
-      seed_worker: ${{ needs.changes.outputs.seed_worker == 'true' }}
 
   openapi:
     needs: changes

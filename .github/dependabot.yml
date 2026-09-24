@@ -20,7 +20,7 @@ updates:
     groups:
       # `npm-minor`, not `backend-minor`: one Dependabot entry covers every
       # workspace here (they share the root lock), so `patterns: ['*']` sweeps up
-      # frontend, discord and seed-worker too. The first grouped run proved it by
+      # frontend and discord too. The first grouped run proved it by
       # opening a pure-frontend batch titled "the backend-minor group".
       npm-minor:
         applies-to: version-updates
