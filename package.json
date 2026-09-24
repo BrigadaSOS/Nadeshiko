@@ -6,8 +6,7 @@
     "packages/*",
     "backend",
     "frontend",
-    "discord",
-    "infra/seed-worker"
+    "discord"
   ],
   "//lint,typecheck,test": "`--workspaces --if-present` rather than a hand-written list, so a new workspace is covered the day it is added and a contributor running `npm run lint && npm run typecheck && npm run test` cannot pass locally and fail in CI. npm runs them in the order the `workspaces` array declares. A workspace opts in by owning the script: frontend composes its `lint` from `lint:code` (Biome) and `lint:i18n` (locale parity) the way backend composes its from `lint:code` and `lint:openapi`, so both are one `lint` from out here.",
   "//sdk:sync": "Bundles the spec before regenerating the SDK from it, so starting the stack right after a spec edit does not build the SDK from the previous bundle. Runs once per `npm run dev`, not per Nuxt restart, and deliberately stops short of backend `generate:api` -- `dev:backend` does that for itself.",

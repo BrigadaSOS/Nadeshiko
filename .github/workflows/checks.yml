@@ -30,11 +30,6 @@ on:
         required: false
         default: true
         type: boolean
-      seed_worker:
-        description: "Run the seed worker checks"
-        required: false
-        default: true
-        type: boolean
       sdk:
         description: "Run the workspace package checks (packages/*)"
         required: false
@@ -327,23 +322,3 @@ jobs:
           npm run test --workspace @brigadasos/nadeshiko-sdk
           npm run test --workspace @brigadasos/nadeshiko-shared
 
-
-  seed-worker:
-    if: inputs.seed_worker
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up the workspace
-        uses: ./.github/actions/setup-workspace
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Typecheck
-        run: npm run typecheck --workspace nadeshiko-seed-worker
-
-      - name: Build Worker bundle
-        run: npx wrangler deploy --dry-run
-        working-directory: infra/seed-worker
