@@ -658,11 +658,9 @@ the other reports production.
 ## Refreshing the contributor seed
 
 `bin/setup.ts` offers new contributors a seed database of real content, served
-from R2 by [`infra/seed-worker`](infra/seed-worker/README.md).
-`[Infra] Refresh seed dump` regenerates it from production over the same
-SSH/Tailscale path deploys use. It is manual-dispatch-only and defaults to a dry
-run; the monthly schedule in the workflow is commented out until it has been run
-by hand a few times.
+from R2 by the Worker in `BrigadaSOS/brigadasos-infra/seed-worker`. Refreshing
+the seed is a manual infrastructure operation documented in that directory's
+README. It is not run by GitHub Actions or the application deploy workflows.
 
 The dump is an explicit allowlist of content tables and the script refuses to
 publish an archive containing anything else — the file is downloadable by anyone
@@ -1246,10 +1244,7 @@ CI needs two repository secrets, both already set:
 | `CLOUDFLARE_ZONE_ID` | the `nadeshiko.co` zone id |
 | `CLOUDFLARE_PURGE_TOKEN` | an API token whose only policy is **Cache Purge** on that one zone |
 
-**Not** `CLOUDFLARE_API_TOKEN`. That name is already an organization secret used
-by `refresh-seed-dump.yml` for R2, and a repository secret of the same name
-would shadow it for this repo and break that workflow. The purge token is also
-deliberately separate rather than reusing the broad Terraform token from
+The purge token is deliberately separate from the broad Terraform token in
 `/brigadasos-infra/terraform/cloudflare_api_token` in SSM: anything readable by
 Actions is readable by anyone who can land a workflow, so it holds the narrowest
 permission that does the job. It was minted from the Terraform token via the

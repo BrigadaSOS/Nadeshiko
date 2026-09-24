@@ -50,7 +50,6 @@ jobs:
     with:
       backend: false
       frontend: false
-      seed_worker: false
 
   # Building an immutable image is safe to overlap with checks and staging
   # verification. The deployment below still waits for every gate.
