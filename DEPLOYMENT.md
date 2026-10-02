@@ -1284,3 +1284,37 @@ on one:
 After a **frontend prod** deploy, check
 [Cloudflare edge configuration](#cloudflare-edge-configuration) — it lists zone
 state that no deploy applies and that is currently outstanding.
+
+
+## Persistent production sitemaps
+
+Production serves published XML from the host mount
+`/var/lib/nadeshiko/frontend-prod/sitemap-snapshots`. There is no origin expiry
+or request-triggered regeneration. Files survive worker replacement and app
+releases. Only an explicit refresh replaces them; stale catalogue URLs are an
+accepted tradeoff. Edge caching is seven days, with a one-day browser cache.
+
+The GitHub **[Prod] Release** workflow publishes the first complete set in a
+one-off container before switching frontend traffic. Later releases verify
+hashes and reuse the existing set without generation. To rebuild after a
+catalogue import or sitemap-policy change, select **refresh_sitemaps** when
+manually running that workflow; leave it off for normal releases. The normal
+release purge makes the refreshed snapshot visible at the edge.
+
+Generation uses a separate Nitro process with one worker, a 384-MiB heap cap,
+and fresh memory caches. It preserves the normal robots/private-path and
+content-rating filtering. All six locales and the index are validated before
+an atomic manifest switch; a failed refresh leaves the previous set available.
+Direct dynamic source endpoints are disabled in snapshot-serving processes.
+A missing snapshot returns 503 instead of running catalogue enumeration on a
+reader worker.
+
+`generation.lock` prevents competing publishers. An interrupted generation
+can leave this directory behind: verify that no publisher is running before
+removing the lock and retrying the GitHub workflow. Generation directories are
+immutable; older published sets remain available for operator recovery.
+
+Production Docker builds run `scripts/verify-sitemap-snapshot.mjs` against a
+fixture backend and two serving workers. This covers persistent reuse,
+conditional GET/HEAD, unavailable storage, worker replacement and explicit
+refresh, even though staging's development build disables sitemaps.
