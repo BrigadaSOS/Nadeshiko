@@ -136,16 +136,19 @@ export default defineNitroPlugin((nitroApp) => {
   // proxy exists to keep content blockers from swallowing the BROWSER's reports,
   // and a server has no blockers to dodge, so nothing would have made this path
   // fail loudly if it only handled the paths posthog-js uses.
-  const posthog = posthogPublicKey
-    ? new PostHog(posthogPublicKey, {
-        host: posthogHost,
-        // The interesting bursts arrive during a bad deploy, which is exactly
-        // when this container is about to be replaced. A small batch and a
-        // short interval get them out ahead of SIGTERM rather than after it.
-        flushAt: 5,
-        flushInterval: 5000,
-      })
-    : null;
+  // Production-mode fixtures exercise failures deliberately. Disable reporting
+  // at the process boundary while keeping the real error logs and metrics.
+  const posthog =
+    posthogPublicKey && process.env.NADESHIKO_POSTHOG_DISABLED !== '1'
+      ? new PostHog(posthogPublicKey, {
+          host: posthogHost,
+          // The interesting bursts arrive during a bad deploy, which is exactly
+          // when this container is about to be replaced. A small batch and a
+          // short interval get them out ahead of SIGTERM rather than after it.
+          flushAt: 5,
+          flushInterval: 5000,
+        })
+      : null;
 
   /**
    * Two gates, both narrow on purpose.
