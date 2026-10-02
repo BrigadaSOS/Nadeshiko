@@ -83,9 +83,18 @@ export default defineNitroPlugin((nitroApp) => {
     // Identical attributes on both sides of the pair, or the gauge never
     // returns to zero.
     const inFlight = { 'http.request.method': method, ...trafficAttributes(traffic, family) };
+    if (event.node.res.destroyed || event.node.res.writableEnded) return;
     activeRequests.add(1, inFlight);
-    event.node.res.on('finish', () => {
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
       activeRequests.add(-1, inFlight);
+    };
+    event.node.res.once('close', release);
+    event.node.res.once('finish', () => {
+      if (released) return;
+      release();
       requestCount.add(1, {
         [TRAFFIC_ATTRIBUTE]: traffic,
         'http.request.method': method,

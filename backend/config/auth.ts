@@ -743,6 +743,8 @@ export function buildAuthOptions(dependencies: BuildAuthOptionsDependencies = {}
       apiKey({
         apiKeyHeaders: 'authorization',
         defaultPrefix: 'nade_',
+        // Match POST /v1/user/api-keys: labels up to 100 characters are valid.
+        maximumNameLength: 100,
         rateLimit: {
           enabled: true,
           timeWindow: configValues.API_KEY_RATE_LIMIT_WINDOW_MS,
