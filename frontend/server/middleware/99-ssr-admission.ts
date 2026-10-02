@@ -98,6 +98,9 @@ let refusedSinceLog = 0;
 
 export default defineEventHandler((event) => {
   if (event.method !== 'GET' && event.method !== 'HEAD') return;
+  // Earlier middleware can await I/O after the client has disconnected. Its
+  // close event has already happened, so attaching cleanup now would leak a slot.
+  if (event.node.res.destroyed || event.node.res.writableEnded) return '';
 
   const path = getRequestURL(event).pathname;
   if (isReservedLocalePath(path)) return;

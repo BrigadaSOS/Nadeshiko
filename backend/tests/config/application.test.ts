@@ -1,8 +1,32 @@
 import { request } from '../helpers/http';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { Meter } from '@opentelemetry/api';
+import * as telemetry from '@config/telemetry';
 import { buildApplication } from '@config/application';
 
 describe('buildApplication', () => {
+  it('balances active requests on disconnect and counts a normal response completion once', async () => {
+    const add = vi.fn();
+    const meter = vi.spyOn(telemetry, 'getMeter').mockReturnValue({
+      createUpDownCounter: () => ({ add }),
+    } as unknown as Meter);
+    const app = buildApplication({
+      rateLimit: false,
+      mountRoutes: (instance) => {
+        instance.get('/disconnect', (_req, res) => res.destroy());
+        instance.get('/complete', (_req, res) => res.json({ ok: true }));
+      },
+    });
+    try {
+      await expect(request(app).get('/disconnect')).rejects.toThrow();
+      expect(add.mock.calls.map(([value]) => value)).toEqual([1, -1]);
+      expect((await request(app).get('/complete')).status).toBe(200);
+      expect(add.mock.calls.map(([value]) => value)).toEqual([1, -1, 1, -1]);
+    } finally {
+      meter.mockRestore();
+    }
+  });
+
   it('mounts default routes when no custom route mounter is provided', async () => {
     const app = buildApplication();
     const res = await request(app).get('/up');

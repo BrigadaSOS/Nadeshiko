@@ -51,6 +51,15 @@ function admit(path = '/en/search/word'): FakeEvent {
 }
 
 describe('99-ssr-admission', () => {
+  test('does not take a slot after a disconnect in earlier middleware', () => {
+    const disconnected = makeEvent('/en/search/word');
+    Object.assign(disconnected.node.res, { destroyed: true });
+    expect(handler(disconnected)).toBe('');
+    const first = admit();
+    const second = admit();
+    first.node.res.emit('close');
+    second.node.res.emit('close');
+  });
   beforeEach(() => {
     // Whatever the previous test left in flight is released by ending its
     // responses; the gate is module state, so this is the only way to reset it.

@@ -54,6 +54,15 @@ const overloadedCount = getMeter().createCounter('http.server.overloaded', {
   unit: '{request}',
 });
 
+const admittedGauge = getMeter().createObservableGauge('http.server.admission.in_flight', {
+  description: 'Slots currently occupied in the request admission gate',
+  unit: '{request}',
+});
+const capacityGauge = getMeter().createObservableGauge('http.server.admission.capacity', {
+  description: 'Maximum simultaneous requests admitted for a scope',
+  unit: '{request}',
+});
+
 /**
  * Every scope that exists, so the zero-series can be seeded before anything is
  * refused -- for the same reason `seedRateLimitSeries` exists: a delta counter
@@ -76,8 +85,16 @@ export function createInFlightLimit({ scope, max, retryAfterSeconds = 2 }: InFli
   scopes.add(scope);
 
   let inFlight = 0;
+  admittedGauge.addCallback((result) => result.observe(inFlight, { scope }));
+  capacityGauge.addCallback((result) => result.observe(max, { scope }));
 
-  const handler = (_req: Request, res: Response, next: NextFunction): void => {
+  const handler = (req: Request, res: Response, next: NextFunction): void => {
+    // Authentication runs before this gate and can await a database lookup.
+    // A disconnect during that await has already emitted `close` by the time
+    // we arrive here. Taking a slot now would attach its release listener too
+    // late and permanently reduce capacity, even if the handler later settles.
+    if (req.aborted || res.destroyed || res.writableEnded) return;
+
     if (inFlight >= max) {
       overloadedCount.add(1, { scope });
       res.setHeader('Retry-After', String(retryAfterSeconds));
