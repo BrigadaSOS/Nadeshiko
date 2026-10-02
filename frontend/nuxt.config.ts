@@ -295,6 +295,7 @@ export default defineNuxtConfig({
     // server/plugins/03-asset-archive.ts; unset means the archive stays off.
     assetArchiveDir: env.NUXT_ASSET_ARCHIVE_DIR,
     assetArchiveDays: env.NUXT_ASSET_ARCHIVE_DAYS,
+    sitemapSnapshotDir: env.NUXT_SITEMAP_SNAPSHOT_DIR || '',
     // Read by the middleware that emits `Reporting-Endpoints`, so the endpoint
     // is declared next to the `report-to` directive that names it. Absent outside
     // production, which the middleware already treats as "emit no header".
