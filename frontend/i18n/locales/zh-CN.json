@@ -3,6 +3,25 @@
     "generic": "出了点问题，请重试。",
     "rateLimited": "请求过于频繁，请稍后重试。"
   },
+  "searchErrors": {
+    "invalidRequest": {
+      "title": "搜索请求无效",
+      "message": "请检查搜索表达式和筛选条件，然后重新搜索。"
+    },
+    "rateLimited": {
+      "title": "已达到搜索限制",
+      "message": "搜索请求过多。请稍后重试。"
+    },
+    "quotaExceeded": {
+      "title": "已达到每月搜索限制",
+      "message": "本月搜索额度已用完。请在额度重置后重试。"
+    },
+    "unavailable": {
+      "title": "搜索暂不可用",
+      "message": "无法加载搜索数据。请重试。"
+    },
+    "retry": "重试"
+  },
   "navbar": {
     "buttons": {
       "home": "首页",
@@ -1031,13 +1050,10 @@
     "pickDeselectAll": "取消全选"
   },
   "searchContainer": {
-    "errorTitle": "出了点问题",
     "errorMessage1": "搜索时发生错误",
-    "errorMessage2": "请点击下方按钮重新搜索。",
     "retryButton": "重试",
     "retrying": "重试中…",
     "endOfResults": "已显示全部结果",
-    "loadMore": "加载更多例句",
     "categoryAll": "全部",
     "selectedMediaFallback": "所选作品",
     "categoryAnime": "动画",
@@ -1553,10 +1569,6 @@
   "mediaHeader": {
     "collapse": "收起作品详情",
     "expand": "展开作品详情"
-  },
-  "mediaPage": {
-    "resultsFailed": "无法加载此作品的例句。",
-    "resultsRetry": "重试"
   },
   "impersonation": {
     "active": "正在以 {name} 的身份访问",
