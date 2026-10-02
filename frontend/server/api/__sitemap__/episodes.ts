@@ -53,7 +53,8 @@ export default defineSitemapEventHandler(async (event) => {
           for await (const episode of sdk.listEpisodes.paginate({ mediaPublicId: title.publicId, take: 100 })) {
             episodes.push(episode.episodeNumber);
           }
-        } catch {
+        } catch (error) {
+          if (process.env.NADESHIKO_SITEMAP_GENERATOR === '1') throw error;
           // One unreachable title costs its own episodes, not the sitemap. A
           // source that throws here returns nothing at all, and a sitemap that
           // silently shrinks to zero is worse than one missing a show.

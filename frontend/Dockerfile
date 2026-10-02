@@ -87,6 +87,11 @@ RUN --mount=type=secret,id=posthog_cli_api_key \
 # So the check lives here, where it sees the real output of every build in every
 # environment, and fails the IMAGE rather than the site.
 RUN cd frontend && npm run verify:sri
+# Staging disables sitemap generation. Check the production bundle with two
+# workers and a fixture backend, including reuse across process replacement.
+RUN if [ "$NUXT_PUBLIC_ENVIRONMENT" = "production" ]; then \
+    cd frontend && node scripts/verify-sitemap-snapshot.mjs; \
+  fi
 
 # Nitro bundles the app's own dependencies into .output, but the OpenTelemetry
 # SDK is loaded through --import before the bundle and so has to ship separately.
@@ -112,6 +117,7 @@ RUN rm -rf .output/server/node_modules/@opentelemetry/api
 COPY --from=otel-deps /deps/node_modules ./node_modules
 COPY frontend/instrumentation.mjs frontend/route-normalization.mjs ./
 COPY frontend/scripts/warm-sitemaps.mjs ./warm-sitemaps.mjs
+COPY frontend/scripts/publish-sitemaps.mjs ./publish-sitemaps.mjs
 COPY frontend/scripts/verify-runtime.mjs ./verify-runtime.mjs
 COPY frontend/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

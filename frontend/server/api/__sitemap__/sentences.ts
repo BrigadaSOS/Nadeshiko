@@ -77,7 +77,8 @@ export default defineSitemapEventHandler(async (event) => {
             if (paths.length >= SEGMENTS_PER_TITLE) break;
           }
           return paths;
-        } catch {
+        } catch (error) {
+          if (process.env.NADESHIKO_SITEMAP_GENERATOR === '1') throw error;
           // One unreachable title costs its own sentences, not the sitemap --
           // the same bargain `episodes.ts` strikes, and for the same reason: a
           // source that throws returns nothing at all, and a sitemap that
