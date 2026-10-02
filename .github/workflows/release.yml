@@ -324,9 +324,9 @@ jobs:
       # Locale sitemaps fan out over the catalogue on their first request and
       # can take longer than Kamal Proxy's deliberate ten-second reader timeout.
       # Warm them through the container's own listener before the edge purge
-      # makes the new process authoritative. Twice covers both Nitro cluster
-      # workers; a non-200 response fails the release before cached traffic is
-      # discarded.
+      # makes the new process authoritative. Sitemap cache storage is shared by
+      # the Nitro workers; the second pass reuses the warmed entries. A non-200
+      # response fails the release before cached traffic is discarded.
       - name: Warm production sitemaps before exposing the cold process
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
