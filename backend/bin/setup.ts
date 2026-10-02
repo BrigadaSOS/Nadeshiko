@@ -475,7 +475,8 @@ async function main() {
     printHeader();
     ensureEnvFile();
 
-    // Import config after .env is ensured
+    // Load .env only after setup has created it, before config validates process.env.
+    await import('@config/boot');
     const { config } = await import('@config/config');
 
     const adminUser = config.POSTGRES_ADMIN_USER || config.POSTGRES_USER;
