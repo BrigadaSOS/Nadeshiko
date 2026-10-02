@@ -132,6 +132,20 @@ beforeEach(() => {
 });
 
 describe('what gets reported to PostHog', () => {
+  test('isolated fixtures keep error logs and metrics without reporting exceptions', async () => {
+    vi.stubEnv('NADESHIKO_POSTHOG_DISABLED', '1');
+    try {
+      const fire = await loadPlugin();
+      await fire('error', httpError(503, 'Sitemap snapshot unavailable'), { event: makeEvent(), tags: ['request'] });
+      await fire('error', new Error('fixture process failure'), {});
+      expect(captureException).not.toHaveBeenCalled();
+      expect(counterAdds).toHaveLength(2);
+      expect(logLines.filter((line) => line.level === 'error')).toHaveLength(2);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   test('a 5xx from a reader is captured -- the slice worth paying to ingest', async () => {
     const fire = await loadPlugin();
 
