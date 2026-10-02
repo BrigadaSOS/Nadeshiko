@@ -36,6 +36,8 @@ Object.assign(process.env, {
   NUXT_ASSET_ARCHIVE_DIR: '',
   NUXT_SITEMAP_SNAPSHOT_DIR: dir,
   OTEL_SDK_DISABLED: 'true',
+  NADESHIKO_POSTHOG_DISABLED: '1',
+  NUXT_POSTHOG_SERVER_CONFIG: JSON.stringify({ disabled: true, enableExceptionAutocapture: false }),
   LOG_LEVEL: 'error',
 });
 let child;
