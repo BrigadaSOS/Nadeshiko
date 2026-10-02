@@ -134,6 +134,7 @@ jobs:
           labels: service=nadeshiko-frontend-prod
           build-args: |
             NUXT_PUBLIC_ENVIRONMENT=production
+            NITRO_PRESET=node_cluster
           secrets: |
             posthog_cli_api_key=${{ secrets.POSTHOG_CLI_API_KEY }}
           cache-from: type=gha,scope=frontend
@@ -332,6 +333,7 @@ jobs:
         run: |
           set -euo pipefail
           cd frontend
+          kamal app exec -d prod --reuse "node verify-runtime.mjs"
           kamal app exec -d prod --reuse "node warm-sitemaps.mjs"
 
       # Anonymous sentence and search HTML is edge-cached for an hour
