@@ -18,3 +18,6 @@ node_modules/
 
 # vitest --coverage output (html report + summary), per workspace
 coverage/
+
+# Root-level Nuxt preparation output
+.nuxt/
