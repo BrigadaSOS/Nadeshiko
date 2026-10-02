@@ -763,6 +763,11 @@ export default defineNuxtConfig({
     ? false
     : {
         cacheMaxAgeSeconds: 86400,
+        // Workers must share warmed sitemaps. Memory storage gives each worker
+        // its own cold copy; pooled warmup connections can repeatedly visit the
+        // same worker for a locale. Keep this cache inside the container so a
+        // new release starts fresh, while worker replacements retain it.
+        runtimeCacheStorage: { driver: 'fs', base: '/tmp/nadeshiko-sitemap-cache' },
         autoI18n: false,
         sitemaps: Object.fromEntries(
           INDEXED_LOCALES.map((locale) => [
