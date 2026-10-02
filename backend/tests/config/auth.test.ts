@@ -195,6 +195,18 @@ describe('sendWelcomeEmailAfterUserCreate', () => {
 });
 
 describe('buildAuthOptions', () => {
+  it('creates API keys with the 100-character labels allowed by our API contract', async () => {
+    const options = buildAuthOptions({ configValues: makeConfig(), production: false });
+    const plugin = options.plugins?.find((entry) => entry.id === 'api-key') as any;
+    const create = vi.fn(async ({ data }) => ({ ...data, id: 'test-key' }));
+    const context = { ...(await auth.$context), adapter: { create, deleteMany: vi.fn(async () => 0) } };
+    const name = 'x'.repeat(100);
+    const key = await plugin.endpoints.createApiKey({ body: { name, userId: '42' }, context });
+    expect(key.name).toBe(name);
+    expect(key.key).toMatch(/^nade_/);
+    expect(create).toHaveBeenCalledOnce();
+  });
+
   it('uses undefined trustedOrigins when ALLOWED_WEBSITE_URLS is blank', () => {
     const options = buildAuthOptions({
       configValues: makeConfig({ ALLOWED_WEBSITE_URLS: '' }),

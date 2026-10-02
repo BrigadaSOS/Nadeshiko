@@ -1,6 +1,6 @@
 import { BaseEntity as TypeOrmBaseEntity, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import type { FindOptionsWhere, SelectQueryBuilder } from 'typeorm';
-import { NotFoundError } from '@app/errors';
+import { InvalidRequestError, NotFoundError } from '@app/errors';
 import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 
 type ConcreteEntity = (new () => BaseEntity) & typeof BaseEntity;
@@ -57,16 +57,27 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
     },
   ) {
     const orderBy = params.orderBy ?? { column: 'id', direction: 'DESC' as const };
-    const qb = params.query();
     const useTiebreaker = orderBy.column !== 'id';
+    const decoded = decodeKeysetCursor<unknown>(params.cursor);
+    if (decoded !== undefined) {
+      const id = useTiebreaker && Array.isArray(decoded) && decoded.length === 2 ? decoded[1] : decoded;
+      // Every entity using this paginator has a PostgreSQL int primary key.
+      // A base64 cursor is untrusted input, not proof that it came from us.
+      if (typeof id !== 'number' || !Number.isInteger(id) || id < 1 || id > 2_147_483_647) {
+        throw new InvalidRequestError('Invalid keyset cursor ID');
+      }
+      if (useTiebreaker && (!Array.isArray(decoded) || decoded.length !== 2)) {
+        throw new InvalidRequestError('Invalid keyset cursor');
+      }
+    }
+    const qb = params.query();
     const op = orderBy.direction === 'DESC' ? '<' : '>';
 
     const countPromise = params.count ? qb.clone().getCount() : undefined;
 
     if (useTiebreaker) {
-      const decoded = decodeKeysetCursor<[unknown, number]>(params.cursor);
       if (decoded !== undefined) {
-        const [cp, ci] = decoded;
+        const [cp, ci] = decoded as [unknown, number];
         qb.andWhere(
           `(${qb.alias}.${orderBy.column} ${op} :cp OR (${qb.alias}.${orderBy.column} = :cp AND ${qb.alias}.id ${op} :ci))`,
           { cp, ci },
@@ -75,7 +86,6 @@ export abstract class BaseEntity extends TypeOrmBaseEntity {
       qb.orderBy(`${qb.alias}.${orderBy.column}`, orderBy.direction);
       qb.addOrderBy(`${qb.alias}.id`, orderBy.direction);
     } else {
-      const decoded = decodeKeysetCursor<unknown>(params.cursor);
       if (decoded !== undefined) {
         qb.andWhere(`${qb.alias}.id ${op} :cursor`, { cursor: decoded });
       }

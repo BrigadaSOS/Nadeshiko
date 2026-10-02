@@ -56,7 +56,7 @@ export function decodeOffsetCursor(cursor?: string | null): number {
   }
 
   const payload = decodeCursorPayload<OffsetCursorPayload>(cursor);
-  if (payload.kind !== 'offset' || !Number.isInteger(payload.skip) || payload.skip < 0) {
+  if (payload?.kind !== 'offset' || !Number.isInteger(payload.skip) || payload.skip < 0) {
     throw new InvalidRequestError('Invalid offset cursor');
   }
 
@@ -73,7 +73,7 @@ export function decodeKeysetCursor<TCursor>(cursor?: string | null): TCursor | u
   }
 
   const payload = decodeCursorPayload<KeysetCursorPayload<TCursor>>(cursor);
-  if (payload.kind !== 'keyset') {
+  if (payload?.kind !== 'keyset' || !Object.hasOwn(payload, 'cursor')) {
     throw new InvalidRequestError('Invalid keyset cursor');
   }
   return payload.cursor;
