@@ -2,6 +2,7 @@
 import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose, mdiPatreon, mdiOpenInNew } from '@mdi/js';
 
 import { PATREON_URL } from '#shared/utils/socialLinks';
+import { SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import type { SearchResult, SearchResponse } from '~/types/search';
@@ -18,6 +19,7 @@ import { escapeCorpusText, safeHighlight } from '~/utils/safeHighlight';
 type Props = {
   searchData: SearchResponse | null;
   isLoading: boolean;
+  failure?: SearchFailure | null;
   highlightedPosition?: number | null;
   collectionId?: string | null;
   hideContextButton?: boolean;
@@ -670,7 +672,7 @@ watch(playingVideoId, (id) => {
       </div>
     </div>
   </div>
-  <div v-else-if="(isLoading && (searchData?.results?.length ?? 0) === 0) || !searchData" class="w-full">
+  <div v-else-if="!failure && ((isLoading && (searchData?.results?.length ?? 0) === 0) || !searchData)" class="w-full">
     <div v-for="i in 10" :key="i"
       class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2">
       <!-- Image placeholder  -->
@@ -705,8 +707,8 @@ watch(playingVideoId, (id) => {
       </div>
     </div>
   </div>
-  <div v-else-if="!isLoading && (searchData?.results?.length ?? 0) === 0">
-    <section class="w-full py-10">
+  <div v-else-if="failure || (!isLoading && (searchData?.results?.length ?? 0) === 0)">
+    <section class="w-full py-10" :role="failure ? 'alert' : undefined" :data-testid="failure ? 'search-failure-notice' : undefined">
       <div class="container flex items-center px-4 mx-auto">
         <div class="w-full align-top items-center">
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
@@ -718,14 +720,16 @@ watch(playingVideoId, (id) => {
                  the same thing twice in two sizes. The `<h1>` is the one that
                  stays: a search with no matches is not a 404, and the heading a
                  crawler reads should be the honest one. -->
-            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchpage.main.labels.noresults') }}</h1>
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t(failure ? SEARCH_FAILURE_MESSAGES[failure.kind].title : 'searchpage.main.labels.noresults') }}</h1>
             <p class="mt-4 text-gray-500 dark:text-gray-400">
-              <i18n-t keypath="segment.noResultsMessage" tag="span">
+              <i18n-t v-if="!failure || failure.kind === 'not-found'" keypath="segment.noResultsMessage" tag="span">
                 <template #link>
                   <a href="https://www.immersionkit.com" target="_blank" rel="noopener noreferrer" class="text-red-400 hover:text-red-300 underline underline-offset-4">immersionkit.com</a>
                 </template>
               </i18n-t>
+              <span v-else>{{ $t(SEARCH_FAILURE_MESSAGES[failure.kind].message) }}</span>
             </p>
+            <slot name="empty-actions" />
             <!-- An empty search is the one moment the corpus visibly falls
                  short, so it is the honest place to say what a reader can do
                  about it. Given its own card rather than a third grey paragraph:

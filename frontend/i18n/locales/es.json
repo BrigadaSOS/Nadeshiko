@@ -3,6 +3,25 @@
     "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
     "rateLimited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
   },
+  "searchErrors": {
+    "invalidRequest": {
+      "title": "Solicitud de búsqueda no válida",
+      "message": "Revisa la expresión de búsqueda y los filtros y vuelve a buscar."
+    },
+    "rateLimited": {
+      "title": "Límite de búsquedas alcanzado",
+      "message": "Demasiadas solicitudes de búsqueda. Espera antes de volver a intentarlo."
+    },
+    "quotaExceeded": {
+      "title": "Límite mensual de búsquedas alcanzado",
+      "message": "Has agotado tu cuota mensual de búsquedas. Vuelve a intentarlo cuando se renueve."
+    },
+    "unavailable": {
+      "title": "Búsqueda no disponible",
+      "message": "No pudimos cargar los datos de búsqueda. Vuelve a intentarlo."
+    },
+    "retry": "Volver a intentar"
+  },
   "navbar": {
     "buttons": {
       "home": "Inicio",
@@ -1031,13 +1050,10 @@
     "pickDeselectAll": "Quitar la selección"
   },
   "searchContainer": {
-    "errorTitle": "Algo salió mal",
     "errorMessage1": "Se produjo un error",
-    "errorMessage2": "Reintenta la búsqueda con el botón de abajo.",
     "retryButton": "Volver a cargar",
     "retrying": "Reintentando…",
     "endOfResults": "No hay más resultados",
-    "loadMore": "Cargar más frases",
     "categoryAll": "Todo",
     "selectedMediaFallback": "Título seleccionado",
     "categoryAnime": "Anime",
@@ -1562,10 +1578,6 @@
   "mediaHeader": {
     "collapse": "Ocultar detalles del título",
     "expand": "Mostrar detalles del título"
-  },
-  "mediaPage": {
-    "resultsFailed": "No hemos podido cargar las frases de este título.",
-    "resultsRetry": "Reintentar"
   },
   "impersonation": {
     "active": "Sesión iniciada como {name}",

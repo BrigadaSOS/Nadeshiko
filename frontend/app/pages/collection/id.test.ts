@@ -17,7 +17,11 @@ import { defineComponent, reactive, ref } from 'vue';
  * that a page on its way out is not a page that failed.
  */
 const reportError = vi.fn();
-vi.mock('~/utils/reportError', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
+vi.mock('~/utils/reportError', () => ({ reportError: (...a: unknown[]) => reportError(...a), reportEvent: vi.fn() }));
+vi.mock('@brigadasos/nadeshiko-sdk', () => ({
+  searchCollectionSegments: (...a: unknown[]) => searchCollectionSegments(...a),
+  getCollectionStats: (...a: unknown[]) => getCollectionStats(...a),
+}));
 
 const searchCollectionSegments = vi.fn();
 const getCollectionStats = vi.fn();
@@ -37,7 +41,8 @@ vi.stubGlobal('defineBreadcrumb', (v: Record<string, unknown>) => v);
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
 vi.stubGlobal('navigateTo', navigateTo);
 vi.stubGlobal('createError', createError);
-vi.stubGlobal('useNadeshikoSdk', () => ({ searchCollectionSegments, getCollectionStats, getCollection }));
+vi.stubGlobal('useNadeshikoSdk', () => ({ getCollection }));
+vi.stubGlobal('useSearchFetch', () => createSearchFetcher({ _sdkClient: {} } as unknown as NadeshikoClient));
 vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown>) => {
   const data = ref<unknown>(null);
   const error = ref<unknown>(null);
@@ -49,10 +54,12 @@ vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown
   return { data, error, refresh: vi.fn(), pending: ref(false) };
 });
 
+import { createSearchFetcher } from '~/composables/useSearchFetch';
+import type { NadeshikoClient } from '@brigadasos/nadeshiko-sdk';
 import CollectionPage from './[id].vue';
 
 const ok = (body: unknown) => ({ data: body });
-const fail = (status: number) => ({ error: new Error('x'), response: { status } });
+const fail = (status: number) => ({ error: new Error('x'), response: new Response(null, { status }) });
 
 const payload = () => ({
   segments: [],
@@ -71,7 +78,16 @@ async function render() {
   const wrapper = mount(Host, {
     global: {
       mocks: { $t: (k: string) => k },
-      stubs: { SearchContainer: true, NuxtLink: { props: ['to'], template: '<a><slot /></a>' }, UiBaseIcon: true },
+      stubs: {
+        SearchBaseInputSegment: true,
+        SearchContainer: {
+          name: 'SearchContainer',
+          props: ['initialSentenceOutcome', 'initialStatsOutcome'],
+          template: '<div />',
+        },
+        NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
+        UiBaseIcon: true,
+      },
     },
   });
   mounted.push(wrapper);
@@ -159,9 +175,22 @@ describe('a fetch that simply fell over', () => {
     await render();
 
     expect(reportError).toHaveBeenCalledWith(
-      'collection:sentences-fetch-failed',
+      'search:sentences-fetch-failed',
       expect.anything(),
-      expect.objectContaining({ 'collection.publicId': 'c1' }),
+      expect.objectContaining({ 'search.scope': 'collection' }),
     );
+  });
+});
+
+describe('primed collection statistics', () => {
+  test('passes a safe stats failure through to the shared search UI', async () => {
+    getCollectionStats.mockResolvedValueOnce({
+      error: { detail: 'private database details' },
+      response: new Response(null, { status: 500 }),
+    });
+    const wrapper = await render();
+    const outcome = wrapper.findComponent({ name: 'SearchContainer' }).props('initialStatsOutcome');
+    expect(outcome).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
+    expect(JSON.stringify(outcome)).not.toContain('private');
   });
 });

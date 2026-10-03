@@ -15,6 +15,7 @@ import {
 // now maps `~` too, so this is belt-and-braces rather than a hard requirement.
 import { ALL_CATEGORIES, CATEGORY_API_MAPPING } from '../utils/categories';
 import { reportError, reportEvent } from '../utils/reportError';
+import { classifySearchFailure, type SearchFailure, type SearchFetchScope } from '../utils/searchFailure';
 import { resolveSearchResponse, resolveStatsResponse } from '../utils/resolvers';
 import type { MediaFilterItem, SearchResponse, SearchStatsResponse } from '~/types/search';
 import type { InjectionKey, Ref } from 'vue';
@@ -68,7 +69,7 @@ export type FetchOutcome<T> =
   | { status: 'ok'; data: T }
   | { status: 'stale' }
   | { status: 'forbidden' }
-  | { status: 'error' };
+  | { status: 'error'; failure: SearchFailure };
 
 export type RequestGeneration = { id: number; signal: AbortSignal };
 
@@ -329,63 +330,37 @@ const isCloudflareEdgeFailure = (response: Response | undefined): boolean =>
   response !== undefined && response.status >= 520 && response.status <= 526;
 
 /**
- * A response that came back without a body. 401/403 is the server telling the
- * caller "not yours" -- expected, and reporting it only buys noise: Cloudflare
- * challenges and expired sessions both land here, from clients we cannot fix.
- *
- * Everything else is reported HERE rather than by the caller, because this is
- * the last place holding the status code. The page used to synthesize its own
- * `new Error("... returned \"error\"")` from the bare outcome instead, which
- * fingerprinted separately, carried no stack, and double-counted every failure
- * the catch below had already reported with a real one.
+ * Normalize a failed request once, before either the client UI or SSR stores it.
+ * Error bodies are deliberately not consumed: only status and a known quota
+ * header can select frontend-owned, translated messages.
  */
-const emptyResponseOutcome = (
-  scope: 'collection' | 'corpus' | 'segment',
+const failedResponseOutcome = (
+  scope: SearchFetchScope,
   kind: 'sentences' | 'stats',
   response: Response | undefined,
-): { status: 'forbidden' } | { status: 'error' } => {
-  if (isForbidden(response)) {
-    return { status: 'forbidden' };
-  }
+): { status: 'forbidden' } | { status: 'error'; failure: SearchFailure } => {
+  if (isForbidden(response)) return { status: 'forbidden' };
 
-  // 429 is the server asking for less. Answered by backing off, not by a fix
-  // here, and the server already counts its own throttling -- so this one is
-  // dropped outright rather than reported anywhere.
-  if (response?.status === 429) {
-    return { status: 'error' };
-  }
+  const failure = classifySearchFailure(response?.status, scope, response?.headers.get('X-RateLimit-Reason'));
+  const outcome = { status: 'error', failure } as const;
 
-  // A transport failure or Cloudflare edge failure is COUNTED, not filed as an
-  // exception. Both search requests fail together when either happens, and two
-  // exceptions make one edge incident look like two application bugs. As
-  // triaged issues they are unactionable noise, which is what buried the
-  // reports that are not.
-  //
-  // They are still worth counting, and dropping them entirely was the wrong
-  // trade: if the edge fails while the origin is healthy, server-side metrics
-  // look fine and this is the only place the outage is visible. Faro used to
-  // take them as one more exception in a stream nobody triaged; with Faro gone
-  // (2026-08-23) they go to PostHog as a plain event instead, where a spike is
-  // still a spike and the issue list stays about things with a fix.
-  //
-  // ~127 a week, so the event volume is negligible.
+  // Expected client errors are already counted by the backend, not application faults.
+  if (failure.kind !== 'unavailable') return outcome;
+
   if (isTransportFailure(response) || isCloudflareEdgeFailure(response)) {
     reportEvent('search_fetch_failed', {
       'search.kind': kind,
       'search.scope': scope,
       'http.status_code': String(response?.status ?? 0),
     });
-    return { status: 'error' };
+    return outcome;
   }
 
-  // The status code stays OUT of the message and in the properties: it is the one
-  // part that varies, and interpolating it would fingerprint 500 apart from 503
-  // and scatter one fault across an issue per status code.
-  reportError(`search:${kind}-fetch-failed`, new Error(`search ${kind} fetch returned an empty response`), {
+  reportError(`search:${kind}-fetch-failed`, new Error(`search ${kind} request failed`), {
     'search.scope': scope,
     'http.status_code': String(response?.status ?? 0),
   });
-  return { status: 'error' };
+  return outcome;
 };
 
 /**
@@ -416,7 +391,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         if (stale()) return { status: 'stale' };
         const segment = segmentResult.data;
         if (!segment) {
-          return emptyResponseOutcome('segment', 'sentences', segmentResult.response);
+          return failedResponseOutcome('segment', 'sentences', segmentResult.response);
         }
 
         const mediaResult = await getMedia({
@@ -448,7 +423,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         });
         if (stale()) return { status: 'stale' };
         if (!result.data) {
-          return emptyResponseOutcome('collection', 'sentences', result.response);
+          return failedResponseOutcome('collection', 'sentences', result.response);
         }
         return { status: 'ok', data: resolveSearchResponse(result.data) };
       }
@@ -468,16 +443,16 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
       });
       if (stale()) return { status: 'stale' };
       if (!result.data) {
-        return emptyResponseOutcome('corpus', 'sentences', result.response);
+        return failedResponseOutcome('corpus', 'sentences', result.response);
       }
       return { status: 'ok', data: resolveSearchResponse(result.data) };
-    } catch (error) {
+    } catch {
       // A superseded request rejects because we aborted it, which is not a failure.
       if (stale()) return { status: 'stale' };
-      reportError('search:sentences-fetch-failed', error, {
+      reportError('search:sentences-fetch-failed', new Error('search sentences response could not be resolved'), {
         'search.scope': scope.collectionId ? 'collection' : 'corpus',
       });
-      return { status: 'error' };
+      return { status: 'error', failure: { kind: 'unavailable' } };
     }
   };
 
@@ -501,7 +476,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
         });
         if (stale()) return { status: 'stale' };
         if (!result.data) {
-          return emptyResponseOutcome('collection', 'stats', result.response);
+          return failedResponseOutcome('collection', 'stats', result.response);
         }
         return { status: 'ok', data: resolveStatsResponse(result.data) };
       }
@@ -519,14 +494,16 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
       });
       if (stale()) return { status: 'stale' };
       if (!result.data) {
-        return emptyResponseOutcome('corpus', 'stats', result.response);
+        return failedResponseOutcome('corpus', 'stats', result.response);
       }
       return { status: 'ok', data: resolveStatsResponse(result.data) };
-    } catch (error) {
+    } catch {
       // A superseded request rejects because we aborted it, which is not a failure.
       if (stale()) return { status: 'stale' };
-      reportError('search:stats-fetch-failed', error, { 'search.scope': scope.collectionId ? 'collection' : 'corpus' });
-      return { status: 'error' };
+      reportError('search:stats-fetch-failed', new Error('search stats response could not be resolved'), {
+        'search.scope': scope.collectionId ? 'collection' : 'corpus',
+      });
+      return { status: 'error', failure: { kind: 'unavailable' } };
     }
   };
 
