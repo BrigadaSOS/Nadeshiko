@@ -859,6 +859,7 @@
     },
     "anki": {
       "syncStatus": "接続状況",
+      "testConnection": "接続テスト",
       "loading": "読み込み中...",
       "loadingMessage": "Ankiに接続しています。しばらくお待ちください。",
       "connectionSuccess": "Ankiに接続しました",
@@ -897,7 +898,6 @@
       "profileNamePlaceholder": "プロファイル名",
       "deleteProfile": "削除",
       "openBrowserOnExport": "書き出し時にAnkiのカード一覧を開く",
-      "saving": "保存中...",
       "saved": "保存しました",
       "modal": {
         "cancel": "キャンセル",

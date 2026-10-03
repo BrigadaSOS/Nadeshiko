@@ -859,6 +859,7 @@
     },
     "anki": {
       "syncStatus": "連線狀態",
+      "testConnection": "測試連線",
       "loading": "連線中…",
       "loadingMessage": "正在連線，請稍候。",
       "connectionSuccess": "連線成功",
@@ -897,7 +898,6 @@
       "renameProfile": "重新命名",
       "profileNamePlaceholder": "設定名稱",
       "deleteProfile": "刪除",
-      "saving": "儲存中…",
       "saved": "已儲存",
       "modal": {
         "cancel": "取消",
