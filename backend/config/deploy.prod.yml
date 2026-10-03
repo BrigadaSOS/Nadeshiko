@@ -12,6 +12,9 @@ servers:
       init: true
 
 proxy:
+  # Leave the Tailscale address available for the private Caddy proxy.
+  run:
+    bind_ips: [127.0.0.1, 172.17.0.1]
   ssl: true
   host: api.nadeshiko.co
   forward_headers: true
