@@ -102,22 +102,11 @@
           }
         }
       }
-    },
-    {
-      // Vue SFCs: the compiler consumes `defineProps`/`defineEmits` bindings,
-      // and template-only identifiers that Biome cannot see are used.
-      "includes": ["frontend/**/*.vue"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedVariables": "off",
-            "noUnusedImports": "off",
-            "noUnusedFunctionParameters": "off"
-          }
-        }
-      }
     }
   ],
+  "html": {
+    "experimentalFullSupportEnabled": true
+  },
   "css": {
     "parser": {
       "tailwindDirectives": true

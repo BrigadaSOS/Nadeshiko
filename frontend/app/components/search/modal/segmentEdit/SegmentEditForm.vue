@@ -26,6 +26,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const fieldId = useId();
 
 const statusOptions = [
   { value: 'ACTIVE', color: 'green' },
@@ -103,10 +104,11 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
 
     <!-- Japanese -->
     <div>
-      <label class="block text-sm font-medium text-gray-300 mb-1">
+      <label :for="`${fieldId}-ja`" class="block text-sm font-medium text-gray-300 mb-1">
         {{ t('modalSegmentEdit.japanese') }}
       </label>
       <textarea
+        :id="`${fieldId}-ja`"
         v-model="form.ja"
         lang="ja"
         :maxlength="TEXT_MAX_LENGTH"
@@ -121,7 +123,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
     <!-- English -->
     <div>
       <div class="flex items-center justify-between mb-1">
-        <label class="text-sm font-medium text-gray-300">
+        <label :for="`${fieldId}-en`" class="text-sm font-medium text-gray-300">
           {{ t('modalSegmentEdit.english') }}
         </label>
         <label class="toggle-switch">
@@ -131,6 +133,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         </label>
       </div>
       <textarea
+        :id="`${fieldId}-en`"
         v-model="form.en"
         :maxlength="TEXT_MAX_LENGTH"
         rows="2"
@@ -144,7 +147,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
     <!-- Spanish -->
     <div>
       <div class="flex items-center justify-between mb-1">
-        <label class="text-sm font-medium text-gray-300">
+        <label :for="`${fieldId}-es`" class="text-sm font-medium text-gray-300">
           {{ t('modalSegmentEdit.spanish') }}
         </label>
         <label class="toggle-switch">
@@ -154,6 +157,7 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
         </label>
       </div>
       <textarea
+        :id="`${fieldId}-es`"
         v-model="form.es"
         :maxlength="TEXT_MAX_LENGTH"
         rows="2"
@@ -165,14 +169,15 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
     </div>
 
     <!-- Position + Timing -->
-    <div>
-      <label class="block text-sm font-medium text-gray-300 mb-2">
+    <fieldset class="min-w-0">
+      <legend class="block text-sm font-medium text-gray-300 mb-2">
         {{ t('modalSegmentEdit.timing') }}
-      </label>
+      </legend>
       <div class="grid grid-cols-3 gap-3">
         <div>
-          <label class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.position') }}</label>
+          <label :for="`${fieldId}-position`" class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.position') }}</label>
           <input
+            :id="`${fieldId}-position`"
             v-model.number="form.position"
             type="number"
             min="0"
@@ -180,8 +185,9 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
           />
         </div>
         <div>
-          <label class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.startTimeMs') }}</label>
+          <label :for="`${fieldId}-startTimeMs`" class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.startTimeMs') }}</label>
           <input
+            :id="`${fieldId}-startTimeMs`"
             v-model.number="form.startTimeMs"
             type="number"
             min="0"
@@ -189,8 +195,9 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
           />
         </div>
         <div>
-          <label class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.endTimeMs') }}</label>
+          <label :for="`${fieldId}-endTimeMs`" class="block text-xs text-neutral-500 mb-1">{{ t('modalSegmentEdit.endTimeMs') }}</label>
           <input
+            :id="`${fieldId}-endTimeMs`"
             v-model.number="form.endTimeMs"
             type="number"
             min="0"
@@ -198,13 +205,13 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
           />
         </div>
       </div>
-    </div>
+    </fieldset>
 
     <!-- Status -->
-    <div>
-      <label class="block text-sm font-medium text-gray-300 mb-2">
+    <fieldset class="min-w-0">
+      <legend class="block text-sm font-medium text-gray-300 mb-2">
         {{ t('modalSegmentEdit.status') }}
-      </label>
+      </legend>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="opt in statusOptions"
@@ -216,13 +223,13 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
           {{ t(`segment.status.${opt.value}`) }}
         </button>
       </div>
-    </div>
+    </fieldset>
 
     <!-- Content Rating -->
-    <div>
-      <label class="block text-sm font-medium text-gray-300 mb-2">
+    <fieldset class="min-w-0">
+      <legend class="block text-sm font-medium text-gray-300 mb-2">
         {{ t('modalSegmentEdit.contentRating') }}
-      </label>
+      </legend>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="opt in contentRatingOptions"
@@ -234,18 +241,19 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
           {{ t(`segment.contentRating.${opt.value}`) }}
         </button>
       </div>
-    </div>
+    </fieldset>
 
     <!-- Rating Analysis -->
     <div>
       <div class="flex items-center justify-between mb-1">
-        <label class="text-sm font-medium text-gray-300">
+        <label :for="`${fieldId}-ratingAnalysisJson`" class="text-sm font-medium text-gray-300">
           {{ t('modalSegmentEdit.ratingAnalysis') }}
         </label>
         <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
       </div>
       <p class="text-xs text-neutral-500 mb-1.5">{{ t('modalSegmentEdit.ratingAnalysisDesc') }}</p>
       <textarea
+        :id="`${fieldId}-ratingAnalysisJson`"
         v-model="form.ratingAnalysisJson"
         rows="6"
         class="w-full rounded-lg border bg-neutral-900 text-neutral-200 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-input-focus-ring focus:border-transparent"

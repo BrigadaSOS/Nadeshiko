@@ -325,7 +325,7 @@ useSchemaOrg(
             class="mx-4 md:mx-0 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm"
           >
             <span class="text-red-200">{{ t('mediaPage.resultsFailed') }}</span>
-            <button class="nd-btn" @click="reloadResults">{{ t('mediaPage.resultsRetry') }}</button>
+            <button type="button" class="nd-btn" @click="reloadResults">{{ t('mediaPage.resultsRetry') }}</button>
           </div>
 
           <SearchContainer

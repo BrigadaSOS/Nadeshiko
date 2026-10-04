@@ -14,7 +14,7 @@ const { t } = useI18n();
 
 <template>
   <div class="flex flex-wrap gap-1.5">
-    <button
+    <button type="button"
       :class="[
         'px-2.5 py-1 text-xs font-medium rounded-md border transition-colors',
         modelValue === null
@@ -25,7 +25,7 @@ const { t } = useI18n();
     >
       {{ t('accountSettings.activity.filters.all') }}
     </button>
-    <button
+    <button type="button"
       v-for="type in ACTIVITY_TYPES"
       :key="type"
       :class="[

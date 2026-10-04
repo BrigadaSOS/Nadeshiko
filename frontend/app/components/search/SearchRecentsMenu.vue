@@ -66,6 +66,7 @@ const localePath = useLocalePath();
     top 28px down against a 24px reach, and the strip above the seam scans a
     uniform `rgb(47,47,47)`.
   -->
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions: keeps focus in the combobox -->
   <div
     class="absolute inset-x-0 top-full z-40 -mt-px overflow-hidden rounded-b-lg border border-t-0 bg-input-background shadow-[0_20px_24px_-8px_rgba(0,0,0,0.6)] transition-colors duration-200 ease-out motion-reduce:transition-none"
     :class="accented ? 'border-open' : 'border-hairline'"
@@ -103,12 +104,13 @@ const localePath = useLocalePath();
          below it that reads as the hover being misaligned rather than as
          breathing room. The card's own `overflow-hidden` clips the last row to
          the rounded bottom. -->
+    <!-- biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: combobox listbox -->
     <ul :id="RECENTS_LISTBOX_ID" role="listbox" :aria-label="t('searchRecents.title')">
-      <li
+      <!-- biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole lint/a11y/useFocusableInteractive lint/a11y/useKeyWithClickEvents: option driven by aria-activedescendant -->
+      <li role="option"
         v-for="(item, index) in items"
         :id="recentOptionId(index)"
         :key="item.query"
-        role="option"
         :aria-selected="index === activeIndex"
         data-testid="search-recents-item"
         class="group flex cursor-pointer items-center gap-3 px-4 py-2 text-sm"

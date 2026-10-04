@@ -12,7 +12,6 @@ import {
   mdiPencil,
   mdiPlus,
   mdiText,
-  mdiVideo,
   mdiVolumeHigh,
 } from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
@@ -23,10 +22,9 @@ import { copyToClipboard } from '~/utils/media';
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
+const fieldId = useId();
 
 const store = ankiStore();
-const user_store = userStore();
-
 const isError = ref(false);
 const isLoading = ref(false);
 const isSuccess = ref(false);
@@ -458,9 +456,9 @@ watch(canEditProfile, (editable) => {
     <div class="nd-settings-card">
         <h3 class="nd-settings-title">{{ $t('accountSettings.anki.syncStatus') }}</h3>
         <div class="mt-4">
-          <label class="block mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
+          <label :for="`${fieldId}-ankiconnectAddress`" class="block mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
           <div class="flex items-center gap-3">
-            <input v-model="ankiconnectAddress" data-testid="anki-address" :disabled="isLoading"
+            <input :id="`${fieldId}-ankiconnectAddress`" v-model="ankiconnectAddress" data-testid="anki-address" :disabled="isLoading"
               @focus="cancelAddressSave" @blur="scheduleAddressSave"
               class="nd-input min-w-0 flex-1 resize-none" />
             <button type="button" class="nd-btn shrink-0" data-testid="anki-test-connection" :disabled="isLoading || isSaving" @click="fetchAndLoad">
@@ -470,8 +468,9 @@ watch(canEditProfile, (editable) => {
         </div>
 
         <div class="mt-4 flex items-center gap-3">
+          <!-- biome-ignore lint/a11y/noLabelWithoutControl: named by the bound aria-label -->
           <label class="relative inline-flex items-center cursor-pointer">
-            <input v-model="openBrowserOnExport" :disabled="!canEditProfile" type="checkbox" class="sr-only peer" />
+            <input v-model="openBrowserOnExport" :disabled="!canEditProfile" type="checkbox" class="sr-only peer" :aria-label="$t('accountSettings.anki.openBrowserOnExport')" />
             <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-button-accent-main transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
           </label>
           <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.openBrowserOnExport') }}</span>
@@ -516,7 +515,7 @@ watch(canEditProfile, (editable) => {
           <div v-if="isError" role="alert"
             class="rounded bg-red-50 p-4 dark:bg-red-900/70">
             <div class="flex items-center gap-2 text-red-800 dark:text-red-100">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
                 <path fill-rule="evenodd"
                   d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
                   clip-rule="evenodd" />
@@ -566,7 +565,7 @@ watch(canEditProfile, (editable) => {
              contents rather than by the card -- three buttons that do not fit
              then push past the card's edge instead of moving to a second line. -->
         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-          <button
+          <button type="button"
             class="nd-btn"
             :disabled="isSaving || !canEditProfile"
             @click="openRenameModal"
@@ -574,7 +573,7 @@ watch(canEditProfile, (editable) => {
             <UiBaseIcon :path="mdiPencil" size="16" />
             {{ $t('accountSettings.anki.renameProfile') }}
           </button>
-          <button
+          <button type="button"
             class="nd-btn-accent"
             :disabled="isSaving || !canEditProfile"
             @click="openCreateModal"
@@ -582,7 +581,7 @@ watch(canEditProfile, (editable) => {
             <UiBaseIcon :path="mdiPlus" size="16" />
             {{ $t('accountSettings.anki.newProfile') }}
           </button>
-          <button
+          <button type="button"
             v-if="store.profiles.length > 1"
             class="nd-btn-danger"
             :disabled="isSaving || !canEditProfile"
@@ -615,8 +614,8 @@ watch(canEditProfile, (editable) => {
         <div class="mt-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
             <div class="flex-grow">
-              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
-              <select v-model="selectedDeck" data-testid="anki-deck-select"
+              <label :for="`${fieldId}-selectedDeck`" class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
+              <select :id="`${fieldId}-selectedDeck`" v-model="selectedDeck" data-testid="anki-deck-select"
                 class="nd-input resize-none">
                 <option value="">{{ $t('accountSettings.anki.selectDeck') }}</option>
                 <option v-for="(option, index) in displayedDecks" :key="index" :value="option">
@@ -625,8 +624,8 @@ watch(canEditProfile, (editable) => {
               </select>
             </div>
             <div class="flex-grow">
-              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
-              <select v-model="selectedModel" data-testid="anki-model-select"
+              <label :for="`${fieldId}-selectedModel`" class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
+              <select :id="`${fieldId}-selectedModel`" v-model="selectedModel" data-testid="anki-model-select"
                 class="nd-input resize-none">
                 <option value="">{{ $t('accountSettings.anki.selectModel') }}</option>
                 <option v-for="(option, index) in displayedModels" :key="index" :value="option">
@@ -640,8 +639,8 @@ watch(canEditProfile, (editable) => {
         <div class="mt-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
             <div class="flex-grow">
-              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
-              <select v-model="modelKey" data-testid="anki-key-field-select"
+              <label :for="`${fieldId}-modelKey`" class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
+              <select :id="`${fieldId}-modelKey`" v-model="modelKey" data-testid="anki-key-field-select"
                 class="nd-input resize-none">
                 <option :value="null">{{ $t('accountSettings.anki.selectKeyField') }}</option>
                 <option v-for="(option, index) in displayedKeys" :key="index" :value="option">
@@ -863,7 +862,7 @@ watch(canEditProfile, (editable) => {
             <div class="flex items-center text-center h-96 dark:border-gray-700 bg-input-backgroundhover">
               <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
                 <div class="p-3 mx-auto text-sred bg-blue-100 rounded-full dark:bg-input-background">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                     stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -926,13 +925,13 @@ watch(canEditProfile, (editable) => {
         v-on="nameModalEnterSubmit"
       />
       <div class="flex justify-end gap-2 mt-4">
-        <button
+        <button type="button"
           class="nd-btn"
           @click="showNameModal = false"
         >
           {{ $t('accountSettings.anki.modal.cancel') }}
         </button>
-        <button
+        <button type="button"
           class="nd-btn-accent bg-red-500 hover:bg-red-600"
           :disabled="!nameModalInput.trim()"
           @click="confirmNameModal"

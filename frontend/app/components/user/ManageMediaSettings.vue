@@ -165,7 +165,7 @@ const onToggleHidden = async (media: MarkedMedia) => {
         :placeholder="t('accountSettings.account.mediaLookupPlaceholder')"
         class="nd-input pl-9 pr-10"
       />
-      <button
+      <button type="button"
         v-if="query"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white"
         @click="query = ''"

@@ -10,7 +10,6 @@ import { MOTION_LEVELS, type MotionLevel } from '~/composables/useMotionPreferen
 import { normalizeTranslationLanguages, type TranslationLanguage } from '~/composables/useTranslationLanguages';
 
 import type { UserSession } from '@/stores/auth';
-import type { SearchResult } from '~/types/search';
 import { useToastSuccess } from '~/utils/toast';
 import { handleApiError } from '~/utils/apiError';
 import { DEFINITION_SIZES, definitionSize } from '~/utils/wordPopup';
@@ -507,7 +506,7 @@ const logoutCurrentUser = async () => {
   <div class="nd-settings-card">
     <div class="flex items-center justify-between gap-2">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.infoTitle') }}</h3>
-      <button
+      <button type="button"
         data-testid="account-sign-out"
         class="nd-btn-accent"
         :disabled="loggingOut"
@@ -539,14 +538,14 @@ const logoutCurrentUser = async () => {
                 :disabled="changingEmail"
                 @keyup.enter="requestEmailChange"
               />
-              <button
+              <button type="button"
                 class="nd-btn"
                 :disabled="changingEmail || !newEmail.trim()"
                 @click="requestEmailChange"
               >
                 {{ changingEmail ? $t('accountSettings.account.changeEmailSending') : $t('accountSettings.account.changeEmailSend') }}
               </button>
-              <button
+              <button type="button"
                 class="nd-btn"
                 @click="editingEmail = false; changeEmailError = ''"
               >
@@ -557,7 +556,7 @@ const logoutCurrentUser = async () => {
           <p v-if="changeEmailMessage" class="text-green-400 text-sm mt-1">{{ changeEmailMessage }}</p>
           <p v-if="changeEmailError" class="text-red-300 text-sm mt-1">{{ changeEmailError }}</p>
         </div>
-        <button
+        <button type="button"
           v-if="!editingEmail"
           class="nd-btn"
           @click="editingEmail = true; newEmail = ''; changeEmailMessage = ''; changeEmailError = ''"
@@ -574,21 +573,21 @@ const logoutCurrentUser = async () => {
     <div class="flex flex-wrap items-center gap-2 justify-between">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.sessions.title') }}</h3>
       <div class="flex flex-wrap gap-2">
-        <button
+        <button type="button"
           class="nd-btn"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="refreshSessions()"
         >
           {{ $t('accountSettings.account.sessions.refresh') }}
         </button>
-        <button
+        <button type="button"
           class="nd-btn"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeOtherUserSessions"
         >
           {{ $t('accountSettings.account.sessions.logoutOtherDevices') }}
         </button>
-        <button
+        <button type="button"
           class="nd-btn-accent"
           :disabled="sessionsLoading || sessionsActionLoading"
           @click="revokeAllUserSessions"
@@ -629,7 +628,7 @@ const logoutCurrentUser = async () => {
               <span class="md:hidden">{{ $t('accountSettings.account.sessions.table.expires') }}: </span>{{ formatDate(session.expiresAt, 'dateTime') }}
             </td>
             <td class="order-4 ml-auto text-sm md:ml-0 md:table-cell md:py-3 md:text-right">
-              <button
+              <button type="button"
                 v-if="!isCurrentSession(session.token)"
                 class="nd-btn-accent"
                 :disabled="sessionsActionLoading"
@@ -870,7 +869,7 @@ const logoutCurrentUser = async () => {
           <p class="text-white font-medium">{{ $t('accountSettings.emails.allTitle') }}</p>
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.emails.allDescription') }}</p>
         </div>
-        <button
+        <button type="button"
           data-testid="product-emails-toggle"
           :aria-label="$t('accountSettings.emails.allTitle')"
           :disabled="togglingProductEmails"
@@ -903,7 +902,7 @@ const logoutCurrentUser = async () => {
             <p class="text-white">{{ $t(`accountSettings.emails.${category}Title`) }}</p>
             <p class="text-gray-400 text-sm">{{ $t(`accountSettings.emails.${category}Description`) }}</p>
           </div>
-          <button
+          <button type="button"
             :data-testid="`email-category-${category}`"
             :aria-label="$t(`accountSettings.emails.${category}Title`)"
             :disabled="!productEmailsEnabled || togglingCategory !== null"
@@ -936,7 +935,7 @@ const logoutCurrentUser = async () => {
           <p class="text-white">{{ $t('accountSettings.account.exportData') }}</p>
           <p class="text-gray-400 text-sm">{{ $t('accountSettings.account.exportDataDescription') }}</p>
         </div>
-        <button
+        <button type="button"
           data-testid="account-export"
           class="nd-btn"
           :disabled="exportingData"
@@ -949,7 +948,7 @@ const logoutCurrentUser = async () => {
         <div>
           <p class="text-white">{{ $t('accountSettings.account.deleteAccount') }}</p>
         </div>
-        <button
+        <button type="button"
           data-testid="account-delete"
           class="nd-btn-accent"
           :disabled="deletingAccount"

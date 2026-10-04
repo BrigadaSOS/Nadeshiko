@@ -166,7 +166,7 @@ useHead(() => ({
           <template v-if="isBlogPost">
             <h1 class="blog-title" :lang="contentLang">{{ title }}</h1>
             <time v-if="contentDate" class="blog-date" :datetime="contentDate">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {{ d(new Date(contentDate), 'dateUtc') }}
@@ -183,7 +183,7 @@ useHead(() => ({
               :to="localePath('/blog')"
               class="inline-flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors duration-200 group"
             >
-              <svg class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" class="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
               <span>{{ t('blog.backToBlog') }}</span>
@@ -354,15 +354,6 @@ useHead(() => ({
   }
 }
 
-.content-markdown.is-changelog :deep(h3) {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-top: 1.5rem;
-  margin-bottom: 0.625rem;
-}
-
 .content-markdown.is-changelog :deep(p em:only-child) {
   color: #9ca3af;
   font-size: 1rem;
@@ -375,6 +366,15 @@ useHead(() => ({
   margin-bottom: 1rem;
   color: var(--button-color-accent);
   line-height: 1.4;
+}
+
+.content-markdown.is-changelog :deep(h3) {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 1.5rem;
+  margin-bottom: 0.625rem;
 }
 
 @media (min-width: 768px) {

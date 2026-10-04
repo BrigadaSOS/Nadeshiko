@@ -63,7 +63,7 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
           <p class="text-white font-medium">{{ t('accountSettings.activity.privacy.trackingTitle') }}</p>
           <p class="text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.trackingDescription') }}</p>
         </div>
-        <button
+        <button type="button"
           data-testid="activity-tracking-toggle"
           :disabled="toggling"
           :aria-pressed="trackingEnabled"
@@ -87,7 +87,7 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
           <p class="text-white font-medium">{{ t('accountSettings.activity.privacy.clearHistoryTitle') }}</p>
           <p class="text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.clearHistoryDescription') }}</p>
         </div>
-        <button
+        <button type="button"
           data-testid="activity-history-clear"
           class="nd-btn-accent"
           :disabled="clearing"
@@ -108,7 +108,7 @@ const displayMediaName = (entry: FamiliarMediaEntry): string =>
           <p class="text-white font-medium">{{ t('accountSettings.activity.privacy.familiarTitle') }}</p>
           <p class="text-gray-400 text-sm">{{ t('accountSettings.activity.privacy.familiarDescription') }}</p>
         </div>
-        <button
+        <button type="button"
           data-testid="familiar-media-toggle"
           :disabled="togglingFamiliar"
           :aria-pressed="familiarEnabled"

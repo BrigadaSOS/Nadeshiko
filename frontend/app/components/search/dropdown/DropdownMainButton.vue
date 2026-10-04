@@ -10,7 +10,7 @@
         @click="dropdown?.toggle()"
     >
         <slot></slot>
-        <svg
+        <svg aria-hidden="true"
             v-if="showChevron"
             class="size-4 transition-transform duration-300"
             :class="{ 'rotate-180': dropdown?.isOpen.value }"

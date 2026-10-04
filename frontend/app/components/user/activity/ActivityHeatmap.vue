@@ -154,6 +154,7 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
             <div class="heatmap-month-label text-xs text-gray-400">{{ group.label }}</div>
             <!-- Days grid for this month -->
             <div class="heatmap-grid grid grid-flow-col grid-rows-7">
+              <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: day filter is pointer-only until the grid gets arrow-key navigation -->
               <div
                 v-for="day in group.days"
                 :key="day.key"

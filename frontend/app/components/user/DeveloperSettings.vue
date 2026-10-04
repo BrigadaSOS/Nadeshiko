@@ -7,6 +7,7 @@ import { normalizeApiKey, API_KEY_SCOPES, READ_ONLY_API_KEY_SCOPES, FULL_ACCOUNT
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
+const fieldId = useId();
 const { formatDate } = useFormat();
 const api_store = apiStore();
 const sdk = useNadeshikoSdk();
@@ -252,7 +253,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                 <div class="flex w-full h-6 bg-gray-200 rounded-lg overflow-hidden dark:bg-neutral-600" role="progressbar"
                     aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
                     <div class="flex flex-col justify-center overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500 dark:bg-gray-300"
-                        :style="{ width: quotaPercentage + '%' }"></div>
+                        :style="{ width: `${quotaPercentage}%` }"></div>
                 </div>
                 <div class="w-8 items-center align-middle text-center flex">
                     <span class="text-sm text-gray-800 dark:text-white">{{ quotaPercentage.toFixed(0) }}%</span>
@@ -291,7 +292,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                 <h3 class="nd-settings-title">{{ $t('accountSettings.developer.apiKeyManagement') }}</h3>
             </div>
             <div class="ml-auto">
-                <button
+                <button type="button"
                     class="nd-btn-accent" data-testid="add-api-key-button" @click="openCreateModal">
                     <UiBaseIcon display="inline" :path="mdiPlus" fill="#DDDF" w="w-5" h="h-5" size="20"/>
                     {{ $t('accountSettings.developer.addApiKey') }}
@@ -454,7 +455,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                     <div class="flex items-center text-center h-96 dark:border-gray-700 bg-card-background">
                         <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
                             <div class="p-3 mx-auto text-sred bg-blue-100 rounded-full dark:bg-sgray">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                     stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -489,7 +490,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                         @click="closeCreateModal"
                     >
                         <span class="sr-only">{{ t('common.close') }}</span>
-                        <svg
+                        <svg aria-hidden="true"
                             class="w-3.5 h-3.5"
                             width="8"
                             height="8"
@@ -511,10 +512,11 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                 <div class="overflow-y-auto p-4">
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label :for="`${fieldId}-modalKeyName`" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {{ $t('accountSettings.developer.createApiKeyModal.nameLabel') }}
                             </label>
                             <input
+                                :id="`${fieldId}-modalKeyName`"
                                 v-model="modalKeyName"
                                 type="text"
                                 class="nd-input"
@@ -523,10 +525,10 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                             />
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <fieldset class="min-w-0">
+                            <legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {{ $t('accountSettings.developer.createApiKeyModal.scopesLabel') }}
-                            </label>
+                            </legend>
                             <div class="flex flex-col gap-2">
                                 <label
                                     v-for="preset in (['readOnly', 'fullAccount', 'custom'] as const)"
@@ -565,7 +567,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                                     {{ $t('accountSettings.developer.createApiKeyModal.scopesRequired') }}
                                 </p>
                             </div>
-                        </div>
+                        </fieldset>
                     </div>
                 </div>
                 <div
@@ -601,7 +603,7 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                         @click="closeRenameModal"
                     >
                         <span class="sr-only">{{ t('common.close') }}</span>
-                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg aria-hidden="true" class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M0.772004 0.772004C0.907186 0.636856 1.08918 0.560669 1.279 0.560669C1.46882 0.560669 1.65081 0.636856 1.786 0.772004L6.228 5.21401C6.36315 5.34919 6.43933 5.53119 6.43933 5.72101C6.43933 5.91082 6.36315 6.09282 6.228 6.22801C6.09282 6.36315 5.91082 6.43933 5.721 6.43933C5.53119 6.43933 5.34919 6.36315 5.214 6.22801L0.772004 1.786C0.636856 1.65081 0.560669 1.46882 0.560669 1.279C0.560669 1.08918 0.636856 0.907186 0.772004 0.772004Z" fill="currentColor" />
                             <path d="M6.228 0.772004C6.36315 0.907186 6.43933 1.08918 6.43933 1.279C6.43933 1.46882 6.36315 1.65081 6.228 1.786L1.786 6.22801C1.65081 6.36315 1.46882 6.43933 1.279 6.43933C1.08918 6.43933 0.907186 6.36315 0.772004 6.22801C0.636856 6.09282 0.560669 5.91082 0.560669 5.72101C0.560669 5.53119 0.636856 5.34919 0.772004 5.21401L5.214 0.772004C5.34919 0.636856 5.53119 0.560669 5.721 0.560669C5.91082 0.560669 6.09282 0.636856 6.228 0.772004Z" fill="currentColor" />
                         </svg>
@@ -610,10 +612,11 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                 <div class="overflow-y-auto p-4">
                     <div class="flex flex-col gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label :for="`${fieldId}-renameKeyName`" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 {{ $t('accountSettings.developer.renameApiKeyModal.nameLabel') }}
                             </label>
                             <input
+                                :id="`${fieldId}-renameKeyName`"
                                 v-model="renameKeyName"
                                 type="text"
                                 class="nd-input"

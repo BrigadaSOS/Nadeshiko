@@ -285,14 +285,14 @@ onMounted(() => {
           total: formatNumber(total),
         }) }}</span>
         <div class="flex gap-2">
-          <button
+          <button type="button"
             :disabled="currentOffset <= 0"
             class="px-3 py-1.5 rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             @click="goToPrev"
           >
             {{ t('accountSettings.dashboard.pagination.previous') }}
           </button>
-          <button
+          <button type="button"
             :disabled="currentOffset + limit >= total"
             class="px-3 py-1.5 rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             @click="goToNext"

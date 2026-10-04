@@ -15,7 +15,7 @@ const { t } = useI18n();
 
 <template>
   <div class="flex justify-end gap-2 mb-3">
-    <button
+    <button type="button"
       :disabled="isDismissing || !hasResults"
       class="px-3 py-1.5 text-xs rounded-lg border border-hairline text-ink-muted hover:text-ink hover:border-line-hover disabled:opacity-40 disabled:cursor-not-allowed"
       @click="emit('dismiss-all')"
@@ -26,7 +26,7 @@ const { t } = useI18n();
       </span>
       <span v-else>{{ t('reports.admin.dismissAllMatching') }}</span>
     </button>
-    <button
+    <button type="button"
       :disabled="isDeleting || !hasResults"
       class="px-3 py-1.5 text-xs rounded-lg border border-red-800 text-red-400 hover:text-red-300 hover:border-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
       @click="emit('delete-all')"

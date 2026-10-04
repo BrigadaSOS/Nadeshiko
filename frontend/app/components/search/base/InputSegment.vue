@@ -439,7 +439,7 @@ const showBatchModal = ref(false);
             class="hidden md:inline-flex items-center whitespace-nowrap py-3 text-center gap-x-1 text-base text-gray-400 dark:text-white">
             <kbd
               class="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 font-mono text-sm rounded-md bg-control border border-hairline text-ink">
-              <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+              <svg aria-hidden="true" class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
                 <path d="M9 18v-6H5l7-7 7 7h-4v6H9z"></path>
@@ -463,13 +463,13 @@ const showBatchModal = ref(false);
         with them: the strip inside the field carries both at icon size.
       -->
       <div class="hidden md:grid grid-cols-2 gap-2">
-        <button
+        <button type="button"
           data-testid="search-button"
           :aria-label="$t('common.search')"
           :title="$t('common.search')"
           class="col-span-1 py-4 px-4 border border-hairline inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"
           @click="submitFromSearchButton">
-          <svg class="flex-shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+          <svg aria-hidden="true" class="flex-shrink-0 size-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round">
             <circle cx="11" cy="11" r="8" />
@@ -477,7 +477,7 @@ const showBatchModal = ref(false);
           </svg>
         </button>
 
-        <button
+        <button type="button"
           :aria-label="$t('batchSearch.title')"
           :title="$t('batchSearch.title')"
           class="col-span-1 py-4 px-4 border border-hairline inline-flex justify-center items-center text-sm font-semibold rounded-lg bg-button-primary-main text-white hover:bg-button-primary-hover disabled:opacity-50 disabled:pointer-events-none"

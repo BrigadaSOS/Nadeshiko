@@ -2,6 +2,7 @@
 import type { Category, Media, MediaUpdateRequest } from '@brigadasos/nadeshiko-sdk';
 
 const { t } = useI18n();
+const fieldId = useId();
 
 const props = defineProps<{
   media: Media | null;
@@ -194,7 +195,7 @@ const submitDelete = async () => {
           @click="closeModal"
         >
           <span class="sr-only">{{ t('modalMediaEdit.close') }}</span>
-          <svg class="w-3.5 h-3.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg aria-hidden="true" class="w-3.5 h-3.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               d="M0.258 1.007a.75.75 0 011.06 0L3.612 3.653 6.258 1.007a.75.75 0 111.06 1.06L4.672 4.36l2.647 2.647a.75.75 0 11-1.06 1.06L3.612 5.42l-2.647 2.646a.75.75 0 11-1.06-1.06L2.553 4.36.258 2.067a.75.75 0 010-1.06z"
               fill="currentColor"
@@ -238,8 +239,9 @@ const submitDelete = async () => {
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.nameJa') }}</label>
+            <label :for="`${fieldId}-nameJa`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.nameJa') }}</label>
             <input
+              :id="`${fieldId}-nameJa`"
               v-model="form.nameJa"
               lang="ja"
               type="text"
@@ -247,16 +249,18 @@ const submitDelete = async () => {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.nameRomaji') }}</label>
+            <label :for="`${fieldId}-nameRomaji`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.nameRomaji') }}</label>
             <input
+              :id="`${fieldId}-nameRomaji`"
               v-model="form.nameRomaji"
               type="text"
               class="nd-input"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.nameEn') }}</label>
+            <label :for="`${fieldId}-nameEn`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.nameEn') }}</label>
             <input
+              :id="`${fieldId}-nameEn`"
               v-model="form.nameEn"
               type="text"
               class="nd-input"
@@ -265,8 +269,9 @@ const submitDelete = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.studio') }}</label>
+          <label :for="`${fieldId}-studio`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.studio') }}</label>
           <input
+            :id="`${fieldId}-studio`"
             v-model="form.studio"
             type="text"
             class="nd-input"
@@ -274,8 +279,9 @@ const submitDelete = async () => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.genres') }}</label>
+          <label :for="`${fieldId}-genres`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.genres') }}</label>
           <input
+            :id="`${fieldId}-genres`"
             v-model="form.genres"
             type="text"
             :placeholder="t('modalMediaEdit.genresPlaceholder')"
@@ -283,8 +289,8 @@ const submitDelete = async () => {
           />
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-amber-400 mb-2">{{ t('modalMediaEdit.category') }}</label>
+        <fieldset class="min-w-0">
+          <legend class="block text-sm font-medium text-amber-400 mb-2">{{ t('modalMediaEdit.category') }}</legend>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="opt in categoryOptions"
@@ -296,10 +302,10 @@ const submitDelete = async () => {
               {{ t(`mediaMetadata.categories.${opt}`) }}
             </button>
           </div>
-        </div>
+        </fieldset>
 
-        <div>
-          <label class="block text-sm font-medium text-amber-400 mb-2">{{ t('modalMediaEdit.airingStatus') }}</label>
+        <fieldset class="min-w-0">
+          <legend class="block text-sm font-medium text-amber-400 mb-2">{{ t('modalMediaEdit.airingStatus') }}</legend>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="opt in airingStatusOptions"
@@ -311,10 +317,10 @@ const submitDelete = async () => {
               {{ t(`mediaMetadata.statuses.${opt}`) }}
             </button>
           </div>
-        </div>
+        </fieldset>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.airingFormat') }}</label>
+        <fieldset class="min-w-0">
+          <legend class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.airingFormat') }}</legend>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="opt in airingFormatOptions"
@@ -326,27 +332,29 @@ const submitDelete = async () => {
               {{ t(`mediaMetadata.formats.${opt}`) }}
             </button>
           </div>
-        </div>
+        </fieldset>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.startDate') }}</label>
+            <label :for="`${fieldId}-startDate`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.startDate') }}</label>
             <input
+              :id="`${fieldId}-startDate`"
               v-model="form.startDate"
               type="date"
               class="nd-input"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.endDate') }}</label>
+            <label :for="`${fieldId}-endDate`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.endDate') }}</label>
             <input
+              :id="`${fieldId}-endDate`"
               v-model="form.endDate"
               type="date"
               class="nd-input"
             />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.seasonName') }}</label>
+          <fieldset class="min-w-0">
+            <legend class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.seasonName') }}</legend>
             <div class="flex flex-wrap gap-1">
               <button
                 v-for="opt in seasonOptions"
@@ -358,10 +366,11 @@ const submitDelete = async () => {
                 {{ t(`mediaMetadata.seasons.${opt}`) }}
               </button>
             </div>
-          </div>
+          </fieldset>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.seasonYear') }}</label>
+            <label :for="`${fieldId}-seasonYear`" class="block text-sm font-medium text-gray-300 mb-1">{{ t('modalMediaEdit.seasonYear') }}</label>
             <input
+              :id="`${fieldId}-seasonYear`"
               v-model.number="form.seasonYear"
               type="number"
               min="1900"
@@ -371,12 +380,13 @@ const submitDelete = async () => {
           </div>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.externalIds') }}</label>
+        <fieldset class="min-w-0">
+          <legend class="block text-sm font-medium text-gray-300 mb-2">{{ t('modalMediaEdit.externalIds') }}</legend>
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
-              <label class="block text-xs text-neutral-500 mb-1">AniList ID</label>
+              <label :for="`${fieldId}-anilistId`" class="block text-xs text-neutral-500 mb-1">AniList ID</label>
               <input
+                :id="`${fieldId}-anilistId`"
                 v-model="form.anilistId"
                 type="text"
                 :placeholder="t('common.example', { value: '21459' })"
@@ -384,8 +394,9 @@ const submitDelete = async () => {
               />
             </div>
             <div>
-              <label class="block text-xs text-neutral-500 mb-1">IMDB ID</label>
+              <label :for="`${fieldId}-imdbId`" class="block text-xs text-neutral-500 mb-1">IMDB ID</label>
               <input
+                :id="`${fieldId}-imdbId`"
                 v-model="form.imdbId"
                 type="text"
                 :placeholder="t('common.example', { value: 'tt1234567' })"
@@ -393,8 +404,9 @@ const submitDelete = async () => {
               />
             </div>
             <div>
-              <label class="block text-xs text-neutral-500 mb-1">TVDB ID</label>
+              <label :for="`${fieldId}-tvdbId`" class="block text-xs text-neutral-500 mb-1">TVDB ID</label>
               <input
+                :id="`${fieldId}-tvdbId`"
                 v-model="form.tvdbId"
                 type="text"
                 :placeholder="t('common.example', { value: '12345' })"
@@ -402,8 +414,9 @@ const submitDelete = async () => {
               />
             </div>
             <div>
-              <label class="block text-xs text-neutral-500 mb-1">TMDB ID</label>
+              <label :for="`${fieldId}-tmdbId`" class="block text-xs text-neutral-500 mb-1">TMDB ID</label>
               <input
+                :id="`${fieldId}-tmdbId`"
                 v-model="form.tmdbId"
                 type="text"
                 :placeholder="t('common.example', { value: '90955' })"
@@ -411,8 +424,9 @@ const submitDelete = async () => {
               />
             </div>
             <div>
-              <label class="block text-xs text-neutral-500 mb-1">YouTube ID</label>
+              <label :for="`${fieldId}-youtubeId`" class="block text-xs text-neutral-500 mb-1">YouTube ID</label>
               <input
+                :id="`${fieldId}-youtubeId`"
                 v-model="form.youtubeId"
                 type="text"
                 :placeholder="t('common.example', { value: 'UCxxxxxxxxxxxxxxxx' })"
@@ -420,7 +434,7 @@ const submitDelete = async () => {
               />
             </div>
           </div>
-        </div>
+        </fieldset>
       </div>
 
       <div class="flex justify-between items-center py-3 px-4 border-t dark:border-modal-border">
