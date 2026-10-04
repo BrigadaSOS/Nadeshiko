@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { publishSnapshot, generateIsolated } from './publish-sitemaps.mjs';
 const cwd = process.cwd();
-const entry = cwd + '/.output/server/index.mjs';
+const entry = `${cwd}/.output/server/index.mjs`;
 const dir = await fs.mkdtemp('/tmp/nadeshiko-snapshot-fixture-');
 let calls = 0,
   slug = 'original-catalogue',
@@ -121,10 +121,10 @@ try {
   assert.equal(head.headers['content-length'], r.headers['content-length']);
   assert.equal((await request('/__sitemap__/ja.xml')).status, 404);
   assert.equal((await request('/api/__sitemap__/sentences?locale=en')).status, 404);
-  await fs.rename(dir + '/current.json', dir + '/held.json');
+  await fs.rename(`${dir}/current.json`, `${dir}/held.json`);
   assert.equal((await request('/__sitemap__/en.xml')).status, 503);
   assert.equal(calls, generationCalls);
-  await fs.rename(dir + '/held.json', dir + '/current.json');
+  await fs.rename(`${dir}/held.json`, `${dir}/current.json`);
   await stop();
   await start();
   slug = 'new-catalogue';

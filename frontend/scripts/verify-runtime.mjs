@@ -13,7 +13,9 @@ export function verifyWorkerProcesses(processes, expectedWorkers) {
   const primaries = servers.filter(({ ppid }) => !ids.has(ppid));
   const workers = servers.filter(({ ppid }) => primaries.some(({ pid }) => pid === ppid));
   if (primaries.length !== 1 || workers.length !== expectedWorkers || servers.length !== expectedWorkers + 1) {
-    throw new Error(`Expected one Nitro primary and ${expectedWorkers} workers; found ${primaries.length} primary and ${workers.length} workers`);
+    throw new Error(
+      `Expected one Nitro primary and ${expectedWorkers} workers; found ${primaries.length} primary and ${workers.length} workers`,
+    );
   }
   return workers.length;
 }

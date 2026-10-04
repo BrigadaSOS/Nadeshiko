@@ -95,7 +95,7 @@ const unused = [...referenceKeys].filter((key) => {
   if (sources.includes(key)) return false;
   const parent = key.slice(0, key.lastIndexOf('.'));
   for (const prefix of dynamicPrefixes) {
-    if (key.startsWith(prefix) || (parent && parent.startsWith(prefix))) return false;
+    if (key.startsWith(prefix) || parent?.startsWith(prefix)) return false;
   }
   return true;
 });
@@ -105,6 +105,7 @@ if (unused.length) {
   console.error(`\n${unused.length} locale key(s) are not referenced from ${SOURCE_DIRS.join('/')}:`);
   for (const key of unused) console.error(`  ${key}`);
   console.error('\nDelete them from all three locales, or reference them from the code that renders them.');
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: the help text shows a template literal
   console.error('A key built at runtime is recognised by its literal prefix, so `t(`a.b.${x}`)` covers all of a.b.*.');
 }
 

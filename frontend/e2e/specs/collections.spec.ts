@@ -134,7 +134,7 @@ test.describe('Collections', () => {
     const listed = await authenticatedPage.request.get('/v1/collections?take=100');
     expect(listed.ok()).toBeTruthy();
     const created = (await listed.json()).collections.find((c: { name: string }) => c.name === name);
-    expect(created, 'the collection just created should come back in the owner\'s list').toBeTruthy();
+    expect(created, "the collection just created should come back in the owner's list").toBeTruthy();
     expect(created.visibility, 'new collections must default to private').toBe('PRIVATE');
 
     const url = `/en/collection/${created.publicId}`;
@@ -166,11 +166,7 @@ test.describe('Collections', () => {
     }
   });
 
-  test('a public collection is readable by another signed-in account', async ({
-    authenticatedPage,
-    browser,
-    e2eAccount,
-  }) => {
+  test('a public collection is readable by another signed-in account', async ({ authenticatedPage, browser }) => {
     const name = `e2e-public-${Date.now()}`;
     const createdResponse = await authenticatedPage.request.post('/v1/collections', {
       data: { name, visibility: 'PUBLIC' },
@@ -220,7 +216,13 @@ test.describe('Collections', () => {
       await collections.openMenuFor(row);
       await authenticatedPage.getByTestId('collection-visibility-action').click();
       await authenticatedPage.getByTestId('collection-visibility-submit').click();
-      await expect.poll(async () => (await authenticatedPage.request.get(`/v1/collections/${created.publicId}`)).json().then((item) => item.visibility)).toBe('PUBLIC');
+      await expect
+        .poll(async () =>
+          (await authenticatedPage.request.get(`/v1/collections/${created.publicId}`))
+            .json()
+            .then((item) => item.visibility),
+        )
+        .toBe('PUBLIC');
 
       // Public means readable by another signed-in account. Collection routes
       // intentionally require authentication even when their visibility is
@@ -232,7 +234,13 @@ test.describe('Collections', () => {
       await collections.openMenuFor(row);
       await authenticatedPage.getByTestId('collection-visibility-action').click();
       await authenticatedPage.getByTestId('collection-visibility-submit').click();
-      await expect.poll(async () => (await authenticatedPage.request.get(`/v1/collections/${created.publicId}`)).json().then((item) => item.visibility)).toBe('PRIVATE');
+      await expect
+        .poll(async () =>
+          (await authenticatedPage.request.get(`/v1/collections/${created.publicId}`))
+            .json()
+            .then((item) => item.visibility),
+        )
+        .toBe('PRIVATE');
 
       const revokedResponse = await visitorPage.request.get(`/v1/collections/${created.publicId}`);
       expect(revokedResponse.status(), 'making a public collection private must revoke visitor access').toBe(403);
@@ -273,7 +281,9 @@ test.describe('Collections', () => {
         data: { take: 10, include: ['media'] },
       });
       expect(search, await search.text()).toBeOK();
-      expect((await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId)).toBeTruthy();
+      expect(
+        (await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId),
+      ).toBeTruthy();
 
       const stats = await authenticatedPage.request.get(`/v1/collections/${created.publicId}/stats`);
       expect(stats, await stats.text()).toBeOK();
@@ -304,12 +314,30 @@ test.describe('Collections', () => {
       // A private collection is not a mutation oracle for another account: all
       // reads and every owner-only write must be refused consistently.
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}`)).status()).toBe(403);
-      expect((await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status()).toBe(403);
+      expect(
+        (await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status(),
+      ).toBe(403);
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}/stats`)).status()).toBe(403);
-      expect((await visitorPage.request.patch(`/v1/collections/${created.publicId}`, { data: { name: 'intruder' } })).status()).toBe(403);
-      expect((await visitorPage.request.post(`/v1/collections/${created.publicId}/segments`, { data: { segmentPublicId } })).status()).toBe(403);
-      expect((await visitorPage.request.patch(`/v1/collections/${created.publicId}/segments/${segmentPublicId}`, { data: { position: 2 } })).status()).toBe(403);
-      expect((await visitorPage.request.delete(`/v1/collections/${created.publicId}/segments/${segmentPublicId}`)).status()).toBe(403);
+      expect(
+        (
+          await visitorPage.request.patch(`/v1/collections/${created.publicId}`, { data: { name: 'intruder' } })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await visitorPage.request.post(`/v1/collections/${created.publicId}/segments`, { data: { segmentPublicId } })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await visitorPage.request.patch(`/v1/collections/${created.publicId}/segments/${segmentPublicId}`, {
+            data: { position: 2 },
+          })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (await visitorPage.request.delete(`/v1/collections/${created.publicId}/segments/${segmentPublicId}`)).status(),
+      ).toBe(403);
       expect((await visitorPage.request.delete(`/v1/collections/${created.publicId}`)).status()).toBe(403);
 
       const publish = await authenticatedPage.request.patch(`/v1/collections/${created.publicId}`, {
@@ -317,7 +345,9 @@ test.describe('Collections', () => {
       });
       expect(publish, await publish.text()).toBeOK();
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}`)).status()).toBe(200);
-      expect((await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status()).toBe(200);
+      expect(
+        (await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status(),
+      ).toBe(200);
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}/stats`)).status()).toBe(200);
 
       const privatize = await authenticatedPage.request.patch(`/v1/collections/${created.publicId}`, {
@@ -325,7 +355,9 @@ test.describe('Collections', () => {
       });
       expect(privatize, await privatize.text()).toBeOK();
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}`)).status()).toBe(403);
-      expect((await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status()).toBe(403);
+      expect(
+        (await visitorPage.request.post(`/v1/collections/${created.publicId}/search`, { data: {} })).status(),
+      ).toBe(403);
       expect((await visitorPage.request.get(`/v1/collections/${created.publicId}/stats`)).status()).toBe(403);
     } finally {
       await visitor.close();

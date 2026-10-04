@@ -10,23 +10,27 @@ function warmSitemap(locale) {
   return new Promise((resolve, reject) => {
     // Node fetch can replace Host with the URL's hostname. Sitemap keys prefer
     // Host over X-Forwarded-Host, so use the HTTP client to warm the public key.
-    const request = client.get(url, {
-      headers: {
-        host: 'nadeshiko.co',
-        'x-forwarded-host': 'nadeshiko.co',
-        'x-forwarded-proto': 'https',
-        'user-agent': 'nadeshiko-monitor/sitemap-warmup',
+    const request = client.get(
+      url,
+      {
+        headers: {
+          host: 'nadeshiko.co',
+          'x-forwarded-host': 'nadeshiko.co',
+          'x-forwarded-proto': 'https',
+          'user-agent': 'nadeshiko-monitor/sitemap-warmup',
+        },
+        signal: AbortSignal.timeout(120_000),
       },
-      signal: AbortSignal.timeout(120_000),
-    }, (response) => {
-      response.on('error', reject);
-      response.on('aborted', () => reject(new Error(`${locale}: response aborted`)));
-      response.resume();
-      response.on('end', () => {
-        if (response.statusCode !== 200) reject(new Error(`${locale}: HTTP ${response.statusCode}`));
-        else resolve();
-      });
-    });
+      (response) => {
+        response.on('error', reject);
+        response.on('aborted', () => reject(new Error(`${locale}: response aborted`)));
+        response.resume();
+        response.on('end', () => {
+          if (response.statusCode !== 200) reject(new Error(`${locale}: HTTP ${response.statusCode}`));
+          else resolve();
+        });
+      },
+    );
     request.on('error', reject);
   });
 }

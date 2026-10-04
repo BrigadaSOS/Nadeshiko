@@ -79,8 +79,7 @@ export class FavoriteMediaPage {
 
   private async toggleFavorite(row: Locator) {
     const written = this.page.waitForResponse(
-      (response) =>
-        /\/v1\/user\/favorite-media/.test(response.url()) && response.request().method() !== 'GET',
+      (response) => /\/v1\/user\/favorite-media/.test(response.url()) && response.request().method() !== 'GET',
       { timeout: 15_000 },
     );
     await row.getByTestId('media-lookup-favorite').click();

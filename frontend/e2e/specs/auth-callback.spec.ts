@@ -5,10 +5,7 @@ test.describe('Authentication callback', () => {
   test('an authenticated callback returns to the page saved before sign-in', async ({ authenticatedPage }) => {
     await authenticatedPage.goto('/');
     await authenticatedPage.evaluate(() => {
-      sessionStorage.setItem(
-        'nd-auth-return-to',
-        JSON.stringify({ path: '/en/user/settings', createdAt: Date.now() }),
-      );
+      sessionStorage.setItem('nd-auth-return-to', JSON.stringify({ path: '/en/user/settings', createdAt: Date.now() }));
     });
 
     await authenticatedPage.goto('/auth/callback?nd_auth=1');

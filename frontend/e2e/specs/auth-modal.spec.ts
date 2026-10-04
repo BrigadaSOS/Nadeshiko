@@ -41,9 +41,10 @@ test.describe('Authentication modal', () => {
     });
     await page.route('**/v1/auth/sign-in/email-otp', async (route) => {
       codeAttempt += 1;
-      const body = codeAttempt === 1
-        ? { code: 'LOGIN_CODE_NOT_BOUND', message: 'This code belongs to another browser' }
-        : { code: 'INVALID_OTP', message: 'Invalid code' };
+      const body =
+        codeAttempt === 1
+          ? { code: 'LOGIN_CODE_NOT_BOUND', message: 'This code belongs to another browser' }
+          : { code: 'INVALID_OTP', message: 'Invalid code' };
       await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify(body) });
     });
 

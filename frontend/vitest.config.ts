@@ -124,7 +124,10 @@ export default defineConfig({
       // deliberate edit. They started at 16/16/17/16 global and 36/39/38/36 on
       // the TypeScript group.
       thresholds: {
-        lines: 75, functions: 65, branches: 64, statements: 74,
+        lines: 75,
+        functions: 65,
+        branches: 64,
+        statements: 74,
         '{app,server,shared}/**/*.ts': { lines: 82, functions: 79, branches: 76, statements: 82 },
       },
       include: ['app/**/*.{ts,vue}', 'server/**/*.ts', 'shared/**/*.ts'],

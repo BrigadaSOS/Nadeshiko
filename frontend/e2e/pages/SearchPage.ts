@@ -170,10 +170,7 @@ export class SearchPage {
   }
 
   translationText(lang: 'EN' | 'ES') {
-    return this.segmentCards
-      .first()
-      .getByTestId(`translation-row-${lang}`)
-      .getByTestId('translation-content');
+    return this.segmentCards.first().getByTestId(`translation-row-${lang}`).getByTestId('translation-content');
   }
 
   /**

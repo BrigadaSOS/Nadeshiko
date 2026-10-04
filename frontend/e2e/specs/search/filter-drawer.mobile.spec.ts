@@ -47,7 +47,12 @@ const sortMenu = (page: Page) => page.getByTestId('dropdown-menu');
  * pointer events".
  */
 async function openDrawer(page: Page) {
-  if (await drawer(page).isVisible().catch(() => false)) return;
+  if (
+    await drawer(page)
+      .isVisible()
+      .catch(() => false)
+  )
+    return;
   await drawerToggle(page).click();
   await expect(drawer(page)).toBeVisible({ timeout: 10_000 });
 }
