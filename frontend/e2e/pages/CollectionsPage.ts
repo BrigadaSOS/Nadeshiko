@@ -66,7 +66,8 @@ export class CollectionsPage {
     await this.page.getByTestId('collection-delete-action').click();
     await expect(this.deleteSubmit).toBeVisible({ timeout: 5_000 });
     const deleted = this.page.waitForResponse(
-      (response) => response.request().method() === 'DELETE' && /\/v1\/collections\/[^/]+$/.test(new URL(response.url()).pathname),
+      (response) =>
+        response.request().method() === 'DELETE' && /\/v1\/collections\/[^/]+$/.test(new URL(response.url()).pathname),
     );
     await this.deleteSubmit.click();
     const response = await deleted;

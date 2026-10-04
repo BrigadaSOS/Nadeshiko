@@ -64,7 +64,11 @@ beforeAll(async () => {
           pagination: { hasMore: false, cursor: null, estimatedTotalHits: 2 },
         });
       }
-      return jsonResponse(res, { segments: [], includes: { media: {} }, pagination: { hasMore: false, cursor: null, estimatedTotalHits: 0 } });
+      return jsonResponse(res, {
+        segments: [],
+        includes: { media: {} },
+        pagination: { hasMore: false, cursor: null, estimatedTotalHits: 0 },
+      });
     }
 
     // Search stats (POST body-only, echoes custom header + user-agent)
@@ -393,9 +397,7 @@ describe('error handling', () => {
 
   test('a non-JSON body still carries the transport status', async () => {
     const client = makeClient();
-    const err = await client
-      .getSegment({ segmentPublicId: 'plaintext-error' })
-      .catch((e: unknown) => e);
+    const err = await client.getSegment({ segmentPublicId: 'plaintext-error' }).catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(NadeshikoError);
     expect((err as NadeshikoError).status).toBe(503);
@@ -405,9 +407,7 @@ describe('error handling', () => {
 
   test('a real problem document is still used verbatim, plus the request URL', async () => {
     const client = makeClient();
-    const err = await client
-      .getSegment({ segmentPublicId: 'problem-doc' })
-      .catch((e: unknown) => e);
+    const err = await client.getSegment({ segmentPublicId: 'problem-doc' }).catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(NadeshikoError);
     expect((err as NadeshikoError).message).toBe('Segment not found');

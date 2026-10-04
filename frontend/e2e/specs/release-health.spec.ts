@@ -46,9 +46,7 @@ test.describe('Deployed application health', () => {
       .poll(
         () =>
           stylesheets.evaluateAll((links) =>
-            links
-              .filter((link) => !Boolean((link as HTMLLinkElement).sheet))
-              .map((link) => (link as HTMLLinkElement).href),
+            links.filter((link) => !(link as HTMLLinkElement).sheet).map((link) => (link as HTMLLinkElement).href),
           ),
         { message: 'every stylesheet should be applied' },
       )

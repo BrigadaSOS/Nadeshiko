@@ -3,7 +3,10 @@ import { e2eBypassHeaders, getE2EBaseUrl } from '../env';
 import { SearchPage } from '../pages/SearchPage';
 
 test.describe('Reporting and moderation', () => {
-  test('submits a sentence report and exposes the persisted report to an admin', async ({ authenticatedPage, browser }) => {
+  test('submits a sentence report and exposes the persisted report to an admin', async ({
+    authenticatedPage,
+    browser,
+  }) => {
     const search = new SearchPage(authenticatedPage);
     await search.goto('学校');
     await search.expectResultsVisible();
@@ -19,8 +22,7 @@ test.describe('Reporting and moderation', () => {
     await modal.getByTestId('report-description').fill(description);
 
     const createdResponse = authenticatedPage.waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname === '/v1/user/reports' && response.request().method() === 'POST',
+      (response) => new URL(response.url()).pathname === '/v1/user/reports' && response.request().method() === 'POST',
     );
     await modal.getByTestId('report-submit').click();
     const created = await createdResponse;

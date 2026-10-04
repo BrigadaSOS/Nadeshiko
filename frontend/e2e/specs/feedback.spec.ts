@@ -18,10 +18,12 @@ test.describe('Feedback', () => {
     // crossed its anti-automation checks and saved the row before responding.
     await textbox.pressSequentially(message, { delay: 80 });
     const submittedResponse = page.waitForResponse(
-      (response) =>
-        new URL(response.url()).pathname === '/v1/feedback' && response.request().method() === 'POST',
+      (response) => new URL(response.url()).pathname === '/v1/feedback' && response.request().method() === 'POST',
     );
-    await page.getByTestId('feedback-modal').getByRole('button', { name: /send|submit/i }).click();
+    await page
+      .getByTestId('feedback-modal')
+      .getByRole('button', { name: /send|submit/i })
+      .click();
     const response = await submittedResponse;
 
     await expect(page.getByTestId('feedback-modal')).toContainText(/thank/i);

@@ -4,23 +4,26 @@ import type { Page } from '@playwright/test';
 
 async function waitForActivity(page: Page, activityType: 'SEGMENT_PLAY' | 'SHARE') {
   await expect
-    .poll(async () => {
-      // Asked for by TYPE rather than reading the newest 20 of everything. The
-      // E2E account is shared by the whole suite, which runs its files in
-      // parallel: a page of 20 mixed activities is filled by other specs
-      // searching -- each search records one -- so the play this is waiting for
-      // could be pushed off the page within the poll window and never be seen.
-      // Filtering makes the answer about this action rather than about how busy
-      // the account was while it ran.
-      const response = await page.request.get(`/v1/user/activity?activityType=${activityType}&take=20`);
-      if (!response.ok()) return false;
+    .poll(
+      async () => {
+        // Asked for by TYPE rather than reading the newest 20 of everything. The
+        // E2E account is shared by the whole suite, which runs its files in
+        // parallel: a page of 20 mixed activities is filled by other specs
+        // searching -- each search records one -- so the play this is waiting for
+        // could be pushed off the page within the poll window and never be seen.
+        // Filtering makes the answer about this action rather than about how busy
+        // the account was while it ran.
+        const response = await page.request.get(`/v1/user/activity?activityType=${activityType}&take=20`);
+        if (!response.ok()) return false;
 
-      const data = (await response.json()) as { activities?: Array<{ activityType?: string }> };
-      return (data.activities ?? []).some((activity) => activity.activityType === activityType);
-    }, {
-      timeout: 30_000,
-      intervals: [500, 1_000, 2_000],
-    })
+        const data = (await response.json()) as { activities?: Array<{ activityType?: string }> };
+        return (data.activities ?? []).some((activity) => activity.activityType === activityType);
+      },
+      {
+        timeout: 30_000,
+        intervals: [500, 1_000, 2_000],
+      },
+    )
     .toBe(true);
 }
 
@@ -62,9 +65,7 @@ test.describe('Activity', () => {
    * has not reproduced on demand, so this has never been observed going red.
    * It is cheap, and it is the assertion that would catch the shape of it.
    */
-  test('renders its initial load on the server, without falling back to the client', async ({
-    authenticatedPage,
-  }) => {
+  test('renders its initial load on the server, without falling back to the client', async ({ authenticatedPage }) => {
     const html = await (await authenticatedPage.request.get('/en/user/activity')).text();
 
     expect(html, 'the initial-load payload key should be present').toContain('settings-activity-initial');

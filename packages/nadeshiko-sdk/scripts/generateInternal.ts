@@ -43,8 +43,7 @@ const SDK_VERSION = process.env.SDK_VERSION?.trim() || ROOT_PACKAGE_JSON.version
 // @brigadasos/nadeshiko-sdk`) silently DELETED all 19 auth methods, `getSession`,
 // `signOut` and `deleteUser` among them, plus 1806 lines of types the frontend
 // calls -- and reported "Done!". Encountered for real on 2026-08-26.
-const OPENAPI_SPEC_SOURCE =
-  process.env.OPENAPI_SPEC_PATH?.trim() || '../../backend/docs/generated/openapi-sdk.yaml';
+const OPENAPI_SPEC_SOURCE = process.env.OPENAPI_SPEC_PATH?.trim() || '../../backend/docs/generated/openapi-sdk.yaml';
 
 type PaginationDetection = {
   /** The response property that holds the array of items (e.g. "segments", "media") */
@@ -166,9 +165,10 @@ function detectPaginationInSchema(spec: any, schema: any): PaginationDetection |
   // Verify it references PaginationInfo or OpaqueCursorPagination
   const paginationRef = paginationProp.$ref ?? '';
   const resolvedPag = maybeResolve(spec, paginationProp);
-  const isPagination = paginationRef.includes('PaginationInfo')
-    || paginationRef.includes('OpaqueCursorPagination')
-    || (resolvedPag?.properties?.hasMore && resolvedPag?.properties?.cursor);
+  const isPagination =
+    paginationRef.includes('PaginationInfo') ||
+    paginationRef.includes('OpaqueCursorPagination') ||
+    (resolvedPag?.properties?.hasMore && resolvedPag?.properties?.cursor);
 
   if (!isPagination) return null;
 
@@ -187,7 +187,11 @@ function detectPaginationInSchema(spec: any, schema: any): PaginationDetection |
 /**
  * Extract path parameters from an operation and its path item.
  */
-function extractPathParams(pathItemParams: any[] | undefined, operationParams: any[] | undefined, spec: any): PathParamInfo[] {
+function extractPathParams(
+  pathItemParams: any[] | undefined,
+  operationParams: any[] | undefined,
+  spec: any,
+): PathParamInfo[] {
   const allParams = [...(pathItemParams ?? []), ...(operationParams ?? [])];
   const result: PathParamInfo[] = [];
   const seen = new Set<string>();
@@ -199,9 +203,10 @@ function extractPathParams(pathItemParams: any[] | undefined, operationParams: a
     if (seen.has(resolved.name)) continue;
     seen.add(resolved.name);
 
-    const schemaType = resolved.schema?.type === 'integer' || resolved.schema?.type === 'number'
-      ? 'number' as const
-      : 'string' as const;
+    const schemaType =
+      resolved.schema?.type === 'integer' || resolved.schema?.type === 'number'
+        ? ('number' as const)
+        : ('string' as const);
     result.push({ name: resolved.name, schemaType });
   }
 
@@ -211,9 +216,13 @@ function extractPathParams(pathItemParams: any[] | undefined, operationParams: a
 /**
  * Check if an operation has any required query parameters.
  */
-function hasRequiredQueryParams(pathItemParams: any[] | undefined, operationParams: any[] | undefined, spec: any): boolean {
+function hasRequiredQueryParams(
+  pathItemParams: any[] | undefined,
+  operationParams: any[] | undefined,
+  spec: any,
+): boolean {
   const allParams = [...(pathItemParams ?? []), ...(operationParams ?? [])];
-  return allParams.some(p => {
+  return allParams.some((p) => {
     const resolved = maybeResolve(spec, p);
     return resolved?.in === 'query' && resolved?.required === true;
   });
@@ -227,9 +236,7 @@ function getOpenApiSpecPath(): string {
     return OPENAPI_SPEC_SOURCE;
   }
   // Convert to absolute path
-  return OPENAPI_SPEC_SOURCE.startsWith('/')
-    ? OPENAPI_SPEC_SOURCE
-    : join(ROOT_DIR, OPENAPI_SPEC_SOURCE);
+  return OPENAPI_SPEC_SOURCE.startsWith('/') ? OPENAPI_SPEC_SOURCE : join(ROOT_DIR, OPENAPI_SPEC_SOURCE);
 }
 
 /**
@@ -270,12 +277,13 @@ async function parseOpenApiSpec(): Promise<{
     for (const [method, operation] of Object.entries(pathItem as any)) {
       if (method === 'parameters' || method === '$ref') continue;
       const operationObj = operation as Record<string, any>;
-      if (!operationObj || !operationObj.operationId) continue;
+      if (!operationObj?.operationId) continue;
 
       const pathItemObj = pathItem as any;
-      const tags = Array.isArray(operationObj.tags) && operationObj.tags.length > 0
-        ? operationObj.tags.filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
-        : ['Search'];
+      const tags =
+        Array.isArray(operationObj.tags) && operationObj.tags.length > 0
+          ? operationObj.tags.filter((value: unknown): value is string => typeof value === 'string' && value.length > 0)
+          : ['Search'];
       const tag = tags[0] || 'Search';
       const isInternal = Boolean(operationObj['x-internal']);
       const groupName = getGroupName(tag);
@@ -286,7 +294,7 @@ async function parseOpenApiSpec(): Promise<{
       const epPathParams = extractPathParams(pathItemParams, operationParams, spec);
       const hasBody = !!operationObj.requestBody;
       const allParams = [...(pathItemParams ?? []), ...(operationParams ?? [])];
-      const hasQuery = allParams.some(p => maybeResolve(spec, p)?.in === 'query');
+      const hasQuery = allParams.some((p) => maybeResolve(spec, p)?.in === 'query');
       const hasPath = epPathParams.length > 0;
 
       let paramLayout: ParamLayout;
@@ -303,7 +311,8 @@ async function parseOpenApiSpec(): Promise<{
       // are treated as optional so callers can omit params entirely.
       const bodySchema = operationObj.requestBody?.content?.['application/json']?.schema;
       const resolvedBodySchema = bodySchema ? maybeResolve(spec, bodySchema) : null;
-      const bodyHasRequiredProps = Array.isArray(resolvedBodySchema?.required) && resolvedBodySchema.required.length > 0;
+      const bodyHasRequiredProps =
+        Array.isArray(resolvedBodySchema?.required) && resolvedBodySchema.required.length > 0;
       const hasRequiredBody = operationObj.requestBody?.required === true && bodyHasRequiredProps;
 
       const endpointInfo: EndpointInfo = {
@@ -382,8 +391,8 @@ function buildRepackExpression(fn: string, ep: EndpointInfo): string {
       ].join('\n');
 
     case 'path-only': {
-      const destructure = ep.pathParams.map(p => p.name).join(', ');
-      const pathObj = ep.pathParams.map(p => p.name).join(', ');
+      const destructure = ep.pathParams.map((p) => p.name).join(', ');
+      const pathObj = ep.pathParams.map((p) => p.name).join(', ');
       return [
         `    const { throwOnError: tOE, ${destructure} } = params ?? {};`,
         `    const p = ${fn}({ path: { ${pathObj} }, client: clientInstance, throwOnError: tOE === false ? false : true } as any);`,
@@ -391,8 +400,8 @@ function buildRepackExpression(fn: string, ep: EndpointInfo): string {
     }
 
     case 'path-and-query': {
-      const destructure = ep.pathParams.map(p => p.name).join(', ');
-      const pathObj = ep.pathParams.map(p => p.name).join(', ');
+      const destructure = ep.pathParams.map((p) => p.name).join(', ');
+      const pathObj = ep.pathParams.map((p) => p.name).join(', ');
       return [
         `    const { throwOnError: tOE, ${destructure}, ...query } = params ?? {};`,
         `    const p = ${fn}({ path: { ${pathObj} }, ...(Object.keys(query).length > 0 ? { query } : {}), client: clientInstance, throwOnError: tOE === false ? false : true } as any);`,
@@ -400,8 +409,8 @@ function buildRepackExpression(fn: string, ep: EndpointInfo): string {
     }
 
     case 'body-and-path': {
-      const destructure = ep.pathParams.map(p => p.name).join(', ');
-      const pathObj = ep.pathParams.map(p => p.name).join(', ');
+      const destructure = ep.pathParams.map((p) => p.name).join(', ');
+      const pathObj = ep.pathParams.map((p) => p.name).join(', ');
       return [
         `    const { throwOnError: tOE, ${destructure}, ...body } = params ?? {};`,
         // Unconditional for the same reason as `body-only` above.
@@ -430,13 +439,13 @@ function buildPaginateRepackExpression(fn: string, ep: EndpointInfo): string {
       return `      return ${fn}({ query: flat, client: clientInstance } as any);`;
 
     case 'path-only': {
-      const pathObj = ep.pathParams.map(p => `${p.name}: flat.${p.name}`).join(', ');
+      const pathObj = ep.pathParams.map((p) => `${p.name}: flat.${p.name}`).join(', ');
       return `      return ${fn}({ path: { ${pathObj} }, client: clientInstance } as any);`;
     }
 
     case 'path-and-query': {
-      const destructure = ep.pathParams.map(p => p.name).join(', ');
-      const pathObj = ep.pathParams.map(p => p.name).join(', ');
+      const destructure = ep.pathParams.map((p) => p.name).join(', ');
+      const pathObj = ep.pathParams.map((p) => p.name).join(', ');
       return [
         `      const { ${destructure}, ...q } = flat;`,
         `      return ${fn}({ path: { ${pathObj} }, query: q, client: clientInstance } as any);`,
@@ -444,8 +453,8 @@ function buildPaginateRepackExpression(fn: string, ep: EndpointInfo): string {
     }
 
     case 'body-and-path': {
-      const destructure = ep.pathParams.map(p => p.name).join(', ');
-      const pathObj = ep.pathParams.map(p => p.name).join(', ');
+      const destructure = ep.pathParams.map((p) => p.name).join(', ');
+      const pathObj = ep.pathParams.map((p) => p.name).join(', ');
       return [
         `      const { ${destructure}, ...body } = flat;`,
         `      return ${fn}({ path: { ${pathObj} }, body, client: clientInstance } as any);`,
@@ -482,7 +491,7 @@ function flatParamType(prefix: string, ep: EndpointInfo): string {
  * Generate the client factory file
  */
 function generateClientFactory(endpoints: EndpointInfo[], availableTypeNames: Set<string>): string {
-  const operationIds = endpoints.map(e => e.operationId);
+  const operationIds = endpoints.map((e) => e.operationId);
   const sdkImports = operationIds.join(', ');
 
   // Build the return type with flat parameter overloads per method:
@@ -490,16 +499,14 @@ function generateClientFactory(endpoints: EndpointInfo[], availableTypeNames: Se
   //   • throwOnError: false  → union return with envelope (caller must check data vs error)
   //   • default / true       → unwrapped Promise<Response> (throws on error)
   //   • .paginate            → async generator (paginated endpoints only)
-  const returnTypeParts = endpoints.map(ep => {
+  const returnTypeParts = endpoints.map((ep) => {
     const fn = ep.operationId;
     const prefix = operationTypePrefix(fn);
     const hasData = availableTypeNames.has(`${prefix}Data`);
     const hasResponse = availableTypeNames.has(`${prefix}Response`);
 
     if (hasData && hasResponse) {
-      const errorType = availableTypeNames.has(`${prefix}Errors`)
-        ? `Types.${prefix}Errors`
-        : 'unknown';
+      const errorType = availableTypeNames.has(`${prefix}Errors`) ? `Types.${prefix}Errors` : 'unknown';
       const envelope = `{ data: Types.${prefix}Response; response: Response; request: Request }`;
       const shorthand = getShorthandParam(ep);
       const paramType = flatParamType(prefix, ep);
@@ -512,14 +519,19 @@ function generateClientFactory(endpoints: EndpointInfo[], availableTypeNames: Se
       }
 
       // throwOnError: false overload — keeps the full envelope
-      const throwOnErrorParamType = ep.paramLayout === 'none' ? '{ throwOnError: false }' : `${paramType} & { throwOnError: false }`;
-      overloads.push(`      (params: ${throwOnErrorParamType}): Promise<${envelope} | { error: ${errorType}; response: Response; request: Request }>;`);
+      const throwOnErrorParamType =
+        ep.paramLayout === 'none' ? '{ throwOnError: false }' : `${paramType} & { throwOnError: false }`;
+      overloads.push(
+        `      (params: ${throwOnErrorParamType}): Promise<${envelope} | { error: ${errorType}; response: Response; request: Request }>;`,
+      );
 
       // Default overload — unwrapped data
       if (ep.paramLayout === 'none') {
         overloads.push(`      (): Promise<Types.${prefix}Response>;`);
       } else {
-        overloads.push(`      (params${ep.hasRequiredBody || (ep.pathParams.length > 0) ? '' : '?'}: ${paramType}): Promise<Types.${prefix}Response>;`);
+        overloads.push(
+          `      (params${ep.hasRequiredBody || (ep.pathParams.length > 0) ? '' : '?'}: ${paramType}): Promise<Types.${prefix}Response>;`,
+        );
       }
 
       // .paginate property for paginated endpoints
@@ -550,7 +562,6 @@ ${returnTypeParts.join('\n')}
   for (const ep of endpoints) {
     const fn = ep.operationId;
     const shorthand = getShorthandParam(ep);
-    const isPaginated = ep.pagination !== null;
 
     // Generate the repacking logic based on param layout
     const repackExpr = buildRepackExpression(fn, ep);
@@ -561,7 +572,9 @@ ${returnTypeParts.join('\n')}
     if (shorthand) {
       lines.push(`  const _${fn} = (paramsOrId?: any) => {`);
       lines.push(`    if (typeof paramsOrId === '${shorthand.schemaType}') {`);
-      lines.push(`      return ${fn}({ throwOnError: true, path: { ${shorthand.name}: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);`);
+      lines.push(
+        `      return ${fn}({ throwOnError: true, path: { ${shorthand.name}: paramsOrId }, client: clientInstance } as any).then((r: any) => r.data);`,
+      );
       lines.push(`    }`);
       lines.push(`    const params = paramsOrId;`);
     } else {
@@ -572,13 +585,13 @@ ${returnTypeParts.join('\n')}
     lines.push(`    return tOE === false ? p : p.then((r: any) => r.data);`);
     lines.push(`  };`);
 
-    if (isPaginated) {
+    if (ep.pagination) {
       lines.push(`  _${fn}.paginate = (params?: any) => flatPaginate(`);
       lines.push(`    params ?? {},`);
       lines.push(`    (flat: any) => {`);
       lines.push(buildPaginateRepackExpression(fn, ep));
       lines.push(`    },`);
-      lines.push(`    (data: any) => ({ items: data.${ep.pagination!.itemsField}, pagination: data.pagination }),`);
+      lines.push(`    (data: any) => ({ items: data.${ep.pagination.itemsField}, pagination: data.pagination }),`);
       lines.push(`  );`);
     }
 
@@ -586,12 +599,10 @@ ${returnTypeParts.join('\n')}
     returnObjEntries.push(`    ${fn}: _${fn},`);
   }
 
-  const functionDefsBlock = functionDefs.length > 0 ? '\n' + functionDefs.join('\n\n') + '\n' : '';
+  const functionDefsBlock = functionDefs.length > 0 ? `\n${functionDefs.join('\n\n')}\n` : '';
 
-  const hasPaginatedEndpoints = endpoints.some(ep => ep.pagination !== null);
-  const paginateImport = hasPaginatedEndpoints
-    ? `import { flatPaginate } from './paginate';\n`
-    : '';
+  const hasPaginatedEndpoints = endpoints.some((ep) => ep.pagination !== null);
+  const paginateImport = hasPaginatedEndpoints ? `import { flatPaginate } from './paginate';\n` : '';
 
   return `// This file is auto-generated by scripts/generateInternal.ts
 
@@ -744,14 +755,11 @@ ${returnObjEntries.join('\n')}
  * Generate errors.ts with a NadeshikoErrorCode union derived from the generated error types.
  */
 function generateErrorsFile(availableTypeNames: Set<string>): string {
-  const present = [...availableTypeNames].filter(name => /^Error\d+$/.test(name));
+  const present = [...availableTypeNames].filter((name) => /^Error\d+$/.test(name));
 
-  const imports = present.length > 0
-    ? `import type { ${present.join(', ')} } from './types.gen';\n\n`
-    : '';
-  const codeUnion = present.length > 0
-    ? present.map(t => `${t}['code']`).join(' | ') + " | 'UNKNOWN_ERROR'"
-    : 'string';
+  const imports = present.length > 0 ? `import type { ${present.join(', ')} } from './types.gen';\n\n` : '';
+  const codeUnion =
+    present.length > 0 ? `${present.map((t) => `${t}['code']`).join(' | ')} | 'UNKNOWN_ERROR'` : 'string';
 
   return `// This file is auto-generated by scripts/generateInternal.ts
 ${imports}/** Union of all known API error codes. */
@@ -956,7 +964,9 @@ ${directExports}
 /**
  * Generate group-specific internal files
  */
-function generateInternalGroupFiles(internalByGroup: Record<string, string[]>): Array<{ name: string; content: string }> {
+function generateInternalGroupFiles(
+  internalByGroup: Record<string, string[]>,
+): Array<{ name: string; content: string }> {
   return Object.entries(internalByGroup).map(([groupName, endpoints]) => {
     const exports = endpoints.join(', ');
     return {
@@ -975,7 +985,7 @@ export { ${exports} } from '../sdk.gen';
  * NOTE: Internal SDK exposes all endpoint operations and all generated types.
  */
 function generateInternalIndex(allEndpoints: EndpointInfo[], hasInternalGroups: boolean): string {
-  const operationIds = allEndpoints.map(e => e.operationId);
+  const operationIds = allEndpoints.map((e) => e.operationId);
   const exports = operationIds.join(', ');
   const internalGroupExports = hasInternalGroups
     ? `// Re-export grouped internal namespaces
@@ -1024,7 +1034,7 @@ async function main() {
     await new Promise<void>((resolve, reject) => {
       // Use CLI arguments to pass the input source and output directory
       const proc = spawn('npx', ['openapi-ts', '-i', specPath, '-o', GENERATED_DIR], { stdio: 'inherit' });
-      proc.on('close', (code) => code === 0 ? resolve() : reject(new Error(`openapi-ts exited with code ${code}`)));
+      proc.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`openapi-ts exited with code ${code}`))));
     });
 
     // Copy hand-written helpers into the generated directory
@@ -1056,7 +1066,7 @@ async function main() {
     if (Object.keys(internalByGroup).length > 0) {
       const groupFiles = generateInternalGroupFiles(internalByGroup);
       const internalDir = join(GENERATED_DIR, 'internal');
-      await import('fs').then(fs => fs.promises.mkdir(internalDir, { recursive: true }));
+      await import('fs').then((fs) => fs.promises.mkdir(internalDir, { recursive: true }));
       for (const file of groupFiles) {
         const groupName = file.name.split('/')[1].replace('.gen.ts', '');
         writeFileSync(join(GENERATED_DIR, file.name), file.content);

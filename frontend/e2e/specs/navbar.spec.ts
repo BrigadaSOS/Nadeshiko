@@ -3,7 +3,6 @@ import { test, expect } from '../fixtures';
 test.describe('Navbar links', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-
   });
 
   test('Media link navigates to /media', async ({ page }) => {

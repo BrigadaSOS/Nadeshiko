@@ -39,7 +39,6 @@ test.describe('Media catalog', () => {
     await media.goto();
     await media.expectLoaded();
 
-
     const initialCount = await media.getMediaCount();
 
     // Read the first media's title and search for it, so the test is data-independent

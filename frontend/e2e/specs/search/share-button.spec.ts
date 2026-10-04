@@ -10,7 +10,6 @@ test.describe('Share button', () => {
     await search.goto('彼女');
     await search.expectResultsVisible();
 
-
     const card = search.segmentCards.first();
     const shareButton = card.getByTestId('share-button');
     await shareButton.click();

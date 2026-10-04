@@ -11,7 +11,6 @@ test.describe('Blog', () => {
   test('displays blog posts or empty state', async ({ page }) => {
     await page.goto('/blog');
 
-
     const emptyState = page.getByText('No blog posts available yet');
     const postLink = page.getByTestId('blog-post');
     await expect(postLink.first().or(emptyState)).toBeVisible({ timeout: 10_000 });

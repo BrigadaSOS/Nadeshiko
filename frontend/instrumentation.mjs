@@ -2,10 +2,7 @@ import { createRequire } from 'node:module';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import {
-  OTLPMetricExporter,
-  AggregationTemporalityPreference,
-} from '@opentelemetry/exporter-metrics-otlp-http';
+import { OTLPMetricExporter, AggregationTemporalityPreference } from '@opentelemetry/exporter-metrics-otlp-http';
 import { resourceFromAttributes, hostDetector, processDetector } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
