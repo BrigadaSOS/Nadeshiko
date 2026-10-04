@@ -7,7 +7,7 @@ const { t } = useI18n();
   <div class="flex items-center gap-3">
     <SearchModalKeyboardShortcuts ref="shortcutsModal" />
     <SearchTranslationVisibilityPreferences />
-    <button
+    <button type="button"
       class="nd-btn hidden lg:inline-flex"
       :title="t('shortcuts.title')"
       @click="shortcutsModal?.open()"

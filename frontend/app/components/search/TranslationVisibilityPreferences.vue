@@ -109,6 +109,7 @@ const groups = computed(() =>
         <div data-nd-keep-open>
           <div v-for="group in groups" :key="group.key" class="pb-1">
             <p class="nd-menu-header">{{ group.title }}</p>
+            <!-- biome-ignore lint/a11y/useSemanticElements: groups menuitemradio items -->
             <div role="group" :aria-label="group.title">
               <button
                 v-for="item in MODE_ITEMS"

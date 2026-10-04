@@ -604,38 +604,39 @@ const selectPlaybackRate = (rate: number) => {
                     </div>
 
                     <div class="relative z-20 w-full max-w-2xl px-6 pb-12 pt-6">
-                        <div class="w-full flex items-center gap-3 mb-6 group cursor-pointer"  @click="onProgressClick">
+                        <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: preserve pointer-only seeking -->
+                        <div class="w-full flex items-center gap-3 mb-6 group cursor-pointer" @click="onProgressClick">
                             <div
                                 class="relative flex-grow h-1.5 bg-white/10 rounded-full overflow-hidden group-hover:h-2.5 transition-all">
                                 <div class="absolute top-0 left-0 h-full bg-red-500 rounded-full transition-all duration-100 ease-linear"
-                                    :style="{ width: progress + '%' }"></div>
+                                    :style="{ width: `${progress}%` }"></div>
                             </div>
                         </div>
 
                         <div class="flex items-center justify-center gap-8 md:gap-12">
 
-                            <button @click="seekBackward" class="group p-2" :aria-label="t('player.controls.rewind')">
+                            <button type="button" @click="seekBackward" class="group p-2" :aria-label="t('player.controls.rewind')">
                                 <UiBaseIcon :path="mdiRewind" :size="28"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
-                            <button @click="playerStore.prev()" class="group p-2" :aria-label="t('player.controls.previous')">
+                            <button type="button" @click="playerStore.prev()" class="group p-2" :aria-label="t('player.controls.previous')">
                                 <UiBaseIcon :path="mdiSkipPrevious" :size="36"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
-                            <button @click="playerStore.togglePlay()"
+                            <button type="button" @click="playerStore.togglePlay()"
                                 class="w-16 h-16 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-all shadow-lg shadow-white/10"
                                 :aria-label="isPlaying ? t('player.controls.pause') : t('player.controls.play')">
                                 <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="40" />
                             </button>
 
-                            <button @click="playerStore.next()" class="group p-2" :aria-label="t('player.controls.next')">
+                            <button type="button" @click="playerStore.next()" class="group p-2" :aria-label="t('player.controls.next')">
                                 <UiBaseIcon :path="mdiSkipNext" :size="36"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
 
-                            <button @click="seekForward" class="group p-2" :aria-label="t('player.controls.forward')">
+                            <button type="button" @click="seekForward" class="group p-2" :aria-label="t('player.controls.forward')">
                                 <UiBaseIcon :path="mdiFastForward" :size="28"
                                     class="text-white/50 group-hover:text-white transition-colors" />
                             </button>
@@ -644,7 +645,7 @@ const selectPlaybackRate = (rate: number) => {
 
                         <div class="flex items-center justify-center gap-2 mt-8">
                             <div ref="rateMenuImmersiveRef" class="relative">
-                                <button @click="rateMenuOpen = !rateMenuOpen"
+                                <button type="button" @click="rateMenuOpen = !rateMenuOpen"
                                     class="px-2 py-1 rounded-full hover:bg-white/10 transition-colors text-xs font-bold tabular-nums"
                                     :class="playbackRate === 1 ? 'text-white/60' : 'text-red-400'"
                                     :aria-label="t('player.controls.speed', { rate: playbackRate })"
@@ -656,7 +657,7 @@ const selectPlaybackRate = (rate: number) => {
                                 <div v-if="rateMenuOpen" role="menu" :aria-label="t('player.controls.speedMenu')"
                                     @keydown="onRateMenuKeydown"
                                     class="absolute bottom-full right-0 mb-2 py-1 min-w-[4.5rem] rounded-lg bg-neutral-800 shadow-xl ring-1 ring-white/10 overflow-hidden">
-                                    <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio" tabindex="-1"
+                                    <button type="button" v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio" tabindex="-1"
                                         :aria-checked="playbackRate === rate" @click="selectPlaybackRate(rate)"
                                         class="w-full px-3 py-1.5 text-left text-xs font-bold tabular-nums hover:bg-white/10 transition-colors"
                                         :class="playbackRate === rate ? 'text-red-400' : 'text-white/70'">
@@ -667,29 +668,29 @@ const selectPlaybackRate = (rate: number) => {
                             <div v-if="showVolumeSlider" class="flex items-center gap-2 px-1">
                                 <UiBaseIcon :path="volumeIcon" :size="20" class="text-white/50" />
                                 <input type="range" min="0" max="100" step="1" :value="volumePercent"
-                                    :style="{ '--volume-fill': volumePercent + '%' }"
+                                    :style="{ '--volume-fill': `${volumePercent}%` }"
                                     @input="onVolumeInput" @change="playerStore.trackVolumeChange()"
                                     class="player-volume w-20"
                                     :aria-label="t('player.controls.volume')" :aria-valuetext="`${volumePercent}%`" />
                             </div>
-                            <button @click="playerStore.toggleAutoplay()"
+                            <button type="button" @click="playerStore.toggleAutoplay()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors"
                                 :class="{ 'text-red-400': autoplay, 'text-white/60': !autoplay }"
                                 :aria-label="t('player.controls.autoplay')" :aria-pressed="autoplay">
                                 <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
                             </button>
-                            <button @click="playerStore.toggleRepeat()"
+                            <button type="button" @click="playerStore.toggleRepeat()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors"
                                 :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }"
                                 :aria-label="t('player.controls.repeat')" :aria-pressed="repeat">
                                 <UiBaseIcon :path="mdiRepeat" :size="20" />
                             </button>
-                            <button @click="playerStore.toggleImmersive()"
+                            <button type="button" @click="playerStore.toggleImmersive()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80"
                                 :aria-label="t('player.controls.exitFullscreen')">
                                 <UiBaseIcon :path="mdiFullscreenExit" :size="20" />
                             </button>
-                            <button @click="playerStore.hidePlayer()"
+                            <button type="button" @click="playerStore.hidePlayer()"
                                 class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/80"
                                 :aria-label="t('player.controls.close')">
                                 <UiBaseIcon :path="mdiClose" :size="20" />
@@ -702,8 +703,9 @@ const selectPlaybackRate = (rate: number) => {
 
             <div v-if="!isImmersive"
                 class="fixed bottom-0 left-0 right-0 bg-neutral-900/90 backdrop-blur-md text-white shadow-lg z-[70] safe-pb border-t border-white/5">
+                <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: preserve pointer-only seeking -->
                 <div class="w-full bg-neutral-700/30 group cursor-pointer h-1.5 hover:h-2.5 transition-all" @click="onProgressClick">
-                    <div class="bg-red-500 h-full transition-all ease-linear" :style="{ width: progress + '%' }"></div>
+                    <div class="bg-red-500 h-full transition-all ease-linear" :style="{ width: `${progress}%` }"></div>
                 </div>
                 <div class="flex flex-wrap items-center justify-between p-3 gap-3 md:px-6">
                     <div class="flex items-center gap-4 flex-grow min-w-0">
@@ -723,26 +725,26 @@ const selectPlaybackRate = (rate: number) => {
                          groups sized to their content wrap left-aligned, which
                          reads as two ragged clusters rather than a transport. -->
                     <div class="flex items-center justify-center gap-1 w-full md:w-auto md:gap-3">
-                        <button @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.rewind')">
+                        <button type="button" @click="seekBackward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.rewind')">
                             <UiBaseIcon :path="mdiRewind" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
-                        <button @click="playerStore.prev()"
+                        <button type="button" @click="playerStore.prev()"
                             class="p-2 text-white/70 hover:text-white transition-colors"
                             :aria-label="t('player.controls.previous')">
                             <UiBaseIcon :path="mdiSkipPrevious" :size="24" />
                         </button>
-                        <button @click="playerStore.togglePlay()"
+                        <button type="button" @click="playerStore.togglePlay()"
                             class="p-2 text-white hover:text-red-400 transition-colors"
                             :aria-label="isPlaying ? t('player.controls.pause') : t('player.controls.play')">
                             <UiBaseIcon :path="isPlaying ? mdiPause : mdiPlay" :size="24" />
                         </button>
-                        <button @click="playerStore.next()"
+                        <button type="button" @click="playerStore.next()"
                             class="p-2 text-white/70 hover:text-white transition-colors"
                             :aria-label="t('player.controls.next')">
                             <UiBaseIcon :path="mdiSkipNext" :size="24" />
                         </button>
-                        <button @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.forward')">
+                        <button type="button" @click="seekForward" class="p-2 text-white/70 hover:text-white transition-colors hidden sm:inline-block" :aria-label="t('player.controls.forward')">
                             <UiBaseIcon :path="mdiFastForward" :size="24"
                                 class="text-white/70 group-hover:text-white transition-colors" />
                         </button>
@@ -755,7 +757,7 @@ const selectPlaybackRate = (rate: number) => {
                     <div
                         class="flex items-center justify-center gap-2 w-full md:w-auto md:pl-4 md:border-l md:border-white/10">
                         <div ref="rateMenuBarRef" class="relative">
-                            <button @click="rateMenuOpen = !rateMenuOpen"
+                            <button type="button" @click="rateMenuOpen = !rateMenuOpen"
                                 class="px-2 py-1 rounded-full hover:bg-white/10 transition-colors text-xs font-bold tabular-nums"
                                 :class="playbackRate === 1 ? 'text-white/60' : 'text-red-400'"
                                 :aria-label="t('player.controls.speed', { rate: playbackRate })"
@@ -767,7 +769,7 @@ const selectPlaybackRate = (rate: number) => {
                             <div v-if="rateMenuOpen" role="menu" :aria-label="t('player.controls.speedMenu')"
                                     @keydown="onRateMenuKeydown"
                                 class="absolute bottom-full right-0 mb-2 py-1 min-w-[4.5rem] rounded-lg bg-neutral-800 shadow-xl ring-1 ring-white/10 overflow-hidden">
-                                <button v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio" tabindex="-1"
+                                <button type="button" v-for="rate in PLAYBACK_RATES" :key="rate" role="menuitemradio" tabindex="-1"
                                     :aria-checked="playbackRate === rate" @click="selectPlaybackRate(rate)"
                                     class="w-full px-3 py-1.5 text-left text-xs font-bold tabular-nums hover:bg-white/10 transition-colors"
                                     :class="playbackRate === rate ? 'text-red-400' : 'text-white/70'">
@@ -778,29 +780,29 @@ const selectPlaybackRate = (rate: number) => {
                         <div v-if="showVolumeSlider" class="flex items-center gap-2 px-1">
                             <UiBaseIcon :path="volumeIcon" :size="20" class="text-white/50" />
                             <input type="range" min="0" max="100" step="1" :value="volumePercent"
-                                :style="{ '--volume-fill': volumePercent + '%' }"
+                                :style="{ '--volume-fill': `${volumePercent}%` }"
                                 @input="onVolumeInput" @change="playerStore.trackVolumeChange()"
                                 class="player-volume w-20"
                                 :aria-label="t('player.controls.volume')" :aria-valuetext="`${volumePercent}%`" />
                         </div>
-                        <button @click="playerStore.toggleAutoplay()"
+                        <button type="button" @click="playerStore.toggleAutoplay()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
                             :class="{ 'text-red-400': autoplay, 'text-white/50': !autoplay }"
                             :aria-label="t('player.controls.autoplay')" :aria-pressed="autoplay">
                             <UiBaseIcon :path="autoplay ? mdiAnimationPlay : mdiMotionPauseOutline" :size="20" />
                         </button>
-                        <button @click="playerStore.toggleRepeat()"
+                        <button type="button" @click="playerStore.toggleRepeat()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors"
                             :class="{ 'text-red-400': repeat, 'text-white/60': !repeat }"
                             :aria-label="t('player.controls.repeat')" :aria-pressed="repeat">
                             <UiBaseIcon :path="mdiRepeat" :size="20" />
                         </button>
-                        <button @click="playerStore.toggleImmersive()"
+                        <button type="button" @click="playerStore.toggleImmersive()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70"
                             :aria-label="t('player.controls.enterFullscreen')">
                             <UiBaseIcon :path="mdiFullscreen" :size="20" />
                         </button>
-                        <button @click="playerStore.hidePlayer()"
+                        <button type="button" @click="playerStore.hidePlayer()"
                             class="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70"
                             :aria-label="t('player.controls.close')">
                             <UiBaseIcon :path="mdiClose" :size="20" />

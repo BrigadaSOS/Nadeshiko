@@ -357,7 +357,7 @@ onMounted(async () => {
     @clear-day-filter="clearDayFilter"
     @clear-day-activity="clearDayActivity"
     @load-more="loadMore"
-    @delete="(ids) => ids.forEach((id) => deleteActivity(id))"
+    @delete="(ids) => { for (const id of ids) deleteActivity(id); }"
   />
 
   <UserActivityPrivacy

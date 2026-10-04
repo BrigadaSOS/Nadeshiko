@@ -55,6 +55,7 @@ const onToggle = async (category: Category) => {
           <span class="text-xs" :class="isCategoryHidden(category) ? 'text-gray-500' : 'text-gray-300'">
             {{ isCategoryHidden(category) ? t('accountSettings.account.hiddenCategoryHidden') : t('accountSettings.account.hiddenCategoryShown') }}
           </span>
+          <!-- biome-ignore lint/a11y/noLabelWithoutControl: named by the bound aria-label -->
           <label
             class="relative inline-flex items-center"
             :class="canToggleCategory(category) ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'"

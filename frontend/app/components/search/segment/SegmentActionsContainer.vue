@@ -31,7 +31,7 @@ import type { CollectionOption } from '~/composables/useCollectionOptions';
 import type { SearchResult } from '~/types/search';
 import { firstNonBlank } from '~/utils/strings';
 import { tokensToAnkiFurigana, type SlimToken } from '~/utils/tokenEnrichment';
-import { useToastError, useToastSuccess } from '~/utils/toast';
+import { useToastSuccess } from '~/utils/toast';
 
 const { englishMode, spanishMode } = useTranslationVisibility();
 const { languages: translationLanguages } = useTranslationLanguages();
@@ -378,17 +378,17 @@ const sharedMediaName = computed(() =>
              and the clip, so leave this picker available for the next file. -->
         <div data-nd-keep-open>
           <SearchDropdownItem
-            @click="downloadAudioOrImage(content.segment.urls.videoUrl, content.segment.urls.videoUrl.split('/').pop()!)"
+            @click="downloadAudioOrImage(content.segment.urls.videoUrl, content.segment.urls.videoUrl.split('/').pop() ?? '')"
             :text="$t('searchpage.main.buttons.video')" :iconPath="mdiVideo" />
           <SearchDropdownItem
-            @click="downloadAudioOrImage(content.segment.urls.imageUrl, content.segment.urls.imageUrl.split('/').pop()!)"
+            @click="downloadAudioOrImage(content.segment.urls.imageUrl, content.segment.urls.imageUrl.split('/').pop() ?? '')"
             :text="$t('searchpage.main.buttons.image')" :iconPath="mdiImage" />
           <SearchDropdownItem
-            @click="downloadAudioOrImage(content.segment.urls.audioUrl, content.segment.urls.audioUrl.split('/').pop()!)"
+            @click="downloadAudioOrImage(content.segment.urls.audioUrl, content.segment.urls.audioUrl.split('/').pop() ?? '')"
             :text="$t('searchpage.main.buttons.audio')" :iconPath="mdiVolumeHigh" />
           <SearchDropdownItem
             v-if="content.blobAudioUrl"
-            @click="downloadAudioOrImage(content.blobAudioUrl, 'expanded_'+content.segment.urls.audioUrl.split('/').pop()!, true)"
+            @click="downloadAudioOrImage(content.blobAudioUrl, `expanded_${content.segment.urls.audioUrl.split('/').pop()}`, true)"
             :text="$t('searchpage.main.buttons.dl-expanded')" :iconPath="mdiVolumeHigh" />
         </div>
       </SearchDropdownContent>

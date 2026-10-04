@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { userStore } from '~/stores/auth';
-import type { GetStatsOverviewResponse, TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
+import type { TriggerCoveredWordsUpdateResponse } from '@brigadasos/nadeshiko-sdk';
 import { handleApiError } from '~/utils/apiError';
 import { DEFAULT_OG_IMAGE_PATH } from '~/utils/metaTags';
 
@@ -227,7 +227,7 @@ const translationLanguages = computed(() => {
 
         <div class="dark:bg-card-background rounded-lg px-5 py-5">
           <div class="flex gap-3">
-            <button
+            <button type="button"
               :disabled="updating"
               class="px-4 py-2 rounded text-sm font-medium transition-colors"
               :class="updating
@@ -237,7 +237,7 @@ const translationLanguages = computed(() => {
             >
               {{ updating ? $t('statsPage.admin.updating') : $t('statsPage.admin.fullRescan') }}
             </button>
-            <button
+            <button type="button"
               :disabled="updating"
               class="px-4 py-2 rounded text-sm font-medium transition-colors"
               :class="updating

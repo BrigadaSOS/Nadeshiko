@@ -3,27 +3,17 @@ import type { Token } from '@brigadasos/nadeshiko-sdk';
 import { enrichTokens, type SlimToken, type EnrichedToken } from '~/utils/tokenEnrichment';
 import { tabStop, tokenKeyAction } from '~/utils/tokenNavigation';
 import {
-  cardForms,
   cardHeadword,
-  headwordFurigana,
-  lookupState,
   candidatePartOfSpeech,
   candidateName,
   candidateSummary,
-  cardSenses,
   dictionaryKey,
-  pickerChips,
   glossPreference,
-  kanjiIn,
-  pitchMorae,
-  shirabeKanjiUrl,
-  type GlossLanguage,
   // The same three names that ride out to Shirabe as `utm_content`, reused here
   // rather than restated: the click we record and the visit Shirabe records are
   // then labelled identically, so the two sides reconcile per surface instead of
   // only in total.
   type ShirabeLinkSurface,
-  type ShirabeCandidate,
 } from '~/utils/wordCard';
 import type { DictionaryId } from '~/composables/useDictionaryLinks';
 import { minedWord } from '~/utils/ankiWord';
@@ -179,7 +169,7 @@ const { showCandidateRows, posInitial, duplicateHeadwords, visibleCandidates, hi
     () => glossLanguages.value,
   );
 
-const { candidates, picked, othersOpen, wordState, word, clearLookup, applyLookup, lookUp, cancelPending } =
+const { candidates, picked, othersOpen, wordState, word, clearLookup, lookUp, cancelPending } =
   useWordLookup(
     () => glossLanguages.value.labels,
     // Ask Anki again, about the word the dictionary just named. The probe fires
@@ -198,7 +188,6 @@ const {
   badges,
   pitchPatterns,
   senses,
-  sourceCount,
   namesSources,
   wordParts,
   forms,
@@ -763,7 +752,6 @@ const { playingUrl, playHeadword, stopHeadword } = useHeadwordAudio();
  *  not trimming rather than a fresh set per evaluation. */
 const {
   pickedDictionaries,
-  cardDictionaries,
   clearPicked,
   togglePick,
   selectAllDictionaries,
@@ -801,7 +789,7 @@ function openedOn(): CardLocation | null {
   return ref ? { lemma: ref.lemma, surface: ref.surface, reading: ref.reading, pos: ref.pos } : null;
 }
 
-const { canGoBack, canGoForward, currentLocation, showPart, goBack, goForward, clearTrail } = useCardTrail(
+const { canGoBack, canGoForward, showPart, goBack, goForward, clearTrail } = useCardTrail(
   loadLocation,
   openedOn,
 );
@@ -972,6 +960,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
            ruby inside would otherwise be read out interleaved with it, one
            kana at a time. Only the words worth asking about take a tab stop,
            and only one of them at a time -- see the roving tabindex above. -->
+      <!-- biome-ignore lint/a11y/noStaticElementInteractions: role and keys are bound dynamically -->
       <span
         class="token"
         :class="[
@@ -1016,6 +1005,7 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
              readable and usable, which is the point of a word card. `tabindex`
              so a keyboard opener can be dropped into it and Tab can reach the
              links inside; `aria-label` names it by the word it is about. -->
+        <!-- biome-ignore lint/a11y/useKeyWithClickEvents: keeps clicks inside from closing the card -->
         <div
           v-if="hoveredToken"
           ref="tooltipRef"
@@ -1033,17 +1023,15 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
                  is here for sentences, and this is the biggest thing on the card.
                  The dictionaries live in the chips at the foot, which leave the
                  site, so the two kinds of destination never share an appearance. -->
-            <component
-              :is="hoveredToken ? 'button' : 'span'"
-              v-bind="hoveredToken ? { type: 'button' } : {}"
-              class="token-tooltip__word"
-              :class="{ 'token-tooltip__word--action': hoveredToken }"
+            <button
+              type="button"
+              class="token-tooltip__word token-tooltip__word--action"
               lang="ja"
-              @click="hoveredToken && searchForWord(headword)"
+              @click="searchForWord(headword)"
             >
               <template v-if="headFurigana.length > 0"><template v-for="(seg, si) in headFurigana" :key="si"><ruby v-if="seg.reading">{{ seg.text }}<rt>{{ seg.reading }}</rt></ruby><template v-else>{{ seg.text }}</template></template></template>
               <template v-else>{{ headword }}</template>
-            </component>
+            </button>
             <span v-if="headReading && headFurigana.length === 0" class="token-tooltip__reading">{{ headReading }}</span>
 
             <!-- Anki, in the corner. Inside the head's flex row and pushed over
@@ -1667,12 +1655,6 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
   margin-top: 3px;
   margin-left: auto;
 }
-/* The arrows already pushed the group right; a second auto here would take half
-   the free space back. Tools keep their own auto for the ordinary card, which
-   has no arrows at all. */
-.token-tooltip__nav + .token-tooltip__tools {
-  margin-left: 4px;
-}
 .token-tooltip__nav-button {
   display: inline-flex;
   align-items: center;
@@ -1797,15 +1779,6 @@ a.token-tooltip__word:hover {
   border-color: transparent;
   color: var(--ink-faint);
   font-size: 11px;
-}
-
-/* The links row brings its own 10px above its rule, which is right when it
-   follows the body and wrong when it follows the pill row: there the reader sees
-   8px above the pills and 18px below them, and the row reads as belonging to the
-   dictionaries under it rather than sitting between the two. Its own padding is
-   symmetric; this is what makes the gap look it. */
-.token-tooltip__others + .token-tooltip__links {
-  margin-top: 0;
 }
 
 /* Back to the glance, at the end of the list it collapses. */
@@ -2014,6 +1987,13 @@ a.token-tooltip__word:hover {
   gap: 4px;
   margin-top: 3px;
   margin-left: auto;
+}
+
+/* The arrows already pushed the group right; a second auto here would take half
+   the free space back. Tools keep their own auto for the ordinary card, which
+   has no arrows at all. */
+.token-tooltip__nav + .token-tooltip__tools {
+  margin-left: 4px;
 }
 
 /* The same quiet circle as the pronunciation button below, because they are the
@@ -2288,11 +2268,6 @@ a.token-tooltip__word:hover {
   color: var(--ink-faint);
 }
 
-.token-tooltip__source-row.is-picked .token-tooltip__source {
-  color: var(--accent);
-  font-weight: 700;
-}
-
 /* The last row of the body, directly above the LOOK UP IN rule. Its own padding
    matches the links row below it, so the two footer bands line up on the same
    left edge as everything else in the card. */
@@ -2525,6 +2500,11 @@ a.token-tooltip__word:hover {
   color: var(--ink-faint);
 }
 
+.token-tooltip__source-row.is-picked .token-tooltip__source {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .token-tooltip__gloss-row {
   display: block;
 }
@@ -2592,6 +2572,15 @@ a.token-tooltip__word:hover {
      would add to it rather than replace it. */
   padding: 10px 14px 0;
   border-top: 1px solid var(--line);
+}
+
+/* The links row brings its own 10px above its rule, which is right when it
+   follows the body and wrong when it follows the pill row: there the reader sees
+   8px above the pills and 18px below them, and the row reads as belonging to the
+   dictionaries under it rather than sitting between the two. Its own padding is
+   symmetric; this is what makes the gap look it. */
+.token-tooltip__others + .token-tooltip__links {
+  margin-top: 0;
 }
 
 /* 10px and faint like the PARTS and ALSO WRITTEN labels above it. These three
