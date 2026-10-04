@@ -51,7 +51,10 @@ export default async function globalTeardown() {
 
           // Delete all API keys (handles possibly-truncated responses by looping).
           for (let round = 0; round < 20; round++) {
-            const keysRes = await requireOk(`worker ${workerIndex} list API keys`, request.get('/v1/auth/api-key/list'));
+            const keysRes = await requireOk(
+              `worker ${workerIndex} list API keys`,
+              request.get('/v1/auth/api-key/list'),
+            );
             if (!keysRes) break;
 
             const text = await keysRes.text();
@@ -125,6 +128,9 @@ export default async function globalTeardown() {
   }
 
   if (failures.length > 0) {
-    throw new AggregateError(failures.map((message) => new Error(message)), 'E2E cleanup failed');
+    throw new AggregateError(
+      failures.map((message) => new Error(message)),
+      'E2E cleanup failed',
+    );
   }
 }

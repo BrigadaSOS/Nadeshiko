@@ -60,9 +60,13 @@ async function someMediaPublicIds(page: Page, count: number): Promise<string[]> 
   await page.goto(`/search/${encodeURIComponent('学校')}`);
   const links = page.getByTestId('segment-card').locator('a[href*="media="]');
   await expect(links.first()).toBeVisible({ timeout: 15_000 });
-  const ids = [...new Set((await links.evaluateAll((items) => items.map((item) => (item as HTMLAnchorElement).href)))
-    .map((href) => new URL(href).searchParams.get('media'))
-    .filter((id): id is string => Boolean(id)))];
+  const ids = [
+    ...new Set(
+      (await links.evaluateAll((items) => items.map((item) => (item as HTMLAnchorElement).href)))
+        .map((href) => new URL(href).searchParams.get('media'))
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
   if (ids.length < count) throw new Error(`Expected ${count} distinct media in search fixtures, found ${ids.length}`);
   return ids.slice(0, count);
 }
@@ -74,8 +78,7 @@ async function searchFor(page: Page, query: string): Promise<void> {
   // server would then correctly see the restored value and record the search,
   // making a synchronization race look like a privacy regression.
   const tracked = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === '/v1/user/activity' && response.request().method() === 'POST',
+    (response) => new URL(response.url()).pathname === '/v1/user/activity' && response.request().method() === 'POST',
   );
   await page.goto(`/search/${encodeURIComponent(query)}`);
   await expect(page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 15_000 });
@@ -127,9 +130,7 @@ test.describe('Activity privacy', () => {
     try {
       await expect(toggle).toHaveAttribute('aria-pressed', 'true');
       await toggle.click();
-      await expect
-        .poll(async () => (await preferences(page)).searchHistory?.enabled, { timeout: 10_000 })
-        .toBe(false);
+      await expect.poll(async () => (await preferences(page)).searchHistory?.enabled, { timeout: 10_000 }).toBe(false);
 
       await searchFor(page, whileOff);
 
@@ -159,14 +160,10 @@ test.describe('Activity privacy', () => {
 
     try {
       await toggle.click();
-      await expect
-        .poll(async () => (await preferences(page)).searchHistory?.enabled, { timeout: 10_000 })
-        .toBe(false);
+      await expect.poll(async () => (await preferences(page)).searchHistory?.enabled, { timeout: 10_000 }).toBe(false);
 
       await toggle.click();
-      await expect
-        .poll(async () => (await preferences(page)).searchHistory?.enabled, { timeout: 10_000 })
-        .toBe(true);
+      await expect.poll(async () => (await preferences(page)).searchHistory?.enabled, { timeout: 10_000 }).toBe(true);
 
       await searchFor(page, afterResuming);
       await expect.poll(() => searchQueries(page), { timeout: 15_000 }).toContain(afterResuming);
@@ -194,9 +191,7 @@ test.describe('Activity privacy', () => {
     try {
       await expect(toggle).toHaveAttribute('aria-pressed', 'true');
       await toggle.click();
-      await expect
-        .poll(async () => (await preferences(page)).familiarMedia?.enabled, { timeout: 10_000 })
-        .toBe(false);
+      await expect.poll(async () => (await preferences(page)).familiarMedia?.enabled, { timeout: 10_000 }).toBe(false);
 
       const whileOffRecord = await page.request.post('/v1/user/activity', {
         data: { activityType: 'ANKI_EXPORT', mediaPublicId: whileOffMediaId },
@@ -204,9 +199,7 @@ test.describe('Activity privacy', () => {
       expect(whileOffRecord, await whileOffRecord.text()).toBeOK();
 
       await toggle.click();
-      await expect
-        .poll(async () => (await preferences(page)).familiarMedia?.enabled, { timeout: 10_000 })
-        .toBe(true);
+      await expect.poll(async () => (await preferences(page)).familiarMedia?.enabled, { timeout: 10_000 }).toBe(true);
 
       await page.request.post('/v1/user/activity', {
         data: { activityType: 'ANKI_EXPORT', mediaPublicId: afterResumingMediaId },

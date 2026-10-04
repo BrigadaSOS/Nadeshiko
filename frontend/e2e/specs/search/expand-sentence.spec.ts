@@ -135,9 +135,7 @@ test.describe('Expand sentence', () => {
     // what this did while the Japanese half was merged as markup. It is tokens
     // now -- one per word rather than one per neighbour -- so a count no longer
     // says anything about how many sentences were merged.
-    await expect
-      .poll(async () => (await jaText.innerText()).trim().endsWith(original), { timeout: 10_000 })
-      .toBe(true);
+    await expect.poll(async () => (await jaText.innerText()).trim().endsWith(original), { timeout: 10_000 }).toBe(true);
   });
 
   test('an expansion whose audio fails can still be reverted', async ({ page }) => {
@@ -215,8 +213,6 @@ test.describe('Expand sentence', () => {
 
     await card.getByTestId('audio-play-button').click();
 
-    await expect
-      .poll(async () => (await playedSources(page)).at(-1) ?? '', { timeout: 15_000 })
-      .toMatch(/^blob:/);
+    await expect.poll(async () => (await playedSources(page)).at(-1) ?? '', { timeout: 15_000 }).toMatch(/^blob:/);
   });
 });

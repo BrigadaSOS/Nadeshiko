@@ -121,12 +121,7 @@ export default defineConfig({
   // A release smoke retry may tolerate a transient edge failure, but a full CI
   // run reports it as flaky.
   failOnFlakyTests: !!process.env.CI && !SMOKE,
-  reporter: process.env.CI
-    ? [
-        ['html'],
-        ['junit', { outputFile: JUNIT_OUTPUT }],
-      ]
-    : 'list',
+  reporter: process.env.CI ? [['html'], ['junit', { outputFile: JUNIT_OUTPUT }]] : 'list',
   timeout: 60_000,
 
   use: {

@@ -112,36 +112,20 @@ function writeOpenApiVersion(version: string): string {
 function runSet(versionInput: unknown): void {
   const version = normalizeVersion(versionInput, 'target version');
 
-  const previousBackendVersion = writePackageVersion(
-    BACKEND_PACKAGE_JSON_PATH,
-    'backend/package.json',
-    version,
-  );
+  const previousBackendVersion = writePackageVersion(BACKEND_PACKAGE_JSON_PATH, 'backend/package.json', version);
   const previousOpenApiVersion = writeOpenApiVersion(version);
   console.log(`backend/package.json: ${previousBackendVersion} -> ${version}`);
   console.log(`backend/docs/openapi/openapi.yaml: ${previousOpenApiVersion} -> ${version}`);
 
-  const previousFrontendVersion = writePackageVersion(
-    FRONTEND_PACKAGE_JSON_PATH,
-    'frontend/package.json',
-    version,
-  );
+  const previousFrontendVersion = writePackageVersion(FRONTEND_PACKAGE_JSON_PATH, 'frontend/package.json', version);
   console.log(`frontend/package.json: ${previousFrontendVersion} -> ${version}`);
 
-  const previousDiscordVersion = writePackageVersion(
-    DISCORD_PACKAGE_JSON_PATH,
-    'discord/package.json',
-    version,
-  );
+  const previousDiscordVersion = writePackageVersion(DISCORD_PACKAGE_JSON_PATH, 'discord/package.json', version);
   console.log(`discord/package.json: ${previousDiscordVersion} -> ${version}`);
 
   // The SDK is published from this package, so its version is the npm version
   // external consumers install.
-  const previousSdkVersion = writePackageVersion(
-    SDK_PACKAGE_JSON_PATH,
-    'packages/nadeshiko-sdk/package.json',
-    version,
-  );
+  const previousSdkVersion = writePackageVersion(SDK_PACKAGE_JSON_PATH, 'packages/nadeshiko-sdk/package.json', version);
   console.log(`packages/nadeshiko-sdk/package.json: ${previousSdkVersion} -> ${version}`);
 
   console.log(`Next: commit + jj tag v${version} && jj git push --remote origin`);
@@ -183,16 +167,12 @@ function runCheck(expectedInput: unknown | undefined): void {
       fail(`discord/package.json version (${discordVersion}) does not match expected version (${expected})`);
     }
     if (sdkVersion !== expected) {
-      fail(
-        `packages/nadeshiko-sdk/package.json version (${sdkVersion}) does not match expected version (${expected})`,
-      );
+      fail(`packages/nadeshiko-sdk/package.json version (${sdkVersion}) does not match expected version (${expected})`);
     }
   }
 
   if (backendVersion !== frontendVersion) {
-    fail(
-      `backend version (${backendVersion}) does not match frontend version (${frontendVersion})`,
-    );
+    fail(`backend version (${backendVersion}) does not match frontend version (${frontendVersion})`);
   }
 
   if (backendVersion !== discordVersion) {

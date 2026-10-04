@@ -30,8 +30,7 @@ test.describe('Legacy URL redirects', () => {
 
   test.describe('uuid redirects', () => {
     test('/search/sentence?uuid=abc → /sentence/abc', async ({ page }) => {
-      const response = await page.goto('/search/sentence?uuid=test-uuid-123');
-      const redirectChain = response?.request().redirectedFrom();
+      await page.goto('/search/sentence?uuid=test-uuid-123');
       await expect(page).toHaveURL(/\/sentence\/test-uuid-123/);
     });
 

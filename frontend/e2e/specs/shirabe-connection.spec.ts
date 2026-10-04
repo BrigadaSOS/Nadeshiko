@@ -51,8 +51,7 @@ async function mockConnectionEndpoint(
     if (method === 'POST') {
       return route.fulfill({
         json: {
-          authorizeUrl:
-            options.authorizeUrl ?? 'https://shirabe.example.test/oauth/authorize?state=test-state',
+          authorizeUrl: options.authorizeUrl ?? 'https://shirabe.example.test/oauth/authorize?state=test-state',
         },
       });
     }
