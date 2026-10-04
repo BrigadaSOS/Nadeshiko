@@ -98,7 +98,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
           class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-400/40 bg-red-500/10 text-red-300 text-sm"
         >
           <span>{{ t('accountSettings.activity.history.showing', { day: formatDayLabel(selectedDay, locale) }) }}</span>
-          <button
+          <button type="button"
             class="hover:text-white transition-colors ml-1"
             :title="t('accountSettings.activity.history.clearDayFilter')"
             @click="emit('clear-day-filter')"
@@ -106,7 +106,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
             &times;
           </button>
         </div>
-        <button
+        <button type="button"
           class="px-3 py-1.5 rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 text-sm hover:bg-red-500/20 hover:text-red-200 transition-colors disabled:opacity-50"
           :disabled="clearingDay || activities.length === 0"
           :title="t('accountSettings.activity.history.deleteDayTitle')"
@@ -207,14 +207,14 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
               {{ formatDate(activity.createdAt, 'dateTime') }}
             </td>
             <td class="order-3 md:table-cell md:py-2.5 md:text-center md:w-8">
-              <button
+              <button type="button"
                 class="opacity-60 md:opacity-0 md:group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all disabled:opacity-30"
                 :title="t('accountSettings.activity.history.remove')"
                 :disabled="activity.ids.some(id => deletingIds.has(id))"
                 @click.stop="emit('delete', activity.ids)"
                 @keydown.stop
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
               </button>
@@ -223,7 +223,7 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
         </tbody>
       </table>
 
-      <button
+      <button type="button"
         v-if="hasMore"
         class="mt-4 w-full rounded-md border border-white/15 bg-white/5 py-2 text-center text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
         :disabled="loadingMore"

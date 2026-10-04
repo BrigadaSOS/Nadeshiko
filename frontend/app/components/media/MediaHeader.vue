@@ -175,6 +175,7 @@ const detailsId = `media-header-details-${useId()}`;
 </script>
 
 <template>
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions: pointer shortcut for the toggle button -->
   <header
     data-testid="media-header"
     :data-open="open"

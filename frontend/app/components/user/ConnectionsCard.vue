@@ -304,7 +304,7 @@ async function disconnectPatreon() {
             <p data-testid="shirabe-connection-description" class="text-gray-400 text-sm">{{ description }}</p>
           </div>
         </div>
-        <button
+        <button type="button"
           class="nd-btn w-full shrink-0 sm:w-auto"
           :disabled="isLoading || isWorking"
           data-testid="shirabe-connection-toggle"

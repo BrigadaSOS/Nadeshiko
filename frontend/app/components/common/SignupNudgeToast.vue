@@ -30,6 +30,7 @@ const emit = defineEmits<{ action: []; dismiss: [] }>();
 </script>
 
 <template>
+  <!-- biome-ignore lint/a11y/useSemanticElements: names the toast, not a form group -->
   <div class="nd-nudge-panel" role="group" :aria-label="title">
     <!-- The badge rides with the title only. Nesting the whole panel inside the
          text column indented the actions past the icon, which left a dead notch

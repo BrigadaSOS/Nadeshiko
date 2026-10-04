@@ -183,6 +183,7 @@ function analyticsIds(): { posthogSessionId?: string; posthogDistinctId?: string
              second instruction to read. -->
         <p class="text-sm text-ink-muted">
           {{ t('feedback.subtitle') }}
+          <!-- biome-ignore lint/a11y/noHeaderScope: vue-i18n scope, not a table header -->
           <i18n-t keypath="feedback.discord" tag="span" scope="global">
             <template #link>
               <a

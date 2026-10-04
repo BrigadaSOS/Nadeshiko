@@ -1,6 +1,6 @@
 <template>
   <div class="relative group/tooltip">
-    <button class="nd-menu-item" :class="buttonClass" :disabled="isDisabled && !onDisabledClick" @click="handleClick">
+    <button type="button" class="nd-menu-item" :class="buttonClass" :disabled="isDisabled && !onDisabledClick" @click="handleClick">
       <UiBaseIcon v-if="iconPath" :path="iconPath" w="w-5 md:w-5" h="h-5 md:h-5" size="20" />
       {{ text }}
     </button>

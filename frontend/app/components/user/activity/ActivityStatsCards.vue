@@ -22,7 +22,7 @@ const { formatNumber } = useFormat();
         <p class="text-sm text-gray-400 mt-1">{{ t('accountSettings.activity.overview.description') }}</p>
       </div>
       <div class="flex gap-1 rounded-lg border border-white/10 bg-white/5 p-0.5">
-        <button
+        <button type="button"
           v-for="option in (['7d', '30d', '90d', 'all'] as const)"
           :key="option"
           :class="[

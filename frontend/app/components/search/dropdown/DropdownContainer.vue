@@ -23,6 +23,7 @@
         -->
         <Teleport to="body" :disabled="!teleport">
             <Transition name="nd-dropdown">
+                <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: closes the menu after a child item is picked -->
                 <div
                     v-if="isOpen"
                     ref="menuRef"
