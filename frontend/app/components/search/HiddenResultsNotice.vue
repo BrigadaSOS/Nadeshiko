@@ -54,11 +54,11 @@ const localePath = useLocalePath();
       dropdown-container-class="z-50 w-72 max-w-[calc(100vw-2rem)] p-3">
       <template #default="{ toggle, isOpen }">
         <span class="inline-flex flex-wrap items-center gap-x-1">
-          <i18n-t
+          <!-- biome-ignore lint/a11y/noHeaderScope: vue-i18n scope, not a table header -->
+          <i18n-t scope="global"
             :keypath="count > 0 ? 'searchContainer.hiddenResults' : 'searchContainer.hiddenResultsMaybe'"
             :plural="count"
-            tag="span"
-            scope="global">
+            tag="span">
             <template #count>{{ count }}</template>
             <template #filters>
               <button

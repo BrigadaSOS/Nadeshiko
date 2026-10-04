@@ -4,6 +4,7 @@ import { announcementTitle } from '~/utils/announcement';
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
+const fieldId = useId();
 const sdk = useNadeshikoSdk();
 const saving = ref(false);
 
@@ -109,8 +110,9 @@ const previewTitle = computed(() => announcementTitle(t, form.type));
     </p>
     <div class="mt-4 space-y-4">
       <div>
-        <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.message') }}</label>
+        <label :for="`${fieldId}-message`" class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.message') }}</label>
         <textarea
+          :id="`${fieldId}-message`"
           v-model="form.message"
           maxlength="500"
           rows="3"
@@ -125,10 +127,10 @@ const previewTitle = computed(() => announcementTitle(t, form.type));
         </div>
       </div>
 
-      <div>
-        <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.type') }}</label>
+      <fieldset class="min-w-0">
+        <legend class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.type') }}</legend>
         <div class="flex gap-2">
-          <button
+          <button type="button"
             v-for="opt in typeOptions"
             :key="opt.value"
             :class="[
@@ -143,14 +145,14 @@ const previewTitle = computed(() => announcementTitle(t, form.type));
             {{ opt.label }}
           </button>
         </div>
-      </div>
+      </fieldset>
 
       <div class="flex items-center justify-between">
         <div>
           <span class="text-sm text-gray-300">{{ t('accountSettings.announcement.fields.active') }}</span>
           <p class="text-xs text-gray-500">{{ t('accountSettings.announcement.activeDescription') }}</p>
         </div>
-        <button
+        <button type="button"
           :class="[
             'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
             form.active ? 'bg-red-400' : 'bg-gray-600',
@@ -167,10 +169,10 @@ const previewTitle = computed(() => announcementTitle(t, form.type));
       </div>
 
       <div v-if="form.message?.trim()" class="mt-2">
-        <label class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.preview') }}</label>
+        <p class="block text-sm text-gray-300 mb-1">{{ t('accountSettings.announcement.fields.preview') }}</p>
         <div class="rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4">
           <div class="flex items-center gap-2 mb-1.5">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-red-400 shrink-0">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5 text-red-400 shrink-0">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
             <span class="font-semibold text-white text-sm">{{ previewTitle }}</span>
@@ -183,14 +185,14 @@ const previewTitle = computed(() => announcementTitle(t, form.type));
     </div>
 
     <div class="mt-4 flex gap-3">
-      <button
+      <button type="button"
         :disabled="saving || !hasChanges || !form.message?.trim()"
         class="px-4 py-2 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         @click="save"
       >
         {{ saving ? t('accountSettings.announcement.saving') : t('accountSettings.announcement.save') }}
       </button>
-      <button
+      <button type="button"
         v-if="existing?.active"
         :disabled="saving"
         class="px-4 py-2 text-sm rounded-lg bg-neutral-700 hover:bg-neutral-600 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"

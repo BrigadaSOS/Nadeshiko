@@ -240,7 +240,7 @@ const onSentinelVisible = () => {
 
     <div class="flex items-center gap-3 mb-6">
       <div class="flex rounded-lg overflow-hidden border border-hairline">
-        <button
+        <button type="button"
           v-for="mode in (['ALL', 'COVERED', 'UNCOVERED'] as const)"
           :key="mode"
           class="px-3 py-1.5 text-xs font-medium transition-colors"

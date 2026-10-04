@@ -213,7 +213,7 @@ async function create() {
       <input v-if="activeKind === 'FEATURE'" v-model="draft.introducedInVersion" maxlength="32" class="nd-input" placeholder="Introduced in version (e.g. 2.4.19)">
       <input v-model.number="draft.sortOrder" type="number" class="nd-input" placeholder="Display order">
       <input v-if="activeKind === 'CONTENT'" v-model="draft.proposerName" maxlength="80" class="nd-input md:col-span-2" placeholder="Public Patreon credit (optional)">
-      <button class="nd-btn-accent md:col-span-2" :disabled="savingId === 'new'">Create item</button>
+      <button type="submit" class="nd-btn-accent md:col-span-2" :disabled="savingId === 'new'">Create item</button>
     </form>
 
     <div v-if="loading" class="nd-settings-card flex justify-center"><span class="nd-spinner" /></div>

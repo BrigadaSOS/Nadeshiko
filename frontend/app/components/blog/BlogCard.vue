@@ -65,7 +65,7 @@ const contentPreview = computed(() => blogExcerpt(props.post.rawbody, props.post
 
       <!-- Date -->
       <span v-if="formattedDate" class="inline-flex items-center gap-1.5 text-sm text-[#ef5552] mt-1">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         {{ formattedDate }}
@@ -90,7 +90,7 @@ const contentPreview = computed(() => blogExcerpt(props.post.rawbody, props.post
       <!-- Read more -->
       <span class="inline-flex items-center gap-2 text-base font-semibold text-red-400 group-hover:text-red-300 transition-colors duration-200 mt-4">
         <span>{{ $t('blog.readMore') }}</span>
-        <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" class="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </span>

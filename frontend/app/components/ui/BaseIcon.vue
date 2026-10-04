@@ -28,7 +28,7 @@ const iconSize = computed(() => props.size ?? 16);
 </script>
 <template>
   <span  :class="spanClass">
-    <svg
+    <svg aria-hidden="true"
       viewBox="0 0 24 24"
       :width="iconSize"
       :height="iconSize"

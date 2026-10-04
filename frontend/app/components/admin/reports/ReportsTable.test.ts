@@ -273,7 +273,7 @@ describe('the admin notes', () => {
       groups: [group({ reports: [report({ adminNotes: 'asked the uploader' })] })],
     });
 
-    await wrapper.find('tbody span.cursor-pointer').trigger('click');
+    await wrapper.find('tbody button.cursor-pointer').trigger('click');
 
     expect(editingNotes[1]).toBe('asked the uploader');
   });
@@ -286,7 +286,7 @@ describe('the admin notes', () => {
       groups: [group({ reports: [report({ adminNotes: null })] })],
     });
 
-    await wrapper.find('tbody span.cursor-pointer').trigger('click');
+    await wrapper.find('tbody button.cursor-pointer').trigger('click');
 
     expect(editingNotes[1]).toBe('');
   });
