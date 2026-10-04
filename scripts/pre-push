@@ -62,13 +62,26 @@ before_generation=$(mktemp)
 after_generation=$(mktemp)
 trap 'rm -f "$before_generation" "$after_generation"' EXIT HUP INT TERM
 
+# jj in a jj checkout, plain git otherwise.
+generated_diff() {
+  if jj root >/dev/null 2>&1; then
+    jj diff --git -- "$@"
+  else
+    git diff HEAD -- "$@" || return 1
+    git ls-files --others --exclude-standard -- "$@" | while read -r file; do
+      printf '%s ' "$file"
+      git hash-object "$file"
+    done
+  fi
+}
+
 # shellcheck disable=SC2086
-jj diff --git -- $generated_paths >"$before_generation" || exit 1
+generated_diff $generated_paths >"$before_generation" || exit 1
 npm run generate:api --workspace backend >/dev/null 2>&1 || { echo "Backend API generation failed"; exit 1; }
 npm run generate:auth-spec --workspace backend >/dev/null 2>&1 || { echo "SDK spec generation failed"; exit 1; }
 npm run sdk:codegen >/dev/null 2>&1 || { echo "SDK codegen failed"; exit 1; }
 # shellcheck disable=SC2086
-jj diff --git -- $generated_paths >"$after_generation" || exit 1
+generated_diff $generated_paths >"$after_generation" || exit 1
 
 cmp -s "$before_generation" "$after_generation" || {
   echo "Generated code is stale. Review the generated changes and run the pre-push checks again."
