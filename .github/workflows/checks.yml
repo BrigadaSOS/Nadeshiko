@@ -46,6 +46,23 @@ env:
   ELASTICSEARCH_IMAGE: ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Set up the workspace
+        uses: ./.github/actions/setup-workspace
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Biome
+        run: npx biome ci .
+
   # Deliberately ungated. Every other job keys off a paths filter, but generated
   # code goes stale from editing a *generator* (backend/bin, the SDK's
   # generate.ts) as readily as from editing the spec, and the filter that covers
@@ -149,9 +166,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # The full `lint`, not `lint:code`: it is Biome plus `redocly lint` over
-      # docs/openapi/openapi.yaml. Running only the Biome half here left the
-      # spec linted on contributors' machines and nowhere else.
       - name: Lint
         run: npm run lint --workspace backend
 
@@ -253,7 +267,7 @@ jobs:
         run: npx nuxi prepare
         working-directory: frontend
 
-      # Biome plus `lint:i18n`, the locale-parity check -- cheap, and the only
+      # The locale-parity check -- cheap, and the only
       # thing standing between three locales and silent drift: a key added to
       # en.json alone renders as its own dotted path on /es and /ja. It used to
       # be a step of its own here, which meant it ran in CI and nowhere else;
@@ -282,9 +296,6 @@ jobs:
         uses: ./.github/actions/setup-workspace
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Lint
-        run: npm run lint --workspace discord
 
       - name: Typecheck
         run: npm run typecheck --workspace discord

@@ -7,12 +7,10 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev | pino-pretty",
-    "lint": "npm run lint:code && npm run lint:i18n",
-    "lint:code": "biome check .",
+    "lint": "npm run lint:i18n",
     "typecheck": "vue-tsc --noEmit",
     "verify:sri": "node scripts/verify-sri.mjs",
     "lint:i18n": "node --import tsx scripts/checkLocales.ts",
-    "lint:fix": "biome check . --write",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest run",

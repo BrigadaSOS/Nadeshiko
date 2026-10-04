@@ -8,7 +8,7 @@
     "frontend",
     "discord"
   ],
-  "//lint,typecheck,test": "`--workspaces --if-present` rather than a hand-written list, so a new workspace is covered the day it is added and a contributor running `npm run lint && npm run typecheck && npm run test` cannot pass locally and fail in CI. npm runs them in the order the `workspaces` array declares. A workspace opts in by owning the script: frontend composes its `lint` from `lint:code` (Biome) and `lint:i18n` (locale parity) the way backend composes its from `lint:code` and `lint:openapi`, so both are one `lint` from out here.",
+  "//lint,typecheck,test": "`--workspaces --if-present` rather than a hand-written list, so a new workspace is covered the day it is added and a contributor running `npm run lint && npm run typecheck && npm run test` cannot pass locally and fail in CI. npm runs them in the order the `workspaces` array declares. Biome runs once over the whole repository from the root `biome.jsonc`; a workspace `lint` holds only what Biome does not cover: backend's `redocly lint` and frontend's locale parity check.",
   "//sdk:sync": "Bundles the spec before regenerating the SDK from it, so starting the stack right after a spec edit does not build the SDK from the previous bundle. Runs once per `npm run dev`, not per Nuxt restart, and deliberately stops short of backend `generate:api` -- `dev:backend` does that for itself.",
   "scripts": {
     "predev": "npm run sdk:sync",
@@ -18,8 +18,8 @@
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
     "build": "npm run build --workspace backend && npm run sdk:codegen && npm run build --workspace frontend",
-    "lint": "npm run lint --workspaces --if-present",
-    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "lint": "biome check . && npm run lint --workspaces --if-present",
+    "lint:fix": "biome check . --write",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
