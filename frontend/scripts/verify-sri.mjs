@@ -89,7 +89,7 @@ const hashes = extractHashes(bundle);
 // removed -- the check silently verifies nothing, which is worse than not having
 // it, because the build still goes green.
 if (!hashes || Object.keys(hashes).length === 0) {
-  console.error('verify-sri: could not read nuxt-security\'s sriHashes from the server bundle');
+  console.error("verify-sri: could not read nuxt-security's sriHashes from the server bundle");
   console.error('verify-sri: refusing to pass a build whose integrity cannot be checked');
   process.exit(1);
 }
@@ -140,7 +140,9 @@ if (missing.length > 0) {
 }
 
 if (mismatched.length > 0) {
-  console.error(`verify-sri: ${mismatched.length} of ${checked + mismatched.length} assets do NOT match their integrity digest.`);
+  console.error(
+    `verify-sri: ${mismatched.length} of ${checked + mismatched.length} assets do NOT match their integrity digest.`,
+  );
   console.error('verify-sri: every browser would block these. Something rewrote them after nuxt-security hashed them.');
   for (const { path, expected, actual } of mismatched.slice(0, 10)) {
     console.error(`  ${path}\n    declared ${expected}\n    actual   ${actual}`);

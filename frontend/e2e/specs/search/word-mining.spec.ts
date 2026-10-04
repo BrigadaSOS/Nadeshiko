@@ -76,11 +76,7 @@ async function stubAnkiConnect(
  * call that was never going to come, and fail as a timeout rather than as the
  * thing it meant to check.
  */
-function ankiResult(
-  call: AnkiCall,
-  findNotesResult: number[],
-  options: { onlyOutsideDeck?: boolean } = {},
-): unknown {
+function ankiResult(call: AnkiCall, findNotesResult: number[], options: { onlyOutsideDeck?: boolean } = {}): unknown {
   if (call.action === 'findNotes') {
     // Two different questions reach `findNotes`, and a stub that answers both
     // the same way cannot tell the export's three targets apart. The probe asks
@@ -99,7 +95,15 @@ function ankiResult(
   }
   if (call.action === 'notesInfo') {
     const notes = (call.params?.notes ?? []) as number[];
-    return notes.map((noteId) => ({ noteId, fields: {}, tags: [], cards: [], modelName: 'Basic', mod: 0, profile: '' }));
+    return notes.map((noteId) => ({
+      noteId,
+      fields: {},
+      tags: [],
+      cards: [],
+      modelName: 'Basic',
+      mod: 0,
+      profile: '',
+    }));
   }
   // The name the file was stored under, which is what the field is built from.
   if (call.action === 'storeMediaFile') return String(call.params?.filename ?? 'stored.mp3');
@@ -259,10 +263,17 @@ const mineButton = (page: Page) => page.getByTestId('word-mine');
 
 /** Mines this sentence, whichever of the two shapes the control is in. */
 async function mine(page: Page): Promise<void> {
-  if (await minedMenuButton(page).isVisible().catch(() => false)) {
+  if (
+    await minedMenuButton(page)
+      .isVisible()
+      .catch(() => false)
+  ) {
     await minedMenuButton(page).click();
     // Scoped to the open menu: the trigger's own label would otherwise match too.
-    await page.getByTestId('dropdown-menu').getByRole('button', { name: /Replace everything/i }).click();
+    await page
+      .getByTestId('dropdown-menu')
+      .getByRole('button', { name: /Replace everything/i })
+      .click();
     return;
   }
   await mineButton(page).click();
@@ -627,9 +638,7 @@ test.describe('Word card mining', () => {
 
       // The other item writes them.
       await mine(page);
-      await expect
-        .poll(() => Object.keys(writtenFields(calls)).includes('Definition'), { timeout: 15_000 })
-        .toBe(true);
+      await expect.poll(() => Object.keys(writtenFields(calls)).includes('Definition'), { timeout: 15_000 }).toBe(true);
       expect(writtenFields(calls).Definition).toContain('allowance');
     } finally {
       await clearAnkiProfiles(page);
@@ -886,7 +895,10 @@ test.describe('Word card mining', () => {
       await expect(minedMenuButton(page)).toBeVisible({ timeout: 10_000 });
 
       await minedMenuButton(page).click();
-      await page.getByTestId('dropdown-menu').getByRole('button', { name: /Add this sentence/i }).click();
+      await page
+        .getByTestId('dropdown-menu')
+        .getByRole('button', { name: /Add this sentence/i })
+        .click();
       await expect.poll(() => writeCount(calls), { timeout: 15_000 }).toBeGreaterThan(0);
 
       const fields = writtenFieldsAny(calls);

@@ -155,7 +155,9 @@ test.describe('Developer API Keys', () => {
 
       const search = await api.post(`/v1/collections/${collectionPublicId}/search`, { data: {} });
       expect(search, await search.text()).toBeOK();
-      expect((await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId)).toBeTruthy();
+      expect(
+        (await search.json()).segments.some((segment: { publicId: string }) => segment.publicId === segmentPublicId),
+      ).toBeTruthy();
 
       const stats = await api.get(`/v1/collections/${collectionPublicId}/stats`);
       expect(stats, await stats.text()).toBeOK();
@@ -164,7 +166,11 @@ test.describe('Developer API Keys', () => {
       const visitorPage = await visitor.newPage();
       await loginAsE2EUser(visitorPage, e2eAccountForWorker(8));
       expect((await visitorPage.request.get(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
-      expect((await visitorPage.request.patch(`/v1/collections/${collectionPublicId}`, { data: { name: 'intruder' } })).status()).toBe(403);
+      expect(
+        (
+          await visitorPage.request.patch(`/v1/collections/${collectionPublicId}`, { data: { name: 'intruder' } })
+        ).status(),
+      ).toBe(403);
       expect((await visitorPage.request.delete(`/v1/collections/${collectionPublicId}`)).status()).toBe(403);
 
       const publish = await api.patch(`/v1/collections/${collectionPublicId}`, { data: { visibility: 'PUBLIC' } });
@@ -177,7 +183,9 @@ test.describe('Developer API Keys', () => {
 
       await developer.deactivateApiKey(developer.apiKeyRowByName(keyName));
       await expect(developer.apiKeyRowByName(keyName)).not.toBeVisible({ timeout: 10_000 });
-      await expect.poll(async () => (await api.get(`/v1/collections/${collectionPublicId}`)).status(), { timeout: 10_000 }).toBe(401);
+      await expect
+        .poll(async () => (await api.get(`/v1/collections/${collectionPublicId}`)).status(), { timeout: 10_000 })
+        .toBe(401);
     } finally {
       await visitor.close();
       await api.dispose();

@@ -13,9 +13,7 @@ test.describe('Email links', () => {
       if (url.pathname === '/v1/auth/verify-email') forwardedUrl = request.url();
     });
 
-    const response = await page.goto(
-      '/verify?token=legacy-token&callbackURL=https%3A%2F%2Fevil.example%2Fsteal',
-    );
+    const response = await page.goto('/verify?token=legacy-token&callbackURL=https%3A%2F%2Fevil.example%2Fsteal');
     expect(response?.status()).toBe(200);
 
     const target = new URL(forwardedUrl);

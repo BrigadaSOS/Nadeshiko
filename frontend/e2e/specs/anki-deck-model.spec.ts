@@ -199,8 +199,4 @@ test.describe('Anki deck to note type', () => {
     await expect(value).toHaveValue('{word}<br>{word-reading}');
     await settle();
   });
-
-
-
-
 });

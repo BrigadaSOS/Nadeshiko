@@ -105,9 +105,12 @@ test.describe('Mobile viewport', () => {
   });
 
   test('the search bar buttons give their width to the history on mobile', async ({ page }) => {
-    await page.addInitScript((payload) => {
-      window.localStorage.setItem('nd-search-recents', payload);
-    }, JSON.stringify({ entries: [{ query: '学校', searchedAt: '2026-08-14T09:00:00.000Z', ids: [] }], dismissed: {} }));
+    await page.addInitScript(
+      (payload) => {
+        window.localStorage.setItem('nd-search-recents', payload);
+      },
+      JSON.stringify({ entries: [{ query: '学校', searchedAt: '2026-08-14T09:00:00.000Z', ids: [] }], dismissed: {} }),
+    );
     await page.goto('/');
 
     const searchInput = page.getByTestId('search-input');

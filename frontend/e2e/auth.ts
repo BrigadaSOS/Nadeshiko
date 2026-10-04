@@ -115,8 +115,10 @@ type WorkerFixtures = {
   workerAuthState: string;
 };
 
+// biome-ignore lint/complexity/noBannedTypes: Playwright's shape for no test-scoped fixtures
 export const test = base.extend<{}, WorkerFixtures>({
   e2eAccount: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires a destructured first argument
     async ({}, use, workerInfo) => {
       await use(e2eAccountForWorker(workerInfo.parallelIndex));
     },

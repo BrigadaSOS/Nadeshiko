@@ -61,7 +61,7 @@ function backoffDelay(attempt: number, initial: number, max: number): number {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -103,16 +103,10 @@ function retryRequest(input: RequestInfo | URL, init?: RequestInit): RetryReques
   return { method: (init?.method ?? 'GET').toUpperCase(), url: String(input) };
 }
 
-export function withRetry(
-  fetchImpl: FetchLike = globalThis.fetch,
-  options: RetryOptions = {},
-): FetchLike {
+export function withRetry(fetchImpl: FetchLike = globalThis.fetch, options: RetryOptions = {}): FetchLike {
   const { maxRetries = 2, initialDelayMs = 500, maxDelayMs = 30_000, timeout, retryUnsafeRequest } = options;
 
-  return async function retryingFetch(
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ): Promise<Response> {
+  return async function retryingFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     let attempt = 0;
     const request = retryRequest(input, init);
     // Retrying after a network failure is not safe for a POST merely because
@@ -127,10 +121,7 @@ export function withRetry(
 
       if (timeout !== undefined && !init?.signal) {
         const controller = new AbortController();
-        timeoutId = setTimeout(
-          () => controller.abort(new Error(`Request timed out after ${timeout}ms`)),
-          timeout,
-        );
+        timeoutId = setTimeout(() => controller.abort(new Error(`Request timed out after ${timeout}ms`)), timeout);
         fetchInit = { ...init, signal: controller.signal };
       }
 

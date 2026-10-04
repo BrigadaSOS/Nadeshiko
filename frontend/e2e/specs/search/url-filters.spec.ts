@@ -17,7 +17,6 @@ test.describe('Search URL filters', () => {
     await search.goto('学校');
     await search.expectResultsVisible();
 
-
     // Get media name and click to filter
     const mediaLink = search.segmentCards.first().getByTestId('segment-media-name');
     const mediaName = (await mediaLink.textContent())!.trim();
@@ -38,7 +37,6 @@ test.describe('Search URL filters', () => {
     await search.goto('学校');
     await search.expectResultsVisible();
 
-
     const unfilteredCount = await search.getResultCount();
 
     // Click media name to filter
@@ -56,7 +54,6 @@ test.describe('Search URL filters', () => {
     const search = new SearchPage(page);
     await search.goto('学校');
     await search.expectResultsVisible();
-
 
     // Get a media ID by clicking the media name
     const mediaId = await clickFirstMediaFilter(search);
