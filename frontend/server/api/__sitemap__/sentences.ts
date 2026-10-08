@@ -27,8 +27,8 @@ import { getSitemapLocale, localizeSitemapPath } from './utils';
  * assumed, the same trap `episodes.ts` documents. `take: 1` because only the
  * first is wanted: this is a cheap lookup, not a pagination.
  *
- * ACTIVE SEGMENTS ONLY. `HIDDEN` and `DELETED` render as a permalink to nothing,
- * and a sitemap is the one place a URL should never be a guess.
+ * ACTIVE SEGMENTS ONLY. Hidden segments remain available by direct URL but
+ * are withheld from discovery. Deleted segments are excluded here too.
  *
  * SAFE AND SUGGESTIVE ONLY. A sitemap is an active invitation rather than a
  * statement that a page exists, and the ratings above that change how a domain
