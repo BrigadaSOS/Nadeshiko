@@ -42,6 +42,7 @@
     "db:status": "node --import tsx bin/db.ts status",
     "db:verify": "node --import tsx bin/db.ts status --require-current",
     "diagnose:search-db": "node --env-file-if-exists=.env --import tsx bin/searchDbDiagnostics.ts",
+    "corpus:audit": "node --env-file-if-exists=.env --import tsx bin/applyCorpusAudit.ts",
     "create:service-key": "node --env-file-if-exists=.env --import tsx bin/createServiceKey.ts",
     "email:backfill-feedback": "node --env-file-if-exists=.env --import tsx bin/backfillFeedbackAsk.ts",
     "email:test": "node --env-file-if-exists=.env --import tsx scripts/test-email.ts",
