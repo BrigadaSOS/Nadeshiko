@@ -112,7 +112,6 @@ const searchScope = computed<SearchScope>(() => ({
   randomSeed: randomSeedParam.value,
   segmentPublicId: getStringQueryValue(route.query.uuid as string | string[] | undefined),
   collectionId: null,
-  listMediaIds: null,
   contentRating: contentRating.value,
   languages: includedLanguages.value,
   hiddenMediaExclude: hiddenMediaExcludeFilter.value,
