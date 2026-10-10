@@ -3,6 +3,25 @@
     "generic": "エラーが発生しました。もう一度お試しください。",
     "rateLimited": "リクエストが多すぎます。しばらく待ってからもう一度お試しください。"
   },
+  "searchErrors": {
+    "invalidRequest": {
+      "title": "検索リクエストが無効です",
+      "message": "検索式とフィルターを確認して、もう一度検索してください。"
+    },
+    "rateLimited": {
+      "title": "検索回数の制限に達しました",
+      "message": "検索リクエストが多すぎます。しばらく待ってからお試しください。"
+    },
+    "quotaExceeded": {
+      "title": "月間検索回数の上限に達しました",
+      "message": "今月の検索可能回数を使い切りました。利用枠がリセットされてからお試しください。"
+    },
+    "unavailable": {
+      "title": "検索を利用できません",
+      "message": "検索データを読み込めませんでした。もう一度お試しください。"
+    },
+    "retry": "再試行"
+  },
   "navbar": {
     "buttons": {
       "home": "ホーム",
@@ -1031,13 +1050,10 @@
     "pickDeselectAll": "すべて解除"
   },
   "searchContainer": {
-    "errorTitle": "エラーが発生しました",
     "errorMessage1": "エラーが発生しました",
-    "errorMessage2": "下のボタンで再試行してください。",
     "retryButton": "もう一度読み込む",
     "retrying": "再試行中...",
     "endOfResults": "すべての検索結果を表示しました",
-    "loadMore": "例文をもっと見る",
     "categoryAll": "すべて",
     "selectedMediaFallback": "選択した作品",
     "categoryAnime": "アニメ",
@@ -1562,10 +1578,6 @@
   "mediaHeader": {
     "collapse": "作品情報を閉じる",
     "expand": "作品情報を開く"
-  },
-  "mediaPage": {
-    "resultsFailed": "この作品の例文を読み込めませんでした。",
-    "resultsRetry": "再試行"
   },
   "impersonation": {
     "active": "{name}として代理ログイン中",

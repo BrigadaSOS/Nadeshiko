@@ -3,6 +3,25 @@
     "generic": "Terjadi kesalahan. Silakan coba lagi.",
     "rateLimited": "Terlalu banyak permintaan. Tunggu sebentar, lalu coba lagi."
   },
+  "searchErrors": {
+    "invalidRequest": {
+      "title": "Permintaan pencarian tidak valid",
+      "message": "Periksa kueri dan filter pencarian, lalu cari kembali."
+    },
+    "rateLimited": {
+      "title": "Batas pencarian tercapai",
+      "message": "Terlalu banyak permintaan pencarian. Tunggu sebelum mencoba lagi."
+    },
+    "quotaExceeded": {
+      "title": "Batas pencarian bulanan tercapai",
+      "message": "Kuota pencarian bulanan Anda telah habis. Coba lagi setelah kuota direset."
+    },
+    "unavailable": {
+      "title": "Pencarian tidak tersedia",
+      "message": "Kami tidak dapat memuat data pencarian. Silakan coba lagi."
+    },
+    "retry": "Coba lagi"
+  },
   "navbar": {
     "buttons": {
       "home": "Beranda",
@@ -1031,13 +1050,10 @@
     "pickDeselectAll": "Batalkan semua pilihan"
   },
   "searchContainer": {
-    "errorTitle": "Terjadi kesalahan",
     "errorMessage1": "Pencarian gagal dimuat",
-    "errorMessage2": "Gunakan tombol di bawah untuk mencoba lagi.",
     "retryButton": "Coba lagi",
     "retrying": "Mencoba lagi…",
     "endOfResults": "Semua hasil sudah ditampilkan",
-    "loadMore": "Muat kalimat lainnya",
     "categoryAll": "Semua",
     "selectedMediaFallback": "Judul yang dipilih",
     "categoryAnime": "Anime",
@@ -1562,10 +1578,6 @@
   "mediaHeader": {
     "collapse": "Tutup detail judul",
     "expand": "Buka detail judul"
-  },
-  "mediaPage": {
-    "resultsFailed": "Gagal memuat kalimat untuk judul ini.",
-    "resultsRetry": "Coba lagi"
   },
   "impersonation": {
     "active": "Mengakses akun sebagai {name}",
