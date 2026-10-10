@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import type { Media } from '@brigadasos/nadeshiko-sdk';
 import { stripEpisodeHits, stripUnreadTokenFields, type SearchScope } from '~/composables/useSearchFetch';
-import {
-  DEFAULT_OG_IMAGE_PATH,
-  DEFAULT_OG_IMAGE_SIZE,
-  buildDefaultMetaTags,
-  buildOgImageTags,
-  pageTitle,
-  socialTitle,
-} from '~/utils/metaTags';
+import { buildDefaultMetaTags, buildMediaMetaTags } from '~/utils/metaTags';
 import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
 import { mediaSameAsUrls } from '~/utils/media';
@@ -183,45 +176,19 @@ const metaTags = computed(() => {
   const entry = media.value;
   if (!entry) return buildDefaultMetaTags(t('seo.media.title'), t('seo.media.description'));
 
-  const title = mediaName(entry);
-  const social = socialTitle(title);
-
   const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaPublicId === entry.publicId);
-  const episodeHits = mediaStats?.episodeHits;
-  const filterEpisode = episodeNumberParam.value;
-
-  let totalResults = mediaStats?.matchCount ?? 0;
-  if (episodeHits && filterEpisode) {
-    totalResults = episodeHits.find((h) => h.episode === filterEpisode)?.hitCount ?? 0;
-  }
-
-  const count = formatNumber(totalResults);
-  let description = t('seo.search.mediaDescription', { count, media: title });
-
-  if (episodeHits && episodeHits.length > 0) {
-    description = filterEpisode
-      ? t('seo.search.mediaDescriptionEpisode', { count, media: title, episode: filterEpisode })
-      : t('seo.search.mediaDescriptionEpisodes', { count, media: title, episodeCount: episodeHits.length });
-  }
-
-  // Banner over cover, and the size declared only when it is actually known --
-  // see `buildOgImageTags` for why the two must travel together.
-  const bannerUrl = entry.bannerUrl;
-  const ogImage = bannerUrl || `${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`;
-
-  return {
-    title: pageTitle(t('seo.media.pageTitle', { media: title })),
-    meta: [
-      { name: 'description', content: description },
-      { property: 'og:title', content: social },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      ...buildOgImageTags(ogImage, bannerUrl ? undefined : DEFAULT_OG_IMAGE_SIZE),
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: social },
-      { name: 'twitter:description', content: description },
-    ],
-  };
+  return buildMediaMetaTags(
+    {
+      name: mediaName(entry),
+      bannerUrl: entry.bannerUrl,
+      origin: requestOrigin,
+      totalResults: mediaStats?.matchCount ?? 0,
+      episodeHits: mediaStats?.episodeHits,
+      episode: episodeNumberParam.value,
+    },
+    t,
+    formatNumber,
+  );
 });
 
 useHead(metaTags);

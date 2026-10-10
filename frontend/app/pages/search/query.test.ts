@@ -2,6 +2,14 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref, unref } from 'vue';
+import { createHead, renderSSRHead } from 'unhead/server';
+import {
+  mediaMetaCases,
+  mediaMetaI18n,
+  formatMediaMetaNumber,
+  expectedMediaMeta,
+  expectedFallbackHead,
+} from '../../../test/media-meta-fixtures';
 
 /**
  * The search page, whose interesting output is what it tells CRAWLERS.
@@ -36,7 +44,8 @@ vi.stubGlobal('useRequestURL', () => new URL('https://nadeshiko.test/en/search/c
 vi.stubGlobal('useRequestTraffic', () => 'reader');
 vi.stubGlobal('navigateTo', navigateTo);
 vi.stubGlobal('useRobotsRule', (v: unknown) => capturedRobots.push(v));
-vi.stubGlobal('useHead', vi.fn());
+const useHead = vi.fn();
+vi.stubGlobal('useHead', useHead);
 vi.stubGlobal('useSeoMeta', vi.fn());
 vi.stubGlobal('useSchemaOrg', (v: unknown) => capturedSchema.push(v));
 vi.stubGlobal('defineWebPage', (v: Record<string, unknown>) => ({ '@type': 'WebPage', ...v }));
@@ -89,9 +98,10 @@ vi.stubGlobal('useSearchFetch', () => ({
 // `getMedia` included: the page resolves a `?media=` scope through it, and an
 // SDK stub without it sends that straight to the failure path -- where the
 // breadcrumb's title never resolves and the assertion about it means nothing.
-vi.stubGlobal('useNadeshikoSdk', () => ({
+const useNadeshikoSdk = () => ({
   getMedia: vi.fn().mockResolvedValue({ publicId: 'm1', nameEn: 'Bocchi', slug: 'bocchi' }),
-}));
+});
+vi.stubGlobal('useNadeshikoSdk', useNadeshikoSdk);
 vi.stubGlobal('userStore', () => ({ isLoggedIn: false, userEmail: null, preferences: {} }));
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
 vi.stubGlobal('useQuerySync', () => ({ setQuery: vi.fn() }));
@@ -145,6 +155,7 @@ async function render(
         },
         NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
         UiBaseIcon: true,
+        MediaHeader: true,
       },
     },
   });
@@ -169,6 +180,9 @@ const hits = (n: number) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal('useNadeshikoSdk', useNadeshikoSdk);
+  vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
+  vi.stubGlobal('useFormat', () => ({ formatNumber: (n: number) => String(n), formatDate: (d: unknown) => String(d) }));
   fetchStats.mockResolvedValue({ status: 'ok', data: { media: [], categories: [] } });
 });
 
@@ -268,4 +282,196 @@ describe('primed search error outcomes', () => {
     await render(null, '/en/search/cat', {}, { status: 'forbidden' });
     expect(navigateTo).toHaveBeenCalledWith('/en/', { redirectCode: 302 });
   });
+});
+
+describe('media browse metadata', () => {
+  test.each(mediaMetaCases)('$label', async ({ stats, episode, bannerUrl, locale, description }) => {
+    mediaMetaI18n.locale.value = locale ?? 'en';
+    vi.stubGlobal('useI18n', () => mediaMetaI18n);
+    vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+    fetchStats.mockResolvedValueOnce({
+      status: 'ok',
+      data: {
+        media: [
+          { mediaPublicId: 'other', matchCount: 999999, episodeHits: [{ episode: 3, hitCount: 999999 }] },
+          ...(stats ? [{ mediaPublicId: 'm1', ...stats }] : []),
+        ],
+        categories: [],
+      },
+    });
+    await render(
+      {
+        results: [
+          {
+            segment: { publicId: 's1' },
+            media: { publicId: 'm1', nameEn: 'Bocchi', bannerUrl, coverUrl: 'https://images.test/cover.webp' },
+          },
+        ],
+        pagination: { estimatedTotalHits: 999999 },
+      },
+      '/en/search',
+      { media: 'm1', ...(episode !== undefined ? { episode } : {}) },
+    );
+    expect(unref(useHead.mock.calls[0]?.[0])).toEqual(expectedMediaMeta(description, bannerUrl, locale));
+  });
+});
+
+test('renders the complete fallback head with the site title template', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: { media: [{ mediaPublicId: 'm1', matchCount: 1234 }], categories: [] },
+  });
+  await render(
+    { results: [{ segment: { publicId: 's1' }, media: { publicId: 'm1', nameEn: 'Bocchi' } }] },
+    '/en/search',
+    { media: 'm1' },
+  );
+  const head = createHead();
+  head.push({ titleTemplate: '%s | Nadeshiko' });
+  head.push(unref(useHead.mock.calls[0]?.[0]));
+  expect((await renderSSRHead(head)).headTags).toBe(expectedFallbackHead);
+});
+
+test('recomputes media metadata when episode and locale change', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: {
+      media: [
+        {
+          mediaPublicId: 'm1',
+          matchCount: 1234,
+          episodeHits: [
+            { episode: 1, hitCount: 1200 },
+            { episode: 3, hitCount: 34 },
+          ],
+        },
+      ],
+      categories: [],
+    },
+  });
+  await render(
+    { results: [{ segment: { publicId: 's1' }, media: { publicId: 'm1', nameEn: 'Bocchi' } }] },
+    '/en/search',
+    { media: 'm1' },
+  );
+  const metadata = useHead.mock.calls[0]?.[0];
+  expect(unref(metadata)).toEqual(
+    expectedMediaMeta('1,234 Japanese sentences from Bocchi across 2 episodes with English translations.'),
+  );
+  route.query.episode = '3';
+  mediaMetaI18n.locale.value = 'es';
+  expect(unref(metadata)).toEqual(
+    expectedMediaMeta(
+      'Frases en japonés del episodio 3 de «Bocchi»: 34. Consulta sus traducciones al español.',
+      undefined,
+      'es',
+    ),
+  );
+});
+
+test('keeps search defaults without first-result media and word metadata ahead of media metadata', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  await render(hits(0), '/en/search', { media: 'm1' });
+  expect(unref(useHead.mock.calls[0]?.[0])).toEqual({
+    title: 'Search',
+    meta: [
+      {
+        name: 'description',
+        content:
+          'Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.',
+      },
+      { property: 'og:title', content: 'Search | Nadeshiko' },
+      {
+        property: 'og:description',
+        content:
+          'Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.',
+      },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'Search | Nadeshiko' },
+      {
+        name: 'twitter:description',
+        content:
+          'Search over 1 million Japanese sentences with English translations from a wide variety of anime and J-dramas.',
+      },
+    ],
+  });
+  useHead.mockClear();
+  await render(hits(3), '/en/search/cat', { media: 'm1' });
+  expect(unref(useHead.mock.calls[0]?.[0])).toEqual({
+    title: 'cat: Japanese example sentences',
+    meta: [
+      { name: 'description', content: '3 example sentences containing "cat" with English translations.' },
+      { property: 'og:title', content: 'cat | Nadeshiko' },
+      { property: 'og:description', content: '3 example sentences containing "cat" with English translations.' },
+      { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'cat | Nadeshiko' },
+      { name: 'twitter:description', content: '3 example sentences containing "cat" with English translations.' },
+    ],
+  });
+});
+
+test('uses the first result artwork but the requested media stats, not scoped media or pagination', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useNadeshikoSdk', () => ({
+    getMedia: vi
+      .fn()
+      .mockResolvedValue({ publicId: 'm1', nameEn: 'Other title', bannerUrl: 'https://images.test/other.webp' }),
+  }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: {
+      media: [
+        { mediaPublicId: 'm1', matchCount: 34 },
+        { mediaPublicId: 'm2', matchCount: 99 },
+      ],
+      categories: [],
+    },
+  });
+  await render(
+    {
+      results: [
+        {
+          segment: { publicId: 's1' },
+          media: { publicId: 'm2', nameEn: 'Bocchi', bannerUrl: 'https://images.test/banner.webp' },
+        },
+      ],
+      pagination: { estimatedTotalHits: 100 },
+    },
+    '/en/search',
+    { media: 'm1' },
+  );
+  expect(unref(useHead.mock.calls[0]?.[0])).toEqual(
+    expectedMediaMeta(
+      '34 Japanese sentences from Bocchi with English translations.',
+      'https://images.test/banner.webp',
+    ),
+  );
+});
+
+test('retains this caller’s non-finite match-count fallback', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: { media: [{ mediaPublicId: 'm1', matchCount: Number.NaN }], categories: [] },
+  });
+  await render(
+    { results: [{ segment: { publicId: 's1' }, media: { publicId: 'm1', nameEn: 'Bocchi' } }] },
+    '/en/search',
+    { media: 'm1' },
+  );
+  expect(unref(useHead.mock.calls[0]?.[0])).toEqual(
+    expectedMediaMeta('0 Japanese sentences from Bocchi with English translations.'),
+  );
 });

@@ -1,3 +1,4 @@
+import type { MediaSearchStats } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResult, Media } from '~/types/search';
 
 // A union rather than one shape with both keys optional: unhead v3 narrows the
@@ -130,6 +131,55 @@ export function buildDefaultMetaTags(title: string, description: string): MetaTa
       { property: 'og:title', content: social },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: social },
+      { name: 'twitter:description', content: description },
+    ],
+  };
+}
+
+type MediaMetaInput = {
+  name: string;
+  bannerUrl?: string | null;
+  origin: string;
+  totalResults: number;
+  episodeHits?: MediaSearchStats['episodeHits'];
+  episode: number | null;
+};
+
+/** Shared media-browse metadata; callers retain scope selection and count defaults. */
+export function buildMediaMetaTags(
+  { name, bannerUrl, origin, totalResults, episodeHits, episode }: MediaMetaInput,
+  t: (key: string, params: Record<string, string | number>) => string,
+  formatNumber: (value: number) => string,
+): MetaTags {
+  // Preserve the existing truthy episode rule: zero is treated as unfiltered.
+  if (episodeHits && episode) {
+    totalResults = episodeHits.find((hit) => hit.episode === episode)?.hitCount ?? 0;
+  }
+
+  const count = formatNumber(totalResults);
+  let description = t('seo.search.mediaDescription', { count, media: name });
+  if (episodeHits && episodeHits.length > 0) {
+    description = episode
+      ? t('seo.search.mediaDescriptionEpisode', { count, media: name, episode })
+      : t('seo.search.mediaDescriptionEpisodes', { count, media: name, episodeCount: episodeHits.length });
+  }
+
+  const social = socialTitle(name);
+  return {
+    title: pageTitle(t('seo.media.pageTitle', { media: name })),
+    meta: [
+      { name: 'description', content: description },
+      { property: 'og:title', content: social },
+      { property: 'og:description', content: description },
+      { property: 'og:type', content: 'website' },
+      // Banners have varying heights; use the known dimensions only for the
+      // default card. A portrait cover is deliberately never a fallback.
+      ...buildOgImageTags(
+        bannerUrl || `${origin}${DEFAULT_OG_IMAGE_PATH}`,
+        bannerUrl ? undefined : DEFAULT_OG_IMAGE_SIZE,
+      ),
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:title', content: social },
       { name: 'twitter:description', content: description },
