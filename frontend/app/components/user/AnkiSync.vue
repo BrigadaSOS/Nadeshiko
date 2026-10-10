@@ -12,7 +12,6 @@ import {
   mdiPencil,
   mdiPlus,
   mdiText,
-  mdiVideo,
   mdiVolumeHigh,
 } from '@mdi/js';
 import { useTimeoutFn } from '@vueuse/core';
@@ -23,10 +22,9 @@ import { copyToClipboard } from '~/utils/media';
 import { handleApiError } from '~/utils/apiError';
 
 const { t } = useI18n();
+const fieldId = useId();
 
 const store = ankiStore();
-const user_store = userStore();
-
 const isError = ref(false);
 const isLoading = ref(false);
 const isSuccess = ref(false);
@@ -48,6 +46,14 @@ const nameModalMode = ref<'create' | 'rename'>('create');
 let suppressWatchers = false;
 
 const activeProfileId = computed(() => store.activeProfile?.id ?? null);
+const canEditProfile = computed(
+  () => isSuccess.value && !isLoading.value && store.connectReachable !== false && !store.connectFailure,
+);
+const displayedDecks = computed(() => [...new Set([selectedDeck.value, ...deckOptions.value].filter(Boolean))]);
+const displayedKeys = computed(() => [
+  ...new Set([modelKey.value, ...fieldOptions.value.map((field) => field.key)].filter((key): key is string => !!key)),
+]);
+const displayedModels = computed(() => [...new Set([selectedModel.value, ...modelOptions.value].filter(Boolean))]);
 const hasKeyField = computed(() => !!modelKey.value?.trim());
 
 const loadFromActiveProfile = () => {
@@ -67,42 +73,19 @@ let pendingSaveData: Partial<AnkiProfile> = {};
 // `useTimeoutFn` cancels the pending write on unmount, which is what we want
 // here: a save that lands after the user navigated away would write whatever
 // the form held mid-edit, with nothing left on screen to report a failure.
-/**
- * "Saved", held on screen after the write rather than a toast.
- *
- * Everything on this page autosaves, so a toast per change would fire on every
- * pause while typing a field template and on each of the eight controls around
- * it -- an interruption for the one outcome the reader expected. Failure still
- * toasts, which is the asymmetry worth keeping: silence when it worked, an
- * interruption when it did not.
- *
- * The line it replaces said only "Saving...", and a save takes about a tenth of
- * a second: it faded in and back out inside a blink, so the reader was told
- * nothing either way. Lingering is the whole point -- the message has to outlast
- * the event it is reporting to be read at all.
- */
-const justSaved = ref(false);
-const { start: holdSavedMessage, stop: cancelSavedMessage } = useTimeoutFn(
-  () => {
-    justSaved.value = false;
-  },
-  2500,
-  { immediate: false },
-);
-
-const { start: scheduleSave } = useTimeoutFn(
+const { start: scheduleSave, stop: cancelSave } = useTimeoutFn(
   async () => {
     const toSave = { ...pendingSaveData };
+    if (!canEditProfile.value) {
+      pendingSaveData = {};
+      return;
+    }
     pendingSaveData = {};
+    if (Object.keys(toSave).length === 0) return;
     isSaving.value = true;
-    // Cleared up front so a second edit landing while "Saved" is still on screen
-    // reads as the new write in progress, not as the old one still being done.
-    cancelSavedMessage();
-    justSaved.value = false;
     try {
       await store.updateActiveProfile(toSave);
-      justSaved.value = true;
-      holdSavedMessage();
+      useToastSuccess(t('accountSettings.anki.saved'));
     } catch (error) {
       // Autosave: the user gets no other signal that their field mapping was lost.
       handleApiError('anki:profile-save-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
@@ -114,8 +97,26 @@ const { start: scheduleSave } = useTimeoutFn(
   { immediate: false },
 );
 
+// Only blur starts the address timer; returning to the input cancels it.
+const { start: scheduleAddressSave, stop: cancelAddressSave } = useTimeoutFn(
+  async () => {
+    if (!store.activeProfile || ankiconnectAddress.value === store.activeProfile.serverAddress) return;
+    isSaving.value = true;
+    try {
+      await store.updateActiveProfile({ serverAddress: ankiconnectAddress.value });
+      useToastSuccess(t('accountSettings.anki.saved'));
+    } catch (error) {
+      handleApiError('anki:profile-save-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
+    } finally {
+      isSaving.value = false;
+    }
+  },
+  2000,
+  { immediate: false },
+);
+
 const debouncedSave = (data: Partial<AnkiProfile>) => {
-  if (suppressWatchers) return;
+  if (suppressWatchers || !canEditProfile.value) return;
   Object.assign(pendingSaveData, data);
   scheduleSave();
 };
@@ -135,6 +136,7 @@ const debouncedSave = (data: Partial<AnkiProfile>) => {
  * again.
  */
 const appendFieldPlaceholder = (fieldName: string, placeholder: string) => {
+  if (!canEditProfile.value) return;
   const field = fieldOptions.value.find((field) => field.key === fieldName);
   if (!field) return;
   field.value = field.value ? `${field.value}<br>${placeholder}` : placeholder;
@@ -144,6 +146,9 @@ const ankiCardCss = ANKI_CARD_CSS;
 const copyCardCss = () => copyToClipboard(ankiCardCss);
 
 const switchProfile = async (profileId: string) => {
+  cancelAddressSave();
+  cancelSave();
+  pendingSaveData = {};
   suppressWatchers = true;
   store.setActiveProfileId(profileId);
   loadFromActiveProfile();
@@ -153,18 +158,21 @@ const switchProfile = async (profileId: string) => {
 };
 
 const openCreateModal = () => {
+  if (!canEditProfile.value) return;
   nameModalInput.value = '';
   nameModalMode.value = 'create';
   showNameModal.value = true;
 };
 
 const openRenameModal = () => {
+  if (!canEditProfile.value) return;
   nameModalInput.value = store.activeProfile?.name ?? '';
   nameModalMode.value = 'rename';
   showNameModal.value = true;
 };
 
 const confirmNameModal = async () => {
+  if (!canEditProfile.value) return;
   const trimmed = nameModalInput.value.trim();
   if (!trimmed) return;
   showNameModal.value = false;
@@ -174,6 +182,7 @@ const confirmNameModal = async () => {
     suppressWatchers = true;
     try {
       const profile = await store.createProfile(trimmed);
+      useToastSuccess(t('accountSettings.anki.saved'));
       store.setActiveProfileId(profile.id);
       loadFromActiveProfile();
       await nextTick();
@@ -188,6 +197,7 @@ const confirmNameModal = async () => {
     isSaving.value = true;
     try {
       await store.updateActiveProfile({ name: trimmed });
+      useToastSuccess(t('accountSettings.anki.saved'));
     } catch (error) {
       handleApiError('anki:profile-rename-failed', error, { toastKey: 'accountSettings.anki.profileSaveError' });
     } finally {
@@ -201,6 +211,7 @@ const confirmNameModal = async () => {
 const nameModalEnterSubmit = useEnterSubmit(confirmNameModal);
 
 const deleteCurrentProfile = async () => {
+  if (!canEditProfile.value) return;
   const active = store.activeProfile;
   if (!active) return;
 
@@ -208,6 +219,7 @@ const deleteCurrentProfile = async () => {
   suppressWatchers = true;
   try {
     await store.deleteProfile(active.id);
+    useToastSuccess(t('accountSettings.anki.saved'));
     loadFromActiveProfile();
     await nextTick();
     if (store.activeProfile) {
@@ -241,7 +253,7 @@ const shirabeDictionaries = ref<ShirabeDictionary[]>([]);
  *  Null is the ordinary placeholder menu. */
 const dictionaryPickerFor = ref<string | null>(null);
 
-const { openDropdownId } = useDropdownState();
+const { openDropdownId, closeAllDropdowns } = useDropdownState();
 // Reopening a menu starts at the top level. Without this a reader who drilled
 // in, closed the menu and opened it again would land in the dictionary list with
 // no memory of having asked for it.
@@ -279,14 +291,14 @@ onMounted(async () => {
   if (store.profiles.length === 0) {
     await store.createProfile(t('accountSettings.anki.defaultProfile'));
   }
-  await fetchAndLoad();
-  // Not awaited with the rest: the picker is an extra, and a slow or failing
-  // connection lookup must not hold up the fields table.
-  void loadShirabeDictionaries();
   suppressWatchers = true;
   loadFromActiveProfile();
   await nextTick();
   suppressWatchers = false;
+  await fetchAndLoad();
+  // Not awaited with the rest: the picker is an extra, and a slow or failing
+  // connection lookup must not hold up the fields table.
+  void loadShirabeDictionaries();
 });
 
 /**
@@ -303,12 +315,21 @@ const failureBody = computed(() => t(`accountSettings.anki.connectFailure.${fail
 const showGenericTips = computed(() => failureReason.value === 'unreachable');
 
 const fetchAndLoad = async () => {
+  cancelAddressSave();
   if (!store.activeProfile) return;
 
   isError.value = false;
   isSuccess.value = false;
   isLoading.value = true;
   try {
+    // Retry can be clicked before the address debounce fires. Persist it first
+    // because AnkiConnect requests read the address from the saved profile.
+    if (ankiconnectAddress.value !== store.activeProfile.serverAddress) {
+      cancelSave();
+      pendingSaveData = {};
+      await store.updateActiveProfile({ serverAddress: ankiconnectAddress.value });
+      useToastSuccess(t('accountSettings.anki.saved'));
+    }
     await store.loadAnkiData();
     deckOptions.value = store.availableDecks;
     modelOptions.value = store.availableModels;
@@ -332,7 +353,7 @@ const fetchAndLoad = async () => {
 };
 
 watch(selectedModel, async (newValue, oldValue) => {
-  if (suppressWatchers) return;
+  if (suppressWatchers || !canEditProfile.value) return;
   if (newValue !== oldValue) {
     try {
       const data = await store.getAllModelFieldNames(newValue);
@@ -355,6 +376,7 @@ watch(selectedModel, async (newValue, oldValue) => {
         return;
       }
 
+      if (!canEditProfile.value || selectedModel.value !== newValue) return;
       const newFields = data.map((field: string) => {
         const existingField = fieldOptions.value.find((f) => f.key === field);
         return {
@@ -391,14 +413,14 @@ watch(selectedModel, async (newValue, oldValue) => {
 watch(selectedDeck, async (newValue) => {
   debouncedSave({ deck: newValue || undefined });
 
-  if (suppressWatchers || !newValue || selectedModel.value) return;
+  if (suppressWatchers || !canEditProfile.value || !newValue || selectedModel.value) return;
 
   const suggested = await store.mostCommonModelInDeck(newValue);
 
   // Re-checked after the await: the reader may have picked a model themselves
   // while Anki was answering, or moved on to a different deck entirely, and
   // either way the answer in hand is no longer about what is on screen.
-  if (!suggested || selectedModel.value || selectedDeck.value !== newValue) return;
+  if (!canEditProfile.value || !suggested || selectedModel.value || selectedDeck.value !== newValue) return;
   if (!modelOptions.value.includes(suggested)) return;
 
   selectedModel.value = suggested;
@@ -420,9 +442,12 @@ watch(openBrowserOnExport, (newValue) => {
   debouncedSave({ openBrowserOnExport: newValue });
 });
 
-watch(ankiconnectAddress, (newValue) => {
-  debouncedSave({ serverAddress: newValue });
-  fetchAndLoad();
+watch(canEditProfile, (editable) => {
+  if (editable) return;
+  cancelSave();
+  closeAllDropdowns();
+  pendingSaveData = {};
+  showNameModal.value = false;
 });
 </script>
 <template>
@@ -431,15 +456,21 @@ watch(ankiconnectAddress, (newValue) => {
     <div class="nd-settings-card">
         <h3 class="nd-settings-title">{{ $t('accountSettings.anki.syncStatus') }}</h3>
         <div class="mt-4">
-          <label class="block mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
-          <input v-model="ankiconnectAddress"
-            class="nd-input resize-none">
-          </input>
+          <label :for="`${fieldId}-ankiconnectAddress`" class="block mb-2 font-medium text-white">{{ $t('accountSettings.anki.serverAddressLabel') }}</label>
+          <div class="flex items-center gap-3">
+            <input :id="`${fieldId}-ankiconnectAddress`" v-model="ankiconnectAddress" data-testid="anki-address" :disabled="isLoading"
+              @focus="cancelAddressSave" @blur="scheduleAddressSave"
+              class="nd-input min-w-0 flex-1 resize-none" />
+            <button type="button" class="nd-btn shrink-0" data-testid="anki-test-connection" :disabled="isLoading || isSaving" @click="fetchAndLoad">
+              {{ $t('accountSettings.anki.testConnection') }}
+            </button>
+          </div>
         </div>
 
         <div class="mt-4 flex items-center gap-3">
+          <!-- biome-ignore lint/a11y/noLabelWithoutControl: named by the bound aria-label -->
           <label class="relative inline-flex items-center cursor-pointer">
-            <input v-model="openBrowserOnExport" type="checkbox" class="sr-only peer" />
+            <input v-model="openBrowserOnExport" :disabled="!canEditProfile" type="checkbox" class="sr-only peer" :aria-label="$t('accountSettings.anki.openBrowserOnExport')" />
             <div class="w-9 h-5 bg-gray-600 rounded-full peer peer-checked:bg-button-accent-main transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
           </label>
           <span class="text-sm text-gray-300">{{ $t('accountSettings.anki.openBrowserOnExport') }}</span>
@@ -448,7 +479,7 @@ watch(ankiconnectAddress, (newValue) => {
 
         <div class="mt-4">
           <div v-if="isLoading" role="alert"
-            class="rounded border-s-4 border-blue-500 bg-blue-50 p-4 dark:border-blue-600 dark:bg-blue-900/60">
+            class="rounded bg-blue-50 p-4 dark:bg-blue-900/60">
             <div class="flex items-center gap-2 text-blue-800 dark:text-blue-100">
               <div role="status">
                 <svg aria-hidden="true"
@@ -482,9 +513,9 @@ watch(ankiconnectAddress, (newValue) => {
           </div>
 
           <div v-if="isError" role="alert"
-            class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/70">
+            class="rounded bg-red-50 p-4 dark:bg-red-900/70">
             <div class="flex items-center gap-2 text-red-800 dark:text-red-100">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
                 <path fill-rule="evenodd"
                   d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
                   clip-rule="evenodd" />
@@ -534,26 +565,26 @@ watch(ankiconnectAddress, (newValue) => {
              contents rather than by the card -- three buttons that do not fit
              then push past the card's edge instead of moving to a second line. -->
         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-          <button
+          <button type="button"
             class="nd-btn"
-            :disabled="isSaving"
+            :disabled="isSaving || !canEditProfile"
             @click="openRenameModal"
           >
             <UiBaseIcon :path="mdiPencil" size="16" />
             {{ $t('accountSettings.anki.renameProfile') }}
           </button>
-          <button
+          <button type="button"
             class="nd-btn-accent"
-            :disabled="isSaving"
+            :disabled="isSaving || !canEditProfile"
             @click="openCreateModal"
           >
             <UiBaseIcon :path="mdiPlus" size="16" />
             {{ $t('accountSettings.anki.newProfile') }}
           </button>
-          <button
+          <button type="button"
             v-if="store.profiles.length > 1"
             class="nd-btn-danger"
-            :disabled="isSaving"
+            :disabled="isSaving || !canEditProfile"
             @click="deleteCurrentProfile"
           >
             <UiBaseIcon :path="mdiDelete" size="16" />
@@ -561,26 +592,18 @@ watch(ankiconnectAddress, (newValue) => {
           </button>
         </div>
       </div>
-      <!-- `aria-live="polite"`: the only confirmation a change was kept, and it
-           is a line of text that appears without focus moving to it. -->
-      <p
-        data-testid="anki-save-status"
-        aria-live="polite"
-        class="mt-2 text-sm transition-opacity duration-200"
-        :class="[isSaving || justSaved ? 'opacity-100' : 'opacity-0', justSaved && !isSaving ? 'text-green-400' : 'text-gray-400']">
-        {{ isSaving ? $t('accountSettings.anki.saving') : justSaved ? $t('accountSettings.anki.saved') : '' }}
-      </p>
+
     </div>
 
     <template v-if="store.activeProfile">
       <!-- Anki Config -->
-      <div class="nd-settings-card">
+      <fieldset :disabled="!canEditProfile" class="nd-settings-card min-w-0" data-testid="anki-config">
         <h3 class="nd-settings-title">{{ $t('accountSettings.anki.ankiConfig') }}</h3>
         <div
           v-if="!hasKeyField"
           data-testid="anki-key-field-warning"
           role="alert"
-          class="mt-4 rounded border-s-4 border-amber-500 bg-amber-50 p-4 dark:border-amber-400 dark:bg-amber-900/30">
+          class="mt-4 rounded bg-amber-50 p-4 dark:bg-amber-900/30">
           <p class="font-medium text-amber-900 dark:text-amber-100">
             {{ $t('accountSettings.anki.keyFieldRequiredTitle') }}
           </p>
@@ -591,21 +614,21 @@ watch(ankiconnectAddress, (newValue) => {
         <div class="mt-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
             <div class="flex-grow">
-              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
-              <select v-model="selectedDeck" data-testid="anki-deck-select"
+              <label :for="`${fieldId}-selectedDeck`" class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.deckLabel') }}</label>
+              <select :id="`${fieldId}-selectedDeck`" v-model="selectedDeck" data-testid="anki-deck-select"
                 class="nd-input resize-none">
                 <option value="">{{ $t('accountSettings.anki.selectDeck') }}</option>
-                <option v-for="(option, index) in deckOptions" :key="index" :value="option">
+                <option v-for="(option, index) in displayedDecks" :key="index" :value="option">
                   {{ option }}
                 </option>
               </select>
             </div>
             <div class="flex-grow">
-              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
-              <select v-model="selectedModel" data-testid="anki-model-select"
+              <label :for="`${fieldId}-selectedModel`" class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.modelLabel') }}</label>
+              <select :id="`${fieldId}-selectedModel`" v-model="selectedModel" data-testid="anki-model-select"
                 class="nd-input resize-none">
                 <option value="">{{ $t('accountSettings.anki.selectModel') }}</option>
-                <option v-for="(option, index) in modelOptions" :key="index" :value="option">
+                <option v-for="(option, index) in displayedModels" :key="index" :value="option">
                   {{ option }}
                 </option>
               </select>
@@ -616,22 +639,17 @@ watch(ankiconnectAddress, (newValue) => {
         <div class="mt-4">
           <div class="flex flex-col gap-4 lg:flex-row lg:gap-8 mb-5">
             <div class="flex-grow">
-              <label class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
-              <select v-model="modelKey" data-testid="anki-key-field-select"
+              <label :for="`${fieldId}-modelKey`" class="block mb-1 font-medium text-white">{{ $t('accountSettings.anki.keyFieldLabel') }}</label>
+              <select :id="`${fieldId}-modelKey`" v-model="modelKey" data-testid="anki-key-field-select"
                 class="nd-input resize-none">
                 <option :value="null">{{ $t('accountSettings.anki.selectKeyField') }}</option>
-                <option v-for="(option, index) in fieldOptions" :key="index" :value="option.key">
-                  {{ option.key }}
+                <option v-for="(option, index) in displayedKeys" :key="index" :value="option">
+                  {{ option }}
                 </option>
               </select>
             </div>
           </div>
         </div>
-
-        <!-- Said here because the menu below gives no other sign of it: picking
-             adds rather than replaces, and a reader who does not know that has
-             no reason to try a second placeholder. -->
-        <p class="mb-3 text-sm text-gray-400">{{ $t('accountSettings.anki.fieldComposeHelp') }}</p>
 
         <!-- Below `md` this is not a table at all: every row becomes a block,
              the field name a label above its own full-width input, and the
@@ -679,6 +697,7 @@ watch(ankiconnectAddress, (newValue) => {
                        control (`inset-x-0`, no corner overlap), and focusing the input
                        opens it -- the reader picks from the list or just types. -->
                   <SearchDropdownContainer
+                    :inert="!canEditProfile"
                     dropdownId="nd-dropdown-with-header"
                     rootClass="relative flex items-center mt-1 mb-0 md:my-3 md:mx-2 rounded-lg border border-hairline bg-input-background focus-within:border-neutral-500"
                     dropdownContainerClass="absolute top-full inset-x-0 z-50 mt-1">
@@ -839,11 +858,11 @@ watch(ankiconnectAddress, (newValue) => {
               </div>
             </div>
           </section>
-          <section v-else-if="deckOptions.length === 0 && !isLoading" class="rounded-xl mx-auto">
+          <section v-else-if="fieldOptions.length === 0 && !isLoading" class="rounded-xl mx-auto">
             <div class="flex items-center text-center h-96 dark:border-gray-700 bg-input-backgroundhover">
               <div class="flex flex-col w-full max-w-sm px-4 mx-auto">
                 <div class="p-3 mx-auto text-sred bg-blue-100 rounded-full dark:bg-input-background">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                     stroke="currentColor" class="w-6 h-6">
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -882,7 +901,7 @@ watch(ankiconnectAddress, (newValue) => {
             </div>
           </div>
         </details>
-      </div>
+      </fieldset>
 
     </template>
 
@@ -906,13 +925,13 @@ watch(ankiconnectAddress, (newValue) => {
         v-on="nameModalEnterSubmit"
       />
       <div class="flex justify-end gap-2 mt-4">
-        <button
+        <button type="button"
           class="nd-btn"
           @click="showNameModal = false"
         >
           {{ $t('accountSettings.anki.modal.cancel') }}
         </button>
-        <button
+        <button type="button"
           class="nd-btn-accent bg-red-500 hover:bg-red-600"
           :disabled="!nameModalInput.trim()"
           @click="confirmNameModal"

@@ -143,6 +143,7 @@ function reportBotInstallClick(): void {
                                             </span>
                                         </div>
 
+                                        <!-- biome-ignore lint/a11y/noHeaderScope: vue-i18n scope, not a table header -->
                                         <i18n-t keypath="home.nadeDbDescription" tag="p" scope="global" class="ml-2 pt-5 text-base">
                                             <template #sentenceMining>
                                                 <a
@@ -305,7 +306,7 @@ function reportBotInstallClick(): void {
                                                     <button type="button"
                                                         class="py-3 px-4 inline-flex justify-center rounded-lg items-center gap-4 transition-all font-medium dark:hover:bg-button-primary-hover align-middle text-sm ">
                                                         {{ $t('animeList.seeAll') }}
-                                                        <svg class="w-2.5 h-auto" width="17" height="16"
+                                                        <svg aria-hidden="true" class="w-2.5 h-auto" width="17" height="16"
                                                             viewBox="0 0 17 16" fill="none"
                                                             xmlns="http://www.w3.org/2000/svg">
                                                             <path fill-rule="evenodd" clip-rule="evenodd"

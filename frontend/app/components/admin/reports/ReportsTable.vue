@@ -74,6 +74,7 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
             data-testid="report-row"
             @click="emit('toggle-expand', idx)"
           >
+            <!-- biome-ignore lint/a11y/useKeyWithClickEvents: only keeps the checkbox from toggling the row -->
             <td class="px-3 py-3 w-8" @click.stop>
               <input type="checkbox" :checked="selectedIndices.has(idx)" class="rounded border-hairline bg-control text-blue-500 cursor-pointer" @change="emit('toggle-select', idx)" />
             </td>
@@ -129,13 +130,14 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
             <td class="px-3 py-3 text-xs text-gray-400 whitespace-nowrap" :title="group.lastStatusChange ? formatDate(group.lastStatusChange, 'dateTime') : ''">
               {{ formatRelativeTime(group.lastStatusChange) }}
             </td>
+            <!-- biome-ignore lint/a11y/useKeyWithClickEvents: only keeps the status buttons from toggling the row -->
             <td class="px-3 py-3" @click.stop>
-              <div v-if="group.reports[0]" class="flex gap-1 flex-wrap">
-                <button class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="emit('update-status', group.reports[0]!.id, 'OPEN')">{{ statusLabel('OPEN') }}</button>
-                <button class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="emit('update-status', group.reports[0]!.id, 'PROCESSING')">{{ statusLabel('PROCESSING') }}</button>
-                <button class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="emit('update-status', group.reports[0]!.id, 'FIXED')">{{ statusLabel('FIXED') }}</button>
-                <button class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="emit('update-status', group.reports[0]!.id, 'DISMISSED')">{{ t('reports.admin.dismiss') }}</button>
-                <button class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="emit('delete-report', group.reports[0]!.id)">{{ t('reports.admin.delete') }}</button>
+              <div v-for="first in group.reports.slice(0, 1)" :key="first.id" class="flex gap-1 flex-wrap">
+                <button type="button" class="px-2 py-1 text-xs rounded bg-yellow-600/30 text-yellow-400 hover:bg-yellow-600/50" @click="emit('update-status', first.id, 'OPEN')">{{ statusLabel('OPEN') }}</button>
+                <button type="button" class="px-2 py-1 text-xs rounded bg-blue-600/30 text-blue-400 hover:bg-blue-600/50" @click="emit('update-status', first.id, 'PROCESSING')">{{ statusLabel('PROCESSING') }}</button>
+                <button type="button" class="px-2 py-1 text-xs rounded bg-green-600/30 text-green-400 hover:bg-green-600/50" @click="emit('update-status', first.id, 'FIXED')">{{ statusLabel('FIXED') }}</button>
+                <button type="button" class="px-2 py-1 text-xs rounded bg-neutral-600/30 text-neutral-400 hover:bg-neutral-600/50" @click="emit('update-status', first.id, 'DISMISSED')">{{ t('reports.admin.dismiss') }}</button>
+                <button type="button" class="px-2 py-1 text-xs rounded bg-red-600/30 text-red-400 hover:bg-red-600/50" @click="emit('delete-report', first.id)">{{ t('reports.admin.delete') }}</button>
               </div>
             </td>
           </tr>
@@ -160,12 +162,12 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
                   v-on="notesEnterSubmit(report.id)"
                   @keyup.escape="delete editingNotes[report.id]"
                 />
-                <button class="text-xs text-blue-400 hover:text-blue-300 mt-1" @click="emit('save-notes', report.id)">{{ t('reports.admin.save') }}</button>
+                <button type="button" class="text-xs text-blue-400 hover:text-blue-300 mt-1" @click="emit('save-notes', report.id)">{{ t('reports.admin.save') }}</button>
               </template>
               <template v-else>
-                <span class="text-xs cursor-pointer hover:text-white truncate block max-w-[130px]" :title="report.adminNotes || ''" @click="startEditNotes(report.id, report.adminNotes)">
+                <button type="button" class="text-xs cursor-pointer hover:text-white truncate block max-w-[130px] text-left" :title="report.adminNotes || ''" @click="startEditNotes(report.id, report.adminNotes)">
                   {{ report.adminNotes || t('reports.admin.addNote') }}
-                </span>
+                </button>
               </template>
             </td>
             <td />
@@ -181,7 +183,7 @@ const notesEnterSubmit = (reportId: number) => useEnterSubmit(() => emit('save-n
   </div>
 
   <div v-if="hasMore" class="mt-4 text-center">
-    <button
+    <button type="button"
       :disabled="isLoading"
       class="px-4 py-2 text-sm rounded-lg bg-neutral-700 text-white hover:bg-neutral-600 disabled:opacity-50"
       @click="emit('load-more')"

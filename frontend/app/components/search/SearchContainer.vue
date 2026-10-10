@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { handleApiError } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
-import { mdiRefresh, mdiEyeOff } from '@mdi/js';
-import type { RouteLocationNormalized, LocationQueryValue } from 'vue-router';
+import { mdiRefresh } from '@mdi/js';
+import type { RouteLocationNormalized } from 'vue-router';
 
 import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
@@ -17,7 +17,6 @@ import {
   type SearchScope,
 } from '~/composables/useSearchFetch';
 import { canRetrySearchFailure, SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
-import type { Category } from '@brigadasos/nadeshiko-sdk';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
 const { mediaName } = useMediaName();
@@ -1008,7 +1007,7 @@ onBeforeRouteUpdate(async (to, from) => {
                 <img class="mb-6" src="/assets/hidden-media.gif" :alt="$t('searchContainer.hiddenMediaImageAlt')" />
                 <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.hiddenMediaNotice') }}</h1>
                 <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.hiddenMediaDescription') }}</p>
-                <button
+                <button type="button"
                     class="mt-6 px-5 py-2.5 rounded-lg text-sm font-medium border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                     @click="showAnywayAndRefresh()"
                 >
@@ -1041,7 +1040,7 @@ onBeforeRouteUpdate(async (to, from) => {
                                     :to="localePath('/user/collections')"
                                     class="inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pe-4 me-1 py-4 border-e border-hairline"
                                 >
-                                    <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <svg aria-hidden="true" class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                         <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
                                     </svg>
                                     {{ $t('searchContainer.backToCollections') }}
@@ -1105,7 +1104,7 @@ onBeforeRouteUpdate(async (to, from) => {
                     :to="localePath('/user/collections')"
                     class="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white/80 transition-colors pr-4 py-4 border-r border-hairline"
                 >
-                    <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <svg aria-hidden="true" class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M15 8C15 8.55228 14.5523 9 14 9L1.91421 9L7.20711 14.2929C7.59763 14.6834 7.59763 15.3166 7.20711 15.7071C6.81658 16.0976 6.18342 16.0976 5.79289 15.7071L-0.0303268 9.88388C-0.518518 9.39573 -0.518518 8.60427 -0.0303268 8.11612L5.79289 0.292893C6.18342 -0.097631 6.81658 -0.097631 7.20711 0.292893C7.59763 0.683417 7.59763 1.31658 7.20711 1.70711L1.91421 7L14 7C14.5523 7 15 7.44772 15 8Z"/>
                     </svg>
                     {{ $t('searchContainer.backToCollections') }}

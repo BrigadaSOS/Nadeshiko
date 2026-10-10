@@ -205,6 +205,7 @@ const isDrawer = computed(() => props.transition === 'nd-drawer');
     <template v-if="isDrawer">
       <div class="contents" :class="overlayClass">
         <Transition name="nd-drawer-backdrop" :appear="appear">
+          <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: backdrop; Escape and the close button are the keyboard path -->
           <div
             v-if="open"
             :data-testid="backdropTestId"
@@ -233,6 +234,7 @@ const isDrawer = computed(() => props.transition === 'nd-drawer');
       </div>
     </template>
     <Transition v-else :name="transition" :appear="appear" @after-leave="onAfterLeave">
+      <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: backdrop; Escape and the close button are the keyboard path -->
       <div
         v-if="open"
         :data-testid="backdropTestId"

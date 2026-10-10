@@ -134,7 +134,7 @@ onUnmounted(() => {
     </h3>
     <button type="button" class="size-8 inline-flex justify-center items-center rounded-full bg-surface-hover text-ink-muted hover:text-ink hover:bg-lift focus:outline-none" @click="isFilterDrawerOpen = false">
       <span class="sr-only">{{ $t('segmentSidebar.close') }}</span>
-      <svg class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg aria-hidden="true" class="shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 6 6 18"></path>
         <path d="m6 6 12 12"></path>
       </svg>

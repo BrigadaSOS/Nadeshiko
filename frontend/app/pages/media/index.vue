@@ -436,7 +436,7 @@ watch([searchQuery, filterCategory], () => {
                 :alt="mediaName(mediaInfo) || mediaInfo.nameEn || mediaInfo.nameRomaji || mediaInfo.nameJa || 'Media cover image'"
               />
             </NuxtLink>
-            <button
+            <button type="button"
               v-if="user.isAdmin"
               class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded bg-neutral-900/70 text-white hover:bg-neutral-900/90 transition-colors"
               @click.stop="openEditModal(mediaInfo)"
@@ -541,7 +541,7 @@ watch([searchQuery, filterCategory], () => {
 
               <div class="mt-auto pt-3 flex justify-end items-center flex-wrap gap-3">
                 <div class="flex">
-                  <button
+                  <button type="button"
                     v-if="user.isAdmin"
                     class="py-3.5 mr-3 duration-300 px-4 h-12 inline-flex justify-center items-center gap-2 border font-medium shadow-sm align-middle transition-all text-sm dark:hover:bg-white/10 text-gray-900 rounded-lg dark:border-amber-400/70 dark:text-amber-400"
                     @click.stop="openEditModal(mediaInfo)"

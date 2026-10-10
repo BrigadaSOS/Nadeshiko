@@ -25,7 +25,7 @@ describe('paginate', () => {
     const fn = makeApiCall([
       { items: ['a', 'b'], pagination: { hasMore: true, cursor: 'cursor1' } },
       { items: ['c', 'd'], pagination: { hasMore: true, cursor: 'cursor2' } },
-      { items: ['e'],      pagination: { hasMore: false, cursor: null } },
+      { items: ['e'], pagination: { hasMore: false, cursor: null } },
     ]);
 
     const results: string[] = [];
@@ -40,7 +40,8 @@ describe('paginate', () => {
       { items: ['y'], pagination: { hasMore: false, cursor: null } },
     ]);
 
-    for await (const _ of paginate(fn, { body: { query: 'test' } }, extract)) {}
+    for await (const _ of paginate(fn, { body: { query: 'test' } }, extract)) {
+    }
 
     expect(fn.mock.calls[0][0]).toEqual({ body: { query: 'test' } });
     expect(fn.mock.calls[1][0]).toEqual({ body: { query: 'test', cursor: 'abc' } });
@@ -52,7 +53,8 @@ describe('paginate', () => {
       { items: ['y'], pagination: { hasMore: false, cursor: null } },
     ]);
 
-    for await (const _ of paginate(fn, { query: { limit: 10 } }, extract)) {}
+    for await (const _ of paginate(fn, { query: { limit: 10 } }, extract)) {
+    }
 
     expect(fn.mock.calls[1][0]).toEqual({ query: { limit: 10, cursor: 'def' } });
   });
@@ -63,7 +65,8 @@ describe('paginate', () => {
       { items: ['y'], pagination: { hasMore: false, cursor: null } },
     ]);
 
-    for await (const _ of paginate(fn, {}, extract)) {}
+    for await (const _ of paginate(fn, {}, extract)) {
+    }
 
     expect(fn.mock.calls[1][0]).toEqual({ body: { cursor: 'ghi' } });
   });
@@ -71,14 +74,13 @@ describe('paginate', () => {
   test('first call uses original options unchanged', async () => {
     const fn = makeApiCall([{ items: [], pagination: { hasMore: false, cursor: null } }]);
     const options = { body: { search: '猫' }, query: { limit: 5 } };
-    for await (const _ of paginate(fn, options, extract)) {}
+    for await (const _ of paginate(fn, options, extract)) {
+    }
     expect(fn.mock.calls[0][0]).toBe(options);
   });
 
   test('stops when hasMore is false', async () => {
-    const fn = makeApiCall([
-      { items: ['a'], pagination: { hasMore: false, cursor: 'leftover' } },
-    ]);
+    const fn = makeApiCall([{ items: ['a'], pagination: { hasMore: false, cursor: 'leftover' } }]);
     const results: string[] = [];
     for await (const item of paginate(fn, {}, extract)) results.push(item);
     expect(results).toEqual(['a']);
@@ -86,9 +88,7 @@ describe('paginate', () => {
   });
 
   test('stops when cursor is null even if hasMore is true', async () => {
-    const fn = makeApiCall([
-      { items: ['a'], pagination: { hasMore: true, cursor: null } },
-    ]);
+    const fn = makeApiCall([{ items: ['a'], pagination: { hasMore: true, cursor: null } }]);
     const results: string[] = [];
     for await (const item of paginate(fn, {}, extract)) results.push(item);
     expect(results).toEqual(['a']);
@@ -105,7 +105,8 @@ describe('paginate', () => {
   test('throws when api returns error', async () => {
     const fn = vi.fn(async () => ({ error: new Error('unauthorized') }));
     await expect(async () => {
-      for await (const _ of paginate(fn, {}, extract)) {}
+      for await (const _ of paginate(fn, {}, extract)) {
+      }
     }).rejects.toThrow('unauthorized');
   });
 });

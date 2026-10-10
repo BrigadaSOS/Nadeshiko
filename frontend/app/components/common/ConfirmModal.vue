@@ -39,13 +39,13 @@ const resolvedConfirmLabel = computed(() => props.confirmLabel ?? t('common.conf
       <slot>{{ description }}</slot>
     </p>
     <div class="flex justify-end gap-2">
-      <button
+      <button type="button"
         class="px-4 py-2 text-sm rounded-lg bg-surface-hover text-ink hover:bg-lift-strong"
         @click="emit('cancel')"
       >
         {{ t('common.cancel') }}
       </button>
-      <button
+      <button type="button"
         class="px-4 py-2 text-sm rounded-lg"
         :class="confirmClass"
         @click="emit('confirm')"

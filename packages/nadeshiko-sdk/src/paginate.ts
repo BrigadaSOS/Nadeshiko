@@ -23,13 +23,9 @@ export async function* paginate<TData, TItem>(
   options: Record<string, any>,
   extract: (data: TData) => { items: TItem[]; pagination: PaginationMeta },
 ): AsyncGenerator<TItem, void, unknown> {
-  let cursor: string | null = null;
-  let first = true;
+  let callOptions = options;
 
   while (true) {
-    const callOptions = first ? options : patchCursor(options, cursor!);
-    first = false;
-
     const result = await fn(callOptions);
 
     if ('error' in result && result.error !== undefined) {
@@ -43,7 +39,7 @@ export async function* paginate<TData, TItem>(
     }
 
     if (!pagination.hasMore || pagination.cursor === null) break;
-    cursor = pagination.cursor;
+    callOptions = patchCursor(options, pagination.cursor);
   }
 }
 
@@ -69,13 +65,9 @@ export async function* flatPaginate<TData, TItem>(
   fn: (flatParams: Record<string, any>) => Promise<{ data: TData } | { error: unknown }>,
   extract: (data: TData) => { items: TItem[]; pagination: PaginationMeta },
 ): AsyncGenerator<TItem, void, unknown> {
-  let cursor: string | null = null;
-  let first = true;
+  let flat = params;
 
   while (true) {
-    const flat = first ? params : { ...params, cursor: cursor! };
-    first = false;
-
     const result = await fn(flat);
 
     if ('error' in result && result.error !== undefined) {
@@ -89,6 +81,6 @@ export async function* flatPaginate<TData, TItem>(
     }
 
     if (!pagination.hasMore || pagination.cursor === null) break;
-    cursor = pagination.cursor;
+    flat = { ...params, cursor: pagination.cursor };
   }
 }

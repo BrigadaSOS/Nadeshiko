@@ -135,6 +135,7 @@ beforeEach(() => {
   playerStore.currentAudio = audio(10, 5);
   playerStore.currentResult.value = result();
   playerStore.showPlayer.value = true;
+  playerStore.isImmersive.value = false;
   playerStore.volume.value = 1;
 });
 
@@ -144,6 +145,20 @@ afterEach(() => {
 });
 
 describe('seeking', () => {
+  test.each([false, true])('keeps pointer seeking outside the tab order (immersive: %s)', async (immersive) => {
+    playerStore.isImmersive.value = immersive;
+    const wrapper = render();
+    const bar = wrapper.get('div.group.cursor-pointer');
+    vi.spyOn(bar.element, 'getBoundingClientRect').mockReturnValue(new DOMRect(25, 0, 200, 6));
+
+    expect(bar.attributes('role')).toBeUndefined();
+    expect(bar.attributes('tabindex')).toBeUndefined();
+    expect((bar.element as HTMLDivElement).tabIndex).toBe(-1);
+
+    await bar.trigger('click', { clientX: 175 });
+    expect(playerStore.currentAudio!.currentTime).toBe(7.5);
+  });
+
   test('forward moves the playhead on', async () => {
     const wrapper = render();
 

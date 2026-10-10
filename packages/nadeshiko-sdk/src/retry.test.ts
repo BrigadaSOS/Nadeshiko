@@ -29,7 +29,8 @@ describe('withRetry', () => {
 
   describe('retryable status codes', () => {
     test.each([408, 500, 502, 503, 504])('retries on %i', async (status) => {
-      const fetch = vi.fn()
+      const fetch = vi
+        .fn()
         .mockResolvedValueOnce(makeResponse(status))
         .mockResolvedValueOnce(makeResponse(status))
         .mockResolvedValue(makeResponse(200));
@@ -56,8 +57,9 @@ describe('withRetry', () => {
     test('does not retry an ordinary POST after a network error', async () => {
       const fetch = vi.fn(() => Promise.reject(new TypeError('fetch failed')));
 
-      await expect(withRetry(fetch, { initialDelayMs: 0 })('https://example.com/v1/collections', { method: 'POST' }))
-        .rejects.toThrow('fetch failed');
+      await expect(
+        withRetry(fetch, { initialDelayMs: 0 })('https://example.com/v1/collections', { method: 'POST' }),
+      ).rejects.toThrow('fetch failed');
       expect(fetch).toHaveBeenCalledTimes(1);
     });
 
@@ -71,13 +73,11 @@ describe('withRetry', () => {
     });
 
     test('allows a known read-only POST to opt into retries', async () => {
-      const fetch = vi.fn()
-        .mockResolvedValueOnce(makeResponse(503))
-        .mockResolvedValue(makeResponse(200));
+      const fetch = vi.fn().mockResolvedValueOnce(makeResponse(503)).mockResolvedValue(makeResponse(200));
 
       const result = await withRetry(fetch, {
         initialDelayMs: 0,
-        retryUnsafeRequest: request => request.method === 'POST' && new URL(request.url).pathname === '/v1/search',
+        retryUnsafeRequest: (request) => request.method === 'POST' && new URL(request.url).pathname === '/v1/search',
       })('https://example.com/v1/search', { method: 'POST' });
 
       expect(result.status).toBe(200);
@@ -109,9 +109,7 @@ describe('withRetry', () => {
 
   describe('network errors', () => {
     test('retries on network error and succeeds', async () => {
-      const fetch = vi.fn()
-        .mockRejectedValueOnce(new TypeError('fetch failed'))
-        .mockResolvedValue(makeResponse(200));
+      const fetch = vi.fn().mockRejectedValueOnce(new TypeError('fetch failed')).mockResolvedValue(makeResponse(200));
 
       const result = await withRetry(fetch, { initialDelayMs: 0 })('https://example.com');
       expect(result.status).toBe(200);
@@ -122,9 +120,9 @@ describe('withRetry', () => {
       const error = new TypeError('fetch failed');
       const fetch = vi.fn(() => Promise.reject(error));
 
-      await expect(
-        withRetry(fetch, { maxRetries: 2, initialDelayMs: 0 })('https://example.com'),
-      ).rejects.toThrow('fetch failed');
+      await expect(withRetry(fetch, { maxRetries: 2, initialDelayMs: 0 })('https://example.com')).rejects.toThrow(
+        'fetch failed',
+      );
       expect(fetch).toHaveBeenCalledTimes(3);
     });
   });
@@ -133,13 +131,14 @@ describe('withRetry', () => {
     test('respects numeric Retry-After (seconds)', async () => {
       const delays: number[] = [];
       const realSleep = globalThis.setTimeout;
-      let sleepSpy = vi.fn((fn: () => void, ms: number) => {
+      const sleepSpy = vi.fn((fn: () => void, ms: number) => {
         delays.push(ms);
         return realSleep(fn, 0);
       });
       globalThis.setTimeout = sleepSpy as any;
 
-      const fetch = vi.fn()
+      const fetch = vi
+        .fn()
         .mockResolvedValueOnce(makeResponse(503, { 'Retry-After': '2' }))
         .mockResolvedValue(makeResponse(200));
 
@@ -150,7 +149,7 @@ describe('withRetry', () => {
       }
 
       // The Retry-After: 2 should translate to 2000ms delay
-      expect(delays.some(d => d === 2000)).toBe(true);
+      expect(delays.some((d) => d === 2000)).toBe(true);
     });
 
     test('clamps Retry-After to maxDelayMs', async () => {
@@ -166,19 +165,18 @@ describe('withRetry', () => {
         return realSleep(fn, 0);
       }) as any;
 
-      const fetch = vi.fn()
+      const fetch = vi
+        .fn()
         .mockResolvedValueOnce(makeResponse(503, { 'Retry-After': '600' }))
         .mockResolvedValue(makeResponse(200));
 
       try {
-        await withRetry(fetch, { maxRetries: 1, initialDelayMs: 10, maxDelayMs: 1_000 })(
-          'https://example.com',
-        );
+        await withRetry(fetch, { maxRetries: 1, initialDelayMs: 10, maxDelayMs: 1_000 })('https://example.com');
       } finally {
         globalThis.setTimeout = realSleep;
       }
 
-      expect(delays.every(d => d <= 1_000)).toBe(true);
+      expect(delays.every((d) => d <= 1_000)).toBe(true);
       expect(delays).not.toContain(600_000);
     });
   });

@@ -29,7 +29,7 @@ const store = {
   get connectFailure() {
     return connectFailure.value;
   },
-  // Non-empty: the profile card (and the save-status line inside it) is
+  // Non-empty: the profile card is
   // `v-if="profiles.length > 0"`, and `onMounted` creates one when it is empty.
   profiles: [{ id: 'p1', name: 'Default' }] as unknown[],
   availableDecks: ['Mining', 'Default'],
@@ -54,7 +54,8 @@ vi.stubGlobal('useDropdownState', () => ({ closeAllDropdowns: vi.fn(), openDropd
 vi.stubGlobal('useEnterSubmit', () => ({}));
 vi.stubGlobal('copyToClipboard', vi.fn().mockResolvedValue(true));
 vi.stubGlobal('useToastError', vi.fn());
-vi.stubGlobal('useToastSuccess', vi.fn());
+const toastSuccess = vi.fn();
+vi.stubGlobal('useToastSuccess', toastSuccess);
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
 vi.stubGlobal('useNadeshikoSdk', () => ({ getShirabeConnection: vi.fn().mockResolvedValue(null) }));
 
@@ -76,8 +77,9 @@ function profile(over: Record<string, unknown> = {}) {
 
 const mounted: { unmount: () => void }[] = [];
 
-async function render() {
+async function render(attachToDocument = false) {
   const wrapper = mount(AnkiSync, {
+    attachTo: attachToDocument ? document.body : undefined,
     global: {
       mocks: { $t: (k: string) => k },
       stubs: {
@@ -192,25 +194,14 @@ describe('autosaving', () => {
     expect(updateActiveProfile).toHaveBeenCalledTimes(1);
   });
 
-  test('says "saved" afterwards, and lets the message linger long enough to read', async () => {
-    // A save takes about a tenth of a second, so a message tied to the request
-    // faded in and out inside a blink and told the reader nothing.
+  test('shows a success toast after saving, without inline save messages', async () => {
     const wrapper = await render();
-
     await wrapper.get('[data-testid="anki-field-value"]').setValue('x');
-    // Advanced exactly to the save, NOT past it: running every pending timer
-    // also fires the 2.5s that clears the message, and the assertion below then
-    // fails for a reason that has nothing to do with the message appearing.
+    expect(toastSuccess).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(400);
-    await nextTick();
-
-    expect(wrapper.get('[data-testid="anki-save-status"]').text()).toBe('accountSettings.anki.saved');
-
-    // ...and it goes away on its own, rather than claiming the next edit saved.
-    await vi.advanceTimersByTimeAsync(2500);
-    await nextTick();
-
-    expect(wrapper.get('[data-testid="anki-save-status"]').text()).toBe('');
+    expect(toastSuccess).toHaveBeenCalledExactlyOnceWith('accountSettings.anki.saved');
+    expect(wrapper.find('[data-testid="anki-save-status"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="anki-address-save-status"]').exists()).toBe(false);
   });
 
   test('a FAILED autosave is toasted, because nothing else would tell them', async () => {
@@ -278,5 +269,128 @@ describe('when Anki cannot be reached', () => {
     await nextTick();
 
     expect(wrapper.text()).toContain('connectFailure.permission_denied.title');
+  });
+});
+
+describe('saved configuration while offline', () => {
+  test('keeps saved selections and templates visible, locks editing, and unlocks after reconnecting', async () => {
+    loadAnkiData.mockRejectedValueOnce(new Error('Anki is closed'));
+    const wrapper = await render();
+
+    expect((wrapper.get('[data-testid="anki-deck-select"]').element as HTMLSelectElement).value).toBe('Mining');
+    expect((wrapper.get('[data-testid="anki-model-select"]').element as HTMLSelectElement).value).toBe('Lapis');
+    expect((wrapper.get('[data-testid="anki-key-field-select"]').element as HTMLSelectElement).value).toBe(
+      'Expression',
+    );
+    expect(fieldInputs(wrapper)).toEqual(['{word}']);
+    expect((wrapper.get('[data-testid="anki-config"]').element as HTMLFieldSetElement).disabled).toBe(true);
+    expect(
+      wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'accountSettings.anki.renameProfile')
+        ?.attributes('disabled'),
+    ).toBeDefined();
+    expect(
+      wrapper
+        .findAll('button')
+        .find((button) => button.text() === 'accountSettings.anki.newProfile')
+        ?.attributes('disabled'),
+    ).toBeDefined();
+    expect(wrapper.text()).not.toContain('accountSettings.anki.noFieldsFound');
+    expect(wrapper.text()).not.toContain('accountSettings.anki.fieldComposeHelp');
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-testid="anki-test-connection"]').trigger('click');
+    await vi.runOnlyPendingTimersAsync();
+    await nextTick();
+
+    expect((wrapper.get('[data-testid="anki-config"]').element as HTMLFieldSetElement).disabled).toBe(false);
+    expect(fieldInputs(wrapper)).toEqual(['{word}']);
+    await wrapper.get('[data-testid="anki-field-value"]').setValue('{word-reading}');
+    await vi.advanceTimersByTimeAsync(400);
+    expect(updateActiveProfile).toHaveBeenCalledWith({ fields: [{ key: 'Expression', value: '{word-reading}' }] });
+  });
+
+  test('does not autosave edits queued before a failed reconnection', async () => {
+    const wrapper = await render();
+    await wrapper.get('[data-testid="anki-field-value"]').setValue('{word-reading}');
+    loadAnkiData.mockRejectedValueOnce(new Error('Anki stopped'));
+    await wrapper.get('[data-testid="anki-test-connection"]').trigger('click');
+    await vi.advanceTimersByTimeAsync(400);
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('repairing the connection address', () => {
+  test('autosaves a new address while offline without changing the field mapping', async () => {
+    loadAnkiData.mockRejectedValueOnce(new Error('Anki is closed'));
+    const wrapper = await render();
+    expect(wrapper.get('[data-testid="anki-address"]').attributes('disabled')).toBeUndefined();
+    await wrapper.get('[data-testid="anki-address"]').setValue('http://127.0.0.1:8766');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+    await wrapper.get('[data-testid="anki-address"]').trigger('blur');
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(updateActiveProfile).toHaveBeenCalledWith({ serverAddress: 'http://127.0.0.1:8766' });
+    expect(toastSuccess).toHaveBeenCalledWith('accountSettings.anki.saved');
+    expect(fieldInputs(wrapper)).toEqual(['{word}']);
+    expect((wrapper.get('[data-testid="anki-config"]').element as HTMLFieldSetElement).disabled).toBe(true);
+  });
+
+  test('testing saves an address still waiting for autosave before attempting the connection', async () => {
+    loadAnkiData.mockRejectedValueOnce(new Error('Anki is closed'));
+    const wrapper = await render();
+    const address = 'http://127.0.0.1:8766';
+    updateActiveProfile.mockImplementation(async (data) => {
+      activeProfile.value = { ...activeProfile.value, ...data };
+    });
+    loadAnkiData.mockImplementationOnce(async () => {
+      expect(activeProfile.value?.serverAddress).toBe(address);
+    });
+    await wrapper.get('[data-testid="anki-address"]').setValue(address);
+    await wrapper.get('[data-testid="anki-test-connection"]').trigger('click');
+    await vi.runOnlyPendingTimersAsync();
+    await nextTick();
+    expect(updateActiveProfile).toHaveBeenCalledExactlyOnceWith({ serverAddress: address });
+    expect((wrapper.get('[data-testid="anki-config"]').element as HTMLFieldSetElement).disabled).toBe(false);
+  });
+});
+
+describe('typing the connection address', () => {
+  test('waits until blur, cancels on refocus, and keeps the input enabled while saving', async () => {
+    const wrapper = await render(true);
+    const address = wrapper.get('[data-testid="anki-address"]');
+    const input = address.element as HTMLInputElement;
+    input.focus();
+    await address.setValue('http://127.0.0.1:8766');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+    input.blur();
+    await vi.advanceTimersByTimeAsync(1000);
+    input.focus();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(input);
+
+    let finishSave!: () => void;
+    updateActiveProfile.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    input.blur();
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(updateActiveProfile).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(updateActiveProfile).toHaveBeenCalledWith({ serverAddress: 'http://127.0.0.1:8766' });
+    input.focus();
+    expect(input.disabled).toBe(false);
+    expect(document.activeElement).toBe(input);
+    finishSave();
+    await nextTick();
+    expect(document.activeElement).toBe(input);
   });
 });

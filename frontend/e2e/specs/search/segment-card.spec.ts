@@ -10,7 +10,7 @@ test.describe('Segment card', () => {
     await search.expectResultsVisible();
   });
 
-  test('displays Japanese text', async ({ page }) => {
+  test('displays Japanese text', async () => {
     const japaneseText = search.segmentCards.first().getByTestId('segment-japanese-text');
     await expect(japaneseText).toBeVisible();
     await expect(japaneseText).not.toBeEmpty();
@@ -28,18 +28,18 @@ test.describe('Segment card', () => {
    * rendering needs a reader who has chosen both, which is a signed-in spec and
    * does not exist yet.
    */
-  test('displays the translation for the interface language', async ({ page }) => {
+  test('displays the translation for the interface language', async () => {
     const card = search.segmentCards.first();
     await expect(card.getByTestId('translation-badge-EN')).toBeVisible();
   });
 
-  test('displays media name and episode info', async ({ page }) => {
+  test('displays media name and episode info', async () => {
     const mediaInfo = search.segmentCards.first().getByTestId('segment-media-info');
     await expect(mediaInfo).toBeVisible();
     await expect(mediaInfo).not.toBeEmpty();
   });
 
-  test('links media filters and timestamp to the sentence page', async ({ page }) => {
+  test('links media filters and timestamp to the sentence page', async () => {
     const card = search.segmentCards.first();
     const mediaInfo = card.getByTestId('segment-media-info');
     const links = mediaInfo.locator('a');
@@ -56,7 +56,7 @@ test.describe('Segment card', () => {
     await expect(timeLink).toHaveAttribute('href', /\/sentence\//);
   });
 
-  test('displays action buttons', async ({ page }) => {
+  test('displays action buttons', async () => {
     const card = search.segmentCards.first();
     const copyButton = card.getByRole('button', { name: 'Copy' });
     const contextButton = card.getByRole('button', { name: 'Context' });
@@ -65,12 +65,12 @@ test.describe('Segment card', () => {
     await expect(contextButton).toBeVisible();
   });
 
-  test('displays a screenshot image', async ({ page }) => {
+  test('displays a screenshot image', async () => {
     const image = search.segmentCards.first().getByTestId('segment-image');
     await expect(image).toBeVisible();
   });
 
-  test('displays an audio play button', async ({ page }) => {
+  test('displays an audio play button', async () => {
     const audioButton = search.segmentCards.first().getByTestId('audio-play-button');
     await expect(audioButton).toBeVisible();
   });

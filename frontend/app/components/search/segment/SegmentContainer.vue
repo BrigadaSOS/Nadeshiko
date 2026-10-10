@@ -4,7 +4,6 @@ import { mdiVolumeHigh, mdiTranslate, mdiEyeOff, mdiEye, mdiClose, mdiPatreon, m
 import { PATREON_URL } from '#shared/utils/socialLinks';
 import { SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
 import { usePlayerStore } from '~/stores/player';
-import { userStore } from '~/stores/auth';
 import type { SearchResult, SearchResponse } from '~/types/search';
 import type { UserReportTarget } from '@brigadasos/nadeshiko-sdk';
 import {
@@ -50,14 +49,13 @@ const resultList = computed(() => props.searchData?.results ?? []);
 
 const playerStore = usePlayerStore();
 const { isPlaying, currentResult } = storeToRefs(playerStore);
-const user = userStore();
 const { mediaName } = useMediaName();
 // Only to mark them. A hidden title reaches this list one of two ways -- the
 // reader lifted their filters from the notice above it, or opened the title
 // directly and chose "Show anyway" -- and in both cases the row is indis-
 // tinguishable from the rest, which makes the filters look like they lapsed.
 const { isMediaHidden } = useHiddenMedia();
-const { shouldBlur, isRestricted } = useContentRating();
+const { shouldBlur } = useContentRating();
 const { englishMode, spanishMode } = useTranslationVisibility();
 const { languages: translationLanguages } = useTranslationLanguages();
 
@@ -392,6 +390,7 @@ watch(playingVideoId, (id) => {
       :label="$t('searchpage.main.labels.zoomedImage')"
       @close="zoomedImageUrl = null"
     >
+      <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: Escape and the backdrop close it too -->
       <img
         v-if="zoomedImageUrl"
         data-testid="zoomed-image"
@@ -444,6 +443,7 @@ watch(playingVideoId, (id) => {
           data-testid="segment-youtube-host"
           class="absolute inset-0"
         />
+        <!-- biome-ignore lint/a11y/useKeyWithClickEvents: preserve pointer-only screenshot zoom -->
         <img
           v-if="!(playingVideoId === result.segment.publicId && result.segment.externalVideoId)"
           loading="lazy" data-testid="segment-image" :src="result.segment.urls.imageUrl"
@@ -453,7 +453,7 @@ watch(playingVideoId, (id) => {
           :class="shouldBlur(result.segment.contentRating) && !revealedContent.has(result.segment.publicId) ? 'blur-[20px] scale-110' : 'hover:brightness-75 cursor-pointer'"
           @error="($event.target as HTMLImageElement).classList.remove('text-transparent')"
           :key="result.segment.urls.imageUrl" />
-        <button
+        <button type="button"
           v-if="shouldBlur(result.segment.contentRating) && playingVideoId !== result.segment.publicId"
           @click="revealedContent.has(result.segment.publicId) ? revealedContent.delete(result.segment.publicId) : revealedContent.add(result.segment.publicId)"
           class="absolute top-2 right-2 px-2 py-1 rounded-md bg-black/50 hover:bg-black/70 text-white transition-colors z-10 flex items-center gap-1.5 text-xs">
@@ -467,7 +467,7 @@ watch(playingVideoId, (id) => {
 
       <!-- Remove from collection button -->
       <div v-if="collectionId" class="absolute top-2 right-2 z-10">
-        <button
+        <button type="button"
           v-if="confirmingRemoveId !== result.segment.publicId"
           data-testid="remove-from-collection"
           @click.stop="confirmRemove(result.segment.publicId)"
@@ -478,12 +478,12 @@ watch(playingVideoId, (id) => {
         </button>
         <div v-else class="flex items-center gap-2 bg-surface rounded-md px-3 py-2">
           <span class="text-sm text-white/90">{{ $t('accountSettings.collections.confirmRemove') }}</span>
-          <button
+          <button type="button"
             data-testid="remove-from-collection-confirm"
             @click.stop="executeRemove(result.segment.publicId)"
             class="px-3 py-1.5 rounded text-sm bg-button-accent-main hover:bg-button-accent-hover text-white font-medium"
           >{{ $t('accountSettings.collections.yes') }}</button>
-          <button
+          <button type="button"
             @click.stop="cancelRemove()"
             class="px-3 py-1.5 rounded text-sm bg-neutral-600 hover:bg-neutral-500 text-white font-medium"
           >{{ $t('accountSettings.collections.no') }}</button>
@@ -498,7 +498,7 @@ watch(playingVideoId, (id) => {
           <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button (plays the inline YouTube embed for YouTube segments) -->
-            <button data-testid="audio-play-button" :aria-label="$t('segment.playAudio')" @click="playerStore.setPlaylist(resultList, index)"
+            <button type="button" data-testid="audio-play-button" :aria-label="$t('segment.playAudio')" @click="playerStore.setPlaylist(resultList, index)"
               class="py-2 px-2 mr-0.5 inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-hairline bg-gray-100 text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none dark:bg-button-primary-main dark:hover:bg-button-primary-hover dark:text-neutral-400 dark:hover:text-neutral-300">
               <UiBaseIcon v-if="!((isPlaying && currentResult && currentResult.segment.publicId === result.segment.publicId) || playingVideoId === result.segment.publicId)" w="w-5" h="h-5" size="24"
                 class="" :path="mdiVolumeHigh" />
@@ -559,6 +559,7 @@ watch(playingVideoId, (id) => {
                   {{ segmentLanguageLabel[row.lang] }}
                 </span>
                 <div data-testid="translation-text" class="min-w-0 flex-1">
+                  <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: spoiler reveal; screen readers already read the text -->
                   <span class="group/translation"
                     :class="row.isSpoiler && !isTranslationRevealed(result.segment.publicId, row.lang) ? 'cursor-pointer' : ''"
                     @click="row.isSpoiler && toggleTranslationReveal(result.segment.publicId, row.lang)">

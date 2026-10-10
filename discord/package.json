@@ -6,8 +6,6 @@
     "dev": "NODE_ENV=development tsx watch src/bot.ts",
     "start": "node --import tsx src/bot.ts",
     "register": "node --import tsx src/register.ts",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

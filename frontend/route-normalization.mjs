@@ -13,20 +13,40 @@ const COMPOSITE_ID_PATTERN = /^[0-9]+(?:[_-][0-9]+)+$/;
 export const LOCALES = new Set(['en', 'es', 'ja', 'zh', 'zh-hant', 'id', 'pt-BR']);
 
 const STATIC_PAGES = new Set([
-  '/', '/blog', '/changelog', '/media', '/roadmap', '/stats', '/stats/words',
-  '/about', '/privacy', '/terms-and-conditions', '/dmca',
-  '/search', '/api/v1/docs',
+  '/',
+  '/blog',
+  '/changelog',
+  '/media',
+  '/roadmap',
+  '/stats',
+  '/stats/words',
+  '/about',
+  '/privacy',
+  '/terms-and-conditions',
+  '/dmca',
+  '/search',
+  '/api/v1/docs',
   // The signed-in area. Peeling the locale prefix rescued the public pages but
   // left every one of these in `/__other`, because none of them matched a
   // STATIC_PAGES entry or an anchored pattern -- the authenticated surface, the
   // one worth having latency on, was the last thing still invisible.
-  '/user', '/user/activity', '/user/collections', '/user/developer',
+  '/user',
+  '/user/activity',
+  '/user/collections',
+  '/user/developer',
   // `/user/media` is the combined starred + hidden tab. The two paths beside it
   // are the tabs it replaced and now 301 to it; they keep their own series so a
   // still-linked bookmark stays visible rather than folding into `/user/:slug`.
-  '/user/media', '/user/favorites', '/user/hide-media', '/user/settings', '/user/sync',
-  '/user/admin', '/user/admin/agent-activity', '/user/admin/announcement',
-  '/user/admin/reports', '/user/admin/users',
+  '/user/media',
+  '/user/favorites',
+  '/user/hide-media',
+  '/user/settings',
+  '/user/sync',
+  '/user/admin',
+  '/user/admin/agent-activity',
+  '/user/admin/announcement',
+  '/user/admin/reports',
+  '/user/admin/users',
   '/user/admin/roadmap',
   '/settings',
   // Stable social OAuth landing; the callback plugin restores the original

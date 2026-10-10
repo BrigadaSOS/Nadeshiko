@@ -90,6 +90,7 @@ servers:
 volumes:
   - "/var/lib/nadeshiko/frontend-prod/diagnostics:/app/diagnostics"
   - "/var/lib/nadeshiko/frontend-prod/asset-archive:/app/asset-archive"
+  - "/var/lib/nadeshiko/frontend-prod/sitemap-snapshots:/app/sitemap-snapshots"
 
 builder:
   args:
@@ -97,6 +98,9 @@ builder:
     NITRO_PRESET: node_cluster
 
 proxy:
+  # Leave the Tailscale address available for the private Caddy proxy.
+  run:
+    bind_ips: [127.0.0.1, 172.17.0.1]
   ssl: true
   host: nadeshiko.co
   app_port: 3000
@@ -169,6 +173,7 @@ env:
     # refuses to create the directory for exactly that reason and logs
     # `asset archive: directory unavailable` instead.
     NUXT_ASSET_ARCHIVE_DIR: /app/asset-archive
+    NUXT_SITEMAP_SNAPSHOT_DIR: /app/sitemap-snapshots
 
     # BOTH OF THESE ARE INERT, and are kept only so the next person does not
     # re-add them believing they work. Nitro bakes its preset in at BUILD time;

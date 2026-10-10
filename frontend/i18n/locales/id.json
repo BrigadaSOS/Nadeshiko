@@ -878,6 +878,7 @@
     },
     "anki": {
       "syncStatus": "Status koneksi",
+      "testConnection": "Uji koneksi",
       "loading": "Menghubungkan…",
       "loadingMessage": "Tunggu sebentar selagi menghubungkan ke Anki.",
       "connectionSuccess": "Berhasil terhubung",
@@ -916,7 +917,6 @@
       "renameProfile": "Ganti nama",
       "profileNamePlaceholder": "Nama profil",
       "deleteProfile": "Hapus",
-      "saving": "Menyimpan…",
       "saved": "Disimpan",
       "modal": {
         "cancel": "Batal",

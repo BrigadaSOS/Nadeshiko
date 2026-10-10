@@ -55,7 +55,12 @@ async function visibleCategorySlugs(page: Page): Promise<CategorySlug[]> {
   await expect(page.getByTestId('search-category-tabs')).toBeVisible({ timeout: 15_000 });
   const slugs: CategorySlug[] = [];
   for (const slug of Object.keys(CATEGORY_BY_SLUG) as CategorySlug[]) {
-    if (await page.getByTestId(`search-category-tab-${slug}`).isVisible().catch(() => false)) {
+    if (
+      await page
+        .getByTestId(`search-category-tab-${slug}`)
+        .isVisible()
+        .catch(() => false)
+    ) {
       slugs.push(slug);
     }
   }
@@ -86,15 +91,17 @@ test.describe('Hidden categories', () => {
 
     try {
       await categorySwitch(page, hiddenSlug).click();
-      await expect
-        .poll(() => hiddenCategories(page), { timeout: 10_000 })
-        .toContain(CATEGORY_BY_SLUG[hiddenSlug]);
+      await expect.poll(() => hiddenCategories(page), { timeout: 10_000 }).toContain(CATEGORY_BY_SLUG[hiddenSlug]);
 
       // Back to a search the way a reader gets there from here: through the app,
       // with the preference they just set already in hand.
       // The header logo, which is the only in-app route out of a settings tab
       // that every viewport shows.
-      await page.locator('header').getByRole('link', { name: /Nadeshiko/i }).first().click();
+      await page
+        .locator('header')
+        .getByRole('link', { name: /Nadeshiko/i })
+        .first()
+        .click();
       const searchInput = page.getByTestId('search-input');
       await expect(searchInput).toBeVisible({ timeout: 15_000 });
       await searchInput.fill(QUERY);

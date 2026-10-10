@@ -144,7 +144,7 @@ watch(windowDays, fetchActivity);
             </td>
 
             <td class="px-3 py-3">
-              <button
+              <button type="button"
                 :disabled="restoringId === entry.revisionId"
                 class="px-2 py-1 text-xs rounded bg-amber-600/30 text-amber-300 hover:bg-amber-600/50 disabled:opacity-50 whitespace-nowrap"
                 @click="restore(entry)"

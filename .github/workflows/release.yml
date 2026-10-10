@@ -11,6 +11,11 @@ on:
         description: 'Commit SHA to release (defaults to the selected ref)'
         required: false
         type: string
+      refresh_sitemaps:
+        description: 'Rebuild persistent sitemaps; leave off to reuse the published files'
+        required: false
+        default: false
+        type: boolean
       skip_staging:
         description: 'INCIDENT ONLY: skip staging deploy and E2E'
         required: false
@@ -134,6 +139,7 @@ jobs:
           labels: service=nadeshiko-frontend-prod
           build-args: |
             NUXT_PUBLIC_ENVIRONMENT=production
+            NITRO_PRESET=node_cluster
           secrets: |
             posthog_cli_api_key=${{ secrets.POSTHOG_CLI_API_KEY }}
           cache-from: type=gha,scope=frontend
@@ -312,6 +318,22 @@ jobs:
           test -n "$version" || { echo "::error::Could not identify the running frontend version"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # A one-off container uses the release image and persistent mount before
+      # traffic switches. Existing published files make this a cheap no-op.
+      - name: Ensure production sitemap snapshot is published
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REFRESH_SITEMAPS: ${{ inputs.refresh_sitemaps || false }}
+        run: |
+          set -euo pipefail
+          cd frontend
+          snapshot_command="node publish-sitemaps.mjs"
+          if [[ "$REFRESH_SITEMAPS" == "true" ]]; then
+            snapshot_command="$snapshot_command --refresh"
+          fi
+          VERSION="$RELEASE_SHA" kamal app exec -d prod --version "$RELEASE_SHA" \
+            --env NUXT_SITEMAP_SNAPSHOT_DIR:/app/sitemap-snapshots "$snapshot_command"
+
       - name: Deploy frontend to prod
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -320,19 +342,13 @@ jobs:
           cd frontend
           VERSION="$RELEASE_SHA" kamal deploy -d prod --skip-push
 
-      # Locale sitemaps fan out over the catalogue on their first request and
-      # can take longer than Kamal Proxy's deliberate ten-second reader timeout.
-      # Warm them through the container's own listener before the edge purge
-      # makes the new process authoritative. Twice covers both Nitro cluster
-      # workers; a non-200 response fails the release before cached traffic is
-      # discarded.
-      - name: Warm production sitemaps before exposing the cold process
+      - name: Verify production frontend runtime
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           cd frontend
-          kamal app exec -d prod --reuse "node warm-sitemaps.mjs"
+          kamal app exec -d prod --reuse "node verify-runtime.mjs"
 
       # Anonymous sentence and search HTML is edge-cached for an hour
       # (`cloudflare-cache.tf` in brigadasos-infra, `edge_ttl: respect_origin`,

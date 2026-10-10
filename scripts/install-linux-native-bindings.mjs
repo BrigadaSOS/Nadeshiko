@@ -19,13 +19,12 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const ROOT = process.cwd();
-const require = createRequire(join(ROOT, 'noop.js'));
 // e.g. "linux-x64-gnu" / "linux-arm64-gnu". musl images would need "-musl";
 // the images this runs in are all Debian-based.
 const PLATFORM_SUFFIXES = [`${process.platform}-${process.arch}-gnu`, `${process.platform}-${process.arch}`];

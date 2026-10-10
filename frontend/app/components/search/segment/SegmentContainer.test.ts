@@ -23,12 +23,13 @@ import { PATREON_URL } from '#shared/utils/socialLinks';
 const englishMode = ref('visible');
 const spanishMode = ref('visible');
 const translationLanguages = ref(['EN', 'ES']);
+const shouldBlur = vi.fn((_rating: string) => false);
 
 vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
 vi.stubGlobal('useTranslationVisibility', () => ({ englishMode, spanishMode }));
 vi.stubGlobal('useTranslationLanguages', () => ({ languages: translationLanguages }));
 vi.stubGlobal('useMediaName', () => ({ mediaName: (m: Record<string, string>) => m.nameEn ?? '' }));
-vi.stubGlobal('useContentRating', () => ({ shouldBlur: () => false, isRestricted: () => false }));
+vi.stubGlobal('useContentRating', () => ({ shouldBlur, isRestricted: () => false }));
 vi.stubGlobal('useHiddenMedia', () => ({ isMediaHidden: () => false, hiddenMediaIds: ref(new Set()) }));
 vi.stubGlobal('useModalState', () => ({
   isAnyModalOpen: ref(false),
@@ -78,6 +79,7 @@ function segment(publicId: string, over: Record<string, unknown> = {}) {
   return {
     segment: {
       publicId,
+      contentRating: 'SAFE',
       textJa: { content: `日本語 ${publicId}`, highlight: null },
       textEn: { content: `english ${publicId}` },
       textEs: { content: `espanol ${publicId}` },
@@ -105,7 +107,7 @@ function render(results: unknown[], props: Record<string, unknown> = {}) {
       mocks: { $t: (k: string) => k, formatMs, youtubeWatchUrl },
       stubs: {
         'i18n-t': { props: ['keypath'], template: '<span>{{ keypath }}<slot name="link" /></span>' },
-        CommonBaseModal: true,
+        CommonBaseModal: { props: ['open'], template: '<div v-if="open"><slot /></div>' },
         UiBaseIcon: true,
         NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
         NuxtImg: true,
@@ -132,6 +134,7 @@ const covered = (w: ReturnType<typeof render>) =>
   w.findAll('[data-testid="translation-content"]').map((n) => n.classes().includes('nd-translation-spoiler'));
 
 beforeEach(() => {
+  shouldBlur.mockReturnValue(false);
   englishMode.value = 'visible';
   spanishMode.value = 'visible';
   translationLanguages.value = ['EN', 'ES'];
@@ -204,6 +207,52 @@ describe('the card list', () => {
     expect(japanese.find('em').exists()).toBe(false);
     expect(translation.html()).toContain('&lt;img src=x onerror=alert(1)&gt;raw English');
     expect(translation.find('img').exists()).toBe(false);
+  });
+});
+
+describe('screenshot zoom availability', () => {
+  test('keeps screenshots out of the tab order and opens zoom on click', async () => {
+    const wrapper = render([segment('a')]);
+    const image = wrapper.get('[data-testid="segment-image"]');
+
+    expect(image.element.tagName).toBe('IMG');
+    expect(image.element.closest('button')).toBeNull();
+    expect((image.element as HTMLImageElement).tabIndex).toBe(-1);
+
+    await image.trigger('click');
+    expect(wrapper.find('[data-testid="zoomed-image"]').exists()).toBe(true);
+
+    await wrapper.get('[data-testid="zoomed-image"]').trigger('click');
+    expect(wrapper.find('[data-testid="zoomed-image"]').exists()).toBe(false);
+  });
+
+  test('only zooms a blurred screenshot while that card is revealed', async () => {
+    shouldBlur.mockImplementation((rating) => rating === 'QUESTIONABLE');
+    const first = segment('a');
+    const second = segment('b');
+    first.segment.contentRating = 'QUESTIONABLE';
+    second.segment.contentRating = 'QUESTIONABLE';
+    const wrapper = render([first, second]);
+    const images = wrapper.findAll('[data-testid="segment-image"]');
+    const reveal = cards(wrapper)[0]!
+      .findAll('button')
+      .find((button) => button.text() === 'segment.contentRatingShow')!;
+    const zoomOpen = () => wrapper.find('[data-testid="zoomed-image"]').exists();
+
+    await images[0]!.trigger('click');
+    expect(zoomOpen()).toBe(false);
+
+    await reveal.trigger('click');
+    await images[0]!.trigger('click');
+    expect(zoomOpen()).toBe(true);
+
+    await wrapper.get('[data-testid="zoomed-image"]').trigger('click');
+    await images[1]!.trigger('click');
+    expect(zoomOpen()).toBe(false);
+
+    await reveal.trigger('click');
+    await images[0]!.trigger('click');
+    expect(zoomOpen()).toBe(false);
   });
 });
 

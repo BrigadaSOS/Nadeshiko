@@ -61,6 +61,7 @@ const envSchema = z.object({
    * entirely rather than degrading it.
    */
   NUXT_ASSET_ARCHIVE_DIR: z.string().trim().default(''),
+  NUXT_SITEMAP_SNAPSHOT_DIR: z.string().trim().default(''),
   /**
    * How long a superseded build's assets stay servable, in days.
    *

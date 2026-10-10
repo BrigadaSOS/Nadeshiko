@@ -1,0 +1,43 @@
+name: Verify Tailscale SSH
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/kamal-deploy-setup
+        with:
+          tailscale-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          tailscale-audience: ${{ secrets.TS_AUDIENCE }}
+      - name: Verify keyless OpenSSH and Kamal connections
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(ssh -o BatchMode=yes nadeshiko id -un)" = docker
+          if timeout 20 ssh -o BatchMode=yes -o ConnectTimeout=10 root@nadeshiko true; then
+            echo '::error::The CI identity unexpectedly has root SSH access.'
+            exit 1
+          fi
+          ruby <<'RUBY'
+          require 'sshkit'
+          require 'sshkit/dsl'
+          require 'net/ssh/proxy/command'
+          include SSHKit::DSL
+          SSHKit::Backend::Netssh.configure do |ssh|
+            ssh.ssh_options = {
+              auth_methods: ['none'], keys: [], use_agent: false,
+              verify_host_key: :always,
+              proxy: Net::SSH::Proxy::Command.new('tailscale nc %h %p')
+            }
+          end
+          on 'docker@nadeshiko' do
+            raise 'Unexpected SSH user' unless capture(:id, '-un') == 'docker'
+          end
+          RUBY

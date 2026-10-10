@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDocumentVisibility, useTimeoutFn } from '@vueuse/core';
 import { ENGAGED_VIEW_DWELL_MS, createEngagedViewGate } from '~/utils/engagedView';
-import { buildDefaultMetaTags, buildSentenceMetaTags, socialTitle } from '~/utils/metaTags';
+import { buildDefaultMetaTags, buildSentenceMetaTags } from '~/utils/metaTags';
 import { mediaBrowsePath } from '~/utils/routes';
 import { resolveSearchResponse } from '~/utils/resolvers';
 import { apiErrorStatus, isMissing } from '~/utils/apiError';

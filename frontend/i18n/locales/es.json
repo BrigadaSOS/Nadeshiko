@@ -878,6 +878,7 @@
     },
     "anki": {
       "syncStatus": "Estado de la conexión",
+      "testConnection": "Probar conexión",
       "loading": "Cargando…",
       "loadingMessage": "Conectando con Anki. Espera un momento.",
       "connectionSuccess": "Conexión establecida",
@@ -916,7 +917,6 @@
       "renameProfile": "Cambiar nombre",
       "profileNamePlaceholder": "Nombre del perfil",
       "deleteProfile": "Eliminar",
-      "saving": "Guardando…",
       "saved": "Guardado",
       "modal": {
         "cancel": "Cancelar",
