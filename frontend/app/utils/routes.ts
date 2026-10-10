@@ -369,3 +369,20 @@ export function getStringQueryValue(
   }
   return String(first);
 }
+
+/** Shared filter syntax only; callers own category validation, defaults, and accepted keys. */
+export function readSearchRouteFilters(query: Record<string, Parameters<typeof getStringQueryValue>[0]>) {
+  const episode = getStringQueryValue(query.episode ?? query.episodeId);
+  const seed = getStringQueryValue(query.seed);
+  const parsedEpisode = episode === null ? Number.NaN : Number(episode);
+  const parsedSeed = seed === null ? Number.NaN : Number(seed);
+  return {
+    category: getStringQueryValue(query.category),
+    mediaPublicId: getStringQueryValue(query.media ?? query.mediaId),
+    // Episodes keep decimals; only seeds are restricted to non-negative integers.
+    episode: Number.isNaN(parsedEpisode) ? null : parsedEpisode,
+    sort: getStringQueryValue(query.sort),
+    randomSeed: Number.isInteger(parsedSeed) && parsedSeed >= 0 ? parsedSeed : null,
+    segmentPublicId: getStringQueryValue(query.uuid),
+  };
+}

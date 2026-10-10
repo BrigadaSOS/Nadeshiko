@@ -12,6 +12,7 @@ import {
   mediaBrowsePath,
   normalizeSearchQuery,
   searchScopeQuery,
+  readSearchRouteFilters,
   splitLocalePrefix,
   withLocalePrefix,
 } from './routes';
@@ -362,5 +363,66 @@ describe('canonicalPath', () => {
 
   it('keeps the locale it was asked about', () => {
     expect(canonicalPath('/ja/search/%2525E8', '%25E8')).toBe('/ja/search/%25E8');
+  });
+});
+
+describe('readSearchRouteFilters', () => {
+  const empty = {
+    category: null,
+    mediaPublicId: null,
+    episode: null,
+    sort: null,
+    randomSeed: null,
+    segmentPublicId: null,
+  };
+
+  it('reads legacy aliases and first array values without imposing a category policy', () => {
+    expect(
+      readSearchRouteFilters({
+        category: ['unknown', 'anime'],
+        mediaId: ['title', 'ignored'],
+        episodeId: ['3.5', '7'],
+        sort: 'random',
+        seed: '0',
+        uuid: ['segment', 'ignored'],
+      }),
+    ).toEqual({
+      category: 'unknown',
+      mediaPublicId: 'title',
+      episode: 3.5,
+      sort: 'random',
+      randomSeed: 0,
+      segmentPublicId: 'segment',
+    });
+  });
+
+  it('uses canonical spellings even when empty rather than falling through to aliases', () => {
+    expect(readSearchRouteFilters({ media: 'canonical', mediaId: 'legacy', episode: '2', episodeId: '9' })).toEqual({
+      ...empty,
+      mediaPublicId: 'canonical',
+      episode: 2,
+    });
+    expect(readSearchRouteFilters({ media: '', mediaId: 'legacy', episode: '', episodeId: '9' })).toEqual(empty);
+  });
+
+  it.each([
+    { raw: undefined, expected: null },
+    { raw: 'banana', expected: null },
+    { raw: '-2', expected: -2 },
+    { raw: 'Infinity', expected: Infinity },
+    { raw: ' ', expected: 0 },
+  ])('preserves the current numeric episode rule for $raw', ({ raw, expected }) => {
+    expect(readSearchRouteFilters({ episode: raw })).toEqual({ ...empty, episode: expected });
+  });
+
+  it.each([
+    { raw: '-1', expected: null },
+    { raw: '1.5', expected: null },
+    { raw: 'Infinity', expected: null },
+    { raw: 'banana', expected: null },
+    { raw: ' ', expected: 0 },
+    { raw: ['7', '8'], expected: 7 },
+  ])('accepts only non-negative integer seeds for $raw', ({ raw, expected }) => {
+    expect(readSearchRouteFilters({ seed: raw })).toEqual({ ...empty, randomSeed: expected });
   });
 });

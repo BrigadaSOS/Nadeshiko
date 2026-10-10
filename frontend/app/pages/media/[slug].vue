@@ -5,6 +5,7 @@ import { buildDefaultMetaTags, buildMediaMetaTags } from '~/utils/metaTags';
 import { apiErrorStatus, isMissing } from '~/utils/apiError';
 import { reportError } from '~/utils/reportError';
 import { mediaSameAsUrls } from '~/utils/media';
+import { readSearchRouteFilters } from '~/utils/routes';
 
 /**
  * A title's own page.
@@ -45,12 +46,13 @@ watch(
   },
 );
 
-const episodeNumberParam = computed(() => {
-  const raw = getStringQueryValue(route.query.episode as string | string[] | undefined);
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isNaN(parsed) ? null : parsed;
-});
+// This route accepts only these filters: legacy episodeId and seed stay ignored.
+const routeFilters = computed(() => readSearchRouteFilters({
+  category: route.query.category,
+  episode: route.query.episode,
+  sort: route.query.sort,
+}));
+const episodeNumberParam = computed(() => routeFilters.value.episode);
 
 const { data: media, error: mediaError } = await useAsyncData<Media | null>(
   () => `media-by-slug-${slug.value}`,
@@ -99,10 +101,10 @@ const searchScope = computed<SearchScope>(() => ({
   // 'all', not the reader's default category: the title named in the path is the
   // subject, and one outside their default would otherwise come back empty on
   // its own page. Mirrors what the search page does when `?media=` is set.
-  category: getStringQueryValue(route.query.category as string | string[] | undefined) ?? 'all',
+  category: routeFilters.value.category ?? 'all',
   mediaPublicId: mediaPublicId.value,
   episode: episodeNumberParam.value,
-  sort: getStringQueryValue(route.query.sort as string | string[] | undefined),
+  sort: routeFilters.value.sort,
   randomSeed: null,
   segmentPublicId: null,
   collectionId: null,

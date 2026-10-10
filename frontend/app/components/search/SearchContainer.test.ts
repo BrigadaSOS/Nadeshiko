@@ -40,7 +40,7 @@ vi.stubGlobal('onBeforeRouteLeave', vi.fn());
 vi.stubGlobal('useContentRating', () => ({
   shouldBlur: () => false,
   isRestricted: () => false,
-  contentRating: ref('SAFE'),
+  contentRating: ref(['SAFE']),
   preferences: ref({}),
 }));
 vi.stubGlobal('useMediaName', () => ({
@@ -433,5 +433,96 @@ describe('client-side retry outcomes', () => {
     await wrapper.get('[data-testid="search-stats-error"] button').trigger('click');
     await flushPromises();
     expect(navigateTo).toHaveBeenCalledWith('/', { redirectCode: 302 });
+  });
+});
+
+describe('route-update search ownership', () => {
+  test('leaves word-path fetching to the incoming page but answers query-string changes', async () => {
+    const wrapper = render({ sentenceData: { results: [{ segment: { publicId: 'initial-row' } }] } });
+    await flushPromises();
+    const update = vi.mocked(onBeforeRouteUpdate).mock.calls.at(-1)![0];
+    const before = { ...route, params: { query: 'word' }, query: {} };
+    await update({ ...before, path: '/search/next', params: { query: 'next' } } as never, before as never, vi.fn());
+    expect(fetchSentences).not.toHaveBeenCalled();
+    expect(fetchStats).not.toHaveBeenCalled();
+    expect(wrapper.findComponent({ name: 'SearchSegmentContainer' }).props('searchData').results).toEqual([
+      { segment: { publicId: 'initial-row' } },
+    ]);
+
+    fetchSentences.mockResolvedValueOnce({ status: 'ok', data: { results: [{ segment: { publicId: 'query-row' } }] } });
+    fetchStats.mockResolvedValueOnce({ status: 'ok', data: { media: [mediaRow('query-title')], categories: [] } });
+    const queryBefore = { ...before, path: '/search', params: { query: '' }, query: { query: 'before' } };
+    await update({ ...queryBefore, query: { query: 'after' } } as never, queryBefore as never, vi.fn());
+    await flushPromises();
+    expect(fetchSentences).toHaveBeenCalledExactlyOnceWith(
+      {
+        query: 'after',
+        category: 'all',
+        mediaPublicId: null,
+        episode: null,
+        sort: null,
+        randomSeed: null,
+        segmentPublicId: null,
+        collectionId: null,
+        contentRating: ['SAFE'],
+        languages: ['EN', 'ES'],
+        hiddenMediaExclude: [],
+        hiddenCategories: [],
+      },
+      { cursor: null },
+    );
+    expect(sidebarMedia(wrapper)).toEqual(['query-title']);
+    expect(wrapper.findComponent({ name: 'SearchSegmentContainer' }).props('searchData').results).toEqual([
+      { segment: { publicId: 'query-row' } },
+    ]);
+  });
+
+  test('keeps the container policies for arrays, category validation, aliases, and path media', async () => {
+    const wrapper = render({ mediaPublicId: 'path-title' });
+    await flushPromises();
+    fetchSentences.mockResolvedValueOnce({
+      status: 'ok',
+      data: { results: [{ segment: { publicId: 'scoped-row' } }] },
+    });
+    fetchStats.mockResolvedValueOnce({ status: 'ok', data: { media: [mediaRow('path-title')], categories: [] } });
+    const update = vi.mocked(onBeforeRouteUpdate).mock.calls.at(-1)![0];
+    const before = { ...route, path: '/search', params: { query: '' }, query: { query: 'before' } };
+    await update(
+      {
+        ...before,
+        query: {
+          query: ['first', 'second'],
+          category: 'unknown',
+          mediaId: ['query-title', 'ignored'],
+          episodeId: ['2', '3'],
+          sort: 'random',
+          seed: '7',
+        },
+      } as never,
+      before as never,
+      vi.fn(),
+    );
+    await flushPromises();
+    expect(fetchSentences).toHaveBeenCalledExactlyOnceWith(
+      {
+        query: '',
+        category: 'all',
+        mediaPublicId: 'path-title',
+        episode: 2,
+        sort: 'random',
+        randomSeed: 7,
+        segmentPublicId: null,
+        collectionId: null,
+        contentRating: ['SAFE'],
+        languages: ['EN', 'ES'],
+        hiddenMediaExclude: [],
+        hiddenCategories: [],
+      },
+      { cursor: null },
+    );
+    expect(sidebarMedia(wrapper)).toEqual(['path-title']);
+    expect(wrapper.findComponent({ name: 'SearchSegmentContainer' }).props('searchData').results).toEqual([
+      { segment: { publicId: 'scoped-row' } },
+    ]);
   });
 });

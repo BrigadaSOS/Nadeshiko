@@ -1,6 +1,22 @@
 // @vitest-environment happy-dom
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+
+const sdkHttp = vi.hoisted(() => ({
+  search: vi.fn(),
+  getSearchStats: vi.fn(),
+  getSegment: vi.fn(),
+}));
+
+vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@brigadasos/nadeshiko-sdk')>();
+  return {
+    ...actual,
+    search: sdkHttp.search,
+    getSearchStats: sdkHttp.getSearchStats,
+    getSegment: sdkHttp.getSegment,
+  };
+});
 import { defineComponent, reactive, ref, unref } from 'vue';
 import { createHead, renderSSRHead } from 'unhead/server';
 import {
@@ -60,7 +76,7 @@ vi.stubGlobal('useMediaName', () => ({
 vi.stubGlobal('useContentRating', () => ({
   shouldBlur: () => false,
   isRestricted: () => false,
-  contentRating: ref('SAFE'),
+  contentRating: ref(['SAFE']),
 }));
 vi.stubGlobal('useHiddenMedia', () => ({
   hiddenMediaIds: ref([]),
@@ -81,29 +97,36 @@ vi.stubGlobal('useTranslationVisibility', () => ({
 vi.stubGlobal('useTranslationLanguages', () => ({ languages: ref(['EN']), dictionaryGlossLanguages: ref(['en']) }));
 const fetchSentences = vi.fn();
 const fetchStats = vi.fn();
-vi.stubGlobal('useSearchFetch', () => ({
-  fetchSentences,
-  fetchStats,
-  cancelSentences: vi.fn(),
-  cancelStats: vi.fn(),
-}));
+function stubPrimedSearchFetch() {
+  vi.stubGlobal('useSearchFetch', () => ({
+    fetchSentences,
+    fetchStats,
+    cancelSentences: vi.fn(),
+    cancelStats: vi.fn(),
+  }));
+}
+stubPrimedSearchFetch();
 vi.stubGlobal('useNadeshikoSdk', () => ({}));
 vi.stubGlobal('userStore', () => ({ isLoggedIn: false, isAdmin: false, preferences: {}, user: null }));
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
 vi.stubGlobal('useQuerySync', () => ({ setQuery: vi.fn() }));
 const createError = vi.fn((v: Record<string, unknown>) => Object.assign(new Error('x'), v));
 vi.stubGlobal('createError', createError);
-vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown>) => {
-  const data = ref<unknown>(null);
-  const error = ref<unknown>(null);
-  try {
-    data.value = await handler();
-  } catch (e) {
-    error.value = e;
-  }
-  return { data, error, refresh: vi.fn(), pending: ref(false) };
-});
+function stubPrimedAsyncData() {
+  vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown>) => {
+    const data = ref<unknown>(null);
+    const error = ref<unknown>(null);
+    try {
+      data.value = await handler();
+    } catch (e) {
+      error.value = e;
+    }
+    return { data, error, refresh: vi.fn(), pending: ref(false) };
+  });
+}
+stubPrimedAsyncData();
 
+import { createSearchFetcher } from '~/composables/useSearchFetch';
 import { getStringQueryValue } from '~/utils/routes';
 vi.stubGlobal('getStringQueryValue', getStringQueryValue);
 import { mediaSameAsUrls } from '~/utils/media';
@@ -149,7 +172,7 @@ async function render(value: Record<string, unknown> | null = media()) {
         MediaHeader: true,
         SearchContainer: {
           name: 'SearchContainer',
-          props: ['initialSentenceOutcome', 'initialStatsOutcome'],
+          props: ['initialSentenceOutcome', 'initialStatsOutcome', 'mediaPublicId'],
           template: '<div />',
         },
         CommonBaseModal: true,
@@ -169,6 +192,12 @@ const work = () => nodes().find((n) => n['@type'] === 'Movie' || n['@type'] === 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sdkHttp.search.mockReset();
+  sdkHttp.getSearchStats.mockReset();
+  sdkHttp.getSegment.mockReset();
+  stubPrimedSearchFetch();
+  stubPrimedAsyncData();
+  vi.stubGlobal('userStore', () => ({ isLoggedIn: false, isAdmin: false, preferences: {}, user: null }));
   vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
   vi.stubGlobal('useFormat', () => ({ formatNumber: (n: number) => String(n), formatDate: (d: unknown) => String(d) }));
   fetchSentences.mockResolvedValue({ status: 'ok', data: { results: [], pagination: {} } });
@@ -392,5 +421,130 @@ test('recomputes the title and descriptions when the preferred media-name langua
     title: 'ぼっち・ざ・ろっく: Japanese subtitles and example sentences',
     description: '0 Japanese sentences from ぼっち・ざ・ろっく with English translations.',
     social: 'ぼっち・ざ・ろっく | Nadeshiko',
+  });
+});
+
+/**
+ * The title page keeps its own route policy. `episodeId`,
+ * `?seed=`, and `?query=` are ignored, and `preferMedia` is omitted.
+ */
+describe('route-to-scope priming', () => {
+  const scopeBaseline = {
+    query: '',
+    category: 'all',
+    mediaPublicId: 'm1',
+    episode: null,
+    sort: null,
+    randomSeed: null,
+    segmentPublicId: null,
+    collectionId: null,
+    contentRating: ['SAFE'],
+    languages: ['EN'],
+    hiddenMediaExclude: [],
+    hiddenCategories: [],
+  };
+  const wireBaseline = {
+    query: undefined as { search: string } | undefined,
+    take: 30,
+    sort: undefined as { mode: string; seed?: number } | undefined,
+    cursor: undefined,
+    filters: {
+      contentRating: ['SAFE'],
+      languages: ['EN'],
+      media: { include: [{ mediaPublicId: 'm1' }] },
+    } as Record<string, unknown>,
+    include: ['media'],
+  };
+
+  function probePage() {
+    const sentenceScopes: unknown[] = [];
+    const statsScopes: unknown[] = [];
+    const asyncKeys: unknown[] = [];
+    const fetcher = createSearchFetcher({ client: { id: 'page-scope' } } as never);
+    vi.stubGlobal('useSearchFetch', () => ({
+      fetchSentences: (scope: unknown) => {
+        sentenceScopes.push(scope);
+        return fetcher.fetchSentences(scope as never);
+      },
+      fetchStats: (scope: unknown) => {
+        statsScopes.push(scope);
+        return fetcher.fetchStats(scope as never);
+      },
+      cancelSentences: () => undefined,
+      cancelStats: () => undefined,
+    }));
+    vi.stubGlobal('useAsyncData', async (key: unknown, handler: () => Promise<unknown>) => {
+      asyncKeys.push(typeof key === 'function' ? (key as () => unknown)() : key);
+      const data = ref<unknown>(null);
+      const error = ref<unknown>(null);
+      try {
+        data.value = await handler();
+      } catch (e) {
+        error.value = e;
+      }
+      return { data, error, refresh: vi.fn(), pending: ref(false) };
+    });
+    sdkHttp.search.mockResolvedValue({
+      data: {
+        segments: [],
+        includes: { media: {} },
+        pagination: { hasMore: false, cursor: '', estimatedTotalHits: 0, estimatedTotalHitsRelation: 'EXACT' },
+      },
+      response: new Response(),
+    });
+    sdkHttp.getSearchStats.mockResolvedValue({ data: { media: [], categories: [] }, response: new Response() });
+    return { sentenceScopes, statsScopes, asyncKeys };
+  }
+
+  test.each([
+    {
+      label: 'ignores episodeId, seed, and the query string, and omits preferMedia',
+      query: {
+        query: ['猫', '犬'],
+        category: ['not-a-tab', 'anime'],
+        episodeId: '9',
+        seed: '12',
+        sort: 'random',
+        media: 'other-id',
+        uuid: 'seg-legacy',
+      },
+      scope: { category: 'not-a-tab', sort: 'random' },
+      wire: { sort: { mode: 'RANDOM' } },
+      filters: {},
+      sentenceKey: 'media-sentence-outcomes-bocchi-all',
+    },
+    {
+      label: 'sends a non-integer episode and keeps an absent category at all',
+      query: { episode: '3.5', seed: '4' },
+      scope: { episode: 3.5 },
+      wire: {},
+      filters: { media: { include: [{ mediaPublicId: 'm1', episodes: [3.5] }] } },
+      sentenceKey: 'media-sentence-outcomes-bocchi-3.5',
+    },
+  ])('$label', async ({ query, scope, wire, filters, sentenceKey }) => {
+    vi.stubGlobal('userStore', () => ({
+      isLoggedIn: true,
+      isAdmin: false,
+      preferences: {},
+      user: null,
+      userEmail: 'reader@example.test',
+    }));
+    vi.stubGlobal('useFavoriteMedia', () => ({ favoriteMediaIds: ref(new Set(['fav-1'])) }));
+    vi.stubGlobal('useDefaultSearchCategory', () => ({
+      storedDefault: ref('youtube'),
+      defaultCategorySlug: ref('youtube'),
+      isDefaultCategoryHidden: ref(false),
+    }));
+    const probe = probePage();
+    route.query = query;
+    const wrapper = await render();
+    const expectedScope = { ...scopeBaseline, ...scope };
+    expect(probe.sentenceScopes).toEqual([expectedScope]);
+    expect(probe.statsScopes).toEqual([expectedScope]);
+    expect(probe.asyncKeys[1]).toBe(sentenceKey);
+    expect(sdkHttp.search.mock.calls.map((call) => call[0].body)).toEqual([
+      { ...wireBaseline, ...wire, filters: { ...wireBaseline.filters, ...filters } },
+    ]);
+    expect(wrapper.findComponent({ name: 'SearchContainer' }).props('mediaPublicId')).toBe('m1');
   });
 });

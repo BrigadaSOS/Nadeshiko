@@ -9,7 +9,7 @@ import {
 } from '~/utils/metaTags';
 import type { Media } from '@brigadasos/nadeshiko-sdk';
 import { reportError } from '~/utils/reportError';
-import { buildMediaPath, decodeSearchQuery } from '~/utils/routes';
+import { buildMediaPath, decodeSearchQuery, readSearchRouteFilters } from '~/utils/routes';
 
 definePageMeta({
   // All from `/media/<slug>` only changes the path because the title lives in
@@ -32,33 +32,17 @@ const { hiddenMediaExcludeFilter } = useHiddenMedia();
 const { hiddenCategories } = useHiddenCategories();
 const { defaultCategorySlug } = useDefaultSearchCategory();
 
-const mediaQueryParam = computed(() =>
-  getStringQueryValue((route.query.media ?? route.query.mediaId) as string | string[] | undefined),
-);
-const episodeQueryParam = computed(() =>
-  getStringQueryValue((route.query.episode ?? route.query.episodeId) as string | string[] | undefined),
-);
-
-const episodeNumberParam = computed(() => {
-  if (!episodeQueryParam.value) {
-    return null;
-  }
-  const parsed = Number(episodeQueryParam.value);
-  return Number.isNaN(parsed) ? null : parsed;
-});
+const routeFilters = computed(() => readSearchRouteFilters(route.query));
+const mediaQueryParam = computed(() => routeFilters.value.mediaPublicId);
+// Cache keys retain the raw spelling, even when it parses to the same number.
+const episodeQueryParam = computed(() => getStringQueryValue(route.query.episode ?? route.query.episodeId));
+const episodeNumberParam = computed(() => routeFilters.value.episode);
 
 const searchQuery = computed(() => {
   if (route.params.query) {
     return decodeSearchQuery(String(route.params.query));
   }
   return String(route.query.query || '');
-});
-
-/** Same rule as `applyRouteQuery` in `SearchContainer`: non-negative integers only. */
-const randomSeedParam = computed(() => {
-  const raw = getStringQueryValue(route.query.seed as string | string[] | undefined);
-  const parsed = raw === null ? Number.NaN : Number(raw);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 });
 
 const { fetchSentences, fetchStats } = useSearchFetch();
@@ -101,16 +85,16 @@ const searchScope = computed<SearchScope>(() => ({
   // reader's default, except when `?media=` already named the title to search --
   // one outside that category would otherwise come back empty.
   category:
-    getStringQueryValue(route.query.category as string | string[] | undefined) ??
+    routeFilters.value.category ??
     (mediaQueryParam.value ? 'all' : defaultCategorySlug.value),
   mediaPublicId: mediaQueryParam.value,
   episode: episodeNumberParam.value,
-  sort: getStringQueryValue(route.query.sort as string | string[] | undefined),
+  sort: routeFilters.value.sort,
   // Sent on the server pass too, so a shared `?sort=random&seed=` link renders
   // the shuffle it names instead of the backend's day-seed one and then
   // reordering under the reader when the client takes over.
-  randomSeed: randomSeedParam.value,
-  segmentPublicId: getStringQueryValue(route.query.uuid as string | string[] | undefined),
+  randomSeed: routeFilters.value.randomSeed,
+  segmentPublicId: routeFilters.value.segmentPublicId,
   collectionId: null,
   contentRating: contentRating.value,
   languages: includedLanguages.value,
