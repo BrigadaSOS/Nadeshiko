@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { stripEpisodeHits, stripUnreadTokenFields, type SearchScope } from '~/composables/useSearchFetch';
 import {
-  DEFAULT_OG_IMAGE_PATH,
-  DEFAULT_OG_IMAGE_SIZE,
   buildDefaultMetaTags,
-  buildOgImageTags,
+  buildMediaMetaTags,
   buildSentenceMetaTags,
   pageTitle,
   socialTitle,
@@ -385,54 +383,19 @@ const metaTags = computed(() => {
     ];
   } else if (mediaQueryParam.value && (initialSentenceData.value?.results?.length ?? 0) > 0) {
     const firstResult = initialSentenceData.value?.results[0];
-    const animeName = firstResult ? mediaName(firstResult.media) : '';
     const mediaStats = initialStatsData.value?.media?.find((s) => s.mediaPublicId === mediaQueryParam.value);
-
-    const filterEpisode = episodeNumberParam.value;
-
-    let totalResults = mediaStats?.matchCount || 0;
-    const episodeHits = mediaStats?.episodeHits;
-
-    if (episodeHits && filterEpisode) {
-      totalResults = episodeHits.find((h) => h.episode === filterEpisode)?.hitCount ?? 0;
-    }
-
-    const title = animeName;
-    const count = formatNumber(totalResults);
-    let description = t('seo.search.mediaDescription', { count, media: animeName });
-
-    if (episodeHits && episodeHits.length > 0) {
-      const episodeCount = episodeHits.length;
-      if (filterEpisode) {
-        description = t('seo.search.mediaDescriptionEpisode', { count, media: animeName, episode: filterEpisode });
-      } else {
-        description = t('seo.search.mediaDescriptionEpisodes', { count, media: animeName, episodeCount });
-      }
-    }
-
-    // Banner before cover. Both are the title's own art, but a share card is a
-    // landscape frame: the banner is ~1200x400 and survives it, while the cover
-    // is a ~460x647 PORTRAIT poster that every platform centre-crops to a band
-    // across its middle. The cover is not a fallback for the banner either --
-    // some media have no banner, and for those the site card beats a poster
-    // sliced in half.
-    const bannerUrl = firstResult?.media?.bannerUrl;
-    const ogImage = bannerUrl || `${requestOrigin}${DEFAULT_OG_IMAGE_PATH}`;
-
-    const social = socialTitle(title);
-    tags.title = pageTitle(t('seo.media.pageTitle', { media: title }));
-    tags.meta = [
-      { name: 'description', content: description },
-      { property: 'og:title', content: social },
-      { property: 'og:description', content: description },
-      { property: 'og:type', content: 'website' },
-      // No size for a banner: the height varies per title (391-400 across the
-      // ones sampled), so the honest move is to let crawlers measure it.
-      ...buildOgImageTags(ogImage, bannerUrl ? undefined : DEFAULT_OG_IMAGE_SIZE),
-      { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: social },
-      { name: 'twitter:description', content: description },
-    ];
+    return buildMediaMetaTags(
+      {
+        name: firstResult ? mediaName(firstResult.media) : '',
+        bannerUrl: firstResult?.media?.bannerUrl,
+        origin: requestOrigin,
+        totalResults: mediaStats?.matchCount || 0,
+        episodeHits: mediaStats?.episodeHits,
+        episode: episodeNumberParam.value,
+      },
+      t,
+      formatNumber,
+    );
   }
 
   return tags;
