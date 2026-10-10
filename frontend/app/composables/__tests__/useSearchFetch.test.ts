@@ -245,6 +245,28 @@ describe('fetchSentences', () => {
     expect(await pending).toEqual({ status: 'stale' });
   });
 
+  it.each(['getSegment', 'getMedia'] as const)('reports a thrown %s lookup as segment scope', async (lookup) => {
+    sdkMocks.getSegment.mockResolvedValueOnce({
+      data: { publicId: 'segment-1', mediaPublicId: 'media-1' },
+      response: new Response(),
+    });
+    sdkMocks[lookup].mockReset();
+    sdkMocks[lookup].mockRejectedValueOnce(new Error('private transport details'));
+
+    const fetcher = createSearchFetcher(fakeSdk);
+    // Permalink lookup takes precedence even if a collection is also present.
+    expect(await fetcher.fetchSentences(scope({ segmentPublicId: 'segment-1', collectionId: 'col-1' }))).toEqual({
+      status: 'error',
+      failure: { kind: 'unavailable' },
+    });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:sentences-fetch-failed',
+      expect.any(Error),
+      expect.objectContaining({ 'search.scope': 'segment' }),
+    );
+    expect(reportErrorMock.mock.calls[0]![1].message).not.toContain('private');
+  });
+
   it('requests a full corpus page and passes the cursor through', async () => {
     sdkMocks.search.mockResolvedValue({ data: searchPayload('a'), response: new Response() });
 
@@ -283,14 +305,17 @@ describe('fetchSentences', () => {
       error: {},
       response: new Response(null, { status: 500 }),
     });
-    expect(await fetcher.fetchSentences(scope({ collectionId: 'col-1' }))).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope({ collectionId: 'col-1' }))).toEqual({
+      status: 'error',
+      failure: { kind: 'unavailable' },
+    });
   });
 
   it('reports a failed search as an error instead of an empty result set', async () => {
     sdkMocks.search.mockResolvedValue({ error: {}, response: new Response(null, { status: 503 }) });
 
     const fetcher = createSearchFetcher(fakeSdk);
-    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
   });
 
   // A corpus search is the path an anonymous visitor takes, so it is the one that
@@ -314,7 +339,7 @@ describe('fetchSentences', () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.search.mockResolvedValueOnce({ error: {}, response: undefined });
-    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
     expect(reportErrorMock).not.toHaveBeenCalled();
     expect(reportEventMock).toHaveBeenCalledWith(
       'search_fetch_failed',
@@ -326,7 +351,7 @@ describe('fetchSentences', () => {
     sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 522 }) });
 
     const fetcher = createSearchFetcher(fakeSdk);
-    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
     expect(reportErrorMock).not.toHaveBeenCalled();
     expect(reportEventMock).toHaveBeenCalledWith(
       'search_fetch_failed',
@@ -338,7 +363,7 @@ describe('fetchSentences', () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 429 }) });
-    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error', failure: { kind: 'rate-limited' } });
     expect(reportErrorMock).not.toHaveBeenCalled();
   });
 
@@ -346,7 +371,7 @@ describe('fetchSentences', () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.search.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 502 }) });
-    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
     expect(reportErrorMock).toHaveBeenCalledWith(
       'search:sentences-fetch-failed',
       expect.any(Error),
@@ -361,7 +386,7 @@ describe('fetchSentences', () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.search.mockResolvedValueOnce({ data: undefined, response: new Response(null, { status: 200 }) });
-    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
     expect(reportErrorMock).toHaveBeenCalledWith(
       'search:sentences-fetch-failed',
       expect.any(Error),
@@ -378,7 +403,7 @@ describe('fetchStats', () => {
     expect(await fetcher.fetchStats(scope())).toEqual({ status: 'forbidden' });
 
     sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 500 }) });
-    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
   });
 
   // The stats fetch fires alongside the sentences one, so a reader whose network
@@ -387,7 +412,7 @@ describe('fetchStats', () => {
     const fetcher = createSearchFetcher(fakeSdk);
 
     sdkMocks.getSearchStats.mockResolvedValueOnce({ error: {}, response: undefined });
-    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchStats(scope())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
     expect(reportErrorMock).not.toHaveBeenCalled();
     expect(reportEventMock).toHaveBeenCalledWith(
       'search_fetch_failed',
@@ -653,7 +678,7 @@ describe('a permalink to one sentence', () => {
     sdkMocks.getSegment.mockResolvedValueOnce({ error: {}, response: new Response(null, { status: 404 }) });
     const fetcher = createSearchFetcher(fakeSdk);
 
-    expect(await fetcher.fetchSentences(permalink())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(permalink())).toEqual({ status: 'error', failure: { kind: 'not-found' } });
     expect(sdkMocks.getMedia).not.toHaveBeenCalled();
   });
 
@@ -768,7 +793,7 @@ describe('listing a collection', () => {
     });
     const fetcher = createSearchFetcher(fakeSdk);
 
-    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'error', failure: { kind: 'rate-limited' } });
     expect(reportErrorMock).not.toHaveBeenCalled();
     expect(reportEventMock).not.toHaveBeenCalled();
   });
@@ -779,7 +804,7 @@ describe('listing a collection', () => {
     sdkMocks.searchCollectionSegments.mockRejectedValueOnce(new Error('offline'));
     const fetcher = createSearchFetcher(fakeSdk);
 
-    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'error' });
+    expect(await fetcher.fetchSentences(collection())).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
     expect(reportErrorMock).toHaveBeenCalledWith(
       'search:sentences-fetch-failed',
       expect.anything(),
@@ -868,5 +893,59 @@ describe('the sort a search is sent with', () => {
     await createSearchFetcher(fakeSdk).fetchSentences(scope({ sort: 'random', randomSeed: null }));
 
     expect(sentSort()).toEqual({ mode: 'RANDOM' });
+  });
+});
+
+describe('safe public search failures', () => {
+  it.each(['search', 'getSearchStats'] as const)(
+    'keeps %s validation failures safe and out of exception reporting',
+    async (operation) => {
+      sdkMocks[operation].mockResolvedValueOnce({
+        error: {
+          code: 'VALIDATION_FAILED',
+          detail: 'secret-token SQL stack trace <script>alert(1)</script>',
+          errors: { query: 'private-host' },
+        },
+        response: new Response(null, { status: 400 }),
+      });
+      const fetcher = createSearchFetcher(fakeSdk);
+      const outcome = await (operation === 'search' ? fetcher.fetchSentences(scope()) : fetcher.fetchStats(scope()));
+      expect(outcome).toEqual({ status: 'error', failure: { kind: 'invalid-request' } });
+      expect(JSON.stringify(outcome)).not.toMatch(/secret|SQL|stack|script|private/);
+      expect(reportErrorMock).not.toHaveBeenCalled();
+      expect(reportEventMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not publish unknown error bodies or server-supplied translation keys', async () => {
+    sdkMocks.search.mockResolvedValueOnce({
+      error: { code: 'NEW_UNKNOWN_CODE', detail: 'secret-token', translationKey: 'sensitive.key' },
+      response: new Response(null, { status: 500 }),
+    });
+    const outcome = await createSearchFetcher(fakeSdk).fetchSentences(scope());
+    expect(outcome).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
+    expect(JSON.stringify(reportErrorMock.mock.calls)).not.toMatch(/secret-token|sensitive.key/);
+  });
+
+  it('distinguishes a monthly quota from a temporary limit without exposing response text', async () => {
+    sdkMocks.search.mockResolvedValueOnce({
+      error: { detail: 'secret-token' },
+      response: new Response(null, { status: 429, headers: { 'X-RateLimit-Reason': 'monthly_quota' } }),
+    });
+    expect(await createSearchFetcher(fakeSdk).fetchSentences(scope())).toEqual({
+      status: 'error',
+      failure: { kind: 'quota-exceeded' },
+    });
+    expect(reportErrorMock).not.toHaveBeenCalled();
+  });
+
+  it('does not serialize or report arbitrary thrown exception messages', async () => {
+    sdkMocks.search.mockRejectedValueOnce(new Error('secret-token SQL password stack trace'));
+    expect(await createSearchFetcher(fakeSdk).fetchSentences(scope())).toEqual({
+      status: 'error',
+      failure: { kind: 'unavailable' },
+    });
+    const [, error] = reportErrorMock.mock.calls[0]!;
+    expect(error.message).not.toMatch(/secret-token|SQL|password/);
   });
 });

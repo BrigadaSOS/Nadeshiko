@@ -3,6 +3,25 @@
     "generic": "出了點問題，請重試。",
     "rateLimited": "請求過於頻繁，請稍後重試。"
   },
+  "searchErrors": {
+    "invalidRequest": {
+      "title": "搜尋請求無效",
+      "message": "請檢查搜尋表示式和篩選條件，然後重新搜尋。"
+    },
+    "rateLimited": {
+      "title": "已達搜尋限制",
+      "message": "搜尋請求過多。請稍後再試。"
+    },
+    "quotaExceeded": {
+      "title": "已達每月搜尋限制",
+      "message": "本月搜尋額度已用完。請在額度重設後再試。"
+    },
+    "unavailable": {
+      "title": "搜尋暫時無法使用",
+      "message": "無法載入搜尋資料。請再試一次。"
+    },
+    "retry": "再試一次"
+  },
   "navbar": {
     "buttons": {
       "home": "首頁",
@@ -1031,13 +1050,10 @@
     "pickDeselectAll": "取消全選"
   },
   "searchContainer": {
-    "errorTitle": "出了點問題",
     "errorMessage1": "搜尋時發生錯誤",
-    "errorMessage2": "請點選下方按鈕重新搜尋。",
     "retryButton": "重試",
     "retrying": "重試中…",
     "endOfResults": "已顯示全部結果",
-    "loadMore": "載入更多例句",
     "categoryAll": "全部",
     "selectedMediaFallback": "所選作品",
     "categoryAnime": "動畫",
@@ -1556,10 +1572,6 @@
   "mediaHeader": {
     "collapse": "收起作品詳情",
     "expand": "展開作品詳情"
-  },
-  "mediaPage": {
-    "resultsFailed": "無法載入此作品的例句。",
-    "resultsRetry": "重試"
   },
   "impersonation": {
     "active": "正在以 {name} 的身份訪問",

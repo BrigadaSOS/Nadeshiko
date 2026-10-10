@@ -3,6 +3,25 @@
     "generic": "Something went wrong. Please try again.",
     "rateLimited": "Too many requests. Please wait a moment and try again."
   },
+  "searchErrors": {
+    "invalidRequest": {
+      "title": "Invalid search request",
+      "message": "Check your search expression and filters, then search again."
+    },
+    "rateLimited": {
+      "title": "Search limit reached",
+      "message": "Too many search requests. Please wait before trying again."
+    },
+    "quotaExceeded": {
+      "title": "Monthly search limit reached",
+      "message": "Your monthly search allowance has been used. Try again when it resets."
+    },
+    "unavailable": {
+      "title": "Search unavailable",
+      "message": "We could not load the search data. Please try again."
+    },
+    "retry": "Try again"
+  },
   "navbar": {
     "buttons": {
       "home": "Home",
@@ -1031,13 +1050,10 @@
     "pickDeselectAll": "Deselect all"
   },
   "searchContainer": {
-    "errorTitle": "Something went wrong",
     "errorMessage1": "An error occurred",
-    "errorMessage2": "Try searching again with the button below.",
     "retryButton": "Retry connection",
     "retrying": "Retrying...",
     "endOfResults": "You've reached the end!",
-    "loadMore": "Load more sentences",
     "categoryAll": "All",
     "selectedMediaFallback": "Selected title",
     "categoryAnime": "Anime",
@@ -1562,10 +1578,6 @@
   "mediaHeader": {
     "collapse": "Close title details",
     "expand": "Open title details"
-  },
-  "mediaPage": {
-    "resultsFailed": "We could not load the sentences for this title.",
-    "resultsRetry": "Try again"
   },
   "impersonation": {
     "active": "Impersonating {name}",

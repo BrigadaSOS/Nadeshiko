@@ -9,7 +9,8 @@ import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
 import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
 import { decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
-import { EPISODE_HITS_LOADING, type SearchScope } from '~/composables/useSearchFetch';
+import { EPISODE_HITS_LOADING, type FetchOutcome, type SearchScope } from '~/composables/useSearchFetch';
+import { canRetrySearchFailure, SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
 const { mediaName } = useMediaName();
@@ -19,8 +20,8 @@ const { defaultCategorySlug } = useDefaultSearchCategory();
 const searchRecents = useSearchRecents();
 
 const props = defineProps<{
-  initialSentenceData?: SearchResponse | null;
-  initialStatsData?: SearchStatsResponse | null;
+  initialSentenceOutcome?: FetchOutcome<SearchResponse> | null;
+  initialStatsOutcome?: FetchOutcome<SearchStatsResponse> | null;
   listMediaIds?: number[] | null;
   collectionId?: string | null;
   collectionName?: string | null;
@@ -49,16 +50,26 @@ const playerStore = usePlayerStore();
 
 const isSentencePath = (path: string) => splitLocalePrefix(path).localizedPath.startsWith('/sentence/');
 
-const sentenceData = ref<SearchResponse | null>(props.initialSentenceData ?? null);
-const statsData = ref<SearchStatsResponse | null>(props.initialStatsData ?? null);
+const sentenceData = ref<SearchResponse | null>(
+  props.initialSentenceOutcome?.status === 'ok' ? props.initialSentenceOutcome.data : null,
+);
+const statsData = ref<SearchStatsResponse | null>(
+  props.initialStatsOutcome?.status === 'ok' ? props.initialStatsOutcome.data : null,
+);
 const isLoading = ref(false);
 const endOfResults = ref(false);
 const lastTrackedQuery = ref<string | null>(null);
 const isSingleSentenceView = computed(() => isSentencePath(route.path));
 const hasMoreResults = ref(!isSentencePath(route.path));
-const showLoadMoreButton = ref(false);
-const initialError = ref(false);
-const statsError = ref(false);
+const sentenceFailure = ref<SearchFailure | null>(
+  props.initialSentenceOutcome?.status === 'error' ? props.initialSentenceOutcome.failure : null,
+);
+const statsFailure = ref<SearchFailure | null>(
+  props.initialStatsOutcome?.status === 'error' ? props.initialStatsOutcome.failure : null,
+);
+const isStatsLoading = ref(false);
+const sentenceFailureMessages = computed(() => SEARCH_FAILURE_MESSAGES[sentenceFailure.value?.kind ?? 'unavailable']);
+const statsFailureMessages = computed(() => SEARCH_FAILURE_MESSAGES[statsFailure.value?.kind ?? 'unavailable']);
 
 const query = ref('');
 const category = ref('all');
@@ -410,8 +421,6 @@ const applyRouteQuery = (r: RouteLocationNormalized) => {
 
 applyRouteQuery(route);
 
-const pageSize = computed(() => (props.collectionId ? COLLECTION_PAGE_SIZE : SEARCH_PAGE_SIZE));
-
 const searchScope = computed<SearchScope>(() => ({
   query: query.value,
   category: category.value,
@@ -441,7 +450,7 @@ const hiddenEmptyCheckKey = computed(() => {
     !media.value &&
     !revealHidden.value &&
     !isLoading.value &&
-    !statsError.value &&
+    !statsFailure.value &&
     searchData.value.categories.length === 0 &&
     (hiddenMediaIds.value.length > 0 || hiddenCategories.value.length > 0);
 
@@ -531,11 +540,13 @@ watch(
 );
 
 const loadStats = async () => {
+  isStatsLoading.value = true;
   const outcome = await fetchStats(searchScope.value);
 
   if (outcome.status === 'stale') {
     return;
   }
+  isStatsLoading.value = false;
   if (outcome.status === 'forbidden') {
     await navigateTo(localePath('/'), { redirectCode: 302 });
     return;
@@ -546,11 +557,11 @@ const loadStats = async () => {
     // nothing, and keeping the previous query's counts is worse still, so drop it
     // and let the template say what happened.
     statsData.value = null;
-    statsError.value = true;
+    statsFailure.value = outcome.failure;
     return;
   }
 
-  statsError.value = false;
+  statsFailure.value = null;
   statsData.value = outcome.data;
 };
 
@@ -663,7 +674,6 @@ const loadSentences = async ({ append }: { append: boolean }) => {
   }
 
   isLoading.value = true;
-  showLoadMoreButton.value = false;
 
   const requestCursor = append ? cursor.value : null;
   const outcome = await fetchSentences(searchScope.value, { cursor: requestCursor });
@@ -680,11 +690,8 @@ const loadSentences = async ({ append }: { append: boolean }) => {
   }
 
   if (outcome.status === 'error') {
-    if (!sentenceData.value?.results || sentenceData.value.results.length === 0) {
-      initialError.value = true;
-    }
+    sentenceFailure.value = outcome.failure;
     hasMoreResults.value = false;
-    showLoadMoreButton.value = true;
     isLoading.value = false;
     return;
   }
@@ -717,7 +724,7 @@ const loadSentences = async ({ append }: { append: boolean }) => {
     hasMoreResults.value = true;
   }
 
-  initialError.value = false;
+  sentenceFailure.value = null;
   if (requestCursor === null && !props.collectionId && !uuid.value) {
     trackSearch(response);
   }
@@ -830,18 +837,39 @@ const handleRemoveFromCollection = async (segmentPublicId: string) => {
   }
 };
 
-if (props.initialSentenceData) {
-  cursor.value = props.initialSentenceData.pagination?.cursor || null;
-  const initialResults = props.initialSentenceData.results || [];
-  if (
-    !props.initialSentenceData.pagination?.hasMore ||
-    !props.initialSentenceData.pagination?.cursor ||
-    initialResults.length < pageSize.value
-  ) {
-    endOfResults.value = true;
-    hasMoreResults.value = false;
-  }
-}
+// Initial outcomes also change when a media page refreshes after sign-in/out.
+// Null/stale means not primed; a real failure must survive hydration without retrying.
+const applyInitialSentences = (outcome: FetchOutcome<SearchResponse> | null | undefined) => {
+  if (!outcome || outcome.status === 'stale' || outcome.status === 'forbidden') return;
+  sentenceData.value = outcome.status === 'ok' ? outcome.data : null;
+  sentenceFailure.value = outcome.status === 'error' ? outcome.failure : null;
+  cursor.value = sentenceData.value?.pagination?.cursor || null;
+  endOfResults.value = outcome.status === 'error' || !sentenceData.value?.pagination?.hasMore || !cursor.value;
+  hasMoreResults.value = !endOfResults.value;
+};
+applyInitialSentences(props.initialSentenceOutcome);
+watch(
+  () => props.initialSentenceOutcome,
+  (outcome) => {
+    if (outcome?.status === 'forbidden') {
+      void navigateTo(localePath('/'), { redirectCode: 302 });
+      return;
+    }
+    applyInitialSentences(outcome);
+  },
+);
+watch(
+  () => props.initialStatsOutcome,
+  (outcome) => {
+    if (outcome?.status === 'forbidden') {
+      void navigateTo(localePath('/'), { redirectCode: 302 });
+      return;
+    }
+    if (!outcome || outcome.status === 'stale') return;
+    statsData.value = outcome.status === 'ok' ? outcome.data : null;
+    statsFailure.value = outcome.status === 'error' ? outcome.failure : null;
+  },
+);
 
 /**
  * Cap the title sidebar at the remaining viewport, never stretch it to fill.
@@ -875,20 +903,17 @@ watch(
 
 onMounted(async () => {
   syncSidebarHeight();
-  if (props.initialSentenceData == null) {
+  if (props.initialSentenceOutcome?.status === 'forbidden' || props.initialStatsOutcome?.status === 'forbidden') {
+    await navigateTo(localePath('/'), { redirectCode: 302 });
+    return;
+  }
+  if (props.initialSentenceOutcome == null || props.initialSentenceOutcome.status === 'stale') {
     await loadSentences({ append: false });
-  } else if (!props.collectionId && !uuid.value) {
-    // The server already answered this search, so `loadSentences` -- where a
-    // search is normally recorded -- never runs, and the arrival went down
-    // unrecorded: a link from a dictionary extension, a shared URL, a reload of
-    // a results page. That is most of the ways a search reaches this page, and
-    // it was silently missing from the account's activity too. Same guards as
-    // the fetch path, and `trackSearch` still refuses a blank query and a
-    // repeat of the one it last recorded.
-    trackSearch(props.initialSentenceData);
+  } else if (props.initialSentenceOutcome.status === 'ok' && !props.collectionId && !uuid.value) {
+    trackSearch(props.initialSentenceOutcome.data);
   }
 
-  if (props.initialStatsData == null) {
+  if (props.initialStatsOutcome == null || props.initialStatsOutcome.status === 'stale') {
     loadStats();
   }
 });
@@ -978,53 +1003,6 @@ onBeforeRouteUpdate(async (to, from) => {
             </div>
         </section>
     </div>
-    <div v-else-if="initialError">
-        <div class="pb-3">
-            <div class="flex items-center justify-end gap-3 border-b border-b-line-subtle pb-3 px-4 md:px-0">
-                <div class="shrink-0">
-                    <SearchResultControls />
-                </div>
-            </div>
-        </div>
-        <section class="w-full">
-            <div class="py-10 px-4">
-                <div class="w-full align-top items-center">
-                    <div class="flex flex-col items-center max-w-lg mx-auto text-center">
-                        <img class="mb-6"
-                            src="/assets/no-results.gif" :alt="$t('searchContainer.noResultsImageAlt')" />
-                        <h2 class="font-bold text-red-400 text-3xl">{{ $t('searchContainer.errorTitle') }}</h2>
-                        <h1 class="mt-2 text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t('searchContainer.errorMessage1') }}</h1>
-                        <p class="mt-4 text-gray-500 dark:text-gray-400">{{ $t('searchContainer.errorMessage2') }}
-                        </p>
-
-                        <UiButtonPrimaryAction class="my-4" @click="loadSentences({ append: false })">
-                            <template v-if="isLoading">
-                                {{ $t('searchContainer.retrying') }}
-                                <div role="status">
-                                    <svg aria-hidden="true"
-                                        class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
-                                        viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path
-                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                            fill="currentColor" />
-                                        <path
-                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                            fill="currentFill" />
-                                    </svg>
-                                    <span class="sr-only">{{ $t('accountSettings.anki.loading') }}</span>
-                                </div>
-
-                            </template>
-                            <template v-else>
-                                <UiBaseIcon :path="mdiRefresh" />
-                                {{ $t('searchContainer.retryButton') }}
-                            </template>
-                        </UiButtonPrimaryAction>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </div>
     <div v-else class="flex-1 mx-auto">
         <!-- Tabs. Sticky so the category tabs and the EN/ES/furigana controls
              stay reachable while reading results: they sit where the search bar
@@ -1032,7 +1010,7 @@ onBeforeRouteUpdate(async (to, from) => {
         <!-- Keep All present for every word search, even one with no hits.
              It must not disappear after widening an empty title-scoped search
              to an equally empty search across everything. -->
-        <div class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" v-if="searchData?.categories?.length > 0 || hasSearchQuery">
+        <div class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" v-if="!statsFailure && (searchData?.categories?.length > 0 || hasSearchQuery)">
             <div data-testid="search-category-tabs" class="search-tabs-row flex items-center gap-2 border-b border-b-line-subtle px-4 md:gap-3 md:px-0">
                 <div class="search-tabs-main min-w-0 flex-1">
                     <CommonTabsContainer>
@@ -1080,15 +1058,17 @@ onBeforeRouteUpdate(async (to, from) => {
                 </div>
             </div>
         </div>
-        <div v-else-if="statsError" class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" data-testid="search-stats-error">
+        <div v-else-if="statsFailure" class="sticky top-0 z-30 bg-background pb-3 yomitan-ignore" data-testid="search-stats-error">
             <div class="flex items-center gap-3 border-b border-b-line-subtle py-4 px-4 md:px-0">
-                <p class="text-sm text-red-400">{{ $t('searchContainer.errorMessage1') }}</p>
+                <p class="text-sm text-red-400" role="alert" data-testid="search-failure-notice">{{ $t(statsFailureMessages.message) }}</p>
                 <button
+                    v-if="canRetrySearchFailure(statsFailure)"
+                    :disabled="isStatsLoading"
                     type="button"
                     class="py-1.5 px-3 text-xs font-bold rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
                     @click="loadStats()"
                 >
-                    {{ $t('searchContainer.retryButton') }}
+                    {{ isStatsLoading ? $t('searchContainer.retrying') : $t('searchErrors.retry') }}
                 </button>
                 <div class="shrink-0 ml-auto">
                     <SearchResultControls />
@@ -1146,14 +1126,43 @@ onBeforeRouteUpdate(async (to, from) => {
                     @restore="setRevealHidden(false)"
                     @breakdown="loadHiddenBreakdown()"
                     @manage="posthog?.capture('hidden_results_manage_clicked', { hidden_count: hiddenResultCount, query })" />
-                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" :collectionId="collectionId" @remove-from-collection="handleRemoveFromCollection" />
+                <SearchSegmentContainer :searchData="searchData" :isLoading="isLoading" :collectionId="collectionId"
+                    :failure="sentenceFailure" @remove-from-collection="handleRemoveFromCollection">
+                    <template #empty-actions>
+                        <UiButtonPrimaryAction v-if="sentenceFailure && canRetrySearchFailure(sentenceFailure)" :disabled="isLoading" class="my-4" @click="loadSentences({ append: false })">
+                            <template v-if="isLoading">
+                                {{ $t('searchContainer.retrying') }}
+                                <div role="status">
+                                    <svg aria-hidden="true"
+                                        class="inline w-5 h-5 text-gray-200 animate-spin dark:text-gray-400 fill-gray-500 dark:fill-gray-200"
+                                        viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                            fill="currentColor" />
+                                        <path
+                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                            fill="currentFill" />
+                                    </svg>
+                                    <span class="sr-only">{{ $t('accountSettings.anki.loading') }}</span>
+                                </div>
+
+                            </template>
+                            <template v-else>
+                                <UiBaseIcon :path="mdiRefresh" />
+                                {{ $t('searchErrors.retry') }}
+                            </template>
+                        </UiButtonPrimaryAction>
+                    </template>
+                </SearchSegmentContainer>
                 <CommonInfiniteScrollObserver @intersect="loadSentences({ append: true })" v-if="hasMoreResults && !isLoading" />
-                <div v-if="showLoadMoreButton" class="text-center mt-4 mb-8 yomitan-ignore">
-                    <UiButtonPrimaryAction class="my-1" @click="loadMore">
+                <div v-if="sentenceFailure && searchData.results.length" class="text-center mt-4 mb-8 yomitan-ignore">
+                    <p class="text-sm text-red-400" role="alert" data-testid="search-failure-notice">{{ $t(sentenceFailureMessages.message) }}</p>
+                    <UiButtonPrimaryAction v-if="canRetrySearchFailure(sentenceFailure)" class="my-1" @click="loadMore">
                         <UiBaseIcon :path="mdiRefresh" />
-                        {{ $t('searchContainer.loadMore') }}
+                        {{ $t('searchErrors.retry') }}
                     </UiButtonPrimaryAction>
                 </div>
+
                 <div v-if="endOfResults && !hasMoreResults && searchData?.results?.length > 0" class="text-center mt-4 mb-8 yomitan-ignore">
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                         {{ $t('searchContainer.endOfResults') }}

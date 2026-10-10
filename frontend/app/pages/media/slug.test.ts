@@ -70,9 +70,11 @@ vi.stubGlobal('useTranslationVisibility', () => ({
   includedLanguages: ref(['EN']),
 }));
 vi.stubGlobal('useTranslationLanguages', () => ({ languages: ref(['EN']), dictionaryGlossLanguages: ref(['en']) }));
+const fetchSentences = vi.fn();
+const fetchStats = vi.fn();
 vi.stubGlobal('useSearchFetch', () => ({
-  fetchSentences: vi.fn().mockResolvedValue({ results: [], pagination: {} }),
-  fetchStats: vi.fn().mockResolvedValue({ media: [], categories: [] }),
+  fetchSentences,
+  fetchStats,
   cancelSentences: vi.fn(),
   cancelStats: vi.fn(),
 }));
@@ -131,11 +133,16 @@ async function render(value: Record<string, unknown> | null = media()) {
     global: {
       mocks: { $t: (k: string) => k },
       stubs: {
+        SearchBaseInputSegment: true,
         NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
         NuxtImg: true,
         UiBaseIcon: true,
         MediaHeader: true,
-        SearchContainer: true,
+        SearchContainer: {
+          name: 'SearchContainer',
+          props: ['initialSentenceOutcome', 'initialStatsOutcome'],
+          template: '<div />',
+        },
         CommonBaseModal: true,
       },
     },
@@ -153,6 +160,8 @@ const work = () => nodes().find((n) => n['@type'] === 'Movie' || n['@type'] === 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  fetchSentences.mockResolvedValue({ status: 'ok', data: { results: [], pagination: {} } });
+  fetchStats.mockResolvedValue({ status: 'ok', data: { media: [], categories: [] } });
   language.value = 'ENGLISH';
   route.query = {};
 });
@@ -254,5 +263,22 @@ describe('the episode filter in the URL', () => {
     const wrapper = await render();
 
     expect(wrapper.html()).toBeTruthy();
+  });
+});
+
+describe('primed media search errors', () => {
+  test('preserves a failed sentence outcome for hydration', async () => {
+    const outcome = { status: 'error', failure: { kind: 'unavailable' } };
+    fetchSentences.mockResolvedValueOnce(outcome);
+    const wrapper = await render();
+    expect(wrapper.findComponent({ name: 'SearchContainer' }).props('initialSentenceOutcome')).toEqual(outcome);
+  });
+
+  test('preserves a stats-only failure alongside successful sentence data', async () => {
+    fetchStats.mockResolvedValueOnce({ status: 'error', failure: { kind: 'unavailable' } });
+    const wrapper = await render();
+    const container = wrapper.findComponent({ name: 'SearchContainer' });
+    expect(container.props('initialSentenceOutcome').status).toBe('ok');
+    expect(container.props('initialStatsOutcome')).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
   });
 });
