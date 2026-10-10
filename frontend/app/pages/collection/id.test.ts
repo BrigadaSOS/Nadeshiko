@@ -182,6 +182,26 @@ describe('a fetch that simply fell over', () => {
   });
 });
 
+describe('a rate-limited collection', () => {
+  test.each([
+    ['rate-limited', 'request_rate'],
+    ['quota-exceeded', 'monthly_quota'],
+  ])('passes %s to the shared search UI rather than throwing a generic 500', async (kind, reason) => {
+    searchCollectionSegments.mockResolvedValueOnce({
+      error: { detail: 'private quota details' },
+      response: new Response(null, { status: 429, headers: { 'X-RateLimit-Reason': reason } }),
+    });
+
+    const wrapper = await render();
+    const outcome = wrapper.findComponent({ name: 'SearchContainer' }).props('initialSentenceOutcome');
+    expect(outcome).toEqual({ status: 'error', failure: { kind } });
+    expect(JSON.stringify(outcome)).not.toContain('private');
+    expect(createError).not.toHaveBeenCalled();
+    expect(navigateTo).not.toHaveBeenCalled();
+    expect(reportError).not.toHaveBeenCalled();
+  });
+});
+
 describe('primed collection statistics', () => {
   test('passes a safe stats failure through to the shared search UI', async () => {
     getCollectionStats.mockResolvedValueOnce({

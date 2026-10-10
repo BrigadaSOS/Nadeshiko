@@ -35,11 +35,14 @@ if (initialSentenceOutcome.value?.status === 'forbidden') {
   await navigateTo(localePath('/'), { redirectCode: 302, replace: true });
 } else if (initialSentenceOutcome.value?.status === 'error') {
   // Invalid/missing collection ids are lookup failures, not search expressions.
-  const statusCode = initialSentenceOutcome.value.failure.kind === 'not-found' ? 404 : 500;
-  throw createError({
-    statusCode,
-    statusMessage: statusCode === 404 ? 'Collection Not Found' : 'Failed to load collection',
-  });
+  const failureKind = initialSentenceOutcome.value.failure.kind;
+  if (failureKind === 'not-found' || failureKind === 'unavailable') {
+    const statusCode = failureKind === 'not-found' ? 404 : 500;
+    throw createError({
+      statusCode,
+      statusMessage: statusCode === 404 ? 'Collection Not Found' : 'Failed to load collection',
+    });
+  }
 }
 
 const { data: initialStatsOutcome } = await useAsyncData(

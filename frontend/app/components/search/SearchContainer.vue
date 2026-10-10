@@ -9,13 +9,7 @@ import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
 import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
 import { decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
-import {
-  EPISODE_HITS_LOADING,
-  SEARCH_PAGE_SIZE,
-  COLLECTION_PAGE_SIZE,
-  type FetchOutcome,
-  type SearchScope,
-} from '~/composables/useSearchFetch';
+import { EPISODE_HITS_LOADING, type FetchOutcome, type SearchScope } from '~/composables/useSearchFetch';
 import { canRetrySearchFailure, SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
 
@@ -426,8 +420,6 @@ const applyRouteQuery = (r: RouteLocationNormalized) => {
 };
 
 applyRouteQuery(route);
-
-const pageSize = computed(() => (props.collectionId ? COLLECTION_PAGE_SIZE : SEARCH_PAGE_SIZE));
 
 const searchScope = computed<SearchScope>(() => ({
   query: query.value,
@@ -852,12 +844,7 @@ const applyInitialSentences = (outcome: FetchOutcome<SearchResponse> | null | un
   sentenceData.value = outcome.status === 'ok' ? outcome.data : null;
   sentenceFailure.value = outcome.status === 'error' ? outcome.failure : null;
   cursor.value = sentenceData.value?.pagination?.cursor || null;
-  const results = sentenceData.value?.results ?? [];
-  endOfResults.value =
-    outcome.status === 'error' ||
-    !sentenceData.value?.pagination?.hasMore ||
-    !cursor.value ||
-    results.length < pageSize.value;
+  endOfResults.value = outcome.status === 'error' || !sentenceData.value?.pagination?.hasMore || !cursor.value;
   hasMoreResults.value = !endOfResults.value;
 };
 applyInitialSentences(props.initialSentenceOutcome);

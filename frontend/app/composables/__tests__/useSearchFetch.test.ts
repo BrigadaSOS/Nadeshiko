@@ -245,6 +245,28 @@ describe('fetchSentences', () => {
     expect(await pending).toEqual({ status: 'stale' });
   });
 
+  it.each(['getSegment', 'getMedia'] as const)('reports a thrown %s lookup as segment scope', async (lookup) => {
+    sdkMocks.getSegment.mockResolvedValueOnce({
+      data: { publicId: 'segment-1', mediaPublicId: 'media-1' },
+      response: new Response(),
+    });
+    sdkMocks[lookup].mockReset();
+    sdkMocks[lookup].mockRejectedValueOnce(new Error('private transport details'));
+
+    const fetcher = createSearchFetcher(fakeSdk);
+    // Permalink lookup takes precedence even if a collection is also present.
+    expect(await fetcher.fetchSentences(scope({ segmentPublicId: 'segment-1', collectionId: 'col-1' }))).toEqual({
+      status: 'error',
+      failure: { kind: 'unavailable' },
+    });
+    expect(reportErrorMock).toHaveBeenCalledWith(
+      'search:sentences-fetch-failed',
+      expect.any(Error),
+      expect.objectContaining({ 'search.scope': 'segment' }),
+    );
+    expect(reportErrorMock.mock.calls[0]![1].message).not.toContain('private');
+  });
+
   it('requests a full corpus page and passes the cursor through', async () => {
     sdkMocks.search.mockResolvedValue({ data: searchPayload('a'), response: new Response() });
 

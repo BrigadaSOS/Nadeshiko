@@ -450,7 +450,7 @@ export function createSearchFetcher(sdk: NadeshikoClient) {
       // A superseded request rejects because we aborted it, which is not a failure.
       if (stale()) return { status: 'stale' };
       reportError('search:sentences-fetch-failed', new Error('search sentences response could not be resolved'), {
-        'search.scope': scope.collectionId ? 'collection' : 'corpus',
+        'search.scope': scope.segmentPublicId ? 'segment' : scope.collectionId ? 'collection' : 'corpus',
       });
       return { status: 'error', failure: { kind: 'unavailable' } };
     }

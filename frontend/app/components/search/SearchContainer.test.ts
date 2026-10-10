@@ -324,6 +324,35 @@ describe('safe search error rendering', () => {
     expect(fetchSentences).not.toHaveBeenCalled();
   });
 
+  test.each([null, 'c1'])(
+    'paginates a short initial page in collection %s when metadata allows it',
+    async (collectionId) => {
+      const wrapper = render({
+        collectionId,
+        sentenceData: { results: [{ media: {}, segment: {} }], pagination: { cursor: 'next', hasMore: true } },
+      });
+      await flushPromises();
+
+      expect(wrapper.text()).not.toContain('searchContainer.endOfResults');
+      wrapper.findComponent({ name: 'CommonInfiniteScrollObserver' }).vm.$emit('intersect');
+      await flushPromises();
+
+      expect(fetchSentences).toHaveBeenCalledWith(expect.objectContaining({ collectionId }), { cursor: 'next' });
+    },
+  );
+
+  test.each([
+    { cursor: 'next', hasMore: false },
+    { cursor: null, hasMore: true },
+  ])('does not paginate without both hasMore and a cursor: %j', async (pagination) => {
+    const wrapper = render({ sentenceData: { results: [{ media: {}, segment: {} }], pagination } });
+    await flushPromises();
+
+    expect(wrapper.findComponent({ name: 'CommonInfiniteScrollObserver' }).exists()).toBe(false);
+    expect(wrapper.text()).toContain('searchContainer.endOfResults');
+    expect(fetchSentences).not.toHaveBeenCalled();
+  });
+
   test('keeps previously loaded cards when pagination fails', async () => {
     const results = Array.from({ length: 30 }, () => ({ media: {}, segment: {} }));
     const wrapper = render({ sentenceData: { results, pagination: { cursor: 'next', hasMore: true } } });
