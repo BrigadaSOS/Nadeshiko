@@ -9,8 +9,8 @@ inputs:
     description: "Tailscale federated identity audience"
     required: true
   ssh-private-key:
-    description: "OpenSSH private key paired with docker@nadeshiko authorized_keys"
-    required: true
+    description: "Deprecated compatibility input; Tailscale SSH uses the runner's tag:ci identity"
+    required: false
   host:
     description: "SSH host alias reachable over Tailscale"
     required: false
@@ -58,14 +58,11 @@ runs:
         SSH_HOST: ${{ inputs.host }}
         SSH_USER: ${{ inputs.ssh-user }}
         KNOWN_HOSTS_FILE: ${{ inputs.known-hosts-file }}
-        SSH_PRIVATE_KEY: ${{ inputs.ssh-private-key }}
       run: |
         set -euo pipefail
         mkdir -p ~/.ssh
         chmod 700 ~/.ssh
         touch ~/.ssh/known_hosts
-        printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/nadeshiko_deploy
-        chmod 600 ~/.ssh/nadeshiko_deploy
 
         # Pinned keys live in the repo so a hijacked Tailscale name cannot hand
         # a runner its own host key. Only fall back to trust-on-first-use when
@@ -88,7 +85,8 @@ runs:
           User ${SSH_USER}
           StrictHostKeyChecking ${strict}
           ProxyCommand tailscale nc %h %p
-          IdentityFile ~/.ssh/nadeshiko_deploy
+          IdentityAgent none
+          IdentityFile none
           IdentitiesOnly yes
         EOF
         chmod 600 ~/.ssh/config ~/.ssh/known_hosts
@@ -126,7 +124,7 @@ runs:
         tailscale status | grep -E "(^|\s)${SSH_HOST}(\s|$|\.)" \
           || echo "${SSH_HOST} is absent from this runner's netmap."
         echo "::endgroup::"
-        echo "::error title=SSH unreachable::Could not SSH to ${SSH_HOST} over Tailscale. Check Tailscale OIDC, the native sshd, and NADESHIKO_CI_SSH_KEY."
+        echo "::error title=SSH unreachable::Could not SSH to ${SSH_HOST} over Tailscale. Check Tailscale OIDC, the host's Tailscale SSH setting, and the tag:ci SSH policy."
         exit 1
 
     - name: Set up Ruby
