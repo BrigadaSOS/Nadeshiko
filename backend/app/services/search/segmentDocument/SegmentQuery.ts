@@ -273,9 +273,7 @@ export class SegmentQuery {
         { position: { order: 'desc' as estypes.SortOrder } },
       ];
     } else if (!sortMode || sortMode === 'relevance') {
-      if (isMatchAll && useLengthScoring) {
-        sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
-      } else if (isMatchAll) {
+      if (isMatchAll && !useLengthScoring) {
         sort = [{ characterCount: { order: 'asc', unmapped_type: 'short' } }];
       } else {
         sort = [{ _score: { order: 'desc' } }, { characterCount: { order: 'asc', unmapped_type: 'short' } }];
