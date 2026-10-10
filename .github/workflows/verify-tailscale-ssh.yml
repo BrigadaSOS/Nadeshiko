@@ -29,6 +29,7 @@ jobs:
           require 'sshkit'
           require 'sshkit/dsl'
           require 'net/ssh/proxy/command'
+          include SSHKit::DSL
           SSHKit::Backend::Netssh.configure do |ssh|
             ssh.ssh_options = {
               auth_methods: ['none'], keys: [], use_agent: false,
