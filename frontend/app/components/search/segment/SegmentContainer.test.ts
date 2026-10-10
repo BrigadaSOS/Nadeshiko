@@ -5,6 +5,7 @@ import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { formatMs } from '~/utils/misc';
 import { youtubeWatchUrl } from '~/utils/media';
+import { PATREON_URL } from '#shared/utils/socialLinks';
 
 /**
  * The result cards: the list a search actually produces.
@@ -95,9 +96,9 @@ function segment(publicId: string, over: Record<string, unknown> = {}) {
 
 const mounted: { unmount: () => void }[] = [];
 
-function render(results: unknown[]) {
+function render(results: unknown[], props: Record<string, unknown> = {}) {
   const wrapper = mount(SegmentContainer, {
-    props: { searchData: { results } as never, isLoading: false },
+    props: { searchData: { results } as never, isLoading: false, ...props },
     global: {
       // Template auto-imports go in `mocks`, NOT `stubGlobal`: the compiled
       // render resolves them as `_ctx.formatMs`, through the component
@@ -105,6 +106,7 @@ function render(results: unknown[]) {
       // render-time TypeError. Real implementations rather than fakes.
       mocks: { $t: (k: string) => k, formatMs, youtubeWatchUrl },
       stubs: {
+        'i18n-t': { props: ['keypath'], template: '<span>{{ keypath }}<slot name="link" /></span>' },
         CommonBaseModal: { props: ['open'], template: '<div v-if="open"><slot /></div>' },
         UiBaseIcon: true,
         NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
@@ -340,5 +342,55 @@ describe('the spoiler reveal', () => {
     await revealTargets(wrapper)[0]!.trigger('click');
 
     expect(covered(wrapper)).toEqual([false]);
+  });
+});
+
+describe('the existing no-results view', () => {
+  test('keeps the original view and copy exactly for missing content', () => {
+    const original = render([]);
+    const missing = render([], { failure: { kind: 'not-found' } });
+    const originalView = original.get('section').element.cloneNode(true) as HTMLElement;
+    const missingView = missing.get('section').element.cloneNode(true) as HTMLElement;
+    missingView.removeAttribute('role');
+    missingView.removeAttribute('data-testid');
+    expect(missingView.outerHTML).toBe(originalView.outerHTML);
+    expect(missing.get('h1').text()).toBe('searchpage.main.labels.noresults');
+    expect(missing.find('a[href="https://www.immersionkit.com"]').exists()).toBe(true);
+    expect(missing.find(`a[href="${PATREON_URL}"]`).exists()).toBe(true);
+  });
+
+  test.each([
+    ['invalid-request', 'invalidRequest'],
+    ['rate-limited', 'rateLimited'],
+    ['quota-exceeded', 'quotaExceeded'],
+    ['unavailable', 'unavailable'],
+  ])('uses the new %s text without dropping Haruhi or Patreon', (kind, key) => {
+    const wrapper = render([], { failure: { kind } });
+    const view = wrapper.get('[data-testid="search-failure-notice"]');
+    expect(view.attributes('class')).toBe('w-full py-10');
+    expect(view.get('img').attributes('src')).toBe('/assets/no-results.gif');
+    expect(view.get('img').element.parentElement?.className).toBe(
+      'flex flex-col items-center max-w-lg mx-auto text-center',
+    );
+    expect(view.get('h1').attributes('class')).toBe('text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl');
+    expect(view.get('h1').text()).toBe(`searchErrors.${key}.title`);
+    expect(view.get('p').text()).toBe(`searchErrors.${key}.message`);
+    expect(view.find(`a[href="${PATREON_URL}"]`).exists()).toBe(true);
+    expect(view.find('h2').exists()).toBe(false);
+  });
+
+  test('keeps the existing failure view while retrying, rather than showing a loading skeleton', () => {
+    const wrapper = render([], { failure: { kind: 'unavailable' }, isLoading: true });
+    expect(wrapper.get('[data-testid="search-failure-notice"] img').attributes('src')).toBe('/assets/no-results.gif');
+    expect(wrapper.find(`a[href="${PATREON_URL}"]`).exists()).toBe(true);
+  });
+
+  test('does not render raw API details in the existing view', () => {
+    const wrapper = render([], {
+      failure: { kind: 'invalid-request', detail: 'SQL secret-token <script>alert(1)</script>' },
+    });
+    expect(wrapper.text()).not.toContain('SQL');
+    expect(wrapper.text()).not.toContain('secret-token');
+    expect(wrapper.find('script').exists()).toBe(false);
   });
 });

@@ -126,7 +126,7 @@ const fetchSentenceData = async () => {
   const outcome = await fetchSentences(searchScope.value);
   // Slimmed before it is handed back, because what this returns IS the hydration
   // payload: see `stripUnreadTokenFields`.
-  return outcome.status === 'ok' ? stripUnreadTokenFields(outcome.data) : null;
+  return outcome.status === 'ok' ? { ...outcome, data: stripUnreadTokenFields(outcome.data) } : outcome;
 };
 
 const fetchStatsData = async () => {
@@ -135,12 +135,12 @@ const fetchStatsData = async () => {
     // Per-episode counts only for a title the URL actually named. A word search
     // names none, so all 492 of the pairs it was carrying go; `?media=` keeps
     // the one the meta description and the open drawer both read.
-    return stripEpisodeHits(outcome.data, mediaQueryParam.value);
+    return { ...outcome, data: stripEpisodeHits(outcome.data, mediaQueryParam.value) };
   }
   // Failures are reported inside `fetchStats`, which still has the response and
   // can tell a 403 apart from a real error. Re-reporting the bare outcome here
   // only produced a stackless duplicate of something already captured.
-  return null;
+  return outcome;
 };
 
 // Keyed on the *resolved* category rather than the raw `?category=`: with a
@@ -157,14 +157,14 @@ const sentenceCacheKey = computed(() => {
   ]
     .filter(Boolean)
     .join('-');
-  return `search-sentences-${params || 'default'}`;
+  return `search-sentence-outcomes-${params || 'default'}`;
 });
 
 const statsCacheKey = computed(() => {
   const params = [searchQuery.value, searchScope.value.category, mediaQueryParam.value, episodeQueryParam.value]
     .filter(Boolean)
     .join('-');
-  return `search-stats-${params || 'default'}`;
+  return `search-stats-outcomes-${params || 'default'}`;
 });
 
 const sdk = useNadeshikoSdk();
@@ -201,7 +201,7 @@ const rendersForCrawler = useRequestTraffic() === 'bot';
  */
 const familiarMediaCacheKey = computed(() => `familiar-media-${userStore().userEmail ?? 'anonymous'}`);
 
-const [{ data: initialSentenceData }, { data: initialStatsData }, , { data: scopedMedia }] = await Promise.all([
+const [{ data: initialSentenceOutcome }, { data: initialStatsOutcome }, , { data: scopedMedia }] = await Promise.all([
   useAsyncData(sentenceCacheKey.value, () => fetchSentenceData(), {
     server: true,
     lazy: false,
@@ -244,6 +244,16 @@ const [{ data: initialSentenceData }, { data: initialStatsData }, , { data: scop
     { server: true, lazy: false, watch: [mediaQueryParam], default: () => null as Media | null },
   ),
 ]);
+
+const initialSentenceData = computed(() =>
+  initialSentenceOutcome.value?.status === 'ok' ? initialSentenceOutcome.value.data : null,
+);
+const initialStatsData = computed(() =>
+  initialStatsOutcome.value?.status === 'ok' ? initialStatsOutcome.value.data : null,
+);
+if (initialSentenceOutcome.value?.status === 'forbidden' || initialStatsOutcome.value?.status === 'forbidden') {
+  await navigateTo(localePath('/'), { redirectCode: 302 });
+}
 
 /**
  * `/search?media=<publicId>` with nothing being searched is a title browse, and
@@ -481,8 +491,8 @@ useSchemaOrg(schemaOrgNodes);
                             <SearchBaseInputSegment />
                         </div>
                         <SearchContainer
-                            :initial-sentence-data="initialSentenceData"
-                            :initial-stats-data="initialStatsData"
+                            :initial-sentence-outcome="initialSentenceOutcome"
+                            :initial-stats-outcome="initialStatsOutcome"
                             :media-display-name="scopedMedia ? mediaName(scopedMedia) : null">
                             <!-- Same slot as the title page, so leaving a
                                  narrowed search does not move the tabs either.

@@ -9,7 +9,7 @@ import { defineComponent, reactive, ref, unref } from 'vue';
  * `noindex` on a thin page is right; `noindex` on a page whose fetch merely
  * failed is a backend blip de-indexing good pages wholesale, which is far more
  * expensive than briefly indexing a thin one. The two arrive here looking almost
- * identical -- no results either way -- and only `data == null` separates them.
+ * identical -- no results either way -- and only an explicit outcome separates them.
  *
  * The breadcrumb has the same shape of decision: a media-scoped page sits under
  * the catalogue and a word page under search, and emitting the trail that does
@@ -24,14 +24,17 @@ const route = reactive({
   query: {} as Record<string, unknown>,
   fullPath: '/en/search/cat',
 });
-const sentenceData = ref<Record<string, unknown> | null>(null);
+const sentenceOutcome = ref<Record<string, unknown> | null>(null);
+const fetchStats = vi.fn();
+const navigateTo = vi.fn();
 
 vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
 vi.stubGlobal('useRoute', () => route);
 vi.stubGlobal('useRouter', () => ({ push: vi.fn(), replace: vi.fn() }));
 vi.stubGlobal('useLocalePath', () => (p: string) => `/en${p}`);
 vi.stubGlobal('useRequestURL', () => new URL('https://nadeshiko.test/en/search/cat'));
-vi.stubGlobal('useRequestTraffic', () => ({ isCrawler: false }));
+vi.stubGlobal('useRequestTraffic', () => 'reader');
+vi.stubGlobal('navigateTo', navigateTo);
 vi.stubGlobal('useRobotsRule', (v: unknown) => capturedRobots.push(v));
 vi.stubGlobal('useHead', vi.fn());
 vi.stubGlobal('useSeoMeta', vi.fn());
@@ -78,8 +81,8 @@ vi.stubGlobal('useTranslationVisibility', () => ({
 }));
 vi.stubGlobal('useTranslationLanguages', () => ({ languages: ref(['EN']), dictionaryGlossLanguages: ref(['en']) }));
 vi.stubGlobal('useSearchFetch', () => ({
-  fetchSentences: vi.fn().mockResolvedValue({ results: [], pagination: {} }),
-  fetchStats: vi.fn().mockResolvedValue({ media: [], categories: [] }),
+  fetchSentences: vi.fn().mockImplementation(async () => sentenceOutcome.value),
+  fetchStats,
   cancelSentences: vi.fn(),
   cancelStats: vi.fn(),
 }));
@@ -97,19 +100,8 @@ vi.stubGlobal(
   vi.fn((v: Record<string, unknown>) => Object.assign(new Error('x'), v)),
 );
 
-/** Only the SENTENCE fetch varies per test; the rest resolve empty. */
-let asyncCall = 0;
 vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown>) => {
-  const index = asyncCall++;
-  const data = ref<unknown>(null);
-  if (index === 0) data.value = sentenceData.value;
-  else {
-    try {
-      data.value = await handler();
-    } catch {
-      data.value = null;
-    }
-  }
+  const data = ref(await handler());
   return { data, error: ref(null), refresh: vi.fn(), pending: ref(false) };
 });
 
@@ -125,11 +117,13 @@ async function render(
   sentences: Record<string, unknown> | null,
   path = '/en/search/cat',
   query: Record<string, unknown> = {},
+  outcomeOverride?: Record<string, unknown>,
 ) {
   capturedRobots.length = 0;
   capturedSchema.length = 0;
-  asyncCall = 0;
-  sentenceData.value = sentences;
+  sentenceOutcome.value =
+    outcomeOverride ??
+    (sentences === null ? { status: 'error', failure: { kind: 'unavailable' } } : { status: 'ok', data: sentences });
   route.path = path;
   route.fullPath = path;
   route.query = query;
@@ -142,7 +136,16 @@ async function render(
   const wrapper = mount(Host, {
     global: {
       mocks: { $t: (k: string) => k },
-      stubs: { SearchContainer: true, NuxtLink: { props: ['to'], template: '<a><slot /></a>' }, UiBaseIcon: true },
+      stubs: {
+        SearchBaseInputSegment: true,
+        SearchContainer: {
+          name: 'SearchContainer',
+          props: ['initialSentenceOutcome', 'initialStatsOutcome'],
+          template: '<div />',
+        },
+        NuxtLink: { props: ['to'], template: '<a><slot /></a>' },
+        UiBaseIcon: true,
+      },
     },
   });
   mounted.push(wrapper);
@@ -166,6 +169,7 @@ const hits = (n: number) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  fetchStats.mockResolvedValue({ status: 'ok', data: { media: [], categories: [] } });
 });
 
 afterEach(() => {
@@ -188,7 +192,7 @@ describe('what the page tells crawlers', () => {
   });
 
   test('but a FAILED fetch is NOT, because a blip must not de-index good pages', async () => {
-    // The expensive mistake: `null` means the fetch fell over, and treating it
+    // The expensive mistake: an error outcome means the fetch fell over, and treating it
     // like an empty result de-indexes wholesale on a backend wobble.
     //
     // The rule has to be asserted as CALLED with nothing, not merely absent: a
@@ -242,5 +246,26 @@ describe('the breadcrumb trail', () => {
     await render(hits(0), '/en/search');
 
     expect(crumbs().map((c) => c.name)).toEqual(['navbar.buttons.home', 'seo.search.title']);
+  });
+});
+
+describe('primed search error outcomes', () => {
+  test('preserves an invalid request for hydration instead of flattening it to null', async () => {
+    const outcome = { status: 'error', failure: { kind: 'invalid-request' } };
+    const wrapper = await render(null, '/en/search/cat', {}, outcome);
+    expect(wrapper.findComponent({ name: 'SearchContainer' }).props('initialSentenceOutcome')).toEqual(outcome);
+  });
+
+  test('preserves a stats-only failure separately from successful sentence data', async () => {
+    fetchStats.mockResolvedValueOnce({ status: 'error', failure: { kind: 'unavailable' } });
+    const wrapper = await render(hits(3));
+    const container = wrapper.findComponent({ name: 'SearchContainer' });
+    expect(container.props('initialSentenceOutcome').status).toBe('ok');
+    expect(container.props('initialStatsOutcome')).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
+  });
+
+  test('redirects a primed access denial from page setup', async () => {
+    await render(null, '/en/search/cat', {}, { status: 'forbidden' });
+    expect(navigateTo).toHaveBeenCalledWith('/en/', { redirectCode: 302 });
   });
 });
