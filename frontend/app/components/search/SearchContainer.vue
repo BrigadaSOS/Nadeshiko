@@ -8,7 +8,7 @@ import { usePlayerStore } from '~/stores/player';
 import { userStore } from '~/stores/auth';
 import { CATEGORY_API_MAPPING, CATEGORY_LABEL_KEYS, CATEGORY_SLUGS, discountHiddenMedia } from '~/utils/categories';
 import { buildHiddenBreakdown, countHiddenResults, type HiddenBreakdownRow } from '~/utils/hiddenResults';
-import { decodeSearchQuery, splitLocalePrefix } from '~/utils/routes';
+import { decodeSearchQuery, readSearchRouteFilters, splitLocalePrefix } from '~/utils/routes';
 import { EPISODE_HITS_LOADING, type FetchOutcome, type SearchScope } from '~/composables/useSearchFetch';
 import { canRetrySearchFailure, SEARCH_FAILURE_MESSAGES, type SearchFailure } from '~/utils/searchFailure';
 import type { SearchResponse, SearchStatsResponse, ResolvedMediaStats, ResolvedCategoryCount } from '~/types/search';
@@ -381,8 +381,7 @@ const implicitCategorySlug = (r: RouteLocationNormalized): string => {
  * `all`, which is what the All tab writes once a non-`all` default exists, since
  * clearing the parameter would just hand the tab back to that default.
  */
-const resolveCategorySlug = (r: RouteLocationNormalized): string => {
-  const categoryParam = getStringQueryValue(r.query?.category);
+const resolveCategorySlug = (r: RouteLocationNormalized, categoryParam: string | null): string => {
   if (categoryParam === null) {
     return implicitCategorySlug(r);
   }
@@ -391,31 +390,17 @@ const resolveCategorySlug = (r: RouteLocationNormalized): string => {
 
 const applyRouteQuery = (r: RouteLocationNormalized) => {
   query.value = getSearchQuery(r);
-  const queryParams = r.query || {};
-  category.value = resolveCategorySlug(r);
+  const filters = readSearchRouteFilters(r.query || {});
+  category.value = resolveCategorySlug(r, filters.category);
   // The prop wins where it is set: on `/media/<slug>` the title is the route, so
   // it must survive every query patch the filters make. A `?media=` on such a URL
   // would be a second, contradicting answer to which title this is -- the path is
   // the one that is canonical and indexed.
-  media.value = props.mediaPublicId ?? getStringQueryValue(queryParams.media ?? queryParams.mediaId);
-  sort.value = getStringQueryValue(queryParams.sort);
-  uuid.value = getStringQueryValue(queryParams.uuid);
-
-  // Only ever written alongside `sort=random`, and dropped with it. A negative
-  // or non-numeric one is treated as absent rather than passed on: the API takes
-  // non-negative integers, and a hand-edited URL should fall back to the
-  // backend's own seed instead of failing the request.
-  const seedParam = getStringQueryValue(queryParams.seed);
-  const parsedSeed = seedParam === null ? Number.NaN : Number(seedParam);
-  randomSeed.value = Number.isInteger(parsedSeed) && parsedSeed >= 0 ? parsedSeed : null;
-
-  const episodeParam = getStringQueryValue(queryParams.episode ?? queryParams.episodeId);
-  if (episodeParam === null) {
-    episode.value = null;
-  } else {
-    const parsedEpisode = Number(episodeParam);
-    episode.value = Number.isNaN(parsedEpisode) ? null : parsedEpisode;
-  }
+  media.value = props.mediaPublicId ?? filters.mediaPublicId;
+  sort.value = filters.sort;
+  uuid.value = filters.segmentPublicId;
+  randomSeed.value = filters.randomSeed;
+  episode.value = filters.episode;
 };
 
 applyRouteQuery(route);
