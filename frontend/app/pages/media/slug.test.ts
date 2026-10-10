@@ -2,6 +2,14 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref, unref } from 'vue';
+import { createHead, renderSSRHead } from 'unhead/server';
+import {
+  mediaMetaCases,
+  mediaMetaI18n,
+  formatMediaMetaNumber,
+  expectedMediaMeta,
+  expectedFallbackHead,
+} from '../../../test/media-meta-fixtures';
 
 /**
  * A title's own page, whose real output is the ENTITY it declares.
@@ -32,7 +40,8 @@ vi.stubGlobal('useRouter', () => ({ push: vi.fn(), replace: vi.fn() }));
 vi.stubGlobal('useLocalePath', () => (p: unknown) => (typeof p === 'string' ? p : JSON.stringify(p)));
 vi.stubGlobal('useRequestURL', () => new URL('https://nadeshiko.test/media/bocchi'));
 vi.stubGlobal('useFormat', () => ({ formatNumber: (n: number) => String(n), formatDate: (d: unknown) => String(d) }));
-vi.stubGlobal('useHead', vi.fn());
+const useHead = vi.fn();
+vi.stubGlobal('useHead', useHead);
 vi.stubGlobal('useSchemaOrg', (v: unknown) => capturedSchema.push(v));
 vi.stubGlobal('useSeoMeta', vi.fn());
 vi.stubGlobal('defineWebPage', (v: Record<string, unknown>) => ({ '@type': 'WebPage', ...v }));
@@ -160,6 +169,8 @@ const work = () => nodes().find((n) => n['@type'] === 'Movie' || n['@type'] === 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, locale: ref('en') }));
+  vi.stubGlobal('useFormat', () => ({ formatNumber: (n: number) => String(n), formatDate: (d: unknown) => String(d) }));
   fetchSentences.mockResolvedValue({ status: 'ok', data: { results: [], pagination: {} } });
   fetchStats.mockResolvedValue({ status: 'ok', data: { media: [], categories: [] } });
   language.value = 'ENGLISH';
@@ -280,5 +291,106 @@ describe('primed media search errors', () => {
     const container = wrapper.findComponent({ name: 'SearchContainer' });
     expect(container.props('initialSentenceOutcome').status).toBe('ok');
     expect(container.props('initialStatsOutcome')).toEqual({ status: 'error', failure: { kind: 'unavailable' } });
+  });
+});
+
+describe('media browse metadata', () => {
+  test.each(mediaMetaCases)('$label', async ({ stats, episode, bannerUrl, locale, description }) => {
+    mediaMetaI18n.locale.value = locale ?? 'en';
+    vi.stubGlobal('useI18n', () => mediaMetaI18n);
+    vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+    fetchStats.mockResolvedValueOnce({
+      status: 'ok',
+      data: {
+        media: [
+          { mediaPublicId: 'other', matchCount: 999999, episodeHits: [{ episode: 3, hitCount: 999999 }] },
+          ...(stats ? [{ mediaPublicId: 'm1', ...stats }] : []),
+        ],
+        categories: [],
+      },
+    });
+    route.query = episode !== undefined ? { episode } : {};
+    await render(media({ nameEn: 'Bocchi', bannerUrl, coverUrl: 'https://images.test/cover.webp' }));
+    expect(unref(useHead.mock.calls[0]?.[0])).toEqual(expectedMediaMeta(description, bannerUrl, locale));
+  });
+});
+
+test('renders the complete fallback head with the site title template', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: { media: [{ mediaPublicId: 'm1', matchCount: 1234 }], categories: [] },
+  });
+  await render(media({ nameEn: 'Bocchi' }));
+  const head = createHead();
+  head.push({ titleTemplate: '%s | Nadeshiko' });
+  head.push(unref(useHead.mock.calls[0]?.[0]));
+  expect((await renderSSRHead(head)).headTags).toBe(expectedFallbackHead);
+});
+
+test('recomputes media metadata when episode and locale change', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: {
+      media: [
+        {
+          mediaPublicId: 'm1',
+          matchCount: 1234,
+          episodeHits: [
+            { episode: 1, hitCount: 1200 },
+            { episode: 3, hitCount: 34 },
+          ],
+        },
+      ],
+      categories: [],
+    },
+  });
+  await render(media({ nameEn: 'Bocchi' }));
+  const metadata = useHead.mock.calls[0]?.[0];
+  expect(unref(metadata)).toEqual(
+    expectedMediaMeta('1,234 Japanese sentences from Bocchi across 2 episodes with English translations.'),
+  );
+  route.query.episode = '3';
+  mediaMetaI18n.locale.value = 'es';
+  expect(unref(metadata)).toEqual(
+    expectedMediaMeta(
+      'Frases en japonés del episodio 3 de «Bocchi»: 34. Consulta sus traducciones al español.',
+      undefined,
+      'es',
+    ),
+  );
+});
+
+test('retains this caller’s non-finite match-count fallback', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
+  fetchStats.mockResolvedValueOnce({
+    status: 'ok',
+    data: { media: [{ mediaPublicId: 'm1', matchCount: Number.NaN }], categories: [] },
+  });
+  await render(media({ nameEn: 'Bocchi' }));
+  expect(unref(useHead.mock.calls[0]?.[0])).toEqual(
+    expectedMediaMeta(' Japanese sentences from Bocchi with English translations.'),
+  );
+});
+
+test('recomputes the title and descriptions when the preferred media-name language changes', async () => {
+  mediaMetaI18n.locale.value = 'en';
+  vi.stubGlobal('useI18n', () => mediaMetaI18n);
+  await render(media({ nameEn: 'Bocchi' }));
+  const metadata = useHead.mock.calls[0]?.[0];
+  expect(unref(metadata)).toEqual(expectedMediaMeta('0 Japanese sentences from Bocchi with English translations.'));
+  language.value = 'JAPANESE';
+  const updated = unref(metadata);
+  expect({ title: updated.title, description: updated.meta[0].content, social: updated.meta[1].content }).toEqual({
+    title: 'ぼっち・ざ・ろっく: Japanese subtitles and example sentences',
+    description: '0 Japanese sentences from ぼっち・ざ・ろっく with English translations.',
+    social: 'ぼっち・ざ・ろっく | Nadeshiko',
   });
 });
