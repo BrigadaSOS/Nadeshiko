@@ -106,7 +106,6 @@ const searchScope = computed<SearchScope>(() => ({
   randomSeed: null,
   segmentPublicId: null,
   collectionId: null,
-  listMediaIds: null,
   contentRating: contentRating.value,
   languages: includedLanguages.value,
   hiddenMediaExclude: hiddenMediaExcludeFilter.value,
