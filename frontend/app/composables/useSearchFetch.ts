@@ -44,7 +44,6 @@ export type SearchScope = {
   /** `?uuid=` permalink: resolves that one segment and ignores every other filter. */
   segmentPublicId: string | null;
   collectionId: string | null;
-  listMediaIds: number[] | null;
   contentRating: ContentRating[];
   languages: SearchFilters['languages'];
   hiddenMediaExclude: MediaFilterItem[];
@@ -145,9 +144,6 @@ const mediaInclude = (scope: SearchScope, withSelectedMedia: boolean): MediaFilt
         ? { mediaPublicId: scope.mediaPublicId, episodes: [scope.episode] }
         : { mediaPublicId: scope.mediaPublicId },
     );
-  }
-  for (const id of scope.listMediaIds ?? []) {
-    include.push({ mediaPublicId: String(id) });
   }
 
   return include;

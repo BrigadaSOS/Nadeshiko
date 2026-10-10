@@ -41,7 +41,6 @@ const scope = (overrides: Partial<SearchScope> = {}): SearchScope => ({
   randomSeed: null,
   segmentPublicId: null,
   collectionId: null,
-  listMediaIds: null,
   contentRating: ['SAFE'],
   languages: undefined,
   hiddenMediaExclude: [],

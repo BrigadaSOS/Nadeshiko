@@ -22,7 +22,6 @@ const searchRecents = useSearchRecents();
 const props = defineProps<{
   initialSentenceOutcome?: FetchOutcome<SearchResponse> | null;
   initialStatsOutcome?: FetchOutcome<SearchStatsResponse> | null;
-  listMediaIds?: number[] | null;
   collectionId?: string | null;
   collectionName?: string | null;
   /** Resolved title name for a `?media=` filter that has no matching rows. */
@@ -430,7 +429,6 @@ const searchScope = computed<SearchScope>(() => ({
   randomSeed: randomSeed.value,
   segmentPublicId: uuid.value,
   collectionId: props.collectionId ?? null,
-  listMediaIds: props.listMediaIds ?? null,
   contentRating: contentRating.value,
   languages: includedLanguages.value,
   // Both lists come off the request while the reader is looking past them, so
