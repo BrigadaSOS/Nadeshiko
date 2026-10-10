@@ -291,6 +291,25 @@ Open an issue on [GitHub](https://github.com/BrigadaSOS/Nadeshiko/issues). For q
 
 If you see a bug and want to provide a fix for it, you are free to just open a pull request directly. But for features or improvements, we encourage to first add an Issue or ask in the Discord server so we can align on the solution before working on any code changes.
 
+## Automated code review
+
+CodeRabbit is configured in [`.coderabbit.yaml`](.coderabbit.yaml). It reviews
+non-draft pull requests targeting `main` and `production`, and re-reviews new
+commits. Keep configuration changes focused on actionable findings and existing
+repository conventions; CI remains responsible for lint, types, tests, coverage,
+and generated-code drift.
+
+Generated output is excluded from review, but source OpenAPI specs, generators,
+handwritten SDK helpers, tests, and translations are not. Docstring coverage and
+docstring-generation prompts are disabled: explain non-obvious behavior without
+adding comments solely to satisfy a percentage. Automatic bot approval is disabled.
+
+The YAML includes the [official schema](https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json)
+for editor validation. See the [configuration reference](https://docs.coderabbit.ai/reference/configuration)
+for available settings. CodeRabbit uses the config from the branch under review;
+comment `@coderabbitai configuration` on a pull request to inspect the effective
+settings and their sources. Organization-level global overrides can take precedence.
+
 ## Submitting changes
 
 1. Fork the repository and create a branch from `main`.
