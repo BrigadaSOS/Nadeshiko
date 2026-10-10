@@ -123,6 +123,11 @@ interface ScriptBoostConfig {
 
 export type QueryParserMode = 'strict' | 'safe';
 
+const TRANSLATION_FIELDS = [
+  ['ES', 'textEs', 'textEs.exact', 'spanish'],
+  ['EN', 'textEn', 'textEn.exact', 'english'],
+] as const;
+
 /**
  * Score multiplier for segments from a title the reader stars or already studies.
  *
@@ -360,43 +365,25 @@ export class SegmentQuery {
       );
     }
 
-    if (exactMatch) {
-      if (!excludeSet.has('ES')) {
-        languageQueries.push({ multi_match: { query, fields: [`textEs.exact^${boosts.spanish}`] } });
-      }
-      if (!excludeSet.has('EN')) {
-        languageQueries.push({ multi_match: { query, fields: [`textEn.exact^${boosts.english}`] } });
-      }
-    } else {
-      if (!excludeSet.has('ES')) {
-        const esBaseQuery = SegmentQuery.buildStringQuery({
+    for (const [language, field, exactField, boostKey] of TRANSLATION_FIELDS) {
+      if (excludeSet.has(language)) continue;
+
+      const boost = boosts[boostKey];
+      if (exactMatch) {
+        languageQueries.push({ multi_match: { query, fields: [`${exactField}^${boost}`] } });
+      } else {
+        const baseQuery = SegmentQuery.buildStringQuery({
           query,
           parserMode,
           analyzeWildcard: true,
-          fields: [`textEs^${boosts.spanish}`, 'textEs.exact^1'],
-          defaultOperator: 'AND' as estypes.QueryDslOperator,
+          fields: [`${field}^${boost}`, `${exactField}^1`],
+          defaultOperator: 'AND',
           quoteFieldSuffix: '.exact',
         });
         languageQueries.push({
           bool: {
-            must: [esBaseQuery],
-            should: [{ match_phrase: { 'textEs.exact': { query, boost: 10 } } }],
-          },
-        });
-      }
-      if (!excludeSet.has('EN')) {
-        const enBaseQuery = SegmentQuery.buildStringQuery({
-          query,
-          parserMode,
-          analyzeWildcard: true,
-          fields: [`textEn^${boosts.english}`, 'textEn.exact^1'],
-          defaultOperator: 'AND' as estypes.QueryDslOperator,
-          quoteFieldSuffix: '.exact',
-        });
-        languageQueries.push({
-          bool: {
-            must: [enBaseQuery],
-            should: [{ match_phrase: { 'textEn.exact': { query, boost: 10 } } }],
+            must: [baseQuery],
+            should: [{ match_phrase: { [exactField]: { query, boost: 10 } } }],
           },
         });
       }
