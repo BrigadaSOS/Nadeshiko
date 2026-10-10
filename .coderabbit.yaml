@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+# Reference: https://docs.coderabbit.ai/reference/configuration
+language: en-US
+tone_instructions: >-
+  Be concise and direct. Prioritize actionable correctness, security, and
+  reliability findings. Explain the concrete failure scenario; avoid style
+  preferences already handled by repository tooling.
+
+reviews:
+  profile: chill
+  # Reviews inform maintainers; the bot does not approve on their behalf.
+  request_changes_workflow: false
+  high_level_summary_in_walkthrough: true
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  in_progress_fortune: false
+  poem: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    # The default branch is reviewed automatically; production also takes hotfixes.
+    base_branches:
+      - "^production$"
+
+  # Review source specs and generators, not their mechanically generated output.
+  # Do not exclude tests, translations, migrations, workflows, or handwritten SDK code.
+  path_filters:
+    - "!backend/generated/**"
+    - "!backend/docs/generated/**"
+    - "!frontend/server/utils/generated/**"
+    - "!frontend/public/docs/**"
+    - "!packages/nadeshiko-sdk/generated/**"
+
+  path_instructions:
+    - path: "frontend/**"
+      instructions: >-
+        This is Nuxt 4 with Vue 3. Check SSR/hydration parity, safe serialized
+        payloads, stale or aborted requests, and access-denial redirects.
+        User-visible copy uses i18n keys with parity across all seven locales;
+        never render raw API error details. Preserve loaded results on partial
+        failures and honor API pagination metadata rather than result counts.
+    - path: "backend/**"
+      instructions: >-
+        Check authentication and authorization, input validation, search filter
+        semantics, database migration safety, and bounded resource use. API
+        contracts originate in backend/docs/openapi; contract changes must
+        regenerate the server types, route metadata, and workspace SDK through
+        the documented generators. Do not suggest editing generated output.
+    - path: "packages/**"
+      instructions: >-
+        These workspace packages are consumed by other applications in this
+        monorepo. Check changes against callers in frontend, backend, and discord.
+        The externally published TypeScript SDK lives in a separate repository;
+        changes to handwritten SDK helpers may need a corresponding change there.
+    - path: "**/*.{test,spec}.ts"
+      instructions: >-
+        Unit and component tests use Vitest; frontend E2E tests use Playwright.
+        Prefer regression tests that reproduce user-visible failures, including
+        error and race paths. Component tests opt into happy-dom as needed.
+        Read current vitest.config.ts files for coverage gates; do not suggest
+        weakening assertions or lowering thresholds to make a check pass.
+
+  pre_merge_checks:
+    # Comments should explain non-obvious behavior, not meet an arbitrary percentage.
+    docstrings:
+      mode: "off"
+  finishing_touches:
+    docstrings:
+      enabled: false
+  tools:
+    # Biome is the repository's formatter/linter; there is no ESLint configuration.
+    eslint:
+      enabled: false
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - CONTRIBUTING.md
+      - "**/AGENTS.md"
+      - "**/CLAUDE.md"
+      - "**/REVIEW.md"
