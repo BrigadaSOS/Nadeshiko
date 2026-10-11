@@ -18,13 +18,8 @@ function inferApiKeyPrefix(apiKey: string): string | null {
   return apiKey.slice(0, separatorIndex + 1);
 }
 
-/**
- * Seed function for all environments.
- * Creates an admin user and a deterministic Better Auth API key.
- *
- * Safe to run in production because credentials come from environment variables.
- * Idempotent: updates existing records when needed.
- */
+/** Seeds an admin and deterministic Better Auth API key; environment credentials make it safe to rerun, and existing
+ * records are updated idempotently. */
 export async function seed() {
   const environment = getAppEnvironment(config.ENVIRONMENT);
   logger.info({ environment }, 'Running seeds for environment');
@@ -129,21 +124,10 @@ export async function seed() {
   logger.info('Seed completed successfully');
 }
 
-/**
- * One account per Playwright worker.
- *
- * The browser suite mutates preferences, collections, API keys and activity.
- * Sharing one account forced CI down to one worker and made the suite take more
- * than twenty minutes. These users all use the same deployment-only secret,
- * but have independent server-side state so the suite can run concurrently.
- * Without E2E_RUN_ID, keep index zero at the historical address for production
- * smoke and local development. Staging gives every workflow attempt a run id.
- */
-// Eight accounts back the parallel workers; index eight is a dedicated
-// cross-account reader, index nine is a staging-only admin, and index ten is a
-// deletion account for the destructive journey. None is borrowed
-// from an active worker, so authorization tests cannot revoke or mutate another
-// spec's session. Run-scoped users are removed by the cleanup-e2e CI job.
+/** Use one account per Playwright worker so mutable browser state can run concurrently; preserve account zero for
+ * historical smoke/local use and keep dedicated cross-account/admin/deletion accounts isolated. */
+// Keep dedicated cross-account/admin/deletion users separate from active workers; cleanup removes run-scoped users so
+// authorization tests cannot mutate another worker session.
 function e2eRunId(): string | null {
   const runId = process.env.E2E_RUN_ID;
   if (!runId) return null;

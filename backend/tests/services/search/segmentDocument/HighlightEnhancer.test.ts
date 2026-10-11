@@ -76,7 +76,6 @@ describe('enhanceHighlight', () => {
   });
 
   it('handles multiple highlighted regions', () => {
-    // Two separate highlighted words
     const tokens = [
       token('食べ', '食べる', 0, 2, '動詞'),
       token('た', 'た', 2, 3, '助動詞'),
@@ -98,11 +97,9 @@ describe('enhanceHighlight', () => {
   });
 
   it('handles highlight that already covers full compound form', () => {
-    // If ES already highlighted the full form, no extension needed
     const tokens = [token('食べ', '食べる', 0, 2, '動詞'), token('ました', 'ます', 2, 5, '助動詞')];
     const highlight = '<em>食べました</em>';
     const result = enhanceHighlight(highlight, tokens);
-    // The em already covers everything, no compound range needed
     expect(result).toBe('<em>食べました</em>');
   });
 });

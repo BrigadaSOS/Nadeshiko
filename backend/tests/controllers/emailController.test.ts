@@ -49,12 +49,8 @@ describe('POST /v1/email/unsubscribe', () => {
     expect(await preferencesOf(fixtures.users.regular.id)).toMatchObject({ productEmails: { enabled: false } });
   });
 
-  /**
-   * `List-Unsubscribe-Post` is fired by the mailbox provider with nobody
-   * present, and Gmail may send it more than once. A second call has to be as
-   * quiet as the first, or a retry turns into a 4xx the provider records as a
-   * failed unsubscribe.
-   */
+  /** Mailbox providers may POST `List-Unsubscribe-Post` with no user and retry it; a repeat must remain a successful
+   * no-op, not become a recorded 4xx. */
   it('is idempotent', async () => {
     const token = issueUnsubscribeToken(fixtures.users.regular.id);
 
@@ -65,11 +61,7 @@ describe('POST /v1/email/unsubscribe', () => {
     expect(second.body).toEqual({ unsubscribed: true });
   });
 
-  /**
-   * The preference lives in a shared `jsonb` blob, so the write has to merge.
-   * Clobbering it would silently re-enable the activity log for anyone who had
-   * turned it off — a privacy setting undone by an unrelated unsubscribe.
-   */
+  /** Preferences share a `jsonb` object, so this update must merge rather than re-enable an unrelated setting. */
   it('leaves the reader other preferences alone', async () => {
     await User.update(
       { id: fixtures.users.regular.id },
@@ -102,11 +94,8 @@ describe('POST /v1/email/unsubscribe', () => {
     expect(await preferencesOf(fixtures.users.regular.id)).toEqual({});
   });
 
-  /**
-   * An unsubscribe for an account that has since been deleted has already got
-   * what it asked for. Answering 404 would make the provider record the opt-out
-   * as failed and keep showing the reader a button that never works.
-   */
+  /** A deleted account has already received the requested opt-out; returning 404 would make the provider treat it as
+   * failed. */
   it('answers 200 for an account that no longer exists', async () => {
     const response = await request(app).post(`/v1/email/unsubscribe?token=${issueUnsubscribeToken(2_147_483_600)}`);
 
@@ -118,11 +107,8 @@ describe('POST /v1/email/unsubscribe', () => {
     expect((await request(app).post('/v1/email/unsubscribe')).status).toBe(400);
   });
 
-  /**
-   * RFC 8058 one-click: the provider posts a fixed form body to the URI. The
-   * token is in the query string precisely because that body is not ours, so
-   * receiving it must change nothing.
-   */
+  /** RFC 8058 supplies its own fixed POST body; authenticate with the query token and ignore that body when opting
+   * out. */
   it('ignores the fixed body a one-click unsubscribe sends', async () => {
     const response = await request(app)
       .post(`/v1/email/unsubscribe?token=${issueUnsubscribeToken(fixtures.users.regular.id)}`)
@@ -134,13 +120,8 @@ describe('POST /v1/email/unsubscribe', () => {
   });
 });
 
-/**
- * The preference page's pair.
- *
- * Both unauthenticated, both authenticating on the sealed token instead -- a
- * screen that first demanded a password is the pattern that turns an opt-out
- * into a spam complaint.
- */
+/** Both preference-page endpoints are unauthenticated and authenticate with the sealed token; requiring a password
+ * would turn an opt-out into a complaint. */
 describe('reading preferences from a token', () => {
   it('resolves absent categories to what the master says', async () => {
     const token = issueUnsubscribeToken(fixtures.users.regular.id);
@@ -168,11 +149,7 @@ describe('reading preferences from a token', () => {
     expect(response.body.category).toBeNull();
   });
 
-  /**
-   * SAFE TO PREFETCH. Mail scanners fetch every link in a message before the
-   * recipient sees it, so the read must never be the thing that opts somebody
-   * out.
-   */
+  /** Mail scanners prefetch links, so this GET must never perform the opt-out. */
   it('changes nothing', async () => {
     const token = issueUnsubscribeToken(fixtures.users.regular.id);
     await request(app).get('/v1/email/preferences').query({ token }).expect(200);
@@ -196,7 +173,6 @@ describe('changing preferences from a token', () => {
     expect(response.body.enabled).toBe(true);
   });
 
-  /** The blunt option: one control, everything stops. */
   it('stops everything when the master goes off', async () => {
     const token = issueUnsubscribeToken(fixtures.users.regular.id);
 
@@ -206,10 +182,7 @@ describe('changing preferences from a token', () => {
     expect(response.body.categories).toEqual({ recap: false, checkins: false, updates: false });
   });
 
-  /**
-   * A partial patch, so a reader on a page loaded ten minutes ago cannot revert
-   * a change they made somewhere else in the meantime.
-   */
+  /** Use a partial patch so a stale page cannot overwrite a preference changed elsewhere. */
   it('leaves untouched switches untouched across two writes', async () => {
     const token = issueUnsubscribeToken(fixtures.users.regular.id);
 
@@ -230,9 +203,8 @@ describe('GET /v1/email/link', () => {
   let linkApp: Application;
 
   beforeAll(() => {
-    // Mounted directly rather than through `EmailRoutes`: this endpoint answers
-    // a browser with a 302 and is registered by hand in `config/routes.ts`, so
-    // there is no generated router carrying it.
+    // Mounted directly because this browser endpoint returns a 302 and is registered manually in `config/routes.ts`,
+    // not in the generated router.
     linkApp = buildApplication({
       rateLimit: false,
       mountRoutes: (instance) => {
@@ -262,11 +234,8 @@ describe('GET /v1/email/link', () => {
     expect(response.headers.location).not.toContain('nb=1');
   });
 
-  /**
-   * A token we cannot read still has a person behind it. The home page is a
-   * better answer for somebody who just clicked a link we mailed them than a
-   * 400 about a token they never saw.
-   */
+  /** An unreadable token still represents a user following a mailed link; send them to the home page rather than
+   * expose a token error. */
   it('still lands somebody whose token is unreadable', async () => {
     const response = await follow({ t: 'rubbish', to: '/media/frieren', c: 'cta' });
 
@@ -290,11 +259,7 @@ describe('GET /v1/email/link', () => {
     expect(response.headers.location).toContain('nb=1');
   });
 
-  /**
-   * The shape that actually reached us: one message, every link fetched inside a
-   * few seconds. The reader still arrives -- they just arrive without an SDK to
-   * be counted by, so eighteen scanner renders stop becoming eighteen people.
-   */
+  /** Coalesce scanner fetches so repeated renders do not inflate SDK events before the recipient arrives. */
   it('marks a message whose links are being walked', async () => {
     const t = token();
     await follow({ t, to: '/media/a', c: 'title-1' });

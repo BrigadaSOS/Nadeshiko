@@ -1,31 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 
-/**
- * Guards the one filter standing between romaji search and nonsense results.
- *
- * `sudachi_readingform` has no reading for Latin letters it cannot map, and it
- * emits an EMPTY STRING rather than dropping the token. Romaji with no mappable
- * vowel therefore analyses to exactly one empty token:
- *
- *   zzqxwvfjkl  ->  ['']
- *   qxwvfjkl    ->  ['']
- *
- * Both queries then become `textJa.kana:""`, which matches every document whose
- * own indexed reading contains an unreadable token -- 1,272 of 33,085 locally,
- * 8,082 on production. The reader typed gibberish and got thousands of unrelated
- * sentences, every token highlighted, instead of the empty state. The two
- * queries above returned byte-identical results, which is what gave it away:
- * the leading `zz` changed nothing because the query text was gone by then.
- *
- * A `length` filter with `min: 1` drops the empty tokens, the clause analyses to
- * nothing, and Elasticsearch matches nothing -- which is the right answer.
- * Verified end to end against the pinned image before landing.
- *
- * The filter belongs on BOTH analyzers. Search-side is what fixes the query;
- * index-side keeps the empty tokens out of the index in the first place, so the
- * next reindex stops carrying terms nothing should ever match.
- */
+/** `sudachi_readingform` emits an empty token for unmappable romaji; without the length filter, gibberish becomes
+ * `textJa.kana:""` and matches unrelated documents. Put `min: 1` on both query and index analyzers so empty terms
+ * are neither searched nor indexed. */
 describe('kana analyzers', () => {
   const analysis = elasticsearchSchema.settings.analysis;
 

@@ -25,19 +25,8 @@ beforeEach(async () => {
   await UserActivity.delete({ userId: reader().id });
 });
 
-/**
- * The per-day collapse of repeated searches. These hit the database on purpose:
- * the whole behaviour lives in an UPDATE's WHERE clause and in the difference
- * between two SQL time functions, and nothing above the driver type-checks
- * either.
- *
- * It has already regressed once in the obvious way. The first version bumped
- * with `CURRENT_TIMESTAMP`, which is the TRANSACTION's start time: the update
- * wrote back the value it had just read, `affected` came back 1, and the code
- * looked correct while the row never moved. A test asserting only "one row"
- * passes against that bug -- so the assertion that matters here is that
- * `createdAt` is strictly later afterwards.
- */
+/** The daily collapse depends on SQL time semantics. `CURRENT_TIMESTAMP` once made the update appear successful
+ * without moving `createdAt`, so assert that the timestamp is strictly later. */
 describe('trackForUser: SEARCH', () => {
   it('keeps one row for the same search repeated in a day, and moves it to now', async () => {
     await track({ searchQuery: 'ねこ' });
@@ -81,9 +70,7 @@ describe('trackForUser: SEARCH', () => {
   });
 
   it('leaves a row from a previous day alone, so the heatmap keeps its square', async () => {
-    // The reason the collapse is scoped to the day at all: `getHeatmapForUser`
-    // counts rows per `DATE(created_at)`, so folding yesterday's row into
-    // today's would take a square off the calendar rather than add one.
+    // Daily collapse must not merge yesterday: the heatmap counts rows by `DATE(created_at)`.
     await track({ searchQuery: 'ねこ' });
     const [yesterday] = await searches();
     await UserActivity.createQueryBuilder()

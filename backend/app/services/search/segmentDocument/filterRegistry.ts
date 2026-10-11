@@ -2,19 +2,8 @@ import type { estypes } from '@elastic/elasticsearch';
 import type { SearchFiltersOutput } from 'generated/outputTypes';
 import type { ResolvedMediaFilterItem, ResolvedSearchFilters } from '@app/controllers/searchFilters';
 
-/**
- * The single place that knows which request filter narrows which Elasticsearch field.
- *
- * Every filter used to be its own hand-written `if` block appending a clause, which
- * meant the filter-to-field mapping existed only as procedure: adding a filter meant
- * editing a method, and the two numeric range filters were the same eight lines twice.
- * Declaring them as data instead means the field mapping can be read at a glance, and
- * the clause-building code is written once per *kind* of filter rather than once per
- * filter.
- *
- * Clause order within `filter` stays deterministic for comparable emitted queries.
- * Search-stats cache keys are derived from request values, not from this DSL.
- */
+/** Declare filter-to-field mappings as data, keeping clause order deterministic; cache keys come from request
+ * values, not this registry. */
 
 /** Filters read as `{ min?, max? }` and applied as a `range` over one numeric field. */
 const RANGE_FILTERS = [
@@ -35,13 +24,7 @@ const TERMS_FILTERS = [
 
 type NumericRange = { min?: number; max?: number } | undefined;
 
-/**
- * A `range` clause, or null when neither bound was given.
- *
- * `min`/`max` are checked against `undefined` rather than for truthiness: a bound of
- * 0 is meaningful (a zero-length segment, a zero-duration segment) and truthiness
- * would silently drop it.
- */
+/** Check numeric bounds against `undefined`, not truthiness, because zero is a meaningful range endpoint. */
 function buildRangeClause(field: string, range: NumericRange): estypes.QueryDslQueryContainer | null {
   if (range?.min === undefined && range?.max === undefined) return null;
 
@@ -52,13 +35,7 @@ function buildRangeClause(field: string, range: NumericRange): estypes.QueryDslQ
   return { range: { [field]: bounds } };
 }
 
-/**
- * Both cases of each content rating.
- *
- * `contentRating` is a `keyword` field, so `terms` matches bytes exactly and the
- * index holds a mix of cases. Emitting both spellings is what makes the filter
- * case-insensitive without reindexing or a normalizer on the mapping.
- */
+/** Keyword terms are case-sensitive bytes; emit both cases because indexed content contains both spellings. */
 export function expandContentRatingTerms(contentRating: string[]): string[] {
   const values = new Set<string>();
   for (const rating of contentRating) {
@@ -68,13 +45,8 @@ export function expandContentRatingTerms(contentRating: string[]): string[] {
   return [...values];
 }
 
-/**
- * Matches any of the given media, optionally narrowed to specific episodes.
- *
- * Takes resolved items only. It matches on the internal `mediaId`, which the wire
- * shape does not carry -- passing an unresolved filter here produced
- * `term: { mediaId: undefined }`, matching nothing while reporting no error.
- */
+/** This builder requires resolved internal `mediaId`s; an unresolved wire filter would silently query `mediaId:
+ * undefined`. */
 function buildMediaFilter(items: readonly ResolvedMediaFilterItem[]): estypes.QueryDslQueryContainer {
   const mediaQueries: estypes.QueryDslQueryContainer[] = items.flatMap((item) => {
     if (!item.episodes || item.episodes.length === 0) {
@@ -90,12 +62,8 @@ function buildMediaFilter(items: readonly ResolvedMediaFilterItem[]): estypes.Qu
   return { bool: { should: mediaQueries } };
 }
 
-/**
- * Every filter that applies to any segment search, as `filter` and `must_not` clauses.
- *
- * Requires filters whose media entries have been resolved to internal ids -- see
- * `ResolvedSearchFilters`.
- */
+/** Build all segment filters from resolved media ids; return the shared `filter`/`must_not` clauses used by every
+ * search. */
 export function buildCommonFilters(filters: ResolvedSearchFilters<SearchFiltersOutput>): {
   filter: estypes.QueryDslQueryContainer[];
   must_not: estypes.QueryDslQueryContainer[];

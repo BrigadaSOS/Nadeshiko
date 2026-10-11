@@ -8,20 +8,8 @@ import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { Announcement } from '@app/models';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 
-/**
- * The site-wide banner.
- *
- * It is read on every page load, so it is cached -- and that cache is the part
- * worth testing rather than the CRUD. Two things about it are easy to get wrong
- * and both fail silently:
- *
- * - The ABSENCE of an announcement has to be cached too. Caching only the hits
- *   means the ordinary case -- no banner, which is almost all of the time --
- *   queries the database on every single page view.
- * - Turning a banner off has to take effect now. A maintenance notice that
- *   stays up for another minute after being cleared is the one message where
- *   that matters, because it is the one that says something is broken.
- */
+/** The banner is cached on every page load. Cache misses as well as hits, and invalidate immediately when a banner
+ * is disabled; both failures are otherwise silent. */
 setupTestSuite();
 
 let app: Application;

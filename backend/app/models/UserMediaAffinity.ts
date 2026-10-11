@@ -12,27 +12,8 @@ export interface FamiliarMediaEntry {
   shareCount: number;
 }
 
-/**
- * A monthly tally of how much a reader engages with each title.
- *
- * Deliberately NOT derived from `UserActivity`, for two reasons that both bite.
- * `trackForUser` drops every row when `searchHistory` is off, so anything read
- * off that table inherits a consent decision about a *different* dataset -- and
- * `activityRetentionWorker` deletes activity at 90 days, so familiarity derived
- * from it would quietly reset every quarter, which is precisely wrong for a
- * signal whose whole point is "shows I have known for a while".
- *
- * What is stored here is strictly less than the activity log holds: counts per
- * title per month, no queries, no timestamps, no segment ids. That asymmetry is
- * what lets the tally be offered as its own preference rather than folded into
- * search history.
- *
- * Keyed by `mediaPublicId` rather than a `Media` foreign key: the write sits on
- * the fire-and-forget activity path, where the public id is already in the
- * payload and a foreign key would cost a lookup per event. Rows for deleted
- * media are harmless -- the read joins `Media` and drops what it cannot resolve,
- * and retention prunes the rest.
- */
+/** Keep familiarity separate from activity: it survives activity retention and stores only monthly title counts,
+ * with no queries or timestamps. */
 @Entity('UserMediaAffinity')
 @Index(['userId', 'mediaPublicId', 'periodYyyymm'], { unique: true })
 @Index(['periodYyyymm'])
@@ -44,12 +25,8 @@ export class UserMediaAffinity extends BaseEntity {
   static readonly MIN_SCORE = 5;
   static readonly MAX_RESULTS = 20;
 
-  /**
-   * Which counter each activity type feeds. A literal map, not a computed name:
-   * the column is interpolated into SQL below, and this is what keeps that safe.
-   * `SEARCH` is absent on purpose -- searching for a title is not evidence you
-   * know it, and scoped searches do carry a media id.
-   */
+  /** Use a literal counter-column map for safe SQL interpolation; omit SEARCH because finding a title is not
+   * evidence of familiarity. */
   static readonly COUNTER_COLUMNS: Partial<Record<ActivityType, string>> = {
     [ActivityType.ANKI_EXPORT]: 'anki_count',
     [ActivityType.SEGMENT_PLAY]: 'play_count',
@@ -81,14 +58,8 @@ export class UserMediaAffinity extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  /**
-   * Anki exports weigh heaviest because exporting is deliberate mining. Plays
-   * are scaled logarithmically rather than counted: a play fires per segment, so
-   * an autoplaying playlist would otherwise bury a month of study under one idle
-   * evening. `autoplay` is filtered at the door too, but the curve is what holds
-   * when an older client omits that flag -- 100 plays is worth ~13 points, still
-   * under two exports.
-   */
+  /** Exports weigh more than plays; play counts are logarithmic because one autoplayed playlist emits one event per
+   * segment. */
   static scoreFor(counts: Pick<FamiliarMediaEntry, 'ankiCount' | 'playCount' | 'shareCount'>): number {
     const { anki, share, play } = UserMediaAffinity.WEIGHTS;
     return counts.ankiCount * anki + counts.shareCount * share + Math.log2(1 + counts.playCount) * play;
@@ -104,17 +75,8 @@ export class UserMediaAffinity extends BaseEntity {
     return periods;
   }
 
-  /**
-   * A STATEMENT RATHER THAN THE QUERY BUILDER, for the same reason
-   * `AccountQuotaUsage.incrementForUser` is one: TypeORM's `orUpdate()` only
-   * names columns to overwrite with the INSERT's values, so it would write
-   * `count = 1` on every collision -- a counter silently degraded to a flag.
-   * Read-then-write would instead lose increments whenever two events for the
-   * same title land together, which on a playlist is the normal case.
-   *
-   * The unqualified column on the right-hand side is the EXISTING row, per
-   * Postgres' ON CONFLICT rules; `excluded` would be the rejected insert.
-   */
+  /** Use a SQL upsert statement so increments are atomic; TypeORM `orUpdate()` would overwrite a collision with
+   * `count = 1` instead of adding. */
   static async incrementForUser(userId: number, mediaPublicId: string, activityType: ActivityType): Promise<void> {
     const column = UserMediaAffinity.COUNTER_COLUMNS[activityType];
     if (!column) return;
@@ -133,13 +95,7 @@ export class UserMediaAffinity extends BaseEntity {
     );
   }
 
-  /**
-   * The reader's most-studied titles inside the window, highest score first.
-   *
-   * Ties break alphabetically by public id so the order is stable between calls
-   * -- the client sorts a filter list by this ranking, and a ranking that
-   * reshuffles on every reload would look like a bug.
-   */
+  /** Rank by score, then public id for stable ties; the client uses this order to build its familiar-title filter. */
   static async getFamiliarForUser(userId: number): Promise<FamiliarMediaEntry[]> {
     const rows = await UserMediaAffinity.createQueryBuilder('affinity')
       .select('affinity.media_public_id', 'mediaPublicId')
@@ -170,16 +126,8 @@ export class UserMediaAffinity extends BaseEntity {
     return result.affected || 0;
   }
 
-  /**
-   * Forgets one title, across every month it was counted in.
-   *
-   * Deletes rather than zeroes: a zeroed row would keep the title in the table
-   * scoring 0, which reads the same to `getFamiliarForUser` (it is under
-   * `MIN_SCORE`) but slowly fills the table with tombstones for every title a
-   * reader ever dismissed. Nothing here blocks the title -- the next export or
-   * share against it starts a fresh tally, which is the honest behaviour for a
-   * running count rather than a blocklist.
-   */
+  /** Delete forgotten rows rather than zeroing them; forgetting is not a blocklist, so later activity starts a fresh
+   * tally. */
   static async forgetForUser(userId: number, mediaPublicId: string): Promise<number> {
     const result = await UserMediaAffinity.delete({ userId, mediaPublicId });
     return result.affected || 0;

@@ -4,13 +4,8 @@ servers:
       - nadeshiko
     options:
       add-host: host.docker.internal:host-gateway
-      # An init as PID 1, so orphans get reaped. Node is PID 1 without it and
-      # Node does not reap: the container's own healthcheck leaves its child
-      # re-parented to Node whenever a check times out under load, and it stays
-      # a zombie until the container dies (49 counted across the frontend and
-      # backend containers on 2026-08-31, all from overloaded minutes). Kamal
-      # REPLACES this block from the per-destination file rather than merging
-      # it, so `init` is repeated there.
+      # init=true lets PID 1 reap healthcheck orphans. Kamal replaces, rather than merges, this block in per-destination
+      # files, so keep the setting there too.
       init: true
 
 registry:
@@ -21,19 +16,14 @@ registry:
 
 builder:
   arch: amd64
-  # The image installs from the workspace lockfile, so the build context is the
-  # repository root rather than this app's directory. CI builds separately and
-  # deploys with --skip-push, so without this a plain `kamal deploy` fails on a
-  # missing /package-lock.json while CI stays green.
+  # Build context is the repository root for the workspace lockfile; CI deploys with --skip-push, so Kamal needs it too.
   context: ..
   dockerfile: Dockerfile
 
 ssh:
   user: docker
 
-# Kamal defaults to a single 10m json-file with no rotation history, which
-# truncates away the context around an incident. Accessories get no log options
-# at all by default, so each one sets these explicitly under `options`.
+# Set log rotation explicitly: Kamal has limited defaults for the app and none for accessories.
 logging:
   driver: json-file
   options:

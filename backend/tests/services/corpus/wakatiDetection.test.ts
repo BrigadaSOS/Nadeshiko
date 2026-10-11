@@ -8,12 +8,8 @@ import {
   MIN_SPACED_LINES,
 } from '../../../app/services/corpus/wakatiDetection';
 
-/**
- * Both fixtures are real production lines, copied from the corpus survey that
- * found this. Invented ones would be worth much less: the whole question is
- * whether the threshold separates a wakati source from the messiest LEGITIMATE
- * spacing the corpus actually contains, and only real lines can answer that.
- */
+/** Use real production lines: the threshold must separate a wakati source from the messiest legitimate spacing in
+ * the corpus, not from invented fixtures. */
 
 /** One Punch Man, before `strip-wakati-spaces.ts` ran against production. */
 const WAKATI_LINES = [
@@ -43,13 +39,8 @@ const WAKATI_LINES = [
   'そして 俺 は 正義 の サイボーグ として 生まれ変わり ー',
 ];
 
-/**
- * Clean media, deliberately picked to be the hardest possible negative: these
- * are the lines the corpus survey flagged as "spaced" in Kimi ni Todoke, NARUTO,
- * CLANNAD and friends, including the dash-dialogue ones (` うん - そうか`) whose
- * ratio is as low as legitimate subtitles ever go. A fixture of ordinary long
- * lines would pass the threshold without proving anything.
- */
+/** Use the hardest clean negatives from the corpus survey, including low-ratio dash dialogue; ordinary long lines
+ * would not challenge the threshold. */
 const CLEAN_LINES = [
   'ええやろ 別に 外 あっついし',
   'いや 顔 見たら また むかつくかもね',
@@ -95,12 +86,8 @@ describe('assessWakati', () => {
     expect(assessment.meanChunkChars).toBeGreaterThan(4);
   });
 
-  /**
-   * The reason MIN_SPACED_LINES exists. These are real wakati lines, so the
-   * ratio is genuinely damning -- and still not enough to act on, because a
-   * handful of short exclamations can average anything and rejecting a whole
-   * episode on five lines is not a trade worth making.
-   */
+  /** Real wakati lines can still be too few to justify rejecting an episode; `MIN_SPACED_LINES` prevents a handful
+   * of short exclamations from deciding the result. */
   it('will not judge a batch too small to carry the signal', () => {
     const few = WAKATI_LINES.slice(0, 5);
     const assessment = assessWakati(few);
@@ -110,10 +97,7 @@ describe('assessWakati', () => {
     expect(assessment.isWakati).toBe(false);
   });
 
-  /**
-   * U+3000 is real Japanese typography and appears in 172k segments of clean
-   * corpus. Counting it would flag the corpus rather than the outlier.
-   */
+  /** U+3000 is normal Japanese typography in the clean corpus; count ASCII spaces, not full-width ones. */
   it('ignores full-width U+3000 entirely', () => {
     const ideographic = Array.from({ length: 40 }, () => '近い　ぞ　誰か　い　ない　の　か');
     const assessment = assessWakati(ideographic);

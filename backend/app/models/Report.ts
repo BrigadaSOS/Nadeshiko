@@ -40,9 +40,8 @@ export enum ReportReason {
   // Shared reasons
   INAPPROPRIATE_CONTENT = 'INAPPROPRIATE_CONTENT',
   OTHER = 'OTHER',
-  // Legacy values kept for DB enum compatibility — the media audit runner that
-  // produced them was removed. Dropping a Postgres enum value means rewriting the
-  // type, and any AUTO rows still in the table reference these.
+  // Keep removed audit-runner values in the database enum for existing rows; deleting enum values requires a type
+  // rewrite.
   LOW_SEGMENT_MEDIA = 'LOW_SEGMENT_MEDIA',
   EMPTY_EPISODES = 'EMPTY_EPISODES',
   MISSING_EPISODES_AUTO = 'MISSING_EPISODES_AUTO',

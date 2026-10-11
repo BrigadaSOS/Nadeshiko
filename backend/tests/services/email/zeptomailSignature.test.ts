@@ -15,11 +15,8 @@ describe('extractPayload', () => {
     expect(extractPayload(`data=${encodeURIComponent(json)}`)).toBe(json);
   });
 
-  /**
-   * The urlencoded JSON contains `=` of its own inside base64 and query strings.
-   * Splitting on every `=` rather than the first truncates the payload to
-   * something that will not parse, and the failure looks like a bad signature.
-   */
+  /** Split the urlencoded JSON at the first `=` only; base64 and query strings can contain additional equals signs,
+   * and truncation otherwise looks like a bad signature. */
   it('splits on the first = only, so padded base64 inside the payload survives', () => {
     const json = '{"token":"YWJjZA==","to":"a@b.co"}';
     expect(extractPayload(`data=${encodeURIComponent(json)}`)).toBe(json);
@@ -77,10 +74,8 @@ describe('signatureValid', () => {
     expect(signatureValid({ header: `sig=${sign('{"event_name":"open"}')}`, payload, secret: SECRET })).toBe(false);
   });
 
-  /**
-   * The replay defence. Without it a captured hard-bounce delivery could be
-   * resent forever to suppress any address on demand.
-   */
+  /** Reject replayed deliveries: a captured hard-bounce notification must not suppress arbitrary addresses
+   * repeatedly. */
   it('refuses a correctly signed payload that is older than the tolerance', () => {
     const ts = Date.now() - 10 * 60 * 1000;
     const header = `ts=${ts};sig=${sign(`${ts}.${payload}`)}`;

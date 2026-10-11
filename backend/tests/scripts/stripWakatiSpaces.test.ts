@@ -9,10 +9,7 @@ describe('stripHalfWidthSpaces', () => {
     );
   });
 
-  // The one distinction this script rests on. U+3000 is real Japanese
-  // typography and appears in clean media across the corpus; the repaired lines
-  // use it correctly alongside the noise, so a regex that stopped
-  // distinguishing the two would quietly corrupt what it was meant to fix.
+  // U+3000 is real Japanese typography; preserve it while removing the noise around it.
   it('leaves full-width U+3000 alone', () => {
     expect(stripHalfWidthSpaces('近い ぞ ! !　誰か い ない の か ! ?')).toBe('近いぞ!!　誰かいないのか!?');
     expect(stripHalfWidthSpaces('何あれ?　何あれ')).toBe('何あれ?　何あれ');

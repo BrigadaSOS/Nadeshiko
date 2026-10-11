@@ -145,10 +145,8 @@ describe('SegmentResponse', () => {
       expect(segments[0].textJa.tokens).toBeNull();
     });
 
-    // A segment may be stored somewhere other than the rest of its title, which
-    // is the whole reason the column is per segment. Building urls from the
-    // media path instead pointed 654 of Mushoku Tensei II's segments at objects
-    // that were not there -- playable on the sentence page, 404 in search.
+    // Use the segment-specific storage path; deriving it from the media path produced playable pages whose search URLs
+    // 404ed.
     it('builds urls from the segment path when it differs from the media path', () => {
       const hit = makeEsHit('1', { storageBasePath: 'anime/elsewhere', hashedId: 'abc123', episode: 8 });
       const esResponse = makeEsResponse([hit]);

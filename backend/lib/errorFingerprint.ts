@@ -32,9 +32,7 @@ export function computeFingerprint(error: Error | string, errorType: string): { 
   const frame = extractFirstAppFrame(stack);
   const fingerprint = `${errorType}:${frame}`;
 
-  // Keep metric dimensions bounded. Messages may contain IDs, paths, query
-  // strings or user input and therefore cannot safely be labels. The complete
-  // message is still present in the structured log and recorded exception.
+  // Keep metric labels bounded; full messages remain in structured logs and recorded exceptions.
   return { fingerprint, group: fingerprint };
 }
 

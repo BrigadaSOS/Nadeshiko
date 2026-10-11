@@ -3,11 +3,8 @@ import { TestDataSource } from './setup';
 
 let _savepointCounter = 0;
 
-/**
- * Run `block` inside a savepoint so that if a DB operation inside the block
- * aborts the PostgreSQL transaction (e.g. FK violation caught by the error
- * handler), we can automatically recover the transaction back to a valid state.
- */
+/** Run `block` inside a savepoint so a caught PostgreSQL error (such as an FK violation) does not leave the
+ * surrounding transaction aborted. */
 async function withSavepointRecovery(block: () => Promise<void>): Promise<void> {
   // During a test, createQueryRunner() returns the current test's runner
   const runner = TestDataSource.createQueryRunner();
@@ -24,22 +21,8 @@ async function withSavepointRecovery(block: () => Promise<void>): Promise<void> 
   }
 }
 
-/**
- * Assert that a count changes by the expected delta after executing the block.
- * Mirrors Rails' assert_difference.
- *
- * @example
- * await assertDifference(() => Episode.count(), +1, async () => {
- *   await request(app).post(`/v1/media/${media.id}/episodes`).send({ episodeNumber: 1 });
- * });
- *
- * // Multiple counters — call in parallel before the block, check after:
- * await assertDifference(() => Media.count(), +1, async () => {
- *   await assertDifference(() => Episode.count(), 0, async () => {
- *     await request(app).post('/v1/media').send(buildCreateMediaBody());
- *   });
- * });
- */
+/** Assert a count delta after `block`; `delta` may be zero or negative, and nested calls can check multiple
+ * counters. */
 export async function assertDifference(
   counter: () => Promise<number>,
   delta: number,
@@ -51,32 +34,13 @@ export async function assertDifference(
   expect(after - before, `Expected count to change by ${delta > 0 ? '+' : ''}${delta}`).toBe(delta);
 }
 
-/**
- * Assert that a count does not change after executing the block.
- * Mirrors Rails' assert_no_difference.
- *
- * @example
- * await assertNoDifference(() => Episode.count(), async () => {
- *   await request(app).post('/v1/media/999/episodes').send({ episodeNumber: 1 });
- * });
- */
+/** Assert that a count is unchanged after `block`, mirroring Rails' `assert_no_difference`. */
 export async function assertNoDifference(counter: () => Promise<number>, block: () => Promise<void>): Promise<void> {
   return assertDifference(counter, 0, block);
 }
 
-/**
- * Assert that a value changes from one value to another after executing the block.
- * Mirrors Rails' assert_changes. `from` is optional — omit it to only check the final state.
- *
- * @example
- * await assertChanges(
- *   async () => (await Episode.findOneByOrFail({ id: pilot.id })).titleEn,
- *   { from: 'Pilot', to: 'New Title' },
- *   async () => {
- *     await request(app).patch(`/v1/media/${media.id}/episodes/1`).send({ titleEn: 'New Title' });
- *   },
- * );
- */
+/** Assert a value transition after `block`, mirroring Rails' `assert_changes`. `from` is optional when only the
+ * final value matters. */
 export async function assertChanges<T>(
   getter: () => Promise<T>,
   options: { from?: Awaited<T>; to: Awaited<T> },

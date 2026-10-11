@@ -6,12 +6,8 @@ import { pathToFileURL } from 'node:url';
 import type { Transport } from 'nodemailer';
 import { logger } from '@config/log';
 
-/**
- * Local-only nodemailer transport modelled on Rails' letter_opener: instead of
- * handing the message to an SMTP server, it writes the rendered email to
- * backend/tmp/letter_opener/ and pops it open in the default browser. Magic
- * links are then one click away, with no third-party mailbox in the loop.
- */
+/** Local-only transport writes rendered mail to `backend/tmp/letter_opener/` and opens it, avoiding a third-party
+ * mailbox. */
 
 export const LETTER_OPENER_DIR = path.resolve(import.meta.dirname, '../../tmp/letter_opener');
 
@@ -99,11 +95,7 @@ async function deliver(message: RenderedMessage): Promise<string> {
   return filePath;
 }
 
-/**
- * Wraps the email body in a page carrying a letter_opener-style envelope header.
- * The body keeps its own markup so links behave exactly as they would in a real
- * client; only a leading doctype is dropped, since this page supplies one.
- */
+/** Wrap the body without changing its markup; only remove the leading doctype because the preview page supplies one. */
 function renderPage(message: RenderedMessage): string {
   return `<!doctype html>
 <html lang="en">

@@ -63,9 +63,7 @@ describe('SegmentSubscriber', () => {
       );
     });
 
-    // An ingest run inserts segments by the thousand for media the map already describes.
-    // Dropping the namespace on each one kept the map permanently cold, so it never survived
-    // long enough to be read twice and every concurrent search rebuilt it from scratch.
+    // Keep the namespace warm during bulk ingest; dropping it per segment forced every concurrent search to rebuild it.
     it('leaves the cache alone for a media the cached map already knows', async () => {
       await Media.getMediaInfoMap();
       invalidateSpy.mockClear();

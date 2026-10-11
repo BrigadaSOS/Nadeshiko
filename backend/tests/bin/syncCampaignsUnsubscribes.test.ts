@@ -9,11 +9,8 @@ describe('parseCsv', () => {
     ]);
   });
 
-  /**
-   * The reason this is not `split(',')`. A display name containing a comma is
-   * ordinary, and splitting naively shifts every later column — which in the
-   * bounce mode means suppressing whatever lands in the email position.
-   */
+  /** A display name may contain commas, so split the CSV row using its quoted structure; naive splitting shifts the
+   * email column and suppresses the wrong address. */
   it('keeps a quoted comma inside its field', () => {
     expect(parseCsv('email,name\na@example.com,"Smith, Alice"\n')).toEqual([
       ['email', 'name'],
@@ -47,11 +44,7 @@ describe('addressesFrom', () => {
     expect(addressesFrom(rows)).toEqual(['a@example.com']);
   });
 
-  /**
-   * Zoho's exports disagree with each other on column order, so a fixed index
-   * would quietly read names as addresses on whichever export it was not
-   * written against.
-   */
+  /** Zoho exports vary in column order; infer the email column instead of relying on a fixed index. */
   it('finds it in a different position in a different export', () => {
     const rows = parseCsv('Email Address,Reason\nb@example.com,Hard bounce\n');
     expect(addressesFrom(rows)).toEqual(['b@example.com']);

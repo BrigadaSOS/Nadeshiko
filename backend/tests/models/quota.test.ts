@@ -29,19 +29,13 @@ describe('resolveQuotaLimit', () => {
     });
   });
 
-  // The one account production had off the default is migrated to an override
-  // holding its old number, so 0 has to survive the resolution intact rather
-  // than being read as "unset" by a truthiness check somewhere.
+  // The migrated account stores an override of 0; preserve it rather than treating zero as unset.
   it('treats a zero override as a real limit, not as absent', () => {
     expect(resolveQuotaLimit(account({ quotaOverride: 0, tier: tier(25_000) })).limit).toBe(0);
   });
 
-  /**
-   * The failure that has to stay quiet in the request path and loud in the log:
-   * a tier row deleted out from under an account. Falling back to the number the
-   * account already had is the only answer that neither fails their requests nor
-   * silently promotes them.
-   */
+  /** A deleted tier must be quiet in the request path but loud in logs; use the account’s stored number rather than
+   * fail or silently promote it. */
   it('falls back to the stored column when the tier row is gone', () => {
     expect(resolveQuotaLimit(account({ tier: null, monthlyQuotaLimit: 10_000 }))).toEqual({
       limit: 10_000,
@@ -58,9 +52,7 @@ describe('resolveQuotaLimit', () => {
     });
   });
 
-  // A caller that fetched the user without joining the relation. Distinguished
-  // from "the row is missing" so the log says which of the two happened -- one
-  // is a bug in a query, the other is a bug in the data.
+  // Distinguish an unloaded relation from a missing row so logs identify the query bug versus the data bug.
   it('reports an unloaded relation as the stored column, not as a missing tier', () => {
     const resolved = resolveQuotaLimit(account({ monthlyQuotaLimit: 5000 }));
     expect(resolved).toEqual({ limit: 5000, source: 'legacy_column', tierId: 'plus' });

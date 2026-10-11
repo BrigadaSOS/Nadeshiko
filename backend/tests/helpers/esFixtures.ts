@@ -19,9 +19,8 @@ export async function isEsAvailable(): Promise<boolean> {
     await client.indices.exists({ index: INDEX_NAME });
     return true;
   } catch (error) {
-    // Silently returning false here used to skip the whole integration suite
-    // with no trace of why -- a 401 from an unprovisioned test user looked
-    // exactly like a green run. console.warn survives LOG_LEVEL=silent.
+    // Do not silently skip the integration suite: warn when the test user is unprovisioned, even under
+    // LOG_LEVEL=silent.
     if (!warnedEsUnavailable) {
       warnedEsUnavailable = true;
       console.warn(`[esFixtures] Elasticsearch unavailable: ${describeEsError(error)}`);

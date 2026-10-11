@@ -12,23 +12,8 @@ export interface ResolvedQuota {
   tierId: string | null;
 }
 
-/**
- * The monthly request allowance for an account, and what decided it.
- *
- * Order: explicit override, then the tier, then the pre-tier column, then the
- * default. Every step down is a step the account did not ask for, so the last
- * two are logged -- an account that reaches them is one the tier system has
- * lost track of, and the symptom otherwise is a reader quietly getting 5000
- * when they are paying for 100000.
- *
- * `user.tier` has to be PASSED IN for the tier step to apply; this takes it as
- * a separate argument on the object rather than reading a relation, because the
- * hot caller (`apiLimiterQuota`) serves it from a process-wide cache of three
- * rows instead of joining the table on every authenticated request. A caller
- * that omits it gets the legacy column -- the value that was in force for that
- * account before tiers existed, so correct, but stale from the moment somebody
- * changes their tier.
- */
+/** Resolve quota in order: override, tier, legacy column, default. Pass the tier explicitly so the hot caller can
+ * use its small cache. */
 export function resolveQuotaLimit(
   user: Pick<User, 'id' | 'quotaOverride' | 'monthlyQuotaLimit' | 'tierId'> & { tier?: Tier | null },
 ): ResolvedQuota {
@@ -43,10 +28,8 @@ export function resolveQuotaLimit(
     return { limit: tierLimit, source: 'tier', tierId };
   }
 
-  // A tier id that resolved to nothing is the interesting case: either the row
-  // was deleted out from under the account, or the caller did not join the
-  // relation. Both end up here and both are worth saying out loud, because the
-  // account keeps working on a number nobody chose for it.
+  // A missing joined tier falls back and is logged: the account must keep working even when the row was deleted or the
+  // caller omitted the relation.
   if (tierId !== null && user.tier === undefined) {
     logger.debug(
       { userId: user.id, tierId },

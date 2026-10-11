@@ -134,12 +134,7 @@ export class Media extends BaseEntity {
     };
   }
 
-  /**
-   * Shared while the map is being built. A cache miss is not one query, it is a `Media.find`
-   * with the external-id relation, and every concurrent search wants the same answer -- without this
-   * the moment the entry expires is the moment every in-flight request runs that query for
-   * itself. The promise is dropped once settled so a failure does not stick.
-   */
+  /** Share the in-flight promise for a cache miss, then drop it after settlement so failures do not stick. */
   private static inFlightInfoMap: Promise<MediaInfoMapResult> | null = null;
   private static inFlightGlobalStats: Promise<MediaGlobalStats> | null = null;
 

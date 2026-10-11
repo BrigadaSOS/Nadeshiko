@@ -10,25 +10,8 @@ beforeAll(async () => {
   fixtures = await seedCoreFixtures();
 });
 
-/**
- * These hit the database on purpose. `incrementForUser` is a single
- * `INSERT ... ON CONFLICT DO UPDATE` whose whole job is the `+ 1` in the update
- * branch, and that arithmetic lives inside a SQL string -- nothing type-checks
- * it, and the other quota tests mock the method out entirely (see
- * `tests/middleware/apiLimiterQuota.test.ts`), so before this file the statement
- * was never executed by the suite at all.
- *
- * It earned coverage during the TypeORM v1 upgrade. v1 removed `onConflict()`,
- * and the obvious replacement -- `orUpdate(['requestCount'])` -- overwrites the
- * conflicting row with the values from the INSERT, which would have pinned the
- * count at 1 on every collision instead of adding to it. A counter quietly
- * degrading into a flag passes every type check and throws nothing at runtime.
- * Only asserting that the second call reads 2 catches it.
- *
- * Not covered here: concurrency. Each test runs inside one transaction on one
- * connection, so parallel calls would serialise and prove nothing about the
- * races the single-statement form actually exists to survive.
- */
+/** Exercise the real SQL upsert: `orUpdate` can overwrite the conflicting row and pin the count at 1. The second
+ * call must read 2; concurrency is intentionally outside this one-connection suite. */
 describe('AccountQuotaUsage.incrementForUser', () => {
   const currentPeriod = () => AccountQuotaUsage.getCurrentPeriodYyyymm();
 

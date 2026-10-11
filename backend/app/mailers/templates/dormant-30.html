@@ -97,34 +97,12 @@
         color: #8a8a8a;
       }
 
-      /*
-        THE COVER GRID OVERFLOWS A PHONE WITHOUT THIS. `renderTitleGrid` sizes
-        every tile in fixed pixels off CONTENT_WIDTH (576), which is the column
-        inside a 640px card -- three tiles come out 180px each, so the row is
-        ~540px wide and the third cover is cut off on a 360px screen. The grid
-        is generated rather than slotted, so the sizes cannot be expressed as
-        percentages up front; the tiles carry classes instead and this relaxes
-        them below the card width.
-
-        `height: auto` is what stops the crop, and it costs the uniform tile
-        shape on mobile: `object-fit: cover` does nothing without a fixed
-        height, so covers render at their own aspect ratio and a row can end up
-        slightly ragged. Ragged beats clipped.
-      */
+      /* On mobile, let the generated grid relax tile height rather than clip covers; ragged is safer than overflow. */
       @media only screen and (max-width: 600px) {
         .card-body {
           padding: 24px 16px !important;
         }
-        /*
-          `table-layout: fixed` IS THE LOAD-BEARING LINE. Each row is its own
-          table, and under the default auto layout the browser sizes columns by
-          their CONTENT -- which here is the caption, not the cover. A row
-          holding "The Irregular at Magic High School: Visitor Arc" next to
-          "One-Punch Man" gave the first column most of the width and collapsed
-          the last, so the rightmost cover rendered a fraction of the size of
-          its neighbours. Fixed layout divides the row evenly and ignores the
-          text, which is what makes every tile in a row match.
-        */
+        /* Use `table-layout: fixed` so captions cannot resize columns and make covers in one row unequal. */
         .tile-grid {
           width: 100% !important;
           table-layout: fixed !important;
@@ -133,14 +111,8 @@
           width: auto !important;
           padding: 0 3px 8px !important;
         }
-        /*
-          The cells are equal now, so the covers are equal in WIDTH. Height is
-          the leftover: covers come off the CDN at a fixed width and a varying
-          height, so `height: auto` lets a row end ragged. `aspect-ratio` puts
-          the crop back where it is supported -- with `object-fit: cover` from
-          the inline style doing the filling -- and `height: auto` remains the
-          answer for clients that ignore it. Neither can clip.
-        */
+        /* Keep `height: auto` as the no-clipping fallback; CDN covers have varying aspect ratios and clients may
+         * ignore `aspect-ratio`. */
         .tile-img {
           width: 100% !important;
           height: auto !important;

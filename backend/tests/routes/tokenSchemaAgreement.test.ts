@@ -1,33 +1,11 @@
-/**
- * Pins the served `Token` schema to the token the parser actually builds.
- *
- * Every response goes through `responseValidationFactory`, which validates with
- * a generated `z.object()` -- and a `z.object()` STRIPS keys it does not
- * declare. So a field can be parsed, stored, documented on `SlimToken` and
- * covered by its own unit test, and still never reach a client, because the one
- * place that had to know about it is a YAML file nobody edits when adding a
- * field to the model.
- *
- * That is not hypothetical. `pt` -- Shirabe's short POS tag, the value
- * `words/identify` ranks by -- was written by `toSlimToken`, backfilled across
- * the whole corpus by a re-tokenization, and silently dropped from every search
- * response for as long as it existed, because `Token.yaml` never grew the
- * property. Nothing failed: the frontend has a fallback that derives the tag
- * from `p`, so the symptom was a field that did nothing rather than an error.
- *
- * Asserting the whole surface rather than `pt` alone, because the next field
- * added to `SlimToken` will forget the same file.
- */
+/** Keep the served `Token` schema aligned with `toSlimToken`. Response validation uses `z.object()`, which strips
+ * undeclared fields; a YAML omission can therefore drop a parsed field silently. */
 import { describe, it, expect } from 'vitest';
 import { s_Token } from '../../generated/schemas';
 import type { SlimToken } from '../../app/models/Segment';
 
-/**
- * A token using every field `toSlimToken` can emit, with values shaped like the
- * real ones: `p` is UniDic's category, `pt` is Shirabe's short tag, `posLabel`
- * is the printable wording. Typed as `SlimToken` so dropping a field from the
- * model without dropping it here fails to compile.
- */
+/** Use every field emitted by `toSlimToken`, with realistic values, and type the fixture as `SlimToken` so
+ * model/schema drift fails to compile. */
 const FULL_TOKEN: Required<Omit<SlimToken, 'parts' | 'f' | 'inflection'>> &
   Pick<SlimToken, 'parts' | 'f' | 'inflection'> = {
   s: '食べました',
@@ -59,11 +37,8 @@ describe('the served Token schema', () => {
     expect(served).toEqual(FULL_TOKEN);
   });
 
-  /**
-   * Called out on its own because it is the field the lookup depends on, and
-   * because losing it fails quietly: the client falls back to its own UniDic
-   * map, which is right until Shirabe emits a category that map lacks.
-   */
+  /** Keep `pt` separate because the lookup depends on it and the client fallback fails quietly for categories its
+   * own map lacks. */
   it('serves `pt`, which is what the dictionary lookup ranks by', () => {
     expect(s_Token.parse(FULL_TOKEN).pt).toBe('verb');
   });

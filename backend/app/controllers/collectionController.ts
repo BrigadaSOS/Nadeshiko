@@ -210,10 +210,8 @@ export const searchCollectionSegments: SearchCollectionSegments = async ({ param
 export const getCollectionStats: GetCollectionStats = async ({ params }, respond, req) => {
   const collection = await loadReadableCollection(req, params.collectionPublicId);
 
-  // One grouped count instead of paging every row of the collection into memory and replaying
-  // it through Elasticsearch a thousand ids at a time. The row count here is the number of
-  // distinct (media, episode) pairs the collection touches, which the corpus bounds, so the
-  // work no longer grows with the size of the collection.
+  // Use one grouped count of distinct `(media, episode)` pairs instead of loading collection rows and replaying ids
+  // through Elasticsearch.
   const rows = await CollectionSegment.createQueryBuilder('cs')
     .innerJoin(Segment, 'segment', 'segment.id = cs.segmentId')
     .select('segment.mediaId', 'mediaId')
@@ -273,13 +271,7 @@ export const getCollectionStats: GetCollectionStats = async ({ params }, respond
 
 const isAdmin = (user: Pick<User, 'role'>): boolean => user.role === UserRoleType.ADMIN;
 
-/**
- * Loads a collection the caller is allowed to *modify*, or throws.
- *
- * Fetching and authorizing are one step on purpose: every mutating handler needs
- * both, and splitting them makes "forgot the check" a silent hole rather than a
- * compile error.
- */
+/** Fetch and authorize together so mutating handlers cannot forget the ownership check. */
 async function loadOwnedCollection(req: Request, collectionPublicId: string): Promise<Collection> {
   const user = assertUser(req);
   const collection = await Collection.findOneOrFail({ where: { publicId: collectionPublicId } });
@@ -291,12 +283,8 @@ async function loadOwnedCollection(req: Request, collectionPublicId: string): Pr
   return collection;
 }
 
-/**
- * Every id in the collection travels to Elasticsearch on every page of a collection search,
- * because restricting the result set is what makes it a collection search. That is workable
- * for a curated collection and not for an arbitrarily large one, so there is a ceiling --
- * and passing it is an error rather than a silent search of the first N segments.
- */
+/** Every collection id must reach Elasticsearch to preserve collection scope; reject the ceiling rather than
+ * silently searching only the first N segments. */
 const MAX_SEARCHABLE_COLLECTION_SEGMENTS = 20_000;
 
 async function fetchCollectionSegmentIds(collectionId: number): Promise<number[]> {

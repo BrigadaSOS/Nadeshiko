@@ -18,14 +18,8 @@ function createLogger(): InstrumentedTypeOrmLogger {
   return new InstrumentedTypeOrmLogger(meter);
 }
 
-/**
- * The data points recorded for one metric since the last flush.
- *
- * `metric.dataPoints` is a union of three per-value-type arrays (counter,
- * histogram, exponential histogram), and flat-mapping across the union leaves
- * TypeScript with an unusable `never`-ish element type. Naming the element type
- * once here is what lets call sites index and read `.attributes` directly.
- */
+/** Name the metric point type once: `dataPoints` is a union of value-type arrays, and flat-mapping the union
+ * otherwise leaves call sites unable to read `.attributes`. */
 type RecordedPoint = DataPoint<number | Histogram | ExponentialHistogram>;
 
 async function collectMetric(name: string): Promise<RecordedPoint[]> {

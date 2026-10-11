@@ -54,20 +54,8 @@ export class AccountQuotaUsage extends BaseEntity {
   static async incrementForUser(userId: number): Promise<void> {
     const periodYyyymm = AccountQuotaUsage.getCurrentPeriodYyyymm();
 
-    // A STATEMENT RATHER THAN THE QUERY BUILDER, and it has to be. This is an
-    // atomic read-modify-write, and the builder cannot express one: TypeORM v1
-    // removed `onConflict()`, and its replacement `orUpdate()` only names columns
-    // to overwrite with the values from the INSERT. `orUpdate(['requestCount'])`
-    // would therefore write `request_count = 1` on every collision -- turning a
-    // counter into a flag, silently, with no type error and no failing insert.
-    //
-    // Doing it as a read-then-write instead would be worse: two callers in the
-    // same period race and one increment is lost. One statement keeps the count
-    // correct under concurrency, which is the whole point of the quota.
-    //
-    // The unqualified `"request_count"` on the right-hand side is the EXISTING
-    // row, per Postgres' ON CONFLICT rules -- `excluded` would be the rejected
-    // insert, i.e. the constant 1.
+    // Use one atomic SQL statement: `orUpdate` would write the inserted 1, while read-then-write loses concurrent
+    // increments; the RHS must be the existing row, not `excluded`.
     const repository = AccountQuotaUsage.getRepository();
     const table = repository.metadata.tableName;
 

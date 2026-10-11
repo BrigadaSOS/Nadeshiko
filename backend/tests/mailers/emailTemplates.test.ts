@@ -44,7 +44,6 @@ describe('renderTemplate', () => {
       year: '2026',
     });
 
-    // username appears in greeting, baseUrl appears in link
     const usernameCount = html.split('bob').length - 1;
     expect(usernameCount).toBeGreaterThanOrEqual(1);
   });
@@ -83,11 +82,7 @@ describe('buildVerifyNewEmailEmail', () => {
 describe('buildFeedbackAskEmail', () => {
   const unsubscribeUrl = 'https://nadeshiko.co/unsubscribe?token=t';
 
-  /**
-   * The action this email wants is a reply, and a button competes with it. A
-   * "Tell me" button pointing at the home page was somewhere to click that did
-   * nothing feedback-shaped, and every click on it was a reply we did not get.
-   */
+  /** The action is a reply, so a no-op home-page button only displaces the reply the email needs. */
   it('gives the started opening no button at all', async () => {
     const result = await buildFeedbackAskEmail({
       username: 'alice',
@@ -97,9 +92,7 @@ describe('buildFeedbackAskEmail', () => {
     });
 
     expect(result.campaign).toBe('feedback-ask-started');
-    // Structure, not wording: this copy lives in a Markdown file that gets
-    // rewritten often, and pinning a phrase there fails on an edit rather than
-    // on a regression.
+    // Assert structure rather than copy: the Markdown text is rewritten often.
     expect(result.html).not.toContain('utm_content=cta');
   });
 
@@ -141,17 +134,10 @@ describe('buildDormant30Email', () => {
     path: `/media/${name}`,
   });
 
-  /**
-   * Every link in this message is now wrapped in a token naming the recipient,
-   * so the builder cannot be called without one -- see `services/email/returnLink`.
-   */
+  /** Every link carries a recipient token; the builder cannot be called without one. */
   const recipient = { userId: 1, campaign: 'dormant-30-2026-08' };
 
-  /**
-   * The count decides the shape but never appears: ingest is bursty enough that
-   * the honest number is often small, and a padded one is disprovable from the
-   * home page. The grid does the pulling instead.
-   */
+  /** The count selects the layout but is not displayed; a padded count would be contradicted by the home page. */
   it('leads with what has been added, claiming nothing about their last visit', async () => {
     const result = await buildDormant30Email({
       ...recipient,
@@ -163,17 +149,12 @@ describe('buildDormant30Email', () => {
     });
 
     expect(result.subject).toBe('We have added new titles to Nadeshiko!');
-    // The reader may be here right now, signed out, or may never have visited at
-    // all -- dormancy is a fact about the account, not about them. See the note
-    // on `buildDormant30Email`.
+    // Dormancy belongs to the account, whether the reader is signed out, present, or has never visited.
     expect(result.subject).not.toMatch(/last here|last visit|you were/i);
     expect(result.html).not.toMatch(/since your last visit|since you were last here/i);
   });
 
-  /**
-   * A quiet month is a real answer, and "0 new titles since you were last here"
-   * is an argument for staying away. The section goes, the email still sends.
-   */
+  /** A quiet month still sends the email but omits the “0 new titles” section, which would argue against returning. */
   it('drops the line entirely when nothing has been added', async () => {
     const result = await buildDormant30Email({
       ...recipient,
@@ -189,12 +170,8 @@ describe('buildDormant30Email', () => {
     expect(result.html).not.toContain('{{');
   });
 
-  /**
-   * `copy.quiet` and `copy.news.closing` are the same paragraph, and the
-   * closing used to render unconditionally -- so the quiet shape asked the
-   * reader to reply twice, once above the grid and once below the button. The
-   * news shape was always right, which is why it went unnoticed.
-   */
+  /** The quiet copy and closing were once duplicated, causing two reply prompts; keep the closing conditional on the
+   * news shape. */
   it('asks the reader to reply exactly once in the quiet shape', async () => {
     const result = await buildDormant30Email({
       ...recipient,
@@ -208,13 +185,8 @@ describe('buildDormant30Email', () => {
     expect(result.html.match(/what was missing/g)).toHaveLength(1);
   });
 
-  /**
-   * THE POINT OF WRAPPING THE LINKS. A `utm_*` only attributes a visit if the
-   * browser carries it back, and the first dormant send arrived stripped from
-   * the one reader who returned and intact from eighteen mail scanners. The
-   * account now rides sealed inside the link instead, and the tags are put back
-   * on the destination by the redirect.
-   */
+  /** The recipient rides in the sealed redirect link because mail scanners strip or multiply `utm_*` attribution;
+   * the redirect restores tags at the destination. */
   it('addresses every link to the redirect, with the recipient sealed inside', async () => {
     const result = await buildDormant30Email({
       ...recipient,
@@ -225,7 +197,6 @@ describe('buildDormant30Email', () => {
       unsubscribeUrl,
     });
 
-    // Nothing in the message itself is tagged any more.
     expect(result.html).not.toContain('utm_');
 
     const links = [...result.html.matchAll(/href="([^"]+)"/g)]
@@ -264,11 +235,7 @@ describe('buildDormant30Email', () => {
     expect(result.html).not.toContain(`${unsubscribeUrl}&`);
   });
 
-  /**
-   * The row layout is the whole reason the grid is generated rather than
-   * slotted: one row up to four, two rows of three at five and six, two rows of
-   * four at seven and eight.
-   */
+  /** Generate rows so the grid stays at four columns up to four titles, then two rows of three or four. */
   it.each([
     [1, [1]],
     [2, [2]],
@@ -299,10 +266,7 @@ describe('buildDormant30Email', () => {
     expect(result.html).not.toContain('{{');
   });
 
-  /**
-   * EVERY TILE THE SAME SIZE, including in a short row: the widest row decides,
-   * so a seven does not render four small covers above three large ones.
-   */
+  /** Size every tile from the widest row so a short final row does not render larger covers. */
   it('sizes every tile from the widest row', async () => {
     const result = await buildDormant30Email({
       ...recipient,
@@ -362,13 +326,8 @@ describe('buildDormant30Email', () => {
     expect(result.html).toContain('&lt;img');
   });
 
-  /**
-   * The button and the grid used to sit inside the news branch, on the reasoning
-   * that "see what is new" over a month with nothing new is a link to a
-   * disappointment. That stopped holding once the grid is topped up to a full
-   * eight from the newest titles overall -- see `titlesAddedSinceLastVisit` --
-   * so there is always something to look at and both shapes get both.
-   */
+  /** Both shapes get the button and grid because the grid is topped up from newest titles when the monthly delta is
+   * empty. */
   it('keeps the grid and the button in the quiet shape too', async () => {
     const result = await buildDormant30Email({
       ...recipient,

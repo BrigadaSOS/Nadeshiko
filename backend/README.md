@@ -9,20 +9,20 @@ The Nadeshiko API lets you search Japanese segments (subtitles with translations
 Authenticate with a Bearer token in the `Authorization` header. Generate an API key at [nadeshiko.co/settings/api](https://nadeshiko.co/settings/api).
 
 ```ts
-const res = await fetch("https://api.nadeshiko.co/v1/search/segments", {
+const res = await fetch("https://api.nadeshiko.co/v1/search", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     Authorization: "Bearer YOUR_API_KEY",
   },
   body: JSON.stringify({
-    query: "彼女",
-    limit: 5,
+    query: { search: "彼女" },
+    take: 5,
   }),
 });
 ```
 
-Supports romaji, kanji, kana, English, and Spanish queries. Use `exactMatch: true` for phrase matching, and filter by `category`, `minLength`, `maxLength`, `contentSort`, and more.
+Supports romaji, kanji, kana, English, and Spanish queries. Set `query.exactMatch: true` for phrase matching, use `filters` for category and length constraints, and `sort` for ordering.
 
 ## Development Setup
 
@@ -77,10 +77,10 @@ Run Kamal from the `backend` directory.
 
 Secret files:
 
-- `dev`: `.kamal/dev.key`
-- `prod`: `.kamal/prod.key`
+- `staging`: `.kamal/secrets.staging`
+- `prod`: `.kamal/secrets.prod`
 
-Development:
+Staging:
 
 ```bash
 kamal deploy -d staging

@@ -7,8 +7,8 @@ This is a Bruno collection for the Nadeshiko backend API.
 1. Install [Bruno](https://www.usebruno.com/) if you haven't already
 2. Open Bruno and import this collection (File > Import Folder > Select
    `docs/bruno`)
-3. Configure your environment variables in `docs/bruno/environments/Local.bru`:
-   - `baseUrl`: Your API base URL (default: `http://localhost:3000`)
+3. Configure your environment variables in `docs/bruno/environments/0) Local.bru`:
+   - `baseUrl`: Your API base URL (default: `http://localhost:5000`)
    - `apiKey`: Your API key
    - `sessionToken`: Your better-auth session cookie token
 

@@ -4,21 +4,8 @@ import { UserMediaAffinity } from '@app/models/UserMediaAffinity';
 import { registerAffinityRetentionWorker } from '@app/workers/affinityRetentionWorker';
 import { AFFINITY_RETENTION_QUEUE } from '@app/workers/queueNames';
 
-/**
- * The affinity tally's 24-month prune.
- *
- * WHAT IS WORTH TESTING HERE is the cutoff arithmetic, and only that. A
- * retention job has no output anyone looks at: it deletes rows on a schedule, in
- * a process nobody is watching, and both ways of getting it wrong are silent.
- * Too far back and it deletes nothing forever, so the table grows without bound;
- * too near and it quietly eats the study history the search filter is ordered
- * by, which surfaces months later as "the ranking got worse" with nothing to
- * point at.
- *
- * `UserMediaAffinity.delete` is mocked rather than exercised against a database:
- * the query is one call and TypeORM is not the thing under test -- the date
- * that goes into it is.
- */
+/** Pin only the 24-month cutoff arithmetic; both deleting too much and deleting nothing are silent retention
+ * failures. Mock `UserMediaAffinity.delete` because the date argument, not TypeORM, is under test. */
 
 type JobHandler = (jobs: unknown[]) => Promise<void>;
 
@@ -73,10 +60,7 @@ describe('affinityRetentionWorker', () => {
     expect(cutoffFromDeleteCall(deleteSpy)).toBe(202408);
   });
 
-  // `yyyymm` is an integer, so every one of these has to come back over a year
-  // boundary as 12 months, not as a subtraction of 100 that lands on month 00 or
-  // month 13 -- a cutoff of 202500 or 202413 is a number Postgres compares
-  // perfectly happily and prunes the wrong rows by.
+  // Integer `yyyymm` cutoffs must cross years by calendar months, not numeric subtraction.
   it.each([
     ['2026-01-15T00:00:00Z', 202401],
     ['2026-12-31T23:59:59Z', 202412],

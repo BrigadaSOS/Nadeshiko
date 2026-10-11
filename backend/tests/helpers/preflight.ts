@@ -8,11 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const backendRoot = path.resolve(__dirname, '../..');
 
-// `.env.test` overrides: anything already in process.env (a shell export, or a
-// `.env` Vite loaded for us) wins over dotenv by default, so without `override`
-// a bare `vitest run` could inherit the dev database. `.env` is then loaded
-// without override purely to fill in keys `.env.test` does not define (local
-// admin credentials, for instance).
+// Load `.env.test` with overrides so a bare run cannot inherit a development database; load `.env` without overrides
+// only to fill keys absent from the test file.
 loadDotenv({ path: path.join(backendRoot, '.env.test'), quiet: true, override: true });
 loadDotenv({ path: path.join(backendRoot, '.env'), quiet: true });
 

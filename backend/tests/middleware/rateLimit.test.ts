@@ -9,12 +9,8 @@ import { buildApplication } from '@config/application';
 import { config } from '@config/config';
 import { ApiKeyKind } from '@app/models';
 
-// Built through buildApplication so the limiters sit where production puts
-// them: globalRateLimit ahead of body parsing and the router, authRateLimit
-// scoped to /v1/auth ahead of the auth handlers. Both therefore run BEFORE any
-// route-level auth middleware, which is exactly what the SERVICE-key exemption
-// has to cope with. Stub handlers stand in for the real routers so the limiter
-// behaviour is not entangled with better-auth or the database.
+// Build the real middleware order: global and auth limiters run before parsing, routing, and route auth. Stub routers
+// keep this test independent of better-auth and the database.
 function buildApp(): Application {
   return buildApplication({
     mountRoutes: (app) => {
@@ -29,10 +25,8 @@ function buildApp(): Application {
   });
 }
 
-// Runs the body against one listening server rather than the fresh one
-// supertest starts per `request(app)` call. Exercising a limit means firing
-// hundreds of sequential requests, and that much listen/close churn
-// intermittently exhausts sockets and fails the request with ECONNREFUSED.
+// Use one listening server for the many requests; per-request bind/close churn can exhaust sockets and produce
+// ECONNREFUSED before the limiter is exercised.
 async function withServer<T>(fn: (server: Server) => Promise<T>): Promise<T> {
   const server = buildApp().listen(0);
   try {
@@ -108,10 +102,7 @@ describe('rateLimit', () => {
   }, 15_000);
 
   it('exempts proxied traffic carrying the valid internal-proxy secret', async () => {
-    // The frontend Nitro proxy is already rate limited per real client IP, and
-    // all its traffic shares one source key at the backend. It proves itself
-    // with the shared secret so the backend does not throttle every proxied user
-    // against one bucket.
+    // The proxy authenticates with the shared secret so all proxied users do not share one backend bucket.
     await withServer(async (server) => {
       const statuses: number[] = [];
       for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 50; i++) {
@@ -140,11 +131,8 @@ describe('rateLimit', () => {
   }, 15_000);
 
   it('counts one visitor as one bucket even when Cloudflare routes them via different edges', async () => {
-    // The production bug this replaced. `trust proxy: 1` resolved req.ip to the
-    // rightmost X-Forwarded-For entry, which is the Cloudflare edge and not the
-    // visitor. Twelve requests from one machine landed in four buckets, each
-    // reporting remaining=299, so an abusive client was never counted twice.
-    // Here the visitor is constant and the edge rotates on every request.
+    // The former proxy-IP bug put one visitor into rotating Cloudflare buckets, so abusive requests were never counted
+    // together. Here the visitor stays fixed while the edge rotates.
     await withServer(async (server) => {
       const statuses: number[] = [];
       for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 2; i++) {
@@ -175,10 +163,7 @@ describe('rateLimit', () => {
   }, 20_000);
 
   it('does NOT exempt traffic that sends no internal-proxy secret at all', async () => {
-    // The state this was actually found in: the SSR SDK reached the backend
-    // with a service API key but no secret, so every render competed for one
-    // bucket keyed on the frontend container's address. "Wrong secret" was
-    // already covered; "no secret" is the case that shipped.
+    // No proxy secret is the shipped failure: every SSR request would share the frontend container's bucket.
     await withServer(async (server) => {
       const statuses: number[] = [];
       for (let i = 0; i < config.RATE_LIMIT_MAX_REQUESTS_PER_IP + 2; i++) {
@@ -189,12 +174,8 @@ describe('rateLimit', () => {
     });
   }, 15_000);
 
-  // The reason /v1/auth/* is not exempted by source-IP class, written down as a
-  // test because the change that would break it reads like a safe one: the
-  // limiter's own key comes from `CF-Connecting-IP` when it is present, so any
-  // skip that reads the same address is a skip the caller can ask for. A
-  // claimed loopback address must buy exactly nothing on the endpoints that
-  // guard sign-in.
+  // Do not exempt auth endpoints by address class: callers can claim the same loopback address used by the limiter,
+  // which would bypass sign-in protection.
   it('does not let a claimed private source address skip the auth limiter', async () => {
     await withServer(async (server) => {
       const statuses: number[] = [];
@@ -237,10 +218,7 @@ describe('rateLimit', () => {
 });
 
 describe('rateLimit skip for SERVICE keys', () => {
-  // The limiters run before route-level auth, so `req.auth` is not populated
-  // yet. The exemption instead resolves the bearer token against the auth cache
-  // that requireApiKeyAuth fills in — seeded here the way a verified key would
-  // leave it.
+  // Limiters run before route auth, so seed the bearer token in the auth cache populated by `requireApiKeyAuth`.
   const SERVICE_KEY = 'nade_service_key_for_rate_limit_test';
   const USER_KEY = 'nade_user_key_for_rate_limit_test';
 

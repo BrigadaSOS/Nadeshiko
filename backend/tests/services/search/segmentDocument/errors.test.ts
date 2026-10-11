@@ -29,11 +29,8 @@ describe('isSuccessfulMsearchItem', () => {
   });
 });
 
-/**
- * The shape the Elasticsearch client hands us: root causes are formatted into
- * `message` as well as kept structured under `meta.body.error`, so a classifier
- * reading either one sees them.
- */
+/** The client includes root causes in `message` and under `meta.body.error`; classification must handle either
+ * representation. */
 const esError = (type: string, reason: string) =>
   Object.assign(new Error(`search_phase_execution_exception\n\tRoot causes:\n\t\t${type}: ${reason}`), {
     meta: { body: { error: { type: 'search_phase_execution_exception', root_cause: [{ type, reason }] } } },

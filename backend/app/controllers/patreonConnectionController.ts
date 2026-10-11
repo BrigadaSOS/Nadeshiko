@@ -11,9 +11,8 @@ import { config } from '@config/config';
 
 export const getPatreonConnection: GetPatreonConnection = async (_params, respond, req) => {
   const user = assertUser(req);
-  // This endpoint powers the explicit "Check again" action after somebody joins.
-  // Always verify with Patreon so a newly active membership is not hidden behind
-  // the normal service-level freshness window.
+  // The explicit “Check again” bypasses the normal freshness window so a newly active Patreon membership is visible
+  // immediately.
   const connection = await find(user.id, true);
   return respond.with200().body({ connection: connection?.toJSON() ?? null, patreonUrl: config.PATREON_CAMPAIGN_URL });
 };

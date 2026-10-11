@@ -45,15 +45,8 @@ export const getAdminUserQuota: GetAdminUserQuota = async ({ params }, respond) 
   return respond.with200().body(await quotaState(user));
 };
 
-/**
- * Move an account onto a tier, or grant it a one-off override.
- *
- * This endpoint exists so that raising a quota stops being
- * `UPDATE "User" SET monthly_quota_limit = ...` typed against production. That
- * worked, and it left nothing behind: no record of who did it, when, or why,
- * and no way to find the raised accounts afterwards except by looking for the
- * number that differed.
- */
+/** Moves an account onto a tier or grants an override; the endpoint records who changed the quota instead of
+ * requiring direct production SQL. */
 export const updateAdminUserQuota: UpdateAdminUserQuota = async ({ params, body }, respond, req) => {
   const actor = assertUser(req);
 
@@ -67,9 +60,7 @@ export const updateAdminUserQuota: UpdateAdminUserQuota = async ({ params, body 
   const before = await quotaState(user);
 
   if (body.tierId !== undefined) {
-    // Checked rather than left to the foreign key: a typo'd slug would
-    // otherwise surface as a 500 from the driver, and the account would keep
-    // whatever tier it had with nothing said about it.
+    // Validate the tier slug here so a typo becomes a client error, not a foreign-key 500.
     const tier = await Tier.findOne({ where: { id: body.tierId } });
     if (!tier) {
       throw new InvalidRequestError(`Unknown tier "${body.tierId}".`);
@@ -83,18 +74,13 @@ export const updateAdminUserQuota: UpdateAdminUserQuota = async ({ params, body 
 
   await user.save();
 
-  // The auth layer caches `User` rows, so without this the account keeps being
-  // billed against its old limit until the entry ages out -- which is exactly
-  // the window in which somebody is watching to see whether the bump worked.
+  // Invalidate cached users now so the quota bump applies immediately rather than after auth-cache expiry.
   invalidateUserCache(user.id);
   invalidateTierCache();
 
   const after = await quotaState(user);
 
-  // The audit trail. A log line rather than a table: this repo dropped its
-  // audit tables deliberately, and the observability stack is where the rest of
-  // the who-did-what already lives and is queryable. Real ids on both sides --
-  // an audit entry that cannot name the actor is not one.
+  // Log actor/target ids and before/after quotas so administrative changes remain traceable.
   logger.info(
     {
       event: 'admin.quota.updated',

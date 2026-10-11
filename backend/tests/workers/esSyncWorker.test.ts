@@ -2,25 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { registerEsSyncWorkers } from '@app/workers/esSyncWorker';
 import { ES_SYNC_CREATE_QUEUE, ES_SYNC_DELETE_QUEUE, ES_SYNC_UPDATE_QUEUE } from '@app/workers/queueNames';
 
-/**
- * The workers that keep Elasticsearch in step with Postgres.
- *
- * What is worth testing here is exactly one decision, made twice: WHEN TO
- * THROW. These handlers run under pg-boss, where a throw fails the whole batch
- * and schedules a retry, and returning normally marks all hundred jobs done.
- * So the choice is between losing documents and retrying forever, and both
- * failure modes are silent:
- *
- * - Returning when ANY document failed marks it complete even though its
- *   Elasticsearch write did not land.
- * - Throwing retries the whole bounded batch. Index and delete are idempotent
- *   by segment id, so redoing a successful item is safe.
- *
- * The other case is a segment deleted between being enqueued and being
- * processed. That is ordinary -- the delete job is in a different queue -- and
- * it must not fail the batch, or the queue jams behind a row that is never
- * coming back.
- */
+/** Under pg-boss, throw when any Elasticsearch item fails so the bounded batch retries; returning would mark failed
+ * jobs complete. Index/delete are idempotent by segment id; a concurrent delete is ordinary and must not jam the
+ * queue. */
 const bulkIndex = vi.fn();
 const bulkDelete = vi.fn();
 vi.mock('@app/services/search/segmentDocument/SegmentIndexer', () => ({

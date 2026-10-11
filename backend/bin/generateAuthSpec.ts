@@ -1,40 +1,7 @@
 #!/usr/bin/env node
-/**
- * Generates an OpenAPI description of the better-auth routes the frontend calls,
- * and merges it into a spec used ONLY by the SDK codegen.
- *
- * Why this exists
- * ---------------
- * `/v1/auth/*` is mounted by better-auth, not by our Express app, so those routes
- * have never been in the spec. The cost is paid in the frontend, where every auth
- * call hand-writes its request and response shapes and nothing checks them against
- * the server.
- *
- * Why it does NOT go in the main bundle
- * -------------------------------------
- * `docs/generated/openapi.yaml` drives more than documentation:
- *
- *   - `openapi-code-generator` builds an Express router per tag, so an `Auth` tag
- *     would generate handlers for routes better-auth already serves.
- *   - `generateRouteAuth.ts` throws for any operation with no `security` that is
- *     not explicitly allowlisted. Sign-in routes have no security by definition,
- *     so adding them would break `generate:api` outright.
- *   - `generatePublicRoutes.ts` decides which routes the Nitro proxy may inject
- *     the master API key into. That key is the admin service account. Feeding auth
- *     routes into that classifier is not a risk worth taking for typed clients.
- *
- * So the auth paths land in a separate `openapi-sdk.yaml` that only the SDK reads.
- * The main bundle, the public bundle, and every generator above are untouched.
- *
- * The public spec is unaffected either way: these are marked `x-internal: true`.
- *
- * Deliberately NOT part of `generate:api`. It builds a real better-auth instance
- * to ask it for its schema, which loads `@config/config` and so needs a valid
- * environment. The package script loads committed test defaults first and lets a
- * developer's `.env` override them, so both CI and local regeneration can build
- * the same schema without production credentials. The throw on a missing route
- * is what catches the spec drifting from what better-auth actually serves.
- */
+/** Generates better-auth routes into the SDK-only OpenAPI bundle. Keep them out of the main bundle: Express/router,
+ * auth-allowlist, and proxy-key generators would treat these routes as application routes. This command builds a
+ * real auth instance, so committed test defaults must load before environment overrides. */
 import { writeFileSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { betterAuth } from 'better-auth';
@@ -49,14 +16,8 @@ const SDK_BUNDLE = join(DOCS_GENERATED, 'openapi-sdk.yaml');
 /** Where better-auth is mounted (see config/routes.ts). */
 const AUTH_BASE_PATH = '/v1/auth';
 
-/**
- * The auth routes exposed to the SDK, as better-auth names them.
- *
- * An explicit list rather than everything better-auth generates: the plugin emits
- * 41 routes and the app calls 17 of them. Each entry here becomes a generated SDK
- * method and an implied contract, so adding one should be a deliberate edit rather
- * than a side effect of upgrading a plugin.
- */
+/** Explicit SDK route list: each entry becomes a generated method and contract, rather than changing implicitly when
+ * the auth plugin emits new routes. */
 const EXPOSED_ROUTES = [
   '/get-session',
   '/sign-out',
@@ -85,19 +46,8 @@ type Operation = Record<string, unknown> & {
 };
 type PathItem = Record<string, Operation>;
 
-/** `admin/ban-user` -> `authAdminBanUser`. Stable, and unique across the set. */
-/**
- * Operation ids better-auth names in a shape the SDK generator disagrees with.
- *
- * `signInWithEmailOTP` is better-auth's own id, and the two halves of the SDK
- * codegen normalize a run of capitals differently: the client factory keeps
- * `...OTP` while the function module emits `...Otp`, so the generated package
- * imports a name it does not export and the frontend fails to typecheck. Fixing
- * it at the source keeps both halves reading the same string.
- *
- * Keyed by what better-auth calls it, so an upgrade that renames the route makes
- * this entry stop applying rather than silently rename something else.
- */
+/** Normalize better-auth operation IDs only where the SDK generator disagrees; key the mapping by the source ID so
+ * renamed routes stop applying. */
 const OPERATION_ID_OVERRIDES: Record<string, string> = {
   signInWithEmailOTP: 'signInWithEmailOtp',
 };
@@ -112,28 +62,12 @@ function deriveOperationId(path: string): string {
   return `auth${words.join('')}`;
 }
 
-/**
- * Prefix for better-auth's own component schemas.
- *
- * It names them `User`, `Session`, `Account`, `Verification`, `Apikey` -- generic
- * enough that our spec could grow into a collision, and ambiguous in the generated
- * SDK where `User` already means something. Prefixed on the way in, with every
- * `$ref` rewritten to match.
- */
+/** Prefix better-auth component schemas and rewrite their `$ref`s to avoid collisions with this spec’s generic
+ * generated types. */
 const SCHEMA_PREFIX = 'Auth';
 
-/**
- * Corrections to better-auth's generated schema.
- *
- * The plugin describes better-auth in general, not this deployment. It types user
- * ids as `string` because better-auth accepts `string | number`; ours are a
- * Postgres `integer` column, surfaced as `number` everywhere else in the app and
- * normalised with `Number(user.id)` in config/auth.ts.
- *
- * Left uncorrected, generated clients would force `String(user.id)` at call sites
- * and change the wire payload of admin actions from `5` to `"5"`. Describing what
- * this server actually accepts is the point of generating the spec at all.
- */
+/** Correct generated schemas to this server’s wire types: user IDs are Postgres integers here, not the plugin’s
+ * general `string | number`, so clients emit numeric IDs. */
 const SCHEMA_CORRECTIONS: { path: string; property: string; schema: Record<string, unknown> }[] = [
   { path: '/admin/ban-user', property: 'userId', schema: { type: 'integer' } },
   { path: '/admin/unban-user', property: 'userId', schema: { type: 'integer' } },

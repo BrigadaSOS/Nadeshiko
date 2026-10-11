@@ -1,49 +1,13 @@
-/**
- * Tells a morpheme-segmented subtitle source from a normally-spaced one.
- *
- * WHY THIS EXISTS. One Punch Man was ingested from a source that had been run
- * through a morphological analyzer before it reached us -- wakati-gaki, one
- * space per morpheme boundary -- and we stored it verbatim for a year:
- *
- *     残念 だ が 俺 は 命 を かけ てる わけ じゃ ない
- *
- * It is not a display bug. Shirabe cannot group across a space, so every line
- * came back shredded (`お前 見 て みろ よ` parsed as five tokens plus four
- * spaces), which costs furigana, inflection, and dictionary linking, and leaves
- * the media unreachable by normal search input: `見てみろ` matched nothing.
- * `scripts/strip-wakati-spaces.ts` repaired that media. This is the part that
- * keeps the next one from landing.
- *
- * THE SIGNAL IS A POPULATION, NOT A LINE. This is the whole design constraint.
- * A single line cannot be judged: `お前 見 て みろ よ` and a perfectly clean
- * `おっ 行く! で どこ?` are the same shape in isolation, because real subtitles
- * do use a space -- for a speaker change, or a pause. What separates them is how
- * FAR APART the spaces are, averaged over enough lines to mean something.
- * Measured over the whole corpus (317 media, 1.32M segments):
- *
- *     One Punch Man            1.91 chars between spaces
- *     Kimi ni Todoke           5.61   <- the closest clean media
- *     every other media        5.8 - 6.1
- *
- * 1.91 is a morpheme. ~6 is a writer's pause. Nothing sits in between, which is
- * why a threshold works here at all -- and why it is checked per BATCH (one
- * episode, ~250 lines) rather than per line.
- *
- * HALF-WIDTH U+0020 ONLY. U+3000 is real Japanese typography, it appears in
- * 172k segments of otherwise clean corpus, and the wakati lines themselves use
- * it correctly alongside the noise (`! !　誰か`). Counting it would measure
- * nothing.
- */
+/** Detect wakati from a population of lines using half-width spaces only; full-width spaces are valid Japanese
+ * typography, not the signal. */
 
 /** Running counts, so a corpus-wide audit can stream instead of buffering 1.3M
  *  strings in memory to hand this module an array. */
 export interface WakatiTally {
   totalLines: number;
   spacedLines: number;
-  /** Sum of each spaced line's own chars-per-chunk, so the summary is a mean of
-   *  per-line ratios -- the same statistic the corpus survey was measured with,
-   *  which is where the thresholds below come from. Weighting by line length
-   *  instead would let one long line outvote twenty short ones. */
+  /** Average per-line ratios rather than weighting by characters, so one long subtitle cannot outweigh many short
+   * lines. */
   chunkRatioSum: number;
 }
 
@@ -56,10 +20,7 @@ export interface WakatiAssessment {
   isWakati: boolean;
 }
 
-/** Below this, the spaces are falling on morpheme boundaries. Sits in the gap
- *  between 1.91 (the bad ingest) and 5.61 (the closest clean media), far enough
- *  from both that a media would have to be unlike anything in the corpus to be
- *  misread. */
+/** The threshold sits between the measured bad and clean populations; evaluate it per batch, not per isolated line. */
 export const MAX_MEAN_CHUNK_CHARS = 3.0;
 
 /** Below this many spaced lines the mean is noise, and a short batch of

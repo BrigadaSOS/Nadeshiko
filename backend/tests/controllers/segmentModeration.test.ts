@@ -9,26 +9,9 @@ import { ContentRating, Segment, SegmentStatus, SegmentStorage } from '@app/mode
 import { SegmentRevision } from '@app/models/SegmentRevision';
 import { Episode } from '@app/models';
 
-/**
- * Restoring a revision, and moderating a whole episode.
- *
- * Both carry invariants the controller states outright, and both are the kind
- * that nothing else can catch:
- *
- * RESTORING IS APPEND-ONLY. Going back to revision 3 from revision 7 writes
- * revision 8 holding what 7 left behind. Rewinding the counter instead would
- * destroy the record of the edits being undone -- which is precisely the set of
- * rows anyone would want when working out why a bad edit happened, and the
- * restore itself would stop being undoable.
- *
- * EPISODE MODERATION IS ALL OR NOTHING. The count is checked against
- * `maxAffected` BEFORE any write, so a caller who guessed the episode size wrong
- * gets a refusal rather than a half-shifted episode. And it writes through
- * entities rather than a set-based UPDATE, because the Elasticsearch reindex
- * rides on the `afterUpdate` subscriber -- a faster UPDATE would leave search
- * serving the old timings for the whole episode, which is the defect the feature
- * was built to fix.
- */
+/** Restores append revisions and moderates episodes atomically. Restores must preserve the edit history; episode
+ * moderation checks `maxAffected` before writes and uses entities so the `afterUpdate` Elasticsearch reindex
+ * subscriber runs. */
 setupTestSuite();
 
 const app = createTestApp();
@@ -79,11 +62,8 @@ async function editEnglish(publicId: string, content: string) {
   return request(app).patch(`/v1/media/segments/${publicId}`).send({ textEn: { content } });
 }
 
-/**
- * The segment ids enqueued on one queue. `sendDebounced` carries both the
- * token-parse and the ES-sync work, so an unfiltered assertion on it would pass
- * on the reindex that every write triggers.
- */
+/** Filter the debounced queue assertion to the segment ids: it carries both token-parse and Elasticsearch-sync work,
+ * so an unfiltered assertion could pass for the unrelated reindex. */
 function enqueuedOn(queue: string): number[] {
   return bossSendDebounced.mock.calls
     .filter(([name]: unknown[]) => name === queue)

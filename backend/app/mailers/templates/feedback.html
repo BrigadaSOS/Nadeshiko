@@ -61,10 +61,7 @@
         color: #a8a8a8;
         margin: 0 0 20px;
       }
-      /* The message is what someone typed, so it keeps its own line breaks
-         instead of being reflowed into one paragraph. `pre-wrap` also means a
-         pasted stack trace stays readable without any markup in the value --
-         which matters, because renderTemplate escapes it. */
+      /* Preserve user line breaks with `pre-wrap`; escaping by the template renderer keeps pasted markup inert. */
       .message {
         font-family: inherit;
         font-size: 15px;

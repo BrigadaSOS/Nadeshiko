@@ -128,9 +128,8 @@ describe('POST /v1/feedback', () => {
       .post('/v1/feedback')
       .send({ body: 'From my account', formToken: VALID_TOKEN(), email: 'someone-else@example.com' });
 
-    // Identity only. A session read slides the session, and this response has
-    // no way to give the browser the cookie that comes back -- the renewal is
-    // weekly, so spending it here would cost that reader the whole window.
+    // A session read slides the session, but this response cannot return the renewed cookie; spending the weekly
+    // renewal here would consume the reader's refresh window.
     expect(getSession).toHaveBeenCalledWith(expect.objectContaining({ query: { disableRefresh: true } }));
 
     const stored = await Feedback.findOneOrFail({ where: { body: 'From my account' } });

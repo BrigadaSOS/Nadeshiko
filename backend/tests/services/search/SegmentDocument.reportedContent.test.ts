@@ -18,10 +18,7 @@ vi.mock('@config/log', () => {
   return { logger: mockLogger, createLogger: () => mockLogger, default: mockLogger };
 });
 
-// Stands in for the database read. Which titles earn which weight is covered in
-// tests/services/reports/reportedContent.test.ts; what this file checks is that
-// they reach the Elasticsearch request, in the right clause, alongside the
-// reader's own preferences.
+// These tests verify report weights and reader preferences reach the ES request; report tests own weight selection.
 const reported = { segmentIds: new Set<number>(), mediaWeights: new Map<number, number>() };
 vi.mock('@app/services/reports/reportedContent', () => ({
   getUnhandledReports: async () => reported,

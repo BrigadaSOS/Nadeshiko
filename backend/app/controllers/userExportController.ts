@@ -8,13 +8,8 @@ import { resolveReportPublicIds } from './mappers/reportMapper';
 
 const EXPORT_BATCH_SIZE = 1000;
 
-/**
- * The paged loops below bound each query, not the response: everything they read accumulates
- * in one array and is serialized as a single JSON body, so the batch size is a politeness to
- * Postgres and nothing more. These are the actual bound. An export that reaches one of them
- * is cut short and says so in `truncated`, which beats both an unbounded body and a response
- * that silently claims to be complete.
- */
+/** Batch sizes bound each query, not the accumulated response; mark an export `truncated` at the cap instead of
+ * claiming completeness. */
 const EXPORT_MAX_ACTIVITY = 50_000;
 const EXPORT_MAX_REPORTS = 5_000;
 const EXPORT_MAX_COLLECTIONS = 1_000;
@@ -49,13 +44,8 @@ export const exportUserData: ExportUserData = async (_params, respond, req) => {
   );
 };
 
-/**
- * The tally is one row per title per month, so a reader who has touched a few
- * hundred shows across the retention window is in the thousands -- small next to
- * the activity log, but not the "couple of dozen" it looks like at a glance.
- * Bounded like every other section so one account cannot make the export
- * unserializable.
- */
+/** The monthly tally can be thousands of rows, so bound it like the other export sections to keep one account
+ * serializable. */
 async function loadMediaAffinityForExport(userId: number): Promise<Paged<UserMediaAffinity>> {
   const rows = await UserMediaAffinity.find({
     where: { userId },

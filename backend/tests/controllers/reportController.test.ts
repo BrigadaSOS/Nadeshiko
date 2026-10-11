@@ -187,10 +187,8 @@ describe('POST /v1/user/reports', () => {
       });
     expect(first.status).toBe(201);
 
-    // Two concurrent submissions are not reproducible inside one transactional
-    // test, so go straight at the guarantee the controller leans on: an identical
-    // row is refused even when nothing looks first. Nothing may query after this
-    // — the rejected statement leaves the surrounding transaction aborted.
+    // A single transaction cannot reproduce concurrent submissions; assert the duplicate-row guard directly. Do not
+    // query afterward because the rejected statement aborts the transaction.
     const duplicate = Report.create({
       source: ReportSource.USER,
       targetType: ReportTargetType.MEDIA,

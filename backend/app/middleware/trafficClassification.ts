@@ -14,40 +14,25 @@ import {
 import { getMeter } from '@config/telemetry';
 import { isTrustedInternalCaller } from '@lib/internalProxy';
 
-/**
- * Labels every request as reader / bot / monitor traffic, once, as early as
- * possible, so the access log, the metrics, the span and any error raised
- * downstream all agree about who was on the other end.
- *
- * Mounted before the rate limiter (config/application.ts): a 429 is exactly the
- * kind of event worth splitting by traffic type, and by then the request has
- * already been decided.
- */
+/** Classify once before rate limiting so logs, metrics, spans, and 429s agree about traffic type. */
 
 const meter = getMeter();
 
-// Bounded by construction: 3 traffic values x the HTTP methods we route x 5
-// status classes. Deliberately separate from the auto-instrumented
-// `http.server.request.duration` histogram, which cannot carry a custom
-// attribute — dividing bot by total here is what answers "how much of this is
-// crawlers", and comparing it against the histogram answers "and is it slow".
+// Keep traffic/method/status labels bounded; the separate histogram answers latency, while this counter answers crawler
+// share.
 const requestCount = meter.createCounter('http.server.requests', {
   description: 'HTTP server requests by traffic type',
   unit: '{request}',
 });
 
-// The crawler's name, on a counter of its own rather than as a fourth
-// attribute on the one above: ~40 families cross-multiplied by method and
-// status would be a few thousand series to answer a question ("which crawler")
-// that never needs the other dimensions.
+// Put crawler family on its own metric; combining it with method and status would create unnecessary cardinality.
 const botRequestCount = meter.createCounter('http.server.bot_requests', {
   description: 'HTTP server requests by crawler family',
   unit: '{request}',
 });
 
-/** Family names we are willing to put on a metric. The frontend derives the
- *  value from its copy of the same list (see lib/traffic.ts), so this only
- *  guards against a future caller turning the header into a cardinality bomb. */
+/** Allow only known family names from the shared frontend list, preventing a header from becoming a cardinality
+ * bomb. */
 const SAFE_FAMILY = /^[a-z0-9][a-z0-9._-]{0,39}$/;
 
 export interface RequestTraffic {
@@ -55,16 +40,8 @@ export interface RequestTraffic {
   family: string | null;
 }
 
-/**
- * Who this request is from.
- *
- * The frontend's own classification wins when it is present AND the caller is
- * one of our own (internal-proxy secret or SERVICE key), because the frontend
- * saw the visitor and we may not: SSR fetches a page's data over the internal
- * network without the visitor's User-Agent attached, so a crawl of /search
- * would otherwise arrive here as anonymous reader load. Everything else is
- * classified from the User-Agent it presented.
- */
+/** For trusted frontend requests, prefer the frontend’s visitor classification because SSR does not forward the
+ * visitor User-Agent. */
 export function resolveTraffic(req: Request): RequestTraffic {
   if (isTrustedInternalCaller(req)) {
     const forwarded = parseTrafficHeader(req.get(TRAFFIC_HEADER));

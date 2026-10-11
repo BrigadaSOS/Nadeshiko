@@ -5,17 +5,8 @@ import {
 } from '@app/services/analytics/posthog';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/**
- * The two server-side events that make API users visible.
- *
- * They exist because an API reader is invisible to every browser event the
- * product has: no pageview, no search, no playback. Without these, the segment
- * shows up in every activation and retention figure as a failed signup.
- *
- * `posthog-node` is mocked rather than the analytics module, because what these
- * tests are about IS the capture payload -- the distinct id it keys on, and the
- * dedupe that decides whether a second call sends anything at all.
- */
+/** Capture server-side API usage because API readers have no browser events. Mock `posthog-node` to assert the
+ * payload and deduplication rather than mocking the analytics module. */
 const capture = vi.fn();
 
 vi.mock('posthog-node', () => ({

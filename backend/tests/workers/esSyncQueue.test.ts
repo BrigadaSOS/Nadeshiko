@@ -65,10 +65,8 @@ describe('esSyncQueue', () => {
   });
 
   it('enqueues one job per segment, each with its own readable segmentId', async () => {
-    // This is the property that broke silently: `send(queue, jobs)` stores the
-    // array as one job's payload, so the workers — which read a batch as
-    // `jobs.map((j) => j.data.segmentId)` — got a list of undefined and indexed
-    // nothing, without an error anywhere.
+    // Pass `jobs` as the batch payload; wrapping the array as one job makes workers map `undefined` ids and index
+    // nothing without an error.
     const segmentIds = [10, 11, 12];
 
     await sendBulkEsSyncJobs(segmentIds.map((segmentId) => ({ segmentId, operation: 'DELETE' as const })));

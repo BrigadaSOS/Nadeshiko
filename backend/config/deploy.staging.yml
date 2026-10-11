@@ -4,26 +4,10 @@ image: brigadasos/nadeshiko-backend-stg
 servers:
   web:
     options:
-      # Memory limit: 768MB RAM + 256MB swap for stg.
-      #
-      # CUT FROM 1.5g 2026-08-14. It was matching production's cap for a service
-      # that gets almost no traffic: measured over 24h, steady state ~206-290MB
-      # and a peak of 340MB across every deploy in the window -- 22% of the old
-      # cap. The remaining ~1.2GB was reserved against a load that does not
-      # arrive. 768m still leaves better than 2x headroom over the observed peak.
-      #
-      # WHY THE RESERVATION MATTERED EVEN THOUGH IT WAS NEVER USED. The caps on
-      # this host sum to more than the host has (7.75GB of RAM), which is fine
-      # while nothing peaks together and dangerous when it does -- and the case
-      # it produces is a HOST-wide OOM, where the kernel picks the victim by
-      # badness score and Postgres and Elasticsearch are the biggest targets.
-      # That is strictly worse than any staging container dying. Handing back
-      # 768MB of paper reservation buys real headroom against it.
+       # Bound staging memory on the shared host to reduce OOM risk for production database and search services.
       memory: 768m
       memory-swap: 1g
-      # Staging shares this four-core host and production's database/search
-      # accessories. Bound deploy and E2E load so staging cannot starve the
-      # production request path it depends on.
+       # Bound deploy and E2E load: staging shares the host and production database/search accessories.
       cpus: "0.5"
 
 proxy:
@@ -33,9 +17,7 @@ proxy:
   ssl: true
   host: api-stg.nadeshiko.co
   forward_headers: true
-  # /up verifies Postgres before reporting healthy, so a container that boots
-  # but cannot reach the database never takes traffic. Elasticsearch is reported
-  # as a field and never fails the check -- see DEPLOYMENT.md.
+  # /up requires Postgres before declaring health; Elasticsearch is reported but does not gate readiness.
   healthcheck:
     path: /up
     interval: 2
@@ -69,10 +51,8 @@ env:
     - MAIL_FROM_EMAIL
     - MAIL_FROM_NAME
     - SMTP_PASSWORD
-    # Signs the bounce/complaint webhook ZeptoMail posts to
-    # /v1/webhooks/zeptomail. Without it the endpoint answers 503 rather than
-    # trusting an unsigned payload, because a forged hard bounce suppresses
-    # somebody's address and locks them out of magic-link sign-in.
+     # ZeptoMail webhook secret: invalid/missing signatures return 503 instead of accepting forged bounces that could
+     # suppress an address and block magic-link sign-in.
     - ZEPTOMAIL_WEBHOOK_SECRET
     # Lifting a suppression has two halves: our row and ZeptoMail's own list.
     # These are the second half, scoped to delete-only.
@@ -84,14 +64,10 @@ env:
 
     - SHIRABE_API_KEY
 
-    # Account linking (see deploy.prod.yml). Staging needs its OWN registration
-    # over on Shirabe -- the redirect URI is exact-matched, so production's does
-    # not cover stg.nadeshiko.co -- and its own secret, so a dump of one
-    # environment does not decrypt the other's stored keys.
+     # Staging needs its own Shirabe registration and secret: the redirect is hostname-specific and separates decryption
+     # between environments.
     - SHIRABE_CONNECTION_SECRET
-    # Our client secret at Shirabe (a confidential OAuth client): presented on
-    # every token exchange, renewal and revocation. Unset, Shirabe refuses us as
-    # a client and linking is off.
+     # Confidential Shirabe client secret used for token exchange, renewal, and revocation; unset disables linking.
     - SHIRABE_OAUTH_CLIENT_SECRET
     # Patreon linking is intentionally disabled until the feature is launched.
     # Its configuration defaults to empty, which keeps the routes unavailable.
@@ -104,32 +80,13 @@ env:
     BASE_URL: https://stg.nadeshiko.co
     PATREON_CAMPAIGN_URL: https://www.patreon.com/c/BrigadaSOS
 
-    # ZeptoMail is the only transport. `MAIL_TRANSPORT` is gone with the SES
-    # branch it used to select, and so are the SES_AWS_* credentials -- the last
-    # static AWS keys this container held, which nothing rotated.
+     # ZeptoMail is the only transport; the retired SES branch and its static AWS credentials are gone.
     SMTP_ADDRESS: smtp.zeptomail.jp
     SMTP_PORT: "587"
     SMTP_USER_NAME: emailapikey
 
-    # Lifecycle email is LIVE here and off in production, so the day-7 note, the
-    # feedback ask and the recap can be watched going out on real timing before
-    # anybody decides the copy is ready.
-    #
-    # THE ALLOWLIST IS NOT OPTIONAL HERE, and it is the whole reason this is safe.
-    # Staging has its own database but it is reseeded from production (see
-    # DEPLOYMENT.md, "Staging is deliberately not backed up: it is disposable and
-    # can be reseeded from prod"), so its `User` table holds REAL READER
-    # ADDRESSES. Enabling the switch without the allowlist would mail every one
-    # of them from staging, on staging's copy, with nobody expecting it.
-    #
-    # So: enabled, and delivering to exactly one mailbox. Every other candidate
-    # is swept, logged, and not sent -- which is the behaviour worth watching
-    # anyway. Widen this only for an address that has agreed to receive it.
-    # Off. Staging shares the sending domain with production, and its accounts
-    # are real enough to have real addresses on them -- so a sweep here that
-    # decided to send is mail nobody asked for, from the identity production
-    # depends on. Previewing goes through `npm run email:test`, which bypasses
-    # this gate entirely and needs no switch.
+     # Lifecycle mail stays off: staging may contain real addresses and shares production sending infrastructure. If
+     # testing it, require ONLY_TO and preview with email:test.
     LIFECYCLE_EMAILS_ENABLED: "false"
 
     # Its own client on Shirabe, not production's: the redirect is exact-matched,
@@ -140,14 +97,8 @@ env:
     POSTGRES_HOST: "nadeshiko-backend-prod-postgres"
     POSTGRES_PORT: 5432
 
-    # Staging shares PRODUCTION's Elasticsearch server, keeping its own index
-    # (`nadedb_dev`). Two servers on one 7.7 GB host cost ~1 GB of RAM to serve
-    # two indices, on a box that was already ~2 GB into swap.
-    #
-    # The trade, stated plainly: a destructive command typed against staging now
-    # reaches the production Elasticsearch. Index names keep the data apart and
-    # `bin/es.ts` scopes itself to its own alias, but the isolation is real and
-    # it is gone. Accepted for the memory.
+     # Staging shares production Elasticsearch to save memory, but its destructive commands can reach that server.
+     # Separate indices/aliases reduce the blast radius; the machine-level isolation is intentionally absent.
     ELASTICSEARCH_HOST: "http://nadeshiko-backend-prod-elasticsearch:9200"
     ELASTICSEARCH_INDEX: nadedb_dev
 
@@ -156,7 +107,5 @@ env:
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
-    # See the note in deploy.prod.yml -- staging reported 0.0.0 for the same
-    # reason, and a staging build you cannot identify is the one you are most
-    # likely to be comparing against.
+     # Read package.json at deploy time so staging service.version is identifiable instead of 0.0.0.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>

@@ -9,28 +9,8 @@ import { WEBHOOK_ZEPTOMAIL_PATH } from './paths';
 
 export { WEBHOOK_ZEPTOMAIL_PATH };
 
-/**
- * Bounce, complaint, open, and click notifications from ZeptoMail.
- *
- * FAILS CLOSED, and that is the whole design. With no shared secret we cannot
- * tell a real bounce from a forged one, and a forged hard bounce suppresses
- * somebody's address and locks them out of magic-link sign-in. Refusing is the
- * safe answer, not trusting.
- *
- *   no secret configured  ->  503, and nothing is recorded
- *   auth absent or wrong  ->  401
- *   body we cannot parse  ->  401
- *   verified              ->  200, ALWAYS
- *
- * A verified payload gets a 200 even for an event we do nothing with. ZeptoMail's
- * retry behaviour is undocumented, so anything else invites a redelivery loop
- * over a message we were never going to act on.
- *
- * This route is deliberately NOT in the OpenAPI spec. `backend/docs/openapi/`
- * feeds the generated routes and `packages/nadeshiko-sdk`; this is a provider
- * callback, not part of the API anybody should be building against, and putting
- * it in the spec would publish it in the SDK.
- */
+/** Fail closed on ZeptoMail callbacks: no/wrong HMAC is rejected, verified no-op events return 200 to avoid retry
+ * loops, and this provider route stays out of OpenAPI. */
 
 export async function handleZeptomailWebhook(req: Request, res: Response): Promise<void> {
   const secret = signature.getWebhookSecret();

@@ -38,9 +38,7 @@ describe('Media.getMediaInfoMap', () => {
     });
   });
 
-  // Every search asks for this map, and building it is a `Media.find` with its external IDs.
-  // Without a shared promise, the instant the entry expires is the instant every in-flight
-  // request runs that query for itself -- exactly when the server can least afford it.
+  // Use one shared promise at expiry; otherwise every in-flight request repeats the same `Media.find`.
   it('runs one query when several callers miss the cache at once', async () => {
     const find = vi.spyOn(Media, 'find');
 

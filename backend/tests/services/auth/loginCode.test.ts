@@ -19,10 +19,7 @@ describe('generateLoginCode', () => {
     }
   });
 
-  /**
-   * The four characters a person reads off one screen and mistypes into
-   * another. Their absence is the entire reason for a custom alphabet.
-   */
+  /** Use four characters because that is the code a reader transfers between screens. */
   it('never emits I, O, 0 or 1', () => {
     const sample = Array.from({ length: 400 }, () => generateLoginCode()).join('');
 
@@ -45,12 +42,8 @@ describe('normalizeLoginCode', () => {
     expect(normalizeLoginCode(input)).toBe(expected);
   });
 
-  /**
-   * Punctuation is dropped rather than refused — somebody whose password
-   * manager added a space has not made a mistake worth an error. Only the length
-   * is a real refusal, because that is the one case where accepting it would
-   * mean guessing at what they meant.
-   */
+  /** Drop punctuation such as a password-manager space, but refuse wrong length: only length gives a definite
+   * invalid input rather than an ambiguous correction. */
   it.each(['', 'X5KDN', 'X5KDNZQ', '------', null, undefined])('refuses %s', (input) => {
     expect(normalizeLoginCode(input)).toBeNull();
   });
@@ -71,10 +64,7 @@ describe('the browser binding', () => {
     expect(readLoginCodeBinding(null)).toBeNull();
   });
 
-  /**
-   * The binding is what says "this browser asked". One that outlived the code it
-   * was issued beside would let a browser spend a later code it never requested.
-   */
+  /** Bind the code to the requesting browser; otherwise a later code could be spent by an unrelated browser. */
   it('refuses a claim older than the code it was issued with', () => {
     const sealed = issueLoginCodeBinding('reader@example.com');
     const realNow = Date.now;
@@ -107,12 +97,8 @@ describe('readCookie', () => {
     expect(readCookie('other-nd-login-code=nope', 'nd-login-code')).toBeNull();
   });
 
-  /**
-   * A malformed percent-sequence is a 400 on the spend path, not a 500. The
-   * middleware that reads this cookie has no try/catch, so a throw out of here
-   * would surface as a server error on a request the flow already knows how to
-   * refuse.
-   */
+  /** Malformed percent-encoding must become a 400, not a 500; the cookie-reading middleware has no catch around this
+   * parser. */
   it('does not throw on a value that will not percent-decode', () => {
     const header = `${LOGIN_CODE_COOKIE}=%zz; other=1`;
 

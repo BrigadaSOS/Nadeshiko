@@ -12,12 +12,8 @@ import { EmailEvent, EmailSuppression } from '@app/models';
 
 setupTestSuite();
 
-/**
- * A dedicated app rather than `createTestApp`, which mounts only the subset of
- * routes its callers need. The middleware under test is in `buildApplication`
- * itself -- the text body parser that has to run before the JSON one -- so the
- * app has to be built the real way for this to prove anything.
- */
+/** Build the real application because the text parser must run before JSON parsing; `createTestApp` does not mount
+ * that middleware. */
 const app = buildApplication({
   rateLimit: false,
   mountRoutes: (instance) => {
@@ -56,14 +52,8 @@ function hardBounce(address = 'gone@example.com', requestId = 'wh-1') {
 }
 
 describe('POST /v1/webhooks/zeptomail', () => {
-  /**
-   * FAILS CLOSED. With no shared secret we cannot tell a real bounce from a
-   * forged one, and a forged hard bounce suppresses an address and locks
-   * somebody out of magic-link sign-in.
-   *
-   * 503 rather than 401 because this is our fault, not the caller's -- and every
-   * bounce arriving while it lasts is one we never learn about.
-   */
+  /** Fail closed without a shared secret: a forged hard bounce could suppress an address and block magic-link
+   * sign-in. Return 503 because the missing secret is our fault. */
   it('answers 503 and records nothing when no secret is configured', async () => {
     secretSpy.mockReturnValue(undefined);
 

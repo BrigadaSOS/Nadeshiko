@@ -8,22 +8,8 @@ import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { AccountQuotaUsage, Tier, User } from '@app/models';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 
-/**
- * The admin quota endpoints, which exist so that raising somebody's limit stops
- * being `UPDATE "User" SET monthly_quota_limit = ...` typed against production.
- *
- * Three things here are worth holding down, and each of them is the reason the
- * endpoint exists rather than an implementation detail:
- *
- * - The RESOLUTION ORDER. An override beats a tier beats the stored column, and
- *   getting it backwards means a support-granted limit silently reverts the next
- *   time anyone touches the account's tier.
- * - The CACHE INVALIDATION. The auth layer caches `User` rows, so a bump that
- *   does not clear them keeps billing the account against its old limit for
- *   exactly the window in which somebody is watching to see whether it worked.
- * - The AUDIT LINE, which is the whole point: it has to name the actor and both
- *   sides of the change, or it records no more than the SQL it replaced.
- */
+/** These endpoints pin the admin quota contract: override > tier > stored fallback, cache invalidation after
+ * changes, and an audit entry naming the actor and both values. */
 setupTestSuite();
 
 const invalidateUserCache = vi.fn();
@@ -176,10 +162,8 @@ describe('GET /v1/admin/users/:userId/quota', () => {
   });
 
   it('cannot be left pointing at a tier that does not exist', async () => {
-    // `resolveQuotaLimit` has a fallback for a dangling tier id, and this is
-    // why it never fires from here: a foreign key makes the state unreachable.
-    // Worth pinning, because dropping that constraint would turn a loud write
-    // failure into an account silently running on a limit nobody chose.
+    // The foreign key makes a dangling tier unreachable here, so the resolver fallback should remain unexercised;
+    // dropping that constraint must not silently select an arbitrary limit.
     await expect(User.update(core.users.regular.id, { tierId: 'no-such-tier' })).rejects.toThrow(
       /foreign key constraint/i,
     );

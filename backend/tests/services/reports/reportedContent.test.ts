@@ -9,14 +9,8 @@ import { getUnhandledReports, invalidateUnhandledReports } from '@app/services/r
 
 setupTestSuite();
 
-/**
- * Which reports hide a segment, and what a title's demotion ends up being.
- *
- * Both failure directions are invisible from the outside: content that should not
- * be in these sets is silently removed or buried, and content missing from them
- * goes on ranking normally. So the boundaries are pinned one at a time rather
- * than through a single happy-path case.
- */
+/** Pin each hide/demotion boundary separately: both false positives and false negatives silently alter ranking or
+ * visibility. */
 const report = (overrides: Partial<Report>) =>
   Report.save(
     Report.create({
@@ -142,9 +136,7 @@ describe('getUnhandledReports: what a title weighs', () => {
   });
 
   it('does not demote a short title for a couple of reports', async () => {
-    // Two lines out of forty is 5% on the arithmetic, which would otherwise be
-    // the harshest tier. The absolute floor is what stops a clip being buried by
-    // a single reader.
+    // The absolute floor keeps a small reported sample from triggering the harshest demotion.
     const shortTitle = await seedTitle(40);
     await reportSegments(shortTitle, 2);
 

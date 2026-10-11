@@ -10,11 +10,8 @@ import { User } from '@app/models';
 
 setupTestSuite();
 
-/**
- * The auth surface, mounted the way `config/routes.ts` mounts it. `createTestApp`
- * carries only the five route modules its callers need, so the better-auth
- * handler -- which is where the guard under test lives -- is not reachable there.
- */
+/** Mount the auth surface as `config/routes.ts` does; `createTestApp` omits the better-auth handler where this guard
+ * runs. */
 const auth = betterAuth(buildAuthOptions());
 const app = buildApplication({
   rateLimit: false,
@@ -23,13 +20,8 @@ const app = buildApplication({
   },
 });
 
-/**
- * Magic link is a sign-in path, so a suppressed address has to be refused OUT
- * LOUD. The check inside `sendEmail` would already stop the message, but it
- * stops it invisibly -- success to the caller, "check your inbox" on screen, and
- * nothing ever arrives. That is a locked account with no error message, which is
- * the failure this whole feature exists to end.
- */
+/** A suppressed magic-link address must be refused to the caller, not merely dropped in `sendEmail`; otherwise the
+ * UI reports success while the locked account receives nothing. */
 describe('signing in with a suppressed address', () => {
   beforeEach(async () => {
     await User.save(

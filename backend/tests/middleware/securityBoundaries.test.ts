@@ -228,10 +228,8 @@ describe('corpus write routes', () => {
     authState = null;
   });
 
-  // These routes are ApiKey-only in the OpenAPI spec, but browser traffic still
-  // reaches them through the frontend proxy carrying just a session cookie, and
-  // none of the controllers behind them check a role. A plain session must not
-  // be able to write to the shared media corpus.
+  // ApiKey-only corpus writes also receive session traffic through the frontend proxy; a session alone must not mutate
+  // shared media.
   const corpusWriteRoutes = [
     { method: 'post' as const, path: '/v1/media' },
     { method: 'patch' as const, path: '/v1/media/TestMedia001' },
@@ -314,9 +312,7 @@ describe('session-accessible routes stay reachable', () => {
     app = createSecurityApp(() => authState);
   });
 
-  // The spec marks these ApiKey-only too, but the frontend proxy only injects an
-  // API key for a narrow public-read allowlist — everything else arrives with
-  // just the session cookie. Tightening corpus writes must not catch them.
+  // Session-only routes outside proxy key injection must remain usable; tightening corpus writes must not reject them.
   const sessionRoutes = [
     { method: 'get' as const, path: '/v1/media' },
     { method: 'get' as const, path: '/v1/user/me' },
@@ -477,10 +473,7 @@ describe('collections auth matrix', () => {
     };
   }
 
-  // These three used to be session-only while their siblings took API keys, so
-  // a key could create and delete a collection but not rename it or read its
-  // stats. Granting the matching scope closed the gap without taking session
-  // access away.
+  // Grant the missing matching scope without removing session access; sibling routes already use the same model.
   it('lets an API key with UPDATE_COLLECTIONS rename a collection', async () => {
     const collection = await ownedCollection();
     authState = asApiKey([ApiPermission.UPDATE_COLLECTIONS]);

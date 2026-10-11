@@ -16,16 +16,8 @@ import { getCachedUser, invalidateUserCache, setCachedApiKey, setCachedUser } fr
 
 type VerifyApiKey = (args: { body: { key: string } }) => Promise<unknown>;
 
-/**
- * The session cookie's own name, asked of better-auth rather than rebuilt from
- * `cookiePrefix`.
- *
- * It carries a `__Secure-` prefix wherever `useSecureCookies` is on (production,
- * staging) and none in development, and guessing wrong here fails silently:
- * nothing matches, nothing is forwarded, and sessions keep dying at thirty days
- * with no error to notice. `auth.$context` is a promise resolved once at boot;
- * the result is memoised so this is not a `then` per authenticated request.
- */
+/** Ask Better Auth for the cookie name, including its secure prefix; memoize the boot-time context rather than
+ * guessing from config. */
 let sessionTokenCookieName: Promise<string> | null = null;
 
 function getSessionTokenCookieName(): Promise<string> {
@@ -42,53 +34,15 @@ function getSessionTokenCookieName(): Promise<string> {
   return sessionTokenCookieName;
 }
 
-/**
- * Hands the browser the session cookie better-auth just renewed.
- *
- * Sessions slide -- `expiresIn` 90 days, `updateAge` 7 (config/auth.ts) -- so a
- * reader who comes back inside a month should never have to sign in again. That
- * needs BOTH halves of the session to move, and until now only one of them did.
- * The `getSession` call below writes the new `expires_at` to the row, but it is
- * an in-process call: better-auth builds the renewed `Set-Cookie`, hands it back
- * on `headers`, and this middleware dropped it. The row slid, the cookie did
- * not, and the browser deleted it exactly 30 days after sign-in however much
- * reading had happened in between.
- *
- * The one path where the header did reach a browser is `/v1/auth/*`, which
- * better-auth answers itself -- in practice the account settings page, via
- * `/list-sessions`. That is the whole reason this looked like it worked for
- * some readers and not others: the ones who never opened settings were logged
- * out on schedule.
- *
- * ONLY the session token, not everything better-auth emits. `get-session` also
- * rewrites the `session_data` cookie cache on every single call, and forwarding
- * that from here would put ~1KB on every API response and have the browser echo
- * it back on every request afterwards -- to fix nothing, since that cookie is a
- * five-minute read cache and its lifetime logs nobody out. The token cookie is
- * written only when a refresh actually happened, so in steady state this
- * appends nothing at all: one small header per reader per week.
- *
- * Appending it to an API response is safe, and that rests on a fact worth
- * stating out loud: every Cloudflare cache rule (brigadasos-infra,
- * terraform/cloudflare-cache.tf) is conditioned on `not http.cookie contains
- * "nadeshiko.session_token"`, so a request that can produce this header is a
- * request the edge never caches. Re-check that before edge-caching anything
- * session-authenticated.
- *
- * Never throws. A failure to renew a cookie must not become a 401 for a reader
- * whose session is perfectly valid -- which is what would happen if this threw
- * inside the caller's `try`.
- */
+/** Forward only a renewed session-token cookie, never the session-data cache; failures must not turn valid sessions
+ * into 401s, and edge caching must remain excluded. */
 async function forwardRenewedSessionCookie(res: Response, headers: Headers | undefined | null): Promise<void> {
   try {
     const entries = headers?.getSetCookie?.() ?? [];
     if (entries.length === 0) return;
 
     const name = await getSessionTokenCookieName();
-    // `${name}.` catches the chunked variants better-auth writes when a cookie
-    // outgrows the 4KB limit (`${name}.0`, `${name}.1`, ...). The session token
-    // is far too short to chunk today, but a filter that would silently forward
-    // half a cookie later is not worth the two characters saved.
+    // Match `${name}.` too, so future chunked cookies are not forwarded only partially.
     const renewed = entries.filter((entry) => entry.startsWith(`${name}=`) || entry.startsWith(`${name}.`));
     if (renewed.length === 0) return;
 
@@ -104,9 +58,7 @@ export const requireSessionAuth = async (req: Request, res: Response, next: Next
   if (req.auth) return next();
 
   try {
-    // `returnHeaders` is what makes the renewal above reachable: without it
-    // better-auth still slides the row and still builds the cookie, and the
-    // cookie is thrown away with the rest of the response envelope.
+    // `returnHeaders` is what carries Better Auth’s renewed cookie out of the in-process session read.
     const { headers, response: sessionData } = await auth.api.getSession({
       headers: fromNodeHeaders(req.headers),
       query: { disableCookieCache: true },
@@ -290,9 +242,7 @@ async function attachAuthPayloadToRequest(
   authType: AuthType,
   apiKey?: { id?: string; kind?: ApiKeyKind; permissions: ApiPermission[] },
 ): Promise<void> {
-  // A ban revokes sessions, but API keys have no session row to revoke. Read a
-  // key owner's current state every time so a cached user cannot continue to
-  // use a banned key for the five-minute cache TTL.
+  // For API keys, re-read the owner’s current ban state; unlike sessions, a key has no session row to revoke.
   const user = await loadActiveUser(userId, authType === AuthType.API_KEY);
 
   req.user = user;
@@ -304,10 +254,7 @@ async function attachAuthPayloadToRequest(
   const span = trace.getActiveSpan();
   if (span) span.setAttribute('enduser.id', String(userId));
 
-  // ONLY FOR KEYS. A session request has already moved `last_seen_at` through
-  // better-auth's create/refresh hooks, and doing it again here would put a
-  // write on a path that is served from cache precisely so it stays cheap.
-  // `recordApiLastSeen` throttles itself to a day per account and never throws.
+  // Only keys need this last-seen update; session auth already updates it and the cached path must stay cheap.
   if (authType === AuthType.API_KEY) {
     await recordApiLastSeen(userId);
   }
@@ -338,10 +285,8 @@ function isActiveAndNotBanned(user: User | null | undefined): user is User {
 }
 
 async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promise<void> {
-  // `verifyApiKey` also advances Better Auth's per-key rate-limit counter.
-  // Do not short-circuit it from our metadata cache: doing so granted every
-  // cached key an unmetered five-minute burst. The cache remains populated for
-  // pre-router service-key classification and user lookup stays cached.
+  // Always call `verifyApiKey`: it advances Better Auth’s rate-limit counter; the metadata cache must not grant a
+  // five-minute burst.
 
   let verification: {
     valid?: boolean;
@@ -392,7 +337,6 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
   const apiKeyKind = inferApiKeyKind(verification.key);
   const permissions = flattenBetterAuthPermissions(verification.key.permissions);
 
-  // Cache the verified key for subsequent requests
   setCachedApiKey(apiKey, { userId, apiKeyId, apiKeyKind, permissions });
 
   await attachAuthPayloadToRequest(req, userId, AuthType.API_KEY, {

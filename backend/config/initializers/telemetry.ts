@@ -7,19 +7,8 @@ import { startSeriesHeartbeat } from '@config/telemetry';
 import { registerCacheMetrics } from '@lib/cache';
 import type { RuntimeInitializer } from './types';
 
-/**
- * One heartbeat for every series whose healthy value is zero.
- *
- * These counters are seeded so their alert rules have something to read, and
- * under DELTA temporality a seeded counter emits once and then goes quiet -- so
- * an hour after each deploy the rules go back to matching nothing and
- * NadeshikoAlertRuleMatchesNothing starts firing about them. The reasoning, the
- * measurement and the interval are in @config/telemetry.
- *
- * Kept in ONE list rather than a timer per module: the interval is a contract
- * with the alert rules' lookback windows, and a second copy of it would drift
- * from the first.
- */
+/** Re-emit seeded zero-series on one shared interval because DELTA exports go quiet after the seed; the interval
+ * must remain within alert lookback windows and the timer must not keep the process alive. */
 let stopHeartbeat: (() => void) | null = null;
 
 export const telemetryInitializer: RuntimeInitializer = {

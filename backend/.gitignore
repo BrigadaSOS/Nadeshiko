@@ -18,9 +18,5 @@ tmp
 *.sln
 *.sw?
 docs/generated/index.html
-# Written by `docs:bundle:public` for consumers that regenerate it first (the
-# CI oasdiff job, the release artifact). Committing it only creates a second
-# copy of the public contract to keep in sync with the one `docs:build`
-# publishes under frontend/public/docs/api -- and the stale one is the one git
-# presents as authoritative.
+# Generated public spec for consumers/CI; committing it would create a second, stale contract copy.
 docs/generated/openapi-public.yaml

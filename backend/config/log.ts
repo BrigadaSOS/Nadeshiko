@@ -19,19 +19,8 @@ export function shouldUsePrettyLogsForEntrypoint(entrypointArg?: string): boolea
   );
 }
 
-/**
- * Pretty logs are for a human watching a CLI script, and `pino-pretty` is a
- * devDependency -- so it is present when one is, and absent from the deployed
- * image. But these scripts also run IN that image, as one-off jobs: an ES
- * reindex, a migration. Asking pino for a transport that is not installed throws
- * while the module is still being imported, which killed the script before it
- * could report anything ("unable to determine transport target for pino-pretty")
- * and made every one of these entrypoints unrunnable in staging and production.
- *
- * So the entrypoint decides whether pretty output is WANTED, and this decides
- * whether it is possible. Absent, the script keeps the structured logger it
- * would have had anyway.
- */
+/** Use pretty logs only when requested and installed; deployed one-off jobs lack `pino-pretty`, so selecting that
+ * transport during import would make them unrunnable. */
 function prettyTransportAvailable(): boolean {
   try {
     createRequire(import.meta.url).resolve('pino-pretty');
@@ -52,15 +41,8 @@ export const safeParseJson = (value: string): unknown => {
   }
 };
 
-/**
- * Bodies larger than this are logged as a marker instead of their content. The
- * JSON body limit is 10mb, and access logs run at info level on every request,
- * so an uncapped body is both a log-volume problem and a retention problem (the
- * captured copy lives on the request object for the life of the request).
- *
- * Oversized bodies are replaced wholesale rather than clipped: a prefix would
- * leak content past the `redact` paths, which only apply to parsed fields.
- */
+/** Replace oversized bodies wholesale, not with a prefix: redaction applies to parsed fields, so clipping could leak
+ * sensitive content. The JSON limit and request lifetime make uncapped logging unsafe. */
 export const MAX_LOGGED_BODY_BYTES = 16 * 1024;
 
 export const oversizedBodyPlaceholder = (bytes: number): string =>
@@ -82,15 +64,8 @@ export function capLoggedBody(value: unknown): unknown {
   return bytes > MAX_LOGGED_BODY_BYTES ? oversizedBodyPlaceholder(bytes) : value;
 }
 
-/**
- * Not secrets -- response shapes that are simply too big to log. A search
- * response carries every segment it matched, and one of those lines is worth
- * more to the log bill than to anybody reading it.
- *
- * Separate from the shared `REDACT_PATHS` because these are the API's own
- * payloads: the frontend proxies them but never names them, and a path in this
- * list going stale costs a verbose log line, not an exposed credential.
- */
+/** Redact oversized API response shapes separately from secret paths; stale names here cost log volume, not
+ * credential exposure. */
 const VERBOSE_RESPONSE_PATHS = [
   'res.body.segments',
   'res.body.media',
@@ -143,11 +118,7 @@ const loggerOptions: pino.LoggerOptions = usePrettyLogs
 export const logger = pino(loggerOptions);
 export const createLogger = (context: string) => logger.child({ context });
 
-/**
- * pino-http hands the serializers either the raw Node request or its own wrapper
- * holding one on `.raw`, depending on where in the lifecycle it fires. These
- * aliases name that union once instead of falling back to `any` at each callback.
- */
+/** Name the raw/wrapped request union once for pino-http serializers instead of using `any` at each callback. */
 type PinoRequest = (IncomingMessage | Request) & { raw?: IncomingMessage | Request };
 type PinoResponse = (ServerResponse | Response) & { raw?: ServerResponse | Response };
 
@@ -170,10 +141,7 @@ const SENSITIVE_QUERY_PARAMETERS = new Set([
   'code',
 ]);
 
-/**
- * Keep the path and non-sensitive query context useful to operators without
- * allowing credentials embedded in a URL to escape into any log field.
- */
+/** Log useful path/query context without allowing URL credentials into log fields. */
 export function sanitizeRequestUrl(url: string): string;
 export function sanitizeRequestUrl(url: undefined): undefined;
 export function sanitizeRequestUrl(url: string | undefined): string | undefined;
@@ -255,11 +223,8 @@ export function buildHttpLoggerOptions(currentLogger = logger) {
       if (rawReq.botFamily) {
         props['bot.family'] = rawReq.botFamily;
       }
-      // Set by the auth middleware, which has run by the time this is evaluated
-      // (pino-http builds the props on response finish, not on the way in).
-      // Pseudonymous and salted -- see @lib/userLogHash for why it is not the
-      // id, the email, or nothing at all. Absent when LOG_USER_SALT is unset,
-      // and absent for anonymous traffic, which is most of it.
+      // Build log fields at response finish after auth middleware; keep the salted pseudonymous user hash optional and
+      // omit it for anonymous traffic.
       if (rawReq.user?.id) {
         const userHash = hashUserId(rawReq.user.id);
         if (userHash) {

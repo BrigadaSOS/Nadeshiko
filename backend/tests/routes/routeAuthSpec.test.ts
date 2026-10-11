@@ -48,9 +48,8 @@ describe('OpenAPI security definitions', () => {
   }
 
   const publicOperations = allOperations.filter((op) => op.security.length === 0);
-  // Every test below asserts the shape of a security requirement, so they run
-  // over the guarded operations only. Which operations are allowed to have no
-  // requirement at all is the separate invariant asserted immediately below.
+  // These cases assert security requirements on guarded operations; the separate invariant covers operations allowed to
+  // have none.
   const guardedOperations = allOperations.filter((op) => op.security.length > 0);
 
   it('every operation without a security block is a declared public route', () => {

@@ -1,16 +1,5 @@
-/**
- * The live `generated/` tree is imported as the `generated/*` path alias.
- * `generate:api` used to `rm -rf` it first, which is the thing that takes a
- * running `--watch` server down: Node sees the imports vanish, restarts,
- * fails with ERR_MODULE_NOT_FOUND, and then sits on "Waiting for file
- * changes" because the files that will come back were never in the watch set
- * of the failed process.
- *
- * Codegen now writes into a staging directory and publishes over the live
- * tree without deleting it. This module is the other half: the dev entry
- * waits for a marker written last, so even a missing tree is a pause rather
- * than a crash.
- */
+/** `generate:api` stages and publishes without deleting the live `generated/` tree; this marker lets the dev entry
+ * wait for publication, turning a missing tree into a pause rather than `ERR_MODULE_NOT_FOUND` under watch mode. */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 

@@ -32,25 +32,14 @@ const tracer = getTracer();
 
 let transporter: nodemailer.Transporter | null = null;
 
-/**
- * Test seam. The transport is memoised for the life of the process, which is
- * right in production and wrong across test cases: the first file to send an
- * email would otherwise pin every later one to its own mock.
- */
+/** Reset the memoized transport in tests; production keeps one transport, but otherwise the first test mock would
+ * affect every later case. */
 export function resetTransporterForTests(): void {
   transporter = null;
 }
 
-/**
- * Lazily creates and returns a nodemailer transport for the environment.
- *
- * TWO TRANSPORTS, NOT THREE. Local development opens mail in a browser through
- * letter-opener; everything else is ZeptoMail SMTP. The Amazon SES branch that
- * used to sit here is gone: it had been the rollback path for the ZeptoMail
- * cutover, and keeping a second sending identity alive long after the cutover
- * settled meant a second set of DKIM records, a second reputation nobody was
- * watching, and the last static AWS credentials in the repo.
- */
+/** Memoize the local letter-opener transport; deployed environments use HTTP and must not acquire a nodemailer
+ * transport. */
 async function getTransporter(): Promise<nodemailer.Transporter> {
   if (transporter) {
     return transporter;
@@ -78,16 +67,8 @@ function usesLetterOpener(): boolean {
   return getAppEnvironment(config.ENVIRONMENT) === APP_ENVIRONMENT.LOCAL;
 }
 
-/**
- * Hands one message to whichever transport this environment has, and answers
- * with a preview URL when there is one to show.
- *
- * THE SPLIT IS BY ENVIRONMENT, NOT BY CONFIGURATION, and that is the point.
- * `MAIL_TRANSPORT` used to select between two real relays and was deleted
- * because the unselected one rotted; this replaces it with a choice that cannot
- * drift, because the branch nobody is running is the one that opens a file in a
- * browser.
- */
+/** Choose delivery by environment, not relay configuration: local previews use letter-opener; deployed sends use
+ * ZeptoMail HTTP. */
 async function deliver(message: ZeptomailMessage): Promise<string | null> {
   if (!usesLetterOpener()) {
     await sendViaZeptomailApi(message);
@@ -123,108 +104,32 @@ interface EmailOptions {
   to: string;
   subject: string;
   html: string;
-  /**
-   * Which message this is. Rides out as `X-TM-CLIENT-REF` and comes back on
-   * every bounce, complaint, and open as `client_reference`.
-   *
-   * Over SMTP it is the ONLY attribution we get: the webhook names an address,
-   * and without this nothing says which mail we sent it or why. It is also the
-   * `email.kind` metric label, which is what turns "our bounce rate is up" into
-   * "people are typo-ing addresses at the signup form".
-   */
+  /** Carry the message kind through SMTP/provider metadata; otherwise webhook events identify an address but not
+   * which mail was sent. */
   kind: EmailKind;
-  /**
-   * Who a reply goes to, when that is not us.
-   *
-   * Only the feedback notification sets it: those land in the team inbox but are
-   * written by the person who sent them, so answering has to be a plain reply
-   * rather than a copy-paste of an address out of the body. Everything else we
-   * send is transactional and replying to it should reach nobody.
-   */
+  /** Feedback uses Reply-To for the submitter’s address rather than the team inbox. */
   replyTo?: string;
-  /**
-   * The `List-Unsubscribe` target for lifecycle mail, from `unsubscribeUrls`.
-   *
-   * Set it on anything a reader could reasonably want less of, and NEVER on
-   * transactional mail: offering to unsubscribe from sign-in links invites
-   * somebody to lock themselves out of their own account, and Gmail's one-click
-   * button would let them do it without a confirmation step.
-   *
-   * Absent means the two headers are omitted entirely rather than emitted empty
-   * -- a `List-Unsubscribe` a provider cannot act on is worse than none, because
-   * the button appears and then fails.
-   */
+  /** Set unsubscribe headers only for lifecycle mail; omit both when absent so a provider cannot offer a button that
+   * fails. */
   unsubscribeUrl?: string;
-  /**
-   * Which run of `kind` this is, for lifecycle mail that recurs.
-   *
-   * Appended to the client reference as `<kind>:<campaign>` and DELIBERATELY NOT
-   * added to the metric label. `email.kind` is bounded by construction -- eight
-   * values -- and a per-month campaign would grow the series count without
-   * limit, quietly breaking every alert rule that divides one email counter by
-   * another. The webhook splits this back apart; see `EmailEvent`.
-   */
+  /** Keep campaign in the client reference, not the bounded metric label, or recurring campaigns create unbounded
+   * series. */
   campaign?: string;
-  /**
-   * Whose mail this is, when there is a reader behind it.
-   *
-   * Only used to pick which of the two of us it comes from. Absent for
-   * transactional mail, which has one identity and always has.
-   */
+  /** Reader id is metadata only; envelope identity comes from the message kind. */
   userId?: number;
 }
 
-/**
- * Sends an email directly (synchronous, for use by workers).
- *
- * THIS IS THE ENFORCEMENT POINT for the suppression list, and it works because
- * every path funnels through here: `sendMagicLinkEmail` and `sendVerifyNewEmail`
- * call it inline, and the queued welcome and feedback mails reach it through
- * `emailWorker`. A check in each sender would be only as good as the discipline
- * of whoever writes the next one. If you add a fifth mailer, route it through
- * this function rather than reaching for the transport yourself.
- */
-/**
- * Who a given message comes from.
- *
- * DECIDED BY KIND, HERE, rather than passed in by each sender -- the same
- * argument the suppression check below is built on. A `from` parameter would be
- * only as reliable as whoever writes the next mailer remembering to set it, and
- * the failure is silent: the mail sends, the template still says "reply to me",
- * and the reply lands in a mailbox nobody opens.
- *
- * Transactional mail keeps `noreply@`, and that is not laziness. A sign-in link
- * is the account working; there is nothing to reply TO, and inviting a reply
- * that will not be read is worse than not inviting one.
- */
 function isLifecycleKind(kind: EmailKind): boolean {
   return (LIFECYCLE_KINDS as readonly string[]).includes(kind);
 }
 
+/** Choose `From` by message kind here, not at each sender, so suppression and sender policy cannot drift. */
 function senderFor(kind: EmailKind): { email: string; name: string } {
-  // ONE ADDRESS ON THE ENVELOPE, TWO PEOPLE INSIDE IT.
-  //
-  // This used to return `senderForUser(userId)`, so the From alternated between
-  // the two founders' own mailboxes. The envelope is now the product's single
-  // lifecycle identity (`LIFECYCLE_FROM_EMAIL`) for every reader, while the
-  // BODY still carries whichever of them the reader is stuck to -- their photo,
-  // their name in the copy, their sign-off. The builders take that from
-  // `senderForUser` directly at each call site, which is why removing the
-  // branch here does not touch what the message looks like.
-  //
-  // THE CONSEQUENCE IS WHERE REPLIES GO, and it is deliberate. These emails ask
-  // to be replied to and carry no `Reply-To`, so a reply follows the From: it
-  // now lands in the shared mailbox instead of a founder's personal one. That
-  // is the point of the change -- one inbox to watch rather than two -- but it
-  // does mean "just reply here" reaches the team rather than the person who
-  // signed. Set `Reply-To` at the two lifecycle call sites if that flips back.
+  // Use one product envelope identity while `senderForUser` supplies the personal body; replies therefore land in the
+  // shared mailbox.
 
-  // WELCOME IS THE EXCEPTION, and it is a sender exception rather than a kind
-  // one on purpose. It reads as a note from a person -- "Hi! I'm David" -- and
-  // invites a reply, so it cannot go out over `noreply@`. But it must not become
-  // a lifecycle kind to get that: lifecycle kinds are gated on
-  // `LIFECYCLE_EMAILS_ENABLED`, and a welcome email that stops arriving because
-  // somebody has not switched the newsletter on is an outage, not a policy.
+  // Welcome is a sender exception, not a lifecycle kind, so the lifecycle preference switch cannot accidentally disable
+  // it.
   if (isLifecycleKind(kind) || kind === 'welcome') {
     return configuredSender();
   }
@@ -232,27 +137,20 @@ function senderFor(kind: EmailKind): { email: string; name: string } {
   return { email: config.MAIL_FROM_EMAIL, name: config.MAIL_FROM_NAME };
 }
 
+/** Enforce suppression here, the common synchronous send path; new mailers must route through it rather than reach
+ * for transport directly. */
 export async function sendEmail(options: EmailOptions): Promise<void> {
   const { email: fromEmail, name: fromName } = senderFor(options.kind);
 
-  // THE SECOND ENFORCEMENT POINT FOR THE LIFECYCLE SWITCH, and the last one.
-  //
-  // The sweep already checks this, and has to -- it must not write a claim row
-  // for a send it is not making. But the sweep is one caller, and this feature
-  // ships disabled precisely so that nothing goes out before somebody has read
-  // the copy. A `bin` script, a console session, or the recap when it lands
-  // would each reach `sendEmail` without passing the sweep, and any of them
-  // sending real mail while the switch says off would make the switch a comment
-  // rather than a control. Same argument, same place, as the suppression check
-  // immediately below.
+  // Enforce the lifecycle switch again at send time; callers other than the sweep must not send while the feature is
+  // disabled.
   if (isLifecycleKind(options.kind) && !mayReallySend(options.to)) {
     logger.info({ 'email.kind': options.kind }, 'Not sending: lifecycle email is not live for this recipient');
     return;
   }
 
-  // RETURN RATHER THAN THROW. The caller asked to send a welcome email, not to
-  // handle a delivery policy, and throwing would turn a known-bad address into a
-  // pg-boss job that fails its five retries and then needs clearing by hand.
+  // Return rather than throw for a known-bad welcome address, or worker retries turn a delivery policy into a failed
+  // job.
   if (await isSuppressed(options.to)) {
     recordEmailBlocked();
     logger.info({ 'email.kind': options.kind }, 'Not sending: the recipient is suppressed');
@@ -264,10 +162,8 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     span.setAttribute('messaging.system', usesLetterOpener() ? 'letter-opener' : 'zeptomail-api');
 
     try {
-      // Derived here rather than per template, so it cannot be the thing
-      // somebody forgets on the next mailer. See `htmlToPlainText` for why an
-      // HTML-only message costs us reputation on the Agent that carries
-      // sign-in.
+      // Derive plaintext centrally so every email has an accessible, deliverable alternative without a second copy of
+      // its words.
       const text = htmlToPlainText(options.html);
       const clientReference = options.campaign ? `${options.kind}:${options.campaign}` : options.kind;
 
@@ -280,10 +176,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
         replyTo: options.replyTo,
         clientReference,
         unsubscribeUrl: options.unsubscribeUrl,
-        // Decided here for the same reason the From address is: this is the one
-        // place that already knows which side of the transactional line a kind
-        // falls on, and a transport that had to work it out for itself would be
-        // a second copy of that judgement waiting to disagree.
+        // Decide lifecycle-versus-transactional behavior here; the transport should not duplicate the kind policy.
         lifecycle: isLifecycleKind(options.kind),
       });
 
@@ -296,9 +189,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 
       logger.info({ 'email.kind': options.kind }, 'Email sent');
     } catch (error) {
-      // The relay refusing us AT HANDOFF, which is a different incident from a
-      // recipient bouncing: it is about us and it hits everybody equally. Counted
-      // apart, and deliberately never treated as a verdict on this address.
+      // Count relay rejection separately from recipient bounce; the former is our outage, not a verdict on the address.
       recordEmailDeliveryError(error instanceof Error ? error.name : 'UnknownError');
       recordError(error instanceof Error ? error : new Error(String(error)), 'email:send', {
         'email.kind': options.kind,
@@ -311,18 +202,13 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
   });
 }
 
-/**
- * Sends a welcome email to a newly registered user.
- * Uses deduplication key to prevent duplicate emails from worker retries.
- *
- * @param userId - User ID for deduplication
- * @param username - Username of the new user
- * @param email - Email address of the new user
- */
+/** Enqueue a per-user welcome message.
+ * @param userId - Deduplication identity
+ * @param username - Greeting name
+ * @param email - Recipient address */
 export async function sendWelcomeEmail(userId: number, username: string, email: string): Promise<void> {
-  // Read here rather than inside the builder, so the template layer stays a pure
-  // function of its inputs and the one place that touches the database is the
-  // one that already knows how to fail softly.
+  // Read the sender identity here so template builders remain pure and database failure stays on the soft-failing
+  // caller path.
   const { subject, html } = await buildWelcomeEmail(username, senderForUser(userId), await catalogueSize());
 
   await sendEmailJob(
@@ -349,25 +235,7 @@ export async function sendVerifyNewEmail(email: string, verificationUrl: string)
   await sendEmail({ to: email, subject, html, kind: 'verify-new-email' });
 }
 
-/**
- * Notifies the team that someone sent feedback.
- *
- * WHERE THIS ACTUALLY LANDS: if `FEEDBACK_NOTIFICATION_TO` is an address at
- * `nadeshiko.co`, the message comes straight back in through Cloudflare Email
- * Routing, whose catch-all hands every message to a worker that forwards it to
- * the maintainers AND posts the complete body into a Discord channel
- * (brigadasos-infra/email-worker). That is useful — feedback shows up where
- * people already are — but it means the body is chat-log material, not inbox
- * material. `contextLines` in feedbackController is written for that audience.
- *
- * Queued rather than sent inline: the sender is waiting on the HTTP response and
- * has no stake in whether the relay was reachable, so a mail outage must not turn into
- * a failed submission for a message we have already stored.
- *
- * No-ops when `FEEDBACK_NOTIFICATION_TO` is unset, which is the state local and
- * test runs are in. Logged at info, not warn: it is a configuration choice, not
- * a fault, and the row is in the table either way.
- */
+/** Queue feedback notification after storing the row; relay outage must not fail a submission already persisted. */
 export async function sendFeedbackEmail(
   input: FeedbackEmailInput & { replyTo?: string; feedbackId: number },
 ): Promise<void> {
@@ -387,15 +255,7 @@ export async function sendFeedbackEmail(
   );
 }
 
-/**
- * The day-7 ask.
- *
- * `campaign` comes back OUT of the builder rather than going in, because the
- * builder is what decides which opening the reader gets and the two have to
- * agree: the `EmailLifecycleSend` row says what we sent and the client
- * reference says what came back, and a mismatch leaves a bounce attributable to
- * nothing. The caller writes its claim row from the value returned here.
- */
+/** Return the selected campaign from the builder so the claim row and provider reference describe the same opening. */
 export async function sendFeedbackAskEmail(input: {
   userId: number;
   username: string;
@@ -419,17 +279,7 @@ export async function sendFeedbackAskEmail(input: {
       campaign,
       userId: input.userId,
       unsubscribeUrl: oneClick,
-      // NO `replyTo`. A reply is the point of this email, and `senderFor` has
-      // already made the From a real inbox -- so replies go there on their own.
-      //
-      // Overriding it to `FEEDBACK_NOTIFICATION_TO` would send them somewhere
-      // materially different. That is a role address, and role addresses are on
-      // the post list of the Zoho -> Discord bridge
-      // (lostcoords-infra/email-worker): sender, subject and full body land in a
-      // chat channel. `LIFECYCLE_FROM_EMAIL` is a personal mailbox on that
-      // bridge's `NEVER_CHAT` list, so an answer to a personal note stays a
-      // private reply -- which is what somebody answering "what would you change
-      // first?" is entitled to assume.
+      // Leave `replyTo` unset: directing a personal answer to the team alias would copy it into Discord.
     },
     `feedback-ask-${input.userId}`,
   );
@@ -439,15 +289,7 @@ export async function sendFeedbackAskEmail(input: {
   return campaign;
 }
 
-/**
- * The win-back note, once a reader's last session has lapsed.
- *
- * `campaign` carries the month rather than repeating the kind, because unlike
- * the other two this one may legitimately happen to the same account twice --
- * see `EmailLifecycleSend.campaign`. The dedupe key follows it for the same
- * reason: keyed on the kind alone, a second dormancy a year later would be
- * swallowed as a duplicate of the first.
- */
+/** Include the month in `dormant-30` campaign and dedupe key because dormancy can recur after the reader returns. */
 export async function sendDormant30Email(input: {
   userId: number;
   username: string;
@@ -476,9 +318,7 @@ export async function sendDormant30Email(input: {
       campaign: input.campaign,
       userId: input.userId,
       unsubscribeUrl: oneClick,
-      // No `replyTo`, for the reason spelled out on the feedback ask: the From
-      // is already a personal mailbox, and "reply and tell me why" has to reach
-      // one rather than a role address that posts into a chat channel.
+      // Keep lifecycle replies off the chat-bridged team alias; leave `replyTo` unset to follow the configured From.
     },
     `${input.campaign}-${input.userId}`,
   );
@@ -499,16 +339,7 @@ export const TEST_EMAIL_TEMPLATES = [
 
 export type TestEmailTemplate = (typeof TEST_EMAIL_TEMPLATES)[number];
 
-/**
- * The real `EmailKind` behind a preview name.
- *
- * The two feedback previews are openings of one message rather than two
- * messages, so they collapse back to the kind the sweep would actually send.
- * Listed rather than prefix-matched so the compiler can narrow: a `startsWith`
- * leaves the opening names in the type and the return stops typechecking, which
- * is the check earning its keep -- add a preview whose name is not a real kind
- * and this is where you find out.
- */
+/** List preview names explicitly so the compiler checks every non-kind opening maps to a real `EmailKind`. */
 function kindOfTestTemplate(template: TestEmailTemplate): EmailKind {
   switch (template) {
     case 'feedback-ask-started':
@@ -521,17 +352,8 @@ function kindOfTestTemplate(template: TestEmailTemplate): EmailKind {
   }
 }
 
-/**
- * Sends a test email synchronously (bypassing the queue) and returns the preview
- * URL of the file letter-opener wrote. Intended for local development only.
- *
- * DELIBERATELY BYPASSES `sendEmail`, so it is neither counted in `email.sent`
- * nor stopped by the suppression list. Both are right for what this is: a
- * template preview should not move the denominator every rate alert divides by,
- * and someone checking how the welcome mail renders is not writing to the person
- * whose address they borrowed. It still sets X-TM-CLIENT-REF so a message that
- * escapes a local run is identifiable.
- */
+/** Preview deliberately bypasses `sendEmail`, suppression, and sent metrics; local template inspection must not
+ * alter production accounting. */
 export async function sendTestEmail(template: TestEmailTemplate, to: string): Promise<{ previewUrl: string | null }> {
   const username = 'TestUser';
 
@@ -564,10 +386,7 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
       unsubscribeUrl: unsubscribeUrls(1).page,
     }));
   } else if (template === 'dormant-30' || template === 'dormant-30-quiet') {
-    // Both shapes are previewable, because they are different emails to write:
-    // one leads with what has been added, the other admits there is nothing to
-    // report and asks what was missing instead. A preview of only the first
-    // hides the copy that is hardest to get right.
+    // Preview both feedback openings; they are distinct copy paths even though they share one message kind.
     ({ subject, html } = await buildDormant30Email({
       userId: 1,
       // A literal rather than `dormantCampaign()`: this is a preview, and
@@ -602,21 +421,10 @@ export async function sendTestEmail(template: TestEmailTemplate, to: string): Pr
     ({ subject, html } = await buildMagicLinkEmail(`${config.BASE_URL}/v1/auth/magic-link/verify?token=test-token`));
   }
 
-  // Through `senderFor` rather than reading the config directly, so a preview
-  // shows the From the real send would use. Reading `MAIL_FROM_*` here meant the
-  // one place anybody actually LOOKS at these emails was the one place that
-  // showed the wrong sender -- and "reply to me" under a `noreply@` header is
-  // exactly the mistake a preview exists to catch.
-  // Through `senderFor` rather than reading the config directly, so a preview
-  // shows the From the real send would use. Reading `MAIL_FROM_*` here meant the
-  // one place anybody actually LOOKS at these emails was the one place that
-  // showed the wrong sender -- and "reply to me" under a `noreply@` header is
-  // exactly the mistake a preview exists to catch.
+  // Use `senderFor` so previews show the same From identity as real sends.
   const { email: fromEmail, name: fromName } = senderFor(kindOfTestTemplate(template));
 
-  // Through `deliver` like every real send, so a preview exercises the transport
-  // this environment actually uses rather than a second code path that could
-  // render differently from the thing readers receive.
+  // Use `deliver` so previews exercise the environment’s real transport rather than a divergent code path.
   const previewUrl = await deliver({
     from: { address: fromEmail, name: fromName },
     to,

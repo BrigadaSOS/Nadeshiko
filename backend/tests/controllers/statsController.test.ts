@@ -9,31 +9,16 @@ import { WordFrequency } from '@app/models';
 import { Cache } from '@lib/cache';
 import { STATS_CACHE } from '@app/controllers/statsController';
 
-/**
- * The corpus statistics endpoints, which are read by the site's stats page and
- * by the Discord bot's `/stats`.
- *
- * Two things here are worth an integration test rather than a unit one. The
- * word-coverage numbers come out of raw SQL with `FILTER (WHERE ...)` clauses
- * built by string interpolation over the tier list, so the only way to know
- * they count what they claim is to put rows in and read the answer back. And
- * `/covered-words` paginates by keyset over `rank`, which is the kind of thing
- * that looks right and silently repeats or skips a row at the page boundary.
- *
- * The overview is cached for a week, so every case clears the namespace first
- * -- otherwise the second test in the file asserts against the first one's rows.
- */
+/** These integration tests cover raw-SQL coverage counts and keyset pagination, which can silently miscount or
+ * skip/repeat page-boundary rows. Clear the weekly cache before each case. */
 setupTestSuite();
 // The media aggregate goes through `AppDataSource` rather than an entity.
 useRawQueriesAgainstTestDb();
 
 let app: Application;
 
-/**
- * Coverage counting reaches Elasticsearch; the update endpoint's own SQL is
- * what is under test here, not the index. Typed with its real parameters so the
- * assertions on WHICH words and WHICH filters were asked for typecheck.
- */
+/** The update endpoint's SQL is under test, not Elasticsearch; use its real parameters so the assertions prove which
+ * words and filters were requested. */
 const wordsCoverageCount = vi.fn(
   async (_words: string[], _filters: { category: string[]; status: string[] }) => new Map<string, number>(),
 );

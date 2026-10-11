@@ -8,20 +8,9 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import type { ResourceMetrics } from '@opentelemetry/sdk-metrics';
 
-/**
- * These assert on the METRIC NAMES AND ATTRIBUTE KEYS themselves, which nothing
- * else in the suite does and which no type checks.
- *
- * The failure they exist to catch is silent by construction: a renamed attribute
- * or a typo'd instrument does not break a single request, it makes the alert rule
- * in brigadasos-infra match no series -- and a rule matching nothing looks
- * exactly like a healthy service. The names below are the contract with
- * `nadeshiko-services.yml`; changing one means changing the rule in the same
- * breath.
- *
- * Prometheus renders these with dots as underscores and `_total` on counters, so
- * `email.sent` is queried as `email_sent_total` and `email.kind` as `email_kind`.
- */
+/** These tests pin metric names and attribute keys, the contract with `nadeshiko-services.yml`; typos otherwise make
+ * alert rules match no series and look healthy. Prometheus renders dots as underscores and adds `_total` to
+ * counters. */
 const exporter = new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE);
 let reader: PeriodicExportingMetricReader;
 let emailMetrics: typeof import('@app/services/email/metrics');
@@ -56,12 +45,7 @@ describe('the email metric contract', () => {
     emailMetrics.seedEmailSeries();
     const resource = await collect();
 
-    /**
-     * THE POINT OF SEEDING. A counter that has never been incremented has no
-     * series, and `increase(...) > 0` over a metric with no series evaluates to
-     * NO DATA rather than to false, so the rule cannot fire. Four of shirabe's
-     * five email rules were inert on their first day for exactly this reason.
-     */
+    /** Seed the counter so `increase(...)` sees a series; an unseen counter evaluates to NO DATA, not false. */
     const sent = findMetric(resource, 'email.sent');
     expect(sent).toBeDefined();
     expect(sent?.dataPoints.length).toBeGreaterThan(0);
@@ -91,12 +75,8 @@ describe('the email metric contract', () => {
     expect(blocked?.dataPoints[0]?.attributes['email.reason']).toBe('suppressed');
   });
 
-  /**
-   * Deliberately NOT seeded: its attribute is an error class name, which cannot
-   * be enumerated before one happens. Its rule is on the
-   * NadeshikoAlertRuleMatchesNothing exclusion list in brigadasos-infra instead.
-   * If this ever starts being seeded, that exclusion should be removed.
-   */
+  /** Do not seed the error-class attribute: its values are unbounded; its alert is explicitly excluded in infra
+   * until an error occurs. */
   it('does not seed the delivery-error series, whose label cannot be enumerated', async () => {
     const resource = await collect();
     const errors = findMetric(resource, 'email.delivery_errors');
@@ -134,11 +114,7 @@ describe('the email metric contract', () => {
     expect(point?.value).toBe(1);
   });
 
-  /**
-   * Every cause every scrape, zeros included. A cause that vanishes from the
-   * output when its last row is lifted leaves a gap in the graph that reads like
-   * a scrape failure rather than like good news.
-   */
+  /** Emit every cause, including zeroes, so a disappearing last row is not mistaken for scrape failure. */
   it('reports every suppression cause including the ones at zero', async () => {
     emailMetrics.registerSuppressionGauge(async () => ({ hard_bounce: 3 }));
     const resource = await collect();

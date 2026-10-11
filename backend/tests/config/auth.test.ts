@@ -61,9 +61,7 @@ describe('auth config helpers', () => {
 });
 
 describe('resolveDefaultApiPermissions', () => {
-  // A key that nobody scoped is the one most likely to be pasted into someone
-  // else's app, so the default is the corpus read and nothing else -- not even
-  // the owner's own profile, which a search integration never needs.
+  // Unscoped keys default to corpus read only: integrations need neither write access nor the owner's profile.
   it('grants only the corpus read', () => {
     expect(resolveDefaultApiPermissions()).toEqual({
       [BETTER_AUTH_API_PERMISSION_RESOURCE]: [ApiPermission.READ_MEDIA],
@@ -86,9 +84,8 @@ describe('resolveGrantableApiPermissions', () => {
     expect(result).toContain(ApiPermission.DELETE_COLLECTIONS);
   });
 
-  // `enforceApiKeyScope` is the only gate on a key-authenticated request, so a
-  // key issued with ADD_MEDIA can rewrite the shared corpus no matter who owns
-  // it. This ceiling is the sole thing preventing that.
+  // `enforceApiKeyScope` is the only gate on key-authenticated requests; without this ceiling, ADD_MEDIA could rewrite
+  // the shared corpus regardless of key ownership.
   it('refuses corpus writes to a non-admin', async () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.USER }) as any);
     const result = await resolveGrantableApiPermissions(42, findUserById as any);
@@ -133,14 +130,8 @@ describe('enrichSessionUser', () => {
     });
   });
 
-  /**
-   * The whole reason preferences were pulled off the session in e730331b4 was a
-   * fear that the 5-minute `cookieCache` would pin them. It cannot: better-auth
-   * runs this function on whatever the base `/get-session` handler returns,
-   * cache hit or not, and the enriched fields are read from the row rather than
-   * from the incoming user. This is that guarantee as a test -- a stale blob on
-   * the passed-in (cookie-cached) session user must lose to the database.
-   */
+  /** Preferences must come from the database, not the cookie-cached session user. This protects the behavior that
+   * motivated moving them off the session. */
   it('overrides a stale preferences blob on the incoming session user', async () => {
     const findUserById = vi.fn(async () => ({ role: UserRoleType.USER, preferences: { locale: 'ja' } }) as any);
     const user = await enrichSessionUser(
@@ -280,8 +271,8 @@ describe('buildAuthOptions', () => {
 });
 
 describe('session duration regression tests', () => {
-  const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60; // 2592000
-  const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60; // 604800
+  const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60;
+  const SEVEN_DAYS_IN_SECONDS = 7 * 24 * 60 * 60;
 
   it('session expiresIn is at least 30 days to prevent daily logouts', () => {
     const options = buildAuthOptions({
@@ -304,9 +295,8 @@ describe('session duration regression tests', () => {
 
     const updateAge = (options as any).session?.updateAge ?? 0;
 
-    // updateAge should be >= 7 days. This determines how often active users
-    // need to visit to keep their session alive. With 30-day expiresIn,
-    // a 7-day updateAge means users visiting weekly get 30-day rolling sessions.
+    // Keep refresh intervals at least a week to avoid overly frequent renewal; session lifetime is configured
+    // separately.
     expect(updateAge).toBeGreaterThanOrEqual(SEVEN_DAYS_IN_SECONDS);
   });
 

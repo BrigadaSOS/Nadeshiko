@@ -4,28 +4,9 @@ import { loadFixtures } from '../../fixtures/loader';
 import { Episode, Media, Segment } from '@app/models';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
 
-/**
- * Writing segments into the search index.
- *
- * The interesting behaviour is not "does it index" -- it is the ACCOUNTING when
- * some of a batch fails, because that number is what an operator reads to decide
- * whether a reindex worked. Elasticsearch's bulk API answers 200 with per-item
- * errors inside the body, so a batch where half the documents were rejected is,
- * at the HTTP level, a success. Miscounting there means a reindex that dropped
- * thousands of segments reports "completed" and nobody looks again.
- *
- * Two specific cases carry that:
- *
- * - A segment whose media row is missing is counted as FAILED and named, rather
- *   than skipped silently. It is the shape a partial delete leaves behind.
- * - A delete of something already gone is counted as SUCCEEDED. The goal is that
- *   the document is not in the index; it already is not, and reporting failure
- *   sends somebody after a problem that does not exist.
- *
- * The ES client is stubbed rather than driven for real: what is under test is
- * how this class reads a bulk response, and a live index would only ever hand
- * back the success case.
- */
+/** Bulk indexing must report per-item failures: Elasticsearch can return HTTP 200 with rejected items, so a dropped
+ * batch must not look complete. Missing-media segments fail and name the segment; deleting an already-absent
+ * document succeeds. */
 // `vi.hoisted`, because the mock factory below is lifted above every `const` in
 // this file and would otherwise close over an uninitialised binding.
 const esClient = vi.hoisted(() => ({
@@ -80,12 +61,7 @@ async function seedEpisode(onMediaId: number, episodeNumber: number) {
   );
 }
 
-/**
- * A segment that is NOT in the database, pointing at a media row that does not
- * exist. A foreign key makes that state unreachable through a save, but it is
- * reachable through the caller: the sync worker hands `bulkIndex` segments it
- * read moments ago, and the media can be deleted in between.
- */
+/** Exercise a segment/media state unreachable through foreign keys but possible when deletion races the sync worker. */
 function orphanSegment(id: number): Segment {
   return { id, mediaId: 99_999_999, uuid: `orphan-${id}`, publicId: `pub-orphan-${id}` } as Segment;
 }
@@ -238,11 +214,8 @@ describe('delete', () => {
   });
 
   it('treats a document that was already gone as a success', async () => {
-    // The goal is that it is not in the index. It already is not.
-    //
-    // The status lives on `meta`, not on the error itself -- see
-    // `lib/elasticsearchErrors`. That distinction is the point: an unreachable
-    // cluster has no `meta` at all, and must NOT be read as a 404.
+    // A missing document is a successful delete. Inspect the error `meta`; an unreachable cluster has no `meta` and
+    // must not be classified as 404.
     esClient.delete.mockRejectedValue(Object.assign(new Error('not found'), { meta: { statusCode: 404 } }));
 
     expect(await SegmentIndexer.delete(42)).toBe(true);
@@ -292,9 +265,7 @@ describe('bulkDelete', () => {
   });
 
   it('counts a document that was already gone as REMOVED, not as a failure', async () => {
-    // Deleting a segment that never made it into the index is the ordinary
-    // outcome of a retry, and reporting it as a failure makes every retry look
-    // like a broken run.
+    // Deleting an already-absent segment is the normal retry outcome, not a failed run.
     esClient.bulk.mockResolvedValue(bulkDeleteResponse([{ errorType: 'document_missing_exception', id: 7 }]));
 
     expect(await SegmentIndexer.bulkDelete([7])).toMatchObject({ succeeded: 1, failed: 0, errors: [] });

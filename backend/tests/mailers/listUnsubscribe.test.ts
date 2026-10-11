@@ -40,11 +40,8 @@ describe('List-Unsubscribe', () => {
     expect(headersOf()['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click');
   });
 
-  /**
-   * Both or neither. A `List-Unsubscribe` a provider cannot act on is worse than
-   * none: Gmail renders the button and the reader's click fails, which is the
-   * moment they reach for the spam report instead.
-   */
+  /** The header and visible link must both work or both be absent; a provider-rendered button that fails invites a
+   * spam report. */
   it('emits neither header on transactional mail', async () => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'magic-link' });
 
@@ -60,11 +57,8 @@ describe('List-Unsubscribe', () => {
 });
 
 describe('unsubscribeUrls', () => {
-  /**
-   * The header URL is POSTed by a mailbox provider with nobody present; the page
-   * URL is opened by a reader and must confirm first. Pointing them at the same
-   * place breaks one of the two.
-   */
+  /** The header URL is provider POST-without-user; the page URL is reader GET-with-confirmation. They cannot share
+   * one behavior. */
   it('separates the one-click target from the page a reader sees', async () => {
     const { oneClick, page } = unsubscribeUrls(42);
 
@@ -82,11 +76,8 @@ describe('unsubscribeUrls', () => {
     }
   });
 
-  /**
-   * Both links carry the category, so the header and the visible link speak for
-   * the same list. A one-click out of a recap must not take the day-7 ask with
-   * it, and the page must not offer to keep something the header already stopped.
-   */
+  /** Carry the category on both links so opting out of one list cannot alter another or offer contradictory page
+   * choices. */
   it('carries the category into both links', async () => {
     const { oneClick, page } = unsubscribeUrls(42, 'recap');
 
@@ -113,24 +104,15 @@ describe('who a message comes from', () => {
     expect(fromOf()).toBe(`${config.LIFECYCLE_FROM_NAME} <${config.LIFECYCLE_FROM_EMAIL}>`);
   });
 
-  /**
-   * A sign-in link is the account working, not a note from a person. There is
-   * nothing to reply to, and inviting a reply that will not be read is worse
-   * than not inviting one.
-   */
+  /** A sign-in link is an account action, not a conversation; do not invite replies that are not read. */
   it.each(['magic-link', 'verify-new-email', 'feedback'] as const)('keeps %s on the no-reply sender', async (kind) => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind });
 
     expect(fromOf()).toBe(`${config.MAIL_FROM_NAME} <${config.MAIL_FROM_EMAIL}>`);
   });
 
-  /**
-   * WELCOME IS THE EXCEPTION, and it is a sender exception rather than a kind
-   * one. It reads as a note from a person and asks for a reply, so it cannot go
-   * out over `noreply@` -- but it must not become a lifecycle kind to get that,
-   * because lifecycle kinds are gated and a welcome email that stops arriving
-   * when the newsletter is off is an outage.
-   */
+  /** WELCOME is the sender exception: it may request a reply, but must remain ungated rather than become a lifecycle
+   * kind. */
   it('sends welcome from the personal address without gating it', async () => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'welcome' });
 
@@ -138,17 +120,8 @@ describe('who a message comes from', () => {
     expect(sendMail).toHaveBeenCalledTimes(1);
   });
 
-  /**
-   * ONE ADDRESS ON THE ENVELOPE, whoever the reader is. The From used to
-   * alternate between the two founders' own mailboxes on reader id; it is the
-   * single lifecycle identity now, and the per-reader part moved entirely into
-   * the body -- the photo, the name in the copy, the sign-off, all still chosen
-   * by `senderForUser` at the call site. Transactional mail keeps the identity
-   * it has always had; there is nobody to reply to on a sign-in link.
-   *
-   * Both ids are still exercised because they land on different people: if the
-   * envelope ever goes back to following the reader, one of these two fails.
-   */
+  /** Use one lifecycle envelope address. Reader-specific sender details stay in the body; transactional mail keeps
+   * its existing identity. Exercise both sender ids because each must resolve to a different person. */
   it.each([[1], [2]])('sends reader %i the one shared lifecycle address', async (userId) => {
     await sendEmail({ to: 'a@example.com', subject: 'Hi', html: '<p>hi</p>', kind: 'feedback-ask', userId });
 
@@ -161,21 +134,15 @@ describe('who a message comes from', () => {
     expect(fromOf()).toBe(`${config.MAIL_FROM_NAME} <${config.MAIL_FROM_EMAIL}>`);
   });
 
-  /**
-   * The two senders have to actually differ, or the routing above is a no-op
-   * that every assertion still passes.
-   */
+  /** Keep the sender addresses distinct; otherwise routing is a no-op that every assertion can miss. */
   it('does not send lifecycle mail from the transactional address', async () => {
     expect(config.LIFECYCLE_FROM_EMAIL).not.toBe(config.MAIL_FROM_EMAIL);
   });
 });
 
 describe('the plaintext alternative', () => {
-  /**
-   * An HTML-only message is a spam-filter signal in its own right, and this is
-   * the one place it can be got wrong for every email at once — `sendEmail` is
-   * the only caller of the transport.
-   */
+  /** Every message needs a plaintext part; `sendEmail` is the single transport caller, so this is the global
+   * safeguard. */
   it('rides along with every send', async () => {
     await sendEmail({
       to: 'a@example.com',

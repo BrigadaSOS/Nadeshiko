@@ -7,20 +7,10 @@ import type { IndicesIndexSettings, MappingTypeMapping } from '@elastic/elastics
 import type { ReindexResponse } from '@app/services/search/segmentDocument/SegmentIndexer';
 import { isElasticsearchNotFound } from '@lib/elasticsearchErrors';
 
-/**
- * The index definition, asserted to the client's types once here rather than at
- * each of the four call sites that create an index.
- *
- * TypeScript infers a JSON import as its literal shape, which never structurally
- * satisfies Elasticsearch's settings/mapping types (analyzers and field types are
- * open-ended string unions there). This is the one place that gap is bridged, so
- * a schema edit that the client would reject is a mismatch to reason about here
- * instead of four separately-silenced `any`s.
- */
+/** Assert the JSON index definition once at the client boundary; its open-ended mapping types otherwise force
+ * repeated `any` casts. */
 const indexSchema: { settings: IndicesIndexSettings; mappings: MappingTypeMapping } = {
-  // Via `unknown` because the inferred literal type and the client's open-ended
-  // union types do not overlap enough for a direct assertion -- which is exactly
-  // what the previous `as any` was hiding, four times over.
+  // Use `unknown` for the one intentional bridge between literal JSON and the client’s open-ended types.
   settings: elasticsearchSchema.settings as unknown as IndicesIndexSettings,
   mappings: elasticsearchSchema.mappings as unknown as MappingTypeMapping,
 };
@@ -60,19 +50,8 @@ export function createAdminClient(configValues: AppConfig): Client {
   });
 }
 
-/**
- * Sets up the Elasticsearch application user and role.
- * Creates an index-scoped user that can only access the configured index
- * and any versioned indices (INDEX_NAME_v*).
- *
- * This function uses ADMIN credentials and is idempotent - safe to run multiple times.
- * By default, it will skip creation if the user already exists.
- *
- * `adminClient` exists so tests can supply a double instead of mocking
- * `@elastic/elasticsearch`, which would replace the module process-wide.
- *
- * @returns The username that was created (or already existed)
- */
+/** Creates the configured index-scoped application user/role idempotently with admin credentials; `adminClient` is
+ * injectable for tests, and existing users are left in place. */
 export async function setupElasticsearchUser(
   options: { recreateIfExists?: boolean; configValues?: AppConfig; adminClient?: Client } = {},
 ): Promise<string> {

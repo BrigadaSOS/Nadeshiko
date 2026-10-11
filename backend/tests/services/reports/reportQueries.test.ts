@@ -11,22 +11,8 @@ import {
   updateReportGroups,
 } from '@app/services/reports/reportQueries';
 
-/**
- * Reports are STORED per user and ADMINISTERED per target group -- the
- * (targetType, mediaId, episodeNumber, segmentId) tuple that several people may
- * each have reported separately. Almost everything in this module exists to
- * express "the same target" in SQL, and it is fiddly for one specific reason:
- * two of those four columns are nullable, and `= NULL` is never true.
- *
- * That is the failure this file is mostly about. A media-level group -- no
- * episode, no segment -- matched with `=` matches NOTHING, so resolving it
- * silently updates zero rows and reports success. The admin sees the report
- * still sitting there and files it again.
- *
- * The other half is the bulk guard. `parseAndRequireBulkFilters` refuses an
- * empty filter set because a bulk delete with no filters matches every report
- * in the table, and there is no undo for that.
- */
+/** Reports are stored per user but administered per target group. Nullable episode and segment columns require `IS
+ * NULL` semantics; the bulk guard must also reject empty filters because an empty delete matches the whole table. */
 setupTestSuite();
 
 let mediaId: number;
@@ -63,10 +49,7 @@ beforeEach(async () => {
   const fixtures = await loadFixtures(['mediaWithEpisode']);
   mediaId = fixtures.media.testShow!.id;
 
-  // A second title, because "a group never crosses into another one" cannot be
-  // asserted with only one. Cloned rather than loaded from a second fixture
-  // set: every set in the catalog names its media `testShow`, and the loader
-  // refuses two sets that collide on a key.
+  // Use a second title to prove groups do not cross media; clone it because the catalog rejects duplicate media keys.
   const { id: _id, ...clone } = fixtures.media.testShow!;
   otherMediaId = (
     await Media.save(
@@ -318,10 +301,8 @@ describe('buildGroupRepresentativesQuery', () => {
   });
 
   it('applies the filter to the dedup subquery too, not only the outer query', async () => {
-    // The representative of a group is `MAX(id)` over the group. If the filter
-    // were applied only outside, a group whose newest report is REJECTED would
-    // pick that row as its representative and then be filtered away entirely --
-    // so a group with open reports in it would vanish from the open list.
+    // Apply the filter before choosing `MAX(id)` as the group representative; otherwise a rejected newest row can hide
+    // older open reports.
     await seedReport({ description: 'open-older' });
     await seedReport({ description: 'dismissed-newer', status: ReportStatus.DISMISSED });
 

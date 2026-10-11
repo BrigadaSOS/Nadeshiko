@@ -3,43 +3,13 @@ import { logger } from '@config/log';
 import { PostHog } from 'posthog-node';
 import type { EmailKind } from '@app/services/email/metrics';
 
-/**
- * Server-side PostHog, used for the handful of facts the browser cannot be
- * trusted to report.
- *
- * The browser reports *why* an account was created -- which feature gate the
- * visitor hit, which provider they picked -- and it is the only place that can,
- * because that story starts before the account exists. What it cannot do is
- * report reliably: a content blocker, a failed request or a closed tab and the
- * signup is simply never counted. Our audience skews technical, so that
- * undercount is not small.
- *
- * So the two halves do different jobs and neither replaces the other:
- *
- * - `account_created` (here) is the count. It fires from better-auth's own
- *   create hook, once per row that reaches the database, and nothing in the
- *   browser can suppress it.
- * - `signup_completed` (browser) is the attribution. Undercounted, but it is the
- *   only one that knows what the account was created for.
- *
- * They deliberately do not share an event name, so nobody has to remember which
- * of two identically named series is the honest one.
- *
- * Both address the same PostHog person because both key on the numeric account
- * id. PostHog's guidance for backend SDKs is exactly this -- pass the same
- * `distinct_id` the frontend identifies with, and never call `identify()` from a
- * backend, which has no anonymous session to merge.
- */
+/** Server-side `account_created` supplies a reliable count; browser `signup_completed` supplies attribution, because
+ * only the browser knows the signup context. */
 
 let client: PostHog | null | undefined;
 
-/**
- * The client, or nothing when analytics are not configured.
- *
- * Absent by default outside production: the key is optional, so a local or test
- * run neither needs credentials nor sends anything to a real project. Resolved
- * once and cached, including the "not configured" answer.
- */
+/** Cache the configured client, including the absent answer, so local/test runs need no credentials and send no
+ * analytics. */
 function analyticsClient(): PostHog | null {
   if (client !== undefined) return client;
 
@@ -50,10 +20,7 @@ function analyticsClient(): PostHog | null {
 
   client = new PostHog(config.POSTHOG_API_KEY, {
     host: config.POSTHOG_HOST,
-    // The library's defaults (batch at 20, flush every 10s) are what PostHog
-    // recommends for a long-running server: batching keeps the capture call off
-    // the request's critical path. The cost is that anything still queued at
-    // shutdown is lost, which is what `shutdownAnalytics` exists to prevent.
+    // Batch captures off the request path; flush on shutdown so queued events are not lost when the process exits.
     flushAt: 20,
     flushInterval: 10_000,
   });
@@ -64,11 +31,7 @@ function analyticsClient(): PostHog | null {
 export interface AccountCreatedInput {
   userId: number | string;
   createdAt?: Date | string;
-  /**
-   * The reader's display name as captured at signup -- null for signups that
-   * arrived without one (API-key self-serve currently, but more callers over
-   * time). Optional so callers without it can keep passing a 2-arg shape.
-   */
+  /** Optional signup display name; API-key callers can omit it while the event still records the account. */
   name?: string | null;
   /**
    * The reader's email as captured at signup -- null where the signup flow
@@ -77,13 +40,7 @@ export interface AccountCreatedInput {
   email?: string | null;
 }
 
-/**
- * Records that an account now exists.
- *
- * Never throws and never awaits the network: the caller is better-auth's user
- * creation hook, and a signup must not fail, or even slow down, because an
- * analytics queue is unhappy.
- */
+/** Never throw or await the network: the account-creation hook must not fail or slow a signup for analytics. */
 export function captureAccountCreated(input: AccountCreatedInput): void {
   const posthog = analyticsClient();
   if (!posthog) return;
@@ -100,13 +57,8 @@ export function captureAccountCreated(input: AccountCreatedInput): void {
         $set_once: {
           account_created_at: toIsoString(input.createdAt) ?? new Date().toISOString(),
         },
-        // Names the person server-side, so an account whose first touch is an
-        // API key, a CLI, or a content-blocked browser still shows up under a
-        // human-readable label in PostHog instead of `(unknown)`. `$name` is the
-        // special key posthog-js treats as the display name; `$set` (not
-        // `$set_once`) so a later rename actually renames the person. `name`
-        // and `email` are mirrored as plain fields so a SQL-style query can
-        // select them without knowing the `$` convention.
+        // Identify the person with `$set` and mirror name/email as queryable fields; this also labels API-key and
+        // blocked-browser signups.
         $set: {
           ...(input.name ? { $name: input.name, name: input.name } : {}),
           ...(input.email ? { email: input.email } : {}),
@@ -128,32 +80,7 @@ export interface EmailSentInput {
   campaign: string;
 }
 
-/**
- * Records that a message actually went out to somebody.
- *
- * THE DENOMINATOR, and it is the only one of the three email stores that can be
- * one. The others answer different questions and neither can answer this:
- *
- * - `EmailLifecycleSend` is the ledger. It knows who got what, which is what
- *   dedupes a second send, but it lives in Postgres and knows nothing about what
- *   the reader did next.
- * - `email.sent` (OTel, see `services/email/metrics`) is operational. It is
- *   deliberately labelled by kind ONLY, because a per-campaign label would grow
- *   the series count without limit and break every alert that divides one email
- *   counter by another.
- *
- * This one lands on the same PostHog person as the reader's own pageviews,
- * keyed on the account id, so a send can be joined to the utm-tagged visit it
- * produced and to whatever they did after. Without it every click is a numerator
- * over nothing.
- *
- * Campaign is a PROPERTY rather than part of the event name, so a recap that
- * runs every month accumulates into one series that can be broken down by
- * period instead of a new event name each time.
- *
- * Never throws and never awaits: this is called on the send path, and a send
- * must not fail because an analytics queue is unhappy.
- */
+/** This is the send denominator, keyed to the account; keep capture non-blocking so mail never fails for analytics. */
 export function captureEmailSent(input: EmailSentInput): void {
   const posthog = analyticsClient();
   if (!posthog) return;
@@ -179,25 +106,8 @@ export interface EmailLinkClickedInput {
   content: string;
 }
 
-/**
- * Records that somebody opened a link we mailed them.
- *
- * THE NUMERATOR `captureEmailSent` HAS BEEN MISSING, and the reason it is
- * recorded here rather than read off `utm_*` is in `services/email/returnLink`:
- * the tags are a claim the browser has to carry back, and the first dormant send
- * proved they arrive stripped from readers and intact from mail scanners --
- * exactly the wrong way round. Keying on the account id instead puts the click
- * on the same PostHog person as the send, with nothing in between able to lose
- * it.
- *
- * ONLY EVER CALLED FOR A HIT WE BELIEVE A PERSON MADE. `classifyHit` has already
- * dropped prefetches, repeats and scanner fan-out by the time this is reached,
- * so this event means a click rather than a fetch. That is what makes it
- * countable without a second filter at query time.
- *
- * Never throws and never awaits: a reader is waiting on the redirect this sits
- * in front of.
- */
+/** Record only a `classifyHit`-approved human click, keyed to the account rather than a fragile UTM round trip;
+ * never block the redirect. */
 export function captureEmailLinkClicked(input: EmailLinkClickedInput): void {
   const posthog = analyticsClient();
   if (!posthog) return;
@@ -219,26 +129,8 @@ export interface ApiKeyCreatedInput {
   scopes: string[];
 }
 
-/**
- * Records that an account issued itself an API key.
- *
- * WHY THIS IS WORTH AN EVENT AT ALL, when it happens a handful of times a week.
- * It is the single most misread signal we have. A reader who signs up for API
- * access scores zero on every engagement counter the product has -- no search, no
- * playback, no Anki export -- so the signup channel announces them as a dud and
- * every activation figure counts them as one. Measured over 60 days
- * (2026-08-24): of 21 accounts that searched and played nothing, 11 had opened
- * the API key page. That is not a rounding error in the activation rate, it is a
- * segment being systematically misfiled as failure.
- *
- * The key NAME is deliberately not sent. It is free text the owner chose, so it
- * is the one field here capable of carrying something personal, and no question
- * worth asking needs it -- the scopes say what the key is for.
- *
- * `has_api_key` is set on the person as well as the event so that any later
- * question -- retention, engagement, email response -- can be split by it without
- * re-deriving the segment from the event stream every time.
- */
+/** Record API-key creation without the user-chosen key name; expose `has_api_key` for later segmentation without
+ * sending free text. */
 export function captureApiKeyCreated(input: ApiKeyCreatedInput): void {
   const posthog = analyticsClient();
   if (!posthog) return;
@@ -259,14 +151,8 @@ export function captureApiKeyCreated(input: ApiKeyCreatedInput): void {
   }
 }
 
-/**
- * Remembers which UTC day each account was last seen calling the API on.
- *
- * Bounded by the number of accounts that actually use the API -- a few dozen --
- * because an account's entry is REPLACED when the day rolls over rather than
- * added to. Process-local and deliberately not persisted: see the note on
- * over-counting in `captureApiActiveDay`.
- */
+/** Replace each account's API-active day in the map rather than accumulating entries; the cache stays bounded by
+ * active accounts. */
 const apiActiveDayByUser = new Map<string, string>();
 
 export interface ApiActiveDayInput {
@@ -276,34 +162,8 @@ export interface ApiActiveDayInput {
   quotaLimit: number;
 }
 
-/**
- * Records that an account used the API today. ONE EVENT PER ACCOUNT PER DAY, not
- * one per request.
- *
- * THE NAME SAYS `day` BECAUSE THAT IS WHAT IT COUNTS. An `api_request_made` that
- * fired once a day would be a trap: every rate, every "requests per user", every
- * sum over it would be wrong by whatever factor that account's traffic happened
- * to be, and nothing in the series would say so. This module already carries one
- * pair of events that mean different things (`account_created` against the
- * browser's `signup_completed`) and the reason it is survivable is that the names
- * do not pretend to be interchangeable.
- *
- * Per-request capture was the alternative and it is not worth it. A single
- * account can spend 5,000 requests a month inside its quota, so per-request
- * events would be the largest series in the project by a wide margin, bought to
- * answer questions -- who uses the API, how hard, and does it last -- that a
- * daily grain answers just as well. Request VOLUME is already counted exactly, in
- * Postgres, by `AccountQuotaUsage`; `quota_used` below carries that number onto
- * the event so a dashboard can read consumption without joining anything.
- *
- * The dedupe is process-local, and production forks THREE workers (see the tier
- * cache in `middleware/apiLimiterQuota`, which accepts the same limitation for
- * the same reason), so an account can produce up to three events a day, plus one
- * more per deploy. Read this series as `uniq(person_id)` per day and that is
- * invisible; read it as `count()` and it is inflated by up to 3x. The alternative
- * is shared state this backend has no Redis for, to sharpen a number nobody
- * needs sharp.
- */
+/** The daily dedupe is process-local, so this is not an exactly-once count across workers or deploys; read it as a
+ * daily unique-user signal. */
 export function captureApiActiveDay(input: ApiActiveDayInput): void {
   const posthog = analyticsClient();
   if (!posthog) return;
@@ -334,12 +194,7 @@ function toIsoString(value: Date | string | undefined): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
-/**
- * Flushes anything still queued.
- *
- * Without this a deploy silently drops up to ten seconds of signups -- the exact
- * events this module exists to stop losing.
- */
+/** Flush the queue at shutdown; otherwise a deploy can drop events still waiting in the client. */
 export async function shutdownAnalytics(): Promise<void> {
   if (!client) return;
 
@@ -352,13 +207,7 @@ export async function shutdownAnalytics(): Promise<void> {
   }
 }
 
-/**
- * Test seam: drops the memoised client so configuration can be re-read.
- *
- * Clears the API day-dedupe too. Without that, the first test to capture an
- * active day would silence every later one for the same account, and the
- * failure would land on whichever test happened to run second.
- */
+/** Test seam: reset both the memoized client and the API-day dedupe so tests do not share state. */
 export function resetAnalyticsClientForTests(): void {
   client = undefined;
   apiActiveDayByUser.clear();

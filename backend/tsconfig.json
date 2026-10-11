@@ -10,9 +10,7 @@
     "declaration": false,
     "composite": false,
     "removeComments": true,
-    // `strict` alone was already clean across the whole repo when it was turned
-    // on. `noUncheckedIndexedAccess` is not implied by it and lives in
-    // tsconfig.app.json, which is the config `typecheck:app` enforces.
+    // Keep shared strictness here; enable unchecked-index diagnostics in the app-specific config.
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": true,

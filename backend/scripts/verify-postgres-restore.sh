@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Restore a gzipped custom-format pg_dump into a disposable, network-isolated
-# Postgres 17 container. Accept '-' to stream the archive on stdin.
-# Only the container created here is removed; no production connection is used.
+# Restore a gzipped custom-format dump into a disposable, network-isolated Postgres 17 container; use - for stdin. Only
+# the scratch container is removed; no production connection is used.
 set -euo pipefail
 
 archive=${1:?Usage: verify-postgres-restore.sh backup.dmp.gz|-}
@@ -40,11 +39,9 @@ if [[ "$ready" != true ]]; then
 fi
 
 echo 'Restoring schema, rows, indexes, and constraints into isolated Postgres 17.'
-# Fully decompress first: pg_restore can stop reading a custom-format stream
-# before gzip finishes, which would make pipefail report a spurious SIGPIPE.
-# A file also allows parallel restore and verifies the complete gzip checksum.
-# Owners and grants belong to production roles, which deliberately do not exist
-# here. Data, schema, constraints, and indexes must all restore without errors.
+# Decompress first so pipefail does not mistake pg_restore's early read for gzip SIGPIPE; the file enables parallel
+# restore and full checksum validation. Production owners/grants are absent, so data/schema/constraints/indexes must
+# restore cleanly without them.
 restore() {
   docker exec -i "$restore_container" bash -o pipefail -c \
     'set -e; gzip -dc > /tmp/backup.dump; echo "Archive decompressed and checksum verified."; pg_restore --jobs=2 --exit-on-error --no-owner --no-privileges -U postgres -d restore_verify /tmp/backup.dump'

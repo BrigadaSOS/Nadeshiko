@@ -1,33 +1,12 @@
 import { config } from '@config/config';
 import { logger } from '@config/log';
 
-/**
- * The thin half of ZeptoMail we actually call: its own suppression list.
- *
- * WHY THIS EXISTS AT ALL, because it is not obvious and the answer decides
- * whether the lift path is honest.
- *
- * Auto-suppression of hard bounces is enabled on the Agent, deliberately -- it
- * stops repeat sends the instant ZeptoMail knows, whether or not our webhook is
- * healthy. That means ZeptoMail keeps a suppression list of its OWN. So when we
- * forgive an address, deleting our row clears only our half: the app now believes
- * it can write to that person and the relay silently still refuses. Both halves
- * look fine on their own and nothing reports the disagreement, which is a worse
- * state to be in than either "suppressed" or "not suppressed".
- *
- * INERT WITHOUT CREDENTIALS, and says so out loud. Lifting our own row is still
- * worth doing, and a missing client id should not turn an operator's lift into a
- * crash -- but it must not quietly report success either, because the address
- * really is still refused at the relay.
- */
+/** Provider and application suppression lists are separate; missing credentials must report an incomplete lift, not
+ * a false success or crash. */
 
 const TOKEN_TTL_MS = 50 * 60 * 1000;
 
-/**
- * In-process, because there is no shared cache in this app and this call happens
- * a handful of times a year. A per-process token is exactly right at that rate;
- * reaching for Redis to hold it would be new infrastructure for nothing.
- */
+/** Cache the provider token per process; this infrequent operation does not justify shared-cache infrastructure. */
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 export function isZohoConfigured(): boolean {
@@ -55,19 +34,11 @@ export async function deleteProviderSuppression(address: string): Promise<boolea
 
     if (response.ok) return true;
 
-    // "Not found" IS SUCCESS HERE, and treating it as a failure was the first
-    // thing this code got wrong in testing.
-    //
-    // The goal of a lift is that ZeptoMail is not refusing the address any more.
-    // If it never had the address on its list -- because we suppressed it
-    // manually, or auto-suppression had not fired -- then that goal is already
-    // met, and reporting failure would make every such lift exit non-zero and
-    // send somebody hunting for a problem that does not exist.
+    // “Not found” already means the address is absent from the provider list, so it is successful for a lift.
     if (await isNotFound(response)) return true;
 
-    // A rejected token is worth one retry with a fresh one: the cache holds a
-    // token for fifty minutes against a stated hour, but the clock that matters
-    // is Zoho's, and an unlucky boundary should not read as a failed lift.
+    // Retry once with a fresh provider token on 401; the provider clock, not the local cache TTL, decides token
+    // validity.
     if (response.status === 401) {
       cachedToken = null;
       const retryToken = await accessToken();
@@ -85,15 +56,8 @@ export async function deleteProviderSuppression(address: string): Promise<boolea
   }
 }
 
-/**
- * `values` IS AN ARRAY, and it is the detail most likely to be got wrong.
- *
- * The obvious reading of "delete this one address" is `{ value: "..." }`, and
- * that is what shirabe shipped. ZeptoMail answers it with
- * `SERR_110 "Parameter less than min occurrance", target: "values"` -- a Bad
- * Syntax error naming a field the request never sent, which reads like a server
- * problem rather than our own. Verified against the live JP API on 2026-08-20.
- */
+/** ZeptoMail expects `values` as an array even when deleting one address; keep the provider-specific request shape
+ * explicit. */
 function deleteRequest(token: string, address: string): Promise<Response> {
   return fetch(`https://${config.ZEPTOMAIL_API_HOST}/v1.1/suppressions/email`, {
     method: 'DELETE',

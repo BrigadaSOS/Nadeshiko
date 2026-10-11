@@ -1,11 +1,7 @@
 import { auth } from '@config/auth';
 
-/**
- * Deletes a better-auth user and all their dependent rows (sessions, accounts).
- *
- * better-auth uses its own pg.Pool — rows it creates are not covered by
- * TypeORM's per-test transaction rollback and must be cleaned up explicitly.
- */
+/** Delete a better-auth user and dependent rows explicitly: its `pg.Pool` is outside TypeORM per-test transaction
+ * rollback. */
 export async function deleteAuthUserByEmail(email: string): Promise<void> {
   const ctx = await auth.$context;
   const user = await ctx.adapter.findOne<{ id: string }>({

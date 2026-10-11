@@ -7,35 +7,9 @@ import { setupTestSuite } from '../helpers/setup';
 import { seedCoreFixtures, type CoreFixtures } from '../fixtures/core';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 
-/**
- * The Shirabe account-link endpoints.
- *
- * Two of them are behind an extra gate that a signed-in session is deliberately
- * NOT enough for, and that split is the thing worth testing rather than the CRUD
- * around it:
- *
- * - `/credential` hands out a live access token for another service. Anything a
- *   browser can fetch, an extension or a stray script on the page can fetch too.
- * - `/resync` and `/refused` accept a claim about our own stored state. A
- *   fingerprint a browser could post is a browser deciding when our copy looks
- *   stale, which is a free Shirabe round trip per request for anyone who wants
- *   one.
- *
- * The gate is a shared secret the Nitro proxy stamps on everything it forwards
- * -- including browser requests -- so it is only the INNER door; the outer one
- * is the proxy's own deny list. That is why a session alone must not open it.
- *
- * The connection service itself is stubbed: its behaviour has its own tests
- * (`tests/services/shirabe/connection.test.ts`), and what is under test here is
- * which callers reach it and what they are told.
- *
- * The SESSION requirement is deliberately not asserted per route. It comes from
- * `requireSession()` in the generated router, which this harness replaces with
- * its own auth middleware -- an assertion here would be testing the harness. It
- * is covered where it is decided: `tests/routes/routeAuthSpec.test.ts` checks
- * every one of these paths declares `SessionCookie` in the spec the router is
- * generated from.
- */
+/** These controller tests pin the proxy-secret gate and caller-visible responses, not the stubbed connection
+ * service. A session alone must not open token-producing or resync endpoints; session requirements belong to
+ * generated route-auth tests. */
 const service = {
   findConnection: vi.fn(),
   refreshStack: vi.fn(),
@@ -83,11 +57,8 @@ function testAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
-/**
- * A connection row, as the controller renders it. The full shape matters: the
- * generated route validates the response against the spec, so a partial double
- * would 500 rather than fail the assertion it was written for.
- */
+/** The generated route validates the full response shape, so a partial connection double would fail with 500 before
+ * the controller assertion. */
 function connectionRow(overrides: Record<string, unknown> = {}) {
   return {
     toJSON: (scopes: string[]) => ({
@@ -132,9 +103,7 @@ describe('GET /v1/user/connections/shirabe', () => {
   });
 
   it('re-reads the stack every time, with no staleness window', async () => {
-    // This is the page whose whole job is to show what Shirabe currently says,
-    // to a reader who may have changed it seconds ago in another tab. A window
-    // made it print the dictionaries they had just switched off.
+    // This page must show current Shirabe state; a cached response exposed dictionaries disabled in another tab.
     service.findConnection.mockResolvedValue(connectionRow());
     service.refreshStack.mockResolvedValue(connectionRow());
 

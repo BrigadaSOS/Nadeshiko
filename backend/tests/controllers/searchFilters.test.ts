@@ -141,13 +141,8 @@ describe('resolveMediaFilterIds', () => {
   });
 });
 
-/**
- * `exclude` carries the reader's whole hidden-media list, so its ceiling is a limit on how
- * much a person may hide before search stops answering them. At 100 it was reachable: a
- * handful of readers crossed it and every search they made came back `400 Validation Failed`
- * while the same search worked logged out. `include` is a caller narrowing a request by hand
- * and does not grow on its own, which is why the two ceilings differ.
- */
+/** `exclude` carries the whole hidden-media list, so its limit protects searches from becoming unusable; `include`
+ * is caller-supplied and does not grow automatically, so the limits differ. */
 describe('SearchFilters media ceilings', () => {
   // `mediaPublicId` is a fixed 12-character id, so the fixtures have to be well-formed
   // or the parse fails on the item shape and never reaches the ceiling being tested.
@@ -181,14 +176,8 @@ describe('SearchFilters media ceilings', () => {
   });
 });
 
-/**
- * Which requests are allowed to reorder their own ties, and which titles count.
- *
- * The mode check is the half that is easy to leave out: `preferMedia` is sent by
- * the web client on every search, including the ones where the reader has picked
- * an explicit order, and honouring it there would quietly answer a different
- * question than "by episode" or "at random".
- */
+/** `preferMedia` is sent on every search, but must not override an explicit order such as episode or random; the
+ * mode check protects that distinction. */
 describe('resolvePreferredMediaIds', () => {
   it('resolves public ids to internal media ids', async () => {
     mockMediaInfoMap([

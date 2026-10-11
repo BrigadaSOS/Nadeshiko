@@ -59,10 +59,7 @@ export function instrumentElasticsearchClient(esClient: Client): void {
     if (!params?.path) return;
 
     const operation = extractOperation(params.method || 'GET', params.path);
-    // The index is the FIRST path segment or it is not there at all -- that is
-    // how Elasticsearch URLs are shaped. Scanning the whole path for the first
-    // non-underscore segment instead picked `health` out of `/_cluster/health`
-    // and named the span `get /_cluster/health health`.
+    // Take the Elasticsearch index from the first path segment; scanning deeper mislabels `/_cluster/health` spans.
     const firstSegment = params.path.split('/')[1];
     const index = firstSegment && !firstSegment.startsWith('_') ? firstSegment : undefined;
     span.updateName(index ? `${operation} ${index}` : operation);

@@ -4,46 +4,16 @@ import { AppDataSource } from '@config/database';
 import { Segment } from '@app/models';
 import { parseSegments } from '@app/services/shirabe/parseSegments';
 
-/**
- * Re-tokenise the segment corpus through Shirabe, filling `Segment.tokens`.
- *
- * A full pass is ~1.3M segments and takes hours, so this is built to be stopped
- * and resumed rather than run to completion in one go: `--after <id>` picks up
- * where a previous run left off.
- *
- * Pages are written whole, in id order, before the cursor advances. That is what
- * makes the resume point trustworthy -- everything at or below the last reported
- * id is durably written, so `--after` never leaves a gap behind it. Note this
- * holds at the *page* level only: `parseSegments` parallelises internally, but it
- * returns results in order and this loop awaits the write before moving on.
- *
- * A page is deliberately larger than `PARSE_BATCH`: parseSegments splits a page
- * into batches and runs several concurrently, so a page smaller than
- * PARSE_BATCH x SHIRABE_PARSE_CONCURRENCY would leave that concurrency unused.
- */
+/** Re-tokenizes the corpus in ordered, durable pages. Await each page write before advancing `--after`; parsing may
+ * parallelize inside a page but ordered results make the cursor resumable without gaps. */
 const PAGE_SIZE = Math.max(1, Number(process.env.REPARSE_PAGE_SIZE ?? 1000) || 1000);
 
-/**
- * Segments per second to hold the job to, or 0 to run as fast as Shirabe allows.
- *
- * Concurrency alone is a poor throttle: at concurrency 1 this still drove Shirabe
- * to ~96/s and walked its workers up to ~2.1GB each, because Ruby heap growth
- * tracks total requests served rather than how many arrive at once. Pacing bounds
- * the request *rate*, which is the thing both CPU headroom for readers and that
- * heap growth actually follow.
- *
- * Applied by sleeping off whatever is left of a page's time budget, so a page
- * that was slow for its own reasons is never made slower.
- */
+/** `PARSE_RATE` paces requests; concurrency alone allowed Shirabe heap growth, while sleeping only for the unused
+ * page budget avoids slowing pages already delayed. */
 const TARGET_RATE = Math.max(0, Number(process.env.REPARSE_TARGET_RATE ?? 0) || 0);
 
-/**
- * Shirabe restarts mid-run: a deploy drains and replaces the container, and the
- * in-flight request dies with ECONNRESET. An earlier run of this migration lost
- * ~440k segments of progress to exactly that, so a transient network failure
- * retries rather than ending the job. Non-transient failures (a 4xx, a missing
- * API key) still throw -- retrying those would just spin.
- */
+/** Retry transient restart/network failures, but throw for 4xx and missing credentials so a permanent configuration
+ * error does not spin. */
 const MAX_ATTEMPTS = 5;
 
 function isTransient(error: unknown): boolean {

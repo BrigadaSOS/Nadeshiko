@@ -6,15 +6,7 @@ import { logger } from '@config/log';
 import { AFFINITY_RETENTION_QUEUE } from './queueNames';
 import { instrumentedHandler } from './workerInstrumentation';
 
-/**
- * How long a month's tally is kept.
- *
- * Deliberately far longer than the 90 days `activityRetentionWorker` keeps
- * activity for: familiarity is the slow signal, and forgetting a show because
- * its owner took a season off is the exact failure this table exists to avoid.
- * Two years also leaves room to widen the 12-month read window later without
- * having thrown the data away first.
- */
+/** Retain familiarity longer than activity; a seasonal break must not make a known title look new. */
 const RETENTION_MONTHS = 24;
 
 export async function registerAffinityRetentionWorker(boss: PgBoss): Promise<void> {

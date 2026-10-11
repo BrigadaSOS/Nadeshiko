@@ -26,9 +26,7 @@ export const toUserMeDTO = (
     // account's limit, and naming it next to a number it does not explain is
     // worse than naming nothing.
     tier: tier ? { id: tier.id, displayName: tier.displayName } : null,
-    // The other limit. Sent alongside the month because they are exhausted for
-    // different reasons and a page showing only one cannot explain a 429 caused
-    // by the other -- the confusion this whole field set exists to end.
+    // Expose monthly and other limits together; they exhaust for different reasons and explain different 429s.
     burst,
   },
 });

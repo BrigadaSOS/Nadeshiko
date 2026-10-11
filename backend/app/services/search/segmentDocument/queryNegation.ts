@@ -1,39 +1,5 @@
-/**
- * Splits leading-`-` exclusions out of a user query so they can be applied once,
- * globally, instead of once per language clause.
- *
- * WHY THIS EXISTS
- * -----------------------------------------------------------------------------
- * buildMultiLanguage returns a `dis_max` — a disjunction — over the Japanese
- * surface, kana, English and Spanish clauses. Handing the raw query to every
- * clause means each one compiles its own `MUST_NOT` against its own tokenization,
- * and because the clauses are OR'd, a clause that does not recognise the excluded
- * form re-admits a document another clause correctly dropped.
- *
- * The kana field tokenizes by reading, so `ズレて` → [ズレ, テ] while `ずれてる`
- * → [ズレ, テル]. The negation misses `テル`, and those documents came back
- * through the kana clause: `"ズレ" -ズレて` still returned `ずれてる`.
- *
- * Hoisting the exclusion above the `dis_max` restores the pre-split behaviour,
- * where the reading field was a sub-field of one multi-field `query_string` and
- * negation therefore spanned every field at once.
- *
- * SEMANTICS
- * -----------------------------------------------------------------------------
- * `A -B` means "documents matching A, minus documents a positive search for B
- * would return". Exclusion mirrors inclusion: the excluded term is run through
- * the same multi-language matcher, so conjugation and script folding behave
- * identically on both sides of the operator, and any future improvement to
- * matching applies to exclusion for free.
- *
- * WHAT IS DELIBERATELY LEFT ALONE
- * -----------------------------------------------------------------------------
- * Anything with explicit boolean syntax — `AND`/`OR`/`NOT`, `!`, `&&`/`||`, or
- * parentheses — is handed to Lucene untouched. Lifting a `-` out of a grouped
- * expression would change what the expression means, and those queries are rare
- * enough that per-clause negation is the safer default. Likewise `exactMatch`,
- * where the whole string is quoted and operators are literal text.
- */
+/** Hoist leading-`-` terms above the language `dis_max` so one language clause cannot re-admit a document another
+ * excludes; leave explicit boolean syntax alone. */
 
 export interface SplitQuery {
   /** The query with negated tokens removed; empty when every token was negated. */
@@ -93,9 +59,8 @@ export function splitNegatedTerms(query: string, exactMatch: boolean): SplitQuer
 
   if (negatives.length === 0) return unchanged;
 
-  // A query that is nothing but exclusions matches nothing today (Lucene returns
-  // no documents for a purely negative query_string). Hoisting would silently
-  // turn it into "everything except X" — a product decision, not a bug fix.
+  // Keep all-negative queries unchanged: hoisting would change “matches nothing” into “everything except X,” which is a
+  // product change.
   const positive = positives.join(' ');
   if (!positive) return unchanged;
 

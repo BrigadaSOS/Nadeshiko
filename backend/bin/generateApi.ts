@@ -1,17 +1,5 @@
-/**
- * Regenerates `generated/` without taking it out from under a running
- * `--watch` server.
- *
- * The old script started with `rm -rf generated`. Node watch treats that as
- * "every imported generated module vanished", restarts, fails to resolve the
- * `generated` alias, and then waits for a file change that will never come:
- * the failed process never imported the files that codegen is about to write,
- * so they are not in the watch set.
- *
- * Write into `generated.next`, then copy over the live tree. The directory
- * inode stays put, leftover files from a removed tag still get pruned, and
- * a `.ready` marker is written last so `bin/dev.ts` can wait instead of crash.
- */
+/** Regenerates `generated/` through staging rather than deleting the live tree: directory watchers remain attached,
+ * removed outputs are pruned, and `.ready` is written last so `bin/dev.ts` can wait. */
 import { spawn } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -71,10 +59,7 @@ function pruneEmptyDirs(dir: string, keepRoot: string): void {
   }
 }
 
-/**
- * Replace the contents of `live` with `staging` without deleting `live`
- * itself. Watchers bound to that directory stay attached.
- */
+/** Replace contents without deleting the watched directory. */
 export function publishGenerated(staging: string, live: string): void {
   if (!existsSync(staging)) {
     throw new Error(`Staging directory does not exist: ${staging}`);

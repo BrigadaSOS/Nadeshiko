@@ -43,11 +43,8 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
     resolvedMediaId: resolved.mediaId,
   });
 
-  // Mirrors the UQ_Report_user_target_reason index so the read-back finds exactly
-  // the row the index would have rejected a second copy of. Derived from the
-  // attributes actually being inserted rather than restated, so the two cannot
-  // drift — note `IsNull()` and not `undefined`, which TypeORM drops from the
-  // WHERE entirely and which used to make a media report match a segment report.
+  // Mirror the unique index with `IsNull()` for missing targets; `undefined` would omit that predicate and match the
+  // wrong report.
   const duplicateWhere: FindOptionsWhere<Report> = {
     userId: Number(user.id),
     source: ReportSource.USER,
@@ -58,12 +55,8 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
     reason: attributes.reason,
   };
 
-  // Insert-or-ignore rather than check-then-insert: a double-clicked report button
-  // sends two requests that both pass a pre-check, and the index turns the loser
-  // into a no-op instead of a 500. Not raising also keeps this safe to call inside
-  // a surrounding transaction, where a failed statement poisons every query after
-  // it. The cast is TypeORM's _QueryDeepPartialEntity recursion issue with JSONB
-  // columns — same as the note in app/models/Segment.ts.
+  // Insert-or-ignore makes concurrent duplicate reports idempotent and remains safe inside a surrounding transaction;
+  // do not use check-then-insert.
   await Report.createQueryBuilder()
     .insert()
     .into(Report)
@@ -71,10 +64,8 @@ export const createUserReport: CreateUserReport = async ({ body }, respond, req)
     .orIgnore()
     .execute();
 
-  // Search hides reported segments and demotes reported titles, so the cached id
-  // sets are stale from here on. Dropped rather than updated: the same call has to
-  // serve the insert-was-ignored case, where nothing changed and a rebuild is the
-  // cheapest correct answer.
+  // Reported-id caches are dropped even when insert was ignored, because rebuilding is the same correct path for both
+  // outcomes.
   invalidateUnhandledReports();
 
   // Reads back whichever row is there now — the one just inserted, or the one that

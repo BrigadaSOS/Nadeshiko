@@ -1,19 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-/**
- * Lifting an address off ZeptoMail's OWN suppression list.
- *
- * The whole reason this exists is that there are two lists. Auto-suppression of
- * hard bounces is on at the Agent, deliberately, so ZeptoMail refuses an address
- * whether or not our webhook is healthy -- which means deleting our row clears
- * only our half. The app then believes it can write to that person while the
- * relay silently still refuses, and nothing anywhere reports the disagreement.
- *
- * So the return value is a claim about the RELAY, and every case below is about
- * whether that claim is honest. Reporting success when the relay is still
- * refusing is the failure that matters; reporting failure when it is not
- * refusing costs an operator an afternoon hunting a problem that does not exist.
- */
+/** The app and ZeptoMail each maintain suppression state. Clearing only the app row can report success while the
+ * relay still refuses the address, so the return value must describe the relay. */
 const overrides: Record<string, unknown> = {};
 
 vi.mock('@config/config', async (importOriginal) => {
@@ -106,9 +94,7 @@ describe('isZohoConfigured', () => {
 
 describe('without credentials', () => {
   it('reports failure rather than a lift that never happened', () => {
-    // The address really is still refused at the relay. A `true` here would
-    // make the operator's lift exit zero while the person still cannot be
-    // written to.
+    // Without credentials, report failure because the relay still refuses the address.
     configure({ ...CONFIGURED, ZOHO_CLIENT_ID: undefined });
 
     return expect(deleteProviderSuppression(ADDRESS)).resolves.toBe(false);
@@ -140,9 +126,7 @@ describe('the delete request', () => {
   });
 
   it('sends the address as an ARRAY, which is the shape ZeptoMail accepts', async () => {
-    // `{ value: "..." }` -- the obvious reading, and what shirabe shipped --
-    // comes back as `SERR_110 "Parameter less than min occurrance"` naming a
-    // field the request never sent, which reads like a server problem.
+    // Send the address as an array; the object-shaped request returns a misleading missing-field error.
     const fetchMock = queueFetch(tokenResponse(), deleteResponse(200));
 
     await deleteProviderSuppression(ADDRESS);
@@ -175,10 +159,7 @@ describe('the delete request', () => {
 
 describe('"not on the list" is success', () => {
   it('treats DND_102 as a lift that is already done', async () => {
-    // The goal is that ZeptoMail is not refusing the address. If it never had
-    // the address -- we suppressed it manually, or auto-suppression had not
-    // fired -- that goal is already met, and reporting failure sends somebody
-    // hunting for a problem that does not exist.
+    // Success means ZeptoMail is no longer refusing the address; an address it never had already satisfies that goal.
     queueFetch(tokenResponse(), deleteResponse(404, NOT_FOUND_BODY));
 
     expect(await deleteProviderSuppression(ADDRESS)).toBe(true);
@@ -200,9 +181,8 @@ describe('"not on the list" is success', () => {
 
 describe('an expired token', () => {
   it('is retried once with a fresh one', async () => {
-    // The cache holds a token for fifty minutes against a stated hour, but the
-    // clock that matters is Zoho's -- an unlucky boundary should not read as a
-    // failed lift.
+    // The cache lasts 50 minutes against a stated hour; use the relay’s clock so a boundary does not look like a failed
+    // lift.
     queueFetch(tokenResponse('stale'), deleteResponse(401), tokenResponse('fresh'), deleteResponse(200));
 
     expect(await deleteProviderSuppression(ADDRESS)).toBe(true);

@@ -18,9 +18,7 @@ proxy:
   ssl: true
   host: api.nadeshiko.co
   forward_headers: true
-  # /up verifies Postgres before reporting healthy, so a container that boots
-  # but cannot reach the database never takes traffic. Elasticsearch is reported
-  # as a field and never fails the check -- see DEPLOYMENT.md.
+  # /up requires Postgres before declaring health; Elasticsearch is reported but does not gate readiness.
   healthcheck:
     path: /up
     interval: 2
@@ -34,20 +32,13 @@ env:
     - INTERNAL_PROXY_SECRET
     - LOG_USER_SALT
 
-    # Parsing. `parseSegments` is the only caller and it throws without a key, so
-    # an unset one does not break boot -- it breaks the next episode ingest, and
-    # the corpus backfill that has to run before the pos_analysis drop lands.
+    # Ingest and backfill need this parsing key to populate token morphology.
     - SHIRABE_API_KEY
 
-    # Account linking. Encrypts the per-reader Shirabe keys at rest and seals the
-    # OAuth state. Unset means readers simply cannot link an account (the routes
-    # answer that it is not configured); it never breaks boot, and it must never
-    # be rotated without re-encrypting what is stored, or every linked account
-    # stops working at once.
+    # Account linking encrypts reader tokens and OAuth state; unset disables linking. Retain the previous key until
+    # stored tokens are re-encrypted.
     - SHIRABE_CONNECTION_SECRET
-    # Our client secret at Shirabe (a confidential OAuth client): presented on
-    # every token exchange, renewal and revocation. Unset, Shirabe refuses us as
-    # a client and linking is off.
+    # Confidential Shirabe client secret used for token exchange, renewal, and revocation; unset disables linking.
     - SHIRABE_OAUTH_CLIENT_SECRET
     # Patreon linking is intentionally disabled until the feature is launched.
     # Its configuration defaults to empty, which keeps the routes unavailable.
@@ -72,10 +63,8 @@ env:
     - MAIL_FROM_EMAIL
     - MAIL_FROM_NAME
     - SMTP_PASSWORD
-    # Signs the bounce/complaint webhook ZeptoMail posts to
-    # /v1/webhooks/zeptomail. Without it the endpoint answers 503 rather than
-    # trusting an unsigned payload, because a forged hard bounce suppresses
-    # somebody's address and locks them out of magic-link sign-in.
+    # ZeptoMail webhook secret: invalid/missing signatures return 503 instead of accepting forged bounces that could
+    # suppress an address and block magic-link sign-in.
     - ZEPTOMAIL_WEBHOOK_SECRET
     # Lifting a suppression has two halves: our row and ZeptoMail's own list.
     # These are the second half, scoped to delete-only.
@@ -93,47 +82,21 @@ env:
     BASE_URL: https://nadeshiko.co
     PATREON_CAMPAIGN_URL: https://www.patreon.com/c/BrigadaSOS
 
-    # ZeptoMail is the only transport. `MAIL_TRANSPORT` is gone with the SES
-    # branch it used to select, and so are the SES_AWS_* credentials -- the last
-    # static AWS keys this container held, which nothing rotated.
+    # ZeptoMail is the only transport; the retired SES branch and its static AWS credentials are gone.
     SMTP_ADDRESS: smtp.zeptomail.jp
     SMTP_PORT: "587"
     SMTP_USER_NAME: emailapikey
 
-    # Where the feedback widget's notification lands. UNSET IS SILENT: the row is
-    # still stored, but `sendFeedbackEmail` logs "FEEDBACK_NOTIFICATION_TO unset"
-    # and returns, which is how feedback #1 was submitted on 2026-08-19 and read
-    # by nobody until someone queried the table.
-    #
-    # This is not a mailbox. `nadeshiko.co` inbound goes to the Cloudflare Email
-    # Routing catch-all, whose worker (brigadasos-infra/email-worker) forwards to
-    # the addresses in its FORWARD_TO and posts a copy to Discord -- so delivery
-    # depends on those staying verified destinations over there, not on anything
-    # in this repo. The reader's own address rides on Reply-To, so replying from
-    # a forwarded copy reaches them rather than this alias.
+    # Feedback notifications are optional: the row is stored even when the destination is unset. The configured alias is
+    # forwarded by the external Cloudflare worker; Reply-To preserves the reader address.
     FEEDBACK_NOTIFICATION_TO: support@nadeshiko.co
 
-    # LIFECYCLE MAIL IS LIVE. The nightly sweep at 05:00 UTC stops being a dry
-    # run and starts sending: the day-7 ask to accounts a week old, and the
-    # win-back to accounts whose session lapsed in the last 24 hours.
-    #
-    # Measured against production before flipping this, over five nights of dry
-    # run and a direct count: about three of each per night. The dormant backlog
-    # is 331 accounts, but the sweep only takes the ones that lapsed last night,
-    # so the first night is a handful rather than half the base.
-    #
-    # `LIFECYCLE_EMAILS_ONLY_TO` is deliberately not set. Previewing goes through
-    # `npm run email:test <template> <address>`, which bypasses this gate
-    # entirely, so a rehearsal does not need the switch on at all.
-    #
-    # Set this back to "false" to stop everything; accounts already claimed in
-    # `EmailLifecycleSend` are never re-sent, and accounts swept while off are
-    # never claimed, so they stay eligible when it comes back.
+    # Keep ONLY_TO unset in production; preview with email:test before enabling real sends. Disabling stops future sends
+    # without consuming claims; candidate timing still governs later eligibility.
     LIFECYCLE_EMAILS_ENABLED: "true"
 
-    # What Shirabe has us registered as. The redirect is exact-matched over
-    # there, so this string and the one in their `oauth_clients` row have to be
-    # character-for-character the same or the consent screen refuses the request.
+    # Shirabe exact-matches this redirect URI against the registered client. Both values must match
+    # character-for-character.
     SHIRABE_OAUTH_CLIENT_ID: nadeshiko
     SHIRABE_OAUTH_REDIRECT_URI: https://nadeshiko.co/link/shirabe/callback
 
@@ -145,76 +108,33 @@ env:
 
     R2_BASE_URL: https://cdn.nadeshiko.co
 
-    # Counts accounts server-side, so a reader whose content blocker eats the
-    # browser's signup event is still counted. `clear` rather than `secret`
-    # deliberately: this is the PostHog project write key, it can only submit
-    # events, and the frontend already ships the same string in its bundle --
-    # putting it behind a secret would imply a confidentiality it does not have.
-    #
-    # Production only, for the same reason the frontend leaves the PostHog module
-    # out of every other environment: staging traffic must not land in the project
-    # that answers questions about real readers. Unset disables capture entirely.
+    # PostHog counts signups server-side; this public project write key is clear because the frontend ships it too.
+    # Production only prevents staging traffic entering real-reader analytics; unset disables capture.
     POSTHOG_API_KEY: phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD
     POSTHOG_HOST: https://us.i.posthog.com
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-backend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http
-    # `service.version` read 0.0.0 on every deployed build, because
-    # instrumentation.ts took it from npm_package_version and the container's
-    # CMD is a bare `node`, which npm never sets it for. Read package.json here
-    # instead -- kamal runs from `backend/`, so this is the same file the image
-    # was built from. String scan rather than JSON.parse: the ERB binding is
-    # Kamal's, and a missing constant here would abort the deploy at config
-    # load. Kamal renders this at deploy time, so it cannot drift from the tag.
+    # Read the package version here because bare node does not set npm_package_version; Kamal renders this from
+    # backend/package.json at deploy time, keeping service.version aligned with the tag.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
 accessories:
   postgres:
     image: postgres:17
     host: nadeshiko
-    # SHARED BY PRODUCTION AND STAGING. deploy.staging.yml deliberately points
-    # at this accessory rather than declaring a second database. Rebooting or
-    # changing it interrupts both environments and must use the coordinated
-    # database maintenance procedure in DEPLOYMENT.md.
-    # Tailnet address of the `nadeshiko` host. This is a moving target: it was
-    # 100.95.40.11 when written and the host now answers on 100.127.97.67, with
-    # dockerd left holding a socket bound to an address the box no longer had.
-    # Nothing here broke only because of the loopback publish below, which is
-    # what the Alloy exporter actually dials. Keep both.
+    # Shared by production and staging: coordinate maintenance because rebooting it interrupts both. The host address
+    # can move; keep the loopback publish because Alloy dials that stable local endpoint.
     port: "100.127.97.67:5432:5432"
     options:
-      # Memory limit: 1.5GB. Postgres persists to disk, so it is safe to
-      # OOM-kill and restart -- but a restart drops every pooled connection, so
-      # cheap is not the same as free.
-      #
-      # RAISED FROM 1g 2026-08-14, on the shape of the usage rather than its
-      # average. Steady state is ~200MB and the old comment's "3x headroom" was
-      # true of that number; what it missed is that this container is spiky.
-      # Measured over 24h: baseline ~200MB, an hourly-averaged excursion to
-      # 703MB, and a 1-minute peak of 975MB -- 95% of the old 1g cap. It spent
-      # 2 minutes above 90%, which is why NadeshikoContainerMemoryNearLimit
-      # (90%, for 15m) never said a word about it.
-      #
-      # Nothing was killed, and most of that peak is reclaimable page cache over
-      # the data files rather than anonymous memory. The cap goes up anyway: a
-      # transient that reaches 95% only has to be slightly larger to be a kill,
-      # and the checkpoint/backup shape that produces it is not something we
-      # control from here.
+      # OOM restarts Postgres and drops pooled connections; leave headroom for query bursts, not just idle use.
       memory: 1.5g
-      # Docker otherwise gives every container a fixed 64MB /dev/shm, regardless
-      # of its memory limit. PostgreSQL's parallel workers allocate POSIX dynamic
-      # shared-memory segments there; production exhausted the default during
-      # broad duplicate-suppression lookups on 2026-09-21. 256MB is bounded
-      # inside the 1.5GB container budget and leaves headroom for the configured
-      # two workers per Gather. The matching index migration removes the full
-      # table scan that triggered the pressure; this limit is defense in depth,
-      # not a substitute for that query fix.
+      # Docker defaults /dev/shm to 64MB; parallel Postgres workers can exhaust it. This bounded increase leaves worker
+      # headroom, while the query/index fix remains the primary remedy.
       shm-size: 256m
       publish:
-        # Loopback as well as the tailnet address above. This is the only reason
-        # the Alloy Postgres exporter kept working through the IP change, and it
-        # is why Elasticsearch — which had no equivalent — did not.
+        # Publish loopback as well as the tailnet address so the Alloy Postgres exporter survives host-IP changes.
         - "127.0.0.1:5432:5432"
       # Accessories get no logging defaults from Kamal, so auto_explain output
       # would grow unbounded on the host disk.
@@ -226,38 +146,9 @@ accessories:
       -c shared_preload_libraries='pg_stat_statements,auto_explain'
       -c pg_stat_statements.track=all
       -c auto_explain.log_min_duration=1000
-    # THE ADMIN PASSWORD ARRIVES AS A FILE, NOT AS AN ENV VAR
-    # (brigadasos-infra#5). `POSTGRES_PASSWORD` in a container's environment is
-    # readable through every path Docker offers: `docker exec … env`,
-    # `docker inspect`, `/proc/<pid>/environ`, and Kamal's own accessory output.
-    # The official image supports `<VAR>_FILE` for exactly this
-    # (`docker-entrypoint.sh`, the `file_env` helper), so the value never enters
-    # the environment at all.
-    #
-    # BOTH FORMS ARE MUTUALLY EXCLUSIVE: the entrypoint aborts if
-    # `POSTGRES_PASSWORD` and `POSTGRES_PASSWORD_FILE` are both set. That is why
-    # the secret line below is gone rather than kept "just in case".
-    #
-    # WHAT THIS IS AND IS NOT. It is hygiene, not a boundary: root on the host
-    # can read the mounted file as easily as the environment, and docker-group
-    # access is root-equivalent anyway. What it removes is the casual disclosure
-    # -- an inspect output pasted into a ticket, an ops agent's transcript, a
-    # crash dump of the environment.
-    #
-    # IT DOES NOT CLOSE THE EXISTING EXPOSURE. The value that has been sitting in
-    # the container environment must be treated as disclosed and rotated (SSM
-    # parameter, then `ALTER ROLE`, then the app's own secrets); until then this
-    # only stops the next one leaking the same way.
-    #
-    # APPLYING IT RESTARTS THE DATABASE. Accessories are not touched by
-    # `kamal deploy`; this reaches production only through
-    # `kamal accessory reboot postgres -d prod`, which drops every pooled
-    # connection. Deliberately not folded into a release.
-    #
-    # The password is only READ on first init -- an existing data directory
-    # ignores it -- so the running database keeps working either way. The file
-    # matters for disaster recovery onto an empty volume, which is the one case
-    # where the entrypoint needs it and where a missing value fails the boot.
+    # Use POSTGRES_PASSWORD_FILE, not env: inspect/proc expose values, and the image rejects both password forms. This
+    # is exposure hygiene, not a host-root boundary; rotate passwords already exposed. Accessory changes require a
+    # production Postgres reboot, not an app deploy. The file initializes empty volumes only.
     files:
       - config/postgres/admin-password.erb:/run/secrets/postgres-admin-password
     env:
@@ -272,12 +163,7 @@ accessories:
   elasticsearch:
     image: <%= ENV.fetch("ELASTICSEARCH_IMAGE", "ghcr.io/brigadasos/nadeshiko-elasticsearch:9.4.1-sudachi-3.6.0-dict-20260116") %>
     host: nadeshiko
-    # See the note on postgres above: this pinned 100.95.40.11, the host's old
-    # tailnet address, and unlike postgres there was no second publish to fall
-    # back on. The Alloy Elasticsearch exporter timed out against it for weeks —
-    # every scrape failing, no elasticsearch_* series, and nothing alerting
-    # because a target that never reports looks the same as one that does not
-    # exist. ES itself was fine the whole time; only the door was.
+     # Publish a loopback endpoint so exporters do not depend on a changing tailnet address.
     port: "100.127.97.67:9200:9200"
     env:
       secret:
@@ -285,23 +171,13 @@ accessories:
       clear:
         discovery.type: single-node
         ES_JAVA_OPTS: "-Xms1g -Xmx1g"
-        # Pin the heap in RAM. The memlock ulimit below has been there all along
-        # and is only half of it: without this setting Elasticsearch never asks
-        # for the lock, and measured 2026-08-31 the JVM had 713MB of its 1.8GB
-        # resident set out in swap -- pages of the heap it touches least, paged
-        # out during some earlier pressure and never brought back, until a
-        # search needed them at the worst possible moment. The host runs
-        # vm.swappiness=1 already; this closes the gap for the one process that
-        # must not swap. Takes effect on `kamal accessory reboot elasticsearch
-        # -d prod`, which is ~a minute without search.
+         # Lock heap pages to avoid swap stalls; accessory changes take effect only after reboot.
         bootstrap.memory_lock: "true"
         xpack.security.enabled: "true"
         xpack.security.http.ssl.enabled: "false"
         http.host: "0.0.0.0"
     volumes:
-      # Overridable so a specific image digest can be pinned for a boot -- which
-      # is how the blue-green migration attached the rebuilt v9 image. The
-      # default is the volume production runs on.
+       # Override the volume for a pinned image during a migration; otherwise use the production data volume.
       - <%= ENV.fetch("ELASTICSEARCH_VOLUME", "nadeshiko-elasticsearch-v9-data") %>:/usr/share/elasticsearch/data
     cmd: >
       bash -c '
@@ -313,17 +189,8 @@ accessories:
       # JVM heap fixed at 1GB via ES_JAVA_OPTS; rest is Lucene off-heap
       memory: 3.5g
       publish:
-        # The loopback publish Postgres always had and this never did, which is
-        # the whole difference between an exporter that survived the tailnet IP
-        # change and one that did not. The Alloy Elasticsearch exporter dials
-        # http://127.0.0.1:9200 deliberately, so that it stops depending on an
-        # address that moves.
-        #
-        # That exporter lives in brigadasos-infra at
-        # ansible/roles/host_alloy/files/config-nadeshiko.alloy. Alloy runs there
-        # as a host service rather than a container -- a containerised collector
-        # cannot report on Docker failing -- so it dials this loopback directly
-        # from the host, which is exactly what publishing it here provides.
+         # Publish loopback for the host Alloy exporter; its host-service configuration dials 127.0.0.1 rather than the
+         # moving tailnet address.
         - "127.0.0.1:9200:9200"
       ulimit:
         - nofile=65536:65536
@@ -345,10 +212,7 @@ accessories:
       clear:
         CRON_SCHEDULE: "0 2 * * *"
         REMOVE_BEFORE: "30"
-        # Prod only. Staging shares this Postgres server, and with DBLIST unset
-        # kartoza dumps every database on it -- so the bucket was also collecting
-        # a nightly ~1.2GB dump of nadeshiko-dev, which is disposable data we
-        # would never restore.
+         # Production only: without DBLIST, this shared backup service also dumps staging databases.
         DBLIST: "nadeshiko-prod"
         STORAGE_BACKEND: "S3"
         CONSOLE_LOGGING: "True"

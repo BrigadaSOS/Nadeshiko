@@ -8,22 +8,15 @@ type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>['results']
 /** How many unresolved identifiers an error message names before it trails off. */
 const MAX_REPORTED_UNKNOWN_MEDIA = 5;
 
-/**
- * Rewrites the deprecated `{ exclude: [...] }` shape into the canonical array of
- * languages to match. Read sites go through `@lib/searchLanguages` and accept both
- * shapes, so this is a normalization step, not a prerequisite.
- */
+/** Normalize the deprecated `exclude` shape; readers still accept both forms, so this is compatibility cleanup
+ * rather than a prerequisite. */
 export function normalizeLanguageFilter(filters?: t_SearchFilters): void {
   if (!filters || filters.languages == null) return;
 
   filters.languages = includedSearchLanguages(filters.languages);
 }
 
-/**
- * Resolves the public identifiers in `filters.media` to internal media ids, returning a
- * copy. The request body is left untouched so a caller can still report on what was asked
- * for after the filters have been rewritten.
- */
+/** Resolve public ids into a copy, leaving the request body intact for callers that need the original filter. */
 export async function resolveMediaFilterIds<TFilters extends t_SearchFilters>(
   filters?: TFilters,
 ): Promise<ResolvedSearchFilters<TFilters> | undefined> {
@@ -47,22 +40,8 @@ export async function resolveMediaFilterIds<TFilters extends t_SearchFilters>(
   } as ResolvedSearchFilters<TFilters>;
 }
 
-/**
- * The internal ids behind `preferMedia`, or an empty set when the request has no
- * business reordering anything.
- *
- * Two reasons it can come back empty, and they are different in kind. The caller
- * may simply not have sent any titles -- the signed-out case, and the signed-in
- * reader who has favourited nothing. Or the caller asked for an explicit sort:
- * `TIME_ASC` means "in episode order", and quietly lifting the reader's own shows
- * within each tie would answer a question nobody asked. Only `RELEVANCE` leaves
- * ties genuinely arbitrary, so only `RELEVANCE` is ours to break.
- *
- * Unknown identifiers are dropped rather than reported. An unresolvable entry
- * here costs the caller nothing -- the title merely fails to be preferred -- and
- * the list is assembled from a reader's saved preferences, which can name a title
- * that has since been removed from the corpus.
- */
+/** Only `RELEVANCE` needs preference tie-breaking; explicit ordering and unresolvable saved titles must not be
+ * changed into a preference sort. */
 export async function resolvePreferredMediaIds(
   sort: { mode?: string } | undefined,
   preferMedia: string[] | undefined,
@@ -89,16 +68,8 @@ const EMPTY_PREFERRED_MEDIA: ReadonlySet<number> = new Set<number>();
 /** The internal id resolved from the public identifier; not part of the wire shape. */
 export type ResolvedMediaFilterItem = t_MediaFilterItem & { mediaId: number };
 
-/**
- * Filters whose media entries carry the internal `mediaId`, i.e. filters that have
- * been through `resolveMediaFilterIds`.
- *
- * The query builder matches on `mediaId`, which only exists after resolution --
- * the wire shape carries `mediaPublicId`. Naming that as a distinct type makes the
- * ordering a compile error instead of an unwritten rule: handing unresolved filters
- * to the query builder used to produce `term: { mediaId: undefined }`, which matches
- * nothing and reports no error.
- */
+/** Pass only filters whose media entries have resolved `mediaId`; the wire request carries `mediaPublicId`, and
+ * unresolved ids would match nothing silently. */
 export type ResolvedSearchFilters<TFilters extends t_SearchFilters = t_SearchFilters> = Omit<TFilters, 'media'> & {
   media?: Omit<NonNullable<TFilters['media']>, 'include' | 'exclude'> & {
     include?: ResolvedMediaFilterItem[];
@@ -106,12 +77,8 @@ export type ResolvedSearchFilters<TFilters extends t_SearchFilters = t_SearchFil
   };
 };
 
-/**
- * An include entry naming a media we cannot resolve used to be dropped, and dropping the
- * last entry turned "only these media" into no media filter at all -- a deliberately narrow
- * request answered with the whole corpus. An unknown identifier is a client mistake, so it
- * is reported rather than quietly widening the result set.
- */
+/** Report an unknown include id: dropping the last entry would turn a narrow request into an unfiltered corpus
+ * search. */
 function resolveIncludeItems(items: t_MediaFilterItem[], identifiers: Map<string, number>): ResolvedMediaFilterItem[] {
   const resolved: ResolvedMediaFilterItem[] = [];
   const unknown: string[] = [];
@@ -152,11 +119,8 @@ function resolveExcludeItems(items: t_MediaFilterItem[], identifiers: Map<string
   return resolved;
 }
 
-/**
- * Both accepted identifier forms in one lookup table, built once per request rather than
- * scanning the whole media map per filter item. publicIds are indexed first so they keep
- * winning over an anilist id that happens to look the same.
- */
+/** Index both identifiers once per request; public ids are inserted first so they win when values overlap an AniList
+ * id. */
 function buildMediaIdentifierIndex(mediaMap: MediaInfoMap): Map<string, number> {
   const identifiers = new Map<string, number>();
 

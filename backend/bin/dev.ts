@@ -1,12 +1,5 @@
-/**
- * Watch-mode entry. `main.ts` statically imports `generated/*`, so a missing
- * tree is an uncaught ERR_MODULE_NOT_FOUND and Node --watch gives up: the
- * files that will reappear were never added to the watch set.
- *
- * This file has no generated import. It waits for the marker `generate:api`
- * writes last, then loads the app. Deleting generated/ becomes a pause
- * instead of a dead process you have to Ctrl-C.
- */
+/** Watch-mode entry that waits for `generate:api`’s final marker before loading the app, so a missing generated tree
+ * pauses instead of making Node --watch die permanently. */
 import { defaultGeneratedDir, waitForGenerated } from './lib/generatedReady';
 
 const generatedDir = defaultGeneratedDir();

@@ -10,11 +10,7 @@ describe('htmlToPlainText', () => {
     expect(htmlToPlainText(html)).toBe('Hello');
   });
 
-  /**
-   * The reason this is not `replace(/<[^>]+>/g, '')`. Dropping the href leaves
-   * "Sign in to Nadeshiko" as dead words — for a magic link, an email that
-   * cannot be acted on at all.
-   */
+  /** Do not strip tags with a regex: removing the href leaves a magic-link label that cannot be used. */
   it('keeps the link target beside its text', () => {
     const html = '<a href="https://nadeshiko.co/x?t=1">Sign in</a>';
 
@@ -39,11 +35,8 @@ describe('htmlToPlainText', () => {
     expect(htmlToPlainText(html)).toBe('- Search: look things up\n- Save them');
   });
 
-  /**
-   * A blank line between paragraphs, a single break inside one. Plaintext has no
-   * other way to show the difference, and running them together is how a
-   * generated text part ends up unreadable enough that nobody keeps it.
-   */
+  /** Represent paragraph breaks as blank lines and inline breaks as single newlines; otherwise generated plaintext
+   * loses readable structure. */
   it('separates paragraphs but not the lines inside them', () => {
     expect(htmlToPlainText('<p>One</p><p>Two<br />Three</p>')).toBe('One\n\nTwo\nThree');
   });
@@ -54,10 +47,7 @@ describe('htmlToPlainText', () => {
     expect(htmlToPlainText(html)).toBe('© 2026 — a & b · "c" \'d\' …');
   });
 
-  /**
-   * Query strings are HTML-escaped inside an href, and a plaintext reader
-   * pasting `&amp;` into a browser gets a different URL than the one we sent.
-   */
+  /** Decode HTML entities in hrefs so plaintext readers receive the actual URL, not `&amp;`. */
   it('unescapes an href, so the link still works when pasted', () => {
     const html = '<a href="https://nadeshiko.co/?a=1&amp;b=2">Go</a>';
 

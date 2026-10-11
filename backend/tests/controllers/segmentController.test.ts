@@ -332,10 +332,7 @@ describe('POST /v1/media/:mediaId/episodes/:episodeNumber/segments/batch', () =>
   });
 
   it('queues every ingested line for tokenization', async () => {
-    // The hole this closes: an upload used to insert its rows, index them, and
-    // stop. `Fate/stay night: Unlimited Blade Works` landed on 2026-08-21 with
-    // 3,816 sentences and no morphology in either environment, because the only
-    // thing that had ever called Shirabe was a script somebody ran by hand.
+    // The prior bug inserted and indexed uploaded rows without calling Shirabe, leaving sentences without morphology.
     const { media, episode } = await seedIngestTarget();
 
     const res = await request(app)
@@ -458,9 +455,8 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
   it('drops the analysis and asks for a new one when the Japanese changes', async () => {
     const fixtures = await loadFixtures(['mediaWithEpisode']);
     const episode = fixtures.episodes.pilot;
-    // `b`/`e` are offsets into the sentence that was parsed. Leave them in place
-    // over an edited line and the reader gets furigana over the wrong kanji,
-    // with nothing anywhere saying the analysis no longer fits.
+    // Offsets refer to the parsed sentence; keeping them after editing a line would place furigana over the wrong
+    // kanji.
     const segment = await seedSegment(fixtures.media.testShow.id, episode.episodeNumber, {
       contentJa: '走る',
       tokens: [{ s: '走る', d: '走る', r: 'ハシル', b: 0, e: 2, p: '動詞' }],
@@ -582,9 +578,8 @@ describe('PATCH /v1/media/segments/:segmentPublicId', () => {
 
 describe('SegmentRevision numbering', () => {
   it('is backed by a unique constraint on (segment_id, revision_number)', async () => {
-    // The controller derives the next number under a row lock. True concurrency is
-    // not reproducible here, so assert the constraint that makes a collision a
-    // failed write rather than two revisions sharing a number.
+    // This harness cannot reproduce concurrent writes; assert the unique constraint that rejects duplicate revision
+    // numbers.
     const rows = await TestDataSource.query(`
       SELECT indexdef FROM pg_indexes
       WHERE tablename = 'SegmentRevision' AND indexdef LIKE '%UNIQUE%'

@@ -15,14 +15,8 @@ vi.mock('@config/log', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: v
 
 const saved: Record<string, unknown>[] = [];
 
-/**
- * Column-scoped writes, as `{criteria, patch}`.
- *
- * Worth recording separately from `saved` because WHICH columns a write names
- * is the property under test: everything but the two token writers has to leave
- * the pair alone, or it writes a superseded copy back over a renewal it never
- * saw. See `never writes the token pair back` below.
- */
+/** Record writes as `{ criteria, patch }` so the test proves which columns are named; other writers must not
+ * overwrite the token pair from a renewal they did not observe. */
 const updates: { criteria: Record<string, unknown>; patch: Record<string, unknown> }[] = [];
 
 // The row `renewAccessToken` locks and re-reads inside its transaction. Tests
@@ -613,21 +607,8 @@ describe('refreshStack', () => {
     }
   });
 
-  /**
-   * The bug this exists for, and it was not theoretical: readers were told to
-   * reconnect within hours of connecting, again and again, and the log said
-   * Shirabe had ended their grant.
-   *
-   * What really happened is here. The caller's instance is read BEFORE
-   * `getReaderAccessToken` renews, the renewal rotates the pair on the row it
-   * locked -- a different object, as it is in Postgres -- and a whole-entity
-   * `save()` afterwards writes the caller's now-spent pair back over it.
-   * Nothing looks wrong until the next renewal presents a refresh token Shirabe
-   * has already seen, which is `invalid_grant`, which is the grant over.
-   *
-   * The fixtures are deliberately two objects. One would pass this test while
-   * production kept failing, which is exactly what the old tests did.
-   */
+  /** Keep separate caller and database objects: the caller can save a spent refresh pair after the renewal updates
+   * the locked row. One object would pass while production later receives `invalid_grant`. */
   it('never writes the token pair back over a renewal it did not make', async () => {
     const held = storedConnection({ accessTokenExpiresAt: new Date(Date.now() + 10 * 1000) });
     lockedConnection = storedConnection({ accessTokenExpiresAt: new Date(Date.now() + 10 * 1000) });

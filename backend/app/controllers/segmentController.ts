@@ -101,9 +101,7 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
     },
   });
 
-  // A batch is one episode, which is the smallest population the wakati signal
-  // exists over -- see wakatiDetection. Checked here and not in createSegment
-  // because a single line carries no signal to check.
+  // Validate a batch at the episode level because one segment has no population for the `wakatiDetection` signal.
   const wakati = assessWakati(body.segments.map((segmentBody) => segmentBody.textJa?.content ?? ''));
   if (wakati.isWakati) {
     logger.warn(
@@ -127,9 +125,7 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
     }),
   );
 
-  // Upsert: insert new segments, or reactivate DELETED/HIDDEN ones with updated content.
-  // This allows reprocessing an episode without needing to hard-delete first —
-  // segments with the same UUID (same anime + episode + position) get their content replaced.
+  // Upsert reprocessed segments so deleted/hidden rows reactivate with new content instead of requiring hard deletion.
   const result = await Segment.createQueryBuilder()
     .insert()
     .into(Segment)
@@ -163,16 +159,8 @@ export const createSegmentsBatch: CreateSegmentsBatch = async ({ params, body },
       logger.error({ err: error }, 'Failed to enqueue bulk ES sync jobs for batch segment creation');
     });
 
-    // Tokenization is asynchronous and deliberately does not gate the index. An
-    // episode is searchable the moment it lands; the morphology follows a few
-    // seconds later and the token parse enqueues its own ES sync when it does.
-    // The other order -- index only once tokens exist -- means a Shirabe outage
-    // takes search for the new episode down with it, which is a much worse day
-    // than an episode that renders plain highlights for a minute.
-    //
-    // The two syncs cannot race into a stale document: both handlers re-read the
-    // segment from Postgres when they run, so whichever writes last writes the
-    // current row either way.
+    // Index immediately and tokenize asynchronously; Shirabe outage must not block search, and both sync handlers
+    // re-read Postgres before writing.
     sendBulkTokenParseJobs(allIds).catch((error) => {
       logger.error({ err: error }, 'Failed to enqueue token parse jobs for batch segment creation');
     });
@@ -223,9 +211,8 @@ export const restoreSegmentRevision: RestoreSegmentRevision = async ({ params },
   const restored = await applyRevisionRestore(segment.id, params.revisionNumber, {
     userId: assertUser(req).id,
     actor: resolveRevisionActor(req),
-    // A restore answers the bad edit, not the report that caused it. Leaving this
-    // null keeps the activity feed's report linkage meaning "an edit made for this
-    // report" rather than also collecting the undos of those edits.
+    // A restore fixes an edit, not its originating report; keep report linkage null so activity means “edit made for
+    // this report.”
     reportId: null,
   });
 
@@ -316,13 +303,8 @@ async function getEpisodeExternalVideoId(mediaId: number, episodeNumber: number)
   return episode?.externalVideoId ?? null;
 }
 
-/**
- * A service API key is the moderation agent; anything else is a person.
- *
- * The agent's key belongs to a real user row, so `userId` cannot tell the two
- * apart — the key's kind is the only signal available at write time, and it is
- * not recoverable later.
- */
+/** Record service-key writes as agent edits; the key belongs to a real user, so `userId` alone cannot distinguish
+ * agent from person. */
 export function resolveRevisionActor(req: {
   auth?: { type: AuthType; apiKey?: { kind?: ApiKeyKind } };
 }): RevisionActor {
@@ -336,21 +318,8 @@ export type RevisionProvenance = {
   reportId: number | null;
 };
 
-/**
- * Drops an analysis that no longer describes the sentence it was made from.
- *
- * A `SlimToken` is not just a list of words: `b` and `e` are offsets INTO the
- * string that was parsed, and the frontend slices the sentence with them to
- * place ruby and to build word cards. Change the Japanese underneath and every
- * one of those offsets points somewhere else — a moderator fixing a typo would
- * leave the line rendering furigana over the wrong kanji, with nothing
- * anywhere saying so.
- *
- * So the edit clears them, and the reparse is enqueued once the edit commits.
- * Null tokens are an ordinary state the whole read path already handles (it is
- * what a segment looks like between ingest and its parse) and render as plain
- * highlight HTML. Wrong tokens are not a state anything handles.
- */
+/** Offsets in `SlimToken` belong to the parsed sentence; clear them on edits and enqueue reparsing after commit,
+ * because wrong offsets corrupt highlights. */
 function clearTokensIfJapaneseChanged(segment: Segment, previousJa: string): boolean {
   if (segment.contentJa === previousJa) return false;
 
@@ -366,9 +335,8 @@ async function applySegmentUpdate(
   // The revision is this edit's audit trail, so it is written in the same
   // transaction as the edit: a caller that gets a 200 has both rows, or neither.
   const { segment, reparse } = await Segment.getRepository().manager.transaction(async (manager) => {
-    // Serialises concurrent edits of the same segment. Without the lock two writers
-    // read the same MAX(revision_number) and collide on the unique index, and both
-    // snapshot the same stale pre-state instead of chaining.
+    // Lock the segment while assigning its next revision; concurrent writers otherwise collide and snapshot the same
+    // stale pre-state.
     const segment = await manager
       .createQueryBuilder(Segment, 'segment')
       .setLock('pessimistic_write')
@@ -386,24 +354,13 @@ async function applySegmentUpdate(
     return { segment, reparse };
   });
 
-  // Enqueued after the commit, not from inside it. A job sent mid-transaction
-  // can be picked up before the transaction lands, and the worker would then
-  // read the row as it was before the edit and write back tokens for the old
-  // sentence — the exact staleness this is here to prevent.
+  // Enqueue only after commit; a worker started mid-transaction could read the old sentence and write stale tokens.
   if (reparse) await sendTokenParseJob(segment.id);
 
   return segment;
 }
 
-/**
- * Restores a segment to the state captured in one of its revisions.
- *
- * Revision numbers only ever move forward. Restoring to revision 3 from revision 7
- * writes revision 8 whose snapshot holds what 7 left behind, so the history stays
- * append-only and the restore is itself undoable. Rewinding the counter instead
- * would destroy the record of the edits being undone — exactly the rows you want
- * when working out why a bad edit happened.
- */
+/** Restores append a new revision instead of rewinding the counter, preserving an undoable, append-only history. */
 async function applyRevisionRestore(
   segmentId: number,
   revisionNumber: number,
@@ -441,24 +398,8 @@ async function applyRevisionRestore(
   return segment;
 }
 
-/**
- * Applies one action to every segment in an episode, or to none of them.
- *
- * Three properties are deliberate and load-bearing:
- *
- *   - **All or nothing.** The count is checked against `maxAffected` before any
- *     write. A cap smaller than the episode rejects the request rather than
- *     applying to an arbitrary prefix, so a caller that guessed the size wrong
- *     leaves no half-shifted episode behind.
- *   - **One revision per segment.** Bulk here is a convenience over the same
- *     per-segment history the single-segment path writes, not a second write path
- *     that bypasses it. That is what makes this revertible one line at a time and
- *     visible per line in the activity feed.
- *   - **Entities, not a query-builder UPDATE.** A set-based UPDATE would be faster
- *     and would silently skip the `afterUpdate` subscriber that reindexes into
- *     Elasticsearch — leaving search serving the old timings for the whole
- *     episode, which is precisely the defect being fixed.
- */
+/** Check `maxAffected` before writing; create one revision per segment through entities/subscribers, then enqueue
+ * work after commit so search reindexes. */
 async function applyEpisodeModeration(
   mediaId: number,
   episodeNumber: number,
@@ -490,9 +431,7 @@ async function applyEpisodeModeration(
 
       if (body.action === 'shiftTimings') {
         const offsetMs = body.offsetMs as number;
-        // Clamp rather than skip: a segment pushed below zero still belongs to the
-        // episode, and dropping it from the shift would leave one line misaligned
-        // against every other one — a worse defect than a slightly early clip.
+        // Clamp shifted times at zero rather than skipping a segment; every line must remain aligned with the episode.
         segment.startTimeMs = Math.max(0, segment.startTimeMs + offsetMs);
         segment.endTimeMs = Math.max(0, segment.endTimeMs + offsetMs);
       } else {

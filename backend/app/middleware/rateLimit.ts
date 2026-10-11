@@ -11,43 +11,11 @@ const DEFAULT_MAX = config.RATE_LIMIT_MAX_REQUESTS_PER_IP;
 const AUTH_MAX = config.RATE_LIMIT_AUTH_MAX_REQUESTS_PER_IP;
 const FEEDBACK_MAX = config.RATE_LIMIT_FEEDBACK_MAX_REQUESTS_PER_IP;
 
-// IPv6 is grouped by /56 rather than by address: a single subscriber is
-// routinely handed a whole /64, so keying on the full address lets one client
-// rotate through addresses it already owns.
+// Group IPv6 by `/56`; a subscriber may rotate addresses within an assigned `/64`.
 const IPV6_SUBNET = 56;
 
-/**
- * Who to count this request against.
- *
- * NOT `req.ip`, which is what this used to use and which is wrong here. Express
- * resolves `req.ip` from `trust proxy` (1 hop, set in application.ts) by
- * walking X-Forwarded-For from the right, and there are *two* proxies in front
- * of us: Cloudflare, then kamal-proxy. The header that reaches this process
- * therefore reads `<visitor>, <cloudflare edge>` and `req.ip` lands on the
- * Cloudflare edge address, not the visitor.
- *
- * That made the limit meaningless in both directions, measured against
- * production: twelve requests from one machine landed in four different buckets
- * (each answering `remaining=299`) because consecutive requests exit different
- * edge servers -- so an abusive client is never counted twice -- while
- * unrelated visitors sharing an edge were counted against each other.
- *
- * `CF-Connecting-IP` is a single unambiguous value that Cloudflare sets and
- * overwrites on every proxied request. Counting the XFF hops instead would work
- * today and is what the previous comment assumed; it is not used because the
- * chain length is not actually constant -- kamal-proxy's own logs show both one
- * and two entries for the same visitor -- so a fixed hop count would silently
- * pick the wrong element for some requests.
- *
- * The fallback keeps internal callers working: container-to-container traffic
- * carries no Cloudflare header, and `req.ip` is correct for it.
- *
- * Trust boundary: this is only as good as the guarantee that traffic arrives
- * through Cloudflare, which is a firewall question. See the Cloudflare section
- * of DEPLOYMENT.md. Until the origin is locked, someone who has learned the
- * origin address can set this header themselves -- exactly as they could
- * already forge X-Forwarded-For, so it is not a regression.
- */
+/** Use `CF-Connecting-IP` through Cloudflare; `req.ip` is the internal fallback. The header is trusted only behind
+ * the origin firewall. */
 export function resolveClientIp(req: Request): string {
   const cfConnectingIp = req.get('cf-connecting-ip')?.trim();
   if (cfConnectingIp) return cfConnectingIp;
@@ -55,30 +23,17 @@ export function resolveClientIp(req: Request): string {
 }
 
 function clientKey(req: Request): string {
-  // ipKeyGenerator applies the IPv6 grouping that the default key generator
-  // would have applied; a custom keyGenerator opts out of the `ipv6Subnet`
-  // option, so it has to be done here or IPv6 silently keys per address.
+  // Apply `ipKeyGenerator` explicitly because a custom key generator otherwise bypasses the configured IPv6 subnet
+  // grouping.
   return ipKeyGenerator(resolveClientIp(req), IPV6_SUBNET);
 }
-// SCOPING: this limiter is for DIRECT browser-to-backend traffic only. Browser
-// traffic that reaches us through the frontend Nitro proxy is already rate
-// limited per real client IP there (frontend/server/utils/ipRateLimit.ts), and
-// at the backend every proxied user collapses onto the proxy's single source
-// key — limiting that would throttle them all against one bucket. We therefore
-// exempt proxied traffic via `isTrustedInternalCaller`. Crucially, that decision
-// is made from an unforgeable shared secret, NOT from `req.ip`/X-Forwarded-For
-// (which a client can influence): both direct and proxied traffic reach us
-// through kamal-proxy, so neither the source IP nor the TCP peer can be trusted
-// to distinguish them.
+// Skip only trusted frontend-proxy traffic using the shared secret, never IP/XFF, because backend IP would merge all
+// proxied users.
 
-// Who counts as one of our own — the frontend proxy and SERVICE-key callers —
-// lives in @lib/internalProxy, because the traffic classifier gates on exactly
-// the same answer and the two must not drift.
+// Keep the internal-caller predicate shared with traffic classification so the two gates cannot drift.
 const shouldSkip = isTrustedInternalCaller;
 
-// Twelve series at most (six scopes x two sources), which is why `source` is a
-// class and not the address itself: the address is unbounded, and the question
-// this answers needs only the class.
+// Keep metric labels as bounded source classes, not addresses, to prevent unbounded series.
 export const RATE_LIMIT_SCOPES = [
   'global',
   'auth',
@@ -97,21 +52,8 @@ const rateLimitedCount = getMeter().createCounter('http.server.rate_limited', {
   unit: '{request}',
 });
 
-/**
- * Create all twelve series at zero, before anything has been throttled.
- *
- * WITHOUT THIS, NadeshikoBackendProdRateLimitingItself CANNOT FIRE AND CANNOT BE
- * SEEN NOT TO FIRE. `source="internal"` is written the first time we throttle
- * one of our own, which is the thing the rule exists to catch and therefore the
- * thing that has never happened -- so the series does not exist, the rule reads
- * NO DATA rather than false, and it reports healthy forever. It was carried on
- * NadeshikoAlertRuleMatchesNothing's exclusion list for exactly that reason;
- * seeding is what lets it come off the list.
- *
- * Re-emitted on an interval by the telemetry initializer, not just called once:
- * these exports are DELTA, so a series seeded and never touched has one sample
- * and then nothing. See SERIES_HEARTBEAT_INTERVAL_MS in @config/telemetry.
- */
+/** Seed all limiter series at zero and heartbeat them so an unthrottled internal source reads zero, not missing
+ * data. */
 export function seedRateLimitSeries(): void {
   for (const scope of RATE_LIMIT_SCOPES) {
     for (const source of RATE_LIMIT_SOURCES) {
@@ -120,23 +62,8 @@ export function seedRateLimitSeries(): void {
   }
 }
 
-/**
- * Private-range, loopback and link-local addresses -- the container network and
- * the host, never the public internet.
- *
- * A 429 against one of these means we are throttling ourselves. It is not a
- * capacity signal, it is a configuration bug: some internal caller is failing
- * the `isTrustedInternalCaller` check and competing with every other internal
- * caller for one bucket. That is invisible in every other signal (the requests
- * simply fail and get retried) until it becomes an outage under load, which is
- * exactly how it was found. The alert built on this counter is
- * NadeshikoBackendProdRateLimitingItself, in
- * brigadasos-infra/machines/monitoring/victoria/config/vmalert-rules/.
- *
- * Matched by class rather than by a specific address on purpose: container IPs
- * are assigned by Docker and are reshuffled by a host reboot, so a rule naming
- * one of them silently stops matching the thing it was written for.
- */
+/** Classify private/loopback/link-local traffic as internal; a 429 there signals a proxy configuration failure, not
+ * public demand. */
 export function isPrivateAddress(ip: string | undefined): boolean {
   if (!ip) return false;
   // Express reports IPv4-mapped IPv6 as `::ffff:172.18.0.9`.
@@ -151,19 +78,9 @@ export function isPrivateAddress(ip: string | undefined): boolean {
   return false;
 }
 
-// NOT a private-IP fallback. Widening this skip to "any RFC1918 / loopback
-// source" was tried and reverted: the address it would have to read comes from
-// `resolveClientIp`, which prefers `CF-Connecting-IP` -- a header the client
-// sends. That turns a forged header from a way to spread yourself across
-// buckets (each still capped) into an off switch for the limiter that guards
-// sign-in, rotated through RFC1918 to stay under the global cap as well. The
-// shared secret is the bypass precisely because it is the one signal a client
-// cannot influence; see the module note in @lib/internalProxy.
+// Do not bypass on private IPs: the client can forge `CF-Connecting-IP`; the shared secret is the trusted signal.
 
-// Emit a 429 in the same problem-details envelope as the rest of the API (the
-// better-auth API-key limiter already surfaces RateLimitExceededError). Routing
-// through next() lets the central error handler attach the requestId/instance
-// and record the 4xx error metric.
+// Route limiter failures through the central problem-details handler so request ids and 4xx metrics remain consistent.
 function buildHandler(scope: RateLimitScope, detail: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
     // The same address the bucket was keyed on, not `req.ip` -- otherwise the
@@ -183,10 +100,8 @@ function buildHandler(scope: RateLimitScope, detail: string): RequestHandler {
       'Rate limit exceeded',
     );
 
-    // `client_ip` is the exact limiter key, including the /56 normalization for
-    // IPv6. This is intentionally on the operator-only metric (not a response
-    // header): it makes a burst attributable in one PromQL query while keeping
-    // the aggregate alert contract (`scope` + `source`) unchanged.
+    // Keep normalized `client_ip` only on the operator metric, not response headers; aggregate alert labels remain
+    // `scope` and `source`.
     rateLimitedCount.add(1, { scope, source, client_ip: clientKey(req) });
 
     // express-rate-limit augments the request with timing info for this hit.
@@ -221,17 +136,8 @@ export const authRateLimit = rateLimit({
   handler: buildHandler('auth', 'Too many auth requests from this IP. Please slow down.'),
 });
 
-/**
- * The feedback widget, for callers reaching the API directly.
- *
- * Same `shouldSkip` as the others, and for the same reason: browser traffic
- * arrives through the Nitro proxy, where it is already limited per real client
- * IP (`v1FeedbackLimit` in frontend/server/utils/v1ProxyPolicy.ts). Counting it
- * again here would collapse every visitor onto the proxy's single key. This
- * instance is what covers the OTHER door -- `api.nadeshiko.co` is public and
- * `POST /v1/feedback` needs no credentials, so without it the only ceiling on an
- * unauthenticated write that sends mail would be the general per-IP budget.
- */
+/** Direct feedback calls need their own limiter; proxied browser traffic is already keyed per real client at the
+ * frontend. */
 export const feedbackRateLimit = rateLimit({
   windowMs: WINDOW_MS,
   limit: FEEDBACK_MAX,
@@ -242,20 +148,8 @@ export const feedbackRateLimit = rateLimit({
   handler: buildHandler('feedback', 'Too many feedback submissions from this IP. Please slow down.'),
 });
 
-/**
- * The unsubscribe endpoint, for callers reaching the API directly.
- *
- * ITS OWN BUCKET, sharing only the number with feedback. Both are
- * unauthenticated writes and neither should be able to spend the other's
- * budget: a burst of feedback spam must not be what stops somebody opting out of
- * a recap, because the alternative they reach for is the spam button.
- *
- * Note this limits by IP, and `List-Unsubscribe-Post` arrives from the mailbox
- * provider rather than the reader -- so a large send can produce many one-click
- * unsubscribes from a handful of Google addresses. The window is generous enough
- * for that; if it ever is not, the symptom is a 429 in `scope=unsubscribe` and
- * the fix is a bypass for those callers, never a smaller limit.
- */
+/** Keep unsubscribe in its own bucket so feedback spam cannot block a reader’s opt-out; provider bursts need this
+ * budget. */
 export const unsubscribeRateLimit = rateLimit({
   windowMs: WINDOW_MS,
   limit: FEEDBACK_MAX,
@@ -266,12 +160,8 @@ export const unsubscribeRateLimit = rateLimit({
   handler: buildHandler('unsubscribe', 'Too many unsubscribe requests from this IP. Please slow down.'),
 });
 
-/**
- * The address a sign-in mail was asked for, lowercased.
- *
- * Falls back to the IP when there is no address to key on -- a malformed body
- * still costs somebody's budget rather than slipping past both limits.
- */
+/** Charge malformed sign-in requests to the IP fallback when no address is available; invalid input must not evade
+ * both limits. */
 function signInAddressKey(req: Request): string {
   const email = (req.body as { email?: unknown } | undefined)?.email;
   if (typeof email === 'string' && email.trim()) {
@@ -281,20 +171,8 @@ function signInAddressKey(req: Request): string {
   return `ip:${clientKey(req)}`;
 }
 
-/**
- * Five sign-in mails an hour to one address, which is the real budget: it is the
- * thing that stops somebody being mailed repeatedly, and it replaced a silent
- * 14-minute cooldown that sent nothing and said nothing.
- *
- * DELIBERATELY NO `skip: shouldSkip`, and this is the one line in this file
- * worth reading twice. Every other limiter here skips traffic that arrived
- * through our own frontend, because they key on the IP and behind the proxy
- * every reader collapses onto one bucket -- limiting that would throttle
- * everybody against a single counter. This one keys on the ADDRESS, which has no
- * such collapse, and browser traffic is essentially every real sign-in. Skipping
- * it would exempt the entire audience and leave the limit guarding nothing but
- * direct API callers.
- */
+/** Do not skip this limiter for frontend traffic: it keys by address, so exempting the proxy would exempt the real
+ * sign-in audience. */
 export const signInAddressRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 5,
@@ -307,19 +185,8 @@ export const signInAddressRateLimit = rateLimit({
   ),
 });
 
-/**
- * The ceiling on outbound sign-in mail for the whole application.
- *
- * The one abuse a per-address and a per-IP limit cannot see between them: an
- * attacker with a thousand addresses across a botnet stays under both and still
- * spends a thousand mails an hour of our sending reputation. Keyed on a constant
- * so every request shares one counter.
- *
- * Set far above real traffic. Reaching it refuses EVERYONE until the window
- * rolls, which is a genuine cost -- nobody can sign in -- and it is the trade
- * taken deliberately, because an Agent banned for abuse costs more and lasts
- * longer. Since the SES removal there is no second transport to fall back to.
- */
+/** Use a global sign-in-mail ceiling to catch distributed abuse that evades per-address and per-IP limits, accepting
+ * that it can refuse everyone. */
 export const signInGlobalRateLimit = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
   limit: 2_000,
@@ -332,15 +199,7 @@ export const signInGlobalRateLimit = rateLimit({
   ),
 });
 
-/**
- * Clears every limiter's hit counters.
- *
- * The limiters are module singletons backed by an in-memory store, so in a
- * single-process test run one file that deliberately exhausts a bucket leaves
- * the next file being rate limited — which surfaces as an unrelated assertion
- * failing on a 429, in a different file, only when the whole suite runs.
- * Intended for test setup; production has no reason to call it.
- */
+/** Reset singleton limiter stores between tests; production has no reason to call this helper. */
 export function resetRateLimiters(): void {
   // `resetAll` is optional on the store rather than the handler, so it is not on
   // the handler's public type even though the default memory store implements it.

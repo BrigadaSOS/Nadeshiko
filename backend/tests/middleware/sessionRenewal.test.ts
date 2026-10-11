@@ -10,58 +10,17 @@ import { handleErrors } from '@app/middleware/errorHandler';
 import { auth, buildAuthOptions } from '@config/auth';
 import { betterAuth } from 'better-auth';
 
-/**
- * The renewal, against real better-auth rather than a mocked `getSession`.
- *
- * Everything about this behaviour is invisible until it is far too late: a
- * session that has stopped sliding looks exactly like one that is sliding,
- * right up to the thirtieth day after sign-in, when a reader who has been here
- * every day is signed out. The unit tests above cover which cookies are
- * forwarded; this one covers the part that actually broke -- whether
- * better-auth hands the renewed cookie to this middleware at all, and whether
- * the middleware puts it on the response the browser is waiting for.
- *
- * The session is minted through the real magic-link flow because the cookie is
- * SIGNED: there is no honest way to fabricate one from outside, and a test that
- * reimplemented the signing would be testing its own copy of better-auth's
- * internals rather than better-auth.
- *
- * It signs in an EXISTING fixture user rather than creating an account. Account
- * creation runs `databaseHooks.user.create.after`, which writes through TypeORM
- * while better-auth still holds its own transaction open on the new row -- with
- * this file's per-test transaction in the middle, the two wait on each other and
- * the suite hangs rather than fails.
- *
- * And a NON-ADMIN one, which is not incidental. `databaseHooks.session.create`
- * gives an admin 8 hours instead of 30 days, which puts their session past the
- * refresh threshold the moment it is created -- so an admin would renew on the
- * very first request and this file could not tell the two states apart. (That
- * an admin's 8-hour cap is then rewritten to a full 30 days by the first
- * refresh is a real hole in that cap, and it is not this test's subject.)
- */
+/** Exercise real signed-cookie renewal using an existing fixture; account creation can deadlock the TypeORM test
+ * transaction with better-auth's pool. */
 setupTestSuite();
 
 let fixtures: CoreFixtures;
 let magicUrl = '';
 
-/**
- * A second better-auth instance that hands the magic link to this file instead
- * of to the mailer, built from the same options -- so the same secret, the same
- * cookie names, the same pool and the same session table as the singleton the
- * middleware uses. A cookie minted here is therefore a cookie the middleware
- * accepts, which is the entire trick.
- *
- * Injected rather than spied: `buildAuthOptions` reads `sendMagicLinkEmail`
- * once, at module load, into the options object, so a later `vi.spyOn` on the
- * mailer module changes nothing the singleton will ever call. That dependency
- * seam exists for exactly this.
- */
-/**
- * The two endpoints used below, spelled out because the inference is gone:
- * `buildAuthOptions` returns a widened `BetterAuthOptions` (it casts on the way
- * out), so the instance built from it has no idea the magic-link plugin is
- * installed. Runtime is unaffected -- the plugin is right there in the options.
- */
+/** Build a second better-auth instance from the same options and inject the mail hook at build time; the singleton
+ * reads that dependency once, so a later spy cannot replace it. */
+/** The widened options type hides the magic-link plugin endpoints, but the plugin is installed at runtime; these
+ * explicit paths keep the test type-safe. */
 type LinkAuth = {
   api: {
     signInMagicLink: (args: { body: { email: string }; headers: Headers }) => Promise<unknown>;
@@ -73,11 +32,8 @@ type LinkAuth = {
   };
 };
 
-/**
- * Same erasure on the singleton: `auth` is built from the same widened options,
- * so the admin plugin's endpoints are invisible to the type system even though
- * they are very much there at runtime.
- */
+/** The singleton has the same widened options type, so admin endpoints are hidden statically even though the runtime
+ * plugin provides them. */
 type AdminApi = {
   impersonateUser: (args: {
     body: { userId: string };
@@ -168,10 +124,7 @@ describe('session renewal on an authenticated API call', () => {
     expect(fresh.status).toBe(200);
     expect(fresh.headers['set-cookie']).toBeUndefined();
 
-    // Sessions last 90 days and slide once they are 7 days old, so anything
-    // expiring in under 83 is due. A reader who kept visiting used to reach
-    // this state and never leave it: the row slid, the cookie did not, and the
-    // browser dropped the session a lifetime after sign-in regardless.
+    // Sessions refresh after seven days of age, not only near expiry; the renewed cookie must carry the full lifetime.
     const stale = new Date(Date.now() + 22 * 24 * 60 * 60 * 1000);
     await ctx.adapter.update({
       model: 'session',
@@ -199,13 +152,8 @@ describe('session renewal on an authenticated API call', () => {
   });
 
   it('treats an admin session as an ordinary one', async () => {
-    // Deliberate, and worth a test because the opposite was true for a long
-    // time in the config and never once in practice: a create hook gave admins
-    // eight hours and the first refresh -- about five minutes later -- handed
-    // the full lifetime back. Enforcing that cap for real would have been a
-    // change to how the site had always actually behaved, so it was dropped
-    // instead. This pins the decision: nothing special happens to an admin, and
-    // a half-built cap that only moves one of the two horizons fails here.
+    // Do not assert a special admin cap: the historical create hook gave eight hours but the first refresh restored the
+    // full lifetime. This test pins the current behavior.
     const { ctx, cookie, sessionToken } = await signIn(fixtures.users.kevin);
 
     const before = await ctx.adapter.findOne<{ expiresAt: Date; createdAt: Date }>({
@@ -224,14 +172,8 @@ describe('session renewal on an authenticated API call', () => {
   });
 
   it('holds an impersonation session to half an hour across a refresh', async () => {
-    // The most privileged session on the site -- an admin acting as someone
-    // else's account -- and the one the unclamped refresh stretched furthest,
-    // from 30 minutes to 30 days. It is checked before the role because the
-    // session belongs to the impersonated account, which is usually not an
-    // admin at all.
-    // `david`, not `kevin`: `sendMagicLink` keeps a 14-minute per-user
-    // cooldown in a process-level cache, so the admin who signed in for the
-    // test above would silently get no link at all.
+    // Use `david`, not `kevin`: the process-level 14-minute magic-link cooldown would suppress the second link for the
+    // admin used above.
     const { ctx, cookie: adminCookie } = await signIn(fixtures.users.david);
 
     const impersonated = await (auth.api as unknown as AdminApi).impersonateUser({
@@ -249,11 +191,7 @@ describe('session renewal on an authenticated API call', () => {
     expect(setCookie).toBeTruthy();
     const cookie = (setCookie as string).split(';')[0] as string;
 
-    // Deliberately WITHOUT the `dont_remember` cookie that rides along with an
-    // impersonation. While a browser sends that, better-auth skips the refresh
-    // outright and the clamp is never consulted -- so sending it here would
-    // make this test pass without exercising anything. What is left is the case
-    // the clamp is actually for: a refresh that does fire on this session.
+    // Omit `dont_remember`: it disables refresh, so including it would bypass the clamp this test must exercise.
     const res = await request(createSessionApp()).get('/test').set('Cookie', cookie);
     expect(res.status).toBe(200);
 

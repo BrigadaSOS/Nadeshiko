@@ -5,12 +5,8 @@ function describe(error: unknown): string {
   return String(error);
 }
 
-/**
- * CLI entrypoints inherit LOG_LEVEL from whichever env file loaded, and
- * `.env.test` sets it to `silent` -- which turned a failed `npm run test:setup`
- * into a command that printed nothing and looked like a successful no-op. A
- * fatal error always reaches stderr, whatever level is configured.
- */
+/** Always writes fatal CLI errors to stderr because `.env.test` can silence the structured logger and otherwise make
+ * a failed setup look successful. */
 export function reportFatalError(message: string, error: unknown): void {
   logger.error(error, message);
 

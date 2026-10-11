@@ -1,16 +1,5 @@
-/**
- * Integration test setup — real database, real HTTP stack, no mocks.
- *
- * Follows the Rails/37signals philosophy: test against the real database
- * with transaction-wrapped isolation. Each test runs inside a transaction
- * that gets rolled back — no truncation, no deadlocks, instant cleanup.
- *
- * Uses a module-level QueryRunner patched into TestDataSource.createQueryRunner
- * so all TypeORM operations in a test share the same transaction. Tests run
- * serially within a file and, per vitest.config.ts, one file at a time.
- *
- * Controllers are integration-tested through the full Express stack via supertest.
- */
+/** Integration setup uses a real database and HTTP stack with a module-level QueryRunner transaction rolled back
+ * after each serial test; controllers run through Express and supertest. */
 import 'dotenv/config';
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import type { Application, Request, Response, NextFunction } from 'express';
@@ -26,13 +15,8 @@ import { resetRateLimiters } from '@app/middleware/rateLimit';
 
 const postgres = getAppPostgresConfig();
 
-/**
- * Separate DataSource for tests — uses the test DB with its own connection pool.
- * Shares the same entities and subscribers as production via config/schema.ts.
- *
- * Schema setup: run once before running tests (drops and remigrates the test DB):
- *   npm run test:setup
- */
+/** TestDataSource uses the test database and production entities/subscribers. Run `npm run test:setup` once to
+ * recreate its schema. */
 export const TestDataSource = new DataSource({
   type: 'postgres',
   host: postgres.host,
@@ -53,10 +37,7 @@ let _originalCreateQueryRunner: DataSource['createQueryRunner'] | null = null;
 /** A listening test server, keeping a handle on the Express app it serves. */
 export type TestServer = Server & { app: Application };
 
-/**
- * Set the user for subsequent requests on this app instance.
- * Pass null to sign out.
- */
+/** Set the user used by subsequent requests on this app; pass `null` to sign out. */
 export function signInAs(target: Application | TestServer, user: User | null) {
   // Accepts either, so callers holding a `createTestApp()` server and callers
   // holding a hand-built app both work without knowing which they have.
@@ -82,16 +63,8 @@ function testAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
 /** Servers opened by `createTestApp`, closed together in `afterAll`. */
 const _openServers: TestServer[] = [];
 
-/**
- * Builds a minimal Express app with the same middleware stack as production,
- * but with test auth injected instead of real auth.
- *
- * Returns an already-listening server rather than the bare app. Supertest binds
- * a fresh ephemeral server for every `request(app)` when handed an app, and a
- * full-suite run makes thousands of those; the resulting port churn made a random
- * test fail with ETIMEDOUT roughly one run in five. Handed a listening server it
- * reuses the address instead, so a file now binds once rather than per request.
- */
+/** Build one listening app per route path with test auth injected. Reusing the server avoids supertest port churn
+ * and intermittent `ETIMEDOUT` failures. */
 export function createTestApp(): TestServer {
   const app = buildApplication({
     rateLimit: false,
@@ -110,21 +83,10 @@ export function createTestApp(): TestServer {
   return server;
 }
 
-// ------------------------------------------------------------------
-// Setup — call this at the top of each test file
-// ------------------------------------------------------------------
+// Setup — call this at the top of each test file.
 
-/**
- * Sets up transactional test isolation for a test file.
- * Call once at the top level of each test file:
- *
- *   import { setupTestSuite, createTestApp, signInAs } from '../helpers/setup';
- *   setupTestSuite();
- *
- * Registers lifecycle hooks that:
- * - Initialize the DB connection once per file
- * - Wrap each test in a transaction rolled back on teardown
- */
+/** Set up transactional isolation for a test file: initialize the DB once, then wrap each test in a transaction
+ * rolled back during teardown. */
 export function setupTestSuite() {
   beforeAll(async () => {
     await TestDataSource.initialize();

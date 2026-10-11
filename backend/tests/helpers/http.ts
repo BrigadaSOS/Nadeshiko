@@ -4,28 +4,11 @@ import { afterAll } from 'vitest';
 import type { Application } from 'express';
 import type { Server } from 'http';
 
-/**
- * Drop-in replacement for `supertest` that binds one server per app.
- *
- * Plain `supertest(app)` starts a fresh ephemeral server for every single
- * request and closes it afterwards. Across a full suite that is thousands of
- * bind/close cycles, and the kernel reuses ports faster than the closed sockets
- * drain -- so a request occasionally lands on a port that now belongs to a
- * different test file's server. That showed up three ways, all of them looking
- * like unrelated flakes:
- *
- *   - ETIMEDOUT / ECONNRESET, when the port had no live listener
- *   - `expected 404 to be 401`, when the request reached the *wrong* app
- *
- * Memoizing the server per app makes it one bind per app instead of one per
- * request, which removes the churn that causes all three.
- *
- * Usage: replace `import request from 'supertest'` with
- * `import { request } from '../helpers/http'`. Call sites need no changes.
- */
-// A Map, not a WeakMap: closing a server must also evict its memo entry, or a
-// later request would be handed a closed server whose port the kernel has since
-// reassigned -- which is how a request ends up answered by a different app.
+/** Drop-in `supertest` replacement that memoizes one server per app. Fresh bind/close cycles can reuse draining
+ * ports across suites and surface as timeouts, resets, or responses from the wrong app. Callers keep the same
+ * request API. */
+// Use a Map, not a WeakMap: closing a server must evict its entry or later requests may use a closed port that the
+// kernel reassigned to another app.
 const serversByApp = new Map<Application, Server>();
 
 export function request(target: Application | Server): TestAgent {

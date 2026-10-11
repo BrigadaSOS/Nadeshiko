@@ -6,20 +6,8 @@ import { resolveQuotaLimit } from '@app/models/quota';
 import { captureApiActiveDay } from '@app/services/analytics/posthog';
 import { logger } from '@config/log';
 
-/**
- * The tier table, cached per process.
- *
- * There are three rows and they change only when somebody edits a tier, which
- * is not on any request path -- so joining the table on every authenticated
- * call would buy nothing but a round trip per request.
- *
- * THE TTL IS NOT OPTIONAL, tempting as it looks for a table this static.
- * Production forks three workers; `invalidateTierCache` only ever clears the
- * one that served the admin request, so without an expiry the other two would
- * keep billing against the old tier until the next deploy. Five minutes matches
- * what the auth caches next door already accept for the same reason, and it is
- * the ceiling on how long a quota bump can look like it did not work.
- */
+/** Cache tiers per process with a TTL: invalidation reaches one worker, so expiry is the cross-worker freshness
+ * bound. */
 const TIER_CACHE_TTL_MS = 5 * 60 * 1000;
 
 let tierCache: Map<string, Tier> | null = null;
@@ -36,20 +24,13 @@ async function loadTier(tierId: string | null): Promise<Tier | null | undefined>
     tierCache = new Map(rows.map((row) => [row.id, row]));
     tierCacheExpiresAt = Date.now() + TIER_CACHE_TTL_MS;
   }
-  // `undefined` and `null` mean different things to the resolver: undefined is
-  // "not loaded", null is "loaded and there is none". A tier id with no row is
-  // the second -- the row is gone, and that is worth warning about.
+  // `undefined` means not loaded; `null` means loaded with no row. A missing tier row is the latter and merits a
+  // warning.
   return tierCache.get(tierId) ?? null;
 }
 
-/**
- * Requests that already carry a quota increment listener.
- *
- * A request that matched two `routeAuth` entries would run this middleware
- * twice and register two `finish` listeners, billing the caller twice for one
- * call. No route overlaps today, so this only ever guards against a future one
- * — the same re-entry guard `requireSessionAuth` keeps on `req.auth`.
- */
+/** Guard against registering two finish listeners; otherwise overlapping auth middleware can charge one request
+ * twice. */
 const quotaCountedRequests = new WeakSet<Request>();
 
 export const rateLimitApiQuota = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -72,11 +53,8 @@ export const rateLimitApiQuota = async (req: Request, res: Response, next: NextF
   const quota = await AccountQuotaUsage.getForUser(user.id, resolved.limit);
   req.accountQuota = quota;
 
-  // Announced on every authenticated response, not only on the rejection: the
-  // account page renders "4,927 / 5,000" from these, and a page that had to ask
-  // a separate endpoint for them would pay a round trip to say what the call it
-  // just made already knew. Cheap -- two integers on a response that is going
-  // out anyway.
+  // Expose quota headers on every authenticated response so the account page avoids a second request for figures it
+  // already has.
   res.setHeader('X-Monthly-Quota-Limit', String(quota.quotaLimit));
   res.setHeader('X-Monthly-Quota-Used', String(quota.quotaUsed));
   res.setHeader('X-Monthly-Quota-Reset', AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm).periodEnd);
@@ -93,10 +71,8 @@ export const rateLimitApiQuota = async (req: Request, res: Response, next: NextF
     res.on('finish', () => {
       logger.debug({ userId: user.id, statusCode: res.statusCode }, 'API quota finish callback fired');
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        // Same success condition as the quota increment, so "an active day" and
-        // "a request that counted against the quota" can never disagree. The
-        // quota figures are the ones read above, i.e. before this request was
-        // added -- month-to-date as the day's first call found it.
+        // Use the same success condition as quota accounting; report the figures read before this request increments
+        // them.
         captureApiActiveDay({ userId: user.id, quotaUsed: quota.quotaUsed, quotaLimit: quota.quotaLimit });
 
         AccountQuotaUsage.incrementForUser(user.id)

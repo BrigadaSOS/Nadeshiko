@@ -1,26 +1,6 @@
-/**
- * Reindexes one media into the live Elasticsearch index.
- *
- * `bin/es.ts reindex` rebuilds the whole corpus into a fresh versioned index and
- * swaps the alias. That is the right tool when the mapping changed or the index
- * is being rebuilt from scratch, and the wrong one when a single media's rows
- * moved underneath it -- it re-reads every segment we already have a correct
- * document for, to fix a few thousand.
- *
- * This is the narrow version, and it exists because the wakati-space repair
- * (strip-wakati-spaces.ts) needs exactly this as its third step. It writes into
- * the index the alias currently points at, so there is no swap and no window
- * where searches are served from a half-built index -- documents are replaced by
- * id as they are rebuilt.
- *
- * The trade against the zero-downtime path, stated plainly: between the first
- * document written and the last, that media's results are a mix of old and new.
- * For a text repair that is invisible in practice. For anything touching the
- * mapping it is not good enough, and `bin/es.ts reindex` is the tool.
- *
- * Usage:
- *   node --import tsx scripts/reindex-media.ts --media <publicId>
- */
+/** Reindex one media in the current live index after a text repair; it avoids a whole-corpus alias swap but
+ * intentionally exposes a temporary mix of old/new documents. Use full `bin/es.ts reindex` for mapping changes.
+ * Usage: `node --import tsx scripts/reindex-media.ts --media <publicId>`. */
 
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

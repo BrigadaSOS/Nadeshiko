@@ -3,50 +3,30 @@ import { BaseEntity } from './base.entity';
 import { Episode } from './Episode';
 import { nanoid } from 'nanoid';
 
-/** One morphological token, as stored and as served.
- *
- * The ten short names are the published contract: they are in our OpenAPI, in
- * the npm and PyPI SDKs, and in third-party Anki note types, so they do not
- * change. What changed is who fills them. Shirabe parses the corpus now, and
- * groups more coarsely than the old SudachiPy pipeline did: 食べました arrives as
- * ONE token reading タベマシタ where it used to arrive as three. That is the
- * point (it is a word a reader looks up, and it makes furigana come out right),
- * but it means `parts` is what you reach for when you need the finer pieces.
- */
+/** Keep compact token keys stable across OpenAPI, SDKs, and Anki; grouped Shirabe tokens use `parts` for finer
+ * pieces. */
 export interface SlimToken {
   s: string;
   d: string;
   r: string;
   b: number;
   e: number;
-  /** Raw UniDic primary tag (動詞). What the dictionary lookup resolves against;
-   *  `posLabel` is the printable one. The four finer UniDic slots that used to
-   *  sit here (p1/p2/p4/cf, named after array indices, with no p3) are gone --
-   *  nothing read them, and `posLabel` says what they were kept to say. */
+  /** Store the raw UniDic primary tag for dictionary lookup; `posLabel` is the printable form. */
   p: string;
   /** word | compound | inflected | counter | function | expression | symbol. */
   kind?: string;
   /** The part of speech as a reader would say it ("Verb", "Noun"), where `p` carries the
    *  raw UniDic tag. Absent when the parser offers no label. */
   posLabel?: string;
-  /** Shirabe's short part-of-speech tag (`verb`, `prt`, `exp`): a third reading
-   *  of the same fact, and the only one `POST /api/v1/words/identify` ranks by.
-   *  `p` is UniDic's Japanese category and `posLabel` is the printable wording;
-   *  neither is this vocabulary. Absent on everything parsed before it was
-   *  stored, which the frontend derives from `p` until a reparse fills it in. */
+  /** Store Shirabe’s short POS vocabulary for word-identification ranking; older rows fall back from `p` until
+   * reparsed. */
   pt?: string;
-  /** The finer morphemes inside a grouped token, each positioned like its
-   *  parent. Elasticsearch highlights against its OWN analyzer, so a match can
-   *  land inside one of our tokens: these are the boundaries that let a partial
-   *  highlight render. Absent when the token is already atomic. */
+  /** Store inner morpheme offsets so Elasticsearch matches inside grouped tokens can render partial highlights. */
   parts?: TokenPart[];
   /** Ruby, aligned to this surface: 食べました is 食(た) + べました, over the kanji
    *  and not the okurigana. Absent when there is none to show. */
   f?: Array<{ t: string; r?: string }>;
-  /** What this surface does to its dictionary form, outermost step first:
-   *  食べました is ["past", "polite"]. Japanese stacks, so it is a chain rather
-   *  than one name, and an ambiguous step says so ("potential / passive")
-   *  instead of picking a side. Absent for anything not an inflected word. */
+  /** Store inflection steps outermost-first; Japanese may have a chain or an explicitly ambiguous step. */
   inflection?: { labels: string[]; base: string };
 }
 
@@ -143,11 +123,7 @@ export class Segment extends BaseEntity {
   @Column({ name: 'rating_analysis', type: 'jsonb' })
   ratingAnalysis!: RatingAnalysisData;
 
-  // Shirabe's analysis: a SlimToken[] in the field names we publish, already
-  // grouped the way a reader looks words up. The only tokenization we store:
-  // this replaced the SudachiPy `pos_analysis` bag, which is gone. Null until
-  // the reparse reaches a row, which is an ordinary state during a 1.5M-row pass
-  // and renders as plain highlight HTML rather than as an error.
+  // Store Shirabe’s published token shape; null means not yet reparsed and renders as plain highlight HTML.
   @Column({ name: 'tokens', type: 'jsonb', nullable: true })
   tokens!: SlimToken[] | null;
 

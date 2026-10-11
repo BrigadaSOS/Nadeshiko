@@ -7,12 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const SCRIPT = fileURLToPath(new URL('../../bin/generateOutputTypes.ts', import.meta.url));
 
-/**
- * A minimal stand-in for @nahkies/openapi-code-generator output: one named
- * schema parsed as a request body, typed in the body slot of a
- * `Params<P, Q, B, H>` generic. That generic's shape is the only thing the
- * post-processor keys off, so it is the thing worth pinning.
- */
+/** Minimal generated-output fixture: the post-processor keys off a named request-body schema inside `Params<P, Q, B,
+ * H>`. */
 const SCHEMAS = `import { z } from 'zod/v4';
 
 export const s_Thing = z.object({ limit: z.coerce.number().optional().default(10) });
@@ -80,10 +76,8 @@ describe('generateOutputTypes', () => {
     expect(fs.existsSync(path.join(generatedDir, 'outputTypes.ts'))).toBe(true);
   });
 
-  // The rewrites are anchored on a type's position inside the generic, so an
-  // upgrade that reshapes it makes them match nothing. Failing open here would
-  // leave the backend compiling against Zod input types -- defaults missing
-  // from the types, and everything still typechecking.
+  // Rewrites depend on the body type position; a generator shape change must fail rather than silently leave the
+  // backend on incomplete Zod input types.
   it('fails when the body type moves to a slot the pattern does not reach', () => {
     writeRoute('Params<void, void, void, t_Thing>');
 

@@ -47,11 +47,7 @@ describe('spending a sign-in code', () => {
     expect(response.body.reached).toBe(true);
   });
 
-  /**
-   * THE ATTACK THIS EXISTS FOR. Somebody is phoned, told there is a problem with
-   * their account, and asked to read out the code that just arrived. In the
-   * caller's browser — which never asked and holds no claim — it is worthless.
-   */
+  /** Bind login codes to the requesting browser so a phished code cannot sign in an attacker's browser. */
   it('refuses a browser that never asked', async () => {
     const response = await request(app)
       .post('/v1/auth/sign-in/email-otp')
@@ -91,11 +87,8 @@ describe('spending a sign-in code', () => {
     expect(response.body.body.otp).toBe('X5KDNZ');
   });
 
-  /**
-   * A code of the wrong length is passed through untouched rather than repaired
-   * into something else: better-auth refuses it and counts the attempt, which is
-   * the correct outcome for a wrong guess.
-   */
+  /** Pass a wrong-length code through unchanged so better-auth rejects and counts it; repairing it would turn a
+   * malformed guess into a different input. */
   it('leaves an unrecognisable code alone', async () => {
     const response = await request(app)
       .post('/v1/auth/sign-in/email-otp')

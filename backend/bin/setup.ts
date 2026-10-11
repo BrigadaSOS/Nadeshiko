@@ -99,12 +99,8 @@ function builtElasticsearchVersion(): string | null {
   }
 }
 
-/**
- * Docker never rebuilds a locally built image on its own, so a bumped pin in
- * the Dockerfile leaves the old image running indefinitely -- that is how the
- * stack sat on a stale 8.17 image for months. Both lookups return null on a
- * machine that has not built the image yet, which is not drift.
- */
+/** A local image is not rebuilt when its Dockerfile pin changes; null lookups mean the image has not been built yet,
+ * not drift. */
 function checkElasticsearchImageFreshness(): void {
   const pinned = pinnedElasticsearchVersion();
   const built = builtElasticsearchVersion();
@@ -180,10 +176,7 @@ function ensureDockerContainers(adminUser: string): void {
   const esMaxAttempts = 60;
   for (let i = 0; i < esMaxAttempts; i++) {
     try {
-      // The node runs with xpack.security enabled, so an anonymous probe is
-      // answered with 401. That still proves the HTTP layer is serving, which
-      // is all this poll needs to know -- `curl -sf` would reject it and time
-      // out against a perfectly healthy node.
+      // A secured node’s anonymous 401 still proves HTTP is up; `curl -sf` would reject it.
       const status = execFileSync(
         'curl',
         ['-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://127.0.0.1:9200/_cluster/health'],
@@ -203,11 +196,8 @@ function ensureDockerContainers(adminUser: string): void {
   throw new Error('Elasticsearch did not become ready in time');
 }
 
-/**
- * A bare timeout says nothing about why. The two failures worth naming are an
- * old data directory a newer Elasticsearch refuses to open, and an image built
- * for the wrong CPU architecture -- both look identical from the outside.
- */
+/** Name the two common startup causes a bare timeout hides: an incompatible old data directory and a wrong
+ * CPU-architecture image. */
 function reportElasticsearchStartupFailure(): void {
   let logs = '';
   try {
@@ -252,13 +242,8 @@ function runDbSetup(): void {
   printSuccess('Infrastructure ready');
 }
 
-/**
- * The test suite authenticates to Elasticsearch as the `.env.test` user, which
- * nothing else creates: `npm run test:setup` loads `.env.test`, and that file
- * carries no admin password, so its role/user step silently no-ops. On a fresh
- * cluster the whole Elasticsearch integration suite then skips itself.
- * Provision it here, where `.env` supplies admin credentials.
- */
+/** Provision the `.env.test` Elasticsearch user here: test setup has no admin password and otherwise silently skips
+ * the role step, causing integration tests to skip on a fresh cluster. */
 function setupElasticsearchTestUser(): void {
   printSection('Provisioning Elasticsearch test user...');
 

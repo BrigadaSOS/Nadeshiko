@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run a db or search command against staging or production by connecting
-# directly to the remote Postgres + Elasticsearch over Tailscale, using admin
-# credentials sourced from .kamal/secrets.<env>.
+# Run database/search commands against staging or production over Tailscale, using admin credentials from
+# .kamal/secrets.<env>. The script replaces the old always-running toolbox accessory.
 #
-# Replaces the old toolbox accessory: no admin credentials live on the server,
-# no separate image to build/push, no always-running container.
-#
-# ONE NAME FOR THE ENVIRONMENT, because it has three. Kamal calls it `staging`
-# (.kamal/secrets.staging, config/deploy.staging.yml), the database is
-# `nadeshiko-dev` and the search index is `nadedb_dev`. This script used to take
-# only `dev` and then look for `.kamal/secrets.dev`, which has never existed --
-# so `remote-db.sh dev status` failed on a missing file and nobody could tell
-# whether that meant the environment was down. `staging`, `stg` and `dev` are all
-# accepted now and mapped to the right three names.
+# Environment aliases map to three names: staging/stg/dev use .kamal/secrets.staging, nadeshiko-dev, and nadedb_dev;
+# prod uses the corresponding production names.
 
 REMOTE_NODE="nadeshiko"
 REMOTE_HOST=""
@@ -54,9 +45,7 @@ if [[ -z "$ENV" || -z "$CMD" ]]; then
   exit 1
 fi
 
-# SECRETS_ENV names the .kamal/secrets file; DATA_ENV names the database and the
-# search index. They differ for staging and that is not going to be fixed by
-# renaming a live database, so it is mapped here instead of remembered.
+# SECRETS_ENV selects the secrets file; DATA_ENV selects the database/index. They differ for staging, so map them here.
 case "$ENV" in
   staging|stg|dev) SECRETS_ENV="staging"; DATA_ENV="dev" ;;
   prod)            SECRETS_ENV="prod";    DATA_ENV="prod" ;;
@@ -68,23 +57,12 @@ case "$CMD" in
   *) echo "error: command must be status, prepare, migrate, parse-corpus, reindex, reindex-media, audit-wakati, backfill-session-country, backfill-last-seen or create-service-key (got '$CMD')" >&2; exit 1 ;;
 esac
 
-# A reindex rebuilds the whole search index from PostgreSQL, which is
-# authoritative -- and since the ES8 rollback stack was retired, it is also the
-# recovery path for a lost or corrupted index. It is zero-downtime (new
-# versioned index, alias swap at the end), so it is offered for production
-# behind the same flag as any other write rather than withheld.
-#
-# Note that staging and production share one Elasticsearch server. The indices
-# are separate (`nadedb_dev` / `nadedb_prod`) and bin/es.ts scopes itself to its
-# own alias, but the blast radius of a mistyped environment is now a different
-# environment's index rather than a different machine.
+# Reindex rebuilds Elasticsearch from authoritative PostgreSQL, swaps a versioned alias with zero downtime, and is the
+# recovery path for a lost index. Staging and production share the server, so a mistyped environment can still affect
+# the other environment's index.
 
-# parse-corpus writes `tokens` on every row, which is additive: nothing reads the
-# column until the release that drops `pos_analysis`. It is still an hour of
-# writes against production, so it asks for the same flag as a migration.
-# audit-wakati only reads, so it is exempt alongside status. The point of it is
-# to be run against production casually and often -- gating it behind the
-# write flag would be the surest way to have nobody ever run it.
+# parse-corpus writes tokens for every row and therefore needs the production write flag; audit-wakati is read-only and
+# remains exempt so it can be run routinely.
 if [[ "$ENV" == "prod" && "$CMD" != "status" && "$CMD" != "audit-wakati" && "$FLAG" != "$PROD_FLAG" ]]; then
   echo "error: '$CMD' against prod requires $PROD_FLAG" >&2
   exit 1
@@ -144,14 +122,8 @@ echo "  elasticsearch: http://$REMOTE_HOST:9200 (index: $ES_INDEX)"
 echo
 
 run_with_env() {
-  # SHIRABE_API_BASE is pinned, not inherited. `backend/.env` sets it to
-  # `https://shirabe.localhost` for local development, and that value reaches a
-  # script run from this checkout -- so a production corpus parse would have
-  # asked a DEVELOPER'S LAPTOP to tokenize 1.3M rows and written the answers to
-  # the production database. A self-signed certificate was the only thing that
-  # stopped it, which is luck rather than a safeguard.
-  #
-  # There is one Shirabe and it is the public one; staging calls it too.
+  # Pin the public Shirabe endpoint: inheriting backend/.env could send a production parse to a developer laptop and
+  # write those results into production. Staging uses the same public service.
   POSTGRES_HOST="$REMOTE_HOST" \
   SHIRABE_API_BASE="https://shirabe.org" \
   POSTGRES_PORT=5432 \
@@ -163,28 +135,21 @@ run_with_env() {
 
 case "$CMD" in
   parse-corpus)
-    # Runs from THIS checkout, not the deployed image: production's image predates
-    # the script entirely, and staging's container is wired to the staging
-    # database. The env below is the only thing that points it at prod.
+    # Run from this checkout because the production image lacks the script; the environment below is what targets prod.
     run_with_env node --import tsx scripts/parse-corpus-with-shirabe.ts "${@:4}"
     ;;
   reindex)
-    # Zero downtime: builds a new versioned index and swaps the alias, so the
-    # old one keeps answering until the new one is complete.
+    # Zero downtime: build a versioned index and swap the alias after completion.
     run_with_env node --import tsx bin/es.ts reindex
     ;;
   backfill-session-country)
-    # One-time: resolves the `ip_address` already on every session row to a
-    # country, for the rows written before `session.country` existed. Reads a
-    # local GeoLite2 file -- no address is sent anywhere. Arguments after `--`
-    # reach the script, which is where `--db` and `--dry-run` go.
+    # One-time local GeoLite2 backfill from existing session IPs; no address is sent remotely. Arguments after -- pass
+    # through to the script.
     run_with_env node --import tsx scripts/backfill-session-country.ts "${@:4}"
     ;;
   backfill-last-seen)
-    # One-time: seeds `User.last_seen_at` from `MAX(session.updated_at)` for the
-    # accounts that predate the column. Must run BEFORE any session sweep -- the
-    # expired rows it reads are the only record of when those accounts were last
-    # active. Only touches rows that are still null. `--dry-run` after `--`.
+    # One-time backfill from the last session timestamp; run before session sweeping and touch only null rows. Put
+    # --dry-run after --.
     run_with_env node --import tsx scripts/backfill-last-seen.ts "${@:4}"
     ;;
   audit-wakati)
@@ -194,14 +159,12 @@ case "$CMD" in
     ;;
   reindex-media)
     [[ -n "$FLAG" ]] || { echo "error: reindex-media needs a media publicId" >&2; exit 1; }
-    # In place, into the live index, for a few thousand documents rather than
-    # 1.3M -- what a data repair on one media needs.
+    # In-place repair for one media, affecting thousands of documents rather than the full index.
     run_with_env node --import tsx scripts/reindex-media.ts --media "$FLAG"
     ;;
   create-service-key)
-    # Deliberately a named command rather than an arbitrary-script escape hatch:
-    # this prints a credential once, and the production flag above makes that
-    # write explicit. Arguments after `--` reach the key script unchanged.
+    # Named command only, not arbitrary script execution: it prints a credential once, and prod still requires the
+    # confirmation flag. Arguments after -- pass through unchanged.
     run_with_env npm run create:service-key -- "${@:4}"
     ;;
   *)

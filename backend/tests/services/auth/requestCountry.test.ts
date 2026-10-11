@@ -13,10 +13,7 @@ describe('countryFromHeaders', () => {
     expect(countryFromHeaders(headers({ 'cf-ipcountry': ' cn ' }))).toBe('CN');
   });
 
-  /**
-   * Null is the ordinary answer off-Cloudflare: local development, a container
-   * probe, a health check. None of those should look like a country.
-   */
+  /** Off-Cloudflare requests have no country; local, health-check, and container traffic must remain `null`. */
   it('is null when the header is absent or empty', () => {
     expect(countryFromHeaders(headers({}))).toBeNull();
     expect(countryFromHeaders(headers({ 'cf-ipcountry': '' }))).toBeNull();
@@ -24,11 +21,8 @@ describe('countryFromHeaders', () => {
     expect(countryFromHeaders(undefined)).toBeNull();
   });
 
-  /**
-   * `XX` (unplaceable) and `T1` (Tor) have the shape of a country and are not
-   * one. Storing them would put a code nobody recognises in a column where null
-   * already says "we do not know".
-   */
+  /** `XX` and `T1` look like country codes but mean “unplaceable” and Tor; store `null` rather than an unrecognised
+   * country value. */
   it("drops Cloudflare's non-country codes", () => {
     expect(countryFromHeaders(headers({ 'cf-ipcountry': 'XX' }))).toBeNull();
     expect(countryFromHeaders(headers({ 'cf-ipcountry': 'T1' }))).toBeNull();
@@ -42,12 +36,8 @@ describe('countryFromHeaders', () => {
 });
 
 describe('countryFromAuthContext', () => {
-  /**
-   * Both accessors, because better-auth's own `createSession` resolves headers
-   * as `ctx?.headers || ctx?.request?.headers` and this has to agree with it --
-   * otherwise a row could carry an `ip_address` from one request and a country
-   * from nowhere.
-   */
+  /** Exercise both accessors because better-auth accepts either `ctx.headers` or `ctx.request.headers`; IP and
+   * country must come from the same request context. */
   it('reads headers off the context', () => {
     expect(countryFromAuthContext({ headers: headers({ 'cf-ipcountry': 'ES' }) })).toBe('ES');
   });
@@ -64,10 +54,7 @@ describe('countryFromAuthContext', () => {
     expect(countryFromAuthContext(context)).toBe('JP');
   });
 
-  /**
-   * A session or user created outside a request -- a seed, a test, an admin
-   * script -- has no context at all, and must not throw for it.
-   */
+  /** Requests without context—seeds, tests, or admin scripts—must not throw. */
   it('is null with no context', () => {
     expect(countryFromAuthContext(null)).toBeNull();
     expect(countryFromAuthContext(undefined)).toBeNull();

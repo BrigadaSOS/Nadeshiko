@@ -21,11 +21,8 @@ describe('shouldRecordLastSeen', () => {
     expect(shouldRecordLastSeen({ userId: 7 })).toBe(true);
   });
 
-  /**
-   * The rule this predicate exists for. An admin acting as another account is
-   * not that account being used, and letting it through would corrupt the one
-   * thing these columns are for.
-   */
+  /** An admin acting as another account is not that account being used; recording it would corrupt the purpose of
+   * these columns. */
   it('never records an impersonated session', () => {
     expect(shouldRecordLastSeen({ userId: 7, impersonatedBy: 1 })).toBe(false);
     expect(shouldRecordLastSeen({ userId: 7, impersonatedBy: '1' })).toBe(false);
