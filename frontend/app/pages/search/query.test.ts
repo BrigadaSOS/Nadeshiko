@@ -177,11 +177,10 @@ async function render(
   return wrapper;
 }
 
-const robotsRule = () => capturedRobots[0];
 const crumbs = () =>
   (capturedSchema
     .flatMap((e) => (unref(e) as Record<string, unknown>[]) ?? [])
-    .find((n) => n['@type'] === 'BreadcrumbList')?.itemListElement as { name: string }[]) ?? [];
+    .find((n) => n['@type'] === 'BreadcrumbList')?.itemListElement as { name: string; item: string }[]) ?? [];
 
 const hits = (n: number) => ({
   results: Array.from({ length: n }, () => ({
@@ -222,75 +221,78 @@ afterEach(() => {
 });
 
 describe('what the page tells crawlers', () => {
-  test('a search with results is indexable', async () => {
-    await render(hits(12));
+  const wordTrail = [
+    { name: 'Home', item: '/en/' },
+    { name: 'Search', item: '/en/search' },
+    { name: 'cat', item: '/en/search/cat' },
+  ];
+  test.each([
+    {
+      label: 'nonempty word search',
+      data: hits(12),
+      path: '/en/search/cat',
+      rule: undefined,
+      title: 'cat: Japanese example sentences',
+      trail: wordTrail,
+    },
+    {
+      label: 'known-empty word search',
+      data: hits(0),
+      path: '/en/search/cat',
+      rule: 'noindex, follow',
+      title: 'cat: Japanese example sentences',
+      trail: wordTrail,
+    },
+    {
+      label: 'failed fetch preserves inherited policy',
+      data: null,
+      path: '/en/search/cat',
+      rule: undefined,
+      title: 'cat: Japanese example sentences',
+      trail: wordTrail,
+    },
+    {
+      label: 'bare search preserves inherited policy',
+      data: hits(0),
+      path: '/en/search',
+      rule: undefined,
+      title: 'Search',
+      trail: wordTrail.slice(0, 2),
+    },
+  ])('$label', async ({ data, path, rule, title, trail }) => {
+    vi.stubGlobal('useI18n', () => mediaMetaI18n);
+    await render(data, path);
 
-    expect(robotsRule()).toBeUndefined();
-  });
-
-  test('a search that genuinely found nothing is noindex, follow', async () => {
-    // Thin, and worth keeping out of the index -- but still worth crawling
-    // through, which is what `follow` is for.
-    await render(hits(0));
-
-    expect(robotsRule()).toBe('noindex, follow');
-  });
-
-  test('but a FAILED fetch is NOT, because a blip must not de-index good pages', async () => {
-    // The expensive mistake: an error outcome means the fetch fell over, and treating it
-    // like an empty result de-indexes wholesale on a backend wobble.
-    //
-    // The rule has to be asserted as CALLED with nothing, not merely absent: a
-    // version that dereferences the null throws before it ever calls, and
-    // "no rule was set" would then pass for a page that failed to render.
-    await render(null);
-
-    expect(capturedRobots).toHaveLength(1);
-    expect(robotsRule()).toBeUndefined();
-  });
-
-  test('and the bare search page is left alone', async () => {
-    // No query means nothing was searched; it is not a thin result page.
-    await render(hits(0), '/en/search');
-
-    expect(robotsRule()).toBeUndefined();
+    // A missing robots call or aborted setup must not pass as inherited policy.
+    expect({ rules: capturedRobots, title: unref(useHead.mock.calls[0]?.[0])?.title, trail: crumbs() }).toEqual({
+      rules: [rule],
+      title,
+      trail,
+    });
   });
 });
 
-describe('the breadcrumb trail', () => {
-  test('a word search sits under the search page', async () => {
-    await render(hits(3), '/en/search/cat');
-
-    expect(crumbs().map((c) => c.name)).toEqual(['navbar.buttons.home', 'seo.search.title', 'cat']);
-  });
-
-  test('a media-scoped page sits under the CATALOGUE instead', async () => {
-    // Naming a parent the page does not have is worse than naming none.
+describe('the media breadcrumb trail', () => {
+  test('uses the catalogue and first-result title, not the resolved scope title', async () => {
+    vi.stubGlobal('useNadeshikoSdk', () => ({
+      getMedia: vi.fn().mockResolvedValue({ publicId: 'm1', nameEn: 'Different scoped title', slug: 'bocchi' }),
+    }));
     await render(hits(3), '/en/search', { media: 'm1' });
 
-    const names = crumbs().map((c) => c.name);
-    expect(names).toContain('seo.media.title');
-    expect(names).not.toContain('cat');
+    expect(crumbs()).toEqual([
+      { name: 'navbar.buttons.home', item: '/en/' },
+      { name: 'seo.media.title', item: '/en/media' },
+      { name: 'Bocchi', item: '/en/search' },
+    ]);
   });
 
-  test('and names the title once its first result identifies it', async () => {
-    await render(hits(3), '/en/search', { media: 'm1' });
-
-    expect(crumbs().map((c) => c.name)).toContain('Bocchi');
-  });
-
-  test('a media page with no results yet names no title at all', async () => {
-    // The title comes off the first result, so before there is one the trail
-    // must stop -- a crumb with an empty name is worse than a shorter trail.
+  test('without results stops at the catalogue rather than an empty title', async () => {
     await render(hits(0), '/en/search', { media: 'm1' });
 
-    expect(crumbs().map((c) => c.name)).toEqual(['navbar.buttons.home', 'seo.media.title']);
-  });
-
-  test('the bare search page stops at the search crumb', async () => {
-    await render(hits(0), '/en/search');
-
-    expect(crumbs().map((c) => c.name)).toEqual(['navbar.buttons.home', 'seo.search.title']);
+    expect(crumbs()).toEqual([
+      { name: 'navbar.buttons.home', item: '/en/' },
+      { name: 'seo.media.title', item: '/en/media' },
+    ]);
   });
 });
 
