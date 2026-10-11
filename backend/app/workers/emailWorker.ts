@@ -22,9 +22,7 @@ async function handleEmailJob(job: Job<EmailJobData>): Promise<void> {
   const { to, subject, html, replyTo, kind, unsubscribeUrl, campaign, userId } = job.data;
 
   try {
-    // `kind` is optional on the job so a rollout does not strand jobs enqueued by
-    // the previous deploy. Falling back to `welcome` would misattribute them, so
-    // they are counted honestly as what they are: unlabelled.
+    // Preserve unlabeled old jobs as `unknown`; defaulting them to `welcome` would corrupt metrics.
     await sendEmail({ to, subject, html, replyTo, kind: kind ?? 'unknown', unsubscribeUrl, campaign, userId });
   } catch (error) {
     logger.error({ err: error, 'email.kind': kind }, 'Error processing email job');

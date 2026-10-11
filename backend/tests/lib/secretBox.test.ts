@@ -10,10 +10,7 @@ describe('secretBox', () => {
     expect(decryptSecret(encryptSecret('shra_live_token', SECRET, CTX), SECRET, CTX)).toBe('shra_live_token');
   });
 
-  // The nonce is random per encryption, so identical plaintexts do not produce
-  // identical ciphertexts. Worth pinning: it is what stops the table from
-  // revealing which two rows hold the same token, and it is also why nothing may
-  // compare ciphertexts for equality.
+  // Random nonces ensure identical plaintexts encrypt differently.
   it('encrypts the same value differently every time', () => {
     expect(encryptSecret('same', SECRET, CTX)).not.toBe(encryptSecret('same', SECRET, CTX));
   });
@@ -58,12 +55,8 @@ describe('secretBox', () => {
     }
   });
 
-  /**
-   * One root secret, a separate key per purpose. Without this the feedback form
-   * token and everything else `BETTER_AUTH_SECRET` protects shared one key, and
-   * the Shirabe OAuth `state` -- which travels in a browser URL -- shared a key
-   * with the access tokens sitting in the database.
-   */
+  /** Derive separate purpose keys from one root secret so feedback tokens, OAuth state, and access tokens cannot
+   * share a key. */
   describe('purpose separation', () => {
     it('cannot open a value sealed for another purpose', () => {
       const sealed = encryptSecret('shra_live_token', SECRET, { purpose: 'shirabe.access-token' });
@@ -81,11 +74,8 @@ describe('secretBox', () => {
     });
   });
 
-  /**
-   * The swap that authenticated encryption alone does not stop: the bytes are a
-   * valid ciphertext under the right key, they simply belong to another row.
-   * Binding the owner into the tag turns it into a failure.
-   */
+  /** Authenticated encryption does not prevent swapping valid ciphertexts between rows; binding the owner into the
+   * tag makes a ciphertext for another row fail. */
   describe('owner binding', () => {
     it('refuses a ciphertext moved to another owner', () => {
       const mine = encryptSecret('shra_live_token', SECRET, { purpose: 'shirabe.access-token', aad: '42' });
@@ -101,11 +91,8 @@ describe('secretBox', () => {
     });
   });
 
-  /**
-   * What makes rotation a background job rather than a migration with a
-   * deadline: both keys configured at once, each row opening under whichever
-   * sealed it.
-   */
+  /** Support rotation as a background job by accepting both configured keys and opening each row with the key that
+   * sealed it. */
   describe('key rotation', () => {
     const OLD = 'the-previous-secret-long-enough-x';
 
@@ -136,12 +123,8 @@ describe('secretBox', () => {
     });
   });
 
-  /**
-   * Rows written before purposes and key ids existed. Sealed here the way v1
-   * sealed them -- SHA-256 of the secret, no purpose, no associated data --
-   * because the point is that a deploy does not invalidate what is already
-   * stored.
-   */
+  /** Retain the v1 format for existing rows: SHA-256 of the secret, with no purpose or associated data, so a deploy
+   * does not invalidate stored values. */
   describe('the v1 format', () => {
     function sealV1(plaintext: string, secret: string): string {
       const nonce = randomBytes(12);

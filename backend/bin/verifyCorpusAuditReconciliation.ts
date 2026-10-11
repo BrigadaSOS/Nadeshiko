@@ -119,9 +119,7 @@ async function main() {
         outcomes.push(verifyReconciledCandidate(segment, revisions, row, sha, restore.has(row.id)));
       } catch (error) {
         if (!(error instanceof MissingAuditRestorationError) || !segment) throw error;
-        // Independently inspect an un-restored asset outside the DB transaction.
-        // Matching or unavailable audio still fails; only a proven content change
-        // accounts for an intentionally protected restore target.
+        // Inspect un-restored assets independently; only a proven content change excuses a protected restore target.
         const currentAudioSha = await liveAudioHash(segment);
         outcomes.push({
           ...verifyReconciledCandidate(segment, revisions, row, sha, true, currentAudioSha),

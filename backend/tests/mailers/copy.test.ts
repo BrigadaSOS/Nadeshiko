@@ -3,14 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseCopy, renderCopyBlock, loadCopy } from '@app/mailers/copy';
 
-/**
- * The renderer that turns the Markdown copy files into email HTML.
- *
- * Worth testing more carefully than its size suggests, because its output goes
- * through `renderTemplate`'s RAW path -- the one that does no escaping of its
- * own. Everything it emits is trusted by the time it reaches a message, so the
- * escaping has to happen here or nowhere.
- */
+/** Escape Markdown-rendered email output before it reaches `renderTemplate`'s RAW path; that path performs no
+ * escaping of its own. */
 describe('renderCopyBlock', () => {
   it('makes a blank line a new paragraph, which is the whole point', () => {
     const html = renderCopyBlock('First thing.\n\nSecond thing.');
@@ -38,12 +32,8 @@ describe('renderCopyBlock', () => {
     expect(renderCopyBlock('> Small print.')).toContain('<p class="expiry-note">Small print.</p>');
   });
 
-  /**
-   * The blank marker line every Markdown editor puts above a blockquote. It
-   * used to fail the `> ` test, which made `every` false and sent the WHOLE
-   * chunk to the paragraph branch -- where the markers escape into visible
-   * `&gt;` text. That is what shipped in the verify-new-email notes.
-   */
+  /** A blank marker line can precede a blockquote; classify the whole chunk correctly or its markers are emitted as
+   * visible `&gt;` text. */
   it('reads a bare > as part of the quote rather than as prose', () => {
     const html = renderCopyBlock('>\n> Small print.\n> Second line.');
 
@@ -59,10 +49,7 @@ describe('renderCopyBlock', () => {
     expect(html).toContain('<ul ');
   });
 
-  /**
-   * A half-list is far more likely to be a wrapped sentence that happens to
-   * start with a dash than an intended list.
-   */
+  /** A half-list is more likely wrapped prose beginning with a dash than an intentional list. */
   it('reads a mixed chunk as a paragraph rather than a broken list', () => {
     const html = renderCopyBlock('Some lead-in\n- not really a list');
 
@@ -92,11 +79,8 @@ describe('renderCopyBlock', () => {
     expect(renderCopyBlock('[<b>x</b>](https://n.co)')).toContain('&lt;b&gt;');
   });
 
-  /**
-   * Template variables have to survive, because `renderTemplate` substitutes
-   * them AFTER this output is placed. Escaping the braces would leave the
-   * reader looking at `{{username}}`.
-   */
+  /** Preserve template variables for the later `renderTemplate` substitution; escaping braces would show
+   * `{{username}}` to the reader. */
   it('leaves template variables alone for the template to fill in', () => {
     expect(renderCopyBlock('Hello {{username}}.')).toContain('{{username}}');
   });
@@ -126,15 +110,8 @@ describe('parseCopy', () => {
 describe('the copy files themselves', () => {
   const TEMPLATES = ['welcome', 'feedback-ask', 'dormant-30', 'magic-link', 'verify-new-email', 'feedback'];
 
-  /**
-   * DERIVED FROM THE TEMPLATE RATHER THAN LISTED HERE, because a hardcoded list
-   * goes stale every time a block is added and then fails for the wrong reason.
-   *
-   * The failure this guards against is silent: a template asking for a block
-   * that no longer exists keeps its `{{{copy.x}}}` through the raw pass, gets
-   * swept by the catch-all, and the paragraph simply vanishes from the email
-   * with nothing logged.
-   */
+  /** Derive required template blocks instead of maintaining a list that goes stale. A missing block must not
+   * disappear silently during the raw-pass catch-all. */
   it.each(TEMPLATES)('%s has every block its template asks for', async (name) => {
     const template = await readFile(
       join(import.meta.dirname, '..', '..', 'app', 'mailers', 'templates', `${name}.html`),

@@ -38,12 +38,8 @@ beforeEach(() => {
   invalidateUserCache(fixtures.users.david.id);
 });
 
-/**
- * Both apps are built once and reused. Each gets its own ephemeral port for the
- * file's lifetime (see helpers/http), and rebuilding one per test churned through
- * ports fast enough to occasionally time out or hit a recycled one. They take no
- * arguments and hold no per-test state, so one instance serves every test.
- */
+/** Build and reuse one app per auth mode; rebuilding ephemeral servers per test caused port churn, timeouts, and
+ * recycled-port collisions. */
 let _apiKeyApp: ReturnType<typeof express> | null = null;
 let _sessionApp: ReturnType<typeof express> | null = null;
 
@@ -65,13 +61,8 @@ function createApiKeyApp() {
   return app;
 }
 
-/**
- * The session cookie's real name in the test environment, which is where the
- * `__Secure-` prefix does or does not appear. Read from better-auth for the
- * same reason the middleware reads it: hardcoding it here would let this file
- * keep passing after a `cookiePrefix` or `useSecureCookies` change that broke
- * renewal in production.
- */
+/** Read the cookie name from better-auth so a prefix or secure-cookie change cannot leave renewal tests passing
+ * while production breaks. */
 async function sessionTokenCookieName(): Promise<string> {
   return (await auth.$context).authCookies.sessionToken.name;
 }
@@ -394,10 +385,7 @@ describe('requireSessionAuth', () => {
   });
 
   it('forwards a renewed session cookie to the browser', async () => {
-    // The whole point of `returnHeaders`: better-auth renews the cookie in
-    // process, and if this middleware does not pass it on, the browser keeps
-    // the Max-Age it was given at sign-in and drops the session at 30 days
-    // however active the reader was.
+    // Forward renewal headers so the browser receives the same extended lifetime as the stored session.
     const renewed = `${await sessionTokenCookieName()}=renewed.signature; Path=/; HttpOnly; Max-Age=2592000`;
     mockGetSession.mockResolvedValue(sessionResult({ user: { id: String(fixtures.users.kevin.id) } }, [renewed]));
 
@@ -409,10 +397,8 @@ describe('requireSessionAuth', () => {
   });
 
   it('forwards only the session token, not the cookie cache', async () => {
-    // `get-session` rewrites the `session_data` cache cookie on every call.
-    // Forwarding it would add roughly a kilobyte to every API response and to
-    // every request the browser makes afterwards, and renew nothing that
-    // decides when a reader is signed out.
+    // Do not forward `get-session`’s cache cookie; it adds roughly a kilobyte to every request without controlling
+    // sign-out renewal.
     const name = await sessionTokenCookieName();
     const renewed = `${name}=renewed.signature; Path=/; HttpOnly`;
     mockGetSession.mockResolvedValue(

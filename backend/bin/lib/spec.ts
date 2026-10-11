@@ -1,23 +1,5 @@
-/**
- * Shared parsing of the bundled OpenAPI spec for the backend code generators.
- *
- * Three generators read the same bundle. Two of them read the same `security`
- * field to make decisions that must agree:
- *
- *   generateRouteAuth    — derives the API's own auth middleware
- *   generatePublicRoutes — derives the frontend proxy's master-key allowlist
- *
- * The master key belongs to the admin service account, so a route the proxy
- * injects it into is a route an anonymous browser reaches as that account. If
- * the two generators ever disagreed about how to read one security block — a
- * scheme name spelled differently, a missing scope list handled differently —
- * the proxy could inject the key on a route the middleware treats as
- * owner-scoped and hand the service account's data to the browser. They walk
- * the spec through this module so there is one reading of it, not three.
- *
- * Deriving *policy* from an operation stays with each generator; this module
- * only resolves the spec into a flat, ordered operation list.
- */
+/** Shared, ordered OpenAPI operation parsing for backend generators. Keeping security resolution here prevents
+ * route-auth and proxy allowlists from interpreting one operation differently; policy remains in each consumer. */
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { parse } from 'yaml';
@@ -39,13 +21,8 @@ export interface OpenApiOperation {
   tags?: string[];
   responses?: Record<string, unknown>;
   'x-internal'?: boolean;
-  /**
-   * Reachable by our own frontend SERVER only, never by a browser -- even the
-   * signed-in reader's own, even through the site's `/v1` proxy. The proxy
-   * stamps every request it forwards with the internal secret, so a controller
-   * checking that secret cannot tell a server-side call from a browser call the
-   * proxy relayed; this marker is what generates the proxy's refusal.
-   */
+  /** Marks routes reachable by the frontend server only, never by a browser, because the proxy’s internal-secret
+   * header cannot distinguish relayed browser traffic. */
   'x-server-only'?: boolean;
 }
 
@@ -65,15 +42,8 @@ export interface SpecOperation {
   path: string;
   /** Express form, with `:param`: `/v1/media/:mediaId`. */
   expressPath: string;
-  /**
-   * The operation's own `security` block, verbatim. `undefined` means the
-   * operation declares none — which is not the same as declaring an empty
-   * list, so callers can tell "no block" from "explicitly unguarded".
-   *
-   * Only operation-level security is read: the bundle sets no path-level or
-   * root-level `security`, and every consumer here assumes that. Introducing
-   * either would need this resolution — and both consumers — revisited.
-   */
+  /** Preserves operation-level `security` verbatim: `undefined` means no block, distinct from an explicit empty
+   * list. Path/root security is currently absent and would require both consumers to change. */
   security: SecurityRequirement[] | undefined;
   tags: string[];
   isInternal: boolean;
@@ -121,11 +91,8 @@ export function listOperations(spec: Pick<OpenApiSpec, 'paths'>): SpecOperation[
   return operations;
 }
 
-/**
- * Chase a JSON `$ref` pointer through the spec. Returns undefined if any
- * segment is missing, so a stale ref surfaces as absent rather than as a throw
- * halfway through generation.
- */
+/** Resolves a JSON `$ref`; a missing segment returns `undefined` so stale references fail as absent during
+ * generation. */
 export function resolveRef<T = unknown>(spec: OpenApiSpec, ref: string): T | undefined {
   const parts = ref.replace(/^#\//, '').split('/');
   let current: unknown = spec;

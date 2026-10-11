@@ -1,13 +1,5 @@
-/**
- * Post-processing script for OpenAPI code generation
- *
- * This script runs after @nahkies/openapi-code-generator to:
- * 1. Generate output types from Zod schemas (with defaults applied)
- * 2. Modify route files to use output types instead of input types
- *
- * This fixes the issue where generated TypeScript types represent input types
- * (what the schema accepts) rather than output types (what you get after Zod parsing).
- */
+/** Post-processes OpenAPI output: derives Zod output types with defaults, then rewrites generated routes to use them
+ * instead of input types. */
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -187,9 +179,7 @@ function analyzeRouteFile(filePath: string): RouteFileInfo {
     bodyTypeReplacements.set(assignment.inputTypeName, assignment.outputTypeName);
   }
 
-  // Generator >= 0.23 inlines named schemas directly in parseRequestInput
-  // and uses the model input type in Params (for example t_SearchRequest).
-  // Map those input types back to z.output types, where defaults are applied.
+  // Generator 0.23 inlines schemas; map its input types back to output types so defaults remain represented.
   const parsedBodySchemaRegex = /body:\s*parseRequestInput\(\s*s_(\w+)\s*,/g;
   let match;
   while ((match = parsedBodySchemaRegex.exec(content)) !== null) {
@@ -269,30 +259,16 @@ function generateOutputTypesFile(schemas: SchemaInfo[], routeFiles: RouteFileInf
   return lines.join('\n');
 }
 
-/**
- * Apply a global replacement, reporting how many times it fired.
- *
- * Every rewrite below is anchored on the *position* of a type inside a
- * `Params<P, Q, B, H>` generic, so a change to the generator's whitespace or
- * generic arity makes the pattern stop matching. Counting is what lets the
- * caller tell "nothing to do" apart from "the pattern went stale".
- */
+/** Each rewrite is anchored to a type position in `Params<P, Q, B, H>`; count replacements so generator-format or
+ * arity drift fails instead of becoming a silent no-op. */
 function replaceCounted(content: string, pattern: RegExp, replacement: string): { content: string; count: number } {
   const matches = content.match(pattern);
   if (!matches) return { content, count: 0 };
   return { content: content.replace(pattern, replacement), count: matches.length };
 }
 
-/**
- * Find input types that survived the rewrite inside a `Params<>` generic.
- *
- * A name only reaches `inputTypeNames` because the route parses that slot with
- * a Zod schema, so it must not appear in any slot of the emitted generic --
- * path and header slots use their own `t_XParamSchema` / `t_XHeaderSchema`
- * names, which are never replacement keys. Checking every slot rather than
- * just the query and body positions means a change in generic arity is caught
- * too, instead of quietly moving the body type somewhere we do not look.
- */
+/** Replace every parsed input type in the emitted `Params<>` generic. Checking all slots also catches generator
+ * arity changes; path/header schema names are separate keys. */
 function findUnreplacedInputTypes(content: string, inputTypeNames: Set<string>): string[] {
   const stale = new Set<string>();
 
@@ -306,19 +282,12 @@ function findUnreplacedInputTypes(content: string, inputTypeNames: Set<string>):
   return [...stale].sort();
 }
 
-/**
- * Post-process a route file to use output types
- *
- * Returns the number of type replacements applied. Throws if the rewrite did
- * not land: a silent no-op leaves the backend compiling against Zod *input*
- * types, so applied defaults disappear from the types while everything still
- * typechecks.
- */
+/** Return the replacement count and reject remaining input types so Zod defaults stay represented in generated route
+ * types. */
 function postProcessRouteFile(routeFile: RouteFileInfo): number {
   const fileName = path.basename(routeFile.filePath);
   let content = fs.readFileSync(routeFile.filePath, 'utf-8');
 
-  // Collect all output types we need to import
   const outputTypesToImport: string[] = [];
   // Every input type we expect to be gone from the generics by the end.
   const inputTypeNames = new Set<string>();
@@ -412,9 +381,6 @@ function postProcessRouteFile(routeFile: RouteFileInfo): number {
   return replacements;
 }
 
-/**
- * Main function
- */
 function main() {
   console.log('🔄 Generating output types...');
 

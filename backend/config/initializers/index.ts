@@ -10,9 +10,7 @@ import { workersInitializer } from './workers';
 
 const initializers: RuntimeInitializer[] = [
   telemetryInitializer,
-  // Early, so that shutdown -- which runs this list in reverse -- flushes the
-  // analytics queue last, after everything that might still be capturing has
-  // stopped.
+  // Register analytics early so reverse-order shutdown flushes it after all producers stop.
   analyticsInitializer,
   authInitializer,
   databaseInitializer,

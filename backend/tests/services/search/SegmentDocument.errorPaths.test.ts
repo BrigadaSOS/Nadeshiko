@@ -69,14 +69,8 @@ describe('surroundingSegments', () => {
 });
 
 describe('SegmentDocument.searchInIds', () => {
-  /**
-   * The id-restricting clause from the first search call.
-   *
-   * Returns `any` on purpose: the assertions below reach into raw Elasticsearch
-   * JSON, where every level of the real type is optional and narrowing each one
-   * would bury what is being asserted. Missing clauses throw here instead, so a
-   * failure names the problem rather than surfacing as "cannot read 'bool'".
-   */
+  /** Return `any` for raw Elasticsearch JSON so the assertions can name missing clauses directly instead of failing
+   * with an incidental property-access error. */
   function captureIdsFilter(search: MockInstance): any {
     const params = search.mock.calls[0]?.[0] as estypes.SearchRequest | undefined;
     if (!params) throw new Error('Elasticsearch search was never called');

@@ -46,9 +46,7 @@ async function dropRoleAndDatabase(
   const roleExists = await adminClient.query('SELECT 1 FROM pg_roles WHERE rolname = $1', [appUser]);
 
   if (roleExists.rowCount !== 0) {
-    // REASSIGN/DROP OWNED BY only affects the current database.
-    // The role may own objects in multiple databases (e.g. app DB + test DB),
-    // so we must connect to each one and revoke there.
+    // Reassign/drop ownership per database; a role can own objects in the app and test databases.
     const allDatabases = await adminClient.query<{ datname: string }>(
       'SELECT datname FROM pg_database WHERE datistemplate = false',
     );

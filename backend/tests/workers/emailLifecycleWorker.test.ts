@@ -32,15 +32,11 @@ afterEach(() => {
 
 let seq = 0;
 
-/**
- * `created_at` is a `CreateDateColumn`, so TypeORM stamps it on insert and the
- * age these tests turn on has to be written afterwards.
- */
+/** `created_at` is stamped by TypeORM on insert, so set it afterward when tests need an older age. */
 async function userAgedDays(days: number, overrides: DeepPartial<User> = {}): Promise<User> {
   seq += 1;
-  // Overrides applied after `create` rather than spread inside it: a
-  // `DeepPartial` in the literal widens the argument enough that TypeORM's
-  // array overload wins, and `save` then answers `User[]`.
+  // Set TypeORM fixture overrides after `create`; the inline `DeepPartial` can select the array overload and make
+  // `save` return `User[]`.
   const user = User.create({
     username: `sweep-${seq}`,
     email: `sweep-${seq}@example.com`,
@@ -58,22 +54,8 @@ async function userAgedDays(days: number, overrides: DeepPartial<User> = {}): Pr
   return user;
 }
 
-/**
- * A reader being here: the better-auth session row, and the `User.last_seen_at`
- * the session hooks move alongside it.
- *
- * BOTH, BECAUSE PRODUCTION WRITES BOTH. Dormancy reads the column now rather
- * than the session table, but the row still has to exist -- `expires_at` is what
- * the day-7 sweep asks about, and a fixture that set only the column would pass
- * for a system that never wrote it. This stands in for `recordLastSeen`.
- *
- * `expires_at` now says only whether somebody could still be signed in, which
- * with a 90-day session is a different question from whether they were here.
- *
- * Written by hand because signing in for real is a whole auth stack away from a
- * worker test. Defaults describe a reader who was here yesterday on a live
- * session, so a test that says nothing about either is not dormant.
- */
+/** Represent a reader with both the better-auth session and `last_seen_at`: production writes both, dormancy reads
+ * the column, and `expires_at` answers session validity rather than activity. */
 async function session(user: User, opts: { lastSeenDaysAgo?: number; expiresInDays?: number } = {}): Promise<void> {
   seq += 1;
 
@@ -89,10 +71,7 @@ async function session(user: User, opts: { lastSeenDaysAgo?: number; expiresInDa
   ]);
 }
 
-/**
- * Signing out, which deletes the session row and leaves `last_seen_at` standing.
- * That gap is the whole reason dormancy stopped reading the session table.
- */
+/** Signing out deletes the session but preserves `last_seen_at`; that is why dormancy no longer reads sessions. */
 async function signOut(user: User): Promise<void> {
   await User.query(`DELETE FROM "session" WHERE user_id = $1`, [user.id]);
 }
@@ -109,12 +88,8 @@ describe('the day-7 sweep', () => {
     expect(enqueued[0]?.to).toBe(user.email);
   });
 
-  /**
-   * A range, not "older than seven days". If the sweep misses a few nights, the
-   * backlog must not all go out at once: a day-7 email arriving on day 40 is not
-   * a day-7 email, and to a relay the batch looks like exactly the thing it is
-   * not.
-   */
+  /** Use a bounded age range, not only “older than seven days,” so a missed sweep does not release an old backlog as
+   * new day-7 mail. */
   it.each([0, 3, 6, 9, 40])('leaves an account aged %i days alone', async (age) => {
     await userAgedDays(age);
 
@@ -159,11 +134,7 @@ describe('the day-7 sweep', () => {
     expect(enqueued).toHaveLength(0);
   });
 
-  /**
-   * ABSENT MEANS FOLLOW THE MASTER. A reader who left before a category existed
-   * must not start receiving it because their preferences have no opinion about
-   * a key that did not exist when they went.
-   */
+  /** Missing categories follow the master preference, so new categories do not re-subscribe readers who opted out. */
   it('does not read a missing category as a fresh yes', async () => {
     await userAgedDays(7, { preferences: { productEmails: { enabled: false } } });
 
@@ -188,11 +159,8 @@ describe('the day-7 sweep', () => {
     expect(enqueued).toHaveLength(0);
   });
 
-  /**
-   * `sendEmail` would refuse the send anyway, but by then the claim row is
-   * written and the account has spent its one chance at this email on a message
-   * nobody could have received.
-   */
+  /** Check the send policy before writing a claim row, or an undeliverable account loses its one chance without
+   * receiving anything. */
   it('does not burn the one-shot on a suppressed address', async () => {
     const user = await userAgedDays(7);
     await EmailSuppression.save(
@@ -206,12 +174,8 @@ describe('the day-7 sweep', () => {
   });
 });
 
-/**
- * ONE EMAIL, TWO OPENINGS, and this is the seam. Which question a reader can
- * answer depends on whether they have used the site -- and that cannot be read
- * from sessions here, because a session lasts 90 days and so is uniformly live
- * at day 7.
- */
+/** There are two openings for the same email: the day-7 branch depends on site use, not the 90-day session, which is
+ * still live then. */
 describe('which question the day-7 ask leads with', () => {
   const campaignOfAsk = () => enqueued.find((job) => job.kind === 'feedback-ask')?.campaign;
 
@@ -245,13 +209,8 @@ describe('which question the day-7 ask leads with', () => {
     expect(enqueued.map((job) => job.campaign).sort()).toEqual(['feedback-ask-cold', 'feedback-ask-started']);
   });
 
-  /**
-   * `UserActivity` is written only for readers who leave `searchHistory` on, so
-   * a row of zeroes means "we are not allowed to know" rather than "never
-   * searched". Of the two ways to be wrong, asking a quiet reader what they
-   * would change is a question they can ignore; telling a daily user they have
-   * not started yet says we have not been paying attention.
-   */
+  /** Zero `UserActivity` means search history is disabled, not that the reader never searched; avoid telling active
+   * readers their account is unused. */
   it('treats an invisible activity log as having started', async () => {
     await userAgedDays(7, { preferences: { searchHistory: { enabled: false } } });
 
@@ -262,20 +221,10 @@ describe('which question the day-7 ask leads with', () => {
 });
 
 describe('the day-7 ask itself', () => {
-  /**
-   * A reply is the point of this one, and `senderFor` already makes the From a
-   * personal mailbox. An explicit reply-to would redirect answers to a role
-   * address, and role addresses post in full -- sender, subject, body -- into a
-   * Discord channel via the Zoho bridge. Somebody answering "what would you
-   * change first?" is entitled to assume that is a private reply.
-   */
-  /**
-   * A reply goes to whichever of the two of us wrote: their `From` is a real
-   * mailbox, so the message needs nothing else on it. An explicit reply-to would
-   * only be worth adding to point somewhere shared -- and the address it would
-   * point at has to be one the Cloudflare catch-all worker does not publish into
-   * Discord, which is a question about that worker rather than about this code.
-   */
+  /** Keep replies on the sender’s real mailbox. A role-address reply would expose the private message through the
+   * Zoho-to-Discord bridge. */
+  /** No explicit `reply-to` is needed while `From` is a real mailbox; adding one would require separately verifying
+   * that its catch-all does not publish to Discord. */
   it('leaves reply-to unset, so replies go back to whoever wrote', async () => {
     await userAgedDays(7);
 
@@ -284,11 +233,8 @@ describe('the day-7 ask itself', () => {
     expect(enqueued[0]?.replyTo).toBeUndefined();
   });
 
-  /**
-   * The reason it moved off day 30. The production dry run found 0.8 candidates
-   * a night there against 3.8 at day 7 -- and a month-30 ask reaches only the
-   * people it is already working for, which is a survey of survivors.
-   */
+  /** The campaign moved from day 30 to day 7 after the dry run found more eligible readers at day 7; day 30 mostly
+   * measured survivors. */
   it('no longer waits for day 30', async () => {
     const user = await userAgedDays(30);
     await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
@@ -312,12 +258,8 @@ describe('the dormant win-back note', () => {
     expect(enqueued[0]?.to).toBe(user.email);
   });
 
-  /**
-   * DORMANCY IS A STATE, NOT AN ANNIVERSARY. Taking only last night's lapses
-   * would be self-limiting but would abandon everybody already past thirty days
-   * -- half the account base when this shipped -- purely because their lapse
-   * date fell before the feature existed.
-   */
+  /** Dormancy is a current state, not a one-time anniversary; query all readers past the threshold so accounts
+   * present before launch are included. */
   it.each([31, 60, 400])('still reaches an account last seen %i days ago', async (days) => {
     const user = await userAgedDays(400);
     await session(user, { lastSeenDaysAgo: days });
@@ -327,11 +269,8 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).toContain('dormant-30');
   });
 
-  /**
-   * WHAT KEEPS THE FIRST NIGHT SMALL, now that the window is gone. The backlog
-   * drains at this rate instead of going out at once down the relay that also
-   * carries every magic link.
-   */
+  /** The unbounded window drains the backlog at the configured rate instead of sending it all at once through the
+   * magic-link relay. */
   it('sends no more than the nightly cap, however big the backlog', async () => {
     for (let i = 0; i < DORMANT_NIGHTLY_CAP + 6; i++) {
       const user = await userAgedDays(400);
@@ -366,13 +305,8 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).not.toContain('dormant-30');
   });
 
-  /**
-   * THE POINT OF `DORMANT_AFTER_DAYS`. Dormancy used to mean "the session has
-   * expired", so it moved whenever `expiresIn` did -- raising sessions to ninety
-   * days would silently have turned this into a ninety-day win-back. Being away
-   * a month is now the question, and still being signed in is not an answer to
-   * it.
-   */
+  /** Use `DORMANT_AFTER_DAYS`, not session expiry: extending sessions must not silently turn a 30-day win-back into
+   * a 90-day one. */
   it('mails a reader who has been away a month but is still signed in', async () => {
     const user = await userAgedDays(90);
     await session(user, { lastSeenDaysAgo: 31, expiresInDays: 59 });
@@ -382,13 +316,8 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).toContain('dormant-30');
   });
 
-  /**
-   * THE REGRESSION THE COLUMN EXISTS FOR. Dormancy used to read the session
-   * table, and signing out deletes the row -- so `MAX(updated_at)` went NULL,
-   * `NULL < now() - 30 days` is NULL rather than true, and every reader who had
-   * ever signed out was silently exempt from the one sweep meant to reach them.
-   * `last_seen_at` lives on `User` and survives the delete.
-   */
+  /** Read `last_seen_at`, not session rows: sign-out deletes the session, and the old `MAX(updated_at)` query then
+   * made signed-out readers look permanently active. */
   it('mails a reader who lapsed and then signed out', async () => {
     const user = await userAgedDays(90);
     await session(user, { lastSeenDaysAgo: 31 });
@@ -399,11 +328,8 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).toContain('dormant-30');
   });
 
-  /**
-   * Never signed in at all. A null `last_seen_at` coalesces to `created_at`,
-   * which under a rule of "has done nothing for thirty days" is an answer rather
-   * than the question it used to be treated as.
-   */
+  /** A never-signed-in account has no activity; coalescing `last_seen_at` to `created_at` must not make that
+   * creation timestamp satisfy a later-activity rule. */
   it('mails an account that signed up and never came back', async () => {
     await userAgedDays(90);
 
@@ -431,11 +357,8 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).toEqual(['dormant-30']);
   });
 
-  /**
-   * Going quiet is a state, and a reader who comes back and drifts away again
-   * has genuinely gone dormant twice -- so the campaign carries the month rather
-   * than repeating the kind, and the unique index stops being once-ever.
-   */
+  /** Dormancy can recur after a reader returns, so the campaign carries the month and the uniqueness rule is not
+   * once-ever. */
   it('names the month it noticed, so a later dormancy is a different send', async () => {
     const user = await userAgedDays(90);
     await session(user, { lastSeenDaysAgo: 31 });
@@ -445,12 +368,7 @@ describe('the dormant win-back note', () => {
     expect(campaignOf('dormant-30')).toMatch(/^dormant-30-\d{4}-\d{2}$/);
   });
 
-  /**
-   * THE ONE THE WINDOW USED TO GIVE FOR FREE. "Has been away thirty days" stays
-   * true forever for somebody who never comes back, so without this they would
-   * get another note every time the floor expired, for as long as the account
-   * exists.
-   */
+  /** Without a post-send floor, a reader who remains dormant would qualify again whenever the threshold elapsed. */
   it('never writes twice to a reader who has not been back since', async () => {
     const user = await userAgedDays(400);
     await session(user, { lastSeenDaysAgo: 230 });
@@ -469,12 +387,8 @@ describe('the dormant win-back note', () => {
     expect(kindsSent()).not.toContain('dormant-30');
   });
 
-  /**
-   * An account that never signed in has a `LAST_SEEN` of `created_at`, which
-   * never moves -- so `sent_at > LAST_SEEN` stays true forever and the one note
-   * they get is the only one. Worth pinning: the floor alone would let a second
-   * through after 180 days, to somebody who has still never been here.
-   */
+  /** For a never-signed-in account, `LAST_SEEN = created_at` never moves; the floor prevents a second send after
+   * another threshold interval. */
   it('writes once only to an account that never signed in, even past the floor', async () => {
     const user = await userAgedDays(400);
     await EmailLifecycleSend.save(
@@ -550,13 +464,8 @@ describe('the dormant win-back note', () => {
 });
 
 describe('every lifecycle email', () => {
-  /**
-   * The denominator. `EmailLifecycleSend` knows who got what but lives in
-   * Postgres; `email.sent` is labelled by kind only so alert rules stay
-   * readable. This is the only record that lands on the same PostHog person as
-   * the reader's own pageviews, which is what makes a click a rate rather than
-   * a count.
-   */
+  /** Use PostHog’s person-level denominator for click rate; the email metric is labelled only by kind so alert
+   * cardinality stays bounded. */
   it('reports the send to analytics, with the campaign that went out', async () => {
     const user = await userAgedDays(7);
 
@@ -591,10 +500,7 @@ describe('every lifecycle email', () => {
     expect(enqueued[0]?.html).toContain('/unsubscribe?token=');
   });
 
-  /**
-   * The campaign belongs on the send and in the client reference, never in the
-   * `email.kind` metric label — see `metrics.ts` on bounded cardinality.
-   */
+  /** Keep campaign in the send and client reference, not the bounded `email.kind` metric label. */
   it('names its campaign', async () => {
     await userAgedDays(7);
 
@@ -635,12 +541,7 @@ describe('when lifecycle email is not live', () => {
     expect(enqueued).toHaveLength(0);
   });
 
-  /**
-   * THE ONE THAT MATTERS. A dry run that claimed would record a send it never
-   * made, and the day somebody flips the switch every account swept in the
-   * meantime is skipped as already-done — a launch that mails nobody and looks
-   * from the logs exactly like a launch that worked.
-   */
+  /** A dry run must not write a claim: otherwise launch skips every swept account while logs falsely show success. */
   it('records nothing, so turning it on later still reaches these people', async () => {
     const user = await userAgedDays(7);
 
@@ -653,11 +554,8 @@ describe('when lifecycle email is not live', () => {
     expect(kindsSent()).toEqual(['feedback-ask']);
   });
 
-  /**
-   * The dry run has to do the real work up to the send, or it reports on a
-   * different question than the one being asked -- here, that it resolved the
-   * day-7 split rather than counting everybody as one bucket.
-   */
+  /** Dry-run the real path through day-7 resolution so the result tests the actual split rather than one bucket for
+   * everyone. */
   it('still resolves which of the two day-7 emails it would have sent', async () => {
     const user = await userAgedDays(7);
     await UserActivity.save(UserActivity.create({ userId: user.id, activityType: ActivityType.SEARCH }));
@@ -672,11 +570,8 @@ describe('when lifecycle email is not live', () => {
 });
 
 describe('the allowlist', () => {
-  /**
-   * The staging post between off and everyone: one real send, the rest dry.
-   * Checked per recipient rather than as a global switch, so this is a test of
-   * the real path rather than of a different one.
-   */
+  /** Test the mixed rollout per recipient: one real send and the rest dry-run must use the same path, not a global
+   * shortcut. */
   it('sends to the listed address and dry-runs everybody else', async () => {
     const listed = await userAgedDays(7);
     await userAgedDays(7);

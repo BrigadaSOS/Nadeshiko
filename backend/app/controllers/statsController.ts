@@ -4,13 +4,7 @@ import { Cache, createCacheNamespace } from '@lib/cache';
 import { decodeKeysetCursor, encodeKeysetCursor } from '@lib/cursor';
 import type { GetStatsOverview, GetCoveredWords, TriggerCoveredWordsUpdate } from 'generated/routes/stats';
 
-/**
- * Exported so tests can clear it between cases, the same way `Media.ts` exports
- * `MEDIA_INFO_CACHE`. A namespace is a fresh `Symbol` per call, so a second
- * `createCacheNamespace('stats')` elsewhere is a DIFFERENT namespace that shares
- * only a label -- invalidating that one would leave this cache untouched for its
- * full week.
- */
+/** Each cache namespace is a fresh `Symbol`; export this one so tests and invalidation target the same namespace. */
 export const STATS_CACHE = createCacheNamespace('stats');
 const CACHE = STATS_CACHE;
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -51,16 +45,8 @@ export const getStatsOverview: GetStatsOverview = async (_params, respond) => {
 
     const ws = wordStats[0];
     const totalFrequencyWords = ws.total_words as number;
-    // The final entry is the frequency list's own length, which is what lets the
-    // client label it "full corpus". On a database whose word list has not been
-    // loaded yet that length is 0, and `WordCoverageTier.tier` is `minimum: 1` --
-    // so the endpoint used to build a tier the response validator rejected and
-    // answer 500. That is a public endpoint (the stats page and the Discord bot
-    // both call it) failing on a fresh deploy, for a tier describing nothing.
-    // Do not append a low-population corpus after larger fixed tiers: that
-    // makes the response regress from e.g. "top 100,000" to "top 2" and
-    // mislabels the aggregate. Keep only tiers strictly below the corpus size,
-    // then end with exactly one full-corpus tier.
+    // Keep only fixed tiers strictly below corpus size, then append one full-corpus tier; zero must not create a
+    // validator-rejected tier.
     const allTiers =
       totalFrequencyWords > 0 ? [...TIERS.filter((tier) => tier < totalFrequencyWords), totalFrequencyWords] : TIERS;
 

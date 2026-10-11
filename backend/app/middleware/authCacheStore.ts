@@ -9,10 +9,7 @@ const API_KEY_CACHE_MAX_ENTRIES = 10_000;
 const AUTH_USER_CACHE = createCacheNamespace('authUser', USER_CACHE_MAX_ENTRIES);
 const AUTH_API_KEY_CACHE = createCacheNamespace('authApiKey', API_KEY_CACHE_MAX_ENTRIES);
 
-/**
- * Keys the API key cache by digest so plaintext keys never sit in a long-lived
- * map (and never leak into a heap dump or debugger inspection of the cache).
- */
+/** Key the API-key cache by digest so plaintext credentials do not remain in a long-lived map or its heap dump. */
 function apiKeyCacheKey(key: string): string {
   return createHash('sha256').update(key).digest('hex');
 }

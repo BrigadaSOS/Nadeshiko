@@ -1,15 +1,7 @@
 import { errors } from '@elastic/elasticsearch';
 
-/**
- * Elasticsearch failures come back in two shapes, and only one of them carries
- * a status code.
- *
- * A `ResponseError` means the cluster answered and refused — those have a status
- * code. A `ConnectionError`, timeout or DNS failure never reaches the cluster
- * and has no `meta` at all, so reaching for `error.meta.statusCode` on one
- * throws a TypeError that masks the real outage. These helpers keep that
- * distinction explicit instead of leaving each call site to poke at the shape.
- */
+/** Separate cluster responses with status codes from connection/timeout/DNS failures with no `meta`; otherwise
+ * status access masks the real outage. */
 
 /** The bit of the error shape we depend on, for anything that isn't a real instance. */
 type ElasticsearchErrorLike = {
@@ -22,9 +14,7 @@ function elasticsearchStatusCode(error: unknown): number | undefined {
     return error.statusCode;
   }
 
-  // Structural fallback rather than instanceof alone. Two copies of
-  // @elastic/transport in the tree would defeat the prototype check, and test
-  // doubles reject with a plain `{ meta: { statusCode } }` object.
+  // Use structural fallback as well as `instanceof` for duplicate transport copies and plain test doubles.
   if (typeof error !== 'object' || error === null) {
     return undefined;
   }

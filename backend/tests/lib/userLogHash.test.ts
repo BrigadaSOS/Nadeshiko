@@ -10,13 +10,8 @@ describe('hashUserId', () => {
     expect(hashUserId(328, 'salt-a')).not.toBe(hashUserId(329, 'salt-a'));
   });
 
-  /**
-   * The property the field exists for, and the reason the salt is not optional
-   * in spirit. User ids are small consecutive integers: an unsalted digest is a
-   * lookup table anyone can build in under a second, so the field would be a
-   * plaintext id with extra steps. Rotating the salt is also the documented way
-   * to invalidate every prior join, which only works if the output moves.
-   */
+  /** Salt user-id hashes: ids are small enough for an unsalted lookup table, and rotating the salt must invalidate
+   * prior join keys. */
   it('moves with the salt', () => {
     expect(hashUserId(328, 'salt-a')).not.toBe(hashUserId(328, 'salt-b'));
   });

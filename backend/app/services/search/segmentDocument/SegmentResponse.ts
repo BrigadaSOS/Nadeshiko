@@ -80,20 +80,8 @@ export class SegmentResponse {
           mediaMap[mediaInfo.publicId] = SegmentResponse.buildMedia(mediaInfo);
         }
 
-        // The SEGMENT's own path, not the media's. They are equal for every
-        // title whose objects all sit in one directory, which is nearly all of
-        // them -- but the column exists per segment because that is not
-        // guaranteed, and `SegmentIndexer` indexes it for exactly this read.
-        //
-        // Discarding it split one title in half. Mushoku Tensei II (media 47)
-        // has 654 segments stored under another title's directory, and building
-        // their urls from the media path pointed every one at an object that is
-        // not there: the sentence page played them (it maps from the segment,
-        // see `mappers/segmentMapper`) while the same clip 404'd in search.
-        //
-        // Falls back to the media path when a document predates the field, so a
-        // partially reindexed cluster degrades to the old behaviour rather than
-        // building urls against `undefined`.
+        // Build storage URLs from the segment path, falling back to the media path for documents from before the field
+        // was indexed.
         const storageBasePath = data.storageBasePath || mediaInfo.storageBasePath;
         const storage: Storage = data.storage.toUpperCase() as Storage;
         const segmentForUrls = {
@@ -160,9 +148,7 @@ export class SegmentResponse {
       return null;
     }
 
-    // p1/p2/p4/cf used to be filled in here, nullable, because the published
-    // schema required them even when Sudachi had nothing to put in the slot.
-    // The fields are gone from the schema, so there is nothing to pad.
+    // The removed token fields are no longer part of the response schema, so do not pad them with nulls.
     return tokens.map((token) => ({
       ...token,
       kind: SegmentResponse.toTokenKind(token.kind),

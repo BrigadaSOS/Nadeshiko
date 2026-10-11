@@ -10,19 +10,8 @@ import { Media } from '@app/models';
 import { Report, ReportReason, ReportSource, ReportStatus, ReportTargetType } from '@app/models/Report';
 import { AuthType, ApiKeyKind, ApiPermission } from '@app/models/ApiPermission';
 
-/**
- * The admin batch and bulk report endpoints.
- *
- * These are the destructive ones, and the property worth pinning is the same on
- * all four: what a request MATCHES. `DELETE /v1/admin/reports/bulk` takes a
- * filter set and deletes everything it selects, so a filter that is silently
- * dropped -- or a filter set that is silently empty -- takes the whole table
- * with it, and there is no undo.
- *
- * The other half is group propagation. Reports are administered per target
- * group, so resolving one report has to move its siblings; the admin acts on a
- * list of groups and expects the group to disappear, not one row of it.
- */
+/** Destructive report endpoints must preserve the selected filters and propagate actions across each target group;
+ * silently broadening or emptying a filter can affect the whole table. */
 setupTestSuite();
 
 let app: Application;
@@ -87,9 +76,8 @@ beforeEach(async () => {
 
   const fixtures = await loadFixtures(['mediaWithEpisode']);
   mediaId = fixtures.media.testShow!.id;
-  // A second title, so "this filter did not reach other media" is assertable.
-  // Cloned rather than loaded from another fixture set: every set names its
-  // media `testShow`, and the loader refuses two that collide on a key.
+  // Use a second title so the test proves the filter does not reach another media; clone it because the fixture loader
+  // rejects duplicate media keys.
   const { id: _id, ...clone } = fixtures.media.testShow!;
   otherMediaId = (
     await Media.save(Media.create({ ...clone, slug: 'admin-bulk-other-show', publicId: 'AdminBulkOther' } as Media))

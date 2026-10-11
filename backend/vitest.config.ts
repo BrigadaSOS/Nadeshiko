@@ -21,57 +21,26 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
-    // preflight loads .env.test over .env and fails fast when Postgres is
-    // unreachable; matchers registers `toEqualUnordered`. Both must run before
-    // a test file's imports pull in @config/config, which validates env.
+    // Load `.env.test`/matchers before test imports, because config validates environment at import time.
     setupFiles: ['./tests/helpers/preflight.ts', './tests/helpers/matchers.ts'],
-    // The suite shares one local Postgres and one Elasticsearch index, and
-    // files truncate each other's fixtures. A single fork running files one at
-    // a time is a correctness requirement, not a tidiness preference.
-    //
-    // `maxWorkers: 1` is vitest 4's spelling of what was
-    // `poolOptions: { forks: { singleFork: true } }`. That key was removed in v4
-    // and is now a type error rather than a silent no-op -- worth knowing,
-    // because a config that merely stopped being READ would have left the suite
-    // sharing a database across parallel forks and failing at random.
+    // Run one fork: tests share Postgres/Elasticsearch fixtures, and Vitest 4 uses `maxWorkers: 1` rather than the
+    // removed `poolOptions.forks.singleFork`.
     pool: 'forks',
     maxWorkers: 1,
     fileParallelism: false,
-    // No `bail`. The old bunfig set `bail = 1` to keep a broken shared fixture
-    // from producing hundreds of derived failures, but stopping at the first
-    // failing file reports the rest of the suite as "skipped" — which reads as
-    // "fine" and hides unrelated regressions. Skimming a cascade is cheaper
-    // than missing a real failure; run `vitest --bail=1` when iterating on one.
-    // Integration tests wait on Postgres and Elasticsearch refreshes.
+    // Do not set `bail` globally: it hides unrelated failures as skips. Use `vitest --bail=1` only while iterating on
+    // one failure.
     testTimeout: 30_000,
     hookTimeout: 60_000,
     teardownTimeout: 30_000,
     coverage: {
       provider: 'v8',
-      // `text-summary` is what CI prints; `html` is how you find the uncovered
-      // lines locally. Dropped clover and json from the defaults -- nothing reads
-      // them, and they were writing two more files into an ignored directory.
+      // Keep `text-summary` for CI and `html` for local inspection; unused coverage formats only add ignored files.
       reporter: ['text-summary', 'html'],
-      // A RATCHET, not a target. These are what the suite measured on
-      // 2026-08-30, floored to the integer below; CI fails when coverage drops
-      // under them, so the number can only be moved up and moving it up is a
-      // deliberate edit. Set a point or so BELOW the measurement rather than
-      // level with it: floored to the integer, backend tolerated 20 new
-      // uncovered lines and discord just 4, which is not a regression gate but
-      // a tripwire on ordinary work. The margin is about one change's worth.
-      //
-      // They replaced a hand-written 90 across the board that
-      // had never once been run -- the suite was 83/82/73/86 against it, so
-      // wiring the gate to that number would have failed every build on the
-      // day it was switched on, which is how a coverage gate gets turned back
-      // off and never returns.
+      // Coverage thresholds are a ratchet below the measured baseline, not a target; `include` makes unimported source
+      // part of the denominator. Raise thresholds deliberately.
       thresholds: { lines: 89, functions: 89, branches: 78, statements: 88 },
-      // `include` is what makes this a real denominator. Without it vitest only
-      // reports files a test already imported, so a module nobody tests is not
-      // 0% covered -- it is absent, and the percentage is "of the code we
-      // touch", which flatters every number it produces. The backend barely
-      // moved (83.3% -> 81.8%, its tests do reach nearly everything); the
-      // frontend went 74% -> 38% and discord 58% -> 42% on the same change.
+      // Explicit `include` prevents Vitest from reporting only imported files, which would flatter coverage.
       include: ['app/**/*.ts', 'lib/**/*.ts', 'config/**/*.ts'],
       exclude: ['**/*.test.ts', 'db/migrations/**', 'generated/**', 'tests/fixtures/**', 'tests/helpers/**'],
     },

@@ -1,36 +1,7 @@
 #!/usr/bin/env bash
-# =============================================================================
-# Elasticsearch User and Role Setup Script for Nadeshiko
-# =============================================================================
-#
-# Creates an index-scoped user and role for the application to use.
-# Run this in your environment context (local, dev, or prod).
-#
-# Usage:
-#   1. Source your environment variables:
-#      - Local: source .env
-#      - Staging: source .kamal/secrets.staging
-#      - Prod: source .kamal/secrets.prod
-#
-#   2. Start Elasticsearch (if not running):
-#      docker compose up -d elasticsearch
-#
-#   3. Run this script:
-#      ./scripts/setup-elasticsearch-users.sh
-#
-# Required environment variables:
-#   ELASTICSEARCH_ADMIN_USER      - Admin username for setup (default: elastic)
-#   ELASTICSEARCH_ADMIN_PASSWORD  - Admin password for setup (required)
-#   ELASTICSEARCH_INDEX           - Index name to grant access to (required)
-#   ELASTICSEARCH_PASSWORD        - Password for new app user (required)
-#
-# Optional:
-#   ELASTICSEARCH_USER            - App username (defaults to <INDEX>_user)
-#   ELASTICSEARCH_HOST            - Elasticsearch URL (default: http://localhost:9200)
-#
-# After running, your env will have app credentials that can only access ELASTICSEARCH_INDEX.
-#
-# =============================================================================
+# Source an environment file, start Elasticsearch, then run ./scripts/setup-elasticsearch-users.sh. Requires
+# ELASTICSEARCH_ADMIN_PASSWORD, ELASTICSEARCH_INDEX, ELASTICSEARCH_PASSWORD; creates an index-scoped app user. Defaults:
+# ELASTICSEARCH_ADMIN_USER=elastic, ELASTICSEARCH_HOST=http://localhost:9200, ELASTICSEARCH_USER=<sanitized-index>_user.
 
 set -e
 

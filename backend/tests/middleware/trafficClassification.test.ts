@@ -9,10 +9,8 @@ const GOOGLEBOT = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.co
 const CHROME =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
-// Built through buildApplication so the classifier sits where production puts
-// it: ahead of the rate limiter, so `req.traffic` is already decided by the
-// time anything can reject the request. The echo route reports what the
-// middleware attached.
+// Build through `buildApplication` so classification precedes rate limiting; the echo route exposes the attached
+// traffic class.
 function buildApp(): Application {
   return buildApplication({
     rateLimit: false,
@@ -42,13 +40,8 @@ describe('trafficClassification', () => {
   });
 
   describe('classification forwarded by the frontend', () => {
-    // SSR fetches a page's data over the internal network without the visitor's
-    // User-Agent, so the frontend has to tell us who it is rendering for. That
-    // claim is only worth as much as the secret proving it came from us.
-    //
-    // Not guarded on the secret being present: .env.test is committed with one
-    // and preflight loads it over .env, so an unset secret means the test
-    // environment regressed and should fail loudly rather than skip quietly.
+    // SSR identifies the rendered visitor over an internal request, so the claim is trusted only with the frontend
+    // secret. Keep the secret required; `.env.test` supplies it and an unset value should fail loudly.
     const secret = config.INTERNAL_PROXY_SECRET;
 
     it('is trusted when the internal-proxy secret is presented', async () => {

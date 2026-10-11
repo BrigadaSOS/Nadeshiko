@@ -53,9 +53,8 @@ describe('POST /v1/user/excluded-media', () => {
     const loaded = await loadFixtures(['singleMedia']);
     const media = loaded.media.testShow;
 
-    // Another tab hides something else after this request's user was loaded.
-    // The whole preferences column is rewritten, so building the new value from
-    // the stale copy would silently drop that entry.
+    // Build the patch from fresh state: another tab may change a different preference after this request loaded the
+    // user.
     await User.update(
       { id: fixtures.users.kevin.id },
       { preferences: { hiddenMedia: [{ mediaPublicId: 'concurrent1' }] } },

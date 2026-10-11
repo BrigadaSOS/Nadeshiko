@@ -26,17 +26,12 @@ export const getMe: GetMe = async (_params, respond, req) => {
   const quota = await AccountQuotaUsage.getForUser(user.id, resolved.limit);
   const window = AccountQuotaUsage.getQuotaWindow(quota.periodYyyymm);
 
-  // A tier is only named when it is what decided the number. Under an override
-  // the limit is this account's alone, and labelling it "Plus" while it shows
-  // something no Plus account gets would be the same unexplained number the
-  // tier system was built to remove.
+  // Name a tier only when it determined the limit; an account override must not masquerade as a Plus tier.
   const namedTier = resolved.source === 'tier' ? tier : null;
 
   return respond.with200().body(
     toUserMeDTO(user, quota, window, namedTier, {
-      // The tier's own burst allowance if it sets one, else the deployment
-      // default -- the same fallback `createUserApiKey` stamps onto new keys,
-      // so the page cannot promise a ceiling the keys were not issued with.
+      // Use the tier burst limit or deployment default, matching the fallback stamped onto newly created keys.
       max: tier?.rateLimitMax ?? config.API_KEY_RATE_LIMIT_MAX,
       windowMs: tier?.rateLimitWindowMs ?? config.API_KEY_RATE_LIMIT_WINDOW_MS,
     }),
@@ -45,9 +40,7 @@ export const getMe: GetMe = async (_params, respond, req) => {
 
 export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req) => {
   const user = assertUser(req);
-  // Normalized rather than read straight off `req.user`: this endpoint is the
-  // only place the settings table gets titles from, and a bare-string row would
-  // resolve to a list of `undefined`.
+  // Normalize preferences before reading titles; legacy bare-string rows otherwise resolve to `undefined` entries.
   const hiddenMedia = normalizeMediaPreferences(user.preferences ?? {}).hiddenMedia ?? [];
   const publicIds = hiddenMedia.map((item) => item.mediaPublicId);
 
@@ -109,9 +102,7 @@ export const removeExcludedMedia: RemoveExcludedMedia = async ({ params }, respo
 
 export const listFavoriteMedia: ListFavoriteMedia = async (_params, respond, req) => {
   const user = assertUser(req);
-  // Newest first: the settings list reads as "what I starred lately", while the
-  // search filter sorts its own copy alphabetically. Both orders come from the
-  // same stored list, which is why `favoritedAt` is stored at all.
+  // Show favorites newest first here; search makes its own alphabetical copy, so `favoritedAt` preserves both orders.
   const favoriteMedia = [...(normalizeMediaPreferences(user.preferences ?? {}).favoriteMedia ?? [])].sort((a, b) =>
     (b.favoritedAt ?? '').localeCompare(a.favoritedAt ?? ''),
   );

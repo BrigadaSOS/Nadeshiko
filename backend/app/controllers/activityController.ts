@@ -69,10 +69,8 @@ export const deleteUserActivity: DeleteUserActivity = async ({ query }, respond,
 export const trackUserActivity: TrackUserActivity = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
-  // Preferences are privacy controls, so the five-minute authentication cache
-  // must never be authoritative here. A request can land on a process that
-  // cached the user before another request disabled history or the study tally.
-  // Read the current row before deciding whether either write is allowed.
+  // Preferences are privacy controls, so the auth cache is not authoritative. Re-read the current row before allowing
+  // either write.
   const currentUser = await User.findOneByOrFail({ id: user.id });
 
   UserActivity.trackForUser(currentUser, body.activityType as ActivityType, {
@@ -85,13 +83,8 @@ export const trackUserActivity: TrackUserActivity = async ({ body }, respond, re
     logger.warn({ err, userId: user.id, activityType: body.activityType }, 'Failed to track user activity');
   });
 
-  // The same event, counted for a different purpose, under a different consent.
-  // Beside `trackForUser` rather than inside it: that one stops at
-  // `searchHistory`, and the tally deliberately does not, so a reader who wants
-  // their shows remembered without a diary of their searches gets exactly that.
-  //
-  // SEARCH is excluded by name, not by trusting that search events carry no
-  // media id -- scoped searches have carried one before and may again.
+  // The tally has separate consent from `trackForUser`; exclude SEARCH by event name, not by media id, because scoped
+  // searches can carry one.
   const isAutoplayedSegment = body.activityType === 'SEGMENT_PLAY' && body.autoplay === true;
   const shouldRecordAffinity =
     currentUser.preferences?.familiarMedia?.enabled !== false &&

@@ -21,11 +21,8 @@ describe('tokenParseQueue', () => {
   });
 
   it('enqueues one job per segment, each carrying its own id and singleton key', async () => {
-    // Two properties at once. `send(queue, jobs)` would store the array as one
-    // job's payload and the worker reads a pull as one job per segment -- the
-    // mistake the ES sync queue had to learn. And the singleton key is what lets
-    // this collapse against `sendTokenParseJob`, so a line reaching both
-    // producers is parsed once rather than twice.
+    // Send one payload per segment and share singleton keys with `sendTokenParseJob` to collapse overlapping producer
+    // jobs.
     await sendBulkTokenParseJobs([7, 8, 9]);
 
     expect(insert).toHaveBeenCalledWith(TOKEN_PARSE_QUEUE, [

@@ -1,19 +1,5 @@
-/**
- * Generates route auth middleware from OpenAPI security definitions.
- *
- * Reads the bundled openapi.yaml and emits generated/routeAuth.ts which maps
- * each route (method + path) to the appropriate auth middleware based on
- * the security field in the spec.
- *
- * Derivation rules:
- *   [{SessionCookie: []}]                          → requireSession()
- *   [{SessionCookie: [ADMIN]}]                     → requireSession(enforceAdminAccess)
- *   [{ApiKey: [P]}, {SessionCookie: []}]           → requireAuth(enforceApiKeyScope(ApiPermission.P))
- *   [{ApiKey: [P]}, {SessionCookie: [ADMIN]}]      → requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.P))
- *   [{ApiKey: [P]}]                                → requireAuth(enforceApiKeyScope(ApiPermission.P))
- *   [{ApiKey: [W]}] where W is a corpus write      → requireAuth(enforceSessionAdmin, enforceApiKeyScope(ApiPermission.W))
- *   no security                                    → throws, unless the operationId is in INTENTIONALLY_PUBLIC_OPERATIONS
- */
+/** Generates route middleware from OpenAPI security, preserving the documented SessionCookie/ApiKey combinations and
+ * failing on unlisted unauthenticated operations. */
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
@@ -24,66 +10,23 @@ import { resolveGeneratedDir } from './lib/generatedReady';
 const GENERATED_DIR = resolveGeneratedDir();
 const OUTPUT_FILE = join(GENERATED_DIR, 'routeAuth.ts');
 
-/**
- * Permissions that mutate the shared media corpus rather than data the caller
- * owns. The spec marks these routes ApiKey-only, but browser traffic still
- * reaches them through the frontend proxy carrying only a session cookie, and
- * `enforceApiKeyScope` waves sessions straight through. Without an explicit
- * admin check any signed-in user could create, edit or delete corpus entries.
- *
- * Owner-scoped permissions (profile, activity, collections) stay out of this
- * set: those routes are legitimately session-driven from the web app and the
- * controllers already enforce per-user ownership.
- */
+/** Corpus-write permissions require an admin session in addition to the API-key scope: browser proxy traffic carries
+ * only a session, and scope checking alone would let any signed-in user mutate shared media. */
 const CORPUS_WRITE_PERMISSIONS = new Set<string>([
   ApiPermission.ADD_MEDIA,
   ApiPermission.UPDATE_MEDIA,
   ApiPermission.REMOVE_MEDIA,
 ]);
 
-/**
- * Operations that are deliberately reachable with no credentials at all.
- *
- * An operation with no `security` block gets no entry in routeAuth and so no
- * auth middleware — which is correct for a genuinely public route and a silent
- * hole for every other one. The spec alone cannot tell the two apart, so the
- * default is to refuse: generation throws on any operation missing `security`
- * unless its operationId is listed here. Adding a name to this set is the one
- * place "this route is public" gets written down, and it should be argued for
- * in review like any other auth change.
- *
- *   getAnnouncement — GET /v1/admin/announcement. The site-wide banner renders
- *   for signed-out visitors too, so the read is public. The PUT that writes the
- *   announcement still carries `SessionCookie: [ADMIN]`.
- *
- *   createFeedback / getFeedbackFormToken — POST /v1/feedback and the token it
- *   requires. Feedback is open to anonymous visitors on purpose: the person most
- *   likely to hit a broken sign-up is the one who is not signed in, and a widget
- *   that first demanded an account would never hear from them. These are the
- *   only unauthenticated WRITES in the spec, so they do not lean on auth for
- *   their bot resistance — see the honeypot, the issue-time token and the
- *   per-IP limit in feedbackController. They read nothing back: the response is
- *   a fixed acknowledgement either way.
- *
- *   unsubscribeFromEmail -- POST /v1/email/unsubscribe. Read from a mail client
- *   by somebody who is not signed in, which is the entire point: an opt-out that
- *   first demanded a password is the pattern that produces spam complaints
- *   instead of unsubscribes, and `List-Unsubscribe-Post` is fired by the mailbox
- *   provider with no person present at all. Authority comes from the sealed
- *   token rather than a session -- see `@app/services/email/unsubscribe`. It
- *   reads nothing back and can only ever turn mail OFF, so the worst a forged
- *   call achieves is that we send less.
- */
+/** Explicit unauthenticated allowlist. Missing `security` otherwise fails generation; entries must justify why the
+ * route is public, including feedback/unsubscribe token protections and their no-read/fixed-response contracts. */
 export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
   'getAnnouncement',
   'createFeedback',
   'getFeedbackFormToken',
   'unsubscribeFromEmail',
-  // The unsubscribe page's own pair. Same reasoning as the one-click above: the
-  // reader is holding an email, not a session, and a preference screen that
-  // first demanded a password is the pattern that turns an opt-out into a spam
-  // complaint. Both authenticate on the sealed token instead, and both touch
-  // exactly one account's email preferences and nothing else.
+  // The unsubscribe page accepts only its sealed token, not a session; both routes touch exactly one account’s email
+  // preferences.
   'getEmailPreferencesByToken',
   'updateEmailPreferencesByToken',
   // The roadmap is the public promise this feature exists to make: proposals
@@ -91,11 +34,8 @@ export const INTENTIONALLY_PUBLIC_OPERATIONS = new Set<string>([
   'listRoadmap',
 ]);
 
-/**
- * A scheme key present with no scope list means the bundled spec is malformed.
- * Deriving middleware from it would silently emit a weaker guard than the route
- * is meant to have, so refuse to generate instead.
- */
+/** A security scheme without scopes is malformed; refusing generation prevents a weaker guard from being emitted
+ * silently. */
 function requireScopes(requirement: SecurityRequirement, scheme: string): string[] {
   const scopes = requirement[scheme];
   if (!scopes) {
@@ -112,10 +52,7 @@ function requireApiKeyPermission(requirement: SecurityRequirement): string {
   return permission;
 }
 
-/**
- * Callers handle the empty-security case; a non-empty requirement that resolves
- * to no guard would leave the route wide open just as silently, so refuse.
- */
+/** A nonempty security requirement that yields no guard would open the route; fail generation. */
 function deriveMiddleware(security: SecurityRequirement[], operationId: string): string {
   const apiKeyReq = security.find((s) => 'ApiKey' in s);
   const sessionReq = security.find((s) => 'SessionCookie' in s);
@@ -161,11 +98,7 @@ interface RouteEntry {
   middleware: string;
 }
 
-/**
- * Walks the spec's paths and derives one routeAuth entry per guarded operation.
- * Exported so the coverage test can drive it over a hand-built fragment without
- * writing anything to disk.
- */
+/** Walks guarded operations without writing, so coverage tests can exercise route derivation on an in-memory spec. */
 export function buildRouteAuthEntries(paths: Record<string, PathItem>): RouteEntry[] {
   const entries: RouteEntry[] = [];
 
@@ -239,9 +172,7 @@ function generate(): void {
   console.log(`Generated ${OUTPUT_FILE} with ${entries.length} route auth entries.`);
 }
 
-// Only generate when run as a script. The coverage test imports the allowlist
-// and the spec walker from this module and must not rewrite generated/ as a
-// side effect of that import.
+// Generate only as a script; importing the allowlist/walker must not rewrite generated output.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   generate();
 }

@@ -1,20 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
 
-/**
- * Deleting an account with collections must actually delete it.
- *
- * This is a schema test rather than a service test on purpose. The bug it
- * guards was never in application code -- `deleteUser` issued exactly the right
- * statement -- it was a second, non-cascading foreign key sitting beside the
- * cascading one on `Collection`, refusing the delete before the cascade could
- * run. No amount of testing through the service layer would have located that;
- * what was needed was a test that deletes a row and says whether the constraints
- * on the table let it.
- *
- * Every new account gets collections from `ensureDefaultCollections`, so this is
- * the ordinary case, not an edge one.
- */
+/** This schema test catches the duplicate non-cascading `Collection` foreign key that blocks account deletion;
+ * testing only `deleteUser` would miss the database constraint. */
 
 const EMAIL = 'deletion-probe@example.test';
 let pool: Pool;
@@ -60,10 +48,8 @@ describe('account deletion', () => {
   it('deletes an account that owns collections, and takes the collections with it', async () => {
     const userId = await createUserWithCollection();
 
-    // The statement `deleteUser` runs. Before the duplicate foreign key was
-    // dropped this raised:
-    //   update or delete on table "User" violates foreign key constraint
-    //   "Collection_user_fkey" on table "Collection"
+    // Before the duplicate foreign key was dropped, `deleteUser` raised a `Collection_user_fkey` violation instead of
+    // deleting the account.
     await expect(pool.query('DELETE FROM "User" WHERE id = $1', [userId])).resolves.toBeDefined();
 
     const user = await pool.query('SELECT id FROM "User" WHERE id = $1', [userId]);
@@ -72,12 +58,8 @@ describe('account deletion', () => {
     expect(collections.rowCount, 'the cascade should have removed the collections').toBe(0);
   });
 
-  /**
-   * The regression guard proper. The delete above would start passing again the
-   * moment somebody re-added a non-cascading constraint, but only if they also
-   * happened to run this file; asserting the schema directly says what is wrong
-   * rather than that something is.
-   */
+  /** Assert the schema constraint directly so reintroducing a non-cascading foreign key fails for the actual defect,
+   * not only when this particular delete happens to run. */
   it('has exactly one foreign key from Collection to User, and it cascades', async () => {
     const { rows } = await pool.query<{ conname: string; confdeltype: string }>(
       `SELECT conname, confdeltype::text

@@ -6,41 +6,10 @@ import { logger } from '@config/log';
 import { inferApiKeyKind } from '@app/middleware/authentication';
 import { ApiKeyKind, ApiPermission, User, UserRoleType } from '@app/models';
 
-/**
- * Mints a SERVICE API key for a machine caller.
- *
- * Why this exists rather than "just create a key in the UI": the developer page
- * issues USER keys, and the difference is not cosmetic. A SERVICE key is exempt
- * from the per-account quota and the per-IP rate limiter, and — since the
- * moderation work — it is also what stamps `actor=AGENT` on every segment
- * revision the caller writes. `inferApiKeyKind` decides that from
- * `metadata.keyType`, a field nothing in the UI sets.
- *
- * The failure mode of getting this wrong is silent and durable. A USER key
- * authenticates, passes authorisation, and edits succeed — but every revision is
- * filed as HUMAN, so `/v1/admin/agent-activity` stays empty and the spot-check
- * meant to catch a misbehaving agent has nothing to show. Nobody notices until
- * they go looking, which is exactly when they needed it.
- *
- * Why a direct INSERT rather than `auth.api.createApiKey`
- * -------------------------------------------------------
- * The apiKey plugin runs with metadata disabled, so `createApiKey` rejects the
- * `keyType` field outright ("Metadata is disabled"). That is not an oversight to
- * work around by enabling it: `/v1/auth/api-key/create` is a better-auth route
- * reachable by any signed-in user, and with metadata enabled any of them could
- * post `{metadata: {keyType: "service"}}` and mint themselves a key that skips
- * the quota and the rate limiter, and whose edits are attributed to the agent.
- *
- * So the key is written the same way `db/seeds.ts` writes the master key —
- * hashed with better-auth's own hasher and inserted directly — which keeps the
- * privileged field on a path that requires database access rather than a session.
- *
- * Usage:
- *   npm run create:service-key -- --user <id|email> --name roxy-moderation \
- *     --permissions READ_MEDIA,UPDATE_MEDIA,READ_ADMIN
- *
- * The key is printed once and never again — only its hash is stored.
- */
+/** Creates a SERVICE API key for machine callers. SERVICE metadata marks revisions as AGENT and bypasses user/IP
+ * limits; direct insertion is required because the public better-auth endpoint cannot accept the privileged key
+ * type. Usage: `npm run create:service-key -- --user <id|email> --name <name> --permissions <scopes>`. The
+ * plaintext key is printed once; only its hash is stored. */
 
 /** Matches the plugin's `defaultPrefix`, so a key is recognisable on sight. */
 const KEY_PREFIX = 'nade_';
@@ -76,9 +45,7 @@ function parseArgs(argv: string[]): Args {
     .map((value) => value.trim().toUpperCase())
     .filter(Boolean);
 
-  // An unrecognised permission would otherwise be dropped silently by
-  // `flattenBetterAuthPermissions` at request time, producing a key that is
-  // mysteriously missing one scope.
+  // Reject unknown permissions so request-time flattening cannot silently create a key missing a scope.
   const invalid = permissions.filter((p) => !Object.values(ApiPermission).includes(p as ApiPermission));
   if (invalid.length > 0) {
     throw new Error(`Unknown permission(s): ${invalid.join(', ')}\nValid: ${Object.values(ApiPermission).join(', ')}`);
@@ -110,19 +77,14 @@ async function resolveUser(identifier: string, permissions: ApiPermission[]): Pr
     throw new Error(`No user matches '${identifier}'`);
   }
 
-  // The key inherits this account's identity: every revision it writes records
-  // this user id, and the activity feed shows this username. Point a shared agent
-  // key at a personal account and the agent's edits look like that person's.
+  // The key inherits this account’s identity; a shared agent key on a personal account makes edits appear under that
+  // person.
   if (!user.isActive) {
     throw new Error(`User ${user.id} is inactive; an inactive owner fails auth on every request`);
   }
 
-  // Not a privilege boundary — permissions carry a key's authority, and the
-  // owner's role is never consulted at request time (`enforceSessionAdmin`
-  // returns early for API-key auth). This catches a mistyped `--user`: attaching
-  // corpus-write scope to a reader's account does not escalate anything, but it
-  // does file every subsequent agent edit under that person's name in the
-  // activity feed, which is the one record meant to answer "who changed this".
+  // This is not a privilege boundary: API-key permissions determine authority, while the owner supplies the audit
+  // identity. A mistyped `--user` makes agent edits appear under that account.
   const corpusWrites = permissions.filter((p) => CORPUS_WRITE_PERMISSIONS.has(p));
   if (corpusWrites.length > 0 && user.role !== UserRoleType.ADMIN) {
     throw new Error(
@@ -185,9 +147,7 @@ async function main(): Promise<void> {
 
     logger.info({ name: args.name, userId: user.id, permissions: args.permissions, kind }, 'Service API key created');
 
-    // stdout, not the logger: this is the one value the caller has to capture,
-    // and it must not be interleaved with structured output or shipped to the
-    // log collector.
+    // Print the one-time key to stdout, not logs, so callers can capture it without structured-output interleaving.
     process.stdout.write(`\n${key}\n\n`);
     process.stdout.write('Store it now — only the hash is kept, so it cannot be shown again.\n');
   } finally {

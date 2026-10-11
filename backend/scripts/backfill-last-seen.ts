@@ -1,46 +1,9 @@
-/**
- * Seeds `User.last_seen_at` for the accounts that predate it, out of the session
- * table.
- *
- * The column was added with no backfill (see the `remember-when-an-account-was-
- * last-seen` migration), so it is null for every account that has not signed in
- * or refreshed since it shipped -- which is exactly the population the dormant
- * win-back sweep exists to reach. Until this has run, `last_seen_at` is a column
- * about newcomers.
- *
- * WHY THE SESSION TABLE STILL HAS THE ANSWER, given sessions expire: nothing
- * sweeps it. Expired rows pile up, so `MAX(updated_at)` per user is a real
- * history of when accounts were last active, going back months. That is an
- * accident and a temporary one -- a session sweep is coming, and this has to run
- * BEFORE it, or the history is gone. Same deadline as
- * `backfill-session-country.ts`, and for the same reason.
- *
- * WHAT IT CANNOT RECOVER. A reader who signed out had their row deleted at that
- * moment, so there is nothing here to read and they stay null. That is the right
- * answer rather than a gap: `dormantCandidates` coalesces a null to `created_at`,
- * and an account whose only trace is its signup has, by the rule the sweep now
- * runs on, done nothing since. Backdating them to a guessed session would be
- * inventing a visit.
- *
- * ONLY WRITES NULLS. Rows where the live path has already recorded something are
- * never selected, so a session hook's answer always beats this one -- it is more
- * recent by construction. That also makes the script safe to re-run and safe to
- * interrupt: each batch commits on its own and a finished table is a no-op.
- *
- * Usage (locally; `--env-file-if-exists` supplies the database config):
- *   node --env-file-if-exists=.env --import tsx scripts/backfill-last-seen.ts --dry-run
- *   node --env-file-if-exists=.env --import tsx scripts/backfill-last-seen.ts
- *
- * Against production, through the wrapper every other remote write uses:
- *   scripts/remote-db.sh prod backfill-last-seen --allow-prod
- */
+/** Backfills null `User.last_seen_at` from historical sessions before session cleanup. It writes only nulls, batches
+ * independently, is safe to rerun/interruption, and supports `--dry-run`; production writes go through
+ * `scripts/remote-db.sh ... --allow-prod`. */
 
-// FIRST, AND BEFORE `@config/config`. Boot loads dotenv, and `config` validates
-// the whole env schema at import time -- PORT, BASE_URL, R2_BASE_URL and the
-// rest, none of which `remote-db.sh` sets. Without this the script dies on a
-// ZodError before it opens a connection. `bin/db.ts` imports it first for the
-// same reason; the local .env fills the blanks while run_with_env overrides the
-// Postgres vars to point at the remote.
+// Load dotenv/boot before config so local values fill the schema while the remote wrapper overrides only Postgres
+// settings.
 import '@config/boot';
 import { Pool } from 'pg';
 import { config } from '@config/config';

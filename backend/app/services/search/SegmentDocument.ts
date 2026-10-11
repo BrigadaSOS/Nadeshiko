@@ -56,16 +56,8 @@ export interface ReindexMediaItem {
 
 type SearchStatisticsOutput = Pick<SearchStatsResponseOutput, 'media' | 'categories' | 'includes'>;
 
-/**
- * Caller-supplied id lists (collection contents) are unbounded, while a single search is
- * capped by `index.max_result_window` (10k by default) and `index.max_terms_count`.
- *
- * Chunking into one search per chunk would mean one sort, one `search_after` cursor and
- * one hit total per chunk, none of which merge back into a single paginated response.
- * Splitting the list into `should` clauses instead keeps every clause well under
- * `index.max_terms_count` (65,536 by default) while staying ONE search, so ordering and
- * pagination behave exactly as they do without an id filter.
- */
+/** Split large id lists into clauses within Elasticsearch limits but keep one search, preserving global ordering and
+ * pagination. */
 const SEARCH_IN_IDS_CHUNK_SIZE = 1000;
 // A normal opening-line page converges in one pass. Keep adversarial/broad pages
 // from turning duplicate discovery into an unbounded series of DB + ES calls.
@@ -74,15 +66,8 @@ const MIN_REPEATED_EPISODES = 3;
 
 type SearchCandidate = Pick<SegmentDocumentShape, 'mediaId' | 'textJa' | 'episode'>;
 
-/**
- * Finds later active copies of exact candidate subtitles that recur across at
- * least three episodes. This threshold avoids hiding ordinary dialogue such as
- * a short acknowledgement that happens to occur in two episodes. This is deliberately
- * resolved against Postgres rather than carried in a search cursor: the ES
- * page can contain a later episode before a subsequent page contains episode
- * one, and cursor state would grow with every ordinary result. A single
- * candidate query gives every page the same global first-episode rule.
- */
+/** Resolve recurring exact subtitles globally in Postgres with a three-episode threshold, so duplicate filtering
+ * does not depend on ES page order. */
 async function findLaterDuplicateSegmentIds(candidates: SearchCandidate[]): Promise<number[]> {
   const pairs = new Map<string, { mediaId: number; textJa: string }>();
   for (const candidate of candidates) {
@@ -125,40 +110,8 @@ async function findLaterDuplicateSegmentIds(candidates: SearchCandidate[]): Prom
 }
 
 export class SegmentDocument {
-  /**
-   * CAPPED EXPLICITLY, because the default 10,000 entries is a heap-sized bomb
-   * for THIS namespace specifically. The key is the whole query plus every
-   * filter, so its space is as unbounded as the search box; the value is a
-   * per-media and per-episode aggregation over the corpus plus the media map
-   * that goes with it, which is the largest thing this service caches. Every
-   * other namespace is either keyed on a closed set (tiers, `all`,
-   * `globalStats`) or holds something tiny; this one is both unbounded and big.
-   *
-   * WHAT THAT COST, measured 2026-08-20 to 08-22. The backend was OOM-killing
-   * from inside V8 every ~3 hours (Nadeshiko#522). At the default cap, old_space
-   * climbed from a flat 205-307MB baseline to 690-750MB and V8 gave up
-   * compacting -- against a heap_size_limit of 864MB that Node derives from the
-   * container's 1.5g, so neither the kernel nor any container-memory alert ever
-   * saw it. Reproduced locally at 12,000 unique-query stats requests: 10,017
-   * `expiresAt` numbers, 10,052 key strings and 58,994 objects still on the heap
-   * after a forced GC, i.e. the cap, held.
-   *
-   * The fuel was crawler traffic. /v1/search/stats went from ~2.4k to 30k+
-   * bot-driven calls per 6 hours on 2026-08-19 18:00 UTC (readers stayed flat at
-   * 1-3k), each with a query nobody would ask twice, and the heap started
-   * climbing three hours later.
-   *
-   * 250 IS SIZED FROM THE PROD ENTRY, not from a round number: ~50KB per entry
-   * back-derived from the climb (495MB of growth over the ~10k entries that fit
-   * before the crash), so 250 is ~12MB. It does not lower the reader hit rate in
-   * any way that matters -- readers repeat a small set of queries, and at the
-   * old cap the crawler evicted them anyway.
-   *
-   * The upstream fix is not caching what nobody will ask for twice: the stats
-   * panel is not rendered for a crawler, so the SSR call behind it should not be
-   * made for one. That belongs in the frontend, and until it lands this cap is
-   * what keeps the process alive.
-   */
+  /** Cap this unbounded, large stats cache to bound heap use; the frontend should avoid making crawler requests for
+   * a panel they cannot render. */
   static readonly SEARCH_STATS_CACHE = createCacheNamespace('searchStats', 250);
 
   static async search(
@@ -240,14 +193,12 @@ export class SegmentDocument {
       highlightFields.textEs = { matched_fields: ['textEs', 'textEs.exact'], type: 'fvh' };
     }
 
-    // Awaited before the search rather than alongside it because everything it
-    // carries goes into the query itself. Cached, so this is a map lookup on all
-    // but the first search of each five-minute window.
+    // Load reports before building the search because they change the query; the result is cached, so normal requests
+    // pay only a lookup.
     const reports = await getUnhandledReports();
 
-    // Appended here rather than inside buildCommonFilters because `must_not.length`
-    // is read elsewhere as "the reader has hidden media" (see wordsMatched), and a
-    // reported segment is not that.
+    // Keep report exclusions separate from hidden-media `must_not`; other code uses that array length to detect
+    // hidden-media filtering.
     const excludedByReport = reports.segmentIds.size > 0 ? [buildIdsFilter([...reports.segmentIds])] : [];
 
     const dedupeOpeningLines =
@@ -469,20 +420,14 @@ async function querySearchStatisticsWithMustQueries(
   const { filter: filterForMediaStatistics, must_not } = SegmentQuery.buildCommonFilters(request.filters);
   const { filter: filterForCategoryStats } = SegmentQuery.buildCommonFilters({
     ...request.filters,
-    // The category buckets power the All tab, which widens a title-scoped
-    // search back to the whole corpus. Keep exclusions (hidden titles) but
-    // lift an included title and category so its count is useful as that
-    // escape hatch, including when the selected title found zero matches.
+    // Category counts power the All escape hatch: retain hidden-media exclusions but lift the selected title/category,
+    // even when it has no matches.
     category: [],
     media: request.filters.media?.exclude ? { exclude: request.filters.media.exclude } : undefined,
   });
 
-  // `must_not` is only ever populated by `filters.media.exclude` (see SegmentQuery.buildCommonFilters).
-  // When present, append an extra category-stats sub-search with the exclusion lifted so the
-  // response can carry both `count` (filtered) and `realCount` (without hidden-media exclusion).
-  // We deliberately don't add an unfiltered per-media sub-search: a media that survives the
-  // exclusion has identical counts with or without `must_not`, so `realMatchCount` would equal
-  // `matchCount` for every visible media.
+  // When hidden media is excluded, add one category-only sub-search for `realCount`; a visible media needs no redundant
+  // unfiltered sub-search.
   const hasHiddenMediaExclusion = must_not.length > 0;
 
   const searches: estypes.MsearchRequestItem[] = [

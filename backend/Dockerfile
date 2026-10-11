@@ -1,7 +1,5 @@
-# Build from the repository root, not from backend/: npm workspaces resolve the
-# API's dependencies against the root package.json and package-lock.json.
-#
-#   docker build -f backend/Dockerfile .
+# Build from the repository root so npm workspaces resolve the root manifests and lockfile. Usage: docker build -f
+# backend/Dockerfile .
 FROM node:24-slim AS build
 WORKDIR /build
 
@@ -13,28 +11,10 @@ COPY frontend/package.json frontend/
 COPY discord/package.json discord/
 COPY packages/nadeshiko-sdk/package.json packages/nadeshiko-sdk/
 COPY packages/nadeshiko-shared/package.json packages/nadeshiko-shared/
-# The image runs TypeScript directly through tsx, which is a regular dependency,
-# so --omit=dev keeps everything the runtime needs. Nothing under app/, config/,
-# db/, lib/ or generated/ imports a devDependency; the bin/ scripts that do
-# (generateBrunoCollection, generateErrorProfiles, ...) are code generators that
-# only ever run in dev and CI, never in a deployed container.
-# A TOOLCHAIN, FOR A MODULE THIS SERVICE DOES NOT USE. `npm ci` reconciles the
-# whole workspace set (see above), so `better-sqlite3` -- discord's driver, and an
-# optional peer of typeorm and better-auth -- is installed here even though the
-# API only ever talks to Postgres. It publishes no prebuilt binaries at all, so
-# npm runs `node-gyp rebuild`, and node:24-slim has no Python: the build dies on
-# a driver nothing imports.
-#
-# This surfaced on 2026-08-12 after an unrelated version bump moved which copy
-# won hoisting -- from `discord/node_modules`, which this image never installs,
-# to the root, which it does. Nothing about the API changed. That it worked
-# before was luck about placement, not a property anyone had chosen.
-#
-# `--omit=optional` does NOT fix it: the copy that gets built is discord's, and
-# there it is a plain dependency. Removing discord's manifest is not an option
-# either -- `npm ci` needs every workspace manifest present to match the lockfile.
-# So: give the build stage a compiler. It is discarded before the release stage,
-# so the shipped image is unchanged.
+# Runtime uses tsx, so omit dev dependencies; generators are not shipped or run in the deployed container.
+# npm ci also builds discord's plain better-sqlite3 dependency even for this backend image; --omit=optional cannot
+# remove it, and node:24-slim needs Python/make/g++ for node-gyp. Keep all workspace manifests for the lockfile; the
+# compiler is discarded with the build stage, so the release image is unchanged.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
@@ -42,18 +22,11 @@ RUN apt-get update \
 RUN npm ci --workspace backend --include-workspace-root --omit=dev
 
 COPY backend backend
-# Imported at runtime by app/middleware/trafficClassification.ts and
-# config/log.ts, so unlike the SDK next to it -- whose manifest is present
-# only to satisfy the lockfile -- the source of this one has to ship.
+# This shared package is imported at runtime, unlike the adjacent SDK manifest-only dependency, so its source must ship.
 COPY packages/nadeshiko-shared packages/nadeshiko-shared
 
-# The shipped image keeps the API at /app rather than mirroring the monorepo, so
-# that `kamal app exec 'node --import tsx bin/es.ts ...'` and the other documented
-# runbook commands keep resolving relative to the working directory. `scripts` is
-# here for the same reason: the corpus reparse is run that way against a deployed
-# environment, and it is no use on a machine that cannot reach the database. Flatten the
-# workspace tree into that layout: hoisted root modules first, backend's own
-# nested overrides on top.
+# Flatten the workspace into /app so documented kamal exec and corpus-reparse commands resolve from the deployed working
+# directory; include scripts because reparse runs against the deployed database.
 RUN set -eux; \
   mkdir -p /app/node_modules; \
   cp -a node_modules/. /app/node_modules/; \
@@ -69,29 +42,8 @@ WORKDIR /app
 COPY --from=build /app /app
 USER node
 
-# HEAP CAP, SET EXPLICITLY BECAUSE THE DEFAULT IS DERIVED AND THIS SERVICE HAS
-# ALREADY DIED OF IT (#522: "FATAL ERROR: Ineffective mark-compacts near heap
-# limit", every ~3 hours for three days). Node sizes the old space from the
-# memory the CONTAINER can see, never the host's: measured 2026-08-22 in this
-# image, `-m 1.5g` yields a heap_size_limit of 864 MiB while the same image
-# unconstrained on the 8GB host yields 4288 MiB. So the ceiling that killed the
-# process was one nobody chose, and it silently tracks whatever
-# `config/deploy.prod.yml` grants that week.
-#
-# 1024 MiB inside the 1.5g cap there, matching the frontend, which learned this
-# first (#484) -- read the equivalent block in frontend/Dockerfile before
-# changing either. The flag caps the OLD SPACE, not the whole heap: measured
-# heap_size_limit is 1120 MiB with this value at this container size, so the
-# real headroom against 1536 MiB is ~416 MiB for everything that is not the JS
-# heap -- the pg pool, the Elasticsearch client, Pino's buffers, the OTel batch
-# processors.
-#
-# THIS IS NOT WHAT FIXED #522. The leak was an unbounded cache
-# (SEARCH_STATS_CACHE, capped in the same change); raising the ceiling only
-# lengthens the fuse. What this buys is that the ceiling is now a decision with
-# a number next to it instead of a derived value nobody can see.
-#
-# Raise BOTH numbers together, or neither.
+# Leave memory beyond V8 old space for database/search/telemetry buffers; this is not a total-heap cap. Keep
+# SEARCH_STATS_CACHE bounded rather than masking leaks; change this cap and deployment memory together.
 ENV NODE_OPTIONS=--max-old-space-size=1024
 
 # Docker sets net.ipv4.ip_unprivileged_port_start=0, so the unprivileged `node`

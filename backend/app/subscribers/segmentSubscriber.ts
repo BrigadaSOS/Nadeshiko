@@ -35,14 +35,8 @@ export class SegmentSubscriber implements EntitySubscriberInterface<Segment> {
   }
 }
 
-/**
- * Inserting a segment does not move anything the media info map serves: the per-media and
- * per-episode counts in it are denormalized columns written by other paths, and those paths
- * invalidate the namespace themselves. Dropping the whole namespace once per row meant an
- * ingest run kept the map permanently cold -- it never survived long enough to be read twice,
- * so every concurrent search rebuilt it. What is worth catching is a media the cached map has
- * never seen, which is the one case where serving the cached copy would hide a whole title.
- */
+/** Segment insertion does not change denormalized media counts; invalidate only an unseen media, while count-writing
+ * paths invalidate their own cache. */
 function invalidateMediaInfoForUnknownMedia(mediaId: number): void {
   const cached = Cache.get<MediaInfoMapResult>(MEDIA_INFO_CACHE, 'all');
   if (cached?.results.has(mediaId)) return;

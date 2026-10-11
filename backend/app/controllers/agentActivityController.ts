@@ -5,15 +5,8 @@ import { toSegmentSnapshot } from '@app/controllers/mappers/segmentMapper';
 const DEFAULT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_TAKE = 100;
 
-/**
- * What the moderation agent actually changed, read back from the revisions it wrote.
- *
- * Deliberately sourced from `SegmentRevision` rather than from anything the agent
- * reports about itself. The agent's Discord digest is its own account of a run and
- * shares the run's failure modes — a crash mid-loop, an action it believed
- * succeeded, a mutation it never mentioned. This reads the rows, so the two can
- * disagree and the disagreement is the signal.
- */
+/** Read moderation changes from `SegmentRevision`, not the agent report: revisions are the recorded writes and
+ * expose disagreement after a failed run. */
 export const listAgentActivity: ListAgentActivity = async ({ query }, respond) => {
   const since = query.since ? new Date(query.since) : new Date(Date.now() - DEFAULT_WINDOW_MS);
   const take = query.take ?? DEFAULT_TAKE;
@@ -23,11 +16,8 @@ export const listAgentActivity: ListAgentActivity = async ({ query }, respond) =
     .leftJoinAndSelect('revision.user', 'user')
     .where('revision.actor = :actor', { actor: RevisionActor.AGENT })
     .andWhere('revision.createdAt >= :since', { since })
-    // Property names, not column names. `take` makes TypeORM build a DISTINCT-id
-    // subquery for the joins, and resolving the sort against entity metadata fails
-    // on a raw column name — snake_case here throws `undefined.databaseName`
-    // rather than producing bad SQL, so it is not caught by a test that only
-    // checks the happy path's shape.
+    // Use entity property names, not column names: TypeORM’s `take`/DISTINCT path cannot resolve raw names and fails
+    // before producing SQL.
     .orderBy('revision.createdAt', 'DESC')
     .addOrderBy('revision.id', 'DESC')
     .take(take);

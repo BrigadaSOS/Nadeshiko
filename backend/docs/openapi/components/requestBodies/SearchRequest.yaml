@@ -35,9 +35,7 @@ properties:
     items:
       type: string
       pattern: '^[A-Za-z0-9_-]{12}$'
-    # The web client's two sources, added up: `MAX_FAVORITE_MEDIA` favourites
-    # (100) plus the `MAX_RESULTS` titles the activity tally ranks (20). A cap
-    # below their sum would reject the request of a reader who filled both.
+    # Leave room for favorites plus activity-ranked titles in the web client.
     maxItems: 120
     example: ["V1StGXR8_Z5d"]
   filters:

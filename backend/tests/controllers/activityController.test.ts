@@ -169,11 +169,8 @@ describe('POST /v1/user/activity', () => {
     );
   });
 
-  /**
-   * Repeating a search is not a second search worth remembering. Recording
-   * happens on arrival -- a reload, a shared link and an extension link all
-   * count -- so the same query used to pile up a row per visit.
-   */
+  /** Repeated visits to the same search are not distinct searches; reloads and shared/extension links record on
+   * arrival, so the same query must not accumulate one row per visit. */
   describe('repeating a search', () => {
     const trackSearch = async (body: Record<string, unknown>) => {
       const res = await request(app)

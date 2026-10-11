@@ -1,12 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-/**
- * Middleware to capture response bodies for logging via pino-http.
- * Stores the body on res.responseBody for the pino serializer to access.
- * The actual logging is handled by pino-http, not this middleware.
- */
+/** Capture response bodies for pino-http; pino-http performs the actual logging. */
 export function responseBodyLogger(_req: Request, res: Response, next: NextFunction): void {
-  // Store original res.json and res.send
   const originalJson = res.json.bind(res);
   const originalSend = res.send.bind(res);
 

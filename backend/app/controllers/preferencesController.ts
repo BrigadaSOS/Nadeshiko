@@ -18,28 +18,7 @@ function toMediaPublicId(entry: unknown): string | null {
   return typeof id === 'string' && id ? id : null;
 }
 
-/**
- * Both media lists coerced to the slim shape, whatever the row holds.
- *
- * Three shapes reach this function and all three are real, which is why it reads
- * rather than assumes:
- *
- *   - the fat objects every production row held before
- *     `SlimMediaPreferences1787200000000`, and that an old container still
- *     writes for as long as kamal runs one beside the new ones
- *   - the slim objects written from now on
- *   - bare id strings, which nothing writes today but which `hiddenMedia` is
- *     meant to become once no old reader is left; accepting them now is what
- *     lets that later change be a one-liner instead of another migration
- *
- * Without it a reader served by a container that had already dropped the names
- * would watch every title they hid come back, and `GET /v1/user/preferences`
- * would fail its own response validation on the way out.
- *
- * Applied on the way *in* to every write (see `mutateUserPreferences`), so a
- * stale row heals the first time anything about the account changes, not only
- * when someone touches these two lists.
- */
+/** Normalize fat, slim, and id-only preference entries on write so mixed deployments and old rows remain readable. */
 export function normalizeMediaPreferences(preferences: UserPreferences): UserPreferences {
   const normalized: UserPreferences = { ...preferences };
 
@@ -64,15 +43,7 @@ export function normalizeMediaPreferences(preferences: UserPreferences): UserPre
   return normalized;
 }
 
-/**
- * Hiding every category is refused rather than stored.
- *
- * `filters.category` reads an empty term list as "no filter" (see
- * `filterRegistry.ts`), so a client that hid the last visible category would send
- * an empty list and get the *whole* corpus back -- the exact opposite of what the
- * reader asked for. Checked against `ALL_CATEGORIES` rather than a hardcoded
- * ceiling so adding a category widens the rule on its own.
- */
+/** Reject hiding every category: an empty category filter means “no filter” and would expose the whole corpus. */
 function assertNotEveryCategoryHidden(preferences: UserPreferences): void {
   const hidden = preferences.hiddenCategories;
   if (!hidden) return;
@@ -85,22 +56,12 @@ function assertNotEveryCategoryHidden(preferences: UserPreferences): void {
   }
 }
 
-/**
- * How many titles a reader may star.
- *
- * The whole preferences column is rewritten on every change (see
- * `mutateUserPreferences`), so an unbounded list would tax every later write of
- * any unrelated preference, forever. 100 is far past what the feature is for --
- * sorting the handful of shows you know to the top of a filter.
- */
+/** Cap favorites because the whole preferences JSON is rewritten on every change; otherwise any later preference
+ * write pays for an unbounded list. */
 export const MAX_FAVORITE_MEDIA = 100;
 
-/**
- * Checked here as well as in `addFavoriteMedia` because there are two doors into
- * this list: the dedicated endpoint, and `PATCH /v1/user/preferences`, which
- * deep-merges whatever it is handed. Guarding only the former leaves the cap
- * trivially bypassable by the client that skips it.
- */
+/** Enforce the cap at both endpoints: `PATCH /preferences` deep-merges input and otherwise bypasses the dedicated
+ * endpoint’s check. */
 export function assertFavoriteMediaWithinCap(preferences: UserPreferences): void {
   const favorites = preferences.favoriteMedia;
   if (!favorites) return;
@@ -134,16 +95,8 @@ export const updateUserPreferences: UpdateUserPreferences = async ({ body }, res
   return respond.with200().body(updated);
 };
 
-/**
- * Read-modify-write of the preferences JSON under a row lock.
- *
- * The whole column is rewritten on every change, and `req.user` is a copy cached
- * when the request was authenticated, so merging into that copy silently drops
- * anything written since — two browser tabs are enough to lose a change. Holding
- * the row for the read makes the merge see current data and serialises writers.
- *
- * `mutate` runs inside the transaction: throwing from it rolls the write back.
- */
+/** Read and merge current preferences under a row lock; never merge the cached `req.user` copy, or concurrent tabs
+ * can lose updates. */
 export async function mutateUserPreferences(
   userId: number,
   mutate: (current: UserPreferences) => UserPreferences,

@@ -83,10 +83,7 @@ describe('rateLimitApiQuota', () => {
   });
 
   it('throws QuotaExceededError when quota is exhausted', async () => {
-    // An override of 0 so any usage exceeds it. This used to set
-    // `monthlyQuotaLimit`, which no longer decides anything for an account on a
-    // tier -- the tier wins, and the column is only the fallback for one that
-    // has none.
+    // Set an override of 0 so any usage exceeds it; `monthlyQuotaLimit` is only the fallback when no tier applies.
     fixtures.users.kevin.quotaOverride = 0;
 
     const req = buildReq();
@@ -96,15 +93,12 @@ describe('rateLimitApiQuota', () => {
     await expect(rateLimitApiQuota(req, res, next)).rejects.toThrow(QuotaExceededError);
     expect(next).not.toHaveBeenCalled();
 
-    // Restore
     fixtures.users.kevin.quotaOverride = null;
   });
 
   it('names the monthly quota as the reason on the error it throws', async () => {
-    // The reason rides on the error rather than on the response, because the
-    // other caller that raises a 429 (the API-key path in authentication.ts)
-    // has no response to set a header on. The error handler is what turns this
-    // into `X-RateLimit-Reason`.
+    // Carry the reason on the error: both the request and API-key paths can produce 429s, but only the error handler
+    // can consistently set `X-RateLimit-Reason`.
     fixtures.users.kevin.quotaOverride = 0;
 
     const req = buildReq();
@@ -116,9 +110,7 @@ describe('rateLimitApiQuota', () => {
   });
 
   it('announces the month on every authenticated response, not only the rejection', async () => {
-    // The account page renders its bar from these. Sending them on success is
-    // what saves it a second round trip to ask what the call it just made
-    // already knew.
+    // Return quota headers so the account page can render its bar without a second request.
     const req = buildReq();
     const res = buildRes();
 

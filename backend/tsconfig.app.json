@@ -3,9 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "lib": ["dom", "es2023", "esnext.asynciterable"],
-    // Scoped to the shipped code that this config checks. `tests/` has 233
-    // index-access hits that nothing typechecks today, so enabling it repo-wide
-    // would only bury the 40 pre-existing strictness errors already in there.
+    // Enable unchecked-index diagnostics for shipped code; tests use the shared strict configuration.
     "noUncheckedIndexedAccess": true
   },
   "include": [

@@ -5,12 +5,8 @@ import { signInAddressRateLimit, signInGlobalRateLimit, resetRateLimiters } from
 import { handleErrors } from '@app/middleware/errorHandler';
 import { config } from '@config/config';
 
-/**
- * Mirrors how `mountRoutes` wires these: both limiters ahead of the handler that
- * would send the mail, so a refused request never reaches it, and the address
- * limiter ahead of the ceiling so a refused request does not spend the ceiling
- * on its way out.
- */
+/** Mount both limiters before the mail-sending handler; address rejection must happen before it spends the
+ * per-address ceiling. */
 function buildApp(): Application {
   const app = express();
   app.use(express.json());
@@ -58,11 +54,8 @@ describe('the per-address sign-in budget', () => {
     expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
   });
 
-  /**
-   * THE CASE THE WHOLE CHANGE IS FOR. A school, an office and everyone behind
-   * CGNAT share one address; the limit this replaced would have locked the
-   * fourth of them out within five minutes.
-   */
+  /** Shared addresses such as schools, offices, and CGNAT must not exhaust the individual sign-in budget for the
+   * fourth reader. */
   it('does not let one person spend another person budget from the same IP', async () => {
     for (let attempt = 0; attempt < 5; attempt += 1) await ask('first@example.com');
     expect((await ask('first@example.com')).status).toBe(429);
@@ -88,15 +81,8 @@ describe('the per-address sign-in budget', () => {
     expect((await send()).status).toBe(429);
   });
 
-  /**
-   * THE ONE LIMITER THAT MUST NOT EXEMPT THE PROXY. Every other limiter in
-   * `rateLimit.ts` carries `skip: shouldSkip`, because proxied traffic arrives
-   * under one source key and is already limited per real client IP upstream.
-   * Here the key is the ADDRESS, not the source, and essentially every real
-   * sign-in comes through the frontend proxy -- exempting it would leave the
-   * per-address budget applying to nobody. The day the `skip` gets
-   * pattern-matched onto this limiter, this is the test that fails.
-   */
+  /** Do not exempt this address limiter through the proxy skip: nearly all real sign-ins arrive via the frontend
+   * proxy, so that would leave the per-address budget protecting nobody. */
   it('still counts requests carrying the internal-proxy secret', async () => {
     const proxied = () =>
       request(app)
@@ -122,11 +108,8 @@ describe('the per-address sign-in budget', () => {
 });
 
 describe('the application-wide ceiling', () => {
-  /**
-   * The abuse the other two limits cannot see between them: a thousand addresses
-   * across a botnet, each staying under both. Asserted here as "shares one
-   * counter across addresses", which is the property that makes it work.
-   */
+  /** The third abuse pattern is a botnet with many addresses, each below the other two limits; this counter must
+   * therefore be shared across addresses. */
   it('counts every address against one bucket', async () => {
     const app429 = express();
     app429.use(express.json());

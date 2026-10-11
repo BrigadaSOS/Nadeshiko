@@ -26,10 +26,8 @@ export const toSegmentDTO = (segment: Segment, mediaPublicId?: string): t_Segmen
     textJa: {
       content: segment.contentJa,
       highlight: null,
-      // Same normalizer search uses: empty/missing stays null, and a kind the
-      // published schema does not name is dropped rather than invented. The
-      // sentence permalink reads this field; leaving it null made every shared
-      // link render as plain text with no word card.
+      // Reuse search’s normalizer: empty values become null and unknown kinds are dropped, so sentence links retain
+      // their supported word-card shape.
       tokens: SegmentResponse.normalizeTokens(segment.tokens ?? undefined),
     },
     textEn: {
@@ -131,17 +129,8 @@ export function toSegmentSnapshot(segment: Segment): Record<string, unknown> {
   };
 }
 
-/**
- * The inverse of `toSegmentSnapshot`: turns a stored snapshot back into a patch.
- *
- * Keys are picked explicitly rather than spread. A snapshot is `jsonb` written by
- * whatever version of `toSegmentSnapshot` was deployed at the time, so an old row
- * can carry fields that have since been renamed or removed — and spreading it
- * onto the entity would write those straight back, including anything that is no
- * longer a column. Picking means an unknown key is ignored and a field added
- * since the snapshot keeps its current value, which is the only sane reading of
- * "restore what we recorded".
- */
+/** Allowlist snapshot keys when restoring: old JSON may contain removed fields, while newer fields must retain their
+ * current values. */
 export function fromSegmentSnapshot(snapshot: Record<string, unknown>): Partial<Segment> {
   const restorable: Partial<Record<keyof Segment, unknown>> = {
     contentJa: snapshot.contentJa,

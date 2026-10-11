@@ -2,12 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { SENDERS, fromNameFor, senderForUser } from '@app/mailers/senders';
 
 describe('who writes to a reader', () => {
-  /**
-   * STICKY, NOT RANDOM. A coin flip per message gives the same split across the
-   * audience and an incoherent experience for each person in it: a welcome from
-   * one of them, a question from the other a week later, and a reply that
-   * reaches somebody who did not write the last one.
-   */
+  /** Sender selection is sticky, not random: a person should receive coherent follow-up mail and reply to the author
+   * they saw. */
   it('always picks the same person for the same reader', () => {
     for (const userId of [1, 2, 42, 644, 1_000_003]) {
       expect(senderForUser(userId)).toBe(senderForUser(userId));
