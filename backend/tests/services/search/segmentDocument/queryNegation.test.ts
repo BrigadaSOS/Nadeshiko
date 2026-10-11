@@ -10,15 +10,15 @@ describe('splitNegatedTerms', () => {
   });
 
   it('collects several exclusions', () => {
-    expect(splitNegatedTerms('見る -見て -見た', false)).toEqual({
-      positive: '見る',
+    expect(splitNegatedTerms('見る - -見て -見た', false)).toEqual({
+      positive: '見る -',
       negatives: ['見て', '見た'],
     });
   });
 
   it('keeps quotes on a negated phrase so it stays a phrase', () => {
-    expect(splitNegatedTerms('cat -"black dog"', false)).toEqual({
-      positive: 'cat',
+    expect(splitNegatedTerms('"one two" three -"black dog"', false)).toEqual({
+      positive: '"one two" three',
       negatives: ['"black dog"'],
     });
   });
@@ -30,30 +30,16 @@ describe('splitNegatedTerms', () => {
     });
   });
 
-  it('leaves a quoted phrase containing spaces intact', () => {
-    expect(splitNegatedTerms('"one two" three', false)).toEqual({
-      positive: '"one two" three',
-      negatives: [],
-    });
-  });
-
-  it('ignores a bare minus', () => {
-    expect(splitNegatedTerms('cat - dog', false)).toEqual({
-      positive: 'cat - dog',
-      negatives: [],
-    });
-  });
-
   // Hoisting a `-` out of a grouped or boolean expression would change its meaning,
   // so those queries keep the old per-clause behaviour.
   it.each([
-    ['(cat OR dog) -bird', 'grouping'],
+    ['(cat dog) -bird', 'grouping'],
     ['cat AND -dog', 'AND'],
     ['cat OR -dog', 'OR'],
-    ['cat NOT dog', 'NOT'],
+    ['cat NOT dog -bird', 'NOT'],
     ['cat && -dog', '&&'],
     ['cat || -dog', '||'],
-    ['cat !dog', '!'],
+    ['cat !dog -bird', '!'],
   ])('leaves %s untouched (%s)', (query) => {
     expect(splitNegatedTerms(query, false)).toEqual({ positive: query, negatives: [] });
   });
@@ -73,8 +59,8 @@ describe('splitNegatedTerms', () => {
   });
 
   it('leaves an unbalanced quote for the query parser to reject', () => {
-    expect(splitNegatedTerms('"ズレ -ズレて', false)).toEqual({
-      positive: '"ズレ -ズレて',
+    expect(splitNegatedTerms('cat -dog "unfinished', false)).toEqual({
+      positive: 'cat -dog "unfinished',
       negatives: [],
     });
   });
@@ -84,13 +70,6 @@ describe('splitNegatedTerms', () => {
   it('leaves a query that is only exclusions untouched', () => {
     expect(splitNegatedTerms('-ズレて', false)).toEqual({
       positive: '-ズレて',
-      negatives: [],
-    });
-  });
-
-  it('leaves a query with no exclusions untouched', () => {
-    expect(splitNegatedTerms('食べる', false)).toEqual({
-      positive: '食べる',
       negatives: [],
     });
   });

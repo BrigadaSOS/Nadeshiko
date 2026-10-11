@@ -1,18 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import {
-  buildCommonFilters,
-  buildMediaFilter,
-  expandContentRatingTerms,
-} from '@app/services/search/segmentDocument/filterRegistry';
+import { buildCommonFilters, expandContentRatingTerms } from '@app/services/search/segmentDocument/filterRegistry';
 
 /**
  * Pins the exact Elasticsearch clauses each request filter produces.
  *
- * These assertions are deliberately literal rather than structural. The built
- * query is hashed into the search-stats cache key, so a change that is
- * semantically equivalent but differently shaped still invalidates every cached
- * entry -- and a change that is *not* equivalent silently returns different
- * search results, which no higher-level test would notice.
+ * Literal expected clauses guard field mapping, polarity, and stable output order.
+ * Search-stats cache keys are derived from request values, not this query DSL.
  */
 
 const STATUS = ['ACTIVE'];
@@ -26,7 +19,7 @@ describe('buildCommonFilters', () => {
     });
   });
 
-  it('emits clauses in a fixed order, since the order feeds the stats cache key', () => {
+  it('emits the complete ordered clauses for combined filters', () => {
     const { filter } = buildCommonFilters(
       base({
         segmentLengthChars: { min: 1, max: 2 },
@@ -37,13 +30,13 @@ describe('buildCommonFilters', () => {
       }),
     );
 
-    expect(filter.map((clause) => Object.keys(clause ?? {})[0])).toEqual([
-      'terms',
-      'range',
-      'range',
-      'bool',
-      'terms',
-      'terms',
+    expect(filter).toEqual([
+      { terms: { status: ['ACTIVE'] } },
+      { range: { characterCount: { gte: 1, lte: 2 } } },
+      { range: { durationMs: { gte: 3, lte: 4 } } },
+      { bool: { should: [{ bool: { must: [{ term: { mediaId: { value: 7 } } }] } }] } },
+      { terms: { contentRating: ['SAFE', 'safe'] } },
+      { terms: { category: ['ANIME'] } },
     ]);
   });
 
@@ -74,10 +67,6 @@ describe('buildCommonFilters', () => {
         range: { durationMs: { gte: 0, lte: 0 } },
       });
     });
-
-    it('adds no clause when neither bound is given', () => {
-      expect(buildCommonFilters(base({ segmentLengthChars: {} })).filter).toHaveLength(1);
-    });
   });
 
   describe('media filters', () => {
@@ -85,43 +74,31 @@ describe('buildCommonFilters', () => {
       const result = buildCommonFilters(
         base({
           media: {
-            include: [{ mediaPublicId: 'a', mediaId: 1 }],
+            include: [{ mediaPublicId: 'public-abc', mediaId: 42 }],
             exclude: [{ mediaPublicId: 'b', mediaId: 2 }],
           },
         }),
       );
 
       expect(result.filter[1]).toEqual({
-        bool: { should: [{ bool: { must: [{ term: { mediaId: { value: 1 } } }] } }] },
+        bool: { should: [{ bool: { must: [{ term: { mediaId: { value: 42 } } }] } }] },
       });
       expect(result.must_not).toEqual([
         { bool: { should: [{ bool: { must: [{ term: { mediaId: { value: 2 } } }] } }] } },
       ]);
     });
 
-    it('matches on the resolved internal id, not the public one', () => {
-      // The wire shape carries mediaPublicId; only mediaId is ever queried.
-      const clause = JSON.stringify(buildMediaFilter([{ mediaPublicId: 'public-abc', mediaId: 42 }]));
-
-      expect(clause).toContain('42');
-      expect(clause).not.toContain('public-abc');
-    });
-
     it('expands episodes into one clause per episode', () => {
-      expect(buildMediaFilter([{ mediaPublicId: 'a', mediaId: 1, episodes: [1, 2] }])).toEqual({
+      expect(
+        buildCommonFilters(base({ media: { include: [{ mediaPublicId: 'a', mediaId: 1, episodes: [1, 2] }] } }))
+          .filter[1],
+      ).toEqual({
         bool: {
           should: [
             { bool: { must: [{ term: { mediaId: { value: 1 } } }, { term: { episode: { value: 1 } } }] } },
             { bool: { must: [{ term: { mediaId: { value: 1 } } }, { term: { episode: { value: 2 } } }] } },
           ],
         },
-      });
-    });
-
-    it('adds no clause for empty lists', () => {
-      expect(buildCommonFilters(base({ media: { include: [], exclude: [] } }))).toEqual({
-        filter: [{ terms: { status: ['ACTIVE'] } }],
-        must_not: [],
       });
     });
   });
@@ -138,10 +115,13 @@ describe('buildCommonFilters', () => {
         terms: { category: ['ANIME', 'JDRAMA'] },
       });
     });
-
-    it('adds no clause for empty lists', () => {
-      expect(buildCommonFilters(base({ contentRating: [], category: [] })).filter).toHaveLength(1);
-    });
+  });
+  it.each([
+    ['empty range', { segmentLengthChars: {} }],
+    ['empty media lists', { media: { include: [], exclude: [] } }],
+    ['empty term lists', { contentRating: [], category: [] }],
+  ])('preserves status scoping with %s', (_label, filters) => {
+    expect(buildCommonFilters(base(filters))).toEqual({ filter: [{ terms: { status: ['ACTIVE'] } }], must_not: [] });
   });
 });
 

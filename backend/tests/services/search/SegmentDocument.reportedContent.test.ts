@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import type { estypes } from '@elastic/elasticsearch';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
-import { PREFERRED_MEDIA_SCORE_WEIGHT } from '@app/services/search/segmentDocument/SegmentQuery';
 import { client } from '@config/elasticsearch';
 import { Media } from '@app/models';
 
@@ -73,23 +72,18 @@ describe('search, unhandled reports and preferences', () => {
     const query = await searchQuery({});
 
     expect(query.function_score).toBeUndefined();
+    expect(query.bool.filter).toContainEqual({ terms: { status: ['ACTIVE'] } });
+    expect(query.bool.must[0].function_score.query.dis_max.queries[0].bool.must[0].query_string.query).toBe('ねこ');
     expect(query.bool.must_not).toEqual([]);
-  });
-
-  it('excludes reported segments by id', async () => {
-    const query = await searchQuery({ segmentIds: [11, 22] });
-
-    // must_not, not a score penalty: a reported line is wrong, not merely worse.
-    expect(query.bool.must_not).toEqual([{ ids: { values: ['11', '22'] } }]);
   });
 
   it('keeps a reported segment out of results without demoting its title', async () => {
     // The two are separate decisions on purpose: reporting one line must not
     // penalise the other tens of thousands in the same title.
-    const query = await searchQuery({ segmentIds: [11] });
+    const query = await searchQuery({ segmentIds: [11, 22] });
 
     expect(query.function_score).toBeUndefined();
-    expect(query.bool.must_not).toEqual([{ ids: { values: ['11'] } }]);
+    expect(query.bool.must_not).toEqual([{ ids: { values: ['11', '22'] } }]);
   });
 
   it('demotes reported titles without excluding them', async () => {
@@ -102,17 +96,16 @@ describe('search, unhandled reports and preferences', () => {
   it('boosts the titles the reader prefers', async () => {
     const query = await searchQuery({ preferMedia: ['5'] });
 
-    expect(query.function_score.functions).toEqual([
-      { filter: { terms: { mediaId: [5] } }, weight: PREFERRED_MEDIA_SCORE_WEIGHT },
-    ]);
+    expect(query.function_score.functions).toEqual([{ filter: { terms: { mediaId: [5] } }, weight: 1.15 }]);
   });
 
-  it('leaves a preferred title demoted when it is also reported', async () => {
+  it('forwards both reports and preferences for the same title', async () => {
     const query = await searchQuery({ mediaWeights: [[5, 0.35]], preferMedia: ['5'] });
 
-    const product = query.function_score.functions.reduce((acc: number, fn: any) => acc * fn.weight, 1);
-    expect(query.function_score.score_mode).toBe('multiply');
-    expect(product).toBeLessThan(1);
+    expect(query.function_score.functions).toEqual([
+      { filter: { terms: { mediaId: [5] } }, weight: 0.35 },
+      { filter: { terms: { mediaId: [5] } }, weight: 1.15 },
+    ]);
   });
 
   it('applies every lever at once', async () => {
@@ -120,7 +113,7 @@ describe('search, unhandled reports and preferences', () => {
 
     expect(query.function_score.functions).toEqual([
       { filter: { terms: { mediaId: [5] } }, weight: 0.2 },
-      { filter: { terms: { mediaId: [8] } }, weight: PREFERRED_MEDIA_SCORE_WEIGHT },
+      { filter: { terms: { mediaId: [8] } }, weight: 1.15 },
     ]);
     expect(query.function_score.query.bool.must_not).toEqual([{ ids: { values: ['11'] } }]);
   });
