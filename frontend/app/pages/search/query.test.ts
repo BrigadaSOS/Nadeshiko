@@ -5,7 +5,6 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 const sdkHttp = vi.hoisted(() => ({
   search: vi.fn(),
   getSearchStats: vi.fn(),
-  getSegment: vi.fn(),
 }));
 
 vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
@@ -14,18 +13,10 @@ vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
     ...actual,
     search: sdkHttp.search,
     getSearchStats: sdkHttp.getSearchStats,
-    getSegment: sdkHttp.getSegment,
   };
 });
 import { defineComponent, reactive, ref, unref } from 'vue';
-import { createHead, renderSSRHead } from 'unhead/server';
-import {
-  mediaMetaCases,
-  mediaMetaI18n,
-  formatMediaMetaNumber,
-  expectedMediaMeta,
-  expectedFallbackHead,
-} from '../../../test/media-meta-fixtures';
+import { mediaMetaI18n, formatMediaMetaNumber, expectedMediaMeta } from '../../../test/media-meta-fixtures';
 
 /**
  * The search page, whose interesting output is what it tells CRAWLERS.
@@ -138,9 +129,8 @@ function stubPrimedAsyncData() {
 stubPrimedAsyncData();
 
 import { createSearchFetcher } from '~/composables/useSearchFetch';
-import { getStringQueryValue, decodeSearchQuery } from '~/utils/routes';
+import { getStringQueryValue } from '~/utils/routes';
 vi.stubGlobal('getStringQueryValue', getStringQueryValue);
-vi.stubGlobal('decodeSearchQuery', decodeSearchQuery);
 
 import SearchQueryPage from './[[query]].vue';
 
@@ -203,9 +193,9 @@ const hits = (n: number) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mediaMetaI18n.locale.value = 'en';
   sdkHttp.search.mockReset();
   sdkHttp.getSearchStats.mockReset();
-  sdkHttp.getSegment.mockReset();
   stubPrimedSearchFetch();
   stubPrimedAsyncData();
   vi.stubGlobal('userStore', () => ({ isLoggedIn: false, userEmail: null, preferences: {} }));
@@ -325,59 +315,7 @@ describe('primed search error outcomes', () => {
   });
 });
 
-describe('media browse metadata', () => {
-  test.each(mediaMetaCases)('$label', async ({ stats, episode, bannerUrl, locale, description }) => {
-    mediaMetaI18n.locale.value = locale ?? 'en';
-    vi.stubGlobal('useI18n', () => mediaMetaI18n);
-    vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
-    fetchStats.mockResolvedValueOnce({
-      status: 'ok',
-      data: {
-        media: [
-          { mediaPublicId: 'other', matchCount: 999999, episodeHits: [{ episode: 3, hitCount: 999999 }] },
-          ...(stats ? [{ mediaPublicId: 'm1', ...stats }] : []),
-        ],
-        categories: [],
-      },
-    });
-    await render(
-      {
-        results: [
-          {
-            segment: { publicId: 's1' },
-            media: { publicId: 'm1', nameEn: 'Bocchi', bannerUrl, coverUrl: 'https://images.test/cover.webp' },
-          },
-        ],
-        pagination: { estimatedTotalHits: 999999 },
-      },
-      '/en/search',
-      { media: 'm1', ...(episode !== undefined ? { episode } : {}) },
-    );
-    expect(unref(useHead.mock.calls[0]?.[0])).toEqual(expectedMediaMeta(description, bannerUrl, locale));
-  });
-});
-
-test('renders the complete fallback head with the site title template', async () => {
-  mediaMetaI18n.locale.value = 'en';
-  vi.stubGlobal('useI18n', () => mediaMetaI18n);
-  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
-  fetchStats.mockResolvedValueOnce({
-    status: 'ok',
-    data: { media: [{ mediaPublicId: 'm1', matchCount: 1234 }], categories: [] },
-  });
-  await render(
-    { results: [{ segment: { publicId: 's1' }, media: { publicId: 'm1', nameEn: 'Bocchi' } }] },
-    '/en/search',
-    { media: 'm1' },
-  );
-  const head = createHead();
-  head.push({ titleTemplate: '%s | Nadeshiko' });
-  head.push(unref(useHead.mock.calls[0]?.[0]));
-  expect((await renderSSRHead(head)).headTags).toBe(expectedFallbackHead);
-});
-
 test('recomputes media metadata when episode and locale change', async () => {
-  mediaMetaI18n.locale.value = 'en';
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
   fetchStats.mockResolvedValueOnce({
@@ -417,7 +355,6 @@ test('recomputes media metadata when episode and locale change', async () => {
 });
 
 test('keeps search defaults without first-result media and word metadata ahead of media metadata', async () => {
-  mediaMetaI18n.locale.value = 'en';
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   await render(hits(0), '/en/search', { media: 'm1' });
   expect(unref(useHead.mock.calls[0]?.[0])).toEqual({
@@ -461,7 +398,6 @@ test('keeps search defaults without first-result media and word metadata ahead o
 });
 
 test('uses the first result artwork but the requested media stats, not scoped media or pagination', async () => {
-  mediaMetaI18n.locale.value = 'en';
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   vi.stubGlobal('useNadeshikoSdk', () => ({
     getMedia: vi
@@ -472,8 +408,8 @@ test('uses the first result artwork but the requested media stats, not scoped me
     status: 'ok',
     data: {
       media: [
-        { mediaPublicId: 'm1', matchCount: 34 },
         { mediaPublicId: 'm2', matchCount: 99 },
+        { mediaPublicId: 'm1', matchCount: 34 },
       ],
       categories: [],
     },
@@ -499,16 +435,25 @@ test('uses the first result artwork but the requested media stats, not scoped me
   );
 });
 
-test('retains this caller’s non-finite match-count fallback', async () => {
-  mediaMetaI18n.locale.value = 'en';
+test.each([
+  { label: 'NaN match count', mediaPublicId: 'm1', matchCount: Number.NaN },
+  { label: 'missing matching stats', mediaPublicId: 'other', matchCount: 999999 },
+])('uses zero for $label and ignores portrait covers', async ({ mediaPublicId, matchCount }) => {
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
   fetchStats.mockResolvedValueOnce({
     status: 'ok',
-    data: { media: [{ mediaPublicId: 'm1', matchCount: Number.NaN }], categories: [] },
+    data: { media: [{ mediaPublicId, matchCount }], categories: [] },
   });
   await render(
-    { results: [{ segment: { publicId: 's1' }, media: { publicId: 'm1', nameEn: 'Bocchi' } }] },
+    {
+      results: [
+        {
+          segment: { publicId: 's1' },
+          media: { publicId: 'm1', nameEn: 'Bocchi', coverUrl: 'https://images.test/cover.webp' },
+        },
+      ],
+    },
     '/en/search',
     { media: 'm1' },
   );

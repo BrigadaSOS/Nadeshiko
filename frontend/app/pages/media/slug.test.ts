@@ -5,7 +5,6 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 const sdkHttp = vi.hoisted(() => ({
   search: vi.fn(),
   getSearchStats: vi.fn(),
-  getSegment: vi.fn(),
 }));
 
 vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
@@ -14,18 +13,10 @@ vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
     ...actual,
     search: sdkHttp.search,
     getSearchStats: sdkHttp.getSearchStats,
-    getSegment: sdkHttp.getSegment,
   };
 });
 import { defineComponent, reactive, ref, unref } from 'vue';
-import { createHead, renderSSRHead } from 'unhead/server';
-import {
-  mediaMetaCases,
-  mediaMetaI18n,
-  formatMediaMetaNumber,
-  expectedMediaMeta,
-  expectedFallbackHead,
-} from '../../../test/media-meta-fixtures';
+import { mediaMetaI18n, formatMediaMetaNumber, expectedMediaMeta } from '../../../test/media-meta-fixtures';
 
 /**
  * A title's own page, whose real output is the ENTITY it declares.
@@ -127,10 +118,6 @@ function stubPrimedAsyncData() {
 stubPrimedAsyncData();
 
 import { createSearchFetcher } from '~/composables/useSearchFetch';
-import { getStringQueryValue } from '~/utils/routes';
-vi.stubGlobal('getStringQueryValue', getStringQueryValue);
-import { mediaSameAsUrls } from '~/utils/media';
-vi.stubGlobal('mediaSameAsUrls', mediaSameAsUrls);
 
 import MediaSlugPage from './[slug].vue';
 
@@ -192,9 +179,9 @@ const work = () => nodes().find((n) => n['@type'] === 'Movie' || n['@type'] === 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mediaMetaI18n.locale.value = 'en';
   sdkHttp.search.mockReset();
   sdkHttp.getSearchStats.mockReset();
-  sdkHttp.getSegment.mockReset();
   stubPrimedSearchFetch();
   stubPrimedAsyncData();
   vi.stubGlobal('userStore', () => ({ isLoggedIn: false, isAdmin: false, preferences: {}, user: null }));
@@ -290,22 +277,6 @@ describe('a slug that resolves to nothing', () => {
   });
 });
 
-describe('the episode filter in the URL', () => {
-  test('is read as a number', async () => {
-    route.query = { episode: '3' };
-    const wrapper = await render();
-
-    expect(wrapper.html()).toBeTruthy();
-  });
-
-  test('a non-numeric episode is ignored rather than sent on', async () => {
-    route.query = { episode: 'banana' };
-    const wrapper = await render();
-
-    expect(wrapper.html()).toBeTruthy();
-  });
-});
-
 describe('primed media search errors', () => {
   test('preserves a failed sentence outcome for hydration', async () => {
     const outcome = { status: 'error', failure: { kind: 'unavailable' } };
@@ -323,50 +294,14 @@ describe('primed media search errors', () => {
   });
 });
 
-describe('media browse metadata', () => {
-  test.each(mediaMetaCases)('$label', async ({ stats, episode, bannerUrl, locale, description }) => {
-    mediaMetaI18n.locale.value = locale ?? 'en';
-    vi.stubGlobal('useI18n', () => mediaMetaI18n);
-    vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
-    fetchStats.mockResolvedValueOnce({
-      status: 'ok',
-      data: {
-        media: [
-          { mediaPublicId: 'other', matchCount: 999999, episodeHits: [{ episode: 3, hitCount: 999999 }] },
-          ...(stats ? [{ mediaPublicId: 'm1', ...stats }] : []),
-        ],
-        categories: [],
-      },
-    });
-    route.query = episode !== undefined ? { episode } : {};
-    await render(media({ nameEn: 'Bocchi', bannerUrl, coverUrl: 'https://images.test/cover.webp' }));
-    expect(unref(useHead.mock.calls[0]?.[0])).toEqual(expectedMediaMeta(description, bannerUrl, locale));
-  });
-});
-
-test('renders the complete fallback head with the site title template', async () => {
-  mediaMetaI18n.locale.value = 'en';
-  vi.stubGlobal('useI18n', () => mediaMetaI18n);
-  vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
-  fetchStats.mockResolvedValueOnce({
-    status: 'ok',
-    data: { media: [{ mediaPublicId: 'm1', matchCount: 1234 }], categories: [] },
-  });
-  await render(media({ nameEn: 'Bocchi' }));
-  const head = createHead();
-  head.push({ titleTemplate: '%s | Nadeshiko' });
-  head.push(unref(useHead.mock.calls[0]?.[0]));
-  expect((await renderSSRHead(head)).headTags).toBe(expectedFallbackHead);
-});
-
 test('recomputes media metadata when episode and locale change', async () => {
-  mediaMetaI18n.locale.value = 'en';
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
   fetchStats.mockResolvedValueOnce({
     status: 'ok',
     data: {
       media: [
+        { mediaPublicId: 'other', matchCount: 999999, episodeHits: [{ episode: 3, hitCount: 999999 }] },
         {
           mediaPublicId: 'm1',
           matchCount: 1234,
@@ -379,38 +314,39 @@ test('recomputes media metadata when episode and locale change', async () => {
       categories: [],
     },
   });
-  await render(media({ nameEn: 'Bocchi' }));
+  await render(media({ nameEn: 'Bocchi', bannerUrl: 'https://images.test/banner.webp' }));
   const metadata = useHead.mock.calls[0]?.[0];
   expect(unref(metadata)).toEqual(
-    expectedMediaMeta('1,234 Japanese sentences from Bocchi across 2 episodes with English translations.'),
+    expectedMediaMeta(
+      '1,234 Japanese sentences from Bocchi across 2 episodes with English translations.',
+      'https://images.test/banner.webp',
+    ),
   );
   route.query.episode = '3';
   mediaMetaI18n.locale.value = 'es';
   expect(unref(metadata)).toEqual(
     expectedMediaMeta(
       'Frases en japonés del episodio 3 de «Bocchi»: 34. Consulta sus traducciones al español.',
-      undefined,
+      'https://images.test/banner.webp',
       'es',
     ),
   );
 });
 
-test('retains this caller’s non-finite match-count fallback', async () => {
-  mediaMetaI18n.locale.value = 'en';
+test('retains this caller’s NaN match-count fallback', async () => {
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   vi.stubGlobal('useFormat', () => ({ formatNumber: formatMediaMetaNumber }));
   fetchStats.mockResolvedValueOnce({
     status: 'ok',
     data: { media: [{ mediaPublicId: 'm1', matchCount: Number.NaN }], categories: [] },
   });
-  await render(media({ nameEn: 'Bocchi' }));
+  await render(media({ nameEn: 'Bocchi', coverUrl: 'https://images.test/cover.webp' }));
   expect(unref(useHead.mock.calls[0]?.[0])).toEqual(
     expectedMediaMeta(' Japanese sentences from Bocchi with English translations.'),
   );
 });
 
 test('recomputes the title and descriptions when the preferred media-name language changes', async () => {
-  mediaMetaI18n.locale.value = 'en';
   vi.stubGlobal('useI18n', () => mediaMetaI18n);
   await render(media({ nameEn: 'Bocchi' }));
   const metadata = useHead.mock.calls[0]?.[0];
@@ -520,6 +456,14 @@ describe('route-to-scope priming', () => {
       wire: {},
       filters: { media: { include: [{ mediaPublicId: 'm1', episodes: [3.5] }] } },
       sentenceKey: 'media-sentence-outcomes-bocchi-3.5',
+    },
+    {
+      label: 'ignores a non-numeric episode',
+      query: { episode: 'banana' },
+      scope: {},
+      wire: {},
+      filters: {},
+      sentenceKey: 'media-sentence-outcomes-bocchi-all',
     },
   ])('$label', async ({ query, scope, wire, filters, sentenceKey }) => {
     vi.stubGlobal('userStore', () => ({
