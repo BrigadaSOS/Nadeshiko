@@ -141,7 +141,7 @@ const TRANSLATION_FIELDS = [
  * than fight them: starring a reported title lands it at 0.35 x 1.15, softened
  * but still demoted. A favourite cannot buy its way out of a report.
  */
-export const PREFERRED_MEDIA_SCORE_WEIGHT = 1.15;
+const PREFERRED_MEDIA_SCORE_WEIGHT = 1.15;
 
 export class SegmentQuery {
   static buildSearchMust(
