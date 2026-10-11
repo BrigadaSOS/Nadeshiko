@@ -1,102 +1,5 @@
-/**
- * =============================================================================
- * ELASTICSEARCH SEARCH ARCHITECTURE
- * =============================================================================
- *
- * JAPANESE CONTENT FIELDS (4 fields for different matching strategies)
- * -----------------------------------------------------------------------------
- * | Field               | Purpose                      | Example: "食べました"       |
- * |---------------------|------------------------------|----------------------------|
- * | textJa              | Surface form (exact tokens)  | Tokens: 食べ, ました        |
- * | textJa.baseform     | Dictionary form matching     | Tokens: 食べる              |
- * | textJa.normalized   | Orthographic + conjugation   | Tokens: 食べる, ます        |
- * | textJa.kana         | Pronunciation/reading match  | Tokens: タベ, マシタ        |
- * -----------------------------------------------------------------------------
- *
- * textJa vs textJa.normalized vs textJa.baseform:
- *   - textJa: true surface tokens, no normalization. 食べられない ≠ 食べれなかった
- *   - normalized: sudachi_normalizedform applied. 喰べる = 食べる, で = だろ (same base copula)
- *   - baseform: dictionary form + particles/auxiliaries stripped. 食べられなかった → 食べる
- *
- * ENGLISH/SPANISH FIELDS
- * -----------------------------------------------------------------------------
- * | Field         | Purpose            | Example: "schools"        |
- * |---------------|--------------------|---------------------------|
- * | textEn        | Stemmed matching   | Token: school             |
- * | textEn.exact  | Unstemmed matching | Token: schools            |
- * | textEs        | Stemmed matching   | (spanish stemmer applied) |
- * | textEs.exact  | Unstemmed matching | (lowercase + asciifolding)|
- * -----------------------------------------------------------------------------
- *
- * FIELD SELECTION BY INPUT TYPE (AUTO-DETECTED)
- * -----------------------------------------------------------------------------
- * | Input Type       | Fields (with boosts)                        | Rationale           |
- * |------------------|---------------------------------------------|---------------------|
- * | Romaji (go)      | EN/ES^10, kana^3, textJa^2, norm^2, base^1 | Prefer EN/ES        |
- * | Kanji (食べる)    | textJa^10, baseform^5, norm^4 (NO kana)     | Avoid homophones    |
- * | Kana (たべる)     | textJa^10, baseform^5, norm^4, kana^3       | Standard search     |
- * -----------------------------------------------------------------------------
- *
- * PHRASE BOOSTING
- * -----------------------------------------------------------------------------
- * Non-quoted searches add a match_phrase should clause (boost: 10) on the exact
- * field (textJa for Japanese, textEn.exact/textEs.exact for EN/ES). This ensures
- * sentences with the tokens in order rank much higher than scattered token matches.
- *
- * QUOTED SEARCH ("exact phrase")
- * -----------------------------------------------------------------------------
- * For Japanese: query_string natively handles "quotes" as phrase queries. Since
- * textJa uses surface tokens (no normalization), quoted phrases match only the
- * exact token sequence. The baseform/normalized fields naturally won't match
- * because their indexed tokens differ from the surface-analyzed query tokens.
- *
- * For EN/ES: quoteFieldSuffix '.exact' redirects quoted phrases to the unstemmed
- * .exact sub-field, so "eating" matches only "eating", not "eat"/"eaten".
- *
- * SCORING (boost_mode: multiply for text queries, replace for match_all)
- * -----------------------------------------------------------------------------
- * Length scoring (when minLength not specified):
- *   Uses native ES gauss decay function centered at 27 chars
- *   - match_all: origin=27, scale=6, decay=0.5 (tight preference, replaces score)
- *   - text queries: origin=27, offset=10, scale=15, decay=0.5 (gentle tiebreaker)
- *     offset=10 means lengths 17-37 get NO penalty at all
- *     Beyond that, very gradual rolloff — match quality always dominates
- *
- * Language selection (dis_max with tie_breaker: 0.1):
- *   - Picks best matching language, 10% contribution from others
- *   - Reduces cross-language noise (was 30% in previous implementation)
- *
- * Per-title weighting (see applyMediaScoreWeights):
- *   The whole assembled score is multiplied by a weight that depends on the title
- *   a segment belongs to — below 1 for titles with an unhandled report (tiered by
- *   how much of the title has been reported), above 1 for titles the reader stars
- *   or already studies. Unlike the favourites tie-break in SegmentResponse, these
- *   do cross rank boundaries and do change which segments land on a page. That is
- *   the point for the penalty, and it is why the boost is kept small: a tie-break
- *   would leave a reported title in its page-1 slot on essentially every text
- *   query, while a large boost would make the corpus look like the reader's own
- *   watchlist. The tie-break still runs, and still does the work for the orders
- *   that ignore `_score`.
- *
- * QUERY SYNTAX (supported via query_string)
- * -----------------------------------------------------------------------------
- * - AND, OR, NOT operators: "cat AND dog", "cat OR dog"
- * - Required/excluded: "+required -excluded"
- * - Phrase search: "exact phrase"
- * - Wildcards: "te*t" (no leading wildcards)
- * - Grouping: "(cat OR dog) AND bird"
- *
- * EXCLUSION (`-term`) IS HOISTED ABOVE THE dis_max
- * -----------------------------------------------------------------------------
- * Negation is a global constraint, but a `dis_max` is a disjunction: letting each
- * language clause compile its own MUST_NOT lets one clause re-admit a document
- * another correctly dropped (see ./queryNegation for the worked example). So
- * leading-`-` terms are split off in buildSearchMust and applied once, as a
- * sibling `bool.must_not` in the same `must` array — which also keeps them out of
- * the filter-derived `must_not`, whose length signals hidden-media exclusion.
- * Queries using explicit boolean syntax keep the old per-clause behaviour.
- * =============================================================================
- */
+/** Build language-aware queries with global leading-`-` exclusions, kanji matching that avoids kana homophones, and
+ * media weights that affect `_score` only. */
 
 import type { estypes } from '@elastic/elasticsearch';
 import { excludedSearchLanguages, type SearchLanguage } from '@lib/searchLanguages';
@@ -128,19 +31,8 @@ const TRANSLATION_FIELDS = [
   ['EN', 'textEn', 'textEn.exact', 'english'],
 ] as const;
 
-/**
- * Score multiplier for segments from a title the reader stars or already studies.
- *
- * Small on purpose. It is enough to win a near-tie and to lift a familiar title a
- * few places, and not enough to displace a materially better match -- a reader
- * with the full 120 preferred titles should still be shown the best sentence for
- * their word when it comes from a show they have never watched. The corpus has to
- * keep looking like the corpus.
- *
- * Multiplicative, which is what makes it compose with the report penalties rather
- * than fight them: starring a reported title lands it at 0.35 x 1.15, softened
- * but still demoted. A favourite cannot buy its way out of a report.
- */
+/** Use a small multiplicative preferred-title weight so it can break near ties while report penalties still demote a
+ * reported title. */
 const PREFERRED_MEDIA_SCORE_WEIGHT = 1.15;
 
 export class SegmentQuery {
@@ -191,27 +83,8 @@ export class SegmentQuery {
     return { must, isMatchAll, hasQuery };
   }
 
-  /**
-   * Scales scores by the title they came from: down for reported titles, up for
-   * the reader's own.
-   *
-   * Wraps the fully assembled query rather than joining the `functions` list of
-   * the length/random scorers inside it: those are built across several branches
-   * (match_all vs text, with and without length constraints, random sort), and a
-   * weight that has to be threaded through each one is a weight that will be
-   * missed by whichever branch is added next. One wrap at the outside applies to
-   * all of them, including the branch that has no function_score at all.
-   *
-   * Demoted titles are grouped by weight rather than given a function each, so
-   * the query carries one clause per distinct tier however many titles are
-   * reported. `score_mode: multiply` leaves any title matching no clause at
-   * exactly 1, so nothing else about the ranking moves.
-   *
-   * Only affects sorts that read `_score` — relevance and random. Ordering by
-   * time or by length ignores the score entirely, so both the penalty and the
-   * boost sit out there; those orders are explicit reader requests for a specific
-   * sequence, not a ranking we get to have an opinion about.
-   */
+  /** Wrap the assembled query once so every scoring branch gets title weights; group demotions by tier and leave
+   * explicit non-score sorts unchanged. */
   static applyMediaScoreWeights(
     query: estypes.QueryDslQueryContainer,
     weights: {
@@ -236,9 +109,8 @@ export class SegmentQuery {
 
     if (functions.length === 0) return query;
 
-    // A preferred title that is also reported matches both clauses and gets the
-    // product -- softened, never rescued, since every demotion weight is below
-    // 1 by more than the boost is above it.
+    // A preferred reported title gets the product of weights: softened, never rescued, because every demotion remains
+    // below the preferred boost.
     return { function_score: { query, functions, score_mode: 'multiply', boost_mode: 'multiply' } };
   }
 
@@ -545,13 +417,7 @@ export class SegmentQuery {
   }
 }
 
-/**
- * Titles bucketed by the weight they earned, harshest first.
- *
- * Grouping keeps the query one clause per distinct tier instead of one per title,
- * and the sort makes the emitted clauses stable, so two searches with the same
- * reported set produce byte-identical queries and stay comparable in a log.
- */
+/** Group ids by distinct weight and sort each group for stable, comparable emitted queries. */
 function groupMediaIdsByWeight(weights: ReadonlyMap<number, number> | undefined): Map<number, number[]> {
   const byWeight = new Map<number, number[]>();
   if (!weights?.size) return byWeight;

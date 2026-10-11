@@ -2,24 +2,11 @@ import { describe, it, expect } from 'vitest';
 import elasticsearchSchema from 'config/elasticsearch-schema.json';
 import type { SegmentDocumentShape } from '@app/services/search/SegmentDocument';
 
-/**
- * Guards the index mapping against the document we actually write.
- *
- * The mapping has no `dynamic` setting, so it defaults to `true`: a field
- * present in the document but missing from the mapping is not an error -- ES
- * quietly invents a mapping for it from the first value it sees. That is how
- * `publicId` and `externalVideoId` came to be indexed as analysed full text,
- * building an inverted index for identifier strings nothing ever searches,
- * while their siblings `hashedId` and `storageBasePath` were declared
- * `keyword, index: false`.
- *
- * Nothing failed, which is the problem: the drift was invisible in code review,
- * in tests, and at runtime. This test makes the two lists agree or fail.
- */
+/** The mapping defaults to `dynamic: true`, so unmapped document fields can silently become analyzed text. This
+ * parity check prevents identifier fields from drifting into searchable mappings. */
 
-// Typed as the document shape, so adding a field to `SegmentDocumentShape`
-// without adding it here is a compile error, and adding it here without adding
-// it to the mapping is a test failure. Values are irrelevant; only keys matter.
+// Type the key list as `SegmentDocumentShape`: extra document fields fail compilation here, while missing mapping keys
+// fail this test.
 const REPRESENTATIVE_DOCUMENT: Required<SegmentDocumentShape> = {
   uuid: 'uuid',
   publicId: 'publicId',

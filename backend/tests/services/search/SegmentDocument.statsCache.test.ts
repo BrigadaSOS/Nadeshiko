@@ -2,21 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 import { Cache } from '@lib/cache';
 
-/**
- * A guard on ONE NUMBER: the entry cap of the search-stats namespace.
- *
- * It reads like a triviality and it is not. At `createCacheNamespace`'s default
- * of 10,000 entries this namespace took the production backend down every ~3
- * hours (Nadeshiko#522): the key is the query text plus every filter, so a
- * crawler walking search URLs mints a new entry per request, and the value is a
- * per-media and per-episode aggregation over the whole corpus. Ten thousand of
- * those is ~500MB, against a V8 heap limit of 864MB that Node derives from the
- * container's memory cap.
- *
- * Nothing else fails when the cap goes back to the default -- not a test, not a
- * request, not an alert until the process is already dying -- so the number
- * needs its own assertion.
- */
+/** Pin the search-stats cap independently: crawler queries can fill the cache and exhaust the heap if the cap
+ * regresses. */
 const NS = SegmentDocument.SEARCH_STATS_CACHE;
 const TTL = 60_000;
 

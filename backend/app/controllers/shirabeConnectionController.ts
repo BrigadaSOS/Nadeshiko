@@ -22,39 +22,13 @@ import {
   unlink,
 } from '@app/services/shirabe/connection';
 
-/**
- * Linking a reader's own Shirabe account.
- *
- * Why it exists: Shirabe shapes a word lookup by the dictionary stack of
- * whoever's key made the call, and ours belongs to a machine with no
- * preferences. Linked, the popup answers from the dictionaries the reader
- * configured over there, in their order.
- *
- * Session-only, all of it. None of these routes is reachable with an API key:
- * they are about the person in front of the browser, and a key acting on
- * somebody's behalf must not be able to attach a third-party account to them.
- * The spec says so with `SessionCookie: []`, which is what generates
- * `requireSession()`.
- */
+/** Linking is session-only: API keys must not attach a third-party account on someone’s behalf. */
 
 export const getShirabeConnection: GetShirabeConnection = async (_params, respond, req) => {
   const user = assertUser(req);
   const connection = await findConnection(user.id);
-  // ALWAYS re-read, with no staleness window in front of it.
-  //
-  // This is the page whose entire job is to show what Shirabe currently says, to
-  // a reader who is looking straight at it and may have changed it seconds ago
-  // in another tab. A window made that a lie: come back from Shirabe inside the
-  // interval and the page confidently printed the dictionaries you had just
-  // switched off. Being slightly cheaper is not worth a settings page that
-  // disagrees with the service it is describing.
-  //
-  // Affordable because of who is asking: one reader, one page view, one call.
-  // The lookup path deliberately does NOT do this -- it would put a Shirabe
-  // round trip in front of a cache that exists to avoid one, on every word.
-  //
-  // `refreshStack` returns what we already hold if Shirabe cannot be reached, so
-  // an outage over there shows a stale list rather than an error.
+  // Always re-read this settings page; `refreshStack` falls back to the stored list on outage, while lookup keeps its
+  // cache to avoid a round trip per word.
   const current = connection ? await refreshStack(connection) : null;
 
   return respond.with200().body({ connection: current ? current.toJSON(missingScopes(current)) : null });
@@ -83,28 +57,8 @@ export const unlinkShirabe: UnlinkShirabe = async (_params, respond, req) => {
   return respond.with204();
 };
 
-/**
- * The stored key, for our own frontend server and nothing else.
- *
- * A session is NOT enough here, including the reader's own, and that is the
- * whole point of the extra gate: everything else on this controller returns
- * things safe to render, while this one returns a live credential for another
- * service. Anything a browser can fetch is a thing an extension, a bookmarklet
- * or a stray script on the page can fetch too.
- *
- * `isInternalProxyRequest` is the same shared secret the rate limiter and the
- * traffic classifier already trust, set by the Nitro proxy on every request it
- * forwards. With no secret configured it answers false, so the fail-safe is that
- * this route is simply unavailable rather than open.
- *
- * "Every request it forwards" is the catch, and it is why this check is only
- * the INNER door. The proxy stamps browser requests too, so a browser calling
- * this route through the site's own `/v1` would have arrived carrying the
- * secret -- and did, once. The outer door is the proxy refusing to forward the
- * route at all: the spec marks it `x-server-only`, which generates the proxy's
- * deny list, and tests/routes/serverOnlyRoutesAgreement.test.ts keeps that
- * marker matched to every handler that calls `isInternalProxyRequest`.
- */
+/** Never expose linked credentials to the browser: require the internal proxy as well as the server-only route
+ * marker, and fail closed without its secret. */
 export const getShirabeCredential: GetShirabeCredential = async (_params, respond, req) => {
   const user = assertUser(req);
 
@@ -112,31 +66,16 @@ export const getShirabeCredential: GetShirabeCredential = async (_params, respon
     throw new AccessDeniedError('This credential is only readable by the Nadeshiko frontend server');
   }
 
-  // A VALID access token, renewed under a row lock if the hour is nearly up
-  // (`getReaderAccessToken`), so the frontend never sends one about to expire.
-  // Null means there is nothing to hand out -- no link, or one Shirabe has
-  // refused -- and the lookup falls back to the service key, which is a 404 here
-  // exactly as an unlinked reader always was.
+  // Return a valid, renewed reader token when linked; if none exists, preserve the unlinked 404 fallback rather than
+  // handing out the service key.
   const token = await getReaderAccessToken(user.id);
   if (!token) throw new NotFoundError('No Shirabe account is linked');
 
   return respond.with200().body({ token });
 };
 
-/**
- * "The stack these answers came out of is X" -- from our own lookup route,
- * carrying what Shirabe just told it.
- *
- * Behind the same internal gate as the credential above, for a different reason.
- * That one guards a secret; this one guards a FACT about our own state. A
- * fingerprint a browser could post is a browser deciding when our copy of the
- * reader's stack looks stale, which is a free Shirabe round trip per request for
- * anyone who wants one.
- *
- * 204 whatever happened, including for a reader with no link at all. The caller
- * is a lookup that has already answered; there is nothing it could do with a
- * failure but log it twice.
- */
+/** Keep resync behind the internal gate: a browser-supplied fingerprint must not trigger an arbitrary Shirabe
+ * refresh; all outcomes return 204. */
 export const resyncShirabeStack: ResyncShirabeStack = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
@@ -149,23 +88,8 @@ export const resyncShirabeStack: ResyncShirabeStack = async ({ body }, respond, 
   return respond.with204();
 };
 
-/**
- * Record what a lookup learned about a reader's key.
- *
- * The lookup path is the only place that finds out a link has died: it sends the
- * reader's key, Shirabe refuses it, and the request quietly answers from the
- * default dictionaries. That refusal used to end at a `logger.warn`, so the
- * reader kept their "Linked as ..." card and kept paying a doomed round trip per
- * word, forever.
- *
- * Which repair it is comes from Shirabe's own distinction, and getting the two
- * confused would be worse than doing nothing: a 401 disconnects a link, so
- * treating a narrowed scope as one would unlink readers who only needed to
- * re-approve a permission.
- *
- * 204 whatever happened, like the resync beside it. The caller has already
- * answered its own request and could do nothing with a failure but log it twice.
- */
+/** Use Shirabe’s error distinction: 401 disconnects a dead link, while missing scopes refreshes permissions instead
+ * of unlinking the reader. */
 export const reportShirabeRefusal: ReportShirabeRefusal = async ({ body }, respond, req) => {
   const user = assertUser(req);
 
@@ -179,10 +103,8 @@ export const reportShirabeRefusal: ReportShirabeRefusal = async ({ body }, respo
   if (body.status === 401) {
     await markDisconnected(connection);
   } else if (body.status === 403) {
-    // Not a repair: the key still works, it is missing a permission. Re-reading
-    // the stack refreshes the stored scopes, which is what `missingScopes` is
-    // computed from -- so this surfaces as the existing "Update permissions"
-    // offer rather than as a broken link.
+    // A missing permission is not a dead link; refresh stored scopes so the existing “Update permissions” path can
+    // respond.
     await refreshStack(connection);
   }
 

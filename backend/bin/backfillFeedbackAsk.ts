@@ -7,40 +7,13 @@ import { sendFeedbackAskEmail } from '@app/mailers/email';
 import { acceptsProductEmails } from '@app/services/email/unsubscribe';
 import { describeLifecycleGate, mayReallySend } from '@app/services/email/lifecycleGate';
 
-/**
- * The one-time catch-up for accounts that were already older than a week when
- * the day-7 feedback ask started running.
- *
- *   npm run email:backfill-feedback -w backend            # counts, sends nothing
- *   npm run email:backfill-feedback -w backend -- --send --limit 25
- *
- * A SCRIPT RATHER THAN A SWEEP, and the distinction is the whole design. The
- * nightly sweep asks an anniversary question -- who turned seven days old last
- * night -- which is self-limiting: yesterday's signups are a handful and there
- * is never a backlog. "Everybody who is already older than that" is a standing
- * population, and on the day it first runs that is most of the account base at
- * once. Putting it in the sweep would mean a job that sends four emails a night
- * forever, except for one night when it sends several hundred.
- *
- * Several hundred is not a volume problem, it is a reputation problem: they
- * would go down the ZeptoMail Agent that also carries every magic link, which
- * is transactional-only by its own terms, and a sudden identical-content batch
- * from a sending identity that has never done one is what a relay is watching
- * for. Losing that Agent means losing sign-in.
- *
- * Hence: run by hand, capped per run, and safe to run again tomorrow. Take a
- * few nights over it. `EmailLifecycleSend` is what makes repeat runs safe --
- * the same unique index the sweep claims against -- so this can never double up
- * with the nightly job or with itself.
- */
+/** One-time, capped catch-up for accounts beyond the day-7 sweep; run manually so repeat runs stay safe and do not
+ * bulk-send through the transactional mail agent. Usage: `npm run email:backfill-feedback -w backend -- [--send
+ * --limit 25]`. */
 
 const BATCH_DEFAULT = 25;
 
-/**
- * Older than the nightly window, so the two cannot both pick up the same
- * account on the same night and race for the claim. The sweep owns days 7 to 8;
- * this owns everything past that.
- */
+/** The sweep owns days 7–8; this job owns older accounts, so their claims cannot race. */
 const OLDER_THAN_DAYS = 8;
 
 function flag(name: string): boolean {
@@ -55,13 +28,7 @@ function option(name: string, fallback: number): number {
   return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
-/**
- * Everyone eligible, oldest account first.
- *
- * Oldest first so that a run that is interrupted, or a cap that is smaller than
- * the backlog, leaves a predictable remainder rather than a random one -- and so
- * the people who have been waiting longest for the question get asked first.
- */
+/** Oldest first makes capped or interrupted runs deterministic and serves the longest-waiting accounts first. */
 async function backlog(): Promise<User[]> {
   return User.createQueryBuilder('user')
     .where('user.created_at < now() - make_interval(days => :older)', { older: OLDER_THAN_DAYS })
@@ -115,9 +82,8 @@ async function main(): Promise<void> {
       eligible.push(user);
     }
 
-    // The count BEFORE the cap, because that is the number worth knowing: it
-    // says how many nights of this there are, and it is the sanity check
-    // against an exclusion matching more than intended.
+    // Count before applying the cap: it measures remaining nights and checks that exclusions are not broader than
+    // intended.
     logger.info(
       { accounts: candidates.length, eligible: eligible.length, limit, send },
       send ? 'Sending this batch' : 'Dry run -- pass --send to actually write to these people',

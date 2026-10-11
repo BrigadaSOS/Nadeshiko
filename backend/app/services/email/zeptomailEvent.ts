@@ -3,23 +3,11 @@ import { logger } from '@config/log';
 import { recordEmailEvent } from './metrics';
 import { normalizeAddress, softBouncedTooOften, suppress, SOFT_BOUNCE_THRESHOLD } from './suppression';
 
-/**
- * Turns one verified ZeptoMail webhook into EmailEvent rows and whatever they
- * imply. All provider-shaped parsing lives in this file.
- *
- * THE PARSING IS DELIBERATELY FORGIVING ABOUT ARRAYS. ZeptoMail wraps several of
- * these fields in a single-element array (`event_name`, `event_message`,
- * `event_data`) and the published documentation does not carry a complete
- * sample, so every level accepts either form and the raw payload is stored
- * whole. When the first real bounce arrives, `EmailEvent.payload` is what tells
- * us whether this guessed right.
- */
+/** Accept documented array-wrapped and console scalar webhook fields, and retain the raw payload so an undocumented
+ * shape can be checked later. */
 
-/**
- * Left side is what ZeptoMail sends, right side is ours. An unrecognised name is
- * still recorded, under its own name: losing an event we did not anticipate is
- * worse than holding one we cannot act on.
- */
+/** Preserve unrecognised provider event names under their own name; recording an event we cannot act on is safer
+ * than dropping it. */
 const NAMES: Record<string, string> = {
   hardbounce: 'hard_bounce',
   hard_bounce: 'hard_bounce',
@@ -35,18 +23,8 @@ const NAMES: Record<string, string> = {
   click: 'click',
 };
 
-/**
- * ZeptoMail's "Verify" button POSTs SAMPLE PAYLOADS at the URL, not a ping, and
- * they look exactly like real events: `zylker.com` recipients and a fixed
- * client_reference. Configuring the webhook at shirabe wrote five of them into
- * its events table, and the only reason it did no harm is that the samples
- * happened to be opens and a soft bounce.
- *
- * A sample FEEDBACK LOOP payload would have fired a critical complaint tripwire
- * on day one and taught everyone the channel cries wolf. zylker.com is Zoho's
- * fictional company, used throughout their documentation and never a real
- * recipient.
- */
+/** Provider verification posts realistic sample events, so recognise its fixed sample domain/reference and do not
+ * apply those samples. */
 const SAMPLE_DOMAIN = 'zylker.com';
 
 type Json = Record<string, unknown>;
@@ -88,11 +66,7 @@ function parse(payload: Json): ParsedPayload {
   const rawName = (asString(first(payload.event_name)) ?? '').toLowerCase();
   const event = NAMES[rawName] ?? NAMES[rawName.replace(/[\s_-]/g, '')] ?? rawName ?? 'unknown';
 
-  /**
-   * `bounced_recipient` is the authoritative one: a message to three people can
-   * bounce for one of them. The `to` list is the fallback for events that carry
-   * no per-recipient detail at all (an open, say).
-   */
+  /** Use `bounced_recipient` when present; fall back to `to` only when the event has no per-recipient detail. */
   const bounced = details
     .map((detail) => normalizeAddress(asString(detail.bounced_recipient)))
     .filter((address): address is string => address !== null);
@@ -118,11 +92,7 @@ function parse(payload: Json): ParsedPayload {
     recipients,
     detailFor: (address) =>
       details.find((detail) => normalizeAddress(asString(detail.bounced_recipient)) === address) ?? details[0] ?? {},
-    /**
-     * ZeptoMail's own timestamps have gone missing from a payload before being
-     * documented, so a missing one is "now" rather than a validation failure on
-     * an event we already believe.
-     */
+    /** A missing provider timestamp is “now,” not a reason to reject an otherwise trusted event. */
     occurredAt: (detail) => {
       const stamp = asString(detail.time) ?? asString(emailInfo.processed_time);
       if (!stamp) return new Date();
@@ -132,13 +102,8 @@ function parse(payload: Json): ParsedPayload {
   };
 }
 
-/**
- * Record every event in one verified payload, and apply what each one implies.
- *
- * Returns the events actually written. An empty array is a payload we could not
- * find a real recipient in: worth a log line and a 200, because retrying it would
- * not help.
- */
+/** Record every verified event and return 200 for a payload without a recipient; retrying a payload that cannot be
+ * acted on will not help. */
 export async function recordZeptomailPayload(payload: Json): Promise<EmailEvent[]> {
   const parsed = parse(payload);
 
@@ -165,9 +130,8 @@ export async function recordZeptomailPayload(payload: Json): Promise<EmailEvent[
       payload,
     });
 
-    // A redelivery of an event we already applied must not suppress twice, nor
-    // count twice: the metric is what the alert rules divide, so a double count
-    // would inflate the bounce rate on a webhook retry rather than on a bounce.
+    // Apply suppression and metrics only after the event insert wins; webhook redelivery must not double-count or
+    // suppress twice.
     if (!created) continue;
 
     written.push(created);
@@ -215,13 +179,8 @@ async function recordOne(fields: {
   }
 }
 
-/**
- * What an event means for whether we write to this address again.
- *
- * A hard bounce also clears `emailVerified`, so the account UI can ask for a
- * working address rather than leaving somebody with a verified badge on a
- * mailbox that does not exist.
- */
+/** A hard bounce also clears `emailVerified`, so the account cannot retain a verified badge for a nonexistent
+ * mailbox. */
 async function applyEvent(event: EmailEvent): Promise<void> {
   if (event.event === 'hard_bounce') {
     await suppress({
@@ -254,12 +213,8 @@ async function applyEvent(event: EmailEvent): Promise<void> {
   }
 }
 
-/**
- * better-auth calls this `emailVerified`; the column it is mapped onto is
- * `User.is_verified` (config/auth.ts), which the User entity already exposes as
- * `isVerified`. One field, three names -- worth stating so nobody goes looking
- * for an `emailVerified` column that does not exist.
- */
+/** Map Better Auth's `emailVerified` to the entity's `isVerified` property and `is_verified` column; there is only
+ * one stored field. */
 async function clearEmailVerified(address: string): Promise<void> {
   try {
     await User.createQueryBuilder()
@@ -269,9 +224,8 @@ async function clearEmailVerified(address: string): Promise<void> {
       .andWhere('is_verified = true')
       .execute();
   } catch (error) {
-    // The suppression is the part that protects the sending reputation and it is
-    // already written. A failure to clear a badge must not turn the webhook into
-    // a 500 and invite a redelivery of an event we have fully recorded.
+    // Suppression is already recorded before badge cleanup; cleanup failure must log, not 500 and invite webhook
+    // redelivery.
     logger.warn({ err: error }, 'Could not clear emailVerified after a hard bounce');
   }
 }

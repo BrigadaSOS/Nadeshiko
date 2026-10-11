@@ -1,25 +1,6 @@
-/**
- * Generates the public-route allowlist from OpenAPI security definitions, for
- * both consumers of it.
- *
- * The Nitro proxy stamps browser requests that carry no credentials with the
- * shared master API key. That key belongs to the admin service account, so
- * injecting it on an owner-scoped route would hand the caller the service
- * account's own data. A route may therefore only be injected into when it is
- * reachable with an API key alone and every scope it needs reads the shared
- * media corpus rather than one account's data.
- *
- * The BACKEND consumer asks a different question of the same list -- "may a
- * browser on any origin call this cross-origin?" -- and it has to be the same
- * list, because both reduce to "is this response the shared corpus, identical
- * for every caller, or is it somebody's account data?". Answering that twice
- * would let CORS drift open on a route the proxy already treats as private.
- *
- * Two outputs rather than one shared module: the backend and the Nitro build
- * are separate packages with separate tsconfigs and neither can import across
- * the boundary. That is the same reason `lib/traffic.ts` and
- * `shared/utils/traffic.ts` are parallel copies.
- */
+/** Generates the shared public-route allowlist from OpenAPI security. The proxy may inject the admin master key only
+ * for API-key-only routes over shared corpus data; backend CORS and Nitro must consume the same list, while
+ * separate package builds require separate outputs. */
 import { mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { pathToFileURL } from 'url';
@@ -30,18 +11,12 @@ import { resolveGeneratedDir } from './lib/generatedReady';
 const FRONTEND_OUTPUT_FILE = resolve(import.meta.dirname, '../../frontend/server/utils/generated/publicApiRoutes.ts');
 const BACKEND_OUTPUT_FILE = join(resolveGeneratedDir(), 'publicApiRoutes.ts');
 
-/**
- * Scopes that read the shared corpus and nothing account-specific. Everything
- * else — profile, activity, collections, and every write scope — resolves data
- * from the key owner, so the master key must never stand in for the browser.
- */
+/** Only scopes reading shared corpus data qualify; owner/profile, activity, collection, and write scopes must never
+ * use the admin master key for a browser. */
 const CORPUS_READ_PERMISSIONS = new Set<string>([ApiPermission.READ_MEDIA]);
 
-/**
- * Whether the proxy may stand in for an anonymous browser on this operation.
- * Exported so the cross-generator test can check it against the auth middleware
- * the same security block produces.
- */
+/** Whether an anonymous browser may use the proxy for this operation; exported so the cross-generator test can
+ * compare it with auth middleware. */
 export function isProxyPublic(security: SecurityRequirement[] | undefined): boolean {
   if (!security || security.length === 0) return false;
   if (security.some((requirement) => 'SessionCookie' in requirement)) return false;
@@ -132,9 +107,7 @@ function generate(): void {
   );
 }
 
-// Only generate when run as a script. The agreement test imports the proxy rule
-// from this module and must not rewrite the frontend allowlist as a side effect
-// of that import.
+// Generate only as a script; agreement-test imports must not rewrite the frontend allowlist.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   generate();
 }

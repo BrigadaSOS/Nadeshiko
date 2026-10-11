@@ -25,20 +25,11 @@ export const AppDataSource = new DataSource({
   migrationsTransactionMode: 'each',
   synchronize: false, // Use migrations instead!
   logging: true,
-  // TypeORM only calls `logQuerySlow` when this is truthy and exceeded, and that
-  // is the hook InstrumentedTypeOrmLogger records durations from. 0 disabled it
-  // entirely; 1 means everything above a millisecond is measured.
+  // Enable slow-query logging so `InstrumentedTypeOrmLogger` receives durations; zero disables it.
   maxQueryExecutionTime: 1,
   logger: new InstrumentedTypeOrmLogger(),
   extra: {
-    // Sized when the API served ~20 req/min. That is no longer the shape of the
-    // traffic: on 2026-08-12 at 21:15 UTC it stepped up ~6-8x (HTTP 0.8 -> 5-8
-    // req/s sustained, DB 1.6 -> 8-13 queries/s) and the pool went from sitting
-    // at its min of 5 to pinned at 15, where it has stayed. It is coping --
-    // waitingCount is 0 and Postgres shows no active backends -- so this is not
-    // urgent, but the old "7.5x headroom" claim is simply no longer true and the
-    // next step up in traffic is what would start queueing.
-    // NadeshikoPostgresPoolNearCapacity now watches for that.
+    // Historical traffic growth filled this pool; `NadeshikoPostgresPoolNearCapacity` watches for saturation.
     max: 15,
     min: 5, // Keep warm pool for low traffic
     acquireTimeoutMillis: 60000, // 60s to acquire from pool (fail slow if stuck)
@@ -59,10 +50,8 @@ function registerPoolMetrics(): void {
       unit: '{connection}',
     })
     .addCallback((obs) => {
-      // `used` is the checked-out count, not the pool size: node-postgres'
-      // totalCount already includes the idle ones, so reporting it here made
-      // `used` and `idle` read identically (both 15) whenever the pool was
-      // fully expanded, which looks like saturation and never is.
+      // Report checked-out connections as `used`; `totalCount` includes idle connections and would make both fields
+      // identical.
       obs.observe(pool.totalCount - pool.idleCount, {
         ...attrs,
         'db.client.connection.state': 'used',

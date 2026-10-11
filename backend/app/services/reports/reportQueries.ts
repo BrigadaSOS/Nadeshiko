@@ -3,30 +3,16 @@ import { type AdminReportFilters, parseStatusFilter, toTargetGroupKey } from '@a
 import type { EntityManager } from 'typeorm';
 import { InvalidRequestError } from '@app/errors';
 
-/**
- * Query building for admin report screens.
- *
- * Reports are stored per-user but administered per *target group* -- the
- * (targetType, mediaId, episodeNumber, segmentId) tuple that several users may
- * each have reported. Almost everything here exists to express "the same target"
- * in SQL, which is fiddly because two of the four columns are nullable and
- * `= NULL` silently matches nothing.
- */
+/** Build predicates for nullable composite targets; SQL `= NULL` matches nothing, so null components need `IS NULL`
+ * semantics. */
 
 /** The minimum surface of a TypeORM query builder these helpers need. */
 type Filterable = {
   andWhere(where: string, params?: Record<string, unknown>): unknown;
 };
 
-/**
- * The predicate identifying a single target group.
- *
- * Returned as SQL rather than applied directly because callers need it two ways:
- * AND-ed onto an update/delete that targets one group, and OR-ed together across
- * many groups when fetching members. Building it once keeps those from drifting --
- * they were previously two separate implementations of the same composite key,
- * and only one of them handled the nullable columns via `IS NULL`.
- */
+/** Return one target predicate for both AND-ed mutation queries and OR-ed member queries, keeping nullable-key
+ * handling identical. */
 function targetGroupPredicate(
   alias: string,
   report: Report,
@@ -157,9 +143,7 @@ export async function updateReportGroups(reports: Report[], patch: Record<string
     unique.push(report);
   }
 
-  // One statement per group, so a failure partway through would otherwise leave
-  // some groups moved to the new status and others not. A transaction runs on a
-  // single query runner, so these have to be issued sequentially.
+  // Use one transaction to prevent partially moved report groups; issue statements sequentially on its single runner.
   return Report.getRepository().manager.transaction(async (manager) => {
     let updated = 0;
     for (const report of unique) {
@@ -215,12 +199,7 @@ function hasAnyFilter(filters: AdminReportFilters): boolean {
   );
 }
 
-/**
- * Parses bulk filters and refuses an empty set.
- *
- * Parsing and validating together rather than as two steps the caller must
- * remember to sequence: an unguarded bulk update matches the entire table.
- */
+/** Parse and reject empty bulk filters together; an unguarded bulk update can match the whole table. */
 export function parseAndRequireBulkFilters(filters: BulkReportFilterInput | undefined): AdminReportFilters {
   const parsed = filters ? parseBulkFilters(filters) : {};
   if (!hasAnyFilter(parsed)) {

@@ -112,14 +112,8 @@ class AppCache {
     this.store.delete(namespace);
   }
 
-  /**
-   * Live entries in a namespace, expired-but-not-yet-swept included.
-   *
-   * Counting only unexpired entries would mean walking the namespace on every
-   * scrape and would report a number the process does not actually hold: an
-   * entry past its TTL still occupies the Map, and the heap it is keeping alive
-   * is the thing this number exists to explain.
-   */
+  /** Count all entries still held, including expired-but-unswept entries, because they occupy the Map and heap;
+   * scanning for TTL validity on every scrape would distort the metric. */
   size(namespace: CacheNamespace): number {
     return this.store.get(namespace)?.size ?? 0;
   }
@@ -151,36 +145,9 @@ class AppCache {
 
 export const Cache = new AppCache();
 
-/**
- * How full each namespace is, read at scrape time.
- *
- * THE GAP THIS FILLS, and it is worth being precise about what it does and does
- * not buy. `searchStats` was created without a cap, took the default 10,000
- * entries, and each entry held an aggregation over the whole corpus. The
- * backend then OOM-killed every ~3 hours for three days (Nadeshiko#522) and
- * nothing in the estate could say which of nine caches was holding the heap --
- * the only visible number was old_space climbing.
- *
- * NOT AN ALERT SIGNAL, deliberately. A namespace sitting AT its cap is the
- * healthy steady state of an LRU, so "entries == maxEntries" is not a fault and
- * a rule on it would fire forever. The alarm for the failure this comes from is
- * NadeshikoBackendProdHeapNearOOM, on old_space, in brigadasos-infra. What this
- * is for is the next question after that alarm: which cache, and is its cap
- * still the right size for what it now holds.
- *
- * ENTRY COUNTS, NOT BYTES. Measuring retained size per namespace means walking
- * the values on every scrape, which is the kind of instrumentation that becomes
- * the performance problem it was added to find. The count plus the cap beside
- * it is enough to reason with, as long as whoever reads it remembers that
- * entries differ in size by orders of magnitude between namespaces -- which is
- * the whole lesson of #522.
- *
- * Every namespace is reported every scrape, zeros included: a namespace that
- * vanishes from the output when its last entry expires reads like a broken
- * exporter rather than like an empty cache. `cache.max_entries` is constant per
- * namespace and published beside the count so a dashboard can draw the ceiling
- * without hardcoding it.
- */
+/** Expose per-namespace entry counts and caps for diagnosing heap pressure, not as an alert: an LRU at its cap is
+ * healthy. Count entries rather than bytes to avoid walking values on every scrape, and emit zeroes for empty
+ * namespaces. */
 export function registerCacheMetrics(): void {
   const meter = getMeter();
 

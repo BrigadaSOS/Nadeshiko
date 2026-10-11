@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto';
 
 const REQUEST_ID_PREFIX = 'nade-';
 
-// Extend Express Request type to include requestId
 declare module 'express-serve-static-core' {
   interface Request {
     requestId: string;

@@ -12,29 +12,9 @@ import {
   suppress,
 } from '@app/services/email/suppression';
 
-/**
- * The suppression list itself. `suppressionEnforcement.test.ts` covers what
- * REFUSES to send to a suppressed address; this covers how an address gets on
- * and off the list, which is where the two properties that matter live.
- *
- * NORMALISATION is one of them. The unique index is only a real guarantee if
- * every write and every read agree on the shape of an address -- otherwise
- * `Reader@Example.com` is suppressed and `reader@example.com` is not, which is
- * a bounced address we go on mailing.
- *
- * THE FIRST CAUSE WINS is the other, and it is deliberate rather than
- * incidental: a hard bounce followed by a complaint is still an address that
- * does not exist, and overwriting the cause would turn a permanent state into
- * one a future lift treats as recoverable.
- *
- * NOT covered here: `suppress`'s recovery from two webhook deliveries racing on
- * the same address. It works by letting the unique index reject one insert and
- * then re-reading the winner -- and this suite runs every test inside ONE
- * transaction, where a constraint violation aborts the whole thing, so the
- * recovery query cannot run. The path needs two connections to exercise
- * honestly, which this harness does not offer; a test that pretended otherwise
- * would be asserting the harness's failure rather than the code's behaviour.
- */
+/** This suite covers suppression list writes and lifts; normalization makes the unique index match all address
+ * forms, and first-cause-wins keeps a hard bounce permanent. The two-connection race recovery is not covered
+ * because this transaction harness cannot query after a constraint abort. */
 setupTestSuite();
 
 /** Records an event as the webhook would have, `daysAgo` in the past. */

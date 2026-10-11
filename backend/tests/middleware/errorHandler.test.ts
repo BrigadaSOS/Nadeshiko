@@ -7,18 +7,8 @@ import { handleErrors } from '@app/middleware/errorHandler';
 import { requestIdMiddleware } from '@app/middleware/requestId';
 import { NotFoundError, InternalServerError } from '@app/errors';
 
-/**
- * Mini Express apps where the route throws whatever the current test asks for.
- * A plain app.get() route is used so req.route.path is set, which
- * handleErrors' routeErrorCodes validation depends on.
- *
- * One app per route path, reused across tests, with the thrower swapped in
- * rather than a new app built per test. Each app is bound to its own ephemeral
- * port for the lifetime of the file (see helpers/http), and building ~33 of them
- * churned through ports fast enough that a request occasionally timed out or
- * landed on a recycled one. Reusing them is the same late-binding trick
- * securityBoundaries.test.ts already uses for its auth state.
- */
+/** Use one mini Express app per route path with a swappable thrower. `req.route.path` must be set, and reusing
+ * listening servers avoids the port churn that caused intermittent timeouts. */
 const errorApps = new Map<string, ReturnType<typeof express>>();
 const throwers = new Map<string, (req: Request) => void>();
 
@@ -484,14 +474,12 @@ describe('handleErrors', () => {
       app.use(requestIdMiddleware);
       app.get('/test', (_req: Request, res: Response, next: NextFunction) => {
         res.status(200).json({ ok: true });
-        // Simulate an error after headers have been sent
         next(new Error('late error'));
       });
       app.use(handleErrors as ErrorRequestHandler);
 
       const res = await request(app).get('/test');
 
-      // The original 200 response should be returned
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ ok: true });
     });

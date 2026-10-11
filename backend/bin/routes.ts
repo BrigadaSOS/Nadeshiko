@@ -59,7 +59,6 @@ function loadBetterAuthRuntimeRoutes(): RouteInfo[] {
   const disabledPaths = new Set(authOptions?.disabledPaths ?? []);
   const isEmailPasswordDisabled = authOptions?.emailAndPassword?.enabled === false;
 
-  // Get basePath from auth configuration
   const basePath = (auth as any).basePath || '/v1/auth';
 
   for (const [operationId, endpoint] of Object.entries(auth.api as Record<string, any>)) {

@@ -6,16 +6,8 @@ import { request } from '../helpers/http';
 import { createInFlightLimit } from '@app/middleware/inFlightLimit';
 import { buildApplication } from '@config/application';
 
-/**
- * The in-flight cap, driven through a real Express app so the 503 goes out
- * through the production error handler and carries the envelope a client would
- * actually see.
- *
- * Each test holds slots open with a handler that waits on a promise the test
- * resolves, because the property being checked is about requests that are
- * still running -- a limiter that only ever saw sequential requests could pass
- * every assertion here while doing nothing at all under load.
- */
+/** Drive the cap through a real Express app so the 503 uses the production error envelope. Hold slots on promises:
+ * sequential requests cannot prove an in-flight limit. */
 type Deferred = { promise: Promise<void>; resolve: () => void };
 
 function deferred(): Deferred {
@@ -42,11 +34,8 @@ async function buildApp(max: number, gate: Deferred) {
       });
     },
   });
-  // One awaited request before any is held open: the helper binds the app's
-  // server on first use, and a request fired-and-forgotten against a server
-  // that is not yet listening never reaches the limiter at all -- which made
-  // the first draft of this file believe two requests were in flight while the
-  // count sat at zero.
+  // Prime the listening server with one awaited request; a fire-and-forget first request can run before the helper
+  // binds and never reach the limiter.
   expect((await request(app).post('/v1/warm').send({})).status).toBe(200);
   return { app, limit };
 }
@@ -54,17 +43,8 @@ async function buildApp(max: number, gate: Deferred) {
 /** A request that has left the client and is being served right now. */
 type Held = { response: Promise<SupertestResponse> };
 
-/**
- * Sends a request NOW and gives the server a tick to accept it before the next.
- *
- * Two things here are deliberate and both were got wrong once. `.end()` rather
- * than the thenable: a supertest request does not leave the client until
- * something asks for its result, so awaiting it later would mean nothing was in
- * flight while the test believed two requests were. And the promise comes back
- * INSIDE an object: returning it bare from an async function adopts it, so
- * `await startRequest()` would wait for the held request to finish -- which it
- * cannot until the test releases it.
- */
+/** Start a request with `.end()` and return its promise inside an object: awaiting the thenable would wait for the
+ * held request, while the object lets the test observe it as in flight. */
 async function startRequest(app: Application, path: string): Promise<Held> {
   const response = new Promise<SupertestResponse>((resolve, reject) => {
     request(app)

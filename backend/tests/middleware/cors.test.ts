@@ -3,10 +3,8 @@ import type { Application, RequestHandler } from 'express';
 import { request } from '../helpers/http';
 import { buildApplication } from '@config/application';
 
-// Built through buildApplication so `corsPolicy` sits where production puts it:
-// after traffic classification and BEFORE the rate limiter. Stub handlers stand
-// in for the real routers, because what is under test is which routes get
-// `Access-Control-*` headers, not what those routes return.
+// Build through `buildApplication` so CORS is tested in production order, before rate limiting; stub routes isolate
+// header policy from route behavior.
 function buildApp(rateLimit?: RequestHandler): Application {
   return buildApplication({
     rateLimit: rateLimit ?? false,
@@ -46,10 +44,8 @@ describe('corsPolicy', () => {
     });
 
     it('allows any origin, including the ones a self-hosted copy sends', async () => {
-      // `null` is what a `file://` page and a sandboxed iframe send. It is a
-      // real origin string, not an absent header, and an allowlist would have
-      // to name it explicitly -- one of the reasons this policy does not use
-      // one.
+      // `null` is a real origin from `file://` pages and sandboxed iframes, not a missing header; the policy must
+      // handle it explicitly.
       for (const origin of ['https://example.org', 'http://127.0.0.1:8080', 'null']) {
         const res = await request(buildApp()).post('/v1/search').set('Origin', origin);
 
@@ -57,9 +53,7 @@ describe('corsPolicy', () => {
       }
     });
 
-    // The allowlist stores OpenAPI templates (`/v1/media/segments/{id}/context`)
-    // and this is asked about a real path, so the two only meet through the
-    // matcher. It is also one of the two endpoints this whole policy exists for.
+    // The allowlist stores OpenAPI templates while requests use concrete paths; this matcher connects them.
     it('matches a templated path', async () => {
       const res = await request(buildApp())
         .options('/v1/media/segments/V1StGXR8_Z5d/context')
@@ -115,9 +109,7 @@ describe('corsPolicy', () => {
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
     });
 
-    // The single line that decides whether allow-all origins is a convenience
-    // or a hole: with credentials enabled, any page the reader visits while
-    // signed in could read their account data through this API.
+    // With credentials enabled, allow-all origins let any visited page read signed-in account data.
     it('never allows credentials', async () => {
       const preflight = await request(buildApp())
         .options('/v1/search')
@@ -130,10 +122,7 @@ describe('corsPolicy', () => {
     });
   });
 
-  // Preflight is traffic the client did not choose to send, and the per-IP
-  // bucket it would land in is shared by everyone behind one address. Charging
-  // a CGNAT pool for the browser's own protocol overhead would make the limit
-  // fire on load nobody generated.
+  // Do not charge preflight requests to the shared per-IP bucket: CGNAT users would pay for browser protocol overhead.
   it('does not spend the per-IP rate limit on a preflight', async () => {
     const limiter = vi.fn<RequestHandler>((_req, _res, next) => next());
     const app = buildApp(limiter);

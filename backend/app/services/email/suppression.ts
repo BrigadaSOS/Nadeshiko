@@ -4,12 +4,7 @@ import type { SuppressionCause } from '@app/models';
 import { logger } from '@config/log';
 import { registerSuppressionGauge } from './metrics';
 
-/**
- * A soft bounce is not a verdict on its own, so a threshold is what turns a run
- * of them into one. Five inside a week: a genuinely full mailbox clears long
- * before that, and a server that has been refusing us for seven days is not
- * having a bad afternoon.
- */
+/** Require repeated soft bounces within the rolling window; a single transient refusal must not suppress an address. */
 export const SOFT_BOUNCE_THRESHOLD = 5;
 export const SOFT_BOUNCE_WINDOW_DAYS = 7;
 
@@ -29,15 +24,8 @@ export async function isSuppressed(address: string | null | undefined): Promise<
   return EmailSuppression.existsBy({ address: normalized });
 }
 
-/**
- * Idempotent, and DELIBERATELY DOES NOT OVERWRITE an existing row: the FIRST
- * cause is the true one. A hard bounce followed by a complaint is still an
- * address that does not exist, and rewriting the cause would turn a permanent
- * complaint into something a future lift treats as recoverable.
- *
- * Returns the row whether it was created now or already stood, so a caller can
- * report either without a second query.
- */
+/** Suppress idempotently without overwriting the first cause; later events must not turn a permanent complaint into
+ * a recoverable state. */
 export async function suppress(params: {
   address: string;
   cause: SuppressionCause;
@@ -68,13 +56,7 @@ export async function suppress(params: {
   }
 }
 
-/**
- * Has this address soft-bounced often enough that we stop calling it temporary?
- *
- * Counted over the events table rather than a running tally on the address,
- * because the window is rolling: a counter would need resetting on a schedule
- * nobody would remember to run, and the log already holds the answer.
- */
+/** Count the rolling event window from the log instead of a resettable address counter. */
 export async function softBouncedTooOften(address: string): Promise<number> {
   const since = new Date(Date.now() - SOFT_BOUNCE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
@@ -85,11 +67,8 @@ export async function softBouncedTooOften(address: string): Promise<number> {
   });
 }
 
-/**
- * Remove OUR row. The provider's own list is a separate half, lifted by
- * `liftSuppression` in `zeptomailApi.ts` -- see the note there about why doing
- * only one of the two is worse than doing neither.
- */
+/** Remove the application row and lift the provider row separately; clearing only one half leaves the address
+ * effectively suppressed. */
 export async function removeSuppression(address: string): Promise<EmailSuppression | null> {
   const normalized = normalizeAddress(address);
   if (!normalized) return null;

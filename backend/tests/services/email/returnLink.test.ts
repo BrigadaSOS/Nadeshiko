@@ -22,12 +22,8 @@ describe('the token in a lifecycle email link', () => {
     expect(readReturnToken(issueReturnToken(intent))).toEqual(intent);
   });
 
-  /**
-   * The whole point of sealing it. Without authentication the account id is a
-   * number in a public query string and anybody could file their own click
-   * against somebody else's send -- or read one off a forwarded email and edit
-   * it into a token for a neighbouring id.
-   */
+  /** Seal the account id: without authentication, a public query parameter lets anyone forge a click for another
+   * account or alter a forwarded token to target a neighboring id. */
   it('refuses a token somebody has edited', () => {
     const token = issueReturnToken(intent);
     const tampered = `${token.slice(0, -4)}${token.slice(-4) === 'AAAA' ? 'BBBB' : 'AAAA'}`;
@@ -40,11 +36,8 @@ describe('the token in a lifecycle email link', () => {
     expect(readReturnToken(token)).toBeNull();
   });
 
-  /**
-   * One token per MESSAGE, not per link -- which is what lets `classifyHit` see
-   * a scanner walking every link in one email. The ciphertext differs each call
-   * (random nonce), so the burst cannot be keyed on the token string.
-   */
+  /** Use one token per message, not per link, so scanner bursts can be classified even though each ciphertext has a
+   * random nonce. */
   it('seals to a different string every time', () => {
     expect(issueReturnToken(intent)).not.toBe(issueReturnToken(intent));
   });
@@ -64,12 +57,8 @@ describe('where a click is allowed to land', () => {
     expect(resolveDestination('/search/x?sort=new', 'c', 'cta')).toContain('sort=new');
   });
 
-  /**
-   * THE ONE BUG THIS FILE COULD PLAUSIBLY SHIP. The path is a query parameter on
-   * a public URL, so without these checks we are a nadeshiko.co address that
-   * forwards anywhere a phisher likes -- which is precisely the primitive they
-   * want from us.
-   */
+  /** Validate public return URLs; without these checks, the nadeshiko.co link becomes an open redirect for a
+   * phisher. */
   it.each([
     ['//evil.example', 'protocol-relative, parses as another host'],
     ['https://evil.example/x', 'an absolute URL'],
@@ -91,11 +80,8 @@ describe('where a click is allowed to land', () => {
     expect(url).toContain('to=%2Fmedia%2Ffrieren');
     expect(url).toContain('c=title-1');
 
-    // The account is sealed, never spelled out. Asserted over the readable
-    // surface only -- everything but `t`. `t` is ciphertext, so a chance '42'
-    // inside its base64 is not a leak, and asserting over the whole URL failed
-    // on 2.33% of runs (measured over 200k tokens): roughly one full backend
-    // suite in forty, for a reason that looks nothing like randomness.
+    // Assert only the readable URL surface: `t` is ciphertext, so matching its base64 can make a correct test fail
+    // randomly.
     const parsed = new URL(url);
     const sealed = parsed.searchParams.get('t');
     expect(sealed).toBeTruthy();
@@ -123,11 +109,8 @@ describe('telling a reader apart from a mail scanner', () => {
     expect(classifyHit(intent, 'cta', true, 1_000)).toBe('prefetch');
   });
 
-  /**
-   * Two covers middle-clicked into tabs is ordinary reader behaviour and has to
-   * survive; the scanner we caught fetched nine distinct links in twelve
-   * seconds. Three inside fifteen is above the first and well below the second.
-   */
+  /** Allow two ordinary middle-clicks but classify three rapid clicks inside fifteen seconds; the window must
+   * tolerate readers while catching the observed scanner burst. */
   it('lets a reader open two covers in quick succession', () => {
     expect(hit('title-1', 1_000)).toBe('human');
     expect(hit('title-2', 3_000)).toBe('human');
@@ -147,11 +130,8 @@ describe('telling a reader apart from a mail scanner', () => {
     expect(hit('cta', 4_000)).toBe('repeat');
   });
 
-  /**
-   * The window runs from the FIRST hit and is never extended, so a reader
-   * returning to the message every few seconds cannot have their third
-   * unhurried click filed as a machine.
-   */
+  /** Start the window at the first hit and do not extend it, so unhurried reader clicks are not reclassified as a
+   * machine. */
   it('starts a fresh window once the old one has run out', () => {
     hit('title-1', 1_000);
     hit('title-2', 2_000);

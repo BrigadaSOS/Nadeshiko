@@ -1,14 +1,5 @@
-/**
- * Asserts the two security derivations that read the same `security` block agree.
- *
- * `generateRouteAuth` decides what the API demands of a caller;
- * `generatePublicRoutes` decides where the Nitro proxy may inject the shared
- * master API key on behalf of an anonymous browser. That key belongs to the
- * admin service account, so a route in the allowlist whose middleware resolves
- * data from the *caller* would return the service account's own rows to any
- * visitor. The two now read the spec through bin/lib/spec.ts, but they still
- * apply their own rules — these tests pin the rules to each other.
- */
+/** Keep route auth and proxy API-key injection derived from the same `security` block. The injected key is an admin
+ * identity, so a caller-dependent route in the public allowlist could expose admin rows. */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -50,9 +41,8 @@ describe('proxy allowlist agrees with route auth', () => {
   });
 
   it('no allowlisted route requires a session the proxy cannot supply', () => {
-    // The proxy injects a bare API key and no cookie. A route whose middleware
-    // demands a session would either reject the call or — worse, if the key
-    // satisfies it — answer as the service account.
+    // The proxy sends a bare API key, not a cookie; requiring a session could reject it or answer as the service
+    // account.
     const offenders = proxyPublicOperations
       .filter((op) => {
         const middleware = middlewareByRoute.get(`${op.method} ${op.expressPath}`)?.middleware ?? '';

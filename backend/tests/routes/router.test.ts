@@ -90,12 +90,8 @@ const ADMIN_SESSION_ROUTES: RouteEntry[] = [
 // belong to an admin — an API key still only needs the matching scope.
 const CORPUS_WRITE_PERMISSIONS = new Set(['ADD_MEDIA', 'UPDATE_MEDIA', 'REMOVE_MEDIA']);
 
-/**
- * `adminSession` marks routes whose spec carries `SessionCookie: [ADMIN]` next to
- * the ApiKey requirement. The generator applies `enforceSessionAdmin` for those as
- * well as for corpus writes, so a regular session is refused either way — but the
- * permission alone cannot tell you which, since the scope may be a read.
- */
+/** `adminSession` marks routes whose spec requires an admin session; corpus-write permission alone cannot identify
+ * them because a matching API-key scope may only grant reads. */
 const API_KEY_OR_SESSION_ROUTES: { method: Method; path: string; permission: string; adminSession?: boolean }[] = [
   { method: 'post', path: '/v1/search', permission: 'READ_MEDIA' },
   { method: 'post', path: '/v1/search/stats', permission: 'READ_MEDIA' },
@@ -252,12 +248,8 @@ describe('route auth wiring', () => {
 });
 
 describe('GET /v1/email/link', () => {
-  /**
-   * Registered by hand rather than generated, so nothing else asserts it
-   * resolves. It carries no security requirement and must not pick one up: the
-   * reader clicking it is by definition somebody we have not seen in a month,
-   * and quite possibly signed out.
-   */
+  /** This hand-registered route must remain public: a reader may be signed out and the route carries no generated
+   * security requirement. */
   it('answers a browser without a session, and is never cached', async () => {
     const token = issueReturnToken({ userId: 1, kind: 'dormant-30', campaign: 'dormant-30-2026-08' });
     const res = await request(createRouterTestApp()).get(

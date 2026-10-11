@@ -1,59 +1,6 @@
-/**
- * Removes the half-width spaces from a media whose subtitles arrived already
- * morpheme-segmented, and drops its now-meaningless tokens.
- *
- * WHY THIS EXISTS. One Punch Man was ingested from a subtitle source that had
- * been run through a morphological analyzer before it ever reached us --
- * wakati-gaki, one space per morpheme boundary -- and we stored it verbatim:
- *
- *     近い ぞ ! !　誰か い ない の か ! ?
- *     現在 協会側 で 災害 レベル を 判別 中 と の ・・・ー
- *
- * No subtitle writes a space around の. Roughly 65% of that media's 3,149 lines
- * carry them, evenly across all twelve episodes, while every other media in the
- * corpus sits at 0.0-0.3% -- which is the rate of real spacing, the kind a
- * writer puts in for a pause. So this is one bad ingest, not a pipeline fault,
- * and the repair is scoped to one media rather than swept over the corpus.
- *
- * WHAT IT TOUCHES, AND WHAT IT DELIBERATELY DOES NOT.
- *
- * Half-width U+0020 only. Full-width U+3000 stays: it is real Japanese
- * typography, it appears in clean media throughout the corpus, and the same
- * lines being repaired here use it correctly (`! !　誰か`) alongside the noise.
- * Removing it would be a second corruption on top of the first.
- *
- * Stripping every U+0020 rather than only the ones between two Japanese
- * characters is the right call even where Latin runs are involved. Four lines
- * in this media have a space between Latin/digit characters, and Japanese
- * closes all of them anyway:
- *
- *     スクワット 100 回      ->  スクワット100回
- *     身長 2 m 15 cm         ->  身長2m15cm
- *
- * TOKENS ARE CLEARED, NOT REWRITTEN. `tokens` holds character offsets into
- * `content`, so deleting characters invalidates every offset after the first
- * one. They cannot be shifted into place either, because the spaces did not
- * merely pad the tokenization -- they *forced* it. Shirabe groups the way a
- * reader looks a word up, but it cannot group across a space, so `でしょう`
- * came back as `でしょ` + `う`. Only a reparse of the repaired text recovers
- * the grouping the rest of the corpus has.
- *
- * Clearing them in the same statement that rewrites the content is what makes
- * this safe to interrupt: a row is never left holding tokens that disagree with
- * its text. A segment with no tokens renders as plain unlinked text, which is
- * the same degraded state a not-yet-parsed segment is already in.
- *
- * Usage -- all three steps, in this order:
- *
- *   node --import tsx scripts/strip-wakati-spaces.ts --media <publicId> --dry-run
- *   node --import tsx scripts/strip-wakati-spaces.ts --media <publicId>
- *   node --import tsx scripts/parse-corpus-with-shirabe.ts --media <publicId>
- *   node --import tsx scripts/reindex-media.ts --media <publicId>
- *
- * `--media` is required and has no default. This edits subtitle text in place
- * with no revision trail, and the one thing it must never do is run corpus-wide
- * because someone forgot an argument.
- */
+/** Repair one media's U+0020 spaces, preserving U+3000; clear tokens atomically because offsets become invalid.
+ * Require `--media` and preview with `--dry-run`: edits have no revision history. Then run
+ * `parse-corpus-with-shirabe.ts --media <id>` and `reindex-media.ts --media <id>`, in that order. */
 
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

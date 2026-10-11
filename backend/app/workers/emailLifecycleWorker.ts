@@ -12,28 +12,8 @@ import { describeLifecycleGate, mayReallySend } from '@app/services/email/lifecy
 import { EMAIL_LIFECYCLE_QUEUE } from './queueNames';
 import { instrumentedHandler } from './workerInstrumentation';
 
-/**
- * The nightly sweep behind every scheduled email.
- *
- * A SWEEP RATHER THAN A DELAYED JOB, which is not the obvious choice and is
- * worth the sentence. pg-boss can hold a job with `startAfter: '7 days'` and
- * would give exact timing -- but `EMAIL_SEND_QUEUE` sets
- * `retentionSeconds: 86400`, and pg-boss counts that against time in the
- * CREATED state, so a seven-day job on that queue is deleted six days before it
- * runs. A separate long-retention queue would fix that and still leave every
- * decision frozen at signup: a reader who unsubscribes on day 3 would have a
- * job already built from their day-0 self. The sweep asks the question on the
- * night it matters, so opt-outs, deletions and suppressions all just work.
- *
- * WHAT MAKES IT SAFE TO RUN TWICE is `EmailLifecycleSend`, not this file. The
- * row goes in before the job is enqueued and the unique index is what actually
- * refuses the second copy -- two workers racing on the same night both reach the
- * insert and one of them loses. See the migration.
- *
- * Each kind is swept independently and a failure in one does not stop the next:
- * an exception thrown out of here fails the whole pg-boss job, and a broken
- * day-7 query must not also mean nobody gets the feedback ask.
- */
+/** Sweep at send time so current opt-outs/suppressions apply; claim with the unique insert, and isolate failures
+ * between email kinds. */
 export async function registerEmailLifecycleWorker(boss: PgBoss): Promise<void> {
   await boss.work(
     EMAIL_LIFECYCLE_QUEUE,
@@ -57,20 +37,8 @@ export async function runLifecycleSweep(): Promise<void> {
   }
 }
 
-/**
- * Accounts that registered in a one-day window, are still active, still want the
- * mail, and have no address we already know bounces.
- *
- * The window is a range rather than "older than N days" so a sweep that has not
- * run for a week does not mail its entire backlog at once -- a day-7 email
- * arriving on day 40 is not a day-7 email, and the batch would look to a relay
- * exactly like the thing it is not.
- *
- * The suppression check is here as well as inside `sendEmail` on purpose. Left
- * to `sendEmail` alone the send is correctly skipped, but the row has already
- * been written and the account has spent its one chance at this email on a
- * message nobody could have received.
- */
+/** Select a one-day candidate window and check suppression before claiming; a delayed sweep must not send stale
+ * day-specific mail or consume its claim. */
 async function candidates(kind: LifecycleKind, ageDays: number, requireLiveSession = false): Promise<User[]> {
   const query = User.createQueryBuilder('user')
     .where('user.created_at >= now() - make_interval(days => :older)', { older: ageDays + 1 })
@@ -81,10 +49,7 @@ async function candidates(kind: LifecycleKind, ageDays: number, requireLiveSessi
     })
     .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`);
 
-  // COALESCE TO INFINITY, so "we have no session rows for this account" reads as
-  // present rather than gone. The only thing that excludes anybody here is a
-  // lapse we can point at; an account with no session history at all is a
-  // question we cannot answer, and the answer we already shipped is "send".
+  // Treat no session rows as present for the live-session check; only a known expired session excludes the account.
   if (requireLiveSession) {
     query.andWhere(`COALESCE(${LATEST_SESSION_EXPIRY}, 'infinity') > now()`);
   }
@@ -92,102 +57,27 @@ async function candidates(kind: LifecycleKind, ageDays: number, requireLiveSessi
   return query.getMany();
 }
 
-/**
- * When this account's newest session runs out.
- *
- * ONLY ASKS WHETHER THEY COULD STILL BE SIGNED IN, which is all `candidates`
- * wants it for. It used to stand in for last-seen as well, and that reading is
- * gone -- see `DORMANT_AFTER_DAYS`.
- */
+/** Use session expiry only to ask whether the account could still be signed in; last-seen is a separate dormancy
+ * signal. */
 const LATEST_SESSION_EXPIRY = `(SELECT MAX(s.expires_at) FROM "session" s WHERE s.user_id = user.id)`;
 
-/**
- * When they were last here, by any route into the site.
- *
- * READS `User.last_seen_at`, WHICH IS NOT WHERE THIS STARTED. It was
- * `MAX(session.updated_at)`, and before that `MAX(session.expires_at)` -- the
- * session table standing in for a last-seen the schema did not have. The column
- * is strictly better on the two counts that were costing us readers:
- *
- *   - IT SURVIVES A SIGN-OUT. Signing out deletes the session row, so the old
- *     expression went NULL, and `NULL < now() - 30 days` is NULL rather than
- *     true. Everybody who ever signed out was silently exempt from this sweep --
- *     the plainest lapse there is, and the one population we never wrote to.
- *   - IT SEES AN API KEY. A key never touches a session, so a reader living
- *     entirely in the API read as untouched since their last browser sign-in.
- *     `recordApiLastSeen` is the writer that closed that.
- *
- * Accurate to within a week rather than to the minute: the session hooks only
- * fire past better-auth's seven-day `updateAge`, and the API writer throttles
- * itself to a day. Against a thirty-day threshold that is noise, not error --
- * dormancy is noticed somewhere between day 30 and day 37.
- *
- * COALESCED TO `created_at`, so a null reads as "nothing since they signed up"
- * rather than as "not a match". Before the backfill a null meant we had no idea;
- * after it, it means no session has ever existed for this account, and under a
- * rule of "has done nothing for thirty days" that is a yes rather than a
- * question. `scripts/backfill-last-seen.ts` is what makes that reading true --
- * run it before trusting this, and before any sweep deletes the session rows it
- * reads from.
- */
+/** Use `last_seen_at` across browser and API activity, falling back to `created_at`; it survives sign-out and avoids
+ * session-table gaps. */
 const LAST_SEEN = `COALESCE(user.last_seen_at, user.created_at)`;
 
-/**
- * How long away counts as dormant.
- *
- * A NUMBER RATHER THAN A SIDE EFFECT OF THE SESSION LIFETIME, which is the whole
- * point of it existing. This used to be `MAX(expires_at) < now()`: true exactly
- * when better-auth's thirty-day session had run out, so "dormant" was not a
- * threshold anybody had chosen -- it was `expiresIn` read through a join, and
- * changing one silently changed the other. Extending sessions to ninety days
- * would have turned this email into a ninety-day win-back without a line of it
- * changing, campaign name and copy included.
- *
- * Now the two are independent: sessions last as long as is comfortable, and this
- * says how long away is long enough to be worth a note.
- */
+/** Keep dormancy as an explicit threshold independent of session lifetime, so changing session expiry cannot
+ * silently change campaign timing. */
 export const DORMANT_AFTER_DAYS = 30;
 
 /** How long after one win-back note the next one may go out, however often they drift away. */
 export const DORMANT_REPEAT_FLOOR_DAYS = 180;
 
-/**
- * How many win-back notes may go out on one night.
- *
- * THE CAP IS WHAT MAKES "DORMANT" A STATE RATHER THAN AN ANNIVERSARY. Taking
- * only the accounts that crossed thirty days LAST NIGHT is self-limiting, but it
- * also abandons everybody already past it -- 331 accounts when this shipped,
- * half the base, who would never hear from us again purely because their lapse
- * date fell before the feature existed.
- *
- * So the query asks the honest question -- has this account been away thirty
- * days -- and the cap handles the consequence: the first nights drain the
- * backlog twenty-five at a time rather than mailing 331 people at once down the
- * relay that also carries every magic link. At about three fresh lapses a night
- * the backlog clears in a fortnight and this stops binding on its own.
- */
+/** Cap nightly sends to drain an existing dormant backlog gradually instead of abandoning old candidates or flooding
+ * the relay. */
 export const DORMANT_NIGHTLY_CAP = 25;
 
-/**
- * Accounts nobody has been seen on for `DORMANT_AFTER_DAYS`.
- *
- * ASKS THE HONEST QUESTION AND LETS THE CAP HANDLE THE CONSEQUENCE. "Has not
- * been here for thirty days" is true of a large share of every account ever
- * created, so this matches hundreds on any given night -- through a relay that
- * is transactional-only by its own terms and also carries every magic link. The
- * alternative was to ask only for the accounts that crossed the line LAST NIGHT,
- * which is self-limiting but abandons everybody already past it. See
- * `DORMANT_NIGHTLY_CAP` for why draining a backlog beat never mailing it.
- *
- * READS LAST-SEEN, NOT SESSION EXPIRY. Those were the same question while
- * sessions lasted exactly as long as the dormancy threshold; they are not the
- * same question, and tying this to `expiresIn` meant the definition moved
- * whenever the session lifetime did.
- *
- * The floor on top is for the reader who returns, drifts, returns and drifts
- * again. Going quiet a second time is a real second dormancy and worth one more
- * note, but not more than about twice a year.
- */
+/** Select by last-seen dormancy, then apply the nightly cap and repeat floor; a returning reader may receive a
+ * later, separately earned win-back. */
 async function dormantCandidates(): Promise<User[]> {
   return (
     User.createQueryBuilder('user')
@@ -196,20 +86,8 @@ async function dormantCandidates(): Promise<User[]> {
         dormantAfter: DORMANT_AFTER_DAYS,
       })
       .andWhere(`NOT EXISTS (SELECT 1 FROM "EmailSuppression" p WHERE p.address = LOWER(user.email))`)
-      // NOT AGAIN UNLESS THEY CAME BACK, which is two conditions and both matter.
-      //
-      // The first is what the one-night window used to enforce for free. Now
-      // that the query asks "has this account been away thirty days" rather than
-      // "did it cross thirty days last night", somebody who never returns stays
-      // a match forever -- so without this they would get another note every
-      // time the floor expired, for as long as the account exists. Comparing our
-      // last send against their last sign-in says it plainly: if we wrote more
-      // recently than they were here, they have not been back and there is
-      // nothing new to tell them.
-      //
-      // The second is the floor, for the reader who does bounce in and out.
-      // Coming back and drifting away again is a real second dormancy and worth
-      // one more note, but not more than about twice a year.
+      // Do not resend until the reader returns, and enforce the repeat floor; a permanently absent account must not
+      // receive the same note forever.
       .andWhere(
         `NOT EXISTS (
          SELECT 1 FROM "EmailLifecycleSend" s
@@ -218,9 +96,7 @@ async function dormantCandidates(): Promise<User[]> {
        )`,
         { floor: DORMANT_REPEAT_FLOOR_DAYS },
       )
-      // Most recently seen first, because they are the warmest: somebody who
-      // went quiet last month is likelier to come back than somebody who left a
-      // year ago, and the long tail still drains behind them.
+      // Send warmest dormant accounts first by descending last-seen time, while the cap lets the older tail drain.
       .orderBy(LAST_SEEN, 'DESC')
       .take(DORMANT_NIGHTLY_CAP)
       .getMany()
@@ -233,20 +109,8 @@ export function dormantCampaign(now = new Date()): string {
   return `dormant-30-${now.getUTCFullYear()}-${month}`;
 }
 
-/**
- * What has been added since this reader was last here: how many, and a few of
- * them by name.
- *
- * The count is the argument; the covers are what make it land. "57 new titles"
- * is a number somebody can disbelieve, three covers they recognise is not -- and
- * a reader who left because their show was not in here can see whether that has
- * changed without clicking anything.
- *
- * Reads the same `last_seen_at` the sweep selected on, so the window in the copy
- * is the window that made them a candidate. Reading the session table here
- * instead would reopen the gap the column closed: a reader who signed out has no
- * row, and would be told nothing had been added since the beginning of time.
- */
+/** Use the same `last_seen_at` window for both candidate selection and “titles added,” so the email explains the
+ * decision that selected it. */
 async function titlesAddedSinceLastVisit(userId: number): Promise<{ count: number; samples: DormantTitle[] }> {
   const rows = (await User.query(`SELECT COALESCE(last_seen_at, created_at) AS last_seen FROM "User" WHERE id = $1`, [
     userId,
@@ -257,44 +121,25 @@ async function titlesAddedSinceLastVisit(userId: number): Promise<{ count: numbe
 
   const count = await Media.countBy({ createdAt: MoreThan(lastSeen) });
 
-  // ALWAYS A FULL GRID, topped up with the newest titles overall when fewer
-  // than that many arrived while they were away.
-  //
-  // The reason is what the covers are for. `count` is the argument -- it has to
-  // stay the honest number of titles added since their visit, and it does. The
-  // grid is the *pull*: eight covers somebody recognises is a reason to come
-  // back, and two covers is a reason to think nothing happens here. Ingest is
-  // bursty enough that a thirty-day lapser usually lands in a quiet stretch and
-  // would otherwise get a two-cover email arguing against itself.
-  //
-  // Newest first either way, so the genuinely new ones lead.
+  // Always fill the cover grid, topping up with newest titles while keeping `count` as the honest number added since
+  // the visit.
   const media = await Media.find({ order: { createdAt: 'DESC' }, take: DORMANT_TITLE_SLOTS });
 
   return {
     count,
     samples: media.map((title) => ({
-      // English first because the mail is English. Falling through the other two
-      // matters more than it looks: a title with no English name would otherwise
-      // render as an empty caption under a cover, which reads as a broken email
-      // rather than as a missing translation.
+      // Prefer English, then romaji, then Japanese so a missing translation leaves a usable caption rather than a blank
+      // one.
       name: title.nameEn || title.nameRomaji || title.nameJa,
       coverUrl: getMediaCoverUrl(title),
-      // A PATH RATHER THAN A LINK. Every address in a dormant message now
-      // carries a token naming the recipient, and this function does not know
-      // who that is -- `buildDormant30Email` does, and finishes the job.
+      // Pass a site path; the builder adds a recipient-bound token to the return link.
       path: `/media/${title.slug}`,
     })),
   };
 }
 
-/**
- * Claim the right to send, or discover somebody already has.
- *
- * The unique index is the arbiter and the insert is how we ask it. Checking for
- * an existing row first and then inserting would leave the window between the
- * two open, which on a night when the sweep runs twice is the only window that
- * matters.
- */
+/** Let the unique insert claim the send atomically; check-then-insert would allow two workers to send through the
+ * race window. */
 async function claim(userId: number, kind: LifecycleKind, campaign: string): Promise<boolean> {
   try {
     await EmailLifecycleSend.insert({ userId, kind, campaign, sentAt: new Date() });
@@ -310,37 +155,14 @@ async function claim(userId: number, kind: LifecycleKind, campaign: string): Pro
   }
 }
 
-/**
- * Both sweeps send one-off asks, so both answer to the same category.
- *
- * Named once rather than written at each call site, because the failure of
- * getting it wrong is silent: a sweep asking about the wrong category sends to
- * somebody who switched this exact thing off.
- */
+/** Name the shared category once because a wrong lifecycle category silently bypasses the reader's opt-out. */
 const CHECKINS: EmailCategory = 'checkins';
 
 /** How long we let a new account settle before asking it anything. */
 export const FEEDBACK_ASK_AGE_DAYS = 7;
 
-/**
- * The day-7 ask, for everybody a week old.
- *
- * ONE SWEEP, ONE EMAIL, TWO OPENINGS. `hasStarted` decides which question the
- * reader can answer -- what they would change, or what they were hoping to find
- * -- and `buildFeedbackAskEmail` reports back which one it used so the claim row
- * and the client reference agree.
- *
- * DAY 7 RATHER THAN DAY 30, and the numbers are the argument. At day 30 the
- * production dry run found under one candidate a night against three at day 7 --
- * and a month-30 ask only ever reaches the people it is already working for,
- * which is a survey of survivors. A week in, the impression is fresh and the
- * population still includes the people who are about to drift away.
- *
- * Seven is probably still late for the half who never searched. Splitting the
- * cold branch onto its own earlier schedule is a real option, deliberately not
- * taken yet: there is no point building two schedules before knowing the first
- * gets answered at all. `FEEDBACK_ASK_AGE_DAYS` is where that change starts.
- */
+/** Keep one day-7 sweep with `hasStarted` selecting the question; the campaign reference and claim must describe the
+ * same variant. */
 async function sweepFeedbackAsk(): Promise<void> {
   const users = await candidates('feedback-ask', FEEDBACK_ASK_AGE_DAYS);
   let sent = 0;
@@ -352,11 +174,8 @@ async function sweepFeedbackAsk(): Promise<void> {
     const started = await hasStarted(user);
     const campaign = started ? 'feedback-ask-started' : 'feedback-ask-cold';
 
-    // THE DRY-RUN BRANCH RETURNS BEFORE `claim`, and that order is the whole
-    // reason this is safe to ship disabled. Claiming first would write a row
-    // saying we had sent an email we never sent, and the day somebody enables
-    // this every account swept in the meantime would be skipped as already-done
-    // -- a launch that mails nobody and looks like it worked.
+    // Return from dry-run before `claim`; otherwise disabled sends would consume claims and make the later launch skip
+    // recipients.
     if (!mayReallySend(user.email)) {
       wouldSend += 1;
       logger.info(
@@ -417,23 +236,8 @@ async function sweepDormant30(): Promise<void> {
   logger.info({ 'email.kind': 'dormant-30', candidates: users.length, sent, wouldSend }, 'Lifecycle sweep complete');
 }
 
-/**
- * Whether this reader has actually used the site, as far as we can honestly
- * tell -- the one question day 7 splits on.
- *
- * `activityVisible` IS THE WHOLE POINT OF THIS FUNCTION. `UserActivity` is
- * written only for readers who leave `searchHistory` on, so for anyone who
- * turned it off the counts are zero for a reason that has nothing to do with
- * whether they use the site. Treating that as "never searched" would send the
- * absolute beginner's email to somebody mining sentences daily -- and the reason
- * we could not tell is that they asked us not to keep the log, which makes
- * guessing from it worse than not guessing at all.
- *
- * So an invisible log answers YES, which routes them to the feedback ask. Of the
- * two ways to be wrong, asking a quiet reader what they would change is a
- * question they can ignore; telling an active one how to run their first search
- * is a message that says we have not been paying attention.
- */
+/** If activity is hidden by consent, treat it as used rather than “never used”; zero activity is not evidence when
+ * the log is intentionally absent. */
 async function hasStarted(user: User): Promise<boolean> {
   const activityVisible = user.preferences?.searchHistory?.enabled !== false;
   if (!activityVisible) return true;

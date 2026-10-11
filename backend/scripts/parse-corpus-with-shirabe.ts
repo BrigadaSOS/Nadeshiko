@@ -1,56 +1,7 @@
-/**
- * Reparses the corpus with Shirabe and writes each segment's `tokens`.
- *
- * Shirabe is the parser now. It groups the way a reader looks words up (食べました
- * is one word, not three), says where each word reads about, aligns the ruby, and
- * names what an inflected form is doing. This walks the corpus through
- * `parseSegments` and writes the answer into `tokens`. It ran beside the old
- * SudachiPy `pos_analysis` while the result was checked over; that column has
- * since been dropped, so `tokens` is the only tokenization the corpus has and a
- * re-run of this script is how a segment gets one.
- *
- * There is no separate file hand-off and no second parser. New episodes take the
- * same path through `parseSegments`, so the corpus cannot end up half parsed one
- * way and half the other.
- *
- * Usage:
- *   node --import tsx scripts/parse-corpus-with-shirabe.ts --dry-run --limit 200
- *   node --import tsx scripts/parse-corpus-with-shirabe.ts
- *   node --import tsx scripts/parse-corpus-with-shirabe.ts --after 483000     # resume
- *   node --import tsx scripts/parse-corpus-with-shirabe.ts --media <publicId>  # one media
- *
- * Run this, THEN reindex Elasticsearch. In that order every row already has
- * its tokens by the time anything reads them (SegmentIndexer.extractSlimTokens
- * reads `tokens` and nothing else). Reindex first and every reader sees plain
- * unlinked text until this catches up.
- *
- * Resumable by primary key: it prints the last id it wrote on every progress
- * line, and `--after <id>` picks up from one. No state file to go stale.
- *
- * WORD IDS ARE NOT WRITTEN HERE, AND THAT IS THE DESIGN. An id is Shirabe's
- * DECISION about which word a token is, derived from dictionary content, so it
- * moves whenever a headword, a commonness flag or a resolution rule moves. A
- * corpus holding a million of them holds a million rows that go stale together
- * and has to be re-exported every time the resolver improves. What does not go
- * stale is the parse.
- *
- * So a reader tapping a word resolves it live, from the token this script wrote:
- * `POST /api/v1/words/identify` takes `lemma`, `surface`, `reading` and `pos`
- * and answers a ranked list of candidates WITH their definitions. That reaches
- * what no stored slug can -- 食べました resolves to 食べる, which no slug spells,
- * and 開いた answers ひらく or あく by how the sentence read it -- and it is
- * always current.
- *
- * `pos` there is Shirabe's SHORT tag (`verb`, `prt`), which is why `pt` is
- * stored alongside the UniDic `p`: see `toSlimToken`. Rows parsed before `pt`
- * existed have only `p`, and the frontend derives from it (`shortPos` in
- * ~/utils/tokenEnrichment) until a re-run of this script fills them in.
- *
- * (Superseded, in case you remember them: `include=wordIds`, `include=meanings`,
- * `POST /api/v1/words/resolve`, `resolvedWith`, and the `?surface=` mode of
- * `GET /api/v1/words/{id}` were all deleted in Shirabe 0.8.0. `GET
- * /api/v1/words/{id}` itself is untouched and still opens a word by slug.)
- */
+/** Parse segments through Shirabe into `tokens`, using the same path as new episodes. Run this before Elasticsearch
+ * reindex; ordered primary-key progress makes `--after` resumable. Word IDs remain live dictionary decisions, so
+ * only parse data is stored. Usage: `node --import tsx scripts/parse-corpus-with-shirabe.ts [--dry-run --limit
+ * N|--after <id>|--media <publicId>]`. */
 
 import { AppDataSource } from '@config/database';
 import { Media, Segment } from '@app/models';

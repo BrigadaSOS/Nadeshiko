@@ -8,9 +8,8 @@ import { deleteAuthUserByEmail } from '../helpers/authUsers';
 let sendWelcomeEmailSpy: MockInstance;
 let sendEmailJobSpy: MockInstance;
 
-// better-auth uses its own pg.Pool, not TypeORM's QueryRunner,
-// so transaction rollback won't cover these rows. Each test email is
-// cleaned before and after so tests are isolated and self-healing.
+// better-auth uses a separate pool, so TypeORM rollback cannot isolate these rows; clean each test email before and
+// after.
 const TEST_EMAILS = [
   'hooktest@nadeshiko.test',
   'hookfail@nadeshiko.test',

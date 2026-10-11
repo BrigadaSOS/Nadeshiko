@@ -147,15 +147,8 @@ export const noCache = (_req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-// `/up` is what kamal-proxy polls (once a second) while a deploy is in flight
-// and what the container HEALTHCHECK polls afterwards, so the probes are
-// deduplicated, cached for a few seconds and hard-bounded in time.
-//
-// Postgres is a hard dependency: without it the API cannot serve anything, so a
-// failed probe answers 503 and a bad deploy is rolled back instead of shipped.
-// Elasticsearch is deliberately soft: only search degrades when it is down, and
-// restart-looping the whole API over a search outage would turn a partial
-// outage into a total one. Its state is reported as a field at 200 instead.
+// `/up` serves deploy and health probes: cache and bound it. Postgres failure is 503/rollback-worthy; Elasticsearch is
+// reported soft so a search outage does not restart the whole API.
 const HEALTH_CACHE_MS = 5_000;
 const HEALTH_PROBE_TIMEOUT_MS = 2_000;
 
@@ -232,9 +225,7 @@ const magicLinkBanRedirect: RequestHandler = (req, res, next) => {
           return originalEnd('');
         }
       } catch {
-        // The body is not JSON, or not shaped like an error. That is the common
-        // case -- every successful auth response lands here -- so it is not a
-        // failure, it just means this is not the banned-user response we rewrite.
+        // Non-JSON/ordinary successful auth responses are not the banned-user shape; leave them unchanged.
       }
     }
     return originalEnd.call(res, chunk, encoding, callback);
@@ -363,25 +354,8 @@ const UserRoutes = createUserRouter({
 
 const router = express.Router();
 
-/**
- * Publish the route TEMPLATE (`/v1/media/segments/:segmentPublicId`) as
- * `http.route`, rather than letting the URL stand in for it.
- *
- * This is not belt-and-braces over the OTel express instrumentation -- it is
- * the only thing setting `http.route` on these routes. `package.json` declares
- * `"type": "module"`, so `import express from 'express'` resolves through the
- * ESM path, and @opentelemetry/instrumentation-express monkey-patches via
- * require-in-the-middle: verified on the host 2026-08-13, under `"type":
- * "module"` `express.Router.prototype.route.__wrapped` is false, and under CJS
- * it is true. Adding `@opentelemetry/instrumentation/hook.mjs` to the run
- * command does not fix it, in either load order. So the instrumentation is
- * silently a no-op here and 99.99% of requests reached the metrics with no
- * `http.route` at all, which left the APM "Endpoints" panel (it filters
- * `http_route!=""`) rendering next to nothing.
- *
- * pg is unaffected -- it patches through inner CommonJS requires and IS
- * wrapped under ESM -- so DB spans and metrics were never part of this.
- */
+/** Publish the route template directly because Express instrumentation is a no-op on this ESM setup; otherwise
+ * segment URLs have no bounded `http.route`. PostgreSQL instrumentation is unaffected. */
 const setRouteTemplate =
   (path: string): RequestHandler =>
   (_req, _res, next) => {
@@ -392,26 +366,8 @@ const setRouteTemplate =
     next();
   };
 
-/**
- * The auth surface needs the same treatment, but it cannot name its route
- * statically: better-auth is mounted behind `app.all('/v1/auth/*splat')`, one
- * Express route standing in for every endpoint it serves.
- *
- * This used to publish `req.path` verbatim, which made `http.route` unbounded
- * on an UNAUTHENTICATED surface -- every distinct path under `/v1/auth` became
- * a permanent new metric series, so anything walking `/v1/auth/<random>` could
- * inflate cardinality at will. `authRateLimit` above caps the rate per IP, not
- * the number of distinct values that accumulate. The hazard was already
- * visible in miniature in production: `/v1/auth/callback/google` carried the
- * provider as a raw label value.
- *
- * So resolve against a known set instead and collapse the rest. An auth route
- * missing from this list costs VISIBILITY (it reports as `/v1/auth/*`), never
- * cardinality, which is why this does not need the kind of drift guard
- * `route-normalization.mjs` has -- failing closed is already the safe
- * direction. Sourced from the paths in docs/generated/openapi-sdk.yaml; extend
- * alongside EXPOSED_ROUTES in bin/generateAuthSpec.ts.
- */
+/** Collapse unknown `/v1/auth` paths to a known route set: raw paths on this unauthenticated surface allow unbounded
+ * metric cardinality. Missing entries lose visibility, not safety; source them alongside the SDK auth spec. */
 const AUTH_ROUTES: ReadonlySet<string> = new Set([
   '/v1/auth',
   '/v1/auth/admin/ban-user',
@@ -460,31 +416,19 @@ for (const { method, path, middleware } of routeAuth) {
   router[method as 'get' | 'post' | 'patch' | 'put' | 'delete'](path, setRouteTemplate(path), middleware);
 }
 
-// The routes with no security requirement, so they have no routeAuth entry to
-// hang the template off. Label them directly.
-//
-// Feedback also picks up its own limiter here rather than relying on the global
-// one: it is an unauthenticated write that sends mail, and this is the layer
-// direct callers to `api.nadeshiko.co` arrive at. Site traffic is limited a hop
-// earlier, at the Nitro proxy — see the note on `feedbackRateLimit`.
+// Label public no-security routes directly; feedback gets a local limiter here because direct API callers bypass the
+// frontend limiter.
 router.get('/v1/admin/announcement', setRouteTemplate('/v1/admin/announcement'));
 router.get('/v1/roadmap', setRouteTemplate('/v1/roadmap'));
 router.post('/v1/feedback', setRouteTemplate('/v1/feedback'), feedbackRateLimit);
 router.get('/v1/feedback/token', setRouteTemplate('/v1/feedback/token'), feedbackRateLimit);
 router.post('/v1/email/unsubscribe', setRouteTemplate('/v1/email/unsubscribe'), unsubscribeRateLimit);
-// The preference page's pair, held to the same limit as the one-click: all three
-// are unauthenticated, all three are reachable by anybody who has a link, and a
-// token is not a secret once it has been forwarded.
+// Keep preference/unsubscribe links on the same token limit; tokens are not secrets once forwarded.
 router.get('/v1/email/preferences', setRouteTemplate('/v1/email/preferences'), unsubscribeRateLimit);
 router.patch('/v1/email/preferences', setRouteTemplate('/v1/email/preferences'), unsubscribeRateLimit);
 
-// The two searches a page render fans out to, capped by how many can run at
-// once rather than by who is asking -- see inFlightLimit for the 2026-08-30
-// flood that made the distinction matter. Registered AFTER the routeAuth loop
-// above, so an unauthenticated request is refused with a 401 before it can
-// hold a slot, and BEFORE the router, so a refusal never reaches the handler.
-// Site traffic is capped a hop earlier, at the frontend's render gate; this is
-// the ceiling for direct API callers, which that gate cannot see.
+// Apply the search in-flight cap after auth and before the router so unauthorized requests do not consume slots and
+// direct callers still have an admission limit.
 const searchInFlightLimit = createInFlightLimit({ scope: 'search', max: config.SEARCH_MAX_INFLIGHT });
 router.post(['/v1/search', '/v1/search/stats'], searchInFlightLimit);
 
@@ -499,46 +443,9 @@ router.use('/', UserRoutes);
 router.use('/', FeedbackRoutes);
 router.use('/', EmailRoutes);
 
-// The ZeptoMail bounce/complaint webhook.
-//
-// Registered by hand rather than generated, because it is a provider callback
-// and not part of the API contract the SDK publishes. It carries no session and
-// authenticates on a shared secret instead, so it must stay clear of the auth
-// middleware -- which it does by living outside `/v1/auth`.
-//
-// Its body is parsed as text a layer earlier (config/application.ts) so the HMAC
-// can be checked against the exact bytes ZeptoMail sent.
-//
-// It sits behind the GLOBAL per-IP limiter, which is what we want against a
-// public URL scanners will find. ZeptoMail delivers from a small set of
-// addresses, so in principle a mass bounce could be 429'd and lost -- but the
-// limit is 300/min against a service that sends a handful of transactional mails
-// a day, so reaching it would take a send this app cannot currently make. If
-// volume ever changes that, this route needs its own bucket: a 429 here is a
-// bounce we never learn about, because ZeptoMail's retry behaviour is
-// undocumented.
-// Where every link in a lifecycle email points.
-//
-// Registered by hand for the same reason the webhook below is: it answers a
-// browser with a 302, not a client with JSON, so it is not part of the API
-// contract the SDK publishes and there is nothing for the generator to describe.
-//
-// `noCache` is load-bearing rather than hygiene. The response is a redirect that
-// varies by token and is followed by a shared mail scanner as often as by a
-// reader, so a cache anywhere on the path could hand one recipient's destination
-// to another.
-//
-// ON THE GLOBAL PER-IP LIMITER ONLY, and deliberately not on the unsubscribe
-// one next to it. That bucket is five a minute, and the traffic this route
-// actually sees is a mail scanner opening every link in a message -- nine inside
-// twelve seconds, observed -- so the tight bucket would 429 most of a scan and,
-// worse, spend the budget for whatever real reader shares that egress address. A
-// 429 here is an error page in a win-back email, which is the one outcome the
-// handler is written to never produce.
-//
-// There is little to abuse in any case: no write, no mail, no session, and a
-// token nobody can forge, so the most a determined caller achieves is inflating
-// their own click count. 300/min per IP is the right ceiling for that.
+// Keep the exact-body HMAC callback outside session auth; undocumented provider retries mean 429s may lose events.
+// Redirects need `noCache` to prevent cross-recipient leaks and only the global limiter, since scanners share reader
+// egress addresses.
 router.get(EMAIL_LINK_PATH, noCache, setRouteTemplate(EMAIL_LINK_PATH), handleEmailLinkClick);
 
 router.post(WEBHOOK_ZEPTOMAIL_PATH, noCache, setRouteTemplate(WEBHOOK_ZEPTOMAIL_PATH), handleZeptomailWebhook);
@@ -549,39 +456,11 @@ export function mountRoutes(app: Application): Application {
   // Tighter per-IP limit on the auth surface (scoped before the auth handlers).
   app.use('/v1/auth', authRateLimit);
 
-  // Ties a sign-in code to the browser that asked for it, on the two paths that
-  // issue and spend one. Ahead of `toNodeHandler` so a code from a browser that
-  // never asked is refused before better-auth counts it as a failed attempt --
-  // otherwise a stranger's guesses would burn the real reader's five tries.
+  // Bind sign-in codes to the requesting browser before better-auth counts failed attempts.
   app.use(loginCodeBinding);
 
-  // What actually bounds outbound sign-in mail: five an hour to one address, and
-  // a ceiling across the whole application. Scoped to the send, not to
-  // `/v1/auth` as a whole -- verifying a link or reading a session costs no mail
-  // and must keep working while somebody is over their budget.
-  //
-  // Ahead of `toNodeHandler`, so a refused request never reaches better-auth and
-  // never becomes a row. Both answer 429 with `Retry-After`, which is what the
-  // modal counts down from.
-  //
-  // NOT MOUNTED LOCALLY, which is a routing decision rather than a `skip` inside
-  // the limiters: local mail goes to letter-opener and the point of the local
-  // flow is running it again and again, where a budget locks out the only person
-  // it can reach. Keeping the limiters themselves free of an environment check
-  // is also what lets the suite -- which runs as `local` -- exercise them.
-  //
-  // ADDRESS BEFORE CEILING, and the order is load-bearing: each limiter spends
-  // its counter as the request passes through, so a ceiling mounted first is
-  // spent by requests the address limiter is about to refuse. One client
-  // hammering a single address -- or posting garbage bodies -- would be refused
-  // after five and still drain the day's 2,000 in as many requests, taking
-  // sign-in mail offline for everyone. Counting only what survives the
-  // per-address gate makes exhausting the ceiling take ~400 distinct addresses
-  // each under 5/hour, which is the mail-volume abuse it exists for.
-  //
-  // The trade: with the address limiter first, its in-memory key cardinality is
-  // bounded by the upstream per-IP limiters rather than by the ceiling. Keys
-  // expire with the hour window, so that is a bounded cost worth paying.
+  // Mount address limiting before the application ceiling and keep both out of local routes. The order prevents garbage
+  // requests from draining the global mail budget; both return 429 with `Retry-After`.
   if (getAppEnvironment(config.ENVIRONMENT) !== APP_ENVIRONMENT.LOCAL) {
     app.post('/v1/auth/sign-in/magic-link', signInAddressRateLimit, signInGlobalRateLimit);
   }

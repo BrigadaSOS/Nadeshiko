@@ -8,36 +8,18 @@ import { sendBulkTokenParseJobs, type TokenParseJobData } from './tokenParseQueu
 import { TOKEN_PARSE_QUEUE, TOKEN_SWEEP_QUEUE } from './queueNames';
 import { instrumentedHandler } from './workerInstrumentation';
 
-/**
- * How many segments one pull turns into.
- *
- * Mirrors the page size the corpus script uses, and for the same reason:
- * `parseSegments` splits its input into batches of `PARSE_BATCH` (200) and runs
- * `SHIRABE_PARSE_CONCURRENCY` (3) of them at once, so a pull smaller than
- * batch x concurrency leaves that concurrency idle. 500 fills it without being
- * so large that one bad chunk retries a pointless amount of work.
- */
+/** Pull enough to fill the parser’s internal concurrent batches without making one retry redo an unnecessarily large
+ * pull. */
 const PULL_SIZE = 500;
 
-/**
- * Ceiling on what one nightly sweep will enqueue.
- *
- * The sweep exists to catch rows the write path missed, which should be a
- * handful. A corpus-sized hole -- a restored dump, a backfill that went round
- * the API -- is not something to discover by pointing 1.3M parses at a server
- * other people are reading from at 06:00. Past the cap the sweep enqueues what
- * it can, says how much it left, and picks the rest up tomorrow; the operator
- * who wants it done now has `scripts/parse-corpus-with-shirabe.ts`, which is
- * pausable and resumable and was built for exactly that.
- */
+/** Cap nightly recovery work so a missed write path cannot launch a corpus-sized parse against a live reader
+ * service; the rest waits for tomorrow. */
 const SWEEP_LIMIT = 20_000;
 
 export async function registerTokenParseWorker(boss: PgBoss): Promise<void> {
   await boss.work(
     TOKEN_PARSE_QUEUE,
-    // teamSize 1 on purpose. `parseSegments` already parallelises internally and
-    // watches its own latency to back off when Shirabe slows; a team of workers
-    // would put that limiter's decisions in competition with itself.
+    // Use one pg-boss worker team because `parseSegments` already controls internal parallelism and latency backoff.
     { batchSize: PULL_SIZE, teamSize: 1 },
     instrumentedHandler(TOKEN_PARSE_QUEUE, handleTokenParse),
   );
@@ -71,16 +53,8 @@ async function handleTokenParse(jobs: Job<TokenParseJobData>[]): Promise<void> {
   const texts = segments.map((segment) => segment.contentJa ?? '');
   const tokenLists = await parseSegments(texts);
 
-  // One statement for the pull. Matched on uuid AND on the text we parsed: an
-  // edit that lands between the read above and this write changes `content`, and
-  // without that second condition we would overwrite the new sentence's tokens
-  // with an analysis of the old one -- silently, and with `b`/`e` offsets that
-  // index into a string nobody is holding any more. Losing the write is right:
-  // the edit enqueued its own parse on the way past.
-  // The RETURNING is read through a CTE and a plain SELECT because TypeORM hands
-  // back `[rows, affectedCount]` for a bare UPDATE ... RETURNING and `rows` for a
-  // SELECT. Taking `.length` of the former counts 2 whatever happened, which is
-  // a number that looks like a row count and never is.
+  // Guard the update by both id and current text so stale analysis cannot overwrite an edit; use a CTE/SELECT because
+  // TypeORM raw UPDATE RETURNING has a different result shape.
   const updated: Array<{ id: number }> = await Segment.getRepository().query(
     `WITH incoming AS (
        SELECT unnest($1::text[]) AS uuid,
@@ -101,30 +75,15 @@ async function handleTokenParse(jobs: Job<TokenParseJobData>[]): Promise<void> {
   const empty = tokenLists.filter((tokens) => tokens.length === 0).length;
   logger.info({ asked: segmentIds.length, written: updated.length, empty }, 'Parsed segment tokens');
 
-  // The UPDATE above is a raw statement, so no TypeORM subscriber fires and
-  // nothing reindexes on its own -- the same trap `parse-corpus-with-shirabe.ts`
-  // answers with a separate `reindex-media.ts` run. Here the sync is enqueued
-  // outright, which is what makes this path complete where the script's is two
-  // commands. Only the rows that actually changed: the ones the text guard
-  // skipped are already queued by whoever changed them.
+  // Raw SQL bypasses TypeORM subscribers, so enqueue ES sync explicitly for rows actually updated; skipped rows already
+  // have their own work.
   if (updated.length > 0) {
     await sendBulkEsSyncJobs(updated.map((row) => ({ segmentId: row.id, operation: 'UPDATE' as const })));
   }
 }
 
-/**
- * The nightly backstop: anything with no tokens gets queued for a parse.
- *
- * The write paths enqueue their own work, so on a healthy day this finds
- * nothing. What it covers is everything that does not go through them -- a
- * restored backup, a direct SQL insert, an enqueue that failed while pg-boss was
- * down -- and the case that actually happened: a corpus whose only tokenizer was
- * a script somebody had to remember to run.
- *
- * DELETED segments are skipped. They are not served and not indexed, so parsing
- * them spends Shirabe's CPU on text no reader can reach; if one is restored, the
- * restore is an update and enqueues its own parse.
- */
+/** Nightly parsing repairs rows missed by writes, restores, or failed enqueueing; skip deleted segments because they
+ * are neither served nor indexed. */
 async function handleTokenSweep(): Promise<void> {
   const rows: Array<{ id: number }> = await Segment.getRepository().query(
     `SELECT id FROM "Segment"

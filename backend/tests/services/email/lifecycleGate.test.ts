@@ -1,16 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-/**
- * `config` is frozen at module load, so varying it means standing something else
- * in front of it.
- *
- * A Proxy over an UNFROZEN COPY rather than over the real object: a `get` trap
- * that returns something other than a non-writable, non-configurable property's
- * own value is a TypeError, and `Object.freeze` makes every key exactly that.
- * Everything not overridden falls through to the real value, so the rest of the
- * import chain -- which reaches Elasticsearch on the way in -- still gets a
- * config it can use.
- */
+/** Vary frozen module-load config through a Proxy over an unfrozen copy; overriding a frozen key directly would
+ * throw, while fall-through keeps the rest of the import chain usable. */
 const overrides: Record<string, unknown> = {};
 
 vi.mock('@config/config', async (importOriginal) => {
@@ -44,10 +35,7 @@ beforeEach(() => {
 });
 
 describe('with the switch off', () => {
-  /**
-   * The state this feature ships in. Everything below is a variation on "and it
-   * still does not send".
-   */
+  /** Preserve the disabled-send gate so an unconfigured environment does not mail readers. */
   it('sends to nobody', () => {
     expect(lifecycleSendsAreLive()).toBe(false);
     expect(mayReallySend('anyone@example.com')).toBe(false);
@@ -86,11 +74,8 @@ describe('with the switch on and an allowlist', () => {
     expect(mayReallySend('dav@nadeshiko.co')).toBe(true);
   });
 
-  /**
-   * Addresses are compared in one normalized shape everywhere else in the email
-   * code; an allowlist that was case-sensitive would silently not match the
-   * address somebody typed into the environment.
-   */
+  /** Normalize addresses before comparison; a case-sensitive allowlist would silently miss an address typed in
+   * another case. */
   it('matches regardless of case or surrounding space', () => {
     expect(mayReallySend('NATSUME@nadeshiko.co')).toBe(true);
     expect(mayReallySend('  dav@nadeshiko.co  ')).toBe(true);
@@ -104,10 +89,7 @@ describe('with the switch on and an allowlist', () => {
     expect(describeLifecycleGate()).toContain('2 allowlisted');
   });
 
-  /**
-   * A value that parses to nothing is a mistake, and the safe reading of a
-   * mistake here is "nobody" rather than "everybody".
-   */
+  /** An allowlist that parses to no addresses must fail closed as “nobody,” not open as “everybody.” */
   it('treats an allowlist of separators as empty, not absent', () => {
     configValues.LIFECYCLE_EMAILS_ONLY_TO = ' , , ';
 

@@ -1,10 +1,4 @@
-/**
- * Generates a route-to-error-code mapping from the bundled OpenAPI spec.
- *
- * For each path+method, collects all error response schemas (non-2xx),
- * resolves each schema's `code.enum` values, and outputs a Map of
- * route keys to valid error codes for runtime validation.
- */
+/** Generates route error-code profiles from non-2xx OpenAPI responses for runtime validation. */
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -38,10 +32,7 @@ function isRef(obj: unknown): obj is RefObject {
   return typeof obj === 'object' && obj !== null && '$ref' in obj;
 }
 
-/**
- * Resolve the JSON schema behind a response, following a response-level `$ref`
- * (e.g. `#/components/responses/BadRequest`) and then a schema-level one.
- */
+/** Resolve response-level then schema-level `$ref`s. */
 function resolveResponseSchema(spec: OpenApiSpec, response: unknown): SchemaObject | undefined {
   const responseObj = isRef(response) ? resolveRef<ResponseObject>(spec, response.$ref) : (response as ResponseObject);
 

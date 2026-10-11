@@ -11,17 +11,8 @@ import type { Server } from 'node:http';
 import { request } from '../helpers/http';
 import { config } from '@config/config';
 
-/**
- * The regression these cover is invisible from inside the process: the seeding
- * works, the series exists, and the alert rule that reads it still matches
- * nothing an hour later.
- *
- * DELTA IS THE WHOLE POINT, so the reader below is DELTA and not the CUMULATIVE
- * one the email contract test uses. A cumulative reader re-reports every series
- * on every collection, which is precisely the behaviour production does NOT
- * have -- write these against a cumulative reader and they pass without testing
- * anything.
- */
+/** Use DELTA, not the cumulative reader: cumulative temporality re-reports every series and would let the tests pass
+ * without detecting the production failure. */
 const exporter = new InMemoryMetricExporter(AggregationTemporality.DELTA);
 let reader: PeriodicExportingMetricReader;
 let telemetry: typeof import('@config/telemetry');
@@ -83,17 +74,8 @@ describe('the zero-series heartbeat', () => {
   });
 
   it('keeps a delta counter producing samples after the boot export has gone', async () => {
-    /**
-     * THE ACTUAL BUG, reproduced. Under delta temporality an export carries only
-     * the attribute sets that recorded a measurement since the last collection,
-     * so a counter seeded once is present in the first export and absent from
-     * every one after it -- which is what left the two email webhook rules
-     * matching nothing an hour after each deploy.
-     *
-     * REAL TIMERS, deliberately: `reader.forceFlush()` races an internal timeout,
-     * so awaiting a collection under fake timers never resolves. The interval is
-     * 25ms instead, which is the same mechanism at a speed a test can wait for.
-     */
+    /** Under delta temporality, a counter recorded once disappears from later exports. Use real timers because
+     * `forceFlush()` races the internal timeout under fake timers. */
     const stop = telemetry.startSeriesHeartbeat([rateLimit.seedRateLimitSeries], 25);
     await collect(); // drains the immediate emit, leaving only the interval's work
 
@@ -103,26 +85,15 @@ describe('the zero-series heartbeat', () => {
     stop();
     await collect(); // drains anything the last tick recorded before it stopped
 
-    // Nothing has touched the counter since, and this is exactly what production
-    // looked like an hour after every deploy: the series exists, and it reports
-    // no samples at all.
+    // No counter samples arrived after the last tick, so the series should report no samples.
     expect(pointsFor(await collect(), 'http.server.rate_limited')).toHaveLength(0);
   });
 });
 
 describe('the rate-limit metric contract', () => {
   it('seeds every scope x source series at zero, including the internal ones nothing has written', async () => {
-    /**
-     * `source="internal"` is written the first time the backend throttles one of
-     * its own callers -- the thing NadeshikoBackendProdRateLimitingItself exists
-     * to catch, and therefore the thing that has never happened. Unseeded, that
-     * rule reads NO DATA rather than false and reports healthy forever.
-     *
-     * Prometheus renders these as `http_server_rate_limited_total`, with `scope`
-     * and `source` as labels: the names are the contract with
-     * nadeshiko-services.yml in brigadasos-infra, so changing one means changing
-     * the rule in the same breath.
-     */
+    /** The `source="internal"` and `http_server_rate_limited_total` labels are the contract with the production
+     * alert rule; changing them requires changing that rule too. */
     rateLimit.seedRateLimitSeries();
     const points = pointsFor(await collect(), 'http.server.rate_limited');
 

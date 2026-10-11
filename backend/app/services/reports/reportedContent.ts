@@ -1,37 +1,8 @@
 import { Media, Report, ReportSource, ReportStatus, ReportTargetType } from '@app/models';
 import { Cache, createCacheNamespace } from '@lib/cache';
 
-/**
- * What readers have reported and nobody has dealt with yet, in the two shapes
- * search cares about.
- *
- * Reported *segments* are hidden outright: the complaint is almost always that
- * the line itself is wrong -- bad translation, bad timing, bad audio -- so there
- * is nothing to rank, and one bad line among millions is not worth showing while
- * it waits. Titles are demoted instead of hidden, because no title-level
- * complaint (wrong cover, wrong metadata) says its subtitles are unusable, and
- * removing the catalogue entry would take tens of thousands of good segments
- * with it.
- *
- * Both are ranking inputs, which is why the set is narrower than "every report":
- *
- *   - `source = USER` only. The AUTO rows still in the table were written by a
- *     media-audit runner that no longer exists (see the legacy-reason note in
- *     app/models/Report.ts) -- nothing will ever move them out of OPEN, so
- *     counting them would be a permanent, invisible penalty on whichever titles
- *     that runner happened to flag before it was removed.
- *   - OPEN and PROCESSING both count. PROCESSING means someone has looked, not
- *     that the problem is gone; FIXED and DISMISSED restore the content.
- *   - EPISODE reports do nothing here. Hiding an episode's segments would remove
- *     thousands of lines on one reader's say-so, and demoting the whole title for
- *     one bad episode is the wrong shape too.
- *
- * Every report is trusted on its face -- no reporter-count threshold, no admin
- * acknowledgement. That is a deliberate call for the current volume, and the
- * first thing to revisit if reporting is ever used to bury content: one account
- * can hide any segment and demote any title here, and neither is visible from
- * the outside.
- */
+/** Ranking uses only user OPEN/PROCESSING reports: hide bad segments, demote titles, exclude episode reports, and do
+ * not count legacy AUTO rows. */
 export interface UnhandledReports {
   /** Segment ids with an unhandled report. Excluded from results entirely. */
   segmentIds: ReadonlySet<number>;
@@ -45,43 +16,21 @@ export interface UnhandledReports {
 /** A title with an unhandled report against the title itself. */
 const TITLE_REPORT_WEIGHT = 0.35;
 
-/**
- * Demotion by how much of a title has been reported, harshest tier first.
- *
- * Density rather than a report count, because a count measures viewership: a
- * popular show collects more reports than a quiet one at the same error rate, and
- * ranking on the raw number would demote exactly the titles most people watch.
- *
- * The signal is about the lines NOT reported. Reported segments are already
- * hidden, so demoting a title for them would be punishing it twice -- what earns
- * the demotion is the inference that a track producing many bad lines is
- * producing bad lines nobody has got round to reporting yet.
- *
- * At current reporting volume these tiers fire rarely; `TITLE_REPORT_WEIGHT`
- * does most of the work. They are the knob to turn, in either direction, once
- * there is enough traffic to say what a normal error rate looks like.
- */
+/** Use reported density rather than raw count so popularity does not punish a title; do not compound segment and
+ * title penalties. */
 const DENSITY_TIERS: readonly { minDensity: number; weight: number }[] = [
   { minDensity: 0.02, weight: 0.2 },
   { minDensity: 0.005, weight: 0.4 },
   { minDensity: 0.001, weight: 0.7 },
 ];
 
-/**
- * No density demotion below this many reported segments, whatever the ratio says.
- * A 40-line clip with one bad line is 2.5% "bad" on the arithmetic and fine in
- * reality; short titles would otherwise be demoted by a single report.
- */
+/** Require a minimum number of reported segments before applying density, so one report cannot demote a short title. */
 const MIN_REPORTED_SEGMENTS_FOR_DENSITY = 3;
 
 const REPORTED_CONTENT_CACHE = createCacheNamespace('reportedContent', 1);
 const REPORTED_CONTENT_KEY = 'unhandledReports';
 
-/**
- * Short enough that resolving a report restores the content within a few minutes
- * even when the invalidation below is bypassed -- a status changed directly in the
- * database, or another process holding its own copy of this cache.
- */
+/** Keep the cache TTL short enough that a resolved report is reflected even if explicit invalidation is missed. */
 const REPORTED_CONTENT_TTL_MS = 5 * 60 * 1000;
 
 export async function getUnhandledReports(): Promise<UnhandledReports> {
@@ -132,15 +81,8 @@ export async function getUnhandledReports(): Promise<UnhandledReports> {
   });
 }
 
-/**
- * The single weight each title ends up with.
- *
- * Deliberately not a product of the two penalties: a title reported at both
- * levels would compound to near-zero and vanish, which is a heavier decision than
- * either report supports. The harsher of the two applies and the other is
- * ignored, so the worst case stays the worst tier rather than the worst tier
- * squared.
- */
+/** Apply the harsher title weight once, not as a product of independent penalties; a reported title must not vanish
+ * as weight-squared. */
 async function buildMediaWeights(
   reportedTitles: ReadonlySet<number>,
   reportedSegmentsByMedia: ReadonlyMap<number, number>,

@@ -31,10 +31,8 @@ describe('buildApplication', () => {
     const app = buildApplication();
     const res = await request(app).get('/up');
 
-    // /up probes the app DataSource, which the suite never initializes (tests
-    // run against TestDataSource), so it honestly reports the database as down.
-    // The health envelope is what proves the route is mounted -- the custom
-    // route mounter case below gets a 404 instead.
+    // `/up` reports the uninitialized app DataSource as down; its health envelope proves the route is mounted, while
+    // the custom-mounter case expects 404.
     expect(res.status).toBe(503);
     expect(res.body).toMatchObject({ status: 'error', database: 'down', releaseSha: 'unknown' });
   });
@@ -82,10 +80,8 @@ describe('buildApplication', () => {
       },
     });
 
-    // One server for all 302 requests. `request(app)` binds a fresh ephemeral
-    // server per call, and 302 of those under a loaded full-suite run exhausted
-    // sockets often enough to fail this test with ETIMEDOUT roughly one run in
-    // five -- a flake in the harness, not in the limiter being tested.
+    // Reuse one listening server: binding a fresh server for 302 requests intermittently exhausted sockets and flaked
+    // with `ETIMEDOUT`.
     const server = app.listen(0);
     try {
       let lastStatus = 0;

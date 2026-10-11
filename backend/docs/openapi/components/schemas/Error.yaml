@@ -1,7 +1,5 @@
-# Single error schema for all error types
-# 1. Create exception class in utils/apiErrors.ts
-# 2. Create example file in docs/openapi/components/examples/ErrorCodeName.yaml
-# 3. Update relevant response files to include the new example
+# Shared error schema. To add an error: create the exception, add its example under components/examples, then include
+# that example in the relevant response.
 type: object
 description: Error Response schema for all cases
 required:

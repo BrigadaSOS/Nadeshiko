@@ -83,11 +83,8 @@ export const workersInitializer: RuntimeInitializer = {
       {
         name: EMAIL_LIFECYCLE_QUEUE,
         options: {
-          // One retry, not five. This is a sweep over a query, so a second run
-          // finds exactly what the first would have; the value of retrying is
-          // covering a transient database blip, and beyond that a failure means
-          // the query is wrong and repeating it just delays the log line saying
-          // so. Nobody is waiting: the next run is tomorrow at 05:00 either way.
+          // One retry covers a transient DB failure; beyond that a query failure should wait for tomorrow’s sweep
+          // rather than repeat indefinitely.
           retryLimit: 1,
           retryDelay: 300000,
           expireInSeconds: 1800,
@@ -117,12 +114,8 @@ export const workersInitializer: RuntimeInitializer = {
       {
         name: TOKEN_PARSE_QUEUE,
         options: {
-          // Shirabe is a small server that also serves readers, so a failure
-          // here is usually "come back later" rather than "this will never
-          // work": a restart mid-deploy, a 502, a slow chunk timing out. Backing
-          // off across five attempts rides those out. `parseSegments` retries
-          // the individual chunk first; this is the outer net for when the whole
-          // pull dies.
+          // Retry the outer Shirabe pull across deploy/502/timeout failures; `parseSegments` already retries individual
+          // chunks.
           retryLimit: 5,
           retryDelay: 30000,
           retryBackoff: true,
@@ -137,9 +130,7 @@ export const workersInitializer: RuntimeInitializer = {
       {
         name: TOKEN_SWEEP_QUEUE,
         options: {
-          // A sweep over a query, so a retry finds what the first run would
-          // have. Same reasoning as the email lifecycle sweep: one retry covers
-          // a database blip, and past that the next run is tomorrow.
+          // This query sweep gets one retry for a DB blip; later failures wait for tomorrow.
           retryLimit: 1,
           retryDelay: 300000,
           expireInSeconds: 1800,
@@ -152,9 +143,7 @@ export const workersInitializer: RuntimeInitializer = {
       await boss.createQueue(queue.name, queue.options);
     }
 
-    // `createQueue` deliberately does not modify an existing queue. Apply the
-    // corrected delay to the three ES queues explicitly, without touching
-    // unrelated queue settings or their existing jobs.
+    // Update the three ES queues explicitly; `createQueue` leaves existing queues unchanged.
     for (const queueName of [ES_SYNC_CREATE_QUEUE, ES_SYNC_UPDATE_QUEUE, ES_SYNC_DELETE_QUEUE]) {
       await boss.updateQueue(queueName, { retryDelay: 1 });
     }
@@ -163,13 +152,9 @@ export const workersInitializer: RuntimeInitializer = {
     // An hour after the activity sweep, so the two nightly deletes do not
     // contend for the same window.
     await boss.schedule(AFFINITY_RETENTION_QUEUE, '0 4 * * *', {});
-    // An hour after the affinity sweep, which is what the recap will read. The
-    // order matters on the 1st of the month: mailing a summary built from a
-    // tally that has not finished rolling over would report the wrong month.
+    // Run the affinity sweep before the recap so month-boundary tallies are complete.
     await boss.schedule(EMAIL_LIFECYCLE_QUEUE, '0 5 * * *', {});
-    // Last of the nightly jobs, and the only one that talks to another service.
-    // It runs after the deletes so it never queues a parse for a row the
-    // retention sweep is about to remove.
+    // Run this last so it cannot queue work for rows the retention sweep is about to delete.
     await boss.schedule(TOKEN_SWEEP_QUEUE, '0 6 * * *', {});
     logger.info('PgBoss initialized, queues created, cron scheduled');
 

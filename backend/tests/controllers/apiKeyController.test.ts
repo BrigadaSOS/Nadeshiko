@@ -17,19 +17,8 @@ beforeEach(() => {
   signInAs(app, fixtures.users.regular);
 });
 
-/**
- * NOTE ON CLEANUP, because the obvious fix does not work. better-auth writes
- * through its own `pg.Pool` (see `config/auth.ts`), not the QueryRunner this
- * suite patches into TypeORM, so keys created here commit for real and survive
- * the per-test rollback. A `DELETE FROM "apikey"` in an `afterEach` looks like
- * the answer and instead hangs the whole file indefinitely -- it contends with
- * the still-open per-test transaction and no hook timeout unblocks it.
- *
- * So the rows are left, and every assertion below is written to not care:
- * lookups go by the id just returned, and the one count-by-name asks about a
- * key this suite never successfully creates. `npm run test:setup` clears them.
- * A future test that LISTS a fixture user's keys would need to deal with this.
- */
+/** better-auth uses its own `pg.Pool`, outside the TypeORM rollback. Created keys therefore persist; cleanup by
+ * `DELETE` can hang against the open transaction, so assertions use returned ids and unique non-created names. */
 
 /** The permission list as it was actually stored, which is what the key can do. */
 async function storedPermissions(keyId: string): Promise<Record<string, string[]> | null> {
@@ -52,10 +41,8 @@ describe('POST /v1/user/api-keys', () => {
     expect(res.body.scopes).toEqual([ApiPermission.READ_MEDIA]);
     expect(res.body.key).toEqual(expect.stringContaining('nade_'));
 
-    // The response echoing the right scopes is not the same claim as the key
-    // being stored with them, and it is the stored list that is consulted on
-    // every later request. A read-only key that was persisted with the full
-    // default set would pass every assertion above.
+    // The response scopes do not prove the persisted scopes. A key stored with the default set would satisfy the
+    // earlier response assertion but authorize later requests incorrectly.
     expect(await storedPermissions(res.body.id)).toEqual({ api: [ApiPermission.READ_MEDIA] });
   });
 

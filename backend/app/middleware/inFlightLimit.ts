@@ -2,40 +2,8 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ServiceOverloadedError } from '@app/errors';
 import { getMeter } from '@config/telemetry';
 
-/**
- * A cap on how many requests of one kind are being served at the same time.
- *
- * WHY THIS AND NOT (ONLY) THE PER-IP LIMITERS. On 2026-08-30 a crawler spread
- * 110,340 search renders over 108,685 addresses in 45 minutes -- one request
- * each. No per-IP budget was exceeded anywhere in the stack, and every request
- * was accepted: /v1/search went from ~50ms to p50 596ms / p95 10.9s, not
- * because Elasticsearch was out of CPU (it was at 40%) but because its search
- * pool on a 4-core box has 7 threads and everything else queued behind them.
- * The frontend renders waiting on those answers then ran past the proxy's 30s
- * timeout, and the origin spent the next half hour computing responses nobody
- * would receive.
- *
- * A concurrency cap is the only control that speaks to that failure. Past it,
- * the answer is an immediate 503 with `Retry-After` -- microseconds, honest,
- * and it leaves the pool to the searches already running, so throughput under
- * a flood holds at the ceiling instead of falling to nothing.
- *
- * THE FRONTEND HAS ITS OWN CAP (server/middleware/99-ssr-admission.ts) on page
- * renders, and under normal shapes of load that one trips first: 2 workers x 8
- * renders, each of which makes at most 2 calls here (search + stats), is 32
- * concurrent searches at the very most -- which is exactly the default for
- * SEARCH_MAX_INFLIGHT. So site traffic never meets this limiter; it is here
- * for the callers the frontend cannot see, which is anyone holding an API key
- * and pointing it at api.nadeshiko.co directly.
- *
- * COUNTED PER PROCESS. The backend runs one, so this is also the service-wide
- * number; if that changes, the cap has to be divided the way the frontend's
- * `perWorkerMax` divides its own.
- *
- * Released on `finish` AND `close`, and idempotently, because an aborted request
- * fires only the second and a slot leaked on an abort is a slot the flood never
- * gives back.
- */
+/** Cap concurrent work for direct API-key callers; per-IP limits cannot stop distributed floods, and release slots
+ * on both finish and close. */
 export interface InFlightLimitOptions {
   /** Names the series on the `http.server.overloaded` counter. */
   scope: string;
@@ -63,13 +31,7 @@ const capacityGauge = getMeter().createObservableGauge('http.server.admission.ca
   unit: '{request}',
 });
 
-/**
- * Every scope that exists, so the zero-series can be seeded before anything is
- * refused -- for the same reason `seedRateLimitSeries` exists: a delta counter
- * that has never been touched has no series, and a rule reading it sees NO DATA
- * rather than zero. Registered by `createInFlightLimit`, emitted by the series
- * heartbeat in @config/telemetry.
- */
+/** Seed every scope at zero and heartbeat the delta series; otherwise “never throttled” is missing data, not zero. */
 const scopes = new Set<string>();
 
 export function seedInFlightLimitSeries(): void {
@@ -89,10 +51,8 @@ export function createInFlightLimit({ scope, max, retryAfterSeconds = 2 }: InFli
   capacityGauge.addCallback((result) => result.observe(max, { scope }));
 
   const handler = (req: Request, res: Response, next: NextFunction): void => {
-    // Authentication runs before this gate and can await a database lookup.
-    // A disconnect during that await has already emitted `close` by the time
-    // we arrive here. Taking a slot now would attach its release listener too
-    // late and permanently reduce capacity, even if the handler later settles.
+    // Do not acquire a slot after an earlier disconnect; auth may already have emitted `close`, so the release listener
+    // would be too late.
     if (req.aborted || res.destroyed || res.writableEnded) return;
 
     if (inFlight >= max) {

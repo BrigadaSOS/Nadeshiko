@@ -1,13 +1,5 @@
-/**
- * Canonical handling of the `languages` search filter.
- *
- * The API accepts two shapes (see `docs/openapi/components/schemas/SearchFilters.yaml`):
- *   - `('EN' | 'ES')[]` — the translation languages to match alongside Japanese
- *   - `{ exclude: ('en' | 'es' | 'EN' | 'ES')[] }` — legacy, deprecated
- *
- * Both the casing and the include/exclude polarity are decided here so that query
- * building, highlight configuration and cache keys can never drift apart.
- */
+/** Normalize both accepted `languages` shapes and casing here so query construction, highlights, polarity, and cache
+ * keys cannot drift. */
 
 const SEARCH_LANGUAGES = ['EN', 'ES'] as const;
 
