@@ -31,6 +31,7 @@ import { mediaMetaI18n, formatMediaMetaNumber, expectedMediaMeta } from '../../.
  * alternate that is the name it already gave.
  */
 const capturedSchema: unknown[] = [];
+const capturedErrors: unknown[] = [];
 const route = reactive({
   params: { slug: 'bocchi' },
   path: '/media/bocchi',
@@ -101,8 +102,7 @@ vi.stubGlobal('useNadeshikoSdk', () => ({}));
 vi.stubGlobal('userStore', () => ({ isLoggedIn: false, isAdmin: false, preferences: {}, user: null }));
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
 vi.stubGlobal('useQuerySync', () => ({ setQuery: vi.fn() }));
-const createError = vi.fn((v: Record<string, unknown>) => Object.assign(new Error('x'), v));
-vi.stubGlobal('createError', createError);
+vi.stubGlobal('createError', (v: Record<string, unknown>) => Object.assign(new Error('x'), v));
 function stubPrimedAsyncData() {
   vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown>) => {
     const data = ref<unknown>(null);
@@ -140,12 +140,16 @@ const mounted: { unmount: () => void }[] = [];
 
 async function render(value: Record<string, unknown> | null = media()) {
   capturedSchema.length = 0;
+  capturedErrors.length = 0;
   if (value === null) $fetch.mockRejectedValue({ statusCode: 404 });
   else $fetch.mockResolvedValue(value);
 
   const Host = defineComponent({
     components: { MediaSlugPage },
-    errorCaptured: () => false,
+    errorCaptured: (error: unknown) => {
+      capturedErrors.push(error);
+      return false;
+    },
     template: '<Suspense><MediaSlugPage /></Suspense>',
   });
   const wrapper = mount(Host, {
@@ -198,83 +202,72 @@ afterEach(() => {
 });
 
 describe('the work entity', () => {
-  test('is declared for a title', async () => {
-    await render();
-
-    expect(work()).toBeTruthy();
+  const series = { '@type': 'TVSeries', name: 'Bocchi the Rock', genre: ['Comedy'], inLanguage: 'ja' };
+  const alternates = ['ぼっち・ざ・ろっく', 'Bocchi Za Rokku'];
+  test.each([
+    {
+      label: 'other names exclude the primary name',
+      input: {},
+      expected: { ...series, alternateName: alternates },
+    },
+    {
+      label: 'alternates follow the reader language',
+      input: {},
+      language: 'JAPANESE' as const,
+      expected: { ...series, name: 'ぼっち・ざ・ろっく', alternateName: ['Bocchi Za Rokku', 'Bocchi the Rock'] },
+    },
+    {
+      label: 'blank names are omitted',
+      input: { nameJa: '', nameRomaji: '' },
+      expected: series,
+    },
+    {
+      label: 'a repeated primary name is omitted',
+      input: { nameJa: '', nameRomaji: 'Bocchi the Rock' },
+      expected: series,
+    },
+    {
+      label: 'duplicate alternates are emitted once',
+      input: { nameJa: 'ぼっち', nameRomaji: 'ぼっち' },
+      expected: { ...series, alternateName: ['ぼっち'] },
+    },
+    {
+      label: 'a film is a Movie without an episode count',
+      input: { airingFormat: 'MOVIE', episodeCount: 1 },
+      expected: { ...series, '@type': 'Movie', alternateName: alternates },
+    },
+    {
+      label: 'a series carries its episode count',
+      input: { episodeCount: 12 },
+      expected: { ...series, alternateName: alternates, numberOfEpisodes: 12 },
+    },
+  ])('$label', async ({ input, language: preference, expected }) => {
+    language.value = preference ?? 'ENGLISH';
+    await render(media(input));
+    expect(work()).toEqual(expected);
   });
 
-  test('carries the OTHER two names as alternates', async () => {
-    // Search Console shows readers arriving on all three forms; without this the
-    // three queries compete for one entity instead of resolving to it.
-    await render();
-
-    expect(work()!.alternateName).toEqual(expect.arrayContaining(['ぼっち・ざ・ろっく', 'Bocchi Za Rokku']));
-  });
-
-  test('never repeats the name it already gave', async () => {
-    await render();
-
-    expect(work()!.alternateName).not.toContain(work()!.name);
-  });
-
-  test('and follows the reader’s language, so the alternates change with it', async () => {
-    language.value = 'JAPANESE';
-    await render();
-
-    expect(work()!.name).toBe('ぼっち・ざ・ろっく');
-    expect(work()!.alternateName).not.toContain('ぼっち・ざ・ろっく');
-  });
-
-  test('a title with one name claims no alternates at all', async () => {
-    await render(media({ nameJa: '', nameRomaji: '' }));
-
-    expect(work()!.alternateName ?? []).toHaveLength(0);
-  });
-
-  test('an alternate that repeats the primary name is dropped', async () => {
-    // A work whose romaji and English titles are identical.
-    await render(media({ nameJa: '', nameRomaji: 'Bocchi the Rock' }));
-
-    expect(work()!.alternateName ?? []).toHaveLength(0);
-  });
-
-  test('two alternates that match EACH OTHER are listed once', async () => {
-    // Distinct from the headline, so only the deduplication can collapse them.
-    await render(media({ nameJa: 'ぼっち', nameRomaji: 'ぼっち' }));
-
-    expect(work()!.alternateName).toEqual(['ぼっち']);
-  });
-
-  test('a FILM is declared as a Movie, not a series', async () => {
-    // A film with `numberOfEpisodes` is invalid markup, and a series declared as
-    // a film loses the one property that distinguishes it.
-    await render(media({ airingFormat: 'MOVIE', episodeCount: 1 }));
-
-    expect(work()!['@type']).toBe('Movie');
-    expect(work()).not.toHaveProperty('numberOfEpisodes');
-  });
-
-  test('and a series carries its episode count', async () => {
-    await render(media({ episodeCount: 12 }));
-
-    expect(work()!['@type']).toBe('TVSeries');
-    expect(work()!.numberOfEpisodes).toBe(12);
-  });
-
-  test('a YouTube channel declares no work entity, because it is not one', async () => {
+  test('a YouTube channel emits page and breadcrumb schema without a work entity', async () => {
     await render(media({ category: 'YOUTUBE' }));
 
-    expect(work()).toBeUndefined();
+    expect(nodes()).toEqual([
+      { '@type': 'CollectionPage' },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { name: 'navbar.buttons.home', item: '/' },
+          { name: 'seo.media.title', item: '/media' },
+          { name: 'Bocchi the Rock', item: '/media/bocchi' },
+        ],
+      },
+    ]);
   });
 });
 
-describe('a slug that resolves to nothing', () => {
-  test('404s rather than rendering an empty title page', async () => {
-    await render(null);
+test('a missing slug propagates Media Not Found from page setup', async () => {
+  await render(null);
 
-    expect(createError).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
-  });
+  expect(capturedErrors).toEqual([expect.objectContaining({ statusCode: 404, statusMessage: 'Media Not Found' })]);
 });
 
 describe('primed media search errors', () => {
