@@ -12,10 +12,8 @@ import type { ResolvedMediaFilterItem, ResolvedSearchFilters } from '@app/contro
  * the clause-building code is written once per *kind* of filter rather than once per
  * filter.
  *
- * Clause order within `filter` is preserved exactly as it was, because it is part of
- * the cache key: `SegmentQuery.buildSearchStatsCacheKey` hashes the built query, so a
- * reordering that changes nothing semantically would still invalidate every cached
- * search-stats entry at once.
+ * Clause order within `filter` stays deterministic for comparable emitted queries.
+ * Search-stats cache keys are derived from request values, not from this DSL.
  */
 
 /** Filters read as `{ min?, max? }` and applied as a `range` over one numeric field. */
@@ -77,7 +75,7 @@ export function expandContentRatingTerms(contentRating: string[]): string[] {
  * shape does not carry -- passing an unresolved filter here produced
  * `term: { mediaId: undefined }`, matching nothing while reporting no error.
  */
-export function buildMediaFilter(items: readonly ResolvedMediaFilterItem[]): estypes.QueryDslQueryContainer {
+function buildMediaFilter(items: readonly ResolvedMediaFilterItem[]): estypes.QueryDslQueryContainer {
   const mediaQueries: estypes.QueryDslQueryContainer[] = items.flatMap((item) => {
     if (!item.episodes || item.episodes.length === 0) {
       return { bool: { must: [{ term: { mediaId: { value: item.mediaId } } }] } };

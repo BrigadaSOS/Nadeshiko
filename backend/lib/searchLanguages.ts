@@ -9,7 +9,7 @@
  * building, highlight configuration and cache keys can never drift apart.
  */
 
-export const SEARCH_LANGUAGES = ['EN', 'ES'] as const;
+const SEARCH_LANGUAGES = ['EN', 'ES'] as const;
 
 export type SearchLanguage = (typeof SEARCH_LANGUAGES)[number];
 

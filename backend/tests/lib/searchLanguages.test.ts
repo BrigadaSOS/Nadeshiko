@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SEARCH_LANGUAGES, excludedSearchLanguages, includedSearchLanguages } from '@lib/searchLanguages';
+import { excludedSearchLanguages, includedSearchLanguages } from '@lib/searchLanguages';
 
 describe('includedSearchLanguages', () => {
   it('matches every translation language when the filter is absent', () => {
@@ -31,11 +31,22 @@ describe('includedSearchLanguages', () => {
   });
 
   it('is idempotent, so normalizing twice cannot flip the polarity', () => {
-    for (const input of [['EN'], ['ES'], [], ['EN', 'ES']]) {
-      expect(includedSearchLanguages(includedSearchLanguages(input))).toEqual(includedSearchLanguages(input));
+    for (const [input, expected] of [
+      [['EN'], ['EN']],
+      [['ES'], ['ES']],
+      [[], []],
+      [
+        ['EN', 'ES'],
+        ['EN', 'ES'],
+      ],
+    ]) {
+      const once = includedSearchLanguages(input);
+      expect(once).toEqual(expected);
+      expect(includedSearchLanguages(once)).toEqual(expected);
     }
     const legacy = includedSearchLanguages({ exclude: ['en'] });
-    expect(includedSearchLanguages(legacy)).toEqual(legacy);
+    expect(legacy).toEqual(['ES']);
+    expect(includedSearchLanguages(legacy)).toEqual(['ES']);
   });
 });
 
@@ -49,7 +60,7 @@ describe('excludedSearchLanguages', () => {
     expect(excludedSearchLanguages(['EN'])).toEqual(['ES']);
     expect(excludedSearchLanguages(['ES'])).toEqual(['EN']);
     expect(excludedSearchLanguages(['EN', 'ES'])).toEqual([]);
-    expect(excludedSearchLanguages([])).toEqual([...SEARCH_LANGUAGES]);
+    expect(excludedSearchLanguages([])).toEqual(['EN', 'ES']);
   });
 
   it('excludes exactly the languages listed by the legacy form', () => {

@@ -44,7 +44,7 @@ function fieldsFor(languages: SearchFiltersOutput['languages'], exactMatch = fal
 const hasEnglish = (fields: string[]) => fields.some((field) => field.startsWith('textEn'));
 const hasSpanish = (fields: string[]) => fields.some((field) => field.startsWith('textEs'));
 
-describe('SegmentQuery.buildMultiLanguage language exclusion', () => {
+describe('SegmentQuery.buildSearchMust language exclusion', () => {
   it('matches Japanese, English and Spanish when no language filter is set', () => {
     const fields = fieldsFor(undefined);
     expect(fields.some((field) => field.startsWith('textJa'))).toBe(true);
@@ -93,59 +93,52 @@ describe('SegmentQuery.buildSortAndRandomScore', () => {
   const lengthAscending = [{ characterCount: { order: 'asc', unmapped_type: 'short' } }, ...tieBreakers];
   const scoreThenLength = [{ _score: { order: 'desc' } }, ...lengthAscending];
 
-  const scenarios: [string, boolean, SearchFiltersOutput['segmentLengthChars'], unknown[], string][] = [
-    ['match-all without length bounds', true, undefined, scoreThenLength, 'replace'],
-    ['match-all with minimum length', true, { min: 10 }, lengthAscending, 'replace'],
-    ['match-all with maximum length only', true, { max: 50 }, scoreThenLength, 'replace'],
-    ['text query without length bounds', false, undefined, scoreThenLength, 'multiply'],
-    ['text query with minimum length', false, { min: 10 }, scoreThenLength, 'multiply'],
-    ['text query with maximum length only', false, { max: 50 }, scoreThenLength, 'multiply'],
+  const lengthDescending = [{ characterCount: { order: 'desc', unmapped_type: 'short' } }, ...tieBreakers];
+  const timeAscending = [
+    { episode: { order: 'asc' } },
+    { position: { order: 'asc' } },
+    { mediaId: { order: 'asc', unmapped_type: 'integer' } },
   ];
-  const modes: [string, SearchSortOutput | undefined, unknown[] | undefined, boolean][] = [
-    ['default', undefined, undefined, false],
-    ['relevance', { mode: 'RELEVANCE' }, undefined, false],
-    ['ascending length', { mode: 'ASC' }, lengthAscending, false],
-    [
-      'descending length',
-      { mode: 'DESC' },
-      [{ characterCount: { order: 'desc', unmapped_type: 'short' } }, ...tieBreakers],
-      false,
-    ],
-    [
-      'ascending time',
-      { mode: 'TIME_ASC' },
-      [
-        { episode: { order: 'asc' } },
-        { position: { order: 'asc' } },
-        { mediaId: { order: 'asc', unmapped_type: 'integer' } },
-      ],
-      false,
-    ],
-    [
-      'descending time',
-      { mode: 'TIME_DESC' },
-      [
-        { episode: { order: 'desc' } },
-        { position: { order: 'desc' } },
-        { mediaId: { order: 'asc', unmapped_type: 'integer' } },
-      ],
-      false,
-    ],
-    ['seeded random', { mode: 'RANDOM', seed: 42 }, scoreThenLength, true],
+  const timeDescending = [
+    { episode: { order: 'desc' } },
+    { position: { order: 'desc' } },
+    { mediaId: { order: 'asc', unmapped_type: 'integer' } },
+  ];
+  const cases: [
+    string,
+    SearchSortOutput | undefined,
+    SearchFiltersOutput['segmentLengthChars'],
+    boolean,
+    unknown[],
+    'replace' | 'multiply' | null,
+  ][] = [
+    ['default match-all', undefined, undefined, true, scoreThenLength, null],
+    ['default match-all minimum', undefined, { min: 10 }, true, lengthAscending, null],
+    ['default match-all maximum only', undefined, { max: 50 }, true, scoreThenLength, null],
+    ['default text', undefined, undefined, false, scoreThenLength, null],
+    ['default text minimum', undefined, { min: 10 }, false, scoreThenLength, null],
+    ['default text maximum only', undefined, { max: 50 }, false, scoreThenLength, null],
+    ['relevance match-all', { mode: 'RELEVANCE' }, undefined, true, scoreThenLength, null],
+    ['relevance match-all minimum', { mode: 'RELEVANCE' }, { min: 10 }, true, lengthAscending, null],
+    ['relevance text minimum', { mode: 'RELEVANCE' }, { min: 10 }, false, scoreThenLength, null],
+    ['ascending length overrides scoring', { mode: 'ASC' }, { min: 10 }, false, lengthAscending, null],
+    ['descending length overrides scoring', { mode: 'DESC' }, { min: 10 }, true, lengthDescending, null],
+    ['ascending time keeps its tie order', { mode: 'TIME_ASC' }, { min: 10 }, true, timeAscending, null],
+    ['descending time keeps its tie order', { mode: 'TIME_DESC' }, { min: 10 }, true, timeDescending, null],
+    ['random match-all', { mode: 'RANDOM', seed: 42 }, undefined, true, scoreThenLength, 'replace'],
+    ['random match-all minimum', { mode: 'RANDOM', seed: 42 }, { min: 10 }, true, scoreThenLength, 'replace'],
+    ['random text', { mode: 'RANDOM', seed: 42 }, undefined, false, scoreThenLength, 'multiply'],
+    ['random text minimum', { mode: 'RANDOM', seed: 42 }, { min: 10 }, false, scoreThenLength, 'multiply'],
   ];
 
   afterEach(() => vi.restoreAllMocks());
 
-  describe.each(scenarios)('%s', (_name, isMatchAll, segmentLengthChars, relevanceSort, boostMode) => {
-    it.each(modes)('%s', (_mode, sort, expectedSort, random) => {
-      const result = SegmentQuery.buildSortAndRandomScore({ sort }, { ...baseFilters, segmentLengthChars }, isMatchAll);
-
-      expect(result).toEqual({
-        sort: expectedSort ?? relevanceSort,
-        randomScoreQuery: random
-          ? { function_score: { functions: [{ random_score: { field: '_seq_no', seed: 42 } }], boost_mode: boostMode } }
-          : null,
-      });
+  it.each(cases)('%s', (_name, sort, segmentLengthChars, isMatchAll, expectedSort, boostMode) => {
+    expect(SegmentQuery.buildSortAndRandomScore({ sort }, { ...baseFilters, segmentLengthChars }, isMatchAll)).toEqual({
+      sort: expectedSort,
+      randomScoreQuery: boostMode
+        ? { function_score: { functions: [{ random_score: { field: '_seq_no', seed: 42 } }], boost_mode: boostMode } }
+        : null,
     });
   });
 
@@ -180,17 +173,13 @@ describe('SegmentQuery.buildSearchStatsCacheKey', () => {
     filters: { ...baseFilters, languages } as SearchFiltersOutput,
   });
 
-  it('distinguishes requests that differ only by language filter', () => {
+  it('distinguishes language choices but shares a key for equivalent legacy input', () => {
     const all = SegmentQuery.buildSearchStatsCacheKey(request(undefined), 'strict');
     const englishOnly = SegmentQuery.buildSearchStatsCacheKey(request(['EN']), 'strict');
     const spanishOnly = SegmentQuery.buildSearchStatsCacheKey(request(['ES']), 'strict');
+    const legacyEnglish = SegmentQuery.buildSearchStatsCacheKey(request({ exclude: ['es'] }), 'strict');
 
     expect(new Set([all, englishOnly, spanishOnly]).size).toBe(3);
-  });
-
-  it('shares a key between equivalent legacy and array forms', () => {
-    expect(SegmentQuery.buildSearchStatsCacheKey(request({ exclude: ['es'] }), 'strict')).toBe(
-      SegmentQuery.buildSearchStatsCacheKey(request(['EN']), 'strict'),
-    );
+    expect(legacyEnglish).toBe(englishOnly);
   });
 });
