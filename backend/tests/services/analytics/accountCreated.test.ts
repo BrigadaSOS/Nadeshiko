@@ -1,15 +1,8 @@
 import { captureAccountCreatedAfterUserCreate } from '@config/auth';
 import { describe, expect, it, vi } from 'vitest';
 
-/**
- * The hook that records a new account server-side.
- *
- * It exists because the browser's `signup_completed` is only as reliable as the
- * reader's content blocker, and it therefore has one job that must not fail: fire
- * exactly once per account that reaches the database. These tests are about that
- * guarantee -- and about the guard around it, since nothing here is worth failing
- * a sign-up for.
- */
+/** Record each account server-side because browser attribution can be blocked; the hook must fire once per persisted
+ * account without making signup fail. */
 describe('captureAccountCreatedAfterUserCreate', () => {
   const completeUser = {
     id: 42,

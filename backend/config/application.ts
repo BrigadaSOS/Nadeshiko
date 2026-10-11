@@ -16,11 +16,8 @@ import { WEBHOOK_ZEPTOMAIL_PATH } from '@app/controllers/webhooks/paths';
 
 const JSON_BODY_LIMIT = '10mb';
 
-/**
- * A bounce notification is a few kilobytes. The generous global limit exists for
- * segment payloads and has no business applying to a public, unauthenticated
- * endpoint that anyone on the internet can post to.
- */
+/** Keep the public unauthenticated bounce endpoint below the generous segment-body limit; a few-kilobyte
+ * notification does not justify accepting arbitrarily large posts. */
 const WEBHOOK_BODY_LIMIT = '256kb';
 
 type RouteMounter = (app: Application) => void;
@@ -53,12 +50,8 @@ function configureMiddleware(
   app: Application,
   rateLimitMiddleware: RequestHandler | false = globalRateLimit,
 ): Application {
-  // Trust X-Forwarded-* headers from one reverse proxy hop (kamal-proxy) for
-  // per-IP rate-limit keying and client-IP logging. Note this is best-effort
-  // attribution, not a trust boundary: both direct and frontend-proxied traffic
-  // reach us through kamal-proxy, so `req.ip` cannot be trusted to decide who is
-  // internal. The rate limiter distinguishes proxied traffic via an unforgeable
-  // shared secret (INTERNAL_PROXY_SECRET) instead — see rateLimit.ts.
+  // Trust one Kamal proxy hop only for best-effort IP logging/rate-limit keys, never authorization; internal traffic is
+  // identified by `INTERNAL_PROXY_SECRET`.
   app.set('trust proxy', 1);
 
   app.use(
@@ -71,20 +64,11 @@ function configureMiddleware(
 
   app.use(requestIdMiddleware);
 
-  // Label the traffic before anything can reject it: a 429 or a parse error is
-  // worth splitting by reader/bot/monitor too, and everything downstream (the
-  // access log, the error counters) reads the answer off the request.
+  // Classify traffic before rejection so logs and metrics retain the reader/bot/monitor dimension.
   app.use(trafficClassification);
 
-  // BEFORE the rate limiter, deliberately. A preflight carries no data and the
-  // client did not choose to send it, but it is a whole request against the
-  // per-IP bucket -- and that bucket is shared by everyone behind one address,
-  // which for the mobile-carrier CGNAT much of this API's third-party traffic
-  // arrives through can be a lot of unrelated people. Charging them for the
-  // browser's own protocol overhead would make the limit fire on load that
-  // nobody generated. It costs the preflight its access-log line (httpLogger is
-  // further down), which is an acceptable trade for a request whose entire
-  // content is in the response headers.
+  // Run CORS preflight before rate limiting: charging shared CGNAT buckets for browser protocol overhead would
+  // rate-limit unrelated users; the trade is no access-log line for the header-only response.
   app.use(corsPolicy);
 
   // Rate-limit unauthenticated traffic BEFORE parsing bodies so abusive bots
@@ -96,20 +80,9 @@ function configureMiddleware(
   // Capture response bodies BEFORE logging (must be before httpLogger)
   app.use(responseBodyLogger);
 
-  // The ZeptoMail webhook, before the JSON parser can reach it.
-  //
-  // Its body has to survive as the EXACT bytes that were sent, because the HMAC
-  // is computed over them, and it arrives in two different shapes: the docs
-  // describe form-encoded `data=<urlencoded JSON>` and the console posts plain
-  // JSON. `express.json` would parse one and ignore the other, leaving the
-  // signature uncheckable in both cases. `type: '*/*'` takes whichever turns up
-  // as text; body-parser marks the body handled, so the JSON parser below is a
-  // no-op for this path rather than a second read of a consumed stream.
-  //
-  // NO `verify: rawBodySaver` here on purpose. It would put the whole payload --
-  // a bouncing person's address and the receiving server's message about them --
-  // into the HTTP access log. The verified event is stored in `EmailEvent` where
-  // it is the subject of the record and access is controlled.
+  // Read the ZeptoMail webhook as exact text before JSON parsing because signatures cover either form-encoded or JSON
+  // bytes. Do not enable a raw-body verifier here: it would log sensitive payloads; verified events belong in
+  // `EmailEvent`.
   app.use(WEBHOOK_ZEPTOMAIL_PATH, express.text({ type: '*/*', limit: WEBHOOK_BODY_LIMIT }));
 
   // Parse incoming request bodies BEFORE httpLogger so req.rawBody is available for logging
@@ -123,9 +96,7 @@ function configureMiddleware(
     unit: '{request}',
   });
   app.use((req, res, next) => {
-    // The attributes have to be identical on both sides of the pair or the
-    // gauge never returns to zero, so they are computed once here rather than
-    // read off the request again on finish.
+    // Compute paired gauge attributes once so both start/finish sides remain identical.
     const attributes = { 'http.request.method': req.method, ...trafficAttributesFor(req) };
     activeRequests.add(1, attributes);
     let released = false;

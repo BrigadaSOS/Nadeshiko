@@ -17,11 +17,8 @@ export interface AniListMediaMetadata {
 const ANILIST_MEDIA_URL = /^https?:\/\/(?:www\.)?anilist\.co\/anime\/(\d+)(?:\/[^?#]*)?(?:[?#].*)?$/i;
 const ANILIST_COVER_URL = /^https:\/\/s4\.anilist\.co\/file\/anilistcdn\/media\/anime\/cover\//;
 
-/**
- * Resolve canonical AniList anime links. Metadata is presentation sugar:
- * proposals must still work if AniList is unavailable, so failures fall back
- * to the URL-derived title and no cover in the caller.
- */
+/** AniList metadata is optional presentation data; callers retain the URL-derived title and no cover when the
+ * service fails. */
 export async function getAniListMediaMetadata(sourceUrl: string): Promise<AniListMediaMetadata | null> {
   const id = ANILIST_MEDIA_URL.exec(sourceUrl)?.[1];
   if (!id) return null;

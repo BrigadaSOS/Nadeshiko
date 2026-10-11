@@ -58,16 +58,8 @@ export const APP_ENTITIES = [
 
 export const APP_SUBSCRIBERS = [SegmentSubscriber];
 
-/**
- * Resolve TypeORM logging config from the DB_LOG_LEVEL env var.
- *
- * Accepts:
- *   - "true" / "false"        → boolean
- *   - "all"                   → "all"
- *   - "query,error,warn"      → ["query", "error", "warn"]
- *
- * When unset, defaults to enabled in dev/local and disabled in prod.
- */
+/** Parse `DB_LOG_LEVEL` as booleans, `all`, or a comma-separated level list; unset enables logging in dev/local and
+ * disables it in production. */
 export function getDbLogging(rawValue: string | undefined = config.DB_LOG_LEVEL): LoggerOptions {
   const raw = rawValue?.trim().toLowerCase();
   if (!raw) return !isProdEnvironment();

@@ -25,14 +25,8 @@ function tokensFor(surface: string): SlimToken[] {
   return [{ s: surface, d: surface, r: surface, b: 0, e: surface.length, p: '名詞' }];
 }
 
-/**
- * Registers the worker against a fake boss and keeps the handlers it hands over.
- *
- * Going through `registerTokenParseWorker` rather than exporting the handlers
- * means the queue names, the pull size and the instrumentation wrapper are all
- * part of what is under test — a handler wired to the wrong queue would still
- * pass a test that called it directly.
- */
+/** Register through `registerTokenParseWorker` so queue names, pull size, and instrumentation are tested; calling
+ * handlers directly would miss a wrong queue wiring. */
 async function captureHandlers(): Promise<void> {
   handlers = {};
   const work = vi.fn(async (queue: string, ...rest: unknown[]) => {
@@ -99,9 +93,7 @@ describe('token parse worker', () => {
   it('refuses to write an analysis of a sentence that has since been edited', async () => {
     const segment = await buildSegment({ contentJa: '走る' });
 
-    // Shirabe answers for the text the worker read, and the row moves while it
-    // was answering. Writing here would leave `b`/`e` offsets pointing into a
-    // string nobody holds any more.
+    // Do not write stale offsets after Shirabe responds; the row may have changed while parsing.
     parseSegmentsMock.mockImplementation(async () => {
       await Segment.update({ id: segment.id }, { contentJa: '歩く' });
       return [tokensFor('走る')];

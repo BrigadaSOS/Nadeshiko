@@ -42,10 +42,7 @@ export class InstrumentedTypeOrmLogger implements TypeOrmLogger {
   private operationDuration: Histogram;
   private operationErrors: Counter;
 
-  // The meter is resolved per instance rather than at module load: the OTel
-  // metrics API binds instruments to whichever provider is registered at
-  // creation time, so a module-level meter would silently no-op whenever this
-  // file is imported before the SDK starts.
+  // Resolve the OTel meter per instance so imports before provider setup do not create no-op instruments.
   constructor(meter: Meter = getMeter()) {
     const logging = getDbLogging();
     this.verboseLogging = logging === true || (Array.isArray(logging) && logging.includes('query'));

@@ -54,38 +54,15 @@ const envSchema = z.object({
   // small. Validated here rather than read raw so a typo is a boot error instead
   // of a silent fallback to the default.
   SHIRABE_PARSE_CONCURRENCY: z.coerce.number().int().positive().default(3),
-  // A reader can also link their OWN Shirabe account, which is what makes a word
-  // lookup answer from the dictionaries THEY configured rather than from the
-  // service identity's empty preferences. Three separate things:
-  //
-  //   CLIENT_ID / REDIRECT_URI  what Shirabe has us registered as. The redirect
-  //                             is exact-matched over there, so a value that does
-  //                             not match the registration fails at the consent
-  //                             screen rather than silently.
-  //   CONNECTION_SECRET         encrypts the stored per-reader keys at rest, and
-  //                             seals the OAuth `state`. Unset means the feature
-  //                             is off, which is the right default: the
-  //                             alternative is storing other people's
-  //                             credentials in the clear.
+  // Shirabe linking is off unless client registration and the encrypted connection secret are configured; never replace
+  // the secret with cleartext third-party credentials.
   SHIRABE_OAUTH_CLIENT_ID: z.string().default('nadeshiko'),
   SHIRABE_OAUTH_REDIRECT_URI: z.string().default(''),
-  /**
-   * We are a CONFIDENTIAL client over there: a server that can keep a secret,
-   * and so must present it at the token endpoint on every exchange, renewal and
-   * revocation. Minted once by `bin/rails oauth_clients:register ...
-   * CONFIDENTIAL=1` on Shirabe and shown once; only its digest lives there.
-   * Empty means we would be refused as a client, so linking is off.
-   */
+  /** This is a confidential Shirabe client: the secret must be sent on token exchange/renewal/revocation, and empty
+   * disables linking. */
   SHIRABE_OAUTH_CLIENT_SECRET: z.string().default(''),
-  /**
-   * Key material, not a passphrase.
-   *
-   * Empty means the connection feature is off, which is a real deployment and
-   * the reason this is not simply required. Anything else has to be long enough
-   * to be a generated secret: `secretBox` derives a 32-byte key from whatever it
-   * is given, so a four-character value produces a perfectly valid-looking key
-   * that is trivially guessable, and nothing downstream can tell the difference.
-   */
+  /** Require generated key material when configured; a short value still derives a valid-looking but guessable key,
+   * so empty is the only disabled state. */
   SHIRABE_CONNECTION_SECRET: z
     .string()
     .default('')
@@ -93,13 +70,8 @@ const envSchema = z.object({
       message:
         'SHIRABE_CONNECTION_SECRET must be at least 32 characters of generated key material (or empty to disable linking)',
     }),
-  /**
-   * The key being rotated OUT, read but never written.
-   *
-   * Set it to the outgoing value while re-encrypting, and stored rows keep
-   * opening under it because each carries the id of the key that sealed it.
-   * Empty the rest of the time, which is almost always.
-   */
+  /** The previous Shirabe secret is read-only during rotation; configure it while re-encrypting stored rows, then
+   * clear it. */
   SHIRABE_CONNECTION_SECRET_PREVIOUS: z.string().default(''),
 
   // Patreon is a connected account, not a sign-in provider. Its membership is
@@ -127,30 +99,16 @@ const envSchema = z.object({
   // in a minute, and anyone who does can say them in one message.
   RATE_LIMIT_FEEDBACK_MAX_REQUESTS_PER_IP: z.coerce.number().int().positive().default(5),
 
-  // Searches this process will run at once before answering 503 to the next
-  // one. A concurrency cap, not a rate: it is the backend's half of the
-  // admission control the frontend applies to page renders, and it exists for
-  // the callers that half cannot see -- direct API clients. Sized in
-  // app/middleware/inFlightLimit.ts, from the frontend's cap and the
-  // Elasticsearch search pool on the box.
+  // Cap concurrent searches, not request rate, as the backend half of admission control for direct API callers the
+  // frontend cannot see.
   SEARCH_MAX_INFLIGHT: z.coerce.number().int().positive().default(32),
 
-  // Shared secret proving a request came through our own frontend Nitro proxy
-  // (which already rate-limits per real client IP). When set, the per-IP
-  // backend limiter exempts requests carrying it. Must match the frontend's
-  // NUXT_INTERNAL_PROXY_SECRET. Left unset = no exemption (fail-safe: traffic is
-  // limited, never silently bypassed).
+  // The internal proxy secret exempts only authenticated frontend-proxy traffic from the backend IP limit; unset must
+  // fail safe and limit everything.
   INTERNAL_PROXY_SECRET: optionalString,
 
-  // Salt for the pseudonymous `user.hash` field on the HTTP access log. Left
-  // unset, the field is simply absent -- an unsalted hash of an integer id is
-  // no protection at all (the id space is small enough to enumerate in a
-  // second), so the choice is a salted field or none, never a bare digest.
-  //
-  // Rotating this invalidates every prior join. That is the intended lever:
-  // the field exists to answer "what has this account been calling this week",
-  // and a rotation ends the ability to ask that of older lines while leaving
-  // them useful for the aggregate questions.
+  // Salt the pseudonymous access-log hash or omit it; rotating the salt intentionally breaks joins to older lines while
+  // preserving aggregate usefulness.
   LOG_USER_SALT: optionalString,
 
   ID_OAUTH_GOOGLE: optionalString,
@@ -165,68 +123,21 @@ const envSchema = z.object({
   MAIL_FROM_EMAIL: requiredString,
   MAIL_FROM_NAME: requiredString,
 
-  // Who the LIFECYCLE mail comes from, which is deliberately not the same
-  // person as the above.
-  //
-  // The day-7 note, the feedback ask and the recap are written in the first
-  // person and ask to be replied to. Sending those from `noreply@` makes the
-  // email a lie the moment somebody answers it, and "we would love to hear from
-  // you, from an address that discards your reply" is worse than not asking.
-  //
-  // DEFAULTED RATHER THAN REQUIRED, because the failure mode of an unset value
-  // is silent: the mail still sends, still says "reply to me", and still goes
-  // out from an address nobody reads. A default means the promise in the
-  // template holds even in an environment where nobody set this.
-  //
-  // Any address on the ZeptoMail-verified domain works; the DKIM signature is
-  // per-domain, not per-mailbox. It does still need to exist as a real inbox --
-  // that is the entire point of it.
-  // The envelope on every lifecycle and welcome email, for every reader. It was
-  // one of the founders' own mailboxes and is a shared identity now; the body
-  // still carries the individual, taken from `senderForUser` at the call site.
-  // Replies follow the From, since these messages set no Reply-To, so this
-  // address has to be a mailbox somebody reads.
+  // Lifecycle mail uses a readable, real inbox rather than `noreply`; default it so templates do not promise replies to
+  // an unwatched address. Replies follow From because no Reply-To is set.
   LIFECYCLE_FROM_EMAIL: z.string().default('hello@nadeshiko.co'),
   LIFECYCLE_FROM_NAME: z.string().default('Nadeshiko'),
 
-  // THE MASTER SWITCH FOR LIFECYCLE MAIL, and it is off.
-  //
-  // Off does not mean the sweep stops. It runs every night, selects exactly the
-  // accounts it would write to, and logs what it would have sent -- so the
-  // candidate counts can be read off production for a week before anybody
-  // decides to turn this on. What it does not do is enqueue anything, and,
-  // just as importantly, it does not write the `EmailLifecycleSend` claim rows:
-  // a dry run that claimed would mark every swept account as already-done, and
-  // the day this was enabled it would send to nobody and look like it worked.
-  //
-  // Default false rather than true-in-development, because "which environment
-  // is this" is the wrong question. The right one is "has a person read the copy
-  // and decided", and that has exactly one answer until they have.
+  // The lifecycle switch defaults off and dry-runs selection without enqueueing or claiming rows, so enabling later
+  // does not find every account already marked sent.
   LIFECYCLE_EMAILS_ENABLED: booleanString,
 
-  // A staging post between off and everyone: when set, only these addresses get
-  // a real send and every other candidate stays a dry run. Comma-separated.
-  //
-  // For seeing the mail arrive in a real inbox, rendered by a real client, with
-  // real links -- which is the one thing `npm run email:test` cannot show you.
-  // Leave it unset to mean "everybody", which only takes effect once the switch
-  // above is on.
+  // A staging recipient list permits real inbox/link checks while all other candidates remain dry-run; unset means
+  // everyone only after the master switch is enabled.
   LIFECYCLE_EMAILS_ONLY_TO: optionalString,
 
-  // Outbound is ZeptoMail SMTP, and only that. There is no MAIL_TRANSPORT
-  // switch any more: the `ses` branch existed as the rollback path for the
-  // cutover, and a rollback path nobody has exercised in months is not a safety
-  // net, it is a second sending identity with its own DKIM records and its own
-  // unwatched reputation.
-  // Outbound goes over the ZeptoMail HTTP API, not SMTP. The SMTP handoff cost
-  // FOUR TO SIX SECONDS per message on production -- a fresh TLS-and-AUTH
-  // conversation with a relay in Tokyo, roughly ten round trips -- and the
-  // magic-link path pays that synchronously while somebody watches a button.
-  //
-  // `SMTP_PASSWORD` is still the credential: ZeptoMail's Send Mail Token is the
-  // SMTP password AND the API key. The name is now wrong and is kept anyway,
-  // because renaming it means renaming an SSM parameter in two tiers to save a
-  // word. The others are vestigial and read by nothing.
+  // Use ZeptoMail HTTP API rather than synchronous SMTP; retain legacy token names for SSM compatibility, with
+  // `ZEPTOMAIL_SEND_TOKEN` taking precedence.
   SMTP_ADDRESS: optionalString,
   SMTP_PORT: optionalString,
   SMTP_USER_NAME: optionalString,
@@ -236,38 +147,16 @@ const envSchema = z.object({
   // becomes a configuration change rather than a deploy of the mailer.
   ZEPTOMAIL_SEND_TOKEN: optionalString,
 
-  // A SECOND AGENT FOR LIFECYCLE MAIL, and it is unset on purpose.
-  //
-  // Everything currently leaves through one ZeptoMail Agent: sign-in links and
-  // the day-7 ask and the win-back note all share one sending identity. That is
-  // fine at seven messages a night and stops being fine the moment a recurring
-  // recap joins them -- a policy action against the recap would take magic links
-  // with it, and losing those means losing sign-in.
-  //
-  // Set this to a second Agent's token and every lifecycle kind moves to it,
-  // leaving transactional mail where it is. Left unset it falls back to
-  // `ZEPTOMAIL_SEND_TOKEN`, so today's behaviour is unchanged and the split is a
-  // config change rather than a deploy of the mailer.
-  //
-  // The Agent is only half of it. DKIM is signed per DOMAIN, so reputation stays
-  // shared until lifecycle mail also moves to its own subdomain -- which is the
-  // point of doing this before the recap rather than after.
+  // An optional second ZeptoMail agent isolates lifecycle policy from sign-in mail; unset preserves current behavior,
+  // but domain-level DKIM reputation remains shared until lifecycle mail moves domains.
   ZEPTOMAIL_LIFECYCLE_SEND_TOKEN: optionalString,
 
-  // Proves that a bounce notification really came from ZeptoMail.
-  //
-  // Optional in the schema but not optional in effect: without it
-  // /v1/webhooks/zeptomail answers 503 to everything rather than trusting an
-  // unsigned payload, because a forged hard bounce suppresses an address and
-  // locks somebody out of magic-link sign-in. Unset is the correct state for
-  // local and test runs, which have no Agent posting to them.
+  // Without the webhook secret, reject all ZeptoMail callbacks rather than trust forged bounces; local/test runs
+  // intentionally leave it unset.
   ZEPTOMAIL_WEBHOOK_SECRET: optionalString,
 
-  // Zoho OAuth, used for exactly one call: removing an address from ZeptoMail's
-  // OWN suppression list. Auto-suppression is on at the Agent, so forgiving an
-  // address means clearing two lists; deleting only our row leaves the app
-  // believing it can write to somebody the relay still refuses. Absent is a
-  // supported state -- the lift then does our half and says so.
+  // Zoho OAuth clears the provider’s suppression list during a lift; absent credentials still support clearing the
+  // local half and reporting the provider half was not changed.
   ZOHO_CLIENT_ID: optionalString,
   ZOHO_CLIENT_SECRET: optionalString,
   ZOHO_REFRESH_TOKEN: optionalString,
@@ -285,11 +174,7 @@ const envSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalString,
   OTEL_SERVICE_NAME: optionalString,
 
-  // Server-side PostHog, which exists to count accounts that the browser never
-  // gets to report -- see app/services/analytics/posthog.ts. This is the project
-  // write key, not a personal API key: it can only submit events, which is why it
-  // is also the one the browser ships publicly. Unset disables capture entirely,
-  // so local and test runs need no credentials and send nothing.
+  // The server-side PostHog key only submits events; unset disables capture so local/test send nothing.
   POSTHOG_API_KEY: optionalString,
   POSTHOG_HOST: z.string().url().default('https://us.i.posthog.com'),
 

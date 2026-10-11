@@ -1,27 +1,6 @@
-/**
- * Ranks the corpus by how morpheme-segmented its subtitles look.
- *
- * The ingest guard in `createSegmentsBatch` stops a wakati-gaki source at the
- * door, but it only sees batches arriving from now on. This is the same
- * measurement pointed backwards: at everything already stored, including any
- * media imported before the guard existed and any backfill that went round the
- * API. It answers "are there others?" -- which is the question that found One
- * Punch Man, a year after the fact, because a user noticed.
- *
- * Read-only. It prints a table and changes nothing, so it is safe to run against
- * production, and `--media` is optional here precisely because of that (unlike
- * strip-wakati-spaces.ts, where a forgotten argument would rewrite the corpus).
- *
- * The metric and its thresholds live in `@app/services/corpus/wakatiDetection`
- * and are shared with the guard on purpose: an audit that measured a media
- * differently than the door does would report a clean corpus while the door
- * turned batches away, and neither number would be worth anything.
- *
- * Usage:
- *   node --import tsx scripts/audit-wakati.ts
- *   node --import tsx scripts/audit-wakati.ts --media yVS7DdklQB0A
- *   node --import tsx scripts/audit-wakati.ts --all      # print every media
- */
+/** Read-only corpus audit for morpheme-segmented subtitles; it shares the ingest guard’s metric/thresholds and
+ * accepts optional `--media`/`--all`. Unlike the repair script, it never writes. Usage: `node --import tsx
+ * scripts/audit-wakati.ts [--media <id>|--all]`. */
 
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,9 +17,7 @@ import {
 
 const PAGE = 5000;
 
-/** Print this many of the lowest-scoring media when nothing is actually flagged,
- *  so a clean run still shows where the corpus floor sits rather than printing
- *  nothing and leaving "did it even look?" open. */
+/** Print this many lowest-scoring media even on a clean run, so the corpus floor is visible. */
 const FLOOR_ROWS = 5;
 
 interface Options {
@@ -57,9 +34,7 @@ async function run({ media, all }: Options): Promise<void> {
   }
 
   const repository = AppDataSource.getRepository(Segment);
-  // Tallies rather than the lines themselves: the corpus is 1.3M segments, and
-  // buffering them to hand `assessWakati` an array per media would hold the
-  // whole thing in memory for a statistic that only needs three running counts.
+  // Keep running counts instead of 1.3M segment rows; the statistic needs only three counters.
   const tallies = new Map<number, WakatiTally>();
 
   let cursor = 0;

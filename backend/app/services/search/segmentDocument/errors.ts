@@ -2,11 +2,8 @@ import type { estypes } from '@elastic/elasticsearch';
 import { logger } from '@config/log';
 import type { QueryParserMode } from './SegmentQuery';
 
-/**
- * `_msearch` reports per-sub-search failures in-band: a failed item still carries a
- * `status` (400, 503, ...) plus an `error`, and has no `hits`/`aggregations`. Only a 2xx
- * item may be read as a search response body.
- */
+/** In `_msearch`, inspect each item's status; only 2xx items have usable hits/aggregations, while failures are
+ * reported in-band. */
 export function isSuccessfulMsearchItem(
   response: estypes.MsearchResponseItem | undefined,
 ): response is estypes.MsearchMultiSearchItem {
@@ -45,15 +42,8 @@ function isQuerySyntaxError(error: unknown): boolean {
   const message = [elasticError.message, ...errorCauses.map((cause) => cause.reason)].join(' ').toLowerCase();
   return (
     message.includes('failed to parse query') ||
-    // Not a typo of the line above: a query whose syntax parses but cannot be
-    // built reaches the shard and fails there instead, as a
-    // `query_shard_exception` reading "failed to create query: ...". A tilde is
-    // how readers meet it -- `query_string` reads `~` as a fuzziness modifier, so
-    // an anime title like `本好きの下剋上 ~司書になるためには…~ 第一部` asks for a
-    // fuzziness of `第一部` and the shard answers `fuzziness cannot be [...]`.
-    // Same class as a parse failure from here: the reader wrote something the
-    // strict parser will never accept, and `simple_query_string` takes it
-    // literally.
+    // A shard can reject a syntactically parsed query while building it; treat that `query_shard_exception` like a
+    // strict-parser failure.
     message.includes('failed to create query') ||
     message.includes('cannot parse') ||
     message.includes('lexical error') ||

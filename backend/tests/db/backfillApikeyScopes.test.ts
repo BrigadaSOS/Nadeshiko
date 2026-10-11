@@ -12,12 +12,8 @@ beforeAll(async () => {
 
 const runner = () => TestDataSource.createQueryRunner();
 
-/**
- * One `apikey` row with the permissions column set exactly as given, found again
- * by name. The id is left to the column default and the owner goes in
- * `referenceId` -- better-auth renamed that column from `userId`, so spelling
- * either by hand is how this fixture drifts out from under the migration.
- */
+/** Use the migration's real row shape: the owner is `referenceId` and permissions are explicit; hard-coding `userId`
+ * or an omitted default would let the fixture drift from better-auth. */
 async function insertKey(label: string, permissions: string | null): Promise<void> {
   await runner().query(
     `INSERT INTO "apikey" ("name", "start", "prefix", "key", "referenceId", "enabled", "permissions", "createdAt", "updatedAt")
@@ -35,22 +31,8 @@ const permissionsOf = async (label: string): Promise<string[]> => {
 
 const backfill = () => new BackfillApikeyScopes1743600000000().up(runner());
 
-/**
- * The migration that gave every pre-scopes key the account scopes it had been
- * using implicitly.
- *
- * What is actually at stake is `READ_MEDIA`, and it is at stake by omission:
- * the migration's job is to ADD the profile, activity and collection scopes, so
- * nothing in it mentions the corpus at all. A rewrite of that `jsonb_set` that
- * replaced the array instead of unioning onto it would strip corpus access from
- * every key in circulation, and the migration would still look like it was only
- * adding things. Raw SQL, nothing type-checks it, and it runs once against
- * production -- so the property is pinned here rather than trusted.
- *
- * Re-running `up` is safe by construction: the final `WHERE ... IS DISTINCT
- * FROM` makes it a no-op once applied, which is why this can execute against a
- * database the migration has already been through.
- */
+/** The migration must union profile/activity/collection scopes without removing existing `READ_MEDIA`. This raw SQL
+ * runs once in production, so the second call also asserts its idempotent no-op. */
 describe('BackfillApikeyScopes', () => {
   it('leaves READ_MEDIA on a key that had it, while adding the account scopes', async () => {
     // The shape better-auth persisted before scopes existed: DEFAULT_USER_API_PERMISSIONS.
@@ -82,14 +64,8 @@ describe('BackfillApikeyScopes', () => {
     expect(after).not.toContain('READ_LISTS');
   });
 
-  /**
-   * The one row shape this migration cannot rescue, recorded so the limit is
-   * known rather than discovered. Every creation path persists a permission list
-   * -- better-auth's `defaultPermissions`, `createUserApiKey`, and
-   * `bin/createServiceKey` -- and the `apikey` table was created empty, so a row
-   * like this can only arrive by hand. If one ever does, it reads the corpus
-   * nowhere, and no migration can tell what it was supposed to be allowed.
-   */
+  /** Record the unsupported row shape: creation paths always persist permissions, so a hand-made empty list has no
+   * recoverable intended access and the migration must not invent one. */
   it('cannot invent corpus access for a row that never stored any', async () => {
     await insertKey('null-perms', null);
 

@@ -6,11 +6,8 @@ import { SOFT_BOUNCE_THRESHOLD } from '@app/services/email/suppression';
 
 setupTestSuite();
 
-/**
- * A payload in the shape ZeptoMail actually posts: several fields wrapped in a
- * single-element array. The published documentation carries no complete sample,
- * so the parser accepts both this and the unwrapped form, and both are tested.
- */
+/** Use ZeptoMail's documented array-wrapped payload and the accepted unwrapped form; no complete sample is
+ * published, so both shapes are part of the parser contract. */
 function bouncePayload(overrides: { event?: string; address?: string; requestId?: string; wrap?: boolean } = {}) {
   const event = overrides.event ?? 'hardbounce';
   const address = overrides.address ?? 'gone@example.com';
@@ -22,11 +19,8 @@ function bouncePayload(overrides: { event?: string; address?: string; requestId?
       to: [{ email_address: { address } }],
       client_reference: 'magic-link',
       email_reference: 'ref-1',
-      // RELATIVE, NEVER A LITERAL. This becomes `EmailEvent.occurredAt`, and the
-      // soft-bounce threshold only counts bounces inside a seven-day window --
-      // so a fixed date makes the suppression tests pass until the wall clock
-      // walks past it, then fail forever with no code change. That is exactly
-      // what happened to '2026-08-20T10:00:00Z'.
+      // Use a relative timestamp, never a literal: the seven-day suppression window would eventually make a fixed-date
+      // fixture fail without a code change.
       processed_time: new Date().toISOString(),
     },
     event_data: wrap
@@ -68,11 +62,7 @@ describe('recordZeptomailPayload', () => {
     expect(events[0].address).toBe('gone@example.com');
   });
 
-  /**
-   * The idempotency contract. ZeptoMail's retry behaviour is undocumented, and a
-   * redelivery that counted twice would inflate the bounce rate the alert rules
-   * divide -- on a webhook retry rather than on a bounce.
-   */
+  /** Redeliveries must be idempotent; otherwise webhook retries inflate the bounce rate used by alerts. */
   it('is a no-op when the same delivery arrives twice', async () => {
     await recordZeptomailPayload(bouncePayload());
     const second = await recordZeptomailPayload(bouncePayload());
@@ -89,12 +79,8 @@ describe('recordZeptomailPayload', () => {
     expect(await EmailEvent.countBy({ address: 'gone@example.com' })).toBe(2);
   });
 
-  /**
-   * ZeptoMail's Verify button POSTs SAMPLE PAYLOADS at the URL, not a ping, and
-   * they look exactly like real events. A sample feedback-loop payload would
-   * otherwise fire a critical complaint tripwire on the day the webhook is
-   * configured, and teach everyone the channel cries wolf.
-   */
+  /** Verify posts sample payloads, not a ping; sample feedback-loop data must not trigger a production complaint
+   * alert when the webhook is configured. */
   it('ignores the zylker.com samples a Verify probe sends', async () => {
     const events = await recordZeptomailPayload(bouncePayload({ event: 'feedback', address: 'rebecca@zylker.com' }));
 
@@ -119,11 +105,8 @@ describe('recordZeptomailPayload', () => {
     expect(events[0].address).toBe('real@example.com');
   });
 
-  /**
-   * Losing an event we did not anticipate is worse than holding one we cannot
-   * act on, so an unmapped name is recorded under its own name rather than
-   * dropped.
-   */
+  /** Record an unknown event name rather than dropping it; losing an event is worse than retaining one that cannot
+   * yet be acted on. */
   it('records an unrecognised event name under its own name', async () => {
     const events = await recordZeptomailPayload(bouncePayload({ event: 'something_new' }));
 
@@ -155,10 +138,7 @@ describe('recordZeptomailPayload', () => {
     expect(await EmailSuppression.count()).toBe(0);
   });
 
-  /**
-   * A full mailbox is not a verdict. Five inside a week is: a genuinely full
-   * mailbox clears long before that.
-   */
+  /** A full mailbox is not proof of abuse; five bounces within a week is the threshold. */
   it('suppresses a soft bounce only on the fifth in a week, not the fourth', async () => {
     for (let i = 1; i < SOFT_BOUNCE_THRESHOLD; i += 1) {
       await recordZeptomailPayload(
@@ -175,11 +155,8 @@ describe('recordZeptomailPayload', () => {
     expect(suppression?.cause).toBe('repeated_soft_bounce');
   });
 
-  /**
-   * The FIRST cause is the true one. A hard bounce followed by a complaint is
-   * still an address that does not exist, and rewriting the cause would turn a
-   * permanent complaint into something a future lift treats as recoverable.
-   */
+  /** The first cause is authoritative: replacing a hard-bounce cause with a complaint would make a permanent state
+   * look recoverable to a future lift. */
   it('keeps the first cause when a second event would suppress again', async () => {
     await recordZeptomailPayload(bouncePayload({ address: 'both@example.com', requestId: 'wh-a' }));
     await recordZeptomailPayload(bouncePayload({ event: 'feedback', address: 'both@example.com', requestId: 'wh-b' }));
@@ -213,11 +190,8 @@ describe('recordZeptomailPayload', () => {
     expect(events).toHaveLength(0);
   });
 
-  /**
-   * ZeptoMail's own timestamps have gone missing from a payload before being
-   * documented, so a missing one is "now" rather than a validation failure on an
-   * event we already believe.
-   */
+  /** A missing provider timestamp means now rather than rejection; timestamps have been absent from payloads before
+   * the format was documented. */
   it('defaults a missing timestamp to now rather than rejecting the event', async () => {
     const before = Date.now();
     const events = await recordZeptomailPayload({

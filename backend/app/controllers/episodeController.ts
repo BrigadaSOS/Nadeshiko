@@ -7,12 +7,8 @@ import { Cache } from '@lib/cache';
 import { MEDIA_INFO_CACHE } from '@app/models/Media';
 import { SegmentDocument } from '@app/services/search/SegmentDocument';
 
-/**
- * Both caches key off per-media episode data — MEDIA_INFO_CACHE carries
- * `episodeCount`, and the search stats carry `fullTotalEpisodes` — so creating
- * or deleting an episode makes them stale exactly the way a media mutation
- * does. Media handlers already invalidate on write; episodes did not.
- */
+/** Episode writes invalidate both caches because each contains per-media episode totals; media writes already follow
+ * this rule. */
 function invalidateEpisodeDerivedCaches(): void {
   Cache.invalidate(MEDIA_INFO_CACHE);
   Cache.invalidate(SegmentDocument.SEARCH_STATS_CACHE);

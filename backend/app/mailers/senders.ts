@@ -1,13 +1,6 @@
 import { config } from '@config/config';
 
-/**
- * Who a personal email comes from.
- *
- * Nadeshiko has two people behind it, and mail that says "one of the creators"
- * while always being the same creator is a smaller claim than it could be.
- * These are the real identities: a real mailbox each, the picture each of them
- * uses on the about page, and the place they can be found.
- */
+/** Use real personal identities for personal mail rather than claiming an anonymous “creator.” */
 export interface Sender {
   /** Stable key, for the log line and for tests to assert on. */
   key: 'dav' | 'natsume';
@@ -40,30 +33,13 @@ export const SENDERS: readonly [Sender, Sender] = [
   },
 ] as const;
 
-/**
- * Which of them writes to a given reader.
- *
- * STICKY PER READER, NOT RANDOM PER MESSAGE, and that is the one real decision
- * in this file. A coin flip on every send would give the same fifty-fifty split
- * across the audience while making each individual reader's experience
- * incoherent: a welcome from Natsume, a question from Dav a week later, a
- * win-back from Natsume again -- and if they reply to any of them, they are
- * answering somebody who did not write the last one.
- *
- * Keyed on the account id, so the same person always hears from the same person.
- * Even and odd, because the ids are sequential and that splits them exactly.
- */
+/** Keep sender assignment sticky per reader, not random per message, so replies and successive emails remain
+ * coherent. */
 export function senderForUser(userId: number): Sender {
   return SENDERS[Math.abs(Math.trunc(userId)) % 2] as Sender;
 }
 
-/**
- * The fallback identity for mail with no reader behind it.
- *
- * Configured rather than picked, because this is what the transactional relay
- * has always used and changing it is a deployment decision rather than a
- * content one.
- */
+/** Configure the no-reader identity because changing it is a deployment decision, not a copy choice. */
 export function configuredSender(): { email: string; name: string } {
   return { email: config.LIFECYCLE_FROM_EMAIL, name: config.LIFECYCLE_FROM_NAME };
 }

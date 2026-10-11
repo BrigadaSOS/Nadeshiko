@@ -3,10 +3,8 @@ import { __testing, parseSegments } from '@app/services/shirabe/parseSegments';
 
 const { toSlimToken } = __testing;
 
-// This mapping is the only place Shirabe's answer becomes one of our tokens, and
-// both the corpus backfill and every new episode come through it. The ten short
-// fields are our published contract (OpenAPI, npm and PyPI SDKs, third-party Anki
-// note types), so what is tested here is that they keep meaning what they say.
+// Compact token fields are the published Shirabe/OpenAPI/SDK contract; backfills and new episodes depend on their
+// meanings.
 
 const INFLECTED = {
   position: 11,
@@ -38,10 +36,7 @@ describe('toSlimToken', () => {
     expect(token.p).toBe('動詞');
   });
 
-  // p1/p2/p4/cf are gone. They were named for UniDic array indices -- with no p3,
-  // and pos[5] called `cf` -- which is Sudachi's internal shape leaking into a
-  // published contract, and nothing read them: `posLabel` says what they were
-  // kept to say, in words, without a UniDic table at the other end.
+  // Do not publish UniDic array-index names; `posLabel` exposes the human-readable contract.
   it('keeps no UniDic slot beyond the primary tag', () => {
     const token = toSlimToken(INFLECTED);
 
@@ -50,10 +45,7 @@ describe('toSlimToken', () => {
     }
   });
 
-  // `p` comes off posFull, and /api/v1/parse did not always return it: every
-  // stored token had an empty `p`, a field the schema calls required. Nothing
-  // caught it until real rows were written, so it is asserted non-blank rather
-  // than merely present.
+  // `p` is required and must be non-blank; real rows once exposed an endpoint that returned it empty.
   it('leaves no published field blank', () => {
     const token = toSlimToken(INFLECTED);
 
@@ -133,13 +125,8 @@ describe('toSlimToken', () => {
   });
 });
 
-/**
- * Batches run concurrently, so the one property that cannot be left to chance is
- * that the answers still line up with what was sent. Every caller zips the result
- * back against its own rows by position -- the corpus backfill writes
- * `tokens` per segment that way -- so a reordering here silently attaches one
- * sentence's analysis to another sentence.
- */
+/** Batch results must stay in input order because callers zip each analysis back onto its segment; a reorder
+ * silently attaches one sentence's tokens to another. */
 describe('parseSegments batching', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -152,15 +139,8 @@ describe('parseSegments batching', () => {
     tokens: texts.map((text) => [{ position: 0, length: text.length, surface: text, pos: 'noun' }]),
   });
 
-  /**
-   * The morphology has to be asked for, and forgetting to is silent.
-   *
-   * Shirabe moved `posFull` and `posLabel` behind `include=` in 0.8.0 -- they
-   * were ~27% of every parse response and almost nobody read them. A run without
-   * this does not fail: it writes tokens with an empty `p` and no `posLabel`,
-   * which reads downstream as a corpus that lost its morphology on whatever date
-   * the run happened. Cheap to assert, and there is no other signal.
-   */
+  /** Request morphology explicitly: Shirabe moved `posFull` and `posLabel` behind `include=` and a missing request
+   * silently writes tokens without morphology. */
   it('asks for the morphology it stores', async () => {
     const bodies: string[] = [];
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
@@ -228,11 +208,8 @@ describe('parseSegments batching', () => {
   });
 });
 
-/**
- * A corpus pass is ~6,600 requests over two hours against a server other people
- * are reading from. One Cloudflare 502 used to end it: `parseChunk` threw, `run`
- * unwound, and a pass died 372,000 segments in with no retry anywhere.
- */
+/** A corpus pass makes thousands of requests; retry a transient Cloudflare 502 rather than letting one failure abort
+ * the pass. */
 describe('parseSegments resilience', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -302,12 +279,8 @@ describe('parseSegments resilience', () => {
   });
 });
 
-/**
- * Concurrency 3 drove shirabe.org to 145% CPU against a ~200% ceiling and took
- * reader page loads from 0.24s to 1.6s p95, with `puma_backlog` at 0 throughout:
- * readers were not queueing for a worker, they were sharing a core with a 2.4s
- * parse. The pass now reads its own latency and yields instead.
- */
+/** Keep concurrency low enough not to starve Shirabe readers: the measured concurrency-3 run raised CPU and p95
+ * latency, so the pass must yield based on its own latency. */
 describe('parseSegments pacing', () => {
   afterEach(() => __testing.resetPacing());
 

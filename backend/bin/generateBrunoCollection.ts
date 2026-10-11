@@ -86,7 +86,6 @@ function writeRequestBruFile(folderPath: string, item: BrunoItem, seq: number): 
   const fileName = `${sanitizeName(item.name)}.bru`;
   const filePath = join(folderPath, fileName);
 
-  // Extract bearer token value for auth block
   const bearerToken = request.auth?.bearer?.token || '{{apiKey}}';
 
   let content = `meta {\n`;
@@ -257,7 +256,6 @@ function loadBetterAuthRuntimeRoutes(): BetterAuthRuntimeRoute[] {
   const disabledPaths = new Set(authOptions?.disabledPaths ?? []);
   const isEmailPasswordDisabled = authOptions?.emailAndPassword?.enabled === false;
 
-  // Get basePath from auth configuration
   const basePath = (auth as any).basePath || '/v1/auth';
 
   for (const [operationId, endpoint] of Object.entries(auth.api as Record<string, any>)) {
@@ -361,7 +359,6 @@ function extractSecurityScheme(openApiSpec: OpenAPISpec, request: any): void {
       const operation = (pathItem as any)[request.method.toLowerCase()];
       const securityArray = operation?.security || openApiSpec.security || [];
 
-      // Check each security requirement
       for (const securityItem of securityArray) {
         for (const [schemeName] of Object.entries(securityItem)) {
           const scheme = openApiSpec.components?.securitySchemes?.[schemeName];
@@ -372,7 +369,6 @@ function extractSecurityScheme(openApiSpec: OpenAPISpec, request: any): void {
             request.auth = { mode: 'none' };
             return;
           } else if (scheme?.type === 'http' && scheme?.scheme === 'bearer') {
-            // Bearer token auth
             request.auth = {
               mode: 'bearer',
               bearer: {
@@ -453,27 +449,22 @@ function resolveRef(openApiSpec: OpenAPISpec, ref: string): any {
 }
 
 function buildExampleFromSchema(schema: any): any {
-  // If there's a direct example, use it
   if (schema.example !== undefined) {
     return schema.example;
   }
 
-  // If there's a default, use it
   if (schema.default !== undefined) {
     return schema.default;
   }
 
-  // Handle arrays
   if (schema.type === 'array') {
     if (schema.items) {
       const itemExample = buildExampleFromSchema(schema.items);
-      // Only return array with example if we have a meaningful example
       return itemExample !== '' ? [itemExample] : [];
     }
     return [];
   }
 
-  // Handle objects
   if (schema.type === 'object' && schema.properties) {
     const exampleObj: any = {};
     for (const [propName, propSchema] of Object.entries(schema.properties as any)) {

@@ -109,12 +109,8 @@ describe('PATCH /v1/user/preferences', () => {
     expect(saved.preferences.hiddenCategories).toEqual(['JDRAMA', 'YOUTUBE']);
   });
 
-  /**
-   * The two settings live on different screens and the hidden list moves under
-   * the default, so a stored default that names a hidden category is a state the
-   * API has to hold. It is the search that falls back to every category, which
-   * keeps the choice for whenever the reader unhides it.
-   */
+  /** The stored default may name a currently hidden category. Search falls back to all categories so the choice
+   * remains available when the reader unhides it. */
   it('stores a default search category the reader has also hidden', async () => {
     fixtures.users.kevin.preferences = { hiddenCategories: [CategoryType.JDRAMA] };
     await fixtures.users.kevin.save();
@@ -139,10 +135,7 @@ describe('PATCH /v1/user/preferences', () => {
     expect(res.status).toBe(400);
   });
 
-  /**
-   * `filters.category` reads an empty term list as "no filter", so storing an
-   * all-hidden list would show the reader the entire corpus rather than nothing.
-   */
+  /** An all-hidden list means no category filter, which would expose the entire corpus instead of none. */
   it('refuses to hide every category', async () => {
     fixtures.users.kevin.preferences = { hiddenCategories: [CategoryType.YOUTUBE] };
     await fixtures.users.kevin.save();
@@ -178,9 +171,7 @@ describe('PATCH /v1/user/preferences', () => {
   });
 
   it('refuses to store more starred media than the cap allows', async () => {
-    // The dedicated endpoint is not the only door into this list: PATCH
-    // deep-merges whatever it is handed, so the cap has to be enforced here too
-    // or it is bypassable by the client that skips `POST /v1/user/favorite-media`.
+    // PATCH deep-merges this list too, so enforce the cap here as well as on the dedicated endpoint.
     const overCap = Array.from({ length: 101 }, (_, index) => ({
       mediaPublicId: `filler${String(index).padStart(6, '0')}`,
       favoritedAt: new Date().toISOString(),
@@ -206,13 +197,8 @@ describe('PATCH /v1/user/preferences', () => {
   });
 });
 
-/**
- * Rows written before `SlimMediaPreferences1787200000000` hold
- * `{ mediaPublicId, nameEn, ... }` where the slim shape holds an id. The
- * migration rewrote them, but a restore from an older dump has not, and the
- * failure mode is the worst one available: a reader's hidden list resolving to
- * nothing and every title they hid coming back.
- */
+/** Older dumps may contain `{ mediaPublicId, nameEn, ... }` instead of the slim id shape. Accepting this wrapper
+ * prevents a restore from silently losing the reader's hidden titles. */
 describe('preferences written before the media lists were slimmed', () => {
   it('reads the old objects as ids', async () => {
     await User.update(
@@ -238,9 +224,7 @@ describe('preferences written before the media lists were slimmed', () => {
   });
 
   it('reads a bare id string, the shape this list is headed for', async () => {
-    // Nothing writes this yet. `hiddenMedia` drops the wrapper once no old
-    // container or stale tab is left to read it, and accepting it here now is
-    // what makes that a backend-only change rather than another migration.
+    // Accept the old wrapper while stale containers or tabs may still read it; newer code drops it.
     await User.update({ id: fixtures.users.kevin.id }, { preferences: { hiddenMedia: ['bare-id-01'] as never } });
     signInAs(app, await User.findOneByOrFail({ id: fixtures.users.kevin.id }));
 
@@ -268,13 +252,8 @@ describe('preferences written before the media lists were slimmed', () => {
   });
 });
 
-/**
- * Kamal keeps the old containers serving while the new ones come up, so for a
- * window the rows this code writes are being read back by the code it replaced.
- * The entries below are what that old code called valid -- its name fields were
- * optional -- which is the whole reason `hiddenMedia` stayed a wrapper object
- * instead of becoming a bare id string.
- */
+/** Old containers may read rows written by new containers during rollout; optional name fields are therefore
+ * retained in the compatibility wrapper. */
 describe('what the previous release can still read', () => {
   // A copy of the pre-change schema, on purpose: this is the contract under
   // test, so it has to be spelled out rather than imported from the generated

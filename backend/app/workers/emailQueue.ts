@@ -8,43 +8,21 @@ export interface EmailJobData {
   subject: string;
   html: string;
   replyTo?: string;
-  /**
-   * Whose mail this is, carried through the queue so the worker can resolve the
-   * same sender the builder rendered the body with.
-   *
-   * Without it a job that renders as a note from Natsume would go out over Dav's
-   * address, because `sendEmail` decides the `From` and runs on the other side
-   * of the queue. Optional for the same reason `kind` is: a job enqueued by an
-   * older deploy must still run after a rollout.
-   */
+  /** Carry optional reader metadata for queued messages from mixed deployments; envelope identity is selected by
+   * kind, not reader. */
   userId?: number;
-  /**
-   * Carried through the queue so a job that runs minutes later still knows which
-   * message it is: the worker hands this to `sendEmail`, which turns it into the
-   * `X-TM-CLIENT-REF` header and the `email.kind` metric label.
-   *
-   * Optional so a job enqueued by an older deploy still runs after a rollout
-   * rather than failing on a field it never had.
-   */
+  /** Carry the client reference through the queue for headers and metrics; keep it optional so jobs from older
+   * deploys still run. */
   kind?: EmailKind;
-  /**
-   * `List-Unsubscribe` target, carried through the queue so a job that runs
-   * minutes later still offers the reader the way out. Optional for the same
-   * reason `kind` is: a job enqueued by an older deploy has to keep working.
-   */
+  /** Carry the unsubscribe target through delayed jobs; optional preserves compatibility with jobs enqueued before
+   * the field existed. */
   unsubscribeUrl?: string;
-  /**
-   * Which run of `kind` this is (`recap-2026-08`), for the lifecycle mail that
-   * recurs. Rides out inside the client reference so a bounce three days later
-   * names the send rather than only its shape.
-   */
+  /** Carry recurring campaign identity in the client reference so later bounces identify the run, not only the
+   * message kind. */
   campaign?: string;
 }
 
-/**
- * Send an email job with optional deduplication.
- * Uses sendDebounced when a dedupeKey is provided to prevent duplicate emails.
- */
+/** Enqueue an email job, using dedupeKey as the queue singleton key when provided. */
 export async function sendEmailJob(data: EmailJobData, dedupeKey?: string): Promise<string | null> {
   const boss = getPgBoss();
 

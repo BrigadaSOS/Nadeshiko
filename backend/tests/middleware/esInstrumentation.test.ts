@@ -1,21 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 
-/**
- * The Elasticsearch client instrumentation, which was shipping with nothing
- * exercising it at all.
- *
- * What it produces is a metric label and a span name, and both are cardinality
- * decisions rather than cosmetics. `extractOperation` exists to turn a path
- * carrying an index name and a document id into one of a handful of stable
- * operations -- if it let the id through, every `GET /nadedb/_doc/<uuid>` would
- * open its own time series in a store shared with another project. That failure
- * does not surface as an error; it surfaces months later as a metrics bill.
- *
- * The duration bookkeeping is the other half: start times are held in a Map
- * keyed by request id, and an entry that is never deleted is a leak in a
- * long-running process.
- */
+/** Stable operation labels must remove index names and document ids; otherwise every request creates a metric
+ * series. Also delete request start times from the Map to avoid a long-running leak. */
 const histogramRecords: { value: number; attrs: Record<string, unknown> }[] = [];
 vi.mock('@config/telemetry', () => ({
   getMeter: () => ({

@@ -54,15 +54,7 @@ export const clearFamiliarMedia: ClearFamiliarMedia = async (_params, respond, r
   return respond.with200().body({ count });
 };
 
-/**
- * Forgets a single title from the reader's tally.
- *
- * Answers with the row count it removed rather than 404ing on a title that was
- * never tallied: the caller is a reader pressing a button beside a list, and
- * "there was nothing to forget" is the same outcome to them as "forgotten".
- * Only rows belonging to this reader are in scope, so the id in the path cannot
- * reach anybody else's tally.
- */
+/** Forget is idempotent and scoped to the reader: missing rows are the same user-visible outcome as rows removed. */
 export const forgetFamiliarMedia: ForgetFamiliarMedia = async ({ params }, respond, req) => {
   const user = assertUser(req);
 

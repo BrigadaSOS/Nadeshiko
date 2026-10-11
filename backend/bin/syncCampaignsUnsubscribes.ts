@@ -6,37 +6,13 @@ import { User } from '@app/models';
 import { normalizeAddress, suppress } from '@app/services/email/suppression';
 import { setProductEmailCategory } from '@app/services/email/unsubscribe';
 
-/**
- * Bring Zoho Campaigns' opt-outs and bounces back into our own database.
- *
- *   npm run email:sync-unsubscribes -w backend -- unsubscribes export.csv [--apply]
- *   npm run email:sync-unsubscribes -w backend -- bounces export.csv [--apply]
- *
- * THE HALF OF THE ANNOUNCEMENT THAT IS EASY TO FORGET, and the one that decides
- * whether the whole arrangement is honest. Somebody who unsubscribes from a
- * release announcement in Campaigns has told US they want less mail, not Zoho.
- * Campaigns will not mail them again -- it remembers its own list -- but the
- * monthly recap and the day-7 note come from here, and here knows nothing about
- * it. Without this script the reader unsubscribes, keeps hearing from us, and
- * reasonably concludes the unsubscribe was a lie.
- *
- * Bounces are the same argument for reputation rather than for courtesy: an
- * address Campaigns could not deliver to is one our own relay should stop
- * trying, and it goes through the same `suppress` every ZeptoMail bounce does.
- *
- * DRY RUN BY DEFAULT. Both modes write, and the input is a file somebody
- * downloaded and picked by hand -- pointing the bounce mode at the wrong export
- * would suppress a pile of perfectly good addresses, and suppression is not
- * something a rerun undoes.
- */
+/** Imports Zoho opt-outs and bounces into local suppression/preferences. Dry-run is the default because a
+ * hand-selected export can suppress valid addresses and suppression is not undone by rerunning. Usage: `npm run
+ * email:sync-unsubscribes -w backend -- <unsubscribes|bounces> <export.csv> [--apply]`. */
 type Mode = 'unsubscribes' | 'bounces';
 
-/**
- * Enough CSV for an export: quoted fields, doubled quotes inside them, and
- * newlines within a quoted field. Not a general parser, and deliberately not a
- * dependency -- the alternative was `split(',')`, which silently mangles any row
- * containing a quoted comma.
- */
+/** Parse quoted CSV fields, doubled quotes, and embedded newlines; `split(",")` would silently corrupt quoted
+ * commas. */
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -83,14 +59,8 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((entry) => entry.some((value) => value.trim()));
 }
 
-/**
- * Which column holds the address.
- *
- * Found by header rather than by position, because Zoho's exports do not agree
- * with each other on column order and a fixed index would quietly read the wrong
- * one. Falls back to the first column that looks like an address, which covers a
- * hand-made one-column list.
- */
+/** Find the address column by header because Zoho export order varies; fall back to the first address-looking column
+ * for a one-column hand-made list. */
 export function addressesFrom(rows: string[][]): string[] {
   if (rows.length === 0) return [];
 
@@ -148,15 +118,10 @@ async function main(): Promise<void> {
       const user = await User.createQueryBuilder('user').where('LOWER(user.email) = :address', { address }).getOne();
 
       if (mode === 'unsubscribes') {
-        // An unsubscribe from somebody with no account is not a fault: the
-        // Campaigns list can hold addresses we no longer have a reader for.
-        // Nothing to turn off, and nothing to report as a failure.
+        // An unsubscribe for an unknown account is valid input; there is no local preference to update.
         if (!user) continue;
         matched += 1;
-        // `updates` ONLY, not the master. Campaigns carries the announcements
-        // and nothing else, so an opt-out from there speaks for announcements
-        // and nothing else -- killing their recap and check-ins too would be us
-        // reading "less" as "none".
+        // Update only lifecycle preferences: Campaigns opt-out must not disable unrelated mail.
         if (apply && (await setProductEmailCategory(user.id, 'updates', false))) changed += 1;
         continue;
       }

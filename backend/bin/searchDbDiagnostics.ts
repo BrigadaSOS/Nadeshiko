@@ -14,14 +14,8 @@ interface StatementRow {
   query: string;
 }
 
-/**
- * Read-only snapshot for the Postgres side of the search path.
- *
- * `pg_stat_statements` is loaded in production, but before this command the only
- * practical incident signal was a 300-character slow-query log line. This keeps
- * the normalized statement, frequency, slow tail and disk/temp pressure in one
- * output that can be captured before a restart clears the useful context.
- */
+/** Read-only Postgres search-path snapshot: capture normalized statements, frequency, slow tail, and disk/temp
+ * pressure before a restart clears incident context. */
 async function main(): Promise<void> {
   await AppDataSource.initialize();
 

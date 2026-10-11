@@ -1,15 +1,5 @@
-/**
- * Pins the `x-server-only` marker to the two things it has to agree with.
- *
- * The marker generates the frontend proxy's refusal list, and it exists because
- * the proxy stamps the internal secret onto every browser request it relays --
- * so a backend controller checking that secret (`isInternalProxyRequest`) is
- * only actually server-only if the proxy ALSO refuses the route. A controller
- * that checks the secret without the marker is a door left open; a marker on a
- * route the controller does not check is a claim the backend does not enforce.
- * Both are found by reading the controllers, and neither would fail any other
- * test.
- */
+/** Keep the `x-server-only` marker, proxy refusal list, and `isInternalProxyRequest` checks in agreement: a missing
+ * marker leaves a secret-checked route reachable, while an unused marker overclaims enforcement. */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
 import { resolve, join } from 'path';
@@ -27,14 +17,8 @@ function describeOperation(op: (typeof operations)[number]): string {
   return `${op.method.toUpperCase()} ${op.path} (${op.operationId ?? 'unknown'})`;
 }
 
-/**
- * Every exported handler that calls `isInternalProxyRequest`, by operationId.
- * The handlers are named after their operationId (the generated router imports
- * them by that name), so a handler body that mentions the check is the
- * operation that enforces it. Coarse -- a text scan -- but the alternative is
- * executing every controller with a fake request, and coarse is enough to
- * catch a new server-only route whose author forgot the marker.
- */
+/** Find every exported handler whose body calls `isInternalProxyRequest`; this coarse operationId scan catches a new
+ * server-only route that forgot the marker. */
 function handlersCheckingInternalProxy(): Set<string> {
   const found = new Set<string>();
   for (const file of readdirSync(CONTROLLERS_DIR)) {
@@ -56,9 +40,8 @@ describe('server-only routes agree with the controllers and the proxy', () => {
   });
 
   it('every marked route is internal and session-gated', () => {
-    // Server-only is a stricter claim than internal: a route the proxy will not
-    // forward has no business in the public spec, and it is reached with the
-    // reader's cookie relayed by our own server, so a session is what it takes.
+    // A server-only route is not public and is reached with the reader cookie relayed by our server, so it requires a
+    // session.
     const offenders = serverOnlyOperations
       .filter((op) => !op.isInternal || !op.security?.some((requirement) => 'SessionCookie' in requirement))
       .map(describeOperation);

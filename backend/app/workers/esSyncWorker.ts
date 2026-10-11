@@ -62,10 +62,8 @@ async function handleBulkIndex(jobs: Job<EsSyncJobData>[], operation: 'CREATE' |
     }
 
     if (result.failed > 0) {
-      // The queue's retryLimit bounds this. The bulk operations are idempotent
-      // by segment id, so retrying a whole batch is safe. Unlike returning
-      // normally, it cannot complete a job whose Elasticsearch write failed,
-      // and worker instrumentation reports the pg-boss outcome truthfully.
+      // Throw after a failed bulk write so pg-boss retries; segment-id idempotence makes retrying the batch safe and
+      // keeps outcomes truthful.
       throw new Error(`${result.failed} segment(s) failed during bulk ${operation}`);
     }
   } catch (error) {

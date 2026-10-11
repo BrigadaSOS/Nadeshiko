@@ -1,19 +1,8 @@
 import crypto from 'node:crypto';
 import { config } from '@config/config';
 
-/**
- * Proving a ZeptoMail webhook is really from ZeptoMail.
- *
- * TWO WAYS IN, because ZeptoMail's documentation and its own console disagree
- * about how a webhook proves who sent it. The console offers a static
- * authorization header, name and value of your choosing, which is what is
- * actually configured on the Agent; the docs describe an HMAC
- * `producer-signature`. Either satisfies us, both use the same secret, and
- * neither being present is a refusal.
- *
- * Betting on the documented one alone would refuse every real delivery. Shirabe
- * found this out by shipping it.
- */
+/** Accept the configured static-header proof or a valid HMAC: provider console and documentation use different
+ * schemes. Reject requests with neither. */
 
 /**
  * The authorization header configured on the Agent's webhook. Changing it means
@@ -23,37 +12,22 @@ export const TOKEN_HEADER = 'x-nadeshiko-webhook-token';
 
 export const SIGNATURE_HEADER = 'producer-signature';
 
-/**
- * The shared secret both authentication paths are keyed on.
- *
- * Read through a function rather than off `config` at the call site because
- * `config` is frozen at module load: a test that needs a configured endpoint
- * cannot assign one, and assigning anyway throws inside a hook and leaves the
- * suite's transaction open. This is the seam tests stub instead.
- */
+/** Read the secret through a function because frozen module config is not a test seam; do not mutate config inside a
+ * hook. */
 export function getWebhookSecret(): string | undefined {
   return config.ZEPTOMAIL_WEBHOOK_SECRET;
 }
 
-/**
- * How stale a signed payload may be. A signature with no freshness check is a
- * replay waiting to happen: a captured hard-bounce delivery could be resent
- * forever to suppress an address on demand.
- */
+/** Reject signed payloads outside the freshness window; otherwise a captured bounce could be replayed to suppress an
+ * address forever. */
 const TOLERANCE_MS = 5 * 60 * 1000;
 
-/**
- * ZeptoMail's docs describe a form-encoded body, `data=<urlencoded JSON>`; the
- * console posts plain JSON. Accept both, and return the JSON text either way --
- * which is also the exact string the HMAC covers.
- */
+/** Accept both form-encoded and plain JSON bodies, but return the exact JSON text covered by the HMAC. */
 export function extractPayload(rawBody: string): string {
   const trimmed = rawBody.trim();
   if (!trimmed.startsWith('data=')) return trimmed;
 
-  // Only the FIRST `=` separates the key from the value: the urlencoded JSON
-  // that follows contains `=` of its own inside base64 and query strings, and
-  // splitting on all of them truncates the payload to something unparseable.
+  // Split `data=` at the first `=`; encoded JSON and embedded values may contain further equals signs.
   const value = trimmed.slice('data='.length);
   try {
     return decodeURIComponent(value.replace(/\+/g, ' '));
@@ -62,11 +36,8 @@ export function extractPayload(rawBody: string): string {
   }
 }
 
-/**
- * Length-safe compare. `crypto.timingSafeEqual` throws on a length mismatch
- * rather than returning false, and the throw itself leaks the length, so the
- * comparison is done over fixed-width digests of both sides.
- */
+/** Compare fixed-width digests because `timingSafeEqual` throws on unequal lengths; do not expose length through the
+ * comparison path. */
 function secureEquals(a: string, b: string): boolean {
   const digestA = crypto.createHash('sha256').update(a).digest();
   const digestB = crypto.createHash('sha256').update(b).digest();
@@ -78,11 +49,7 @@ export function tokenMatches(provided: string | undefined, secret: string): bool
   return secureEquals(provided, secret);
 }
 
-/**
- * `producer-signature` is `ts=<milliseconds>;sig=<base64 HMAC-SHA256>` in the
- * documented form, though the docs are not consistent about the separator. Parse
- * leniently, verify strictly.
- */
+/** Parse documented separator variants leniently, then verify the HMAC strictly. */
 export function signatureValid(params: {
   header: string | undefined;
   payload: string;
@@ -117,9 +84,7 @@ export function signatureValid(params: {
     if (age > TOLERANCE_MS) return false;
   }
 
-  // The HMAC covers the payload with the timestamp prefixed when one is present,
-  // which is the shape every Zoho example that includes `ts` uses. Both are
-  // accepted because the console's own deliveries have arrived without a `ts`.
+  // Verify the timestamp-prefixed HMAC when `ts` exists, while accepting console deliveries that omit `ts`.
   const candidates = timestamp ? [`${timestamp}.${params.payload}`, params.payload] : [params.payload];
 
   return candidates.some((candidate) => {

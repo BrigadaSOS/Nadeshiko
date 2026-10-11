@@ -1,10 +1,4 @@
-/**
- * Seeds the WordFrequency table from Jiten anime frequency data.
- * Downloads the anime-specific CSV frequency list from jiten.moe.
- *
- * Usage:
- *   node --import tsx scripts/seed-word-frequency.ts
- */
+/** Seeds WordFrequency from Jiten anime frequency CSV. Usage: `node --import tsx scripts/seed-word-frequency.ts`. */
 
 import { AppDataSource } from '@config/database';
 

@@ -1,12 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { buildCommonFilters, expandContentRatingTerms } from '@app/services/search/segmentDocument/filterRegistry';
 
-/**
- * Pins the exact Elasticsearch clauses each request filter produces.
- *
- * Literal expected clauses guard field mapping, polarity, and stable output order.
- * Search-stats cache keys are derived from request values, not this query DSL.
- */
+/** Pin each filter’s exact Elasticsearch clause, including field mapping, polarity, and output order; cache keys use
+ * request values separately from this DSL. */
 
 const STATUS = ['ACTIVE'];
 const base = (extra: object = {}) => ({ status: STATUS, ...extra }) as never;

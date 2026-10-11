@@ -60,18 +60,8 @@ export const listMedia: ListMedia = async ({ query }, respond) => {
   });
 };
 
-/**
- * Narrows a Media query to name matches and orders them by relevance.
- *
- * The two endpoints that search media by name -- `GET /v1/media?query=` and
- * `POST /v1/search/media` -- ranked identically by each spelling the whole thing
- * out: the same LIKE patterns, the same CASE expression, the same three-level
- * ordering. Ranking rules that live in two places drift, and the symptom would be
- * the same query returning a different order depending on which endpoint asked.
- *
- * Order is exact match, then prefix match, then anything else; ties break on the
- * shorter name, then on id so the page boundary is stable.
- */
+/** Keep media-name ranking identical across both endpoints: exact, prefix, then other matches, with stable
+ * tie-breakers. */
 function applyMediaNameSearch(qb: SelectQueryBuilder<Media>, normalizedQuery: string): void {
   const escaped = escapeLikePattern(normalizedQuery);
   const containsPattern = `%${escaped}%`;
@@ -166,9 +156,8 @@ export const updateMedia: UpdateMedia = async ({ params, body }, respond) => {
 
   Media.merge(media, patch);
 
-  // The entity save and the external-id replacement are one unit. Splitting them
-  // lets a failure in between leave the media with zero external IDs, and from
-  // then on every segment creation for it fails in getPrimaryExternalId.
+  // Save the media and replace external ids atomically; otherwise a partial failure leaves future segment creation
+  // without a primary id.
   await Media.getRepository().manager.transaction(async (manager) => {
     if (body.externalIds !== undefined) {
       media.externalIds = await replaceMediaExternalIds(manager, media.id, body.externalIds);
@@ -231,16 +220,8 @@ export const searchMedia: SearchMedia = async ({ body }, respond) => {
 
 const ES_DELETE_ENQUEUE_CHUNK = 1000;
 
-/**
- * Queue ES deletes for segments Postgres has already dropped.
- *
- * Calling `SegmentIndexer` from the request meant one ES failure orphaned those
- * documents for good: still searchable, nothing behind them, and no retry. The
- * queue owns the retries, and it is where every other ES mutation goes.
- *
- * Chunked so deleting a media with a large corpus does not build one enormous
- * insert statement.
- */
+/** Queue Elasticsearch deletes after Postgres removal so worker retries can recover from ES failure; chunk large
+ * deletes. */
 export async function enqueueSegmentEsDeletes(segmentIds: number[]): Promise<void> {
   for (let i = 0; i < segmentIds.length; i += ES_DELETE_ENQUEUE_CHUNK) {
     const chunk = segmentIds.slice(i, i + ES_DELETE_ENQUEUE_CHUNK);

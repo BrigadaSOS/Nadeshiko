@@ -1,14 +1,5 @@
-/**
- * "Is this route the shared corpus?" — asked of the generated allowlist.
- *
- * A parallel copy of the frontend's `createPublicRouteMatcher`
- * (`frontend/shared/utils/backendSdk.ts`), for the same reason `lib/traffic.ts`
- * duplicates `shared/utils/traffic.ts`: the two packages have separate builds
- * and neither can import from the other. What must not drift is the ROUTE LIST,
- * and that does not -- both sides are emitted from one pass of
- * `bin/generatePublicRoutes.ts`, so a route can never be public on one side and
- * private on the other.
- */
+/** Keep the backend matcher as a generated parallel of the frontend matcher; separate builds require copies, but one
+ * generator pass must keep the route list identical. */
 import { publicApiRoutes, type PublicApiRoute } from 'generated/publicApiRoutes';
 
 /** Turns an OpenAPI path template (`/v1/media/{id}`) into a matcher for a real path. */
@@ -31,10 +22,5 @@ export function createPublicRouteMatcher(routes: readonly PublicApiRoute[]) {
   };
 }
 
-/**
- * Whether `method pathname` reads the shared corpus.
- *
- * Compiled once at module load: the list is a build artifact, so rebuilding the
- * regexes per request would be pure waste on the hot path.
- */
+/** Compile the generated public-route regexes once at module load rather than rebuilding them on every request. */
 export const isPublicApiRoute = createPublicRouteMatcher(publicApiRoutes);

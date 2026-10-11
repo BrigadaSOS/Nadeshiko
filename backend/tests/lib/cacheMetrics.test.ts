@@ -8,11 +8,8 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import type { ResourceMetrics } from '@opentelemetry/sdk-metrics';
 
-/**
- * The number that was missing during Nadeshiko#522: which cache is holding the
- * heap. `searchStats` sat at its 10,000-entry default for three days and the
- * only visible signal was old_space climbing.
- */
+/** Pin the per-cache heap metric that caught Nadeshiko#522: `searchStats` stayed at 10,000 entries while old-space
+ * grew. */
 const exporter = new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE);
 let reader: PeriodicExportingMetricReader;
 let cache: typeof import('@lib/cache');
@@ -62,11 +59,7 @@ describe('the cache-size metric contract', () => {
     const entries = await pointsFor('cache.entries');
     const point = entries.find((p) => p.attributes['cache.namespace'] === 'testNeverUsed');
 
-    /**
-     * A namespace that disappears from the output when it holds nothing reads
-     * like a broken exporter rather than like an empty cache -- the same
-     * distinction seeding exists for on the counters.
-     */
+    /** Emit empty namespaces too; omitting them makes an empty cache look like a broken exporter. */
     expect(point).toBeDefined();
     expect(point?.value).toBe(0);
   });

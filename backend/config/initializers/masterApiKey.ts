@@ -7,17 +7,8 @@ import { isLocalEnvironment } from '@config/environment';
 import { logger } from '@config/log';
 import type { RuntimeInitializer } from './types';
 
-/**
- * The frontend proxy signs its unauthenticated public-corpus traffic with
- * `API_KEY_MASTER`, so every visitor browsing anonymously shares that one
- * identity. That is only safe while the key is a SERVICE key: SERVICE keys are
- * exempt from the per-account quota and the per-IP rate limiter, and no
- * owner-scoped route is ever proxied with it (see the generated allowlist in
- * `frontend/server/utils/generated/publicApiRoutes.ts`).
- *
- * A USER key in that slot would silently drain one account's monthly quota on
- * behalf of the whole internet, so boot refuses to continue outside local.
- */
+/** The anonymous-corpus proxy key must be a SERVICE key and may reach only generated public routes; a USER key would
+ * spend one account’s quota for the whole internet, so boot rejects it outside local. */
 async function assertMasterApiKeyIsService(): Promise<void> {
   const hashedKey = await defaultKeyHasher(config.API_KEY_MASTER);
   const rows: { metadata: unknown }[] = await AppDataSource.query(

@@ -23,16 +23,8 @@ function decodeCursorPayload<T>(cursor: string): T {
   }
 }
 
-/**
- * A cursor only means something within the result set that produced it.
- *
- * `GET /v1/media` paginates by keyset while browsing and by offset once a
- * `query` is supplied, so a client that pages and *then* types a search term
- * carries a cursor of the wrong kind into the other branch. Rejecting it with a
- * 400 mid-browse is unhelpful — adding a search term produces a different
- * result set, so the old position is meaningless either way. Callers use this to
- * drop a mismatched cursor and start from the beginning.
- */
+/** A cursor is valid only for its result set; media browsing and filtered search use different pagination.
+ * Mismatches are dropped so callers restart rather than receive a 400 for a changed query. */
 export function cursorMatchesKind(cursor: string | null | undefined, kind: 'offset' | 'keyset'): boolean {
   if (!cursor) return false;
   try {

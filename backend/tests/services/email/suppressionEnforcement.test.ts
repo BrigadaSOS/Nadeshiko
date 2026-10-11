@@ -38,11 +38,7 @@ describe('the suppression check in sendEmail', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
-  /**
-   * RETURNS RATHER THAN THROWS. The caller asked to send a welcome email, not to
-   * handle a delivery policy, and a throw would turn a known-bad address into a
-   * pg-boss job that fails its five retries and then needs clearing by hand.
-   */
+  /** Return rather than throw for a policy rejection; a known-bad welcome address must not consume pg-boss retries. */
   it('returns quietly rather than throwing, so a queued job does not fail', async () => {
     await suppress({ address: 'gone@example.com', cause: 'hard_bounce' });
 
@@ -59,12 +55,7 @@ describe('the suppression check in sendEmail', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
-  /**
-   * THE POINT OF PUTTING THE CHECK IN `sendEmail` RATHER THAN IN EACH SENDER.
-   * A list checked per-sender is only as good as the discipline of whoever wrote
-   * the last send path; this asserts the property that removes the discipline
-   * from the loop.
-   */
+  /** Check suppression in `sendEmail`, not each sender, so every send path shares the enforcement point. */
   it('stops any sender, not just the ones that remember to ask', async () => {
     await suppress({ address: 'gone@example.com', cause: 'complaint' });
 

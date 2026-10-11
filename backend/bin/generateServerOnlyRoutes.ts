@@ -1,21 +1,6 @@
-/**
- * Generates the list of routes the frontend `/v1` proxy must refuse to forward
- * for a browser, from the `x-server-only` marker in the OpenAPI spec.
- *
- * Why the proxy has to be told at all: it stamps every request it forwards with
- * the shared internal secret, because that is how the backend's rate limiter
- * and traffic classifier recognise our own frontend. A backend route that
- * checks the same secret to mean "our own SERVER is asking" therefore cannot
- * tell a Nitro-side call from a browser call the proxy relayed -- and the
- * Shirabe credential route was reachable from any script on the site through
- * exactly that door. The marker in the spec is the single statement of which
- * routes are server-only; this turns it into the proxy's deny list, and the
- * agreement test pins it to the route auth the same spec produces.
- *
- * One output rather than two: the backend controllers keep their own
- * `isInternalProxyRequest` check (the inner door), and only the proxy needs a
- * list.
- */
+/** Generates the browser-proxy deny list from `x-server-only`. The proxy’s shared internal secret cannot distinguish
+ * a Nitro server call from a browser relayed through it, so this outer deny list complements controllers’ inner
+ * checks; the agreement test keeps both generated views aligned. */
 import { mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { pathToFileURL } from 'url';

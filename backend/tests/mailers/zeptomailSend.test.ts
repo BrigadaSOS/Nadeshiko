@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-/**
- * `config` is frozen at module load, so varying the agent token means standing
- * something else in front of it. Same shape as `lifecycleGate.test.ts`, and for
- * the same reason -- see the note there on why the Proxy wraps a copy.
- */
+/** `config` is frozen at module load, so vary the copied config behind the same Proxy shape used by the
+ * lifecycle-gate tests. */
 const overrides: Record<string, unknown> = {};
 
 vi.mock('@config/config', async (importOriginal) => {
@@ -22,22 +19,8 @@ vi.mock('@config/config', async (importOriginal) => {
 const { sendViaZeptomailApi } = await import('@app/mailers/zeptomailSend');
 type ZeptomailMessage = import('@app/mailers/zeptomailSend').ZeptomailMessage;
 
-/**
- * The transport the deployed environments actually use, and the one the rest of
- * the suite cannot reach: tests run as `local`, so every other mailer test goes
- * through letter-opener. Without this file the switch from SMTP to HTTP is
- * covered by nothing at all.
- *
- * What is asserted is the REQUEST, not the plumbing, because ZeptoMail's field
- * names are not guessable and getting one wrong is not a soft failure. The
- * obvious `headers` for custom MIME headers is `mime_headers`, and sending the
- * obvious one earns `TM_3301 Bad Syntax` / `GE_121 An extra key found in the
- * input value` -- the WHOLE REQUEST is refused, so a wrong key here is not a
- * message missing an unsubscribe link, it is every lifecycle send failing.
- * Confirmed against the live JP API on 2026-08-21, which is also how that field
- * name was found; the first implementation used `headers` and would have shipped
- * broken.
- */
+/** This covers the deployed ZeptoMail HTTP transport, which local mailer tests bypass. Assert the exact request
+ * fields—especially `mime_headers`—because a wrong field rejects the whole send. */
 
 const MESSAGE: ZeptomailMessage = {
   from: { address: 'noreply@nadeshiko.co', name: 'Nadeshiko' },
@@ -86,15 +69,8 @@ describe('sending over the ZeptoMail API', () => {
     expect(seen.body.textbody).toBe('Hello');
   });
 
-  /**
-   * THE AGENT SPLIT, which is a config change rather than a code one.
-   *
-   * Everything shares one Agent today. When a recurring recap joins the day-7
-   * ask and the win-back, a policy action against it would take magic links with
-   * it -- so lifecycle mail gets the option of its own Agent, and transactional
-   * mail stays where it is. Unset, both fall back to the single token, which is
-   * what these two cases pin.
-   */
+  /** The agent split is a configuration option: lifecycle policy changes must not affect transactional mail, while
+   * unset values fall back to the shared token. */
   it('sends lifecycle mail through its own agent once one is configured', async () => {
     overrides.ZEPTOMAIL_LIFECYCLE_SEND_TOKEN = 'lifecycle-agent-token';
     const seen = captureRequest();
@@ -131,11 +107,7 @@ describe('sending over the ZeptoMail API', () => {
     expect(seen.headers.Authorization).toMatch(/^Zoho-enczapikey .+/);
   });
 
-  /**
-   * A plaintext part on EVERY message. Its absence is one of the oldest spam
-   * heuristics there is, and it would cost reputation on the Agent that also
-   * carries sign-in.
-   */
+  /** Every message needs plaintext; omitting it harms deliverability for the agent that also carries sign-in mail. */
   it('never sends an HTML-only message', async () => {
     const seen = captureRequest();
 
@@ -144,10 +116,7 @@ describe('sending over the ZeptoMail API', () => {
     expect(seen.body.textbody).toBe('A plain reading of it');
   });
 
-  /**
-   * What ties a bounce three days later back to the message that caused it.
-   * Returned on the webhook under this name.
-   */
+  /** This returned field links a later bounce to the message that caused it. */
   it('carries the client reference', async () => {
     const seen = captureRequest();
 
@@ -169,11 +138,8 @@ describe('sending over the ZeptoMail API', () => {
       });
     });
 
-    /**
-     * Omitted entirely on transactional mail. Offering to unsubscribe from
-     * sign-in links invites somebody to lock themselves out of their account,
-     * and a `List-Unsubscribe` a provider cannot act on is worse than none.
-     */
+    /** Transactional mail omits unsubscribe headers so a sign-in link cannot lock the recipient out; an unusable
+     * provider button is worse than none. */
     it('omits them entirely when there is not', async () => {
       const seen = captureRequest();
 
@@ -198,11 +164,7 @@ describe('sending over the ZeptoMail API', () => {
       await expect(sendViaZeptomailApi(MESSAGE)).rejects.toThrow(/TM_3201/);
     });
 
-    /**
-     * A failure from the edge rather than from ZeptoMail is not JSON, and a
-     * parse error here would replace a useful status with a stack trace about
-     * JSON.
-     */
+    /** An edge failure may be non-JSON; preserve its status instead of replacing it with a JSON parse stack trace. */
     it('still reports a status when the body is not JSON', async () => {
       vi.spyOn(globalThis, 'fetch').mockImplementation(
         async () => new Response('<html>502 Bad Gateway</html>', { status: 502 }),

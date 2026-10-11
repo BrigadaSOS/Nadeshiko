@@ -60,10 +60,8 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(result.segments[0].textJa.content).toBe('昨日ラーメンを食べました');
     });
 
-    // Issue #260: Katakana words with empty-reading chars (アイメイ, ウケッ, etc.)
-    // must NOT flood results with unrelated segments that have empty kana tokens.
-    // The fix skips the broken kana field for pure katakana queries, returning
-    // only segments that actually match via surface/baseform/normalized fields.
+    // Katakana queries must skip the broken kana field; otherwise empty-reading tokens match unrelated segments instead
+    // of only the surface/baseform/normalized fields.
     it('katakana with empty-reading chars: only returns matching segments', async () => {
       // Seed one target + 3 distractors that have empty kana tokens
       await seedSegmentsIntoEs({}, [{ contentJa: 'アイメイが話しています' }]);
@@ -71,9 +69,7 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       await seedSegmentsIntoEs({}, [{ contentJa: 'ウケッ' }]);
       await seedSegmentsIntoEs({}, [{ contentJa: 'レロレロ' }]);
 
-      // With broken code: kana field returns empty-token matches for all 4 docs
-      // (スコア 1.01 each via empty-token match), so take=4 returns all 4 segments.
-      // With fix: kana field is skipped for katakana, surface returns only 1 match.
+      // Without the fix, empty kana tokens match all four docs; with it, the surface query returns one.
       const result = await SegmentDocument.search({
         query: { search: 'アイメイ', exactMatch: false },
         take: 4,
@@ -95,13 +91,8 @@ describe.skipIf(!esAvailable)('SegmentDocument (integration)', () => {
       expect(result.segments[0].textEn?.content).toBe('Hello world');
     });
 
-    // Issue #304: the `-` exclusion operator was applied inside the dis_max, so each
-    // language clause negated against its own tokenization. The kana field reads
-    // ズレて as [ズレ, テ] but ずれてる as [ズレ, テル], so the てる conjugations
-    // escaped the negation and came back through the kana clause.
-    // The てる pair is what actually regressed: the kana clause re-admitted them.
-    // The plain ずれて/ズレて forms were already excluded before the fix, and are
-    // kept here so the exclusion stays script-agnostic.
+    // The kana clause previously re-admitted てる conjugations because each language tokenized exclusion independently;
+    // retain plain forms too so exclusion stays script-agnostic.
     it('exclusion operator removes every conjugation and script of the excluded term', async () => {
       await seedSegmentsIntoEs({}, [{ contentJa: '少しズレがある' }]);
       await seedSegmentsIntoEs({}, [{ contentJa: '時計がずれてる' }]);

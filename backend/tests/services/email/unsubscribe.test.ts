@@ -12,11 +12,8 @@ describe('unsubscribe tokens', () => {
     expect(issueUnsubscribeToken(42)).not.toBe(issueUnsubscribeToken(42));
   });
 
-  /**
-   * The token travels in a query string, so anything a mail client might do to
-   * it -- percent-encoding, line-wrapping a long URL -- has to survive or be
-   * refused, never silently resolve to somebody else.
-   */
+  /** The token is transported in a query string; percent-encoding and line wrapping must either survive or fail
+   * closed, never resolve another account. */
   it('is URL-safe, so no client has to encode it', () => {
     const token = issueUnsubscribeToken(7);
     expect(encodeURIComponent(token)).toBe(token);
@@ -29,10 +26,7 @@ describe('unsubscribe tokens', () => {
     expect(readUnsubscribeToken(foreign)).toBeNull();
   });
 
-  /**
-   * The point of sealing rather than signing: an attacker who edits the account
-   * id gets a payload that no longer authenticates, not one naming a stranger.
-   */
+  /** Sealing prevents an edited account id from authenticating as another account. */
   it('refuses a tampered token', () => {
     const token = issueUnsubscribeToken(42);
     const parts = token.split('.');
@@ -61,11 +55,8 @@ describe('unsubscribe tokens', () => {
 });
 
 describe('acceptsProductEmails', () => {
-  /**
-   * Absent means yes. Every account that existed before this preference did has
-   * no key at all, and reading that as "opted out" would silently mean nobody
-   * ever receives the lifecycle mail.
-   */
+  /** Missing preference means opted in: existing accounts predate the key, and treating absence as opt-out would
+   * suppress everyone. */
   it('defaults to yes for preferences that predate the flag', () => {
     expect(acceptsProductEmails({})).toBe(true);
     expect(acceptsProductEmails(null)).toBe(true);
@@ -98,11 +89,8 @@ describe('the finer grain', () => {
     expect(acceptsProductEmails(preferences, 'updates')).toBe(true);
   });
 
-  /**
-   * THE MIGRATION HAZARD. A reader who turned everything off before a category
-   * existed has no opinion stored about it, and reading that silence as consent
-   * would re-subscribe every opt-out the day a new category ships.
-   */
+  /** A category added later must default to the master preference, not re-subscribe readers who previously disabled
+   * all mail. */
   it('never reads a missing category as a fresh yes', () => {
     const goneAway = { productEmails: { enabled: false } };
 
@@ -117,11 +105,7 @@ describe('the finer grain', () => {
   });
 });
 
-/**
- * RFC 8058 unsubscribes the reader from "the list" that sent the message, and a
- * category is that list. One-clicking out of a monthly recap says nothing about
- * the one question we ask at day seven.
- */
+/** RFC 8058 treats the sending category as the list; opting out of a recap must not alter the day-7 question. */
 describe('what a one-click unsubscribe speaks for', () => {
   it('carries the category the message belonged to', () => {
     expect(readUnsubscribeToken(issueUnsubscribeToken(42, 'recap'))).toEqual({ userId: 42, category: 'recap' });
@@ -132,11 +116,8 @@ describe('what a one-click unsubscribe speaks for', () => {
     expect(readUnsubscribeToken(issueUnsubscribeToken(42))?.category).toBeUndefined();
   });
 
-  /**
-   * A category we do not recognise can only come from a version of this that
-   * knew something we do not, and "everything" is the safe reading of a list we
-   * cannot name.
-   */
+  /** An unknown category can only be safely interpreted as “everything”; do not silently leave an unrecognised list
+   * enabled. */
   it('drops a category it cannot place rather than trusting it', () => {
     const forged = issueUnsubscribeToken(42);
     const withUnknown = readUnsubscribeToken(forged);
