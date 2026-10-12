@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { ApiKeyKind, ApiPermission, User } from '@app/models';
+import { ApiKeyKind, User } from '@app/models';
 import { Cache, createCacheNamespace } from '@lib/cache';
 
 const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -28,9 +28,7 @@ export function invalidateUserCache(userId: number): void {
 
 interface ApiKeyCacheEntry {
   userId: number;
-  apiKeyId: string | undefined;
   apiKeyKind: ApiKeyKind;
-  permissions: ApiPermission[];
 }
 
 export function getCachedApiKey(key: string): ApiKeyCacheEntry | null {

@@ -337,7 +337,7 @@ async function authenticateBetterAuthApiKey(req: Request, apiKey: string): Promi
   const apiKeyKind = inferApiKeyKind(verification.key);
   const permissions = flattenBetterAuthPermissions(verification.key.permissions);
 
-  setCachedApiKey(apiKey, { userId, apiKeyId, apiKeyKind, permissions });
+  setCachedApiKey(apiKey, { userId, apiKeyKind });
 
   await attachAuthPayloadToRequest(req, userId, AuthType.API_KEY, {
     id: apiKeyId,

@@ -4,7 +4,6 @@ import {
   toSegmentDTO,
   toSegmentInternalDTO,
   toSegmentListDTO,
-  toSegmentInternalListDTO,
   toSegmentUpdatePatch,
 } from '@app/controllers/mappers/segmentMapper';
 import { ContentRating, SegmentStatus, SegmentStorage } from '@app/models/Segment';
@@ -84,15 +83,12 @@ describe('segment.mapper', () => {
     expect(dto.ratingAnalysis).toBeNull();
   });
 
-  it('maps segment and internal segment lists', () => {
+  it('maps segment lists', () => {
     const segments = [buildSegment({ id: 1 }), buildSegment({ id: 2, publicId: 'seg-pid-2' })];
     const list = toSegmentListDTO(segments as any);
-    const internalList = toSegmentInternalListDTO(segments as any);
 
     expect(list).toHaveLength(2);
-    expect(internalList).toHaveLength(2);
     expect(list[1].publicId).toBe('seg-pid-2');
-    expect(internalList[0].storage).toBe('R2');
   });
 
   it('maps create attributes with deterministic uuid and defaults', () => {
