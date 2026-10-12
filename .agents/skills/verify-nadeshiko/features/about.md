@@ -21,6 +21,8 @@ Run the complete About command in [the skill](../SKILL.md#drive). It opens `/abo
 
 Require five passing tests, no skips, and retained traces with navigation actions, rendered content, and screenshots. Inspect the trace to confirm the final localized URL and real About content.
 
+For header/navigation changes, also drive the About link. `frontend/e2e/specs/navbar.spec.ts`, test `About link navigates to /about`, uses `page.locator('header').getByRole('link', { name: 'About', exact: true })`. Run that test with the skill's local environment and evidence flags, replacing the spec with `e2e/specs/navbar.spec.ts` and adding `--grep 'About link navigates to /about'`; use separate `navbar-about` log/report/output names. It only asserts the destination URL: additionally verify the About heading and content after the click before claiming the full path. If localized direct routes change, explicitly drive `/en/about` too; the existing About spec opens only `/about`.
+
 ## Gotchas
 
 - `/up` does not prove the About page rendered.

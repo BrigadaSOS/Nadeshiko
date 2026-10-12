@@ -15,7 +15,7 @@ Open `/en/media`. Use `media-search-input`, the category control, or the view co
 
 ## Driving it with Playwright
 
-Preconditions: an owned local frontend points to a local backend with valid credentials and populated Postgres media, including anime. Opening a title also requires its search dependencies.
+Preconditions: an owned local frontend points to a local backend with valid credentials and populated Postgres media, including anime. Opening a title also requires its search dependencies. Complete the skill's [backend launch](../SKILL.md#local-backend-for-corpus-and-http-checks) and [corpus doctor](../SKILL.md#corpus-readiness) first.
 
 From `frontend/`, with the absolute evidence directory set:
 
