@@ -15,7 +15,7 @@ Open `/en/search` or `/en/search/彼女`. Type into `search-input` and activate 
 
 ## Driving it with Playwright
 
-Preconditions: use a local backend with valid corpus credentials and fixtures matching `彼女`, `school`, `Yo`, and `学校`. The About placeholder key is not sufficient.
+Preconditions: use a local backend with valid corpus credentials and fixtures matching `彼女`, `school`, `Yo`, and `学校`. The About placeholder key is not sufficient. Complete the skill's [backend launch](../SKILL.md#local-backend-for-corpus-and-http-checks) and [corpus doctor](../SKILL.md#corpus-readiness) first. For navigation/request-lifecycle changes, also use `e2e/specs/search/search-lifecycle.spec.ts` with the same local environment, trace flags, and separate evidence filenames; it checks hydration reuse, word-path navigation, same-URL refresh, and category navigation. It does not prove literal ranking or cursor equivalence.
 
 From `frontend/`, with the absolute evidence directory set:
 
