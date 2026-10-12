@@ -72,8 +72,3 @@ export const loginCodeBinding: RequestHandler = (req: Request, res: Response, ne
 
   return next();
 };
-
-/** Clears the claim, for "use a different address". The emailed link stays good. */
-export function clearLoginCodeBinding(res: Response): void {
-  res.clearCookie(LOGIN_CODE_COOKIE, { path: '/' });
-}
