@@ -15,7 +15,7 @@ Open `/en/sentence/<id>` for an existing result. The existing spec discovers an 
 
 ## Driving it with Playwright
 
-Preconditions: a local backend and indexed corpus return a result for `彼女` with English translation and reachable image assets. Use valid local credentials, not the About placeholder.
+Preconditions: a local backend and indexed corpus return a result for `彼女` with English translation and reachable image assets. Use valid local credentials, not the About placeholder. Complete the skill's [backend launch](../SKILL.md#local-backend-for-corpus-and-http-checks) and [corpus doctor](../SKILL.md#corpus-readiness) first. Before the browser run, verify that the selected segment's image URL returns a successful image response; a populated search result alone does not prove its assets are reachable.
 
 From `frontend/`, with the absolute evidence directory set:
 
@@ -39,5 +39,4 @@ Require the sentence card, non-empty Japanese text, English badge, media informa
 
 - The legacy `/s/:id` route follows through to the sentence page and still requires backend data.
 - This spec fetches image bytes. A placeholder image URL in fixtures is not sufficient.
-- The source-level initial-prop mismatch recorded in the rewrite plan needs its own runtime regression check before a fix.
 - This recipe has not been executed in the documentation pass.
