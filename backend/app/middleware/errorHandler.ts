@@ -30,17 +30,7 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
       return res.status(mappedError.status).json(mappedError.toJSON());
     }
     // Other query errors - log as warning (might be expected)
-    const fp = recordRealException(error, req);
-    logger.warn(
-      {
-        err: error,
-        requestId,
-        ...trafficAttributesFor(req),
-        'error.fingerprint': fp.fingerprint,
-        'error.group': fp.group,
-      },
-      'Database query failed',
-    );
+    logRealException(error, req, requestId, 'warn', 'Database query failed');
     return res.status(500).json(createInternalError(requestId).toJSON());
   }
 
@@ -71,17 +61,7 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
     }
 
     if (error.status >= 500) {
-      const fp = recordRealException(error, req);
-      logger.error(
-        {
-          err: error,
-          requestId,
-          ...trafficAttributesFor(req),
-          'error.fingerprint': fp.fingerprint,
-          'error.group': fp.group,
-        },
-        'Server error',
-      );
+      logRealException(error, req, requestId, 'error', 'Server error');
     } else if (error.status >= 400) {
       recordClientError(error, error.code, clientErrorAttrs(req));
     }
@@ -101,17 +81,7 @@ export function handleErrors(error: Error, req: Request, res: Response, next: Ne
   }
 
   // Unknown error - log and return 500
-  const fp = recordRealException(error, req);
-  logger.error(
-    {
-      err: error,
-      requestId,
-      ...trafficAttributesFor(req),
-      'error.fingerprint': fp.fingerprint,
-      'error.group': fp.group,
-    },
-    'Unhandled error',
-  );
+  logRealException(error, req, requestId, 'error', 'Unhandled error');
   const internalError = createInternalError(requestId);
   return res.status(500).json(internalError.toJSON());
 }
@@ -132,6 +102,26 @@ function isErrorCodeAllowedForRoute(errorCode: string, validCodes: ReadonlySet<s
  *  other end. Same pair `recordRealException` puts on the 5xx counter. */
 function clientErrorAttrs(req: Request): Record<string, string> {
   return { 'http.route': req.route?.path ?? req.path, ...trafficAttributesFor(req) };
+}
+
+function logRealException(
+  realError: unknown,
+  req: Request,
+  requestId: string,
+  level: 'warn' | 'error',
+  message: string,
+): void {
+  const fp = recordRealException(realError, req);
+  logger[level](
+    {
+      err: realError,
+      requestId,
+      ...trafficAttributesFor(req),
+      'error.fingerprint': fp.fingerprint,
+      'error.group': fp.group,
+    },
+    message,
+  );
 }
 
 function recordRealException(realError: unknown, req?: Request): { fingerprint: string; group: string } {
@@ -186,61 +176,21 @@ function convertExpressRuntimeError(error: ExpressRuntimeError, requestId: strin
           recordClientError(cause, mappedError.code, clientErrorAttrs(req));
           return mappedError;
         }
-        const fp = recordRealException(cause, req);
-        logger.warn(
-          {
-            err: cause,
-            requestId,
-            ...trafficAttributesFor(req),
-            'error.fingerprint': fp.fingerprint,
-            'error.group': fp.group,
-          },
-          'Database query failed in handler',
-        );
+        logRealException(cause, req, requestId, 'warn', 'Database query failed in handler');
         return createInternalError(requestId);
       }
       if (cause instanceof TypeORMError) {
-        const fp = recordRealException(cause, req);
-        logger.warn(
-          {
-            err: cause,
-            requestId,
-            ...trafficAttributesFor(req),
-            'error.fingerprint': fp.fingerprint,
-            'error.group': fp.group,
-          },
-          'TypeORM error in handler',
-        );
+        logRealException(cause, req, requestId, 'warn', 'TypeORM error in handler');
         return createInternalError(requestId);
       }
       // Unknown error from handler
-      const fp = recordRealException(cause, req);
-      logger.error(
-        {
-          err: cause,
-          requestId,
-          ...trafficAttributesFor(req),
-          'error.fingerprint': fp.fingerprint,
-          'error.group': fp.group,
-        },
-        'Unhandled error in handler',
-      );
+      logRealException(cause, req, requestId, 'error', 'Unhandled error in handler');
       return createInternalError(requestId);
     }
 
     case 'response_validation': {
       // Response validation failed - server bug
-      const fp = recordRealException(cause, req);
-      logger.error(
-        {
-          err: cause,
-          requestId,
-          ...trafficAttributesFor(req),
-          'error.fingerprint': fp.fingerprint,
-          'error.group': fp.group,
-        },
-        'Response validation failed',
-      );
+      logRealException(cause, req, requestId, 'error', 'Response validation failed');
       return createInternalError(requestId);
     }
 
