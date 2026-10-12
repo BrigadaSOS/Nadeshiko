@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref } from 'vue';
 
-/**
- * The catalogue page at `/media`.
- *
- * Its state lives entirely in the QUERY STRING, so every control and every
- * pasted URL take the same path -- which means the normalising of that query is
- * load-bearing: a `?view=` or `?category=` the page does not recognise has to
- * land on a sane default rather than an empty grid.
- *
- * The other half is what a reader has HIDDEN. Titles they hid are dropped, and
- * so are whole categories -- except when the category was asked for explicitly,
- * which is the one case where hiding must not win. Getting that backwards shows
- * a reader exactly the thing they told us to stop showing them.
- */
+// Normalize URL state before rendering. An explicit category overrides category hiding,
+// but individually hidden titles stay hidden.
 const route = reactive<{ query: Record<string, unknown>; params: Record<string, unknown> }>({ query: {}, params: {} });
 const hiddenMediaIds = ref<string[]>([]);
 const hasHiddenCategories = ref(false);
@@ -35,8 +24,7 @@ vi.stubGlobal('defineBreadcrumb', (v: unknown) => v);
 vi.stubGlobal('defineItemList', (v: unknown) => v);
 vi.stubGlobal('useQuerySync', () => ({ setQuery: vi.fn() }));
 vi.stubGlobal('usePostHog', () => ({ capture: vi.fn() }));
-// NOT stubbed: `userStore` is imported directly by this page, so a global has
-// no effect and the real Pinia store is used with its defaults.
+// The directly imported userStore uses real Pinia defaults; global stubs cannot replace it.
 vi.stubGlobal('useMediaName', () => ({
   mediaName: (m: Record<string, string>) => m.nameEn ?? '',
   secondaryMediaNames: () => '',
@@ -105,9 +93,7 @@ async function render(titles: unknown[] = [title('a'), title('b')], cursor: stri
         NuxtImg: true,
         UiBaseIcon: true,
         MediaCountLabel: true,
-        // List-view only, and unstubbed it renders for real against composables
-        // this test does not provide -- which threw during render and left the
-        // entire page blank rather than failing loudly.
+        // Stub MediaCover: list rendering otherwise reaches composables absent from this harness.
         MediaCover: true,
         CommonBaseModal: true,
       },
@@ -147,7 +133,6 @@ describe('reading the page’s state out of the URL', () => {
   });
 
   test('a view it does not recognise falls back to the grid', async () => {
-    // Rather than rendering neither and leaving the page blank.
     route.query = { view: 'nonsense' };
     const wrapper = await render();
 
@@ -235,7 +220,6 @@ describe('paging', () => {
   });
 
   test('and carries the current filters into it', async () => {
-    // Otherwise page two silently drops the reader's category and search.
     route.query = { category: 'ANIME', query: 'bo' };
     const wrapper = await render([title('a')], 'CUR');
 

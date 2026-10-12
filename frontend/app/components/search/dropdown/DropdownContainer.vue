@@ -1,26 +1,9 @@
 <template>
     <div ref="rootRef" data-testid="dropdown" :class="rootClass">
         <slot :is-open="isOpen" :toggle="toggle" :close="close" :dropdown-id="resolvedDropdownId"></slot>
-        <!--
-            `v-if`, NOT `v-show`, and on the busiest page that difference is most
-            of the document.
-
-            `useDropdownState` holds a single `openDropdownId`, so at most ONE
-            dropdown on the page is ever open -- but under `v-show` every other
-            menu is still built, styled and kept in the DOM, merely hidden. A word
-            page renders four of these per sentence card across thirty cards: 123
-            menus, ~28 elements each, 3,476 elements. That was 46% of the entire
-            served document existing for UI nobody had opened, and it is paid on
-            every style recalculation and every interaction, not just on load.
-
-            `<Transition>` is built to pair with `v-if`, so the open and close
-            animations are unchanged; the cost moves to mounting ~28 elements on
-            click, which is imperceptible. Nothing depends on the menu existing
-            while closed: no `aria-controls` points at it (`aria-labelledby` runs
-            the other way, from menu to toggle), the slot contents are
-            presentational, and the e2e specs that click items inside a menu open
-            the toggle first.
-        -->
+        <!-- Mount only open menus: hidden menus previously made up 46% of the served word-page DOM. No
+             aria-controls requires closed content; Transition supports v-if.
+             -->
         <Teleport to="body" :disabled="!teleport">
             <Transition name="nd-dropdown">
                 <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: closes the menu after a child item is picked -->
@@ -102,14 +85,8 @@ const placeMenu = (menuSize: { width: number; height: number }) => {
   if (!trigger) return;
   const vp = viewport();
   const pos = placeDropdownMenu(trigger, menuSize, vp, props.teleportAlign);
-  // The cap is what makes the placement stable. A fixed element with only
-  // `left` set shrinks to fit the space left of the viewport edge, so the menu
-  // measured at one position and then moved has room to grow at the new one --
-  // it was clamped using a 240px measurement, re-laid out where 248px was
-  // available, and took all of it, landing flush against the edge with the
-  // margin the clamp had just reserved. Capping the width at the placement
-  // removes the second lay-out, and makes overflow impossible whatever the
-  // content does.
+  // Cap width after positioning: shrink-to-fit can otherwise grow at the new location and undo the viewport
+  // clamp.
   placedStyle.value = {
     position: 'fixed',
     top: `${pos.top}px`,
@@ -170,21 +147,8 @@ const onMenuClick = (event: MouseEvent) => {
   close();
 };
 
-/**
- * Inside or outside is decided on the event's own path, not on where the
- * clicked node sits by the time this runs.
- *
- * A menu item that re-renders its OWN menu is unmounted before the click
- * reaches `document`: the microtask checkpoint between listeners flushes Vue's
- * patch while the event is still bubbling. `contains` then answers false for a
- * click that was unmistakably inside, and the menu dismisses itself on the way
- * in -- which is what closed the Anki field menu the moment a reader drilled
- * into the dictionary list, the one item whose whole job is to replace the list
- * around it.
- *
- * `composedPath` is snapshotted when the event is dispatched, so it still names
- * the menu the click started in. The `contains` check stays as the fallback for
- * a synthetic event with no path.
+/** Use the snapshotted composedPath: Vue may replace an item before this document listener runs, making
+ * contains incorrectly report an inside click as outside. Keep contains as the synthetic-event fallback.
  */
 const onDocumentClick = (event: MouseEvent) => {
   const root = rootRef.value;
@@ -206,16 +170,7 @@ const onDocumentKeydown = (event: KeyboardEvent) => {
   close();
 };
 
-/**
- * A teleported menu is placed against the viewport, so it stops matching its
- * trigger the moment the page moves under it -- closing is the honest response.
- *
- * Its OWN scrolling is not that. A menu with a scrolling body (the hidden-results
- * breakdown caps at `max-h-64`) raises scroll events like anything else, and this
- * listener is on `window` in the capture phase, so it sees them: the reader
- * reached for the list and the list vanished. The menu has not moved relative to
- * anything, so there is nothing to close for.
- */
+/** Page scrolling invalidates viewport placement for teleported menus. Ignore scrolling within the menu itself. */
 const onWindowScroll = (event: Event) => {
   if (!props.teleport) return;
   const target = event.target;

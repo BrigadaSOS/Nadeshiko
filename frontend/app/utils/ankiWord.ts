@@ -12,24 +12,9 @@ import {
 } from '~/utils/wordCard';
 
 /**
- * The word card, rendered for an Anki note.
- *
- * Kept out of the store that sends it for the reason `ankiMining` is: what goes
- * wrong here is silent. A gloss that lands escaped twice, a pitch diagram whose
- * overline covers the wrong morae, a headword whose furigana bracket swallows
- * the okurigana -- none of it throws, and all of it is only ever seen weeks
- * later on a review card. Rendering is a pure function of the lookup, so it can
- * be read against expected strings without a running Anki.
- *
- * The markup carries both inline styles and classes: inline so it looks right
- * the moment it lands, classes so a reader can still take the look over. See
- * `STYLE` for why the classes alone were not enough, and `ANKI_CARD_CSS` for
- * what pasting the stylesheet is now for.
- *
- * What is still deliberately absent is a `<style>` BLOCK inside a field. That
- * would be duplicated onto every note ever mined and re-parsed by Anki's editor
- * each time one was opened, and the reader could never change it without editing
- * every note they own.
+ * Pure word-card rendering for Anki fields. Inline styles work without note-type setup; classes allow
+ * customization. Do not embed a stylesheet in each field, which would duplicate it across notes and prevent
+ * central customization.
  */
 
 /** The `nd-` prefix Nadeshiko already uses for its own DOM ids, so a class
@@ -38,28 +23,9 @@ import {
 const CLASS = 'nd';
 
 /**
- * The look of the word card, as inline `style` attributes.
- *
- * Classes alone were the original design and they do not survive contact with
- * Anki. Anki's EDITOR does not apply the note type's Styling at all -- it is
- * where a reader looks at what was just mined, and there the classed markup
- * rendered as one unbroken run of text: "NounMilitaryENmaintenance engineer;
- * ground crewESmecánico...". The reviewer only styled it if the reader had gone
- * and pasted a stylesheet first, so the common case was a wall of prose in both
- * places.
- *
- * Inline wins everywhere and needs no setup: the editor, the reviewer, AnkiWeb
- * and AnkiMobile all render a `style` attribute, and none of them need the
- * stylesheet to have been found and pasted. It is what Yomitan emits, which is
- * also what these notes sit beside.
- *
- * The classes stay on the markup, so a reader who wants their own look can still
- * target `.nd-*` -- see `ANKI_CARD_CSS`, which is offered with `!important` for
- * exactly that reason, since an inline style outranks a stylesheet otherwise.
- *
- * Colours are written out rather than composed with `color-mix` as the on-screen
- * card does: Anki's Qt WebEngine trails browsers by a good margin, and a colour
- * function it does not know leaves the chip with no background at all.
+ * Anki's editor does not apply note-type Styling, so fields need inline styles. Keep classes for
+ * customization through `ANKI_CARD_CSS`, whose `!important` rules override them. Use explicit colors for
+ * older Qt WebEngine compatibility.
  */
 const STYLE = {
   // `list-style:none` and no gutter: the number is printed into the row below,
@@ -71,10 +37,7 @@ const STYLE = {
   // follows whatever font size the reader's note type sets. The sub-sense step
   // is the same measure, applied per row in `definitionHtml`.
   senseNumber: 'display:inline-block;min-width:1.4em;color:#9a9a9a;',
-  // The dictionary named once above the senses it wrote, the same way the card
-  // does it. Without this a note carrying a reader's whole stack is fifty senses
-  // in one list with nothing to say which dictionary wrote which -- and a note
-  // is read months later, with none of the context the card had.
+  // Name dictionary groups so a mined note retains attribution without the hover card's context.
   dictionaryName: 'margin:8px 0 2px;font-size:11px;color:#9a9a9a;',
   // `display:block` is the single most load-bearing declaration here: without it
   // the EN and ES glosses run together on one line, which is the "ground
@@ -84,14 +47,8 @@ const STYLE = {
     'display:inline-block;min-width:1.55rem;margin-right:6px;padding:1px 4px;' +
     'border:1px solid rgba(128,128,128,0.4);border-radius:4px;' +
     'font-size:9px;font-weight:600;letter-spacing:0.03em;text-align:center;',
-  // `nowrap`, because a pitch diagram is one unit. This was briefly plain
-  // `inline` so a long reading could wrap instead of overflowing a narrow
-  // screen, and that was the wrong trade: the morae are separate boxes, so
-  // wrapping breaks the reading MID-WORD and takes the overline with it --
-  // `にいちゃ` on one line and `ん` on the next, with the stroke ending in the
-  // middle of nowhere. An overhanging diagram is legible; a bisected one is not.
-  // `inline-block` on the morae keeps the vertical padding the overline is drawn
-  // against, which a plain inline box would ignore.
+  // Keep the pitch diagram unbroken with `nowrap`; inline-block morae preserve the padding used to draw the
+  // overline.
   pitch: 'display:inline-block;white-space:nowrap;',
   mora: 'display:inline-block;padding:1px 0;line-height:1.4;border-top:2px solid transparent;',
   downstep: 'margin-left:5px;font-size:11px;color:#9a9a9a;',
@@ -130,26 +87,9 @@ function chipStyle(color: string): string {
 }
 
 /**
- * An OPTIONAL stylesheet, for a reader who wants a different look.
- *
- * Not needed to make the fields render -- they carry their own inline styles and
- * arrive looking like the word card. This is the escape hatch: paste it, edit
- * it, and the note follows your colours instead of ours.
- *
- * Every declaration is `!important`, which is the only thing that beats an
- * inline `style` attribute. Without it this sheet would paste cleanly and change
- * nothing, which is a worse experience than not offering it.
- *
- * Lives beside the renderers rather than in the settings component because it is
- * the other half of them: a class renamed in one and not the other is a card
- * that silently loses its formatting, and keeping the two in one file is what
- * makes that a diff anyone can see.
- *
- * Written flat, with no child combinators. `copyToClipboard` strips HTML from
- * what it copies, and a `>` in a selector is close enough to a tag to be worth
- * not finding out about. Anki's own `.night_mode` carries the dark variants --
- * a media query would not fire, since Anki switches theme by class rather than
- * by asking the OS.
+ * Optional customization stylesheet; `!important` overrides field-level inline styles. Keep selectors flat
+ * because clipboard copying strips HTML-like text, and use Anki's `.night_mode` class rather than an OS media
+ * query.
  */
 export const ANKI_CARD_CSS = `/* Nadeshiko word fields */
 .nd-senses { margin: 6px 0 0 !important; padding-left: 18px !important; list-style: decimal !important; text-align: left !important; }
@@ -181,14 +121,7 @@ export const ANKI_CARD_CSS = `/* Nadeshiko word fields */
 .night_mode .nd-source-link { color: #a5a5a5 !important; }
 `;
 
-/**
- * Text from the dictionary, safe to put in an HTML field.
- *
- * Glosses and tag labels are third-party strings: JMdict carries `&` in ordinary
- * definitions ("salt & pepper"), and an unescaped one is at best mojibake and at
- * worst swallows the rest of the field. Anki stores fields as HTML and renders
- * them as HTML, so this is the boundary where it has to happen.
- */
+/** Escape third-party dictionary text at the HTML-field boundary; Anki stores and renders fields as HTML. */
 export function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -202,33 +135,11 @@ export interface MinedWord {
   reading: string;
   /** `手加減[てかげん]`, Anki's own ruby notation. */
   furigana: string;
-  /**
-   * Every dictionary's senses, numbered, or '' when none of them had anything
-   * the reader reads.
-   *
-   * ALWAYS the whole stack. It used to be "the first N dictionaries", with N set
-   * on the settings page, which meant a field mapped to `{definition}` quietly
-   * changed what it contained when a number moved on another screen. The two
-   * fields below are the split; this one is the answer to "what does this word
-   * mean", and it means the same thing forever.
-   */
+  /** Rendered senses from the selected dictionary stack, or empty when no readable definition remains. */
   definition: string;
-  /**
-   * How many dictionaries the reader ticked, or 0 when they ticked none.
-   *
-   * Not content -- nothing writes it to a field. A pick has already been applied
-   * to the three definition fields above by the time this is read, and this is
-   * only here so the export event can report how often picking is used without
-   * inferring it from how long a definition came out.
-   */
+  /** Number of dictionaries explicitly picked, for export analytics only; not written to a note field. */
   pickedDictionaries: number;
-  /**
-   * How common the word is, as a corpus rank: `155`, plain digits.
-   *
-   * Its own field because Lapis sorts a deck on it (`FreqSort` <- Yomitan's
-   * `{frequency-harmonic-rank}`), and that needs a number Anki can order rather
-   * than the `#155` badge the card prints.
-   */
+  /** Plain corpus-rank digits for numeric sorting, separate from the card's `#155` badge. */
   frequency: string;
   /** The JLPT level the dictionary files the word under, `N3`. */
   jlpt: string;
@@ -239,58 +150,25 @@ export interface MinedWord {
    */
   pitchCategories: string;
   /**
-   * The first dictionary in the reader's stack, for `{definition-first}`.
-   *
-   * Yomitan's `{glossary-first}` is the same idea: its template renders
-   * `definition.definitions.[0]`, which in grouped mode is the top dictionary in
-   * the reader's own priority order, and it ships `-brief` and `-no-dictionary`
-   * variants of it. Lapis does not use it -- its MainDefinition names a
-   * dictionary outright (`{single-glossary-jmdict/jitendex}`) -- so both shapes
-   * exist in the wild and this offers both.
-   *
-   * Worth having beside `{definition:<slug>}` because it needs no setup and
-   * cannot go stale: stack order is a preference the reader already expressed in
-   * Shirabe, and swapping a dictionary out re-points this for free where a named
-   * slug would quietly go empty.
+   * First dictionary in the selected stack, following the reader's priority order without requiring a stored
+   * slug mapping.
    */
   definitionFirst: string;
   /**
-   * One rendered definition per dictionary, keyed by SLUG, for
-   * `{definition:<slug>}`.
-   *
-   * Keyed on the slug rather than the name because this is what a stored Anki
-   * field mapping points at, and a name moves. Only dictionaries that actually
-   * answered for this word appear -- a reader who maps a dictionary the word is
-   * not in gets no key, which is what tells the export the field has nothing to
-   * say.
+   * Rendered definitions keyed by stable dictionary slug for `{definition:<slug>}` mappings. Dictionaries
+   * with no matching senses have no key.
    */
   definitionsByDictionary: Record<string, string>;
   /** Mora diagram for the first accent pattern, or '' when there is none. */
   pitch: string;
   /**
-   * The downstep numbers alone, comma separated: `3`, or `0, 3` for a word with
-   * two accepted accents.
-   *
-   * Its own field because a note type may want the number rather than the
-   * picture, and because handing it the picture instead goes wrong in a way
-   * nobody would guess: card templates that parse their pitch field for digits
-   * read the ones inside our inline styles -- `1px`, `1.4`, `#db2777` -- and
-   * print `1・0・4・2・2777` as though the word had five accents. Plain text
-   * cannot be misread that way.
+   * Comma-separated downsteps as plain text. Templates parsing numeric pitch fields must not encounter digits
+   * from diagram HTML or inline styles.
    */
   pitchPositions: string;
   /** Common / JLPT / frequency chips, or '' when the word has none. */
   info: string;
-  /**
-   * The sentence with the mined word marked, or '' when there is nothing to
-   * mark.
-   *
-   * A finished string like the rest, so the store still only substitutes. It
-   * describes the open word as much as the fields above do -- it is the answer
-   * to "which of these is the one I looked up", which is the question a reader
-   * has when the card comes back weeks later and the sentence is fifteen words
-   * long.
-   */
+  /** Finished sentence HTML with the mined token marked; empty when there is no sentence. */
   sentenceHighlight: string;
   /** The pitch-accent clip to upload, or null when no pattern has a recording. */
   audioUrl: string | null;
@@ -298,10 +176,7 @@ export interface MinedWord {
   audioFilename: string | null;
 }
 
-/** Nothing ticked. Shared rather than defaulted to a fresh `new Set()` per call,
- *  because `minedWord` runs inside a computed that re-evaluates on every hover:
- *  a new empty set each time is a new identity each time, which is exactly the
- *  kind of thing that quietly defeats a downstream memo. */
+/** Shared empty selection avoids a fresh default identity on every hover recomputation. */
 const EMPTY_PICK: ReadonlySet<string> = new Set<string>();
 
 const EMPTY: MinedWord = {
@@ -324,20 +199,8 @@ const EMPTY: MinedWord = {
 };
 
 /**
- * The sentence, with the mined word marked.
- *
- * Sliced by the token's own offsets rather than by searching for the word,
- * because a search finds the wrong one: 手 appears inside 手負い and 相手 alike,
- * and an inflected token's surface is not its dictionary form at all. The
- * invariant this leans on -- `content.slice(token.b, token.e) === token.s` -- is
- * asserted in `segmentConcatenation.test.ts` and is what makes the slice exact
- * rather than approximate.
- *
- * Verified before use, and that check is the whole safety of it: an expansion
- * re-bases these offsets, so a token addressing a different string than the one
- * passed here would otherwise cut the sentence in the wrong place and ship a
- * mangled field. When it does not line up the sentence comes back plain, which
- * is what it was before this existed.
+ * Mark the token by its offsets, not a substring search. Require `text.slice(b, e) === token.s`; rebased or
+ * stale offsets that do not match return the plain escaped sentence.
  */
 export function highlightedSentence(text: string, token: EnrichedToken | null): string {
   if (!text) return '';
@@ -348,26 +211,16 @@ export function highlightedSentence(text: string, token: EnrichedToken | null): 
   if (!Number.isInteger(b) || !Number.isInteger(e) || b < 0 || e > text.length || b >= e) return plain;
   if (text.slice(b, e) !== surface) return plain;
 
-  // `<b>`, which is what every other miner puts round the target word -- Yomitan
-  // marks its cloze the same way -- so a note type that already styles the word
-  // inside its sentence field styles ours without being told about us.
-  //
-  // No inline style on this one, unlike the fields above. Bold is a thing Anki's
-  // editor and every card template render on their own, so there is nothing here
-  // that needs forcing, and forcing a colour would fight whatever the reader's
-  // template already does with it. `.nd-target` is left on for anyone who wants
-  // to add their own; `ANKI_CARD_CSS` carries a rule for it.
+  // Use conventional `<b>` markup without forced colors so existing Anki templates style the target. Keep
+  // `.nd-target` as a customization hook.
   const mark = `<b class="${CLASS}-target">${escapeHtml(surface)}</b>`;
 
   return `<div>${escapeHtml(text.slice(0, b))}${mark}${escapeHtml(text.slice(e))}</div>`;
 }
 
 /**
- * One sense's chips. Parts of speech and usage qualifiers are rendered as
- * separate classes rather than one chip type, because they answer different
- * questions -- what the word IS, versus what this sense of it is doing -- and a
- * reader styling their own card will want to tell them apart, which is the
- * distinction `cardSenses` already preserves.
+ * Separate POS and usage-qualifier classes preserve the card's distinction and allow independent note
+ * styling.
  */
 function chips(sense: CardSense): string {
   const render = (chip: { label: string; title: string; category?: string }, className: string, color: string) =>
@@ -382,14 +235,8 @@ function chips(sense: CardSense): string {
 }
 
 /**
- * The definitions, numbered, as the card prints them.
- *
- * `cardSenses` does the deciding -- which languages the reader reads and in what
- * order, the fallback when their languages have no gloss, the blanking of a part
- * of speech repeated from the sense above, the six-sense cap -- so the note and
- * the card cannot drift: they are the same list rendered twice. Passing the
- * reader's own `GlossPreference` is what makes a Spanish reader's card land in
- * Spanish without this function knowing that is what it did.
+ * Render the senses already selected by `cardSenses`; language choice, fallback, numbering and quotas stay
+ * shared with the on-screen card.
  */
 
 export function definitionHtml(senses: CardSense[]): string {
@@ -428,17 +275,8 @@ export function definitionHtml(senses: CardSense[]): string {
 }
 
 /**
- * A way back to the word on Shirabe, hung under the numbered senses.
- *
- * Anki cards outlive the hover they were mined from, and without this the
- * definition is a copy with nowhere to go to look the word up again -- no
- * "More sentences", no full entry, no other dictionaries. The word page, not
- * a search: the lookup already picked the homograph, and a search would ask
- * the same question a second time.
- *
- * Only appended when there is a definition to hang it from. An empty
- * definition is the signal the store leaves the field alone on, so a lone
- * link must not become the field -- it would blank a glossary Yomitan wrote.
+ * Link directly to the resolved word, not a new homograph search. Append only beside a nonempty definition:
+ * an empty field tells the store to preserve existing content.
  */
 export function definitionSourceHtml(word: ShirabeWord, locale: GlossPreference['labels']): string {
   if (!word.id) return '';
@@ -451,13 +289,8 @@ export function definitionSourceHtml(word: ShirabeWord, locale: GlossPreference[
 }
 
 /**
- * The mora diagram for one accent pattern, plus the downstep it is numbered by.
- *
- * The overline is drawn with borders on the morae themselves rather than as a
- * separate line, which is what the card does and the only thing that survives a
- * card template with a font the reader chose: an absolutely positioned rule
- * would sit wherever Anki's line height put it. `--drop` marks the last high
- * mora so the stylesheet can close the overline there.
+ * Draw pitch borders on each mora so the diagram follows the note template's font and line height. The drop
+ * class closes the overline at the last high mora.
  */
 export function pitchHtml(reading: string, downstep: number): string {
   const morae = pitchMorae(reading, downstep);
@@ -501,13 +334,8 @@ export function infoHtml(word: ShirabeWord): string {
 }
 
 /**
- * The accent to record, which is the first one that HAS a recording.
- *
- * Not simply the first pattern. Coverage is per clip and lights up batch by
- * batch, so a word can carry two patterns with a recording of only the second --
- * and taking the first would leave the audio field empty on a word we can in
- * fact pronounce. The first is still preferred where both exist: it is the one
- * the card shows first and the more common reading.
+ * Choose the first accent with a recording, not necessarily the first listed pattern; audio coverage is per
+ * clip.
  */
 function recordedPitch(word: ShirabeWord): { downstep: number; audioUrl: string } | null {
   for (const pattern of word.pitch ?? []) {
@@ -517,17 +345,8 @@ function recordedPitch(word: ShirabeWord): { downstep: number; audioUrl: string 
 }
 
 /**
- * A filename for the clip, stable across mines of the same word.
- *
- * Stable so that mining a word twice does not leave two copies of the same
- * second of audio in the collection -- Anki keys media by name, so the second
- * store overwrites rather than accumulates. Keyed by reading and accent rather
- * than by the word id: the id is derived from dictionary content and moves when
- * a headword or a commonness flag moves (see `shirabeWordUrl`), which would
- * quietly orphan the old file and re-upload the identical clip under a new name.
- *
- * Everything outside kana, Latin alphanumerics and the separators is dropped, so
- * a reading that somehow carries a slash or a quote cannot escape into the path.
+ * Key audio filenames by sanitized reading and accent, not the mutable word id. Stable names let Anki
+ * overwrite repeated uploads rather than accumulate duplicate clips.
  */
 export function pitchAudioFilename(reading: string, downstep: number, url: string): string {
   const safe = reading.replace(/[^\p{Script=Hiragana}\p{Script=Katakana}a-zA-Z0-9ー]/gu, '') || 'word';
@@ -541,29 +360,16 @@ export function pitchAudioFilename(reading: string, downstep: number, url: strin
 /** Shirabe's headword ruby in the shape the furigana renderer takes. A word with
  *  no alignment renders bare, exactly as a token with no `f` does. */
 function headwordSegments(word: ShirabeWord): FuriganaSegment[] {
-  // Same guard the card applies: ruby that does not spell the headword is about
-  // some other spelling, and writing it into `{word-furigana}` would put よう on
-  // a note whose word is 良う. Falling back to the plain headword is right rather
-  // than merely safe -- it is what the field held before furigana existed.
+  // Apply the card's ruby/headword alignment guard before writing Anki furigana.
   const furigana = headwordFurigana(word);
   if (furigana.length === 0) return [{ text: word.headword, reading: '' }];
   return furigana;
 }
 
 /**
- * Everything the open card knows about the word, rendered.
- *
- * The token is the fallback throughout rather than the source: a lookup that
- * failed or found nothing still leaves the reader looking at a headword and a
- * reading the parse gave them, and mining the sentence with those two filled in
- * beats mining it with a blank front. Only the dictionary's own content --
- * definitions, pitch, badges -- has no fallback, because there is nothing to
- * fall back TO and an empty string is what tells the store to leave the field
- * alone.
- *
- * @param picked Which DICTIONARIES the reader ticked in the card, by
- *               `dictionaryKey`. Empty is the ordinary case and means "all of
- *               them", which is what every definition field already holds.
+ * Use token headword and reading as fallback when lookup is absent. Dictionary-only fields stay empty so the
+ * store preserves existing note content.
+ * @param picked Dictionary keys to retain; an empty selection means all dictionaries.
  */
 export function minedWord(
   word: ShirabeWord | null,
@@ -591,40 +397,18 @@ export function minedWord(
 
   const recorded = recordedPitch(word);
   const accent = word.pitch?.[0];
-  // The source link rides with the senses so a field mapped to `{definition}`
-  // always has a way back to the word. Hung on only when there is a
-  // definition: an empty string is what tells the store to leave the field
-  // alone, and a lone link would count as content.
-  // `{definition}` is every dictionary; the split fields are the same senses cut
-  // in two. Rendered from `cardSenses` once via each half rather than
-  // concatenating the two, so the sense numbering in `{definition}` runs
-  // straight through the stack instead of restarting at the second dictionary.
+  // Select senses once through `cardSenses`; attach source links only to nonempty definitions so missing
+  // content does not overwrite an existing glossary.
   const everything = cardSenses(word, preference);
   /**
-   * A pick NARROWS the stack, and every field below is derived from what is
-   * left. That is the whole model: ticking 大辞泉 means "this word's card is a
-   * 大辞泉 card", so `{definition}` is 大辞泉, `{definition-first}` is 大辞泉,
-   * and a `{definition:jmdict}` field has nothing to say about this word.
-   *
-   * The alternative was routing the pick into a field of its own and leaving
-   * the definition whole -- which put both the shortlist and the full stack on
-   * one note, and made what a tick did depend on which fields happened to be
-   * mapped. One rule that always replaces is the one a reader can predict.
-   *
-   * Keyed on the dictionary rather than positionally, which is what makes a
-   * pick survive the card re-rendering under it: turning a gloss language off
-   * drops senses and renumbers the rest, and a pick stored as "rows 2 and 5"
-   * would then name different senses than the reader ticked. A dictionary that
-   * is no longer on the card simply matches nothing.
+   * A selection narrows every definition field. Key it by dictionary identity, not row position, so language
+   * changes and sense renumbering cannot select different content.
    */
   const all = picked.size === 0 ? everything : everything.filter((sense) => picked.has(dictionaryKey(sense)));
   const senses = definitionHtml(all);
 
-  // Grouped after the fact rather than rendered per entry, so every one of these
-  // goes through the same `cardSenses` the card and the fields above used: the
-  // language selection, the repeated-part-of-speech blanking and the per
-  // dictionary cap are decided once, and a named dictionary cannot quietly
-  // disagree with the same senses shown in `{definition}`.
+  // Group the selected senses after `cardSenses` so named-dictionary fields share the card's language rules,
+  // POS suppression and quotas.
   const byDictionary: Record<string, CardSense[]> = {};
   for (const sense of all) {
     const slug = sense.dictionarySlug;
@@ -638,10 +422,8 @@ export function minedWord(
     if (html) definitionsByDictionary[slug] = html;
   }
 
-  // Stack order is the order the senses arrive in, so the first dictionary is
-  // whichever one the first sense came from. Grouped on the NAME rather than the
-  // slug, because a Shirabe too old to publish slugs still groups correctly by
-  // what it prints -- and this field must not go empty on that reader.
+  // The first surviving dictionary follows stack order. Group definitionFirst by display name, rather
+  // than slug, so older responses without slugs remain supported.
   const firstDictionary = all[0]?.dictionary;
   const firstSenses =
     firstDictionary === undefined ? '' : definitionHtml(all.filter((sense) => sense.dictionary === firstDictionary));
@@ -653,20 +435,12 @@ export function minedWord(
     reading: reading === headword ? '' : reading,
     furigana: furiganaNotation(headwordSegments(word)),
     definition: senses ? `${senses}${definitionSourceHtml(word, preference.labels)}` : '',
-    // The source link rides on the two fields that can stand alone as the whole
-    // answer. Not on `{definition:<slug>}`: a note mapping a named dictionary
-    // almost always maps `{definition}` beside it, and two links to the same word
-    // on one note is one more than anybody needs.
+    // Add source links to standalone definition fields, but not each named-dictionary field, to avoid
+    // duplicate links.
     definitionFirst: firstSenses ? `${firstSenses}${definitionSourceHtml(word, preference.labels)}` : '',
     definitionsByDictionary,
-    // How many dictionaries the reader ticked, for the export event. Not a field
-    // anything writes: the pick is already visible in the three above, and this
-    // is only here so the rate of picking can be read without inferring it from
-    // definition lengths.
     pickedDictionaries: picked.size,
-    // The reading the diagram is drawn over is the DICTIONARY's, not the token's:
-    // morae are counted off it, and counting them off an inflected reading would
-    // put the downstep in the wrong place.
+    // Count morae from the dictionary reading, not an inflected token reading.
     pitch: word.reading && accent ? pitchHtml(word.reading, accent.downstep) : '',
     // Every accent the dictionary lists, not just the one drawn above: the
     // number is cheap and a reader checking a second reading wants both.
@@ -674,9 +448,7 @@ export function minedWord(
       .map((pattern) => pattern.downstep)
       .filter((downstep) => Number.isInteger(downstep))
       .join(', '),
-    // Digits only. A rank of 0 is a real and very common word, so this guards on
-    // the TYPE rather than on truthiness -- otherwise the commonest words in the
-    // language would be the ones whose frequency field never filled.
+    // Rank zero is valid; test the type rather than truthiness.
     frequency: typeof word.frequency === 'number' ? String(word.frequency) : '',
     jlpt: word.jlpt ?? '',
     pitchCategories: (word.pitch ?? [])

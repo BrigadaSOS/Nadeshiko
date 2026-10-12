@@ -2,18 +2,7 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 import { nextTick } from 'vue';
 
-/**
- * The one debounced catalogue lookup behind `/user/media`.
- *
- * There used to be two of these -- one in the favorites panel, one in the
- * hidden-media panel, same debounce, same `take`, same failure handling -- which
- * is what had that page asking the backend the same question twice per
- * keystroke.
- *
- * The distinction worth keeping is `failed` versus "nothing matched". A search
- * outage rendered as an empty result list tells the reader their catalogue is
- * empty, which is both wrong and unactionable; they need to know to try again.
- */
+/** Share one debounced lookup on /user/media and distinguish failure from no matches. */
 const sdk = { searchMedia: vi.fn() };
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

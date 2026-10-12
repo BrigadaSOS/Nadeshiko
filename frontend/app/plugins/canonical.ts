@@ -7,24 +7,11 @@ const CANONICAL_REWRITES: Record<string, (query: Record<string, string>) => stri
 
 const CANONICAL_PARAMS: Record<string, string[]> = {
   '/search': ['media', 'episode', 'category'],
-  // Both `/media` (the catalogue, filtered by `?query=`) and `/media/<slug>` (one
-  // title, optionally narrowed to an episode) match this prefix. `episode` is
-  // canonical because a single episode of a title is its own list of sentences,
-  // not a view of the whole; `sort` deliberately is not -- it reorders the same
-  // set and would multiply every title into as many URLs as there are orders.
-  // `cursor` paginates the catalogue. Each page of it is a distinct set of
-  // titles, so it is its own canonical URL -- collapsing pages 2..n onto `/media`
-  // would tell a crawler the only page worth keeping is the first, which is the
-  // opposite of why the next-page link exists. Harmless on `/media/<slug>`,
-  // which never sets it.
+  // Keep parameters that change the result set: catalogue query/category, title episode, and catalogue
+  // cursor. Exclude sort, which only reorders the same content.
   '/media': ['query', 'category', 'episode', 'cursor'],
-  // Each tier of the frequency list is a different set of words, so a tier is a
-  // page in its own right rather than a view of one -- without this every
-  // `?tier=` would canonicalise to the bare `/stats/words` and the six tiers
-  // that are not the default would be consolidated away. `filter` is here for
-  // the same reason and for a second one: the sitemap points at
-  // `filter=COVERED`, and a canonical that dropped it would advertise a URL
-  // listing words whose search pages are `noindex`.
+  // Tier and filter define distinct word sets. Preserve the sitemap's COVERED filter rather than
+  // canonicalizing it to noindexed word results.
   '/stats/words': ['tier', 'filter'],
 };
 
@@ -38,14 +25,7 @@ export default defineNuxtPlugin(() => {
   const route = useRoute();
   const { url: siteUrl } = useSiteConfig();
 
-  /**
-   * The one answer to "what is this page's URL", so the canonical and `og:url`
-   * cannot give two.
-   *
-   * They did: the canonical deliberately keeps `media` and `episode` on a
-   * faceted search, while `og:url` was never set anywhere and fell back to the
-   * path-only default -- one head, two contradictory claims.
-   */
+  /** Resolve one URL for both canonical and `og:url`, including canonical facets. */
   const resolveCanonical = () => {
     // NOT `route.path`, which is one percent-encoding layer deeper than the
     // URL that was requested -- see `canonicalPath`. Emitting that as a link
@@ -95,24 +75,9 @@ export default defineNuxtPlugin(() => {
 });
 
 /**
- * The hreflang set, one entry per locale plus `x-default`.
- *
- * These used to come from `useLocaleHead()`, which `app.vue` now takes no links
- * from at all. The module builds its hrefs from the router's idea of the current
- * path, which carries the extra encoding layer described in `canonicalPath` --
- * so on a search page its four alternates advertised four NEW URLs on every
- * render, three of them under locales nobody had asked for. Fixing the canonical
- * alone would have left three quarters of the loop running.
- *
- * `id` matches the module's own naming so a stray duplicate from either side
- * de-duplicates in `useHead` rather than shipping twice. `as const` on each
- * `rel` is load-bearing for the same reason: widened to `string` these stop
- * matching unhead's hreflang-link shape and fall through to its feed-link one,
- * which demands a `type` an hreflang link must not carry.
- *
- * Nothing is emitted for a path with no locale prefix. Under `strategy: 'prefix'`
- * every page URL carries one, so such a path is not a page whose language
- * variants we can name -- and naming them anyway would invent three URLs.
+ * Build hreflang from the normalized canonical path, not router serialization that adds escaping layers.
+ * Match i18n link ids for head deduplication and retain literal rel types for Unhead. Unprefixed paths have
+ * no locale variants to advertise.
  */
 function alternates(siteUrl: string, localePrefix: string, localizedPath: string, suffix: string) {
   if (!localePrefix) return [];

@@ -4,16 +4,8 @@ import { reactive } from 'vue';
 import { useContentRating } from './useContentRating';
 
 /**
- * What a reader's content-rating preference means for the results they get.
- *
- * The default is BLUR rather than SHOW or HIDE, and that is the whole design:
- * the sentence is still there to be read, but nobody is shown explicit imagery
- * they did not ask for -- and nothing silently vanishes from a corpus they can
- * see the count of.
- *
- * SAFE and SUGGESTIVE are never restricted. Only QUESTIONABLE and EXPLICIT read
- * the preference, and they share one key, so a reader has a single switch rather
- * than a matrix.
+ * Default to BLUR without dropping sentences. Only QUESTIONABLE and EXPLICIT share the
+ * restriction preference.
  */
 const user = reactive({
   isLoggedIn: true,

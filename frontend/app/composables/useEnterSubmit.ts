@@ -1,16 +1,7 @@
 /**
- * Enter does not mean "submit" while a Japanese IME is in the loop: the first
- * press confirms the conversion candidate, and only a later one means the
- * reader is actually done. Chrome and Safari on macOS both deliver that
- * confirming press to a plain `@keydown.enter` -- Firefox reports it as
- * `Process` instead, which is why the bug never reproduced there.
- *
- * On a `v-model` field it submits an *empty* value rather than a
- * half-converted one, because `v-model` deliberately withholds the composed
- * text until `compositionend`, so the bound ref still holds whatever the input
- * had before the reader started typing.
- *
- * See https://github.com/BrigadaSOS/Nadeshiko/issues/399.
+ * Do not submit the Enter press that confirms an IME conversion. v-model withholds composed
+ * text until compositionend, so that press can submit stale or empty input. See
+ * https://github.com/BrigadaSOS/Nadeshiko/issues/399.
  */
 
 // Keyed by element rather than held per caller, so one set of listeners is

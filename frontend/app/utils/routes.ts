@@ -1,8 +1,6 @@
 import { SUPPORTED_LOCALES } from '~/utils/i18n';
 
-// Derived, never hand-listed: adding a locale to SUPPORTED_LOCALES has to be
-// enough, or splitLocalePrefix silently stops recognising the new prefix and
-// every caller (search-redirect, canonical, pagePath) treats it as a page path.
+// Derive prefixes from `SUPPORTED_LOCALES` so adding a locale updates every route parser.
 const LOCALE_PREFIXES = SUPPORTED_LOCALES.map((locale) => `/${locale}`);
 
 export function splitLocalePrefix(path: string): { localePrefix: string; localizedPath: string } {
@@ -21,14 +19,8 @@ export function buildWordSearchPath(word: string): string {
 }
 
 /**
- * Where a remembered search re-runs: the query, plus the title it was run inside
- * when it had one -- 食べる everywhere and 食べる in Bocchi are two different
- * searches and come back as two different rows.
- *
- * Rebuilt rather than copied from the URL it was recorded on, which is why no
- * episode, sort or cursor rides along: the title is what the reader searched
- * inside, while the third page of one of its episodes is where they happened to
- * be standing when they got there.
+ * Re-run a recent search with query and title scope only; episode, sort and cursor describe a previous
+ * position, not the remembered search.
  */
 export function buildScopedSearchPath(word: string, mediaPublicId?: string | null): string {
   const path = buildWordSearchPath(word);
@@ -36,58 +28,17 @@ export function buildScopedSearchPath(word: string, mediaPublicId?: string | nul
 }
 
 /**
- * What the search box's typed text reads as when it reaches a URL.
- *
- * Lucene's `query_string` only treats U+0022 (straight double quote) as the
- * phrase delimiter, so the curly-double variants `U+201C` / `U+201D` (the
- * typographic characters auto-correct and word processors hand the reader)
- * arrive as plain text and silently break an exact-phrase search. The
- * reader's intent in both shapes is the same -- "this is a phrase" -- so
- * fold them back to `"` before the URL is built and let the analyzer do
- * the rest.
- *
- * SCOPE -- and why other quote-like characters are deliberately left
- * alone:
- *
- *  - `U+201C` / `U+201D` (curly double): the typographic equivalent of
- *    `"`. Folding them preserves the reader's intent to mark an exact
- *    phrase, which is the bug the report is about.
- *  - `U+2018` / `U+2019` (curly single), `U+201A` / `U+201B` and
- *    `U+201E` / `U+201F` (low/high variants), `U+00AB` / `U+00BB`
- *    (angle quotes), `U+300C` / `U+300D` and `U+300E` / `U+300F` (CJK
- *    brackets): NOT folded. These are not search-syntax -- the reader
- *    hasn't asked for an exact phrase, they've typed literal text that
- *    happens to be wrapped in punctuation (often dialogue marks in a
- *    subtitle). Folding them to `"` would invent an exact-match intent
- *    the reader didn't have and would change the semantic of the query
- *    from "find sentences containing this text" to "find this exact
- *    phrase". The corpus tokenizer already treats them as punctuation
- *    and the search works as the reader expects without any folding.
- *
- * If a future report names a quote character that the corpus tokenizer
- * is mishandling, that is an analyzer fix, not an input-funnel fix -- and
- * folding at the input side would hide the real corpus-vs-input mismatch
- * that the analyzer change is meant to surface.
+ * Fold only U+201C/U+201D to Lucene's straight-double-quote phrase delimiter. Other quote-like punctuation
+ * remains literal; folding it would invent exact-match intent. Corpus punctuation problems belong in the
+ * analyzer.
  */
 export function normalizeSearchQuery(raw: string): string {
   return raw.replace(/[\u201C\u201D]/g, '"');
 }
 
 /**
- * The `/search/:query` segment as text, from the raw param.
- *
- * The router hands this param through RAW -- ask for `/search/%2541` and the
- * param reads `%2541`, not `%41` -- so exactly one decode belongs here, and
- * `decodeURIComponent` is the wrong function to call unguarded: it throws a
- * `URIError` on any escape that is not valid UTF-8. `%E8%AD` (truncated),
- * `%C0%80` (overlong) and `%25E8%AD%B2` (mixed encoding depth) all qualify, and
- * an unhandled throw in page setup is a 500 -- prod answered
- * `{"statusCode":500,"message":"URI malformed"}` for every one of them.
- *
- * Falling back to the raw text is deliberate. It searches for something that
- * finds nothing, which is the honest answer for a query that was never text;
- * `normalizeSearchQuery` in the server middleware sends these to `/search`
- * before they reach a render, so this is the second line rather than the first.
+ * Decode the raw router param once. Malformed UTF-8 escapes fall back to raw text rather than throwing during
+ * page setup; server middleware is the first validation layer.
  */
 export function decodeSearchQuery(raw: string): string {
   try {
@@ -97,83 +48,26 @@ export function decodeSearchQuery(raw: string): string {
   }
 }
 
-/**
- * Mirrors `maxLength: 500` on `SearchQuery.search` in the backend's OpenAPI
- * schema (`backend/docs/openapi/components/schemas/SearchQuery.yaml`). Past it
- * `/v1/search` answers 400 and always will, so a longer path can only ever
- * render an empty results page at the cost of a full SSR pass.
- */
+/** Match the backend OpenAPI `SearchQuery.search` limit; longer queries can only produce API 400s. */
 export const SEARCH_QUERY_MAX_LENGTH = 500;
 
 /**
- * A `/search/:query` segment that cannot have come from the search box.
- *
- * Three tests, each one a shape that only a machine produces:
- *
- * - **It does not decode.** A truncated or overlong escape (`%E8%AD`, `%C0%80`)
- *   is not text in any encoding, so there is nothing to search for.
- * - **It decodes to a path.** Queries are words and sentences; a `/` in one
- *   means a URL was fed to the search route as if it were a search term. That is
- *   exactly the shape the canonical loop minted --
- *   `/en/search/%2Fen%2Fsearch%2F...` wrapping 68 layers around 譲渡.
- * - **It is longer than the backend accepts.** See `SEARCH_QUERY_MAX_LENGTH`.
- *
- * The point of catching these at the HTTP layer rather than rendering them is
- * the crawler: a 301 to `/search` collapses a whole indexed family onto one URL
- * in a single hop, where a 200 -- even a correct, empty-results 200 -- keeps
- * every member of it alive and worth re-fetching.
+ * `isJunkSearchQuery` rejects malformed encoding, decoded paths and terms exceeding the API limit. HTTP
+ * redirects collapse crawler-generated URL families before an SSR render.
  */
-/**
- * Everything after the path in a full path -- the query string, the hash, or both.
- *
- * Taken verbatim rather than rebuilt from `route.query`, because rebuilding means
- * re-encoding, and re-encoding is the whole family of bugs this file exists to
- * keep out of hrefs. Nothing here needs to understand the query, only to carry it
- * across unchanged.
- */
+/** Carry query and hash verbatim; rebuilding `route.query` would introduce another encoding pass. */
 export function queryAndHash(fullPath: string): string {
   const cut = fullPath.search(/[?#]/);
   return cut === -1 ? '' : fullPath.slice(cut);
 }
 
-/**
- * A bound on how many times `overEscapedSearchQuery` will unwrap.
- *
- * Only a ceiling on pathological input, not a judgement about how deep a real
- * family goes: the one that surfaced this bug had 68 layers, and each hop is a
- * fixed cost here rather than the SSR render it used to be.
- */
+/** Bound pathological decoding work while accommodating the observed 68-layer escaped URL family. */
 const MAX_SEARCH_DECODE_ROUNDS = 80;
 
 /**
- * The text a multiply-escaped `/search/:query` segment was originally about, or
- * `null` when the segment is encoded the ordinary once.
- *
- * WHY, given `canonicalPath` already exists. That function made the canonical a
- * fixed point, which stopped the family GROWING through the canonical link --
- * `%2525E8` now advertises itself rather than a deeper sibling. What it cannot
- * do is make the family SHRINK: every generation already in an index stays alive,
- * answering 200, each one a real SSR render. And growth did not actually stop,
- * because the canonical is not the only link on the page -- the i18n module
- * builds its hreflang and locale-switcher hrefs from the router's `route.path`,
- * one layer deeper again. Fetching `/en/search/%25E6%2595%25B0%25E5%258D%2581`
- * on production returns 200 and three `%2525…` links, one per locale.
- *
- * A 301 to the ordinary encoding does what a fixed point cannot: it collapses the
- * whole family onto one URL in a single hop, and it does so before the render, so
- * the deeper links are never emitted at all.
- *
- * Counting rounds is what separates over-escaped from ordinary. `数十` needs one
- * decode; `%25E6%2595%25B0…` needs two. A second round that still yields
- * something new is the signal, and it is a narrow one:
- *
- * - `100%25` decodes to `100%`, and decoding `100%` throws -- one round, ordinary.
- * - `%25E6` decodes to `%E6`, an incomplete UTF-8 sequence that throws -- one
- *   round, ordinary.
- * - `%2541` decodes to `%41` decodes to `A` -- two rounds, so a reader searching
- *   for the literal text `%41` is redirected to a search for `A`. That is the
- *   one false positive this trades for, and against a corpus of Japanese
- *   subtitles it is a fair trade.
+ * Return decoded text only after at least two successful changing decodes. Redirecting over-escaped URLs
+ * collapses existing crawler families before canonical/hreflang links can regenerate them. Literal `%41` also
+ * becomes `A`: an accepted false positive; incomplete escapes stop decoding.
  */
 export function overEscapedSearchQuery(raw: string): string | null {
   let value = raw;
@@ -205,27 +99,8 @@ export function isJunkSearchQuery(raw: string): boolean {
 }
 
 /**
- * `route.path` with the `/search/:query` segment encoded exactly once.
- *
- * WHY THIS EXISTS -- `route.path` is one encoding layer deeper than the URL the
- * visitor asked for. vue-router hands params through raw and then percent-
- * encodes them again when it serialises the path, so a request for
- * `/en/search/%25E8` reads back as `/en/search/%2525E8`. Nothing notices until
- * that path is emitted as a link: the canonical and the hreflang alternates
- * then advertise a URL that is NOT the one the crawler fetched, and fetching
- * that one advertises another, one layer deeper again. Prod grew by 12 bytes a
- * hop with no ceiling -- the URL that surfaced this had 68 nested layers
- * wrapped around 譲渡, and every hop is a fresh SSR render of a page nobody
- * asked for.
- *
- * One decode plus one encode is a fixed point, which is the property that
- * matters: `%2525E8` decodes to `%25E8` and encodes back to `%2525E8`. A
- * generation already sitting in Google's index now canonicalises to ITSELF
- * instead of breeding a deeper sibling, so the family stops growing even while
- * the old members drain out.
- *
- * Only the search route needs this. Every other param in the app is a public id
- * or a slug, where encoding is the identity and the extra layer never shows.
+ * Build search canonicals from the raw query with one decode/encode pass. Router path serialization can add
+ * an escaping layer, causing recursive URL families. Other routes only need trailing-slash normalization.
  */
 export function canonicalPath(path: string, queryParam: string | ReadonlyArray<string | null> | undefined): string {
   const raw = getStringQueryValue(queryParam);
@@ -236,26 +111,14 @@ export function canonicalPath(path: string, queryParam: string | ReadonlyArray<s
   return withLocalePrefix(localePrefix, buildWordSearchPath(decodeSearchQuery(raw)));
 }
 
-/**
- * `/en/media/one-punch-man/` and `/en/media/one-punch-man` are the same page and
- * both answer 200. The slashed one used to canonicalise to ITSELF, so the two
- * were a duplicate pair each vouching for its own version -- exactly the state
- * a canonical exists to prevent. The home page already got this right, because
- * `/en/` collapses to the locale root rather than to a deeper path.
- */
+/** Unify slashed and unslashed canonicals while preserving the root slash. */
 function stripTrailingSlash(path: string): string {
   return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
 /**
- * The media -- and optionally episode -- filter as a path.
- *
- * `searchQuery` is what keeps a filter click from throwing the search away. From
- * `/search/食べる`, narrowing to a title has to land on `/search/食べる?media=…`;
- * without the segment it lands on `/search?media=…`, which silently turns the
- * reader's search into a browse of everything that title has. Callers with no
- * search behind them -- the home grid, the media index -- omit it and get the
- * browse path, which is the right destination there.
+ * Retain the search term when applying title/episode filters; callers browsing without a query use `/search`
+ * instead.
  */
 export function buildMediaSearchPath(
   mediaPublicId: string,
@@ -271,18 +134,8 @@ export function buildMediaSearchPath(
 }
 
 /**
- * A title's own page, addressed the way a reader and a crawler can both read it.
- *
- * This is the canonical home of a media browse -- `/media/steins-gate` rather
- * than `/search?media=V1StGXR8_Z5d`, which is what the 317 media URLs in the
- * sitemap used to be. An opaque twelve-character id in a filter parameter tells a
- * search engine nothing about the page and cannot be typed, guessed or read
- * aloud; the slug is the same information in the part of the URL that ranks.
- *
- * `buildMediaSearchPath` above is still the right call when a SEARCH is being
- * narrowed to a title, because that URL has to keep carrying the search term.
- * The two are not interchangeable: this one browses a title, that one filters a
- * query.
+ * Canonical title-browse URL. Use `buildMediaSearchPath` instead when narrowing an existing query; browsing
+ * and filtering are not interchangeable.
  */
 export function buildMediaPath(slug: string, episode?: number | string | null): string {
   const base = `/media/${encodeURIComponent(slug)}`;
@@ -291,15 +144,7 @@ export function buildMediaPath(slug: string, episode?: number | string | null): 
 }
 
 /**
- * The link to a title from anywhere that is BROWSING rather than searching --
- * the home grid, the catalogue, a breadcrumb.
- *
- * Always prefer this over calling either builder directly at a link site: it
- * picks the readable URL when the payload carries a slug and falls back to the
- * old filter URL when it does not, so a link never dead-ends on a title that
- * predates slugs. Both destinations render the same page; only one is canonical,
- * and the other 301s to it -- which is exactly the hop worth avoiding on an
- * internal link.
+ * Prefer slug-based browse URLs, falling back to the legacy public-id filter when older payloads lack a slug.
  */
 export function mediaBrowsePath(
   media: { publicId: string; slug?: string | null },
@@ -313,30 +158,14 @@ export function buildSentencePath(segmentPublicId: string): string {
 }
 
 /**
- * The query keys that say WHERE a reader is searching, as opposed to what they
- * searched for or how the page is drawn.
- *
- * `mediaId`/`episodeId` are the legacy spellings. The server middleware rewrites
- * them to `media`/`episode` on a full page load, but a client-side URL can still
- * be holding one, and a scope that survives a click only when the reader arrived
- * by SSR is worse than one that never survives at all.
+ * Scope keys include legacy `mediaId`/`episodeId` spellings that may still exist on client-side URLs before
+ * server normalization.
  */
 export const SEARCH_SCOPE_PARAMS = ['media', 'mediaId', 'episode', 'episodeId', 'category', 'sort'] as const;
 
 /**
- * The scope of the current search, ready to hand to the next one.
- *
- * Searching a new word from inside a title is still a search inside that title:
- * the reader picked the show, and picking a word out of a sentence is not
- * un-picking it. The search box has always worked this way -- typing a word
- * keeps the filters -- so a word CLICKED out of a sentence that dropped them
- * meant the same action did two different things depending on how it was
- * started.
- *
- * An allowlist rather than "everything except the display toggles": what belongs
- * in a scope is a short, known list, and a `?uuid=` or a future one-off param
- * riding along by default is how a filter ends up somewhere nobody meant it to
- * be.
+ * Carry the current search scope into a new query through an allowlist; display toggles and unrelated one-off
+ * parameters must not follow it.
  */
 export function searchScopeQuery<T>(query: Record<string, T> | undefined | null): Record<string, T> {
   if (!query) return {};
@@ -350,16 +179,7 @@ export function searchScopeQuery<T>(query: Record<string, T> | undefined | null)
   return scope;
 }
 
-/**
- * A single string from a route query value, or null when it is absent or empty.
- *
- * Vue Router types a query value as `string | string[] | null`, and both the
- * search page and the search container had their own copy of this narrowing --
- * one typed against `LocationQueryValue`, the other against plain strings.
- * An empty string is treated as absent: `?media=` means no filter, not a filter
- * matching the empty id. The parameter type mirrors Vue Router's `LocationQueryValue`
- * (`string | null`), so both callers pass their route query straight through.
- */
+/** Read the first route-query value, treating absent, null and empty values as no filter. */
 export function getStringQueryValue(
   value: string | null | undefined | ReadonlyArray<string | null | undefined>,
 ): string | null {

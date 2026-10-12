@@ -1,34 +1,5 @@
-/**
- * Serves the previous builds' `/_nuxt/*` files, and keeps the archive they come
- * from current.
- *
- * See `server/utils/assetArchive.ts` for why the archive exists at all. This
- * file is both halves of using it: the request handler that answers from it, and
- * the startup pass that writes the running build into it.
- *
- * WHY THE HANDLER IS INSTALLED HERE AND NOT IN `server/middleware/`. Nitro's
- * public-asset handler is the FIRST layer of the request stack -- ahead of
- * everything in `server/middleware/`, which is the opposite of what the layout
- * suggests -- and on a miss under `/_nuxt/` it does not fall through:
- *
- *     if (!asset) {
- *       if (isPublicAssetURL(id)) {
- *         removeResponseHeader(event, "Cache-Control")
- *         throw createError({ statusCode: 404 })
- *       }
- *       return
- *     }
- *
- * So a middleware never sees these requests and a route never gets the chance
- * to. Nor can the archive be handed to that handler as a second public-asset
- * directory: it resolves through an object of assets inlined at BUILD time, and
- * a directory filled at runtime is invisible to it.
- *
- * What is left is to sit in front of it, which is what the stack surgery below
- * does. Plugins run after the stack is assembled (`runNitroPlugins` is called
- * once every `h3App.use()` has), so a layer moved to the front here is genuinely
- * first.
- */
+// Install before Nitro's public-asset handler, which terminates /_nuxt misses before middleware/routes run.
+// Its asset table is built at compile time, so runtime archives cannot become a second static directory.
 
 import { constants, createReadStream } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, rmdir, stat, utimes, unlink } from 'node:fs/promises';
@@ -45,15 +16,7 @@ import {
 } from '~~/server/utils/assetArchive';
 import { logger } from '~~/server/utils/logger';
 
-/**
- * Where the running build's assets are, relative to the working directory.
- *
- * The image sets `WORKDIR /app` and starts `node .output/server/index.mjs`, so
- * this resolves to `/app/.output/public/_nuxt` in the container. Outside a built
- * server -- `nuxt dev`, a test run -- there is no `.output`, the listing below
- * fails, and the archive stays off. That is correct rather than unfortunate: dev
- * rebuilds chunks constantly and has no deploy to survive.
- */
+// Relative to the production working directory; without a built .output tree the archive stays disabled.
 const BUILD_ASSET_DIR = '.output/public/_nuxt';
 
 export default defineNitroPlugin(async (nitroApp) => {
@@ -64,11 +27,7 @@ export default defineNitroPlugin(async (nitroApp) => {
 
   const sourceDir = resolve(process.cwd(), BUILD_ASSET_DIR);
 
-  // One level down now: `app.buildAssetsDir` gives each build its own segment,
-  // so the running build's files live in `_nuxt/<buildId>/` and every key here
-  // carries that segment. Directories that are not a build id -- there are none
-  // today beyond the build's own `builds/` manifest folder, which sits INSIDE
-  // the build segment -- are skipped rather than walked.
+  // Read only UUID build directories; manifests and unrelated directories are not archive assets.
   let liveAssets: Set<string>;
   try {
     const builds = await readdir(sourceDir, { withFileTypes: true });
@@ -87,10 +46,7 @@ export default defineNitroPlugin(async (nitroApp) => {
     return;
   }
 
-  // The directory is NOT created if it is missing. A missing mount would
-  // otherwise be papered over with a container-local directory that works
-  // perfectly until the container is replaced, which is exactly when this is
-  // supposed to help -- better to refuse and say so.
+  // Require the mounted archive directory. Creating a local replacement would hide a mount failure until redeploy.
   try {
     const info = await stat(assetArchiveDir);
     if (!info.isDirectory()) throw new Error('not a directory');
@@ -106,26 +62,15 @@ export default defineNitroPlugin(async (nitroApp) => {
     'asset archive: serving superseded builds',
   );
 
-  // Deliberately not awaited. Nothing in the request path needs it: a reader on
-  // the current build is served by Nitro, and a reader on a previous one is
-  // served by files a previous container already wrote. Every cluster worker
-  // publishes: worker IDs are not reused after a replacement, while `publish`
-  // is deliberately idempotent and tolerates sibling filesystem races.
+  // Publish asynchronously in every worker; current files use Nitro and old builds are already archived.
+  // Publishing is idempotent and tolerates sibling filesystem races.
   void publish(assetArchiveDir, sourceDir, liveAssets, retentionMs).catch((error: unknown) => {
     logger.error({ err: error }, 'asset archive: publishing the running build failed');
   });
 });
 
-/**
- * Puts the archive handler at the head of the request stack.
- *
- * `use()` does the normalising -- a layer is `{ route, match, handler }` and
- * building one by hand would be guessing at h3's shape -- and only the reorder
- * touches the array directly. Returns false rather than throwing if the stack is
- * not what this expects, because "appended" is not a lesser version of
- * "prepended" here: behind Nitro's static handler this never runs at all, and
- * the honest outcome is the archive staying off with a line in the log.
- */
+// Let h3App.use normalize the layer, then prepend it. Unexpected stack shapes disable the archive rather
+// than leave an unreachable handler behind Nitro static serving.
 function install(
   nitroApp: { h3App?: { use?: unknown; stack?: unknown } },
   dir: string,
@@ -148,11 +93,7 @@ function install(
     return false;
   }
 
-  // Move exactly the layer `use()` just normalised. Do not use `pop()` here:
-  // it would move an unrelated layer if a future `use()` wrapper appends more
-  // than one layer. `stack` is H3's documented App surface, and preserving all
-  // existing layer order is critical because Nitro's static handler otherwise
-  // terminates missing `/_nuxt/` requests before this handler can see them.
+  // Move exactly the newly registered layer, preserving all other order; pop could select an unrelated future layer.
   const [layer] = stack.splice(before, 1);
   if (!layer) {
     logger.error('asset archive: could not identify its request handler, staying off');
@@ -165,8 +106,6 @@ function install(
 
 function archiveHandler(dir: string, liveAssets: ReadonlySet<string>) {
   return defineEventHandler(async (event) => {
-    // Runs for EVERY request the server takes, so the cheapest possible test
-    // that this is not one of ours comes first.
     if (event.method !== 'GET' && event.method !== 'HEAD') return;
 
     const path = event.path;
@@ -175,38 +114,27 @@ function archiveHandler(dir: string, liveAssets: ReadonlySet<string>) {
     const name = archivableAssetName(assetPathname(path));
     if (!name) return;
 
-    // Never archived, so never answered from here -- and the live one has to
-    // stay reachable, which means handing the request back to Nitro rather than
-    // 404ing it as a miss.
+    // Unarchived assets must fall through so Nitro can still serve the live file.
     if (!isArchivableAsset(name)) return;
 
-    // The running build has it: Nitro's own static handler answers, with the
-    // etag, 304 and precompressed-variant handling this does not reimplement.
+    // Let Nitro serve live assets with its ETag, 304 and precompression support.
     if (liveAssets.has(name)) return;
 
     const file = archivedAssetPath(dir, name);
     const info = file ? await stat(file).catch(() => null) : null;
 
     if (!info?.isFile()) {
-      // Answered here rather than left to Nitro, for the header alone. Nitro's
-      // miss path removes `Cache-Control` entirely, and an asset 404 that says
-      // nothing about caching is one Cloudflare applies the zone's one-hour
-      // browser minimum to -- so a reader who lost a race with a deploy pins the
-      // 404 in their own cache and keeps failing for an hour after the file is
-      // back. `no-store` is the difference between a bad second and a bad hour.
+      // Return no-store on archive misses: Nitro removes Cache-Control, allowing the edge's browser minimum to pin a 404.
       setResponseStatus(event, 404);
       setResponseHeader(event, 'Cache-Control', 'no-store');
       setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8');
       return 'Not found';
     }
 
-    // Same headers the live build's assets get, and correct for the same reason:
-    // the name is a content hash, so this response can never become wrong.
     setResponseHeader(event, 'Content-Type', assetContentType(name));
     setResponseHeader(event, 'Content-Length', info.size);
     setResponseHeader(event, 'Cache-Control', 'public, max-age=31536000, immutable');
-    // The one externally visible sign that a reader is still on an older build.
-    // `curl -I` on a chunk is how you confirm this path is live at all.
+
     setResponseHeader(event, 'X-Nd-Asset', 'archive');
 
     logger.debug({ name }, 'asset archive: served an asset from a superseded build');
@@ -217,22 +145,7 @@ function archiveHandler(dir: string, liveAssets: ReadonlySet<string>) {
   });
 }
 
-/**
- * Writes the running build into the archive and ages out what no longer belongs
- * to any recent one.
- *
- *   copy   every file of the running build that is not already there
- *   touch  every file of the running build, so a chunk that survives unchanged
- *          across months of deploys never ages out while still being live
- *   prune  anything older than the retention window the running build does not
- *          claim
- *
- * RUNS IN EVERY CLUSTER WORKER, not once per container: `NITRO_CLUSTER_WORKERS`
- * is 3 in production and each fork boots the full Nitro app. Every write here is
- * therefore idempotent and race-tolerant by construction rather than by locking
- * -- `COPYFILE_EXCL` makes the copy atomic-or-nothing, and touch and unlink
- * shrug off the file having been handled by a sibling a millisecond earlier.
- */
+// Publish/touch live files and prune expired ones. Every worker may run this pass; writes must tolerate races.
 async function publish(
   archiveDir: string,
   sourceDir: string,
@@ -244,22 +157,16 @@ async function publish(
   let replaced = 0;
 
   for (const name of liveAssets) {
-    // Sourcemaps are 85% of a build's bytes and nothing can request them. See
-    // `isArchivableAsset`.
     if (!isArchivableAsset(name)) continue;
 
     const source = join(sourceDir, name);
     const destination = join(archiveDir, name);
 
     try {
-      // `name` is `<build>/<file>`, so the build's directory has to exist before
-      // the copy. Idempotent, and cheap enough to do per file rather than
-      // tracking which builds have been created in this pass.
       await mkdir(dirname(destination), { recursive: true });
       await copyFile(source, destination, constants.COPYFILE_EXCL);
       copied++;
-      // A fresh copy already carries the current time, and skipping the extra
-      // syscall here is the only reason this branch is separate from the touch.
+      // A fresh copy already has a current mtime; skip the extra touch syscall.
       continue;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
@@ -268,37 +175,20 @@ async function publish(
       }
     }
 
-    // Already present -- and NOT trusted on the strength of its name alone.
-    //
-    // The whole design rests on a content hash naming exactly one byte sequence,
-    // and on 2026-08-13 that turned out to be violable: flipping
-    // `sourcemap.client` between `true` and `'hidden'` changes every chunk's
-    // bytes while changing no chunk's name, because Vite hashes before appending
-    // the `sourceMappingURL` comment. Any build-level setting that rewrites
-    // output after hashing can do the same.
-    //
-    // Left unchecked this archive would turn that from a transient problem into
-    // a permanent one. The edge and the browser eventually expire or get purged;
-    // an archived file is served by the ORIGIN for the whole retention window,
-    // so the first version of a name would outlive the build that corrected it
-    // and keep failing SRI against every later page that references it.
-    //
-    // So compare, and let the running build win. Cheap at this size: the archive
-    // is ~1.9MB across ~83 files with the sourcemaps excluded.
+    // Post-hash build mutations can change bytes without changing filenames. Compare existing copies and let
+    // the running build win rather than preserve an SRI-breaking archive for the retention window.
     try {
       const [live, archived] = await Promise.all([readFile(source), readFile(destination)]);
 
       if (!live.equals(archived)) {
-        // Not `COPYFILE_EXCL`: replacing it is the point. `copyFile` is
-        // atomic enough here -- a concurrent worker writes identical bytes.
+        // Replace mismatched bytes; concurrent workers copy the same running build.
         await copyFile(source, destination);
         replaced++;
         logger.warn({ name }, 'asset archive: replaced an archived asset whose bytes no longer match the build');
         continue;
       }
 
-      // Same bytes. Re-stamping is what keeps a long-lived chunk out of the
-      // prune below.
+      // Refresh mtime so unchanged live chunks survive pruning.
       const stamp = new Date(now);
       await utimes(destination, stamp, stamp);
     } catch (error) {
@@ -311,11 +201,7 @@ async function publish(
   logger.info({ copied, replaced, pruned, retentionMs }, 'asset archive: publish complete');
 }
 
-/**
- * The shape this module used to write before `app.buildAssetsDir` gave each
- * build its own segment: a bare asset name in the archive root. Kept only so the
- * one-time cleanup above can recognise its own leftovers.
- */
+// Recognize only pre-build-directory assets during legacy cleanup.
 const LEGACY_FLAT_ASSET = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 
 async function prune(
@@ -326,20 +212,11 @@ async function prune(
 ): Promise<number> {
   let pruned = 0;
 
-  // Walks build directories rather than files: the archive mirrors the layout
-  // the server serves, so a name only means something with its build segment in
-  // front of it. Anything in here that is not a build directory was not written
-  // by this module and is left alone, same as a stray file always was.
+  // Only recognized build directories belong to this archive; leave unrelated entries alone.
   const builds = await readdir(archiveDir, { withFileTypes: true });
 
   for (const build of builds) {
-    // Files sitting directly in the archive root are from before builds had
-    // their own directory. Nothing can request them any more -- the served path
-    // now requires a build segment -- so they are unreachable bytes on a volume
-    // rather than a retention question, and they go on the first pass after the
-    // upgrade. Guarded by the OLD allowlist so this can still only delete files
-    // this module wrote: a stray file someone left here is left alone, exactly
-    // as it always was.
+    // Legacy flat assets are unreachable now. Delete only names allowed by the old archive format.
     if (build.isFile()) {
       if (!LEGACY_FLAT_ASSET.test(build.name)) continue;
 
@@ -368,9 +245,7 @@ async function prune(
 
       const key = `${build.name}/${entry.name}`;
 
-      // Same allowlist that decides what may be SERVED from here, reused so this
-      // pass can only ever delete files this module could have written. A stray
-      // file someone left in the volume is left alone rather than tidied away.
+      // Reuse the serving allowlist so pruning cannot delete unrelated volume files.
       if (!archivableAssetName(`/_nuxt/${key}`)) {
         remaining++;
         continue;
@@ -379,10 +254,7 @@ async function prune(
       const file = join(buildDir, entry.name);
 
       try {
-        // A sourcemap in here can only be a leftover from before they were
-        // excluded, and it will never be requested. Age is beside the point --
-        // waiting out the retention window on 10MB of files nothing can ask for
-        // is just a slower way of keeping them.
+        // Old sourcemaps are unreachable and can be removed without waiting for retention.
         if (!isArchivableAsset(entry.name)) {
           await unlink(file);
           pruned++;
@@ -398,8 +270,7 @@ async function prune(
         await unlink(file);
         pruned++;
       } catch (error) {
-        // ENOENT is a sibling worker having pruned the same file first, which is
-        // the expected outcome for two of the three workers.
+        // A sibling may already have pruned this file.
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
           logger.warn({ err: error, name: key }, 'asset archive: could not prune an expired asset');
         }
@@ -407,16 +278,12 @@ async function prune(
       }
     }
 
-    // A build whose every file has aged out leaves an empty directory behind,
-    // and they accumulate one per deploy forever. `rmdir` without `recursive`
-    // is deliberate: it refuses a directory that still holds anything, so this
-    // cannot race a sibling worker into deleting a build that is still live.
+    // Use nonrecursive rmdir so a sibling publishing into this directory cannot lose live files.
     if (remaining === 0) {
       try {
         await rmdir(buildDir);
       } catch {
-        // ENOTEMPTY (a sibling wrote between the count and the call) or ENOENT
-        // (a sibling removed it first). Both mean there is nothing to do.
+        // A sibling wrote into or removed the directory; both races need no action.
       }
     }
   }

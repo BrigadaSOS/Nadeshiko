@@ -37,9 +37,6 @@ function warmSitemap(locale) {
 
 for (let pass = 0; pass < 2; pass += 1) {
   for (const locale of locales) {
-    // Nitro's response cache includes the request host. Warming localhost
-    // without these headers creates a different cache entry from public
-    // traffic and leaves nadeshiko.co cold after Cloudflare's deploy purge.
     await warmSitemap(locale);
   }
 }

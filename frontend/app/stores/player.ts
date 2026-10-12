@@ -8,103 +8,48 @@ function isYoutube(result: SearchResult | null): boolean {
 }
 
 /**
- * The audio a result should play right now: its expansion blob when one has been
- * built, the original object otherwise.
- *
- * Read on every play rather than once per track. Expanding a segment swaps the
- * blob in (and reverting swaps it back out) long after the element was built, and
- * a paused player resuming its old element is how "the audio doesn't get replaced"
- * survived even when the expansion itself had worked.
+ * Resolve on every play: expansion or revert can change the audio source after the element was
+ * built.
  */
 export function resolveAudioSource(result: SearchResult): string {
   return result.blobAudioUrl ?? result.segment.urls.audioUrl;
 }
 
 /**
- * The span a result should play right now: the one an expansion merged when
- * there is one, the segment's own otherwise.
- *
- * The YouTube path's counterpart to `resolveAudioSource`, and read on every play
- * for the same reason. An expansion deliberately leaves `startTimeMs` /
- * `endTimeMs` alone -- see `SearchResult.expandedWindow` -- so a clip handed to
- * the iframe straight off the segment plays the pre-expansion window no matter
- * how much text grew around it. That is the whole of why "expand left" looked
- * like a dead control on YouTube while it worked everywhere else.
+ * Resolve the clip window on every play. Expansions update expandedWindow, not the segment's
+ * original timestamps.
  */
 export function resolveClipWindow(result: SearchResult): ClipWindow {
   return result.expandedWindow ?? { startMs: result.segment.startTimeMs, endMs: result.segment.endTimeMs };
 }
 
 /**
- * Rejections of `HTMLAudioElement.play()` that describe the reader rather than a
- * fault, and so are dropped instead of reported.
- *
- * - `AbortError`: the user agent abandoned the load "at the user's request" --
- *   navigating away, closing the tab, stopping playback mid-load.
- * - `NotAllowedError`: the autoplay policy. This play() was not close enough to
- *   a gesture for the reader's settings; they press play again and it works.
- *
- * Filtered here rather than tolerated in PostHog, because an issue nobody acts
- * on is worse than no issue: its status and last-seen stop describing anything,
- * and the `NotSupportedError` cases underneath -- a clip that genuinely will not
- * decode, which IS worth knowing about -- get read as more of the same. Between
- * them these two were 234 of the 255 reports on this fingerprint over a week,
- * out of 9 sessions; the 21 that matter came from 14. The same confusion
- * `$exception_fingerprint` was added to `reportError` to end.
+ * Drop user-aborted loads and autoplay-policy refusals, but keep decode failures such as
+ * NotSupportedError actionable.
  */
 export function isUnactionablePlaybackError(error: unknown): boolean {
-  // Matched on `name` against any Error rather than on `instanceof DOMException`:
-  // the name is the part the spec pins down, and narrowing to the class buys
-  // nothing here -- nothing else rejects a play() with either of these names.
-  //
-  // The `instanceof Error` half is gone for the same reason, and it was not
-  // free: it is the only engine-dependent part of this test, and the reports
-  // that outlived the filter say so. In the week to 2026-08-23 this fingerprint
-  // carried 37 `AbortError: The fetching process for the media resource was
-  // aborted at the user's request`, all from Firefox and 3 of them after the
-  // filter shipped, while no other engine sent that message once -- Chrome and
-  // Brave stopped reporting theirs the day it went live. A rejection that says
-  // its name is `AbortError` is the case this drops, whatever its prototype
-  // chain looks like.
+  // Match the standardized name, not Error or DOMException identity: playback rejection
+  // prototypes vary across browsers.
   const name = (error as { name?: unknown } | null | undefined)?.name;
   return name === 'AbortError' || name === 'NotAllowedError';
 }
 
 /**
- * Identifies the most recent playback intent. `HTMLAudioElement.play()` settles
- * asynchronously, so a promise from a track the user already skipped past would
- * otherwise flip `isPlaying` and fire analytics for whatever is playing *now* —
- * and its expected AbortError would report as a failure. Every action that
- * supersedes playback (new track, pause, hide) takes a fresh token; stale
- * settlements compare unequal and do nothing.
- *
- * Module scope is safe: audio only ever exists on the client.
+ * Every superseding playback intent takes a new token, so stale play() settlements cannot alter
+ * state or analytics. Module scope is safe because audio exists only on the client.
  */
 let playbackToken = 0;
 
 /**
- * A clip downloaded ahead of the play it is for, and the source it was built
- * from so a stale one can be spotted.
- *
- * Module scope for the same reason as `playbackToken`, and deliberately not part
- * of the store's state: a media element is a DOM handle, and the only reason to
- * hold a reference at all is so the browser does not abandon the download when
- * the element becomes unreachable.
+ * Client-only DOM handle kept outside store state. Retaining it keeps the prefetch alive;
+ * source identifies stale downloads.
  */
 let prefetched: { source: string; audio: HTMLAudioElement } | null = null;
 
 /** `HTMLMediaElement.HAVE_ENOUGH_DATA` -- enough buffered to reach the end. */
 const HAVE_ENOUGH_DATA = 4;
 
-/**
- * How long a clip is given to buffer before it is played anyway.
- *
- * There has to be a ceiling: `canplaythrough` is an estimate the browser is
- * free never to make on a connection that keeps stalling, and a player that
- * shows nothing happening is worse than one whose first word is rough. Two
- * seconds is far longer than a ~17KB clip needs on anything that works, so in
- * practice this only ever fires when the alternative was silence.
- */
+/** Bound the wait because canplaythrough may never fire on a stalled connection. */
 export const PLAYABLE_WAIT_MS = 2000;
 
 /**
@@ -117,12 +62,8 @@ export const PLAYABLE_WAIT_MS = 2000;
 export function whenPlayable(audio: HTMLAudioElement, timeoutMs: number = PLAYABLE_WAIT_MS): Promise<void> {
   if (audio.readyState >= HAVE_ENOUGH_DATA) return Promise.resolve();
 
-  // Already failed, before anyone got here. A prefetched element can have taken
-  // its `error` on the download that ran ahead of the play, and an event that
-  // has fired does not fire again for a listener attached afterwards -- so
-  // without this the wait below can only end on the timeout, and a clip the CDN
-  // has lost costs the reader the full `PLAYABLE_WAIT_MS` before `play()`
-  // rejects and reports it.
+  // A prefetched element may already have emitted error; do not wait for an event that will not
+  // fire again.
   if (audio.error) return Promise.resolve();
 
   return new Promise((resolve) => {
@@ -139,12 +80,8 @@ export function whenPlayable(audio: HTMLAudioElement, timeoutMs: number = PLAYAB
 }
 
 /**
- * Build a media element that starts downloading right away.
- *
- * `preload` is set before `src` and set explicitly: the default is the user
- * agent's choice, and a browser that picks `metadata` fetches a header, stops,
- * and leaves the whole download standing between the reader and the first
- * sound -- which is the delay everything here exists to move off the play.
+ * Set preload=auto before src so downloading starts immediately rather than stopping at
+ * metadata.
  */
 function buildAudio(source: string): HTMLAudioElement {
   const audio = new Audio();
@@ -171,15 +108,6 @@ function takeAudio(source: string): HTMLAudioElement {
   return buildAudio(source);
 }
 
-/**
- * Speeds the rate menu offers, in the order they are listed.
- *
- * Numeric order because the menu is read rather than stepped through -- every
- * rate is one click away, so there is nothing to gain by putting the slow ones
- * first, and a list that is not in order is harder to scan. Centred on 1x and
- * kept short: the useful range for hearing a line is a little either side of
- * normal, and the reader is picking this off a bar with five other controls.
- */
 export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5] as const;
 
 const DEFAULT_PLAYBACK_RATE = 1;
@@ -253,13 +181,8 @@ export const usePlayerStore = defineStore('player', {
     playbackRate: DEFAULT_PLAYBACK_RATE,
   }),
 
-  // Only the two playback preferences. The rest of this store is a live
-  // session -- restoring a playlist or a half-played element into a fresh tab
-  // would resurrect a player the reader never opened.
-  //
-  // Re-normalized after hydration because what comes back is whatever is in
-  // localStorage, which a reader can hand-edit and an older build may have
-  // written in another shape.
+  // Persist only volume and speed, not a live playlist or element. Normalize again after
+  // hydration to tolerate edited or older storage.
   persist: import.meta.client
     ? {
         key: 'player-prefs',
@@ -327,13 +250,8 @@ export const usePlayerStore = defineStore('player', {
     },
 
     /**
-     * A YouTube clip whose video will not load -- removed, made private, or with
-     * embedding turned off since it was indexed.
-     *
-     * Deliberately not routed through `handleEnded`: with repeat on, "ended"
-     * means play it again, and a video that cannot load would fail, repeat and
-     * fail again as fast as the iframe could report it. Autoplay still moves on,
-     * since skipping past a dead video is what a mining run wants.
+     * Do not treat an unplayable video as ended: repeat would retry forever. Autoplay may still
+     * advance past it.
      */
     handleClipUnplayable() {
       if (this.autoplay) {
@@ -344,14 +262,8 @@ export const usePlayerStore = defineStore('player', {
     },
 
     /**
-     * @param isRepeat The same clip starting again rather than a new one being
-     *                 reached: a `repeat`-mode loop, or a manual restart that had
-     *                 to rebuild the element. Both are the reader hearing a
-     *                 sentence they already had, and counting them as plays
-     *                 inflated the numerator of every per-play rate we read off
-     *                 this event -- a looped clip billed a play every few
-     *                 seconds. Reported rather than suppressed: a re-listen is
-     *                 real engagement, it just is not a sentence reached.
+     * @param isRepeat Marks a loop or rebuilt restart as a re-listen, not a newly reached
+     * sentence, while retaining engagement telemetry.
      */
     trackPlay(isRepeat = false) {
       const posthog = usePostHog();
@@ -400,17 +312,8 @@ export const usePlayerStore = defineStore('player', {
     },
 
     /**
-     * Start `audio` under a fresh playback token, holding the first sound back
-     * until the clip has buffered enough to run to its end.
-     *
-     * Resolves/rejects that arrive after a newer playback took over are discarded.
-     *
-     * `track` says what this start is worth reporting as, and the third state is
-     * why it is not a boolean: resuming a paused clip is not a play at all, a
-     * fresh clip is, and the same clip starting over is a play of a kind we want
-     * to be able to take back out. It is read inside `started`, so a start that
-     * loses its token reports nothing -- the answer belongs to whichever
-     * playback actually made a sound.
+     * Start under a fresh token after buffering; discard superseded settlements. Track only the
+     * successful start: new play, repeat, or unreported pause resume.
      */
     startAudio(audio: HTMLAudioElement, track: TrackedPlay) {
       const token = ++playbackToken;
@@ -448,40 +351,12 @@ export const usePlayerStore = defineStore('player', {
         return;
       }
 
-      // Nothing buffered yet. A browser starts a clip as soon as it believes it
-      // can keep going, not when the download is done, so on a cold fetch the
-      // opening plays into a stall and the reader hears the first syllable of
-      // the line chopped.
-      //
-      // What that needs is a play() after `canplaythrough`, and a play() issued
-      // after an await has left the tap's gesture window -- which iOS refuses,
-      // with a NotAllowedError this store deliberately drops, so the clip would
-      // never play and never report why. So the element is played once here,
-      // inside the gesture, and paused again in the same breath: nothing is
-      // audible (a play() below HAVE_FUTURE_DATA makes no sound at all, and the
-      // pause lands before it could), the download carries on regardless, and
-      // WebKit has seen the gesture-initiated play that lifts the restriction
-      // from this element for the real play() below.
-      //
-      // Paused rather than muted, which is the other way to hold an element
-      // quiet and is worse twice over: unmuting without a gesture is grounds
-      // for iOS to pause the media outright, which would strand autoplay
-      // between tracks, and a muted element still reaches the end of a short
-      // clip -- `ended` would advance the playlist past a line nobody heard.
+      // Prime play/pause synchronously inside the iOS gesture before awaiting buffering.
+      // Pausing keeps it inaudible without muted playback reaching ended or gesture-less
+      // unmuting stopping autoplay.
       const resumeAt = audio.currentTime;
-      // Swallowed whole, and it does not touch `isPlaying`.
-      //
-      // The `pause()` on the next line is what rejects this, as an AbortError,
-      // and it does so deterministically: the rejection is queued immediately
-      // while the handover below cannot arrive before `canplaythrough`, which
-      // is the wait this path exists for. Clearing `isPlaying` here therefore
-      // fired on *every* cold clip, leaving the transport reading "play" for
-      // the whole hold -- and, being the one settlement path here with no token
-      // guard, it could also clear the flag on a newer clip that had already
-      // started while this rejection was still in flight.
-      //
-      // Nothing is lost by staying quiet: `whenPlayable` always settles, so the
-      // real attempt at the handover reports through `failed` either way.
+      // Ignore the priming play's expected AbortError without changing isPlaying. The later,
+      // token-guarded attempt reports the real outcome.
       audio.play().catch(() => {});
       audio.pause();
 
@@ -602,18 +477,8 @@ export const usePlayerStore = defineStore('player', {
       // Remembered so a later play can tell this element apart from what the
       // result should be playing by then -- see `isCurrentAudioStale`.
       this.currentSource = audioUrl;
-      // NOT `crossOrigin = 'anonymous'`, tempting as it looks. It would make this
-      // a CORS request whose cached response `concatenateAudios` could reuse,
-      // removing the re-download `fetchAudioSegment` costs -- and since the CDN
-      // now answers `Access-Control-Allow-Origin: *` (brigadasos-infra,
-      // cloudflare-r2.tf, 2026-08-13) it would no longer break non-production
-      // origins the way it once would have.
-      //
-      // It stays off anyway, because of what it couples together: with it set,
-      // whether ANY audio plays at all depends on that policy staying permissive,
-      // and a future "let's tighten CORS" would take playback down site-wide
-      // rather than degrade one feature. The retry costs ~17KB on an expansion
-      // that follows a play, and fails in a way that is confined to expansion.
+      // Leave crossOrigin unset so ordinary playback does not depend on permissive CDN CORS.
+      // Expansion's extra fetch keeps any CORS failure confined to expansion.
 
       this.startAudio(audio, repeat ? 'repeat' : 'play');
 
@@ -623,17 +488,8 @@ export const usePlayerStore = defineStore('player', {
     },
 
     /**
-     * Download the clip after this one while this one plays.
-     *
-     * The hold `startAudio` puts on the first sound lasts exactly as long as the
-     * download does, so the way to make it cost nothing is to have the download
-     * already done. A playlist gives us a whole segment's worth of time to do
-     * that, and only ever one clip ahead: readers skip, and a queue of elements
-     * downloading segments nobody reaches is bandwidth taken from the one they
-     * are listening to.
-     *
-     * Nothing is prefetched for a YouTube segment, which streams through its own
-     * player rather than through a media element here.
+     * Prefetch only the next clip to hide buffering without wasting bandwidth on skipped
+     * tracks. YouTube streams through its own player.
      */
     prefetchNext() {
       if (!import.meta.client) return;
@@ -650,12 +506,8 @@ export const usePlayerStore = defineStore('player', {
       // have been for nothing.
       const source = resolveAudioSource(next);
 
-      // An expansion is already here. Its source is a blob the browser built in
-      // this tab, so there is no request to get ahead of -- and prefetching it
-      // is not merely pointless but costly: the element would hold a second
-      // decoded copy of audio that is already ~1.7MB of PCM in memory, to save
-      // nothing. Dropped rather than kept, so a stale plain-clip prefetch does
-      // not outlive the segment it was for.
+      // Do not prefetch local expansion blobs: it saves no request and holds another decoded
+      // copy. Drop any stale plain-clip prefetch.
       if (source.startsWith('blob:')) {
         dropPrefetch();
         return;
@@ -739,13 +591,8 @@ export const usePlayerStore = defineStore('player', {
     },
 
     /**
-     * Report where the volume slider was let go.
-     *
-     * Separate from `setVolume` because that one fires on every step of a drag;
-     * this is bound to the slider's `change` instead, so one adjustment is one
-     * event. Captured at all because the control was added on the argument that
-     * normalization would make it redundant -- this is the number that says
-     * whether it did.
+     * Capture the slider's change event, not each input step, so one adjustment produces one
+     * event.
      */
     trackVolumeChange() {
       const posthog = usePostHog();

@@ -4,14 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import BlogPagination from './BlogPagination.vue';
 
-/**
- * The first component test in the repo, and the pattern the next one should
- * copy: mount the SFC, stub the two Nuxt globals it cannot see under plain
- * vitest, and assert what a reader would notice.
- *
- * `NuxtLink` becomes a plain anchor so `to` is readable as `href`; `$t` returns
- * the key so a copy change never breaks a structural assertion.
- */
+/** Stub NuxtLink as an anchor to expose href; translate to keys so copy changes do not affect structure. */
 function renderPagination(props: { currentPage: number; totalPages: number; basePath?: string }) {
   return mount(BlogPagination, {
     props: { basePath: '/blog', ...props },

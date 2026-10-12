@@ -1,12 +1,6 @@
 import { type Locator, type Page, expect } from '@playwright/test';
 
-/**
- * The hiding half of the single Manage Media card on `/user/media`.
- *
- * Hiding and favoriting are two controls on one row of one list, so the hidden
- * "list" is the marked rows whose eye is off -- hence `data-hidden` rather than
- * a list-specific testid.
- */
+// Hidden titles are marked Manage Media rows with data-hidden, not a separate list.
 export class HiddenMediaPage {
   readonly page: Page;
   readonly heading: Locator;
@@ -20,7 +14,6 @@ export class HiddenMediaPage {
     this.noHiddenMessage = page.getByText('Nothing favorited or hidden yet.');
   }
 
-  /** Hiding and favoriting share the one media tab; `/user/hide-media` now 301s here. */
   async goto() {
     await this.page.goto('/user/media');
   }
@@ -50,17 +43,13 @@ export class HiddenMediaPage {
     await expect(this.searchResults.first()).toBeVisible({ timeout: 10_000 });
   }
 
-  /**
-   * One card, one list: catalogue results while the box has text, the titles
-   * you have marked once it is empty. Emptying it is how you get back to the
-   * marked list after acting on a search result.
-   */
+  // Emptying the search returns to the marked-title list.
   async clearSearch() {
     await this.searchInput.fill('');
     await expect(this.searchResults).toHaveCount(0);
   }
 
-  /** By testid, not by label: a lookup row now carries a hide button AND a favorite one. */
+  // Use the hide-specific test ID: each row also has a favorite button.
   async hideMedia(row: Locator) {
     await row.getByTestId('media-lookup-hide').click();
   }

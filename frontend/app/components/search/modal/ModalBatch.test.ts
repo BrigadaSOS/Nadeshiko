@@ -3,13 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-/**
- * The batch word-check modal: paste a list, see which words the corpus has.
- *
- * The summary line above the table is arithmetic over two refs that are updated
- * at DIFFERENT moments -- `showResults` before the request, the totals only
- * after it succeeds -- which is the shape that produces a rendered `NaN`.
- */
+/** showResults changes before request totals arrive; failure must not render stale rows or divide zero by zero. */
 const sdk = { searchWords: vi.fn() };
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

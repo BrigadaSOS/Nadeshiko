@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import type { ClassValue, StyleValue } from 'vue';
 
-/**
- * Modal shell: teleported to <body>, mounted only while `open`, and
- * responsible for the behaviour every dialog needs — backdrop click, Escape,
- * scroll lock, focus trap and focus restore.
- *
- * Callers own the panel markup; `panelClass`/`panelStyle` style the element
- * that carries `role="dialog"`.
- */
+/** Callers own panel markup; this shell owns dismissal, scroll lock and focus trapping/restoration. */
 const props = withDefaults(
   defineProps<{
     open: boolean;
@@ -134,17 +127,7 @@ const deactivate = () => {
   previouslyFocused = null;
 };
 
-/**
- * Whether the `<Teleport>` itself is in the tree, as opposed to whether the panel
- * inside it is visible.
- *
- * Vue's `TeleportImpl.remove` walks its children unconditionally when the teleport
- * unmounts, so a teleport that is always present — on pages carrying four to eight
- * modals, all closed — hands `unmountComponent` a child vnode that was never
- * mounted whenever the page tears down mid-render, and it crashes destructuring a
- * null instance. A closed modal has nothing to teleport, so the cheapest fix is to
- * not be in the tree at all.
- */
+/** Closed modals omit the Teleport: Vue teardown can otherwise remove child vnodes that were never mounted. */
 const isRendered = ref(props.open);
 
 /** Holds the teleport open for the leave transition, which removing it on `open`
@@ -176,24 +159,14 @@ const onBackdropClick = () => {
   if (props.closeOnBackdrop) emit('close');
 };
 
-/**
- * `inheritAttrs: false` puts the caller's `data-testid` on the PANEL, which is
- * the useful default — but it leaves the backdrop, the element that actually
- * carries the dismiss handler, with no handle at all. A test aiming for
- * "clicking outside closes it" would land on the panel instead and pass or fail
- * for the wrong reason. Mirror the panel's id onto the backdrop with a
- * `-backdrop` suffix so the two are separately addressable.
- */
+/** Expose a separate -backdrop test id; fallthrough attrs identify the panel, not the dismiss target. */
 const attrs = useAttrs();
 const backdropTestId = computed(() => {
   const id = attrs['data-testid'];
   return typeof id === 'string' && id ? `${id}-backdrop` : undefined;
 });
 
-/** Off-canvas sheets (nav + filters). They cannot share the centred-modal
- *  overlay: that node both fades and wraps the panel, so the sheet ghosts in
- *  instead of sliding as a solid surface. Shirabe keeps the slide on the
- *  same element that is shown and hides, and fades a sibling scrim. */
+/** Drawer panels slide independently of a fading sibling scrim; fading their wrapper would ghost the sheet. */
 const isDrawer = computed(() => props.transition === 'nd-drawer');
 </script>
 

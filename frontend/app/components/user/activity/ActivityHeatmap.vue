@@ -135,7 +135,6 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
       class="heatmap mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black/20 p-4 sm:p-5"
     >
       <div class="flex w-full">
-        <!-- Day of week labels -->
         <div class="heatmap-day-labels flex flex-col shrink-0 mr-1">
           <div class="heatmap-month-label-spacer" />
           <div
@@ -147,12 +146,9 @@ const heatmapMonthGroups = computed<MonthGroup[]>(() => {
           </div>
         </div>
 
-        <!-- Month groups spread to fill width, scrollable when narrower -->
         <div class="heatmap-months flex min-w-max w-full justify-between">
           <div v-for="(group, gi) in heatmapMonthGroups" :key="gi" class="flex flex-col">
-            <!-- Month label -->
             <div class="heatmap-month-label text-xs text-gray-400">{{ group.label }}</div>
-            <!-- Days grid for this month -->
             <div class="heatmap-grid grid grid-flow-col grid-rows-7">
               <!-- biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: day filter is pointer-only until the grid gets arrow-key navigation -->
               <div

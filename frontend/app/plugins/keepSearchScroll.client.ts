@@ -1,9 +1,8 @@
 import { splitLocalePrefix } from '~/utils/routes';
 
 /**
- * All from `/media/<slug>` is a filter change that happens to change the path.
- * Nuxt's default scrollBehavior treats any path change as "new page, go to top",
- * which yanks the list out from under the click.
+ * The All action from a title page changes filter scope, not list position; suppress Nuxt's path-change
+ * scroll reset.
  */
 export default defineNuxtPlugin(() => {
   const router = useRouter();

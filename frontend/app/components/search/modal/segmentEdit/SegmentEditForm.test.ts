@@ -5,20 +5,7 @@ import { nextTick, reactive } from 'vue';
 
 import { TEXT_MAX_LENGTH } from './segmentEditState';
 
-/**
- * The editing form inside the segment editor.
- *
- * Long, and almost all of it is fields bound straight to a form object the
- * parent owns. Two things in it are not: the character counter, whose colours
- * are the only warning an editor gets before `maxlength` silently stops
- * accepting their typing, and the status pills, where the selected one is
- * distinguished by colour alone -- so a pill that fails to look selected leaves
- * an editor unable to tell what they are about to save a segment as.
- *
- * The JSON field's `blur` validation is here too: it writes into the parent's
- * error object, and a save gate that reads that object is only as good as the
- * write.
- */
+/** Counters warn before maxlength stops input; JSON validation updates the parent's save gate. */
 vi.stubGlobal('useI18n', () => ({
   t: (key: string, params?: Record<string, unknown>) => (params ? `${key}(${Object.values(params).join(',')})` : key),
 }));

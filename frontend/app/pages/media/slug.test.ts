@@ -18,18 +18,8 @@ vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
 import { defineComponent, reactive, ref, unref } from 'vue';
 import { mediaMetaI18n, formatMediaMetaNumber, expectedMediaMeta } from '../../../test/media-meta-fixtures';
 
-/**
- * A title's own page, whose real output is the ENTITY it declares.
- *
- * `name` resolves against the reader's language preference, so the page was
- * advertising exactly one of a work's three titles and which one depended on who
- * was looking. `alternateName` is where the other two go, and it is what lets
- * queries for all three forms resolve to one entity instead of competing for it.
- *
- * The deduplication matters as much as the list: a work whose romaji and English
- * forms are identical, or which carries only one name, must not claim an
- * alternate that is the name it already gave.
- */
+// Work aliases expose language variants independently of the displayed title preference.
+// Exclude the displayed name and duplicate aliases.
 const capturedSchema: unknown[] = [];
 const capturedErrors: unknown[] = [];
 const route = reactive({

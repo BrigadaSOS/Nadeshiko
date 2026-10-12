@@ -1,11 +1,6 @@
 /**
- * The reader's own last searches, as the bar's recents menu reads them.
- *
- * Two sources feed one list: this device's `localStorage`, which every reader
- * has including a signed-out one, and the account's `UserActivity` SEARCH rows,
- * which follow a signed-in reader between devices. Everything here is the pure
- * half -- merging, narrowing, forgetting -- so it can be tested without a store,
- * an SDK or a browser; `useSearchRecents` owns the two sources themselves.
+ * Pure merging and filtering for device-local recents and account SEARCH activity. `useSearchRecents` owns
+ * storage and fetching.
  */
 
 /** The title a search was scoped to, when it was run inside one. */
@@ -37,10 +32,8 @@ export const RECENTS_LIMIT = 50;
 export const RECENTS_MENU_SIZE = 8;
 
 /**
- * How many raw activity rows to ask the account for. Deliberately larger than
- * `RECENTS_LIMIT`: the API returns one row per search event, so a reader who
- * looks the same word up every morning would otherwise spend the whole window
- * on one entry.
+ * Fetch more raw activity rows than the deduplicated limit because repeated searches otherwise consume the
+ * window.
  */
 export const RECENTS_FETCH_SIZE = 100;
 
@@ -64,16 +57,8 @@ export function queryKey(query: string): string {
 }
 
 /**
- * What makes two entries the same entry: the query **and** what it was searched
- * inside. 食べる everywhere and 食べる in one title are two searches a reader
- * ran deliberately and would run again separately, so they are two rows.
- *
- * The episode is not part of it, and neither is the tab: those narrow a search
- * the reader had already decided on. The title is the search.
- *
- * NUL-joined rather than joined with any printable character, since a query can
- * contain whitespace and punctuation: `食べる` unscoped must not key the same as
- * `食べ` inside a title whose id is `る`.
+ * Identity is normalized query plus title scope, not episode or tab. NUL separation avoids collisions with
+ * query punctuation.
  */
 export function recentKey(entry: Pick<RecentSearch, 'query' | 'media'>): string {
   return `${queryKey(entry.query)}\u0000${entry.media?.publicId ?? ''}`;
@@ -100,13 +85,8 @@ function mergeIds(left: number[], right: number[]): number[] {
 }
 
 /**
- * One entry per query, newest first, capped at `RECENTS_LIMIT`.
- *
- * Feed it both lists at once: the account's rows arrive undeduped (one per
- * search event) and the device's list overlaps them almost entirely, so the
- * merge and the dedupe are the same pass. Whichever side is newer supplies the
- * timestamp and the spelling; the ids are unioned, because either side may know
- * about server rows the other does not.
+ * Merge by query and title scope, newest first, capped at `RECENTS_LIMIT`. Keep newer spelling/time and union
+ * server ids so forgetting removes all represented rows.
  */
 export function dedupeRecents(entries: RecentSearch[], now: Date = new Date()): RecentSearch[] {
   const byKey = new Map<string, RecentSearch>();
@@ -146,14 +126,8 @@ export function dedupeRecents(entries: RecentSearch[], now: Date = new Date()): 
 }
 
 /**
- * Drops account rows the reader has already forgotten on this device.
- *
- * Forgetting deletes the server rows it knows the ids of, but the menu only
- * ever holds the ids from the last fetch window: an older row for the same
- * query survives the delete and would climb back into the list on the next
- * load. The tombstone is what keeps a forget looking like a forget. It is
- * scoped by time rather than absolute, so running the same search again brings
- * the entry back -- forgetting is not a block list.
+ * Time-scoped tombstones prevent older server rows outside the deletion window from resurrecting forgotten
+ * searches; a newer search can reappear.
  */
 export function applyDismissals(entries: RecentSearch[], dismissed: Record<string, string>): RecentSearch[] {
   if (Object.keys(dismissed).length === 0) return entries;
@@ -164,15 +138,8 @@ export function applyDismissals(entries: RecentSearch[], dismissed: Record<strin
 }
 
 /**
- * The rows the menu shows for what is currently in the box.
- *
- * An empty box is the unnarrowed case of the same list rather than a state of
- * its own, which is what keeps the menu useful on a results page, where the bar
- * arrives prefilled with the query that answered it.
- *
- * Matched on the query alone, never on the title: the reader is typing what they
- * searched for, so 食 has to keep both the general 食べる and the one they ran
- * inside a show -- the title tells those two rows apart, it does not hide one.
+ * Narrow by query only, not title. An empty term keeps the recent list; title scope distinguishes otherwise
+ * identical rows.
  */
 export function narrowRecents(entries: RecentSearch[], term: string, limit = RECENTS_MENU_SIZE): RecentSearch[] {
   const needle = queryKey(term ?? '');

@@ -287,7 +287,6 @@ const bulkDeleteAllMatching = async () => {
       @toggle-status="toggleStatus"
     />
 
-    <!-- Batch Actions Bar -->
     <AdminReportsSelectionBar
       v-if="selectedGroupIndices.size > 0"
       :count="selectedGroupIndices.size"
@@ -297,7 +296,6 @@ const bulkDeleteAllMatching = async () => {
       @clear="selectedGroupIndices = new Set()"
     />
 
-    <!-- Bulk Actions -->
     <AdminReportsBulkActions
       :is-dismissing="isBulkDismissing"
       :is-deleting="isBulkDeleting"
@@ -306,7 +304,6 @@ const bulkDeleteAllMatching = async () => {
       @delete-all="showDeleteConfirm = true"
     />
 
-    <!-- Report Groups Table -->
     <AdminReportsTable
       :groups="groups"
       :is-loading="isLoading"

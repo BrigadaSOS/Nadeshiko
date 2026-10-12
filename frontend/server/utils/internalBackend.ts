@@ -1,21 +1,11 @@
-/**
- * Shared plumbing for talking to the backend over the internal network.
- *
- * Both the `/v1/*` Nitro proxy and the SSR-only calls made from the Nuxt app
- * (session + preferences) go through here so every internal request is stamped
- * with the same shared secret and Host override. The helpers are deliberately
- * pure -- they take the runtime config as an argument -- because this module is
- * bundled into both the Nitro build and the SSR app build, where the auto
- * imported `useRuntimeConfig` resolves to different implementations.
- */
+// Pass config explicitly: Nitro and the Vue SSR bundle resolve useRuntimeConfig differently.
 
 import { createError } from 'h3';
 import { BOT_FAMILY_HEADER, TRAFFIC_HEADER, trafficHeaders } from '#shared/utils/traffic';
 
 const INTERNAL_PROXY_HEADER = 'x-internal-proxy-auth';
 
-/** Structural, matching `trafficHeaders`: this module is bundled into both the
- *  Nitro build and the SSR app build, so it avoids importing h3's types. */
+// Structural type avoids importing h3 types across the Nitro/SSR bundle boundary.
 type TrafficEvent = Parameters<typeof trafficHeaders>[0];
 
 export type InternalBackendConfig = {
@@ -45,20 +35,8 @@ export function internalBackendUrl(config: InternalBackendConfig, path: string):
   return `${getBackendInternalBaseUrl(config)}${path}`;
 }
 
-/**
- * Add the internal-proxy headers to `headers` (mutated in place and returned).
- *
- * The proxy secret marks the request as coming from us so the backend per-IP
- * rate limiter can exempt it. It is always overwritten (and otherwise stripped)
- * so a client can never forge it by sending the header itself.
- *
- * When an event is given, the visitor's reader/bot/monitor classification rides
- * along on the same secret: the backend trusts `x-nadeshiko-traffic` only from
- * requests that prove they came from us, and needs it because the internal call
- * does not otherwise carry the visitor's identity. The traffic headers are
- * stripped first for the same reason the secret is — an outside client must not
- * be able to relabel its own traffic.
- */
+// Mutates headers. Strip client-supplied trust/classification headers before adding our own: the backend trusts
+// traffic labels and exempts proxy IPs only when the shared secret proves the caller is internal.
 export function buildInternalBackendHeaders(
   config: InternalBackendConfig,
   headers: Record<string, string> = {},

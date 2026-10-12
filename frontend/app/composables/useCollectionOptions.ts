@@ -7,27 +7,15 @@ export type CollectionOption = {
 
 const LAST_COLLECTION_KEY = 'nd-last-collection';
 
-/**
- * Coalesces concurrent loads into one request.
- *
- * Module-level, and safe to be: `load()` only ever runs from a click, so this is
- * never touched during SSR and never shared between requests. Same reasoning as
- * the module-level scope in `useTranslationVisibility`.
- */
+/** Coalesce client-click loads; module scope is never used by SSR requests. */
 let inFlight: Promise<void> | null = null;
 
 /** Whether the remembered collection has been read back from localStorage yet. */
 let restored = false;
 
 /**
- * The reader's collections, as the "add to collection" picker on a result card
- * needs them.
- *
- * Shared across every card on the page, which is the whole point. This lived
- * inside the card component, so its "already loaded" guard was per instance: a
- * page of thirty results would fetch the same list thirty times over, once for
- * each dropdown the reader happened to open, and a failure toasted once per card.
- * The list belongs to the reader, not to the card, so it is stored per page.
+ * Share the reader's collection list across result cards so each dropdown does not refetch it
+ * or toast the same failure.
  */
 export function useCollectionOptions() {
   const user = userStore();

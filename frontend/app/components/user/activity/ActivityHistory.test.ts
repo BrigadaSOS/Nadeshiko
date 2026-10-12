@@ -3,18 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The activity timeline on the account page.
- *
- * Two things it decides. Consecutive identical entries are GROUPED into one row
- * with a count -- replaying a clip five times is one thing a reader did, not five
- * rows -- and the grouping key includes the title a search was scoped to,
- * because "the same query across everything" and "the same query inside one
- * show" are different searches.
- *
- * And the Japanese it shows comes back with the search highlighting still in it,
- * so the tags are stripped REPEATEDLY until the text stops changing: a single
- * pass turns `<<b>b>text` into `<b>text`, which then renders as markup.
+/** Group consecutive repeats only, with media scope in the search key; strip highlighting before rendering
+ * text.
  */
 const push = vi.fn();
 

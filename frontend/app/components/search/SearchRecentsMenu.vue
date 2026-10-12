@@ -2,16 +2,8 @@
 import { mdiClose } from '@mdi/js';
 import { RECENTS_LISTBOX_ID, recentOptionId, type RecentSearch } from '~/utils/searchRecents';
 
-/**
- * The reader's last searches, under the search bar.
- *
- * Presentation only: the input owns the open/closed state and the highlight,
- * because it owns the keyboard -- ↑/↓ arrive there, not here. This renders the
- * rows it is handed and reports clicks back.
- *
- * A press anywhere in the menu that is not a row prevents its own default, so
- * clicking the header, the padding or the gap between rows does not pull focus
- * out of the box the reader is still typing in.
+/** The input owns state and keyboard navigation. Prevent non-row presses from pulling focus out of the
+ * combobox.
  */
 defineProps<{
   items: RecentSearch[];
@@ -42,30 +34,9 @@ const localePath = useLocalePath();
 </script>
 
 <template>
-  <!--
-    Welded to the bar rather than floating under it, and the whole of that is
-    about one seam.
-
-    `-mt-px` puts the menu's background over the bar's bottom border instead of
-    stacking two 1px lines into a 2px one, and it has no top border of its own:
-    a line across the middle of what should read as one surface is the seam we
-    are hiding. The three sides it does draw take the bar's open border, since
-    a grey half below a light half is that seam again. The top corners are square
-    -- they round only while it is detached, in the enter/leave classes, so the
-    fusing is animated rather than switched.
-
-    The shadow is aimed down on purpose, and further down than it looks like it
-    needs to be. The menu paints on top of the bar, so any part of its shadow
-    that reaches above its own top edge lands on the bar as a darker band -- 8px
-    of `rgb(46,46,46)` against the bar's `rgb(47,47,47)`, faint enough to read as
-    a seam rather than as a shadow. Tailwind's `shadow-lg` bleeds that way
-    outright; so did `0 14px 28px -8px`, because Chrome's blur approximation
-    still leaks past half the blur radius -- measured, it reaches back up by
-    roughly the whole radius, not half of it. So the offset clears the blur
-    outright with the spread pulled in behind it: 20 + 8 puts the shadow rect's
-    top 28px down against a 24px reach, and the strip above the seam scans a
-    uniform `rgb(47,47,47)`.
-  -->
+  <!-- -mt-px hides the shared border; square top corners merge menu and bar. Offset the shadow beyond its blur
+       reach so it cannot darken the bar and recreate a seam.
+       -->
   <!-- biome-ignore lint/a11y/noStaticElementInteractions: keeps focus in the combobox -->
   <div
     class="absolute inset-x-0 top-full z-40 -mt-px overflow-hidden rounded-b-lg border border-t-0 bg-input-background shadow-[0_20px_24px_-8px_rgba(0,0,0,0.6)] transition-colors duration-200 ease-out motion-reduce:transition-none"

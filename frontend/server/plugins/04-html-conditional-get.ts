@@ -1,96 +1,24 @@
 import { getRequestHeader, getResponseStatus, removeResponseHeader, setResponseHeader, setResponseStatus } from 'h3';
 import { htmlEtag, ifNoneMatchSatisfied } from '~~/server/utils/htmlEtag';
 
-/**
- * Turns the revalidation a signed-in reader was already doing into a 304.
- *
- * `98-html-response-headers` sends `Cache-Control: private, no-cache` on every
- * page, which asks the browser to store the document and check with the origin
- * before reusing it. That check has been running on every navigation and coming
- * back with the whole document, because the response carried no validator to
- * check against. This adds one. The digest and the reasoning behind eliding the
- * CSP nonce live in `server/utils/htmlEtag.ts`.
- *
- * `beforeResponse`, NOT `render:response`, and the difference matters twice.
- * `render:response` fires while the render pipeline still has work to do:
- * nuxt-security's own `render:response` hooks (`50-updateCsp`, then
- * `70-securityHeaders`) run there and write the CSP header, so a hook that
- * removed it would be racing plugin registration order. `beforeResponse` is h3's
- * app-level hook, called once the handler has returned and every header is on
- * the event -- the first moment the complete response exists and the last at
- * which it can still be changed. It also hands over `response.body`, which is
- * what has to be emptied for a 304.
- *
- * WHAT A 304 MUST NOT CARRY. RFC 9111 has the cache UPDATE its stored response's
- * headers from the 304's, so any header sent here overwrites the one the reader
- * already has. The stored body carries the nonce from the render that produced
- * it; a fresh `Content-Security-Policy` would replace the stored one with a
- * policy naming a DIFFERENT nonce, and every inline script in the stored
- * document -- the Nuxt payload and the app's entry among them -- would be
- * blocked. The page would arrive blank with a console full of CSP violations.
- * Removing the header instead leaves stored body and stored policy agreeing on
- * the old nonce, which is self-consistent and is what the browser executes.
- * Verified in Chrome, not reasoned about: a 304-served page boots with no
- * violation reported.
- *
- * The CSP stays per-render on every 200, so nothing about the policy is
- * weakened -- a 304 has no body to apply a policy to.
- */
-/**
- * OFF UNLESS ASKED FOR, because today the header never reaches a reader.
- *
- * Cloudflare injects `/cdn-cgi/challenge-platform/...` into every `text/html`
- * response on this zone and drops the origin `ETag` along with it. That is not
- * something the zone config can turn off: Bot Fight Mode pins JavaScript
- * Detections on, the API accepts `enable_js: false` and reports it back while
- * the injection continues, and every HTML rewriter, bot feature and security
- * toggle was tried against it (the bisect is in brigadasos-infra,
- * terraform/cloudflare-security.tf). The stripping tracks content type, not
- * cache state -- `favicon.ico` keeps its ETag on HIT, on MISS and on a bypassed
- * request, while any HTML loses it.
- *
- * So the work below is correct and unreachable, and it is not free: eliding the
- * nonce copies the whole rendered document, ~400KB a render on a search page,
- * on a process that OOM-killed for three days in August 2026 (Nadeshiko#522).
- * Paying that for a header the edge discards is the wrong trade.
- *
- * The flag is the whole fix, and it is deliberately a flag rather than a
- * deletion: the plugin is verified working against the origin -- personal tier
- * returns `W/"..."` and `If-None-Match` on it returns 304 -- so the day the
- * edge stops rewriting HTML, this becomes a one-line change and not a rewrite.
- * Set `NUXT_HTML_CONDITIONAL_GET=1`, having first checked that
- * `curl -sI https://nadeshiko.co/docs/api/index.html` shows an `etag`; if it
- * does not, the flag will not help.
- */
+// Run at beforeResponse, after CSP/security hooks finish. On 304, remove CSP headers: caches update stored
+// headers from the 304, and a new nonce would block scripts in the old stored body. Every 200 keeps its fresh CSP.
+// Opt in only after checking the edge preserves HTML ETags. Cloudflare rewriting can strip them, making
+// canonicalization a wasted full-document copy. Enable with NUXT_HTML_CONDITIONAL_GET=1.
 const ENABLED = process.env.NUXT_HTML_CONDITIONAL_GET === '1';
 
 export default defineNitroPlugin((nitroApp) => {
   if (!ENABLED) return;
 
   nitroApp.hooks.hook('beforeResponse', (event, response) => {
-    // `beforeResponse` fires for everything Nitro answers, so the first job is to
-    // recognise a rendered page. `ndCacheTier` is set by
-    // `98-html-response-headers` and only after its `isReservedLocalePath` return,
-    // so its presence is exactly "this is a page, not the `/api` proxy or a
-    // sitemap". Public assets never get this far -- Nitro serves them first -- and
-    // they carry their own strong ETag already.
+    // Only page middleware sets ndCacheTier; API responses and assets have their own validators.
     if (!event.context.ndCacheTier) return;
 
-    // Anything the edge may store is deliberately left without a validator, and
-    // this is the one part of the design that would be unsafe to relax. When
-    // Cloudflare holds a copy it answers the conditional request itself, from its
-    // own stored headers -- including that copy's CSP, with that copy's nonce. If
-    // its object had been refreshed since the reader stored theirs, the two nonces
-    // differ, the nonce-elided ETag still matches, and the reader gets a policy
-    // that blocks their own stored body. Nothing here can strip a header from a
-    // 304 Cloudflare generates, so shared-tier responses simply do not get an
-    // ETag; they are already served from the edge and are not what this is for.
+    // Never validate shared HTML: a CDN-generated 304 can overwrite the browser's old CSP with a different nonce
+    // while the nonce-elided ETag still matches. We cannot strip headers from a 304 generated at the edge.
     if (event.context.ndShareable) return;
 
-    // A conditional GET is only meaningful for a response that has a body to
-    // suppress and a status that says the body is the page. 200 only, for the
-    // same reason `02-shared-cache-header` insists on it: a 404 or a 302 is not a
-    // representation anyone should be revalidating.
+    // Only successful GET/HEAD page representations can be revalidated.
     if (event.method !== 'GET' && event.method !== 'HEAD') return;
     if (getResponseStatus(event) !== 200) return;
     if (typeof response.body !== 'string' || !response.body) return;

@@ -182,18 +182,8 @@ const toggleEpisode = (episode: number) => {
   emit('applied');
 };
 
-/**
- * Hand the keyboard to the level that just arrived.
- *
- * Drilling in destroys the row that was activated, and with it the focus that
- * was on it -- the browser drops focus to `<body>`, which puts a keyboard
- * reader back at the top of the document and makes them tab the whole page to
- * reach the list they just opened. Going in lands on the back row, coming out
- * lands on the title that was drilled into.
- *
- * Only when the focus was inside this panel to begin with: the level also
- * changes when a result card's media link sets `?media=`, and stealing the
- * keyboard into the sidebar then would be worse than doing nothing.
+/** After drilling in/out, restore focus to the back row or previous title. Only move focus if it started inside
+ * this panel; result-card links can also change the level and must not have their focus stolen.
  */
 const panel = ref<{ $el?: HTMLElement } | null>(null);
 const drilledFrom = ref<string | null>(null);

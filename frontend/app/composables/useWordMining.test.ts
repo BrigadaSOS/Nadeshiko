@@ -2,29 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * Mining a word from the word card into Anki.
- *
- * Four decisions here are narrow on purpose, and each one is narrow because the
- * wide version hands the reader duplicate cards or a dead-end error:
- *
- * `canCreate` REQUIRES THE PROFILE TO WRITE THE WORD INTO THE FIELD THE PROBE
- * SEARCHES. A note created without it is invisible to the next probe, and
- * invisible means the next mine of the same word creates another one -- a
- * duplicate per visit with nothing ever reporting an error. It is also what
- * keeps the Yomitan setup working exactly as before.
- *
- * THE PROBE FALLS BACK TO THE WHOLE COLLECTION. Anki's own duplicate check at
- * `addNote` is scoped to the note TYPE and ignores decks, while this probe is
- * scoped to the deck -- so a word mined into another deck looked new, offered a
- * create, and got refused with an error the reader could do nothing about.
- *
- * A SLOW PROBE THAT LANDS ON ANOTHER WORD IS DROPPED. A card is re-opened on a
- * different word long before a slow probe returns, and it would otherwise star a
- * word nobody has mined.
- *
- * THE MINED-CHECK EVENT IS ONLY SENT WHERE ANKI ACTUALLY ANSWERED. Folding in
- * the cases that never asked would put a denominator of "every card opened by
- * everyone" under a numerator of "words mined by readers who run Anki".
+ * Creation must write the probe's key field. Probe other decks before declaring a word new,
+ * discard answers for closed or changed cards, and count only answered Anki probes.
  */
 const anki = reactive({
   activeProfile: null as Record<string, unknown> | null,

@@ -2,17 +2,8 @@
 import { preferredLocalePath } from '~/middleware/locale-preference';
 import { splitLocalePrefix } from '~/utils/routes';
 
-/**
- * Legacy redirect for the old `/settings/*` account area.
- *
- * These paths were the real page tree before the account pages moved under
- * `/user/*`, so bookmarks and old links still point here. Without this they fall
- * through to the site-wide markdown catch-all and 404. Mirrors the equivalent
- * `/admin/*` redirect in pages/admin/[...slug].vue.
- *
- * `settigns` is a typo that was live long enough to be linked; it is cheaper to
- * keep forwarding it than to work out who still has it saved.
- */
+// Preserve old /settings/* bookmarks after the move to /user/*, including the
+// historically linked "settigns" typo. Mirrors the legacy /admin/* redirect.
 function legacyTarget(slugParts: string[]): string {
   if (slugParts.length === 0) return '/user';
 

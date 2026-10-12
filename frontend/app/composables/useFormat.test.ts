@@ -2,23 +2,8 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
 /**
- * The one place dates, numbers and relative times are formatted.
- *
- * It exists because the same job had been hand-rolled ten ways, including one
- * that never passed a locale at all -- so what is worth pinning is the handful
- * of decisions it makes ON TOP of `Intl`, none of which `Intl` would make for
- * you:
- *
- *   - missing input renders as "-", never as "Invalid Date" or "NaN", because
- *     these run in table cells where a null date is ordinary;
- *   - zero is a number, not a missing value;
- *   - "in 0 minutes" is replaced by a phrase every locale has;
- *   - and past a month, "34 days ago" stops being the useful answer and an
- *     absolute date takes over.
- *
- * `d` and `n` are the real i18n formatters' contract -- the STYLE NAME is passed
- * through to them, and a test that dropped it would not notice a date rendered
- * in the wrong shape.
+ * Cover behavior beyond Intl: missing values render '-', zero remains valid, immediate relative
+ * time is localized, and old dates become absolute. Preserve i18n style names.
  */
 const locale = ref('en-US');
 const d = vi.fn((value: Date, style: string) => `${style}:${value.toISOString()}`);

@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref } from 'vue';
 
-/**
- * The blog index, whose whole risk is its PAGE NUMBER.
- *
- * `?page=99`, `?page=0`, `?page=-1` and `?page=abc` all used to render 200 with
- * "No blog posts available yet" -- untrue, and indexable, from any `?page=` a
- * link or a bot happened to invent. So there are two different answers here and
- * they must not be run together: anything that is not a positive integer is
- * page 1, and a page PAST THE END is a wrong URL and 404s.
- *
- * Page 1 stays 200 even with nothing published, because then "no posts yet" is
- * the true answer -- which is also why a FAILED fetch has to say something else
- * entirely.
- */
+// Invalid page numbers normalize to 1; only pages past a nonempty blog 404.
+// Fetch failures must remain distinct from an unpublished blog.
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 
@@ -62,8 +51,7 @@ async function render(posts: ReturnType<typeof post>[] | null, page?: string) {
       mocks: { $t: (k: string) => k },
       stubs: {
         BlogCard: { props: ['post'], template: '<div class="card">{{ post.title }}</div>' },
-        // `currentPage`, not `page`: a stub declaring the wrong prop name renders
-        // an empty half, and every pager assertion then compares against nothing.
+        // Use currentPage, not page, so the stub renders the value the pager assertions read.
         BlogPagination: {
           props: ['currentPage', 'totalPages', 'basePath'],
           template: '<div data-testid="pager">{{ currentPage }}/{{ totalPages }}</div>',
@@ -110,8 +98,6 @@ describe('which page is shown', () => {
     ['not a number', 'abc'],
     ['a fraction', '1.5'],
   ])('%s falls back to page one rather than rendering nothing', async (_name, value) => {
-    // Each of these used to render 200 with "no posts yet", which is untrue and
-    // indexable.
     const wrapper = await render(many(12), value);
 
     expect(cards(wrapper)).toHaveLength(9);
@@ -119,15 +105,12 @@ describe('which page is shown', () => {
   });
 
   test('a page PAST the end is a wrong URL, and 404s', async () => {
-    // Not an empty blog: rendering it as 200 told crawlers the blog had no
-    // posts, from any `?page=` a bot invented.
     await render(many(12), '99');
 
     expect(createError).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
   });
 
   test('the LAST page is not past the end', async () => {
-    // Off by one here 404s a page that exists.
     await render(many(12), '2');
 
     expect(createError).not.toHaveBeenCalled();
@@ -142,15 +125,12 @@ describe('the pager', () => {
   });
 
   test('counts a partial last page as a page', async () => {
-    // 10 posts over 9 per page is two pages, not one.
     const wrapper = await render(many(10));
 
     expect(pager(wrapper)).toBe('1/2');
   });
 
   test('an exactly-full single page shows no pager at all', async () => {
-    // Nine posts at nine per page is one page, and a "1 of 1" control is a
-    // navigation offering nowhere to go.
     const wrapper = await render(many(9));
 
     expect(wrapper.find('[data-testid="pager"]').exists()).toBe(false);
@@ -184,7 +164,6 @@ describe('a fetch that failed', () => {
   });
 
   test('and does not 404 on top of it', async () => {
-    // Our failure is not the reader's wrong address.
     await render(null, '3');
 
     expect(createError).not.toHaveBeenCalled();
@@ -193,7 +172,6 @@ describe('a fetch that failed', () => {
 
 describe('the feed', () => {
   test('is advertised, so readers can find it from the page it belongs to', async () => {
-    // Without this the feed exists but nothing links to it.
     await render(many(3));
 
     const links = capturedHead.flatMap((h) => (h.link as { rel: string; href: string }[]) ?? []);

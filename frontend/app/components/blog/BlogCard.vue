@@ -28,11 +28,7 @@ const formattedDate = computed(() => {
   if (!dateValue) return null;
 
   try {
-    // A real `Date` is exempt, and it has to be: the check below is looking for
-    // the empty object a JSON round-trip leaves where a date used to be, and a
-    // `Date` has no own enumerable keys either -- so it was being discarded by
-    // the guard meant to catch its corpse. `date` is declared `string | Date |
-    // null`, so this is the ordinary case, and it rendered no date at all.
+    // Exempt real Dates from the empty-object guard: Dates also have no own enumerable keys.
     if (
       !(dateValue instanceof Date) &&
       typeof dateValue === 'object' &&
@@ -58,12 +54,10 @@ const contentPreview = computed(() => blogExcerpt(props.post.rawbody, props.post
 <template>
   <article data-testid="blog-post" class="mb-12 pb-10 border-b border-gray-800 last:border-0 hover:border-gray-700 transition-colors duration-200">
     <NuxtLink :to="blogPath" class="group block">
-      <!-- Title -->
       <h2 class="text-3xl sm:text-4xl font-bold text-white mb-3 underline decoration-[#ef5552] decoration-4 underline-offset-8">
         {{ post.title }}
       </h2>
 
-      <!-- Date -->
       <span v-if="formattedDate" class="inline-flex items-center gap-1.5 text-sm text-[#ef5552] mt-1">
         <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -71,7 +65,6 @@ const contentPreview = computed(() => blogExcerpt(props.post.rawbody, props.post
         {{ formattedDate }}
       </span>
 
-      <!-- Image -->
       <div v-if="post.image" class="mt-4 mb-5 flex justify-center">
         <img
           :src="post.image"
@@ -81,13 +74,11 @@ const contentPreview = computed(() => blogExcerpt(props.post.rawbody, props.post
         />
       </div>
 
-      <!-- Content preview -->
       <div class="relative max-w-none" :class="{ 'mt-5': !post.image }">
         <p class="content-preview">{{ contentPreview }}</p>
         <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#1d1d1d] to-transparent pointer-events-none" />
       </div>
 
-      <!-- Read more -->
       <span class="inline-flex items-center gap-2 text-base font-semibold text-red-400 group-hover:text-red-300 transition-colors duration-200 mt-4">
         <span>{{ $t('blog.readMore') }}</span>
         <svg aria-hidden="true" class="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,9 +90,7 @@ const contentPreview = computed(() => blogExcerpt(props.post.rawbody, props.post
 </template>
 
 <style scoped>
-/* The excerpt is a single text node now, so the typography that used to sit on
-   the injected children belongs on the element itself. The `:deep()` rules for
-   p / strong / a / ul / li went with the HTML they styled. */
+/* The excerpt is plain text; apply typography to this element rather than injected children. */
 .content-preview {
   max-height: 16rem;
   overflow: hidden;

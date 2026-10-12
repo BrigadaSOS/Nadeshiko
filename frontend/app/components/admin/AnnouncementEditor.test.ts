@@ -3,20 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
 
-/**
- * The site-wide announcement banner's editor.
- *
- * Everything this writes is shown to every reader at once, so the guards matter
- * more than the form does. Save is held shut until something has actually
- * CHANGED -- re-posting the same banner would republish it to readers who had
- * already dismissed it -- and until there is a message, because an active
- * announcement with no text is an empty bar across the top of the site.
- *
- * "No announcement configured" is the normal case and arrives as a THROWN error
- * from the fetch, so the editor has to open blank on it rather than treat it as
- * a failure -- while still reporting genuine failures, which look identical from
- * here.
- */
+/** Reposting an unchanged banner republishes it; no configured announcement arrives as a fetch error. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 const toastSuccess = vi.fn();

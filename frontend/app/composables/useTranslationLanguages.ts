@@ -34,24 +34,9 @@ export function useTranslationLanguages() {
   );
 
   /**
-   * Which languages a DEFINITION is worth showing in, which is no longer the
-   * same question as the one above once a reader links a Shirabe account.
-   *
-   * Two places were answering it. A reader who put `jmdict:es` above
-   * `jmdict:en` in their Shirabe stack has said "Spanish definitions first", on
-   * the site that owns their dictionaries -- and the word card went on asking
-   * the Nadeshiko dropdown, which might say the opposite. Shirabe wins, because
-   * that is where the dictionaries are configured.
-   *
-   * The setting is NOT redundant and must not be disabled with it: the same
-   * value decides which subtitle translation rows render under every sentence,
-   * which EN/ES toggles the search toolbar offers, and which translations the
-   * segment menu can copy. Shirabe has no opinion about any of those. So the
-   * split is here, at the one question a linked account really does answer.
-   *
-   * Falls back to the reader's own setting when the stack names no gloss
-   * language -- a stack of nothing but personal `:ja` monolinguals says nothing
-   * about English or Spanish.
+   * Linked Shirabe gloss order wins for dictionary definitions, falling back to local
+   * preferences if the stack names no en/es language. Local settings still govern subtitle
+   * rows, toolbar toggles, and copied translations.
    */
   const dictionaryGlossLanguages = computed<GlossLanguage[]>(() => {
     const stacked = (user.shirabeGlossLanguages ?? []).filter(

@@ -6,18 +6,8 @@ import { defineComponent, ref } from 'vue';
 import { useDragScroll } from './useDragScroll';
 
 /**
- * Drag-to-scroll for the horizontal rows the catalogue is built from.
- *
- * Small, and the only thing it has to get right is the direction and the
- * anchor. The offset is taken from where the pointer STARTED, not from the last
- * move -- a per-move delta accumulates rounding and drifts away from the
- * cursor -- and the row scrolls the opposite way to the pointer, because the
- * reader is dragging the content and not the viewport.
- *
- * The listeners are split deliberately: `mousedown` on the element, but `move`
- * and `up` on the window, so a drag that leaves the row still scrolls it and a
- * release outside it still ends the drag rather than leaving the row stuck to
- * the cursor.
+ * Measure movement from the initial pointer anchor and scroll opposite the drag. Window move/up
+ * listeners keep drags working outside the row.
  */
 const mounted: { unmount: () => void }[] = [];
 
@@ -46,12 +36,8 @@ function attach(el: HTMLElement | null) {
 }
 
 /**
- * A mouse event at `pageX`.
- *
- * `pageX` is defined onto the event rather than passed to the constructor:
- * happy-dom's `MouseEvent` ignores it in the init dict and reports 0, which
- * makes every drag in this file a drag of zero pixels -- and every assertion
- * about direction pass on an element nobody moved.
+ * Define pageX explicitly: happy-dom ignores it in MouseEvent initialization, which would
+ * otherwise simulate zero movement.
  */
 function mouse(type: string, pageX: number) {
   const event = new MouseEvent(type, { bubbles: true, cancelable: true });

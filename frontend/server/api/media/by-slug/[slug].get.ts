@@ -1,17 +1,7 @@
 import { resolveMediaSlug } from '~~/server/utils/mediaSlugIndex';
 
-/**
- * The media behind a `/media/<slug>` URL.
- *
- * Two hops rather than one: the slug is resolved against the catalogue index,
- * then the full entry is fetched by publicId. The index holds only the mapping
- * on purpose -- caching whole media objects there would mean a stale banner or
- * episode count for up to an hour, while an id is stable for the life of the
- * title.
- *
- * The answer is identical for every visitor, so it is `swr`-cached in
- * `nuxt.config.ts` alongside the other shared `/api/*` routes.
- */
+// The hour-long index stores only stable slug-to-ID mappings; fetch media details separately so banners/counts
+// do not inherit that staleness. The shared response is SWR-cached by route policy.
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug');
 

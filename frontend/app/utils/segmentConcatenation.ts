@@ -70,19 +70,8 @@ type JaToken = JaField['tokens'][number] & { origin?: TokenOrigin };
 type JaPiece = { field: JaField; origin: TokenOrigin };
 
 /**
- * Move a segment's tokens onto the merged sentence's coordinates.
- *
- * `b`/`e` are offsets into the sentence the token came from, so a neighbour's
- * tokens address the wrong characters the moment another sentence is put in
- * front of them. That is what this module used to give up on, dropping the
- * tokens outright and taking furigana, the word cards, the keyboard walk and the
- * Anki furigana export down with them. Shifting each token by everything that
- * now precedes its segment is all they actually needed.
- *
- * `parts` carries the same kind of offset one level down -- the finer morphemes
- * inside a grouped token, used to highlight a match that lands inside one of our
- * tokens -- so it moves by the same amount. Nothing reads it today; leaving it
- * behind on the old coordinates would be a trap for whoever first does.
+ * Rebase token and nested-part offsets by the preceding merged text length; both address the original
+ * sentence's coordinates.
  */
 function shiftTokens(tokens: readonly JaToken[], offset: number, origin: TokenOrigin): JaToken[] {
   return tokens.map((token) => ({
@@ -95,21 +84,9 @@ function shiftTokens(tokens: readonly JaToken[], offset: number, origin: TokenOr
 }
 
 /**
- * Merge the Japanese text, keeping its tokens rebased onto the joined sentence.
- *
- * Unlike the translations below, this must NOT wrap the pulled-in neighbours in
- * markup. The tokens address `content` by character offset and
- * `tokensToAnkiFurigana` slices that very string, so a `<span>` inside it would
- * both shift every offset past it and end up spliced into the reader's Anki
- * field. `enrichTokens` has the same problem from the other side: it measures
- * its highlight ranges by counting characters and skips only `<em>`, so any
- * other tag in `highlight` slides the match underline off the words it belongs
- * to. So provenance moves out of the string and onto `origin`, and the renderer
- * tints the halves a token at a time.
- *
- * Returns null when any piece has no tokens -- the caller's cue to fall back to
- * the plain string merge. A segment with no POS analysis still has to expand,
- * and there the wrapper is the only way left to mark what was pulled in.
+ * Preserve Japanese tokens against unwrapped content and highlights containing only `<em>`. Other markup
+ * shifts offsets, corrupting ruby and Anki slices. Carry provenance on `origin`; return null if any piece
+ * lacks tokens so callers can use the string fallback.
  */
 function concatJapanese(current: JaField, pieces: JaPiece[]): JaField | null {
   if (pieces.some((piece) => !piece.field.tokens || piece.field.tokens.length === 0)) return null;
@@ -159,13 +136,8 @@ function concatLangField<T extends TextFieldBase>(current: T, before: T | undefi
     ]),
   };
 
-  // Reached for Japanese only when `concatJapanese` declined -- a segment
-  // somewhere in the merge has no tokens at all. The ones that DO exist cannot
-  // come along: they describe offsets into their own sentence, and the wrappers
-  // above have just moved every character past the first one, so keeping them
-  // would furigana-annotate the wrong words. The SDK types `tokens` as always
-  // present, but every reader of it guards on emptiness first, which is the
-  // contract this relies on.
+  // The Japanese string fallback adds wrappers that invalidate token offsets. Drop remaining tokens;
+  // consumers must tolerate absent analysis despite the SDK's required field.
   if ('tokens' in merged) {
     (merged as { tokens: unknown }).tokens = null;
   }

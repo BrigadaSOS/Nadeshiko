@@ -7,47 +7,17 @@ import {
   withLocalePrefix,
 } from '~/utils/routes';
 
-/**
- * Backward-compatibility redirects (301 Permanent).
- *
- * The URL scheme changed in Feb 2026:
- *   /search/sentence?query=彼女  →  /search/彼女       (path-based search)
- *   /search/sentence             →  /search             (empty search landing)
- *   /search?query=term           →  /search/term        (query-param form)
- *   /search/sentence?uuid=abc    →  /sentence/abc       (individual sentence)
- *   /search?uuid=abc             →  /sentence/abc       (individual sentence)
- *   /search/media                →  /media              (media browse)
- *   /search/media?query=steins   →  /media?query=steins (media browse with query)
- *
- * These redirects MUST stay in place permanently so that bookmarks,
- * external links, and Google's cached URLs continue to work.
- *
- * It also collapses junk queries -- see `isJunkSearchQuery`:
- *   /search/<undecodable|path-shaped|over-long>  →  /search
- * That one is not backward compatibility. It is here rather than in the page
- * because only the HTTP layer still sees the path the visitor actually sent.
- *
- * And it collapses multiply-escaped queries onto the ordinary encoding:
- *   /search/%25E6%2595%25B0  →  /search/%E6%95%B0
- * Same reasoning, one step further: the HTTP layer is the only place that can
- * answer a 301, and a 301 is the only answer that makes an indexed family of
- * these shrink. Rendering them -- even correctly -- is what kept 14k requests a
- * day alive on production, because each render emitted a set of locale links one
- * layer deeper again.
- */
+// Keep legacy redirects permanently for bookmarks and indexed URLs. Normalize junk/multiply-escaped queries
+// at the HTTP layer, before the router rewrites the raw path, using 301 to consolidate indexed variants.
 export default defineEventHandler((event) => {
   const url = getRequestURL(event);
   const { localePrefix, localizedPath } = splitLocalePrefix(url.pathname);
 
-  // Only process /search paths — skip everything else early
   if (!localizedPath.startsWith('/search')) {
     return;
   }
 
-  // Canonicalize legacy filter query params used by older links:
-  // - mediaId -> media
-  // - episodeId -> episode
-  // Keep canonical keys when both exist.
+  // Canonical filter keys win when both current and legacy names are present.
   let normalizedLegacyParams = false;
   const mediaId = url.searchParams.get('mediaId');
   if (mediaId !== null) {
@@ -67,7 +37,6 @@ export default defineEventHandler((event) => {
     normalizedLegacyParams = true;
   }
 
-  // UUID redirects on search pages: /search/sentence?uuid=abc or /search?uuid=abc → /sentence/abc
   if (url.searchParams.has('uuid')) {
     const uuid = url.searchParams.get('uuid');
     if (uuid === null) {
@@ -82,15 +51,11 @@ export default defineEventHandler((event) => {
     );
   }
 
-  // /search/media → /media  (preserves all query params)
   if (localizedPath === '/search/media' || localizedPath === '/search/media/') {
     const remaining = url.search;
     return sendRedirect(event, `${withLocalePrefix(localePrefix, '/media')}${remaining}`, 301);
   }
 
-  // /search/sentence?query=term → /search/term
-  // /search/sentence             → /search
-  // /search/sentence?category=anime → /search?category=anime
   if (localizedPath === '/search/sentence' || localizedPath === '/search/sentence/') {
     const query = url.searchParams.get('query');
     url.searchParams.delete('query');
@@ -105,7 +70,6 @@ export default defineEventHandler((event) => {
     return sendRedirect(event, `${withLocalePrefix(localePrefix, '/search')}${remaining ? `?${remaining}` : ''}`, 301);
   }
 
-  // /search?query=term → /search/term  (preserves other query params like category, sort)
   if (localizedPath === '/search' && url.searchParams.has('query')) {
     const query = url.searchParams.get('query');
     if (query === null) {
@@ -113,31 +77,16 @@ export default defineEventHandler((event) => {
     }
     url.searchParams.delete('query');
     const remaining = url.searchParams.toString();
-    // An EMPTY query lands on the search page, not on `/search/`, exactly as the
-    // `/search/sentence` branch above does with the same input. `?query=` is an
-    // ordinary shape for a submitted-empty form, and `buildWordSearchPath('')`
-    // is `/search/` -- a second redirect hop to reach the page this one could
-    // have sent them to, on the crawler-facing route this file exists to keep
-    // from multiplying.
+    // Empty queries land on /search, not /search/, avoiding another redirect hop.
     const target = query ? buildWordSearchPath(query) : '/search';
     return sendRedirect(event, `${withLocalePrefix(localePrefix, target)}${remaining ? `?${remaining}` : ''}`, 301);
   }
 
-  // Junk `/search/:query` segments -> `/search`. Deliberately last: every branch
-  // above owns a specific legacy path, and `/search/sentence` in particular has
-  // to be read as a route before this reads it as a query.
-  //
-  // `url.pathname` is the raw request path here, which is the whole reason this
-  // check belongs in middleware -- by the time a page component sees the param
-  // the router has already re-encoded it, and the length test would be measuring
-  // the wrong string.
+  // Handle legacy routes before treating their suffix as a query. Inspect the raw request path, not a router-reencoded param.
   if (localizedPath.startsWith('/search/')) {
     const rawQuery = localizedPath.slice('/search/'.length);
 
-    // Multiply-escaped segments first, and they are judged on what they unwrap
-    // to rather than on how they arrived -- otherwise a path-shaped query buried
-    // under four layers reads as ordinary here and costs a second hop to
-    // collapse. See `overEscapedSearchQuery` for why a 301 and not a canonical.
+    // Judge multiply-escaped queries after unwrapping so junk collapses in one hop.
     const overEscaped = rawQuery ? overEscapedSearchQuery(rawQuery) : null;
     if (overEscaped !== null) {
       const target = isJunkSearchQuery(encodeURIComponent(overEscaped)) ? '/search' : buildWordSearchPath(overEscaped);

@@ -4,17 +4,8 @@ import { useCandidateChips } from './useCandidateChips';
 import { glossPreference, type ShirabeCandidate } from '~/utils/wordCard';
 
 /**
- * The candidate row: which chips are drawn, and which of them need a letter of
- * part-of-speech to be told apart.
- *
- * `duplicateHeadwords` is the decision worth pinning, and the component's own
- * test says out loud that it cannot reach it: exercising the part-of-speech
- * INITIAL there needs a fixture reproducing Shirabe's tag shape faithfully
- * enough to be testing the fixture. Here the input is the argument, so it can be.
- *
- * Getting it backwards fails in one of two ways, both bad: label everything and
- * every card carries noise for the sake of the rare ambiguous one; label nothing
- * and あれ shows twice with nothing to choose by.
+ * Only duplicate displayed spellings need part-of-speech initials: avoid both ambiguous chips
+ * and labels on every candidate.
  */
 const preference = glossPreference('en', { en: 'show', es: 'show' });
 

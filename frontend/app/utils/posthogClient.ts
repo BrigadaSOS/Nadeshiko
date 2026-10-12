@@ -1,52 +1,16 @@
 import type posthogJs from 'posthog-js';
 
 /**
- * The posthog-js the app talks to, which is a stand-in until the real one lands.
- *
- * WHY THIS EXISTS. `@posthog/nuxt`'s client plugin does `import posthog from
- * "posthog-js"` at module scope, so the SDK sat in the entry chunk: 99,765 B
- * brotli of a 185,156 B entry graph -- 53.9% of everything hydration waits on,
- * and 314KB of script to parse and execute before the app mounts (measured
- * 2026-08-23 on a production build of the search page, whose 60 JS files total
- * 347,731 B). It is not optional bytes either: `capture_pageview: true` means
- * every page load needs it. What it does not need is to need it FIRST.
- *
- * So `plugins/posthog.client.ts` replaces the module's plugin with a dynamic
- * `import('posthog-js')` and hands the result to `startPostHog` below. In the
- * window between the plugin running and the chunk landing there is no SDK, and
- * this module is what stands in its place: every call is queued and replayed, in
- * order, the moment `init()` returns. NOTHING IS DROPPED IN THAT WINDOW -- which
- * matters most for `$exception`, now that PostHog is the only place errors go
- * (Grafana Faro was removed 2026-08-23).
- *
- * Once the SDK is here the proxy forwards straight through to it, so a reference
- * taken during the window -- `const posthog = usePostHog()` resolved at setup, a
- * pattern several composables rely on -- keeps working with the full API rather
- * than being stuck on the stub for the life of the page.
- *
- * Reads are the one thing that cannot be deferred: `get_distinct_id()` and
- * friends must answer NOW or not at all, so before the SDK lands they answer
- * `undefined`. That is the same answer they gave when the guard was
- * `posthog.__loaded`, but the window is wider now, so a caller that needs a real
- * one has to wait for `onPostHogReady`. `useAnalyticsIdentity` is the only one
- * that does.
+ * Stable PostHog proxy while the SDK loads dynamically. Queue writes in order and forward existing references
+ * to the real client after init. Reads return undefined until ready; callers needing identity values must use
+ * `onPostHogReady`.
  */
 type PostHog = typeof posthogJs;
 
 /** A call made before posthog-js arrived, ready to be replayed against it. */
 type QueuedCall = (posthog: PostHog) => void;
 
-/**
- * How many deferred calls are held before new ones are dropped.
- *
- * A bound rather than trust: if the chunk never arrives -- a content blocker,
- * an offline reload, a CDN 404 after a deploy -- `startPostHog` clears the queue
- * on the failure and nothing accumulates. This covers the other shape, where the
- * import simply never settles, and keeps a page that is throwing in a loop from
- * growing an unbounded array of closures over its own Error objects. A load
- * window is tens to hundreds of milliseconds; 200 events in it is already far
- * past anything real.
- */
+/** Bound queued closures if SDK loading never settles; failed loading clears the queue. */
 export const DEFERRED_CALL_LIMIT = 200;
 
 let loaded: PostHog | null = null;
@@ -73,16 +37,7 @@ function defer(call: QueuedCall): void {
   deferred.push(call);
 }
 
-/**
- * The page a deferred call was made on, stamped onto the event so replaying it
- * later cannot misattribute it.
- *
- * posthog-js fills `$current_url` and `$pathname` from `window.location` at the
- * moment of capture, and properties passed by the caller take precedence over
- * the ones it collects -- which is the documented way to correct a URL. Without
- * this, an event captured on `/search/手加減` and replayed after the reader has
- * already moved on would be filed against wherever they went.
- */
+/** Stamp the originating page before deferral so replay after navigation cannot misattribute the event. */
 function pageProperties(): Record<string, string> {
   if (typeof window === 'undefined') return {};
   return { $current_url: window.location.href, $pathname: window.location.pathname };
@@ -106,11 +61,8 @@ const stub = {
   },
 
   /**
-   * Timestamped by when the SDK arrived rather than when the throw happened:
-   * `captureException` takes properties but no `CaptureOptions`, so there is no
-   * timestamp to override. The skew is one load window, which is the wrong
-   * trade only if sub-second exception ordering matters more than the exception
-   * existing at all.
+   * `captureException` has no timestamp option, so deferred exceptions use replay time; page properties still
+   * retain their original context.
    */
   captureException(error: unknown, properties?: Record<string, unknown>) {
     const page = pageProperties();
@@ -139,15 +91,8 @@ const stub = {
 };
 
 /**
- * The client, whether or not it has arrived.
- *
- * A proxy and not a plain object for two reasons. It forwards wholesale to the
- * real SDK once loaded, so nothing is limited to the members stubbed above for
- * the rest of the page; and a member that is NOT stubbed, called during the load
- * window, is queued rather than thrown. The second is the one that matters in
- * six months: this stub knows about the nine members ~60 call sites use today,
- * and the next call site added should lose an event at worst, never take the
- * page down with "posthog.getFeatureFlag is not a function".
+ * Forward the full SDK API after loading; unknown methods called before loading are deferred rather than
+ * throwing.
  */
 export const posthog = new Proxy(stub, {
   get(target, property, receiver) {
@@ -162,12 +107,8 @@ export const posthog = new Proxy(stub, {
 }) as unknown as PostHog;
 
 /**
- * Whether analytics exist on this build at all.
- *
- * True from the moment the plugin starts the import, NOT from when it finishes:
- * callers use this to decide whether to bother, and "not yet" is a yes -- the
- * call will be queued. Outside production the module is absent, nothing starts
- * it, and this stays false so every capture is a cheap no-op.
+ * True once loading starts, not only when it finishes: pending captures can queue. False on builds that never
+ * start analytics.
  */
 export function isAnalyticsEnabled(): boolean {
   return starting;
@@ -230,14 +171,8 @@ export function startPostHog(load: () => Promise<PostHog | null>): void {
 }
 
 /**
- * Runs once there is a real client, immediately if there already is one.
- *
- * For the callers that need posthog-js to ANSWER rather than merely record --
- * `useAnalyticsIdentity` reads `get_distinct_id()` and `get_property()` to decide
- * whether to `reset()` before identifying, and getting `undefined` there would
- * strand every reader still on the old display-name distinct id.
- *
- * Never runs outside production, where nothing starts the client.
+ * Run once the SDK can answer identity reads, immediately if loaded. No callback runs when analytics never
+ * starts.
  */
 export function onPostHogReady(callback: (posthog: PostHog) => void): void {
   if (loaded) {

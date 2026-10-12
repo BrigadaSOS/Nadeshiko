@@ -5,17 +5,8 @@ import { isCategory, resolveDefaultCategorySlug } from '~/utils/categories';
 export type DefaultSearchCategory = Category | 'ALL';
 
 /**
- * The category tab a search opens on when the URL names none.
- *
- * A reader who only ever watches anime should not have to click the Anime tab on
- * every search, so the landing tab is a stored preference rather than a constant
- * `all`. It is only a *default*: `?category=` in the URL always wins, which keeps
- * shared links pointing at what the sender saw.
- *
- * A default naming a category the reader has since hidden wholesale
- * (`useHiddenCategories`) resolves to `all` instead of to a tab whose results
- * were deliberately dropped. The stored value is left alone, so unhiding the
- * category brings the choice back rather than making them set it twice.
+ * An explicit URL category wins over the preference. A hidden default resolves to all without
+ * changing the stored choice, so unhiding restores it.
  */
 export function useDefaultSearchCategory() {
   const user = userStore();

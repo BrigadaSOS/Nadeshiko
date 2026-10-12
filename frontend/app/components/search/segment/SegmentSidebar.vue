@@ -43,18 +43,8 @@ const props = withDefaults(
   { filterable: true },
 );
 
-/**
- * The drawer is offered only when there is a title list behind it.
- *
- * Keyed on the media stats rather than on the results, and the difference is
- * the whole point: `results` is emptied at the start of every fetch, so gating
- * on it made the button vanish and come back on each search, and left anyone
- * who opened it mid-flight looking at a drawer with nothing in it. The stats
- * survive the fetch and only empty when the query genuinely matched no titles
- * -- which is exactly when there is nothing to filter and no button to offer.
- *
- * Only the drawer is gated. The scroll-to-top button beside it is about the
- * page, not the results, and belongs on every view.
+/** Gate on media stats, not results cleared during fetches, so the drawer stays available while loading.
+ * Scroll-to-top remains independent of filter availability.
  */
 const showFilterDrawer = computed(() => props.filterable && (props.searchData?.media?.length ?? 0) > 0);
 
@@ -115,7 +105,6 @@ onUnmounted(() => {
     </Teleport>
   </ClientOnly>
 
-  <!-- Sidebar -->
   <CommonBaseModal
     v-if="showFilterDrawer"
     id="nd-offcanvas-right"
@@ -166,6 +155,5 @@ onUnmounted(() => {
   </div>
   </CommonBaseModal>
 
-  <!-- End Sidebar -->
 
 </template>

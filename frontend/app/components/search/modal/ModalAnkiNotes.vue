@@ -45,16 +45,8 @@ watch(hasKeyField, (hasKeyField) => {
   }
 });
 
-/**
- * Which lookup the list belongs to.
- *
- * There is no debounce on the box, so every keystroke starts its own search
- * against the reader's own machine and two are in flight for most of a word.
- * Anki answers them in whatever order it finishes, and assigning in ARRIVAL
- * order left the list belonging to whichever query happened to come back last:
- * a reader who typed 食べ could be looking at the matches for 食. That is not
- * cosmetic here -- the row they press is the note their sentence is written
- * into, so a stale list writes the sentence onto the wrong card.
+/** Every keystroke starts a lookup; only the latest may populate a list whose selection writes to that Anki
+ * note.
  */
 let latestLookup = 0;
 
@@ -113,7 +105,6 @@ const handleSelectNote = (noteId: number) => {
         </div>
         <div class="overflow-y-auto">
           <div class="flex flex-row mx-auto">
-            <!-- Content -->
             <div class="sm:mx-4 mx-auto flex flex-col">
               <div class="p-6 space-y-6 flex flex-col">
                 <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
@@ -146,12 +137,6 @@ const handleSelectNote = (noteId: number) => {
                         </p>
                       </div>
 
-                      <!-- Nothing is shown when the key field IS configured.
-                           A banner confirming that the settings are correct is
-                           read once and then becomes furniture at the top of a
-                           dialog the reader opened to do something else. Only
-                           the failure below is worth interrupting for, because
-                           only it needs an action. -->
 
                       <div v-if="!hasKeyField" role="alert"
                         class="rounded border-s-4 border-red-500 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/70">

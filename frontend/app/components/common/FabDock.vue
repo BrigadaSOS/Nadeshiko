@@ -2,20 +2,7 @@
 import { mdiMessageTextOutline } from '@mdi/js';
 import { usePlayerStore } from '~/stores/player';
 
-/**
- * The bottom-end column that every floating button lives in.
- *
- * Rendered once by the default layout. It owns the two things that used to be
- * decided separately by each button -- how far the column sits off the corner,
- * and how far it steps up when the player bar takes the bottom edge -- which is
- * why the feedback button and the search page's scroll-to-top button both
- * claimed the same corner and drew on top of each other.
- *
- * Page-level buttons mount into `#nd-fab-dock` and stack above the feedback
- * button. That order is deliberate: feedback is on every page, so keeping it at
- * the foot of the column means it does not hop around as contextual buttons
- * come and go beneath the reader's cursor.
- */
+/** One dock owns corner/player clearance. Page buttons teleport above feedback so its position stays stable. */
 
 const { t } = useI18n();
 const playerStore = usePlayerStore();

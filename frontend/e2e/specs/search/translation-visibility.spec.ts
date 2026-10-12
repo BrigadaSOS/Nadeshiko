@@ -1,20 +1,8 @@
 import { test, expect } from '../../fixtures';
 import { SearchPage } from '../../pages/SearchPage';
 
-/**
- * Driven from the Portuguese locale, and that is load-bearing rather than
- * incidental.
- *
- * This feature is per-language: half of it is that the EN and ES menus move
- * independently. Since `87619065` a reader is only offered the languages their
- * interface language defaults them to — English alone in `en`, Spanish alone in
- * `es` — so run signed out in `en` there is no ES control to open and no ES
- * badge to assert, and five of these tests were asserting a two-language page
- * that reader never sees.
- *
- * `pt-BR` is the locale that defaults to both (`defaultTranslationLanguages`), so
- * it is the one that exercises the whole feature without an account. Every
- * locator here is a test id, so the Portuguese interface changes nothing else.
+/** Portuguese defaults to EN and ES, exercising independent language controls while signed out.
+ * English and Spanish locales offer only their own default language; test-id locators keep UI copy irrelevant.
  */
 test.describe('Translation visibility', () => {
   let search: SearchPage;

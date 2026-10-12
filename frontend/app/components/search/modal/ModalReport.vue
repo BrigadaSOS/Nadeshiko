@@ -124,7 +124,6 @@ const submitReport = async () => {
     panel-class="w-full max-w-2xl mx-auto flex flex-col bg-background border border-hairline shadow-sm rounded-xl"
     @close="closeModal"
   >
-      <!-- Header -->
       <div class="nd-modal-header">
         <h3 id="nd-report-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('reports.modalTitle') }}
@@ -144,9 +143,7 @@ const submitReport = async () => {
         </button>
       </div>
 
-      <!-- Body -->
       <div class="p-4 overflow-y-auto max-h-[70vh] space-y-4">
-        <!-- Error -->
         <div
           v-if="errorMessage"
           class="p-3 text-sm text-red-400 bg-red-900/20 border border-red-700 rounded-lg"
@@ -154,7 +151,6 @@ const submitReport = async () => {
           {{ errorMessage }}
         </div>
 
-        <!-- Tabs -->
         <div class="flex gap-1 bg-neutral-800/60 p-1 rounded-lg">
           <button
             type="button"
@@ -174,9 +170,7 @@ const submitReport = async () => {
           </button>
         </div>
 
-        <!-- Segment metadata (read-only) -->
         <div v-if="segment" class="rounded-lg bg-control border border-hairline p-3 space-y-2 text-sm">
-          <!-- Media + cover -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.media') }}</span>
             <img
@@ -189,19 +183,16 @@ const submitReport = async () => {
             <span class="text-neutral-500">—</span>
             <span class="text-neutral-400">{{ t('modalSegmentEdit.metadata.episode') }} {{ segment.segment.episode }}</span>
           </div>
-          <!-- Time -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.time') }}</span>
             <span class="font-mono text-neutral-300">{{ formatMs(segment.segment.startTimeMs) }} → {{ formatMs(segment.segment.endTimeMs) }}</span>
             <span class="text-neutral-600">·</span>
             <span class="font-mono text-neutral-500 text-xs">{{ ((segment.segment.endTimeMs - segment.segment.startTimeMs) / 1000).toFixed(2) }}s</span>
           </div>
-          <!-- ID + position -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
             <span class="font-mono text-neutral-300">#{{ segment.segment.publicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
           </div>
-          <!-- Content rating -->
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.contentRating') }}</span>
             <span
@@ -211,12 +202,10 @@ const submitReport = async () => {
               {{ t(`segment.contentRating.${(segment.segment.contentRating || 'SAFE').toUpperCase()}`) }}
             </span>
           </div>
-          <!-- Japanese text -->
           <div v-if="segment.segment.textJa.content" class="flex gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem] mt-0.5">{{ t('modalSegmentEdit.japanese') }}</span>
             <span lang="ja" class="text-white text-sm leading-relaxed">{{ segment.segment.textJa.content }}</span>
           </div>
-          <!-- English text -->
           <div v-if="segment.segment.textEn.content" class="flex gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem] mt-0.5 flex-shrink-0">{{ t('modalSegmentEdit.english') }}</span>
             <span class="text-neutral-300 text-sm leading-relaxed">{{ segment.segment.textEn.content }}</span>
@@ -228,7 +217,6 @@ const submitReport = async () => {
               </span>
             </div>
           </div>
-          <!-- Spanish text -->
           <div v-if="segment.segment.textEs.content" class="flex gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem] mt-0.5 flex-shrink-0">{{ t('modalSegmentEdit.spanish') }}</span>
             <span class="text-neutral-300 text-sm leading-relaxed">{{ segment.segment.textEs.content }}</span>
@@ -242,7 +230,6 @@ const submitReport = async () => {
           </div>
         </div>
 
-        <!-- Media-only target (no segment) -->
         <div v-else-if="target" class="rounded-lg bg-control border border-hairline p-3 text-sm">
           <div class="flex items-center gap-2 text-neutral-300">
             <span class="text-neutral-500 min-w-[4.5rem]">{{ t('reports.targetLabel') }}</span>
@@ -253,7 +240,6 @@ const submitReport = async () => {
           </div>
         </div>
 
-        <!-- Reason -->
         <fieldset class="min-w-0">
           <legend class="block text-sm font-medium text-gray-300 mb-2">
             {{ t('reports.reason') }}
@@ -271,7 +257,6 @@ const submitReport = async () => {
           </div>
         </fieldset>
 
-        <!-- Description -->
         <div>
           <label for="report-description" class="block text-sm font-medium text-gray-300 mb-1">
             {{ t('reports.description') }}
@@ -288,7 +273,6 @@ const submitReport = async () => {
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t dark:border-modal-border">
         <button
           type="button"

@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref } from 'vue';
 
-/**
- * A shared collection's page.
- *
- * Three ways a collection can fail to load, and they must not be run together:
- * a REFUSAL (the collection is private, or not this reader's) redirects home; a
- * MISSING one 404s; and a fetch that simply fell over is a 500. Returning null
- * on any of them would render the collection as an empty page at HTTP 200 --
- * which crawlers index and readers read as "the site is broken".
- *
- * The refusal is the one worth being careful about: a redirect from setup is not
- * a throw, so the render carries on after it, and every guard below has to know
- * that a page on its way out is not a page that failed.
- */
+// Refusals redirect, missing collections 404, and fetch failures 500.
+// A setup redirect does not throw, so later guards must not report it as a failure.
 const reportError = vi.fn();
 vi.mock('~/utils/reportError', () => ({ reportError: (...a: unknown[]) => reportError(...a), reportEvent: vi.fn() }));
 vi.mock('@brigadasos/nadeshiko-sdk', () => ({
@@ -148,8 +137,6 @@ describe('a collection that is not there', () => {
   });
 
   test('and does not send the reader home', async () => {
-    // A missing collection and a refused one need different answers: one is a
-    // wrong address, the other is a permission the reader may be able to get.
     searchCollectionSegments.mockResolvedValue(fail(404));
 
     await render();
@@ -160,8 +147,6 @@ describe('a collection that is not there', () => {
 
 describe('a fetch that simply fell over', () => {
   test('is a 500, not a 404', async () => {
-    // Dressing our own failure up as "this collection does not exist" tells the
-    // reader their link is dead when it is not.
     searchCollectionSegments.mockRejectedValue(new Error('down'));
 
     await render();

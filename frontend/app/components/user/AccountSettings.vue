@@ -224,18 +224,7 @@ const mediaNameExample = computed(() => {
   return mediaNameExamples[lang] ?? mediaNameExamples.ENGLISH;
 });
 
-// Content rating preview segment.
-//
-// A hand-picked segment, so it can be retired from the catalogue without anyone
-// touching this file -- and it was: `skU_sjEmsvrE` started 404ing some time
-// before 2026-08-11 and took the preview card with it. Silently, because the
-// card is behind `v-if="previewSegment"`. What was NOT silent was the report
-// below, which fired on every settings visit and became the top unexplained
-// issue in error tracking (`NadeshikoError: Segment not found`).
-//
-// So a 404 here is an expected end-of-life for a curated id, not an incident:
-// it is left unreported and the card just does not render. Anything else (5xx,
-// network, a malformed body) is still a real failure and still reported.
+// Curated preview segments can be retired. Ignore 404s and omit the decorative card; report other failures.
 const PREVIEW_SEGMENT_UUID = 'skU_sjEmsvrE';
 const { data: previewData } = await useLazyAsyncData('content-rating-preview', () =>
   sdk
@@ -502,7 +491,6 @@ const logoutCurrentUser = async () => {
 </script>
 
 <template>
-  <!-- Card -->
   <div class="nd-settings-card">
     <div class="flex items-center justify-between gap-2">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.infoTitle') }}</h3>
@@ -568,7 +556,6 @@ const logoutCurrentUser = async () => {
     </div>
   </div>
 
-  <!-- Sessions Card -->
   <div data-testid="sessions-card" class="nd-settings-card">
     <div class="flex flex-wrap items-center gap-2 justify-between">
       <h3 class="nd-settings-title">{{ $t('accountSettings.account.sessions.title') }}</h3>
@@ -645,7 +632,6 @@ const logoutCurrentUser = async () => {
     </div>
   </div>
 
-  <!-- Preferences Card -->
   <div class="nd-settings-card">
     <h3 class="nd-settings-title">{{ $t('accountSettings.account.preferencesTitle') }}</h3>
     <div class="mt-4">
@@ -752,7 +738,6 @@ const logoutCurrentUser = async () => {
           <option value="HIDE">{{ $t('accountSettings.account.contentRatingHide') }}</option>
         </select>
       </div>
-      <!-- Content rating visual example -->
       <div v-if="previewSegment" class="mt-3 rounded-lg bg-white/5 overflow-hidden">
         <div v-if="questionableMode === 'HIDE'" class="flex items-center justify-center py-6 px-4 bg-neutral-800">
           <span class="text-gray-500 text-sm">{{ $t('accountSettings.account.contentRatingHiddenDesc') }}</span>
@@ -926,7 +911,6 @@ const logoutCurrentUser = async () => {
     </div>
   </div>
 
-  <!-- Card -->
   <div class="nd-settings-card">
     <h3 class="nd-settings-title">{{ $t('accountSettings.account.additionalTitle') }}</h3>
     <div class="mt-4 space-y-4">

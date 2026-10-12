@@ -11,18 +11,8 @@ export type FavoriteMediaItem = NonNullable<UserPreferences['favoriteMedia']>[nu
 export const MAX_FAVORITE_MEDIA = 100;
 
 /**
- * The titles a reader has starred, which sort to the top of the search media
- * filter.
- *
- * Reads straight from the user store's preferences, so it is correct during SSR
- * -- preferences are hydrated before the first render, which is why the filter
- * can be ordered server-side and never reshuffles under the cursor after
- * hydration. A signed-out reader has no favorites and gets today's plain
- * alphabetical list.
- *
- * An entry is `{ mediaPublicId, favoritedAt }`; entries stored before the lists
- * were slimmed also carry the title's names, which nothing reads. The predicate
- * below accepts both because it only ever asks for `mediaPublicId`.
+ * Read hydrated preferences directly so SSR and client filter order agree. Signed-out readers
+ * have no favorites. Accept id-only entries and legacy entries carrying unused names.
  */
 export function useFavoriteMedia() {
   const user = userStore();

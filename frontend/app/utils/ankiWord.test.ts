@@ -12,15 +12,7 @@ import {
 import type { EnrichedToken } from './tokenEnrichment';
 import { glossPreference, type GlossPreference, type ShirabeWord } from './wordCard';
 
-/**
- * What lands on the note.
- *
- * These assert strings rather than parsed DOM on purpose: the field IS a string
- * to Anki, and the failures worth catching here -- a gloss escaped twice, a
- * bracket that swallowed the okurigana, an overline over the wrong morae -- are
- * all visible in the string and all invisible in a DOM comparison that
- * normalises them away.
- */
+/** Assert field strings directly where DOM normalization could hide escaping or furigana errors. */
 
 const EN: GlossPreference = glossPreference('en', { en: 'show', es: 'show' });
 
@@ -87,9 +79,7 @@ describe('definitionHtml', () => {
         indent: 0,
       },
     ]);
-    // Asserted by structure rather than as one exact string: the inline styles
-    // that make this render in Anki are long, and pinning them byte-for-byte
-    // would make every colour tweak a test edit without catching anything.
+    // Assert markup structure without pinning every inline color/style byte.
     expect(html).toMatch(/^<ol class="nd-senses" style="[^"]+">/);
     expect(html).toContain('<li class="nd-sense"');
     expect(html).toContain('>Noun</span>');
@@ -97,14 +87,7 @@ describe('definitionHtml', () => {
     expect(html.endsWith('</li></ol>')).toBe(true);
   });
 
-  /**
-   * The declaration the bug report was about.
-   *
-   * Without `display:block` on each gloss row the languages run together --
-   * "ground crewESmecánico de mantenimiento" -- which is exactly how this
-   * shipped before the styles moved inline. Anki's editor applies none of the
-   * note type's Styling, so a class alone could never have fixed it there.
-   */
+  /** Gloss rows need inline display:block because Anki's editor does not apply note-type Styling. */
   it('puts every gloss on its own line, inline, so Anki renders it unaided', () => {
     const html = definitionHtml([
       {
@@ -129,7 +112,6 @@ describe('definitionHtml', () => {
     expect(glossOpeners).toHaveLength(2);
     for (const opener of glossOpeners) expect(opener).toContain('display:block');
 
-    // And the language badge is a box, not bare text against the gloss.
     expect(html).toMatch(/<span class="nd-gloss-lang" style="[^"]*border:[^"]*">EN<\/span>/);
   });
 

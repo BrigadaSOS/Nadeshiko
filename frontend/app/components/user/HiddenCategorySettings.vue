@@ -14,9 +14,7 @@ const categoryLabel = (category: Category): string => t(CATEGORY_LABEL_KEYS[cate
 const categoryDescription = (category: Category): string =>
   t(`accountSettings.account.hiddenCategoryDescriptions.${CATEGORY_SLUG_BY_API[category]}`);
 
-// Confirmed by name for the same reason as the title rows, and only once the
-// toggle reports the change stored -- a refused or rolled-back toggle leaves the
-// switch where it was and has already said why.
+// Confirm by name only after the toggle reports success; failures already report and roll back the switch.
 const onToggle = async (category: Category) => {
   const wasHidden = isCategoryHidden(category);
   const saved = await toggleCategory(category);

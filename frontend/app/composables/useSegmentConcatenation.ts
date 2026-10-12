@@ -72,14 +72,8 @@ export function useSegmentConcatenation() {
   });
 
   /**
-   * True while an expansion is in flight. Callers bind their expand controls to
-   * it; a second expansion started mid-flight would revert the first one while
-   * its audio was still being built, stranding the WAV blob URL.
-   *
-   * Binding it is not optional. While this went unbound, the guard below dropped
-   * every click landing during the (multi-second) audio build with no feedback at
-   * all -- the reader clicked "expand both" right after "expand right" and
-   * nothing whatsoever happened.
+   * Bind controls to isConcatenating: overlapping expansions can strand an in-progress audio
+   * blob, and silently ignored clicks look broken.
    */
   const isConcatenating = ref(false);
 
@@ -149,12 +143,8 @@ export function useSegmentConcatenation() {
   });
 
   /**
-   * Build and attach the expansion's audio.
-   *
-   * Deliberately separate from the text swap and awaited after it: the text is
-   * the part that can be produced synchronously, and holding it back until three
-   * audio objects have been fetched and decoded would make every expansion feel
-   * broken for the second or two that takes.
+   * Swap text before awaiting audio so fetching and decoding clips does not delay visible
+   * expansion.
    */
   const attachExpandedAudio = async (
     result: SearchResult,
@@ -182,16 +172,8 @@ export function useSegmentConcatenation() {
       // awaiting would leave the reader's expand controls disabled long after the
       // failure they can already see.
       void reportConcatenationFailure(audioErr, direction, result);
-      // Said out loud rather than left to be discovered: the text on screen has
-      // grown, but the Anki export is about to fall back to the original clip,
-      // and silently shipping a card with the wrong audio on it is worse than
-      // the expansion having failed outright.
-      //
-      // A YouTube segment gets the shorter of the two messages: its playback is
-      // streamed from a clip window rather than assembled from these objects,
-      // so it expanded regardless and only the export is affected. Saying
-      // otherwise would send the reader looking for a playback fault that is
-      // not there.
+      // Warn that export audio remains unexpanded. YouTube playback uses the expanded clip
+      // window independently, so its message must describe only the export failure.
       const streamed = result.media.category === 'YOUTUBE' && !!result.segment.externalVideoId;
       useToastError(t(streamed ? 'segment.expandAudioFailedStreamed' : 'segment.expandAudioFailed'));
       return { outcome: 'failed', cacheBypassed: false };

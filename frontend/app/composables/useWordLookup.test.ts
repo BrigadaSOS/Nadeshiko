@@ -1,19 +1,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
 /**
- * The card's lookup: the cache read, the request, and the staleness guard.
- *
- * Every case here is one the component could only reach by being mounted, and
- * two of them are bugs the comments in the original describe as having survived
- * a long time precisely because they are silent:
- *
- * - A CACHED ANSWER PAINTS SYNCHRONOUSLY. If it went through the request path
- *   the card would flash "Looking up…" for a frame on every word the reader has
- *   already seen.
- * - STALENESS IS JUDGED ON THE WORD, NOT THE TOKEN OBJECT. The token list is a
- *   computed and rebuilds its objects on any re-render, so an identity check
- *   threw away answers for exactly the word on screen -- and left the card
- *   reading "Looking up…" over a request that had returned 200.
+ * Cache hits paint synchronously. Judge staleness by the word, not token-object identity,
+ * because computed tokens are rebuilt on render.
  */
 const peekWord = vi.fn();
 const fetchWord = vi.fn();

@@ -65,16 +65,8 @@ const getWordMatch = async () => {
     totalWordsSearched.value = words.value.length;
   } catch (error) {
     handleApiError('search:batch-words-failed', error, { toastKey: 'modalBatch.searchError' });
-    // BACK TO THE INPUT, because there is no result to show.
-    //
-    // `showResults` is set before the request and the totals only after it
-    // succeeds, so staying here rendered a results panel built from state the
-    // failed search never touched. That was wrong twice over: the percentage
-    // divided zero by zero and printed `NaN%`, and -- worse, because it reads as
-    // an answer rather than as a fault -- the table kept the PREVIOUS search's
-    // rows under the new word count, telling a reader who had just checked one
-    // word that 4 of 1 matched. The toast above is what says what happened; the
-    // reader's pasted words are still in the box to retry.
+    // Return to the input on failure: result totals are unset or stale, which would show NaN or previous rows.
+    // Keep the pasted words available for retry.
     showResults.value = false;
   } finally {
     isLoading.value = false;

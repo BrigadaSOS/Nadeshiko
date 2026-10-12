@@ -1,15 +1,8 @@
 import { getRequestHeader } from 'h3';
 
 /**
- * What the server managed to settle about the visitor's identity, so the client
- * knows whether asking again would tell it anything new.
- *
- * - `none` — the request carried no session cookie, so nothing was asked and the
- *   answer is not in doubt.
- * - `resolved` — the backend answered. Signed in or signed out, it is settled.
- * - `failed` — the backend could not be reached. Absent entirely (`undefined`)
- *   means there was no server pass at all. Only those two are worth a client-side
- *   round trip.
+ * SSR identity outcome: `none` means no cookie; `resolved` means the backend answered. Only `failed` or an
+ * absent server marker warrants another client fetch.
  */
 export type SsrIdentityCheck = 'none' | 'resolved' | 'failed';
 
@@ -40,10 +33,7 @@ export default defineNuxtPlugin({
           // anyway is a round trip on the critical path of most renders the site
           // serves -- every crawler, every share link, every cold first visit.
           if (!hasSessionCookie(event)) {
-            // Counted, because this branch and a cache hit were previously
-            // indistinguishable from outside: both are fast and neither logged,
-            // so every "signed-in render" figure taken off wall-clock latency was
-            // really a figure about cache misses. This is the denominator.
+            // Count anonymous renders separately from authenticated cache hits for the SSR denominator.
             recordAnonymousRender();
             ssrCheck.value = 'none';
             return;
@@ -59,75 +49,41 @@ export default defineNuxtPlugin({
           // render would otherwise share (they all come from this host's IP).
           const headers = buildInternalBackendHeaders(config, { cookie: cookieHeader || '' }, event);
 
-          // `$fetch` rather than the SDK, for two reasons that both still hold:
-          // `/v1/auth/*` is mounted by better-auth and is not in the OpenAPI spec,
-          // so the SDK has no method for it; and this call acts as the *reader*,
-          // forwarding their cookie, while the SDK authenticates as the service.
+          // Use fetch with the reader's cookie: better-auth routes are outside the SDK spec, and service
+          // authentication would ask about the wrong identity.
 
           const { logger } = await import('~~/server/utils/logger');
           const { applyRenewedSessionCookies, renewedSessionCookies } = await import(
             '~~/server/utils/sessionCookieRenewal'
           );
 
-          // ONE backend call, not two in a row. `get-session` now carries the
-          // reader's preferences on `user.preferences` (backend/config/auth.ts,
-          // `enrichSessionUser`), so the `GET /v1/user/preferences` that used to
-          // follow it is gone.
-          //
-          // Sequential was the cost, not the count: nothing in this plugin's
-          // caller starts until it returns, so the two calls were ~94ms p50
-          // (production, 2026-08-23) of dead time in front of every signed-in
-          // render's `useAsyncData`. They could not be parallelised either --
-          // the preferences call was skipped entirely when the session came back
-          // signed out, which is the majority of the requests that get this far.
-          // The backend spends nothing extra for it: the row was already being
-          // read for `role`.
-          //
-          // Staleness is unchanged, which is the part worth checking before
-          // touching this. Preferences have shared this cache entry and its
-          // `nd-prefs-version` invalidation since they were fetched separately;
-          // they were never fresher than the session, they were merely fetched
-          // twice.
+          // Fetch session and embedded preferences together. Both share the SSR auth cache and
+          // `nd-prefs-version` invalidation; a separate preferences request adds latency without improving
+          // freshness.
           const identity = await ssrAuthFetch(event, async () => {
             let reachedBackend = true;
 
-            // `.raw` rather than a plain `$fetch`, for the response HEADERS and
-            // nothing else: this call is what makes the backend slide the
-            // session, and the renewed `Set-Cookie` it answers with has to be
-            // passed on to the browser or the reader is signed out 30 days
-            // after sign-in no matter how much they read. See
-            // `server/utils/sessionCookieRenewal.ts`.
+            // Use `.raw` to forward renewed Set-Cookie headers; otherwise backend sliding renewal never
+            // reaches the browser.
             const sessionResponse = await $fetch
               .raw<{ user?: any; session?: any }>(sessionUrl, {
                 method: 'GET',
                 headers,
-                // ofetch retries GETs on 429 and 5xx by default, and both are
-                // wrong for a call blocking a render. Retrying a 429 attacks our
-                // own rate limiter: on 2026-08-09 that turned one throttled call
-                // into three and held a Nitro worker while it waited. The
-                // signed-out fallback below is cheaper than any retry.
+                // Do not retry a render-blocking request on 429/5xx; use the signed-out fallback instead of
+                // amplifying throttling.
                 retry: false,
               })
               .catch((error: unknown) => {
-                // Rendering signed-out is the right fallback -- the page still works
-                // for a reader whose session we could not confirm. But an unreachable
-                // backend looks identical to a signed-out visitor from here, so it is
-                // logged: otherwise an auth outage shows up only as "everyone got
-                // logged out", with nothing in the logs to say why. `reachedBackend`
-                // carries that same distinction to the client, which retries on it.
+                // Render signed-out on backend failure, but log and mark it as unresolved so the client can
+                // retry rather than treating it as confirmed logout.
                 logger.warn({ err: error }, 'SSR session lookup failed; rendering as signed out');
                 reachedBackend = false;
                 return null;
               });
 
             const session = sessionResponse?._data ?? null;
-            // Cached alongside the session rather than applied here: this
-            // callback runs inside `ssrAuthFetch`, so it is skipped entirely on
-            // a cache hit, and applying the header from in here would renew the
-            // cookie only for whichever render happened to miss. Re-emitting the
-            // same header for the other renders in that window is harmless --
-            // same token, and `Max-Age` is relative, so each one is a full 30
-            // days from when it is sent.
+            // Cache renewal headers beside the session, then emit them outside this callback so cache-hit
+            // renders renew cookies too.
             const renewedCookies = renewedSessionCookies(sessionResponse?.headers);
 
             return { session: session?.user ? session : null, reachedBackend, renewedCookies };
@@ -161,24 +117,12 @@ export default defineNuxtPlugin({
       // case that comparison cannot see -- the same reader signing back in.
       const identify = () => reconcileAnalyticsIdentity({ viaCallback: false });
 
-      // A signed-in reader arrives already populated: Pinia restores its state
-      // from the payload in its own plugin, which runs before this one. What is
-      // new is that a signed-OUT reader is now trusted too, instead of spending a
-      // round trip re-deriving what the render already knew.
-      //
-      // Caveat worth knowing before HTML is shared-cached: `none` and `resolved`
-      // are only as fresh as the HTML carrying them. A page replayed from the
-      // browser cache after the reader signed in elsewhere would keep rendering
-      // signed-out chrome, with nothing here to correct it. Today that window is
-      // small -- responses carry no validator, so little reuses them for long --
-      // but at the point pages are cached on purpose, this needs a session marker
-      // the client can actually read. The session cookie itself is httpOnly.
+      // Trust settled SSR identity restored by Pinia. This is only as fresh as its HTML: deliberately caching
+      // pages would require a client-readable session marker, since the session cookie is httpOnly.
       const settledOnServer = ssrCheck.value === 'none' || ssrCheck.value === 'resolved';
 
       if (!store.isLoggedIn && !settledOnServer) {
-        // Deliberately not awaited: nothing in first paint depends on the answer,
-        // and this branch is reached precisely when the backend has just failed to
-        // answer the server -- the worst moment to hold hydration open for it.
+        // Do not block hydration on a retry after the backend just failed during SSR.
         store.getBasicInfo().then(identify);
       } else {
         identify();

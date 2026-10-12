@@ -1,39 +1,11 @@
 /**
- * Describes the SHAPE of an AnkiConnect server address, without carrying the
- * address itself.
- *
- * `stores/anki.ts` files `anki_connect_request_failed` when a request does not
- * land, and until now that event said only which action was attempted and which
- * of the failure reasons applied. It could not say the one thing that separates
- * a reader we can help from one we cannot: whether they were pointing at their
- * own machine or across a network. So the Android numbers -- 1 reader exporting
- * successfully against 11 failing in the days to 2026-08-29, where Windows was
- * 41 against 9 -- had no explanation available, only guesses, and a guess about
- * that got as far as being written into `nuxt.config.ts` before it was checked
- * and turned out to be wrong.
- *
- * THE ADDRESS ITSELF IS NEVER SENT, and this exists so that stays true while the
- * question still gets answered. `activeProfile.serverAddress` is typed by the
- * reader and can hold a private hostname or a LAN layout, which is the kind of
- * thing commit 989b7c28a took out of the analytics on purpose. A fixed set of
- * shapes carries what a fix would turn on and nothing that describes a person.
- *
- * Pure and total: any string is classifiable, including the empty one.
+ * Classify AnkiConnect address shape for failure analytics without returning or sending the reader's private
+ * hostname or LAN address. Any string, including empty input, has a result.
  */
 
 /**
- * - `loopback_v4` -- `127.0.0.0/8`. The default, and what a working desktop
- *   setup almost always looks like.
- * - `localhost` -- the name rather than the number. Equivalent in practice, but
- *   worth separating: it is a different CSP origin and resolves through the
- *   host's own rules, so it can fail where the literal does not.
- * - `loopback_v6` -- `[::1]`. Correct, increasingly common on v6-first machines,
- *   and refused by our policy until 2026-08-29.
- * - `remote` -- anything else that parses. Anki on another machine or phone.
- *   `connect-src` cannot express these, so they are refused before the network,
- *   and they are the population this whole distinction exists to size.
- * - `unparseable` -- not a URL. A reader who typed a bare host or a typo, which
- *   fails for a reason no server-side change will fix.
+ * Keep IPv4 loopback, localhost names and IPv6 loopback separate because origin/CSP behavior differs. Other
+ * valid URLs are remote; invalid URLs are unparseable.
  */
 export const ANKI_ADDRESS_KINDS = ['loopback_v4', 'localhost', 'loopback_v6', 'remote', 'unparseable'] as const;
 

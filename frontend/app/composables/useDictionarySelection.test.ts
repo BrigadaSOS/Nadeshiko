@@ -4,17 +4,8 @@ import { useDictionarySelection } from './useDictionarySelection';
 import type { CardSense } from '~/utils/wordCard';
 
 /**
- * Which dictionaries a mine carries.
- *
- * The decision worth pinning is `pickedForExport`: an empty pick and a FULL pick
- * mean the same thing -- export everything -- because the reader is building a
- * shortlist by leaving things out, not by adding things in. Get that backwards
- * and "Select all" silently becomes a filter that trims nothing, or worse, an
- * empty card exports an empty definition.
- *
- * The other is deduplication by KEY rather than by name. Two of a reader's own
- * uploads can share a title, and fusing them into one toggle would hand somebody
- * who ticked one the senses of both.
+ * Empty and full picks export everything. Deduplicate by key so uploads sharing a title remain
+ * independently selectable.
  */
 function sense(dictionary: string, dictionarySlug = ''): CardSense {
   return { dictionary, dictionarySlug } as CardSense;

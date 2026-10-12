@@ -3,22 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The sign-in modal, and specifically its EMAIL path.
- *
- * Two distinctions here are the whole reason this is not a pair of booleans.
- *
- * A rate-limited send is not a failure to apologise for: the reader has had
- * their five this hour and the server said when they may ask again, so the modal
- * stays on the sent view -- a link they already have still works, and the code
- * field has to remain usable. Dropping them back to the email form would take
- * away the only control that can still get them in.
- *
- * And a code typed into a browser that never asked for it is not a mistyped
- * code. One is worth another go; the other never will be, and the way out is the
- * link in the same email. Collapsing them into "invalid code" sends a reader to
- * retype something that cannot work.
- */
+/** Rate-limited sends keep the code field usable. Wrong-browser codes require the email link, not a retry. */
 const sendMagicLink = vi.fn();
 const signInWithCode = vi.fn();
 const closeLoginModal = vi.fn();

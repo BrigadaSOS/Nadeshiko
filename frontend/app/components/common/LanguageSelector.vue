@@ -16,10 +16,7 @@ const props = withDefaults(
 );
 
 const { locale, locales, setLocale } = useI18n();
-// NOT `useSwitchLocalePath()`: on a search page the module builds these hrefs one
-// percent-encoding layer deeper than the URL that was requested, which is how a
-// single search URL bred an unbounded family of ever-longer ones. See
-// `useLocaleSwitchPath`.
+// The i18n module's switch helper adds an encoding layer to search URLs; use the local helper.
 const switchLocalePath = useLocaleSwitchPath();
 const { setPreferredLocale } = useLocalePreference();
 

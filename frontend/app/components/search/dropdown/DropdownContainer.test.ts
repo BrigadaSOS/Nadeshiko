@@ -3,21 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, nextTick, reactive } from 'vue';
 
-/**
- * The dropdown every result card carries four of.
- *
- * Almost every rule in here was written to fix something that had already
- * shipped, and each one fails silently: the menu still opens, still closes, and
- * still looks right, so a regression reaches readers rather than CI. The e2e
- * suite covers the happy path at seconds per case; these cover the edges at
- * milliseconds, including the two that e2e cannot reach at all -- an item that
- * re-renders its own menu, and scrolling INSIDE a menu that closes on scroll.
- *
- * Everything here mounts through a single parent when more than one dropdown is
- * involved. `useId` counts per app instance, so two separate `mount()` calls
- * hand both containers the SAME id, they resolve to one dropdown, and every
- * "only one open at a time" assertion passes without ever having been tested.
- */
+/** Mount multiple dropdowns in one app: useId is per-app, so separate mounts would duplicate ids. */
 import { useDropdownState } from '~/composables/useDropdownState';
 
 const routeState = reactive({ fullPath: '/search' });

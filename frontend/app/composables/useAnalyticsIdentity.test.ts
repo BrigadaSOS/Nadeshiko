@@ -2,27 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * Telling PostHog who a reader is, and reporting the signup or login when this
- * page load is where that changed.
- *
- * `utils/authAnalytics` covers the pure decisions -- what counts as a signup, how
- * a lost session is aged. This covers the ORCHESTRATION, which is where the
- * expensive mistakes have been:
- *
- * IT RUNS ON EVERY LOAD, not only on a callback. The previous implementation
- * asked better-auth's OAuth redirect for `code`/`state` parameters it does not
- * send, so in 90 days it recorded 70 magic-link logins and not one Google or
- * Discord login, out of 264 Google attempts.
- *
- * A SIGNED-OUT READER IS NOT NOTHING TO REPORT. Someone whose session ended
- * without them asking arrives looking exactly like a first-time visitor, and
- * until `session_lost` existed that is what they were counted as -- which is how
- * sessions could stop being renewed for everyone, for a month, with nothing
- * anywhere to say so.
- *
- * AN IMPERSONATING ADMIN IS NOT THE PERSON THEY ARE LOOKING AT. Identifying them
- * would write the admin's browsing onto that reader's person and report a login
- * they never performed.
+ * Cover per-load identity reconciliation beyond the pure authAnalytics rules: report lost
+ * sessions and exclude impersonated identities.
  */
 const posthog = {
   identify: vi.fn(),

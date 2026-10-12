@@ -27,9 +27,7 @@ export class SettingsPage {
   }
 
   async expectLoaded() {
-    // SSR makes the controls visible before Vue has attached their handlers.
-    // Waiting for the app-owned marker prevents a successful-looking click on
-    // inert server markup in fresh browser contexts.
+    // Visible SSR controls are inert until Vue attaches handlers; wait for the app-owned marker.
     await expect(this.page.locator('html[data-hydrated="true"]')).toBeAttached({ timeout: 30_000 });
     await expect(this.username).toBeVisible({ timeout: 10_000 });
     await expect(this.email).toBeVisible({ timeout: 10_000 });

@@ -1,22 +1,9 @@
 import type { ComputedRef } from 'vue';
 
 /**
- * Only one floating surface is open at a time: a dropdown, the search recents
- * list, or a word card. The shared state is the id of the open dropdown (or
- * recents), plus a generation that word cards watch so a newly opened menu can
- * dismiss them.
- *
- * Word cards are not ids in `openDropdownId` because one of them hosts a
- * dropdown of its own (the Anki menu on a mined word). That nested menu has to
- * open without collapsing the card it lives in, so the card stays local state
- * and menus opt out of dismissing it via `preserveTokenTooltip`.
- *
- * Modals call `dismissAllOverlays` on open so a leftover menu or word card
- * cannot sit above the dialog. `BaseModal` also lets Escape dismiss a word
- * card or dropdown inside the dialog before closing the dialog itself.
- *
- * `DropdownContainer` owns dropdown registration; consumers reach the
- * surrounding dropdown through `injectDropdown()`.
+ * Share dropdown/recents identity and a word-card dismissal generation. Nested Anki menus use
+ * preserveTokenTooltip to keep their card open. Modals dismiss overlays; Escape closes nested
+ * overlays before the dialog. DropdownContainer owns registration, exposed by injectDropdown().
  */
 export function useDropdownState() {
   const openDropdownId = useState<string | null>('nd-open-dropdown', () => null);

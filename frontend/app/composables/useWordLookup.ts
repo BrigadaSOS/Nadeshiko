@@ -18,13 +18,8 @@ export interface LookupRef {
 export type WordState = 'idle' | 'loading' | 'name' | 'missing' | 'unavailable';
 
 /**
- * The card's lookup: which words a token could be, which one is showing, and
- * how the answer got here.
- *
- * Holds the cache read, the request, and the staleness guard that decides
- * whether a late answer is still wanted. `onApplied` fires whenever an answer is
- * painted, which is where the caller re-asks anything that depends on the word
- * (the Anki probe).
+ * Own cache reads, requests, and stale-answer guards. onApplied rechecks word-dependent state,
+ * including the Anki probe.
  */
 export function useWordLookup(glossLabels: () => string, onApplied: () => void) {
   /**
@@ -85,15 +80,8 @@ export function useWordLookup(glossLabels: () => string, onApplied: () => void) 
   }
 
   /**
-   * Ask for a word, from the cache if the page already has it.
-   *
-   * Returns the answer and whether it came from the cache, so the caller can
-   * report the outcome; returns null when a late answer was discarded, which is
-   * not an outcome anybody should record.
-   *
-   * The cached path is SYNCHRONOUS and paints with no intermediate 'loading', so
-   * a word the reader has seen before (or that hovering prefetched a moment ago)
-   * opens filled in rather than flashing "Looking up…" for a frame first.
+   * Paint cache hits synchronously without a loading flash. Return answer and cache provenance,
+   * or null for discarded stale answers that must not be reported.
    */
   async function lookUp(ref: LookupRef): Promise<{ answer: WordLookup; fromCache: boolean } | null> {
     const locale = glossLabels();

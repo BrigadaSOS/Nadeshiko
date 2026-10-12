@@ -12,14 +12,8 @@ const LEGACY_LOCAL_STORAGE_KEY = 'nadeshiko.hiddenMedia';
 let legacyStorageCleared = false;
 
 /**
- * A stored entry is `{ mediaPublicId }`. It used to carry `nameEn`, `nameJa` and
- * `nameRomaji` too, and still does on a row an old container wrote back during a
- * deploy -- harmless, since only the id is ever asked for. Bare strings are read
- * as well: `hiddenMedia` is meant to become one once no old client is left, and
- * a reader that already accepts it is what makes that a backend-only change.
- *
- * Emptying this list is the one outcome worth defending against: it would hand
- * the reader back every search result they deliberately hid.
+ * Accept bare ids, id-only objects, and legacy objects carrying names. Dropping stored
+ * exclusions would restore results the reader deliberately hid.
  */
 function toMediaPublicId(entry: unknown): string | null {
   if (typeof entry === 'string') return entry || null;
@@ -49,19 +43,9 @@ export function useHiddenMedia() {
   const isMediaHidden = (mediaPublicId: string): boolean => hiddenMediaIds.value.includes(mediaPublicId);
 
   /**
-   * Returns whether the change reached the server, for callers that confirm it.
-   * The failure path rolls back and reports itself, so without this a caller
-   * cannot tell a saved change from one that was undone under it.
-   *
-   * Takes the whole media row because the callers have one in hand; the names on
-   * it are no longer stored, and the settings table resolves them from
-   * `/v1/user/excluded-media` instead.
-   *
-   * No `hiddenAt` either. This composable used to stamp one, but no write path
-   * ever sent it: the endpoint below does not take it, and nothing PATCHes this
-   * list. It survived a page load in exactly nobody's row, so the settings list
-   * that "ordered by it" was really ordering every hidden title at epoch. Its
-   * removal loses no stored data.
+   * Return whether the server saved the toggle; failure rolls back and reports itself. Callers
+   * may pass names, but only the id is stored; settings resolve names via
+   * /v1/user/excluded-media.
    */
   const toggleHideMedia = async (media: {
     publicId: string;

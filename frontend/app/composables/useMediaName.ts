@@ -33,12 +33,8 @@ export function useMediaName() {
   });
 
   /**
-   * Every branch falls through all three names rather than stopping at the
-   * preferred one. Not every media row carries a romaji or English title, and the
-   * preference is about which name a reader would rather see -- not a claim that
-   * it exists. Returning `''` because the preferred field is empty renders a
-   * nameless card, and shipping that `''` to the activity API stored an empty
-   * name that later failed response validation for the whole timeline.
+   * Fall back through all three names: a missing preferred title must not render a nameless
+   * card or store invalid activity metadata.
    */
   const mediaName = (media: HasMediaNames): string => {
     switch (language.value) {

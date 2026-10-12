@@ -1,19 +1,8 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 
 /**
- * The auth store, which decides two things nothing else can recover from.
- *
- * ONE: what "signed in" means. `applySession` is the single mapping both entry
- * points share -- the SSR plugin reading the cookie and the client re-reading
- * after a login -- and it exists as one function precisely because it used to be
- * spelled out twice, so a field added to the session was picked up on one path
- * and not the other and the server-rendered page disagreed with the hydrated app
- * about who was signed in.
- *
- * TWO: when a reader is signed OUT. Only a 401 may do that. A backend 5xx, a
- * network blip or a rate limit that logs somebody out looks to them like being
- * randomly kicked, and the same mistake in the Anki store produced 49 error
- * reports in one sitting from a single reader.
+ * SSR and client share applySession mapping. Only a 401 resets auth; transport failures, 5xx,
+ * and rate limits retain valid sessions.
  */
 const sdk = {
   getSession: vi.fn(),
@@ -51,14 +40,8 @@ import { userStore } from './auth';
 import { MAGIC_LINK_HOLD_BACKS } from '~/utils/magicLinkHoldBack';
 
 /**
- * A better-auth session as the backend returns it, enriched by `customSession`.
- *
- * The ids are NUMBERS here while `SessionUser` declares them as strings, and
- * that is the point rather than an oversight: better-auth's generated schema has
- * already proved not to describe this deployment exactly (see
- * `SCHEMA_CORRECTIONS` in `generateAuthSpec.ts`), and `applySession` stringifies
- * both defensively. The cast is what lets the test exercise that, and dropping
- * it would leave the defence untested.
+ * Use numeric runtime ids despite generated string types to exercise applySession's defensive
+ * stringification.
  */
 type SessionResponse = Parameters<ReturnType<typeof userStore>['applySession']>[0];
 

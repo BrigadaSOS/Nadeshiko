@@ -3,24 +3,11 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, ref } from 'vue';
 
-/**
- * The corpus statistics page.
- *
- * Its numbers are all shares of a total, and the total is a figure from the
- * database that can legitimately be zero on a fresh or half-loaded corpus. Every
- * one of these divisions therefore has a guard, and every missing guard renders
- * as `NaN%` or an `Infinity%`-wide bar -- printed confidently, on a page whose
- * entire job is to state facts about the corpus.
- *
- * The rounding is load-bearing too: official, machine and untranslated are drawn
- * as three segments of one bar, so they have to add to exactly 100% at the
- * precision they are rendered with, or the bar shows a seam.
- */
+// Empty corpus totals must render zero shares, not NaN/Infinity. Rounded translation
+// segments must still total 100% to avoid seams.
 const getStatsOverview = vi.fn();
 
-// The stub carries EVERY param, not just `count`: the percentages reach the
-// page through `percent`, and a stub that drops it makes every assertion about
-// a rendered share pass without the share being there.
+// Preserve every translation param, including percent, so share assertions read rendered values.
 const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k}(${Object.values(p).join(',')})` : k);
 vi.stubGlobal('useI18n', () => ({ t: tr, locale: ref('en') }));
 vi.stubGlobal('useFormat', () => ({
@@ -46,9 +33,7 @@ vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown
 
 import StatsPage from './index.vue';
 
-/** The overview payload, with the field names the template actually reads --
- *  getting these wrong renders the whole section as `undefined` and the
- *  arithmetic under test never runs at all. */
+// Use the API field names the template reads so the arithmetic runs on actual values.
 const overview = (over: Record<string, unknown> = {}) => ({
   totalFrequencyWords: 100000,
   totalSegments: 1234,
@@ -85,7 +70,6 @@ async function render(data: Record<string, unknown> | null = overview()) {
   return wrapper;
 }
 
-/** Every percentage width the page drew, as numbers. */
 function barWidths(wrapper: ReturnType<typeof mount>) {
   return [...wrapper.html().matchAll(/width:\s*([\d.eE+-]+|NaN|Infinity)%/g)].map((m) => Number(m[1]));
 }
@@ -112,10 +96,7 @@ describe('the translation shares', () => {
   });
 
   test('a corpus with NO translations draws empty bars rather than dividing by zero', async () => {
-    // A legitimate state on a fresh or half-loaded corpus, and the one that
-    // divides by zero. Asserted as bars AT ZERO rather than as "no NaN in the
-    // HTML": Vue drops a style property whose value is invalid, so an unguarded
-    // `NaN%` disappears from the markup entirely and leaves nothing to see.
+    // Assert zero-width bars: Vue drops invalid NaN styles, so absence of "NaN" proves nothing.
     const wrapper = await render(
       overview({ translations: { total: 0, enHuman: 0, enMachine: 0, esHuman: 0, esMachine: 0 } }),
     );
@@ -155,10 +136,7 @@ describe('the translation shares', () => {
 
 describe('the coverage tiers', () => {
   test('the headline figure is the largest tier’s covered count', async () => {
-    // The tiers NEST, so the biggest already includes every smaller one --
-    // summing them counts the first thousand words twice. Asserted on a figure
-    // that only the sum could produce, because the tier rows below print the
-    // per-tier counts too and any of those would satisfy a bare "contains".
+    // Tiers nest: summing double-counts. Assert the headline separately because tier rows also render counts.
     const wrapper = await render(
       overview({
         tiers: [

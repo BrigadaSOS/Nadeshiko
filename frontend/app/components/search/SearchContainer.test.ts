@@ -3,17 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 
-/**
- * The search results page: the payload the sidebar and the cards are both built
- * from.
- *
- * What is pinned here is the COMPOSITION -- how the reader's hidden titles and
- * hidden categories are subtracted from the stats before anything renders. The
- * arithmetic itself lives in `~/utils/hiddenResults` and `~/utils/categories`
- * and is unit tested there; what cannot be tested there is the assembly, which
- * is where the two exceptions live: `revealHidden` lifts everything at once, and
- * the category the reader is CURRENTLY looking at survives being hidden, because
- * a selected tab that renders nowhere is worse than a tab they chose to open.
+/** Hidden-title/category filtering must affect cards and sidebar stats consistently. revealHidden lifts both;
+ * an explicitly selected category survives the hidden list.
  */
 vi.mock('~/stores/player', () => ({ usePlayerStore: () => ({ hidePlayer: vi.fn() }) }));
 vi.mock('~/utils/apiError', () => ({ handleApiError: vi.fn(), apiErrorStatus: () => null }));

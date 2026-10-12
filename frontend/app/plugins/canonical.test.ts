@@ -2,19 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * The canonical link, `og:url`, and the hreflang set.
- *
- * All three used to be built separately and disagreed: the canonical
- * deliberately keeps `media` and `episode` on a faceted search while `og:url`
- * was never set at all and fell back to a path-only default -- one head making
- * two contradictory claims about the same page.
- *
- * The rest of this exists because of one loop. `route.path` is a percent-
- * encoding layer deeper than the URL that was requested, so emitting it as a
- * link advertises a NEW url on every render -- and the hreflang set from
- * `useLocaleHead()` did the same thing four times over, three of them under
- * locales nobody asked for. Every href here is built from `canonicalPath` and
- * never from `route.path`, which is the whole point of the plugin.
+ * Cover agreement between canonical, og:url and hreflang, with stable search encoding rather than
+ * router-induced escaping layers.
  */
 const route = reactive({
   path: '/en/search/kanji',
@@ -31,9 +20,7 @@ vi.stubGlobal('useHead', (input: { link: () => unknown[]; meta: () => unknown[] 
   head.meta = input.meta;
 });
 
-// Imported on first use rather than at the top: a static import is hoisted
-// above the `stubGlobal` calls, and the module calls `defineNuxtPlugin` as it
-// loads.
+// Import after installing globals because the module invokes defineNuxtPlugin while loading.
 let canonicalPlugin: (() => void) | null = null;
 
 type Link = { rel: string; href: string; hreflang?: string; id?: string };
@@ -69,11 +56,7 @@ describe('the canonical URL', () => {
   });
 
   test('is encoded ONCE, not once per render', async () => {
-    // `route.path` is a percent-encoding layer deeper than the URL that was
-    // requested, so emitting it re-encodes the escapes themselves --
-    // `%E3%81%A0` becomes `%25E3%2581%25A0`, a search for the literal eleven
-    // characters, which renders an empty page at HTTP 200. Every render
-    // advertised a new, longer URL than the last.
+    // Use the router's extra-escaped path with the raw query param to reproduce canonical encoding drift.
     at('/en/search/%25E3%2581%25A0', {}, { query: 'だ' });
 
     const { canonical } = await render();

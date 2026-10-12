@@ -2,22 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * The collections list behind the "add to collection" picker on a result card.
- *
- * The whole reason it is a composable rather than component state: it lived
- * inside the card, so its "already loaded" guard was per instance -- a page of
- * thirty results fetched the same list thirty times over, once per dropdown
- * opened, and a failure toasted once per card. The list belongs to the reader.
- *
- * Two further decisions are worth pinning, and both are about what the picker
- * shows when something went wrong:
- *
- * - A FAILED LOAD LEAVES `loaded` FALSE. An empty list that claims to be loaded
- *   reads to the reader as "you have no collections yet", which is a different
- *   and much worse message than "that did not load".
- * - THE REMEMBERED COLLECTION IS VERIFIED. It comes from `localStorage` and can
- *   name one the reader has since deleted; quick-adding into it would fail on
- *   every card.
+ * Share loads across cards, keep failed loads retryable, and verify remembered collection ids
+ * before quick-add.
  */
 const sdk = { listCollections: vi.fn() };
 const user = reactive({ isLoggedIn: true });

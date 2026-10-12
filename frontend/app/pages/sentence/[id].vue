@@ -15,19 +15,9 @@ const { mediaName } = useMediaName();
 
 const id = computed(() => String(route.params.id));
 
-/**
- * The segment itself, shared across visitors while rendering on the server.
- *
- * This page is the most expensive one the site serves and its data is identical
- * for everyone, so server-side renders go through a short cache that also
- * collapses simultaneous renders of the same permalink into one backend call --
- * the shape that took production down on 2026-08-09. The client keeps calling
- * the SDK directly: a browser has its own HTTP cache, and this store is
- * per-server-process.
- *
- * Dynamically imported so the server-only util never reaches the client bundle,
- * the same way `plugins/identity-auth.ts` reaches for its server helpers.
- */
+// Shared SSR cache collapses concurrent permalink loads into one backend call.
+// Dynamic import keeps the process-local server cache out of the client bundle;
+// browsers continue using the SDK and their own HTTP cache.
 const loadSegment = async (publicId: string, sdk: ReturnType<typeof useNadeshikoSdk>) => {
   if (!import.meta.server) return sdk.getSegment(publicId);
 
@@ -35,15 +25,7 @@ const loadSegment = async (publicId: string, sdk: ReturnType<typeof useNadeshiko
   return cachedSegment(publicId, () => sdk.getSegment(publicId));
 };
 
-/**
- * The parent title, cached server-side for the same reason the segment above is
- * -- but with far more to gain, because hundreds of sentences share one title.
- *
- * This call is what made `GET /v1/media/:id` the busiest route on the backend:
- * a crawl of the permalink surface fetched the same ~325 records over 400,000
- * times a day. Caching the segment alone did not touch it, since a segment hit
- * still fell through to a live media call. See `server/utils/mediaCache.ts`.
- */
+// Many sentences share a title; cache media lookups too, not just the segment.
 const loadMedia = async (publicId: string, sdk: ReturnType<typeof useNadeshikoSdk>) => {
   if (!import.meta.server) return sdk.getMedia(publicId);
 
@@ -55,18 +37,8 @@ const fetchSentenceData = async () => {
   const sdk = useNadeshikoSdk();
 
   const segment = await loadSegment(id.value, sdk).catch((error: unknown) => {
-    // A deleted or mistyped permalink is a genuine 404; anything else is our own
-    // failure and must not be dressed up as "this sentence does not exist".
-    // Matched on the status rather than the error's class -- see `apiErrorStatus`
-    // for why identity is not reliable across the SSR boundary, and for what it
-    // cost here.
-    //
-    // 400 counts too, and missing that left half the bug in place: a publicId is
-    // `^[A-Za-z0-9_-]{12}$`, so the API rejects anything else as invalid before
-    // it looks the id up. /es/sentence/13123123123 is eleven digits, got a 400
-    // rather than a 404, and still rendered 500. The only input to this call is
-    // the id out of the URL, so a 400 can only mean that id is not one -- which
-    // is a wrong address, not a fault on our side.
+    // Match status across the SSR boundary, not error class identity. Invalid IDs return
+    // 400 before lookup; both 400 and 404 mean a wrong URL, while other failures propagate.
     if (isMissing(apiErrorStatus(error))) return null;
     reportError('sentence:fetch-failed', error, { 'segment.publicId': id.value });
     throw error;
@@ -92,8 +64,7 @@ const { data: initialSentenceData, error: sentenceError } = await useAsyncData(
   { server: true, lazy: false },
 );
 
-// Returning `null` would render the permalink as an empty page at HTTP 200, which
-// crawlers happily index and users read as "the site is broken".
+// Do not turn failed/missing permalinks into empty HTTP 200 pages.
 if (sentenceError.value) {
   throw createError({ statusCode: 500, statusMessage: 'Failed to load sentence' });
 }
@@ -146,19 +117,9 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
-/**
- * A sentence permalink is a page whose entire subject is one short video clip,
- * and it said so nowhere in its structured data. `VideoObject` is what makes it
- * eligible for Google's video results -- the surface these pages could plausibly
- * win, since they cannot out-rank a dictionary on the word itself.
- *
- * `uploadDate` is Google's one required property that this data does not
- * literally have: a segment carries no timestamp of its own. The media's first
- * airing date is the honest stand-in -- it IS when the footage was published --
- * and when a title has none the property is dropped rather than invented. The
- * markup stays valid either way; without it the page is simply not a rich-result
- * candidate, which is better than claiming a date that is not real.
- */
+// VideoObject enables video results. Segments have no timestamp, so use the media's
+// first airing date for uploadDate; omit it when unknown rather than inventing one,
+// even though that makes the page ineligible for a video rich result.
 const videoSchema = computed(() => {
   const result = initialSentenceData.value?.results?.[0];
   if (!result?.segment.urls.videoUrl) return null;
@@ -171,17 +132,14 @@ const videoSchema = computed(() => {
     description: segment.textJa.content,
     thumbnailUrl: segment.urls.imageUrl,
     contentUrl: segment.urls.videoUrl,
-    // ISO 8601. Clips run a few seconds, so sub-second precision is most of the
-    // value -- `PT3S` for a 3.4s clip is a 12% lie about a very short thing.
+    // Preserve tenths of a second in the ISO 8601 duration of these short clips.
     duration: `PT${durationSeconds.toFixed(1)}S`,
     inLanguage: 'ja',
     ...(media.startDate ? { uploadDate: media.startDate } : {}),
   });
 });
 
-// A `computed`, not a plain arrow: the composable reaches for its reactive path
-// only via `isRef`, and a bare function would be handed straight to unhead as
-// the node list.
+// The composable checks isRef; a plain function would be passed to Unhead as the node list.
 const breadcrumbItems = computed(() => {
   const items = [{ name: t('navbar.buttons.home'), item: localePath('/') }];
   const result = initialSentenceData.value?.results?.[0];
@@ -197,11 +155,7 @@ const breadcrumbItems = computed(() => {
   return items;
 });
 
-/**
- * The visible (screen-reader) heading, which is the page's subject rather than
- * its `<title>`: the brand suffix belongs in the tab and the SERP, not in the
- * document outline.
- */
+// Keep the brand suffix in <title>, not in the screen-reader document outline.
 const headline = computed(() => {
   const result = initialSentenceData.value?.results?.[0];
   if (!result) return t('seo.sentence.title');
@@ -216,38 +170,10 @@ const schemaOrgNodes = computed(() => [
 
 useSchemaOrg(schemaOrgNodes);
 
-/**
- * Two events for one permalink visit, deliberately.
- *
- * `shared_link_viewed` fires on every load, exactly as it always has.
- * `shared_link_read` fires only once the page has held the reader's attention
- * for `ENGAGED_VIEW_DWELL_MS` of foreground time.
- *
- * The obvious implementation is one event, gated on dwell. It was written that
- * way first and it was wrong, for the reason PostHog gives in "Managing bot and
- * AI traffic": dropping at capture is the one option that loses the data
- * entirely, while keeping the event and excluding it at query time stays
- * flexible and reversible. Three things follow from taking their advice instead:
- *
- * - The existing series keeps its meaning, so August 2026 can still be compared
- *   with July rather than showing a step change that is really an instrumentation
- *   change.
- * - Automated traffic stays *countable*. The gap between the two events is the
- *   scraping metric, and a silent capture-time drop would have thrown away the
- *   only number that shows the problem exists.
- * - The dwell threshold stops being load-bearing. As a query-time distinction it
- *   can be re-cut later; baked into shipped JavaScript, a threshold set too high
- *   deletes real readers invisibly and permanently -- which is precisely the
- *   failure `signup_completed` already had.
- *
- * Why dwell at all, rather than a user-agent or fingerprint test: the scrapers
- * that made this necessary send ordinary Chrome user agents and execute our
- * JavaScript, so `$virt_is_bot` and PostHog's own bot-filter transformation both
- * pass them through. Fingerprint heuristics fare no better here -- the
- * "viewport larger than screen" test popular in write-ups on this fires on 0.7%
- * of the suspected scraper events and 4.7% of known-human ones, so it would both
- * miss them and libel real readers. What the scrapers do not do is stay.
- */
+// Keep shared_link_viewed on every load for historical comparisons and countable bot traffic.
+// Add shared_link_read after foreground dwell rather than dropping unengaged views at capture.
+// This keeps filtering reversible at query time. User-agent/fingerprint heuristics miss
+// scrapers that execute JS and also misclassify readers; foreground dwell separates attention.
 if (import.meta.client) {
   const posthog = usePostHog();
 
@@ -265,8 +191,7 @@ if (import.meta.client) {
   const visibility = useDocumentVisibility();
   const gate = createEngagedViewGate(ENGAGED_VIEW_DWELL_MS, visibility.value === 'visible', Date.now());
 
-  // `useTimeoutFn` reads its delay through a ref, which is what lets a view
-  // interrupted halfway resume for the remainder instead of restarting.
+  // A reactive delay resumes interrupted dwell for the remaining time.
   const remainingMs = ref(ENGAGED_VIEW_DWELL_MS);
 
   const { start, stop } = useTimeoutFn(
@@ -284,11 +209,8 @@ if (import.meta.client) {
     start();
   };
 
-  // The timer is driven off visibility rather than left to run free: armed when
-  // the tab is in front, stopped when it goes behind, re-armed for whatever dwell
-  // is still owed. A link opened into a background tab -- the normal fate of one
-  // opened from Discord -- is counted as read when the reader gets to it, and
-  // never before.
+  // Pause dwell in background tabs and resume the remainder when visible;
+  // opening a Discord link in the background must not count as reading it.
   watch(visibility, (state) => {
     const now = Date.now();
     const visible = state === 'visible';

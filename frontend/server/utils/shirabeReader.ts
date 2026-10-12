@@ -4,49 +4,13 @@ import { buildInternalBackendHeaders, internalBackendUrl } from '~~/server/utils
 import { SESSION_COOKIE, hasSessionCookie, ssrAuthFetch } from '~~/server/utils/ssrAuthCache';
 import { logger } from '~~/server/utils/logger';
 
-/**
- * Whose dictionaries a word lookup should answer from.
- *
- * Shirabe shapes a lookup by the dictionary stack of whoever's key made the
- * call. Ours is a service identity with no preferences, so unlinked readers get
- * the default dictionaries -- which is right, and is what almost every request
- * here is. A reader who has linked their Shirabe account gets THEIR stack, in
- * their order, which means the lookup has to be made with their key.
- *
- * Two things are needed at two different moments, and the split is what keeps
- * this cheap:
- *
- *   WHETHER they have a stack   before the request is made, because it decides
- *                               whether the shared cache may answer at all
- *   the TOKEN                   only when a call is actually made
- *
- * So the first rides the session (the backend folds it into `get-session`), which
- * is already read once per render and cached for a minute; and the token is
- * fetched separately, from a route only this server may call.
- */
+// Resolve linked-stack status before choosing the cache; fetch the secret token separately only on a cache miss.
 
-/** Where the answer is parked for the rest of the request. The cache decision
- *  and the handler both ask, and without this that is two session reads. */
+// Share one session read between cache decision and handler per request.
 const CONTEXT_KEY = 'shirabeReaderStack';
 
-/**
- * The request's own cookie header, kept where the handler can still reach it.
- *
- * `defineCachedEventHandler` does not hand the handler the request it arrived
- * on. It builds a fresh event and copies `context` but NOT the headers, which is
- * correct of it -- a cached response must not silently depend on a header nobody
- * declared -- and it means `getRequestHeader(event, 'cookie')` is empty inside
- * the handler however the reader is signed in.
- *
- * That is not a small detail here, it is the whole feature: `readerToken` needs
- * the session cookie to fetch the reader's Shirabe key, found none, returned
- * null at its own guard without a word in the log, and every lookup fell back to
- * the service key. A linked reader saw the default dictionaries forever.
- *
- * `shouldBypassCache` runs on the REAL event, before any of that, and the
- * context it writes does survive. So the cookie is stashed there on the way past
- * and read back out afterwards.
- */
+// Nitro cached handlers copy context, not request headers. Stash the cookie during shouldBypassCache
+// so credential/report calls inside the handler can authenticate the reader.
 const COOKIE_KEY = 'shirabeReaderCookie';
 
 function stashCookie(event: H3Event): string {
@@ -55,7 +19,6 @@ function stashCookie(event: H3Event): string {
   return cookie;
 }
 
-/** The cookie header, from wherever it still exists on this event. */
 function readerCookie(event: H3Event): string {
   return (event.context[COOKIE_KEY] as string | undefined) || getRequestHeader(event, 'cookie') || '';
 }
@@ -66,30 +29,16 @@ interface SessionResponse {
   } | null;
 }
 
-/** Whose dictionaries this request is answered from, and which stack of theirs. */
 export interface ReaderStack {
   linked: boolean;
-  /** The stack the backend last copied from Shirabe. Compared against what
-   *  Shirabe reports on the lookup, so a reader who reconfigured their
-   *  dictionaries is noticed on the first call rather than on the next sweep. */
+  // Compare the stored fingerprint with lookup responses to notice dictionary reconfiguration.
   fingerprint: string | null;
 }
 
 const UNLINKED: ReaderStack = { linked: false, fingerprint: null };
 
-/**
- * Whether this reader has a Shirabe stack of their own, resolved on the SERVER.
- *
- * Deliberately not read from anything the client sends: it decides whether a
- * response may be stored in a cache other readers are served from, and a client
- * that could choose that could file its own answers where everybody else reads.
- * (The fingerprint the BROWSER sends is a different thing entirely -- a cache
- * key on its own request, which nothing here trusts or reads.)
- *
- * Never throws: the backend being unreachable means we do not know, and the
- * honest answer to that is the default dictionaries rather than a failed word
- * card.
- */
+// Resolve stack status server-side, never from client claims: it controls shared-cache eligibility.
+// Backend failures degrade to default dictionaries rather than break word cards.
 export async function readerStack(event: H3Event): Promise<ReaderStack> {
   const cached = event.context[CONTEXT_KEY] as ReaderStack | undefined;
   if (cached !== undefined) return cached;
@@ -99,39 +48,23 @@ export async function readerStack(event: H3Event): Promise<ReaderStack> {
   return resolved;
 }
 
-/** The cache decision on its own, in the shape `defineCachedEventHandler` wants. */
 export async function readerHasOwnStack(event: H3Event): Promise<boolean> {
   return (await readerStack(event)).linked;
 }
 
 async function resolveStack(event: H3Event): Promise<ReaderStack> {
-  // Kept for the handler, which will not be able to see it: `COOKIE_KEY`.
   stashCookie(event);
 
-  // No cookie, no session, and the answer is not in doubt. This is most of the
-  // traffic -- every crawler, every share link, every signed-out reader -- and
-  // it costs nothing.
   if (!hasSessionCookie(event)) return UNLINKED;
 
   try {
     const config = useRuntimeConfig();
-    // Scoped, and that scope is load-bearing: this stores the raw get-session
-    // body while `identity-auth` stores a `{session, preferences}` bundle under
-    // the same session key. Sharing one slot meant whichever ran first won and
-    // the other silently read a shape it did not recognise -- which, since the
-    // render always runs first, meant this one always concluded "not linked".
+    // Use a separate scope from identity-auth: raw get-session and identity bundles have different shapes.
     const session = await ssrAuthFetch(
       event,
       () =>
-        // `disableRefresh`, and it matters more here than anywhere: a session
-        // read slides the session, and the renewed `Set-Cookie` that comes back
-        // cannot be passed on from this path. The response a lookup produces is
-        // shared-cacheable for readers who have linked nothing, so putting a
-        // session cookie on it would hand one reader's session to the next --
-        // the renewal has to be left to `identity-auth`, which answers a
-        // personal render and can forward it safely. Without this, a reader who
-        // looks up more words than they load pages could go a whole week's
-        // window without their cookie being renewed.
+        // Disable session refresh here: a shared-cacheable lookup cannot safely forward renewed session cookies.
+        // Leave renewal to identity-auth on personal HTML.
         $fetch<SessionResponse>(internalBackendUrl(config, '/v1/auth/get-session?disableRefresh=true'), {
           headers: buildInternalBackendHeaders(config, { cookie: getRequestHeader(event, 'cookie') || '' }, event),
           timeout: 2000,
@@ -149,20 +82,13 @@ async function resolveStack(event: H3Event): Promise<ReaderStack> {
   }
 }
 
-/**
- * Tell the backend which stack Shirabe just answered from.
- *
- * Fire and forget, and called without being awaited: the lookup this rides on
- * has already got its answer, and the only thing waiting on this is the reader's
- * NEXT request, which will read the updated fingerprint off their session. A
- * backend that cannot be reached costs one interval of the periodic refresh.
- */
+// Report asynchronously: this lookup already has fresh data; the next uses the updated session fingerprint.
 export async function reportStackFingerprint(event: H3Event, fingerprint: string): Promise<void> {
   try {
     const config = useRuntimeConfig();
     await $fetch(internalBackendUrl(config, '/v1/user/connections/shirabe/resync'), {
       method: 'POST',
-      // Same stash, same reason: this runs inside the cached handler too.
+
       headers: buildInternalBackendHeaders(config, { cookie: readerCookie(event) }, event),
       body: { stackFingerprint: fingerprint },
       timeout: 2000,
@@ -172,20 +98,8 @@ export async function reportStackFingerprint(event: H3Event, fingerprint: string
   }
 }
 
-/**
- * Tell the backend that Shirabe refused this reader's key.
- *
- * The lookup path is where a dead link is discovered and, until this existed,
- * where the discovery died: a `logger.warn` and a silent fall back to the
- * default dictionaries, repeated on every word, forever. The backend decides
- * what the status means -- 401 ends the link, 403 is a permission to re-approve,
- * anything else is ignored -- because that is a fact about the stored row, not
- * about this request.
- *
- * Same channel and the same discipline as `reportStackFingerprint` above: fire
- * and forget, un-awaited, errors swallowed. The lookup has already answered, and
- * a backend that cannot be reached costs one more doomed round trip next time.
- */
+// Report refusals asynchronously; the backend owns link state and interprets 401/403. Reporting failures
+// must not turn a recovered lookup into an error.
 export async function reportShirabeRefusal(event: H3Event, status: number): Promise<void> {
   try {
     const config = useRuntimeConfig();
@@ -200,19 +114,8 @@ export async function reportShirabeRefusal(event: H3Event, status: number): Prom
   }
 }
 
-/**
- * The reader's Shirabe key, or null when there is nothing to fetch.
- *
- * Called only on a cache miss, which is what keeps a route that mostly serves
- * cached bytes from making a backend round trip per request.
- *
- * The key never reaches the browser: it comes from a backend route that refuses
- * anything not carrying the internal-proxy secret, and it is used here and
- * dropped. Same reasoning as `nadeshikoApiKey` in backendProxy.ts.
- */
+// Fetch credentials only on a miss, through the server-only backend route. Never return the token to the browser.
 export async function readerToken(event: H3Event): Promise<string | null> {
-  // From the stash, not from the request: inside a cached handler there are no
-  // headers left to read. See `COOKIE_KEY`.
   const cookie = readerCookie(event);
   if (!cookie.includes(SESSION_COOKIE)) return null;
 
@@ -228,10 +131,7 @@ export async function readerToken(event: H3Event): Promise<string | null> {
 
     return credential?.token ?? null;
   } catch (error) {
-    // Including the ordinary case: a reader who never linked anything answers
-    // 404 here. Falling back to the service key is the right move for every
-    // reason this can fail -- an unlinked reader, a revoked key, a backend
-    // blip -- so none of them is worth more than a line in the log.
+    // Missing/revoked credentials and backend failures all fall back to service dictionaries.
     logger.warn({ err: error }, 'No Shirabe credential for this reader; falling back to the service key');
     return null;
   }

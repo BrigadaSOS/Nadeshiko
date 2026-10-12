@@ -3,16 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, nextTick, reactive, ref } from 'vue';
 
-/**
- * The account settings page, and specifically its PREFERENCE WRITES.
- *
- * Every switch here sends the whole `productEmails` object, so the one mistake
- * that matters is sending an object built from local state instead of merged
- * over what is stored: that silently clears anything the reader set on another
- * device since this page loaded. The writes are also deliberately pessimistic --
- * the switch moves only after the server agrees -- because a switch that moves
- * on click and stays moved after a failure is a reader who believes they have
- * unsubscribed and has not.
+/** Merge email-category writes over stored preferences; pessimistic switches must not claim a failed
+ * unsubscribe succeeded.
  */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({

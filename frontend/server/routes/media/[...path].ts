@@ -14,16 +14,6 @@ const MIME_TYPES: Record<string, string> = {
   '.webm': 'video/webm',
 };
 
-/**
- * Serve media files from local storage.
- *
- * Handles requests like:
- * - /media/{mediaId}/cover.webp
- * - /media/{mediaId}/banner.webp
- * - /media/{mediaId}/{episode}/{hashedId}.webp
- * - /media/{mediaId}/{episode}/{hashedId}.mp3
- * - /media/{mediaId}/{episode}/{hashedId}.mp4
- */
 export default defineEventHandler(async (event) => {
   const path = getRouterParam(event, 'path');
   if (!path) {
@@ -32,7 +22,6 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig();
 
-  // Resolve the media base path relative to cwd (frontend/), so '../media' reaches the repo root media/
   const mediaBasePath = resolve(config.mediaFilesPath || '../media');
   let filePath: string;
   try {
@@ -41,8 +30,7 @@ export default defineEventHandler(async (event) => {
     if (error instanceof MediaPathForbiddenError) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' });
     }
-    // `realpath` only succeeds for files that exist. Do not expose filesystem
-    // errors from a reader's guessed media URL.
+    // Map guessed/nonexistent file paths to 404 without exposing filesystem errors.
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
 

@@ -180,20 +180,8 @@ const loadHiddenBreakdown = async () => {
   );
 };
 
-/**
- * The selected title's per-episode counts, fetched on demand.
- *
- * The SSR payload stopped carrying them for anything but the title the page is
- * about (`stripEpisodeHits`), and picking a title deliberately does NOT refetch
- * the stats -- `statsScopeChanged` at the foot of this file is blind to
- * `?media=` on purpose, so the tabs keep describing the whole result set the
- * query matched. So the one title the reader drilled into is asked for on its
- * own: one bounded request in place of 242 titles' worth of counts on every
- * render. Filled by the watcher below, which is where `searchScope` exists.
- *
- * Nothing to fetch once a client-side `loadStats()` has run: that answer is not
- * serialized anywhere, so it still carries every title's breakdown and
- * `episodeHitsNeeded` finds nothing to ask for.
+/** SSR strips other titles' episode counts to shrink the payload. Selecting media does not reload whole-query
+ * stats, so fetch the selected title's breakdown separately. Client loadStats already carries all breakdowns.
  */
 const fetchedEpisodeHits = ref<{ mediaPublicId: string; hits: ResolvedMediaStats['episodeHits'] } | null>(null);
 const episodeHitsLoading = ref(false);
@@ -262,16 +250,9 @@ const hiddenResultsScope = computed(() => ({
 // the count is 0 by definition rather than by derivation.
 const hiddenResultCount = computed(() => (revealHidden.value ? 0 : countHiddenResults(hiddenResultsScope.value)));
 
-/**
- * A search that came back with nothing, for a reader who hides something.
- *
- * The server drops a category bucket once its last hit is excluded, so where the
- * partial case above has `realCount` to subtract from, this one has no payload
- * left to count at all. `hiddenEmptyMatchCount` is filled by a second request
- * with those filters lifted, so a genuinely empty query does not get a notice
- * that promises results it cannot reveal.
+/** Empty visible results have no category bucket left to count. Check with filters lifted before offering a
+ * reveal.
  */
-/** Result count from a filters-lifted check for an otherwise empty search. */
 const hiddenEmptyMatchCount = ref<number | null>(null);
 
 const hiddenMayExplainEmpty = computed(() => hiddenEmptyMatchCount.value !== null && hiddenEmptyMatchCount.value > 0);
@@ -285,18 +266,8 @@ const lastOfferedHiddenCount = ref(0);
 /** The search this impression was last recorded for. */
 const lastNoticeImpression = ref<string | null>(null);
 
-/**
- * Impressions as well as clicks: how often the notice is acted on means nothing
- * without how often it was there to act on.
- *
- * Recorded once per search rather than once per appearance: the notice goes away
- * while the reader looks past their filters and comes back when they restore
- * them, and counting that as a second offer would understate every rate measured
- * against it.
- *
- * The separator is a NUL as an escape, never as a raw byte, for the reason
- * `trackSearch` gives below -- written literally it makes this file binary to
- * `grep -r`, `rg` and `file`, which then skip it silently.
+/** Record impressions once per search, not again after restoring filters. Keep the NUL separator escaped so
+ * tools do not treat this source as binary.
  */
 watch(
   () => (hiddenNoticeOffered.value ? `${query.value}\u0000${category.value}` : null),
@@ -358,18 +329,8 @@ const getSearchQuery = (r: RouteLocationNormalized): string => {
   return typeof r.query?.query === 'string' ? r.query.query : '';
 };
 
-/**
- * What an absent `?category=` means here: the reader's default category, which
- * is `all` unless they picked one in settings.
- *
- * Three things are opened as themselves and so never take the default, because
- * it would quietly slice something that was asked for whole -- and, for a title
- * outside the default category, slice it down to nothing:
- *
- *   - a collection,
- *   - a permalinked sentence,
- *   - a title picked with `?media=`, the same way an explicit `?media=` already
- *     beats the reader's hidden-media list.
+/** With no category parameter, use the reader's default except for collections, sentence permalinks and
+ * explicit media picks: those scopes were requested whole, not narrowed by a default.
  */
 const implicitCategorySlug = (r: RouteLocationNormalized): string => {
   const hasMediaFilter = getStringQueryValue(r.query?.media ?? r.query?.mediaId) !== null;
@@ -802,14 +763,12 @@ const handleRemoveFromCollection = async (segmentPublicId: string) => {
       collectionPublicId: props.collectionId,
       segmentPublicId,
     });
-    // Remove from current results
     if (sentenceData.value?.results) {
       sentenceData.value = {
         ...sentenceData.value,
         results: sentenceData.value.results.filter((r) => r.segment.publicId !== segmentPublicId),
       };
     }
-    // Refresh stats
     loadStats();
   } catch (error) {
     // The row stays on screen, which reads exactly like a no-op click.
@@ -922,27 +881,9 @@ watch(defaultCategorySlug, () => {
   loadSentences({ append: false });
 });
 
-/**
- * Client-side route changes that this component has to answer itself.
- *
- * Not all of them, and the split is not a preference -- it is which navigations
- * remount the page underneath us. Nuxt builds its page key by interpolating the
- * matched route's `:params` (`generateRouteKey`), so `/search/:query` is part of
- * the key and the query string is not:
- *
- *   /search/彼女 -> /search/猫        key changes -> the page remounts, and the
- *                                    incoming copy fetches the new search from
- *                                    its own `useAsyncData`
- *   /search/彼女 -> ?category=anime   key is identical -> nothing remounts, and
- *                                    this guard is the only thing that fetches
- *
- * Answering the first kind here as well ran every search twice: two identical
- * `/v1/search` calls and two identical `/v1/search/stats` calls per token click,
- * ~190ms apart. The first pair also won the race and rendered, so its results
- * were torn down and rebuilt from the second pair's byte-identical payload --
- * and because this guard awaited that wasted fetch before letting the
- * navigation finish, it cost the URL, the search bar and the results another
- * ~190ms each on top.
+/** Nuxt page keys include :query but not the query string. Param changes remount and fetch through
+ * useAsyncData; this guard fetches same-page query-string changes only, avoiding duplicate search/stats
+ * requests.
  */
 onBeforeRouteUpdate(async (to, from) => {
   applyRouteQuery(to);
@@ -1092,7 +1033,6 @@ onBeforeRouteUpdate(async (to, from) => {
             <slot name="below-tabs" />
         </div>
         <div class="flex mx-auto w-full">
-            <!-- Segment -->
             <div class="flex-1 mx-auto w-full">
                 <!-- Above the results rather than in the sticky header: the header's
                      height is a fixed `--search-controls-height` that the sidebar
@@ -1152,7 +1092,6 @@ onBeforeRouteUpdate(async (to, from) => {
                     </p>
                 </div>
             </div>
-            <!-- Filters -->
             <div v-if="!isSingleSentenceView && (searchData?.media?.length > 0 || isLoading)" class="2xl:ml-6 2xl:min-w-[20rem] 2xl:max-w-[20rem] 3xl:min-w-[20rem] 3xl:max-w-[22rem] yomitan-ignore">
                 <!-- A cap rather than a fixed height (see `syncSidebarHeight`):
                      a short media list shrinks to its rows, and only a long one

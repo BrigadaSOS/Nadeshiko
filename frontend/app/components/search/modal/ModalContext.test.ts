@@ -3,20 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * "Show context": the lines either side of a sentence.
- *
- * The body renders nothing at all when there is no context data, so a FAILED
- * fetch and a segment that genuinely has no neighbours look identical -- an
- * empty modal, with no way for the reader to tell whether to try again. The
- * error state is the only thing separating them.
- *
- * The request also has to ask for `media` explicitly: without it the API omits
- * the includes block, every card resolves to an empty media, and the header
- * reads "Context - " with nothing after it.
- *
- * The modal is reused across cards, so opening it on a second sentence must
- * clear the first one's lines rather than show them under the new heading.
+/** Request media explicitly for the header; distinguish load failures from no neighbors and clear reused-modal
+ * data.
  */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

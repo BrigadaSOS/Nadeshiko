@@ -1,26 +1,6 @@
-/**
- * The search Anki is asked to answer "have I already mined this word?" with.
- *
- * Kept out of the composable that fires it so the one thing that can be wrong
- * here silently -- which notes the query considers to be about this word -- can
- * be tested without a running Anki. A query that is too loose paints the
- * already-mined star over a word the reader has never seen; one that is too
- * tight sends every mine to the last added card and quietly loses the whole
- * point of the button.
- */
+/** Pure Anki queries for checking whether a word has already been mined. */
 
-/**
- * Anki's search syntax, escaped.
- *
- * `"`, `*`, `_` and `\` are operators inside a search term, and `:` splits a
- * term from the field it applies to -- so a word carrying any of them would
- * otherwise be read as syntax rather than as text. Japanese words rarely do,
- * but the dictionary form comes off a parse of arbitrary subtitles and a lone
- * `*` there would match every note in the deck.
- *
- * One pass with a callback rather than a chain of replaces, so the backslashes
- * this adds are never themselves escaped by a later step.
- */
+/** Escape Anki search operators in one pass so inserted backslashes are not escaped again. */
 export function escapeAnkiTerm(value: string): string {
   return value.replace(/["*_\\:]/g, (character) => `\\${character}`);
 }
@@ -40,18 +20,8 @@ export type MinedQueryInput = {
 };
 
 /**
- * Notes for this word, or null when the profile cannot answer the question.
- *
- * Exact, or exact followed by a furigana bracket: a mined expression field
- * holds either `手加減` or `手加減[てかげん]`, and both are this word. A
- * contains-match (`*手加減*`) would be the easy way to catch both and is the
- * wrong one -- it makes every short word a false positive, with 手 matching
- * 手加減, 上手 and 相手 alike, and the star is then a lie about the reader's own
- * collection.
- *
- * The deck goes in unescaped, deliberately: it comes from Anki's own
- * `deckNames` rather than from the reader typing, and escaping it would turn
- * the `::` of a subdeck into a literal and match nothing.
+ * Match the exact word or its furigana-bracket form, never a substring. Require an expression field. Deck
+ * names come from Anki and stay unescaped to preserve `::` subdeck syntax.
  */
 export function minedNoteQuery({ word, key, deck }: MinedQueryInput): string | null {
   const term = word.trim();
@@ -68,28 +38,15 @@ export function minedNoteQuery({ word, key, deck }: MinedQueryInput): string | n
   return parts.join(' ');
 }
 
-/**
- * Every note in a deck, including its subdecks.
- *
- * Same quoting as `minedNoteQuery` above and for the same reason: the whole
- * term is quoted and the deck name goes in as Anki gave it, because escaping
- * would turn the `::` of a subdeck into a literal and match nothing. A reader
- * who picks a parent deck means the tree under it.
- */
+/** Quote the deck term without escaping its Anki-provided name; `deck:` includes subdecks. */
 export function deckNotesQuery(deck: string): string | null {
   const scope = deck.trim();
   return scope ? `"deck:${scope}"` : null;
 }
 
 /**
- * The note type most of these notes are, or null when they are of none.
- *
- * A deck has no single note type -- this is a vote, used to prefill a picker the
- * reader can still change. Ties go to the type seen first, which on a sample
- * taken from the end of the deck is the older of the two: a reader midway
- * through switching note types has the newer one arriving in a run at the very
- * end, and letting a 50/50 tip on that run would suggest a type they have used
- * only a handful of times.
+ * Suggest the most common note type without treating a deck as single-model. Ties keep the first encountered
+ * type.
  */
 export function mostCommonModel(notes: ReadonlyArray<{ modelName?: string | null }>): string | null {
   const counts = new Map<string, number>();

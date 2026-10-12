@@ -2,13 +2,8 @@ import type { Category } from '@brigadasos/nadeshiko-sdk';
 import type { ResolvedCategoryCount, ResolvedMediaStats } from '~/types/search';
 
 /**
- * What the reader's own hidden-media and hidden-category lists are keeping out
- * of a search, for the notice above the results that offers to lift them.
- *
- * Pure, and here rather than in the container, because the derivation is the
- * part that is easy to get subtly wrong and impossible to eyeball: it reads two
- * counts the server sends per bucket and has to keep three cases apart. It is
- * the same reasoning that put `discountHiddenMedia` in `categories.ts`.
+ * Derive hidden-result counts and breakdowns from server buckets and reader exclusions, independently of
+ * container UI.
  */
 
 /** The scope the count is taken over: what the result list is currently drawing from. */
@@ -52,24 +47,9 @@ const isHiddenWholesale = (entry: ResolvedCategoryCount, scope: HiddenResultsSco
   scope.hiddenCategories.includes(entry.category) && entry.category !== scope.selectedCategory;
 
 /**
- * Hits this query found that the reader is not being shown.
- *
- * Counted per category bucket rather than from the tab's `count`/`totalCount`
- * pair, which also opens a gap for `?media=` and would have the notice offer to
- * unhide something when nothing is hidden. A title picked explicitly beats the
- * hidden list outright, so it keeps nothing out either -- hence the 0.
- *
- *   - a category hidden wholesale keeps out its whole bucket;
- *   - a category that was kept loses only the titles hidden inside it.
- *     `realCount` is that bucket with the exclusion lifted server-side, and the
- *     media term covers a payload that arrived before the reader's preferences
- *     were known -- the one `discountHiddenMedia` corrects client-side, where the
- *     server's two counts are equal. Only ever one of the two terms is non-zero.
- *
- * Returns 0 for a search hidden down to nothing, which is not the same as
- * nothing being hidden: the server drops a bucket once its last hit is excluded,
- * leaving no payload to count. The caller distinguishes the two by whether the
- * result set is empty -- see `SearchContainer`'s `hiddenMayExplainEmpty`.
+ * Explicit title filters bypass hidden lists. Otherwise count wholesale hidden buckets, or server count gaps
+ * plus client-side hidden-title hits when preferences were not applied upstream. Fully excluded buckets may
+ * be absent, yielding zero; callers must separately check whether hiding may explain an empty result set.
  */
 export const countHiddenResults = (scope: HiddenResultsScope): number => {
   if (scope.hasMediaFilter) return 0;

@@ -3,15 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The "pick which Anki note to write to" modal.
- *
- * It searches Anki on EVERY KEYSTROKE -- no debounce -- so several lookups are
- * routinely in flight against the reader's own machine at once. Anki answers
- * them in whatever order it finishes, which is the one thing this list cannot
- * survive: the note the reader picks is the note their sentence is written into,
- * so a list belonging to an earlier query is not a cosmetic fault.
- */
+/** Every keystroke starts a lookup; stale lists could send the sentence to the wrong Anki note. */
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 
 const getNotesWithCurrentKey = vi.fn();

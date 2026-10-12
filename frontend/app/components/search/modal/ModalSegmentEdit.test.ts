@@ -3,16 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-/**
- * The segment edit modal, and specifically its REVISION HISTORY.
- *
- * The modal is reused: it stays mounted and its `segment` prop changes as the
- * moderator moves between sentences. The history panel is open by default, so
- * every one of those moves starts a revisions request while the previous one may
- * still be out -- and a revision here is not a read-only detail. Selecting one
- * loads its text into the FORM, and the form is what gets saved. A list
- * belonging to the previous sentence is therefore a route to writing one
- * sentence's text onto another.
+/** Ignore stale revision replies and failures: choosing a previous sentence's revision would seed the wrong
+ * text for saving.
  */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

@@ -2,16 +2,8 @@ import { describe, test, expect, vi } from 'vitest';
 import { useCardTrail, type CardLocation } from './useCardTrail';
 
 /**
- * Walking into the words a merged expression is made of, and back out again.
- *
- * The trail exists because a merge DELETES what it spans: 男を知っている is one
- * chip covering 男 and 知る, and the parts row is the only way to reach either.
- *
- * Two decisions are worth pinning. An EMPTY TRAIL MEANS THE ORIGIN -- the token
- * the card opened on is never pushed, so `origin()` is what "back" lands on and
- * the card cannot lose its way home. And FORWARD IS DISCARDED THE MOMENT THE
- * READER WALKS SOMEWHERE NEW, which is what every back/forward pair does and
- * what stops the two disagreeing about where the reader has been.
+ * An empty trail returns to the original token; new navigation discards forward history. Parts
+ * restore access to words hidden inside merged expressions.
  */
 const origin: CardLocation = { lemma: '男を知る', surface: '男を知っている', reading: '', pos: '' };
 const part = (lemma: string) => ({ lemma, text: lemma, reading: '' });

@@ -2,24 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * The recents menu under the search bar.
- *
- * `utils/searchRecents` already covers the dedupe, tombstone and narrowing
- * rules; this covers the composable that puts the two copies together, which is
- * where the decisions are:
- *
- * THE DEVICE IS THE PRIMARY COPY. Every reader has a list in `localStorage`,
- * signed in or not, because a signed-out reader has nowhere else to keep one and
- * the list has to survive being offline. The account's rows merge into it.
- *
- * CLEARING ASKS THE ACCOUNT FIRST. A clear that emptied the browser while the
- * account still held the rows is a privacy bug wearing a sync bug's coat -- the
- * reader believes their history is gone and it is not.
- *
- * SIGNING OUT DROPS THE ACCOUNT'S HALF ON THE SPOT. `loadedFor` records WHO the
- * loaded rows belong to rather than merely that some were loaded, so a session
- * change re-asks; a bare flag would have left the previous reader's searches in
- * the menu.
+ * Merge account history into the primary device copy. Clear the account before local data, and
+ * discard loaded account rows immediately when the session changes.
  */
 const sdk = {
   listUserActivity: vi.fn(),

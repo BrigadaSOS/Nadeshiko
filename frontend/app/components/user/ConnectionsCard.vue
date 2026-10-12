@@ -2,23 +2,8 @@
 import { mdiPatreon } from '@mdi/js';
 import { handleApiError } from '~/utils/apiError';
 
-/**
- * Other accounts this one reaches, as a card on the settings page.
- *
- * Today that is Shirabe, which supplies the definitions behind every word on
- * this site and shapes a lookup by the dictionary stack of whoever's key made
- * the call. Unlinked, that key is ours -- a service identity with no
- * preferences -- so every reader sees the same dictionaries. Linked, the word
- * card answers from the dictionaries the reader configured over there, in their
- * order.
- *
- * A card here rather than a tab of its own: it is one switch about what
- * definitions look like, which is what the cards above it are, and a tab holding
- * a single row reads as a section somebody forgot to finish. Named for the
- * shelf rather than for Shirabe so a second connection is a row, not a rewrite.
- *
- * The key itself never reaches this component, or any browser: it is held by our
- * backend and only ever handed to our own server.
+/** Linked lookups use the reader's Shirabe dictionary stack; unlinked lookups use service defaults. Keys stay
+ * server-side: stored by the backend and supplied only to our server, never the browser.
  */
 
 interface Connection {
@@ -121,20 +106,8 @@ async function disconnect() {
   }
 }
 
-/**
- * Four states, and the middle two are opposites worth keeping apart.
- *
- * `upgrade` is a link that WORKS: what it was linked for still resolves, and it
- * is asking for a permission a newer feature wants. It must not read as broken,
- * because "approve more permissions" with no reason attached is a thing readers
- * decline.
- *
- * `disconnected` is the repair. Shirabe refused the key outright -- the reader
- * revoked it over there, or it was swept for being idle -- so their own
- * dictionaries are NOT being used and nothing here can fix that except making a
- * new link. It is checked first: a dead link that also happens to be missing a
- * scope is dead, and offering "update permissions" for a key that no longer
- * exists sends the reader somewhere that cannot help them.
+/** A refused key takes precedence over missing scopes: upgrade is a working link needing consent; disconnected
+ * needs repair.
  */
 const state = computed<'unlinked' | 'linked' | 'upgrade' | 'disconnected'>(() => {
   if (!connection.value) return 'unlinked';
@@ -142,35 +115,15 @@ const state = computed<'unlinked' | 'linked' | 'upgrade' | 'disconnected'>(() =>
   return connection.value.needsUpgrade ? 'upgrade' : 'linked';
 });
 
-/**
- * The dictionaries this link actually answers from, in the reader's own order.
- *
- * Shown because without it the card claimed an effect nobody could check: it
- * said "Linked as Lumi" and stopped, while the whole point of linking is which
- * dictionaries a word card reads. A reader who reorders their stack in Shirabe
- * had no way to confirm that anything over here had noticed.
- *
- * It is also what makes a refresh button unnecessary rather than merely absent.
- * Opening this page re-reads the stack from Shirabe before answering
- * (`getShirabeConnection` calls `refreshStack`), so the list is current by the
- * time it renders -- and a button that refreshes something invisible is one
- * people press twice and then distrust.
+/** Opening this page refreshes the Shirabe stack before returning it, so the displayed order needs no refresh
+ * button.
  */
 const dictionaries = computed(() =>
   (connection.value?.dictionaries ?? []).map((source, index) => ({ ...dictionaryLabel(source), position: index + 1 })),
 );
 
-/**
- * A stack entry is `slug:language` -- `jmdict:en`, `yomitan-c89af12122021a8a:ja`
- * -- and both halves matter to a reader: the same dictionary sits in the stack
- * twice when they read it in two languages.
- *
- * The NAME comes from Shirabe, because only Shirabe has it. A reader's own
- * uploads are filed under a hash of their contents, so this card printed
- * `yomitan-c89af12122021a8a` at the person who had uploaded 三省堂国語辞典 -- and
- * no map on this side could ever have fixed that, since the slug is a hash and
- * the name is theirs. The slug survives as the fallback for a link made before
- * Shirabe published the names, which is what the reader saw anyway.
+/** Entries are slug:language; one dictionary can appear in two languages. Shirabe supplies upload names because
+ * slugs may be content hashes; retain the slug fallback for older links without names.
  */
 function dictionaryLabel(source: string): { name: string; language: string | null } {
   const separator = source.lastIndexOf(':');
@@ -179,15 +132,7 @@ function dictionaryLabel(source: string): { name: string; language: string | nul
   return { name: connection.value?.dictionaryNames?.[slug] || slug, language: language?.toUpperCase() ?? null };
 }
 
-/**
- * Where to go to change any of this. The dictionaries are Shirabe's setting, not
- * ours -- there is nothing here to edit -- so the useful thing this card can do
- * is show the reader what we see and point at the page that owns it.
- *
- * From `public.shirabeSite` rather than the API base, which may be an address
- * only our server can reach, and locale-matched so a Spanish reader does not
- * land on an English settings page.
- */
+/** Use the locale-matched public site URL, not an API base that may be reachable only from our server. */
 const shirabeSettingsUrl = computed(() => {
   const site = useRuntimeConfig().public.shirabeSite || 'https://shirabe.org';
   return `${site}/${locale.value === 'es' ? 'es' : 'en'}/settings`;

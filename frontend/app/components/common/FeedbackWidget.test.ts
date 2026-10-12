@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, reactive, ref } from 'vue';
 
-/**
- * The feedback panel.
- *
- * Its anti-spam machinery is the part worth pinning, because both halves fail
- * SILENTLY when they go wrong. The form token carries a minted-at time, so a
- * token fetched at submit would always be younger than the minimum fill time and
- * the report would be dropped as automated with nobody told; the component
- * therefore refuses to submit without one and says so. And `nickname` is a
- * honeypot -- it is sent precisely because it is empty, since a field that is
- * never transmitted cannot trap anything.
- *
- * A spent token is dropped too: reusing one whose age describes a form the
- * reader already submitted is the same silent drop by another route.
+/** Mint anti-spam tokens when the form opens, not at submit, and discard spent tokens. The nickname field is a
+ * honeypot, not reader input.
  */
 const handleApiError = vi.fn<(...args: unknown[]) => { status?: number } | null>(() => null);
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

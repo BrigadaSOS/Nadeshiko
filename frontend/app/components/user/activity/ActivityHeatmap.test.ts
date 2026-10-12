@@ -5,18 +5,7 @@ import { describe, test, expect, afterEach, beforeEach, vi } from 'vitest';
 import ActivityHeatmap from './ActivityHeatmap.vue';
 import { HEATMAP_DAYS, HEATMAP_PALETTES, toDayKey } from './activityHelpers';
 
-/**
- * The year-of-activity grid on the account page.
- *
- * Worth a test because its correctness is entirely date arithmetic that nobody
- * can check by looking: the grid is built by walking a cursor from a Sunday-
- * aligned start to today, and every way that goes wrong still renders a
- * plausible-looking wall of squares. A week's offset puts every reader's
- * activity on the wrong weekday row for a year, and nobody files that.
- *
- * The clock is frozen, because a grid that ends "today" is otherwise a different
- * shape every day and any assertion about its size would be flaky by design.
- */
+/** Freeze today so Sunday-aligned grid shape and date assertions stay deterministic. */
 const FROZEN_NOW = new Date(2026, 7, 31, 12, 0); // A Monday.
 
 /** Mounts the heatmap over `raw`, which is `{ dayKey: { TYPE: count } }`. */

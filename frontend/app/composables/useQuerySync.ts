@@ -4,11 +4,8 @@ import type { LocationQueryValue } from 'vue-router';
 export type QueryPatch = Record<string, LocationQueryValue | LocationQueryValue[] | undefined>;
 
 /**
- * Patching the current `route.query` in place, for the filter and sort controls
- * that each own one query key and must leave the rest of the URL alone.
- *
- * Scrolling is opt-in per call: only the controls that replace the result list
- * below them jump the reader back to the top.
+ * Patch only the caller's query keys, preserving the remaining URL. Scrolling is opt-in for
+ * controls that replace the result list.
  */
 export function useQuerySync() {
   const route = useRoute();

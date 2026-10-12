@@ -1,22 +1,6 @@
 /**
- * One `resize` listener for the page, reporting only that the viewport got
- * wider or narrower.
- *
- * Two reasons it is shared rather than per component. There is one
- * `SegmentTokenText` per sentence, so a page of results was registering thirty
- * listeners that all did the same arithmetic on the same event to reach the same
- * answer. And the *width-only* rule below is a decision worth stating once: it
- * is subtle, and thirty copies of a subtlety is thirty chances to fix one of
- * them.
- *
- * Why width only. A rotation or a resized window genuinely invalidates where an
- * open word card sits: it can be off the side of a narrower screen or on the
- * wrong side of a shorter one, and leaving it there is the wrong answer. But
- * mobile browsers also fire `resize` as the URL bar collapses during an ordinary
- * SCROLL -- a ~60px height change, enough to tip a marginal card onto the other
- * side of its word. The reader would be scrolling, not resizing, and the card
- * would jump: exactly the behaviour `cardPlacement` exists to prevent. A URL bar
- * does not change the width, so the width tells the two apart.
+ * Share one width-change listener across word cards. Ignore height-only resize events from a
+ * mobile URL bar collapsing during scroll, which must not reposition an open card.
  */
 
 const subscribers = new Set<() => void>();

@@ -3,21 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The language switcher.
- *
- * Two things it must get right, and both have bitten.
- *
- * The hrefs come from `useLocaleSwitchPath`, NOT the i18n module's
- * `useSwitchLocalePath`: on a search page the module builds them one
- * percent-encoding layer deeper than the URL that was requested, so every switch
- * produced a longer URL than the last and a single search bred an unbounded
- * family of them.
- *
- * And the choice is REMEMBERED before it is applied. `setLocale` navigates, so a
- * preference written afterwards may never be written at all -- and the reader
- * gets their browser's language again on the next visit, having just told us
- * otherwise.
+/** The local switch-path helper avoids repeated search-URL encoding. Persist the choice before setLocale
+ * navigates.
  */
 const setLocale = vi.fn();
 const setPreferredLocale = vi.fn();

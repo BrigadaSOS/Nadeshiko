@@ -11,8 +11,7 @@ import {
   type SearchFilters,
   type SearchSort,
 } from '@brigadasos/nadeshiko-sdk';
-// Relative rather than `~/`: this module is unit-tested outside Nuxt. `vitest.config.ts`
-// now maps `~` too, so this is belt-and-braces rather than a hard requirement.
+
 import { ALL_CATEGORIES, CATEGORY_API_MAPPING } from '../utils/categories';
 import { reportError, reportEvent } from '../utils/reportError';
 import { classifySearchFailure, type SearchFailure, type SearchFetchScope } from '../utils/searchFailure';
@@ -35,11 +34,7 @@ export type SearchScope = {
   episode: number | null;
   /** Raw `?sort=` value; unset and `RELEVANCE` both mean "no explicit sort". */
   sort: string | null;
-  /**
-   * `?seed=`, which only `sort=random` carries. Sent as given so the shuffle is
-   * reproducible: the same URL is the same order for whoever opens it, and
-   * reshuffling means writing a new seed rather than asking again with the old one.
-   */
+  /** Preserve the random seed for reproducible shared URLs; reshuffling requires a new seed. */
   randomSeed: number | null;
   /** `?uuid=` permalink: resolves that one segment and ignores every other filter. */
   segmentPublicId: string | null;
@@ -50,12 +45,8 @@ export type SearchScope = {
   /** Categories the reader hid wholesale; narrows the request to the rest. */
   hiddenCategories: Category[];
   /**
-   * The reader's own titles, sent so the backend can break ties in their favour.
-   *
-   * Optional because most callers have no use for it: a collection listing and a
-   * single-title browse are already narrowed to one set of titles, so preferring
-   * some of them within a tie would reorder a page against a choice the reader
-   * made explicitly.
+   * Prefer familiar titles only where the scope permits tie-breaking; explicit title and
+   * collection choices must not be reordered by it.
    */
   preferMedia?: string[];
 };
@@ -114,20 +105,12 @@ const buildSort = (raw: string | null, randomSeed: number | null): SearchSort | 
 };
 
 /**
- * The schema's `maxItems` for `preferMedia`. Clamped here rather than trusted
- * from the caller: going over is a 400 on the search itself, which would trade a
- * cosmetic reordering for no results at all.
+ * Clamp to the API's preferMedia maxItems: optional tie-breaking must not make the search
+ * return 400.
  */
 const MAX_PREFERRED_MEDIA = 120;
 
-/**
- * `preferMedia`, but only under the default order.
- *
- * Every other mode sorts on a key the reader named -- episode order, length, a
- * seeded shuffle -- and ties there are not ours to break. The backend enforces
- * the same rule; this half keeps a list of up to 120 identifiers off the wire on
- * requests that would discard it anyway.
- */
+/** Send preferMedia only for default ordering; explicit sorts discard it server-side. */
 const preferMediaBody = (scope: SearchScope, sort: SearchSort | undefined): { preferMedia?: string[] } => {
   if (sort !== undefined) return {};
   if (!scope.preferMedia?.length) return {};
@@ -206,41 +189,17 @@ export const buildStatsFilters = (scope: SearchScope): SearchFilters =>
   buildFilters(scope, { withSelectedMedia: false, excludeHiddenMedia: true });
 
 /**
- * Filters for the counts of ONE title -- the episode drawer's drill-down, which
- * the page payload no longer carries for every title in the catalogue (see
- * `stripEpisodeHits`).
- *
- * `episode` is dropped on the way in: an `?episode=` in the URL would narrow the
- * include to that single episode and hand the drawer a list containing only the
- * row that is already selected, with no way back to its siblings. Hidden media
- * are not excluded either -- naming a title is asking for it, the same rule
- * `buildSentenceFilters` follows.
+ * Drawer counts span the selected title, not the selected episode. Drop episode and
+ * hidden-media exclusions so siblings remain reachable even for an explicitly requested hidden
+ * title.
  */
 export const buildMediaStatsFilters = (scope: SearchScope): SearchFilters =>
   buildFilters({ ...scope, episode: null }, { withSelectedMedia: true, excludeHiddenMedia: false });
 
 /**
- * The per-episode breakdown, kept only for the title the page is actually about.
- *
- * `/v1/search/stats` answers with `episodeHits` for EVERY title it counted, and
- * that made the answer the page's dominant cost. Measured against production on
- * 2026-08-23: `/en/media/bakemonogatari` serialized 5,802 objects, 4,670 of them
- * `{episode, hitCount}` pairs, and 4,655 of THOSE described the 241 titles the
- * page is not about. Emptying them takes the payload from 342,660 to 164,890
- * bytes raw, 56,740 to 38,746 brotli. `/en/search/食べる` is the same shape one
- * step worse -- it names no title, so all 1,983 of its pairs go: 226,083 to
- * 155,446 raw, 40,631 to 33,761 brotli.
- *
- * AN EMPTIED LIST, NOT AN ABSENT KEY. `episodeHits` is required by the API type,
- * and the drawer's rule is "empty means ask": a title only appears in the stats
- * at all because something matched inside it, so it has at least one hit in at
- * least one episode and an empty list here can only be one this function
- * emptied. `SearchContainer` fetches the real one, scoped to that single title,
- * when the reader drills in.
- *
- * SSR PAYLOADS ONLY -- this is called from the pages' `useAsyncData`, not from
- * `fetchStats`. A client-side stats refetch is not serialized into anything, so
- * it keeps the full breakdown and the drill-down answers from memory.
+ * Shrink SSR payloads by emptying episodeHits except for the selected title. Keep the required
+ * key: the drawer treats [] as 'fetch this title's breakdown'. Client refetches retain full
+ * counts.
  */
 export const stripEpisodeHits = (
   stats: SearchStatsResponse,
@@ -253,22 +212,8 @@ export const stripEpisodeHits = (
 });
 
 /**
- * Token fields nothing renders, off the SSR payload.
- *
- * `posLabel` is the part of speech in words ("Verb", "Particle"). It is on all
- * but a handful of the tokens a page of results carries -- 389 of them on the
- * title page measured above, 247 on the search -- and no component has read it
- * since `enrichTokens` dropped its `pos` alias: the colouring keys off `p`
- * (`POS_CLASS`), the dictionary lookup off `pt` with `p` as its fallback
- * (`shortPos`), and the inflection line off `inflection`. Worth 5,914 bytes raw
- * and 392 brotli on that page: small next to the counts above, and the cheapest
- * bytes on the page to stop sending.
- *
- * `b`/`e` are deliberately NOT touched and must not be: they are the character
- * offsets `enrichTokens` intersects with the `<em>` ranges to decide what is
- * highlighted, the offsets `tokensToAnkiFurigana` slices the sentence on, and the
- * offsets `segmentConcatenation` shifts when it merges neighbours. `kind` is read
- * by `isAskable`, and `f`, `inflection` and `parts` all address the same text.
+ * Remove only unread posLabel from SSR tokens. Preserve b/e for highlighting, furigana, and
+ * expansion offsets, plus kind and the remaining rendering/lookup fields.
  */
 export const stripUnreadTokenFields = (response: SearchResponse): SearchResponse => ({
   ...response,
@@ -290,37 +235,22 @@ export const stripUnreadTokenFields = (response: SearchResponse): SearchResponse
 });
 
 /**
- * Whether the episode drawer is waiting on the counts it no longer gets for
- * free.
- *
- * Provided by `SearchContainer`, which owns the search scope and so is the only
- * component that can ask for a title's breakdown, and injected by
- * `FilterContent`, which is the one that has to say so. A prop would have to
- * cross `SegmentSidebar`, which has no stake in it. Defaults to "not loading"
- * for the panel rendered outside a container.
+ * SearchContainer provides drawer loading state directly to FilterContent, bypassing unrelated
+ * SegmentSidebar. Standalone panels default to not loading.
  */
 export const EPISODE_HITS_LOADING: InjectionKey<Readonly<Ref<boolean>>> = Symbol('nd-episode-hits-loading');
 
 const isForbidden = (response: Response | undefined): boolean => response?.status === 401 || response?.status === 403;
 
 /**
- * The request never got an answer at all: the connection dropped, the tab was
- * navigating away, an extension blocked it, the edge is down.
- *
- * It surfaces here rather than in the `catch` below because the SDK client
- * resolves transport failures instead of throwing, so `response` is absent (or,
- * for an opaque one, status 0) and there is no status to report.
+ * The SDK resolves transport failures instead of throwing; response is absent or has opaque
+ * status 0.
  */
 const isTransportFailure = (response: Response | undefined): boolean => response === undefined || response.status === 0;
 
 /**
- * Cloudflare's own failure pages. These have a response status, unlike a dropped
- * connection, but still say that the edge could not reach or safely use an
- * origin. Filing the sentences and stats requests as separate application
- * exceptions turns one edge failure into two issues with no application fix.
- *
- * Keep this deliberately narrower than all 5xx responses: a 500--519 response
- * can be ours (or an upstream our server chose), and needs to stay actionable.
+ * Treat only Cloudflare 520–526 failures as edge outages. Other 5xx responses may be
+ * application faults and must remain actionable.
  */
 const isCloudflareEdgeFailure = (response: Response | undefined): boolean =>
   response !== undefined && response.status >= 520 && response.status <= 526;

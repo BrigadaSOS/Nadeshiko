@@ -69,7 +69,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
 
 <template>
   <div class="flex-1 min-w-0 p-4 overflow-y-auto max-h-[70vh] space-y-5">
-    <!-- Viewing snapshot indicator -->
     <div
       v-if="activeSnapshotNumber !== null"
       class="p-2.5 text-sm text-blue-300 bg-blue-900/20 border border-blue-700 rounded-lg flex items-center justify-between"
@@ -84,7 +83,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </button>
     </div>
 
-    <!-- Error -->
     <div
       v-if="errorMessage"
       class="p-3 text-sm text-red-400 bg-red-900/20 border border-red-700 rounded-lg"
@@ -92,7 +90,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       {{ errorMessage }}
     </div>
 
-    <!-- Metadata Header -->
     <SearchModalSegmentEditMetadata
       v-if="segment"
       :segment="segment"
@@ -102,7 +99,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       :internal-storage-base-path="internalStorageBasePath"
     />
 
-    <!-- Japanese -->
     <div>
       <label :for="`${fieldId}-ja`" class="block text-sm font-medium text-gray-300 mb-1">
         {{ t('modalSegmentEdit.japanese') }}
@@ -120,7 +116,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </div>
     </div>
 
-    <!-- English -->
     <div>
       <div class="flex items-center justify-between mb-1">
         <label :for="`${fieldId}-en`" class="text-sm font-medium text-gray-300">
@@ -144,7 +139,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </div>
     </div>
 
-    <!-- Spanish -->
     <div>
       <div class="flex items-center justify-between mb-1">
         <label :for="`${fieldId}-es`" class="text-sm font-medium text-gray-300">
@@ -168,7 +162,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </div>
     </div>
 
-    <!-- Position + Timing -->
     <fieldset class="min-w-0">
       <legend class="block text-sm font-medium text-gray-300 mb-2">
         {{ t('modalSegmentEdit.timing') }}
@@ -207,7 +200,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </div>
     </fieldset>
 
-    <!-- Status -->
     <fieldset class="min-w-0">
       <legend class="block text-sm font-medium text-gray-300 mb-2">
         {{ t('modalSegmentEdit.status') }}
@@ -225,7 +217,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </div>
     </fieldset>
 
-    <!-- Content Rating -->
     <fieldset class="min-w-0">
       <legend class="block text-sm font-medium text-gray-300 mb-2">
         {{ t('modalSegmentEdit.contentRating') }}
@@ -243,7 +234,6 @@ const validateField = (json: string, field: SegmentEditJsonField) =>
       </div>
     </fieldset>
 
-    <!-- Rating Analysis -->
     <div>
       <div class="flex items-center justify-between mb-1">
         <label :for="`${fieldId}-ratingAnalysisJson`" class="text-sm font-medium text-gray-300">

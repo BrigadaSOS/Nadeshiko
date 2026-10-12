@@ -12,41 +12,15 @@ export type FamiliarMediaEntry = {
 };
 
 /**
- * The titles the reader studies most, as the search filter orders by them.
- *
- * Held in `useState` rather than fetched from the filter component, and that
- * placement is the whole point: the search page loads this server-side alongside
- * its other data, `useState` rides the Nuxt payload to the client, and hydration
- * therefore reproduces exactly the order the server rendered. Fetching it from
- * the component instead would order the list alphabetically on the server and
- * re-sort it a moment later in the browser -- a reshuffle under the cursor of
- * someone already reaching for a row.
- *
- * Fetched once per session, not per query: the ranking is about months of study
- * and does not move between two searches. A title studied mid-session shows up
- * on the next load, which is soon enough.
+ * Load the study ranking server-side into useState so hydration preserves filter order. Load
+ * once per session rather than per query.
  */
 export function useFamiliarMedia() {
   const entries = useState<FamiliarMediaEntry[]>('familiar-media', () => []);
 
   /**
-   * Resolved here, while the composable is being set up, and NOT inside `load`.
-   *
-   * `load` is called from inside `useAsyncData` handlers, and a handler is not
-   * guaranteed to run with the active Pinia instance or the Nuxt request context
-   * that `userStore()` and `useNadeshikoSdk()` reach for. A server render of
-   * `/user/activity` was once observed failing exactly that way -- the payload
-   * carried `getActivePinia() was called but there was no active Pinia` as a
-   * `NuxtError` in place of the whole initial load, taking the stats, history
-   * and heatmap down with the ranking and sending the client off to re-fetch all
-   * four.
-   *
-   * Stated as it is rather than as a fixed bug: that failure has not been
-   * reproducible on demand since, so this is hardening on the documented-correct
-   * pattern (resolve context-bound composables during setup, use them later)
-   * rather than a change with a red-to-green test behind it. Both values are
-   * stable for the life of the component -- the store is reactive, the SDK is
-   * bound to the request being rendered -- so holding them costs nothing.
+   * Resolve request-bound SDK and Pinia context during setup, not inside useAsyncData handlers.
+   * This hardens an observed, non-reproducible SSR context failure.
    */
   const user = userStore();
   const sdk = useNadeshikoSdk();
@@ -57,16 +31,8 @@ export function useFamiliarMedia() {
   );
 
   /**
-   * Returns the ranking as well as storing it, and the return value is the part
-   * that matters to the caller on the search page.
-   *
-   * That page loads this through `useAsyncData`, whose payload entry is the
-   * handler's return value. A handler returning nothing leaves `undefined`
-   * there, Nuxt's default `getCachedData` reads `undefined` as "nothing was
-   * cached", and hydration therefore re-runs the handler -- fetching on the
-   * client the ranking the server had already fetched into the very payload
-   * being hydrated. Returning the entries (including the empty array a
-   * signed-out reader gets) is what makes that a cache hit instead.
+   * Return the ranking, including [] when signed out, so useAsyncData caches it. Returning
+   * undefined would cause a client hydration refetch.
    */
   const load = async (): Promise<FamiliarMediaEntry[] | undefined> => {
     if (!user.isLoggedIn) {
@@ -95,15 +61,8 @@ export function useFamiliarMedia() {
   };
 
   /**
-   * Forgets one title, leaving the rest of the tally standing.
-   *
-   * The whole-tally clear is the blunt instrument; this is for a single show the
-   * tally read wrong. The row leaves the list as soon as the server answers
-   * rather than after a refetch -- re-reading the whole ranking to drop one row
-   * would make this feel slower than the clear beside it.
-   *
-   * Forgetting does not blocklist: the next export or share against that title
-   * starts a fresh tally, which is the honest behaviour for a running count.
+   * Drop the title after server confirmation without refetching the ranking. Forgetting is not
+   * a blocklist: later study starts a new tally.
    */
   const forget = async (mediaPublicId: string): Promise<boolean> => {
     try {

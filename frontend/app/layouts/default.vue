@@ -1,16 +1,12 @@
 <template>
-  <!-- `dark` is on <html> (nuxt.config app.head.htmlAttrs), not here: teleported
-       modals are siblings of this element and would fall outside it. -->
+  <!-- Keep `dark` on <html> so it also covers teleported modals. -->
   <div class="flex bg-background flex-col min-h-screen overflow-x-clip">
-    <!-- First thing Tab reaches: the header carries eleven controls before the
-         search field, which every keyboard reader had to walk on every page. -->
+    <!-- Let keyboard readers skip the header controls. -->
     <a href="#nd-main" class="nd-skip-link">{{ $t('common.skipToContent') }}</a>
     <AuthModalLoginSignUp />
     <LayoutImpersonationBanner />
     <LayoutHeader />
-    <!-- Ahead of the page, not after it: pages teleport their own floating
-         buttons into the dock, and the target has to be in the DOM by the time
-         they mount. -->
+    <!-- Mount the teleport target before pages mount their floating buttons. -->
     <CommonFabDock />
     <!-- Shared gap under the navbar. Pages keep their own bottom padding. -->
     <main id="nd-main" class="flex-grow pt-3 pb-20">

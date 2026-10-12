@@ -1,19 +1,6 @@
 #!/usr/bin/env node
-/**
- * Two checks over i18n/locales, both cheap and both catching things review does
- * not.
- *
- * PARITY: every locale must expose exactly the same set of leaf keys, so a
- * missing translation can never fall back silently. A key added to en.json alone
- * renders as its own dotted path on /es and /ja.
- *
- * USAGE: every key must be reachable from the source. Dead keys are worse than
- * clutter here -- they are handed to translators, who translate them, for a
- * string nobody will ever render. Thirteen had accumulated by the time this half
- * was written (a whole `hiddenMedia*`/`favoriteMedia*` group left behind by a
- * settings rewrite, and two Anki error strings superseded by
- * `connectFailure.*`).
- */
+// Check locale leaf-key parity and source reachability so missing translations cannot silently fall back
+// and unused strings are not sent to translators.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,7 +9,6 @@ const LOCALE_FILES = ['en', 'es', 'ja', 'zh-CN', 'zh-Hant', 'id', 'pt-BR'] as co
 const root = fileURLToPath(new URL('../', import.meta.url));
 const localesDir = join(root, 'i18n/locales/');
 
-/** Where a key can be referenced from. Locale files themselves are not sources. */
 const SOURCE_DIRS = ['app', 'server', 'shared', 'modules', 'content'];
 
 function flatten(value: unknown, prefix = ''): string[] {
@@ -75,16 +61,8 @@ function readSources(dir: string): string {
 
 const sources = SOURCE_DIRS.map((dir) => readSources(join(root, dir))).join('\n');
 
-/**
- * Keys assembled at runtime -- `t(`…motionHint_${preference}`)`,
- * `t(`…activity.types.${type}`)` -- appear in the source only as the literal
- * before the interpolation. Everything under such a prefix counts as reachable.
- *
- * Deliberately generous: a prefix rescues its whole subtree, so the check can
- * miss a dead key but will not invent one. A false "unused" that fails the build
- * on a key someone is about to use would make this check the thing people
- * disable.
- */
+// Runtime template literals expose only a prefix. Count its whole subtree as reachable to avoid false unused
+// errors; this deliberately tolerates some dead keys.
 const dynamicPrefixes = new Set<string>();
 for (const match of sources.matchAll(/`([A-Za-z0-9_.]*?)\$\{/g)) {
   const prefix = match[1];

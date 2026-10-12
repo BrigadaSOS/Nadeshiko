@@ -18,19 +18,8 @@ vi.mock('@brigadasos/nadeshiko-sdk', async (importOriginal) => {
 import { defineComponent, reactive, ref, unref } from 'vue';
 import { mediaMetaI18n, formatMediaMetaNumber, expectedMediaMeta } from '../../../test/media-meta-fixtures';
 
-/**
- * The search page, whose interesting output is what it tells CRAWLERS.
- *
- * `noindex` on a thin page is right; `noindex` on a page whose fetch merely
- * failed is a backend blip de-indexing good pages wholesale, which is far more
- * expensive than briefly indexing a thin one. The two arrive here looking almost
- * identical -- no results either way -- and only an explicit outcome separates them.
- *
- * The breadcrumb has the same shape of decision: a media-scoped page sits under
- * the catalogue and a word page under search, and emitting the trail that does
- * not match is worse than emitting none, because it names a parent the page does
- * not have.
- */
+// Only confirmed empty results are noindex; a failed fetch must not de-index a good page.
+// Breadcrumb parents must match the media/word scope.
 const capturedRobots: unknown[] = [];
 const capturedSchema: unknown[] = [];
 const route = reactive({
@@ -105,9 +94,7 @@ function stubPrimedSearchFetch() {
   }));
 }
 stubPrimedSearchFetch();
-// `getMedia` included: the page resolves a `?media=` scope through it, and an
-// SDK stub without it sends that straight to the failure path -- where the
-// breadcrumb's title never resolves and the assertion about it means nothing.
+// Include getMedia in the SDK stub so scoped breadcrumbs resolve a title instead of testing failure.
 const useNadeshikoSdk = () => ({
   getMedia: vi.fn().mockResolvedValue({ publicId: 'm1', nameEn: 'Bocchi', slug: 'bocchi' }),
 });

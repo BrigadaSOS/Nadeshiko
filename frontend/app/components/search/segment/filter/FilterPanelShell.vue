@@ -18,13 +18,8 @@ withDefaults(
   { flush: false },
 );
 
-/**
- * A scrolling list loses width to its scrollbar; the header sits outside it and
- * would otherwise run that much wider, leaving the counts in the header off the
- * column the counts in the rows sit on. Measured rather than assumed: the gutter
- * is 0 on platforms with overlay scrollbars, 0 for a list short enough not to
- * scroll -- which is why it is not reserved up front, so a short list runs the
- * full width of the card -- and ~15px otherwise.
+/** Measure the scrollbar gutter so header and row counts align. Overlay scrollbars and short lists need no
+ * reserved width.
  */
 const scrollRegion = ref<HTMLElement | null>(null);
 const scrollbarGutter = ref(0);
@@ -45,17 +40,8 @@ const measureGutter = () => {
 let observer: ResizeObserver | null = null;
 let pendingMeasure: number | null = null;
 
-/**
- * The measurement happens on the NEXT frame, never inside the observer callback.
- *
- * Writing a reactive value from the callback re-renders the panel while the
- * browser is still delivering resize notifications, and the browser reports
- * that as an unhandled `ResizeObserver loop completed with undelivered
- * notifications`. That reached error tracking from real sessions the night the
- * panel shipped -- always on an episode-level panel, the only level whose
- * header consumes the gutter.
- *
- * Coalesced, so a burst of resizes in one frame measures once.
+/** Defer reactive measurement to the next frame to avoid ResizeObserver notification loops; coalesce resizes
+ * per frame.
  */
 const scheduleMeasure = () => {
   if (pendingMeasure !== null) return;

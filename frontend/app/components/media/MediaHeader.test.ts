@@ -13,18 +13,7 @@ import zhHant from '../../../i18n/locales/zh-Hant.json';
 
 import { anilistAnimeUrl, imdbTitleUrl, tmdbUrl, youtubeChannelUrl } from '~/utils/media';
 
-/**
- * The title card at the top of `/media/<slug>`.
- *
- * Most of it is filtering: which names to show BESIDE the headline, which facts
- * the payload actually has, which catalogue sites this work exists on. Every one
- * of those fails by rendering a card that looks finished -- an empty bullet, a
- * name printed twice, a link to a site the work is not on -- so none of it
- * announces itself.
- *
- * The real URLs are used rather than stubbed: they are auto-imports with their
- * own tests, and asserting against a fake would only prove the fake was called.
- */
+/** Use real catalog URL helpers to test link wiring, not a replacement implementation. */
 const startsOpen = ref(true);
 const language = ref<'ENGLISH' | 'JAPANESE' | 'ROMAJI'>('ENGLISH');
 

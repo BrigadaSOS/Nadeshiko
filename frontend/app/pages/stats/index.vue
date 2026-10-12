@@ -39,8 +39,7 @@ async function triggerUpdate(onlyUncovered: boolean) {
     updateResult.value = await sdk.triggerCoveredWordsUpdate({ onlyUncovered });
     await refreshStats();
   } catch (error) {
-    // `updateResult` stays null on failure, which renders exactly like a run that
-    // has not been triggered yet.
+    // A null result otherwise looks like an update that has not been started.
     handleApiError('stats:coverage-update-failed', error, {
       toastKey: 'statsPage.coverage.updateError',
       context: { 'stats.onlyUncovered': String(onlyUncovered) },

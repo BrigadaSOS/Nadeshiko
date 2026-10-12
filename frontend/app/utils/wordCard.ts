@@ -1,14 +1,7 @@
 import type { TranslationVisibilityMode } from '~/composables/useTranslationVisibility';
 import { tagLabel, tagLanguage, type TagLanguage } from '~/utils/wordTagLabels';
 
-/**
- * The word card behind a hovered token: what Shirabe returns for it, and the
- * shaping the tooltip does before printing it.
- *
- * The shaping lives here rather than in the component because the interesting
- * part is a decision, not a layout: which language a definition is worth showing
- * in. That is testable on its own, and it is the part that goes quietly wrong.
- */
+/** Word-card response shapes and language selection, independent of tooltip layout. */
 
 /** A piece of text Shirabe tagged with the language it is written in, which is
  *  the shape every definition arrives in. */
@@ -49,13 +42,8 @@ export interface ShirabeEntry {
 }
 
 /**
- * One word a multi-word expression is made of.
- *
- * The card shows these because a merge DELETES what it spans: 男を知っている is
- * one chip covering 男 and 知る, and the expression is the only candidate, so
- * without a Parts row neither word can be reached -- not by hovering, not
- * through the picker. Shirabe's own card has shown them for exactly this reason;
- * `include=parts` is that row, published.
+ * Expression parts keep words hidden by a merged token reachable through the card; requested with
+ * `include=parts`.
  */
 export interface ShirabePart {
   text: string;
@@ -75,12 +63,10 @@ export interface ShirabePitch {
   audioUrl?: string | null;
 }
 
-/** Only what the card renders. `GET /v1/words/{id}` carries a good deal more
- *  (forms, siblings, cross references, loanword sources, example sentences);
- *  reading a narrow shape here keeps the tooltip from quietly depending on the
- *  rest of it. Examples are deliberately not among them -- Nadeshiko's own
- *  corpus is what this site is for, and "More sentences" below the card goes
- *  there rather than to a dictionary's handful. */
+/**
+ * Only fields the card renders. Example sentences come from Nadeshiko's corpus rather than dictionary
+ * examples.
+ */
 export interface ShirabeWord {
   id: string;
   headword: string;
@@ -118,75 +104,26 @@ export interface ShirabeWord {
 }
 
 /**
- * One word a token COULD be, as `POST /api/v1/words/identify` ranks them.
- *
- * A strict subset of `ShirabeWord`, and typed as one on purpose: a candidate
- * carries `id`, `headword`, `reading`, `common` and its own single-entry
- * definition, but none of `furigana`, `jlpt`, `frequency` or `pitch`. Those come
- * from `GET /words/{id}` afterwards, and the card renders the two spread
- * together -- so there is one card shape rather than two, and `cardSenses`,
- * `minedWord` and `infoHtml` never learn which half they are looking at.
- *
- * The RESPONSE carries many of these; each one carries at most one entry. A
- * candidate names a single dictionary record (`serialize_candidate` builds
- * `entries` as a one-element array), and that array is empty when the record
- * had no sense worth serializing -- so a candidate with no definitions at all is
- * a real answer. `cardSenses` flat-maps over `entries`, so none and one both
- * render without a special case.
+ * Identify candidates share the word-card shape. Each carries at most one dictionary entry, possibly none;
+ * optional fields allow the same renderers to handle either response.
  */
 export type ShirabeCandidate = ShirabeWord;
 
 /**
- * The word an open card is ABOUT.
- *
- * One expression, because three separate things name it and they must not
- * disagree: the headword at the top, what "More sentences" searches the corpus
- * for, and what Anki is asked about and mines into. They did disagree -- the
- * card offered candidates and the reader could pick 黄身, but the search and the
- * Anki probe both went on reading the token, so picking changed the definitions
- * and nothing else. A card claiming "you already have this word" about one word
- * while its button writes another is worse than not offering the choice.
- *
- * The token is the FALLBACK rather than the source, and that ordering is the
- * whole of it. It answers before the lookup lands and when there is no entry at
- * all, which is what lets the Anki probe start the moment the card opens instead
- * of waiting on a dictionary call it does not depend on -- and what empties it
- * when the card closes and there is neither.
+ * Use the selected word consistently for the title, sentence search and Anki mining. The token is the
+ * fallback before lookup or when no entry exists.
  */
 export function cardHeadword(word: ShirabeWord | null, tokenDictForm: string | undefined): string {
   return word?.headword || tokenDictForm || '';
 }
 
 /**
- * What to print for a candidate in the PICKER.
- *
- * A word "usually written in kana" leads with its own kana, and a word can read
- * more than one way: 彼方 is called かなた and also reads あなた. So a reader who
- * tapped あなた was offered a chip reading かなた -- a word that looks nothing
- * like what they pointed at, with nothing to say why it was in the list.
- * `matchedHeadword` is Shirabe naming the spelling both readings share (彼方),
- * which the client cannot work out for itself.
- *
- * Only the picker, and deliberately not `cardHeadword`. Two reasons, and the
- * second is the harder one: `cardHeadword` also decides what "More sentences"
- * searches for and what Anki is asked about and mines into, which are questions
- * about the word's IDENTITY rather than its label -- and the card's ruby is
- * aligned by Shirabe against `headword`, so a title of 彼方 over furigana
- * computed for かなた would be misaligned on the one row that has to be right.
+ * `candidateName` uses `matchedHeadword` only in the picker. Card identity and ruby remain based on
+ * `headword`, which also drives search and Anki mining.
  */
 /**
- * The word's ruby, but only when it actually spells the word.
- *
- * Shirabe sends `furigana` per candidate and it is not always aligned against
- * that candidate's headword: every candidate for よう comes back with
- * `[{text: "よう"}]`, so 良う and 癰 both carry the READING where their ruby
- * should be. Rendered straight, that painted "よう" as the title of a card the
- * reader had just switched to 良う -- the picker moved, the senses moved, and the
- * one thing naming the word did not.
- *
- * The rule is simply that ruby has to spell its word: concatenate the segment
- * texts and compare. Anything else is about a different spelling and is dropped,
- * leaving the plain headword, which is always right if plainer.
+ * Render ruby only when its segment texts concatenate to the headword; mismatched candidate ruby falls back
+ * to plain text.
  */
 /** A run of text with optional ruby over it. Mirrors the shape the token
  *  enrichment uses, so the card and the note draw from one idea of furigana. */
@@ -207,30 +144,12 @@ export function candidateName(candidate: ShirabeCandidate): string {
 }
 
 /**
- * What the card should say about a lookup, given how it came back.
- *
- * Three answers, and the difference between the last two is the whole reason
- * this is not a boolean. "There is no entry" is a fact about the WORD -- a name,
- * a coinage, a spelling the corpus preserved -- and it is the end of the search,
- * so the card says it. "We could not ask" is a fact about US, and printing it as
- * the dictionary's verdict would be a lie about a word that may well be in
- * there.
- *
- * What that reasoning did NOT justify is saying nothing at all, which is what
- * happened: a dictionary that would not answer left the card showing a headword
- * over blank space, indistinguishable from one still loading. Shirabe being down
- * is not the reader's fault and not a mystery worth making them solve, so it now
- * has its own state and its own words.
+ * Distinguish a missing entry from an unavailable lookup so a request failure is not presented as a
+ * dictionary verdict.
  */
 /**
- * 'name' is a fourth answer, and the one that used to be a lie.
- *
- * A token that resolves only to people -- 明日香, 田中, every character in the
- * corpus -- was told "no dictionary entry", which is false: the dictionary has
- * it, we dropped it. Names are dropped only while there is a real word to
- * compete with (see `withoutNameEntries`), so a list that is ALL names is not a
- * failed lookup. It is the answer to the question a reader actually has at a
- * name, which is "is this vocabulary or a person?".
+ * An all-name candidate list is a successful lookup, not a missing entry. Names are filtered only when
+ * competing vocabulary exists.
  */
 export type LookupState = 'shown' | 'name' | 'missing' | 'unavailable';
 
@@ -251,27 +170,8 @@ export interface PickerChip {
 }
 
 /**
- * Which candidates the picker draws.
- *
- * Not a cap on the ANSWER: every candidate stays reachable and Shirabe ranks
- * rather than filters on purpose. It is a cap on the ROW, because a ranked list
- * is not automatically a readable one -- きみ answers twelve, six of them
- * JMnedict entries all glossing "Kimi", and twelve chips wrap into four lines on
- * a 340px card and push the definitions off the bottom.
- *
- * The index travels WITH the candidate, which is the whole reason this is a
- * function rather than a `slice` at the call site. Once the row is trimmed, its
- * own loop index and the position in the full list stop agreeing, and the pick
- * addresses the full list. Reading the loop index selects the wrong word the
- * moment anything is held back -- silently, because both are small integers and
- * one of them is usually right.
- *
- * A picked candidate is always in the row: pick from the full list, collapse it
- * again, and the card must not be left showing a word whose chip has gone.
- *
- * `limit` is small here -- the row is a glance, not the answer. What it does not
- * fit is one click away as a list that says what each word MEANS, which a chip
- * never could: see `candidateSummary`.
+ * Cap the visible row, not the candidate list. Preserve full-list indices and keep the picked candidate
+ * visible when collapsed; overflow remains reachable through the expanded list.
  */
 export function pickerChips(
   candidates: readonly ShirabeCandidate[],
@@ -290,17 +190,7 @@ export function pickerChips(
   return head;
 }
 
-/**
- * The other spellings worth showing, and never the one already on the card.
- *
- * A reader who met 空く and is being shown 開く needs the two connected, and the
- * forms list is what does it. But it also carries the headword itself and the
- * kana reading, both of which are already on the card an inch above -- printing
- * them again spends the row on things the reader can see.
- *
- * Capped, because a word can carry a dozen rare spellings and this is a
- * supporting row rather than the point of the card.
- */
+/** Show a capped list of distinct alternate spellings, excluding the headword and reading already printed. */
 export function cardForms(word: ShirabeWord | null, limit = 4): string[] {
   const headword = word?.headword ?? '';
   const reading = word?.reading ?? '';
@@ -317,28 +207,14 @@ export function cardForms(word: ShirabeWord | null, limit = 4): string[] {
   return forms;
 }
 
-/**
- * The languages a definition can be shown in here.
- *
- * JMdict ships more than these (French, German, Russian, Dutch), and Shirabe
- * returns every one an entry has. Nadeshiko has a reader preference for exactly
- * two, though, and a French gloss handed to a reader who asked for neither is
- * noise, so anything outside this list is dropped rather than guessed at.
- */
+/** Translation preferences cover English and Spanish; other JMdict gloss languages are excluded. */
 export type GlossLanguage = 'en' | 'es';
 
 const GLOSS_LANGUAGES: readonly GlossLanguage[] = ['en', 'es'];
 
 /**
- * What the card can PRINT, which is wider than what the reader has a preference
- * about.
- *
- * `GlossLanguage` is the pair the translation-visibility setting is written in
- * terms of, and it is about JMdict's translations. Japanese is not one of those:
- * it arrives from a monolingual dictionary that only appears here because the
- * reader put it in their own Shirabe stack, which is a stronger statement than
- * any toggle on this site. So it can be printed without being something to hide
- * or reorder.
+ * Japanese definitions from the reader's own monolingual dictionary stack are printable outside the EN/ES
+ * translation preferences.
  */
 export type PrintLanguage = GlossLanguage | 'ja';
 
@@ -354,26 +230,13 @@ export interface GlossPreference {
    *  (`?locale=`). Never empty: a card whose labels are in nobody's language
    *  helps nobody, so this falls back to the reader's own. */
   labels: GlossLanguage;
-  /** The language the part-of-speech and misc chips are written in: the
-   *  INTERFACE language, not the gloss one. A chip is a label the product puts
-   *  on a word, the way "More sentences" below it is, and it is the one thing on
-   *  this card that can be said in Japanese -- no dictionary writes definitions
-   *  in Japanese, so `labels` above can never be 'ja' and a reader on the
-   *  Japanese interface would otherwise never see a Japanese word here. */
+  /** Tag-chip language follows the interface locale, independently of the EN/ES gloss-label language. */
   tags: TagLanguage;
 }
 
 /**
- * What the reader reads, which is not what the interface is in.
- *
- * The UI language and the translation language are separate settings: someone
- * reads the site in English and studies from Spanish glosses, or the other way
- * round. The interface language only decides the ORDER here (your own language
- * first); the visibility preference decides who is on the list at all.
- *
- * 'spoiler' counts as shown. It means "make me try first" on a translation
- * sitting next to the Japanese, and a tooltip is something the reader opened on
- * purpose: they have already decided to look.
+ * Language visibility determines inclusion; the supplied language order determines priority. Spoiler
+ * translations count as shown because opening the tooltip is deliberate.
  */
 export function glossPreference(
   uiLocale: string,
@@ -401,20 +264,9 @@ function homeFirst(home: GlossLanguage): GlossLanguage[] {
 }
 
 /**
- * The definitions to print, filtered and ordered by what the reader reads.
- *
- * Shirabe returns every language the entry has, each tagged, and deliberately
- * does not choose. Choosing here rather than in the request is what lets ONE
- * cached response serve a reader with both languages on and a reader with one
- * off, and it is why the request is only keyed by the label language.
- *
- * A search-local hide does not make a language globally irrelevant. A reader
- * who reads only Spanish on that surface still meets words JMdict has no
- * Spanish gloss for, so it may fall back to another globally enabled language.
- *
- * A globally excluded language is never used as a fallback: that choice means
- * the reader does not care about it anywhere. When every globally enabled
- * language is hidden, the card gets no definitions at all.
+ * Select languages client-side so one cached response serves different preferences. Local hides may fall back
+ * to globally enabled languages, but global exclusions never return. If all enabled languages are hidden, no
+ * translated gloss is shown.
  */
 export function selectDefinitions(definitions: ShirabeText[] | undefined, preference: GlossPreference): ShirabeText[] {
   const wanted = preference.order.length > 0 ? inLanguages(definitions, preference.order) : [];
@@ -423,15 +275,8 @@ export function selectDefinitions(definitions: ShirabeText[] | undefined, prefer
   const fallback = preference.order.length > 0 ? inLanguages(definitions, preference.fallback) : [];
   if (fallback.length > 0) return fallback;
 
-  // A sense with nothing in either preference language, which since readers can
-  // link a Shirabe account is no longer the same as a sense with nothing worth
-  // printing. A monolingual dictionary writes in Japanese, and a reader only
-  // ever meets one here by putting it in their own dictionary stack -- so it is
-  // shown because they asked for it, not governed by a visibility preference
-  // that was written when JMdict's translations were the only thing on the card.
-  //
-  // Still not "print whatever arrived": JMdict also ships French, German, Dutch
-  // and Russian, and none of those is a language anybody here chose.
+  // Japanese monolingual definitions are an independent fallback because the reader added those dictionaries.
+  // Other unsolicited gloss languages remain excluded.
   return inLanguages(definitions, ['ja']);
 }
 
@@ -479,18 +324,8 @@ export interface CardSense {
    *  nothing to tell them apart reads as one dictionary contradicting itself. */
   dictionary: string;
   /**
-   * The same dictionary's STABLE id, for anything that has to name it in stored
-   * configuration rather than print it.
-   *
-   * Separate from `dictionary` above because that one is deliberately the NAME,
-   * and a name is the wrong thing to key on: Shirabe renames dictionaries, a
-   * re-upload changes one, and two of a reader's packs can share a title. An
-   * Anki field mapped to `{definition:sanseido}` has to keep meaning the same
-   * dictionary across all of that.
-   *
-   * Optional because a Shirabe old enough not to publish it leaves nothing to
-   * carry, and because it is only ever read by name-a-dictionary features: the
-   * card itself prints `dictionary` and never needs this.
+   * Stable dictionary identifier for stored mappings, separate from the display name. Optional for older
+   * Shirabe responses; names may change or collide.
    */
   dictionarySlug?: string;
   /** What to PRINT as this sense's number: `1`, `①` or `㋐` depending on its
@@ -501,16 +336,8 @@ export interface CardSense {
 }
 
 /**
- * The badge in front of a definition, and Japanese deliberately has none.
- *
- * The badge answers "which language is this?", and it is worth a few pixels
- * where the answer is not obvious from the text: EN and ES are both Latin script
- * and a reader with both on needs to know which they are reading. Japanese
- * announces itself. On a monolingual dictionary every row would carry the same
- * JA down the whole card, saying what the writing already said.
- *
- * `lang` still says `ja` -- the badge is presentation and the language is data,
- * and `CardGlossRow.lang` is what keys the rows.
+ * Badge EN/ES glosses to distinguish their shared script. Japanese needs no badge, but retains `lang: 'ja'`
+ * as data.
  */
 const GLOSS_LABEL: Record<PrintLanguage, string> = { en: 'EN', es: 'ES', ja: '' };
 
@@ -530,15 +357,10 @@ function glossRows(definitions: ShirabeText[]): CardGlossRow[] {
 
 const MISC_TAG_CATEGORIES = new Set(['misc', 'field', 'dialect']);
 
-/** Chips for one sense, deduped by the label that will be printed: JMdict often
- *  carries several codes that shorten to the same word (`vs-i` and `vs-s` both
- *  read "Suru verb"), and printing it twice is the duplication this replaces.
- *
- *  The wording comes from `~/utils/wordTagLabels`, keyed off JMdict's stable tag
- *  *code* rather than the label Shirabe sent: JMdict's own is verbose and
- *  inconsistent ("n" arrives as "noun (common) (futsuumeishi)", which reads as
- *  three tags rather than one), and it is English whatever locale we ask for.
- *  The full JMdict wording survives as the chip's tooltip. */
+/**
+ * Localize chips by stable JMdict code and deduplicate by printed label. Preserve Shirabe's full wording in
+ * the tooltip.
+ */
 function cardTags(tags: ShirabeTag[], lang: TagLanguage, keep: (tag: ShirabeTag) => boolean): CardTag[] {
   const chips: CardTag[] = [];
   for (const tag of tags) {
@@ -550,24 +372,7 @@ function cardTags(tags: ShirabeTag[], lang: TagLanguage, keep: (tag: ShirabeTag)
   return chips;
 }
 
-/**
- * How many senses to print FROM ONE DICTIONARY.
- *
- * Per dictionary, not per card, and the difference is the whole of a bug worth
- * remembering. This was a cap on the flattened list back when a word had exactly
- * one entry, and it stayed that way when a linked Shirabe account made a word
- * carry one entry per dictionary in the reader's stack. JMdict leads most stacks
- * and 猫 has more than six senses in it, so the cap was reached before the loop
- * ever arrived at the monolingual dictionary underneath -- and the reader saw
- * none of what they had linked their account for, on exactly the common words
- * they would test it with. Nothing errored, because nothing was wrong: the
- * definitions were fetched, parsed and then dropped on the floor.
- *
- * Six was always "how much of one dictionary is worth reading here", which is a
- * statement about a card's height against a long sense list. That reason applies
- * within a dictionary. It has nothing to say about a reader who deliberately put
- * a second one in their stack.
- */
+/** Cap senses per dictionary so a long entry cannot crowd out later dictionaries in the reader's stack. */
 const SENSE_LIMIT = 6;
 
 /** Whether two senses carry the same part of speech, by the labels that would be
@@ -578,29 +383,8 @@ function samePartsOfSpeech(a: CardTag[], b: CardTag[]): boolean {
 }
 
 /**
- * The numbered senses to print. A sense left with no gloss the reader can read
- * drops out rather than printing its labels over an empty line.
- *
- * Every dictionary in the reader's stack gets its own allowance (`SENSE_LIMIT`),
- * so a long JMdict entry can no longer crowd out the monolingual dictionary a
- * reader linked their account to see. The card body scrolls, and a reader who
- * put two dictionaries in their stack asked for two dictionaries.
- *
- * A sense whose part of speech is the same as the sense above it prints no POS
- * chip at all. 顔 is a noun in all six of its senses, and repeating "Noun" six
- * times down a 340px card is six chips that say nothing new -- the reader reads
- * the first one and then has to look past the rest to reach the definitions. A
- * blank means "same as above", which is how a paper dictionary has always
- * carried a part of speech down a numbered list.
- *
- * Only the POS. Usage qualifiers stay on every sense they belong to: "usually
- * kana" on sense 3 and not on sense 4 is a real difference between those two
- * senses, and carrying it down would state something false.
- *
- * This is a deliberate divergence from Shirabe, which prints the chip on every
- * sense (`_word_body.html.erb`). Its word page has the width to spend and this
- * card does not. Owner intends to make the same change there (2026-08-10), at
- * which point the two agree again.
+ * Keep dictionary order and a separate allowance per dictionary; omit senses with no printable gloss.
+ * Suppress repeated POS chips, but retain usage qualifiers and notes on every sense they qualify.
  */
 export function cardSenses(word: ShirabeWord | null, preference: GlossPreference, limit = SENSE_LIMIT): CardSense[] {
   // Entries arrive in the key owner's own dictionary order, so flattening keeps
@@ -616,15 +400,10 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
     })),
   );
   const cards: CardSense[] = [];
-  // The last POS actually printed, which is not the same as the previous card's
-  // own: once a repeat is blanked, the next sense still has to be compared
-  // against the chip the reader can SEE, or an A / A / A run would print the
-  // first and third.
+  // Compare against the last POS actually printed, not a previous row whose repeated chip was blanked.
   let shown: CardTag[] = [];
 
-  // Counted per dictionary. `continue` rather than `break`, which is the fix:
-  // stopping at the first dictionary to fill its quota threw away every
-  // dictionary below it in the stack.
+  // Apply quotas per dictionary; exhausting one must not stop later dictionaries.
   const printed = new Map<string, number>();
   const kept: Array<{ sense: ShirabeSense; dictionary: string }> = [];
 
@@ -664,17 +443,8 @@ export function cardSenses(word: ShirabeWord | null, preference: GlossPreference
 }
 
 /**
- * How to name one dictionary on a card, for anything that has to GROUP by it.
- *
- * The slug where there is one, because the name is not an identity: Shirabe
- * renames packs, a re-upload changes one, and two of a reader's uploads can
- * share a title -- so keying on the name would silently fuse two dictionaries
- * into one group and hand a reader who picked one the senses of both.
- *
- * The name is the fallback rather than an error, because a Shirabe too old to
- * publish slugs still has to group correctly by what it prints. Falling back
- * per sense rather than per card is deliberate: a stack can mix a slugged pack
- * with an unslugged one, and each is then keyed by the best id it has.
+ * Group by stable slug when available, otherwise by name for older responses. Resolve the fallback per sense
+ * so mixed-version stacks remain usable.
  */
 export function dictionaryKey(sense: Pick<CardSense, 'dictionary' | 'dictionarySlug'>): string {
   return sense.dictionarySlug || sense.dictionary;
@@ -692,24 +462,9 @@ function range(from: number, to: number): string[] {
 }
 
 /**
- * The number to print against each sense, and how far to step it in.
- *
- * A dictionary numbers in TIERS, and it does not tell us in the text: デジタル大辞泉
- * files 食べる as ① ② with ㋐ ㋑ underneath ②, and a flat 1 2 3 4 states that the
- * word has four equal senses, which the dictionary does not say. Shirabe
- * publishes the tier as `depth` because the glyph that carries it differs per
- * pack and never reaches us.
- *
- * The glyph carries the tier, so a reader sees what a number MEANS without
- * counting indents: a group is 1, a sense in it ①, a finer sub-sense ㋐. Counted
- * per tier rather than read off the dictionary's own label, so the run stays
- * continuous where the pack's numbering is not -- 精選版 restarts ① under every
- * 一二三四 -- and per DICTIONARY, so each starts again from the top under its own
- * name.
- *
- * The indent drops a level for a dictionary that never used groups, which is
- * most of them: a pack numbering ①②③ flat should not sit indented under a tier
- * that is not there. Same rule as `SearchHelper#sense_indent`.
+ * Number each dictionary by depth: groups use digits, senses circled numbers, sub-senses circled kana. Reset
+ * child counters under a new parent; omit the unused group indentation for flat dictionaries. Mirrors
+ * Shirabe's sense numbering.
  */
 function numberSenses(cards: CardSense[], kept: Array<{ sense: ShirabeSense; dictionary: string }>): CardSense[] {
   const tieredDictionaries = new Set(
@@ -759,18 +514,8 @@ function tierNumber(depth: number, ordinal: number): string {
 }
 
 /**
- * One line saying what a candidate MEANS, for a row the reader has not opened.
- *
- * The thing the old chip row could not do. A chip read 個々 and nothing else, so
- * choosing between nine of them was choosing blind: you opened one to find out,
- * and opened another if it was wrong. A spelling is only a recognisable label to
- * someone who already knows the word, which is precisely not the reader looking
- * it up.
- *
- * Built by asking `cardSenses` for ONE sense rather than by reaching into the
- * entry: the row then shows the same first definition the card will show when it
- * is opened, in the same language, chosen by the same rules. A preview that
- * disagrees with what it previews is worse than none.
+ * Preview the first printable gloss through `cardSenses` so candidate summaries use the same
+ * language-selection rules as the open card.
  */
 export function candidateSummary(
   candidate: ShirabeCandidate | null,
@@ -794,17 +539,8 @@ export function candidateSummary(
 const SUMMARY_LIMIT = 42;
 
 /**
- * What tells two candidates with the SAME spelling apart.
- *
- * あれ answers twice: the pronoun (that) and the interjection (huh?). Both are
- * real, both belong in the list, and in 「あれって？」 either could be what the
- * reader met -- but two chips reading あれ offer no way to choose between them,
- * which is the picker asking a question it has not given the reader the means to
- * answer.
- *
- * The part of speech is the difference, and it is the shortest thing that is.
- * Taken from the same first sense the card would print, so the chip and the card
- * cannot disagree about which word this is.
+ * Use the first printable sense's POS to distinguish candidates with identical spellings, consistently with
+ * the card.
  */
 export function candidatePartOfSpeech(candidate: ShirabeCandidate | null, preference: GlossPreference): string {
   const [first] = cardSenses(candidate, preference, 1);
@@ -832,23 +568,14 @@ const SMALL_KANA = 'ゃゅょャュョぁぃぅぇぉァィゥェォ';
  * downstep. Mirrors Shirabe's own pitch diagram.
  */
 /**
- * The accent pattern's name, from its downstep and how many morae the word has.
- *
- * The four Japanese textbooks name: heiban (no downstep), atamadaka (falls after
- * the first mora), odaka (falls after the LAST one, audible only on what
- * follows) and nakadaka (anywhere between). Odaka and nakadaka are the pair that
- * needs the mora count, which is why this takes the reading rather than the
- * number alone -- `3` is odaka on a three-mora word and nakadaka on a four.
- *
- * Yomitan publishes the same thing as `{pitch-accent-categories}` and Lapis has
- * a field for it; the numbers alone are in `{word-pitch-num}`.
+ * Classify pitch from downstep and mora count; the same downstep can be odaka or nakadaka depending on
+ * reading length. Names feed pitch-category Anki fields; numeric positions are separate.
  */
 export function pitchCategory(reading: string, downstep: number): string {
   if (!Number.isInteger(downstep) || downstep < 0) return '';
   if (downstep === 0) return 'heiban';
   if (downstep === 1) return 'atamadaka';
-  // Counted in MORAE, not characters: ょ and っ do not carry a beat of their own,
-  // and `pitchMorae` already knows how to split them off.
+  // Reuse `pitchMorae` so category and diagram use the same reading segmentation.
   const morae = pitchMorae(reading, downstep).length;
   if (morae > 0 && downstep >= morae) return 'odaka';
   return 'nakadaka';
@@ -871,31 +598,14 @@ export function pitchMorae(reading: string, downstep: number): PitchMora[] {
 const SHIRABE_SITE = 'https://shirabe.org';
 
 /**
- * Which link on the card a reader took to Shirabe. Rides out as `utm_content`,
- * so the two can be told apart on the other side: a reader who opens the kanji
- * chips is doing something different from one who wants the full entry, and
- * lumping them together hides which half of the card is doing the work.
- *
- * `anki-definition` is the same destination as `word-card` -- the word's own
- * page -- reached from a note rather than from the hover card, so it is a
- * different surface even though the path is the same.
+ * Outbound surface recorded as `utm_content`; word-card and Anki-definition links share a destination but
+ * represent different entry points.
  */
 export type ShirabeLinkSurface = 'word-card' | 'kanji-chip' | 'anki-definition';
 
 /**
- * Mark a Shirabe link as ours, so its own PostHog can attribute the visit.
- *
- * Not redundant with the referrer: every one of these links is rendered
- * `rel="noopener noreferrer"`, which strips the `Referer` header outright, so
- * without this Shirabe records the whole of Nadeshiko's outbound traffic as
- * direct. `noreferrer` is not worth dropping to fix that -- these are
- * third-party destinations reached from a page that knows what the reader
- * searched for, and the query string is in the URL.
- *
- * `utm_*` rather than a parameter of our own because Shirabe runs stock
- * posthog-js, which reads these five names and no others: they land on the event
- * AND on the person as `$initial_utm_source`, so a reader who arrives once from
- * here stays attributed. Nothing has to be built on the Shirabe side.
+ * Use standard UTM parameters for Shirabe attribution because `noreferrer` strips the referrer. Keep that
+ * privacy boundary: the originating URL can contain the reader's search.
  */
 function withAttribution(url: string, surface: ShirabeLinkSurface): string {
   const params = new URLSearchParams({
@@ -909,13 +619,8 @@ function withAttribution(url: string, surface: ShirabeLinkSurface): string {
 }
 
 /**
- * The word's own page on Shirabe.
- *
- * `id` is the one the LOOKUP RESPONSE came back with, never one off a stored
- * token. The id is derived from dictionary content, so it moves when a headword,
- * a commonness flag or a resolution rule moves -- linking with what was just
- * resolved keeps the link right, while linking with something stored months ago
- * lands on the wrong entry without ever looking broken.
+ * Use the freshly resolved lookup id for word links, never a stored token id: content-derived ids can change
+ * after dictionary re-imports.
  */
 export function shirabeWordUrl(
   id: string,

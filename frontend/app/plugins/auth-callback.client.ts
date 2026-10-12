@@ -11,11 +11,8 @@ import { isAccountLinkCallback } from '~/utils/accountLinks';
 import { reportEvent } from '~/utils/reportError';
 
 /**
- * Reports an auth round trip that came back rejected, tagged with the same
- * provider/source/gate the successful events carry so the two are comparable.
- *
- * The intent is consumed rather than left parked: this attempt is over, and
- * leaving it behind would credit the gate to whatever login happens next.
+ * Report rejection with the shared auth attribution fields and consume the completed intent so it cannot
+ * credit a later login.
  */
 function reportFailedLogin(reason: string) {
   const intent = consumeAuthIntent(authIntentStorage(), Date.now());
@@ -23,14 +20,8 @@ function reportFailedLogin(reason: string) {
 }
 
 /**
- * What to tell the reader about a rejected round trip.
- *
- * `access_denied` is the provider's own code and it means one of two things:
- * the reader cancelled at the consent screen, or the provider refused them
- * without asking (a managed Google account whose admin has not allowed the app,
- * a supervised account). Neither is a mistake the reader can correct by trying
- * the same button harder, so it gets a line that says the request was not
- * approved and points at the one sign-in nobody else has to approve.
+ * Access denial may mean cancellation or account policy refusal; suggest email sign-in rather than retrying
+ * the same provider.
  */
 function callbackErrorLabel(reason: string): string {
   if (reason === 'banned') return 'modalauth.labels.banneduser';
@@ -40,10 +31,7 @@ function callbackErrorLabel(reason: string): string {
 
 export default defineNuxtPlugin({
   name: 'auth-callback',
-  // `identity-auth` finishes the client-side session bootstrap that
-  // `store.isLoggedIn` is read from below, and `vue-toastification` installs the
-  // Vue plugin every toast here needs. Both sort after this file by name, so
-  // without this they would run second.
+  // Wait for session bootstrap and toast installation before handling the callback.
   dependsOn: ['identity-auth', 'vue-toastification'],
   setup(nuxtApp) {
     const store = userStore();
@@ -81,10 +69,7 @@ export default defineNuxtPlugin({
       await router.replace({ path: route.path, query: {} });
 
       if (callbackError) {
-        // Without this, a provider that rejects everyone looks exactly like a
-        // provider nobody chooses -- both are simply an absence of signups. That
-        // is not hypothetical here: 264 people picked Google in 90 days and the
-        // data could not say what became of any of them.
+        // Record rejection separately from provider abandonment.
         reportFailedLogin(String(callbackError));
         useToastError($i18n.t(callbackErrorLabel(String(callbackError))));
         await router.replace(returnTo ?? fallbackPath);
@@ -96,11 +81,7 @@ export default defineNuxtPlugin({
       }
       if (store.isLoggedIn) {
         useToastSuccess($i18n.t('modalauth.labels.successfullogin'));
-        // The identify, the signup-or-login decision and the provider that earned
-        // it all live in one place now. This call differs from the one
-        // `identity-auth` already made only in knowing the load was an auth
-        // landing, which is what lets a returning reader's login be counted; if
-        // that pass already reported the transition, this one is a no-op.
+        // Reconcile identity with callback evidence; an already-reported transition remains a no-op.
         reconcileAnalyticsIdentity({ viaCallback: true });
       } else {
         reportEvent('auth_callback_session_failed', { 'auth.callback_path': route.path });

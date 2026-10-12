@@ -2,36 +2,8 @@
 import { mdiChevronDown } from '@mdi/js';
 import type { Media } from '@brigadasos/nadeshiko-sdk';
 
-/**
- * The title card at the top of `/media/<slug>`.
- *
- * The page had its own URL before it had anything of its own to say: the body
- * was a sentence list identical in shape to a search, so nothing on it named the
- * work, dated it, or said what kind of thing it was. That is thin for a page
- * whose whole subject is one title, and it left the `<h1>` as the only piece of
- * text about the work -- screen-reader-only at that.
- *
- * Everything here comes from the media payload the page already fetched, so it
- * costs no extra request.
- *
- * It is a disclosure now rather than a fixed block. The card sits between the
- * tabs and the sentences, which are what the page is actually for, and at its
- * old size it took a third of a phone's viewport.
- *
- * Two layouts, not a panel that unfolds under a fixed header. Open is the card
- * as it always looked -- poster, full-size title, the details beside it. Closed
- * is one line: a thumbnail, the title, and the counts. What moves between them
- * is the SAME elements rather than two subtrees crossfading, which is what keeps
- * a single `<h1>` on the page and lets the poster and the heading animate to
- * size instead of popping.
- *
- * `useMediaCardDefault` says which way it starts; the card itself opens and
- * closes for anybody, signed in or not, because that state is nothing worth
- * storing.
- *
- * The details are hidden by a collapsed grid row rather than by `v-if`, so they
- * stay in the markup at every size: one reader closing their card does not
- * change what the page says about the work.
+/** Reuse one heading/poster across disclosure states. Collapse details without v-if so they remain in the page
+ * markup.
  */
 const props = withDefaults(
   defineProps<{
@@ -52,12 +24,7 @@ const { startsOpen } = useMediaCardDefault();
 
 const title = computed(() => mediaName(props.media));
 
-/**
- * Local, and seeded rather than bound: the preference is a starting position,
- * so opening one title's card must not quietly rewrite the setting for every
- * other. Seeded during SSR too, which is what keeps the first paint right
- * instead of correct-after-hydration.
- */
+/** Seed local disclosure state during SSR; toggling a card must not rewrite the preference for every title. */
 const open = ref(startsOpen.value);
 // The setting can change under a mounted card -- the settings page is a route
 // away, and coming back does not remount this.
@@ -69,13 +36,7 @@ const toggle = () => {
   open.value = !open.value;
 };
 
-/**
- * The whole card is the target, not just the chevron. Two things it must not
- * swallow: a click on one of the catalogue links, which is a navigation and not
- * a toggle, and a click that ends a text selection -- collapsing the card out
- * from under a reader dragging across the Japanese title is the kind of thing
- * that makes a page feel hostile.
- */
+/** Let links/buttons navigate, and do not collapse the card after a text-selection drag. */
 const onCardClick = (event: MouseEvent) => {
   if ((event.target as HTMLElement | null)?.closest('a, button')) return;
   if (import.meta.client && !window.getSelection()?.isCollapsed) return;
@@ -166,11 +127,7 @@ const catalogLinks = computed(() => {
   return links;
 });
 
-/**
- * One id per rendered card, so the chevron's `aria-controls` points at this
- * card's details and not at another instance's. `useId` is stable across the
- * server and client renders, which a counter would not be.
- */
+/** useId gives each card stable SSR/client aria-controls without collisions between cards. */
 const detailsId = `media-header-details-${useId()}`;
 </script>
 

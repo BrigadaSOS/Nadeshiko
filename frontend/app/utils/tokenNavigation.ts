@@ -1,44 +1,17 @@
 /**
- * Walking a sentence from the keyboard.
- *
- * A sentence of tokens is a composite widget, not a run of links: making every
- * word a tab stop would be the obvious way to reach them and a bad one, because
- * a page of results is thousands of words and a reader tabbing to the footer
- * would pay for every one. So the sentence takes ONE tab stop and the arrow keys
- * move within it -- the roving-tabindex pattern.
- *
- * The decisions live here rather than in the component for the same reason
- * `cardPlacement` does: they are the part that can quietly go wrong (a run that
- * skips a word, an edge that wraps when it should stop) and the part worth
- * testing on its own. The component keeps the DOM half -- moving focus, painting
- * the ring -- which is all it should have.
- *
- * Keys are token byte offsets: unique within a sentence, stable across the
- * re-renders that rebuild the token objects, and already the `v-for` key.
+ * Use one sentence tab stop with arrow-key navigation instead of making every result token tabbable. Token
+ * offsets provide stable keys; the component owns DOM focus and presentation.
  */
 
 /**
- * What a key press on a token means.
- *
- * `null` is "not ours" -- the component must leave the event alone so the
- * browser still gets Tab, typing, and shortcuts. `hold` is ours but goes
- * nowhere: an arrow at the end of a sentence is still the widget's key, and
- * letting it fall through would scroll the page out from under a reader who
- * only meant to move one word.
+ * Null leaves the key to the browser. Hold consumes a widget arrow without moving, preventing page scroll at
+ * sentence boundaries.
  */
 export type TokenKeyAction = { type: 'open' } | { type: 'move'; to: number } | { type: 'hold' } | null;
 
 /**
- * Which token holds the sentence's tab stop.
- *
- * The reader's last position when they have one and it still exists, and
- * otherwise the first word. Never null for a sentence with any navigable word,
- * which is the point: a sentence whose every token was `tabindex="-1"` would
- * drop out of the tab order altogether and become unreachable again.
- *
- * `current` can name a token that has gone -- the tokens are rebuilt whenever
- * the segment list re-renders, and a search can replace the sentence under a
- * reader who had walked into the middle of it.
+ * Retain the current token if present, otherwise use the first navigable token so a rebuilt sentence stays in
+ * the tab order.
  */
 export function tabStop(keys: readonly number[], current: number | null): number | null {
   if (current !== null && keys.includes(current)) return current;
@@ -46,15 +19,8 @@ export function tabStop(keys: readonly number[], current: number | null): number
 }
 
 /**
- * The token a key press moves to, or that it opens.
- *
- * Both axes move, because a sentence wraps over several lines: Down is as
- * natural a "next word" as Right to someone looking at the second line of one.
- *
- * The ends do not wrap. Arrowing off the last word of a sentence stays put
- * rather than jumping to the first: a reader who has walked to the end has
- * finished, and silently teleporting them back to the start reads as the widget
- * losing their place. Home and End are how you get to an end on purpose.
+ * Both arrow axes traverse wrapped sentences. Stop rather than wrap at the ends; Home/End move explicitly to
+ * a boundary.
  */
 export function tokenKeyAction(key: string, keys: readonly number[], from: number): TokenKeyAction {
   switch (key) {

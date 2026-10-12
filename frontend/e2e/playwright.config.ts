@@ -10,21 +10,8 @@ dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../ba
 const BASE_URL = getE2EBaseUrl();
 const JUNIT_OUTPUT = resolve(dirname(fileURLToPath(import.meta.url)), '../test-results/e2e-results.xml');
 
-/**
- * Which Chromium to drive.
- *
- * CI keeps Google Chrome: the runner images ship it, and the release workflows
- * only `playwright install chromium` for its system deps -- so the channel is
- * what actually launches there, and pinning a real Chrome is the point (it is
- * the browser the readers use, codecs and all).
- *
- * A developer machine need not have it. Any Chromium build does the job, so
- * `E2E_BROWSER_PATH` takes an explicit binary, and failing that a Brave install
- * is picked up where Chrome is absent -- otherwise the whole suite dies at
- * launch with "Chromium distribution 'chrome' is not found", which says nothing
- * about the tests. Bundled Chromium is the last resort: it is always installed,
- * so this never leaves someone with no browser at all.
- */
+// Prefer real Chrome (including CI codecs); local machines may select an explicit
+// E2E_BROWSER_PATH or Brave. Fall back to Playwright's installed Chromium.
 const BRAVE_PATHS = [
   '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
   '/usr/bin/brave-browser',
@@ -46,55 +33,26 @@ function chromiumLauncher(): { channel?: string; executablePath?: string } {
   const brave = BRAVE_PATHS.find((path) => existsSync(path));
   if (brave) return { executablePath: brave };
 
-  // No channel and no path: Playwright's own Chromium, which `npx playwright
-  // install` has already put on any machine that can run this suite.
+  // No channel/path selects Playwright's bundled Chromium.
   return {};
 }
 
 const CHROMIUM = chromiumLauncher();
 
-// Specs that need a signed-in session. The `authenticatedPage` fixture only
-// hands back the page -- the session comes from this project's `storageState` --
-// so a spec left off this list runs signed out and its `/v1/user/**` calls 401.
-// `favorite-media` was missing and failed in `beforeEach`, before it reached a
-// single assertion.
-// Each name is spelled out in full: the alternation is anchored by `\.spec\.ts$`,
-// so `activity` does NOT cover `activity-privacy.spec.ts`. A spec that looks
-// covered but is not runs signed out and dies in `beforeEach`.
+// authenticatedPage reuses the project/worker storageState; omitted specs run signed out.
+// Spell out full names: the .spec.ts anchor means "activity" does not match "activity-privacy".
 const AUTHENTICATED_TESTS =
   /(accessibility|account-lifecycle|activity|activity-privacy|admin-access|anki-deck-model|anki-field-placeholders|auth-callback|collections|developer-api-keys|favorite-media|header-navigation|hidden-categories|hidden-media|hidden-results-notice|media-filter-account|recent-searches-account|reporting|shirabe-connection|user-settings|word-mining)\.spec\.ts$/;
 
-/**
- * Release workflows use this serial smoke suite. It covers the boundaries that
- * only a deployed environment can prove: SSR, authentication, Cloudflare, R2,
- * PostgreSQL and Elasticsearch. The component and API checks cover application
- * behaviour without loading the database shared by staging and production.
- *
- *   homepage      SSR renders, real stats and recent-media come back
- *   navigation    six status-code checks -- one render each, the cheapest
- *                 real-infrastructure coverage available
- *   sentence      SSR plus R2/CDN images, and the edge cache added 2026-08-13
- *   user-settings the only authenticated one: real better-auth against the real
- *                 database. This is the shape of bug (a 403 from /list-sessions
- *                 that made the panel unusable for anyone logged in over a day)
- *                 that staging can miss and prod cannot afford to.
- *
- * Mobile and pure routing stay outside this suite because they do not depend on
- * deployed infrastructure.
- */
+// Release smoke stays serial and exercises deployed SSR, auth, edge/storage and database
+// boundaries. Pure routing and viewport behavior do not spend the production render budget.
 const SMOKE = !!process.env.E2E_SMOKE;
-// The leading `/` is load-bearing: without it `sentence` also matches
-// `search/expand-sentence.spec.ts` and `navigation` matches
-// `search/keyboard-navigation.spec.ts`, quietly pulling seven extra tests into
-// a budget that is counted. Same trap as `isPrivatePath` in the app, and it
-// fails the same silent way -- a larger run that still looks deliberate.
+// Anchor the basename with / so sentence/navigation do not match expand-sentence/keyboard-navigation.
 const SMOKE_ANONYMOUS = /\/(feeds|homepage|navigation|release-health|sentence)\.spec\.ts$/;
 const SMOKE_AUTHENTICATED = /\/user-settings\.spec\.ts$/;
 const CROSS_BROWSER_SMOKE = /\/(homepage|release-health|user-settings|search\/search-results)\.spec\.ts$/;
-// One representative path per risk area is enough outside Chromium: SSR/CSP,
-// basic interaction, Japanese result rendering and authenticated state. The
-// complete behavior matrix still runs in Chromium; repeating every assertion
-// in two more engines added ~30 seconds without exercising another path.
+// Other engines cover representative SSR/CSP, interaction, Japanese rendering and auth paths;
+// Chromium retains the full behavior matrix.
 const CROSS_BROWSER_SMOKE_TITLES =
   /loads and displays core elements|hydrates with its external stylesheets|returns results for a Japanese query|displays correct username and email/;
 
@@ -103,23 +61,14 @@ export default defineConfig({
   globalTeardown: './global-teardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // One retry in smoke, not two. A retry re-renders every page the test touched,
-  // so against a 20-per-minute budget the retries are what turn one real failure
-  // into a cascade of unrelated ones.
+  // Smoke retries re-render pages against a 20-per-minute budget; limit failure cascades.
   retries: SMOKE ? 1 : process.env.CI ? 2 : 1,
   maxFailures: process.env.CI ? 5 : undefined,
-  // Full local runs use one seeded account per worker (see auth.ts and the
-  // backend seeds), so stateful specs can run concurrently without clearing one
-  // another's preferences, collections or activity. Four workers keeps the
-  // application responsive under the state-heavy suite. Eight workers looked
-  // faster in an earlier partial run, but the first complete staging gate
-  // produced widespread navigation/hydration timeouts and 11 flaky tests from
-  // contention, so that concurrency is beyond the staging host's safe capacity.
-  // Production smoke stays serial because its HTML limiter counts bursts like
-  // sustained load and intentionally has no origin bypass.
+  // Per-worker accounts isolate stateful specs. Four workers fit staging capacity; eight
+  // caused navigation/hydration timeouts and flakes. Production smoke stays serial
+  // because its HTML limiter counts bursts and intentionally has no origin bypass.
   workers: SMOKE ? 1 : 4,
-  // A release smoke retry may tolerate a transient edge failure, but a full CI
-  // run reports it as flaky.
+  // Smoke tolerates transient edge retries; full CI fails on flakes.
   failOnFlakyTests: !!process.env.CI && !SMOKE,
   reporter: process.env.CI ? [['html'], ['junit', { outputFile: JUNIT_OUTPUT }]] : 'list',
   timeout: 60_000,
@@ -128,9 +77,7 @@ export default defineConfig({
     baseURL: BASE_URL,
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
-    // See `e2eBypassHeaders`. Applies to every context the projects create; a
-    // context built by hand inside a test (the anonymous one in
-    // collections.spec.ts) has to pass them itself.
+    // Hand-built contexts must also pass these headers (e.g. anonymous collection tests).
     extraHTTPHeaders: e2eBypassHeaders(),
   },
 
@@ -145,8 +92,7 @@ export default defineConfig({
     },
     {
       name: 'chromium',
-      // `testMatch` narrows in smoke; `testIgnore` still applies, which is what
-      // keeps the authenticated specs from being picked up twice.
+      // testIgnore still applies in smoke, preventing duplicate authenticated runs.
       ...(SMOKE ? { testMatch: SMOKE_ANONYMOUS } : {}),
       testIgnore: [/mobile\.spec\.ts$/, AUTHENTICATED_TESTS],
       use: {
@@ -154,8 +100,7 @@ export default defineConfig({
         ...CHROMIUM,
       },
     },
-    // Mobile is viewport behaviour, which cannot differ between staging and
-    // production, so it does not spend production's budget.
+    // Viewport behavior does not spend production's render budget.
     ...(SMOKE
       ? []
       : [

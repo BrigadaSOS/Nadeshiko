@@ -1,16 +1,8 @@
 import { type AuthSource, authIntentStorage, updateAuthIntent } from '~/utils/authAnalytics';
 
 /**
- * The login/signup modal lives in the default layout but is opened from the
- * header, and from every feature gate a signed-out reader runs into, so its open
- * state is shared rather than local.
- *
- * Opening it is also the only moment at which we know *why* the reader is being
- * asked to sign in, so this is where that gets recorded -- both to PostHog and
- * into the parked intent that carries it across the OAuth redirect. Doing it here
- * rather than at each call site is what keeps `login_modal_opened` and
- * `signup_completed` describing the same journey: a new gate cannot be wired up
- * and silently forget to report itself.
+ * Share the layout's modal across header and feature gates. Record source and park auth intent
+ * here so every gate retains attribution through OAuth.
  */
 export function useLoginModal() {
   const isLoginModalOpen = useState('nd-login-modal-open', () => false);

@@ -4,29 +4,14 @@ import { ref } from 'vue';
 import { DICT_LINKS_COOKIE } from '#shared/utils/preferenceCookies';
 
 /**
- * Which external dictionaries the word card links out to.
- *
- * Stored in a cookie because it is read during SSR and is therefore a cache
- * key, and that forces the distinction this file mostly exists to pin: an
- * EMPTY cookie ("every dictionary off") has to be tellable from an ABSENT one
- * ("never chose"). Collapse the two and a reader who deliberately turned
- * everything off gets the defaults back on their next page load.
- *
- * shirabe.org is `required`: the card itself is built from it, so "turn it off"
- * would mean "hide the link to the thing you are already reading". The UI does
- * not offer that toggle, so a write reaching it is a stale cookie or a caller
- * that does not know -- and neither should be able to switch it off.
+ * An empty cookie means deliberately disabled, not unchosen defaults. Shirabe remains required
+ * even with stale cookies or callers.
  */
 const cookies = new Map<string, ReturnType<typeof ref<string | null>>>();
 
 /**
- * `useState`, scoped to ONE test rather than to the run.
- *
- * The suite-wide stub keeps one ref per key for the whole file, and `useState`'s
- * initializer only runs for whichever call claims the key first -- so the second
- * test onwards would read the first test's reader preference instead of parsing
- * its own cookie, and every assertion here would be about the first fixture.
- * A fresh map per test is what a fresh request is.
+ * Reset useState's map per test to model a fresh request, not the first fixture's
+ * already-initialized preference.
  */
 let nuxtState = new Map<string, ReturnType<typeof ref>>();
 

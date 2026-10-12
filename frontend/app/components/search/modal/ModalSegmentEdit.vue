@@ -94,20 +94,8 @@ const toggleHistory = async () => {
   }
 };
 
-/**
- * Which sentence's history the panel is showing.
- *
- * This modal stays MOUNTED as the moderator moves between sentences -- the
- * `segment` prop changes underneath it -- and the history panel is open by
- * default, so each move starts a request while the previous one may still be
- * out. Assigned in arrival order, the older reply won and the panel listed the
- * previous sentence's revisions under the current one. That is not a display
- * fault: selecting a revision loads its text into the form, and the form is what
- * gets saved, so it is a route to writing one sentence's text onto another.
- *
- * The failure path needs the same guard for the mirror-image reason -- clearing
- * the list is right for the sentence that failed and wrong for the one now on
- * screen.
+/** This reused modal can receive revision replies out of order. Guard success and failure paths so another
+ * sentence's history cannot populate or clear this one; selected revisions seed the text that gets saved.
  */
 let latestRevisionRequest = 0;
 
@@ -266,7 +254,6 @@ const submitEdit = async () => {
     ]"
     @close="closeModal"
   >
-      <!-- Header -->
       <div class="nd-modal-header">
         <h3 id="nd-segment-edit-modal-title" class="font-bold text-gray-800 dark:text-white">
           {{ t('modalSegmentEdit.title') }}
@@ -299,9 +286,7 @@ const submitEdit = async () => {
         </div>
       </div>
 
-      <!-- Body -->
       <div class="flex overflow-hidden">
-        <!-- Form panel -->
         <SearchModalSegmentEditForm
           :segment="segment"
           :form="form"
@@ -315,7 +300,6 @@ const submitEdit = async () => {
           @restore-current="restoreCurrent"
         />
 
-        <!-- Vertical divider + History panel -->
         <template v-if="showHistory">
           <div class="w-px bg-neutral-700 flex-shrink-0" />
           <SearchModalSegmentEditRevisions
@@ -328,9 +312,7 @@ const submitEdit = async () => {
         </template>
       </div>
 
-      <!-- Footer -->
       <div class="flex items-center py-3 px-4 border-t dark:border-modal-border">
-        <!-- Delete Episode (left side) -->
         <div class="flex items-center gap-2">
           <template v-if="!showDeleteEpisodeConfirm">
             <button
@@ -365,7 +347,6 @@ const submitEdit = async () => {
           </template>
         </div>
 
-        <!-- Save / Cancel (right side) -->
         <div class="flex items-center gap-x-2 ml-auto">
           <button
             type="button"

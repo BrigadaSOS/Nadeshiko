@@ -5,22 +5,7 @@ import { nextTick } from 'vue';
 
 import FilterPanelShell from './FilterPanelShell.vue';
 
-/**
- * The chrome every sidebar filter panel is built out of.
- *
- * Almost all of it is markup, and the one piece that is not -- the scrollbar
- * gutter the header pads itself by -- is the reason this file exists. It is a
- * measurement of the live layout, so nothing about it is visible in the source:
- * the header either lines its counts up with the rows' counts or it does not,
- * and on a machine with overlay scrollbars (every Mac, which is every machine
- * this is developed on) the gutter is 0 and every version of the code looks
- * right.
- *
- * The geometry is therefore driven from here. `getBoundingClientRect` reports
- * the border box and `clientWidth` the content box, and their difference IS the
- * scrollbar; happy-dom reports 0 for both, which would make every assertion pass
- * on a gutter that never appeared.
- */
+/** Drive scrollbar geometry explicitly: happy-dom reports zero widths, hiding gutter errors. */
 const geometry = { border: 0, content: 0 };
 
 /** Frames, held rather than run, so "on the NEXT frame" is a thing a test can see. */

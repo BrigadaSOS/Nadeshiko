@@ -6,15 +6,8 @@ import { dictionaryKey, type CardSense } from '~/utils/wordCard';
 const NO_PICK: ReadonlySet<string> = new Set<string>();
 
 /**
- * Which of the card's dictionaries a mine should carry.
- *
- * A shortlist, not a filter: an empty pick and a full pick mean the same thing
- * (`pickedForExport`), so the reader is choosing what to LEAVE OUT rather than
- * building a list from nothing.
- *
- * `senses` and `offered` are read through getters because both change while the
- * card is open -- the senses when a lookup lands or the reader picks another
- * candidate, and `offered` with the Anki configuration behind it.
+ * Empty and full picks both export everything; a partial pick excludes dictionaries. Getters
+ * track lookup results and configuration changes.
  */
 export function useDictionarySelection(
   senses: () => readonly CardSense[],
@@ -35,13 +28,7 @@ export function useDictionarySelection(
     pickedDictionaries.value = next;
   };
 
-  /**
-   * The dictionaries on the card, in the order they are printed.
-   *
-   * Deduplicated on the key rather than the name for the reason `dictionaryKey`
-   * exists: two of a reader's own uploads can share a title, and fusing them into
-   * one toggle would hand somebody who ticked one the senses of both.
-   */
+  /** Deduplicate by dictionary key, not title: different uploads can share a name. */
   const cardDictionaries = computed(() => {
     const seen = new Map<string, string>();
     for (const sense of senses()) {
@@ -56,15 +43,8 @@ export function useDictionarySelection(
   };
 
   /**
-   * Tick every dictionary on the card.
-   *
-   * Exports the same note "Deselect all" does -- `pickedForExport` reads a full
-   * pick and an empty one as the same instruction -- so this is not another way to
-   * choose, it is the way BACK from a pick that went one dictionary too far.
-   * Ticking three of four by hand to undo a stray untick is the tedium it removes.
-   *
-   * Offered only while something is left to tick, since a button that cannot
-   * change the row it sits in is a button that lies about being able to.
+   * Restore all toggles; like an empty pick, a full pick exports everything. Offer only while
+   * some dictionaries remain unticked.
    */
   const selectAllDictionaries = () => {
     pickedDictionaries.value = new Set(cardDictionaries.value.map((dictionary) => dictionary.key));
@@ -73,14 +53,8 @@ export function useDictionarySelection(
   const canSelectAllDictionaries = computed(() => pickedDictionaries.value.size < cardDictionaries.value.length);
 
   /**
-   * Whether to offer the toggles at all.
-   *
-   * Never for a single-dictionary card, which is most of them: ticking the only
-   * dictionary there is means the same thing as ticking nothing, so the control
-   * would be a checkbox that cannot change the outcome. The rest of the gate --
-   * that there is a note to mine and somewhere on it for a definition to go --
-   * is the caller's, since a pick with nowhere to go is a control that does
-   * nothing.
+   * A single dictionary offers no meaningful choice. The caller also gates on whether mining
+   * can use definitions.
    */
   const canPickDictionaries = computed(() => offered() && cardDictionaries.value.length > 1);
 

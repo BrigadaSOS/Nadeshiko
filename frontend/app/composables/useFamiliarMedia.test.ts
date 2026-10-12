@@ -2,20 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * The ranking of titles a reader studies most, which orders the media filter.
- *
- * Held in `useState` so it rides the Nuxt payload: the search page loads it
- * server-side and hydration reproduces exactly the order the server rendered.
- * Fetching it from the component instead ordered the list alphabetically on the
- * server and re-sorted it a moment later in the browser -- a reshuffle under the
- * cursor of someone already reaching for a row.
- *
- * `load`'s RETURN VALUE is load-bearing for the same reason and is the part
- * worth pinning: `useAsyncData` writes it into the payload, and Nuxt reads
- * `undefined` there as "nothing cached" and re-runs the handler on the client.
- * So the empty array a signed-out reader gets is deliberately a value, and the
- * `undefined` after a failure is deliberately not -- the client SHOULD retry
- * that one rather than hydrate an empty ranking it would never correct.
+ * Returning ranking data permits SSR hydration cache hits. Signed-out [] is cacheable; failure
+ * returns undefined so the client retries.
  */
 const sdk = { listFamiliarMedia: vi.fn(), forgetFamiliarMedia: vi.fn() };
 const user = reactive({ isLoggedIn: true });

@@ -3,24 +3,8 @@ import { flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
- * Inline YouTube playback for YOUTUBE segments.
- *
- * One PRE-WARMED player is kept and floated over whichever card is active,
- * because iOS only plays media with sound from inside a user gesture and a
- * freshly created player's `<video>` does not exist yet when the tap happens.
- * Nearly everything here follows from that: the player is a module singleton,
- * the state lives in `useState`, and a tap that arrives before the player is
- * warm has to be remembered and replayed.
- *
- * The behaviour most worth pinning is the SETTLE GUARD. `loadVideoById` and
- * `seekTo` do not move the playhead synchronously -- for a few hundred
- * milliseconds `getCurrentTime` still answers with the position the player was
- * left on. Believing it ends the clip on its first poll, which is what made
- * playing an earlier segment right after a later one of the same video skip
- * straight past it to the next card.
- *
- * The module holds mutable singletons, so every test re-imports it; otherwise
- * one test's warm player is the next test's.
+ * Exercise the pre-warmed, floating iOS player and guard stale playhead readings after
+ * load/seek. Re-import per test to isolate the player singleton.
  */
 const reportError = vi.fn();
 const reportEvent = vi.fn();

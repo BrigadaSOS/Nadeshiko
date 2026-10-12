@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { mdiBookmarkMultipleOutline, mdiFileDocumentPlusOutline, mdiHistory } from '@mdi/js';
 
-/**
- * Why an account is worth making, in the order a reader meets the features.
- *
- * `mdiFileDocumentPlusOutline` is deliberately the same mark the segment menu,
- * the word card and the download nudge already use for Anki, so somebody who met
- * the greyed-out menu entry recognises what is being offered rather than reading
- * it as a new thing.
- */
+/** Reuse the Anki mark from segment actions, word cards and signup nudges. */
 const accountBenefits = [
   { key: 'anki', icon: mdiFileDocumentPlusOutline },
   { key: 'collections', icon: mdiBookmarkMultipleOutline },
@@ -30,12 +23,7 @@ const resendIn = ref(0);
 const magicLinkError = ref('');
 let resendTimer: ReturnType<typeof setInterval> | null = null;
 
-/**
- * Counts the hold-back down once a second and stops at zero.
- *
- * Cleared before starting so a second send cannot leave two intervals running
- * against one counter, which reads as the clock ticking twice as fast.
- */
+/** Stop the previous countdown so resends cannot double its ticking rate. */
 function startResendCountdown(seconds: number) {
   stopResendCountdown();
   resendIn.value = Math.max(0, Math.ceil(seconds));
@@ -55,15 +43,7 @@ function stopResendCountdown() {
 onUnmounted(stopResendCountdown);
 const { isLoginModalOpen, closeLoginModal, loginModalSource } = useLoginModal();
 
-/**
- * Records the provider against the gate the modal was opened from, and parks it
- * where the far side of the redirect can read it.
- *
- * Google and Discord leave the page entirely, and a magic link comes back in a
- * different tab, so anything held in memory here is gone by the time the account
- * exists -- which is exactly why `signup_completed` used to report
- * `provider: 'unknown'` even when it did fire.
- */
+/** Persist attribution across provider redirects and magic links opened in another tab. */
 function beginLogin(provider: AuthProvider) {
   const source = loginModalSource.value;
   const gate = source === 'header' || source === 'unknown' ? undefined : source;
@@ -123,14 +103,7 @@ const handleMagicLink = async () => {
   useToastError($i18n.t('modalauth.labels.errorlogin400'));
 };
 
-/**
- * Spend the typed code.
- *
- * `wrong-browser` is its own outcome rather than a generic failure because the
- * two need different advice: a mistyped code is worth another go, a code typed
- * into a browser that never asked for it never will be, and the way out is the
- * link in the same email.
- */
+/** Wrong-browser codes cannot succeed on retry; direct the reader to the email link instead. */
 const handleLoginCode = async () => {
   const code = loginCode.value.trim();
   if (!code || codeLoading.value) return;
@@ -204,13 +177,9 @@ watch(isLoginModalOpen, (open) => {
         </div>
 
         <div class="p-6 space-y-3">
-          <!-- What the account is FOR, before the buttons that create one.
-               The modal used to open on three sign-in methods and no reason to
-               use any of them -- which is a fair thing to ask of somebody who
-               reached it from the header, and no answer at all for the reader
-               the nudges send here. These three are the features an account
-               actually adds; everything else on the site already works signed
-               out. -->
+          <!-- Explain account-only benefits before sign-in methods; the rest of the site already works signed
+               out.
+               -->
           <ul class="space-y-2.5 pb-1">
             <li v-for="benefit in accountBenefits" :key="benefit.key" class="flex items-start gap-2.5">
               <UiBaseIcon
@@ -264,10 +233,7 @@ watch(isLoginModalOpen, (open) => {
                 class="nd-input flex-1 disabled:opacity-50"
                 @keyup.enter="handleMagicLink"
               />
-              <!-- The spinner is not decoration here. The send is synchronous
-                   all the way through an SMTP handshake to Japan, so this button
-                   sits for four to six seconds; without a spinner the reader
-                   gets no acknowledgement at all and presses it again. -->
+              <!-- Sending waits on SMTP for several seconds; show progress to discourage duplicate presses. -->
               <UiButtonPrimaryAction
                 data-testid="magic-link-send"
                 :disabled="magicLinkLoading || !magicLinkEmail.trim()"
@@ -279,17 +245,12 @@ watch(isLoginModalOpen, (open) => {
               </UiButtonPrimaryAction>
             </div>
             <div v-else class="space-y-3">
-              <!-- Names the address it went to, then says what to do next. The
-                   old copy said only "check your email", which left the code
-                   field below it looking like something you might have to fill
-                   in as well as opening the link. -->
               <p data-testid="magic-link-sent" class="text-sm text-green-400">{{ $t('modalauth.magiclink.sent', { email: magicLinkEmail }) }}</p>
               <p class="text-sm text-gray-400">{{ $t('modalauth.magiclink.sentHint') }}</p>
 
-              <!-- The code is the second way in, for when the mail is on a phone
-                   and the session is wanted here. It only works in this browser:
-                   the backend refuses a code without a matching claim, which is
-                   what keeps six characters safe to read aloud. -->
+              <!-- Codes are the alternative when mail is opened on another device; the backend binds them to the
+                   requesting browser.
+                   -->
               <div class="flex gap-2">
                 <input
                   v-model="loginCode"
@@ -320,10 +281,7 @@ watch(isLoginModalOpen, (open) => {
               <p v-if="magicLinkError" data-testid="magic-link-error" class="text-sm text-amber-300">{{ magicLinkError }}</p>
 
               <p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                <!-- The wait is shown rather than the button being merely dead,
-                     because a disabled control with no reason attached reads as
-                     broken. Counting down also tells somebody whose mail is slow
-                     that waiting is the right thing to do. -->
+                <!-- Show the resend wait explicitly so a disabled control does not look broken. -->
                 <span v-if="resendIn > 0" class="text-gray-400">
                   {{ $t('modalauth.magiclink.resendIn', { seconds: resendIn }) }}
                 </span>

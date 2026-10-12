@@ -3,20 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-/**
- * "Report a problem", which is the only route a reader has to tell us a clip is
- * wrong.
- *
- * It reports two different things through one form -- the SENTENCE, or the
- * TITLE it came from -- and the reason lists are deliberately different, because
- * "wrong timing" is not a thing that can be wrong about a series and "duplicate
- * media" is not a thing that can be wrong about one line. Carrying a reason
- * across that switch would file a report the moderation queue cannot act on.
- *
- * The modal is also REUSED: it stays mounted while the reader moves between
- * cards, so everything it holds has to be reset when the target changes. A
- * description left over from the last report is attached to this one.
- */
+/** Sentence and media reports have different reasons; changing targets must reset the reused form. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 const toastSuccess = vi.fn();

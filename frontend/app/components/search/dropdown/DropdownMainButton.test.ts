@@ -3,19 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { computed, defineComponent, nextTick, ref } from 'vue';
 
-/**
- * The trigger half of a dropdown.
- *
- * Its classes resolve through a precedence rather than a merge: an explicit
- * class REPLACES the default outright, and the two shorthands below it are
- * mutually exclusive variations on that default. Merging them instead would put
- * two conflicting borders on one button and let stylesheet order pick.
- *
- * The rest is the accessible pairing with the menu: the button announces whether
- * the menu is open, and its `aria-controls`/labelling id has to be the id the
- * CONTAINER resolved -- not one this button invents -- or the two halves of the
- * same control describe themselves as different things.
- */
+/** Explicit classes replace defaults. Accessible ids must come from the containing dropdown. */
 import { DROPDOWN_INJECTION_KEY } from '~/composables/useDropdownState';
 
 import DropdownMainButton from './DropdownMainButton.vue';

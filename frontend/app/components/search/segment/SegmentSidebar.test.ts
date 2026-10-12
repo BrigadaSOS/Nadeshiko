@@ -3,18 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The filter drawer and the scroll-to-top button beside it.
- *
- * The drawer is gated on the MEDIA STATS, not on the results, and that is the
- * whole point: `results` is emptied at the start of every fetch, so gating on it
- * made the button vanish and reappear on each search and left anyone who opened
- * it mid-flight looking at an empty drawer. The stats survive the fetch and go
- * empty only when the query genuinely matched no titles.
- *
- * The scroll button is deliberately NOT gated the same way -- it is about the
- * page, not the results, and belongs on every view including the single-sentence
- * page where there is nothing to filter.
+/** Gate the drawer on media stats, which survive result fetches. Scroll-to-top is independent of filter
+ * availability.
  */
 const scrollBehavior = vi.fn(() => 'smooth');
 const routeLeaveGuards: ((to: { path: string }) => void)[] = [];

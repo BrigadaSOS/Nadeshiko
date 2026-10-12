@@ -4,26 +4,8 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CHUNK_RELOAD_STORAGE_KEY, CHUNK_RELOAD_WINDOW_MS } from '~/utils/chunkReloadGuard';
 
 /**
- * Recovery for a tab left on a stale build after a deploy.
- *
- * `/_nuxt/**` is hashed and served `immutable`, so a tab holding an older app
- * shell asks for chunk hashes the live build no longer has. Unrepaired, every
- * subsequent route change fails the same way for the rest of the visit.
- *
- * Three things here were each learned from production:
- *
- *   - THE CACHE BUST. `reloadNuxtApp` ends in a plain navigation, which is
- *     served from the HTTP cache -- and this site's HTML reaches readers with
- *     `Cache-Control: private, max-age=3600`. So the reload is handed the very
- *     document whose chunks just 404ed, byte for byte, and fails identically
- *     until the budget runs out. `cache: 'reload'` is what makes the navigation
- *     that follows see the new build.
- *   - THE SECOND ENTRY POINT. Nuxt raises `app:chunkError` only for imports
- *     Vite wrapped in its preload helper; a layout is a plain dynamic import, so
- *     a 404 on a layout chunk rejects with nobody listening. Every occurrence in
- *     production arrived through the global handler and none through the hook.
- *   - THE SHARED BUDGET. Both paths can fire for one broken build and must
- *     share one allowance rather than get two each.
+ * Cover stale-build recovery: refresh cached HTML first, handle imports outside the Nuxt hook, and share one
+ * reload budget across both entry points.
  */
 const reportError = vi.fn();
 vi.mock('~/utils/reportError', () => ({ reportError: (...a: unknown[]) => reportError(...a) }));
@@ -66,9 +48,7 @@ async function install() {
   return {
     viaHook: (error: unknown) => hooks['app:chunkError']!({ error } as never),
     viaRejection: (reason: unknown) => {
-      // Cancelable, as the real one is: `preventDefault` on an uncancelable
-      // event is silently a no-op, and the claim this test is about would look
-      // broken when it is not.
+      // Real rejection events are cancelable; otherwise preventDefault cannot be observed.
       const event = new Event('unhandledrejection', { cancelable: true }) as Event & { reason: unknown };
       event.reason = reason;
       window.dispatchEvent(event);
@@ -93,10 +73,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-  // `restoreAllMocks`, NOT `unstubAllGlobals`: the stubs above are installed
-  // once at module scope, and unstubbing them leaves every test after the first
-  // without `useRouter` or `reloadNuxtApp`. This undoes the per-test spies --
-  // the `Storage` ones especially -- and leaves the globals in place.
+  // Restore per-test spies without removing module-level Nuxt-global stubs.
   vi.restoreAllMocks();
 });
 
@@ -113,9 +90,6 @@ describe('a chunk that will not load', () => {
   });
 
   test('replaces the cached document FIRST, or the reload is a no-op', async () => {
-    // The navigation `reloadNuxtApp` ends in is served from the HTTP cache, and
-    // this site's HTML is cached for an hour -- so without this the reload gets
-    // back the same stale document and fails the same way.
     const { viaHook } = await install();
 
     viaHook(chunkError());
@@ -251,9 +225,7 @@ describe('several chunks failing at once', () => {
   });
 
   test('the attempt is spent BEFORE the cache bust is awaited', async () => {
-    // The rest of the burst is already queued and runs before any of it
-    // resolves; an attempt recorded after the await would let every one of them
-    // start its own reload.
+    // Persist before awaiting so the rest of the burst cannot start separate reloads.
     const { viaHook } = await install();
 
     viaHook(chunkError());
@@ -264,12 +236,8 @@ describe('several chunks failing at once', () => {
 
 describe('a build that stays broken', () => {
   /**
-   * One page load that hits a chunk error, `seconds` after the last.
-   *
-   * The gap matters: within a second of the previous attempt the guard reads
-   * this as the same broken page still shedding chunks and does nothing, so a
-   * loop with a frozen clock never spends a second attempt and this would test
-   * the burst window instead of the budget.
+   * Advance beyond the burst window between simulated loads; a frozen clock tests pending-burst behavior
+   * rather than the attempt budget.
    */
   async function pageLoadAfter(seconds: number) {
     vi.setSystemTime(new Date(NOW.getTime() + seconds * 1000));
@@ -362,9 +330,7 @@ describe('the second entry point', () => {
 
 describe('a browser that refuses sessionStorage', () => {
   test('still recovers, treating every failure as a first attempt', async () => {
-    // Safari private mode throws on access. Without persistence the recovery
-    // still terminates: the reload either fixes the mismatch or the reader
-    // stops navigating.
+    // Blocked storage yields an empty guard, but recovery still attempts a reload.
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('QuotaExceededError');
     });

@@ -32,7 +32,6 @@ BG_COLOR = (239, 85, 82)  # #ef5552
 
 img = Image.new("RGBA", (W, H), BG_COLOR + (255,))
 
-# --- Background pattern: 習, handwriting font, very low opacity ---
 kanji_font = ImageFont.truetype(ensure_font("YujiSyuku-Regular.ttf"), 220)
 
 CHAR = "習"
@@ -53,7 +52,6 @@ for row in range(-1, math.ceil(H / row_gap) + 2):
 
 img = Image.alpha_composite(img, pattern_layer)
 
-# --- Logo ---
 logo_src = Image.open(Path(__file__).parent.parent / "public/logo-38d6e06a.webp").convert("RGBA")
 logo_size = 380
 logo = logo_src.resize((logo_size, logo_size), Image.LANCZOS)
@@ -66,7 +64,6 @@ clip = clip_hi.resize((logo_size, logo_size), Image.LANCZOS)
 clip = clip.filter(ImageFilter.GaussianBlur(radius=22))
 logo.putalpha(clip)
 
-# --- Fonts ---
 font_title = ImageFont.truetype(ensure_font("Outfit-Medium-500.ttf"), 110)
 font_sub   = ImageFont.truetype(ensure_font("Outfit-Regular.ttf"), 36)
 
@@ -95,7 +92,7 @@ draw.text(((W - title_w) // 2, title_y), title, font=font_title, fill=(255, 255,
 sub_w = sb[2] - sb[0]
 draw.text(((W - sub_w) // 2, sub_y), subtitle, font=font_sub, fill=(255, 255, 255, 255))
 
-# --- White rounded border (supersampled for smooth antialiased edges) ---
+# Supersample the rounded border for smooth antialiased edges.
 border = 14   # border thickness
 radius = 48   # outer corner radius
 SS = 4        # supersampling factor

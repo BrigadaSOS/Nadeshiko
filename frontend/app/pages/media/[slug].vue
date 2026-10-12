@@ -7,20 +7,8 @@ import { reportError } from '~/utils/reportError';
 import { mediaSameAsUrls } from '~/utils/media';
 import { readSearchRouteFilters } from '~/utils/routes';
 
-/**
- * A title's own page.
- *
- * This is the same view `/search?media=<publicId>` has always rendered; what
- * changed is the URL it lives at. Those 317 filter-parameter URLs were what the
- * sitemap submitted, and an opaque twelve-character id says nothing to a search
- * engine about a page whose whole subject is a named work. `/media/steins-gate`
- * does. The old URL now 301s here from the search page itself.
- *
- * Built as its own page rather than an alias of the search route, following
- * `collection/[id].vue`: fetch a scope, hand it to `SearchContainer`. The scope
- * arrives as a PROP here instead of as `?media=`, which is what keeps the title
- * in the path where filter clicks cannot patch it away.
- */
+// Title browse lives at /media/<slug>; legacy /search?media= URLs redirect here.
+// Pass the scope as a prop so filter updates cannot remove the title from the path.
 
 const { t } = useI18n();
 const { formatNumber } = useFormat();
@@ -34,10 +22,7 @@ const { hiddenMediaExcludeFilter } = useHiddenMedia();
 const { hiddenCategories } = useHiddenCategories();
 const { fetchSentences, fetchStats } = useSearchFetch();
 
-// Follow the path only while it still names a title. Leaving for `/search`
-// clears `params.slug`; watching that would refetch `/api/media/by-slug/undefined`,
-// null out `media`, and fire the 404 watcher on a page that is merely the
-// outgoing Suspense fallback.
+// Ignore a cleared slug while leaving this route; refetching it would 404 the outgoing Suspense page.
 const slug = ref(String(route.params.slug));
 watch(
   () => route.params.slug,
@@ -59,11 +44,7 @@ const { data: media, error: mediaError } = await useAsyncData<Media | null>(
   () =>
     $fetch<Media>(`/api/media/by-slug/${encodeURIComponent(slug.value)}`).catch(
       (fetchError: { statusCode?: number; status?: number }) => {
-        // A retired or mistyped slug is a genuine 404; anything else is our own
-        // lookup failing and must not be dressed up as "this title does not exist".
-        // 400 as well as 404: the id pattern is enforced by the API, so a
-        // malformed one is rejected before the lookup and means the same thing
-        // to a reader -- no such page. See `isMissing`.
+        // Treat malformed/missing slugs (400/404) as absent; propagate lookup failures.
         if (isMissing(apiErrorStatus(fetchError))) return null;
         reportError('media:slug-resolve-failed', fetchError, { 'media.slug': slug.value });
         throw fetchError;
@@ -79,9 +60,7 @@ if (!media.value) {
   throw createError({ statusCode: 404, statusMessage: 'Media Not Found' });
 }
 
-// `useAsyncData` refetches when the slug changes but setup runs once, so a
-// client-side hop to a missing title would otherwise keep this component alive
-// and render a blank body instead of the error page.
+// Setup runs once; handle lookup errors on subsequent slug changes too.
 watch([media, mediaError], ([entry, error]) => {
   if (!isMediaPage.value) return;
   if (error) {
@@ -93,14 +72,11 @@ watch([media, mediaError], ([entry, error]) => {
 
 const mediaPublicId = computed(() => media.value?.publicId ?? null);
 
-/** The title's name on its own: the heading and the breadcrumb, not the `<title>`. */
 const headline = computed(() => (media.value ? mediaName(media.value) : t('seo.media.title')));
 
 const searchScope = computed<SearchScope>(() => ({
   query: '',
-  // 'all', not the reader's default category: the title named in the path is the
-  // subject, and one outside their default would otherwise come back empty on
-  // its own page. Mirrors what the search page does when `?media=` is set.
+  // A named title overrides the reader's default category, as on ?media= searches.
   category: routeFilters.value.category ?? 'all',
   mediaPublicId: mediaPublicId.value,
   episode: episodeNumberParam.value,
@@ -122,8 +98,7 @@ const [
     () => `media-sentence-outcomes-${slug.value}-${episodeNumberParam.value ?? 'all'}`,
     async () => {
       const outcome = await fetchSentences(searchScope.value);
-      // Slimmed before it is handed back, because what this returns IS the
-      // hydration payload: see `stripUnreadTokenFields`.
+      // Strip unread fields before serializing the hydration payload.
       return outcome.status === 'ok' ? { ...outcome, data: stripUnreadTokenFields(outcome.data) } : outcome;
     },
     { server: true, lazy: false, watch: [] },
@@ -132,12 +107,9 @@ const [
     () => `media-stats-outcomes-${slug.value}-${episodeNumberParam.value ?? 'all'}`,
     async () => {
       const outcome = await fetchStats(searchScope.value);
-      // Failures are reported inside `fetchStats`, which still has the response
-      // and can tell a 403 apart from a real error.
+      // fetchStats reports failures while it still has the response status.
       if (outcome.status !== 'ok') return outcome;
-      // Every OTHER title's per-episode counts leave here: 4,670 of the 5,802
-      // objects this page used to serialize. This title's stay -- they are the
-      // episode list the drawer opens on, and `metaTags` below counts them.
+      // Keep episode counts only for this title; its drawer and meta description need them.
       return { ...outcome, data: stripEpisodeHits(outcome.data, mediaPublicId.value) };
     },
     { server: true, lazy: false, watch: [] },
@@ -155,15 +127,7 @@ const reloadResults = async () => {
   await Promise.all([refreshSentences(), refreshStats()]);
 };
 
-/**
- * Re-resolve the results when the session changes.
- *
- * Both fetches pass `watch: []`, so nothing refetched for the life of the page
- * -- but what these return depends on the viewer: hidden media, hidden
- * categories, content rating and translation languages all feed `searchScope`.
- * Signing in or out therefore has to re-ask, or the reader keeps looking at
- * somebody else's answer until they navigate.
- */
+// watch: [] disables automatic refetching, but session changes alter viewer-specific search filters.
 watch(
   () => userStore().isLoggedIn,
   () => {
@@ -194,43 +158,16 @@ const metaTags = computed(() => {
 
 useHead(metaTags);
 
-/**
- * The work itself, alongside the page that lists its sentences.
- *
- * A `CollectionPage` says "this page is a list"; it says nothing about WHAT the
- * list is about. `TVSeries`/`Movie` is what tells a search engine this URL is
- * the page for a named work with a studio, a season and an air date -- the
- * entity a reader is looking for when they search the title. Everything below
- * comes from the payload the header already renders, so the markup and the page
- * cannot disagree.
- *
- * `Movie` is chosen off `airingFormat`, the same field `MediaCountLabel` uses to
- * decide whether to say "12 episodes" or "Movie". YouTube channels are neither,
- * so they get no work node rather than a wrong one.
- */
+// Describe the work as well as the sentence list. Match MediaCountLabel's airingFormat policy;
+// YouTube channels are neither movies nor TV series and get no work node.
 const workSchema = computed(() => {
   const entry = media.value;
   if (!entry || entry.category === 'YOUTUBE') return null;
 
-  // `Record<string, unknown>`, the same shape `[...slug].vue` gives `defineArticle`
-  // and for the same reason: these builders are generic over the object handed to
-  // them and INTERSECT it with the schema type, so an inferred `genre: string[]`
-  // meets a declared `string | string[]` and collapses to `string & string[]` --
-  // a type nothing can satisfy. Widening here keeps the intersection harmless.
+  // Widen schema input to avoid generic intersections such as string & string[].
   const sameAs = mediaSameAsUrls(entry);
 
-  // THE TWO NAMES THIS READER IS NOT SEEING. `name` is `mediaName`, which
-  // resolves against the reader's `mediaNameLanguage` preference and the locale
-  // -- so the entity was advertising exactly one of a title's three names, and
-  // which one depended on who was looking. Search Console for the 3 months to
-  // 2026-08-25 has readers arriving on all three forms: `kaguya-sama wa
-  // kokurasetai` and `各務原なでしこ` and `seihantaina kimi`. `alternateName` is
-  // where a work's other titles go, and it is what lets those three queries
-  // resolve to one entity instead of competing for it.
-  //
-  // Deduplicated against `name` and against each other: a title whose romaji and
-  // English forms are identical, or which carries only one name, must not claim
-  // an alternate that is the name it already gave.
+  // Publish the other language titles as aliases, excluding the displayed name and duplicates.
   const alternateNames = [entry.nameJa, entry.nameRomaji, entry.nameEn]
     .map((value) => value?.trim())
     .filter((value): value is string => Boolean(value) && value !== headline.value.trim())
@@ -274,16 +211,14 @@ useSchemaOrg(
     <div class="relative text-white">
         <div class="nd-page">
           <div class="px-4 md:px-0">
-            <!-- Searching from a title page stays inside that title; the scope
-                 lives in the path here, so the box has to be told what it is. -->
+            <!-- The path holds the title scope; pass it explicitly to the search box. -->
             <SearchBaseInputSegment :scope-media-id="mediaPublicId" />
           </div>
           <SearchContainer
             :initial-sentence-outcome="initialSentenceOutcome"
             :initial-stats-outcome="initialStatsOutcome"
             :media-public-id="mediaPublicId">
-            <!-- Below the tabs, not above the search box: a hero above the
-                 tabs would make them jump when it left. -->
+            <!-- Keep the hero below the tabs so removing it does not move them. -->
             <template #below-tabs>
               <MediaHeader v-if="media" :media="media" />
             </template>

@@ -6,13 +6,8 @@ export interface SlimToken {
   e: number;
   p: string;
   /**
-   * Shirabe's short part-of-speech tag (`verb`, `prt`, `exp`), which is what
-   * `POST /api/v1/words/identify` ranks by.
-   *
-   * Optional because it is newer than the corpus: tokens parsed before it was
-   * stored have only `p`, and `shortPos` below derives one from that. Prefer
-   * this when it is here -- the derivation is a copy of Shirabe's own table and
-   * a copy is a thing that can drift, while this is the value itself.
+   * Shirabe's short POS tag for `words/identify`. Prefer it over the copied fallback table; older tokens may
+   * carry only `p`.
    */
   pt?: string;
   /** word | compound | inflected | counter | function | expression | symbol. */
@@ -33,30 +28,15 @@ export interface SlimToken {
    *  against its own analyzer, so a match can land inside one of ours. */
   parts?: Array<{ s: string; b: number; e: number }>;
   /**
-   * Which sentence of an expanded segment this token came from. Absent on an
-   * ordinary result -- only `buildExpandedTexts` sets it, and only on a merge.
-   *
-   * This is where an expansion marks the halves it pulled in. It cannot be done
-   * in the text the way the translations do it, because these tokens address
-   * that text by offset: see `concatJapanese`.
+   * Sentence provenance set on expansion. Keep it outside the text because token offsets address the
+   * unwrapped content.
    */
   origin?: 'before' | 'current' | 'after';
 }
 
 /**
- * How a token addresses its dictionary entry.
- *
- * Built here, once, so no caller assembles it by hand out of single-letter
- * fields -- which is where it used to go wrong. `reading` is KATAKANA and `pos`
- * is Shirabe's SHORT tag (`verb`, `prt`), which is what `words/identify` ranks
- * by; the display forms of both are different values living on the same object,
- * and sending those instead returns 200 for the wrong word rather than failing.
- *
- * `pos` carried the raw UniDic tag (動詞) until 2.4.1, and that was not the
- * harmless mismatch the comment here used to claim: the ranker does not
- * recognise the category, so it resolves with no part of speech at all and
- * ordinary words come back with no candidates. It cost about nine points of
- * lookup success -- 10.5% of cards missing before the fix shipped, 1.7% after.
+ * Dictionary lookup coordinates assembled once: reading is katakana and POS is Shirabe's short tag, not
+ * either display value. Wrong representations can silently resolve the wrong homograph.
  */
 export interface WordRef {
   /** Dictionary form. */
@@ -66,15 +46,8 @@ export interface WordRef {
   /** Katakana, as the analyzer read THIS surface. Not `readingHiragana`. */
   reading: string;
   /**
-   * Shirabe's SHORT part-of-speech tag (`verb`, `prt`, `pron`), never the raw
-   * UniDic one (動詞) and never the printable `posLabel`.
-   *
-   * This used to carry the UniDic tag, back when the lookup was a word page that
-   * ignored it. `POST /api/v1/words/identify` reads it, and reads it against a
-   * closed vocabulary: a tag outside that vocabulary is not an error, it just
-   * skips the rung of the ranking that a closed word class decides. That is the
-   * rung きみ needs -- read as a pronoun it is 君, and without the tag the
-   * spelling alone answers the grain 黍.
+   * Shirabe's short POS tag, never raw UniDic or printable `posLabel`. Unknown tags cannot provide the
+   * ranker's grammatical disambiguation.
    */
   pos: string;
 }
@@ -84,13 +57,8 @@ export interface EnrichedToken extends SlimToken {
   displaySurface: string;
   dictForm: string;
   /**
-   * Hiragana, for showing to a reader and for the external dictionary links.
-   *
-   * NAMED FOR ITS SCRIPT on purpose. This used to be `reading`, one letter from
-   * the `r` it is derived from and a different script -- so the two sat on the
-   * same object looking interchangeable, and a lookup handed the hiragana one
-   * resolves a homograph by a reading Shirabe does not key on. `lookupRef`
-   * carries the katakana; this is only ever for display.
+   * Hiragana for display and external dictionary links only; `lookupRef` retains the analyzer's katakana
+   * reading.
    */
   readingHiragana: string;
   /** Everything the dictionary lookup asks by, assembled once. */
@@ -109,55 +77,26 @@ export interface FuriganaSegment {
   reading: string;
 }
 
-/** Ruby for a token, as Shirabe aligned it.
- *
- * There used to be a `segmentFurigana` here that split a surface into kanji runs
- * and dealt them the reading a character at a time. It is gone: aligning kana to
- * a mixed surface goes wrong on okurigana, 熟字訓, and any reading that spans two
- * kanji runs, and Shirabe already does it against the dictionary that knows which
- * reading applies to which writing. A token with no `f` has nothing to show, so
- * it renders bare.
+/**
+ * Use Shirabe-aligned ruby; without `f`, render the surface bare rather than attempting local kana alignment.
  */
 export function furiganaOf(token: SlimToken): FuriganaSegment[] {
   if (!token.f || token.f.length === 0) return [{ text: token.s, reading: '' }];
   return token.f.map((segment) => ({ text: segment.t, reading: segment.r ?? '' }));
 }
 
-/**
- * Append ruby segments to a field already under construction, in Anki's
- * `漢字[かんじ]` notation.
- *
- * Takes what has been written so far rather than returning a piece to join,
- * because the separator rule below is a question about the character before the
- * segment, not about the segment itself -- so a caller assembling a sentence out
- * of pieces could not apply it without reimplementing it.
- */
+/** Append Anki ruby notation using the preceding output character to decide whether a separator is needed. */
 function appendAnkiFurigana(result: string, segments: FuriganaSegment[]): string {
   for (const seg of segments) {
-    // The leading space is a DELIMITER -- it marks where the previous word's
-    // kana ended -- so it is only wanted where there is not one already: at
-    // the start of the field, or after whitespace the content itself carries.
-    // Anki renders a doubled one literally.
-    //
-    // This used to be a `replace(/^ /, '')` at the end, which is the same rule
-    // applied to the start of the string alone. That was enough while a
-    // sentence was one segment, because an interior gap before a kanji word is
-    // rare. An expanded sentence meets one at every join -- the segments are
-    // merged with a space, and the next word begins right after it.
+    // The separator delimits preceding kana; do not add it at the start or after existing whitespace, where
+    // Anki would render a doubled gap.
     const separator = seg.reading && result !== '' && !/\s$/.test(result) ? ' ' : '';
     result += seg.reading ? `${separator}${seg.text}[${seg.reading}]` : seg.text;
   }
   return result;
 }
 
-/**
- * One word on its own in Anki furigana notation, e.g. `手加減[てかげん]`.
- *
- * The standalone counterpart to `tokensToAnkiFurigana`, sharing its rule rather
- * than restating it: a headword mined into its own field is the same notation
- * with nothing before it, so the separator never fires and the difference is
- * only that there is no surrounding sentence to slice gaps out of.
- */
+/** Standalone Anki furigana notation using the same separator rules as sentence export. */
 export function furiganaNotation(segments: FuriganaSegment[]): string {
   return appendAnkiFurigana('', segments);
 }
@@ -217,46 +156,14 @@ function highlightRanges(highlight: string): Array<{ start: number; end: number 
   return ranges;
 }
 
-/** Presentation for a token, from a token that already knows what it is.
- *
- * This used to reconstruct the word: a pass that walked the array joining a verb
- * to its auxiliaries, a table of 55 auxiliary glosses, and a set of rules about
- * which particles continue a group. Shirabe does that upstream now and 食べました
- * arrives as one token, so all of it is gone and this only labels and highlights.
- *
- * The one genuinely harder thing is highlighting. Elasticsearch analyzes textJa
- * with its OWN embedded Sudachi, so a match range can land inside one of our
- * tokens rather than on its edges. Such a token is 'partial' and carries the
- * offending ranges in token-local characters, so a caller can emphasize the part
- * that matched instead of lighting up a whole word the reader did not search for.
+/**
+ * Elasticsearch's analyzer can match inside a Shirabe token. `enrichTokens` exposes partial ranges in
+ * token-local coordinates rather than highlighting the whole word.
  */
 /**
- * UniDic's top-level part of speech, in Shirabe's short vocabulary.
- *
- * A deliberate copy of `Tokenizer::POS_LABELS` on their side, and the only table
- * of its kind left here -- `POS_LABELS`, `POS_SUB_LABELS`, `CONJ_FORM_LABELS`,
- * `CONJ_CLASS_LABELS` and the 55-entry `AUX_LABELS` all went when Shirabe took
- * over the parsing, and none of them is coming back.
- *
- * It is the FALLBACK now, not the source. `pt` carries the parser's own short
- * tag and the corpus has been re-tokenized to fill it, so this runs only for a
- * token that predates the field -- and for one arriving from a cache or a
- * client older than the API that started serving it.
- *
- * Kept rather than deleted, and not only for those. It is seventeen entries
- * over a closed set of UniDic categories, and the alternative to a stale
- * mapping here is no tag at all: `identify` answers an unrecognised category
- * with no candidates rather than with a worse ranking, so a token that reaches
- * the lookup with an empty `pos` loses the word outright. A copy that can drift
- * beats nothing to fall back to, as long as `pt` is what gets sent when it is
- * there. Drop it once no token can arrive without `pt`.
- *
- * `連語` is the entry that is not in their table. It is a merged grammatical
- * expression (について, けれども) with no single morpheme to take a POS from, so
- * Shirabe assigns `exp` when it builds the chip rather than when it maps the
- * morpheme. The three that map to an empty string are punctuation, symbols and
- * whitespace -- nothing identify could rank, and `isAskable` filters them out
- * before it ever gets here.
+ * Fallback copy of Shirabe's short-POS vocabulary for tokens without `pt`, including old cached responses.
+ * Remove only when no such token can arrive. `連語` maps to expression; punctuation, symbols and whitespace
+ * have no lookup tag.
  */
 const SHORT_POS: Record<string, string> = {
   名詞: 'noun',
@@ -279,12 +186,8 @@ const SHORT_POS: Record<string, string> = {
 };
 
 /**
- * The tag to send `identify`: the token's own when it has one, ours otherwise.
- *
- * An unknown category answers '' rather than passing the raw Japanese through.
- * Shirabe treats an unrecognised tag as no tag, so the two are the same answer
- * to the ranker -- but only one of them can end up printed somewhere by a caller
- * that assumed this was a label.
+ * Prefer stored `pt`; otherwise map UniDic to a short tag. Unknown categories return empty rather than
+ * leaking raw Japanese as a label.
  */
 export function shortPos(token: SlimToken): string {
   return token.pt ?? SHORT_POS[token.p] ?? '';
@@ -314,11 +217,6 @@ export function enrichTokens(tokens: SlimToken[], highlight?: string): EnrichedT
       readingHiragana: katakanaToHiragana(token.r),
       lookupRef: { lemma: token.d, surface: token.s, reading: token.r, pos: shortPos(token) },
       furigana: furiganaOf(token),
-      // No `pos` alias here any more. It was `posLabel ?? p` -- a printable label
-      // falling back to a raw UniDic tag -- sitting one letter from `p` on the
-      // same object while meaning something else, and nothing ever read it.
-      // `posLabel` is already on the token for display; `lookupRef.pos` carries
-      // the raw tag for resolution.
       inflectionLabels: token.inflection?.labels ?? [],
     };
   });

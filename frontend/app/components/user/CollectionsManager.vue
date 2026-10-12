@@ -46,7 +46,6 @@ watch(initialData, (data) => {
   collections.value = data ?? [];
 });
 
-// Rename modal
 const renameTarget = ref<Collection | null>(null);
 const renameValue = ref('');
 const isRenaming = ref(false);
@@ -85,7 +84,6 @@ const submitRename = async () => {
   }
 };
 
-// Create collection
 const showCreateModal = ref(false);
 const createName = ref('');
 const isCreating = ref(false);
@@ -121,7 +119,6 @@ const submitCreate = async () => {
 const renameEnterSubmit = useEnterSubmit(submitRename);
 const createEnterSubmit = useEnterSubmit(submitCreate);
 
-// Toggle visibility
 const visibilityTarget = ref<Collection | null>(null);
 const isTogglingVisibility = ref(false);
 
@@ -156,7 +153,6 @@ const submitToggleVisibility = async () => {
   }
 };
 
-// Delete confirmation
 const deleteTarget = ref<Collection | null>(null);
 const isDeleting = ref(false);
 
@@ -308,7 +304,6 @@ const submitDelete = async () => {
       <p v-else class="text-gray-400 text-sm">{{ t('accountSettings.collections.noCollections') }}</p>
     </div>
 
-    <!-- Rename modal -->
     <CommonBaseModal
       :open="!!renameTarget"
       labelledby="nd-collection-rename-title"
@@ -355,7 +350,6 @@ const submitDelete = async () => {
       </div>
     </CommonBaseModal>
 
-    <!-- Create collection modal -->
     <CommonBaseModal
       :open="showCreateModal"
       labelledby="nd-collection-create-title"
@@ -402,7 +396,6 @@ const submitDelete = async () => {
       </div>
     </CommonBaseModal>
 
-    <!-- Visibility toggle confirmation modal -->
     <CommonBaseModal
       :open="!!visibilityTarget"
       labelledby="nd-collection-visibility-title"
@@ -443,7 +436,6 @@ const submitDelete = async () => {
       </div>
     </CommonBaseModal>
 
-    <!-- Delete confirmation modal -->
     <CommonBaseModal
       :open="!!deleteTarget"
       labelledby="nd-collection-delete-title"

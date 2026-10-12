@@ -12,24 +12,14 @@ type ConcatenatedAudio = {
 };
 
 /**
- * How far an audio segment request got.
- *
- * `http` means the server answered and we rejected the status. `opaque` means
- * `fetch` itself rejected, and that is the case worth separating: a CORS
- * rejection, a DNS failure, an offline tab and an extension-blocked request are
- * ONE indistinguishable `TypeError: Failed to fetch` to page script, with no
- * status, no headers and no URL on the error.
+ * Separate HTTP failures from opaque fetch rejections, which expose no status and can represent CORS,
+ * network, offline or extension failures.
  */
 export type AudioFetchFailureKind = 'http' | 'opaque';
 
 /**
- * A failed audio segment request that still knows WHICH url failed.
- *
- * `concatenateAudios` used to rethrow the raw rejection, so every report of a
- * failed expansion reached error tracking as a bare `Failed to fetch` naming
- * neither the object nor the CDN. That is the whole reason issue #194
- * ("Expand context doesn't work") survived months of investigation: the reports
- * carried nothing to act on.
+ * Preserve the failing URL and failure kind so expansion reports identify the audio object rather than a bare
+ * fetch rejection.
  */
 export class AudioFetchError extends Error {
   readonly url: string;
@@ -65,18 +55,9 @@ function hostOf(url: string): string {
 }
 
 /**
- * Attributes describing an audio fetch failure, for `reportError`.
- *
- * For an `opaque` failure this re-requests the same url with `mode: 'no-cors'`,
- * which is the only way page script can tell the possibilities apart: that
- * request skips the CORS check entirely, so it resolves whenever the object is
- * actually reachable. Resolving therefore means the object was there and the
- * object was reachable. It cannot inspect the opaque response or establish why
- * the original CORS-mode request failed. Rejecting means the host could not be
- * reached at all.
- *
- * The probe is deliberately only on the already-failed path, and its own failure
- * is never allowed to mask the original error.
+ * Probe opaque failures with no-CORS HEAD to test reachability. An opaque response cannot explain the
+ * original CORS-mode failure or expose its status. Probe only after failure and never mask the original
+ * error.
  */
 export async function describeAudioFetchFailure(error: unknown): Promise<Record<string, string>> {
   if (!(error instanceof AudioFetchError)) return {};
@@ -116,29 +97,9 @@ export async function describeAudioFetchFailure(error: unknown): Promise<Record<
 }
 
 /**
- * Fetch one audio object for concatenation, retrying past a poisoned cache entry.
- *
- * The player builds its elements with `new Audio(url)`, and a media element's
- * request is not a CORS request. Chromium stores that response under the same
- * cache key this CORS-mode `fetch` uses and then refuses to hand it back, so
- * expanding a segment the reader had already PLAYED rejected with a bare
- * `TypeError: Failed to fetch`, while the very same segment expanded fine when it
- * had not been played yet. That order-dependence is issue #194's "sometimes it
- * works", and it is why expanded audio silently fell back to the original clip in
- * both the player and the Anki export.
- *
- * The fix belongs on THIS side rather than on the media element. Setting
- * `crossOrigin` there would stop the poisoning at the source, but it would make
- * playing anything at all contingent on the CDN's CORS policy -- see the note in
- * `stores/player.ts`. `cache: 'reload'` skips the cache for this request alone,
- * costs one re-download of a ~17KB clip when the entry turns out to be poisoned,
- * and cannot take playback down with it.
- *
- * Widening the bucket's CORS policy does NOT remove the need for this, which is
- * worth stating because it looks like it should: the poisoning is about the
- * media element's request not being a CORS request, not about which origins the
- * response allows. Re-tested in a browser after the policy was widened to `*` on
- * 2026-08-13 -- the failure reproduced unchanged.
+ * A media element's non-CORS response can poison Chromium's cache for later CORS fetches. Retry opaque
+ * failures with `cache: 'reload'`; changing playback to require CORS would make ordinary audio depend on CDN
+ * policy. Widening allowed origins does not repair the cached request-mode mismatch.
  */
 export async function fetchAudioSegment(url: string): Promise<{ response: Response; cacheBypassed: boolean }> {
   let firstFailure: unknown;
@@ -239,10 +200,7 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     audioContext = new AudioContext();
   }
 
-  // `Promise.all` rejects on the first failure and leaves the remaining rejections
-  // unowned, so a CDN blip that fails several segments at once surfaces the rest as
-  // unhandled rejections — reported as a bare uncaught `Failed to fetch` even though
-  // every caller wraps this in try/catch. `allSettled` keeps every rejection owned.
+  // Wait for every fetch to settle before decoding or propagating a failure.
   const settled = await Promise.allSettled(urls.map(fetchAudioSegment));
 
   const failed = settled.find((result): result is PromiseRejectedResult => result.status === 'rejected');
@@ -259,7 +217,6 @@ export async function concatenateAudios(urls: string[]): Promise<ConcatenatedAud
     audioBuffers.push(await audioContext.decodeAudioData(await result.value.response.arrayBuffer()));
   }
 
-  // Should always be 2, but just in case
   const channels = Math.max(...audioBuffers.map((b) => b.numberOfChannels));
   const length = audioBuffers.map((b) => b.length).reduce((a, c) => a + c, 0);
   const firstBuffer = audioBuffers[0];
@@ -307,11 +264,7 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
   const posthog = usePostHog();
   posthog?.capture('segment_downloaded', { download_type: typeMap[ext ?? ''] ?? ext });
 
-  // A signed-out reader saving a clip is the closest thing to a stated intent
-  // this site gets: they want to keep the sentence, and an account is how it
-  // gets kept properly. Fired here rather than at the four call sites in
-  // `SegmentActionsContainer` for the same reason the capture above is -- one of
-  // them would eventually be added without it.
+  // Raise the download signup offer centrally so every download call site follows the same policy.
   useSignupNudge().nudgeAfterDownload();
 
   if (isBlobUrl) {
@@ -322,10 +275,7 @@ export function downloadAudioOrImage(url: string | URL | Request, filename: stri
     return;
   }
 
-  // Same cache hazard as `fetchAudioSegment`: downloading a clip the reader had
-  // just played reused the media element's non-CORS cache entry and rejected as a
-  // bare `Failed to fetch`, so the download button looked broken for exactly the
-  // segments they were most likely to want.
+  // Retry past the same media-element cache hazard handled by `fetchAudioSegment`.
   fetch(url)
     .catch(() => fetch(url, { cache: 'reload' }))
     .then((response) => {
@@ -458,10 +408,7 @@ export async function getSharingURL(params: {
         .catch(() => {});
     }
   } catch (error) {
-    // Same rejections as `copyToClipboard` above -- denied permission, non-secure
-    // origin -- but this branch was dropping them on the floor, so a share that
-    // never made it to the clipboard was absent from error tracking as well as
-    // from `segment_shared`, which only fires on the success path.
+    // Report clipboard rejection as well as the toast; sharing analytics fire only after a successful copy.
     handleApiError('media:share-url-copy-failed', error, { toastKey: false });
     const message = $i18n.t('searchpage.main.labels.errorcopiedsharingurl');
     useToastError(message);

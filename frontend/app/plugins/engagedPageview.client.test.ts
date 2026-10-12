@@ -4,23 +4,8 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ENGAGED_VIEW_DWELL_MS } from '~/utils/engagedView';
 
 /**
- * `page_engaged`: the event that separates readers from scrapers.
- *
- * Built after the homepage took 686 full renders from three Azure addresses
- * running headless Chrome in a day, which PostHog counted as ~800 separate
- * people -- each render is a fresh browser profile, so each gets its own
- * anonymous device id. Nothing flagged it: `isLikelyBot` sees a valid Chrome
- * user-agent and passes it through, and PostHog's own classification put all 30
- * days in `Regular` bar sixteen pageviews.
- *
- * Dwell is the one signal that separates the two populations without an
- * allow-list anyone has to maintain: a scraper is gone within a load. So what
- * matters here is exactly WHEN the clock runs -- foreground only, once per page,
- * and not restarted by the query-string churn of a search.
- *
- * It is additive: `$pageview` still fires on every load, and the GAP between the
- * two is the scraping metric. Dropping at capture would throw away the only
- * number that shows the problem exists.
+ * Cover additive engagement counting: foreground dwell, once per path, without restarting on query-string
+ * changes to the same path.
  */
 const capture = vi.fn();
 const analyticsEnabled = { value: true };
@@ -40,13 +25,8 @@ vi.stubGlobal('useRouter', () => ({
 }));
 
 /**
- * Installs the plugin as Nuxt would, holding on to the visibility listener it
- * registers.
- *
- * Kept rather than dispatched at, because the plugin deliberately never removes
- * that listener -- it is meant to live as long as the document -- so a real
- * `visibilitychange` event reaches every instance installed by every earlier
- * test in this file, and they all report their own page.
+ * Call the captured visibility listener directly; dispatching a real event would also invoke
+ * document-lifetime listeners installed by earlier tests.
  */
 let onVisibilityChange: (() => void) | null = null;
 
@@ -114,11 +94,8 @@ describe('a page that holds someone’s attention', () => {
   });
 
   test('is not reported a SECOND time when the reader comes back to the tab', async () => {
-    // The claim, not the timer, is the authority: it re-checks accumulated
-    // foreground time and answers at most once per page. Every path that
-    // re-arms -- a tab regaining focus, a timer that ran long under background
-    // throttling -- runs `fire` again, and only the claim stops those from
-    // reporting the same page twice.
+    // The gate's one-shot claim, not timer scheduling, prevents duplicate events after foreground/background
+    // transitions.
     await install();
     vi.advanceTimersByTime(ENGAGED_VIEW_DWELL_MS);
     expect(capture).toHaveBeenCalledTimes(1);

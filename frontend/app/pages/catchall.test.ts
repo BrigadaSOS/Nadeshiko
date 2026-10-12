@@ -3,27 +3,14 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref, unref } from 'vue';
 
-/**
- * The catch-all content page: everything from `/about` to `/blog/<post>` to the
- * changelog, all rendered from markdown.
- *
- * The English copy is served VERBATIM when the active locale has no translation,
- * so the one thing this page must get right is declaring the language the body
- * is actually in. Left as the reader's locale, a Spanish reader is handed
- * English prose labelled `lang="es"` -- which screen readers pronounce with
- * Spanish phonetics and search engines index as Spanish.
- *
- * The other half is that a BLOG POST is an Article and the other pages are not.
- * A changelog or an about page declaring `datePublished` and a headline is
- * claiming to be something it is not.
- */
+// English fallbacks must declare their actual language for screen readers and crawlers.
+// Only blog posts emit Article metadata.
 const capturedSchema: unknown[] = [];
 const route = reactive({ path: '/en/blog/hello', params: {}, query: {}, fullPath: '/en/blog/hello' });
 const locale = ref('en');
 const content = ref<Record<string, unknown> | null>(null);
 
-// `d` is vue-i18n's DATE formatter, used by this page's template; without it the
-// render throws and any assertion about the body passes on an empty tree.
+// Include the template's date formatter so body assertions cannot pass on a failed render.
 vi.stubGlobal('useI18n', () => ({ t: (k: string) => k, d: (v: unknown) => String(v), locale }));
 vi.stubGlobal('useRoute', () => route);
 vi.stubGlobal('useLocalePath', () => (p: string) => `/en${p}`);
@@ -44,8 +31,6 @@ vi.stubGlobal('useAsyncData', async (_k: unknown, handler: () => Promise<unknown
   }
   return { data, error, refresh: vi.fn(), pending: ref(false) };
 });
-// The page fetches its markdown from an internal route, not from a content
-// collection helper.
 const $fetch = vi.fn();
 vi.stubGlobal('$fetch', $fetch);
 const createError = vi.fn((v: Record<string, unknown>) => Object.assign(new Error('x'), v));

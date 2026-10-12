@@ -309,24 +309,8 @@ watch(activityTypeFilter, () => {
   refetchActivity();
 });
 
-/**
- * The recovery path, and only that.
- *
- * This ran unconditionally, from when the initial load above was `server: false`
- * and the client was the only thing that ever fetched. Once that load moved to
- * the server it became a straight duplicate whenever the server pass worked: the
- * same three requests with the same arguments -- `statsRange` is still `7d` and
- * no day or type filter is set this early -- fired again the moment hydration
- * finished, onto a page that already had every one of their answers.
- * Preferences were the worst of the three, since the SSR identity bootstrap puts
- * them in the store and the load above reads them from there rather than asking.
- *
- * Gated on the server pass having *answered*, not merely run, because the two
- * come apart: a render that cannot authenticate for these owner-scoped routes
- * still completes, with every slice nulled by `reportInitialFailure`. That is
- * the case this duplicate was quietly covering, and it is the one case where
- * asking again from the browser is the difference between a populated page and
- * an empty one.
+/** Refetch only when SSR did not return usable answers. Owner-scoped authentication failures can complete with
+ * null slices; successful SSR already supplied the data and must not repeat its requests after hydration.
  */
 onMounted(async () => {
   if (initialData.value.fetchedOnServer) return;

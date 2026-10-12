@@ -3,19 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The spot-check screen for the moderation agent's edits.
- *
- * With no moderators nobody reviews every agent edit, so the safeguard is
- * sampling a few and undoing one in a click -- which is why the before/after
- * diff is inline rather than a link out. That makes the DIFF the screen: it has
- * to show the fields that actually moved and nothing else, because an edit
- * touches one or two of eleven and a full dump buries the change it exists to
- * surface.
- *
- * Values are compared structurally, not by reference, or a re-serialised object
- * that is byte-identical reads as a change.
- */
+/** Compare revisions structurally and show only changed fields for inline moderation spot-checks. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 const toastSuccess = vi.fn();

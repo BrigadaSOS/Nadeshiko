@@ -20,8 +20,7 @@ import {
   type ShirabeWord,
 } from './wordCard';
 
-// Shirabe returns every language an entry has, so a definition list is what a
-// reader preference has to be applied TO, not what it can be asked for.
+// Apply reader preferences locally to the multilingual response.
 const BILINGUAL = [
   { lang: 'en', text: 'to burn' },
   { lang: 'en', text: 'to be roasted' },
@@ -73,8 +72,6 @@ describe('glossPreference', () => {
   it('resolves tag labels into the primary enabled language, not the interface one', () => {
     expect(preference('en').labels).toBe('en');
     expect(preference('es').labels).toBe('es');
-    // Reading the site in English with English definitions off: the labels
-    // follow the definitions, so the card does not read in two languages.
     expect(preference('en', 'hidden', 'show').labels).toBe('es');
   });
 
@@ -104,14 +101,11 @@ describe('selectDefinitions', () => {
   });
 
   it('falls back to English when the reader language has no gloss', () => {
-    // The whole point: a missing translation is worse than the wrong language.
     expect(texts(selectDefinitions(ENGLISH_ONLY, preference('es', 'hidden', 'show')))).toEqual(['to be jealous']);
   });
 
-  // Hiding one language is "I read the other one", so a word with no gloss there
-  // still gets one. Hiding both is "I do not want translations", and handing that
-  // reader MORE text than the stricter-looking preference gets would be perverse.
-  // The rest of the card still answers: the word, its reading, its form, its kanji.
+  // Hiding all enabled translations disables translated gloss fallback; the rest of the card remains
+  // available.
   it('gives a reader who hid every language no definitions at all', () => {
     expect(selectDefinitions(BILINGUAL, preference('es', 'hidden', 'hidden'))).toEqual([]);
   });
