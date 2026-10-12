@@ -7,6 +7,7 @@ import type {
   AddFavoriteMedia,
   RemoveFavoriteMedia,
 } from 'generated/routes/user';
+import type { t_MediaSummary } from 'generated/models';
 import { assertUser } from '@app/middleware/authentication';
 import { AccountQuotaUsage, Media, Tier, resolveQuotaLimit } from '@app/models';
 import { config } from '@config/config';
@@ -38,15 +39,9 @@ export const getMe: GetMe = async (_params, respond, req) => {
   );
 };
 
-export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req) => {
-  const user = assertUser(req);
-  // Normalize preferences before reading titles; legacy bare-string rows otherwise resolve to `undefined` entries.
-  const hiddenMedia = normalizeMediaPreferences(user.preferences ?? {}).hiddenMedia ?? [];
-  const publicIds = hiddenMedia.map((item) => item.mediaPublicId);
-
-  if (publicIds.length === 0) {
-    return respond.with200().body({ excludedMedia: [] });
-  }
+/** Hydrate in preference order, preserving duplicates and omitting stale IDs. */
+async function loadMediaSummaries(publicIds: string[]): Promise<t_MediaSummary[]> {
+  if (publicIds.length === 0) return [];
 
   const media = await Media.find({
     where: publicIds.map((mediaPublicId) => ({ publicId: mediaPublicId })),
@@ -54,12 +49,19 @@ export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req
   });
   const mediaByPublicId = new Map(media.map((item) => [item.publicId, item]));
 
-  return respond.with200().body({
-    excludedMedia: publicIds
-      .map((mediaPublicId) => mediaByPublicId.get(mediaPublicId))
-      .filter((item): item is Media => item !== undefined)
-      .map(toMediaSummaryDTO),
-  });
+  return publicIds
+    .map((mediaPublicId) => mediaByPublicId.get(mediaPublicId))
+    .filter((item): item is Media => item !== undefined)
+    .map(toMediaSummaryDTO);
+}
+
+export const listExcludedMedia: ListExcludedMedia = async (_params, respond, req) => {
+  const user = assertUser(req);
+  // Normalize preferences before reading titles; legacy bare-string rows otherwise resolve to `undefined` entries.
+  const hiddenMedia = normalizeMediaPreferences(user.preferences ?? {}).hiddenMedia ?? [];
+  const publicIds = hiddenMedia.map((item) => item.mediaPublicId);
+
+  return respond.with200().body({ excludedMedia: await loadMediaSummaries(publicIds) });
 };
 
 export const addExcludedMedia: AddExcludedMedia = async ({ body }, respond, req) => {
@@ -108,22 +110,7 @@ export const listFavoriteMedia: ListFavoriteMedia = async (_params, respond, req
   );
   const publicIds = favoriteMedia.map((item) => item.mediaPublicId).filter(Boolean);
 
-  if (publicIds.length === 0) {
-    return respond.with200().body({ favoriteMedia: [] });
-  }
-
-  const media = await Media.find({
-    where: publicIds.map((mediaPublicId) => ({ publicId: mediaPublicId })),
-    relations: Media.buildRelations({ includeEpisodes: false, includeExternalIds: false }),
-  });
-  const mediaByPublicId = new Map(media.map((item) => [item.publicId, item]));
-
-  return respond.with200().body({
-    favoriteMedia: publicIds
-      .map((mediaPublicId) => mediaByPublicId.get(mediaPublicId))
-      .filter((item): item is Media => item !== undefined)
-      .map(toMediaSummaryDTO),
-  });
+  return respond.with200().body({ favoriteMedia: await loadMediaSummaries(publicIds) });
 };
 
 export const addFavoriteMedia: AddFavoriteMedia = async ({ body }, respond, req) => {
