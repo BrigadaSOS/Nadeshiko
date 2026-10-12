@@ -3,22 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The clickable sentence, and the word card that opens off it.
- *
- * Most of this card's DECISIONS already live in `~/utils/wordCard` and are unit
- * tested there -- which is what leaves this file worth testing for its WIRING:
- * which tokens are clickable at all, that the card opens on the token pressed
- * and closes again, and the one piece of disambiguation that is local to it.
- *
- * That piece is `duplicateHeadwords`. あれ is two words -- a pronoun and an
- * interjection -- and only the chips a reader cannot otherwise tell apart get a
- * part-of-speech letter. It counts over what is PRINTED rather than over the
- * headword, because two chips are indistinguishable when they carry the same
- * label, and a word shown under its kanji is no longer a duplicate of the kana
- * it shares a headword with. Getting that backwards either labels everything
- * (noise on every card) or nothing (あれ twice, with nothing to choose by).
- */
+/** Disambiguate chips by printed labels, not shared headwords: kanji can distinguish the same kana headword. */
 const peekWord = vi.fn();
 const fetchWord = vi.fn();
 vi.mock('~/utils/wordLookup', () => ({

@@ -7,10 +7,7 @@ import { mediaBrowsePath } from '~/utils/routes';
 const { t, locale } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 const localePath = useLocalePath();
-// Rounded DOWN, then suffixed: `Math.ceil` behind a leading "+" claimed more
-// than a figure that was already above the truth (1,318,789 rendered as
-// "+1318800"), and the bare digits were the only unformatted count on the site.
-// The suffix side matches /stats, which has always written "1,318,789+".
+// Round counts down and suffix "+" so the displayed lower bound never exceeds the total.
 const { formatNumber } = useFormat();
 
 useSeoMeta({
@@ -24,23 +21,8 @@ useSeoMeta({
   twitterDescription: () => t('seo.home.description'),
 });
 
-/**
- * The site node, and the searchbox hanging off it.
- *
- * Both halves were wrong in ways that only show in the assembled graph.
- *
- * The id has to carry the locale. Every other page lets the module build the
- * `WebSite` node and gets `.../en#website`, which is what their `WebPage`
- * points at; this page declared its own and resolved the id against the bare
- * site URL, so home -- the one page most likely to be read for the searchbox --
- * published a `WebPage.isPartOf` aimed at a node its own graph did not contain.
- *
- * And `defineSearchAction` has to be nested here rather than sit beside it.
- * As a sibling it was emitted as a top-level `@graph` member that nothing
- * referenced: Google reads the searchbox off `WebSite.potentialAction`, so a
- * detached one is inert. The target keeps the locale prefix too -- without it
- * every sitelinks search cost a 302 on the way in.
- */
+// Match the module's locale-specific WebSite ID so WebPage.isPartOf resolves.
+// Nest SearchAction under potentialAction and localize its target to avoid a redirect.
 useSchemaOrg([
   defineWebSite({
     '@id': `${siteUrl}${localePath('/')}#website`,
@@ -60,9 +42,7 @@ useHead({
 const config = useRuntimeConfig();
 const { mediaName } = useMediaName();
 
-// Through `/api/home/recent-media` rather than the SDK directly: the list is the
-// same for every visitor, so the Nitro route is what gives it somewhere to be
-// cached (see the `swr` rule in nuxt.config.ts).
+// The shared recent-media list uses Nitro's SWR cache instead of a direct SDK call.
 const {
   data: media,
   pending: isLoading,
@@ -73,9 +53,7 @@ const {
   default: () => null,
 });
 
-// The example searches mirror the default translation-language setting:
-// English readers get `school`, Spanish readers get `escuela`, Portuguese
-// readers get both, and every other locale gets the English example.
+// Match the default translation languages: EN for most locales, ES for Spanish, both for Portuguese.
 const otherLanguageExamples = computed(() => {
   const english = { query: 'school', label: 'School' };
   const spanish = { query: 'escuela', label: 'Escuela' };
@@ -87,23 +65,8 @@ const otherLanguageExamples = computed(() => {
 
 const filteredRecentMedia = computed(() => media.value?.media ?? []);
 
-/**
- * The install link is the only step of the Discord funnel that happens on our
- * side, and until now nothing recorded it.
- *
- * `autocapture` is off (`nuxt.config.ts`), so an outbound click fires no event
- * of its own -- which left the whole funnel unreadable in the direction that
- * matters. The bot reports how many servers it is in and how often it is used;
- * neither answers whether anybody ever set out to install it. A visitor who
- * clicks and does not finish, and a visitor who never clicks, are the same
- * absence without this, and they call for opposite fixes.
- *
- * `locale` because the copy is translated and the link sits in a features list
- * whose position differs by how long the surrounding text runs.
- *
- * No `sendBeacon` dance: the link is `target="_blank"`, so this page is still
- * here when the request goes out.
- */
+// Autocapture is disabled, so record the Discord install funnel's outbound click explicitly.
+// Include the copy's locale; target="_blank" keeps this page alive without sendBeacon.
 function reportBotInstallClick(): void {
   usePostHog()?.capture('discord_bot_install_clicked', { locale: locale.value, surface: 'home_key_features' });
 }
@@ -115,23 +78,12 @@ function reportBotInstallClick(): void {
                     <div class="nd-page px-4 md:px-0">
                         <LayoutSystemAnnouncementBanner />
                         <SearchBaseInputSegment />
-                        <!-- `pt-3` is the gap `<main>` leaves ABOVE the search bar,
-                             so the bar sits in an even band rather than tight to the
-                             header and adrift from the page. The bottom keeps its
-                             larger padding: that one separates sections, not a
-                             control from its own surroundings. -->
+                        <!-- Match the gap above the search bar; bottom padding separates sections. -->
                         <div class="pt-3 pb-2 xl:pb-4">
                             <div class="flex dark:text-white/80 gap-10 flex-col xl:flex-row justify-between">
                                 <div class="flex-1 md:min-w-[30rem]">
                                     <div class="flex rounded-lg flex-col first-letter:items-left">
-                                        <!--
-                                            THE PAGE'S H1, and the version beside it is a `span`.
-                                            It used to be `h2` + `h3`, with the build number as a
-                                            heading between the brand and the tagline -- so a crawler
-                                            read "Nadeshiko v2.4.9 A tool for searching..." as one
-                                            phrase and Google put the version number in the search
-                                            result. A build number is not a heading.
-                                        -->
+                                        <!-- The version is not a heading: keep it out of the document outline and search title. -->
                                         <div class="inline-flex">
                                             <h1
                                                 class="text-3xl ml-2 mt-3 md:mt-0 underline underline-offset-8 decoration-4 decoration-header-background sm:mt-0 font-bold md:text-4xl md:leading-tight dark:text-white">
@@ -256,10 +208,7 @@ function reportBotInstallClick(): void {
 
                                     <div class="mb-5 border-b border-b-line-subtle" />
 
-                                    <!-- Wraps: the cards are `w-full` below `sm` and thirds above it,
-                                         which only stacks if the row is allowed to break. Without it
-                                         three full-width cards stayed on one line and ran off the
-                                         side of a 320px screen. -->
+                                    <!-- Full-width mobile cards need wrapping to avoid horizontal overflow. -->
                                     <div data-testid="stats-section" class="flex flex-wrap gap-4 text-center">
                                         <div class="w-full sm:w-auto sm:flex-1">
                                             <div class="dark:bg-card-background px-4 py-4 rounded-lg h-full">
@@ -317,7 +266,6 @@ function reportBotInstallClick(): void {
                                                 </NuxtLink>
                                             </div>
 
-                                            <!-- Skeleton loading placeholder -->
                                                 <div
                                                     v-if="isLoading"
                                                     class="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-3">
@@ -341,7 +289,6 @@ function reportBotInstallClick(): void {
                                                     </div>
                                                 </div>
 
-                                                <!-- Error state -->
                                                 <div
                                                     v-else-if="error"
                                                     class="flex items-center justify-center py-16">
@@ -377,7 +324,6 @@ function reportBotInstallClick(): void {
                                                     </div>
                                                 </div>
 
-                                                <!-- Actual content -->
                                                 <div
                                                     v-else
                                                     class="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-3">

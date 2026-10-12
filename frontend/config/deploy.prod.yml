@@ -4,89 +4,32 @@ image: brigadasos/nadeshiko-frontend-prod
 servers:
   web:
     options:
-      # Memory limit: 1.5GB RAM + 256MB swap.
-      #
-      # Was 1g, on the arithmetic that three Nitro workers want 200-300MB each. They
-      # want more than that now: measured 2026-08-12, the container's working set ran
-      # 600-900MB for a day straight and peaked at 906MB. That is 84% of a 1g cap --
-      # under NadeshikoContainerMemoryNearLimit's 90%, so the alert would have stayed
-      # quiet right up until V8 started failing mark-compacts, which is how #484 went.
-      # At 1.5g the same peak is 60% and the alert is an early warning again.
-      #
-      # Note that the ceiling here is the real one: Node sizes its default heap from
-      # the cgroup limit, so raising --max-old-space-size without raising this would
-      # only trade V8's FATAL ERROR (which writes a report, see NODE_OPTIONS below)
-      # for a silent kernel kill.
-      #
-      # RAISED TO 2g ON 2026-08-31 for two cluster workers -- see the arithmetic
-      # under NITRO_CLUSTER_WORKERS below. Each worker's heap is pinned by
-      # --max-old-space-size in NODE_OPTIONS, so V8 fails loudly with a report
-      # before the kernel gets to choose.
+      # 2GiB RAM plus 256MiB swap for two workers. Keep the container budget,
+      # per-worker NODE_OPTIONS heap cap, and SSR admission limit coordinated.
       memory: 2g
       memory-swap: 2.25g
-      # An init as PID 1, so orphans get reaped. Node is PID 1 without it and
-      # Node does not reap: the container's own healthcheck (`node -e fetch(/up)`,
-      # 5s timeout) leaves its child re-parented to Node whenever a check times
-      # out under load, and it stays a zombie until the container dies. Counted
-      # 2026-08-31: 49 across the frontend and backend containers, every one
-      # dated to a minute the box was overloaded.
+      # Reap healthcheck orphans; repeat init because this block replaces deploy.yml.
       init: true
-      # 2.5 of the host's 4 cores. Not a performance setting -- at two workers
-      # the container cannot usefully take more -- but a fence: on 2026-08-30 the
-      # frontend's queue of doomed renders was competing with Elasticsearch and
-      # the backend for the same cores it was waiting on. This guarantees the
-      # services a render depends on a core and a half of their own.
+      # Fence two workers to 2.5 of four cores, leaving capacity for the backend,
+      # Elasticsearch and Postgres that renders depend on.
       cpus: "2.5"
-      # Docker hands the container a core-dump limit of 0, so a segfaulting
-      # worker dies leaving nothing but a one-line kernel trap. Raising it is
-      # only half the job: the kernel writes the dump through the *host's*
-      # kernel.core_pattern, which has to be pointed at systemd-coredump --
-      # see brigadasos-infra/hetzner/setup-coredumps.sh. Without that script
-      # this flag is inert rather than wrong.
+      # Docker defaults core limits to zero. Also configure the host's core_pattern
+      # for systemd-coredump via brigadasos-infra/hetzner/setup-coredumps.sh.
       ulimit: core=-1
-      # Overrides the single-entry `add-host` in deploy.yml, which Kamal replaces
-      # rather than merges, so `host.docker.internal` has to be repeated here.
-      #
-      # Resolving one of Shirabe's own hostnames to inari's Tailscale address sends
-      # a word lookup straight over the tailnet instead of out to Cloudflare and
-      # back for two boxes in the same city (~175ms against ~33ms of real work).
-      # The name is genuine, so SNI, Host and the certificate still line up and it
-      # arrives through Shirabe's normal proxy rather than a second door.
-      #
-      # It is `www` that gets mapped, and NOT the apex, which is the opposite of
-      # how staging had it. The apex is the name that has to stay public, because
-      # it is the fallback -- and www is the one that can afford to leave the
-      # public internet, because Cloudflare 301s www to the apex and a redirect is
-      # exactly what a bearer token cannot survive (see NUXT_SHIRABE_API_BASE).
-      # Measured 2026-08-11: the ORIGIN serves both names 200, so that redirect is
-      # Cloudflare's alone and skipping Cloudflare skips it.
+      # Kamal replaces add-host rather than merging; repeat host.docker.internal.
       add-host:
         - host.docker.internal:host-gateway
-        # Stable across kamal-proxy replacement. TLS and Host still use the real
-        # API name, while Docker routes the connection to the host-published
-        # proxy port instead of pinning the proxy container's ephemeral IP.
+        # Host gateway survives kamal-proxy replacement while retaining API TLS/SNI.
         - api.nadeshiko.co:host-gateway
 
-# Diagnostic reports written by the Node flags in NODE_OPTIONS below. A bind
-# mount and not a named volume on purpose: the whole value is being able to read
-# the files from the host *after* the container that produced them is gone, and
-# a crash-looping container is exactly when `docker volume inspect` is the least
-# convenient way in.
-#
-# The second mount is the asset archive: the previous builds' `/_nuxt/*` files,
-# kept on the host so they outlive the container that produced them. It is what
-# makes a deploy invisible to a reader who already has a page open -- their tab
-# names the chunks of the build it was rendered by, and without this those 404
-# the moment the new container is live. See frontend/server/utils/assetArchive.ts
-# and DEPLOYMENT.md, "Surviving a deploy with a page already open".
-#
-# Both directories have to exist and be writable by uid 1000 (`node`, which
-# docker-entrypoint.sh drops to) before the first deploy, or Node silently
-# writes nothing:
+# Host bind mounts preserve diagnostics after container loss and old /_nuxt/*
+# chunks across deploys for open tabs. See assetArchive.ts and DEPLOYMENT.md.
+# Prepare diagnostics and archive directories writable by uid 1000 before deploy:
 #   ssh nadeshiko "sudo mkdir -p /var/lib/nadeshiko/frontend-prod/diagnostics \
 #     /var/lib/nadeshiko/frontend-prod/asset-archive \
 #     && sudo chown 1000:1000 /var/lib/nadeshiko/frontend-prod/diagnostics \
 #     /var/lib/nadeshiko/frontend-prod/asset-archive"
+# docker-entrypoint.sh creates/chowns the sitemap snapshot directory.
 volumes:
   - "/var/lib/nadeshiko/frontend-prod/diagnostics:/app/diagnostics"
   - "/var/lib/nadeshiko/frontend-prod/asset-archive:/app/asset-archive"
@@ -98,34 +41,28 @@ builder:
     NITRO_PRESET: node_cluster
 
 proxy:
-  # Leave the Tailscale address available for the private Caddy proxy.
+  # Bind on loopback and the Docker bridge for the private Caddy proxy.
   run:
     bind_ips: [127.0.0.1, 172.17.0.1]
   ssl: true
   host: nadeshiko.co
   app_port: 3000
   forward_headers: true
-  # Liveness of the Nitro server only; it deliberately does not probe the
-  # backend -- see frontend/server/routes/up.ts.
+  # Nitro liveness only; backend availability does not gate /up.
   healthcheck:
     path: /up
     interval: 2
     timeout: 5
-  # Ten seconds, down from kamal-proxy's default of 30. A render that has taken
-  # ten seconds is not going to be read: baseline p95 is 431ms, and on 2026-08-30
-  # 2,037 renders sat in the proxy for the full 30s before 504ing, each holding a
-  # worker slot the whole time. The admission gate (NUXT_SSR_MAX_INFLIGHT) keeps
-  # the queue short; this keeps a slow backend from turning the slots it does
-  # allow into 30-second holds.
+  # Limit slow-backend slot holds to 10s. Baseline p95 was 431ms; the 2026-08-30
+  # flood held 2,037 renders for the former 30s timeout. SSR admission bounds the
+  # queue; this timeout bounds admitted requests waiting on a slow backend.
   response_timeout: 10
 
 env:
   secret:
     - NUXT_NADESHIKO_API_KEY
     - NUXT_INTERNAL_PROXY_SECRET
-    # Word lookups. Its own key, not staging's and not the backend's: the backend's
-    # SHIRABE_API_KEY parses the corpus, this one reads definitions for a reader, and
-    # sharing one credential would mean neither could be revoked on its own.
+    # Separate lookup key from staging and backend corpus parsing for independent revocation.
     - NUXT_SHIRABE_API_KEY
 
   clear:
@@ -133,265 +70,71 @@ env:
     NUXT_PUBLIC_ENVIRONMENT: production
     NODE_ENV: production
 
-    # `shirabeLookups` is derived from NUXT_SHIRABE_API_KEY in nuxt.config, which is
-    # evaluated during `nuxt build` -- inside the image, where the key is not present
-    # and must not be. The boolean therefore bakes in as false however the key is set
-    # at runtime, so the public flag is set here instead. Only valid where the key IS
-    # configured: turning it on without one is exactly the doomed per-hover request
-    # the flag exists to prevent.
+    # The key is absent during build, so explicitly enable the public runtime flag.
+    # Enable only where NUXT_SHIRABE_API_KEY is configured; never put it in the image.
     NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
-    #
-    # The fast path and the fallback are the same service under two of its own
-    # hostnames, which is what lets one skip Cloudflare while the other keeps working
-    # if the tailnet does not. The lookup route falls back per request and parks the
-    # direct path on a doubling cooldown, so losing the tailnet costs latency, never
-    # answers.
-    #
-    # www is the one mapped onto the tailnet by add-host above, so this never leaves
-    # the host and never meets Cloudflare's redirect.
-    # The public apex is the sole Shirabe endpoint. Cloudflare 301s www to the
-    # apex, and a 301 is cross-origin, so undici (Nitro's fetch) strips the
-    # Authorization header when it follows -- the request arrives unauthenticated and
-    # Shirabe answers 401 "API key required". Measured in node 2026-08-11:
-    #
-    #   https://www.shirabe.org/api/v1/words/... -> 401, redirected=true
-    #   https://shirabe.org/api/v1/words/...     -> 200
-    #
-    # So a www fallback is not a slow path, it is a broken one, and it only ever
-    # looked fine because the tailnet almost never fails. The apex is proxied by
-    # Cloudflare and 200s directly.
+    # Use the public apex, not www: cross-origin redirects strip Authorization.
+    # Measured in Node: www -> 401 after redirect, apex -> 200. No tailnet mapping.
     NUXT_SHIRABE_API_BASE: https://shirabe.org
 
     NUXT_BACKEND_INTERNAL_URL: https://api.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
 
-    # The container side of the asset-archive mount above. Empty or unset turns
-    # the archive off, so this and the volume have to move together -- a path
-    # here with no mount behind it would write the previous builds into the
-    # container's own filesystem, where they die with it. The startup plugin
-    # refuses to create the directory for exactly that reason and logs
-    # `asset archive: directory unavailable` instead.
+    # Keep the archive path and persistent mount together; empty disables it.
+    # The plugin refuses to create a missing directory to avoid ephemeral storage.
     NUXT_ASSET_ARCHIVE_DIR: /app/asset-archive
     NUXT_SITEMAP_SNAPSHOT_DIR: /app/sitemap-snapshots
 
-    # BOTH OF THESE ARE INERT, and are kept only so the next person does not
-    # re-add them believing they work. Nitro bakes its preset in at BUILD time;
-    # `nuxt.config.ts` sets `preset: 'node-server'` and the Dockerfile defaults
-    # `ARG NITRO_PRESET=node-server`, so a runtime variable cannot change it.
-    # Verified on 2026-08-16: `docker top` on the running container shows ONE
-    # process, and 26 sequential requests from one address tripped the limit at
-    # exactly 20 -- which three round-robined workers could not have done.
+    # The builder arg selects node-cluster at build time via nuxt.config.ts;
+    # runtime NITRO_PRESET alone cannot change the bundle. Workers have separate
+    # caches and rate-limit buckets; perWorkerMax divides limits only in workers.
     #
-    # Turning clustering on is a real decision, not a typo fix: three workers
-    # would triple SSR capacity, and would also give each worker its own copy of
-    # every in-process cache (segments, assets, the SSR session cache) as well as
-    # its own rate-limit buckets. Do it deliberately, at build time, or not at all.
-    #
-    # COSTED ON 2026-08-23, AND THE ANSWER WAS NO. Written down because the
-    # arithmetic is the expensive part and it should not have to be redone:
-    #
-    # THE DOCKERFILE `ARG` IS NOT THE LEVER, which the paragraph above implies by
-    # naming it alongside nuxt.config. Nitro resolves the preset as
-    # `configOverrides.preset || process.env.NITRO_PRESET` (nitropack 2.13.4,
-    # dist/core/index.mjs:725), and Nuxt passes `nuxt.options.nitro` in as those
-    # overrides (@nuxt/nitro-server dist/index.mjs:366, :861). So the explicit
-    # `preset: 'node-server'` at nuxt.config.ts:812 WINS OVER THE ENV VAR, and
-    # flipping `ARG NITRO_PRESET=node_cluster` would be a third inert copy of this
-    # intent -- worse than the two here, because it looks like the fix. The one
-    # line that turns clustering on lives in nuxt.config.ts, nowhere else.
-    #
-    # MEMORY. One worker peaked at 935 MiB over 30 days (cadvisor, prod; the 906
-    # in the `memory:` comment above was the same measurement in August). Nothing
-    # in that number is shared between forks in steady state -- V8 writes over the
-    # copy-on-write pages within seconds -- so three workers plus the primary that
-    # forks them is 3*935 + ~150 = ~2.9 GiB of working set. Holding today's peak-
-    # to-cap ratio (935/1536 = 61%, which is what keeps
-    # NadeshikoContainerMemoryNearLimit an early warning rather than a death
-    # rattle) needs a 4.75g cap; even an uncomfortable 75% needs 3.85g.
-    #
-    # There is nowhere to take it from. The host is a cx33: 7.57 GiB total, and
-    # the caps already written across the four deploy files come to 8.5 GiB (ES
-    # 3.5, postgres 1.5, backend 1.5, this 1.5, discord 0.5) -- which only works
-    # because they do not peak together. Measured worst case, `MemAvailable` on
-    # the host bottomed at 3.18 GiB over 7 days, and most of that is the page
-    # cache Postgres and Elasticsearch read through. Kamal also runs the old and
-    # new containers side by side across a deploy, so whatever this cap becomes,
-    # budget it twice.
-    #
-    # And NODE_OPTIONS goes with it: `--max-old-space-size=1024` is set in the
-    # Dockerfile ENV, which every forked worker inherits, so three workers permit
-    # 3 * 1216 MiB of heap -- more than even the 3.85g cap. Dividing it to ~341
-    # MiB per worker puts the cap under the working set one process already has,
-    # which is how #484 happened.
-    #
-    # CPU says the same thing from the other side. `node_load1` on this host is
-    # 2.96 at p95 and peaked at 7.36 over 7 days, on 4 vCPU shared with Postgres,
-    # Elasticsearch and the backend. Three workers plus a primary do not add
-    # parallelism to a box that is already oversubscribed at peak; they move the
-    # wait from the event loop to the run queue and pay for three more copies of
-    # every cache to fill it.
-    #
-    # What would change the answer: a bigger box, or moving Elasticsearch off
-    # this one. Not a config edit.
-    #
-    # REVISITED 2026-08-31, AND THE ANSWER IS NOW TWO WORKERS. What changed is
-    # not the box; it is what a night under a distributed crawler showed about
-    # how the box was being used, and a cap that makes the memory arithmetic
-    # above stop applying.
-    #
-    # SINGLE-PROCESS WAS THE CEILING. `docker top` on the production container
-    # showed one Node process, as the paragraph above predicted. Its measured
-    # limit is ~6.4 search renders a second, and when the crawler sent 40-90/s
-    # the host was at 61-74% CPU -- more than two cores idle -- while the site
-    # served 189 successful search pages out of 60,000 requests. One event loop
-    # cannot spend the other cores, and the mitigation on the night was to
-    # start three more copies of the container by hand, which is clustering
-    # without any of its coordination.
-    #
-    # MEMORY, RE-MEASURED. The 935 MiB peak the paragraph above budgets from was
-    # one process under UNBOUNDED concurrency: every render admitted, hundreds in
-    # flight, each holding its Vue tree until it finished or timed out. The
-    # admission gate (NUXT_SSR_MAX_INFLIGHT below) bounds that at 8 per worker,
-    # and the peak with it is a different number. Over the 3 days to 2026-08-31,
-    # which include the flood, the container's working set never passed 577 MiB,
-    # and the three hand-started copies ran 400-475 MiB each for five hours side
-    # by side. Two workers x ~500 MiB + a ~100 MiB primary is ~1.1 GiB expected,
-    # 2g is the cap, and --max-old-space-size=640 per worker (NODE_OPTIONS) means
-    # the sum of heaps cannot reach it: a worker that grows past its share dies
-    # with a report and is re-forked, instead of the kernel killing the whole
-    # container. Host side, this replaces 4 x 1.5g of hand-started containers
-    # with one at 2g, so the total budget goes DOWN by 4 GiB against the state
-    # the box actually ran in.
-    #
-    # CPU, THE OTHER WAY ROUND. Two workers and not three because the host has
-    # four cores and Elasticsearch, the backend and Postgres are what a render
-    # waits on -- three workers plus those is the run-queue contention the
-    # paragraph above warned about. Two workers, fenced to 2.5 cores (`cpus`
-    # above), is 2x the ceiling with a core and a half left for everything the
-    # ceiling depends on. Human peak in the week to 2026-08-31 was 0.67 renders/s
-    # against ~12/s of capacity; the headroom is for floods, and past it the
-    # gate answers 503 rather than queueing.
-    #
-    # THE ONE LINE THAT TURNS IT ON is `nitro.preset` in nuxt.config.ts, which
-    # now reads NITRO_PRESET at build time -- this builder arg, not this env var,
-    # is what reaches it. The runtime copy below is read by `perWorkerMax` and
-    # the workers themselves. Every per-IP limit in this file divides by it.
+    # Two workers use spare CPU: during the 2026-08-30 flood, one event loop capped
+    # search renders at ~6.4/s while host CPU was 61-74%. Two provide ~12/s capacity
+    # against a measured human peak of 0.67/s in the week to 2026-08-31.
+    # With eight renders admitted per worker, one container peaked at 577MiB
+    # through the flood; manual copies held 400-475MiB each. Budget ~1.1GiB for
+    # two workers plus the primary inside 2GiB, with 640MiB old-space caps per process.
+    # Leave off-heap headroom and budget old/new containers together during deploy.
+    # Three workers compete with downstream services on this four-core host;
+    # the 2.5-core fence leaves those services capacity.
     NITRO_PRESET: node_cluster
     NITRO_CLUSTER_WORKERS: 2
 
-    # Page renders each worker will hold in flight before answering 503 to the
-    # next -- per PROCESS, not service-wide, unlike the limits below; the reason
-    # and the arithmetic are in server/middleware/99-ssr-admission.ts. Sixteen
-    # across the two workers; a flood past that is refused in microseconds
-    # instead of queued for thirty seconds.
+    # Eight renders per worker (sixteen total); excess gets immediate 503, not
+    # queued SSR work. See server/middleware/99-ssr-admission.ts for sizing.
     NUXT_SSR_MAX_INFLIGHT: 8
 
-    # Per-IP rate limits, set here rather than left to the defaults in
-    # config/env.ts because the default is not the number that gets enforced.
-    #
-    # These are SERVICE-WIDE limits, in requests per minute per IP. They used to
-    # be pre-divided by three by hand, to share one limit across the three
-    # workers named above -- workers that were never actually started. The result
-    # was that every limit enforced a third of what this comment claimed, for
-    # months: HTML at 20/min against a documented 60.
-    #
-    #   HTML      60/min
-    #   /v1/*    120/min   search, media, the browser-facing proxy.
-    #   /v1/auth  30/min   tighter: the credential-stuffing door.
-    #
-    # The division now happens in `perWorkerMax` (server/utils/ipRateLimit.ts),
-    # against the worker count actually running, so these say what they mean and
-    # enabling clustering later cannot silently move them again.
-    #
-    # Chosen against measured traffic rather than picked, from kamal-proxy logs
-    # over a normal 3.5h window (per client IP per minute, busiest first):
-    #
-    #   HTML    133/min  an IP sending NO user-agent at all -- the bot
-    #            27/min  busiest real browser
-    #            <=11/min  everyone else
-    #   /v1/*    34/min  busiest real browser
-    #
-    # So 60/min leaves the heaviest genuine reader ~2x headroom while sitting
-    # well under the crawler, which is the gap these want to land in.
-    #
-    # Staging is deliberately not given these: it runs a single process, so the
-    # config/env.ts defaults are already its true limits.
-    #
-    # THERE IS A FOURTH LIMIT THAT DIVIDES AND IT IS NOT LISTED HERE:
-    # NUXT_RATE_LIMIT_V1_FEEDBACK_MAX, default 5 (config/env.ts:83), applied in
-    # server/utils/v1ProxyPolicy.ts through the same `ipRateLimit` and therefore
-    # the same `perWorkerMax`. It is absent because 5 is the right service-wide
-    # number and one process enforces exactly that today.
-    #
-    # It is written down because it is the one that division treats worst. The
-    # three below split cleanly -- 60/3 = 20, 120/3 = 40, 30/3 = 10 -- but
-    # `perWorkerMax` rounds up from a small numerator: ceil(5/3) = 2, so a
-    # visitor pinned to one worker is guaranteed 2 a minute against an intent of
-    # 5. That is a 60% cut hiding in a rounding rule, on the limit nobody would
-    # think to check because it is not in this file. Anyone enabling clustering
-    # sets it here explicitly first.
+    # Service-wide per-IP requests/minute; perWorkerMax uses ceil(max/workers).
+    # Buckets are process-local, so a client pinned to one worker gets its share,
+    # not the full service budget. Staging runs one process and uses env.ts defaults.
+    # Measured over a normal 3.5h window: busiest browser HTML 27/min, others <=11,
+    # crawler without a user-agent 133/min; busiest browser /v1 traffic 34/min.
+    # HTML 60/min leaves real-reader headroom below crawler volume; auth is tighter.
     NUXT_RATE_LIMIT_HTML_MAX: 60
     NUXT_RATE_LIMIT_V1_API_MAX: 120
     NUXT_RATE_LIMIT_V1_AUTH_MAX: 30
-    # Set explicitly now that clustering is on, as the paragraph above asked.
-    # 6 rather than 5 so it divides evenly: ceil(5/2) = 3 per worker would have
-    # been the same floor, but 6 is the number that makes the total say what it
-    # means.
+    # Six divides evenly across two workers (three each); ceil(5/2) also gives
+    # three, but six accurately states the combined feedback budget.
     NUXT_RATE_LIMIT_V1_FEEDBACK_MAX: 6
 
-    # Diagnostics for the recurring crash where a Nitro process dies on a
-    # general protection fault at the same libc offset every time (+0x50f),
-    # taking the container with it and turning every in-flight request into a
-    # kamal-proxy 502. Set here rather than in the Dockerfile CMD so it can be
-    # changed with `kamal env push` + a restart instead of a rebuild, and so the
-    # cluster workers inherit it -- they are forked from the primary and get its
-    # environment, which is the half of the process tree actually serving.
-    #
-    # Read what each flag does buy, because it is less than it looks:
-    #   --report-on-fatalerror     V8/runtime fatal errors (heap OOM, failed C++
-    #                              assertions). Verified NOT to fire on SIGSEGV.
-    #   --report-uncaught-exception an uncaught JS throw, with the stack.
-    #   --report-on-signal          a report on demand from a live process:
-    #                                 docker kill -s SIGUSR2 <container>
-    #                              which is the one to reach for during an
-    #                              escalation, while the process is still up.
-    #
-    # None of these catch the GPF itself -- that is what the core dump is for.
-    # They are here to rule in or out the failure modes that could be happening
-    # *alongside* it, at the cost of a ~100KB JSON file when they fire.
-    #
-    # --max-old-space-size=640 IS PER PROCESS and is what makes the 2g cap above
-    # a real ceiling rather than a kernel-kill waiting to happen: this variable
-    # replaces the Dockerfile's NODE_OPTIONS wholesale (Kamal sets the env, it
-    # does not append), so without it here the workers ran with V8's default
-    # heap, sized from the host and not from the cgroup. Two workers at 640 MiB
-    # plus the primary fit under 2g with room for off-heap; a worker that needs
-    # more dies with a report and is re-forked by the primary.
+    # Runtime NODE_OPTIONS replaces the Dockerfile default, not appends to it;
+    # forks inherit these flags. 640MiB caps old space per process, not total RSS:
+    # leave headroom under 2GiB for the primary, young heaps and native buffers.
+    # Adjust diagnostics with kamal env push plus a restart, without rebuilding.
+    # Fatal V8 errors (including heap OOM) and uncaught JS exceptions write reports;
+    # SIGSEGV/GPF needs the host core-dump setup above, not these report flags.
+    # On-demand report from a live process: docker kill -s SIGUSR2 <container>.
+    # Keep /app/diagnostics mounted and writable to retain reports after restart.
     NODE_OPTIONS: "--max-old-space-size=640 --report-on-fatalerror --report-uncaught-exception --report-on-signal --report-directory=/app/diagnostics"
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-prod
     OTEL_SEMCONV_STABILITY_OPT_IN: http
-    # `service.version` read 0.0.0 on every deployed build, because
-    # instrumentation.mjs took it from npm_package_version and the container's
-    # CMD is a bare `node`, which npm never sets it for. Read package.json here
-    # instead -- kamal runs from `frontend/`, so this is the same file the image
-    # was built from. String scan rather than JSON.parse: the ERB binding is
-    # Kamal's, and a missing constant here would abort the deploy at config
-    # load. Kamal renders this at deploy time, so it cannot drift from the tag.
+    # Bare node does not set npm_package_version; read package.json at deploy time.
+    # String scanning avoids relying on JSON constants in Kamal's ERB binding.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
-    # No browser-metrics URL: web vitals go to PostHog now. Backend telemetry
-    # reaches Alloy privately through host.docker.internal:4328; no public
-    # collector hostname or kamal-proxy route is involved.
-
-# NOTHING ON A PAGE SENDS TELEMETRY OFF-SITE ANY MORE, other than to PostHog.
-# The browser reported web vitals to the host Alloy until web vitals moved to
-# PostHog (app/plugins/rum.client.ts); before that it was Faro, and before that
-# an otelcol-browser accessory. All three are gone, and so is the kamal-proxy
-# route they needed on o.nadeshiko.co. That public collector is now retired in
-# brigadasos-infra.
-#
-# Server-side (SSR) telemetry is unaffected and still goes to the same Alloy via
-# OTEL_EXPORTER_OTLP_ENDPOINT → host.docker.internal:4328.
+    # Browser web vitals use PostHog; the old public collector is retired.
+    # SSR telemetry still reaches Alloy privately via host.docker.internal:4328.

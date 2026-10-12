@@ -3,19 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, ref } from 'vue';
 
-/**
- * The Shirabe link on the settings page.
- *
- * The card is mostly one four-way state machine, and the two middle states are
- * opposites that look alike: `upgrade` is a link that WORKS and wants a new
- * permission, `disconnected` is a key Shirabe has refused. Offering "update
- * permissions" for a key that no longer exists sends the reader somewhere that
- * cannot help them, so the precedence between them is the thing worth pinning.
- *
- * The dictionary rows matter for a different reason: a reader's own uploads are
- * filed under a HASH of their contents, so getting the name lookup wrong prints
- * `yomitan-c89af12122021a8a` at the person who uploaded 三省堂国語辞典.
- */
+/** A refused key takes precedence over missing scopes. Shirabe supplies display names for hashed upload slugs. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 

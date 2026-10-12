@@ -70,9 +70,8 @@ const groupedActivities = computed<GroupedActivity[]>(() => {
       prev.activityType === item.activityType &&
       prev.segmentPublicId === item.segmentPublicId &&
       prev.searchQuery === item.searchQuery &&
-      // The title a search was run inside is part of which search it was, so
-      // the same query across everything and inside one show stay two rows here
-      // as well as in the bar's recents menu.
+      // Include media scope in the grouping key: a query across everything and inside one title are different
+      // searches.
       prev.mediaPublicId === item.mediaPublicId
     ) {
       prev.count++;

@@ -1,27 +1,6 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 
-/**
- * "Which words could this token be?", with the definitions attached.
- *
- * It asks `POST /words/identify` rather than the old lookup-by-lemma, and that
- * is the whole reason it exists. `GET /words/{id}` answers a bare lemma, and a
- * lemma is almost always its own headword -- so the old call kept working for
- * nearly every word while SILENTLY ignoring the reading. A homograph then fell
- * to Shirabe's commonest-writing tiebreak instead of to how the sentence read
- * it: 開いた reads ヒライタ and means ひらく, and the card confidently printed
- * あく. Nothing alerted, because a wrong definition is not an error.
- *
- * Two other things here are load-bearing and invisible:
- *
- *   - A READER'S OWN KEY can fail in ways ours cannot -- revoked, or over a
- *     per-minute budget much smaller than a service identity's -- and the right
- *     answer is the default dictionaries, not a broken card. But the fallback
- *     must not then report the SERVICE stack as the reader's, or the backend is
- *     told their dictionaries changed to ours.
- *   - THE CACHE HEADER. A linked reader's card is built from dictionaries that
- *     are theirs to have configured; a `public` cache anywhere between here and
- *     them would hand it to the next reader through the same hop.
- */
+// Guard homograph hints, private reader caching, and service fallback that never overwrites reader stack identity.
 const { logger, callShirabe, readerStack, readerToken, reportShirabeRefusal, reportStackFingerprint } = vi.hoisted(
   () => ({
     logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -35,8 +14,7 @@ const { logger, callShirabe, readerStack, readerToken, reportShirabeRefusal, rep
 
 vi.mock('~~/server/utils/logger', () => ({ logger }));
 vi.mock('~~/server/utils/shirabeCall', async (importOriginal) => ({
-  // The real `describeFailure`: it is the shared half of the decision this
-  // route makes about a 404, and a double would let the two drift apart.
+  // Keep real failure classification so handler and transport agree on upstream 404s.
   ...(await importOriginal<typeof import('~~/server/utils/shirabeCall')>()),
   callShirabe: (...a: unknown[]) => callShirabe(...a),
 }));
@@ -73,13 +51,11 @@ const candidate = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** An identify answer with these candidates for the single token asked about. */
 const identified = (candidates: unknown[], stackFingerprint?: string) => ({
   words: [{ candidates }],
   ...(stackFingerprint ? { stackFingerprint } : {}),
 });
 
-/** An error shaped the way `$fetch` throws for an HTTP status. */
 function httpError(status: number, contentType = 'application/json') {
   return {
     response: { status, headers: { get: (key: string) => (key === 'content-type' ? contentType : null) } },
@@ -89,7 +65,6 @@ function httpError(status: number, contentType = 'application/json') {
 let handler: (event: FakeEvent) => Promise<Record<string, unknown>>;
 let lastEvent: FakeEvent | undefined;
 
-/** Asks for one lemma, returning the response body and the headers set on it. */
 async function lookup(lemma: string | undefined, query: Record<string, unknown> = {}) {
   handler ??= ((await import('./[lemma].get')) as unknown as { default: typeof handler }).default;
   const event: FakeEvent = { params: lemma === undefined ? {} : { lemma }, query, headers: {} };
@@ -98,7 +73,6 @@ async function lookup(lemma: string | undefined, query: Record<string, unknown> 
   return { body, headers: event.headers };
 }
 
-/** The body of the identify request that was sent upstream. */
 const asked = () =>
   callShirabe.mock.calls[0]![0] as {
     query: Record<string, string>;
@@ -126,25 +100,20 @@ describe('the question it asks', () => {
   });
 
   test('sends the reading, which is the whole reason this route replaced the old one', async () => {
-    // Without it 開いた falls to the commonest-writing tiebreak and the card
-    // prints あく for a sentence that reads ヒライタ.
+    // Reading distinguishes homographs such as 開いた: ヒライタ must not fall back to あく.
     await lookup('開く', { surface: '開いた', reading: 'ヒライタ', pos: 'verb' });
 
     expect(asked().body.tokens[0]).toEqual({ lemma: '開く', surface: '開いた', reading: 'ヒライタ', pos: 'verb' });
   });
 
   test('drops an EMPTY hint rather than sending it', async () => {
-    // A blank would read as "no reading", which is a different claim from "I do
-    // not know the reading" -- and an unrecognised `pos` makes the lookup answer
-    // with no candidates at all.
+    // Blank means an explicit empty hint, not an unknown reading/POS.
     await lookup('兄', { surface: '', reading: '   ', pos: '' });
 
     expect(asked().body.tokens).toEqual([{ lemma: '兄' }]);
   });
 
   test('asks for everything the card draws, in ONE call', async () => {
-    // Otherwise the card renders and then visibly rebuilds itself when a second
-    // request lands purely for the pitch diagram and the badges.
     await lookup('兄');
 
     expect(asked().body.include).toEqual(
@@ -153,16 +122,14 @@ describe('the question it asks', () => {
   });
 
   test('asks for the PARTS of an expression, or a merged chip is a dead end', async () => {
-    // 男を知っている spans 男 and 知る, the expression is the only candidate, and
-    // without `parts` neither word can be reached at all.
+    // Expression parts keep merged component words reachable.
     await lookup('男を知っている');
 
     expect(asked().body.include).toContain('parts');
   });
 
   test('sends the label locale in the query string, not the body', async () => {
-    // `WordIdentifyRequest` is `additionalProperties: false`, so a body
-    // `locale` is a 400 before the action runs.
+    // Strict identify bodies reject locale; it must be a query parameter.
     await lookup('兄', { locale: 'es' });
 
     expect(asked().query).toEqual({ locale: 'es', 'dictionaries[]': 'jmdict' });
@@ -170,8 +137,6 @@ describe('the question it asks', () => {
   });
 
   test.each([['fr'], ['ja'], ['../en'], ['']])('clamps an unshipped locale like %s to English', async (locale) => {
-    // An arbitrary query string would otherwise multiply the cached copies of a
-    // word that is the same for everyone.
     await lookup('兄', { locale });
 
     expect(asked().query).toEqual({ locale: 'en', 'dictionaries[]': 'jmdict' });
@@ -192,8 +157,7 @@ describe('a reader with dictionaries of their own', () => {
   });
 
   test('gets a PRIVATE cache header, since the card is built from their stack', async () => {
-    // A shared cache between here and them would hand their dictionaries to the
-    // next reader through the same hop.
+    // A shared cache must never hand one reader another reader's dictionaries.
     const { headers } = await lookup('兄');
 
     expect(headers['cache-control']).toContain('private');
@@ -208,8 +172,6 @@ describe('a reader with dictionaries of their own', () => {
   });
 
   test('has a changed stack handed to the backend, without waiting for it', async () => {
-    // This request already holds the fresh answer; the update buys the reader's
-    // NEXT request being cached under a key that has moved.
     callShirabe.mockResolvedValue(identified([candidate()], 'fp-new'));
 
     await lookup('兄');
@@ -256,8 +218,6 @@ describe('a reader with no linked account', () => {
   });
 
   test('is never handed the service key’s fingerprint', async () => {
-    // The client re-keys its cache on this value, and this response is the
-    // shared cached one -- so it would end up in everybody's lookup URLs.
     callShirabe.mockResolvedValue(identified([candidate()], 'service-fp'));
 
     const { body } = await lookup('兄');
@@ -285,14 +245,11 @@ describe('a reader key the other end refuses', () => {
     readerToken.mockResolvedValue('reader-key');
   });
 
-  /** Fails the reader's call with `status`, then answers as the service. */
   function refuse(status: number) {
     callShirabe.mockRejectedValueOnce(httpError(status)).mockResolvedValueOnce(identified([candidate()], 'service-fp'));
   }
 
   test.each([[401], [403], [429]])('%i still gets an answer, from the default dictionaries', async (status) => {
-    // The defaults are a worse answer than theirs and a far better one than
-    // none.
     refuse(status);
 
     const { body } = await lookup('兄');
@@ -319,8 +276,6 @@ describe('a reader key the other end refuses', () => {
   });
 
   test('the fallback answer is not reported as the reader’s stack', async () => {
-    // It came out of OUR dictionaries; reporting it would tell the backend the
-    // reader had reconfigured theirs to ours.
     refuse(401);
 
     const { body } = await lookup('兄');
@@ -330,8 +285,6 @@ describe('a reader key the other end refuses', () => {
   });
 
   test('but Shirabe being down is not retried as us', async () => {
-    // A 500 says nothing about the reader's key, and a second identical call
-    // costs the reader another timeout for the same failure.
     callShirabe.mockRejectedValue(httpError(500));
 
     await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 503 });
@@ -341,9 +294,6 @@ describe('a reader key the other end refuses', () => {
 
 describe('a token with no entry', () => {
   test('is a plain 404, not a failure', async () => {
-    // Identify answers 200 with `words: [null]`: a word can be parsed out of a
-    // subtitle and still have no entry -- a name, a coinage, a typo the corpus
-    // preserved.
     callShirabe.mockResolvedValue({ words: [null] });
 
     await expect(lookup('ドラミちゃん')).rejects.toMatchObject({ statusCode: 404 });
@@ -356,8 +306,6 @@ describe('a token with no entry', () => {
   });
 
   test('and is never re-read as an upstream failure', async () => {
-    // Running our own 404 back through the upstream classification would turn
-    // "no entry for this word" into "the dictionary is broken".
     callShirabe.mockResolvedValue({ words: [null] });
 
     await expect(lookup('ドラミちゃん')).rejects.toMatchObject({ statusCode: 404 });
@@ -366,14 +314,7 @@ describe('a token with no entry', () => {
 });
 
 describe('names', () => {
-  /**
-   * A name candidate WITH its gloss.
-   *
-   * The gloss is not decoration here: a candidate carrying nothing readable
-   * counts as an unknown answer rather than a repeated one, so a fixture
-   * without one makes every name list look like many distinct people and the
-   * single-name branch below is never reached.
-   */
+  // Include readable glosses: missing glosses count as unknown answers and would bypass the single-name branch.
   const person = (id: string, headword: string, gloss = headword) =>
     candidate({
       id,
@@ -383,8 +324,6 @@ describe('names', () => {
     });
 
   test('are dropped while there is a real word to show', async () => {
-    // 一 is both Hajime and "one". A word exists, so the names go, and a learner
-    // reading a subtitle gets "one".
     callShirabe.mockResolvedValue(identified([candidate({ id: 'w', headword: '一' }), person('n1', '一', 'Hajime')]));
 
     const { body } = await lookup('一');
@@ -394,8 +333,6 @@ describe('names', () => {
   });
 
   test('ARE the answer when there is no word to compete with', async () => {
-    // 明日香 is nobody's reading but its own, and "no dictionary entry" would be
-    // false as well as useless.
     callShirabe.mockResolvedValue(identified([person('n1', '明日香', 'Asuka'), person('n2', '飛鳥', 'Asuka (place)')]));
 
     const { body } = await lookup('明日香');
@@ -404,7 +341,6 @@ describe('names', () => {
   });
 
   test('and many of them are answered with the one-liner instead of a picker', async () => {
-    // Four people and four glosses beats a picker of strangers.
     callShirabe.mockResolvedValue(identified([person('n1', '明日香', 'Asuka'), person('n2', '飛鳥', 'Asuka (place)')]));
 
     const { body } = await lookup('明日香');
@@ -413,9 +349,6 @@ describe('names', () => {
   });
 
   test('and several saying the SAME thing are not many answers', async () => {
-    // ドラえもん is two candidates with one sentence between them --
-    // "Doraemon (manga by Fujiko F. Fujio; media franchise)" -- and answering
-    // that with "this looks like a name" throws away what the reader came for.
     const gloss = 'Doraemon (manga by Fujiko F. Fujio; media franchise)';
     callShirabe.mockResolvedValue(identified([person('n1', 'ドラえもん', gloss), person('n2', 'ドラエモン', gloss)]));
 
@@ -425,9 +358,6 @@ describe('names', () => {
   });
 
   test('but a single name keeps its definition, which is often the whole point', async () => {
-    // ドラえもん is two candidates saying the same sentence and 織田信長 is one.
-    // Answering those with "this looks like a name" throws away the definition
-    // the reader came for, in a corpus made of anime subtitles.
     callShirabe.mockResolvedValue(identified([person('n1', '織田信長', 'Oda Nobunaga (1534-1582)')]));
 
     const { body } = await lookup('織田信長');
@@ -445,8 +375,6 @@ describe('names', () => {
 
 describe('when the dictionary itself fails', () => {
   test('an HTML 404 is our own bad path, and says so in the log', async () => {
-    // The failure that hid for as long as it did: a 404 reads as "this word has
-    // no entry", so every card rendered empty and it looked like thin coverage.
     callShirabe.mockRejectedValue(httpError(404, 'text/html'));
 
     await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 502 });
@@ -457,8 +385,7 @@ describe('when the dictionary itself fails', () => {
   });
 
   test('a JSON 404 from identify is a failure too, not an answer about the word', async () => {
-    // A token that resolves to nothing comes back 200, so a 404 here means the
-    // route is gone.
+    // Identify returns missing tokens in a 200 body; an upstream 404 is a route failure.
     callShirabe.mockRejectedValue(httpError(404, 'application/json'));
 
     await expect(lookup('兄')).rejects.toMatchObject({ statusCode: 503 });

@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-/**
- * The counter is the only thing that can tell a cache hit from a render that
- * never had a session cookie, so it is worth a test rather than a hope. Mocked
- * at the API level because the module resolves its meter once, at import: a spy
- * installed later would watch an object nothing calls.
- */
+// Mock metrics before import: the module resolves its meter once, so a later spy misses it.
 const adds: Array<{ value: number; attributes: Record<string, unknown> }> = [];
 
 vi.mock('@opentelemetry/api', () => ({
@@ -26,7 +21,6 @@ import {
   _resetSsrAuthCacheForTests,
 } from './ssrAuthCache';
 
-/** The outcomes recorded so far, in order. */
 function outcomes(): string[] {
   return adds.map((a) => String(a.attributes.outcome));
 }
@@ -62,8 +56,6 @@ describe('hasSessionCookie', () => {
   });
 
   it('is false for an empty session cookie value', () => {
-    // An expired session is cleared by setting the cookie to nothing, which must
-    // not read as "there might be a session here" and buy back the round trip.
     expect(hasSessionCookie(fakeEvent('nadeshiko.session_token='))).toBe(false);
   });
 
@@ -82,17 +74,7 @@ describe('ssrAuthFetch', () => {
     expect(fetcher).toHaveBeenCalledTimes(1); // coalesced!
   });
 
-  /**
-   * The preferences stamp. A reader who changes a preference has to see it on
-   * the very next render, and deleting the entry only works in the process that
-   * served the write. The cookie rides the request instead, so any process
-   * misses.
-   *
-   * (This used to say production forks three workers. It does not -- the preset
-   * is baked in as `node-server` at build time and the `NITRO_CLUSTER_WORKERS`
-   * in `deploy.prod.yml` is inert. See `PREFS_VERSION_COOKIE` for why the stamp
-   * is still worth having on one process.)
-   */
+  // A browser stamp invalidates its key across processes; local deletion alone cannot.
   it('does NOT reuse the pre-change entry once a preferences stamp arrives', async () => {
     const fetcher = vi.fn().mockResolvedValue({});
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1'), fetcher);
@@ -105,7 +87,7 @@ describe('ssrAuthFetch', () => {
     const cookie = 'nadeshiko.session_token=tok1; nd-prefs-version=1786690000000';
     await ssrAuthFetch(fakeEvent(cookie), fetcher);
     await ssrAuthFetch(fakeEvent(cookie), fetcher);
-    // One write must not turn the next minute of renders into uncached ones.
+
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
@@ -124,7 +106,6 @@ describe('ssrAuthFetch', () => {
     await ssrAuthFetch(stamped, fetcher);
     expect(fetcher).toHaveBeenCalledTimes(2);
 
-    // The half that covers a caller with no stamp cookie to carry.
     dropSessionEntries(plain);
     await ssrAuthFetch(plain, fetcher);
     await ssrAuthFetch(stamped, fetcher);
@@ -147,8 +128,7 @@ describe('ssrAuthFetch', () => {
   it('ignores a stamp that is not one this server could have minted', async () => {
     const fetcher = vi.fn().mockResolvedValue({});
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1'), fetcher);
-    // The value picks which entry is read and arrives on a cookie, so anything
-    // but a `Date.now()` is ignored rather than allowed to mint its own key.
+
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version=../../etc'), fetcher);
     await ssrAuthFetch(fakeEvent(`nadeshiko.session_token=tok1; nd-prefs-version=${'9'.repeat(400)}`), fetcher);
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tok1; nd-prefs-version='), fetcher);
@@ -170,10 +150,7 @@ describe('ssrAuthFetch', () => {
   });
 
   it('shares one entry for cookie-less requests, whatever their IP', async () => {
-    // The anonymous path no longer reaches this cache at all -- `identity-auth`
-    // checks `hasSessionCookie` and returns first -- so there is nothing left for
-    // a per-IP key to separate, and keying on IP is what made this module care
-    // about a header a client can set. A single bucket is the honest shape.
+    // identity-auth skips cookie-less reads, so the fallback needs no per-IP identity.
     const fetcher = vi.fn().mockResolvedValue({});
     await ssrAuthFetch(fakeEvent(undefined, '1.1.1.1'), fetcher);
     await ssrAuthFetch(fakeEvent(undefined, '2.2.2.2'), fetcher);
@@ -204,8 +181,7 @@ describe('ssrAuthFetch', () => {
     vi.useFakeTimers();
     const fetcher = vi.fn().mockResolvedValue({ v: 1 });
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokT'), fetcher);
-    // Advance just past the 60s TTL: still cached at 59_999ms, re-fetched at
-    // 60_001ms. The exact boundary is what "the TTL" means -- so check both.
+
     vi.advanceTimersByTime(59_999);
     await ssrAuthFetch(fakeEvent('nadeshiko.session_token=tokT'), fetcher);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -224,25 +200,7 @@ describe('ssrAuthFetch', () => {
   });
 });
 
-/**
- * The cache has to be ONE cache no matter how many times this module is
- * instantiated, and in this app it is instantiated twice: `ssrAuthFetch` is
- * called from `app/plugins/identity-auth.ts`, which Vite compiles into the SSR
- * bundle, while `dropSessionEntries` is called from `server/utils/backendProxy.ts`,
- * which Nitro compiles into its own. Two bundles, two copies of every
- * module-level `const`.
- *
- * That is not a hypothetical. With a plain `const store = new Map()`, the proxy
- * deleted entries out of a map nothing read, so a reader arriving without the
- * `nd-prefs-version` stamp -- a second browser, a private window, a Playwright
- * context built per test -- was served pre-change preferences for the rest of
- * the TTL. Measured against the running stack, not deduced: hiding a title and
- * re-rendering with only the session cookie still returned the title.
- *
- * `vi.resetModules()` plus a re-import is the closest a unit test gets to a
- * second bundle -- it forces a genuinely separate module instance, which is the
- * property under test.
- */
+// resetModules/reimport models separate SSR and Nitro bundle instances; they must see and invalidate one store.
 describe('one cache across module instances', () => {
   it('lets a second instance of this module see and invalidate the first one’s entries', async () => {
     const event = fakeEvent('nadeshiko.session_token=shared-tok');
@@ -254,27 +212,16 @@ describe('one cache across module instances', () => {
     const second = await import('./ssrAuthCache');
     expect(second).not.toBe(first);
 
-    // Reads through: the entry the first instance wrote is served, not refetched.
     const seen = await second.ssrAuthFetch(event, async () => 'fetched-again');
     expect(seen).toBe('cached-by-first');
 
-    // And a drop from the second instance is visible to the first, which is the
-    // direction the proxy actually invalidates in.
     second.dropSessionEntries(event);
     const afterDrop = await first.ssrAuthFetch(event, async () => 'refetched');
     expect(afterDrop).toBe('refetched');
   });
 });
 
-/**
- * Two callers, two shapes, one reader.
- *
- * This cache was keyed on the session cookie alone, so `identity-auth` (which
- * stores a `{session, preferences}` bundle) and `shirabeReader` (which stores a
- * raw get-session body) shared a slot. Whichever ran first won and the other
- * read a shape it did not recognise -- and since the render always runs first,
- * the word lookup always concluded the reader had linked nothing.
- */
+// The same session may cache different response shapes; scopes prevent callers reading each other's answers.
 describe('scopes', () => {
   const SIGNED_IN = 'nadeshiko.session_token=tok1';
 
@@ -302,8 +249,6 @@ describe('scopes', () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  // A preference change invalidates everything held about that reader, whatever
-  // question it was answering.
   it('drops every scope for the session', async () => {
     const event = fakeEvent(SIGNED_IN);
     const identity = vi.fn(async () => ({ a: 1 }));
@@ -320,12 +265,7 @@ describe('scopes', () => {
   });
 });
 
-/**
- * Before this counter, a cache hit and a cookie-less render were the same
- * observation from outside: both fast, neither logged. Every "signed-in render"
- * latency figure this project has quoted was therefore a figure about misses
- * only, with the hits it was supposed to include invisible underneath.
- */
+// Separate anonymous renders from signed-in cache hits; otherwise observed signed-in latency describes misses only.
 describe('lookup counter', () => {
   const SIGNED_IN = 'nadeshiko.session_token=tok1';
 
@@ -337,11 +277,7 @@ describe('lookup counter', () => {
     expect(outcomes()).toEqual(['miss', 'hit']);
   });
 
-  /**
-   * A second render arriving while the first is still waiting is neither: no
-   * backend call, but a concurrent render rather than a later one. Counting it
-   * as a hit would credit the TTL for work the in-flight dedup did.
-   */
+  // Concurrent joins save work through deduplication, not TTL hits.
   it('counts a joined in-flight build as coalesced', async () => {
     let release: (v: unknown) => void = () => {};
     const fetcher = vi.fn(() => new Promise((resolve) => (release = resolve)));
@@ -358,8 +294,6 @@ describe('lookup counter', () => {
     const fetcher = vi.fn().mockRejectedValue(new Error('auth down'));
     await expect(ssrAuthFetch(fakeEvent(SIGNED_IN), fetcher)).rejects.toThrow('auth down');
 
-    // An outage has to show up as misses. A counter that goes quiet instead
-    // reads identically to nobody visiting.
     expect(outcomes()).toEqual(['miss']);
   });
 

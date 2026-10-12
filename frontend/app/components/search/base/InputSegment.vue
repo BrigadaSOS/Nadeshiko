@@ -24,22 +24,8 @@ const props = withDefaults(
 const localePath = useLocalePath();
 const router = useRouter();
 
-/**
- * Vue Router's live route rather than Nuxt's `useRoute()`, because on this page
- * the two disagree for a few hundred milliseconds and the bar was reading the
- * loser.
- *
- * Nuxt only re-points `useRoute()` at the incoming URL once the incoming *page*
- * renders, and deliberately skips its `afterEach` sync whenever the page key
- * changes (`pages/runtime/plugins/router.js`). `/search/[[query]]` keys on the
- * query, so every token click changes it: the page remounts, its `useAsyncData`
- * suspends the new subtree, and `useRoute()` stays on the old word until that
- * second fetch lands. Meanwhile `SearchContainer`'s own `onBeforeRouteUpdate`
- * has already swapped the results in underneath -- so the bar sat there naming
- * the previous search while the sentences below it were the new one.
- *
- * `currentRoute` updates when the navigation is confirmed, which is the moment
- * the URL says a different search is what we are showing.
+/** Vue Router currentRoute updates on confirmed navigation; Nuxt useRoute waits for the incoming page to
+ * render, leaving the search bar on the old query while a remounted page suspends.
  */
 const route = router.currentRoute;
 const user = userStore();
@@ -142,22 +128,7 @@ const closeRecents = () => {
   activeIndex.value = -1;
 };
 
-/**
- * Empty the box and hand the caret back.
- *
- * On a results page the field arrives holding the search that produced the page,
- * so a reader who wants a different one has to clear it before they can type.
- * Until this button there was nothing to press, and they did it by hand: over
- * thirty days PostHog logged ~5.8k rageclicks on this input, clustered a few
- * pixels to the right of the query text, which is a triple-click select-all
- * being counted as rage. The field was never broken -- selection, focus and
- * caret all behave -- it simply asked for a gesture instead of offering a
- * control.
- *
- * Focus moves back to the input rather than staying on the button, so the next
- * keystroke lands in the field. That focus opens the recents menu through
- * `onInputFocus`, which is the right thing for a box that is now empty.
- */
+/** Return focus to the cleared input so the next keystroke edits it and opens recents. */
 const clearQuery = () => {
   query.value = '';
   inputRef.value?.focus();
@@ -341,7 +312,6 @@ const showBatchModal = ref(false);
 <template>
   <SearchModalBatch :open="showBatchModal" @close="showBatchModal = false" />
 
-  <!-- Form -->
   <div class="yomitan-ignore">
     <div
       ref="searchBarRef"
@@ -451,7 +421,6 @@ const showBatchModal = ref(false);
               S
             </kbd>
           </span>
-          <!-- End KBD -->
         </div>
 
       </div>
@@ -487,5 +456,4 @@ const showBatchModal = ref(false);
       </div>
     </div>
   </div>
-  <!-- End Form -->
 </template>

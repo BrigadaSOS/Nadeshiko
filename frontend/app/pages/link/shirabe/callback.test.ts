@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 
-/**
- * Where Shirabe sends the reader back after they approve.
- *
- * The code is one-time and two minutes old, and the exchange needs a PKCE
- * verifier only the backend has -- so it is handed straight over and never kept.
- * On SUCCESS the query is cleared from the address bar: left there, a reload
- * re-posted a consumed code and told the reader a link that had worked seconds
- * ago had failed, with the code sitting in browser history besides. On FAILURE
- * the URL stays, because then a reload is a genuine retry.
- *
- * A refusal is not a failure: `access_denied` means the reader looked at the
- * consent screen and said no, which is an answer and gets its own words.
- */
+// Clear one-time codes after success to prevent replay on reload; preserve failed URLs for retry.
+// Declined consent is not an exchange failure.
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 
@@ -30,9 +19,7 @@ const route = reactive({
 
 vi.mock('vue-router', () => ({ useRoute: () => route, useRouter: () => ({ replace, push: vi.fn() }) }));
 vi.stubGlobal('$fetch', $fetch);
-// The stub carries its params: the linked account's name reaches the page
-// through one, and a stub that drops it makes "names who it linked as" pass
-// without the name being there.
+// Preserve translation params so the linked-name assertion checks the actual account name.
 const tr = (k: string, p?: Record<string, unknown>) => (p ? `${k}(${Object.values(p).join(',')})` : k);
 vi.stubGlobal('useI18n', () => ({ t: tr, locale: ref('en') }));
 vi.stubGlobal('useLocalePath', () => (p: string) => `/en${p}`);
@@ -88,16 +75,12 @@ describe('a successful return', () => {
   });
 
   test('CLEARS the spent code out of the address bar', async () => {
-    // A reload would otherwise re-post a consumed code and report a failure for
-    // a link that had just worked -- and the code would sit in history.
     await render({ code: 'c1', state: 's1' });
 
     expect(replace).toHaveBeenCalledWith({ path: '/link/shirabe/callback', query: {} });
   });
 
   test('and stops there rather than redirecting on', async () => {
-    // Whether it worked is the only thing the reader came back to find out; a
-    // redirect spends that moment on a settings page that looks unchanged.
     const wrapper = await render({ code: 'c1', state: 's1' });
 
     expect(wrapper.text()).not.toContain('connections.callback.failed');
@@ -107,7 +90,6 @@ describe('a successful return', () => {
 
 describe('a reader who said no', () => {
   test('is told they declined, not that something broke', async () => {
-    // `access_denied` is an answer, not a fault.
     const wrapper = await render({ error: 'access_denied' });
 
     expect(wrapper.text()).toContain('connections.callback.declined');
@@ -135,7 +117,6 @@ describe('a return that cannot be used', () => {
   });
 
   test('the URL is LEFT ALONE, so a reload is a retry', async () => {
-    // The one case where reloading helps: the exchange never reached Shirabe.
     await render({ code: 'c1', state: 's1' });
     replace.mockClear();
 

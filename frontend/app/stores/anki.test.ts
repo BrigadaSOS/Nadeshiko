@@ -2,21 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { formatMs } from '~/utils/misc';
 
 /**
- * The Anki store, which was shipping at 0% coverage while holding the two
- * things this feature lives or dies on.
- *
- * The first is WHY a connection failed. `ANKI_CONNECT_FAILURES` is a closed set
- * whose members are each a PostHog breakdown value and the key of a tip the
- * settings page shows, and the split that earns the type -- `permission_denied`
- * against `unreachable` -- is invisible from the outside: both look like "no
- * answer" to a caller, and telling a reader with a permission dialog behind
- * their browser to check that Anki is running is a dead end.
- *
- * The second is which fields an export is allowed to write. A word-level
- * placeholder must be left ALONE, not blanked, on the paths that have no word,
- * because on a Yomitan-made note that field holds the definition the reader
- * wrote. Blanking it is silent, destructive, and indistinguishable from a
- * successful export.
+ * Distinguish connection/setup failures and preserve existing word fields when an export has no
+ * word content.
  */
 const sdk = {
   updateUserPreferences: vi.fn().mockResolvedValue({}),
@@ -431,12 +418,8 @@ describe('getAllModelFieldNames', () => {
   });
 
   test('reports a REFUSED lookup as null rather than as a note type with no fields', async () => {
-    // AnkiConnect answers a refused origin with a 200 and `{result: null,
-    // error: "..."}`, so nothing throws and the only difference from a real
-    // answer is the shape of the body. Collapsing that to `[]` hands the caller
-    // a note type that appears to have no fields at all -- and the one caller,
-    // the note-type watcher in AnkiSync.vue, writes that emptiness straight
-    // back to the reader's saved profile as their field mapping.
+    // A refused HTTP-200 body must return null, not [], or AnkiSync could erase the saved field
+    // mapping.
     queueFetch(ankiRefused());
     const store = withProfile(makeProfile());
 
@@ -497,12 +480,8 @@ describe('loadAnkiData', () => {
   });
 
   test('Anki going quiet mid-load is reported as the connection failure it is, not as `no_decks`', async () => {
-    // Permission granted, then the deck lookup gets a refusal. That collapsed to
-    // `[]` and arrived at the "you have no decks" branch -- the one branch whose
-    // advice is "go and make a deck", which is the wrong errand entirely -- and
-    // on the way it overwrote the specific reason `executeAction` had already
-    // worked out. The permission probe directly above goes out of its way to
-    // preserve that reason; this path threw it away.
+    // A refused deck lookup must preserve the connection failure, not report no_decks or
+    // continue to a call that clears the reason.
     queueFetch(ankiOk({ permission: 'granted' }), ankiRefused(), ankiOk(['Lapis']));
     const store = withProfile(makeProfile());
 
@@ -952,12 +931,8 @@ describe('addResultToAnki: choosing what to write to', () => {
   });
 
   test('an Anki that has stopped answering says so, rather than "add a card first"', async () => {
-    // `executeAction` reports its failures by RETURNING rather than throwing, so
-    // a dead Anki arrived here indistinguishable from a search that matched
-    // nothing. The reader was sent to add a card -- an errand for a problem they
-    // do not have, while the real one is that Anki is not running -- and the
-    // export was counted as `no_card_found`, hiding these inside a number that
-    // is supposed to mean something else entirely.
+    // executeAction returns failures rather than throwing; do not count unavailable Anki as a
+    // successful search with no card.
     queueFetch(new TypeError('Failed to fetch'));
     const store = withProfile(makeProfile({ openBrowserOnExport: false }));
 
@@ -1259,13 +1234,8 @@ describe('media names on the card', () => {
 
 describe('addResultToAnki: the rest of the word placeholders', () => {
   /**
-   * Every word placeholder the card offers, and what it should write.
-   *
-   * Table-driven because the risk here is uniform and unglamorous: each of
-   * these is a `case` in one switch, and a placeholder that falls THROUGH it
-   * matches the field regex, writes nothing, and reports success. That is how
-   * `{content_jp_highlight}` sat reserved-but-unhandled -- readers who found
-   * the name in the list got a silently empty field and no error.
+   * Cover every offered placeholder: an unhandled switch case can silently write nothing while
+   * reporting a successful export.
    */
   const minedWord = {
     word: '食べる',
@@ -1337,11 +1307,8 @@ describe('addResultToAnki: the rest of the word placeholders', () => {
 
 describe('addResultToAnki: audio that came from the page', () => {
   /**
-   * `FileReader`, which node does not have.
-   *
-   * The store reads the trimmed clip through one to get its bytes; without a
-   * stand-in the read rejects, the export lands in its catch, and the whole
-   * describe would be asserting against an export that never happened.
+   * Node lacks FileReader; provide it so blob-audio exports reach the write rather than failing
+   * during conversion.
    */
   class FakeFileReader {
     result: string | null = null;

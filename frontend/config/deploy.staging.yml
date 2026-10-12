@@ -4,48 +4,21 @@ image: brigadasos/nadeshiko-frontend-stg
 servers:
   web:
     options:
-      # Memory limit: 768MB RAM + 256MB swap for stg
+      # 768MiB RAM plus 256MiB swap.
       memory: 768m
       memory-swap: 1g
-      # Staging shares the four-core production host. Keep deploys and E2E from
-      # stealing the CPU that production SSR, the backend, Postgres and
-      # Elasticsearch need during traffic bursts.
+      # Staging shares the four-core host; reserve CPU for production services.
       cpus: "0.5"
-      # Repeated from deploy.yml, which this block replaces -- see the note there.
+      # Repeat init because Kamal replaces deploy.yml's options block.
       init: true
-      # Resolve Shirabe's own hostname to inari's Tailscale address, so a word
-      # lookup goes straight over the tailnet instead of out to Cloudflare and
-      # back for two boxes in the same city (~175ms against ~33ms of real work).
-      #
-      # Same trick this container already uses for the backend, where
-      # api-stg.nadeshiko.co resolves to kamal-proxy on this host: because the
-      # name is genuine, SNI, Host and the certificate all still line up, and it
-      # reaches Shirabe through its normal proxy rather than a second door.
-      #
-      # A published port on inari was the first attempt and was wrong: a fixed
-      # host port cannot be held by two containers at once, so it broke Kamal's
-      # zero-downtime deploy on the very next Shirabe release.
-      #
-      # It is `www` that gets mapped and NOT the apex, which is the reverse of how
-      # this was first written. The apex has to stay public because it is the
-      # fallback; www is the one that can leave the public internet, because
-      # Cloudflare 301s www to the apex and a bearer token does not survive a
-      # cross-origin redirect (see NUXT_SHIRABE_API_BASE below). Measured
-      # 2026-08-11: the ORIGIN serves both names 200, so the redirect is
-      # Cloudflare's alone and skipping Cloudflare skips it.
+      # Repeat host.docker.internal because Kamal replaces, not merges, add-host.
       add-host:
         - host.docker.internal:host-gateway
-        # Stable across kamal-proxy replacement; see deploy.prod.yml.
+        # Route through the host gateway, not kamal-proxy's ephemeral IP; retain TLS/SNI.
         - api-stg.nadeshiko.co:host-gateway
 
-# The previous builds' `/_nuxt/*` files, kept on the host so they outlive the
-# container that produced them and a deploy does not 404 the page a reader
-# already has open. See frontend/server/utils/assetArchive.ts.
-#
-# Staging gets it too, and not only for parity: staging deploys on every push to
-# main, so it is where a regression in this would show up first and where the
-# E2E suite can catch it. The directory has to exist and be writable by uid 1000
-# (`node`, which docker-entrypoint.sh drops to) before the first deploy:
+# Persist old /_nuxt/* assets so deploys do not break open tabs (assetArchive.ts).
+# Staging exercises the same archive path on every main push. Before first deploy:
 #   ssh nadeshiko "sudo mkdir -p /var/lib/nadeshiko/frontend-stg/asset-archive \
 #     && sudo chown 1000:1000 /var/lib/nadeshiko/frontend-stg/asset-archive"
 volumes:
@@ -56,15 +29,14 @@ builder:
     NUXT_PUBLIC_ENVIRONMENT: development
 
 proxy:
-  # Leave the Tailscale address available for the private Caddy proxy.
+  # Bind on loopback and the Docker bridge for the private Caddy proxy.
   run:
     bind_ips: [127.0.0.1, 172.17.0.1]
   ssl: true
   host: stg.nadeshiko.co
   app_port: 3000
   forward_headers: true
-  # Liveness of the Nitro server only; it deliberately does not probe the
-  # backend -- see frontend/server/routes/up.ts.
+  # Nitro liveness only; backend availability does not gate /up.
   healthcheck:
     path: /up
     interval: 2
@@ -75,60 +47,32 @@ env:
     - NUXT_NADESHIKO_API_KEY
     - NUXT_INTERNAL_PROXY_SECRET
     - NUXT_SHIRABE_API_KEY
-    # Staging only, and deliberately absent from deploy.prod.yml: it lets the
-    # end-to-end suite past the per-IP HTML limiter, which a single CI runner
-    # cannot otherwise stay inside. On production the limiter has no bypass.
+    # E2E bypasses the HTML and /v1 IP limits and SSR admission; never set in prod.
     - NUXT_RATE_LIMIT_BYPASS_SECRET
 
   clear:
     NUXT_RELEASE_SHA: <%= ENV.fetch("VERSION", "unknown") %>
     NUXT_PUBLIC_ENVIRONMENT: development
-    # `shirabeLookups` is derived from NUXT_SHIRABE_API_KEY in nuxt.config, which
-    # is evaluated during `nuxt build` -- inside the image, where the key is not
-    # present and must not be. The boolean therefore bakes in as false however the
-    # key is set at runtime, so the public flag is set here instead. Only valid
-    # where the key IS configured: turning it on without one is exactly the doomed
-    # per-hover request the flag exists to prevent.
+    # The key is absent during build, so explicitly enable the public runtime flag.
+    # Enable only where NUXT_SHIRABE_API_KEY is configured; never put it in the image.
     NUXT_PUBLIC_SHIRABE_LOOKUPS: "true"
-    # The fast path and the fallback are the same service under two of its own
-    # hostnames, which is what lets one skip Cloudflare while the other keeps
-    # working if the tailnet does not.
-    #
-    # www.shirabe.org is mapped to inari's Tailscale IP by add-host above, so this
-    # goes over the tailnet with a genuine hostname and certificate. Prod Shirabe
-    # deliberately: staging has no Shirabe of its own, and the public URL reached
-    # the same service anyway.
-    # The public apex is the sole Shirabe endpoint. Cloudflare 301s www to the
-    # apex, and a 301 is cross-origin, so undici (Nitro's fetch) strips the
-    # Authorization header when it follows -- the request arrives unauthenticated
-    # and Shirabe answers 401 "API key required". Measured in node 2026-08-11:
-    #
-    #   https://www.shirabe.org/api/v1/words/... -> 401, redirected=true
-    #   https://shirabe.org/api/v1/words/...     -> 200
-    #
-    # This is a FIX, not a copy: staging ran a www fallback that could never have
-    # answered, and nothing noticed because the tailnet almost never fails.
+    # Staging uses public production Shirabe. Use the apex: www redirects across
+    # origins, stripping Authorization (measured www -> 401, apex -> 200).
     NUXT_SHIRABE_API_BASE: https://shirabe.org
     NODE_ENV: production
     NUXT_BACKEND_INTERNAL_URL: https://api-stg.nadeshiko.co
     PORT: 3000
     LOG_LEVEL: info
 
-    # Container side of the asset-archive mount above; the two move together.
+    # Keep this path and the persistent archive mount together.
     NUXT_ASSET_ARCHIVE_DIR: /app/asset-archive
-    # A WEEK, against production's thirty days, because staging deploys on every
-    # push to main -- 188 commits in the 30 days to 2026-08-13, fifteen times
-    # production's release rate -- and nobody leaves a staging tab open for a
-    # fortnight. The window only has to outlive a review session.
+    # Seven days covers review sessions; main deploys more often than prod releases.
     NUXT_ASSET_ARCHIVE_DAYS: "7"
 
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4328"
     OTEL_SERVICE_NAME: nadeshiko-frontend-stg
     OTEL_SEMCONV_STABILITY_OPT_IN: http
-    # See the note in deploy.prod.yml -- staging reported 0.0.0 for the same
-    # reason, and a staging build you cannot identify is the one you are most
-    # likely to be comparing against.
+    # Bare node does not set npm_package_version; render the version at deploy time.
     OTEL_SERVICE_VERSION: <%= File.read("package.json")[/"version":\s*"([^"]+)"/, 1] %>
 
-    # No browser-metrics URL: web vitals go to PostHog now, so nothing on a
-    # page posts to a public collector. See app/plugins/rum.client.ts.
+    # Web vitals use PostHog, not a public Alloy collector.

@@ -1,6 +1,5 @@
 import { firstNonBlank } from '~/utils/strings';
 
-// Types
 interface AnkiNote {
   cards: number[];
   fields: { [key: string]: any };
@@ -12,37 +11,9 @@ interface AnkiNote {
 }
 
 /**
- * Why the last attempt to reach AnkiConnect did not end in usable data.
- *
- * A closed set, for the same reason `AUTH_GATES` is one: each member is both a
- * PostHog breakdown value and the key of the tip the settings page shows, and a
- * free string would give us an uncategorised failure and a panel with nothing in
- * it.
- *
- * The split that earns this type is `permission_denied` against `unreachable`.
- * They were one outcome until now -- "could not establish connection" -- and they
- * are opposites: an unreachable Anki is not running, while a denied one IS
- * running, answered, and is waiting for the reader to click Allow on a dialog
- * behind their browser. Telling the second group to check Anki is running is a
- * dead end, and it is not a small group: 328 failed connection tests from 69
- * readers in 30 days, against 479 successes from 86.
- *
- * - `unreachable` -- `fetch` itself rejected. Anki closed, add-on not installed,
- *   origin not in the add-on's CORS list, or an extension blocking the request.
- *   These are ONE reason on purpose: the browser reports all four as the same
- *   opaque `TypeError`, and splitting them here would be invention.
- * - `blocked_by_csp` -- `fetch` rejected the same opaque way, but our own
- *   Content Security Policy is what refused it, which the browser DID tell us
- *   through a `securitypolicyviolation` event. Split out of `unreachable`
- *   because it is the one member of that set the reader cannot fix and we can:
- *   `connect-src` in `nuxt.config.ts` allows loopback only, so a server address
- *   pointing anywhere else -- Anki reached over the network, on a desktop or
- *   another phone -- is refused before it ever reaches it. Told apart by
- *   evidence rather than by guessing; see `utils/cspViolations`.
- * - `permission_denied` -- AnkiConnect answered and refused this origin.
- * - `connect_error` -- it answered with an error of its own.
- * - `http_error` -- it answered with a non-2xx status.
- * - `no_decks` -- it answered, granted us access, and has nothing to export to.
+ * Closed failure labels shared by analytics and setup tips. Permission denial means Anki
+ * answered; unreachable fetch failures cannot distinguish closed Anki, a missing add-on, CORS,
+ * or extensions. Only a recorded CSP violation justifies blocked_by_csp.
  */
 export const ANKI_CONNECT_FAILURES = [
   'unreachable',
@@ -56,18 +27,8 @@ export const ANKI_CONNECT_FAILURES = [
 export type AnkiConnectFailure = (typeof ANKI_CONNECT_FAILURES)[number];
 
 /**
- * AnkiConnect is not available on this reader's machine -- closed, add-on
- * absent, origin refused, no decks to export into.
- *
- * Exists so a caller can tell that apart from a fault in the store, because the
- * two want opposite handling: this one wants the setup panel and nothing in
- * error tracking, and a fault wants both. Until it existed every failure of
- * `loadAnkiData` arrived as a bare `Error` and was filed -- 124 reports from 25
- * readers in the week to 2026-08-23, none of them a bug, all of them saying
- * only that somebody had Anki closed.
- *
- * The reason travels on the error rather than being read back off the store,
- * which by the time a caller looks may describe a later call.
+ * Expected setup failures show the setup panel, not an application exception. Carry the reason
+ * on the error because store state may already describe a later call.
  */
 export class AnkiUnavailableError extends Error {
   readonly reason: AnkiConnectFailure;
@@ -79,12 +40,7 @@ export class AnkiUnavailableError extends Error {
   }
 }
 
-/**
- * Matched on `name` rather than with `instanceof`, for the reason
- * `~/utils/apiError` documents at length: a class identity is only reliable
- * while there is exactly one copy of the class, and that is not a property this
- * build guarantees.
- */
+/** Match by name: duplicated bundles can have different class identities; see ~/utils/apiError. */
 export function isAnkiUnavailable(error: unknown): error is AnkiUnavailableError {
   return (error as { name?: unknown } | null | undefined)?.name === 'AnkiUnavailableError';
 }
@@ -94,21 +50,13 @@ interface IAnkiState {
   availableModels: string[];
   activeProfileId: string | null;
   /**
-   * Whether AnkiConnect answered the last time anything asked it.
-   *
-   * `null` until something has, which is NOT the same as `false`: a reader who
-   * has not opened a word card yet has no answer either way, and a control that
-   * called that "Anki is not running" would be guessing. Set from
-   * `executeAction`, the one place that finds out, so every caller shares one
-   * answer instead of each discovering it separately.
+   * Last observed reachability; null means untested, not offline. Updated by executeAction so
+   * callers share one answer.
    */
   connectReachable: boolean | null;
   /**
-   * Why the last attempt failed, or `null` when the last one worked.
-   *
-   * Kept beside `connectReachable` rather than derived from it because the two
-   * answer different questions: `permission_denied` and `no_decks` both leave
-   * AnkiConnect perfectly reachable and still leave the reader unable to export.
+   * Reachability does not imply export readiness: permission_denied and no_decks can occur
+   * after Anki answers.
    */
   connectFailure: AnkiConnectFailure | null;
 }
@@ -180,13 +128,7 @@ import { cspViolationLog, installCspViolationLog } from '~/utils/cspViolations';
 import { classifyAnkiAddress } from '~/utils/ankiAddress';
 import { buildSentencePath } from '~/utils/routes';
 
-/**
- * How many of a deck's newest notes are read to decide its usual note type.
- *
- * Large enough that a handful of strays cannot outvote the real answer, small
- * enough that the `notesInfo` reply stays a reasonable size -- it carries every
- * field of every note asked for, which on a mining deck means the full card HTML.
- */
+/** Sample enough recent notes to tolerate strays without fetching every note's full card HTML. */
 const MODEL_SAMPLE_SIZE = 100;
 
 const DEFAULT_ANKI_EXPORTS_COLLECTION = 'Anki Exports';
@@ -214,11 +156,8 @@ export const ankiStore = defineStore('anki', {
   }),
   getters: {
     profiles(): AnkiProfile[] {
-      // Anki profiles are app-owned data kept inside user preferences. The generated schema
-      // still describes a subset of what this store writes (`fields` is optional there and
-      // required here), so narrow to the local shape. `openBrowserOnExport` used to be
-      // missing from it too, which meant the server dropped the field on every save and
-      // turning the setting off silently did nothing; it is declared now.
+      // Narrow app-owned preferences to the local profile shape: the generated schema makes
+      // fields optional.
       return (userStore().preferences?.ankiProfiles ?? []) as AnkiProfile[];
     },
     activeProfile(): AnkiProfile | null {
@@ -279,23 +218,14 @@ export const ankiStore = defineStore('anki', {
     },
 
     /**
-     * One AnkiConnect call.
-     *
-     * `silent` suppresses the error report, and exists for the calls the reader
-     * did not ask for. Everything here used to be one of those the reader DID
-     * ask for -- an export, a settings probe -- so an unreachable Anki was worth
-     * filing. The word card breaks that: it asks whether a word is already mined
-     * every time one opens, and Anki being closed is the ordinary state for most
-     * readers, so reporting it would file an exception per word looked up and
-     * say nothing that a rate of successful exports does not already say.
+     * Background word-card probes use silent to avoid reporting ordinary local setup failures;
+     * CSP refusals remain reportable.
      */
     async executeAction(action: string, params = {}, options: { silent?: boolean } = {}) {
       if (!import.meta.client) return null;
       const serverAddress = this.activeProfile?.serverAddress ?? DEFAULT_SERVER_ADDRESS;
-      // Armed before the request, because the answer it collects arrives while
-      // the request is failing and cannot be gone back for afterwards. Idempotent,
-      // so the cost is one listener for the lifetime of the tab and only for
-      // readers who have Anki set up at all.
+      // Install before fetch so violations emitted during failure are captured. Installation is
+      // idempotent.
       installCspViolationLog();
       const startedAt = Date.now();
       try {
@@ -324,11 +254,8 @@ export const ankiStore = defineStore('anki', {
 
         const body = await response.json();
 
-        // ANKICONNECT REPORTS ITS OWN FAILURES IN THE BODY, WITH A 200. A refused
-        // origin comes back as `{result: null, error: "..."}` and used to travel
-        // all the way to a caller reading `.result` off it, which is `null`, which
-        // is indistinguishable here from "Anki is closed". Recorded before the
-        // body is handed on so the reason survives even though the shape does not.
+        // AnkiConnect can return HTTP 200 with {result: null, error}; record the failure before
+        // handing the body to callers.
         if (body?.error) {
           this.connectFailure = 'connect_error';
         } else {
@@ -336,54 +263,27 @@ export const ankiStore = defineStore('anki', {
         }
 
         return body;
-        // The thrown value is deliberately not bound: nothing here reads it any
-        // more. `fetch` rejects with the same opaque `TypeError` whichever of
-        // the four reasons applies, so `connectFailure` below carries every bit
-        // of what we know, and the event this branch sends is built from that.
+        // Fetch rejection details cannot distinguish local setup failures; classification below
+        // uses the evidence available.
       } catch {
         this.connectReachable = false;
-        // ONE TURN OF THE EVENT LOOP before reading the violation log. The
-        // refusal and this rejection are separate tasks and the specification
-        // orders neither, so the event that explains this failure may not have
-        // been dispatched yet. Yielding once is enough in practice and costs
-        // nothing anybody waits on -- this is already the failure path, and the
-        // caller is receiving `null` either way.
+        // Yield once: fetch rejection and securitypolicyviolation are separate tasks with no
+        // guaranteed dispatch order.
         await new Promise((resolve) => setTimeout(resolve, 0));
         const refusedByPolicy = cspViolationLog.refusedSince(serverAddress, startedAt);
-        // `http_error` was set above and is more specific than what we can tell
-        // from here, so it wins. Then `blocked_by_csp`, which is the only case
-        // in this branch we have evidence for rather than a guess. Everything
-        // else is `fetch` itself rejecting, which the browser reports identically
-        // whether Anki is closed, the add-on is absent, the origin is not in its
-        // CORS list, or an extension ate the request -- see `ANKI_CONNECT_FAILURES`.
+        // Preserve the more specific http_error; otherwise distinguish CSP refusal on evidence
+        // and leave opaque fetch failures unreachable.
         if (this.connectFailure !== 'http_error') {
           this.connectFailure = refusedByPolicy ? 'blocked_by_csp' : 'unreachable';
         }
-        // Counted, not filed. Every way this branch is reached is the reader's
-        // own machine -- Anki closed, add-on absent, origin not in its CORS
-        // list -- so there is no fix in the app to hang an issue on, and 132
-        // reports from 26 readers in the week to 2026-08-23 said nothing that
-        // the rate of successful exports does not. `silent` already spared the
-        // word card's per-lookup probe from filing these; this extends the same
-        // judgement to the calls the reader did ask for, which are no more
-        // actionable, just rarer.
-        //
-        // `blocked_by_csp` is the exception and reports even when `silent`. The
-        // reasoning above turns on these being the reader's machine and having
-        // no fix in the app; a policy refusal is the opposite on both counts, it
-        // is rare, and it is the only one of these whose rate we would want to
-        // see move after touching `connect-src`.
+        // Count local setup failures rather than filing application exceptions. CSP refusals
+        // are app-actionable and are counted even for silent probes.
         if (!options.silent || this.connectFailure === 'blocked_by_csp') {
           reportEvent('anki_connect_request_failed', {
             'anki.action': action,
             'anki.reason': this.connectFailure ?? 'unreachable',
-            // The shape of the address, never the address. `unreachable` covers
-            // four situations that want different answers, and whether the
-            // reader was pointing at their own machine is the split that decides
-            // which -- without it the Android failure rate (11 readers failing
-            // to 1 succeeding, against 41 to 9 on Windows) has no explanation
-            // available, only guesses. See `utils/ankiAddress` for why this is a
-            // fixed label and not the value.
+            // Report only the address category, never the reader's address; see
+            // utils/ankiAddress.
             'anki.address_kind': classifyAnkiAddress(serverAddress),
           });
         }
@@ -408,12 +308,8 @@ export const ankiStore = defineStore('anki', {
           );
         }
 
-        // ANKI IS RUNNING AND SAID NO. This used to fall through: the check above
-        // only ruled out `null`, so a reader who dismissed AnkiConnect's "allow
-        // this origin?" dialog carried on to fetch decks, got an empty list, and
-        // was reported as `success: true` with `deck_count: 0`. They then read a
-        // panel telling them to make sure Anki was running -- which it was, with
-        // the dialog they needed sitting behind the browser window.
+        // Denied permission is not an empty deck list: Anki is running and the reader must
+        // allow this origin.
         if (permission !== 'granted') {
           this.connectFailure = 'permission_denied';
           throw new AnkiUnavailableError(
@@ -422,29 +318,16 @@ export const ankiStore = defineStore('anki', {
           );
         }
 
-        // CHECKED BETWEEN THE TWO CALLS, not after both, and that ordering is
-        // load-bearing: `executeAction` clears `connectFailure` on every call
-        // that succeeds, so asking for note types after the deck lookup failed
-        // erases the very reason we are about to report. Throwing here also
-        // spares a second request to an Anki that has already stopped answering.
+        // Check each lookup before the next call: a successful executeAction clears
+        // connectFailure and would erase the cause.
         const decks = await this.getAllDeckNames();
         if (decks === null) throw this.stoppedAnswering();
 
         const models = await this.getAllModels();
         if (models === null) throw this.stoppedAnswering();
 
-        // ANKI STOPPING BETWEEN THE PERMISSION GRANT AND HERE is the same
-        // situation as the probe above, and gets the same answer: the reason
-        // `executeAction` established, left alone because it is the specific one.
-        //
-        // The guard here used to read `if (decks && Array.isArray(decks))`, which
-        // could not fire -- the lookups collapsed a failure into `[]`, and an
-        // empty array is both truthy and an array. So a dropped connection
-        // emptied the dropdowns the reader was working in, fell through to the
-        // `no_decks` branch below, and sent them off to create a deck: the one
-        // wrong errand of all of them, since their decks were fine and it was
-        // Anki that had gone. A note-type lookup failing did not even do that --
-        // it was reported as a SUCCESS with `model_count: 0`.
+        // Publish decks and models only after both lookups succeed, preserving the existing
+        // choices on connection failure.
         this.availableDecks = decks;
         this.availableModels = models;
 
@@ -465,18 +348,14 @@ export const ankiStore = defineStore('anki', {
         });
       } catch (error) {
         const posthog = usePostHog();
-        // The reason is the entire point of this event now. Without it the 328
-        // failures we can see in 30 days say only that something went wrong, and
-        // the fix for each of them is different.
+
         posthog?.capture('anki_connection_tested', {
           success: false,
           reason: isAnkiUnavailable(error) ? error.reason : (this.connectFailure ?? 'unreachable'),
         });
 
-        // Rethrown as it came, so the caller can still tell the two apart. The
-        // `Failed to load Anki data:` wrapper is kept only for the other branch:
-        // its whole audience was the error report, and an unavailable Anki no
-        // longer files one.
+        // Preserve AnkiUnavailableError so callers can distinguish setup failures from
+        // application faults.
         if (isAnkiUnavailable(error)) throw error;
 
         const message = error instanceof Error ? error.message : String(error);
@@ -514,18 +393,8 @@ export const ankiStore = defineStore('anki', {
     },
 
     /**
-     * The field names of a note type, or `null` when Anki did not answer.
-     *
-     * The null matters, and it is the whole reason this does not return `[]`.
-     * `executeAction` never throws: it returns `null` when it could not reach
-     * Anki, and hands back `{result: null, error}` when AnkiConnect refused the
-     * origin -- a 200 that no `catch` will ever see. Collapsing both of those to
-     * an empty array told the caller "this note type has no fields", which the
-     * note-type watcher in `AnkiSync.vue` then wrote to the reader's saved
-     * profile as their field mapping, wiping it with no toast and no report.
-     *
-     * A real Anki note type always has at least one field, so an empty result
-     * never meant anything but a failure in the first place.
+     * Return null for an unanswered or refused lookup, not []. An empty list would let AnkiSync
+     * overwrite the saved field mapping.
      */
     async getAllModelFieldNames(modelName: string): Promise<string[] | null> {
       const response = (await this.executeAction('modelFieldNames', {
@@ -567,24 +436,8 @@ export const ankiStore = defineStore('anki', {
     },
 
     /**
-     * The note type a deck is mostly made of, for prefilling the picker.
-     *
-     * A deck can hold notes of any number of types, so there is no such thing as
-     * "the deck's note type" -- but in practice a mining deck is one type with a
-     * handful of strays, and making the reader name it themselves is a step that
-     * only ever has one sensible answer. A suggestion, not a rule: the picker
-     * stays a picker.
-     *
-     * Sampled from the MOST RECENT notes rather than the whole deck, and both
-     * halves of that matter. Recent, because a deck that was reorganised months
-     * ago should be answered by what the reader adds now, not by whatever they
-     * imported in 2019. Sampled, because `notesInfo` returns every field of
-     * every note it is asked about -- on a 40k-note deck that is megabytes of
-     * card HTML crossing the wire to count a string.
-     *
-     * Returns null rather than throwing on any failure. This runs while the
-     * reader is picking a deck, and a suggestion that cannot be made is not an
-     * error worth interrupting them for -- they were going to choose anyway.
+     * Suggest the most common type among recent notes, not the whole deck: notesInfo includes
+     * full card HTML. Failure returns null so the reader can still choose manually.
      */
     async mostCommonModelInDeck(deck: string): Promise<string | null> {
       if (!import.meta.client || !deck) return null;
@@ -625,18 +478,8 @@ export const ankiStore = defineStore('anki', {
 
         return created.publicId;
       } catch (error) {
-        // A 401 here is not a failure to report, it is the session having ended
-        // under a client that still believes it is signed in. `isLoggedIn` is
-        // persisted, and only `getBasicInfo` ever reconciles it against the
-        // server -- so between two of those, every export the reader makes calls
-        // this, gets told the token is missing, and files it. One reader
-        // produced 49 reports in a single sitting that way on 2026-08-26, one
-        // per search they exported, while their Anki cards silently stopped
-        // being recorded in the collection.
-        //
-        // Same rule as `getBasicInfo`'s own catch, and for the same reason
-        // stated there: ONLY a 401 means the session is really gone. A 5xx, a
-        // network blip or a rate limit must not log anybody out.
+        // Persisted login state may outlive its session. Only a 401 resets auth; network
+        // failures, 5xx, and rate limits must not.
         const status = apiErrorStatus(error);
         if (status === 401) {
           userStore().resetAuthState();
@@ -676,47 +519,17 @@ export const ankiStore = defineStore('anki', {
     },
 
     /**
-     * The sentence-level entry points, which have no selected word to send.
-     * Kept positional so the two callers that predate `MinedWord` are untouched.
-     *
-     * Deliberately NOT gated on the key field. Neither path here needs one: the
-     * note picker hands over an id it has already resolved, and the last-added
-     * card is found on `deck + note + added:2 is:new`, which is how it has
-     * worked since long before a key field existed. The key answers a different
-     * question -- WHICH note is about this word -- and only the two surfaces
-     * that ask it require it (the picker's own search, and the word card).
-     *
-     * A guard here briefly made the key mandatory for every export, which
-     * silently withdrew the last-added-card flow from every reader who had never
-     * set one. That is the Yomitan-first workflow, and it was the majority of
-     * exports.
+     * Sentence exports remain positional and do not require a key field: the picker supplies an
+     * id, and last-card lookup uses deck, note type, and recency.
      */
     async addSentenceToAnki(sentence: SearchResult, id?: number, method?: string) {
       await this.addResultToAnki(sentence, { noteId: id, method });
     },
 
     /**
-     * `method` names the surface the export came from, for telemetry only.
-     *
-     * It was derived from whether a note id was passed, which was the same
-     * question while there were exactly two ways in -- the dropdown's "last
-     * added card" and its note picker. The word card is a third, and it uses
-     * BOTH paths depending on whether the word was already mined, so a derived
-     * value would scatter its exports across the other two and leave no way to
-     * tell whether the button is used at all. Callers that do not care keep the
-     * old derivation.
-     *
-     * `word` is the open card's own content, and only the word card has one: the
-     * sentence-level exports are reached from a dropdown that never asked which
-     * word the sentence is about. Its absence is not a failure -- see the
-     * `{word-*}` cases below for what a note gets in that case, which is
-     * deliberately nothing rather than blanks.
-     *
-     * `create` says the collection was ASKED about this word and answered no, so
-     * a new note is the right target. It is not "there was no note id": that is
-     * also true when the profile has no expression field to search on, and the
-     * question was never put. Creating on a guess would mean a duplicate note
-     * for every word a reader mines twice, so the caller has to have asked.
+     * method identifies the export surface for telemetry; absent values keep the note-id-based
+     * fallback. word is supplied only by word cards. create requires a negative collection
+     * probe, not merely an absent note id, to avoid duplicate notes.
      */
     async addResultToAnki(
       sentence: SearchResult,
@@ -724,13 +537,8 @@ export const ankiStore = defineStore('anki', {
     ) {
       const { noteId: id, method, word: minedWord } = options;
       /**
-       * Whether the word's own fields are part of this write.
-       *
-       * False is "enrich the card I already have with this sentence": the reader
-       * has a note whose definition they wrote, or Yomitan wrote, and they want
-       * Nadeshiko's example on it without their glossary being replaced. The
-       * marked sentence is deliberately NOT gated on this -- it is context about
-       * the sentence, not a fact about the word.
+       * wordFields=false adds sentence context without replacing the reader's glossary.
+       * Sentence highlighting is not gated by it.
        */
       const withWordFields = options.wordFields !== false;
       const creating = !id && options.create === true;
@@ -758,13 +566,8 @@ export const ankiStore = defineStore('anki', {
       const posthog = usePostHog();
       const exportMethod = method ?? (id ? 'search_by_id' : 'last_card');
 
-      // Every abandoned export reports why. The early returns below are ordinary
-      // outcomes rather than throws, so they reached neither error tracking nor
-      // `anki_export_failed`, and the most common one by far -- no freshly added
-      // card waiting in Anki -- was invisible. `completed + failed` therefore fell
-      // well short of the attempts, and the failure rate read as ~0.5% against
-      // 8.7k exports, which is not a plausible number for a feature that needs a
-      // desktop app running with AnkiConnect and a card already added.
+      // Count ordinary early-return failures too, so attempted exports are not missing from the
+      // failure rate.
       const trackExportFailed = (reason: string, extra: Record<string, unknown> = {}) => {
         posthog?.capture('anki_export_failed', {
           reason,
@@ -797,18 +600,8 @@ export const ankiStore = defineStore('anki', {
 
           const response = (await this.executeAction('findNotes', { query: queryString })) as FindNotesResponse | null;
 
-          // NO ANSWER IS NOT AN EMPTY SEARCH, and the two used to arrive here as
-          // the same `[]`. `executeAction` reports its failures by returning --
-          // `null` when it could not reach Anki, `{result: null, error}` when
-          // AnkiConnect refused the origin with a 200 that no `catch` will see --
-          // so a reader whose Anki had quit was told "No Anki card to export to.
-          // Please add a card first", which is an errand for a problem they do
-          // not have. Every one of those was also counted as `no_card_found`,
-          // putting connection failures inside the number that is supposed to
-          // measure readers who genuinely have not made a card yet.
-          //
-          // A search that matched nothing answers `result: []`, which is truthy
-          // and passes straight through, so this separates the two exactly.
+          // No answer is not an empty search: null or result:null means Anki is unavailable,
+          // while result:[] means no matching card.
           if (!response?.result) {
             const reason = this.connectFailure ?? 'unreachable';
             trackExportFailed('anki_unavailable', { 'anki.reason': reason });
@@ -926,11 +719,8 @@ export const ankiStore = defineStore('anki', {
           await this.guiBrowse('nid:1 nid:2');
         }
 
-        // `word` last, after every `word-*` it is a prefix of. The closing brace
-        // in the pattern below means backtracking would sort this out anyway --
-        // `word` cannot be followed by `}` in `{word-reading}` -- but relying on
-        // that puts the reader's reading field one regex tweak away from being
-        // filled with the headword, and the order costs nothing.
+        // Keep word after the longer word-* alternatives to avoid prefix ambiguity if the
+        // placeholder pattern changes.
         const allowedFields = [
           'sentence-jp',
           'content_jp_highlight',
@@ -957,49 +747,22 @@ export const ankiStore = defineStore('anki', {
         const fieldsNew: Record<string, string> = {};
 
         /**
-         * Which placeholders are facts about the WORD rather than the sentence.
-         *
-         * Two that read like word placeholders are deliberately not among them.
-         * `{sentence-furigana}` is computed from the line's own tokens, and
-         * `{content_jp_highlight}` marks which word was mined inside the
-         * sentence -- both are context about the LINE, so both fill on the "add
-         * context only" path that exists to leave a reader's own glossary alone.
+         * Sentence furigana and highlighting are line context, not word fields, so they remain
+         * eligible for context-only exports.
          */
         const WORD_PLACEHOLDER =
           /^\{(?:definition|definition:[^}]+|definition-first|word|word-reading|word-furigana|word-audio|word-pitch|word-pitch-num|word-pitch-categories|word-frequency|word-jlpt|word-info)\}$/;
 
         /**
-         * What one placeholder is worth on this export, or `undefined` for
-         * "nothing to say".
-         *
-         * The distinction is the whole safety property of the feature, and it
-         * predates composing. `undefined` means the field it sits in is left
-         * exactly as it was, because a word-level placeholder is only ever
-         * filled from the word card -- and the other two export paths (the
-         * dropdown's "last added card" and the note picker) are reached without
-         * a word having been selected at all. Writing a blank there would erase
-         * the definition Yomitan put on the note, which is the one thing this
-         * must not do to readers who already have a working setup. `{image}` and
-         * `{sentence-audio}` follow the same discipline when an upload fails.
-         *
-         * An empty STRING is different: it is a deliberate clear. Only
-         * `{definition:<slug>}` and `{empty}` return one.
+         * undefined supplies no replacement; an empty string deliberately clears. Missing word
+         * content or media uploads must not erase existing fields. Only named definitions and
+         * {empty} explicitly clear.
          */
         const resolvePlaceholder = (token: string): string | undefined => {
           /**
-           * `{definition:<slug>}` names ONE of the reader's dictionaries, so it
-           * cannot join the fixed alternation below -- the slug is whatever
-           * Shirabe calls that pack, including the content hash a Yomitan upload
-           * is filed under. Tested first because a bare `{definition}` would
-           * otherwise claim the prefix and write every dictionary into a field
-           * that asked for one.
-           *
-           * Unlike every other word field, a miss CLEARS. The others are empty
-           * when a feature is off, where blanking a field the reader filled
-           * would be destructive; this one is empty when the open word is not in
-           * that dictionary -- including when the reader ticked that dictionary
-           * away in the card -- and leaving the previous export's text there
-           * would put ANOTHER WORD's definition on this note.
+           * Match dynamic dictionary slugs before fixed placeholders. A missing or deselected
+           * named dictionary clears its definition to avoid retaining another word's text;
+           * context-only exports leave it untouched.
            */
           const named = /^\{definition:([^}]+)\}$/.exec(token);
           if (named) {
@@ -1018,16 +781,8 @@ export const ankiStore = defineStore('anki', {
             case 'sentence-jp':
               return `<div>${sentence.segment.textJa.content}</div>`;
             /*
-             * The whole line's readings, in Anki's own notation. Yomitan cannot
-             * produce this -- it knows the reading of the word the reader tapped
-             * and nothing about the rest of the line -- which is why Lapis ships
-             * `SentenceFurigana` empty and sends people to an addon for it.
-             *
-             * Beside `sentence-jp` rather than with the word fields, and NOT
-             * gated on `withWordFields`: it is a fact about the sentence, so it
-             * fills from the sentence card's own export as well as from the word
-             * card, and survives the "keep my glossary" path that exists to
-             * leave the word alone.
+             * Sentence furigana comes from the line's tokens and is not gated by wordFields,
+             * including on context-only exports.
              */
             case 'sentence-furigana':
               return tokensToAnkiFurigana(sentence.segment.textJa.content, sentence.segment.textJa.tokens ?? []);
@@ -1063,12 +818,8 @@ export const ankiStore = defineStore('anki', {
             case 'definition':
               return word(minedWord?.definition);
             /**
-             * The top dictionary of whatever the card is showing -- which a pick
-             * narrows, so this follows a reader who ticked one dictionary rather
-             * than going on naming the one they ticked away. Empty means
-             * UNTOUCHED here, unlike `{definition:<slug>}` above: this field is
-             * empty only when the lookup found nothing at all, which is the same
-             * condition every other word field treats that way.
+             * Use the first definition from the selected dictionaries. Absent content leaves
+             * the field untouched, unlike a missing named-dictionary definition.
              */
             case 'definition-first':
               return word(minedWord?.definitionFirst);
@@ -1085,15 +836,8 @@ export const ankiStore = defineStore('anki', {
             case 'word-info':
               return word(minedWord?.info);
             /**
-             * The sentence with the mined word marked.
-             *
-             * A placeholder that had been reserved in `allowedFields` since
-             * before there was a word card to fill it: a field mapped to it
-             * matched the regex, fell through the switch and was silently left
-             * alone, so readers who found the name got nothing and no error. It
-             * is a separate field from `{sentence-jp}` on purpose -- the plain
-             * one keeps working exactly as it did, and nobody's existing cards
-             * change shape because this arrived.
+             * Keep highlighting separate from sentence-jp so existing plain sentence mappings
+             * retain their format.
              */
             case 'content_jp_highlight':
               return minedWord?.sentenceHighlight || undefined;
@@ -1103,14 +847,8 @@ export const ankiStore = defineStore('anki', {
         };
 
         /**
-         * Every placeholder in a field, not just the first.
-         *
-         * `{definition:...}` leads the alternation for the reason above, and
-         * `word` trails the `word-*` names it is a prefix of. The closing brace
-         * means backtracking would sort the second one out anyway -- `word`
-         * cannot be followed by `}` in `{word-reading}` -- but relying on that
-         * puts the reader's reading field one regex tweak away from being filled
-         * with the headword, and the order costs nothing.
+         * Replace every placeholder. Dynamic definitions lead the alternation, and word follows
+         * its longer word-* variants.
          */
         const PLACEHOLDER = new RegExp(`\\{(?:definition:[^}]+|${allowedFields.join('|')})\\}`, 'g');
 
@@ -1122,32 +860,14 @@ export const ankiStore = defineStore('anki', {
           if (!field.value) return;
 
           /**
-           * A field is written when at least one of its placeholders had
-           * something to say, and the ones that did not collapse to nothing.
-           *
-           * For a field holding a single placeholder -- which is every field
-           * anybody had before composing existed -- this is exactly the old
-           * behaviour: resolved writes, unresolved leaves it alone. For a
-           * composite it is the useful generalisation: a word with no pitch
-           * still gets its definition, rather than losing the whole field to one
-           * absent part.
+           * Write only if at least one placeholder resolves; unresolved parts become empty. A
+           * wholly unresolved field stays untouched.
            */
           let resolvedAny = false;
           /**
-           * ...with one exception that outranks it: a field that mentions the
-           * word is written only when there IS a word to write.
-           *
-           * Two paths reach here without one -- the dropdown's "last added card"
-           * and the note picker, neither of which selects a word -- and "add
-           * context only" asks for the same restraint deliberately. A composite
-           * mixing sentence and word placeholders would otherwise be written
-           * with its word half blanked, which is the glossary-clobbering all
-           * three exist to avoid: on a Yomitan-made note that half holds the
-           * definition Yomitan wrote. One word-level placeholder is enough to
-           * leave the whole field alone.
-           *
-           * A field holding only word placeholders lands in the same place by
-           * either rule, since none of them would have resolved.
+           * Without usable word content, any word placeholder blocks the entire field,
+           * including composites. Otherwise sentence-only exports could blank a Yomitan
+           * glossary.
            */
           let blockedWordField = false;
 
@@ -1169,20 +889,8 @@ export const ankiStore = defineStore('anki', {
 
         if (creating) {
           /**
-           * A word the reader has never mined gets a note of its own.
-           *
-           * Without this the only target was "the newest card added in the last
-           * two days", which assumes something else -- Yomitan -- made the note
-           * first. For a reader mining from Nadeshiko alone there is no such
-           * card, so the export stopped with "add a card first"; and where there
-           * WAS one it belonged to whatever word they last looked up elsewhere,
-           * so mining a new word wrote this sentence, and now this word, over an
-           * unrelated card.
-           *
-           * Only reached when the collection was actually asked and said no --
-           * see `create` on the options. A profile that cannot answer the
-           * question keeps the old fallback rather than guessing, because
-           * guessing wrong here means a duplicate note every time.
+           * Create only after a negative probe; callers unable to check the collection keep the
+           * last-card fallback rather than guessing.
            */
           const added = (await this.executeAction('addNote', {
             note: {
@@ -1192,11 +900,8 @@ export const ankiStore = defineStore('anki', {
               // Findable as a group later, and the thing that tells a reader
               // months from now where a card came from.
               tags: ['nadeshiko'],
-              // Anki's own duplicate check, as a backstop to the probe. The two
-              // can disagree -- the probe scopes to the profile's deck, Anki's
-              // scopes to the note type -- and when they do, refusing is the
-              // safe direction: a rejected create is a toast, a wrong one is a
-              // duplicate the reader has to find and merge by hand.
+              // Keep Anki's duplicate check as a backstop: it scopes by note type rather than
+              // the probe's deck. Refusing is safer than duplicating.
               options: { allowDuplicate: false },
             },
           })) as { result?: number | null; error?: string | null } | null;
@@ -1248,9 +953,7 @@ export const ankiStore = defineStore('anki', {
           media_name: mediaName(sentence.media),
           media_id: sentence.media.publicId,
           export_method: exportMethod,
-          // How many dictionaries the reader ticked, 0 on the overwhelming
-          // majority of exports. Here to say whether picking is worth the row it
-          // occupies on the card.
+          // Measure dictionary-pick usage separately from context-only exports.
           picked_dictionaries: withWordFields ? (minedWord?.pickedDictionaries ?? 0) : 0,
         });
 
@@ -1274,7 +977,6 @@ export const ankiStore = defineStore('anki', {
       if (!userStore().isLoggedIn) return;
       if (localStorage.getItem('anki-migrated')) return;
 
-      // If server already has profiles, skip migration
       if (this.profiles.length > 0) {
         localStorage.setItem('anki-migrated', 'true');
         localStorage.removeItem('settings');
@@ -1315,8 +1017,6 @@ export const ankiStore = defineStore('anki', {
     },
   },
 });
-
-// util functions
 
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, _) => {

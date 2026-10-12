@@ -3,18 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-/**
- * The admin form for one title's metadata.
- *
- * The form is SEEDED from the media it is opened on and written back as a whole
- * object, so the two directions have to agree field for field. Where they do
- * not, the failure is silent and destructive in the same move: a field the
- * seeding missed is sent back empty and overwrites what was there.
- *
- * Genres make the round trip through a single text box -- joined with commas
- * going in, split coming out -- which is the one field where the reader's typing
- * has to be cleaned up rather than stored as written.
- */
+/** Seed and save every metadata field: omitted fields would be overwritten by the whole-object update. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 const toastSuccess = vi.fn();

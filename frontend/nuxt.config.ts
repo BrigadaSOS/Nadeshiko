@@ -7,139 +7,44 @@ import { DISCORD_INVITE_URL } from './shared/utils/socialLinks';
 import { DEFAULT_OG_IMAGE_PATH } from './app/utils/metaTags';
 
 const isDev = env.NUXT_PUBLIC_ENVIRONMENT === 'development';
-// Analytics ship in production only. Everywhere else the SDK just fails against
-// CSP and fills the console with noise, and any event it did get through would
-// land in the same project as real traffic. App code reaches for `posthog-js`
-// directly and guards on `posthog.__loaded`, so leaving the module out simply
-// makes every capture a no-op.
+// Production-only analytics avoid CSP noise and mixing non-production events into the real project.
+// Without the module, captures guarded by `posthog.__loaded` are no-ops.
 const isProd = env.NUXT_PUBLIC_ENVIRONMENT === 'production';
-// Not `process.dev`: that is injected into app code, not into this file, which
-// Nuxt evaluates in plain Node. There it is just a missing property -- undefined,
-// no error -- so every `process.dev` test here silently took its production
-// branch and the dev server was served the production CSP.
+// `process.dev` is not injected into this Node-evaluated config; use the explicit environment for local CSP.
 const isLocal = env.NUXT_PUBLIC_ENVIRONMENT === 'local';
 const SITE_URL = isDev ? 'https://stg.nadeshiko.co' : 'https://nadeshiko.co';
 
 const CDN_ORIGIN = 'https://cdn.nadeshiko.co';
 
-// Shirabe serves the headword pronunciation clips the word card plays. The URL
-// arrives inside the lookup response (`word.pitch[].audioUrl`), so it is not
-// something this app constructs and cannot be routed through our own CDN
-// without proxying every clip. Media only -- nothing else is loaded from there,
-// and a CSP entry that covers more than it needs is one nobody can safely
-// narrow later.
+// Shirabe lookup responses supply pronunciation clip URLs; allow its CDN for media only.
 const SHIRABE_CDN_ORIGIN = 'https://cdn.shirabe.org';
-/**
- * Origins that belong to the reader's browser extensions rather than to us.
- *
- * This audience is Japanese learners, and a large share of them read with a
- * dictionary or mining extension injected into the page -- Yomitan, 10ten,
- * Migaku. An injected content script is governed by the *page's* CSP, not the
- * extension's, so a policy that names only our own origins quietly breaks the
- * tools our readers came here with. It also reports a great deal of noise doing
- * it: Migaku's font host alone accounted for 14,114 violations in one week,
- * around 80% of every violation the site recorded.
- *
- * Passive subresources only -- fonts, images, stylesheets. Nothing here grants
- * script execution; see the note on `script-src` for why extension scripts stay
- * blocked.
- */
+// Dictionary/mining extensions inject passive assets governed by the page CSP.
+// Allow fonts, images and styles without granting extension script execution.
 const MIGAKU_ASSET_ORIGIN = 'https://migaku-public-data.migaku.com';
 const GOOGLE_FONTS_ORIGIN = 'https://fonts.googleapis.com';
 const GOOGLE_FONTS_STATIC_ORIGIN = 'https://fonts.gstatic.com';
 const TYPEKIT_ORIGIN = 'https://use.typekit.net';
-// Wildcarded, because YouTube does not serve thumbnails from one host. The
-// canonical URL is `i.ytimg.com`, but it hands out `i1.` through `i4.` as well
-// and which one a reader gets is not ours to predict -- the URLs arrive with the
-// media record rather than being built here. Pinned to `i.ytimg.com` alone, the
-// numbered hosts were blocked: `i1.ytimg.com/vi/.../mqdefault.jpg` was still
-// being refused for readers on 2026-08-29, our own thumbnails failing on our own
-// pages. A subdomain wildcard on an image host costs nothing a fixed host does
-// not already cost -- `img-src` grants no execution -- and it is the only form
-// that survives YouTube moving between them.
+// YouTube supplies thumbnails from both i.ytimg.com and numbered subdomains; allow all image hosts.
 const YOUTUBE_THUMBNAIL_ORIGIN = 'https://*.ytimg.com';
-// Roadmap cover art returned by AniList's public GraphQL API. This trusts only
-// the dedicated image CDN host, not AniList scripts or API responses.
+// Trust the dedicated roadmap image CDN, not AniList scripts or API origins.
 const ANILIST_IMAGE_ORIGIN = 'https://s4.anilist.co';
 const MYANIMELIST_IMAGE_ORIGIN = 'https://cdn.myanimelist.net';
-/**
- * Chrome's built-in "Translate this page", which is the same problem as the
- * extensions above and was being broken the same way.
- *
- * It is not an extension, but it is injected into the page and governed by the
- * page's CSP exactly as one is, so it showed up in the reports as first-party:
- * the source file is `nadeshiko.co`, which is why it read as our own code
- * failing rather than as somebody else's tool. In the seven days to 2026-08-29
- * it was every first-party violation we had -- 101 `img-src`, 42
- * `style-src-elem`, 8 `connect-src`, on 100, 42 and 8 distinct readers -- and
- * nothing of ours was being blocked at all.
- *
- * Worth admitting rather than tolerating. The audience is international and the
- * interface is English and Japanese; a reader translating the page is doing the
- * obvious thing, and what they got instead was a translate widget with no
- * stylesheet and no icons.
- *
- * Passive subresources plus the one API call the feature is, matching the rule
- * above: `www.gstatic.com` serves its stylesheet, `translate.google.com` and
- * `fonts.gstatic.com` its icons and its `gen204` beacon, and
- * `translate-pa.googleapis.com` is where the text actually goes to be
- * translated. No script origin is granted -- Chrome injects the translate script
- * through a privileged path that never consults this policy, which is why none
- * of these reports is a `script-src` one.
- */
+// Chrome Translate needs these stylesheet/icon origins plus its translation API.
+// Its privileged script injection does not need a script-src allowance.
 const GSTATIC_ORIGIN = 'https://www.gstatic.com';
-// Yandex Browser's built-in translate, which is the same case as Chrome's and
-// was failing the same way -- 14 blocked icon loads across 10 readers in 30
-// days. Images only; the translation itself does not route through here.
+// Yandex Browser's translator loads icons here; images only.
 const YANDEX_STATIC_ORIGIN = 'https://yastatic.net';
 const GOOGLE_TRANSLATE_ORIGIN = 'https://translate.google.com';
 const GOOGLE_TRANSLATE_API_ORIGIN = 'https://translate-pa.googleapis.com';
 
-/** Unique per build; see `buildId` below. */
 const BUILD_ID = randomUUID();
 
 const POSTHOG_ORIGIN = 'https://t.nadeshiko.co';
 const POSTHOG_PUBLIC_KEY = 'phc_vLnds6vZY3nKs6ZenhLnxSHTbYYH4EdS8zJ8mrBvHtjD';
-// Where browsers post CSP violations. Sent through our own PostHog proxy rather
-// than posthog.com so content blockers don't silently swallow the reports, and
-// `/report/` keeps its trailing slash -- PostHog drops the report without it.
-// Reports bypass `connect-src`, so the endpoint needs no CSP allowance.
-//
-// SAMPLED, because unsampled this endpoint is the largest single source of
-// persons in the project and none of them are readers. A CSP report arrives as
-// a bare POST with no distinct id, so PostHog mints one per report batch, and
-// the batches are small: in the seven days to 2026-08-29, 2,780 reports became
-// ~2,100 persons, against an all-time real user base of 5,484. Person counts
-// taken across all events -- rather than scoped to one -- are computed over
-// that, which is how ~6,000 phantom people appeared in three weeks of August.
-//
-// What those reports were, over that week and after the font fix in 0ca41f0f7
-// had already landed:
-//
-//   browser extension scripts   2,376 reports  1,967 persons   script-src-elem
-//   migaku fonts (residual)       199 reports      5 persons   font-src
-//   google translate              154 reports    150 persons   img/style/connect
-//   other / unknown                35 reports     ~30 persons
-//
-// The extension scripts are 86% of the reports and 94% of the persons, and they
-// are the one bucket that cannot be fixed: they arrive as `blocked-uri: inline`
-// from `moz-extension`, `safari-web-extension`, `blob` and `sandbox eval code`,
-// and the only directive that would admit an inline script is 'unsafe-inline',
-// which browsers ignore whenever a nonce is present. See `script-src` below.
-// Everything that COULD be fixed now has been -- the fonts in 0ca41f0f7, Google
-// Translate above -- so what is left is noise by construction, not by neglect.
-//
-// Sampling and not silence, because the value of this endpoint is catching the
-// next first-party regression, and that needs a floor rather than a rate. A
-// regression of the size the Translate one was (154/week) still reports ~15
-// times a week at a tenth, which is a visible step against a residual that will
-// otherwise sit near zero. 0.1 rather than the 0.05 the docs suggest for exactly
-// that margin.
-//
-// The better fix is a first-party collector that drops extension reports by
-// `source_file` and forwards the rest unsampled, keeping 100% of the signal
-// instead of 10%. That is a route handler and a deploy; this is a query string.
-// If the first-party rate ever matters more than it does now, build it.
+// Proxy CSP reports through our own PostHog host to avoid content blockers; `/report/` requires its trailing slash.
+// Reports bypass connect-src. Sample at 10% because extension reports dominate and PostHog creates phantom
+// persons for anonymous batches, while retaining enough first-party reports to spot regressions.
+// If full first-party coverage is needed, add a collector that filters extension noise before forwarding.
 const CSP_REPORT_URI = `${POSTHOG_ORIGIN}/report/?token=${POSTHOG_PUBLIC_KEY}&sample_rate=0.1`;
 const CF_INSIGHTS_ORIGIN = 'https://static.cloudflareinsights.com';
 
@@ -157,12 +62,8 @@ const SITEMAP_STATIC_PATHS = [
   '/changelog',
   '/stats',
   '/stats/words',
-  // One entry per tier, because the tier chips on that page are the only links
-  // the site has to most of the ~19.8k word pages and a crawler has to be able
-  // to reach each tier to follow them. `filter=COVERED` deliberately: the
-  // default `ALL` mixes in words with no sentences, whose search pages are
-  // `noindex`, and pointing a crawler at those spends crawl budget on pages we
-  // have asked it to ignore. `canonical.ts` allowlists both params.
+  // Expose every tier so crawlers can reach word pages. COVERED excludes words whose empty search pages are
+  // noindex; canonical.ts allowlists both query params.
   ...[1000, 2000, 5000, 10000, 20000, 50000, 100000].map((tier) => `/stats/words?tier=${tier}&filter=COVERED`),
 ];
 const sitemapStaticUrls = (locale: string) => [
@@ -170,11 +71,7 @@ const sitemapStaticUrls = (locale: string) => [
   ...SITEMAP_STATIC_PATHS.map((path) => `/${locale}${path}`),
 ];
 
-// The locales robots is given rules for. `ja` is disallowed wholesale below, so
-// only the two indexed locales need per-path entries. Imported rather than
-// restated: `plugins/canonical.ts` needs the same list to decide which hreflang
-// alternates it may advertise, and the two disagreeing is how `/ja` ended up
-// named as an indexable alternate of pages that are `robots: false`.
+// Share indexed locales with canonical.ts so robots rules and hreflang alternates agree.
 const INDEXED_LOCALES = APP_INDEXED_LOCALES;
 
 const sitemapSources = (
@@ -182,24 +79,16 @@ const sitemapSources = (
 ): [string, [string, { timeout: number }], [string, { timeout: number }], string] => [
   `/api/__sitemap__/media?locale=${locale}`,
   [`/api/__sitemap__/episodes?locale=${locale}`, { timeout: 60000 }],
-  // Two lookups per title rather than one, so it gets the same headroom as
-  // `episodes` and then some. See `sentences.ts` for why the corpus is sampled
-  // per title instead of enumerated.
+  // Sentence sampling makes two lookups per title; allow more time than episode enumeration.
   [`/api/__sitemap__/sentences?locale=${locale}`, { timeout: 90000 }],
   `/api/__sitemap__/blog?locale=${locale}`,
 ];
 
-// Both spellings of every private area, in both indexed locales, from the one
-// list in shared/utils/privatePaths.ts. This used to be twenty hand-written
-// lines, which is how `/settings` and `/reports` ended up disallowed here but
-// missing from the `robots: false` route rules further down -- the two lists
-// were never read side by side.
+// Derive both slash variants from the same private-path list used by route rules.
 const PRIVATE_DISALLOW = INDEXED_LOCALES.flatMap((locale) =>
   PRIVATE_PATH_SEGMENTS.flatMap((segment) => [`/${locale}${segment}`, `/${locale}${segment}/`]),
 );
 
-// The matching route rules, from the same source, so a segment added to the list
-// is both de-indexed and kept out of the shared cache without a second edit.
 const PRIVATE_ROUTE_RULES = Object.fromEntries(
   INDEXED_LOCALES.flatMap((locale) =>
     PRIVATE_PATH_SEGMENTS.map((segment) => [`/${locale}${segment}/**`, { robots: false }] as const),
@@ -219,26 +108,11 @@ export default defineNuxtConfig({
     },
   },
   app: {
-    /** See `buildId` below: one directory per build, so two builds never claim
-     *  the same asset URL. */
     buildAssetsDir: `/_nuxt/${BUILD_ID}/`,
 
     head: {
-      // The theme class lives on <html>, not on a wrapper inside the app.
-      //
-      // Tailwind is `darkMode: ['class']`, so every `dark:` utility needs a
-      // `.dark` ANCESTOR. Modals and the word card `<Teleport to="body">`, which
-      // lands them as siblings of the layout -- so while the class sat on the
-      // layout div they were outside it, every `dark:` variant on their panels
-      // was inert, and a panel written as `bg-white dark:bg-modal-background`
-      // rendered white. `.dark` is also where `--modal-background` and friends
-      // are defined, so an unprefixed `bg-modal-background` resolved to nothing
-      // at all. On <html> nothing can be teleported out from under it.
-      //
-      // Set here rather than in app.vue's `useHead` so it is server-rendered
-      // with the document and there is no light flash before hydration. The
-      // site is dark-only anyway: `body` is a hardcoded #1d1d1d in
-      // assets/css/tailwind.css and `color-scheme` is `dark` below.
+      // Put the dark class on <html> so body-teleported modals inherit dark utilities and CSS variables.
+      // Render it on the server to avoid a light flash during hydration.
       htmlAttrs: { class: 'dark' },
       meta: [
         {
@@ -247,13 +121,7 @@ export default defineNuxtConfig({
             'Search over 1 million Japanese sentences with English and Spanish translations from a wide variety of anime and J-dramas.',
         },
         { property: 'og:type', content: 'website' },
-        // No `og:image:width`/`:height` here, deliberately. They lived here as
-        // 1200x630 -- the default card's size -- and every page that overrode
-        // `og:image` with a real asset inherited them: clip stills (960x540) and
-        // media banners (1200x391-400) were both advertised at a size they have
-        // never been, and crawlers lay the card out from the declaration. The
-        // pair now travels WITH the image it describes, via `buildOgImageTags`
-        // in app/utils/metaTags.ts. Anything set globally here cannot.
+        // Image dimensions belong with each image in buildOgImageTags; global defaults misdescribe page overrides.
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'color-scheme', content: 'dark' },
       ],
@@ -276,52 +144,32 @@ export default defineNuxtConfig({
   runtimeConfig: {
     releaseSha: env.NUXT_RELEASE_SHA,
     nadeshikoApiKey: env.NUXT_NADESHIKO_API_KEY,
-    // Shirabe parses the corpus and serves the definitions behind every word.
-    // Server-side only, deliberately: it is a service key of ours, and anything
-    // under `public` below is shipped to the browser.
+    // Keep the service key server-side; anything under public is shipped to the browser.
     shirabeApiKey: env.NUXT_SHIRABE_API_KEY,
     shirabeApiBase: env.NUXT_SHIRABE_API_BASE || 'https://shirabe.org',
-    // Optional fast path to Shirabe over the tailnet, skipping the round trip
-    // out to Cloudflare and back for two boxes in the same city. Unset means
-    // "public host only"; the lookup route falls back to it either way, so this
-    // only ever changes latency.
+    // Optional tailnet fast path; the lookup route falls back to the public host, changing latency only.
     shirabeApiDirect: env.NUXT_SHIRABE_API_DIRECT || '',
     internalProxySecret: env.NUXT_INTERNAL_PROXY_SECRET,
     backendInternalUrl: env.NUXT_BACKEND_INTERNAL_URL,
     backendHostHeader: env.NUXT_BACKEND_HOST_HEADER,
     mediaFilesPath: env.NUXT_MEDIA_FILES_PATH,
-    // Keeps the previous builds' chunks servable, so a deploy does not 404 the
-    // page a reader already has open. Read at startup by
-    // server/plugins/03-asset-archive.ts; unset means the archive stays off.
+    // Keep prior builds servable for open tabs. Read by server/plugins/03-asset-archive.ts; unset disables it.
     assetArchiveDir: env.NUXT_ASSET_ARCHIVE_DIR,
     assetArchiveDays: env.NUXT_ASSET_ARCHIVE_DAYS,
     sitemapSnapshotDir: env.NUXT_SITEMAP_SNAPSHOT_DIR || '',
-    // Read by the middleware that emits `Reporting-Endpoints`, so the endpoint
-    // is declared next to the `report-to` directive that names it. Absent outside
-    // production, which the middleware already treats as "emit no header".
+    // Declare the Reporting-Endpoints URI alongside report-to, only in production.
     ...(isProd && { cspReportUri: `${CSP_REPORT_URI}&type=report-to` }),
     public: {
       appVersion: frontendPackageJson.version,
       environment: env.NUXT_PUBLIC_ENVIRONMENT,
-      // Where to SEND a reader who wants to change something on Shirabe, which
-      // is a different thing from `shirabeApiBase` above: that one is a service
-      // address our server calls (and may be a tailnet host nobody can browse
-      // to), while this is a URL that goes in front of a person. Public because
-      // the link is rendered in the browser; no key is involved.
+      // Reader-facing settings URL, distinct from the possibly private server API address; no key is exposed.
       shirabeSite: env.NUXT_PUBLIC_SHIRABE_SITE || 'https://shirabe.org',
-      // Whether word lookups are configured at all. The KEY stays server-side;
-      // this is only the boolean, so the browser can leave the feature alone
-      // instead of firing a doomed request on every hover and cacheing the
-      // failure. Without it the card still shows what the token itself knows:
-      // the word, its reading, and what the form is doing.
+      // Expose only whether lookups are configured, not the key, to avoid doomed hover requests.
+      // Without lookups, cards still show token-provided word, reading and grammar.
       shirabeLookups: Boolean(env.NUXT_SHIRABE_API_KEY),
     },
   },
-  // Only .vue files are components. The default scan also picks up .ts, which
-  // registered the helper modules colocated with their components (activityHelpers,
-  // reportHelpers, segmentEditState) as components -- they export no component, so
-  // the entries were dead weight in the auto-import namespace and a name there could
-  // shadow a real component. Colocation stays; the phantom registrations go.
+  // Restrict scanning to Vue SFCs so colocated TypeScript helpers do not become phantom components.
   components: [{ path: '~/components', pathPrefix: true, extensions: ['vue'] }],
 
   pages: true,
@@ -337,84 +185,32 @@ export default defineNuxtConfig({
     '@nuxtjs/critters',
     'nuxt-security',
   ],
-  // Critters' default `media` preload uses an inline `onload` attribute to turn
-  // print-only stylesheets back on. Our CSP intentionally refuses event-handler
-  // attributes, so use its nonce-bearing script strategy instead.
+  // Critters' default media preload uses a CSP-blocked inline onload; use its nonce-bearing script strategy.
   critters: {
     config: {
       preload: 'media-script',
     },
   },
-  // Only when `@posthog/nuxt` is absent, so the shim can never shadow the real
-  // `usePostHog()` in production.
+  // Register the shim only without @posthog/nuxt so it cannot shadow the production composable.
   ...(isProd ? {} : { imports: { dirs: ['shims/posthog'] } }),
   security: {
-    // Per-request nonces, so `script-src` can drop 'unsafe-inline' below.
-    // nuxt-security stamps the nonce onto the scripts Nuxt renders (the SSR
-    // payload especially); scripts loaded from the allow-listed origins are
-    // matched by host and need no nonce. Requires SSR per request -- if a page
-    // is ever prerendered or shared-cached, its baked-in nonce will not match
-    // the header and its inline scripts will be blocked.
+    // Nonce-bearing SSR scripts require a fresh render per request. Prerendered/shared-cached HTML would carry
+    // a nonce that disagrees with the response header and block inline scripts.
     nonce: true,
     headers: {
       referrerPolicy: 'strict-origin-when-cross-origin',
       contentSecurityPolicy: isLocal
         ? false
         : {
-            // POSTHOG_ORIGIN is here as well as in `script-src` and `connect-src`
-            // because the remote-config script does not reach either of them.
-            // `https://t.nadeshiko.co/array/<key>/config.js` was refused against
-            // `default-src` for 5 readers in 30 days, most recently 2026-08-29:
-            // it is fetched through a path that falls back to the default rather
-            // than matching a named directive, so naming it three times is what
-            // it takes. Every directive that matters is listed explicitly below,
-            // so widening the fallback reaches only the exotic ones
-            // (`manifest-src`, `prefetch-src`) and grants nothing `script-src`
-            // has not already granted this origin.
+            // PostHog remote-config fetching can fall back to default-src; explicit script/connect allowances are not enough.
             'default-src': ["'self'", POSTHOG_ORIGIN],
-            // Extension-injected scripts are deliberately NOT accommodated here,
-            // and cannot be. Their reports arrive as `blocked-uri: inline`
-            // (2,558 of 2,574 script violations in a week), and the only
-            // directive that would admit an inline script is 'unsafe-inline' --
-            // which browsers ignore outright whenever a nonce is present. So the
-            // choice is not "allow extensions or not", it is "keep nonces or
-            // not", and nonces are the whole reason this policy is worth having.
-            // The extensions in question inject through non-inline paths as well,
-            // so what is lost is a fallback rather than the feature.
+            // Do not admit extension inline scripts: unsafe-inline is ignored with a nonce, and removing nonces weakens
+            // the policy. Extensions may still inject through their non-inline paths.
             'script-src': [
-              /**
-               * `'self'`, and it stays `'self'` -- narrowing it to the one path
-               * we serve scripts from was tried on 2026-08-23 and DOES NOT WORK.
-               *
-               * Cloudflare injects a bot-detection stub into every HTML page
-               * view on this zone (Bot Fight Mode pins JavaScript Detections on
-               * and it cannot be disabled; see brigadasos-infra,
-               * terraform/cloudflare-security.tf). The stub is worth blocking:
-               * measured on /en/search/彼女, it is 4,569 ms of scripting and one
-               * 2,282 ms long task, about four times all of our own JavaScript
-               * and 82% of total blocking time.
-               *
-               * It cannot be blocked from here. Cloudflare reads this policy's
-               * nonce and writes it onto the script element it creates:
-               *
-               *   var s = document.createElement('script');
-               *   s.nonce = '<this request's nonce>';
-               *   s.src = '/cdn-cgi/challenge-platform/scripts/precursor/main.js';
-               *
-               * so the load satisfies `'nonce-...'` and never reaches the host
-               * or path sources at all. Verified on staging: with `'self'`
-               * replaced by `https://.../\_nuxt/`, the script still loaded (302
-               * then 200) with zero CSP violations, and Lighthouse was unchanged
-               * at 43 against 42.
-               *
-               * So do not narrow this expecting to stop that script. The only
-               * things that would are Cloudflare disabling JS Detections for the
-               * zone, or a plan that lets it be turned off.
-               */
+              // Keep 'self': narrowing to /_nuxt/ cannot block Cloudflare JS Detections. Cloudflare copies the request nonce
+              // onto its injected script, bypassing host/path sources. Disabling it requires a zone/plan change
+              // (see brigadasos-infra/terraform/cloudflare-security.tf), not a narrower CSP.
               "'self'",
-              // Not 'unsafe-inline': a nonce is present, so browsers ignore
-              // 'unsafe-inline' anyway, and inline scripts are trusted only when
-              // they carry this request's nonce.
               "'nonce-{{nonce}}'",
               "'wasm-unsafe-eval'",
               POSTHOG_ORIGIN,
@@ -432,71 +228,28 @@ export default defineNuxtConfig({
               GOOGLE_FONTS_STATIC_ORIGIN,
               GOOGLE_TRANSLATE_ORIGIN,
               YANDEX_STATIC_ORIGIN,
-              // Canvas and object URLs. Nine readers in 30 days had an image
-              // refused for being a `blob:`, and an image cannot execute
-              // whatever its scheme.
+              // Allow canvas/object-URL images without granting script execution.
               'blob:',
             ],
-            // `data:` is here for the reader's extensions too, not for us: several
-            // inline their fonts rather than fetching them.
+            // Extensions may inline fonts as data URLs.
             'font-src': ["'self'", 'data:', MIGAKU_ASSET_ORIGIN, GOOGLE_FONTS_STATIC_ORIGIN, TYPEKIT_ORIGIN],
             'connect-src': [
               "'self'",
               CDN_ORIGIN,
               POSTHOG_ORIGIN,
               CF_INSIGHTS_ORIGIN,
-              // No public collector origin any more. Backend telemetry uses the
-              // private host.docker.internal Alloy endpoint, while page vitals
-              // go to PostHog -- and a `connect-src` entry
-              // for a host the page never calls is a permission granted to
-              // anything that ends up running here.
               GOOGLE_TRANSLATE_API_ORIGIN,
 
-              // AnkiConnect, which `stores/anki.ts` posts to directly from the
-              // page. Both spellings of loopback plus the IPv6 one: the address
-              // is a per-profile setting (`activeProfile.serverAddress`), so a
-              // reader who types `http://[::1]:8765` -- a correct thing to type,
-              // and what a v6-first machine may resolve `localhost` to -- was
-              // being refused by a policy that only knew the v4 forms. Ports are
-              // wildcarded because 8765 is only the default.
-              //
-              // A CSP refusal here is INVISIBLE to the feature. `executeAction`
-              // catches the throw and files `anki.reason: 'unreachable'`, which
-              // is the same value Anki-is-closed produces, so a blocked address
-              // reads as an absent one -- 93 of 93 failures recorded since the
-              // event shipped on 2026-08-26 carry that reason and none can be
-              // told apart. Anything added here has to be added deliberately,
-              // because nothing downstream will report its absence.
-              //
-              // NOT the LAN, and it cannot be. CSP host-sources take a wildcard
-              // only on the leftmost label of a name, so `192.168.*.*` is not
-              // expressible; reaching Anki on another machine would mean
-              // allowing the bare `http:` scheme, i.e. every plaintext origin
-              // there is, which against the `v-html` paths in
-              // `SegmentContainer.vue` is not a trade worth making. Readers
-              // pointing at a desktop over the network are not supported, and
-              // `blocked_by_csp` in `stores/anki.ts` exists so they are told
-              // that rather than left at "unreachable".
-              //
-              // How many readers that is, is NOT known. It was assumed to be
-              // most of the Android failures, on the reasoning that AnkiConnect
-              // is a desktop add-on -- and that reasoning is wrong: a loopback
-              // AnkiConnect does exist on Android, and one reader was exporting
-              // through it in the days to 2026-08-29. What the numbers actually
-              // show there is difficulty, not impossibility (1 reader
-              // succeeding against 11 failing, where Windows is 41 against 9),
-              // and difficulty has several causes this cannot distinguish
-              // between. `anki.address_kind` on the failure event is what will
-              // answer it; until it has, nothing here should be read as knowing
-              // which setups these are.
+              // AnkiConnect is called directly by the browser. Allow IPv4, hostname and IPv6 loopback on any configured port.
+              // LAN addresses are unsupported: CSP cannot wildcard private IP ranges, and allowing all http: origins is
+              // unsafe alongside v-html. The store reports blocked_by_csp for those setups.
+              // Do not equate Android with LAN use: loopback AnkiConnect exists there too; address_kind records the distinction.
               'http://127.0.0.1:*',
               'http://localhost:*',
               'http://[::1]:*',
             ],
             'worker-src': ["'self'", 'blob:'],
-            // `data:` alongside `blob:` for the same reason `img-src` and
-            // `font-src` carry it: inline media is self-contained, reaches no
-            // network, and was being refused for 4 readers in 30 days.
+            // Allow self-contained inline media as well as object URLs.
             'media-src': ["'self'", 'blob:', 'data:', CDN_ORIGIN, SHIRABE_CDN_ORIGIN],
             'object-src': ["'none'"],
             'frame-src': [
@@ -508,14 +261,8 @@ export default defineNuxtConfig({
             'frame-ancestors': ["'none'"],
             'base-uri': ["'self'"],
             'form-action': ["'self'"],
-            // Both, deliberately: `report-to` is what Chrome still honours, and
-            // `report-uri` is all Firefox and Safari understand. `report-to`
-            // names the endpoint declared in the `Reporting-Endpoints` header
-            // (server/middleware/98-html-response-headers.ts).
-            //
-            // Production only, like the SDK: the endpoint is a PostHog project,
-            // and staging violations reported into it are indistinguishable from
-            // real ones. On staging the browser console is the signal instead.
+            // Chrome uses report-to; Firefox/Safari need report-uri. The named endpoint is emitted by
+            // 98-html-response-headers.ts. Production only to keep staging noise out of the real PostHog project.
             ...(isProd && {
               'report-uri': [`${CSP_REPORT_URI}&type=report-uri`],
               'report-to': 'posthog',
@@ -538,83 +285,27 @@ export default defineNuxtConfig({
         capture_pageview: true,
         capture_pageleave: false,
         autocapture: false,
-        /**
-         * SURVEYS ARE NOT ENABLED ON THIS PROJECT, and without this the client
-         * fetched their runtime anyway: `surveys.js` is 33.5KB brotli, loaded on
-         * every page load, second only to the session recorder among PostHog's
-         * lazy extensions and larger than any single thing the icon markup could
-         * save. Measured 2026-08-23 against the live page, alongside
-         * posthog-recorder.js 60.7KB, dead-clicks 7.0KB, exception-autocapture
-         * 5.1KB and web-vitals 2.7KB.
-         *
-         * Turn this back off the day a survey ships, not before.
-         */
+        // Surveys are unused; disable their runtime download until a survey ships.
         disable_surveys: true,
       },
       serverConfig: {
         enableExceptionAutocapture: false,
       },
-      /**
-       * ONLY SAFE BECAUSE OF `modules/sri-after-asset-mutations.ts`. Read that
-       * file before touching this one.
-       *
-       * Uploading source maps runs `posthog-cli sourcemap inject`, which
-       * REWRITES every built JS file in `.output/public` to carry a chunk id
-       * ("injecting selection: [.output/public]", "found 76 pairs"). It runs at
-       * `nitro:build:public-assets`; nuxt-security computes the Subresource
-       * Integrity digests at `nitro:build:before`, which fires EARLIER. Enabling
-       * this without addressing that took production down on 2026-08-13: 37 of
-       * 41 scripts blocked, the page served from SSR and never hydrated, every
-       * click inert, rolled back after ~13 minutes.
-       *
-       * There is no way to upload without injecting -- `enabled` governs both --
-       * so the ordering is what had to be fixed, and it was: the digests are now
-       * recomputed from the finished output after every mutation. Verified with
-       * upload ON: 93 assets match, and a real render served 42 of 42
-       * subresources whose `integrity` matched their bytes.
-       *
-       * The module is gated on `isProd`, so staging cannot exercise this path at
-       * all -- which is why it was production that found out. `verify-sri` runs
-       * inside the image build instead and fails it if any asset stops matching
-       * its digest, so a regression here breaks the BUILD, not the site.
-       */
+      // Source-map upload rewrites JS after nuxt-security hashes it. modules/sri-after-asset-mutations.ts must
+      // recompute digests from final output or SRI blocks hydration. This production-only path is checked by
+      // verify-sri inside the image build; staging does not exercise it.
       sourcemaps: {
         enabled: Boolean(process.env.POSTHOG_CLI_API_KEY),
         projectId: '372788',
-        // `?? ''` because the module types this as a required string and
-        // `process.env` is not: the key is a Docker build arg, absent from every
-        // context that only typechecks. It typechecks WITHOUT this on a machine
-        // that has `frontend/.env`, which is what let it reach CI -- Nuxt narrows
-        // `process.env` from the keys it finds there, so the local build and the
-        // runner disagree about the type of the same expression. Never used
-        // empty: `enabled` above is false in exactly the case this covers.
+        // The module requires a string even in keyless typecheck contexts; enabled is false when the key is absent.
         personalApiKey: process.env.POSTHOG_CLI_API_KEY ?? '',
       },
     },
   }),
   hooks: {
-    /**
-     * Drops `@posthog/nuxt`'s own client plugin so `plugins/posthog.client.ts`
-     * can load posthog-js asynchronously in its place.
-     *
-     * The module's plugin does `import posthog from "posthog-js"` at module
-     * scope, which is enough on its own to pin the SDK into the entry chunk:
-     * 99,765 B brotli of a 185,156 B entry graph, 53.9% of everything the
-     * browser must fetch, parse and execute before the app can hydrate
-     * (measured 2026-08-23 against a production build of the search page).
-     * There is no module option to turn the plugin off -- `setup()` calls
-     * `addPlugin` unconditionally -- so removing it from the resolved app is
-     * what is left. The server plugin, the auto-imported composables and the
-     * source-map upload all stay: only the client plugin is replaced.
-     *
-     * THROWS RATHER THAN WARNS, and that is deliberate. If a module upgrade
-     * moves or renames the plugin, the filter silently stops matching and the
-     * build regresses in the worst possible way: BOTH plugins register, the
-     * module's one wins the `posthog.__loaded` race, the static import is back,
-     * and nothing about the site looks wrong -- the entry chunk is just 99KB
-     * heavier again with no failing test anywhere. Same reasoning as
-     * `verify-sri`: a regression here breaks the BUILD, not the site.
-     */
+    // Replace the module's static posthog-js client import with our asynchronous plugin to keep the SDK out of
+    // the hydration entry chunk. Keep its server plugin, composables and source-map upload.
+    // Fail if an upgrade moves the plugin: silently retaining it would initialise two SDKs and restore the heavy import.
     'app:resolve'(app) {
       if (!isProd) return;
 
@@ -630,36 +321,21 @@ export default defineNuxtConfig({
       }
     },
   },
-  /**
-   * The publisher, declared where the module puts it rather than from a page.
-   *
-   * `defineOrganization()` in app.vue built a SECOND Organization at
-   * `#organization`, carrying the logo -- while the node every other member of
-   * the graph points at (`WebSite.publisher`, `WebPage.about`,
-   * `Article.author`/`publisher`) is the `#identity` one the module derives
-   * from this config, which had no logo at all. Google resolves publisher to
-   * `#identity`, found none, and the Article rich result went without.
-   */
+  // Set the publisher logo on the module-owned #identity node; a page-level Organization creates a separate
+  // #organization node that WebSite/WebPage/Article references do not use.
   schemaOrg: {
     identity: {
       type: 'Organization',
       name: 'Nadeshiko',
       url: SITE_URL,
       logo: `${SITE_URL}${DEFAULT_OG_IMAGE_PATH}`,
-      // Only profiles unambiguously ours and unlikely to move: this is how a
-      // search engine ties the site to those accounts.
       sameAs: ['https://github.com/BrigadaSOS', 'https://www.patreon.com/BrigadaSOS', DISCORD_INVITE_URL],
     },
   },
   site: {
     url: SITE_URL,
     name: 'Nadeshiko',
-    // LANGUAGE-NEUTRAL ON PURPOSE. This string is not localised -- it is one
-    // value for the whole site -- and it used to name English and Spanish, so
-    // the `WebSite` node on every `/es/` page carried an English sentence next
-    // to `"inLanguage":"es"`. The per-locale wording is set in `app.vue`, which
-    // can read the active locale; what stays here is the fallback, and a
-    // fallback that names no language cannot contradict the page it lands on.
+    // Language-neutral fallback; app.vue supplies localized descriptions so WebSite language and text agree.
     description: 'Search over 1 million Japanese sentences from a wide variety of anime and J-dramas.',
   },
   robots: isDev
@@ -670,88 +346,23 @@ export default defineNuxtConfig({
         groups: [
           {
             userAgent: '*',
-            // No `/docs/`: the module expands an unprefixed path across the
-            // locales, so one entry became Allow lines for /en/docs/, /es/docs/
-            // and /ja/docs/ -- all three 404 (only /docs/api/index.html is
-            // real). The entry bought nothing either way; `/docs/**` carries an
-            // `X-Robots-Tag: noindex` route rule instead, for the reason spelled
-            // out on that rule.
+            // Do not allow /docs/ here: i18n expands it into nonexistent localized paths. The real /docs/** route uses noindex.
             allow: ['/en/', '/es/'],
-            // `/ja` IS NOT DISALLOWED HERE, and that is the opposite of what it
-            // looks like. `/ja/**` has always carried `robots: false`, which
-            // serves `X-Robots-Tag: noindex, nofollow` -- and a disallow on top
-            // of it made the noindex unreadable, because a crawler that is
-            // forbidden to fetch the page never sees the header telling it to
-            // drop the page. The result over the 3 months to 2026-08-25: 66 `/ja`
-            // URLs holding 7,767 impressions (17.9% of the site's total) and 3
-            // clicks, averaging position 25.2, with no route out of the index.
-            //
-            // Crawling `/ja` costs budget we would rather spend on the corpus.
-            // That cost is the price of the de-index and it is temporary: once
-            // Search Console shows the `/ja` impressions gone, put `'/ja'` and
-            // `'/ja/'` back at the front of this list and the pages stay out
-            // without being re-fetched. Removing it before then restarts this.
+            // Keep /ja crawlable until Search Console confirms de-indexing: disallow would hide its existing noindex header.
+            // Then restore /ja and /ja/ disallows to save crawl budget.
             disallow: [...PRIVATE_DISALLOW, '/api/', '/v1/', '/_nuxt/'],
           },
-          // SEO backlink crawlers, turned away by name.
-          //
-          // Measured over the 24h to 2026-08-22, across the two media routes:
-          // MJ12bot (Majestic) 2,706 requests and DotBot (Moz) 287, every one of
-          // them serving a commercial backlink index rather than any search
-          // engine a reader uses. Unlike the scrapers the WAF deals with, both
-          // identify themselves honestly and both document that they obey
-          // robots.txt, so asking is the correct instrument and a firewall rule
-          // is not needed to make it stick.
-          //
-          // AhrefsBot is deliberately NOT here despite being the third-largest
-          // crawler on the site (26,180 requests in the same window): it backs
-          // the backlink reporting we actually read.
-          //
-          // `_skipI18n` because the module otherwise expands `/` into `/`,
-          // `/en/`, `/es/` and `/ja/`. Harmless -- the bare `/` still wins --
-          // but three redundant lines under a group whose whole point is one
-          // directive.
+          // Block compliant commercial backlink crawlers; keep AhrefsBot for reporting we use.
+          // _skipI18n avoids expanding an already universal / disallow into redundant locale entries.
           {
             userAgent: ['MJ12bot', 'DotBot'],
             disallow: ['/'],
             _skipI18n: true,
           },
-          // AI TRAINING CRAWLERS, turned away by name -- and NOT the AI crawlers
-          // that answer questions and send readers, which is the whole point of
-          // the split.
-          //
-          // THE POLICY THIS RESTATES lives in brigadasos-infra
-          // (`cloudflare-security.tf`, `cloudflare_bot_management.nadeshiko`) and
-          // was set on 2026-08-26: `ai_bots_protection = "disabled"` so ChatGPT,
-          // Claude and Perplexity can fetch and cite pages, plus `ai_training =
-          // "block"` so bulk training crawls cannot. Being citable sends readers;
-          // being training data returns nothing, and rule 3 of that file
-          // documents what walking this corpus looks like.
-          //
-          // WHY IT IS RESTATED HERE AT ALL, given Cloudflare already enforces it.
-          // Two reasons, and the second is the one that cannot be fixed anywhere
-          // else:
-          //
-          //   1. Cloudflare's categories apply to VERIFIED crawlers -- matched on
-          //      IP and signature, not on the User-Agent string. robots.txt is
-          //      what a compliant crawler reads before it ever gets scored, so
-          //      the two instruments cover different failure modes.
-          //   2. GOOGLE-EXTENDED HAS NO CRAWLER TO VERIFY. It is not a bot that
-          //      fetches anything; it is a robots.txt token Google honours to
-          //      decide whether already-crawled pages may train Gemini. Cloudflare
-          //      cannot block it, because there is nothing to block. This line is
-          //      the only way to say no, and it is deliberately separate from
-          //      `Googlebot` -- disallowing Googlebot would cost the site its
-          //      search ranking, which is the mistake this token exists to avoid.
-          //
-          // THE HONEST LIMIT: robots.txt is a request. A training crawler that
-          // ignores it is caught by `ai_training` at the edge if it is verified,
-          // and by nothing at all if it impersonates a browser -- which is what
-          // the crawler documented in `cloudflare-security.tf` actually did. This
-          // costs one directive and closes the compliant case; it is not a fence.
-          //
-          // `_skipI18n` for the same reason as the group above: a bare `/` covers
-          // every locale already, and expansion would print four lines saying so.
+          // Block training crawlers, not answer/citation crawlers; mirrors brigadasos-infra/cloudflare-security.tf.
+          // robots.txt covers compliant crawlers before edge verification. Google-Extended is a usage token, not a crawler,
+          // so only robots.txt can exclude Gemini training without blocking Googlebot indexing.
+          // This is not a fence against bots impersonating browsers. _skipI18n keeps the universal disallow unexpanded.
           {
             userAgent: ['GPTBot', 'ClaudeBot', 'CCBot', 'Google-Extended', 'Applebot-Extended', 'meta-externalagent'],
             disallow: ['/'],
@@ -764,10 +375,7 @@ export default defineNuxtConfig({
     ? false
     : {
         cacheMaxAgeSeconds: 86400,
-        // Workers must share warmed sitemaps. Memory storage gives each worker
-        // its own cold copy; pooled warmup connections can repeatedly visit the
-        // same worker for a locale. Keep this cache inside the container so a
-        // new release starts fresh, while worker replacements retain it.
+        // Share warmed sitemaps across workers and worker replacements. Container-local storage starts fresh on release.
         runtimeCacheStorage: { driver: 'fs', base: '/tmp/nadeshiko-sitemap-cache' },
         autoI18n: false,
         sitemaps: Object.fromEntries(
@@ -785,20 +393,8 @@ export default defineNuxtConfig({
   },
   i18n: {
     vueI18n: 'i18n.config.ts',
-    // `language`, not `iso`: v10 renamed the field, and it reads a missing
-    // `language` as "no ISO code" and silently emits no hreflang alternates at
-    // all -- the warning is the only signal. Keep these in sync with the
-    // hreflang values Google expects.
-    //
-    // `file:` on every locale, and it is a bundle-size decision, not a tidiness
-    // one. While i18n.config.ts imported the three JSONs directly they were
-    // compiled into one chunk carrying en+es+ja, and every reader downloaded all
-    // three: 41,974 B brotli on a page whose entire JS was 388,870 B, so 10.8% of
-    // it was translations in languages that reader is not reading. Declaring the
-    // files hands loading to the module, which fetches only the active locale.
-    // Measured on /en/search/test, local production build, 2026-08-23:
-    // 388,870 -> 347,585 B of JS, plus one 14,902 B messages.json = 26,383 B
-    // less over the wire; ~24.6 KB for /es and /ja, whose messages are larger.
+    // v10 uses language, not iso, for hreflang. Declare locale files so the module loads only the active language
+    // instead of bundling every translation into the entry chunk.
     locales: [
       {
         code: 'en',
@@ -831,8 +427,7 @@ export default defineNuxtConfig({
         file: 'ja.json',
       },
       {
-        // Keep the public path compact (`/zh`) while describing the writing
-        // system precisely to browsers and crawlers.
+        // Keep /zh compact while declaring the writing system precisely.
         code: 'zh',
         language: 'zh-Hans',
         name: '简体中文',
@@ -847,91 +442,26 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'en',
     strategy: 'prefix',
-    // Required so hreflang alternates emit absolute URLs (Google needs absolute).
     baseUrl: SITE_URL,
-    // Locale detection + redirect from / is handled in server/middleware/00-locale-router.ts
-    // so it can run at the HTTP layer with proper Cache-Control on each branch.
+    // 00-locale-router.ts owns HTTP locale redirects and their per-branch Cache-Control.
     detectBrowserLanguage: false,
-    // Make the module's own `/_i18n/:hash/:locale/messages.json` route cacheable. Every
-    // browser asks for it, and until these two knobs were set it answered with
-    // `Cache-Control: max-age=-1` -- so nothing ever cached it and every navigation
-    // asked again. That is what put it at 75% of all SSR requests during the #484
-    // window, 275k hits in three hours.
-    //
-    // This route DOES serve our messages now, which it did not when these two knobs
-    // were added. Back then i18n.config.ts imported the JSONs, the handler had no file
-    // loaders to read and answered `{"en":{}}` -- nine bytes -- so the only cost was
-    // the round trip. Declaring `file:` on each locale above is what moved 47,718 B of
-    // English JSON out of the client bundle and onto this URL, so the two knobs below
-    // stopped being an optimisation and became the thing that keeps it affordable.
-    //
-    // The traffic it adds is one fetch per reader per day, not per navigation: ~1,000
-    // visitors/day against 2,040 SSR renders/day (PostHog, 7d to 2026-08-23), each of
-    // those renders already 532 KB of HTML. Cloudflare does not cache `.json` by
-    // default and a Cache Rule for `/_i18n/*` would make it one fetch per PoP per day
-    // instead, but at this volume the origin does not need one.
-    //
-    // `cacheLifetime` is the gate, and its default is the trap: the module reads it as
-    // -1, caching off, unless some locale declares a `file:`.
-    // `httpCacheDuration` is what the handler then writes into Cache-Control, and its
-    // own default is 10 SECONDS, short enough to be worth almost nothing on its own.
-    //
-    // A day is safe because the `:hash` segment is a content hash per locale, so these
-    // URLs are immutable and a deploy is the only invalidation event -- the same reason
-    // /api/shirabe/** below gets 86400.
-    //
-    // Both live under `experimental`, so this is the one part of the config a minor
-    // @nuxtjs/i18n bump can rename out from under us (pinned ^10.6.0). If the messages
-    // route ever shows up hot in the SSR logs again, check these names first.
+    // Cache hash-addressed locale messages for a day on the server and client; defaults disable server caching
+    // or allow only 10 seconds in browsers. Content hashes make these URLs immutable.
+    // Both options are experimental; check their names after i18n upgrades if messages become hot in SSR logs.
     experimental: {
       cacheLifetime: 60 * 60 * 24,
       httpCacheDuration: 60 * 60 * 24,
     },
   },
-  /**
-   * How soon an already-open tab notices that a deploy has happened.
-   *
-   * Nuxt's default is an hour, and that hour is the whole failure window. A tab
-   * that loaded before a deploy holds that build's HTML, which names its chunks
-   * by content-hashed filename AND pins each one with an SRI digest. Those
-   * filenames are not unique per build in practice -- see
-   * `server/utils/assetArchive.ts` -- so a lazy import inside that stale hour
-   * fetches the NEW bytes under the OLD name, fails the digest and is blocked:
-   * `Failed to fetch dynamically imported module`, then NUXT_E1005. That is what
-   * v2.4.0's deploy did to tabs left open on 2026-08-19.
-   *
-   * Five minutes because the check is one request for a small manifest JSON, so
-   * the cost is a poll per tab per five minutes against a window that is
-   * otherwise twelve times longer. It SHRINKS the race rather than removing it;
-   * what removes it is making a filename mean one byte sequence again.
-   */
+  // Check for deploys every five minutes instead of an hour to shrink the stale-tab import window.
+  // This only reduces the race; per-build asset URLs and the archive below preserve old bytes.
   experimental: {
     checkOutdatedBuildInterval: 5 * 60 * 1000,
   },
 
-  /**
-   * One directory per build, and it is what makes `server/utils/assetArchive.ts`
-   * true again rather than merely tidy.
-   *
-   * That archive keeps a superseded build's chunks servable, on the premise that
-   * a content-hashed filename means one byte sequence forever. `@posthog/nuxt`
-   * breaks the premise: it stamps a per-build id into every JS file AFTER Vite
-   * has hashed the name from the pre-injection bytes, so an UNCHANGED chunk
-   * keeps its name and changes its body on every deploy. Two builds then claim
-   * one URL, the archive can only hold one of them, and a tab holding the other
-   * build's HTML gets an SRI block rather than the 404 the archive was built to
-   * prevent.
-   *
-   * Giving each build its own segment means two builds never name the same URL,
-   * so whichever HTML a reader holds asks for bytes that still exist and still
-   * match the digest it pinned. `buildId` is set from the same value so the app
-   * manifest and the assets agree about which build this is.
-   *
-   * It costs archive space: a deploy now adds a full build rather than only the
-   * chunks that changed. That cost was already being paid and hidden -- PostHog
-   * rewrites every JS file every build, so nothing was ever unchanged; the
-   * archive was overwriting bodies under old names instead of keeping them.
-   */
+  // PostHog injects IDs after Vite hashes filenames, so unchanged chunk names can acquire new bytes.
+  // Use one URL directory per build to avoid archive collisions and stale-tab SRI failures. The manifest uses
+  // the same build ID. Retention costs a full build per deploy, not just changed chunks.
   buildId: BUILD_ID,
 
   compatibilityDate: '2024-07-28',
@@ -942,115 +472,40 @@ export default defineNuxtConfig({
     '/api/v1/docs': {
       redirect: { to: '/docs/api/index.html', statusCode: 301 },
     },
-    // The API reference is for people integrating against the API, who arrive
-    // from the docs link in the footer -- not from Search. Google had it at
-    // position 9.5 on 273 impressions and 0 clicks over the 3 months to
-    // 2026-08-25: it ranks, nobody wants it, and every impression it takes is
-    // one the corpus did not get.
-    //
-    // `X-Robots-Tag` rather than a robots.txt disallow, and the two are not
-    // interchangeable here. Disallowing stops the crawl, and a URL that cannot
-    // be crawled cannot be read as noindex either -- it stays in the index
-    // undescribed, which is exactly how `/api/v1/docs` (disallowed under
-    // `/api/`) still holds 59 impressions. Leaving `/docs/` crawlable and
-    // marking it noindex is what actually removes it. See the robots `allow`
-    // block above for why `/docs/` is deliberately absent from it.
-    //
-    // `openapi.yaml` is served from the same directory and is covered by the
-    // same rule.
+    // Keep API docs crawlable but noindex: a robots disallow hides the header and can leave URLs in the index.
+    // The rule also covers openapi.yaml.
     '/docs/**': {
       headers: { 'X-Robots-Tag': 'noindex' },
     },
-    // Caching policy: pages without an explicit rule emit no Cache-Control header.
-    // Cloudflare doesn't cache HTML by default and browsers heuristically cache for
-    // the same user only — fine. To make a page edge-cacheable across users, audit
-    // it for SSR personalization (logged-in nav, hidden-media filter, content-rating
-    // gating, etc.) and only then add a `public, s-maxage=...` rule below.
-    //
-    // `/` is the per-user locale router (server/middleware/00-locale-router.ts) and
-    // must never be shared-cached.
+    // Do not add shared HTML caching without auditing SSR personalization and nonce handling.
+    // The root locale router is per-user and must never be shared-cached.
     '/': { headers: { 'Cache-Control': 'private, no-store' } },
-    // Word definitions are cached on the server, not just in each browser: that
-    // is the difference between Shirabe answering once per word per day and once
-    // per word per reader per day, and a page of twenty segments holds a few
-    // hundred distinct words.
-    //
-    // NOT a route rule any more, and the reason is worth knowing before adding
-    // one back. A rule keys on the path and applies to everyone, which was right
-    // while every reader got the same definitions. A reader who links their
-    // Shirabe account now gets theirs -- their dictionaries, in their order -- so
-    // a path-keyed entry would let the first such reader fill the shared copy of
-    // a word and serve it to everybody else. The handler caches itself instead
-    // and a linked reader skips the cache entirely: see
-    // server/api/shirabe/words/candidates/[lemma].get.ts.
-    // Two more answers that are identical for every visitor, cached for the same
-    // reason and on the same mechanism. Both used to be fetched straight from a
-    // component, which meant a backend round trip per render of a page whose
-    // content had not changed since the last one.
-    //
-    // No `headers` on these, deliberately, and it is worth knowing why before
-    // adding one: Nitro's cached handler *overwrites* `cache-control` on any
-    // route with `swr`, to `s-maxage=<maxAge>, stale-while-revalidate`. A
-    // `Cache-Control` set here -- or by the handler itself, which is what
-    // `/api/shirabe/**` above still tries -- never reaches the client. What it
-    // emits instead is fine: `s-maxage` is the shared-cache lifetime, which is
-    // the tier that matters, and Nitro attaches an ETag and `Last-Modified` so a
-    // browser revalidating costs a 304 rather than a render.
-    //
-    // The windows differ by how fast a change needs to show. An announcement is
-    // usually a maintenance notice, so a minute is about the longest it can sit
-    // unseen and still be useful; `swr` keeps serving the old one meanwhile, so
-    // the short window costs one background refresh a minute, not a stampede.
+    // Shirabe definitions are cached inside the handler, not by a path-only route rule: linked readers have
+    // private dictionaries and must bypass shared entries (see words/candidates/[lemma].get.ts).
+    // Announcement/home responses are visitor-independent. Nitro swr overwrites Cache-Control, so custom
+    // headers here would not reach clients; ETag/Last-Modified still allow browser revalidation.
+    // Keep announcements at one minute so maintenance notices appear promptly.
     '/api/announcement': { swr: 60 },
-    // The home grid changes when media is imported. Five minutes is invisible to
-    // a reader and turns the busiest page's only backend call into a rounding
-    // error. Safe to share because `/` deliberately skips the hidden-media
-    // filter -- the grid is the same list for everyone, signed in or not.
+    // The home grid ignores hidden-media preferences, so it is safe to share; five minutes suits import-driven updates.
     '/api/home/recent-media': { swr: 300 },
-    // Slug -> media, behind every `/media/<slug>` render. Identical for every
-    // visitor and changes only when a title is edited or imported. The catalogue
-    // index this sits on is cached in-process as well (see
-    // `server/utils/mediaSlugIndex.ts`); this tier is what keeps a crawler
-    // walking 317 title pages from re-entering the handler for each one.
-    // RAISED FROM 3600 on 2026-08-23. A slug maps to a media id for the life of
-    // the title, and the catalogue sees ~3 renders per slug per day across 242
-    // slugs -- so a one-hour window expired before almost every second visit and
-    // the call reached the origin anyway. A new title does not wait for this to
-    // expire: it resolves through the slug index's miss path
-    // (server/utils/mediaSlugIndex.ts), which is what makes the long window safe.
+    // Cache visitor-independent slug resolution for a day; new titles use the slug index miss path rather than
+    // waiting for expiry (server/utils/mediaSlugIndex.ts).
     '/api/media/by-slug/**': { swr: 86400 },
-    // Block all indexing on dev environments
     ...(isDev && {
       '/**': {
         headers: { 'X-Robots-Tag': 'noindex, nofollow' },
       },
     }),
-    // Private/authenticated areas should never be indexed. Derived, not listed:
-    // the hand-written version covered user and admin but had silently fallen
-    // behind on settings, reports and collections.
     ...PRIVATE_ROUTE_RULES,
     '/ja/**': { robots: false },
-    // Homepage, blog index, blog posts, and static markdown pages are no longer
-    // cached at the origin. Cloudflare Cache Rules are the single source of
-    // truth for HTML caching; configure per-route there when needed.
-    // See frontend/nuxt.config.ts commit log for the prior defaults.
-    // Static assets are fine to cache (Nuxt fingerprints them)
+    // Cloudflare rules own HTML edge caching. Fingerprinted static assets can be immutable.
     '/_nuxt/**': {
       headers: {
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
-    // EXCEPT the app manifest, which is not fingerprinted and is the one file
-    // under `/_nuxt/` that must never be stale: `builds/latest.json` is how the
-    // client notices a deploy happened at all. The rule above was matching it
-    // and promising a year, so a reader's browser answered that check from cache
-    // and the client concluded the build had never changed. Nitro's own default
-    // for this path is `maxAge: 1` -- the rule above was overriding it.
-    //
-    // `builds/meta/<build-id>.json` is addressed by build id, so it genuinely is
-    // immutable and keeps the long TTL. Declared before the broader rule for
-    // readability only; Nitro merges matching rules by specificity, not by
-    // order.
+    // latest.json tells open tabs a deploy happened and must revalidate. Build-id-addressed metadata remains
+    // immutable. Nitro merges these rules by specificity, not declaration order.
     '/_nuxt/builds/meta/**': {
       headers: {
         'Cache-Control': 'public, max-age=31536000, immutable',
@@ -1061,7 +516,6 @@ export default defineNuxtConfig({
         'Cache-Control': 'no-cache',
       },
     },
-    // Public static assets — long cache, versioned by filename if needed
     '/assets/**': {
       headers: {
         'Cache-Control': 'public, max-age=31536000, immutable',
@@ -1097,11 +551,7 @@ export default defineNuxtConfig({
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
-    // Unversioned filenames (`github.svg`, `orange-pi.jpg`), so a week with
-    // background revalidation rather than the `immutable` year used above:
-    // replacing one of these in place has to become visible eventually.
-    // Without a rule they fall through to the zone's 1h browser TTL, which has
-    // every reader refetching the same blog images hourly.
+    // Unversioned blog assets need a finite TTL so in-place replacements become visible; immutable is unsafe here.
     '/icons/**': {
       headers: {
         'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
@@ -1113,47 +563,14 @@ export default defineNuxtConfig({
       },
     },
   },
-  /**
-   * `true`, NOT `'hidden'`, and the difference is a site-wide outage.
-   *
-   * `'hidden'` emits the same maps and merely drops the `//# sourceMappingURL=`
-   * comment from each chunk -- which sounds free, and is not, because VITE'S
-   * CHUNK HASH IS COMPUTED BEFORE THAT COMMENT IS APPENDED. Flipping this
-   * setting therefore changes the BYTES of every chunk while leaving every
-   * FILENAME identical. Measured on `0KcF1APn.js`, 2026-08-13:
-   *
-   *   sourcemap: true      360 bytes  sha384-of369LbkPkc...
-   *   sourcemap: 'hidden'  323 bytes  sha384-AsFW6+qt...
-   *
-   * The 37 bytes are the comment. Both builds call the file `0KcF1APn.js`.
-   *
-   * That breaks the one guarantee everything here rests on: that a content-hashed
-   * name identifies exactly one byte sequence forever. `/_nuxt/*` is served
-   * `immutable, max-age=31536000`, so a returning reader's browser reuses its
-   * cached copy WITHOUT revalidating, while the new HTML carries the new build's
-   * `integrity` attribute -- and nuxt-security's SRI then blocks every script on
-   * the page. Not a degraded page: a blank one, for anyone who visited before.
-   * Nine of the forty chunks on prod's `/en` collided this way.
-   *
-   * It is also unpurgeable. The deploy purge clears Cloudflare; nothing clears a
-   * reader's own disk cache. Staging demonstrated the whole failure on
-   * 2026-08-13 -- every chunk blocked, no hydration, the E2E suite timing out on
-   * clicks that did nothing.
-   *
-   * So this stays `true` unless a build ships where every chunk name changes
-   * anyway. The maps are emitted either way and `@posthog/nuxt` uploads them
-   * either way; all `'hidden'` bought was not advertising a URL that is public
-   * regardless.
-   */
+  // Keep client sourcemaps true unless every chunk URL changes too. Switching to hidden removes sourceMappingURL
+  // after Vite hashes filenames: cached bytes retain the old digest while new HTML advertises the new one,
+  // so SRI can block hydration. Edge purges cannot clear browser disk caches. Maps are emitted/uploaded either way.
   sourcemap: { client: true },
 
   nitro: {
-    // Read from the environment at BUILD time, on purpose. Production's image
-    // build passes NITRO_PRESET=node_cluster (deploy.prod.yml, builder.args) and
-    // staging leaves the Dockerfile default of node-server; a literal here won
-    // over both for months while deploy.prod.yml set NITRO_CLUSTER_WORKERS for
-    // workers that never started -- the history is under that key. This is the
-    // one line that turns clustering on, and it now says so.
+    // Read the preset at build time: production passes node_cluster and staging uses node-server.
+    // An explicit literal would override NITRO_PRESET; runtime environment changes cannot enable clustering.
     preset: ['node_cluster', 'node-cluster'].includes(process.env.NITRO_PRESET ?? '') ? 'node-cluster' : 'node-server',
     externals: {
       external: ['@opentelemetry/api'],

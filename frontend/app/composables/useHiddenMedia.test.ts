@@ -2,17 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * The list of titles a reader has hidden from their results.
- *
- * The stated risk is one-sided: "emptying this list is the one outcome worth
- * defending against, because it would hand the reader back every search result
- * they deliberately hid." So the reader of the stored shape is deliberately
- * tolerant, and every shape it has ever been written in has to keep working --
- * bare strings, `{ mediaPublicId }`, and the older rows that also carried names.
- *
- * The other half is the optimistic toggle. It updates the list before the server
- * has agreed and ROLLS BACK on failure, because leaving it would show a title as
- * hidden here while every other device, and the next page load, still shows it.
+ * Preserve exclusions across bare ids, id-only objects, and legacy named entries. Failed
+ * optimistic toggles must roll back.
  */
 const sdk = { addExcludedMedia: vi.fn(), removeExcludedMedia: vi.fn() };
 const user = reactive({

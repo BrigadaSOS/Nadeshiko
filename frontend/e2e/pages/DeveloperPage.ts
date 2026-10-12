@@ -36,15 +36,8 @@ export class DeveloperPage {
   }
 
   async goto() {
-    // No network wait here, deliberately. This page renders its key list on the
-    // SERVER -- `/v1/auth/api-key/list` is off the public allowlist, so the SSR
-    // client sends the reader's session cookie and the keys that come back are
-    // theirs. Waiting for a browser-side GET meant waiting for a request that
-    // no longer happens on first load, and the test timed out after 15s while
-    // the page beside it was rendering perfectly.
-    //
-    // The mutation helpers below still wait on their POSTs, which DO happen in
-    // the browser. `expectLoaded()` is what asserts the page arrived.
+    // Initial key listing is SSR-only, using the session cookie: do not wait for a browser GET.
+    // Mutation helpers still wait for browser POSTs; expectLoaded verifies navigation.
     await this.page.goto('/user/developer');
   }
 
@@ -60,13 +53,7 @@ export class DeveloperPage {
     return this.apiKeyRows.filter({ hasText: name });
   }
 
-  /**
-   * Creates a key, read-only unless told otherwise.
-   *
-   * The endpoint is `/v1/user/api-keys`, NOT better-auth's
-   * `/v1/auth/api-key/create` this used to wait on: better-auth refuses a
-   * client-supplied scope list, so choosing scopes needs a route of our own.
-   */
+  // Scoped creation uses /v1/user/api-keys; Better Auth's create route rejects supplied scopes.
   async createApiKey(name: string, preset: 'readOnly' | 'fullAccount' | 'custom' = 'readOnly') {
     await this.addApiKeyButton.click();
     await expect(this.createModalNameInput).toBeVisible({ timeout: 5_000 });

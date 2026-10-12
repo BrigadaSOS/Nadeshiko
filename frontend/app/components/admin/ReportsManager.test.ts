@@ -3,21 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-/**
- * The admin reports queue.
- *
- * Two things here decide what a BULK action touches, and they are not the same
- * expression. The list query drops the status filter when every status is
- * selected -- "all" and "no filter" mean the same thing to a reader. The bulk
- * query deliberately keeps it, because a bulk update with no filter at all is a
- * request to change every report in the table, and the backend refuses one. The
- * two being written separately is exactly why they can drift apart, and nothing
- * about the screen would show it: the list would look right and the bulk action
- * would touch a different set.
- *
- * Selection is by GROUP index, and the two id lists taken from it are different
- * on purpose -- a batch status update covers every report in a group, while a
- * delete takes only the group's representative.
+/** List queries omit all-status filters; bulk queries keep them for the backend safety gate. Status updates
+ * cover every report in selected groups; deletion uses each group's representative.
  */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

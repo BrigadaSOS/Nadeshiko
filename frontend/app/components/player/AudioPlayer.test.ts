@@ -3,19 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The clip player's transport.
- *
- * Two things are pinned. SEEKING is arithmetic against a duration that is
- * routinely not a number yet -- an `<audio>` reports `NaN` until its metadata
- * lands -- and every unclamped result is a playhead thrown off the end of a clip
- * that is only seconds long to begin with.
- *
- * The KEYBOARD handler is bound on `window` with `capture: true`, so it sees
- * every key pressed anywhere on the page: in a search box, inside a dropdown
- * menu, in another component's dialog. Each of those is a case where the player
- * must keep its hands off, and the failure is always the same shape -- a key the
- * reader aimed somewhere else moves the clip instead.
+/** Audio duration is NaN until metadata arrives. The window capture listener must leave typing, menus and
+ * dialogs alone.
  */
 const playerStore = {
   currentAudio: null as HTMLAudioElement | null,

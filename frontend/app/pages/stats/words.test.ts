@@ -3,22 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref } from 'vue';
 
-/**
- * The word-coverage page: which of the N most common words the corpus has a
- * sentence for.
- *
- * Its whole state lives in the query string, and the TIER arithmetic is what
- * turns that into a request: `?tier=2000` means "the second thousand", so the
- * page has to send a lower bound of 1000 as well. Getting that wrong asks for a
- * range that overlaps the one before it and the page fills with words the reader
- * has already been shown -- a plausible-looking list that is simply the wrong
- * band, which nobody can spot by reading it.
- *
- * The tier chips are also REAL LINKS on purpose: this page carries the site's
- * only links to ~19.8k word pages, and as buttons the other six tiers had no
- * href anywhere and were undiscoverable. Their `href` is therefore load-bearing
- * rather than decorative.
- */
+// tier=2000 means ranks 1001-2000, not the first 2000 words.
+// Tier chips need real hrefs: they are the discovery path to most word pages.
 const route = reactive({ path: '/stats/words', params: {}, query: {} as Record<string, unknown> });
 const replace = vi.fn();
 const getCoveredWords = vi.fn();
@@ -76,7 +62,6 @@ async function render(words = [word('猫')], tierStats = { total: 100, covered: 
   return wrapper;
 }
 
-/** The arguments the coverage endpoint was last asked for. */
 function lastQuery() {
   const call = getCoveredWords.mock.calls.at(-1);
   if (!call) throw new Error('the coverage endpoint was never called');
@@ -122,7 +107,6 @@ describe('which band of words is asked for', () => {
   });
 
   test('a tier that is not one of the seven falls back to the first', async () => {
-    // Rather than asking for a band the endpoint has no answer for.
     route.query = { tier: '1234' };
     await render();
 
@@ -161,8 +145,6 @@ describe('the covered/uncovered filter', () => {
 
 describe('the tier chips', () => {
   test('are real links, because they are the only route to most word pages', async () => {
-    // As buttons the other six tiers had no href anywhere on the site and were
-    // undiscoverable; this page carries the only links to ~19.8k word pages.
     const wrapper = await render();
 
     expect(tierLinks(wrapper).length).toBeGreaterThanOrEqual(7);

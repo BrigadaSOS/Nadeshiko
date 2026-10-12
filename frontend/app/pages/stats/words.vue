@@ -17,17 +17,8 @@ if (!TIERS.includes(activeTier.value as (typeof TIERS)[number])) {
   activeTier.value = 1000;
 }
 
-/**
- * Both halves of the query string are validated HERE as well as in the watcher
- * below, and the filter used to be the exception.
- *
- * `?filter=` was taken at face value on the first render, which put an
- * unrecognised value straight into the request -- and then into the `href` of
- * all seven tier chips, since `queryFor` carries the active filter along.  Those
- * chips are the site's only links to most word pages, so a crawler arriving on a
- * malformed filter propagated it across the whole tier walk. The watcher already
- * did this; only the initial value was missed.
- */
+// Validate initial query values as well as watched updates; malformed filters
+// would otherwise propagate through every tier link.
 const requestedFilter = route.query.filter;
 const activeFilter = ref<'ALL' | 'COVERED' | 'UNCOVERED'>(
   requestedFilter === 'COVERED' || requestedFilter === 'UNCOVERED' ? requestedFilter : 'ALL',
@@ -85,9 +76,7 @@ async function fetchWordsRaw(
   return await sdk
     .getCoveredWords({ tier, minRank, filter: filter as 'ALL' | 'COVERED' | 'UNCOVERED', cursor, take })
     .catch((error: unknown) => {
-      // Also runs during SSR, where a toast has nowhere to go. Returning null keeps
-      // whatever is already on screen; the caller turns it into `loadFailed`, which
-      // drives the inline notice.
+      // SSR failures use an inline notice; null preserves existing words on later fetches.
       reportError('stats:covered-words-fetch-failed', error, { 'stats.tier': String(tier) });
       return null;
     });
@@ -99,8 +88,7 @@ const { data: initialData } = await useAsyncData(
   { server: true, lazy: false },
 );
 
-// A failed tier fetch leaves `words` empty, which the grid below renders as a page
-// with nothing on it -- same as a tier that genuinely has no entries.
+// Distinguish a failed fetch from a genuinely empty tier.
 const loadFailed = ref(initialData.value === null);
 
 words.value = initialData.value?.words ?? [];
@@ -131,33 +119,14 @@ async function fetchWords() {
   tierStats.value = outcome.page.tierStats;
 }
 
-/**
- * The query string this page's state lives in. Every control writes here and
- * nothing fetches directly -- the watcher below is the only thing that reloads
- * the grid, so a chip click and a pasted URL take the same path and cannot
- * disagree about what is on screen.
- *
- * Both controls navigate with `replace`, as they did before: seven tiers times
- * three filters is a lot of history entries for what is one page, and `back`
- * should leave rather than walk them.
- */
+// Controls update the URL; only the watcher reloads, matching pasted-URL behavior.
+// Replace history so Back leaves the page instead of walking tier/filter combinations.
 function queryFor(tier: number, filter: 'ALL' | 'COVERED' | 'UNCOVERED') {
   return { tier: String(tier), ...(filter !== 'ALL' ? { filter } : {}) };
 }
 
-/**
- * The tier chips are REAL LINKS, and that is the point of them.
- *
- * They used to be `<button @click>`, which meant the only `?tier=` a crawler
- * could ever see was whichever one the bare URL rendered -- the other six tiers
- * had no href anywhere on the site and were undiscoverable. This page carries
- * the site's only links to the ~19.8k word pages (`/search/<word>`, 98% of the
- * sitemap), so that put ~500 of them within reach and orphaned the rest.
- *
- * The active filter rides along so a crawler arriving from the sitemap on
- * `filter=COVERED` stays on covered words as it walks the tiers, rather than
- * being handed back the default `ALL` and its `noindex` entries.
- */
+// Real links make every tier crawlable. Preserve the active filter so sitemap
+// visitors on COVERED do not fall back to ALL and its noindex entries.
 function tierLink(tier: number) {
   return localePath({ path: '/stats/words', query: queryFor(tier, activeFilter.value) });
 }

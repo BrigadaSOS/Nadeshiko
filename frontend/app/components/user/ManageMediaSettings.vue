@@ -5,18 +5,7 @@ import { type MarkedMedia, mergeMarkedMedia } from '~/utils/manageMediaList';
 import { useToastSuccess } from '~/utils/toast';
 import { handleApiError } from '~/utils/apiError';
 
-/**
- * Every "which titles do I want to see" decision in one card.
- *
- * Favoriting and hiding are opposite answers to the same question, taken on the
- * same title, so they are two controls on one row rather than two lists in two
- * cards with a search box above them -- which put the hidden list so far down
- * the page it read as unrelated.
- *
- * The list shows the titles the reader has already marked; typing in the box
- * swaps it for catalogue results. Same row, same two controls either way, so
- * marking a title and un-marking it are the same gesture.
- */
+/** One row exposes favorite and hide controls for both marked titles and catalogue search results. */
 const { t } = useI18n();
 const { formatNumber } = useFormat();
 const { displayMediaName, secondaryMediaNames } = useMediaDisplayName();
@@ -27,14 +16,8 @@ const posthog = usePostHog();
 
 const isSearching = computed(() => query.value.trim().length > 0);
 
-/**
- * Public id -> how the catalogue writes that title.
- *
- * Preferences store ids and nothing else, so this card -- the only screen that
- * has to *name* what a reader marked -- resolves them once from the two list
- * endpoints, which read `Media` server-side. Entries are added as the reader
- * marks new titles, from the search row they clicked, so a toggle never needs a
- * second round trip to show the title it just added.
+/** Resolve id-only preferences through list endpoints; new search selections already carry names and need no
+ * extra lookup.
  */
 const resolvedNames = ref(new Map<string, MarkedMedia>());
 const resolveFailed = ref(false);
@@ -94,13 +77,7 @@ const rows = computed<MarkedMedia[]>(() =>
     : markedMedia.value,
 );
 
-/**
- * A row here is the whole of the feedback: the star fills, the eye closes, and
- * on a title the reader searched for rather than one already in their list, the
- * row keeps sitting there looking the same. So each change is confirmed by name
- * -- and only once it is actually stored, which is what the toggles report. The
- * failure path already raises its own toast and puts the row back.
- */
+/** Confirm changes by title only after they are stored; failed toggles already toast and roll back the row. */
 const onToggleFavorite = async (media: MarkedMedia) => {
   const wasFavorite = isFavorite(media.publicId);
   rememberName(media);

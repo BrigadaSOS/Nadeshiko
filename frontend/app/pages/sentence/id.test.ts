@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, reactive, ref, unref } from 'vue';
 
-/**
- * The sentence permalink, whose real output is its STRUCTURED DATA.
- *
- * The page's whole subject is one short clip, and `VideoObject` is what makes it
- * eligible for video results -- the surface these pages can plausibly win, since
- * they cannot out-rank a dictionary on the word itself. None of that markup is
- * visible, so every way it goes wrong is invisible too: a duration that lies
- * about a three-second clip, or an `uploadDate` invented for a title that has
- * none, is a page that renders perfectly and quietly fails validation.
- *
- * The schema helpers are captured rather than executed, so the assertions are
- * against the nodes this page emits rather than against unhead's rendering.
- */
+// Validate emitted VideoObject data, including sub-second duration and absent dates.
+// Capture schema nodes rather than asserting against Unhead rendering.
 const capturedSchema: unknown[] = [];
 const capturedHead: unknown[] = [];
 const getSegment = vi.fn();
@@ -121,10 +110,8 @@ async function render(
   return wrapper;
 }
 
-/** What this page handed to `useHead`, with the computeds resolved. */
 const head = () => JSON.stringify(capturedHead.map((entry) => unref(entry)));
 
-/** The schema.org nodes this page emits. */
 function nodes(): Record<string, unknown>[] {
   return capturedSchema.flatMap((entry) => (unref(entry) as Record<string, unknown>[]) ?? []);
 }
@@ -148,32 +135,24 @@ describe('the VideoObject', () => {
   });
 
   test('is left out entirely when there is no video to describe', async () => {
-    // Claiming a VideoObject for a page with no video is worse than not being a
-    // rich-result candidate.
     await render(segmentPayload({ urls: { videoUrl: null, imageUrl: 'i.png', audioUrl: 'a.mp3' } }));
 
     expect(videoNode()).toBeUndefined();
   });
 
   test('states the duration to a tenth of a second', async () => {
-    // Clips run a few seconds, so `PT3S` for a 3.4s clip is a 12% lie about a
-    // very short thing.
     await render();
 
     expect(videoNode()!.duration).toBe('PT3.4S');
   });
 
   test('uses the media’s first airing as the upload date', async () => {
-    // A segment carries no timestamp of its own, and the airing IS when the
-    // footage was published.
     await render();
 
     expect(videoNode()!.uploadDate).toBe('2022-10-08');
   });
 
   test('and DROPS the date rather than inventing one', async () => {
-    // Google's one required property this data does not literally have. Without
-    // it the page is simply not a candidate, which beats claiming a false date.
     await render(segmentPayload(), mediaPayload({ startDate: null }));
 
     expect(videoNode()).toBeTruthy();
@@ -209,8 +188,6 @@ describe('the breadcrumb', () => {
   });
 
   test('a permalink with no sentence behind it 404s rather than rendering empty', async () => {
-    // Returning null would render the permalink as an empty page at HTTP 200,
-    // which crawlers index and readers read as "the site is broken".
     await render(null, null);
 
     expect(createError).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));

@@ -1,32 +1,9 @@
 import { reportError } from '~/utils/reportError';
 
 /**
- * Raises the Spanish offer once per page load, after the app is mounted.
- *
- * `app:mounted` rather than a layout's `onMounted`: the decision needs
- * `navigator.languages` and `localStorage`, so it cannot run during SSR, and
- * hanging it off a layout would fire it again on every layout swap. Client
- * plugin, so it is never bundled into the server build at all.
- *
- * Once per LOAD, not once per route change -- a reader who navigates ten times
- * without answering is asked once, and the panel has no timeout so it is still
- * there when they get to it. Once they answer, `localStorage` ends it for good.
- *
- * `runWithContext` because the composables inside want a Nuxt app: `useCookie`
- * resolves through it, and an `app:mounted` callback is not inside a component
- * `setup()`. Without it that throws, and the throw lands during hydration.
- *
- * It does NOT cover vue-i18n. `runWithContext` restores the Nuxt context, never
- * a component instance, so `useI18n()` still throws `MUST_BE_CALL_SETUP_TOP`
- * from in here -- which it did, on every page load, until `useSpanishLocaleNudge`
- * was moved onto `useNuxtApp().$i18n`. The comment there has the full story;
- * this note exists because this file is where the wrong conclusion was written
- * down first.
- *
- * And the whole thing is wrapped, which is the point worth keeping. This is a
- * promotion. There is no version of "we could not offer the Spanish site" that
- * justifies taking the page down with it, so a failure here is reported and
- * swallowed rather than allowed to reach the error boundary.
+ * Offer once per document after mount, not on each layout change. Restore Nuxt context for composables; this
+ * does not restore a component instance for `useI18n`. Report and swallow failures so an optional promotion
+ * cannot break hydration.
  */
 export default defineNuxtPlugin({
   name: 'spanish-locale-nudge',

@@ -3,19 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, reactive, ref, shallowRef } from 'vue';
 
-/**
- * The search box, and the recent-searches menu that drops out of it.
- *
- * The part worth pinning is ARROW NAVIGATION, because `-1` is a real position in
- * it: it means the reader is back in their own typing rather than on a row. The
- * list therefore wraps through the input at both ends -- down from the last row
- * returns to the query, up from the query lands on the last row -- and every
- * off-by-one here is silent. The reader presses Enter and gets a search they did
- * not choose, which is the one outcome a suggestion list must never produce.
- *
- * `aria-activedescendant` is what the component publishes that position as, and
- * it is also what a screen reader announces, so it is the honest thing to assert
- * against rather than an internal ref.
+/** -1 represents the input in recent-search navigation; wrap through it at both ends. aria-activedescendant
+ * exposes the current row to readers and tests.
  */
 const route = reactive({ path: '/search/word', params: { query: 'word' }, query: {} as Record<string, unknown> });
 const push = vi.fn();

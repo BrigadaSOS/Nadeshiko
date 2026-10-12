@@ -24,36 +24,13 @@ const GATE_BY_TRIGGER: Record<NudgeTrigger, AuthGate> = {
 };
 
 /**
- * The two asks a signed-out reader actually meets, and the rules that keep them
- * from becoming noise.
- *
- * The decisions live in `~/utils/signupNudges` where they can be tested; this is
- * the part that needs a browser -- storage, a clock, a toast and the login
- * modal. It is a composable rather than a plugin because the counters have to be
- * shared across every component that feeds them, and `useState` is how this app
- * shares state that must survive a route change.
- *
- * Both nudges are toasts rather than modals on purpose. A modal that appears
- * because a reader played a tenth clip interrupts the exact activity we are
- * trying to reward them for; a toast in the corner is declinable by doing
- * nothing, which is the right default for an ask nobody requested.
+ * Browser orchestration for the pure signupNudges rules. useState shares counters across
+ * components and routes; declinable toasts avoid interrupting the reader's activity.
  */
 export function useSignupNudge() {
   /**
-   * Runs a nudge step, or gives up quietly.
-   *
-   * Every caller is in the middle of doing something the reader asked for --
-   * saving a clip, playing audio, running a search -- and an account we failed
-   * to ask for is a far cheaper outcome than a download button that throws. This
-   * is the same bargain `captureAccountCreated` makes on the server, for the
-   * same reason.
-   *
-   * It has to wrap the counters too, not just the toast. `useState` resolves
-   * through `useNuxtApp()`, which throws when it is reached from a detached
-   * async context -- the hazard `reportError` documents. Every call site today
-   * is a click handler or a store action where the context does resolve, which
-   * is why `segment_downloaded` has never gone missing, but "today" is the only
-   * word doing that work and it is not worth a broken download later.
+   * Nudge failures must not break the requested action. Guard counters as well as UI: useState
+   * can throw when reached outside an active Nuxt context.
    */
   function guarded(step: () => void) {
     if (!import.meta.client) return;
@@ -64,11 +41,8 @@ export function useSignupNudge() {
     }
   }
 
-  // In-visit counters, deliberately not persisted. A lifetime counter would trip
-  // on the tenth play a reader ever made -- possibly weeks after the ninth --
-  // and ask someone who is, right then, doing nothing much. Ten plays in one
-  // sitting is a reader in the middle of something; ten plays over a month is
-  // not the same person and should not get the same message.
+  // Count activity within this visit, not across a persisted lifetime, so the depth ask
+  // reflects current engagement.
   const plays = () => useState('nd-nudge-plays', () => 0);
   const searches = () => useState('nd-nudge-searches', () => 0);
 
@@ -153,32 +127,16 @@ export function useSignupNudge() {
     },
 
     /**
-     * Called when a signed-out reader opens a segment's add menu.
-     *
-     * The menu they have just opened lists both Anki exports greyed out with a
-     * "log in" tooltip, which is a wall discovered by opening a drawer -- the
-     * exact shape of gate `signupNudges` was written because nobody meets. The
-     * panel says the same thing where it can be read without hovering anything,
-     * and the disabled entries still open the login modal when pressed, so the
-     * reader who goes for the menu item rather than the panel is not stranded.
-     *
-     * Fires on close as well as open, since the trigger is a plain toggle with
-     * no open state to read from out here. Harmless: the first click spends the
-     * cooldown and every click after it is a no-op for a week.
+     * Explain the add-menu login gate without requiring a tooltip hover. The toggle fires on
+     * close too; the shared cooldown makes subsequent clicks harmless.
      */
     nudgeOnAddMenu() {
       guarded(() => show('add_menu'));
     },
 
     /**
-     * Called on a deliberate play.
-     *
-     * Autoplay is excluded by the caller: a single click can produce a long tail
-     * of automatic plays, and counting those would fire the depth nudge at
-     * someone who is listening passively rather than studying. In aggregate this
-     * barely moves the number -- autoplay accounts for five signed-out readers a
-     * month -- but for those five it is the difference between a fair ask and an
-     * ambush.
+     * The caller excludes autoplay so one click's automatic playlist does not trigger a depth
+     * ask.
      */
     recordPlay() {
       guarded(() => {

@@ -3,18 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick, reactive, ref } from 'vue';
 
-/**
- * The media filter: the panel that narrows a search to one title, then to one
- * episode of it.
- *
- * Two things here are worth pinning rather than trusting. The ORDER is three
- * rules deep -- starred, then what the reader is already studying, then
- * alphabetical -- and every way it breaks still renders a plausible list of
- * titles, so nobody reports it. And the EPISODE numbers are sorted as numbers;
- * the moment that becomes a string sort, episode 10 files itself between 1 and
- * 2 and stays there, on every series long enough for anyone to notice.
- *
- * `$t` returns its key, so copy changes never break a structural assertion.
+/** Sort starred titles, server-ranked study history, then alphabetical titles; episode numbers sort
+ * numerically.
  */
 // `vi.hoisted`, because the mock factory is lifted above every top-level const
 // and would otherwise read the symbol before it exists.

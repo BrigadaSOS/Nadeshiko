@@ -1,13 +1,6 @@
 <script setup lang="ts">
-/**
- * The line above the results that accounts for what the reader's own hidden
- * media and hidden categories are keeping out of them, and offers the ways out:
- * ask which titles those are, see them once, or go change the list.
- *
- * The breakdown is behind a click, never in the line itself. Hiding a show is
- * mostly a spoiler tool, so naming one in a notice the reader never asked for
- * would undo the reason it was hidden -- opening the popover is the reader
- * saying they want to know.
+/** Keep hidden-title names behind an explicit click: revealing them in the notice would defeat spoiler
+ * filtering.
  */
 import { mdiEyeOff } from '@mdi/js';
 import type { HiddenBreakdownRow } from '~/utils/hiddenResults';

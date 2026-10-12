@@ -5,19 +5,8 @@ import { nextTick, reactive } from 'vue';
 
 import { useEnterSubmit } from '~/composables/useEnterSubmit';
 
-/**
- * The admin reports table.
- *
- * Mostly markup, but the markup is wired to a parent that owns every piece of
- * state -- selection, expansion, the notes drafts -- so what is worth pinning is
- * the wiring: which click means which emit. Rows expand on click and carry
- * controls that must NOT expand them, and there is no visual difference between
- * a checkbox that only selects and one that also unfolds five sub-rows under the
- * admin's cursor.
- *
- * The notes field is the other half: notes quote the sentence being reported, so
- * they are usually Japanese, and Enter is as likely to be confirming an IME
- * conversion as to mean "save" (#399).
+/** Selection and expansion belong to the parent; row controls must not also expand the row. IME-confirming
+ * Enter must not save Japanese notes (#399).
  */
 vi.stubGlobal('useI18n', () => ({
   t: (key: string, params?: Record<string, unknown>) =>

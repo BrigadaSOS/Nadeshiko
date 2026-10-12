@@ -2,20 +2,8 @@
 import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
-/**
- * The legacy `/settings/*` redirect.
- *
- * These paths were the real page tree before the account pages moved under
- * `/user/*`, so bookmarks and old links still point at them. Without this they
- * fall through to the site-wide markdown catch-all and 404 -- which is the
- * failure this exists to prevent, and it is invisible from the new tree.
- *
- * `settigns` is a typo that was live long enough to be linked, and forwarding it
- * is cheaper than working out who still has it saved.
- *
- * The redirect is a 301 and `replace`: these URLs are not coming back, and
- * leaving them in the history means Back bounces the reader forward again.
- */
+// Preserve old bookmarks, including "settigns". Permanent redirects replace history
+// so Back does not bounce forward through the same legacy URL.
 const navigateTo = vi.fn((path: string, _options?: Record<string, unknown>) => path);
 const preferredLocalePath = vi.fn((p: string) => `/en${p}`);
 let middleware: ((to: { path: string }) => unknown) | null = null;
@@ -81,15 +69,12 @@ describe('where each old path now goes', () => {
   });
 
   test('a locale-prefixed old link is stripped before matching', () => {
-    // Otherwise `/es/settings/account` falls through to the catch-all and 404s.
     expect(redirectFor('/es/settings/account')?.[0]).toBe('/en/user/settings');
   });
 });
 
 describe('how it redirects', () => {
   test('permanently, and replacing history', () => {
-    // These URLs are not coming back, and leaving them in history means Back
-    // bounces the reader straight forward again.
     expect(redirectFor('/settings/account')?.[1]).toEqual({ replace: true, redirectCode: 301 });
   });
 

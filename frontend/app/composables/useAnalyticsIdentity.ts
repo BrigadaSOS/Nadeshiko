@@ -20,14 +20,8 @@ import {
 import { onPostHogReady } from '~/utils/posthogClient';
 
 /**
- * Guards against the two plugins that call this both reporting the same
- * transition. `identity-auth` reconciles on every load and `auth-callback`
- * reconciles again once it knows the load was an auth landing; whichever gets
- * there first with an answer wins, and the other becomes a no-op.
- *
- * Module scope, so it lives for the page load rather than the component -- which
- * is the right lifetime: an auth transition happens once per navigation to the
- * callback URL, and every real one arrives on a fresh document.
+ * Page-load guard shared by identity-auth and auth-callback: the first reported transition
+ * wins.
  */
 let reportedThisPageLoad = false;
 
@@ -44,16 +38,8 @@ const PERSONAL_EMAIL_DOMAINS = new Set([
 ]);
 
 /**
- * Tells PostHog who this is, and reports the signup or login if this page load is
- * where that changed.
- *
- * Called on every client load rather than only on a callback, because the things
- * being compared -- the account and the session in play against the ones this
- * browser last reported -- need no cooperation from the auth provider. That
- * matters: the previous implementation asked better-auth's OAuth redirect for
- * `code`/`state` parameters it does not send, so in 90 days it recorded 70
- * magic-link logins and not one Google or Discord login, out of 264 Google
- * attempts.
+ * Reconcile on every client load using account/session state, not provider-specific OAuth
+ * callback parameters.
  */
 export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
   if (!import.meta.client) return;
@@ -61,15 +47,8 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
   const store = userStore();
 
   /**
-   * Where this load arrived from, read NOW and acted on later.
-   *
-   * Everything below waits for posthog-js, which is fetched asynchronously (see
-   * `~/utils/posthogClient`). None of it can be deferred with a live read of
-   * `window.location`: `auth-callback` strips the query at `app:mounted`, and on
-   * a cold load -- which is what a magic link opened from an inbox always is --
-   * that happens BEFORE the SDK lands. Reading the search string from inside the
-   * callback would hand a magic-link landing an empty query and lose the intent
-   * it travelled with, which is the whole attribution for that sign-in.
+   * Snapshot arrival before waiting for PostHog: auth-callback strips the query at app:mounted,
+   * potentially before the SDK loads, which would lose magic-link attribution.
    */
   const arrival = {
     referrer: document.referrer,
@@ -78,13 +57,8 @@ export function reconcileAnalyticsIdentity(options: { viaCallback: boolean }) {
     ownHost: window.location.hostname,
   };
 
-  // The rest needs posthog-js to ANSWER, not merely to record: `get_distinct_id()`
-  // and `get_property()` below decide whether to `reset()` before identifying,
-  // and the pre-load stub cannot answer either. Getting `undefined` there would
-  // skip the legacy-key release for every reader whose load was slower than the
-  // SDK, and posthog-js refuses to re-identify -- so they would be stranded on
-  // their display-name distinct id permanently. Never runs outside production,
-  // where nothing starts a client.
+  // Wait for the real SDK: migration decisions need get_distinct_id() and get_property(), which
+  // the preload stub cannot answer. No client starts outside production.
   onPostHogReady((posthog) => reconcile(posthog, store, arrival, options));
 }
 
@@ -101,11 +75,7 @@ function reconcile(
   // redirected them back. Write-once, so every later load is a no-op.
   rememberFirstTouch(authIntentStorage(), arrival, Date.now());
 
-  // Signed out, which is not the same as "nothing to report". A reader whose
-  // session ended without them asking arrives here looking exactly like a
-  // first-time visitor, and until this branch existed that is precisely what
-  // they were counted as -- which is how sessions could stop being renewed for
-  // everyone, for a month at a time, with nothing anywhere to say so.
+  // Signed-out state may be a lost session, not a first-time visit.
   if (!store.isLoggedIn || !store.userId) {
     reportLostSession(posthog);
     return;
@@ -171,11 +141,8 @@ function reconcile(
 
   posthog.capture(transition, {
     ...properties,
-    // Only on the signup, and only ever written once: this is what the account was
-    // created *for*, and a later login from the header must not overwrite it.
-    // Recording it on the person as well as the event is what lets a retention or
-    // engagement question be broken down by acquisition gate later, without
-    // re-deriving it from the event stream every time.
+    // Write acquisition properties once on signup, not later login, so person-level retention
+    // breakdowns retain the original gate.
     ...(transition === 'signup_completed'
       ? {
           ...signupOriginProperties(readFirstTouch(storage), arrival.pathname),
@@ -186,13 +153,8 @@ function reconcile(
 }
 
 /**
- * Keeps the signup event's origin separate from the OAuth return page.
- *
- * PostHog automatically stamps the current pathname on an event, which is the
- * callback URL at the moment this event is captured. That is useful for
- * debugging the auth flow, but it is not the page that acquired the reader.
- * Override the standard pathname for this attribution event and retain the
- * callback path under its own name so both questions remain answerable.
+ * Attribute signup to its first-touch page, not the OAuth return page; retain the callback path
+ * separately for debugging.
  */
 function signupOriginProperties(
   firstTouch: ReturnType<typeof readFirstTouch>,
@@ -227,17 +189,8 @@ function rememberSessionStart(storage: ReturnType<typeof authIntentStorage>, ses
 }
 
 /**
- * Reports a session this browser lost without being asked, once.
- *
- * `session_lost` says what was observed and not why, deliberately: a cleared
- * cookie jar, a revoked session, a ban and an expiry are indistinguishable from
- * here. What separates them is `hours_signed_in` -- everything a person chooses
- * to do is spread across the range, and only a mechanical expiry piles up on one
- * value. A spike there is the alarm; the number it spikes at names the horizon
- * that is cutting people off.
- *
- * The identity is forgotten on the way out so this fires once per lost session
- * rather than on every page load that follows it.
+ * Report the observed loss, not an inferred cause. Session age can reveal clustered expiry;
+ * forget identity afterward so each lost session is reported once.
  */
 function reportLostSession(posthog: NonNullable<ReturnType<typeof usePostHog>>): void {
   const storage = authIntentStorage();
@@ -265,27 +218,9 @@ function reportLostSession(posthog: NonNullable<ReturnType<typeof usePostHog>>):
 }
 
 /**
- * Lets go of a distinct id from the old display-name scheme so the account id can
- * take over.
- *
- * posthog-js refuses to re-identify someone who is already identified: it logs a
- * warning and keeps the existing distinct id. Without this, every reader signed in
- * at the time of the switch would quietly stay keyed on their display name for
- * ever, and the whole point of moving to the account id -- that `username` has no
- * unique constraint, so two people sharing a name share a PostHog person -- would
- * be lost on exactly the readers who already exist.
- *
- * Two independent signals, because either alone has a hole. Matching the username
- * is exact but needs one, and a session that arrived without a name would strand
- * that reader on the old key silently. `$user_state` covers that case but is a
- * detail of the SDK's storage, so it is not trusted on its own.
- *
- * Anonymous readers must never reach the reset: their history is precisely what
- * `identify` is about to merge into the account, and it is the pre-signup half of
- * every attribution question this instrumentation exists to answer. The early
- * return on an already-migrated id keeps this to genuinely once per browser.
- *
- * @returns whether a reset actually happened.
+ * Release legacy display-name ids because PostHog refuses re-identification. Recognize them by
+ * username or $user_state, but never reset anonymous history or an already-migrated id. Returns
+ * whether a reset occurred.
  */
 function releaseLegacyIdentity(
   posthog: NonNullable<ReturnType<typeof usePostHog>>,
@@ -311,11 +246,8 @@ function releaseLegacyIdentity(
 function currentPersonProperties(store: ReturnType<typeof userStore>) {
   return {
     user_id: store.userId ?? undefined,
-    // `$name` is the posthog-js display-name key, set so a person who
-    // identifies from the browser shows up under a human-readable label
-    // rather than the `(unknown)` placeholder -- and so a later rename
-    // updates the same person. `$set` semantics (not `$set_once`): an
-    // account whose name changes should be searchable by the new name.
+    // Use $set semantics for $name so account renames update the same person's searchable
+    // display label.
     $name: store.userName ?? undefined,
     email_category: emailCategory(store.userEmail),
     role: store.userInfo?.role ?? undefined,
@@ -343,11 +275,8 @@ function emailCategory(email: string | null | undefined): 'personal_provider' | 
 }
 
 /**
- * Folds several `$set_once` blocks into one.
- *
- * Spreading them into the capture directly would not work: each carries the same
- * `$set_once` key, so the last one silently wins and the gate attribution or the
- * first touch would go missing depending on the order they were written in.
+ * Merge $set_once contents before capture; spreading the blocks directly would overwrite
+ * earlier attribution.
  */
 function mergeSetOnce(...blocks: Array<{ $set_once?: Record<string, string> }>): {
   $set_once?: Record<string, string>;

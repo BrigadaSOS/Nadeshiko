@@ -2,19 +2,8 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 
 /**
- * TTFB, the one web vital PostHog does not autocapture.
- *
- * It is a DIAGNOSTIC metric rather than a Core Web Vital -- it explains LCP
- * rather than being scored itself -- which is why PostHog leaves it out and why
- * this file is all that is left of a reporter that used to send four.
- *
- * The part with teeth is the BOT FILTER. Shirabe measured 3,446 of 3,571 LCP
- * records in seven days -- 96% -- coming from Meta's `meta-externalagent`, which
- * executes JavaScript and reports vitals exactly like a browser; its published
- * p75 was a majority-crawler number. This site is crawled far harder (48k bot
- * renders per 6h against 1.6k reader renders), so a filter that stops working is
- * not a smaller sample, it is a number about crawlers presented as a number
- * about readers.
+ * Cover the supplemental TTFB event and bot filtering that prevents crawler measurements from dominating
+ * reader percentiles.
  */
 const capture = vi.fn();
 const analyticsEnabled = { value: true };
@@ -24,10 +13,7 @@ vi.mock('~/utils/posthogClient', () => ({
   posthog: { capture: (...a: unknown[]) => capture(...a) },
   isAnalyticsEnabled: () => analyticsEnabled.value,
 }));
-// `web-vitals`, not `web-vitals/attribution`: the plugin imports the plain
-// build deliberately (see its header), and a mock left on the old path silently
-// stops applying -- the real `onTTFB` then never fires under happy-dom, so every
-// assertion here would pass on an event that was never sent.
+// Mock the exact plain web-vitals import; the attribution entry would not intercept this plugin.
 vi.mock('web-vitals', () => ({
   onTTFB: (callback: (metric: unknown) => void) => {
     onTTFBCallback = callback;
@@ -46,9 +32,7 @@ function browser({
   webdriver = false,
   platform = 'MacIntel',
   maxTouchPoints = 0,
-  // `null` means "this browser has no `navigator.connection`", NOT `undefined`:
-  // a default parameter swallows `undefined` and hands back '4g', so the case
-  // this exists to cover would silently test the opposite one.
+  // Use null for absent connection data; undefined would invoke the 4g default.
   effectiveType = '4g' as string | null,
 }: Partial<{
   userAgent: string;
@@ -86,8 +70,6 @@ beforeEach(() => {
 
 describe('the reading itself', () => {
   test('rides PostHog’s own `$web_vitals` event', async () => {
-    // Rather than an event of our own: this way it sits beside the four PostHog
-    // autocaptures in the same insight, instead of in a chart nobody opens.
     await report();
 
     expect(capture).toHaveBeenCalledWith('$web_vitals', expect.anything());
@@ -123,9 +105,7 @@ describe('the reading itself', () => {
 
 describe('the breakdowns the Grafana panels used to group by', () => {
   test('the page, TEMPLATED rather than raw', async () => {
-    // A search page carries free text and a media page carries one of 242
-    // slugs. That mattered when these were Prometheus labels and it still
-    // matters: it is the difference between a breakdown and a list.
+    // Template paths to avoid free-text and per-title breakdowns.
     await report();
 
     expect(sent()?.page_path).toBe('/media/[slug]');
@@ -169,9 +149,7 @@ describe('the breakdowns the Grafana panels used to group by', () => {
   });
 
   test('no unbounded attribution value, whatever web-vitals attaches', async () => {
-    // `element`, `url` and `largestShiftTarget` are unbounded strings. PostHog
-    // would happily take them, which is exactly why the rule has to be written
-    // down rather than enforced by the sink.
+    // Exclude unbounded attribution values even when the library supplies them.
     await report({ attribution: { waitingDuration: 4, navigationEntry: { name: 'https://nadeshiko.co/search/だ' } } });
 
     expect(JSON.stringify(sent())).not.toContain('nadeshiko.co/search');
@@ -202,10 +180,7 @@ describe('traffic that is not a reader', () => {
   });
 
   test('and neither is anything that does not name a browser with real share', async () => {
-    // The blunt refusal, and it is deliberate: every browser with real share
-    // spells itself Chrome, Firefox, Safari or Edge, Chromium forks included,
-    // so what is left is overwhelmingly automation. One rare real browser
-    // losing its sample costs less than a crawler fleet setting the percentile.
+    // Unrecognized browser families are deliberately excluded despite possible rare real readers.
     browser({ userAgent: 'SomeAppEmbeddedWebView/2.0' });
 
     await report();

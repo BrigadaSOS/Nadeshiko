@@ -5,22 +5,7 @@ import { nextTick } from 'vue';
 
 import BaseModal from './BaseModal.vue';
 
-/**
- * The dialog shell every modal in the app is built on, which is why it is the
- * component most worth testing: one bug here is a bug in the nav drawer, the
- * auth modal, the report form, the filter sheet and the media editor at once.
- *
- * What it owns is the behaviour a dialog needs and a template cannot express --
- * Escape, the focus trap, focus restore, the scroll lock, backdrop dismissal.
- * Most of it is invisible to an end-to-end test: focus restore in particular
- * only shows up as "the keyboard lands somewhere odd after closing", which
- * nobody writes a bug report about and no screenshot catches.
- *
- * `useModalState` and `useDropdownState` are the REAL implementations. The
- * conditions being asserted -- "only the top modal answers Escape", "a word card
- * inside the dialog takes Escape first" -- are agreements between this component
- * and those registries, and stubbing them would assert the stub.
- */
+/** Exercise Escape ordering and nested scroll locks against the shared modal registry. */
 const dismissAllOverlays = vi.fn();
 /** Whether a dropdown or word card is open "inside" the dialog. */
 const dropdownState = {

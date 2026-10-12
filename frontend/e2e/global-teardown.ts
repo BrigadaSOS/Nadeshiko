@@ -11,13 +11,7 @@ const BASE_URL = getE2EBaseUrl('http://localhost:3000');
 const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD || '';
 const E2E_ACCOUNTS = process.env.E2E_SMOKE ? 1 : 10;
 
-/**
- * Cleans up resources created by E2E tests:
- * - Revokes all sessions except the current one, then signs out
- * - Deactivates all API keys
- * - Deletes all user-created collections (non-default ones)
- * - Clears activity history
- */
+// Reset worker accounts and test resources; revoke other sessions before signing out.
 export default async function globalTeardown() {
   if (!E2E_USER_PASSWORD) return;
 
@@ -49,7 +43,7 @@ export default async function globalTeardown() {
           );
           if (!loginRes) return;
 
-          // Delete all API keys (handles possibly-truncated responses by looping).
+          // Loop because API-key responses may be truncated.
           for (let round = 0; round < 20; round++) {
             const keysRes = await requireOk(
               `worker ${workerIndex} list API keys`,

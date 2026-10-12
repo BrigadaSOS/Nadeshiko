@@ -6,9 +6,7 @@ const { locale, t } = useI18n();
 const route = useRoute();
 const localePath = useLocalePath();
 
-// `?page=99`, `?page=0`, `?page=-1` and `?page=abc` all rendered 200 with "No
-// blog posts available yet" -- untrue, and indexable. Anything that is not a
-// positive integer is page 1; a page past the end is handled below.
+// Invalid page numbers fall back to page 1; out-of-range pages are handled below.
 const page = computed(() => {
   const raw = Number(route.query.page);
   return Number.isInteger(raw) && raw >= 1 ? raw : 1;
@@ -23,8 +21,7 @@ const { data: posts, refresh } = await useAsyncData(
     const result = await $fetch<{ posts: any[]; isFallback: boolean }>('/api/blog/posts', {
       query: { locale: lang },
     }).catch((error: unknown) => {
-      // Also runs during SSR, where a toast has nowhere to go; the inline notice
-      // below is what stops a failed fetch from reading as "no posts yet".
+      // SSR needs an inline error, not a toast or a misleading "no posts yet" state.
       handleApiError('blog:posts-fetch-failed', error, { toastKey: false });
       return null;
     });
@@ -45,10 +42,7 @@ const { data: posts, refresh } = await useAsyncData(
   { watch: [page, locale] },
 );
 
-// A page past the last one is a wrong URL, not an empty blog. Rendering it as
-// 200 told crawlers the blog had no posts, from any `?page=` a link or a bot
-// happened to invent. Page 1 stays 200 even with nothing published, because
-// then "no posts yet" is the true answer.
+// Out-of-range pages 404; page 1 remains valid when nothing is published.
 if (posts.value && posts.value.totalPages > 0 && page.value > posts.value.totalPages) {
   throw createError({ statusCode: 404, statusMessage: 'Page Not Found' });
 }
@@ -66,8 +60,7 @@ useSeoMeta({
 
 useSchemaOrg([defineWebPage({ '@type': 'CollectionPage' })]);
 
-// Without this the feed exists but nothing finds it: readers discover one from
-// the page it belongs to, not by guessing a path.
+// Advertise the feed for discovery from the blog page.
 useHead({
   link: [
     {
@@ -82,7 +75,6 @@ useHead({
 
 <template>
   <div class="min-h-screen">
-      <!-- Content -->
       <div class="nd-page px-4 md:px-0 pb-6">
         <div class="content-markdown">
           <h1>{{ t('blog.title') }}</h1>

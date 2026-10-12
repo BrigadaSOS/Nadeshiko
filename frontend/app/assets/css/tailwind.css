@@ -10,31 +10,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
- * Repeated multi-class combinations, named once.
- *
- * Only patterns that appeared verbatim in many templates live here -- these are
- * shorthands for strings that were already being copied, not an attempt to build
- * a component library in CSS. Anything used once or twice stays inline where it
- * is easier to read alongside the markup.
- */
+/* Shared shorthands for combinations repeated across templates; one-off styling stays with its markup. */
 @layer components {
   /*
-   * The page content column. Every top-level page runs its width through this
-   * class, so the header, the footer and the page bodies stay aligned with
-   * each other.
-   *
-   * Two knobs, and the column takes whichever is smaller:
-   *   --page-width      a percentage, so there is always a gutter
-   *   --page-max-width  an absolute ceiling, so the column stops growing on
-   *                     very wide displays instead of running the full width
-   *
-   * Horizontal padding deliberately stays on the pages rather than living
-   * here: several of them pad inner sections instead of the column itself,
-   * and below `md` the column is full-bleed by design.
-   *
-   * The gap under the navbar lives on `<main>` (`pt-3` in the default
-   * layout), not on `.nd-page`, so every page shares it.
+   * Align page columns using the smaller of percentage width and absolute maximum from md upward. Pages own
+   * horizontal padding; below md is full-bleed. The shared navbar gap belongs to main, not this class.
    */
   .nd-page {
     @apply w-full mx-auto;
@@ -46,12 +26,7 @@
     }
   }
 
-  /**
-   * Off-screen until focused, then pinned to the top-left over everything.
-   *
-   * Not `display: none`: a hidden link is not focusable, and the whole point is
-   * that Tab reaches it first.
-   */
+  /** Keep the skip link focusable while off-screen; display:none would remove it from keyboard navigation. */
   .nd-skip-link {
     @apply sr-only;
   }
@@ -95,18 +70,10 @@
     @apply opacity-50 pointer-events-none;
   }
 
-  /* `appearance: none` above drops the native arrow. Put a chevron back so
-     a compact select does not read as a static label. Scoped to <select>
-     so an input that happens to use `.nd-select` is left alone.
-     Same chrome as `.nd-btn` so a settings select matches the EN/ES chips.
-
-     `text-sm` and `py-1.5`, matching `.nd-btn` exactly, because the shared `h-9`
-     below is a HARD height and the two have to be solved together. This block
-     used to say `text-base` while inheriting `py-2` from `.nd-input`: 36px minus
-     16px of padding and 2px of border leaves an 18px content box for a 24px
-     line, so every descender was cut off mid-stroke -- "Japanese", "Match my
-     device" and "Open by default" all read with their tails shaved. The current
-     numbers leave 22px for a 20px line, which fits. */
+  /*
+   * Restore the native arrow removed by appearance:none, only on selects. Match button font/padding within
+   * the fixed h-9 height so descenders are not clipped.
+   */
   select.nd-input,
   select.nd-select {
     @apply py-1.5 text-sm font-medium rounded-md whitespace-nowrap;
@@ -135,13 +102,10 @@
     background-position: left 0.75rem center;
   }
 
-  /* One control height, shared by every single-line control.
-     `h-9` rather than matching padding, because padding and font size cannot be
-     relied on to agree across a select, an input and a button -- a select's
-     intrinsic height is the browser's, so it never lined up with a button no
-     matter what padding it was given. Buttons carry the same `h-9`.
-     `:not(textarea)` because a textarea using `.nd-input` sizes from its
-     `rows`, and pinning it would collapse all seven of them. */
+  /*
+   * Use h-9 to align single-line inputs, selects and buttons independently of intrinsic sizing. Exclude
+   * textareas so rows can determine their height.
+   */
   .nd-input:not(textarea),
   .nd-select {
     @apply h-9;
@@ -197,12 +161,9 @@
     @apply text-base font-semibold text-white;
   }
 
-  /* One setting: what it is, and the control that changes it.
-     Side by side from `sm` up, stacked below it. A select sharing a phone's
-     width with two lines of description leaves neither usable -- the
-     description wraps to four words a line and grows the row taller than the
-     card it sits in, while the control is squeezed to little more than its own
-     chevron. Stacked, the control takes the full width instead. */
+  /*
+   * Stack descriptions and controls on small screens so neither is squeezed; align them side by side from sm.
+   */
   .nd-settings-row {
     @apply flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4;
   }
@@ -224,12 +185,7 @@
     @apply hover:bg-red-500/20 disabled:opacity-50 disabled:pointer-events-none;
   }
 
-  /*
-   * A round button in the bottom-end dock: scroll-to-top, the filter drawer
-   * toggle, feedback. Named once so the column reads as one set of controls
-   * rather than three buttons that happen to be stacked. Placement belongs to
-   * the dock (`CommonFabDock`), never to the button.
-   */
+  /* Shared dock-button chrome; CommonFabDock owns placement. */
   .nd-fab {
     @apply flex items-center justify-center size-14 rounded-full text-white;
     background: var(--header-background);
@@ -251,11 +207,7 @@
     border-color: var(--line);
   }
 
-  /*
-   * Floating menu chrome: the word card's surface, line, ink and shadow,
-   * named once so every dropdown draws the same panel. Placement (absolute,
-   * right-0, z-index, min-width) stays on the caller.
-   */
+  /* Shared floating-menu chrome; callers own placement, z-index and dimensions. */
   .nd-menu {
     @apply rounded-xl p-1.5 text-left;
     background: var(--surface);
@@ -324,28 +276,10 @@
 
 @layer utilities {
   /*
-   * Prevents Yomitan's text scanner (DOMTextScanner) from entering this element.
-   *
-   * How it works:
-   *   Yomitan checks `getComputedStyle(el).fontSize <= 0` in `isStyleVisible()`.
-   *   Elements that fail this check are marked non-enterable, so the scanner
-   *   skips them and all their children entirely. This is a hard boundary,
-   *   independent of the user's Yomitan configuration (terminateAtNewlines,
-   *   terminationCharacters, scanExtent, etc.).
-   *
-   * How to use:
-   *   1. Add `yomitan-ignore` to the element you want the scanner to skip.
-   *   2. Since font-size is inherited, every child that renders text MUST have
-   *      an explicit font-size class (text-xs, text-sm, text-base, text-lg, etc.)
-   *      or it will inherit 0px and become invisible.
-   *   3. Tailwind's text-* classes use `rem`, so they are not affected by the
-   *      parent's font-size: 0. However, any `em`-based sizing in children
-   *      will resolve to 0 unless a closer ancestor sets an explicit font-size.
-   *   4. If the element already has a text-* class (e.g. text-xs on <header>),
-   *      move that class to the first child instead to avoid conflicting with
-   *      yomitan-ignore.
-   *
-   * Reference: yomidevs/yomitan ext/js/dom/dom-text-scanner.js — getElementSeekInfo()
+   * Yomitan's DOMTextScanner skips subtrees with font-size <= 0. Text descendants must explicitly restore
+   * font size; rem-based text utilities work, but inherited em sizing may collapse. Move any text-size class
+   * from the boundary element to a child. Reference: yomidevs/yomitan ext/js/dom/dom-text-scanner.js,
+   * getElementSeekInfo().
    */
   .yomitan-ignore {
     font-size: 0px;
@@ -488,12 +422,10 @@
   transform: scale(0.97);
 }
 
-/* Off-canvas sheet, ported from shirabe. The slide rides the panel itself
-   (the node Vue shows and hides) and the scrim is a sibling that only fades:
-   a shared overlay used to fade the sheet with it, which read as a ghost
-   sliding in. Expo on the travel -- nearly all of it up front, then a long
-   settle -- and a shorter fade so the shading is already there when the
-   panel lands. */
+/*
+ * Animate the drawer panel's travel separately from its sibling scrim fade so the sheet does not fade while
+ * sliding.
+ */
 .nd-drawer-backdrop {
   position: fixed;
   inset: 0;
@@ -575,25 +507,9 @@
 }
 
 /*
- * MOTION TIERS, keyed off `<html data-motion>`: `system`, `reduced`, `none`.
- * Ported from shirabe. See `useMotionPreference`, which owns the value, and
- * `motionLevel()` for the JS half.
- *
- * Global rather than per-component on purpose. The app has ~300 Tailwind
- * transition utilities across 51 files and only four of them ever opted into
- * `motion-reduce:`; a setting honoured by annotating every call site is a
- * setting that is wrong the first time someone adds a hover. These blocks
- * cover everything that is already written and everything that will be.
- *
- * Two settings get conflated and should not be. `prefers-reduced-motion` is an
- * accessibility request about vestibular comfort, and the reader who sets it
- * wants the strict tier -- which is why `system` plus an OS asking for less
- * resolves to the same rules as `none`. A reader whose machine merely struggles
- * has no OS setting that says so and does not need every fade gone: `reduced`
- * is theirs, and can only be reached by choosing it.
- *
- * 0.01ms, never 0: the drill-down hands focus over on `transitionend`
- * (FilterContent.vue) and a true zero skips that event in some engines.
+ * Global motion tiers follow html data-motion; useMotionPreference owns the value and motionLevel handles JS.
+ * System plus OS reduced motion uses the strict none tier; reduced is an explicit performance choice. Keep
+ * durations at 0.01ms rather than zero so FilterContent's transitionend focus handoff still fires.
  */
 
 /* Tier: none. `:not([data-motion="reduced"])` is what lets an explicit,
@@ -619,10 +535,10 @@
   scroll-behavior: auto !important;
 }
 
-/* A spinner keeps spinning at every tier: it is not decoration, it is the only
-   thing saying the request is still in flight, and a frozen one reads as a hung
-   page. `animate-pulse` gets no such reprieve -- a skeleton that has stopped
-   still says "loading" by being a skeleton. */
+/*
+ * Keep spinners moving as request-status indicators at every tier. Static skeletons already communicate
+ * loading without pulse.
+ */
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion="reduced"]) .animate-spin {
     animation: spin 1s linear infinite !important;
@@ -633,10 +549,7 @@
   animation: spin 1s linear infinite !important;
 }
 
-/* Tier: reduced. One declaration carries most of it. Allow-listing the
-   transition properties drops everything that moves, reflows or re-blurs a
-   layer, while leaving the colour and opacity fades alone -- they cost almost
-   nothing and are most of what makes the interface feel alive. */
+/* Reduced tier allows inexpensive color/opacity-style transitions but excludes movement, reflow and blur. */
 :root[data-motion="reduced"] *,
 :root[data-motion="reduced"] *::before,
 :root[data-motion="reduced"] *::after {
@@ -692,16 +605,9 @@
 
 @layer base {
   /*
-   * The site is dark-only (`<html class="dark">`). Tokens live on both
-   * `:root` and `.dark` so a teleported panel and a `dark:` utility resolve
-   * the same names -- `.dark` is also where Tailwind looks for the class
-   * strategy, and `--modal-background` used to be defined only there.
-   *
-   * Two dark fills, one hover, one line. The search-bar grey (`--surface`)
-   * is the raised colour: cards, inputs, buttons and menus all use it.
-   * Dialogs use `--background` so a panel matches the page behind it.
-   * `--surface-hover` is the only lighter step. The bright `--accent` stays
-   * the brand red (header, CTAs); `--accent-soft` is the rose on dark.
+   * Define dark-only tokens on both root and .dark for teleported content and Tailwind dark utilities.
+   * Surface is the raised fill; dialogs use background. Keep brand accent separate from the softer on-dark
+   * accent.
    */
   :root,
   .dark {
@@ -743,10 +649,7 @@
     --page-width: 90%;
     --page-max-width: 1800px;
 
-    /* Height of the sticky search results bar (category tabs + the EN/ES/
-       furigana controls). The title sidebar parks itself directly below it,
-       so the two read this one value instead of drifting apart.
-       Measured 69px with the bar's `pb-3` and tab items at `py-3`. */
+    /* Shared sticky-bar height for sidebar positioning: 69px with pb-3 and py-3 tabs. */
     --search-controls-height: 4.3125rem;
   }
 
@@ -806,12 +709,7 @@
     border-radius: 4px;
   }
 
-  /*
-   * At scroll 0 a trackpad swipe still rubber-bands the document, pulling the
-   * header down and flashing whatever sits behind <html> -- usually the UA
-   * white, since the dark fill lives on the layout, not on the root. Kill the
-   * bounce on the viewport so the top of the page is a hard stop.
-   */
+  /* Prevent viewport rubber-banding from pulling down the header and exposing the root background. */
   html {
     overscroll-behavior-y: none;
     scrollbar-gutter: stable;
@@ -831,19 +729,9 @@
 }
 
 /*
- * Flattens the toast wrapper for signup nudges.
- *
- * `SignupNudgeToast` draws the whole panel -- fill, rule, radius, shadow -- so
- * the library's own container has to contribute nothing, or the reader gets a
- * card inside a card with two different corner radii. The stock chrome that is a
- * prop (`icon`, `closeButton`) is switched off where the toast is raised; this
- * handles the part that is only reachable as CSS.
- *
- * Deliberately unlayered. `vue-toastification/dist/index.css` is imported by its
- * own plugin, so nothing here controls whether it lands before or after the
- * Tailwind layers -- and unlayered rules outrank layered ones no matter which
- * order they arrive in. Scoped to `.nd-toast-nudge` so ordinary success, error
- * and info toasts keep the library's look.
+ * SignupNudgeToast owns panel chrome, so remove the library wrapper's fill, spacing and shadow. Unlayered
+ * rules outrank layered normal declarations; against unlayered library rules, specificity and source order
+ * still apply. Scoped selectors add specificity and leave ordinary toasts unchanged.
  */
 .Vue-Toastification__toast.nd-toast-nudge {
   padding: 0;

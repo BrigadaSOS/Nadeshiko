@@ -27,7 +27,6 @@ const { formatRelativeTime } = useFormat();
     </div>
 
     <template v-else>
-      <!-- Current button -->
       <button
         type="button"
         class="w-full text-left rounded-lg border p-2.5 text-sm transition-colors"
@@ -39,7 +38,6 @@ const { formatRelativeTime } = useFormat();
         <span class="font-medium">{{ t('modalSegmentEdit.current') }}</span>
       </button>
 
-      <!-- Revision cards -->
       <button
         v-for="rev in revisions"
         :key="rev.id"

@@ -121,19 +121,8 @@ const debouncedSave = (data: Partial<AnkiProfile>) => {
   scheduleSave();
 };
 
-/**
- * Add a placeholder to a field, keeping whatever is already in it.
- *
- * It used to REPLACE, which made the menu a one-of-these picker and quietly put
- * a ceiling on what a field could say -- there was no way to build
- * `{definition:sanseido}<br>{definition:jmdict}` except by typing both by hand,
- * and no reason to think you could, since every click wiped the last one.
- *
- * `<br>` between them because these land in Anki HTML fields and stacking is
- * what a reader is doing when they add a second one. Anything else -- a space,
- * a dash, parentheses around a reading -- is a line edit away in the input
- * beside the menu, which is also where a placeholder added by mistake comes off
- * again.
+/** Append with <br> because Anki fields are HTML; preserve templates already typed or assembled from other
+ * placeholders.
  */
 const appendFieldPlaceholder = (fieldName: string, placeholder: string) => {
   if (!canEditProfile.value) return;
@@ -338,12 +327,8 @@ const fetchAndLoad = async () => {
     // AnkiConnect runs on the user's own machine; `isError` already renders the
     // "can't reach Anki" panel with setup instructions, so no toast on top of it.
     isError.value = true;
-    // And no error report either, when the reason is that Anki was not there to
-    // answer. `loadAnkiData` has already captured `anki_connection_tested` with
-    // the specific reason, which is the part worth keeping -- the throw itself
-    // has no fix in the app, and filing it put 124 reports from 25 readers into
-    // the issue list in the week to 2026-08-23. A failure of any other kind is
-    // a fault in the store and still reports.
+    // Expected Anki unavailability is already diagnosed by anki_connection_tested and the inline panel. Report
+    // other store failures, not a locally closed or unreachable Anki instance.
     if (!isAnkiUnavailable(error)) {
       handleApiError('anki:connect-load-failed', error, { toastKey: false });
     }
@@ -358,18 +343,8 @@ watch(selectedModel, async (newValue, oldValue) => {
     try {
       const data = await store.getAllModelFieldNames(newValue);
 
-      // NO ANSWER IS NOT AN EMPTY NOTE TYPE, and saving on this path was how the
-      // reader lost their field mapping. `executeAction` reports its failures by
-      // returning rather than throwing, so the `catch` below never ran for an
-      // Anki that was closed or an origin it refused: the lookup came back `[]`,
-      // `if (data)` waved an empty array through as truthy, the field list was
-      // rebuilt as nothing, and `debouncedSave` wrote `fields: []` over a
-      // working profile -- with no toast, because nothing had thrown.
-      //
-      // So: leave the mapping alone and show the panel that says Anki cannot be
-      // reached, which `store.connectFailure` has already diagnosed. The model
-      // stays selected but is NOT persisted, which is the honest reading of what
-      // happened; picking a different note type and coming back retries it.
+      // No answer is not an empty note type. Keep field mappings and do not persist the model on lookup
+      // failure; executeAction reports some failures by returning rather than throwing.
       if (!data) {
         isSuccess.value = false;
         isError.value = true;
@@ -395,20 +370,8 @@ watch(selectedModel, async (newValue, oldValue) => {
   }
 });
 
-/**
- * Picking a deck suggests the note type that deck is mostly made of.
- *
- * Only when nothing is selected yet, and that condition is the whole safety
- * argument. Changing the note type reloads the field list from the new model,
- * and any field whose name does not survive loses its mapping -- so a reader who
- * has already wired up their fields and then changes deck must keep the model
- * they chose. The suggestion is for the setup that has not happened yet, where
- * the alternative is a second dropdown with exactly one sensible answer in it.
- *
- * `suppressWatchers` is checked here rather than relying on `debouncedSave`'s
- * own guard, because this does more than save: without it, loading a profile
- * that has a deck but no model would fire a probe at Anki and write a model the
- * reader never picked.
+/** Suggest a model only during initial deck setup; changing an existing model can erase field mappings.
+ * suppressWatchers also prevents profile hydration from probing Anki or choosing an unrequested model.
  */
 watch(selectedDeck, async (newValue) => {
   debouncedSave({ deck: newValue || undefined });
@@ -452,7 +415,6 @@ watch(canEditProfile, (editable) => {
 </script>
 <template>
   <div class="anki">
-    <!-- AnkiConnect Server Address + Sync Status -->
     <div class="nd-settings-card">
         <h3 class="nd-settings-title">{{ $t('accountSettings.anki.syncStatus') }}</h3>
         <div class="mt-4">
@@ -547,7 +509,6 @@ watch(canEditProfile, (editable) => {
         </div>
       </div>
 
-    <!-- Profile Selector -->
     <div v-if="store.profiles.length > 0" class="nd-settings-card">
       <h3 class="nd-settings-title">{{ $t('accountSettings.anki.profile') }}</h3>
       <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -596,7 +557,6 @@ watch(canEditProfile, (editable) => {
     </div>
 
     <template v-if="store.activeProfile">
-      <!-- Anki Config -->
       <fieldset :disabled="!canEditProfile" class="nd-settings-card min-w-0" data-testid="anki-config">
         <h3 class="nd-settings-title">{{ $t('accountSettings.anki.ankiConfig') }}</h3>
         <div

@@ -2,16 +2,7 @@
 import { handleApiError } from '~/utils/apiError';
 import { buildSentencePath } from '~/utils/routes';
 
-/**
- * What the moderation agent actually changed, read from the revisions it wrote
- * rather than from anything it reports about itself.
- *
- * The point of this screen is the spot check: with no moderators, nobody reviews
- * every agent edit, so the safeguard is sampling a few and being able to undo one
- * in a single click. That is why each row shows the before/after diff inline
- * instead of linking out — a screen that requires opening a tab per row does not
- * get used.
- */
+/** Show diffs from the revisions themselves, with inline undo for moderation spot-checks. */
 const { t } = useI18n();
 const { formatRelativeTime, formatDate } = useFormat();
 const localePath = useLocalePath();
@@ -35,7 +26,6 @@ const isLoading = ref(false);
 const restoringId = ref<number | null>(null);
 const windowDays = ref(1);
 
-/** Only fields that actually moved — an edit touches one or two of eleven. */
 const changedFields = (entry: ActivityEntry): { field: string; before: unknown; after: unknown }[] => {
   const fields = new Set([...Object.keys(entry.snapshot), ...Object.keys(entry.current)]);
   return [...fields]

@@ -1,19 +1,7 @@
 /**
- * How long the resend button stays out of reach, per mail already sent to this
- * browser.
- *
- * IT GROWS BECAUSE THE BUDGET IS SMALL. Asking for a sign-in link is capped at
- * five an hour, so a flat wait of a minute apiece spends all five inside four
- * minutes and leaves the reader staring at "too many sign-in attempts" for the
- * remaining fifty-six. Stretching the gaps spreads those five across roughly six
- * minutes instead, which is long enough for a slow provider to deliver.
- *
- * It stops at two minutes rather than climbing further: past that the wait is
- * punishing somebody who mistyped their address, and a mail that has not arrived
- * by then usually will not, whatever the delay before the next ask. The last
- * entry repeats for every send after it.
- *
- * Ported from shirabe's `EmailSignIn::HOLD_BACKS`, reasoning included.
+ * Increase resend waits to conserve the five-per-hour sign-in budget while allowing delayed delivery. Cap at
+ * two minutes to avoid excessive waits after a mistyped address; later sends repeat the final delay. Mirrors
+ * Shirabe's hold-backs.
  */
 export const MAGIC_LINK_HOLD_BACKS = [30, 60, 120] as const;
 

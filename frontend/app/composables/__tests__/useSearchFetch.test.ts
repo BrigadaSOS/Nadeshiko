@@ -144,14 +144,8 @@ describe('search filters with hidden categories', () => {
 });
 
 /**
- * A reader who hides a lot of shows is the case that broke: the whole hidden list rides in
- * `filters.media.exclude` on every search, and once it passed the API's ceiling each search
- * came back `400 Validation Failed` while the same search worked logged out.
- *
- * The list must go out whole. Truncating it to fit a ceiling would be worse than the error
- * it avoids -- the reader would silently start seeing shows they had hidden, with nothing
- * to indicate why. If the ceiling is ever a problem again the exclusion has to move server
- * side, not lose entries here.
+ * Send the whole hidden-media list. Truncating it would silently restore excluded shows; future
+ * size limits require server-side exclusion, not dropped entries.
  */
 describe('search filters with a large hidden-media list', () => {
   const hiddenMedia = (count: number) =>
@@ -447,12 +441,7 @@ describe('fetchStats', () => {
   });
 });
 
-/**
- * What reaches the wire, for the tie-break the backend applies under the default
- * order. The backend ignores the list under every other sort, so the assertions
- * about omission are about not sending 120 identifiers to be thrown away rather
- * than about correctness of the result.
- */
+/** Explicit sorts ignore preferMedia; omission avoids sending identifiers the backend discards. */
 describe('fetchSentences preferMedia', () => {
   const okOnce = () => sdkMocks.search.mockResolvedValueOnce({ data: searchPayload('s1'), response: new Response() });
   const bodyOf = () => sdkMocks.search.mock.calls[0]![0].body;

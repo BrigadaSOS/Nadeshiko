@@ -3,21 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The eye menu: how much of each translation a reader wants to see.
- *
- * Three settings behind one control, and the one thing that must not slip is
- * which is which -- picking "hidden" for Spanish and having English disappear is
- * the kind of fault a reader works around rather than reports.
- *
- * A language the account does not read is left out of the menu entirely, because
- * a control for a translation that never renders is a setting with no effect.
- *
- * The change is also ANNOUNCED into a live region: these are icon buttons inside
- * a menu, so a screen reader gets no feedback from the click itself, and the
- * announcement is read AFTER the write so it states what is true rather than
- * what was asked for.
- */
+/** Live announcements read state after the write, so refused changes are not announced as successful. */
 const englishMode = ref('show');
 const spanishMode = ref('show');
 const furiganaMode = ref('show');
