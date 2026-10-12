@@ -225,15 +225,11 @@ describe('rateLimit skip for SERVICE keys', () => {
   function seedKeys(): void {
     setCachedApiKey(SERVICE_KEY, {
       userId: 1,
-      apiKeyId: 'service-key-id',
       apiKeyKind: ApiKeyKind.SERVICE,
-      permissions: [],
     });
     setCachedApiKey(USER_KEY, {
       userId: 2,
-      apiKeyId: 'user-key-id',
       apiKeyKind: ApiKeyKind.USER,
-      permissions: [],
     });
   }
 

@@ -70,9 +70,6 @@ export const toSegmentInternalDTO = (
 export const toSegmentListDTO = (segments: Segment[], mediaPublicId?: string): t_Segment[] =>
   segments.map((s) => toSegmentDTO(s, mediaPublicId));
 
-export const toSegmentInternalListDTO = (segments: Segment[]): t_SegmentInternal[] =>
-  segments.map((s) => toSegmentInternalDTO(s));
-
 type SegmentCreateAttributesInput = {
   mediaId: number;
   primaryExternalId: string;
