@@ -61,10 +61,12 @@ async function loadMediaAffinityForExport(userId: number): Promise<Paged<UserMed
 
 async function loadUserActivityForExport(userId: number): Promise<Paged<UserActivity>> {
   const activity: UserActivity[] = [];
-  let cursor: { createdAt: Date; id: number } | null = null;
+  let cursor: { createdAt: string; id: number } | null = null;
 
   while (true) {
     const qb = UserActivity.createQueryBuilder('activity')
+      // Preserve PostgreSQL microseconds for the cursor without changing entity/JSON timestamp formatting.
+      .addSelect('activity.created_at::text', 'cursorCreatedAt')
       .where('activity.user_id = :userId', { userId })
       .orderBy('activity.created_at', 'DESC')
       .addOrderBy('activity.id', 'DESC')
@@ -73,11 +75,11 @@ async function loadUserActivityForExport(userId: number): Promise<Paged<UserActi
     if (cursor) {
       qb.andWhere(
         '(activity.created_at < :cursorCreatedAt OR (activity.created_at = :cursorCreatedAt AND activity.id < :cursorId))',
-        { cursorCreatedAt: cursor.createdAt.toISOString(), cursorId: cursor.id },
+        { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id },
       );
     }
 
-    const batch = await qb.getMany();
+    const { entities: batch, raw } = await qb.getRawAndEntities<{ cursorCreatedAt: string; activity_id: number }>();
     activity.push(...batch);
     const exhausted = batch.length < EXPORT_BATCH_SIZE;
 
@@ -94,7 +96,9 @@ async function loadUserActivityForExport(userId: number): Promise<Paged<UserActi
 
     const last = batch[batch.length - 1];
     if (!last) break;
-    cursor = { createdAt: last.createdAt, id: last.id };
+    const cursorRow = raw.find((row) => row.activity_id === last.id);
+    if (!cursorRow) throw new Error('Missing activity export cursor');
+    cursor = { createdAt: cursorRow.cursorCreatedAt, id: last.id };
   }
 
   return { items: activity, truncated: false };
@@ -102,10 +106,11 @@ async function loadUserActivityForExport(userId: number): Promise<Paged<UserActi
 
 async function loadUserReportsForExport(userId: number): Promise<Paged<Report>> {
   const reports: Report[] = [];
-  let cursor: { createdAt: Date; id: number } | null = null;
+  let cursor: { createdAt: string; id: number } | null = null;
 
   while (true) {
     const qb = Report.createQueryBuilder('report')
+      .addSelect('report.created_at::text', 'cursorCreatedAt')
       .where('report.user_id = :userId', { userId })
       .orderBy('report.created_at', 'DESC')
       .addOrderBy('report.id', 'DESC')
@@ -114,11 +119,11 @@ async function loadUserReportsForExport(userId: number): Promise<Paged<Report>> 
     if (cursor) {
       qb.andWhere(
         '(report.created_at < :cursorCreatedAt OR (report.created_at = :cursorCreatedAt AND report.id < :cursorId))',
-        { cursorCreatedAt: cursor.createdAt.toISOString(), cursorId: cursor.id },
+        { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id },
       );
     }
 
-    const batch = await qb.getMany();
+    const { entities: batch, raw } = await qb.getRawAndEntities<{ cursorCreatedAt: string; report_id: number }>();
     reports.push(...batch);
     const exhausted = batch.length < EXPORT_BATCH_SIZE;
 
@@ -135,7 +140,9 @@ async function loadUserReportsForExport(userId: number): Promise<Paged<Report>> 
 
     const last = batch[batch.length - 1];
     if (!last) break;
-    cursor = { createdAt: last.createdAt, id: last.id };
+    const cursorRow = raw.find((row) => row.report_id === last.id);
+    if (!cursorRow) throw new Error('Missing report export cursor');
+    cursor = { createdAt: cursorRow.cursorCreatedAt, id: last.id };
   }
 
   return { items: reports, truncated: false };
