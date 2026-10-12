@@ -1,10 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { Media } from '@app/models';
-import {
-  normalizeLanguageFilter,
-  resolveMediaFilterIds,
-  resolvePreferredMediaIds,
-} from '@app/controllers/searchFilters';
+import { resolveMediaFilterIds, resolvePreferredMediaIds } from '@app/controllers/searchFilters';
 import { s_SearchFilters } from 'generated/schemas';
 import type { t_SearchFilters } from 'generated/models';
 
@@ -19,44 +15,6 @@ function mockMediaInfoMap(entries: Array<[number, { publicId: string; anilist?: 
 
 afterEach(() => {
   vi.spyOn(Media, 'getMediaInfoMap').mockRestore();
-});
-
-describe('normalizeLanguageFilter', () => {
-  it('leaves an absent filter untouched', () => {
-    const filters = { status: ['ACTIVE'] } as t_SearchFilters;
-    normalizeLanguageFilter(filters);
-    expect(filters.languages).toBeUndefined();
-  });
-
-  it('tolerates undefined filters', () => {
-    expect(() => normalizeLanguageFilter(undefined)).not.toThrow();
-  });
-
-  it('rewrites the legacy exclude form into the canonical include list', () => {
-    const filters = { languages: { exclude: ['en'] } } as t_SearchFilters;
-    normalizeLanguageFilter(filters);
-    expect(filters.languages).toEqual(['ES']);
-  });
-
-  it('keeps the array form as an include list', () => {
-    const filters = { languages: ['ES'] } as t_SearchFilters;
-    normalizeLanguageFilter(filters);
-    expect(filters.languages).toEqual(['ES']);
-  });
-
-  it('uppercases and drops unknown codes', () => {
-    const filters = { languages: ['en', 'fr'] } as unknown as t_SearchFilters;
-    normalizeLanguageFilter(filters);
-    expect(filters.languages).toEqual(['EN']);
-  });
-
-  it('is idempotent', () => {
-    const filters = { languages: { exclude: ['es'] } } as t_SearchFilters;
-    normalizeLanguageFilter(filters);
-    const once = filters.languages;
-    normalizeLanguageFilter(filters);
-    expect(filters.languages).toEqual(once);
-  });
 });
 
 describe('resolveMediaFilterIds', () => {

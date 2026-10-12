@@ -1,20 +1,11 @@
 import { Media } from '@app/models';
 import { InvalidRequestError } from '@app/errors';
-import { includedSearchLanguages } from '@lib/searchLanguages';
 import type { t_MediaFilterItem, t_SearchFilters } from 'generated/models';
 
 type MediaInfoMap = Awaited<ReturnType<typeof Media.getMediaInfoMap>>['results'];
 
 /** How many unresolved identifiers an error message names before it trails off. */
 const MAX_REPORTED_UNKNOWN_MEDIA = 5;
-
-/** Normalize the deprecated `exclude` shape; readers still accept both forms, so this is compatibility cleanup
- * rather than a prerequisite. */
-export function normalizeLanguageFilter(filters?: t_SearchFilters): void {
-  if (!filters || filters.languages == null) return;
-
-  filters.languages = includedSearchLanguages(filters.languages);
-}
 
 /** Resolve public ids into a copy, leaving the request body intact for callers that need the original filter. */
 export async function resolveMediaFilterIds<TFilters extends t_SearchFilters>(

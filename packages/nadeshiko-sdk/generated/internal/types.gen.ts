@@ -339,7 +339,8 @@ export type SearchFilters = {
     };
     /**
      * Translation languages to include alongside Japanese in search matching.
-     * - Omitted / `null`: match against Japanese and all translation languages (default)
+     * - Omitted: match against Japanese and all translation languages (default)
+     * - `null`: not accepted; omit this field to use the default
      * - `[]`: match against Japanese only
      * - `["EN"]` / `["ES"]` / `["EN", "ES"]`: match against Japanese plus the listed translation languages
      *
