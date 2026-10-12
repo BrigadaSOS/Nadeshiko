@@ -2,18 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
 /**
- * Where a change to "which title am I looking at" should land.
- *
- * Two URLs can hold that scope and they hold it in different places:
- * `/search/<word>?media=<id>` carries it in the QUERY, because the word is the
- * subject and the title is a filter on it, while `/media/<slug>` carries it in
- * the PATH, because the title is the subject. Patching `?media=` works for the
- * first and is inert for the second -- `SearchContainer` reads the path there,
- * so the URL would change and the page would not.
- *
- * That is the whole reason this exists rather than four filter controls each
- * calling `setQuery({ media })`, and it is why the tests below are mostly about
- * which of the two mechanisms was used, not just about where the reader ends up.
+ * Search pages hold media scope in the query; media pages hold it in the path. Changing only
+ * ?media= on a media page would not change its results.
  */
 const route = reactive({
   path: '/search/kanji',

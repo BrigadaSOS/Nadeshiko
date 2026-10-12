@@ -3,22 +3,8 @@ import { enforceIpRateLimit, v1ApiLimit } from '~~/server/utils/v1ProxyPolicy';
 import { proxyToBackend } from '~~/server/utils/backendProxy';
 import { isServerOnlyProxyRoute } from '~~/server/utils/serverOnlyProxyRoute';
 
-/**
- * Routes this proxy will not carry for a browser, whoever is asking.
- *
- * `proxyToBackend` stamps every request it forwards with the internal secret,
- * because that is how the backend recognises traffic that came through our own
- * frontend. A backend route that reads the same secret to mean "our own SERVER
- * is asking" -- the Shirabe credential, which hands out a live key for another
- * service -- cannot tell a Nitro-side call from a browser call this proxy
- * relayed. So those routes are refused here, before the stamp: the list is
- * generated from the spec's `x-server-only` markers, and the backend's own
- * agreement test keeps it matched to the controllers that check the secret.
- *
- * 403 rather than 404, deliberately: the route exists, and saying so is not a
- * leak -- it is in the internal spec -- while a 404 would send anyone debugging
- * a server-side call that lands here by mistake looking for a typo instead.
- */
+// Refuse generated server-only routes before proxy stamping: a browser relay would otherwise acquire the
+// internal secret needed to read credentials or invoke server-only actions. Return 403 because the route exists.
 export default defineEventHandler(async (event) => {
   await enforceIpRateLimit(event, v1ApiLimit);
 

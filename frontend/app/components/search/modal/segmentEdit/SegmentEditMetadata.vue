@@ -18,7 +18,6 @@ const copySegmentId = () => copyToClipboard(props.segment.segment.publicId);
 
 <template>
   <div class="rounded-lg bg-control border border-hairline p-3 space-y-2 text-sm">
-    <!-- Media name + cover thumbnail -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.media') }}</span>
       <img
@@ -32,22 +31,18 @@ const copySegmentId = () => copyToClipboard(props.segment.segment.publicId);
       <span class="text-neutral-500">—</span>
       <span class="text-neutral-400">{{ t('modalSegmentEdit.metadata.episode') }} {{ segment.segment.episode }}</span>
     </div>
-    <!-- Time -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.time') }}</span>
       <span class="font-mono text-neutral-300">{{ formatMs(segment.segment.startTimeMs) }} → {{ formatMs(segment.segment.endTimeMs) }}</span>
     </div>
-    <!-- Duration -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.duration') }}</span>
       <span class="font-mono text-neutral-300">{{ ((segment.segment.endTimeMs - segment.segment.startTimeMs) / 1000).toFixed(2) }}s</span>
     </div>
-    <!-- ID + position -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.id') }}</span>
       <span class="font-mono text-neutral-300">#{{ segment.segment.publicId }} · {{ t('modalSegmentEdit.metadata.position') }} {{ segment.segment.position }}</span>
     </div>
-    <!-- Public ID -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.publicId') }}</span>
       <code class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ segment.segment.publicId }}</code>
@@ -63,33 +58,28 @@ const copySegmentId = () => copyToClipboard(props.segment.segment.publicId);
         </svg>
       </button>
     </div>
-    <!-- Media ID -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.mediaId') }}</span>
       <span class="font-mono text-neutral-300">{{ segment.segment.mediaPublicId }}</span>
     </div>
-    <!-- Hashed ID (from internal fetch) -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.hashedId') }}</span>
       <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
       <code v-else-if="internalHashedId" class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ internalHashedId }}</code>
       <span v-else class="text-xs text-neutral-500">—</span>
     </div>
-    <!-- Storage -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.storage') }}</span>
       <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
       <span v-else-if="internalStorage" class="font-mono text-neutral-300">{{ internalStorage }}</span>
       <span v-else class="text-xs text-neutral-500">—</span>
     </div>
-    <!-- Storage Path -->
     <div class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.storagePath') }}</span>
       <span v-if="isLoadingInternal" class="text-xs text-neutral-500">{{ t('modalSegmentEdit.loading') }}</span>
       <code v-else-if="internalStorageBasePath" class="text-xs text-neutral-400 bg-neutral-900 px-1.5 py-0.5 rounded font-mono truncate max-w-[20rem]">{{ internalStorageBasePath }}</code>
       <span v-else class="text-xs text-neutral-500">—</span>
     </div>
-    <!-- Resource URLs -->
     <div v-if="segment.segment.urls.imageUrl" class="flex items-center gap-2 text-neutral-300">
       <span class="text-neutral-500 min-w-[4.5rem]">{{ t('modalSegmentEdit.metadata.image') }}</span>
       <a :href="segment.segment.urls.imageUrl" target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-400 hover:text-neutral-200 truncate max-w-[24rem] transition-colors">{{ segment.segment.urls.imageUrl }}</a>

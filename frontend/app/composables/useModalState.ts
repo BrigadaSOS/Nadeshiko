@@ -1,14 +1,6 @@
 /**
- * Shared registry of the modals that are currently open.
- *
- * Components that need to know "is anything modal on screen right now?"
- * (keyboard-shortcut handlers, the audio player) read `isAnyModalOpen`
- * instead of probing the DOM. `BaseModal` is the only thing that should call
- * `registerModal`/`unregisterModal`.
- *
- * The stack doubles as the scroll-lock counter: the root scrolling element
- * (`<html>`) is locked while at least one modal is registered, so nested
- * modals can't unlock each other.
+ * BaseModal owns registration; shortcut handlers and playback read isAnyModalOpen. The stack
+ * also holds the html scroll lock until the last nested modal closes.
  */
 let savedHtmlOverflow = '';
 

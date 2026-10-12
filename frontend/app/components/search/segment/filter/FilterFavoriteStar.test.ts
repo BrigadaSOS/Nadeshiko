@@ -3,19 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The star on a title row in the media filter.
- *
- * The interesting case is the row that is NOT a title: episode rows pass a
- * spacer with no id, because they are not a thing you star but the title above
- * them is, and the empty column keeps their counts under that one. That rule
- * lives here rather than as a `v-if` at each call site, so both call sites
- * cannot drift apart -- which is also why the spacer is a real element and not
- * nothing at all.
- *
- * The star is always a SIBLING of the row's own button, never a child: a button
- * inside a button is invalid markup and breaks hydration.
- */
+/** Episode rows need a spacer to align counts. Stars must be siblings of row buttons to avoid invalid nesting. */
 const toggleFavorite = vi.fn();
 const favourites = ref<string[]>([]);
 const isLoggedIn = ref(true);

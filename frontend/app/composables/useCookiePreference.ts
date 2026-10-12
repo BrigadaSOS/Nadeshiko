@@ -19,13 +19,8 @@ export type CookiePreferenceCodec<T> = {
 };
 
 /**
- * A reader preference that lives in a year-long cookie and in shared `useState`,
- * so SSR renders it and every component sees the same value.
- *
- * The state is re-read from the cookie on the server because `useState`'s
- * initializer only runs for whichever call claims the key first: without this,
- * a render where something else touched the key would serialize that stale
- * value into the payload instead of this request's cookie.
+ * Share a year-long cookie preference through useState. Re-read the server cookie even if
+ * another caller already initialized the state key, avoiding a stale SSR payload.
  */
 export function useCookiePreference<T>(cookieName: string, stateKey: string, codec: CookiePreferenceCodec<T>) {
   const cookie = useCookie<string | null>(cookieName, { ...PREFERENCE_COOKIE_OPTIONS });

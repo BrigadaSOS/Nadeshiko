@@ -62,51 +62,15 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
 
   if (!showPlayer.value) return;
 
-  // Keys a menu owns, and must therefore not be captured from it.
-  //
-  // This handler is bound with `capture: true`, so its `preventDefault()` lands
-  // before the button does and no click is synthesized. For an ordinary
-  // transport button that costs nothing -- Space toggling playback is what it
-  // would have done anyway -- but a `role="menuitemradio"` needs Space to pick
-  // an item, and its trigger needs Space to open the menu at all. Tag names
-  // cannot tell any of these apart, so the test is the role each element is
-  // standing in.
-  //
-  // ANY menu, not just this component's. The listener is on `window`, so
-  // `target` is whatever holds focus anywhere on the page and these match the
-  // search dropdowns and visibility menus too. That is the point rather than an
-  // oversight: with the player open, Space on one of those triggers was being
-  // captured into `togglePlay` and the dropdown never opened.
-  //
-  // Deliberately per-key rather than one bail at the top of the handler: Escape
-  // below is how a menu is dismissed from the keyboard, and it also has to
-  // reach its own `stopPropagation()` -- that call is what keeps an underlying
-  // `BaseModal` from closing instead, which is the "innermost first" ordering
-  // its comment describes. Returning early for every key inverted exactly that.
+  // This window capture handler runs before menu buttons. Roles identify keys that must reach their own
+  // controls. Keep Escape available for the player's innermost layer rather than returning early for every
+  // key.
   const inMenu = target.closest('[role="menu"]') !== null;
   const opensMenu = target.closest('[aria-haspopup="menu"]') !== null;
 
-  // Inside a menu, every shortcut here is off except Escape.
-  //
-  // A denylist was the wrong shape. Space and the arrows were the keys anyone
-  // thinks of, but `f` was the one that actually broke things: focus now lives
-  // on a menu item, and toggling immersive unmounts the whole layout branch
-  // under it -- item, trigger and all -- dropping focus to `<body>` while the
-  // menu re-mounts in the other layout still open and no longer reachable by
-  // keyboard. `r` and `l` are the same shape, quieter. Defaulting to off also
-  // means a shortcut added to this switch later is safe in a menu without
-  // anyone remembering this exists.
-  //
-  // Escape is the exception, but only for OUR menu. It is how the speed menu
-  // closes, and it has to reach its own `stopPropagation()` below -- that call
-  // is what keeps an underlying `BaseModal` from closing instead of the menu.
-  //
-  // `[role="menu"]` matches the search dropdowns and visibility menus too,
-  // though, and this handler has no business answering their Escape: it would
-  // hide the player, then stop the event before the dropdown that had focus
-  // ever saw it, leaving that menu open with the player gone. `rateMenuOpen`
-  // is what tells the two apart -- if our menu is not open, the Escape is not
-  // ours to take.
+  // Disable shortcuts inside menus except Escape for our open speed menu. Layout-changing shortcuts would
+  // unmount the focused item; taking another menu's Escape would hide the player before that menu could
+  // dismiss itself.
   if (inMenu && !(event.code === 'Escape' && rateMenuOpen.value)) return;
 
   switch (event.code) {
@@ -310,19 +274,16 @@ const getSentenceStyle = (index: number) => {
     return { classes: 'hidden', style: {} };
   }
 
-  // Mantenemos el mismo tamaño de fuente para todas
   let classes = 'transition-all duration-500 ease-out block text-xl md:text-3xl lg:text-4xl py-4 ';
   let style = {};
 
   if (distance === 0) {
-    // Activa: Blanco brillante
     classes += 'font-bold text-white leading-tight drop-shadow-lg';
     style = {
       opacity: 1,
       transform: 'scale(1)',
     };
   } else {
-    // Inactivas: Gris oscuro y translúcido
     classes += 'font-medium text-white/40 leading-normal';
     style = {
       opacity: 0.5,
@@ -361,30 +322,11 @@ const getAnimeImage = (result: any) => {
   return result.segment.urls.imageUrl;
 };
 
-/**
- * Whether this device has a mouse-like pointer.
- *
- * Not a width breakpoint: a phone in landscape is wide enough for `md:` and is
- * still the wrong place for this control, since touch devices keep their
- * hardware volume keys and those are the better instrument anyway.
- */
+/** Use pointer capability, not viewport width: landscape phones still use hardware volume keys. */
 const hasFinePointer = useMediaQuery('(hover: hover) and (pointer: fine)');
 
-/**
- * Whether this browser lets script move the output volume at all.
- *
- * Asked of the platform rather than inferred from it. iOS and iPadOS treat
- * `HTMLMediaElement.volume` as read-only -- assignments are accepted and
- * silently discarded -- and no media query reports that. The pointer test alone
- * got iPhones right by accident and iPads wrong: an iPad with a trackpad or a
- * Magic Keyboard answers `(hover: hover) and (pointer: fine)` truthfully, drew
- * the slider, and then let the reader drag a control that could never do
- * anything. Setting a value and reading it back is the only thing that
- * distinguishes them.
- *
- * Resolved on mount, never during SSR: there is no `Audio` on the server, and
- * `hasFinePointer` is false there too, so the control is absent from the markup
- * either way and this cannot desync hydration.
+/** iOS/iPadOS silently ignore volume assignments, even with a fine pointer. Probe by writing and reading back
+ * on mount. SSR has no Audio and omits the slider, so hydration agrees.
  */
 const canSetVolume = ref(false);
 
@@ -415,18 +357,8 @@ const onVolumeInput = (event: Event) => {
   playerStore.setVolume(Number(target.value) / 100);
 };
 
-/**
- * The speed menu's open state, shared by both layouts, and a wrapper ref per
- * layout.
- *
- * One open flag is right -- the menu is one control wherever it is drawn. One
- * ref is not: the two layouts are separate `v-if`s rather than a `v-if`/`v-else`
- * pair, and the immersive branch sits inside a 400ms `zoom-fade` transition, so
- * leaving immersive mounts the bar while the immersive markup is still on its
- * way out. For that window both wrappers exist, and a single ref would hold
- * whichever one Vue assigned last -- then be nulled outright by the leaving
- * branch's unmount, since Vue queues ref assignment as a post-render effect but
- * unsets synchronously. `onClickOutside` would be left watching nothing.
+/** One open state, but two wrapper refs: both layouts coexist during the 400ms leave transition. A shared ref
+ * can be overwritten or nulled by the leaving branch, leaving onClickOutside with no target.
  */
 const rateMenuOpen = ref(false);
 const rateMenuBarRef = ref<HTMLElement | null>(null);
@@ -475,19 +407,8 @@ const rateMenuItems = () => {
 
 const rateMenuTrigger = () => activeRateWrapper()?.querySelector<HTMLElement>('[aria-haspopup="menu"]') ?? null;
 
-/**
- * Move focus into the menu when it opens, and back to the trigger when it
- * closes.
- *
- * A menu that opens without taking focus is one a keyboard reader has to hunt
- * for with Tab, and one that closes without giving focus back drops it to
- * `<body>` -- from which the next Tab restarts at the top of the document,
- * nowhere near the player they were just using. Escape made that reachable in
- * one keystroke.
- *
- * Focus is only taken back if it is still inside the menu: a click elsewhere
- * closes this too, and yanking focus to the trigger then would steal it from
- * whatever the reader actually went to.
+/** Move focus into the open menu. Restore it only if still inside on close, so outside clicks keep their chosen
+ * focus.
  */
 watch(rateMenuOpen, async (open) => {
   const trigger = rateMenuTrigger();
@@ -503,15 +424,7 @@ watch(rateMenuOpen, async (open) => {
   if (wrapper?.contains(document.activeElement)) trigger?.focus();
 });
 
-/**
- * Arrow, Home and End inside the open menu.
- *
- * Wrapping at both ends, which is what a menu of five speeds wants: the list is
- * short enough that the reader is as likely to be heading for 0.5x from the
- * bottom as from the top. Space and Enter are left to the button itself -- the
- * global handler no longer captures Space in here, so activation is the
- * platform's again.
- */
+/** Wrap Arrow/Home/End navigation through speeds; leave Space/Enter activation to the buttons. */
 const onRateMenuKeydown = (event: KeyboardEvent) => {
   const items = rateMenuItems();
   if (items.length === 0) return;
@@ -537,16 +450,8 @@ const onRateMenuKeydown = (event: KeyboardEvent) => {
       focusAt(items.length - 1);
       break;
     case 'Tab':
-      // Tabbing out of a menu closes it, rather than walking the reader through
-      // five speeds on the way to the next control.
-      //
-      // Focus moves to the trigger first and synchronously, before the close:
-      // Tab's own handling runs after this handler returns, so leaving focus on
-      // an item that the close is about to unmount would drop it to `<body>`
-      // and send the next Tab back to the top of the document. From the
-      // trigger -- which sits immediately before the menu in the DOM -- the
-      // browser continues to exactly the control the reader was heading for.
-      // Deliberately not prevented: where Tab goes is the platform's business.
+      // Close on Tab, focusing the trigger synchronously before items unmount. Do not prevent Tab: the browser
+      // must continue from the trigger to the next control, not restart at body.
       rateMenuTrigger()?.focus();
       rateMenuOpen.value = false;
       break;
@@ -814,16 +719,7 @@ const selectPlaybackRate = (rate: number) => {
 </template>
 
 <style scoped>
-/*
- * The volume slider.
- *
- * Hand-styled because a native range input renders as a platform-coloured form
- * control, which in the middle of the player bar reads as a stray input rather
- * than part of the transport. The track carries its own fill (a hard-stopped
- * gradient driven by `--volume-fill`) since neither engine paints the portion
- * left of the thumb on its own, and an unfilled track gives no read on the
- * level at a glance.
- */
+/* The gradient paints the filled track consistently across engines; native range styling does not. */
 .player-volume {
   -webkit-appearance: none;
   appearance: none;

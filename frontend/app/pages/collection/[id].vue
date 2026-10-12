@@ -62,10 +62,8 @@ const { data: collectionDetails } = await useAsyncData(
       throwOnError: false,
     });
     if ('error' in result) {
-      // No redirect here. A refusal on this call cannot happen without the same
-      // refusal on the sentence fetch above -- both go through the backend's
-      // `loadReadableCollection` -- and that one has already redirected out of
-      // setup. Calling `navigateTo` from inside a fetcher would not work anyway.
+      // The sentence fetch already handles refusals via the same loadReadableCollection
+      // guard. Redirects must run in setup, not inside this fetcher.
       return null;
     }
     return { name: result.data.name };

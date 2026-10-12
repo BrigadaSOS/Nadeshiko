@@ -1,14 +1,7 @@
 import { ref } from 'vue';
 import { placeCard } from '~/utils/cardPlacement';
 
-/**
- * Where the word card sits, and when that is recomputed.
- *
- * `isOpen` and `anchor` are read through getters rather than passed as values,
- * because both change under the card while it is open and this has to see the
- * current one -- the anchor especially, which is the token element the reader
- * last pressed.
- */
+/** Read anchor and open state through getters because both can change while the card is open. */
 export function useCardPlacement(anchor: () => HTMLElement | null, isOpen: () => boolean) {
   const tooltipStyle = ref<Record<string, string>>({});
   // Which side of the token the card hangs off. Decided once when it opens and
@@ -16,16 +9,8 @@ export function useCardPlacement(anchor: () => HTMLElement | null, isOpen: () =>
   const tooltipBelow = ref(false);
 
   /**
-   * Put the card where the word is, once and for good.
-   *
-   * The decision itself is `placeCard`, which measures nothing: see the reasoning
-   * there for why the side is settled before the card has any content, and why it
-   * is never revisited when the content arrives.
-   *
-   * All this adds is the page scroll, because the card is placed on the PAGE
-   * rather than on the screen. It therefore scrolls away with the sentence it
-   * belongs to instead of following the reader down the page, and nothing has to
-   * re-run on scroll to keep it honest.
+   * Settle placement before content arrives; see placeCard. Add page scroll offsets so the card
+   * scrolls with its sentence without recomputing.
    */
   function placeTooltip(): void {
     const element = anchor();

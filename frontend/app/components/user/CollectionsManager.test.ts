@@ -3,20 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
 
-/**
- * The reader's collections on the settings page: create, rename, re-share,
- * delete.
- *
- * Every write here edits the list IN PLACE rather than refetching, so the row on
- * screen and the row on the server are two separate facts that have to be kept
- * agreeing. The failure mode is always the same shape and always quiet: the
- * table says the rename happened, or the collection is public, and the server
- * disagrees.
- *
- * The other thing pinned here is that a FAILED load does not look like an empty
- * account -- without that distinction a reader whose fetch fell over is told
- * they have no collections and invited to make their first one.
- */
+/** In-place rows must reflect successful writes; load failures must not look like an empty account. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 

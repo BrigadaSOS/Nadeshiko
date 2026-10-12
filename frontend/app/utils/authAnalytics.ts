@@ -1,50 +1,19 @@
 /**
- * The bookkeeping behind "what made this person create an account".
- *
- * Everything here is pure so it can be tested without a browser, a Nuxt app or a
- * PostHog client. The plugins and composables that use it supply the storage and
- * the clock.
- *
- * Two problems are solved:
- *
- * 1. **Attribution survives the redirect.** The interesting property of a signup
- *    is what the visitor was trying to do when they hit the wall -- add a card to
- *    Anki, save to a collection, report a segment. That intent is known at the
- *    moment the modal opens, and then the browser leaves for Google and comes
- *    back on a fresh page load with every bit of in-memory state gone. So it is
- *    parked in storage and read back on the other side.
- *
- * 2. **The transition is detected without depending on the callback.** The old
- *    code inferred "a login just happened" from OAuth query parameters that
- *    better-auth never actually sent back, so it inferred it approximately never.
- *    `resolveAuthTransition` instead compares the account we are looking at now
- *    against the last one this browser recorded, which needs no cooperation from
- *    the auth provider at all.
+ * Persist signup intent across auth redirects and detect auth transitions from stored account/session
+ * identity. Callers supply storage and time.
  */
 
 /**
- * The specific thing a signed-out visitor tried to do. This is the whole point of
- * the exercise -- `login_initiated` already told us people click login, and never
- * once told us why.
- *
- * Add a member here rather than passing a free string, so the values stay a
- * closed set that a PostHog breakdown can be read off without cleaning.
+ * Closed attribution vocabulary for feature gates and prompts; keep analytics breakdowns free of arbitrary
+ * strings.
  */
 export const AUTH_GATES = [
   'anki_add_last',
   'anki_add_search',
   'collection_choose',
   'report_segment',
-  // The three below are not walls the reader ran into -- they are asks we made
-  // first, from `useSignupNudge`. They sit in the same closed set anyway so that
-  // one PostHog breakdown compares "we blocked them" against "we offered", which
-  // is the comparison that decides whether either approach is worth keeping.
-  //
-  // `add_nudge` and `download_nudge` offer the same thing and share a cooldown,
-  // but they are separate members because the reader's position differs: one has
-  // just saved a clip, the other has the add menu open in front of them with the
-  // Anki entries greyed out. Which of those converts is worth being able to read
-  // off without inferring it.
+  // Proactive prompts share the gate vocabulary. Add-menu and download offers share a cooldown but remain
+  // separate attribution sources.
   'download_nudge',
   'add_nudge',
   'depth_nudge',
@@ -71,23 +40,14 @@ export interface AuthIntent {
 export const AUTH_INTENT_KEY = 'nd-auth-intent';
 
 /**
- * How long a parked intent stays believable.
- *
- * An OAuth round trip is seconds and a magic link is usually opened within a few
- * minutes. An hour is generous for both while still ruling out the case this
- * guards against: a visitor who abandons the modal, comes back tomorrow, signs in
- * from the header, and gets their signup credited to a gate they touched once and
- * forgot about.
+ * Allow an hour for OAuth or email-link completion without crediting a later unrelated sign-in to an
+ * abandoned gate.
  */
 export const AUTH_INTENT_TTL_MS = 60 * 60 * 1000;
 
 /**
- * How recently an account must have been created for its first sighting to count
- * as a signup rather than a login.
- *
- * Only consulted for an account this browser has never seen, so it is not doing
- * the heavy lifting -- it exists to stop an established user signing in on a new
- * device from being counted as a new account.
+ * Only a recently created account unseen by this browser counts as signup; established accounts on a new
+ * device count as login.
  */
 export const NEW_ACCOUNT_WINDOW_MS = 5 * 60 * 1000;
 
@@ -99,20 +59,8 @@ export interface IntentStorage {
 }
 
 /**
- * Where a parked intent lives.
- *
- * `localStorage`, not `sessionStorage`, and the difference decides whether magic
- * link is measurable at all. An OAuth redirect navigates the same tab, so either
- * would survive it -- but a magic link is clicked in an email client, which opens
- * a *new* tab, and a new tab gets a fresh empty `sessionStorage`. Since magic link
- * is the provider most signups actually complete on, parking it per-tab would have
- * left the majority of signups reporting `source: 'unknown'`.
- *
- * The staleness that per-tab storage would have bought us is covered instead by
- * the TTL and by reading destructively, so nothing is really given up.
- *
- * Reading `window.localStorage` can itself throw when storage is blocked by
- * policy, so even the lookup is guarded.
+ * Use localStorage because email links can open a new tab. TTL and destructive consumption bound stale
+ * attribution. Even accessing storage can throw when policy blocks it.
  */
 export function authIntentStorage(): IntentStorage | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -192,13 +140,7 @@ export function consumeAuthIntent(storage: IntentStorage | undefined, now: numbe
 }
 
 /**
- * The query parameter marking a page load as the landing after an auth round
- * trip.
- *
- * It exists because better-auth hands the reader back to whatever `callbackURL`
- * was asked for and adds nothing of its own -- no `code`, no `state`. Detecting
- * the landing therefore has to be arranged on the way out, not read off the way
- * back in.
+ * Mark the callback URL ourselves: better-auth returns to the supplied URL without adding a success marker.
  */
 export const AUTH_CALLBACK_PARAM = 'nd_auth';
 
@@ -278,16 +220,8 @@ export const AUTH_SOURCE_PARAM = 'nd_src';
 export const AUTH_GATE_PARAM = 'nd_gate';
 
 /**
- * Writes the intent into the callback URL itself.
- *
- * Storage covers a redirect and it covers a new tab, but it cannot cover a new
- * *device*: a magic link mailed to a phone and opened on a laptop arrives in a
- * browser that has never seen the intent. The link is the only thing that crosses
- * that gap, so for magic link -- the provider most signups actually complete on --
- * the intent travels in the link as well as in storage.
- *
- * Only meaningful for magic link. OAuth hands its `callbackURL` to the provider,
- * and the round trip stays in one browser anyway.
+ * Carry magic-link intent in the callback URL as well as storage so attribution survives opening the link on
+ * another device. OAuth stays in one browser.
  */
 export function withAuthIntentParams(url: string, intent: AuthIntent | null): string {
   if (!intent) return url;
@@ -303,15 +237,8 @@ export function withAuthIntentParams(url: string, intent: AuthIntent | null): st
 }
 
 /**
- * Rebuilds a parked intent from the landing URL when this browser has none.
- *
- * Fills only what is missing, so a local intent -- which is richer, having seen
- * the provider button pressed -- is never overwritten by the thinner version that
- * travelled in the link.
- *
- * Values are validated against the closed sets rather than trusted. They arrive in
- * a URL anyone can edit, and an unchecked value here would show up as a made-up
- * category in a PostHog breakdown.
+ * Fill missing intent from the landing URL without replacing richer local values. Validate source and gate
+ * against closed sets because URL parameters are user-editable.
  */
 export function absorbIntentFromUrl(storage: IntentStorage | undefined, search: string, now: number): void {
   if (!storage || !search) return;
@@ -337,9 +264,8 @@ export function absorbIntentFromUrl(storage: IntentStorage | undefined, search: 
 
   if (Object.keys(patch).length === 0) return;
 
-  // Spelled out rather than spread, because "fill only what is missing" is not
-  // what either spread order gives you: a local intent can hold an explicit
-  // `unknown`, which would win over a real value from the link.
+  // Treat explicit `unknown` as missing while retaining known local values; a simple spread cannot express
+  // both rules.
   const existing = readAuthIntent(storage, now);
   const localSource = existing?.source && existing.source !== 'unknown' ? existing.source : undefined;
 
@@ -366,36 +292,20 @@ function isAuthGate(value: string | null): value is AuthGate {
 export const ANALYTICS_IDENTITY_KEY = 'nd-analytics-user';
 
 /**
- * Where the last reported-on *session* lives.
- *
- * This is the better-auth session's primary key, not its token -- the id is a row
- * identifier and carries no authority, so unlike the token it is safe to keep in
- * storage that JavaScript can read. better-auth refreshes a session by extending
- * the existing row, so this value changes on a genuine new sign-in and at no other
- * time, which is what makes `user_logged_in` exact rather than a floor.
+ * Store the session row id, never its authority-bearing token. Refresh extends the same row; a new id signals
+ * a new sign-in.
  */
 export const ANALYTICS_SESSION_KEY = 'nd-analytics-session';
 
 /**
- * When the session this browser is signed in with began, as milliseconds.
- *
- * Kept alongside the identity because the question it answers can only be asked
- * once the session is already gone: "how long had they been signed in?" A reader
- * who signs out, clears cookies or is revoked produces a spread of ages; a
- * mechanical expiry produces the SAME age every time, and that spike is the only
- * thing that distinguishes a bug from ordinary churn. Sourced from the server's
- * `session.createdAt`, not from when this browser first noticed, so it is right
- * for sessions that predate this code.
+ * Persist server `session.createdAt` to measure session age after disappearance. Repeated expiry ages help
+ * distinguish mechanical expiry from ordinary churn.
  */
 export const ANALYTICS_SESSION_STARTED_KEY = 'nd-analytics-session-started';
 
 /**
- * Set when the reader signs out on purpose, and consumed by the next load.
- *
- * Without it every deliberate sign-out would be reported as a lost session:
- * `logout()` deliberately leaves the identity key in place (so signing straight
- * back in is not counted as a second signup), which is exactly the state a
- * silent expiry leaves behind. This is the one bit that tells them apart.
+ * Mark deliberate logout separately: the retained identity key otherwise makes it indistinguishable from
+ * silent expiry.
  */
 export const ANALYTICS_DELIBERATE_SIGN_OUT_KEY = 'nd-analytics-signed-out';
 
@@ -428,18 +338,8 @@ export function writeStoredValue(storage: IntentStorage | undefined, key: string
 }
 
 /**
- * Whether a browser that is now signed out lost a session it did not ask to
- * lose, and how old that session was.
- *
- * Pure, and separated from the composable, because this is the part worth being
- * sure of: it decides whether an event fires at all, and a false positive here
- * (reporting every deliberate sign-out) would bury the signal it exists to
- * surface under ordinary traffic.
- *
- * The age is deliberately reported in hours rather than days. A cookie that
- * expires on a fixed schedule produces a value that repeats to within a few
- * hours across thousands of readers, and rounding to days would blur exactly the
- * detail that makes the spike visible.
+ * Report session loss only when a prior identity exists and logout was not deliberate. Express age in hours
+ * to preserve fixed-expiry spikes.
  */
 export function resolveLostSession(input: {
   /** The account this browser last reported on. Nothing means it was never signed in here. */
@@ -473,24 +373,14 @@ export interface AuthTransitionInput {
   accountCreatedAt: string | null;
   now: number;
   /**
-   * Whether this page load is the landing after an auth round trip.
-   *
-   * A fallback, not the primary signal: the session id above settles the question
-   * on its own. This only matters if a session ever arrives without an id, in
-   * which case a callback landing is still good evidence a login just happened.
+   * Fallback sign-in evidence when no session id is available; session-id comparison is the primary signal.
    */
   viaCallback: boolean;
 }
 
 /**
- * Decides which auth event -- if any -- this page load represents.
- *
- * The stored id is deliberately *not* cleared on logout. If it were, signing out
- * and straight back in within the new-account window would look like a brand new
- * identity attached to a freshly created account, and report a second
- * `signup_completed` for an account that was only ever created once. Keeping it
- * means `signup_completed` can only fire on the first sighting of an id, which is
- * the property that makes the number trustworthy.
+ * Retain the stored identity on logout so signing straight back into a newly created account cannot report a
+ * second signup.
  */
 export function resolveAuthTransition(input: AuthTransitionInput): AuthTransition | null {
   const { currentUserId, storedUserId, currentSessionId, storedSessionId, accountCreatedAt, now, viaCallback } = input;
@@ -541,17 +431,8 @@ export function authEventProperties(intent: AuthIntent | null): {
 }
 
 /**
- * The acquisition properties to stamp permanently on the person at signup, with
- * the unknowns left out.
- *
- * `$set_once` can only ever be written once, so recording `provider: 'unknown'`
- * because the parked intent went missing would burn the slot -- the person would
- * carry a confident "we don't know" that nothing could later correct. Omitting the
- * key leaves the person without the property, which reads honestly in PostHog and
- * stays open to a backfill.
- *
- * Returns an empty object, not an empty `$set_once`, so a signup we learned
- * nothing about does not send a pointless person update.
+ * Omit unknown acquisition values from `$set_once` so they remain backfillable. Return no person update when
+ * nothing is known.
  */
 export function acquisitionSetOnce(properties: ReturnType<typeof authEventProperties>): {
   $set_once?: Record<string, string>;
@@ -565,19 +446,9 @@ export function acquisitionSetOnce(properties: ReturnType<typeof authEventProper
 }
 
 /**
- * Where this browser first arrived from, recorded once and never again.
- *
- * WHY THIS EXISTS RATHER THAN `$initial_referring_domain`. posthog-js sets that
- * family of properties, but only on a person profile, and `person_profiles`
- * defaults to `identified_only` -- so for a signed-out visitor there is no
- * profile to set them on, and by the time one exists (at signup) the referrer is
- * whichever OAuth provider just redirected them back. In the 90 days to
- * 2026-08-20 that left 18,538 of ~18,900 people with no first-touch property at
- * all, which is why "where do our signups come from" had no answer: the
- * event-level referrer was fine and there was nothing to join it to.
- *
- * Turning `person_profiles` up to `always` would also fix it, at the cost of a
- * billable profile for every anonymous reader. This costs one localStorage key.
+ * Persist anonymous first touch until signup: with `identified_only` profiles, PostHog's initial-referrer
+ * properties may be absent until the OAuth return. Avoid creating a billable profile for every anonymous
+ * visit.
  */
 export const FIRST_TOUCH_KEY = 'nd-first-touch';
 
@@ -593,13 +464,7 @@ export interface FirstTouch {
   at: number;
 }
 
-/**
- * The referring domain, with our own domain folded into `$direct`.
- *
- * A same-origin referrer is an internal navigation that happened to be a full
- * page load, not an acquisition, and counting it as one is not a rounding error:
- * `nadeshiko.co` was the second-largest "source" on the site at 2,389 people.
- */
+/** Treat same-host referrers as direct; internal full-page navigation is not acquisition. */
 function referrerDomain(referrer: string, ownHost: string): string {
   if (!referrer) return '$direct';
   try {
@@ -610,14 +475,7 @@ function referrerDomain(referrer: string, ownHost: string): string {
   }
 }
 
-/**
- * Records the first touch, or leaves the existing one alone.
- *
- * WRITE-ONCE IS THE ENTIRE CONTRACT. The second visit, the OAuth round trip and
- * every later page load all call this, and any of them overwriting would turn
- * "where did they come from" into "where were they last", which is the question
- * the event-level referrer already answers.
- */
+/** Write once: later visits and OAuth returns must not replace the original acquisition source. */
 export function rememberFirstTouch(
   storage: IntentStorage | undefined,
   visit: { referrer: string; search: string; pathname: string; ownHost: string },
@@ -684,13 +542,7 @@ export function readFirstTouch(storage: IntentStorage | undefined): FirstTouch |
   }
 }
 
-/**
- * The first touch as person properties, for the signup identify.
- *
- * `$set_once` rather than `$set`, matching `acquisitionSetOnce`: this describes
- * how the account was won and must not move when they come back through a
- * different door.
- */
+/** Use `$set_once` for acquisition properties so later visits cannot replace the account's first touch. */
 export function firstTouchSetOnce(storage: IntentStorage | undefined): { $set_once?: Record<string, string> } {
   const touch = readFirstTouch(storage);
   if (!touch) return {};

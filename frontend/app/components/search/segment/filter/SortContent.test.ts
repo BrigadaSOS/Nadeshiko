@@ -3,21 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { reactive } from 'vue';
 
-/**
- * The sort control above the results.
- *
- * Two things here were learned the hard way and are easy to undo.
- *
- * The sort in force is read from `?sort=` EVERY TIME rather than latched: this
- * button is mounted twice at once (the sticky sidebar and the mobile drawer), so
- * a local copy went stale as soon as the sort changed anywhere else, and a copy
- * that remounted mid-navigation latched nothing and lost its own label.
- *
- * And RANDOM is the one sort that is not idempotent. The seed travels in the URL
- * -- without one the backend falls back to the calendar day, so "random" was a
- * single fixed order for a whole day and re-picking it refetched a byte-identical
- * page. The new seed is also drawn away from the current one, because a click
- * that produces the same URL navigates nowhere and looks like nothing happened.
+/** Read sort from the URL so simultaneous controls agree. Random needs a fresh URL seed, not the backend's
+ * daily default.
  */
 const setQuery = vi.fn();
 const route = reactive({

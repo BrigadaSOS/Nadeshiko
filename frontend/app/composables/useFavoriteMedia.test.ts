@@ -4,17 +4,8 @@ import { reactive } from 'vue';
 import { useFavoriteMedia, MAX_FAVORITE_MEDIA } from './useFavoriteMedia';
 
 /**
- * The titles a reader has starred, which sort to the top of the media filter.
- *
- * Read straight from the user store so it is correct during SSR -- which is what
- * lets the filter be ordered server-side and stops it reshuffling under the
- * cursor after hydration.
- *
- * The toggle is optimistic with a rollback, like `useHiddenMedia`, and the cap
- * is the piece that is easy to get wrong in the other direction: it is checked
- * only to disable the control and say why, and it must never block an UNSTAR --
- * a reader who reached the ceiling would otherwise be unable to get back under
- * it.
+ * Hydrated preferences preserve SSR ordering. Optimistic toggles roll back on failure; the cap
+ * must never block an unstar.
  */
 const sdk = { addFavoriteMedia: vi.fn(), removeFavoriteMedia: vi.fn() };
 const user = reactive({

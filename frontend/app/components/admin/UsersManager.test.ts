@@ -3,13 +3,6 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-/**
- * The admin user table: search, page, ban, unban.
- *
- * Both things pinned here are ORDERING faults, which is why neither shows up in
- * a click-through. A page of results is a page of results; you only notice it is
- * the wrong one if you were already watching the count above it.
- */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 

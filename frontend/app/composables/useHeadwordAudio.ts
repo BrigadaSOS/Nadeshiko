@@ -1,11 +1,8 @@
 import { ref, onBeforeUnmount } from 'vue';
 
 /**
- * The word card's pronunciation clips.
- *
- * One `Audio` element per card, reused across every accent and every word the
- * card opens on, because clips are under a second and a fresh element per click
- * leaks one per lookup.
+ * Reuse one Audio element per card across pronunciation clips rather than leaking an element
+ * per lookup.
  */
 export function useHeadwordAudio() {
   /** The clip playing right now, by URL, so that only the button that started it

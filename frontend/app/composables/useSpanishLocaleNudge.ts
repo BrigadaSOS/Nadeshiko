@@ -3,21 +3,8 @@ import { dismissSpanishNudge, isSpanishNudgeDismissed, shouldOfferSpanish } from
 import { raiseNudgePanel } from './useNudgePanel';
 
 /**
- * The copy is Spanish and is NOT translated, which is the one thing about this
- * file that looks like a mistake and is not.
- *
- * It is addressed only to readers whose browser asks for Spanish, and it appears
- * only on an English page -- so an English string would be talking past the
- * person it is for, and a `ja` string could never be reached at all. Putting it
- * through `$t` would also mean loading the `es` message bundle on an English
- * page, which is exactly the ~48KB that `file:` per-locale loading was added to
- * avoid.
- *
- * "1,3 millones" is the TOTAL sentence count (1,326,042 on 2026-08-23), and the
- * line deliberately says "con traducción al español" rather than "oficial":
- * every one of those has a Spanish translation, but 116,015 of them are machine
- * translated and only 1,210,027 are official. Say "oficial" here and the honest
- * number is 1,2 millones.
+ * Spanish-only copy targets Spanish browsers on English pages without loading the es bundle.
+ * The total includes machine translations, so say 'con traducción al español', not 'oficial'.
  */
 const COPY = {
   title: 'Nadeshiko también está en español',
@@ -32,22 +19,8 @@ const COPY = {
  * is in `~/utils/spanishLocaleNudge`.
  */
 export function useSpanishLocaleNudge() {
-  // `useNuxtApp().$i18n`, NOT `useI18n()`, and the difference is the whole
-  // reason this offer never appeared. `useI18n()` reads the ACTIVE COMPONENT
-  // INSTANCE, not the Nuxt app -- it is a `setup()`-only composable, and it
-  // throws `MUST_BE_CALL_SETUP_TOP` (vue-i18n error 26) anywhere else. This is
-  // reached from the `app:mounted` hook in `plugins/spanishLocaleNudge.client`,
-  // where there is no current instance, so it threw on every single page load;
-  // the plugin's own try/catch then swallowed it exactly as designed, and the
-  // banner was silently dead from the day it shipped.
-  //
-  // `runWithContext` does not help here, which is the trap: it restores the NUXT
-  // context, so `useCookie` under `useLocalePreference` is fine, and only the
-  // vue-i18n call needs the component instance it cannot supply.
-  //
-  // `useSignupNudge`, the file this was extracted from, already reached i18n
-  // this way for the same reason. The extraction took the panel and left the
-  // access pattern behind.
+  // Use Nuxt's $i18n from app:mounted. useI18n requires a component setup instance, which
+  // runWithContext does not restore.
   const { $i18n } = useNuxtApp();
   const { setPreferredLocale } = useLocalePreference();
 

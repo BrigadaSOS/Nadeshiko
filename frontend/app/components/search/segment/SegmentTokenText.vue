@@ -36,15 +36,8 @@ import {
   mdiOpenInNew,
 } from '@mdi/js';
 import type { SearchResult } from '~/types/search';
-// The singleton, not `usePostHog()`. That composable resolves through
-// `useNuxtApp()`, which throws when it is reached from a detached async
-// continuation -- and the outcome below is reported after `await fetchWord`,
-// which is exactly one. Same reasoning, and the same import, as `reportError`.
-//
-// None of the four captures below is guarded on `__loaded` any more: posthog-js
-// is fetched asynchronously, so that test is false for the first stretch of every
-// load and would have dropped the card a reader opens first. This client queues
-// until the SDK lands.
+// Import the queued singleton: usePostHog needs Nuxt context, which detached post-await continuations do not
+// retain.
 import { posthog } from '~/utils/posthogClient';
 import { NESTED_IN_TOKEN_TOOLTIP_KEY } from '~/composables/useDropdownState';
 
@@ -66,20 +59,8 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const localePath = useLocalePath();
 
-// Whether the card, once open, can carry real definitions. Not a rollout switch
-// -- the card itself ships to everyone now -- but a capability one: it is
-// derived from whether a Shirabe key is configured at all, and with none there
-// is nothing to ask. It only suppresses the REQUEST, so an unconfigured
-// environment still opens a card on the headword and inflection the token
-// already knows.
-//
-// Read strictly, because it does not arrive the way the schema in config/env.ts
-// left it. That schema runs at `nuxt build`; a NUXT_PUBLIC_* variable set on the
-// deployed container overrides the baked value afterwards, through Nuxt rather
-// than through zod. Nuxt parses what it finds, so "false", "0" and "" all land
-// falsy -- but an unrecognised value lands as the STRING it was, and
-// `Boolean('yes')` is true. Requiring exactly `true` means a misspelled flag
-// reads as off, which is the direction a doomed-request gate has to fail in.
+// This capability flag suppresses requests without a Shirabe key, not token-only cards. Runtime NUXT_PUBLIC_*
+// overrides bypass build-time zod parsing, so accept only true or "true", never arbitrary truthy strings.
 const isOn = (value: unknown): boolean => value === true || value === 'true';
 
 const config = useRuntimeConfig().public;
@@ -95,20 +76,8 @@ const enrichedTokens = computed<EnrichedToken[]>(() => {
 const { closeAllDropdowns, tokenTooltipEpoch, isTokenTooltipOpen } = useDropdownState();
 provide(NESTED_IN_TOKEN_TOOLTIP_KEY, true);
 
-/**
- * The token whose card is open, held SHALLOW -- and that is load-bearing, not a
- * micro-optimisation.
- *
- * A plain `ref` hands back `reactive(value)` for an object, so `.value` is a
- * PROXY of the token while the template's `token` (out of the `enrichedTokens`
- * computed) is the raw one. `hoveredToken.value === token` therefore compared a
- * proxy with its own target and was false every time, which quietly cost the
- * card its close: re-clicking the open word re-ran the open path instead of
- * `closeTooltip`, so "a click is its own undo" was true of the code and not of
- * the page. Escape and clicking away still worked, which is why it survived.
- *
- * Shallow is also simply correct here: an enriched token is immutable data the
- * card only ever reads, so deep reactivity bought nothing to begin with.
+/** Preserve raw token identity for re-click-to-close. A deep ref proxies immutable tokens and breaks equality
+ * with enrichedTokens.
  */
 const hoveredToken = shallowRef<EnrichedToken | null>(null);
 const tooltipRef = ref<HTMLElement | null>(null);
@@ -148,18 +117,8 @@ const hiddenDefinitionLanguages = computed(() =>
   globalGlossLanguages.value.filter((language) => definitionModes.value[language] === 'hidden'),
 );
 
-/**
- * Which words this token could be, and which of them the card is showing.
- *
- * A LIST, not a word, and that is the change. Shirabe answers
- * `POST /api/v1/words/identify` with every word a spelling can name, ranked --
- * きみ is 君, 黄身 or 黍 -- because one answer is a claim it often cannot
- * support. `candidates[0]` is its best reading of the sentence and where the
- * card opens; `picked` is where the reader moved it.
- *
- * Fetched through our server route so the service key stays on the server, and
- * cached in `~/utils/wordLookup` -- a module, so one answer serves every segment
- * on the page rather than every segment keeping its own copy.
+/** Shirabe returns ranked candidates, not one definitive word. The server route keeps credentials private;
+ * the wordLookup module cache reuses answers across segment instances.
  */
 
 const { showCandidateRows, posInitial, duplicateHeadwords, visibleCandidates, hiddenCandidateCount, isNameCandidate } =
@@ -202,36 +161,17 @@ const {
   () => userStore().shirabeLinked,
 );
 
-/**
- * The Anki half of the card, which is the other question a reader has about a
- * word they just looked up: is it already in my collection, and can this
- * sentence go on it.
- *
- * It answers against AnkiConnect on the reader's own machine and shows nothing
- * at all without a configured profile -- so for everyone else the card is
- * exactly what it was. See `useWordMining` for why none of it is cached.
+/** Mining uses local AnkiConnect and stays hidden without a configured profile; see useWordMining for cache
+ * constraints.
  */
 
-/** What the card mines, and what it asks Anki about: the dictionary form rather
- *  than the surface, because that is what a mine puts in the expression field --
- *  食べる, whatever the sentence inflected it to.
- *
- *  `headword`, so it follows the reader's pick. This read off the token alone,
- *  which was right when a card was about one word and wrong the moment it could
- *  be about several: the star said "you have this" about きみ while the button
- *  beside it wrote 黄身. It still answers immediately and still empties on close,
- *  because the token is `headword`'s own fallback. */
+/** Mine the current candidate's dictionary form, not the inflected surface. headword falls back to the token
+ * until lookup resolves.
+ */
 const miningWord = computed(() => headword.value);
 
-/**
- * The open card, rendered for a note: headword, reading, ruby, definitions,
- * pitch and badges.
- *
- * Computed off the same refs the card itself renders from, so what lands on the
- * note is what the reader was looking at when they pressed the button -- in
- * their gloss languages, with the same senses and the same six-sense cap. It
- * recomputes when the lookup lands, which is why `useWordMining` reads it
- * through a getter rather than being handed a value when the card opened.
+/** Render the note from the card's live refs so it matches visible languages, senses and caps. useWordMining
+ * reads a getter because lookup results can arrive after the card opens.
  */
 const minedCard = computed(() =>
   // The sentence goes in so the note can mark WHICH word was mined. Taken from
@@ -271,20 +211,8 @@ const segmentTaps = createSegmentTaps();
 const NOT_A_WORD = new Set(['symbol', 'whitespace']);
 const HAS_JAPANESE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/;
 
-/**
- * Worth asking the dictionary about.
- *
- * One rule for every token, which it did not used to be. A stored `wid` only
- * ever reached content words -- Shirabe pools the words a reader studies, and
- * particles are grammar -- so grammar needed a second path, and that path had to
- * send the SURFACE rather than the lemma, because なら reduces to the copula だ
- * and looking that up answers "to be" to a reader who pointed at "if".
- *
- * Resolving from the lemma plus the shape it took here settles both: Shirabe
- * picks the entry, so `なら` finds なら and 食べました finds 食べる, and neither
- * caller has to know which kind of word it is holding. What is left out is only
- * what could not have an entry -- punctuation, whitespace, bare digits -- where
- * a request would spend a round trip to be told 404.
+/** Ask with lemma plus surface: grammar such as なら must not resolve only to its lemma だ. Skip punctuation,
+ * whitespace and bare digits, which cannot have dictionary entries.
  */
 function isAskable(token: EnrichedToken): boolean {
   return !NOT_A_WORD.has(token.kind ?? '') && HAS_JAPANESE.test(token.d ?? '');
@@ -312,26 +240,8 @@ async function loadWord(token: EnrichedToken): Promise<void> {
   // it opened, so it grows into room already reserved for it.
 }
 
-/**
- * What the card ended up telling the reader, once per open.
- *
- * Read off what RENDERED, not off what the fetch returned, and the difference is
- * the whole point. An entry can come back perfectly well and still leave a
- * headword over blank space: `cardSenses` drops every sense with no gloss in a
- * language the reader reads, so a Spanish-only reader meeting an English-only
- * entry gets nothing under the word. A fetch-level metric scores that as
- * success.
- *
- * That gap is not hypothetical. It is the exact shape of the wrong-API-path bug
- * (`server/api/shirabe/words/[lemma].get.ts`), which rendered every card empty
- * and survived as long as it did because -- in the words of the comment left
- * there -- nothing alerted, since an empty card is not an error. `no_senses` is
- * the bucket that makes it loud.
- *
- * Called only where a lookup actually happened. A token nobody can ask about
- * (punctuation, bare digits) and a build with no Shirabe key configured both
- * return before this, because neither is the dictionary answering and counting
- * them would move rates that are supposed to be about the dictionary.
+/** Measure rendered definitions, not fetch success: gloss filtering can leave a valid entry with no visible
+ * senses. Exclude disabled/unaskable tokens because no dictionary lookup occurred.
  */
 function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: boolean): void {
   const ref = token.lookupRef;
@@ -370,39 +280,16 @@ function reportCardOutcome(token: EnrichedToken, answer: WordLookup, fromCache: 
   });
 }
 
-/**
- * Open the card for a token.
- *
- * Click rather than hover: hovering opened a card over every word the pointer
- * crossed on its way somewhere else, which made the sentence hard to read and
- * fired a lookup per word passed over. A click is deliberate, so the card only
- * appears when it was asked for, and it stays put until dismissed -- which is
- * what makes the links inside it reachable.
- */
-/**
- * Warm the cache for a word the pointer is resting on.
- *
- * The card opens on click, and a lookup takes a round trip -- so without this
- * the reader clicks and then waits, every time. Hovering is a good signal they
- * are about to: the answer is usually here before the click lands, and the card
- * opens filled in rather than on "Looking up…".
- *
- * Cheap to be wrong about. The cache is shared and deduped, so a pointer sweeping
- * a sentence costs one request per distinct word and none at all for words
- * already seen; a hover that never becomes a click has warmed the cache for the
- * next reader of that word on the page.
+/** Warm the shared, deduplicated cache on a resting pointer so clicks can open with an answer already
+ * available.
  */
 let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const onTokenHover = (token: EnrichedToken) => {
   if (!lookupsEnabled) return;
 
-  // Only for a pointer that has STOPPED. Firing on every mouseenter meant a
-  // pointer crossing a sentence on its way to one word started a request for
-  // every token it passed over -- and with a browser capping concurrent requests
-  // per host, the word actually clicked then queued behind a dozen nobody asked
-  // for. That made the click slower than no prefetching at all, which is the
-  // opposite of the point.
+  // Delay until the pointer rests; fetching every crossed token would queue the clicked word behind unwanted
+  // requests.
   if (prefetchTimer !== null) clearTimeout(prefetchTimer);
   prefetchTimer = setTimeout(() => {
     prefetchTimer = null;
@@ -493,19 +380,8 @@ const closeTooltip = () => {
   clearMined();
 };
 
-/**
- * The reader saying which word they actually meant.
- *
- * The pick is the whole reason the card offers a list. Shirabe ranks, never
- * filters -- a token it read badly costs a word its place in the list, never its
- * place in the dictionary -- so the reader is the one who settles it, and what
- * they settle is what gets carded: `minedCard` reads through `word`, which reads
- * through `picked`.
- *
- * Not remembered anywhere. Which word a token is depends on the dictionary and
- * on rules Shirabe keeps improving, so storing a pick would materialise a
- * decision that moves underneath it -- the same reasoning that took the id off
- * the token in the first place.
+/** A pick controls both displayed word and mined note. Do not persist it: dictionary rankings and identity
+ * rules evolve.
  */
 const pickCandidate = (index: number) => {
   if (index === picked.value) return;
@@ -542,37 +418,16 @@ const pickCandidate = (index: number) => {
   void probeMined();
 };
 
-/**
- * Picking from the LIST, which closes it.
- *
- * The list is a place to choose from, not a place to stay: the answer it was
- * opened to settle is the card above, and leaving it open leaves the reader
- * looking at the menu rather than the meal. Collapsing back to the chip row also
- * keeps the picked word on screen, since `pickerChips` guarantees it a chip.
- *
- * Only on CLICK. Arrow keys go on calling `pickCandidate` directly, because
- * closing the list under a keyboard reader would take away the thing their focus
- * is in and end the walk after one step.
+/** Clicking a list choice collapses to chips; arrow-key picks keep the list mounted so keyboard focus is not
+ * destroyed.
  */
 function pickFromList(index: number): void {
   pickCandidate(index);
   othersOpen.value = false;
 }
 
-/**
- * Walking the candidates from the keyboard.
- *
- * `tokenKeyAction` decides, which looks like reuse for its own sake and is not:
- * it is written over an arbitrary list of numeric keys, and the candidate
- * indices are one. It already settles the two things that go quietly wrong here
- * -- both axes move (Down is the list's own direction now, and Right still reads
- * as "next" to anyone who learned the row),
- * and the ends hold rather than wrapping, so arrowing off the last candidate
- * does not teleport the reader back to the first.
- *
- * Selection follows focus, which is the right call here whatever the widget is
- * called: each move opens that row's entry, so a reader arrowing down the list
- * is reading the definitions as they go rather than committing blind.
+/** Reuse tokenKeyAction for both axes and non-wrapping ends. Selection follows focus so arrowing reads each
+ * definition.
  */
 const onCandidateKeydown = (index: number, event: KeyboardEvent) => {
   const action = tokenKeyAction(
@@ -637,23 +492,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', onDocumentKeydown);
 });
 
-/**
- * Reaching the words without a mouse.
- *
- * The lookup was pointer-only: the tokens were plain `<span>`s with a click
- * handler, so nothing in a sentence could be focused and the whole dictionary
- * was unreachable from a keyboard. They are buttons now.
- *
- * One tab stop per sentence, not one per word. Making every token tabbable would
- * be the obvious fix and a bad one: a page of results is thousands of words, and
- * a reader tabbing to the footer would pay for every one of them. So the
- * sentence is the stop and the arrow keys walk it -- the roving-tabindex pattern
- * a composite widget is supposed to use. Exactly one token is tabbable at a time
- * and the arrows move which.
- *
- * Only the words worth asking about take part. Punctuation and whitespace are
- * skipped, because a stop on 、 is a stop on something the card has nothing to
- * say about.
+/** Rove one tab stop per sentence with arrow keys; making every word tabbable would impose thousands of stops.
+ * Only askable tokens participate.
  */
 const rootRef = ref<HTMLElement | null>(null);
 
@@ -715,41 +555,9 @@ const { presets, isDictionaryEnabled } = useDictionaryLinks();
 
 const { playingUrl, playHeadword, stopHeadword } = useHeadwordAudio();
 
-/**
- * Open a part in the card that is showing its parent.
- *
- * The same lookup the card already makes for a hovered token, asked about a
- * different word: the part becomes the card, with its own senses, pitch and
- * picker. Nothing is pushed or navigated, so the reader is one hover away from
- * the sentence they were reading.
+/** Track dictionary picks by key, not sense index: gloss-language changes can drop and renumber senses. Clear
+ * picks whenever the word changes so one word's selection cannot trim another word's exported definition.
  */
-/**
- * Which DICTIONARIES the reader has ticked, by `dictionaryKey`.
- *
- * This replaced a drag-to-highlight capture that read `window.getSelection()`
- * off the card. Dragging could say more -- half a sense, one gloss out of three
- * -- but it said it invisibly: nothing on screen indicated a selection was
- * armed, so the feature was undiscoverable to everyone who had not read the
- * field list in settings, and a stray drag while reading silently changed what
- * the next mine wrote. Ticking is coarser and legible, and legible wins on a
- * control whose mistakes are only ever found weeks later on a review card.
- *
- * The dictionary is the unit a reader actually chooses in. A stack is assembled
- * deliberately -- a monolingual pack on top, JMdict underneath as a safety net
- * -- so "this word gets 大辞泉 only" re-applies a decision they have already
- * made once, where "senses 1 and 3" is one they would have to make again for
- * every word. It is also the unit the exported note already speaks in: the
- * markup names its dictionaries above the senses they wrote.
- *
- * Keyed rather than indexed, so a pick survives the list re-rendering under it:
- * turning a gloss language off drops senses and renumbers the rest.
- *
- * Cleared whenever the card changes which word it is ABOUT -- closing, walking
- * into a part, stepping back, or picking another candidate. Carrying a pick to
- * a different word would put one word's definition on another word's note.
- */
-/** Shared, so `pickedForExport` returns the same identity on every card that is
- *  not trimming rather than a fresh set per evaluation. */
 const {
   pickedDictionaries,
   clearPicked,
@@ -879,19 +687,8 @@ const dictionaryLinks = computed(() => {
   );
 });
 
-/**
- * What the card is showing RIGHT NOW, in the same buckets `word_card_opened`
- * reports.
- *
- * Derived from rendered state rather than remembered from the fetch, which is
- * the point: this is read at the moment a reader gives up on the card and
- * leaves, so it has to say what was in front of them then. `revealDefinitions`
- * can turn a `no_senses` card into a `shown` one without any fetch happening.
- *
- * 'loading' is a real bucket and not a gap in the others -- a reader who clicks
- * out while the spinner is still up never saw a definition to be dissatisfied
- * with, and folding those into `no_senses` would blame the dictionary for the
- * lookup being slow.
+/** Classify the current rendered card at click time; revealing definitions can change no_senses to shown
+ * without a fetch. Keep loading separate: leaving before an answer is not a dictionary-coverage failure.
  */
 const cardOutcome = computed<'shown' | 'name' | 'no_senses' | 'missing' | 'unavailable' | 'loading' | 'idle'>(() => {
   if (wordState.value === 'loading') return 'loading';
@@ -909,23 +706,8 @@ const cardOutcome = computed<'shown' | 'name' | 'no_senses' | 'missing' | 'unava
   return senses.value.length > 0 ? 'shown' : 'no_senses';
 });
 
-/**
- * A reader leaving the card for a dictionary, classified by which one.
- *
- * The question this exists to answer is not "how much traffic do we send
- * Shirabe" -- it is "when the card had an answer, how often did the reader go
- * looking for a second opinion anyway". That needs `outcome` on the click
- * itself: a click on Jisho off a `missing` card is the card working as intended
- * and handing the reader on, while the same click off a `shown` card is the
- * definition not being good enough. Reading either one without the other tells
- * you nothing, and joining back to `word_card_opened` in a funnel would drop
- * every reader who opened the card more than once.
- *
- * `position` because the row is ordered and the first chip is clicked more for
- * being first. Without it, Shirabe's share is unreadable -- it always leads.
- *
- * No `sendBeacon` dance: every one of these links is `target="_blank"`, so the
- * page it fires from is still there when the request goes out.
+/** Capture outcome on each dictionary click to distinguish second opinions from missing-entry handoffs. Include
+ * chip position because first-place bias affects Shirabe's share. Links open new tabs, so no beacon is needed.
  */
 function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSurface, position: number): void {
   const ref = hoveredToken.value?.lookupRef;
@@ -1367,23 +1149,10 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             >{{ $t('tokenTooltip.moreSentences') }}</button>
           </div>
 
-          <!-- The other words this spelling can name.
-               
-               Pinned under the scrolling body rather than inside it, the way the
-               chip row used to be pinned above it, and for the reason that put
-               the chips there: a choice the reader cannot see without scrolling
-               is a choice they will not know they have. This list sits at the END
-               of a card whose body is often taller than the card, so inside the
-               scroll it would be invisible exactly when a word has enough senses
-               to be worth doubting.
-
-               Two states, because the two questions are different sizes. "Is it
-               one of a couple of obvious others?" is a glance, and a row of
-               chips answers it without spending height. "Which of these nine is
-               it?" needs to know what each one MEANS, which a chip cannot say --
-               so the overflow opens a list where every row carries its gloss.
-               The row is not shown beside the list: they are the same candidates,
-               and printing both reads as two different sets. -->
+          <!-- Keep candidate choices outside scrolling definitions so they remain discoverable. Chips serve a
+               glance; expanding replaces them with gloss-bearing rows rather than duplicating the same
+               candidates.
+               -->
           <div v-if="showCandidateRows" class="token-tooltip__others">
             <!-- Chips. `pickerChips` keeps the picked one in the row however far
                  down the ranking it is, so collapsing the list never leaves the
@@ -1460,20 +1229,9 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
             </template>
           </div>
 
-          <!--
-            What the mine is about to write, and the way back out of it.
-
-            Absent until the reader ticks something, because until then there is
-            nothing to say: an untouched card exports every dictionary, which is
-            what it has always done and what the senses above already show. The
-            row is the pick's own footprint -- it appears with the first tick,
-            and "Deselect all" is what makes it go away again.
-
-            In the footer rather than under the senses, because it is a summary
-            of the whole list rather than a note on its last row -- and because
-            the alternative put it between the senses and the "no definitions"
-            branch that follows them, which broke that `v-else-if` chain.
-          -->
+          <!-- No picks exports all dictionaries. Place the pick summary in the footer, outside the senses'
+               v-else-if chain.
+               -->
           <div
             v-if="canPickDictionaries && pickedDictionaries.size > 0"
             class="token-tooltip__pick"
@@ -1539,15 +1297,9 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
 }
 
 
-/* The sentences an expansion pulled in, so the reader can still see which line
-   was the hit. Same colour the translations get from their `text-cyan-200`
-   wrapper (Tailwind's cyan-200), because it is the same distinction.
-
-   Declared before `.token--match` on purpose: the two are equally specific, so
-   source order decides, and a match has to win. It only comes up in the segment
-   the reader searched for -- a context request carries no query, so neighbours
-   have nothing highlighted -- but "the word you searched for" is the louder
-   thing to say when it does. */
+/* Context tint matches translations. Keep this before the equally specific .token--match so search matches
+ * win.
+ */
 .token--context {
   color: #a5f3fc;
 }
@@ -1566,15 +1318,9 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
   text-underline-offset: 3px;
 }
 
-/* The word the open card is about. The hover tint cannot say this on its own: a
-   reader who has moved the pointer off the word to read the card loses every
-   trace of which word they opened, and in a sentence where several look alike
-   that is a real question. Accent rather than a brighter neutral, so the
-   highlight and the card it opened read as one thing.
-
-   `.token.token--open` rather than `.token--open`, to match the specificity of
-   `.token:hover` above and win on source order -- otherwise pointing at the open
-   word would replace the accent with the ordinary hover grey. */
+/* Keep the open word marked after the pointer moves away. Match .token:hover specificity so source order
+ * preserves the accent.
+ */
 .token.token--open {
   background-color: color-mix(in srgb, var(--accent-soft) 28%, transparent);
 }
@@ -1593,12 +1339,9 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
   transform: translate(-50%, -100%);
   display: flex;
   flex-direction: column;
-  /* A fixed width, not `max-content`. Shrink-to-fit meant the card was one width
-     while it said "Looking up…" and another once the senses arrived, so it slid
-     sideways under the reader as it filled in -- and `placeTooltip` could not
-     clamp it to the viewport in one pass, because the width it was clamping was
-     not the final one. These four numbers are `BOX` in ~/utils/cardPlacement;
-     keep them in step. */
+  /* Fixed width avoids shifting after lookup and makes viewport clamping stable. Keep these dimensions in sync
+   * with BOX in ~/utils/cardPlacement.
+   */
   width: min(480px, calc(100vw - 24px));
   max-height: min(52vh, 420px);
   padding: 10px 0;
@@ -1638,14 +1381,9 @@ function reportDictionaryClick(dictionary: DictionaryId, surface: ShirabeLinkSur
 /* The word is what the card is about, so it is the one thing sized to be read
    at a glance rather than to fit. `ruby rt` is 0.55em, so the furigana grows
    with it and the head keeps its proportions. */
-/* The back/forward pair, in the header's right-hand group beside the mine
-   button rather than in front of the headword: this is where the reader came
-   from, not what the card is about, and the word has to be the first thing read.
-
-   `margin-left: auto` pushes the group right, and the sibling rule below takes
-   that auto OFF the tools when these arrows precede them. Two auto margins on one
-   flex line do not stack the way it reads: the free space is split EQUALLY
-   between them, which would have parked the arrows halfway across the header. */
+/* Navigation owns the header's auto margin when present; two auto margins split free space rather than
+ * stacking.
+ */
 .token-tooltip__nav {
   flex: 0 0 auto;
   align-self: flex-start;
@@ -1704,10 +1442,6 @@ a.token-tooltip__word:hover {
   color: var(--accent-soft);
 }
 
-/* The candidate row. Pinned like the head above it -- `flex: 0 0 auto` so a long
-   list never eats the senses' share of a capped-height card -- and allowed to
-   wrap, because a long list does not fit across one line and a horizontal
-   scroller hides the ones a reader most needs to see. */
 /* The alternatives, pinned under the scrolling body rather than inside it:
    `flex: 0 0 auto` beside a body that is `0 1 auto`, so the body gives up room
    and this keeps its place whatever the definition's length.
@@ -1866,9 +1600,6 @@ a.token-tooltip__word:hover {
   opacity: 0.75;
 }
 
-/* What the row is FOR. Takes the rest of the line and truncates rather than
-   wrapping: two-line rows stop being a list you can run your eye down, and the
-   full text is one click away by definition. */
 /* The part of speech, on a chip whose spelling is not enough to choose by.
    Quiet: it is a tiebreak, not something to read. */
 .token-tooltip__candidate-kind {
@@ -2079,12 +1810,9 @@ a.token-tooltip__word:hover {
   color: var(--ink-faint);
 }
 
-/* No padding of its own: `.token-tooltip__body` already insets every row by
-   14px, and repeating it here pushed the badges 28px in while the senses, parts
-   and kanji beside them sat at 14 -- measured 485 against 471, the one row on
-   the card that did not line up with the word it describes. The inflection line
-   above and the forms row below carried the same leftover, from before these
-   three were moved inside the scrolling body. */
+/* The body supplies the shared 14px inset; repeating it here would double-pad badges relative to adjacent
+ * rows.
+ */
 .token-tooltip__badges {
   flex: 0 0 auto;
   display: flex;
@@ -2122,13 +1850,9 @@ a.token-tooltip__word:hover {
   flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
-  /* Scrolling to the end of the card does not then start scrolling the page
-     behind it. Without this the reader reaches the last sense and the sentence
-     they were reading slides away underneath -- and on a card opened by HOVER,
-     the page moving is enough to take the word out from under the cursor and
-     dismiss the thing they were reading. `contain` rather than `none` so the
-     card still rubber-bands at its own ends, which is the feedback that says
-     "this is the end" rather than "this is stuck". */
+  /* Contain scroll chaining so reading the last sense does not move the page; retain local overscroll
+   * feedback.
+   */
   overscroll-behavior: contain;
   padding: 0 14px;
   /* Thumb only. The default track is a filled gutter with a border, which
@@ -2199,14 +1923,9 @@ a.token-tooltip__word:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* No markers and no gutter: the numbers are cells of their own rows below, so
-   the list needs neither the indent nor the counter it used to draw.
-
-   The number column and its gap are variables because three rules depend on
-   them and they have to agree: the row's own grid, and the two indent steps,
-   which are exactly one column-plus-gap each so a sub-sense's number lands where
-   its parent's text starts. Spelling the arithmetic out three times is how a
-   sub-sense ends up hanging between its parent's number and its text. */
+/* Share number-column and gap variables across grid and indentation; each sub-sense step is one column plus
+ * gap.
+ */
 .token-tooltip__senses {
   --sense-number-column: 1rem;
   --sense-number-gap: 4px;
@@ -2429,12 +2148,7 @@ a.token-tooltip__word:hover {
   color: var(--accent-soft);
 }
 
-/* Smaller than the segment's own EN/ES badges: this one sits inside a popup
-   that is already a card on top of a card, and at the segment's size it read as
-   the loudest thing in it. */
-/* A hover is a question, and an empty card for a beat reads as "no answer" when
-   it means "asking". Cheap enough to show every time rather than after a delay:
-   a cached word never reaches this state at all, it renders straight away. */
+/* Show pending immediately; cached answers bypass this state. */
 .token-tooltip__pending {
   display: flex;
   align-items: center;
@@ -2486,13 +2200,7 @@ a.token-tooltip__word:hover {
   color: var(--ink-faint);
 }
 
-/* Which dictionary the senses under it came from. Quieter than the language
-   badge beside the glosses: it is an answer to "where is this from", asked
-   rarely, and it must not compete with the definition it introduces. */
-/* Sized and cased for a NAME, which is what this now holds. It was 9px
-   uppercase with letter-spacing back when it printed a slug (`jmdict`); at that
-   size 精選版　日本国語大辞典 is a smudge, and uppercasing does nothing to
-   Japanese but does strand the styling on a rule that no longer applies. */
+/* Display names can be Japanese; slug-era tiny uppercase styling is not readable for them. */
 .token-tooltip__source {
   display: block;
   font-size: 11px;

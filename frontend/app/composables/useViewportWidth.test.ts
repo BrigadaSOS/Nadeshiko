@@ -4,18 +4,8 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent } from 'vue';
 
 /**
- * The one shared `resize` listener behind the word cards.
- *
- * The rule it exists to state once is WIDTH ONLY, and it is the kind of
- * subtlety that gets quietly reverted by anyone who reads `resize` as meaning
- * "the window changed size". Mobile browsers fire `resize` as the URL bar
- * collapses during an ordinary SCROLL -- a ~60px height change, enough to tip a
- * marginal card onto the other side of its word. The reader is scrolling, not
- * resizing, and the card jumps: exactly what `cardPlacement` exists to prevent.
- * A URL bar does not change the width, which is how the two are told apart.
- *
- * Module state is per import, so every test re-imports; otherwise one test's
- * subscribers are still registered in the next.
+ * Ignore mobile URL-bar height changes so scrolling cannot reposition cards. Re-import per test
+ * to isolate module subscribers.
  */
 let frames: (() => void)[] = [];
 let cancelled: number[] = [];

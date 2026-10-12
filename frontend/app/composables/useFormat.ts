@@ -1,11 +1,4 @@
-/**
- * Locale-aware formatting for dates, numbers and relative times.
- *
- * The date and number shapes are registered once in `i18n/i18n.config.ts`; this
- * exposes them so components stop hand-rolling `Intl` calls with their own
- * options, which is how the same "format a date" job ended up implemented ten
- * different ways — including one that never passed a locale at all.
- */
+/** Use the shared i18n date and number formats instead of component-specific Intl options. */
 export function useFormat() {
   const { d, n, t, locale } = useI18n();
 

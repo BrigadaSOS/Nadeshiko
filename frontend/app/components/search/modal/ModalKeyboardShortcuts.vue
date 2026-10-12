@@ -57,7 +57,6 @@ defineExpose({ open });
         </div>
 
         <div class="p-5 space-y-5">
-          <!-- Navigation -->
           <div>
             <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ $t('shortcuts.navigation') }}</h4>
             <div class="space-y-2">
@@ -67,7 +66,6 @@ defineExpose({ open });
             </div>
           </div>
 
-          <!-- Playback -->
           <div>
             <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ $t('shortcuts.playback') }}</h4>
             <div class="space-y-2">
@@ -79,7 +77,6 @@ defineExpose({ open });
             </div>
           </div>
 
-          <!-- Actions -->
           <div>
             <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ $t('shortcuts.actions') }}</h4>
             <div class="space-y-2">

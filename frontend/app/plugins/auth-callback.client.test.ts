@@ -7,24 +7,8 @@ import { AUTH_CALLBACK_PARAM, AUTH_INTENT_KEY, rememberAuthIntent } from '~/util
 vi.mock('~/utils/reportError', () => ({ reportEvent: vi.fn() }));
 
 /**
- * (A DOM, because `authIntentStorage()` reaches for `window.localStorage` and
- * answers `undefined` without one -- which quietly turns every attribution
- * assertion below into a comparison of two unknowns.)
- *
- * The plugin that finishes an auth round trip: strips the callback query, greets
- * the reader, and -- the reason it carries analytics at all -- reports the trips
- * that came back REJECTED.
- *
- * Without that report a provider that rejects everyone looks exactly like a
- * provider nobody chooses: both are an absence of signups. Not hypothetical --
- * 264 people picked Google in 90 days and the data could not say what became of
- * any of them.
- *
- * The two subtler rules are about not claiming pages that are not sign-ins. A
- * third-party account LINK is the same OAuth shape, and the bare `code`/`state`
- * test cannot tell them apart; and the query has to be read before it is
- * stripped, because `route` is live and there is nothing left to branch on
- * afterwards.
+ * Use a DOM for real localStorage-backed attribution. Cover callback cleanup and rejection reporting without
+ * claiming account-link callbacks; read errors before clearing the live route query.
  */
 const store = reactive({ isLoggedIn: false, getBasicInfo: vi.fn() });
 const capture = vi.fn();
@@ -184,9 +168,7 @@ describe('a sign-in that was REJECTED', () => {
     ['access_denied', 'modalauth.labels.logindenied'],
     ['server_error', 'modalauth.labels.errorlogin400'],
   ])('tells the reader what %s means', async (reason, label) => {
-    // `access_denied` is not a mistake the reader can correct by trying the
-    // same button harder -- they cancelled, or a managed account's admin has
-    // not allowed the app -- so it points at the sign-in nobody has to approve.
+    // Access denial can be cancellation or account policy; the label suggests a provider-independent sign-in.
     await land({ error: reason });
 
     expect(toastError).toHaveBeenCalledWith(label);
@@ -229,9 +211,6 @@ describe('a sign-in that was REJECTED', () => {
   });
 
   test('consumes the intent, so the NEXT login is not credited to this gate', async () => {
-    // The attempt is over. Leaving it parked would hand its gate to whatever
-    // sign-in happens next, which is how one nudge comes to look responsible
-    // for a week of signups.
     rememberAuthIntent(localStorage, {
       provider: 'google',
       source: 'download_nudge',

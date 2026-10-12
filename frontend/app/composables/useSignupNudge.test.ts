@@ -5,22 +5,8 @@ import { reactive } from 'vue';
 import { DEPTH_PLAYS_THRESHOLD, DEPTH_SEARCHES_THRESHOLD } from '~/utils/signupNudges';
 
 /**
- * The two asks a signed-out reader meets, and the rules that keep them from
- * becoming noise.
- *
- * The decisions themselves live in `~/utils/signupNudges` and are tested there;
- * what is here is the part that needs a browser, and the parts worth pinning are
- * the ones that protect the reader rather than the funnel:
- *
- *   - the signed-in check lives HERE rather than at each call site, so a new
- *     call site cannot forget it and ask a member to sign up;
- *   - every step is wrapped, because an account we failed to ask for is a much
- *     cheaper outcome than a download button that throws;
- *   - the counters are per VISIT: ten plays in one sitting is a reader in the
- *     middle of something, ten plays over a month is not the same person and
- *     should not get the same message;
- *   - and the ask is recorded BEFORE the toast is raised, so a throw inside the
- *     toast cannot leave a nudge that re-fires on every download.
+ * Cover browser safeguards beyond signupNudges: exclude signed-in readers, contain failures,
+ * count per visit, and spend cooldown before raising a panel that might throw.
  */
 const user = reactive({ isLoggedIn: false });
 const capture = vi.fn();

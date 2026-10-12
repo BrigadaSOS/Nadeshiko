@@ -31,13 +31,7 @@ const onForget = (entry: FamiliarMediaEntry) => {
   emit('forget-familiar', entry.media.publicId);
 };
 
-/**
- * "6 Anki exports · 40 plays · 2 shares", with each number pluralised on its own.
- *
- * Three counts cannot share one plural choice, which is why this is composed
- * rather than a single interpolated string -- that read "1 cards" and "0 shares".
- * The separator stays in the locale file so Japanese can use its own.
- */
+/** Pluralize each count independently; keep the separator localized. */
 const familiarCounts = (entry: FamiliarMediaEntry): string =>
   t('accountSettings.activity.privacy.familiarCounts', {
     cards: t('accountSettings.activity.privacy.familiarCards', entry.ankiCount),

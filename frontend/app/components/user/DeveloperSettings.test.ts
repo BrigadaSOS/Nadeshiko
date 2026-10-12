@@ -3,19 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, nextTick, ref } from 'vue';
 
-/**
- * The API-key panel: the reader's keys, and the quota they spend.
- *
- * The quota block is the part worth pinning. Every number in it has a FALLBACK,
- * because `/v1/user/me` failing must not blank the page -- and a fallback that
- * renders without saying it is one reads as a genuine "0 of 5000 used" to
- * somebody whose session just fell over. The burst line exists for the same
- * reason: a 429 with plenty of month left is otherwise unexplainable, which is
- * what sent the support thread behind it to us.
- *
- * The other thing here is scope selection, where the two mistakes cost very
- * different amounts: too few scopes is a second visit to this page, too many is
- * a credential in someone else's code that can rewrite the account.
+/** Flag placeholder quotas after load failure, show independent burst limits, and default new keys to
+ * read-only.
  */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));

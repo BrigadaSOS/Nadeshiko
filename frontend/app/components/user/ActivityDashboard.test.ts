@@ -3,21 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, ref } from 'vue';
 
-/**
- * The activity page's own logic, which is entirely about WRITES.
- *
- * The two switches here decide whether we keep a record of what the reader
- * does, so the direction that matters is the failure one: a switch that moves on
- * click and stays moved after the server refused leaves a reader believing they
- * have turned tracking off while it is still on. Both are therefore pessimistic
- * -- the switch follows the server, not the click -- and both write through to
- * the store, because the initial value is read back from there and leaving the
- * page would otherwise show the old state.
- *
- * The rendering is four child components with their own concerns; they are
- * stubbed down to the events they raise, which is the surface this component
- * actually owns.
- */
+/** Privacy switches follow successful server writes and update the store used to initialize later visits. */
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 const toastSuccess = vi.fn();

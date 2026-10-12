@@ -5,11 +5,7 @@
 <script setup lang="ts">
 const props = withDefaults(
   defineProps<{
-    /**
-     * How far ahead of the viewport the next page starts loading. The default
-     * buys a full screen of lead time on the sentence list, where rows are tall
-     * and a page takes a moment to arrive; denser grids want less.
-     */
+    /** Prefetch a screen early for tall sentence rows; denser grids can reduce this margin. */
     rootMargin?: string;
   }>(),
   { rootMargin: '1200px' },

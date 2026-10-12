@@ -2,29 +2,10 @@
 import { useRoute } from 'vue-router';
 import { handleApiError } from '~/utils/apiError';
 
-/**
- * Where the unsubscribe link in a lifecycle email lands.
- *
- * IT OFFERS LESS BEFORE IT OFFERS NONE. Somebody who clicked this link is on
- * their way out, and that is the one moment where a choice between categories is
- * worth more than anywhere else in the product: a reader who only wanted the
- * monthly recap to stop will take that option if it is in front of them, and
- * will take "stop everything" if it is not.
- *
- * IT CHANGES NOTHING ON ARRIVAL, and that is why the link points here rather
- * than at a backend route. Mail scanners and link-preview bots fetch every URL
- * in a message before the recipient has seen it; anything that opted somebody
- * out on load would unsubscribe readers from mail they never opened, and we
- * would never know it had happened. The GET reads, the writes are explicit.
- *
- * The header's one-click is a different URL carrying the same token, and it is
- * blunt on purpose -- Gmail posts it with nobody present, so there is no one to
- * show a choice to. See `unsubscribeUrls` in the backend.
- *
- * No session required, by design. The token speaks for the account, and an
- * opt-out that first demanded a sign-in is the one that gets answered with the
- * spam button instead.
- */
+// Offer category opt-outs as well as the master switch. The token authorizes without a session.
+// Arrival only reads: mail scanners and link previews must not unsubscribe readers.
+// Writes require explicit interaction; the email header's one-click POST uses a separate
+// URL with the same token because no reader is present there to choose categories.
 
 const { t } = useI18n();
 const route = useRoute();
@@ -43,27 +24,17 @@ const categories = reactive<Record<Category, boolean>>({ recap: true, checkins: 
 /** Which category the email that brought them here belonged to, so the page can point at it. */
 const cameFrom = ref<Category | null>(null);
 
-// Nothing here should be indexed or previewed: the URL carries a token, and a
-// crawler following it is exactly the visitor this page is careful about.
+// Token-bearing URLs must not be indexed or previewed.
 definePageMeta({ robots: false });
 
-/**
- * Says what just changed.
- *
- * The switches save as they are flipped, so without this the page answers a
- * deliberate act with nothing at all -- and a reader who came here to make
- * something stop needs to be told it stopped. Names the switch rather than
- * saying "saved", because there are four of them on one card.
- */
+// Confirm the specific switch changed, since each switch saves immediately.
 const announce = (on: boolean, name: string) => {
   useToastSuccess(t(on ? 'accountSettings.emails.turnedOn' : 'accountSettings.emails.turnedOff', { name }));
 };
 
 const failWith = (caught: unknown) => {
   state.value = 'failed';
-  // A token we cannot read is the one failure the reader can route around
-  // themselves, so it names the way out rather than saying "something went
-  // wrong": the same switches live in their settings.
+  // Invalid tokens point to settings, where the same switches remain available.
   const status =
     (caught as { status?: number; response?: { status?: number } })?.status ??
     (caught as { response?: { status?: number } })?.response?.status;
@@ -89,13 +60,7 @@ onMounted(async () => {
   }
 });
 
-/**
- * One switch at a time, sending only what moved.
- *
- * The reader sees the change take immediately rather than pressing a save
- * button, because the thing they came here to do is stop something -- and a page
- * that makes them confirm twice is a page they close on the first screen.
- */
+// Save only the changed category immediately, with no second confirmation.
 const toggle = async (category: Category) => {
   if (saving.value) return;
   saving.value = category;
@@ -116,13 +81,7 @@ const toggle = async (category: Category) => {
   }
 };
 
-/**
- * The master switch, which is also the way out.
- *
- * A switch rather than a "stop everything" button, because the card this page
- * copies already has one and a reader who wants out can flip it without reading
- * anything. Turning it back on restores whatever the categories underneath say.
- */
+// Re-enabling the master restores the category choices shown underneath.
 const toggleAll = async () => {
   if (saving.value) return;
   saving.value = 'all';
@@ -161,10 +120,7 @@ const toggleAll = async () => {
       <template v-else>
         <h1 class="text-2xl font-semibold text-white md:text-3xl">{{ t('unsubscribe.chooseTitle') }}</h1>
 
-        <!-- The same card as the account settings page, deliberately. Somebody
-             who lands here from an email and somebody who found their settings
-             are making the same decision, and two layouts for one decision is
-             two places to keep in step. -->
+        <!-- Match account settings so both opt-out entry points offer the same choices. -->
         <div class="nd-settings-card mt-6">
           <div class="space-y-4">
             <div class="flex items-center justify-between gap-4">
@@ -193,9 +149,7 @@ const toggleAll = async () => {
               </button>
             </div>
 
-            <!-- Dimmed rather than hidden when the master is off: a reader
-                 deciding whether to turn email back on needs to see what they
-                 would be turning on. -->
+            <!-- Keep disabled categories visible so readers know what re-enabling restores. -->
             <div :class="['space-y-4 border-t border-gray-700 pt-4 transition-opacity', enabled ? '' : 'opacity-50']">
               <div
                 v-for="category in CATEGORIES"

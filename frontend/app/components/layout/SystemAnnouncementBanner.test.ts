@@ -3,18 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { defineComponent, ref } from 'vue';
 
-/**
- * The site-wide announcement bar.
- *
- * Purely additive chrome, and that shapes every decision: "no announcement" is
- * served as an ERROR by the backend endpoint, so a null covers both that and a
- * genuine failure -- and either way the banner simply does not appear rather
- * than putting an error where the reader expected the page.
- *
- * An announcement that exists but is INACTIVE must stay hidden: taking one down
- * writes `active: false` rather than deleting it, so the stored row outlives the
- * banner and showing it would resurrect a notice an admin retired.
- */
+/** No announcement is an API error; failures hide this optional banner. Inactive rows must stay hidden. */
 const announcement = ref<Record<string, unknown> | null>(null);
 const fetchFails = ref(false);
 

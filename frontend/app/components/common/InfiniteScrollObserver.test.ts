@@ -2,19 +2,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 
-/**
- * The sentinel that loads the next page.
- *
- * The lead time is the whole design: rows on the sentence list are tall and a
- * page takes a moment to arrive, so the sentinel fires a full screen early.
- * Denser grids pass a smaller margin, which is why it is a prop rather than a
- * constant -- and a default that stopped being applied would turn every list
- * into load-on-reach.
- *
- * Only an INTERSECTING entry counts. The observer fires on leaving the viewport
- * as well as entering it, and acting on both would fetch a page every time the
- * reader scrolled back up past the sentinel.
- */
+/** Prefetch a screen early for tall sentence rows; observer exit events must not load another page. */
 type ObserverCallback = (entries: { isIntersecting: boolean }[]) => void;
 
 let lastCallback: ObserverCallback | null = null;

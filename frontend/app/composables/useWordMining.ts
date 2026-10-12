@@ -10,30 +10,13 @@ import type { SearchResult } from '~/types/search';
 import { posthog } from '~/utils/posthogClient';
 
 /**
- * The word card's half of the Anki workflow: whether the open word is already
- * in the reader's collection, and sending this sentence to it.
- *
- * All of it runs against AnkiConnect on the reader's own machine, so there is
- * nothing to ask our API about and nothing that works without Anki running.
- * That is also why the state lives per open card rather than in a cache: a
- * localhost request costs a fraction of a millisecond and a collection changes
- * under us constantly -- the reader mines a word in Yomitan and comes straight
- * back to the same page -- so a remembered "not mined" would be wrong within
- * seconds and would be wrong in the direction that hides the button that
- * matters.
+ * Probe and mine through the reader's local AnkiConnect. Keep state per open card rather than
+ * caching results that other mining tools can immediately invalidate.
  */
 
 /**
- * Whether AnkiConnect has already refused to answer this page load.
- *
- * Module scope, so one refusal covers every sentence on the page rather than
- * each of them finding out separately. Anki closed is the ordinary state for a
- * reader who is only reading, and the probe fires on every card they open;
- * without this it is a doomed connection attempt per word, forever.
- *
- * Cleared whenever the reader actually asks to mine something, because by then
- * they have plainly gone and started Anki -- a breaker that never resets would
- * mean starting Anki mid-session does nothing until a reload.
+ * One failed background probe suppresses further probes for this page load. An explicit mine
+ * resets the breaker so starting Anki mid-session works.
  */
 let ankiUnreachable = false;
 
@@ -84,18 +67,8 @@ export function useWordMining(
   const canMine = computed(() => canConfigureMine.value && !!profile.value?.key?.trim());
 
   /**
-   * Why the Anki controls cannot act, or null when they can.
-   *
-   * One value rather than a boolean per condition, because the control needs to
-   * SAY which one it is and "disabled" on its own is the least useful thing a
-   * button can tell somebody. Ordered by what the reader has to do first: no
-   * amount of running Anki helps a profile with no note type, so configuration
-   * is reported ahead of reachability.
-   *
-   * `offline` is deliberately not returned while `connectReachable` is null.
-   * Nothing has asked AnkiConnect yet at that point, and announcing "Anki is not
-   * running" to a reader whose Anki is running perfectly well -- they simply have
-   * not opened a card yet -- is worse than saying nothing.
+   * Report configuration problems before reachability. Untested connectReachable=null must not
+   * be called offline.
    */
   const mineBlockedReason = computed<'not-configured' | 'no-key' | 'offline' | null>(() => {
     if (!canConfigureMine.value) return 'not-configured';
@@ -126,24 +99,9 @@ export function useWordMining(
   const canCheckMined = computed(() => canMine.value);
 
   /**
-   * Whether a note this creates could ever be found again.
-   *
-   * The condition is narrow on purpose: the profile must write the WORD into the
-   * very field the probe searches. That is the field `minedNoteQuery` matches
-   * on, so a note created without it is invisible to the next probe -- and
-   * invisible means the next mine of the same word creates another one, and the
-   * reader collects a duplicate per visit without anything ever reporting an
-   * error.
-   *
-   * It is also what keeps this from changing anything for the setup that came
-   * first. A Yomitan reader names Expression as their key field and does NOT map
-   * it here -- Yomitan already filled it -- so they fail this check and keep the
-   * last-added-card behaviour they have always had. Creating for them would be
-   * the worst of both: a second, emptier note beside the one Yomitan just made.
-   *
-   * `{word-furigana}` counts alongside `{word}` because the probe already looks
-   * for both spellings (`field:手加減` OR `field:手加減[*`), which is exactly the
-   * furigana form.
+   * Creation requires {word} or {word-furigana} in the key field searched by the probe;
+   * otherwise the new note cannot be found and later mines duplicate it. Yomitan-managed key
+   * fields retain last-card behavior. The probe accepts both plain and furigana spellings.
    */
   const canCreate = computed(() => {
     const configured = profile.value;
@@ -189,20 +147,8 @@ export function useWordMining(
     }
 
     /**
-     * Nothing in the mining deck, so ask the whole collection before concluding
-     * the word is new.
-     *
-     * The two questions have different scopes and that mismatch was a dead end
-     * for the reader: this probe is scoped to the deck, while the duplicate
-     * check Anki runs at `addNote` is scoped to the NOTE TYPE and ignores decks
-     * entirely. A word already mined into some other deck therefore looked new
-     * here, offered a "create", and got refused with "cannot create note because
-     * it is a duplicate" -- an error with nothing the reader could do about it.
-     *
-     * Asking again unscoped costs one local round trip on words that turn out to
-     * be new, and turns that dead end into the note they already have. The deck
-     * still wins when it holds a copy, which is why this is a fallback rather
-     * than the only question.
+     * If the deck has no match, probe the whole collection: Anki's duplicate check is
+     * note-type-scoped, not deck-scoped. Prefer the deck's copy when present.
      */
     if (ids.length === 0 && profile.value?.deck) {
       ids = await ask(undefined);
@@ -222,27 +168,9 @@ export function useWordMining(
   }
 
   /**
-   * What the reader's own collection said about a word they looked up.
-   *
-   * The question this exists to answer is how much of what readers stop to look
-   * up they have already mined -- which is the difference between a card that
-   * mostly tells them something new and one that mostly tells them they own this
-   * already, and it is not something any server-side metric can see: the answer
-   * lives on their machine.
-   *
-   * Reported ONLY where Anki actually answered, which is the whole discipline of
-   * this event. The three cases that never asked -- no profile, no expression
-   * field configured, Anki unreachable -- are not the collection saying "no",
-   * and folding them in would put a denominator of "every card opened by
-   * everyone" under a numerator of "words mined by readers who run Anki". The
-   * unreachable case is left out for a second reason on top of that: the breaker
-   * means it can only fire once per page load, so it counts pages while the
-   * other two count words, and a share computed across the three would be
-   * meaningless in a way nothing on the chart would show.
-   *
-   * `lemma` matches the field `word_card_opened` sends, so the two can be joined
-   * on the word: which words readers look up and already own, versus which they
-   * look up again and again and have never mined.
+   * Count only probes Anki actually answered. Unasked or unreachable cases would corrupt the
+   * mined-rate denominator; breaker failures also count pages rather than words. lemma joins
+   * the event to word_card_opened.
    */
   function reportProbe(word: string, mined: boolean): void {
     // Unguarded: posthog-js is fetched asynchronously, so a `__loaded` test here
@@ -268,27 +196,8 @@ export function useWordMining(
   }
 
   /**
-   * Put this word -- and this sentence for it -- in the reader's collection.
-   *
-   * Three targets, in order of how much the collection told us:
-   *
-   *   the note the probe found  the reader has mined this word before, so this
-   *                             sentence improves THAT card. A word mined last
-   *                             month is found again rather than duplicated.
-   *   a new note                the probe asked, the word is not there, and the
-   *                             profile writes the word into the field the probe
-   *                             reads (`canCreate`). This is what makes the word
-   *                             card a miner in its own right rather than a
-   *                             companion to Yomitan.
-   *   the last added card       everything else. It is the old behaviour, kept
-   *                             for the setup it was written for: something else
-   *                             made the note a moment ago and this fills in the
-   *                             sentence.
-   *
-   * The middle one is not simply "there was no note id". That is also true when
-   * nothing was asked, and when the created note would be unfindable -- and
-   * creating in either case hands the reader a duplicate per mine. See
-   * `canCreate` for why the condition is as narrow as it is.
+   * Target the probed note; otherwise create only when canCreate permits a findable note after
+   * a negative probe. All other cases retain last-added-card behavior.
    */
   async function mineSentence({ wordFields = true }: { wordFields?: boolean } = {}): Promise<void> {
     const sentence = currentResult();
@@ -319,21 +228,9 @@ export function useWordMining(
     } finally {
       mining.value = false;
     }
-    // Ask again rather than assume. The export reports its own outcome and does
-    // not return one, and the last-added path in particular may have written to
-    // a note for an entirely different word -- so the star has to be earned by
-    // the collection saying so, not by the click having happened.
-    //
-    // Only while the card is still on the word that was mined. An export takes
-    // seconds (it uploads the audio and the still, and may raise Anki's browser
-    // twice), which is long enough for the reader to have closed the card or
-    // opened another word -- and re-probing then would blank the new card's star
-    // and answer it with the previous word's collection.
-    // Unreported: this one is bookkeeping, not a reader asking a question, and
-    // it runs at the one moment the answer is almost guaranteed to be "mined" --
-    // we have just written to a note. Counting it would inflate the mined rate
-    // by exactly the number of times readers used the button, which is the one
-    // number the event must not be sensitive to.
+    // Re-probe only if the card still shows this word: export does not return an outcome and
+    // may target another word's last-added note. Do not count this bookkeeping probe, which
+    // would inflate the mined rate.
     if (currentWord() === word) await probeMined({ report: false });
   }
 

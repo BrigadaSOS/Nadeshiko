@@ -31,23 +31,9 @@ let inFlight: Promise<void> | null = null;
 let hydrated = false;
 
 /**
- * The reader's last searches, for the recents menu under the search bar.
- *
- * **The device is the primary copy.** Every reader has a list in `localStorage`,
- * signed in or not, because a signed-out reader has nowhere else to keep one and
- * the list has to survive being offline. A signed-in reader's account rows
- * (`UserActivity` of type `SEARCH`, the same ones `/user/activity` lists) merge
- * into it, which is what makes the list follow them between devices. Syncing is
- * free: the only line here is signed-in versus signed-out.
- *
- * **Recording happens on arrival at results, never on submit** -- see
- * `SearchContainer`'s `trackSearch`. Most searches on the site are never typed
- * into the bar: a clicked token, a media tab, a link from Yomitan and a pasted
- * URL all arrive at the same place, and arrival is the one event they share.
- *
- * **Deleting always goes through here, on both paths.** The account's copy and
- * the device's copy have to go together: a row deleted only on the server is
- * still in this device's list, and the next search would file it again.
+ * The device list is primary and survives offline use; signed-in account history merges into
+ * it. Record on result arrival, not submit, so token clicks and external links count too.
+ * Delete through this composable so both copies are removed and cannot restore one another.
  */
 export function useSearchRecents() {
   const user = userStore();

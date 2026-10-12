@@ -3,20 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The per-category visibility switches on the account page.
- *
- * The row itself is markup; what is worth pinning is what happens AFTER the
- * click. The toggle is optimistic and rolls itself back when the write fails,
- * and it reports whether the change actually landed -- so announcing it before
- * checking that tells a reader their live-action titles are hidden while the
- * switch in front of them has already flipped back, and files an analytics event
- * for a preference nobody holds.
- *
- * The other half is ordering: the wording and the event both describe the
- * direction of travel, which has to be read BEFORE the toggle changes it, or
- * every message names the state the reader just left.
- */
+/** Read direction before the optimistic toggle; report success only after it lands, not after rollback. */
 const toggleCategory = vi.fn();
 const hidden = ref<string[]>([]);
 const capture = vi.fn();

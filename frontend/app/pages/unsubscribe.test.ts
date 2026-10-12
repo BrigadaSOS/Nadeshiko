@@ -3,21 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { reactive, ref } from 'vue';
 
-/**
- * Where the unsubscribe link in a lifecycle email lands.
- *
- * The property that matters most here is what this page does NOT do: it changes
- * nothing on arrival. Mail scanners and link-preview bots fetch every URL in a
- * message before the recipient has seen it, so a page that opted somebody out on
- * load would unsubscribe readers from mail they never opened -- silently, and
- * with no way for us to find out. The GET reads; the writes are explicit.
- *
- * The rest is the offer itself. Somebody who clicked this link is on their way
- * out, and a reader who only wanted the monthly recap to stop will take that
- * option if it is in front of them and take "stop everything" if it is not --
- * so the page must show the categories, and the state it shows has to be the
- * one the server actually holds rather than an optimistic guess.
- */
+// Arrival only reads: mail scanners must not trigger opt-outs. Show category choices
+// and the server's actual preferences, not optimistic defaults.
 const handleApiError = vi.fn();
 vi.mock('~/utils/apiError', () => ({ handleApiError: (...a: unknown[]) => handleApiError(...a) }));
 const toastSuccess = vi.fn();
@@ -63,7 +50,6 @@ async function render(token = 'tok-1') {
   return wrapper;
 }
 
-/** One switch by name: `all`, or a category. */
 function toggleFor(wrapper: ReturnType<typeof mount>, name: string) {
   const button = wrapper.find(`[data-testid="unsubscribe-${name}"]`);
   if (!button.exists()) throw new Error(`no switch for ${name}`);
@@ -98,8 +84,6 @@ describe('arriving on the page', () => {
   });
 
   test('reflects what the server holds, not a default', async () => {
-    // Showing everything as on to somebody who already stopped the recap tells
-    // them their last unsubscribe did not work.
     getEmailPreferencesByToken.mockResolvedValue(
       prefs({ categories: { recap: false, checkins: true, updates: true } }),
     );
@@ -117,8 +101,6 @@ describe('arriving on the page', () => {
   });
 
   test('a token the server rejects names the way out', async () => {
-    // The one failure the reader can route around themselves: the same switches
-    // live in their settings.
     getEmailPreferencesByToken.mockRejectedValue({ status: 400 });
     const wrapper = await render();
 
@@ -145,9 +127,7 @@ describe('flipping a switch', () => {
   });
 
   test('adopts the CATEGORY state the server sends back rather than assuming', async () => {
-    // Asserted with the master switch still ON, so the categories are read on
-    // their own: with `enabled` false they all render off regardless and the
-    // assertion would pass without the server's answer being used at all.
+    // Keep the master enabled: otherwise every category renders off even if the server reply is ignored.
     updateEmailPreferencesByToken.mockResolvedValue(
       prefs({ enabled: true, categories: { recap: false, checkins: true, updates: true } }),
     );
@@ -180,8 +160,6 @@ describe('flipping a switch', () => {
   });
 
   test('every switch goes dead while one is saving, because they share a record', async () => {
-    // Guarded on the buttons as well as in the handler, and the buttons are
-    // what a reader meets: two writes in flight would race over one record.
     let release!: () => void;
     updateEmailPreferencesByToken.mockReturnValue(new Promise<void>((r) => (release = () => r())));
     const wrapper = await render();
@@ -199,8 +177,6 @@ describe('flipping a switch', () => {
   });
 
   test('a failed write drops to the failure state rather than lying', async () => {
-    // And the switches go with it: leaving them on screen after a write that did
-    // not land shows a reader an opt-out they do not have.
     updateEmailPreferencesByToken.mockRejectedValue({ status: 500 });
     const wrapper = await render();
 

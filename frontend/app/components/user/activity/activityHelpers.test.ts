@@ -11,16 +11,7 @@ import {
   toDayKey,
 } from './activityHelpers';
 
-/**
- * The date arithmetic behind the activity heatmap.
- *
- * All of it is LOCAL-TIME on purpose, and that is the whole reason it is worth
- * pinning: a reader's activity belongs to the day they experienced, not the day
- * it was in UTC. Reaching for `toISOString()` here -- the obvious way to get a
- * `YYYY-MM-DD` -- silently shifts every evening's activity into tomorrow for
- * anyone east of UTC and every morning's into yesterday for anyone west, and the
- * heatmap still renders perfectly.
- */
+/** Use local calendar dates: UTC conversion can move activity to the neighboring heatmap day. */
 afterEach(() => {
   vi.useRealTimers();
 });

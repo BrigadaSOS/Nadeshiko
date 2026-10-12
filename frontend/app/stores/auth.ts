@@ -32,23 +32,15 @@ export type UserSession = {
 
 /** The shape of a better-auth session as both entry points receive it. */
 export interface SessionUser {
-  /**
-   * The account's primary key. Immutable and unique, unlike `name`, which is
-   * neither -- which is why this is what PostHog is keyed on.
-   */
+  /** PostHog uses the immutable, unique account id; display names are neither. */
   id?: string | null;
   name?: string | null;
   email?: string | null;
   role?: string | null;
   createdAt?: string | null;
   /**
-   * The reader's linked Shirabe account, folded onto the session by the backend
-   * because the word card needs it on every render.
-   *
-   * `stackFingerprint` names the dictionary stack their lookups are answered
-   * from. It rides here so a lookup URL can carry it: a linked reader's word
-   * cards are cached in this browser for a day, and this is the only thing in
-   * the request that moves when they reconfigure their dictionaries in Shirabe.
+   * Linked Shirabe state comes with the session. stackFingerprint invalidates browser-cached
+   * lookups when the reader changes their dictionaries.
    */
   shirabe?: {
     linked?: boolean;
@@ -70,11 +62,8 @@ export interface SessionInfo {
   token?: string | null;
   impersonatedBy?: unknown;
   /**
-   * When the session began, from the server rather than from anything this
-   * browser remembers. It is what lets an involuntary sign-out be reported with
-   * the session's age attached -- and the age is the whole diagnostic, because a
-   * mechanical expiry lands on the same number every time and nothing a reader
-   * does by choice ever does.
+   * Server-provided session start used to report lost-session age and detect clustered
+   * mechanical expiry.
    */
   createdAt?: string | null;
 }
@@ -182,13 +171,8 @@ export const userStore = defineStore('user', {
     },
 
     /**
-     * Writes a better-auth session into auth state, or clears it when there is none.
-     *
-     * Both entry points land here: the SSR plugin bootstrapping from the cookie, and
-     * the client re-reading after a login, impersonation switch or callback. The
-     * mapping used to be spelled out in both, so a field added to the session could
-     * be picked up on one path and not the other -- leaving the server-rendered page
-     * and the hydrated app disagreeing about who is signed in, or about their role.
+     * Share one session mapping between SSR bootstrap and client refresh so identity and role
+     * agree after hydration.
      */
     applySession(response: { user?: SessionUser | null; session?: SessionInfo | null } | null): boolean {
       const sessionUser = response?.user;
@@ -278,24 +262,15 @@ export const userStore = defineStore('user', {
     },
 
     /**
-     * Ask for a sign-in email.
-     *
-     * Returns the outcome rather than a bare boolean, because "we did not send
-     * one" has two very different meanings: something broke, or you already have
-     * five this hour and the server said when you may ask again. The second is
-     * not an error to apologise for, it is a number to count down.
+     * Distinguish a failed send from throttling so the UI can count down instead of showing a
+     * generic error.
      */
     async sendMagicLink(
       email: string,
     ): Promise<{ status: 'ok' } | { status: 'rate-limited'; retryAfterSeconds: number } | { status: 'failed' }> {
       try {
-        // `magic_callback` is kept alongside the shared marker so links already
-        // sitting in an inbox still land on a page that knows what they are.
-        //
-        // The intent rides along in the link because this is the one flow that can
-        // finish on a different device: mailed to a phone, opened on a laptop whose
-        // storage has never seen the modal. The parked copy still wins on arrival
-        // when there is one -- these parameters are the fallback.
+        // Keep magic_callback for existing emailed links. URL intent supports sign-in on
+        // another device; locally parked intent takes precedence.
         const callbackURL = withAuthIntentParams(
           `/?magic_callback=1&${AUTH_CALLBACK_PARAM}=1`,
           readAuthIntent(authIntentStorage(), Date.now()),
@@ -324,16 +299,8 @@ export const userStore = defineStore('user', {
     },
 
     /**
-     * The typed half of the emailed sign-in.
-     *
-     * Only works in the browser that asked for the mail: the backend leaves a
-     * sealed cookie when the link goes out and refuses a code without a matching
-     * one. That is what lets the code be six characters — see
-     * `app/services/auth/loginCode.ts` in the backend.
-     *
-     * Returns a reason rather than a boolean, because the two failures need
-     * different words: a wrong code is worth trying again, a code typed in the
-     * wrong browser never will be.
+     * Codes require the sealed cookie in the browser that requested the email. Distinguish
+     * wrong-browser from retryable failure; see backend/app/services/auth/loginCode.ts.
      */
     async signInWithCode(email: string, code: string): Promise<'ok' | 'wrong-browser' | 'failed'> {
       try {
@@ -409,27 +376,15 @@ export const userStore = defineStore('user', {
         // Marks this sign-out as the reader's own doing, so the next load does
         // not report it as a session they lost. See `reportLostSession`.
         writeStoredValue(authIntentStorage(), ANALYTICS_DELIBERATE_SIGN_OUT_KEY, String(Date.now()));
-        // Drops the identity so the next visitor on this browser is anonymous
-        // again. Deliberately does NOT clear `ANALYTICS_IDENTITY_KEY`: that record
-        // is what stops a sign-out and straight-back-in, inside the five minutes
-        // an account still counts as new, from reporting a second signup for an
-        // account that was only ever created once.
+        // Reset PostHog but retain ANALYTICS_IDENTITY_KEY so signing back in during the
+        // new-account window cannot report another signup.
         posthog?.reset();
       }
 
       this.resetAuthState();
 
-      // STAY WHERE THE READER WAS, unless the page needs an account.
-      //
-      // Signing out is not a request to go somewhere else. Most of this site is
-      // public -- a media page, a search, a sentence -- and being thrown back to
-      // the home page loses the reader's place for no reason.
-      //
-      // `/user/**` is the exception, and the only one: its guard lives in
-      // pages/user.vue and would bounce an anonymous visitor anyway, so going
-      // there ourselves avoids a redirect flash. `/settings/**` and `/admin/**`
-      // are only legacy redirects INTO `/user/**`, so they are covered by the
-      // same check once the locale prefix is off.
+      // Keep the reader's place on public pages. Redirect only /user routes, whose auth guard
+      // would redirect anyway; legacy settings and admin routes already redirect there.
       const { localizedPath } = splitLocalePrefix(router.currentRoute.value.path);
       if (localizedPath === '/user' || localizedPath.startsWith('/user/')) {
         await router.push(localePath('/'));
@@ -442,16 +397,9 @@ export const userStore = defineStore('user', {
       try {
         const response = await useNadeshikoSdk().getSession();
 
-        // The generated `AuthUser` is better-auth's base schema. `customSession` in
-        // config/auth.ts enriches what the server actually returns (role, provider),
-        // and the generator has no way to see that, so the enriched fields are read
-        // through our own `SessionUser` -- which is the type that documents them.
-        // Signup and login are no longer reported from here. This branch only ran
-        // when the client had to re-ask for the session, and after an auth round
-        // trip the SSR pass has already resolved it from the cookie -- so the one
-        // moment it was meant to catch was the one moment it could not run, and
-        // `signup_completed` fired 3 times in 180 days. `identity-auth` now
-        // reconciles identity on every load instead, where the answer is known.
+        // applySession handles customSession fields beyond the generated base schema.
+        // identity-auth owns signup/login reconciliation on every load, including sessions
+        // already resolved by SSR.
         if (!this.applySession(response)) return;
 
         this.preferences = await useNadeshikoSdk()

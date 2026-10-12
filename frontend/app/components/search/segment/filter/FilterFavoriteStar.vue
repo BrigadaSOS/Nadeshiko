@@ -1,19 +1,6 @@
 <script setup lang="ts">
-/**
- * The star that adds a title to the reader's favourites, shown both on a title
- * row and on the back row once they have drilled into that title's episodes --
- * one component so the two cannot drift apart.
- *
- * Always a sibling of the row's own button, never a child: a button inside a
- * button is invalid and breaks hydration.
- *
- * It carries no margin of its own. The two call sites need different ones -- a
- * row insets it from its border, the header has to pull it back out of the
- * header's padding -- and a margin here plus an override there is a coin toss:
- * Tailwind resolves two utilities for one property by stylesheet order, not by
- * the order they are written in the class attribute, so the header's `-mr-2`
- * quietly lost to this component's `mr-2` and left the star (and the count in
- * front of it) 16px off the column the rows use.
+/** Keep the star beside, never inside, a row button. Callers own margins: conflicting Tailwind utilities
+ * resolve by stylesheet order, not class order.
  */
 // Both branches below are roots, and Vue only hands the caller's class to the
 // first of them; the spacer would silently render without the margin the star

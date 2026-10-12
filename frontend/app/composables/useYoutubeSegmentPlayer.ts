@@ -3,15 +3,8 @@ import type { Ref } from 'vue';
 import { reportError, reportEvent } from '~/utils/reportError';
 
 /**
- * Inline YouTube playback for YOUTUBE segments via the IFrame Player API.
- *
- * iOS only plays media (with sound) from within a user-gesture, and the
- * `<video>` inside YouTube's cross-origin iframe is built asynchronously — so a
- * freshly-created player can never be started inside the tap. Instead we keep a
- * single *pre-warmed* player: its video element already exists and is unlocked
- * by the first tap, after which `loadVideoById` plays synchronously on every
- * later tap. One floating iframe is positioned over whichever segment is active,
- * so it still looks inline without re-parenting (which would reload the iframe).
+ * Keep one pre-warmed iframe so iOS playback can start inside a tap gesture. Position it over
+ * the active card without re-parenting, which would reload the iframe.
  */
 
 type PlayerState = {
@@ -20,11 +13,8 @@ type PlayerState = {
 };
 
 /**
- * The reactive part of the player lives in `useState` so an SSR render can
- * never observe a value another request left behind. The cached handle is only
- * ever filled in on the client -- where there is a single app instance -- so the
- * DOM callbacks below (scroll/resize listeners, the progress interval) can reach
- * the state without a Nuxt context.
+ * Reactive state uses request-scoped useState for SSR. Cache its handle only on the client so
+ * DOM callbacks can access it without a Nuxt context.
  */
 let clientState: PlayerState | null = null;
 
@@ -225,19 +215,9 @@ const YT_ERROR_MESSAGES: Record<number, string> = {
 };
 
 /**
- * Whether the time the player reports can be read as the current clip's own.
- *
- * `loadVideoById` and `seekTo` do not move the playhead synchronously: for a
- * few hundred milliseconds after either, `getCurrentTime` still answers with
- * the position the player was left on. A reading at or past the new clip's end
- * can only be such a leftover -- the clip has not begun, so it cannot have
- * finished -- and taking one at face value ends the clip on the first poll
- * after it starts. That is what made playing an earlier segment right after a
- * later one of the same video skip straight past it to the next card.
- *
- * The tick count is the way out of the guard: a seek that lands past
- * `endSeconds` -- a clip shorter than the gap between keyframes -- would
- * otherwise never settle, and nothing would be left to stop the video.
+ * After load or seek, getCurrentTime may still report the previous position. Ignore values past
+ * the new clip's end until the grace limit, which also prevents short, keyframe-overshot clips
+ * from running forever.
  */
 export function isClipTimeSettled(currentTime: number, endSeconds: number, ticksWaited: number): boolean {
   return currentTime < endSeconds || ticksWaited >= ARM_GRACE_TICKS;
@@ -250,12 +230,8 @@ function disarmClip() {
 }
 
 /**
- * The clip's bounds, in seconds.
- *
- * Deliberately unrounded. `startTimeMs` is a millisecond cut and
- * `loadVideoById` takes a float, so the `Math.floor` this used to do bought
- * nothing and started every YouTube clip up to a second ahead of where the
- * same segment's mp3 starts.
+ * Keep millisecond precision when converting to seconds; flooring starts clips up to a second
+ * early.
  */
 function setClipBounds(startMs: number, endMs: number) {
   startSeconds = Math.max(0, startMs / 1000);
@@ -297,14 +273,7 @@ function finishClip() {
   cb?.();
 }
 
-/**
- * End a clip that never started, telling the caller it failed rather than that
- * it finished.
- *
- * The distinction matters upstream: "ended" means play it again when the reader
- * has repeat on, and a video that cannot load would fail, repeat, and fail
- * again as fast as the iframe could report it.
- */
+/** Notify failure rather than ended so repeat mode cannot loop an unplayable video. */
 function failClip() {
   const cb = failedCallback;
   endedCallback = null;
@@ -313,15 +282,7 @@ function failClip() {
   cb?.();
 }
 
-/**
- * Re-assert the wanted volume and speed on the player.
- *
- * Called on ready, on every load, and again once the loaded video reaches
- * PLAYING -- not once at setup: a player that has not finished loading drops
- * both, and while the IFrame API documents them as persisting across
- * `loadVideoById`, a clip that came back at the wrong speed is
- * indistinguishable to the reader from a broken control.
- */
+/** Apply settings on ready, load, and PLAYING: the iframe may drop them while loading. */
 function applyPlaybackSettings() {
   // The IFrame API takes volume as 0-100, unlike HTMLMediaElement's 0-1.
   player?.setVolume?.(Math.round(desiredVolume * 100));
@@ -500,13 +461,8 @@ export function useYoutubeSegmentPlayer() {
   }
 
   /**
-   * Widen (or narrow) the playing clip and rewind to its new start.
-   *
-   * What an expansion needs: the video is already loaded, so there is nothing
-   * to fetch -- only the window to move and the playhead to put back at the
-   * start of the half that was just pulled in. A paused player stays paused,
-   * since `seekTo` does not resume one, so this is safe to call whether or not
-   * the reader is listening right now.
+   * Retiming seeks the already-loaded video to the new start; seekTo leaves a paused player
+   * paused.
    */
   function retimeClip(startMs: number, endMs: number) {
     setClipBounds(startMs, endMs);

@@ -20,19 +20,14 @@ const { locale, t, d } = useI18n();
 const { url: siteUrl } = useSiteConfig();
 const localePath = useLocalePath();
 
-// Strips whichever locale the path carries, not just the active one. The two go
-// out of step on a language switch: `locale` flips first and `route.path` still
-// reads /en/about for a tick, so matching only the active locale left the prefix
-// on, asked the content API for the page "en/about", and turned every switch on
-// a markdown page into a 404 that a reload then silently repaired.
+// Strip any locale prefix: locale changes before route.path during a language switch.
 const slug = computed(() => {
   const { localizedPath } = splitLocalePrefix(route.path);
   return localizedPath.replace(/^\//, '').replace(/\/$/, '') || 'index';
 });
 
 const isBlogPost = computed(() => slug.value.startsWith('blog/'));
-// The changelog stacks ~30 version headings on one page, so it runs them at a
-// smaller size than a prose page that has three of them.
+// Smaller headings keep the dense release history readable.
 const isChangelog = computed(() => slug.value === 'changelog');
 
 const { data, error } = await useAsyncData(
@@ -41,8 +36,7 @@ const { data, error } = await useAsyncData(
     $fetch<MarkdownPagePayload>(`/api/_site/page/${slug.value}`, {
       query: { locale: locale.value },
     }).catch((fetchError: { statusCode?: number; status?: number }) => {
-      // A missing page is a genuine 404; anything else is our content route failing
-      // and must not be dressed up as "this page does not exist".
+      // Only missing content is a 404; propagate content-route failures.
       const status = fetchError?.statusCode ?? fetchError?.status;
       if (status === 404) return null;
       reportError('content:page-fetch-failed', fetchError, { 'content.slug': slug.value });
@@ -61,9 +55,7 @@ if (!data.value) {
   throw notFound();
 }
 
-// `useAsyncData` refetches whenever the path or locale changes, but setup runs
-// once: without this, hopping to another missing page keeps this component alive
-// and renders a blank body instead of the error page.
+// Setup runs once; show errors from subsequent path/locale refetches too.
 watch([data, error], ([page, fetchError]) => {
   if (fetchError) {
     showError(loadFailed());
@@ -83,8 +75,7 @@ const contentDate = computed(() => {
   if (raw instanceof Date) return raw.toISOString();
   return null;
 });
-// The English copy is served verbatim when the active locale has no translation,
-// so the body has to declare its real language for screen readers and search engines.
+// Declare the fallback body's actual language for screen readers and crawlers.
 const isEnglishFallback = computed(() => data.value?.isFallback === true);
 const contentLang = computed(() => (isEnglishFallback.value ? 'en' : locale.value));
 
@@ -139,10 +130,7 @@ useHead(() => ({
     { name: 'description', content: description.value },
     { property: 'og:title', content: title.value },
     { property: 'og:description', content: description.value },
-    // A blog post is an Article and says so in its JSON-LD; the og:type stayed
-    // `website` because nothing in the app ever set it, so the whole site
-    // inherited the one declared in nuxt.config. The dated fields only go out
-    // when there is a date to put in them.
+    // Match the Article schema for blog posts; omit dates when none are available.
     { property: 'og:type', content: isBlogPost.value ? 'article' : 'website' },
     ...(isBlogPost.value && contentDate.value
       ? [
@@ -209,7 +197,6 @@ useHead(() => ({
   font-size: 0.9375rem;
 }
 
-/* Lists */
 .content-markdown :deep(ul) {
   margin-left: 1.5rem;
   margin-bottom: 1.5rem;
@@ -229,13 +216,11 @@ useHead(() => ({
   font-weight: 600;
 }
 
-/* Nested lists */
 .content-markdown :deep(li > ul) {
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
 }
 
-/* Headings */
 .content-markdown :deep(h1) {
   font-size: 2.5rem;
   font-weight: 800;
@@ -338,8 +323,7 @@ useHead(() => ({
   }
 }
 
-/* Changelog: a version heading per release, so they run smaller than the two or
-   three headings a prose page has. */
+/* Dense release headings run smaller than prose headings. */
 .content-markdown.is-changelog :deep(h2) {
   font-size: 1.375rem;
   margin-top: 2.75rem;
@@ -392,7 +376,6 @@ useHead(() => ({
   line-height: 1.5;
 }
 
-/* Images */
 .content-markdown :deep(p:has(> img)) {
   display: flex;
   justify-content: center;
@@ -553,7 +536,6 @@ useHead(() => ({
   margin-bottom: 2rem;
 }
 
-/* Paragraphs */
 .content-markdown :deep(p) {
   font-size: 1.125rem;
   color: #d1d5db;
@@ -562,7 +544,6 @@ useHead(() => ({
   letter-spacing: 0.01em;
 }
 
-/* Links */
 .content-markdown :deep(a) {
   color: var(--button-color-accent);
   text-decoration: none;
@@ -576,7 +557,6 @@ useHead(() => ({
   border-bottom-color: var(--button-color-accent);
 }
 
-/* Links inside headings */
 .content-markdown :deep(h1 a),
 .content-markdown :deep(h2 a) {
   color: #d1d5db;
@@ -614,7 +594,6 @@ useHead(() => ({
   color: var(--button-color-accent);
 }
 
-/* Code blocks (shiki) */
 .content-markdown :deep(pre.shiki) {
   padding: 1rem 1.25rem;
   border-radius: 0.5rem;
@@ -633,7 +612,6 @@ useHead(() => ({
   color: inherit;
 }
 
-/* Inline code */
 .content-markdown :deep(code) {
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 0.875em;
@@ -643,7 +621,6 @@ useHead(() => ({
   color: #e1e4e8;
 }
 
-/* Contributor card overrides */
 .content-markdown :deep(.about-contributor-card img) {
   margin: 0;
 }
@@ -663,7 +640,6 @@ useHead(() => ({
   }
 }
 
-/* Contributor boxes and grid styling */
 .content-markdown :deep(.grid) {
   gap: 1.5rem;
 }
@@ -679,7 +655,6 @@ useHead(() => ({
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
-/* Blurred background for contributor images */
 .content-markdown :deep(.border .relative) {
   overflow: hidden;
   position: relative;

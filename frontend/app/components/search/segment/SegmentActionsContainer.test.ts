@@ -3,24 +3,8 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * The Add / Copy / Download menus on a result card.
- *
- * What is pinned here is the ANKI GATING, which is three conditions with a
- * deliberate precedence between them. Both exports need a configured profile;
- * only the note PICKER needs a key field, because it is the one that searches on
- * it -- "add to last added card" targets `added:2 is:new` and has never consulted
- * the key. And a profile can be perfectly filled in while Anki is closed, which
- * is a different problem again.
- *
- * The message ordering is the part that cannot be eyeballed: no amount of
- * running Anki helps a profile with no note type, so configuration is reported
- * ahead of reachability. Getting that backwards sends a reader to start Anki
- * when what they actually need is to finish their settings.
- *
- * `connectReachable === null` is its own case: nothing has asked AnkiConnect
- * this session, and disabling the export on that would disable it for every
- * reader who has not opened a word card yet.
+/** Report missing configuration before Anki reachability. Only the note picker requires a key field. null
+ * reachability means untested, not unavailable.
  */
 const activeProfile = ref<Record<string, unknown> | null>(null);
 const connectReachable = ref<boolean | null>(null);

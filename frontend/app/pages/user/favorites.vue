@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * Legacy redirect: starring moved into the combined `/user/media` tab.
- * See the note in `hide-media.vue` for why this is a page and not a route rule.
- */
+// Legacy /user/media redirect; see hide-media.vue for the locale-preserving page approach.
 definePageMeta({
   robots: false,
   middleware: defineNuxtRouteMiddleware(() =>

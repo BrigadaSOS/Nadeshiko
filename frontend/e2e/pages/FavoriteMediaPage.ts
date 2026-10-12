@@ -1,14 +1,7 @@
 import { type Locator, type Page, expect } from '@playwright/test';
 
-/**
- * The favorites half of the single Manage Media card on `/user/media`.
- *
- * That card is one search box over one list: typing shows catalogue results
- * (`media-lookup-result`), an empty box shows the titles already marked
- * (`managed-media-item`). Both carry the same star and eye controls, so the
- * favorites "list" is the marked rows whose star is on -- hence `data-favorite`
- * rather than a list-specific testid.
- */
+// Manage Media switches between catalogue search results and marked titles. Both use
+// the same controls; favorites are marked rows with data-favorite, not a separate list.
 export class FavoriteMediaPage {
   readonly page: Page;
   readonly searchInput: Locator;
@@ -49,26 +42,13 @@ export class FavoriteMediaPage {
     await expect(this.searchResults.first()).toBeVisible({ timeout: 10_000 });
   }
 
-  /**
-   * One card, one list: catalogue results while the box has text, the titles
-   * you have marked once it is empty. Emptying it is how you get back to the
-   * marked list after acting on a search result.
-   */
+  // Emptying the search returns to the marked-title list.
   async clearSearch() {
     await this.searchInput.fill('');
     await expect(this.searchResults).toHaveCount(0);
   }
 
-  /**
-   * Clicks the star AND waits for the account to have taken it.
-   *
-   * The click handler fires the write without awaiting it, and the list updates
-   * optimistically -- so a test that only checks the row it just starred is
-   * asserting against client state while the POST is still in flight. Navigate
-   * on that and the next server render is built from preferences the write has
-   * not reached yet: the sort-to-top test failed exactly that way, and only
-   * passed when an earlier test happened to have paid the latency first.
-   */
+  // Wait for the account write, not just optimistic UI, before a subsequent SSR navigation.
   async starMedia(row: Locator) {
     await this.toggleFavorite(row);
   }

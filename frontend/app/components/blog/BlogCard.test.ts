@@ -3,18 +3,7 @@ import { mount } from '@vue/test-utils';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ref } from 'vue';
 
-/**
- * A post's card on the blog index.
- *
- * The date is the fragile part. Frontmatter dates arrive as strings, as `Date`s,
- * as the empty object a serialiser leaves behind, and sometimes as nonsense --
- * and every one of those used to be handed to the formatter. The card must show
- * NOTHING rather than "Invalid Date", which is what a reader would otherwise
- * read as the publication date.
- *
- * The link prefers the post's own `path` over one built from the slug, because a
- * post nested under a section has a path the slug alone cannot reconstruct.
- */
+/** Hide invalid dates; nested posts need their own path rather than one rebuilt from the slug. */
 const d = vi.fn((value: Date) => value.toISOString().slice(0, 10));
 
 // AUTO-IMPORTED here, not pulled from 'vue-i18n' -- a module mock never applies.

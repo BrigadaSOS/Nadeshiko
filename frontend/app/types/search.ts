@@ -30,14 +30,8 @@ export type SearchResult = {
   blobAudio: Blob | null;
   blobAudioUrl: string | null;
   /**
-   * The span an expansion merged, set alongside the blob by
-   * `useSegmentConcatenation` and null while the card shows its own line.
-   *
-   * Kept beside the segment rather than written into its `startTimeMs` /
-   * `endTimeMs`: those are what the card's timestamp, the "watch on YouTube"
-   * deep link and the Anki note's timestamp are built from, and none of them
-   * should move because the reader pulled in a neighbouring line. The clip that
-   * *plays* is the only thing that grows -- see `resolveClipWindow`.
+   * Expanded playback span, null for the original line. Keep it separate from segment timestamps so expansion
+   * does not move card timestamps, YouTube links or Anki timestamps; see `resolveClipWindow`.
    */
   expandedWindow: ClipWindow | null;
 };
@@ -64,10 +58,7 @@ export type SearchStatsResponse = {
   categories: ResolvedCategoryCount[];
 };
 
-/**
- * The subset of the merged search state (results + stats) that the sidebar and its filter
- * panels read. Kept structural so it stays decoupled from how the container assembles it.
- */
+/** Structural sidebar view of merged results and stats, independent of container assembly. */
 export type SearchSidebarData = {
   results?: SearchResult[];
   media?: ResolvedMediaStats[];

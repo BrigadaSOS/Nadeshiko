@@ -26,25 +26,20 @@ async function copyApiKey() {
   scheduleCopiedReset();
 }
 
-// Create modal state
 const modalKeyName = ref('');
 
 type ScopePreset = 'readOnly' | 'fullAccount' | 'custom';
 const modalScopePreset = ref<ScopePreset>('readOnly');
 const modalCustomScopes = ref<ApiKeyScope[]>([...READ_ONLY_API_KEY_SCOPES]);
 
-// Read-only is the default because it is the right answer for the case that
-// actually sends people here -- pasting a key into a third-party learning tool
-// -- and because the cost of the two mistakes is not symmetric: too few scopes
-// is a second visit to this page, too many is a credential in someone else's
-// code that can rewrite this account.
+// Default to read-only for third-party tools: extra write scopes create risk; missing scopes only require
+// another visit.
 const selectedScopes = computed<ApiKeyScope[]>(() => {
   if (modalScopePreset.value === 'readOnly') return [...READ_ONLY_API_KEY_SCOPES];
   if (modalScopePreset.value === 'fullAccount') return [...FULL_ACCOUNT_API_KEY_SCOPES];
   return modalCustomScopes.value;
 });
 
-// Rename modal state
 const renameKeyId = ref<string | null>(null);
 const renameKeyName = ref('');
 
@@ -82,11 +77,8 @@ const fetchMe = () =>
     return null;
   });
 
-// Server-rendered. `/v1/auth/api-key/list` and `/v1/user/me` are both off the
-// public allowlist, so the SDK sends the reader's session cookie rather than the
-// service key and the keys that come back are theirs. This was `server: false`
-// while the SSR client signed everything as the service, which would have listed
-// the service account's API keys instead.
+// These non-public routes carry the reader's session cookie during SSR, not the service key; listed keys
+// belong to them.
 const { data: apiData, refresh: refreshApiKeys } = await useAsyncData('developer-api-keys', async () => {
   loadFailed.value = false;
   const [keysRaw, meRes] = await Promise.all([fetchApiKeyList(), fetchMe()]);
@@ -129,15 +121,8 @@ const quotaPercentage = computed(() => {
   return (used / limit) * 100;
 });
 
-/**
- * The burst allowance, phrased per minute.
- *
- * There is no counter to pair it with, and deliberately no bar: the window is
- * 60 seconds, so any number this page rendered would describe a moment that had
- * already passed by the time it painted. What a reader needs from this is the
- * ceiling and the fact that it exists separately from the month -- because a
- * 429 with plenty of month left is otherwise unexplainable, which is what sent
- * the support thread behind this to us in the first place.
+/** Show the burst ceiling separately from monthly quota: either can cause 429. A live counter would already be
+ * stale at paint.
  */
 const burstPerMinute = computed(() => {
   const burst = fieldOptions.value.quota.burst;
@@ -244,11 +229,9 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
 </script>
 
 <template>
-    <!-- Card -->
     <div class="nd-settings-card">
         <h3 class="nd-settings-title">{{ $t('accountSettings.developer.apiUsageTitle') }}</h3>
         <div class="mt-4">
-            <!-- Progress -->
             <div class="flex items-center gap-x-3 whitespace-nowrap">
                 <div class="flex w-full h-6 bg-gray-200 rounded-lg overflow-hidden dark:bg-neutral-600" role="progressbar"
                     aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
@@ -259,7 +242,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                     <span class="text-sm text-gray-800 dark:text-white">{{ quotaPercentage.toFixed(0) }}%</span>
                 </div>
             </div>
-            <!-- End Progress -->
         </div>
         <p class="mt-3 text-gray-300">{{ $t('accountSettings.developer.apiUsageRemaining', {
           used: fieldOptions.quota?.quotaUsed,
@@ -285,7 +267,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
         </p>
     </div>
 
-    <!-- Card -->
     <div class="nd-settings-card">
         <div class="flex items-center">
             <div class="flex flex-col">
@@ -377,7 +358,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                               <!-- The header carries this on a wide screen; stacked, the
                                    date is a bare string with nothing to say what it is. -->
                               <span class="md:hidden">{{ $t('accountSettings.developer.tableHeaders.createdAt') }}: </span>
-                              <!-- For a while some db items didn't have createdAt date, so as a placeholder we show this date -->
                               {{ formatDate(item.createdAt) }}
                             </td>
 
@@ -472,7 +452,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
         </div>
     </div>
 
-    <!-- Create API Key Modal -->
     <CommonBaseModal
         data-testid="create-apikey-modal"
         :open="showCreateModal"
@@ -585,7 +564,6 @@ const deactivateApiKey = async (item: ApiKeyListItem) => {
                 </div>
     </CommonBaseModal>
 
-    <!-- Rename API Key Modal -->
     <CommonBaseModal
         data-testid="rename-apikey-modal"
         :open="showRenameModal"

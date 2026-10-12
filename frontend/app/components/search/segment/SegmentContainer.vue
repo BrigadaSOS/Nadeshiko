@@ -66,7 +66,6 @@ const selectedResult = ref<SearchResult | null>(null);
 const searchNoteResult = ref<SearchResult | null>(null);
 const segmentToEdit = ref<SearchResult | null>(null);
 
-// Keyboard navigation
 const focusedIndex = ref<number | null>(null);
 
 if (props.highlightedPosition != null) {
@@ -248,20 +247,7 @@ const openAnkiModal = (result: SearchResult) => {
 };
 
 const openEditModal = (result: SearchResult) => {
-  // Collapse an expansion before the editor reads the card.
-  //
-  // It has to be here rather than on success, because everything that goes
-  // wrong has already gone wrong by then. `ModalSegmentEdit` seeds its form
-  // from `segment.textJa.content`, which on an expanded card is the three
-  // merged sentences -- so the reader is handed the neighbours' text to edit,
-  // and saving PUTs all three to the API as the one sentence's content. The
-  // result it emits back then spreads the expansion's `highlight` and `tokens`
-  // forward too, which would re-stamp the merged text onto the card whatever
-  // we did to it afterwards.
-  //
-  // Reverting first means the editor opens on the sentence it names. The
-  // expansion is lost, which is the honest outcome: it is one click to rebuild,
-  // and the alternative was editing a sentence the card was not showing.
+  // Revert before seeding the editor: expanded neighboring text/tokens must not be saved as this segment.
   if (isConcatenated(result)) revertActiveConcatenation();
 
   segmentToEdit.value = result;
@@ -303,7 +289,6 @@ watch(resultList, (list) => {
   if (expanded && !list.includes(expanded)) revertActiveConcatenation();
 });
 
-// Filter navigation method
 const localePath = useLocalePath();
 const router = useRouter();
 const route = useRoute();
@@ -341,7 +326,6 @@ const mediaFilterLink = (media: SearchResult['media'], episodeNumber?: number) =
   );
 const sentenceLink = (segmentPublicId: string) => localePath(buildSentencePath(segmentPublicId));
 
-// Youtube videos logic
 const ytPlayer = useYoutubeSegmentPlayer();
 const playingVideoId = ytPlayer.activeSegmentId;
 
@@ -430,7 +414,6 @@ watch(playingVideoId, (id) => {
         'nd-row-hover': focusedIndex !== index
           && !(currentResult && result.segment.publicId === currentResult.segment.publicId),
       }">
-      <!-- Image -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[25rem] aspect-video min-[650px]:aspect-auto min-[650px]:h-56 min-w-[200px] flex justify-center relative overflow-hidden">
         <!-- YouTube: the host is always present so the IFrame API can mount its
              iframe synchronously inside the tap (required for iOS autoplay).
@@ -463,9 +446,7 @@ watch(playingVideoId, (id) => {
           <span>{{ revealedContent.has(result.segment.publicId) ? $t('segment.contentRatingHide') : $t('segment.contentRatingShow') }}</span>
         </button>
       </div>
-      <!-- End Image -->
 
-      <!-- Remove from collection button -->
       <div v-if="collectionId" class="absolute top-2 right-2 z-10">
         <button type="button"
           v-if="confirmingRemoveId !== result.segment.publicId"
@@ -490,12 +471,10 @@ watch(playingVideoId, (id) => {
         </div>
       </div>
 
-      <!-- Details -->
       <div class="w-full py-3 px-4 rounded-e-lg text-white flex flex-col"
         :class="segmentLangRows.length > 0 ? 'sm:py-2' : 'sm:pt-5 sm:pb-3'"
       >
         <div class="flex flex-col">
-          <!-- First Row -->
           <div class="flex items-center justify-between py-1">
             <!-- Audio button (plays the inline YouTube embed for YouTube segments) -->
             <button type="button" data-testid="audio-play-button" :aria-label="$t('segment.playAudio')" @click="playerStore.setPlaylist(resultList, index)"
@@ -507,7 +486,6 @@ watch(playingVideoId, (id) => {
                 role="status" :aria-label="$t('segment.loading')"></span>
             </button>
 
-            <!-- Japanese Sentence -->
             <div class="flex flex-1 relative items-start justify-start my-auto gap-2">
               <h3 lang="ja" data-testid="segment-japanese-text" class="ml-2 text-xl xxl:text-lg leading-snug">
                 <SearchSegmentTokenText
@@ -520,7 +498,6 @@ watch(playingVideoId, (id) => {
                 />
                 <span v-else class="leading-snug" v-html="displaySegmentText(result.segment.textJa.content, result.segment.textJa.highlight)"></span>
               </h3>
-              <!-- Content Rating Badge -->
               <span v-if="result.segment.contentRating?.toUpperCase() === 'QUESTIONABLE'"
                 class="relative inline-flex group/nsfw items-center justify-center rounded-lg border border-orange-700/50 bg-orange-100 px-2.5 py-1.5 font-semibold leading-none text-orange-800 dark:bg-orange-900/40 dark:text-orange-300 whitespace-nowrap shrink-0 self-center yomitan-ignore">
                 <span class="text-[11px]">{{ $t('segment.nsfwTag') }}</span>
@@ -542,11 +519,8 @@ watch(playingVideoId, (id) => {
                 </span>
               </span>
             </div>
-            <!-- End Japanese Sentence -->
           </div>
-          <!-- Second Row -->
           <div v-if="segmentLangRows.length > 0" class="mt-1 pb-2 flex-1 flex items-center">
-            <!-- Spanish and English Sentences -->
             <ul class="m-0 w-full list-none text-gray-400 space-y-1.5">
               <li :data-testid="`translation-row-${segmentLanguageLabel[row.lang]}`"
                 class="text-base xxl:text-lg xxm:text-2xl flex items-center gap-2 transition-opacity duration-200"
@@ -588,20 +562,14 @@ watch(playingVideoId, (id) => {
                 </div>
               </li>
             </ul>
-            <!-- End Spanish and English Sentences -->
           </div>
 
           <div>
-            <!-- Fourth Row -->
-            <!-- Buttons  -->
             <div class="pt-2 pb-2">
               <SearchSegmentActionsContainer :content="result" :hide-context-button="hideContextButton" :is-expanding="isConcatenating" :is-expanded="isConcatenated(result)" @open-context-modal="openModal"
                 @open-anki-modal="openAnkiModal(result)" @open-edit-modal="openEditModal" @open-report-modal="openReportModal" @concat-sentence="(s, dir) => loadNextSegment(s, dir, props.isLoading)" @revert-concat="() => revertActiveConcatenation()" />
             </div>
-            <!-- End Buttons  -->
 
-            <!-- Fifth Row -->
-            <!-- Media details  -->
             <div class="justify-left">
               <p data-testid="segment-media-info" class="text-sm xxl:text-base xxm:text-2xl text-white/50 tracking-wide font-semibold mt-0 mb-0">
                 <NuxtLink
@@ -661,7 +629,6 @@ watch(playingVideoId, (id) => {
           </div>
         </div>
       </div>
-      <!-- End Details -->
     </div>
     </div>
 
@@ -676,24 +643,20 @@ watch(playingVideoId, (id) => {
   <div v-else-if="!failure && ((isLoading && (searchData?.results?.length ?? 0) === 0) || !searchData)" class="w-full">
     <div v-for="i in 10" :key="i"
       class="hover:bg-neutral-800/20 mb-11 animate-pulse items-stretch b-2 rounded-lg group transition-all flex flex-col min-[650px]:flex-row py-2">
-      <!-- Image placeholder  -->
       <div class="shrink-0 w-auto min-[650px]:w-2/5 min-[900px]:w-[26em]">
         <div class="aspect-video min-[650px]:aspect-auto min-[650px]:h-56 w-full max-w-2xl min-[650px]:max-w-none mx-auto bg-gray-300 dark:bg-neutral-700"></div>
       </div>
 
-      <!-- Content placeholders  -->
       <div class="w-full py-3 sm:py-2 px-4 rounded-e-md flex flex-col justify-between">
         <div class="flex items-center space-x-2 py-1">
           <div class="h-6 bg-gray-300 dark:bg-neutral-700 rounded-full w-5/6"></div>
         </div>
 
-        <!-- Spanish and English translations -->
         <div class="mt-4 space-y-4">
           <div class="h-4 bg-gray-300 dark:bg-neutral-700 rounded-full w-3/4"></div>
           <div class="h-4 bg-gray-300 dark:bg-neutral-700 rounded-full w-3/4"></div>
         </div>
 
-        <!-- Action buttons -->
         <div class="flex space-x-2 mt-4">
           <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
           <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
@@ -701,7 +664,6 @@ watch(playingVideoId, (id) => {
           <div class="w-24 h-8 bg-gray-300 dark:bg-neutral-700 rounded-md"></div>
         </div>
 
-        <!-- Media details -->
         <div class="mt-4">
           <div class="h-4 bg-gray-300 dark:bg-neutral-700 rounded-full w-2/4"></div>
         </div>
@@ -715,12 +677,7 @@ watch(playingVideoId, (id) => {
           <div class="flex flex-col items-center max-w-lg mx-auto text-center">
             <img class="mb-6"
               src="/assets/no-results.gif" :alt="$t('searchContainer.noResultsImageAlt')" />
-            <!-- One heading, not two. This used to read "404" over "No results
-                 found…", which was a pair rather than a repetition; an unrelated
-                 commit renamed the first to "No results" and left the page saying
-                 the same thing twice in two sizes. The `<h1>` is the one that
-                 stays: a search with no matches is not a 404, and the heading a
-                 crawler reads should be the honest one. -->
+            <!-- An empty search is not a 404; keep one honest heading rather than duplicate no-results labels. -->
             <h1 class="text-2xl font-semibold text-gray-800 dark:text-white md:text-3xl">{{ $t(failure ? SEARCH_FAILURE_MESSAGES[failure.kind].title : 'searchpage.main.labels.noresults') }}</h1>
             <p class="mt-4 text-gray-500 dark:text-gray-400">
               <i18n-t v-if="!failure || failure.kind === 'not-found'" keypath="segment.noResultsMessage" tag="span">
@@ -764,12 +721,9 @@ watch(playingVideoId, (id) => {
               />
               <p class="text-sm leading-relaxed text-ink-muted">
                 <i18n-t keypath="segment.noResultsSupport" tag="span">
-                  <!-- A span, not an anchor. The card around it is already the
-                       link, and an <a> inside an <a> is invalid HTML that browsers
-                       recover from by splitting the outer one -- which would give
-                       the reader two overlapping targets instead of the single
-                       large one this change exists to create. It keeps the link
-                       styling because it still names where the card goes. -->
+                  <!-- The support card is already an anchor; a nested link would be invalid and split the outer
+                       target.
+                       -->
                   <template #link>
                     <span class="text-red-400 underline underline-offset-4">Patreon</span>
                   </template>
@@ -788,7 +742,6 @@ watch(playingVideoId, (id) => {
         </div>
       </div>
     </section>
-    <!-- Get anki cards based on input -->
   </div>
 </template>
 <style>

@@ -1,17 +1,6 @@
 /**
- * Collapses the duplicate `$exception` events PostHog records for a single throw.
- *
- * Two independent PostHog paths capture the same error: `@posthog/nuxt` hooks
- * `vue:error` and calls `captureException` (recorded handled), while posthog-js's
- * own `capture_exceptions` autocapture catches the same throw through
- * `onerror`/`onunhandledrejection` (recorded unhandled). Both are wanted in
- * isolation — one covers errors Vue swallows, the other covers everything outside
- * Vue — but an async rejection that Vue also sees trips both and lands twice,
- * roughly doubling the occurrence count on the affected issues.
- *
- * The module gates its hook on the same `capture_exceptions` flag that drives the
- * global handlers, so there is no config that separates them. Deduping the events
- * themselves is what is left.
+ * Vue's error hook and PostHog's global handlers can capture the same throw. Both coverage paths are needed
+ * and share one enable flag, so deduplicate their serialized events.
  */
 
 /**
